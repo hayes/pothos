@@ -1,4 +1,4 @@
-import builder from '../builder';
+import { builder } from '../builder';
 import { getDroid, getHero, getHuman } from '../data';
 import { Episode } from './episode';
 

@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { GraphQLEnumType, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLNamedType, GraphQLObjectType, GraphQLSchema, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-import { InputTypeRef, NormalizeArgs, SchemaTypes } from '../core/index.ts';
+import { NormalizeArgs, SchemaTypes } from '../core/index.ts';
 import { AddGraphQLEnumTypeOptions, AddGraphQLInputTypeOptions, AddGraphQLInterfaceTypeOptions, AddGraphQLObjectTypeOptions, AddGraphQLUnionTypeOptions, EnumValuesWithShape, } from './types.ts';
 import type { PothosAddGraphQLPlugin } from './index.ts';
 declare global {
@@ -18,19 +18,19 @@ declare global {
         export interface SchemaBuilder<Types extends SchemaTypes> {
             addGraphQLObject: <Shape>(type: GraphQLObjectType<Shape>, ...args: NormalizeArgs<[
                 options: AddGraphQLObjectTypeOptions<Types, Shape>
-            ]>) => ObjectRef<Shape>;
+            ]>) => ObjectRef<Types, Shape>;
             addGraphQLInterface: <Shape>(type: GraphQLInterfaceType, ...args: NormalizeArgs<[
                 options: AddGraphQLInterfaceTypeOptions<Types, Shape>
-            ]>) => InterfaceRef<Shape>;
+            ]>) => InterfaceRef<Types, Shape>;
             addGraphQLUnion: <Shape>(type: GraphQLUnionType, ...args: NormalizeArgs<[
-                options: AddGraphQLUnionTypeOptions<Types, ObjectRef<Shape>>
-            ]>) => UnionRef<Shape>;
+                options: AddGraphQLUnionTypeOptions<Types, ObjectRef<Types, Shape>>
+            ]>) => UnionRef<Types, Shape>;
             addGraphQLEnum: <Shape extends number | string>(type: GraphQLEnumType, ...args: NormalizeArgs<[
                 options: AddGraphQLEnumTypeOptions<Types, EnumValuesWithShape<Types, Shape>>
-            ]>) => EnumRef<Shape>;
+            ]>) => EnumRef<Types, Shape>;
             addGraphQLInput: <Shape extends {}>(type: GraphQLInputObjectType, ...args: NormalizeArgs<[
                 options: AddGraphQLInputTypeOptions<Types, Shape>
-            ]>) => InputTypeRef<Shape>;
+            ]>) => InputObjectRef<Types, Shape>;
         }
     }
 }

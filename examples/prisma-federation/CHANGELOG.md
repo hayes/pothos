@@ -1,5 +1,53 @@
 # @pothos-examples/relay
 
+## 3.0.0-next.4
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/plugin-directives@4.0.0-next.1
+  - @pothos/plugin-federation@4.0.0-next.1
+  - @pothos/plugin-prisma@4.0.0-next.4
+  - @pothos/plugin-relay@4.0.0-next.1
+  - @pothos/core@4.0.0-next.1
+
+## 3.0.0-next.3
+
+### Patch Changes
+
+- Updated dependencies [924ae0b]
+  - @pothos/plugin-prisma@4.0.0-next.3
+
+## 3.0.0-next.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @pothos/plugin-prisma@4.0.0-next.2
+
+## 3.0.0-next.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @pothos/plugin-prisma@4.0.0-next.1
+
+## 3.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/plugin-directives@4.0.0-next.0
+  - @pothos/plugin-federation@4.0.0-next.0
+  - @pothos/plugin-prisma@4.0.0-next.0
+  - @pothos/plugin-relay@4.0.0-next.0
+  - @pothos/core@4.0.0-next.0
+
 ## 2.8.63
 
 ### Patch Changes

@@ -13,6 +13,7 @@ import {
   ExposeNullability,
   FieldKind,
   FieldRef,
+  InferredFieldOptionKeys,
   InputFieldMap,
   InterfaceParam,
   isThenable,
@@ -52,38 +53,31 @@ import { FieldMap } from './util/relation-map';
 const RootBuilder: {
   // eslint-disable-next-line @typescript-eslint/prefer-function-type
   new <Types extends SchemaTypes, Shape, Kind extends FieldKind>(
-    name: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     kind: FieldKind,
     graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
-type ContextForAuth<
-  Types extends SchemaTypes,
-  Scopes extends {} = {},
-> = PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
-  Context: infer T;
-}
-  ? T extends object
-    ? T
-    : object
-  : object;
+type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
+  PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
+    Context: infer T;
+  }
+    ? T extends object
+      ? T
+      : object
+    : object;
 
-type FieldAuthScopes<
-  Types extends SchemaTypes,
-  Parent,
-  Args extends {} = {},
-> = PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
-  Scopes: infer T;
-}
-  ? T
-  : never;
+type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {} = {}> =
+  PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
+    Scopes: infer T;
+  }
+    ? T
+    : never;
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  NeedsResolve extends boolean,
   Shape extends object = Model['Shape'],
 > extends RootBuilder<Types, Shape, 'PrismaObject'> {
   model: string;
@@ -116,7 +110,6 @@ export class PrismaObjectFieldBuilder<
       ) => PothosSchemaTypes.PrismaObjectFieldBuilder<
         Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> },
         Model,
-        NeedsResolve,
         Shape
       >
     : '@pothos/plugin-scope-auth is required to use this method' = withAuth as never;
@@ -130,19 +123,31 @@ export class PrismaObjectFieldBuilder<
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         field: Field,
-        options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
+        options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args>,
         ...args: NormalizeArgs<
           [
             connectionOptions:
               | ObjectRef<
+                  Types,
+                  ShapeFromConnection<
+                    PothosSchemaTypes.ConnectionShapeHelper<
+                      Types,
+                      TypesForRelation<Types, Model, Field>['Shape'],
+                      false
+                    >
+                  >
+                >
+              | ObjectRef<
+                  Types,
                   ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
                 >
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
                   ObjectRef<
+                    Types,
                     ShapeFromTypeParam<
                       Types,
-                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      [ObjectRef<Types, TypesForRelation<Types, Model, Field>['Shape']>],
                       Nullable
                     >
                   >,
@@ -152,7 +157,7 @@ export class PrismaObjectFieldBuilder<
                     Types,
                     ShapeFromTypeParam<
                       Types,
-                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      [ObjectRef<Types, TypesForRelation<Types, Model, Field>['Shape']>],
                       Nullable
                     >,
                     Shape,
@@ -161,16 +166,25 @@ export class PrismaObjectFieldBuilder<
                   ConnectionInterfaces
                 >,
             edgeOptions:
-              | ObjectRef<{
-                  cursor: string;
-                  node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
-                }>
+              | ObjectRef<
+                  Types,
+                  {
+                    cursor: string;
+                    node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                  }
+                >
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
                   ObjectRef<
+                    Types,
                     ShapeFromTypeParam<
                       Types,
-                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      [
+                        ObjectRef<
+                          Types,
+                          Model['Relations'][Field & keyof Model['Relations']]['Shape']
+                        >,
+                      ],
                       Nullable
                     >
                   >,
@@ -179,7 +193,12 @@ export class PrismaObjectFieldBuilder<
                     Types,
                     ShapeFromTypeParam<
                       Types,
-                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      [
+                        ObjectRef<
+                          Types,
+                          Model['Relations'][Field & keyof Model['Relations']]['Shape']
+                        >,
+                      ],
                       Nullable
                     >,
                     Shape,
@@ -191,10 +210,11 @@ export class PrismaObjectFieldBuilder<
           0
         >
       ) => FieldRef<
+        Types,
         ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>>
       >
     : '@pothos/plugin-relay is required to use this method' = function relatedConnection(
-    this: PrismaObjectFieldBuilder<SchemaTypes, Model, boolean>,
+    this: PrismaObjectFieldBuilder<SchemaTypes, Model>,
     name: string,
     {
       maxSize = this.builder.options.prisma.maxConnectionSize,
@@ -207,7 +227,7 @@ export class PrismaObjectFieldBuilder<
       description,
       ...options
     }: {
-      type?: ObjectRef<unknown, unknown>;
+      type?: ObjectRef<Types, unknown, unknown>;
       totalCount?: boolean;
       maxSize?: number | ((args: {}, ctx: {}) => number);
       defaultSize?: number | ((args: {}, ctx: {}) => number);
@@ -260,7 +280,7 @@ export class PrismaObjectFieldBuilder<
     };
 
     const cursorSelection = ModelLoader.getCursorSelection(
-      ref,
+      ref as never,
       relationField.type,
       cursorValue,
       this.builder,
@@ -283,11 +303,12 @@ export class PrismaObjectFieldBuilder<
 
       const totalCountOnly = selection.selectionSet?.selections.length === 1 && hasTotalCount;
 
-      const countSelect = this.builder.options.prisma.filterConnectionTotalCount
-        ? nested.where
-          ? { where: nested.where }
-          : true
-        : true;
+      const countSelect =
+        this.builder.options.prisma.filterConnectionTotalCount !== false
+          ? nested.where
+            ? { where: nested.where }
+            : true
+          : true;
 
       return {
         select: {
@@ -309,7 +330,7 @@ export class PrismaObjectFieldBuilder<
 
     const fieldRef = (
       this as unknown as {
-        connection: (...args: unknown[]) => FieldRef<unknown>;
+        connection: (...args: unknown[]) => FieldRef<Types, unknown>;
       }
     ).connection(
       {
@@ -402,17 +423,21 @@ export class PrismaObjectFieldBuilder<
     return fieldRef;
   } as never;
 
+  typename: string;
+
   constructor(
-    name: string,
+    typename: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     model: string,
     fieldMap: FieldMap,
     graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind] = 'Object',
   ) {
-    super(name, builder, 'PrismaObject', graphqlKind);
+    super(builder, 'PrismaObject', graphqlKind);
 
     this.model = model;
     this.prismaFieldMap = fieldMap;
+    this.typename = typename;
+    this.builder = builder;
   }
 
   relation<
@@ -423,25 +448,14 @@ export class PrismaObjectFieldBuilder<
   >(
     name: Field,
     ...allArgs: NormalizeArgs<
-      [
-        options: RelatedFieldOptions<
-          Types,
-          Model,
-          Field,
-          Nullable,
-          Args,
-          ResolveReturnShape,
-          NeedsResolve,
-          Shape
-        >,
-      ]
+      [options: RelatedFieldOptions<Types, Model, Field, Nullable, Args, ResolveReturnShape, Shape>]
     >
-  ): FieldRef<Model['Relations'][Field]['Shape'], 'Object'> {
+  ): FieldRef<Types, Model['Relations'][Field]['Shape'], 'Object'> {
     const [{ description, ...options } = {} as never] = allArgs;
     const relationField = getRelation(this.model, this.builder, name);
     const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
 
-    const { query = {}, resolve, extensions, ...rest } = options;
+    const { query = {}, resolve, extensions, onNull, ...rest } = options;
 
     const relationSelect = (
       args: object,
@@ -468,8 +482,16 @@ export class PrismaObjectFieldBuilder<
               info,
             )),
       },
-      resolve: (parent) => (parent as Record<string, never>)[name],
-    }) as FieldRef<Model['Relations'][Field]['Shape'], 'Object'>;
+      resolve: (parent) => {
+        const result = (parent as Record<string, never>)[name];
+
+        if (typeof onNull === 'function' && result == null) {
+          return onNull(parent, {} as never, {} as never, {} as never) as never;
+        }
+
+        return result;
+      },
+    }) as FieldRef<Types, Model['Relations'][Field]['Shape'], 'Object'>;
   }
 
   relationCount<Field extends Model['RelationName'], Args extends InputFieldMap>(
@@ -479,13 +501,12 @@ export class PrismaObjectFieldBuilder<
         options: RelationCountOptions<
           Types,
           Shape,
-          NeedsResolve,
           TypesForRelation<Types, Model, Field>['Where'],
           Args
         >,
       ]
     >
-  ): FieldRef<number, 'Object'> {
+  ): FieldRef<Types, number, 'Object'> {
     const [{ where, ...options } = {} as never] = allArgs;
 
     const { resolve, ...rest } = options;
@@ -512,26 +533,30 @@ export class PrismaObjectFieldBuilder<
       select: countSelect as never,
       resolve: (parent, args, context, info) =>
         (parent as unknown as { _count: Record<string, never> })._count?.[name],
-    }) as FieldRef<number, 'Object'>;
+    }) as FieldRef<Types, number, 'Object'>;
   }
 
-  variant<Variant extends Model['Name'] | PrismaRef<Model>, Args extends InputFieldMap, Nullable>(
+  variant<
+    Variant extends Model['Name'] | PrismaRef<Types, Model>,
+    Args extends InputFieldMap,
+    Nullable,
+  >(
     variant: Variant,
     ...allArgs: NormalizeArgs<
       [
         options: VariantFieldOptions<
           Types,
           Model,
-          Variant extends PrismaRef<Model> ? Variant : PrismaRef<Model>,
+          Variant extends PrismaRef<Types, Model> ? Variant : PrismaRef<Types, Model>,
           Args,
           Nullable,
           Shape
         >,
       ]
     >
-  ): FieldRef<Model['Shape'], 'Object'> {
+  ): FieldRef<Types, Model['Shape'], 'Object'> {
     const [{ isNull, nullable, ...options } = {} as never] = allArgs;
-    const ref: PrismaRef<PrismaModelTypes> =
+    const ref: PrismaRef<Types, PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
     const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
@@ -557,7 +582,7 @@ export class PrismaObjectFieldBuilder<
             return parent as never;
           }
         : (parent) => parent as never,
-    }) as FieldRef<Model['Shape'], 'Object'>;
+    }) as FieldRef<Types, Model['Shape'], 'Object'>;
   }
 
   expose<
@@ -579,7 +604,7 @@ export class PrismaObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'description' | 'nullable' | 'resolve' | 'select'
+            'description' | 'nullable' | 'select' | InferredFieldOptionKeys
           > & {
             description?: string | false;
           },
@@ -613,7 +638,12 @@ export class PrismaObjectFieldBuilder<
     return <
       Nullable extends boolean,
       ResolveReturnShape,
-      Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
+      Name extends CompatibleTypes<
+        Types,
+        Model['Shape'],
+        Type,
+        Type extends [unknown] ? { list: true; items: true } : true
+      >,
     >(
       name: Name,
       ...args: NormalizeArgs<
@@ -628,13 +658,13 @@ export class PrismaObjectFieldBuilder<
                 {},
                 ResolveReturnShape
               >,
-              'description' | 'nullable' | 'resolve' | 'select' | 'type'
+              'description' | 'nullable' | 'select' | 'type' | InferredFieldOptionKeys
             > & {
               description?: string | false;
             },
         ]
       >
-    ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> => {
+    ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> => {
       const [options = {} as never] = args;
 
       return this.expose<Type, Nullable, ResolveReturnShape, never>(
@@ -665,10 +695,7 @@ function addScopes(
   return builder as never;
 }
 
-function withAuth(
-  this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, false, {}>,
-  scopes: {},
-) {
+function withAuth(this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, {}>, scopes: {}) {
   return addScopes(
     scopes,
     new PrismaObjectFieldBuilder(

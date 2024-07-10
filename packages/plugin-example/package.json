@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-example",
-  "version": "3.5.9",
+  "version": "4.0.0-next.1",
   "description": "An example plugin for Pothos",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -42,13 +42,13 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@pothos/core": "*",
-    "graphql": ">=15.1.0"
+    "@pothos/core": "4.0.0-next.1",
+    "graphql": "^16.8.1"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "^16.8.1",
+    "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

@@ -5,7 +5,7 @@ import { ForbiddenError } from './errors.ts';
 import RequestCache from './request-cache.ts';
 import type { PothosScopeAuthPlugin, ResolveStep, UnauthorizedForTypeErrorFn } from './index.ts';
 export function isTypeOfHelper<Types extends SchemaTypes>(steps: ResolveStep<Types>[], plugin: PothosScopeAuthPlugin<Types>, isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined) {
-    const globalUnauthorizedError = plugin.builder.options.scopeAuthOptions?.unauthorizedError;
+    const globalUnauthorizedError = plugin.builder.options.scopeAuth?.unauthorizedError;
     const createError: UnauthorizedForTypeErrorFn<Types, object> = (parent, context, info, result) => globalUnauthorizedError
         ? globalUnauthorizedError(parent, context, info, result)
         : result.message;

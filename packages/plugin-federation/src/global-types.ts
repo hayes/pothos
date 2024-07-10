@@ -4,6 +4,8 @@ import { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
   FieldRequiredness,
+  InferredFieldOptionsByKind,
+  InferredFieldOptionKeys,
   InputFieldMap,
   InputType,
   MaybePromise,
@@ -52,14 +54,31 @@ declare global {
         ResolveReturnShape
       > & {
         requires?: Selection<ResolveShape & object>;
-      };
-      ExternalEntity: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+      } & InferredFieldOptionsByKind<
+          Types,
+          Types['InferredFieldOptionsKind'],
+          ParentShape & ResolveShape,
+          Type,
+          Nullable,
+          Args,
+          ResolveReturnShape
+        >;
+      ExternalEntity: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       >;
-      EntityObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+
+      EntityObject: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       > & {
         resolve: Resolver<
           ParentShape,
@@ -103,7 +122,7 @@ declare global {
       ) => GraphQLSchema;
 
       asEntity: <
-        Param extends InterfaceRef<unknown> | ObjectRef<unknown>,
+        Param extends InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
         KeySelection extends Selection<object>,
       >(
         param: Param,
@@ -114,7 +133,7 @@ declare global {
             context: Types['Context'],
             info: GraphQLResolveInfo,
           ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-          interfaceObject?: Param extends ObjectRef<unknown> ? boolean : never;
+          interfaceObject?: Param extends ObjectRef<Types, unknown> ? boolean : never;
         },
       ) => void;
     }

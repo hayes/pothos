@@ -1,5 +1,17 @@
 # @pothos/plugin-federation
 
+## 4.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
 ## 3.16.1
 
 ### Patch Changes

@@ -1,8 +1,8 @@
 // @ts-nocheck
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, InferredFieldOptionKeys, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 export type DataloaderKey = bigint | number | string;
-export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
+export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, InferredFieldOptionKeys> & {
     byPath?: ByPath;
     load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
@@ -17,7 +17,7 @@ export type LoadableListFieldOptions<Types extends SchemaTypes, ParentShape, Typ
     Type
 ]>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, [
     Type
-], Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve" | "type"> & {
+], Nullable, Args, Kind, Key, ResolveReturnShape>, InferredFieldOptionKeys | "type"> & {
     type: Type;
     byPath?: ByPath;
     load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | ShapeFromTypeParam<Types, [
@@ -35,7 +35,7 @@ export type LoadableGroupFieldOptions<Types extends SchemaTypes, ParentShape, Ty
     Type
 ]>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, [
     Type
-], Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve" | "type"> & {
+], Nullable, Args, Kind, Key, ResolveReturnShape>, InferredFieldOptionKeys | "type"> & {
     type: Type;
     byPath?: ByPath;
     load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;
@@ -55,8 +55,8 @@ export type DataLoaderOptions<Types extends SchemaTypes, LoadResult, Key extends
     cacheResolved?: (value: Shape) => Key;
     sort?: (value: Shape) => Key;
 });
-export type DataloaderObjectTypeOptions<Types extends SchemaTypes, LoadResult, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey, Shape> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> & ObjectTypeOptions<Types, NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>, Shape, Interfaces>;
-export type LoadableInterfaceOptions<Types extends SchemaTypes, LoadResult, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends InterfaceParam<Types> | string, CacheKey, Shape = ShapeFromLoadResult<LoadResult>> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> & InterfaceTypeOptions<Types, NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>, Shape, Interfaces>;
+export type DataloaderObjectTypeOptions<Types extends SchemaTypes, LoadResult, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey, Shape> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> & ObjectTypeOptions<Types, NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Types, Shape>, Shape, Interfaces>;
+export type LoadableInterfaceOptions<Types extends SchemaTypes, LoadResult, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends InterfaceParam<Types> | string, CacheKey, Shape = ShapeFromLoadResult<LoadResult>> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> & InterfaceTypeOptions<Types, NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Types, Shape>, Shape, Interfaces>;
 export type LoadableUnionOptions<Types extends SchemaTypes, Key extends bigint | number | string, Member extends ObjectParam<Types>, CacheKey, Shape> = DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape> & PothosSchemaTypes.UnionTypeOptions<Types, Member>;
 export type LoaderShapeFromType<Types extends SchemaTypes, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>> = Type extends [
     TypeParam<Types>

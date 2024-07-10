@@ -1,0 +1,28 @@
+{
+  "title": "Guide",
+  "pages": [
+    "objects",
+    "queries-and-mutations",
+    "schema-builder",
+    "fields",
+    "args",
+    "context",
+    "inputs",
+    "enums",
+    "scalars",
+    "interfaces",
+    "unions",
+    "using-plugins",
+    "inferring-types",
+    "app-layout",
+    "generating-client-types",
+    "patterns",
+    "printing-schemas",
+    "changing-default-nullability",
+    "writing-plugins",
+    "deno",
+    "circular-references",
+    "troubleshooting",
+    "..."
+  ]
+}

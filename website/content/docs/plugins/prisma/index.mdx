@@ -1,0 +1,142 @@
+---
+title: Prisma plugin
+description: Prisma plugin docs for Pothos
+---
+
+This plugin provides tighter integration with prisma, making it easier to define prisma based object
+types, and helps solve n+1 queries for relations. It also has integrations for the relay plugin to
+make defining nodes and connections easy and efficient.
+
+This plugin is NOT required to use prisma with Pothos, but does make things a lot easier and more
+efficient. See the [Using Prisma without a plugin](#using-prisma-without-a-plugin) section below for
+more details.
+
+## Features
+
+- 🎨 Quickly define GraphQL types based on your Prisma models
+- 🦺 Strong type-safety throughout the entire API
+- 🤝 Automatically resolve relationships defined in your database
+- 🎣 Automatic Query optimization to efficiently load the specific data needed to resolve a query
+  (solves common N+1 issues)
+- 💅 Types and fields in GraphQL schema are not implicitly tied to the column names or types in your
+  database.
+- 🔀 Relay integration for defining nodes and connections that can be efficiently loaded.
+- 📚 Supports multiple GraphQL models based on the same Database model
+- 🧮 Count fields can easily be added to objects and connections
+
+## Example
+
+Here is a quick example of what an API using this plugin might look like. There is a more thorough
+breakdown of what the methods and options used in the example below.
+
+```typescript
+// Create an object type based on a prisma model
+// without providing any custom type information
+builder.prismaObject('User', {
+  fields: (t) => ({
+    // expose fields from the database
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      // automatically load the bio from the profile
+      // when this field is queried
+      select: {
+        profile: {
+          select: {
+            bio: true,
+          },
+        },
+      },
+      // user will be typed correctly to include the
+      // selected fields from above
+      resolve: (user) => user.profile.bio,
+    }),
+    // Load posts as list field.
+    posts: t.relation('posts', {
+      args: {
+        oldestFirst: t.arg.boolean(),
+      },
+      // Define custom query options that are applied when
+      // loading the post relation
+      query: (args, context) => ({
+        orderBy: {
+          createdAt: args.oldestFirst ? 'asc' : 'desc',
+        },
+      }),
+    }),
+    // creates relay connection that handles pagination
+    // using prisma's built in cursor based pagination
+    postsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+    }),
+  }),
+});
+
+// Create a relay node based a prisma model
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    // Define a field that issues an optimized prisma query
+    me: t.prismaField({
+      type: 'User',
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findUniqueOrThrow({
+          // the `query` argument will add in `include`s or `select`s to
+          // resolve as much of the request in a single query as possible
+          ...query,
+          where: { id: ctx.userId },
+        }),
+    }),
+  }),
+});
+```
+
+Given this schema, you would be able to resolve a query like the following with a single prisma
+query (which will still result in a few optimized SQL queries).
+
+```graphql
+query {
+  me {
+    email
+    posts {
+      title
+      author {
+        id
+      }
+    }
+  }
+}
+```
+
+A query like
+
+```graphql
+query {
+  me {
+    email
+    posts {
+      title
+      author {
+        id
+      }
+    }
+    oldPosts: posts(oldestFirst: true) {
+      title
+      author {
+        id
+      }
+    }
+  }
+}
+```
+
+Will result in 2 calls to prisma, one to resolve everything except `oldPosts`, and a second to
+resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query,
+so we need a separate to handle the second `posts` relation.

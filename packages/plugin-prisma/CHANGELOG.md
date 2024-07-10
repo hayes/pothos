@@ -1,5 +1,42 @@
 # Change Log
 
+## 4.0.0-next.4
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
+## 4.0.0-next.3
+
+### Patch Changes
+
+- 924ae0b: rebuild generator
+
+## 4.0.0-next.2
+
+### Patch Changes
+
+- fix datamodel generator
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- Fix prismaFieldWithInput
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+
 ## 3.65.3
 
 ### Patch Changes
@@ -940,7 +977,7 @@
   You will need to remove PrismaClient from the builder types, so your builder setup now looks like:
 
   ```typescript
-  import PrismaPlugin, { PrismaTypes } from "@giraphql/plugin-prisma";
+  import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin-prisma';
 
   export default new SchemaBuilder<{}>({
     prisma: {
@@ -956,9 +993,9 @@
   builder.prismaObject(prisma.post, {
     findUnique: (post) => ({ id: post.id }),
     fields: (t) => ({
-      id: t.exposeID("id"),
-      title: t.exposeString("title"),
-      author: t.relation("author"),
+      id: t.exposeID('id'),
+      title: t.exposeString('title'),
+      author: t.relation('author'),
     }),
   });
 

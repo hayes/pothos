@@ -10,7 +10,7 @@ const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, nev
 };
 export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Types>[], plugin: PothosScopeAuthPlugin<Types>, fieldConfig: PothosOutputFieldConfig<Types>) {
     const unauthorizedResolver = fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
-    const globalUnauthorizedError = plugin.builder.options.scopeAuthOptions?.unauthorizedError;
+    const globalUnauthorizedError = plugin.builder.options.scopeAuth?.unauthorizedError;
     const defaultUnauthorizedError: UnauthorizedErrorFn<Types, object, {}> = (parent, args, context, info, result) => {
         if (globalUnauthorizedError) {
             return globalUnauthorizedError(parent, context, info, result);

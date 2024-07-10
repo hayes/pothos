@@ -16,7 +16,7 @@ import {
   Kind,
   SelectionSetNode,
 } from 'graphql';
-import { PothosValidationError } from '@pothos/core';
+import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
 
 import type { ComplexityResult, FieldComplexity } from '.';
@@ -53,10 +53,11 @@ function complexityFromField(
   }
 
   if (typeof complexityOption === 'function') {
-    const args = getArgumentValues(
+    const args = getMappedArgumentValues(
       field as GraphQLField<unknown, unknown>,
       selection,
-      info.variableValues,
+      ctx,
+      info,
     ) as Record<string, unknown>;
 
     complexityOption = complexityOption(args, ctx, field as GraphQLField<unknown, {}, {}>);

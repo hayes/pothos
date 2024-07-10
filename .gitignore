@@ -32,7 +32,6 @@ tmp/
 # Custom
 *.min.js
 *.map
-todo.md
 
 # Generated configs
 .devcontainer

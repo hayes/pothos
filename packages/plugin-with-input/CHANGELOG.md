@@ -1,5 +1,48 @@
 # @pothos/plugin-with-input
 
+## 4.0.0-next.5
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
+## 4.0.0-next.4
+
+### Patch Changes
+
+- rebuild with-input plugin
+
+## 4.0.0-next.3
+
+### Patch Changes
+
+- fix fieldWithInput when used with fieldWithAuth
+
+## 4.0.0-next.2
+
+### Patch Changes
+
+- rebuild with-input plugin
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- Fix prismaFieldWithInput
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+
 ## 3.10.2
 
 ### Patch Changes
@@ -22,7 +65,7 @@
   An example usage of this:
 
   ```ts
-  import WithInputPlugin from "@pothos/plugin-with-input";
+  import WithInputPlugin from '@pothos/plugin-with-input';
   const builder = new SchemaBuilder({
     plugins: [WithInputPlugin],
     withInput: {
@@ -30,7 +73,7 @@
         name: ({ parentTypeName, fieldName }) => {
           const capitalizedFieldName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}`;
           // This will remove the default Query/Mutation prefix from the input type name
-          if (parentTypeName === "Query" || parentTypeName === "Mutation") {
+          if (parentTypeName === 'Query' || parentTypeName === 'Mutation') {
             return `${capitalizedFieldName}Input`;
           }
 

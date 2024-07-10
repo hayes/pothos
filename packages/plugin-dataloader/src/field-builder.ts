@@ -28,7 +28,7 @@ fieldBuilderProto.loadable = function loadable<
   CacheKey,
   ResolveReturnShape,
   Nullable extends FieldNullability<Type> = SchemaTypes['DefaultFieldNullability'],
-  ByPath extends boolean = false,
+  ByPath extends boolean = boolean,
 >({
   load,
   sort,
@@ -48,7 +48,7 @@ fieldBuilderProto.loadable = function loadable<
   CacheKey,
   FieldKind,
   ByPath
->): FieldRef<unknown> {
+>): FieldRef<SchemaTypes, unknown> {
   const getLoader = pathDataloaderGetter<
     Key,
     LoaderShapeFromType<SchemaTypes, Type, Nullable>,
@@ -96,7 +96,7 @@ fieldBuilderProto.loadableList = function loadableList<
   CacheKey,
   ResolveReturnShape,
   Nullable extends FieldNullability<[Type]> = SchemaTypes['DefaultFieldNullability'],
-  ByPath extends boolean = false,
+  ByPath extends boolean = boolean,
 >({
   load,
   sort,
@@ -116,7 +116,7 @@ fieldBuilderProto.loadableList = function loadableList<
   CacheKey,
   FieldKind,
   ByPath
->): FieldRef<unknown> {
+>): FieldRef<SchemaTypes, unknown> {
   const getLoader = pathDataloaderGetter<
     Key,
     ShapeFromTypeParam<SchemaTypes, [Type], Nullable>,
@@ -175,7 +175,7 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
   CacheKey,
   FieldKind,
   ByPath
->): FieldRef<unknown> {
+>): FieldRef<SchemaTypes, unknown> {
   const getLoader = pathDataloaderGetter<
     Key,
     ShapeFromTypeParam<SchemaTypes, Type, true>[],

@@ -1,16 +1,28 @@
 // @ts-nocheck
 import type { GraphQLFieldExtensions } from 'https://cdn.skypack.dev/graphql?dts';
-import type { InputFieldMap, InputShapeFromFields, Resolver, Subscriber } from '../builder-options.ts';
+import type { InferredFieldOptionsByKind, InputFieldMap, InputShapeFromFields, Resolver, Subscriber, } from '../builder-options.ts';
 import type { SchemaTypes } from '../schema-types.ts';
 import type { FieldNullability, FieldRequiredness, InputShapeFromTypeParam, InputType, ShapeFromTypeParam, TypeParam, } from '../type-params.ts';
 declare global {
     export namespace PothosSchemaTypes {
+        export interface InferredFieldOptions<Types extends SchemaTypes, ResolveShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveReturnShape = unknown> {
+            Resolve: {
+                /**
+                 * Resolver function for this field
+                 * @param parent - The parent object for the current type
+                 * @param {object} args - args object based on the args defined for this field
+                 * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+                 * @param {GraphQLResolveInfo} info - info about how this field was queried
+                 */
+                resolve: Resolver<ResolveShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
+            };
+        }
         export interface FieldOptions<Types extends SchemaTypes = SchemaTypes, ParentShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveShape = unknown, ResolveReturnShape = unknown> {
             /** The type for this field */
             type: Type;
             /** arguments for this field (created via `t.args`) */
             args?: Args;
-            /** determins if this field can return null */
+            /** determines if this field can return null */
             nullable?: Nullable;
             /** text description for this field.  This will be added into your schema file and visable in tools like graphql-playground */
             description?: string;
@@ -18,64 +30,16 @@ declare global {
             deprecationReason?: string;
             /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
             extensions?: GraphQLFieldExtensions<ParentShape, Types["Context"], InputShapeFromFields<Args>>;
-            /**
-             * Resolver function for this field
-             * @param parent - The parent object for the current type
-             * @param {object} args - args object based on the args defined for this field
-             * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-             * @param {GraphQLResolveInfo} info - info about how this field was queried
-             */
-            resolve?: Resolver<ResolveShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
         }
         export interface ObjectFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape> extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape, ResolveReturnShape> {
-            /**
-             * Resolver function for this field
-             * @param parent - The parent object for the current type
-             * @param {object} args - args object based on the args defined for this field
-             * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-             * @param {GraphQLResolveInfo} info - info about how this field was queried
-             */
-            resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
         }
         export interface QueryFieldOptions<Types extends SchemaTypes, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape> extends FieldOptions<Types, Types["Root"], Type, Nullable, Args, Types["Root"], ResolveReturnShape> {
-            /**
-             * Resolver function for this field
-             * @param root - The root object for this request
-             * @param {object} args - args object based on the args defined for this field
-             * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-             * @param {GraphQLResolveInfo} info - info about how this field was queried
-             */
-            resolve: Resolver<Types["Root"], InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
         }
         export interface MutationFieldOptions<Types extends SchemaTypes, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape> extends FieldOptions<Types, Types["Root"], Type, Nullable, Args, Types["Root"], ResolveReturnShape> {
-            /**
-             * Resolver function for this field
-             * @param root - The root object for this request
-             * @param {object} args - args object based on the args defined for this field
-             * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-             * @param {GraphQLResolveInfo} info - info about how this field was queried
-             */
-            resolve: Resolver<Types["Root"], InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
         }
         export interface InterfaceFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape> extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape, ResolveReturnShape> {
-            /**
-             * Resolver function for this field
-             * @param root - The root object for this request
-             * @param {object} args - args object based on the args defined for this field
-             * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-             * @param {GraphQLResolveInfo} info - info about how this field was queried
-             */
-            resolve?: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
         }
         export interface SubscriptionFieldOptions<Types extends SchemaTypes, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> extends FieldOptions<Types, Types["Root"], Type, Nullable, Args, ResolveShape, ResolveReturnShape> {
-            /**
-             * Resolver function for this field
-             * @param parent - The parent object for this subscription (yielded by subscribe)
-             * @param {object} args - args object based on the args defined for this field
-             * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-             * @param {GraphQLResolveInfo} info - info about how this field was queried
-             */
-            resolve: Resolver<ResolveShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
             /**
              * Resolver function for this field
              * @param root - The root object for this request
@@ -86,11 +50,11 @@ declare global {
             subscribe: Subscriber<Types["Root"], InputShapeFromFields<Args>, Types["Context"], ResolveShape>;
         }
         export interface FieldOptionsByKind<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {
-            Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
-            Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
-            Subscription: SubscriptionFieldOptions<Types, Type, Nullable, Args, ResolveShape, ResolveReturnShape>;
-            Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
-            Interface: InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
+            Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], Types["Root"], Type, Nullable, Args, ResolveReturnShape>;
+            Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], Types["Root"], Type, Nullable, Args, ResolveReturnShape>;
+            Subscription: SubscriptionFieldOptions<Types, Type, Nullable, Args, ResolveShape, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], ResolveShape, Type, Nullable, Args, ResolveReturnShape>;
+            Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], ParentShape, Type, Nullable, Args, ResolveReturnShape>;
+            Interface: InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & Partial<InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], ParentShape, Type, Nullable, Args, ResolveReturnShape>>;
         }
         export interface InputFieldOptions<Types extends SchemaTypes = SchemaTypes, Type extends InputType<Types> | [
             InputType<Types>

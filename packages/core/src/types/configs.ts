@@ -10,6 +10,7 @@ import type {
   GraphQLInterfaceTypeConfig,
   GraphQLObjectType,
   GraphQLObjectTypeConfig,
+  GraphQLResolveInfo,
   GraphQLScalarType,
   GraphQLScalarTypeConfig,
   GraphQLUnionType,
@@ -27,7 +28,7 @@ import type {
   OutputType,
   TypeParam,
 } from './type-params';
-import type { Merge } from './utils';
+import type { Merge, MergeUnion, PartialResolveInfo } from './utils';
 
 export interface PothosQueryTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
@@ -122,6 +123,11 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
       name: string;
       type: PothosOutputFieldType<Types>;
       args: Record<string, PothosInputFieldConfig<Types>>;
+      argMappers: ((
+        args: Record<string, unknown>,
+        context: Types['Context'],
+        info: PartialResolveInfo,
+      ) => Record<string, unknown>)[];
       pothosOptions: FieldOptionsFromKind<
         Types,
         unknown,
@@ -131,7 +137,12 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
         K,
         unknown,
         unknown
-      >;
+      > &
+        MergeUnion<
+          {
+            [K in keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]: PothosSchemaTypes.InferredFieldOptions<SchemaTypes>[K];
+          }[keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]
+        >;
     }
   >;
 }[Kind];

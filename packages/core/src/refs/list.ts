@@ -1,8 +1,8 @@
 import { outputShapeKey, parentShapeKey, SchemaTypes, TypeParam } from '../types';
-import BaseTypeRef from './base';
+import { BaseTypeRef } from './base';
 
-export default class ListRef<Types extends SchemaTypes, T, P = T>
-  extends BaseTypeRef
+export class ListRef<Types extends SchemaTypes, T, P = T>
+  extends BaseTypeRef<Types>
   implements PothosSchemaTypes.ListRef<Types, T, P>
 {
   override kind = 'List' as const;

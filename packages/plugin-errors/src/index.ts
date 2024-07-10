@@ -83,7 +83,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   ): PothosOutputFieldConfig<Types> | null {
     const errorOptions = fieldConfig.pothosOptions.errors;
 
-    const errorBuilderOptions = this.builder.options.errorOptions;
+    const errorBuilderOptions = this.builder.options.errors;
 
     if (!errorOptions) {
       return fieldConfig;
@@ -229,4 +229,9 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin, {
+  v3: (options) => ({
+    errorOptions: undefined,
+    errors: options?.errorOptions,
+  }),
+});

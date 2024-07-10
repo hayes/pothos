@@ -1,3 +1,5 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 export type MaybePromise<T> = Promise<T> | T;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,14 +39,16 @@ export type EmptyToOptional<T> = T extends object
 export type NormalizeNullable<T> = undefined extends T
   ? T | null | undefined
   : null extends T
-  ? T | null | undefined
-  : T;
+    ? T | null | undefined
+    : T;
 
-export type NormalizeNullableFields<T extends object> = {
-  [K in OptionalKeys<T>]?: T[K] | null | undefined;
-} & {
-  [K in RequiredKeys<T>]: T[K];
-};
+export type NormalizeNullableFields<T extends object> = Normalize<
+  {
+    [K in OptionalKeys<T>]?: T[K] | null | undefined;
+  } & {
+    [K in RequiredKeys<T>]: T[K];
+  }
+>;
 
 // Check if T is a Record of string keys who's values are not functions
 export type IsSimpleRecord<T> = (
@@ -67,28 +71,38 @@ export type IsSimpleRecord<T> = (
 export type RecursivelyNormalizeNullableFields<T> = T extends null | undefined
   ? null | undefined
   : T extends (infer L)[]
-  ? RecursivelyNormalizeNullableFields<L>[]
-  : T extends (...args: any[]) => unknown
-  ? T
-  : keyof T extends string
-  ? IsSimpleRecord<T> extends true
-    ? Normalize<
-        {
-          [K in OptionalKeys<T & object>]?: K extends string
-            ? RecursivelyNormalizeNullableFields<NonNullable<T[K]>> | null | undefined
-            : T[K];
-        } & {
-          [K in RequiredKeys<T & object>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
-        }
-      >
-    : T
-  : T;
+    ? RecursivelyNormalizeNullableFields<L>[]
+    : T extends (...args: any[]) => unknown
+      ? T
+      : keyof T extends string
+        ? IsSimpleRecord<T> extends true
+          ? Normalize<
+              {
+                [K in OptionalKeys<T & object>]?: K extends string
+                  ? RecursivelyNormalizeNullableFields<NonNullable<T[K]>> | null | undefined
+                  : T[K];
+              } & {
+                [K in RequiredKeys<T & object>]: RecursivelyNormalizeNullableFields<
+                  NonNullable<T[K]>
+                >;
+              }
+            >
+          : T
+        : T;
 
 export type RemoveNeverKeys<T extends {}> = {
   [K in keyof T as [T[K]] extends [never] ? never : K]: T[K];
 };
 
-export type Merge<T> = { [K in keyof T]: T[K] };
+export type Merge<T> = { [K in keyof T]: T[K] } & {};
+
+export type MergeUnion<T, Keys extends keyof T = T extends unknown ? keyof T : never> = Merge<
+  T extends unknown
+    ? {
+        [K in Keys as K extends keyof T ? never : K]?: never;
+      } & { [K in Keys as K extends keyof T ? K : never]: T[K & keyof T] }
+    : never
+>;
 
 export interface Path {
   prev: Path | undefined;
@@ -109,7 +123,13 @@ export type NormalizeArgs<
       : T
     : { [K in keyof T]-?: T[K] }
   : {} extends T[Index]
-  ? { [K in keyof T]?: T[K] }
-  : T;
+    ? { [K in keyof T]?: T[K] }
+    : T;
 
 export type IsStrictMode = undefined extends {} ? false : true;
+
+export interface PartialResolveInfo {
+  fragments: GraphQLResolveInfo['fragments'];
+  variableValues: GraphQLResolveInfo['variableValues'];
+  schema: GraphQLResolveInfo['schema'];
+}

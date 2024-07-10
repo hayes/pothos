@@ -4,13 +4,14 @@ import {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
+  InferredFieldOptionKeys,
   NormalizeArgs,
   SchemaTypes,
   TypeParam,
 } from '../types';
-import RootFieldBuilder from './root';
+import { RootFieldBuilder } from './root';
 
-export default class FieldBuilder<
+export class FieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
@@ -40,7 +41,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -75,7 +76,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -110,7 +111,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -145,7 +146,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -180,7 +181,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -215,7 +216,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -250,7 +251,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -285,7 +286,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -320,7 +321,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -355,7 +356,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'type'
+            'nullable' | 'type' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -396,7 +397,7 @@ export default class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'resolve'
+            'nullable' | InferredFieldOptionKeys
           >,
       ]
     >

@@ -1,0 +1,61 @@
+---
+title: Relay
+description: Using the Prisma and Relay plugins together
+---
+
+This plugin has extensive integration with the
+[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
+connections very easy.
+
+### `prismaNode`
+
+The `prismaNode` method works just like the `prismaObject` method with a couple of small
+differences:
+
+- there is a new `id` option that mirrors the `id` option from `node` method of the relay plugin,
+  and must contain a resolve function that returns the id from an instance of the node. Rather than
+  defining a resolver for the id field, you can set the `field` option to the name of a unique
+  column or index.
+
+```typescript
+builder.prismaNode('Post', {
+  // This set's what database field to use for the nodes id field
+  id: { field: 'id' },
+  // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+If you need to customize how ids are formatted, you can add a resolver for the `id`, and provide a
+`findUnique` option that can be used to load the node by it's id. This is generally not necessary.
+
+```typescript
+builder.prismaNode('Post', {
+  id: { resolve: (post) => String(post.id) },
+  // The return value will be passed as the `where` of a `prisma.post.findUnique`
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
+the database, the default behavior is to throw an error. There are some scenarios where it is
+preferable to return `null` instead of throwing an error. For this you can add the `nullable: true`
+option:
+
+```typescript
+builder.prismaNode('Post', {
+  id: { resolve: (post) => String(post.id) },
+  nullable: true,
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```

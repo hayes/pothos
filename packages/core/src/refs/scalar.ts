@@ -1,9 +1,17 @@
-import { InputRef, inputShapeKey, OutputRef, outputShapeKey, parentShapeKey } from '../types';
-import BaseTypeRef from './base';
+import {
+  InputRef,
+  inputShapeKey,
+  OutputRef,
+  outputShapeKey,
+  parentShapeKey,
+  PothosScalarTypeConfig,
+  SchemaTypes,
+} from '../types';
+import { BaseTypeRef } from './base';
 
-export default class ScalarRef<T, U, P = T>
-  extends BaseTypeRef
-  implements OutputRef, InputRef, PothosSchemaTypes.ScalarRef<T, U, P>
+export class ScalarRef<Types extends SchemaTypes, T, U, P = T>
+  extends BaseTypeRef<Types, PothosScalarTypeConfig>
+  implements OutputRef, InputRef, PothosSchemaTypes.ScalarRef<Types, T, U, P>
 {
   override kind = 'Scalar' as const;
 
@@ -17,7 +25,7 @@ export default class ScalarRef<T, U, P = T>
 
   [inputShapeKey]!: U;
 
-  constructor(name: string) {
-    super('Scalar', name);
+  constructor(name: string, config?: PothosScalarTypeConfig) {
+    super('Scalar', name, config);
   }
 }

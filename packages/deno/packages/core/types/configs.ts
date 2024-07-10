@@ -1,9 +1,9 @@
 // @ts-nocheck
-import type { GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfig, GraphQLFieldConfig, GraphQLInputFieldConfig, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLUnionType, GraphQLUnionTypeConfig, } from 'https://cdn.skypack.dev/graphql?dts';
+import type { GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfig, GraphQLFieldConfig, GraphQLInputFieldConfig, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLUnionType, GraphQLUnionTypeConfig, } from 'https://cdn.skypack.dev/graphql?dts';
 import type { FieldKind, FieldOptionsFromKind, InputFieldMap } from './builder-options.ts';
 import type { SchemaTypes } from './schema-types.ts';
 import type { FieldNullability, FieldRequiredness, InputType, InputTypeParam, InterfaceParam, ObjectParam, OutputType, TypeParam, } from './type-params.ts';
-import type { Merge } from './utils.ts';
+import type { Merge, MergeUnion, PartialResolveInfo } from './utils.ts';
 export interface PothosQueryTypeConfig extends Omit<GraphQLObjectTypeConfig<unknown, object>, "fields" | "interfaces"> {
     kind: "Query";
     graphqlKind: "Object";
@@ -70,9 +70,12 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
         name: string;
         type: PothosOutputFieldType<Types>;
         args: Record<string, PothosInputFieldConfig<Types>>;
+        argMappers: ((args: Record<string, unknown>, context: Types["Context"], info: PartialResolveInfo) => Record<string, unknown>)[];
         pothosOptions: FieldOptionsFromKind<Types, unknown, TypeParam<Types>, FieldNullability<[
             unknown
-        ]>, InputFieldMap, K, unknown, unknown>;
+        ]>, InputFieldMap, K, unknown, unknown> & MergeUnion<{
+            [K in keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]: PothosSchemaTypes.InferredFieldOptions<SchemaTypes>[K];
+        }[keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]>;
     }>;
 }[Kind];
 export interface PothosInputFieldConfig<Types extends SchemaTypes> extends Omit<GraphQLInputFieldConfig, "type"> {
