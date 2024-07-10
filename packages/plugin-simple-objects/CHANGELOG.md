@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.1
+
+### Patch Changes
+
+- d4f7705: Allow extending interfaces without re-defining all fields
+
 ## 4.0.0
 
 ### Major Changes
