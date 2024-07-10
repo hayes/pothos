@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.1
+
+### Patch Changes
+
+- 132a2a5: Fix empty generated.ts file
+
 ## 4.0.0
 
 ### Major Changes
