@@ -1,0 +1,7 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`replace-resolve plugin example > generates expected schema 1`] = `
+"type Query {
+  hello: String
+}"
+`;

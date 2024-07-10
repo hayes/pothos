@@ -1,5 +1,5 @@
 import { createTestServer } from '@pothos/test-utils';
-import schema from './schema';
+import { schema } from './schema';
 
 const server = createTestServer({ schema });
 

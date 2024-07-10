@@ -1,10 +1,19 @@
+import {
+  DirectiveNode,
+  FieldNode,
+  getArgumentValues,
+  GraphQLDirective,
+  GraphQLField,
+} from 'graphql';
 import { PothosSchemaError, PothosValidationError } from '../errors';
-import InputListRef from '../refs/input-list';
-import ListRef from '../refs/list';
+import { InputListRef } from '../refs/input-list';
+import { ListRef } from '../refs/list';
 import {
   InputType,
   InputTypeParam,
   OutputType,
+  PartialResolveInfo,
+  PothosOutputFieldConfig,
   SchemaTypes,
   typeBrandKey,
   TypeParam,
@@ -160,4 +169,25 @@ export function completeValue<T, R>(
     return Promise.resolve(result);
   }
   return result;
+}
+
+export function getMappedArgumentValues(
+  def: GraphQLDirective | GraphQLField<unknown, unknown>,
+  node: DirectiveNode | FieldNode,
+  context: object,
+  info: PartialResolveInfo,
+) {
+  const args = getArgumentValues(def, node, info.variableValues);
+  const mappers = def.extensions?.pothosArgMappers as
+    | PothosOutputFieldConfig<SchemaTypes>['argMappers']
+    | undefined;
+
+  if (mappers && mappers.length > 0) {
+    return mappers.reduce<Record<string, unknown>>(
+      (acc, argMapper) => argMapper(acc, context, info),
+      args,
+    );
+  }
+
+  return args;
 }

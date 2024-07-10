@@ -123,7 +123,6 @@ const Animal = builder.interfaceType('Animal', {
     fields: t => ({
         species: t.field({
             type: 'String',
-            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
@@ -254,7 +253,6 @@ builder.objectType('User', {
         }),
         fact: t.field({
             type: 'String',
-            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         firstBornChild: t.field({
@@ -299,12 +297,10 @@ builder.objectType('User', {
                 }),
             },
             type: ['ID'],
-            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         optional: t.field({
             type: 'String',
-            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         partialName: t.field({
@@ -367,14 +363,14 @@ exports[`Code generator > example schema 2`] = `
 
 """shape can be last arg"""
 type Article {
-  comments: [String!]!
+  comments: [String!]
 
   """Title of the article, probably click bait"""
-  title: String!
+  title: String
 }
 
 interface Countable {
-  count(max: Int!): Int!
+  count(max: Int!): Int
 }
 
 scalar Date
@@ -396,9 +392,9 @@ input Example2 {
 }
 
 type Giraffe implements Animal {
-  age: Int!
-  favoriteFood: String!
-  name: String!
+  age: Int
+  favoriteFood: String
+  name: String
   species: String
 }
 
@@ -409,50 +405,50 @@ enum MyEnum {
 }
 
 type Query {
-  sheep: Sheep!
-  stuff: [stuff!]!
-  user: User!
+  sheep: Sheep
+  stuff: [stuff!]
+  user: User
 }
 
 union SearchResult = Article | User
 
 interface Shaveable {
-  extendMePlease: String!
-  id: ID!
-  shaved: Boolean!
+  extendMePlease: String
+  id: ID
+  shaved: Boolean
 }
 
 type Sheep implements Countable & Shaveable {
-  color(id: ID): String!
-  count(max: Int!): Int!
-  extendMePlease: String!
-  id: ID!
-  shaved: Boolean!
-  thing: stuff!
+  color(id: ID): String
+  count(max: Int!): Int
+  extendMePlease: String
+  id: ID
+  shaved: Boolean
+  thing: stuff
 }
 
 type Subscription {
-  event: String!
+  event: String
 }
 
 type User {
-  defaultArgs(ids: [ID!]! = ["abc"]): [ID!]!
-  displayName: String!
+  defaultArgs(ids: [ID!]! = ["abc"]): [ID!]
+  displayName: String
   fact: String
-  firstBornChild: User!
-  firstName: String!
-  friends: [User!]!
-  id: ID!
-  lastName: String!
-  list(ids: [ID!]!): [ID!]!
-  newField: String!
+  firstBornChild: User
+  firstName: String
+  friends: [User!]
+  id: ID
+  lastName: String
+  list(ids: [ID!]!): [ID!]
+  newField: String
   notSparseList(ids: [ID!]!): [ID!]
   optional: String
-  partialName(example: Example!, firstN: Int!): String!
-  recursiveArgs(example2: Example2!, firstN: ID): ID!
-  related: SearchResult!
+  partialName(example: Example!, firstN: Int!): String
+  recursiveArgs(example2: Example2!, firstN: ID): ID
+  related: SearchResult
   sparseList(ids: [ID]!): [ID]!
-  stuff: [String!]!
+  stuff: [String!]
 }
 
 enum stuff {
@@ -537,7 +533,6 @@ builder.objectType('Human', {
         homePlanet: t.field({
             description: "The home planet of the human, or null if unknown.",
             type: 'String',
-            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
@@ -590,34 +585,34 @@ export const schema = builder.toSchema();
 exports[`Code generator > starwars schema 2`] = `
 "interface Character {
   """Which movies they appear in."""
-  appearsIn: [Episode!]!
+  appearsIn: [Episode!]
 
   """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
   """The id of the character"""
-  id: ID!
+  id: ID
 
   """The name of the character"""
-  name: String!
+  name: String
 }
 
 """A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
   """Which movies they appear in."""
-  appearsIn: [Episode!]!
+  appearsIn: [Episode!]
 
   """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
   """The id of the character"""
-  id: ID!
+  id: ID
 
   """The name of the character"""
-  name: String!
+  name: String
 
   """The primary function of the droid."""
-  primaryFunction: String!
+  primaryFunction: String
 }
 
 """One of the films in the Star Wars Trilogy"""
@@ -635,7 +630,7 @@ enum Episode {
 """A humanoid creature in the Star Wars universe."""
 type Human implements Character {
   """Which movies they appear in."""
-  appearsIn: [Episode!]!
+  appearsIn: [Episode!]
 
   """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
@@ -644,28 +639,28 @@ type Human implements Character {
   homePlanet: String
 
   """The id of the character"""
-  id: ID!
+  id: ID
 
   """The name of the character"""
-  name: String!
+  name: String
 }
 
 type Query {
   droid(
     """id of the character"""
     id: ID!
-  ): Droid!
+  ): Droid
   hero(
     """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     """
     episode: Episode!
-  ): Character!
+  ): Character
   human(
     """id of the character"""
     id: ID!
-  ): Human!
-  r2d2: Droid!
+  ): Human
+  r2d2: Droid
 }
 "
 `;

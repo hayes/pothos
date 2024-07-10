@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { EmptyToOptional, FieldNullability, Normalize, SchemaTypes, TypeParam } from '../core/index.ts';
+import { EmptyToOptional, FieldNullability, InferredFieldOptionKeys, Normalize, SchemaTypes, TypeParam, } from '../core/index.ts';
 export type GetTypeName = (options: {
     parentTypeName: string;
     fieldName: string;
@@ -30,7 +30,7 @@ export type ErrorFieldOptions<Types extends SchemaTypes, Type extends TypeParam<
         items: Nullable extends {
             items: boolean;
         } ? Nullable["items"] : true;
-    } : false, {}, Shape>, "args" | "nullable" | "resolve" | "type"> & {
+    } : false, {}, Shape>, "args" | "nullable" | "type" | InferredFieldOptionKeys> & {
         name?: string;
     }>;
 }>;

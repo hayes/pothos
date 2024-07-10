@@ -520,4 +520,73 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('decodes global ids in query callback', async () => {
+    const query = gql`
+      query {
+        node(id: "VXNlcjox") {
+          __typename
+          id
+          ... on User {
+            id
+            postNodes(id: "U2VsZWN0UG9zdDox") {
+              id
+              title
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "node": {
+            "__typename": "User",
+            "id": "VXNlcjox",
+            "postNodes": [
+              {
+                "id": "U2VsZWN0UG9zdDox",
+                "title": "Quos distinctio distinctio dignissimos vel quo maiores ea.",
+              },
+            ],
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "select": {
+                  "id": true,
+                  "title": true,
+                },
+                "take": 3,
+                "where": {
+                  "id": 1,
+                },
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

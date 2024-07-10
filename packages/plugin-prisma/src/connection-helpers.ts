@@ -17,12 +17,12 @@ export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
-  RefOrType extends PrismaRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
+  RefOrType extends PrismaRef<Types, PrismaModelTypes> | keyof Types['PrismaTypes'],
   Select extends Model['Select'] & {},
-  Model extends PrismaModelTypes = RefOrType extends PrismaRef<infer T>
+  Model extends PrismaModelTypes = RefOrType extends PrismaRef<Types, infer T>
     ? PrismaModelTypes & T
     : PrismaModelTypes & Types['PrismaTypes'][RefOrType & keyof Types['PrismaTypes']],
-  Shape = RefOrType extends PrismaRef<PrismaModelTypes, infer T> ? T : Model['Shape'],
+  Shape = RefOrType extends PrismaRef<Types, PrismaModelTypes, infer T> ? T : Model['Shape'],
   EdgeShape = Model['Include'] extends Select
     ? Shape
     : ShapeFromSelection<Types, Model, { select: Select }>,
@@ -72,11 +72,12 @@ export function prismaConnectionHelpers<
   },
 ) {
   const modelName =
-    typeof refOrType === 'string' ? refOrType : (refOrType as PrismaRef<Model>).modelName;
+    typeof refOrType === 'string' ? refOrType : (refOrType as PrismaRef<Types, Model>).modelName;
   const ref =
     typeof refOrType === 'string'
       ? getRefFromModel(modelName, builder)
-      : (refOrType as ObjectRef<unknown>);
+      : (refOrType as ObjectRef<Types, unknown>);
+
   const formatCursor = getCursorFormatter(modelName, builder, cursor);
   const parseCursor = getCursorParser(modelName, builder, cursor);
   const cursorSelection = ModelLoader.getCursorSelection(ref, modelName, cursor, builder);
@@ -157,7 +158,7 @@ export function prismaConnectionHelpers<
   return {
     ref: (typeof refOrType === 'string'
       ? getRefFromModel(refOrType, builder)
-      : refOrType) as PrismaRef<Model>,
+      : refOrType) as PrismaRef<Types, Model, Model['Shape']>,
     resolve,
     select: select ?? {},
     getQuery,

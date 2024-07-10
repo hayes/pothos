@@ -150,10 +150,7 @@ builder.queryFields((t) => ({
 }));
 
 class AssociatingReturnTypeExample {
-  readonly config: {
-    edges: readonly { cursor: string; node: BatchLoadableNumberThing }[];
-    pageInfo: PageInfoShape;
-  };
+  config;
 
   constructor(config: {
     edges: readonly { cursor: string; node: BatchLoadableNumberThing }[];

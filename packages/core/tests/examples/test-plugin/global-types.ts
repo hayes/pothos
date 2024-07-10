@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '../../../src';
+import type { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '../../../src';
 import type { PothosTestPlugin } from './plugin';
 
 declare global {

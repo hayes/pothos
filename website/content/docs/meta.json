@@ -1,0 +1,15 @@
+{
+  "title": "Pothos Docs",
+  "root": true,
+  "pages": [
+    "index",
+    "sponsors",
+    "resources",
+    "guide",
+    "plugins",
+    "migrations",
+    "design",
+    "api",
+    "..."
+  ]
+}

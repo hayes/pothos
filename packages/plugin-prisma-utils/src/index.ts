@@ -1,6 +1,5 @@
 import './global-types';
 import './schema-builder';
-import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   BuildCache,
@@ -39,15 +38,14 @@ function normalizeInputObject(object: unknown, nullableFields: Set<string>): unk
   return mapped;
 }
 
-export class PrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosPrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   constructor(cache: BuildCache<Types>) {
     super(cache, pluginName);
   }
 
-  override wrapResolve(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
+  override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object, unknown> {
+  ): PothosOutputFieldConfig<Types> | null {
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
       const inputType = this.buildCache.getTypeConfig(unwrapInputFieldType(inputField.type));
 
@@ -65,15 +63,18 @@ export class PrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     });
 
     if (!argMappings) {
-      return resolver;
+      return fieldConfig;
     }
 
     const argMapper = createInputValueMapper(argMappings, (inputObject, mapping) =>
       normalizeInputObject(inputObject, mapping.value?.nullableFields ?? new Set()),
     );
 
-    return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
+    return {
+      ...fieldConfig,
+      argMappers: [...(fieldConfig.argMappers ?? []), (args) => argMapper(args)],
+    };
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PrismaUtilsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosPrismaUtilsPlugin);

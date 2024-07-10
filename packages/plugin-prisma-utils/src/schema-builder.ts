@@ -1,6 +1,7 @@
 import SchemaBuilder, {
   BaseTypeRef,
   EnumRef,
+  InputFieldMap,
   InputFieldRef,
   InputObjectRef,
   InputRef,
@@ -37,12 +38,12 @@ export const schemaBuilder =
 
 const OrderByRefMap = new WeakMap<
   PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  EnumRef<'asc' | 'desc'>
+  EnumRef<SchemaTypes, 'asc' | 'desc'>
 >();
 
 const PrismaStringFilterModeRefMap = new WeakMap<
   PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  EnumRef<'default' | 'insensitive'>
+  EnumRef<SchemaTypes, 'default' | 'insensitive'>
 >();
 
 const nullableOps = new Set(['equals', 'is', 'isNot', 'not']);
@@ -75,7 +76,7 @@ schemaBuilder.prismaFilter = function prismaFilter<
       pothosPrismaInput: { nullableFields: nullableOps },
     },
     fields: (t) => {
-      const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fields: InputFieldMap = {};
 
       for (const op of Object.keys(opsOptions)) {
         const isList = op === 'in' || op === 'notIn';
@@ -157,7 +158,7 @@ schemaBuilder.prismaListFilter = function prismaListFilter<
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fields: InputFieldMap = {};
 
       for (const op of Object.keys(opsOptions)) {
         fields[op] = t.field({
@@ -202,7 +203,7 @@ schemaBuilder.prismaScalarListFilter = function prismaScalarListFilter<
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fields: InputFieldMap = {};
 
       for (const op of Object.keys(opsOptions)) {
         let fieldType: InputTypeParam<SchemaTypes> = type;
@@ -270,7 +271,7 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: InputFieldMap = {};
 
       const fieldMap = typeof fields === 'function' ? fields() : fields;
 
@@ -304,7 +305,7 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
     },
   });
 
-  return ref as InputObjectRef<Model['OrderBy']>;
+  return ref as InputObjectRef<SchemaTypes, Model['OrderBy']>;
 };
 
 schemaBuilder.prismaWhere = function prismaWhere<
@@ -316,7 +317,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
 >(
   type: Name,
   { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model, Fields>,
-): InputObjectRef<Model['Where']> {
+): InputObjectRef<SchemaTypes, Model['Where']> {
   const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}Filter`);
   const model = getModel(type, this);
   const nullableFields = new Set(
@@ -332,7 +333,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
       },
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
       Object.keys(fieldMap).forEach((field) => {
@@ -358,7 +359,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
 
         fieldDefs[field] =
           fieldOption instanceof InputFieldRef
-            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            ? fieldOption
             : t.field({
                 required: false,
                 type: fieldOption as InputRef<unknown>,
@@ -381,7 +382,7 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
 >(
   type: Name,
   { name, fields, ...options }: PrismaWhereUniqueOptions<SchemaTypes, Model, Fields>,
-): InputObjectRef<Model['WhereUnique']> {
+): InputObjectRef<SchemaTypes, Model['WhereUnique']> {
   const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}UniqueFilter`);
 
   ref.implement({
@@ -391,7 +392,7 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
       Object.keys(fieldMap).forEach((field) => {
@@ -402,7 +403,7 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
 
         fieldDefs[field] =
           fieldOption instanceof InputFieldRef
-            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            ? fieldOption
             : t.field({
                 required: false,
                 type: fieldOption as InputRef<unknown>,
@@ -433,7 +434,7 @@ schemaBuilder.prismaCreate = function prismaCreate<
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
       Object.keys(fieldMap).forEach((field) => {
@@ -446,7 +447,7 @@ schemaBuilder.prismaCreate = function prismaCreate<
 
         fieldDefs[field] =
           fieldOption instanceof InputFieldRef
-            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            ? fieldOption
             : t.field({
                 required:
                   fieldModel.isRequired &&
@@ -490,7 +491,7 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
       },
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
       Object.keys(fieldMap).forEach((field) => {
@@ -502,7 +503,7 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
 
         fieldDefs[field] =
           fieldOption instanceof InputFieldRef
-            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            ? fieldOption
             : t.field({
                 required: false,
                 type:
@@ -550,7 +551,7 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
       Object.keys(fieldMap).forEach((field) => {
@@ -561,12 +562,12 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
 
         fieldDefs[field] =
           fieldOption instanceof InputFieldRef
-            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            ? fieldOption
             : t.field({
                 required: false,
                 type: fieldModel.isList
-                  ? [fieldOption as InputRef<unknown>]
-                  : (fieldOption as InputRef<unknown>),
+                  ? [fieldOption as InputRef<SchemaTypes>]
+                  : (fieldOption as InputRef<SchemaTypes>),
               });
       });
 
@@ -605,7 +606,7 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
       const model = getModel(type, this);
       const fieldModel = model.fields.find((field) => field.name === relation)!;
@@ -617,7 +618,7 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
         }
 
         if (fieldOption instanceof InputFieldRef) {
-          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
+          fieldDefs[field] = fieldOption;
         } else if (fieldModel.isList && (field === 'update' || field === 'updateMany')) {
           const {
             name: nestedName = `${ref.name}U${field.slice(1)}`,
@@ -699,7 +700,7 @@ schemaBuilder.prismaIntAtomicUpdate = function prismaIntUpdateOperations({
       pothosPrismaInput: true,
     },
     fields: (t) => {
-      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldDefs: Record<string, InputFieldRef<SchemaTypes, unknown>> = {};
 
       ops.forEach((op) => {
         fieldDefs[op] = t.field({

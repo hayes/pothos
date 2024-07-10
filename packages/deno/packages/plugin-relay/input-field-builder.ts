@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { FieldRequiredness, InputFieldBuilder, InputFieldRef, InputShapeFromTypeParam, ObjectRef, SchemaTypes, } from '../core/index.ts';
-import { GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListInputFieldOptions, } from './types.ts';
+import { FieldRequiredness, InputFieldBuilder, ObjectRef, SchemaTypes } from '../core/index.ts';
+import { GlobalIDInputFieldOptions, GlobalIDListInputFieldOptions } from './types.ts';
 type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
 const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.InputFieldBuilder<DefaultSchemaTypes, "Arg" | "InputObject">;
 inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequiredness<[
@@ -11,8 +11,7 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
         extensions: {
             ...options.extensions,
             isRelayGlobalID: true,
-            relayGlobalIDFor: ((forTypes &&
-                (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
+            relayGlobalIDFor: ((forTypes && (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes, unknown>[])?.map((type: ObjectRef<SchemaTypes, unknown>) => ({
                 typename: this.builder.configStore.getTypeConfig(type).name,
                 parseId: "parseId" in type ? type.parseId : undefined,
             })) ?? null,
@@ -25,22 +24,34 @@ inputFieldBuilder.globalID = function globalID<Req extends boolean>({ for: forTy
         extensions: {
             ...options.extensions,
             isRelayGlobalID: true,
-            relayGlobalIDFor: ((forTypes &&
-                (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
+            relayGlobalIDFor: ((forTypes && (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes, unknown>[])?.map((type: ObjectRef<SchemaTypes, unknown>) => ({
                 typename: this.builder.configStore.getTypeConfig(type).name,
                 parseId: "parseId" in type ? type.parseId : undefined,
             })) ?? null,
         },
-    }) as unknown as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>> as never;
+    }) as never;
 };
 inputFieldBuilder.connectionArgs = function connectionArgs() {
-    const { 
-    // TODO(breaking) make this default match other cursor fields
-    cursorType = "ID", beforeArgOptions = {} as never, afterArgOptions = {} as never, firstArgOptions = {} as never, lastArgOptions = {} as never, } = this.builder.options.relayOptions;
     return {
-        before: this.field({ ...beforeArgOptions, type: cursorType, required: false }) as InputFieldRef<string | null>,
-        after: this.field({ ...afterArgOptions, type: cursorType, required: false }) as InputFieldRef<string | null>,
-        first: this.int({ ...firstArgOptions, required: false }),
-        last: this.int({ ...lastArgOptions, required: false }),
+        before: this.field({
+            ...this.builder.options.relay?.beforeArgOptions,
+            type: this.builder.options.relay?.cursorType ?? "String",
+            required: false,
+        }),
+        after: this.field({
+            ...this.builder.options.relay?.afterArgOptions,
+            type: this.builder.options.relay?.cursorType ?? "String",
+            required: false,
+        }),
+        first: this.field({
+            ...this.builder.options.relay?.firstArgOptions,
+            type: "Int",
+            required: false,
+        }),
+        last: this.field({
+            ...this.builder.options.relay?.lastArgOptions,
+            type: "Int",
+            required: false,
+        }),
     };
 };

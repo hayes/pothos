@@ -9,14 +9,14 @@ scalar AnyJson
 
 """shape can be last arg"""
 type Article {
-  comments: [String!]!
+  comments: [String!]
 
   """Title of the article, probably click bait"""
-  title: String!
+  title: String
 }
 
 interface Countable {
-  count(max: Int!): Int!
+  count(max: Int!): Int
 }
 
 scalar Date
@@ -47,9 +47,9 @@ input Example3 {
 }
 
 type Giraffe implements Animal {
-  a: Boolean!
-  age: Int!
-  name: String!
+  a: Boolean
+  age: Int
+  name: String
   species: String
 }
 
@@ -67,32 +67,32 @@ input NestedListInput {
 }
 
 type Query {
-  constructor: Boolean!
-  nestedLists(input: [[[String!]!]]!, nestedListInput: NestedListInput): [[[String!]!]]!
-  sheep: Sheep!
-  stuff: [stuff!]!
-  user: User!
+  constructor: Boolean
+  nestedLists(input: [[[String!]!]]!, nestedListInput: NestedListInput): [[[String!]!]]
+  sheep: Sheep
+  stuff: [stuff!]
+  user: User
 }
 
 union SearchResult = Article | User
 
 interface Shaveable {
-  extendMePlease: String!
-  id: ID!
-  shaved: Boolean!
+  extendMePlease: String
+  id: ID
+  shaved: Boolean
 }
 
 type Sheep implements Countable & Shaveable {
-  color(id: ID): String!
-  count(max: Int!): Int!
-  extendMePlease: String!
-  id: ID!
-  shaved: Boolean!
-  thing: stuff!
+  color(id: ID): String
+  count(max: Int!): Int
+  extendMePlease: String
+  id: ID
+  shaved: Boolean
+  thing: stuff
 }
 
 type Subscription {
-  event: String!
+  event: String
 }
 
 type TestExposeList {
@@ -107,23 +107,23 @@ type TestExposeNullable {
 }
 
 type User {
-  defaultArgs(ids: [ID!]! = ["abc"]): [ID!]!
-  displayName: String!
+  defaultArgs(ids: [ID!]! = ["abc"]): [ID!]
+  displayName: String
   fact: String
-  firstBornChild: User!
-  firstName: String!
-  friends: [User!]!
-  id: ID!
-  lastName: String!
-  list(ids: [ID!]!): [ID!]!
-  newField: String!
+  firstBornChild: User
+  firstName: String
+  friends: [User!]
+  id: ID
+  lastName: String
+  list(ids: [ID!]!): [ID!]
+  newField: String
   notSparseList(ids: [ID!]!): [ID!]
   optional: String
-  partialName(example: Example!, firstN: Int!): String!
-  recursiveArgs(example2: Example2!, firstN: ID): ID!
-  related: SearchResult!
+  partialName(example: Example!, firstN: Int!): String
+  recursiveArgs(example2: Example2!, firstN: ID): ID
+  related: SearchResult
   sparseList(ids: [ID]!): [ID]!
-  stuff: [String!]!
+  stuff: [String!]
 }
 
 enum stuff {

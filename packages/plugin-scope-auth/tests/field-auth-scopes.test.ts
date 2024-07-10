@@ -50,7 +50,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAdmin": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdmin],
         ],
@@ -130,7 +132,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forSyncPermission": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forSyncPermission],
         ],
@@ -184,7 +188,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAsyncPermission": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAsyncPermission],
         ],
@@ -292,7 +298,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAny": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAny],
         ],
@@ -348,7 +356,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAll": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
@@ -377,7 +387,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAll": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
@@ -406,7 +418,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAll": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
@@ -431,7 +445,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "emptyAny": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.emptyAny],
         ],
@@ -509,7 +525,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAdminFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdminFn],
         ],
@@ -563,7 +581,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAdminAsyncFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdminAsyncFn],
         ],
@@ -785,7 +805,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAnyFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAnyFn],
         ],
@@ -841,7 +863,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAllFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
@@ -870,7 +894,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAllFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
@@ -899,7 +925,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forAllFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
@@ -924,7 +952,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "emptyAnyFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.emptyAnyFn],
         ],
@@ -997,7 +1027,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "data": null,
+        "data": {
+          "forBooleanFn": null,
+        },
         "errors": [
           [GraphQLError: Not authorized to resolve Query.forBooleanFn],
         ],

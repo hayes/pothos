@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { EnumValues, FieldMap, FieldRef, InputFieldRef, InputFieldsFromShape, NullableToOptional, ObjectParam, SchemaTypes, } from '../core/index.ts';
-export type AddGraphQLObjectFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>) => Record<string, FieldRef | null>;
-export type AddGraphQLInterfaceFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>) => Record<string, FieldRef | null>;
-export type AddGraphQLInputFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Record<string, InputFieldRef<unknown, "InputObject"> | null> & {
-    [K in keyof Shape]?: InputFieldRef<Shape[K], "InputObject">;
-};
+export type AddGraphQLObjectFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>) => Record<string, FieldRef<Types> | null>;
+export type AddGraphQLInterfaceFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>) => Record<string, FieldRef<Types> | null>;
+export type AddGraphQLInputFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Record<string, (InputFieldRef<Types, unknown> & {
+    [K in keyof Shape]?: InputFieldRef<Types, Shape[K]>;
+}) | null>;
 export type OutputShapeFromFields<Fields extends FieldMap> = NullableToOptional<{
     [K in keyof Fields]: Fields[K] extends FieldRef<infer T> ? T : never;
 }>;
@@ -24,7 +24,7 @@ export interface AddGraphQLEnumTypeOptions<Types extends SchemaTypes, Values ext
     name?: string;
     values?: Values;
 }
-export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape extends {}> extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldsFromShape<Shape>>, "fields"> {
+export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape extends {}> extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldsFromShape<Types, Shape, "InputObject">>, "fields"> {
     name?: string;
     fields?: AddGraphQLInputFieldsShape<Types, Shape>;
 }

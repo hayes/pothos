@@ -30,7 +30,7 @@ schemaBuilderProto.prismaObject = function prismaObject(
 ) {
   const ref = options.variant
     ? new PrismaObjectRef(options.variant, type)
-    : (getRefFromModel(type, this) as PrismaObjectRef<PrismaModelTypes>);
+    : (getRefFromModel(type, this) as PrismaObjectRef<SchemaTypes, PrismaModelTypes>);
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
   const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
@@ -53,7 +53,7 @@ schemaBuilderProto.prismaObject = function prismaObject(
       ? () =>
           fields(
             new PrismaObjectFieldBuilder(
-              name,
+              ref.name,
               this,
               type,
               getRelationMap(getDMMF(this)).get(type)!,
@@ -71,7 +71,10 @@ schemaBuilderProto.prismaInterface = function prismaInterface(
 ) {
   const ref = options.variant
     ? new PrismaInterfaceRef(options.variant, type)
-    : (getRefFromModel(type, this, 'interface') as PrismaInterfaceRef<PrismaModelTypes>);
+    : (getRefFromModel(type, this, 'interface') as PrismaInterfaceRef<
+        SchemaTypes,
+        PrismaModelTypes
+      >);
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
   const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
@@ -109,7 +112,7 @@ schemaBuilderProto.prismaInterface = function prismaInterface(
 
 schemaBuilderProto.prismaNode = function prismaNode(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
-    nodeInterfaceRef?: () => InterfaceRef<unknown>;
+    nodeInterfaceRef?: () => InterfaceRef<SchemaTypes, unknown>;
   },
   type: keyof SchemaTypes['PrismaTypes'],
   {
@@ -170,7 +173,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
   const ref = this.prismaObject(type, extendedOptions as never);
 
   if (options.interfaces) {
-    this.configStore.addInterfaces(typeName, options.interfaces);
+    ref.addInterfaces(options.interfaces);
   }
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
@@ -181,7 +184,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
       (t) =>
         (
           t as unknown as {
-            globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
+            globalID: (options: Record<string, unknown>) => FieldRef<SchemaTypes, unknown>;
           }
         ).globalID({
           ...(this.options as { relayOptions?: { idFieldOptions?: {} } }).relayOptions
@@ -198,7 +201,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     );
   });
 
-  this.configStore.associateRefWithName(nodeRef, typeName);
+  this.configStore.associateParamWithRef(nodeRef, ref);
 
   return nodeRef;
 } as never;

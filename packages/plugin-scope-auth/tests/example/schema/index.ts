@@ -444,7 +444,6 @@ builder.queryType({
     }),
     forAll: t.string({
       authScopes: {
-        // TODO should all prevent use of other permissions in same object?
         $all: {
           admin: true,
           syncPermission: 'a',
@@ -528,7 +527,6 @@ builder.queryType({
         context.count?.('forAllFn');
 
         return {
-          // TODO should all prevent use of other permissions in same object?
           $all: {
             admin: true,
             syncPermission: 'a',

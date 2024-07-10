@@ -1,6 +1,6 @@
 {
   "name": "@pothos/tracing-xray",
-  "version": "0.5.9",
+  "version": "1.0.0-next.1",
   "description": "AWS XRay tracing utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -48,18 +48,18 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@pothos/core": "*",
-    "@pothos/plugin-tracing": "*",
+    "@pothos/core": "4.0.0-next.1",
+    "@pothos/plugin-tracing": "1.0.0-next.1",
     "aws-xray-sdk-core": "*",
-    "graphql": ">=15.1.0"
+    "graphql": "^16.8.1"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "aws-xray-sdk-core": "^3.6.0",
-    "graphql": "^16.8.1",
+    "aws-xray-sdk-core": "^3.9.0",
+    "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "5.3.1"
+    "graphql-yoga": "5.6.0"
   }
 }

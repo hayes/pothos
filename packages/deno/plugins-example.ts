@@ -6,7 +6,7 @@ import ScopeAuthPlugin from './packages/plugin-scope-auth/mod.ts';
 import SimpleObjectsPlugin from './packages/plugin-simple-objects/mod.ts';
 import SmartSubscriptionsPlugin from './packages/plugin-smart-subscriptions/mod.ts';
 import SubGraphPlugin from './packages/plugin-sub-graph/mod.ts';
-import ValidationPlugin from './packages/plugin-validation/mod.ts';
+import ValidationPlugin from './packages/plugin-zod/mod.ts';
 import DataloaderPlugin from './packages/plugin-dataloader/mod.ts';
 import SchemaBuilder from './packages/core/mod.ts';
 

@@ -1,20 +1,22 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
+import { ArgumentRef, EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InferredFieldOptionKeys, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     idFieldName?: string;
-    idFieldOptions?: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, PageInfoShape>, "args" | "nullable" | "resolve" | "type">>;
+    idFieldOptions?: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, PageInfoShape>, "args" | "nullable" | "type" | InferredFieldOptionKeys>>;
     clientMutationId?: "omit" | "optional" | "required";
     cursorType?: "ID" | "String";
+    edgeCursorType?: "ID" | "String";
+    pageInfoCursorType?: "ID" | "String";
     brandLoadedObjects?: boolean;
     nodeTypeOptions: Omit<PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>, "fields">;
     pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, "fields">;
     nodeQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
-        id: InputFieldRef<{
+        id: ArgumentRef<Types, {
             typename: string;
             id: string;
         }>;
-    }, Promise<unknown>>, "args" | "resolve" | "type"> & {
+    }, Promise<unknown>>, "args" | "type" | InferredFieldOptionKeys> & {
         args?: {
             id?: Omit<GlobalIDInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;
         };
@@ -33,11 +35,11 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     ], FieldNullability<[
         unknown
     ]>, {
-        ids: InputFieldRef<{
+        ids: ArgumentRef<Types, {
             typename: string;
             id: string;
         }[]>;
-    }, Promise<unknown>[]>, "args" | "resolve" | "type"> & {
+    }, Promise<unknown>[]>, "args" | "type" | InferredFieldOptionKeys> & {
         args?: {
             ids?: Omit<GlobalIDListInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;
         };
@@ -53,23 +55,28 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     });
     mutationInputArgOptions: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>, "fields" | "type">;
     clientMutationIdInputOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID", boolean>, "type">;
-    clientMutationIdFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "resolve" | "type">;
-    cursorFieldOptions: Normalize<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID" | "String", false, {}, Types["Scalars"]["ID" | "String"]["Output"]>, "args" | "resolve" | "type"> & {
+    clientMutationIdFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "type" | InferredFieldOptionKeys>;
+    cursorFieldOptions: Normalize<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID" | "String", false, {}, Types["Scalars"]["ID" | "String"]["Output"]>, "args" | "type" | InferredFieldOptionKeys> & {
         type?: "ID" | "String";
     }>;
-    nodeFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> & {
+    nodeFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, ObjectRef<Types, {}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "type" | InferredFieldOptionKeys> & {
         nullable?: Types["DefaultNodeNullability"];
     };
     edgesFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
-        ObjectRef<{}>
-    ], Types["DefaultEdgesNullability"], {}, unknown[]>, "args" | "nullable" | "resolve" | "type"> & {
+        ObjectRef<Types, {}>
+    ], Types["DefaultEdgesNullability"], {}, unknown[]>, "args" | "nullable" | "type" | InferredFieldOptionKeys> & {
         nullable?: Types["DefaultEdgesNullability"];
     };
-    pageInfoFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<PageInfoShape>, boolean, {}, PageInfoShape>, "args" | "resolve" | "type">;
-    hasNextPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", boolean, {}, boolean>, "args" | "resolve" | "type">;
-    hasPreviousPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", boolean, {}, boolean>, "args" | "resolve" | "type">;
-    startCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", boolean, {}, string | null>, "args" | "resolve" | "type">;
-    endCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", boolean, {}, string | null>, "args" | "resolve" | "type">;
+    nodesFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
+        ObjectRef<Types, {}>
+    ], FieldNullability<[
+        unknown
+    ]>, {}, unknown[]>, "args" | "type" | InferredFieldOptionKeys>;
+    pageInfoFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<PageInfoShape>, boolean, {}, PageInfoShape>, "args" | "type" | InferredFieldOptionKeys>;
+    hasNextPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", boolean, {}, boolean>, "args" | "type" | InferredFieldOptionKeys>;
+    hasPreviousPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", boolean, {}, boolean>, "args" | "type" | InferredFieldOptionKeys>;
+    startCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", boolean, {}, string | null>, "args" | "type" | InferredFieldOptionKeys>;
+    endCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", boolean, {}, string | null>, "args" | "type" | InferredFieldOptionKeys>;
     beforeArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", boolean>, "required" | "type">;
     afterArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", boolean>, "required" | "type">;
     firstArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "Int", boolean>, "required" | "type">;
@@ -86,17 +93,16 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     }>>;
     defaultPayloadTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, {}>>;
     defaultMutationInputTypeOptions: Partial<Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, "fields">>;
-    defaultConnectionFieldOptions?: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<ConnectionShape<Types, unknown, false, true, true>>, boolean, InputFieldsFromShape<DefaultConnectionArguments>, ConnectionShape<Types, unknown, false, true, true>>, "args" | "resolve" | "type">;
+    defaultConnectionFieldOptions?: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<ConnectionShape<Types, unknown, false, true, true>>, boolean, InputFieldsFromShape<Types, DefaultConnectionArguments, "Arg">, ConnectionShape<Types, unknown, false, true, true>>, "args" | "type" | InferredFieldOptionKeys>;
     nodesOnConnection?: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
-        ObjectRef<{}>
+        ObjectRef<Types, {}>
     ], {
         list: false;
         items: Types["DefaultNodeNullability"];
-    }, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> | boolean;
+    }, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "type" | InferredFieldOptionKeys> | boolean;
 }>;
 export interface DefaultEdgesNullability {
-    // TODO(breaking) according to the spec, this should be nullable
-    list: false;
+    list: true;
     items: true;
 }
 export interface PageInfoShape {
@@ -112,7 +118,7 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
 export type ConnectionEdgesShape<Types extends SchemaTypes, T, NodeNullable extends boolean, EdgesNullable extends FieldNullability<[
     unknown
 ]>> = ShapeFromListTypeParam<Types, [
-    ObjectRef<{
+    ObjectRef<Types, {
         cursor: string;
         node: NodeNullable extends false ? T : T | null | undefined;
     }>
@@ -146,7 +152,7 @@ export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectPar
     loadWithoutCache?: (id: IDShape, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
     loadManyWithoutCache?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
 };
-export type GlobalIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type"> & {
+export type GlobalIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "type" | InferredFieldOptionKeys> & {
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>, ResolveReturnShape>;
 };
 export type GlobalIDInputFieldOptions<Types extends SchemaTypes, Req extends boolean, Kind extends "Arg" | "InputObject", For = unknown> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, "ID", Req>[Kind], "type"> & {
@@ -159,14 +165,14 @@ export type GlobalIDListInputFieldOptions<Types extends SchemaTypes, Req extends
 ], Req>[Kind], "type"> & {
     for?: For | For[];
 };
-export type NodeIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type"> & {
+export type NodeIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "type" | InferredFieldOptionKeys> & {
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>, ResolveReturnShape>;
 };
 export type GlobalIDListFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends FieldNullability<[
     unknown
 ]>, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, [
     "ID"
-], Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type"> & {
+], Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "type" | InferredFieldOptionKeys> & {
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, [
         OutputRefShape<GlobalIDShape<Types> | string>
     ], {
@@ -174,7 +180,7 @@ export type GlobalIDListFieldOptions<Types extends SchemaTypes, ParentShape, Arg
         items: true;
     }>, ResolveReturnShape>;
 };
-export type NodeFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, OutputRefShape<GlobalIDShape<Types> | string>, true, Args, Kind, ParentShape, ResolveReturnShape>, "nullable" | "resolve" | "type"> & {
+export type NodeFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, OutputRefShape<GlobalIDShape<Types> | string>, true, Args, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys> & {
     id: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>, ResolveReturnShape>;
 };
 export type NodeListFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, [
@@ -182,7 +188,7 @@ export type NodeListFieldOptions<Types extends SchemaTypes, ParentShape, Args ex
 ], {
     list: false;
     items: true;
-}, Args, Kind, ParentShape, ResolveReturnShape>, "nullable" | "resolve" | "type"> & {
+}, Args, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys> & {
     ids: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, [
         OutputRefShape<GlobalIDShape<Types> | string>
     ], {
@@ -202,7 +208,7 @@ export type RelayMutationInputOptions<Types extends SchemaTypes, Fields extends 
     inputFields: (t: PothosSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Fields;
 };
 export type RelayMutationFieldOptions<Types extends SchemaTypes, Fields extends InputFieldMap, Nullable extends boolean, InputName extends string, ResolveShape, ResolveReturnShape, Args extends InputFieldMap = {}> = Omit<FieldOptionsFromKind<Types, Types["Root"], OutputRef<ResolveShape>, Nullable, Args & {
-    [K in InputName]: InputFieldRef<InputShapeWithClientMutationId<Types, Fields>>;
+    [K in InputName]: ArgumentRef<Types, InputShapeWithClientMutationId<Types, Fields>>;
 }, "Mutation", ResolveShape, ResolveReturnShape>, "args" | "type"> & {
     args?: Args;
 };
@@ -211,5 +217,5 @@ export type RelayMutationPayloadOptions<Types extends SchemaTypes, Shape, Interf
     outputFields: ObjectFieldsShape<Types, Shape>;
 };
 export type InputShapeWithClientMutationId<Types extends SchemaTypes, Fields extends InputFieldMap> = InputShapeFromFields<Fields & {
-    clientMutationId: InputFieldRef<Types["Scalars"]["ID"]["Input"]>;
+    clientMutationId: InputFieldRef<Types, Types["Scalars"]["ID"]["Input"]>;
 }>;

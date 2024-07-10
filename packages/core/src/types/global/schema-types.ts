@@ -1,22 +1,34 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import type { GraphQLDirective } from 'graphql';
 import type { PluginConstructorMap } from '../plugins';
-import type { MergedScalars, SchemaTypes } from '../schema-types';
+import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types';
 import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils';
+import { InferredFieldOptionsKind } from '../builder-options';
 
 declare global {
   export namespace PothosSchemaTypes {
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       plugins?: (keyof PluginConstructorMap<Types>)[];
-      defaultFieldNullability: false extends Types['DefaultFieldNullability']
-        ? never
-        : Types['DefaultFieldNullability'];
+      defaultFieldNullability: Types['Defaults'] extends 'v3'
+        ? false extends Types['DefaultFieldNullability']
+          ? never
+          : Types['DefaultFieldNullability']
+        : true extends Types['DefaultFieldNullability']
+          ? never
+          : Types['DefaultFieldNullability'];
       defaultInputFieldRequiredness: false extends Types['DefaultInputFieldRequiredness']
         ? never
         : Types['DefaultInputFieldRequiredness'];
       notStrict: IsStrictMode extends true
         ? never
         : 'Pothos may not work correctly when strict mode is not enabled in tsconfig.json';
+      defaults: SchemaTypes['Defaults'] extends Types['Defaults'] ? never : Types['Defaults'];
+    }
+
+    export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {}
+
+    export interface V3DefaultSchemaTypes {
+      Scalars: V3DefaultScalars;
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
@@ -40,6 +52,7 @@ declare global {
     }
 
     export interface UserSchemaTypes {
+      Defaults: 'v3' | 'v4';
       Scalars: Record<
         string,
         {
@@ -54,17 +67,28 @@ declare global {
       Context: object;
       DefaultFieldNullability: boolean;
       DefaultInputFieldRequiredness: boolean;
+      InferredFieldOptionsKind: InferredFieldOptionsKind;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>>
       extends SchemaTypes {
+      Defaults: PartialTypes['Defaults'] & SchemaTypes['Defaults'];
       Scalars: MergedScalars<PartialTypes>;
       Objects: PartialTypes['Objects'] & {};
       Inputs: PartialTypes['Inputs'] & {};
       Interfaces: PartialTypes['Interfaces'] & {};
       Root: PartialTypes['Root'] & {};
       Context: PartialTypes['Context'] & {};
-      DefaultFieldNullability: PartialTypes['DefaultFieldNullability'] extends true ? true : false;
+      InferredFieldOptionsKind: PartialTypes['InferredFieldOptionsKind'] extends InferredFieldOptionsKind
+        ? PartialTypes['InferredFieldOptionsKind']
+        : 'Resolve';
+      DefaultFieldNullability: PartialTypes['Defaults'] extends 'v3'
+        ? PartialTypes['DefaultFieldNullability'] extends true
+          ? true
+          : false
+        : PartialTypes['DefaultFieldNullability'] extends false
+          ? false
+          : true;
       DefaultInputFieldRequiredness: PartialTypes['DefaultInputFieldRequiredness'] extends true
         ? true
         : false;

@@ -256,7 +256,10 @@ const User = builder.prismaNode('User', {
     profile: t.relation('profile', {
       nullable: true,
     }),
-    profileWithErrors: t.relation('profile', { nullable: true, errors: {} }),
+    profileWithErrors: t.relation('profile', {
+      nullable: true,
+      errors: {},
+    }),
     directProfileWithErrors: t.relation('profile', {
       nullable: true,
       errors: { directResult: true },
@@ -280,6 +283,7 @@ const User = builder.prismaNode('User', {
         oldestFirst: t.arg.boolean(),
         createdAt: t.arg.string(),
         limit: t.arg.int(),
+        id: t.arg.globalID(),
       },
       query: (args) => ({
         orderBy: {
@@ -288,9 +292,30 @@ const User = builder.prismaNode('User', {
         where: args.createdAt
           ? {
               createdAt: new Date(args.createdAt),
+              id: args.id ? Number.parseInt(args.id.id, 10) : undefined,
             }
           : undefined,
         take: args.limit ?? 10,
+      }),
+      resolve: (query, user) =>
+        prisma.post.findMany({
+          ...query,
+          where: { ...(query as { where?: {} }).where, authorId: user.id },
+        }),
+    }),
+    postNodes: t.relation('posts', {
+      type: SelectPost,
+      args: {
+        limit: t.arg.int(),
+        id: t.arg.globalID(),
+      },
+      query: (args) => ({
+        where: args.id
+          ? {
+              id: args.id ? Number.parseInt(args.id.id, 10) : undefined,
+            }
+          : undefined,
+        take: args.limit ?? 3,
       }),
       resolve: (query, user) =>
         prisma.post.findMany({
@@ -521,7 +546,8 @@ const SelectUser = builder.prismaNode('User', {
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
     profile: t.relation('profile', {
-      nullable: true,
+      nullable: false,
+      onNull: 'error',
     }),
     postCount: t.relationCount('posts'),
     following: t.relatedConnection('following', {

@@ -1,8 +1,9 @@
 // @ts-nocheck
+import { DirectiveNode, FieldNode, getArgumentValues, GraphQLDirective, GraphQLField, } from 'https://cdn.skypack.dev/graphql?dts';
 import { PothosSchemaError, PothosValidationError } from '../errors.ts';
-import InputListRef from '../refs/input-list.ts';
-import ListRef from '../refs/list.ts';
-import { InputType, InputTypeParam, OutputType, SchemaTypes, typeBrandKey, TypeParam, } from '../types/index.ts';
+import { InputListRef } from '../refs/input-list.ts';
+import { ListRef } from '../refs/list.ts';
+import { InputType, InputTypeParam, OutputType, PartialResolveInfo, PothosOutputFieldConfig, SchemaTypes, typeBrandKey, TypeParam, } from '../types/index.ts';
 export * from './base64.ts';
 export * from './context-cache.ts';
 export * from './enums.ts';
@@ -120,4 +121,12 @@ export function completeValue<T, R>(valOrPromise: PromiseLike<T> | T, onSuccess:
         return Promise.resolve(result);
     }
     return result;
+}
+export function getMappedArgumentValues(def: GraphQLDirective | GraphQLField<unknown, unknown>, node: DirectiveNode | FieldNode, context: object, info: PartialResolveInfo) {
+    const args = getArgumentValues(def, node, info.variableValues);
+    const mappers = def.extensions?.pothosArgMappers as PothosOutputFieldConfig<SchemaTypes>["argMappers"] | undefined;
+    if (mappers && mappers.length > 0) {
+        return mappers.reduce<Record<string, unknown>>((acc, argMapper) => argMapper(acc, context, info), args);
+    }
+    return args;
 }

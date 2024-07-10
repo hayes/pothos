@@ -12,9 +12,12 @@ generator client {
 }
 
 generator pothos {
-  provider     = "node -r @swc-node/register ./src/generator.ts"
-  clientOutput = "../tests/client"
-  output       = "../tests/generated.ts"
+  provider          = "node -r @swc-node/register ./src/generator.ts"
+  clientOutput      = "../tests/client"
+  pluginPath        = "../src"
+  output            = "../tests/generated.ts"
+  generateDatamodel = true
+  documentation     = true
 }
 
 /// Model for Posts!

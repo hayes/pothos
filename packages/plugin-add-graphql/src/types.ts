@@ -11,17 +11,21 @@ import {
 
 export type AddGraphQLObjectFieldsShape<Types extends SchemaTypes, Shape> = (
   t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>,
-) => Record<string, FieldRef | null>;
+) => Record<string, FieldRef<Types> | null>;
 
 export type AddGraphQLInterfaceFieldsShape<Types extends SchemaTypes, Shape> = (
   t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
-) => Record<string, FieldRef | null>;
+) => Record<string, FieldRef<Types> | null>;
 
 export type AddGraphQLInputFieldsShape<Types extends SchemaTypes, Shape> = (
   t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
-) => Record<string, InputFieldRef<unknown, 'InputObject'> | null> & {
-  [K in keyof Shape]?: InputFieldRef<Shape[K], 'InputObject'>;
-};
+) => Record<
+  string,
+  | (InputFieldRef<Types, unknown> & {
+      [K in keyof Shape]?: InputFieldRef<Types, Shape[K]>;
+    })
+  | null
+>;
 
 export type OutputShapeFromFields<Fields extends FieldMap> = NullableToOptional<{
   [K in keyof Fields]: Fields[K] extends FieldRef<infer T> ? T : never;
@@ -59,7 +63,10 @@ export interface AddGraphQLEnumTypeOptions<
 
 export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape extends {}>
   extends Omit<
-    PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldsFromShape<Shape>>,
+    PothosSchemaTypes.InputObjectTypeOptions<
+      Types,
+      InputFieldsFromShape<Types, Shape, 'InputObject'>
+    >,
     'fields'
   > {
   name?: string;

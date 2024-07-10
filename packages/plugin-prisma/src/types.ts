@@ -1,11 +1,13 @@
 import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import {
+  ArgumentRef,
   FieldKind,
   FieldMap,
   FieldNullability,
   FieldOptionsFromKind,
+  InferredFieldOptionsByKind,
+  InferredFieldOptionKeys,
   InputFieldMap,
-  InputFieldRef,
   InputFieldsFromShape,
   InputShapeFromFields,
   InterfaceParam,
@@ -76,9 +78,7 @@ export type PrismaObjectFieldOptions<
   Args extends InputFieldMap,
   Select,
   ResolveReturnShape,
-> = PothosSchemaTypes.ObjectFieldOptions<
-  Types,
-  unknown extends Select
+  Shape = unknown extends Select
     ? ParentShape
     : ParentShape &
         ShapeFromSelection<
@@ -86,41 +86,45 @@ export type PrismaObjectFieldOptions<
           ExtractModel<Types, ParentShape>,
           { select: Select extends (...args: any[]) => infer S ? S : Select }
         >,
-  Type,
-  Nullable,
-  Args,
-  ResolveReturnShape
-> & {
-  select?: Select &
-    (
-      | ExtractModel<Types, ParentShape>['Select']
-      | ((
-          args: InputShapeFromFields<Args>,
-          ctx: Types['Context'],
-          nestedSelection: <Selection extends boolean | {}>(
-            selection?: Selection,
-            path?: string[],
-            type?: string,
-          ) => Selection,
-        ) => ExtractModel<Types, ParentShape>['Select'])
-    );
-};
+> = PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Nullable, Args, ResolveReturnShape> &
+  InferredFieldOptionsByKind<
+    Types,
+    Types['InferredFieldOptionsKind'],
+    Shape,
+    Type,
+    Nullable,
+    Args,
+    ResolveReturnShape
+  > & {
+    select?: Select &
+      (
+        | ExtractModel<Types, ParentShape>['Select']
+        | ((
+            args: InputShapeFromFields<Args>,
+            ctx: Types['Context'],
+            nestedSelection: <Selection extends boolean | {}>(
+              selection?: Selection,
+              path?: string[],
+              type?: string,
+            ) => Selection,
+          ) => ExtractModel<Types, ParentShape>['Select'])
+      );
+  };
 
 type PrismaObjectFieldsShape<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  NeedsResolve extends boolean,
   Shape extends object,
   Select,
 > = Model['Select'] extends Select
-  ? (t: PrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>) => FieldMap
+  ? (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap
   : (t: PrismaSelectionFieldBuilder<Types, Model, Shape>) => FieldMap;
 
 type PrismaSelectionFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Shape extends object,
-> = PrismaObjectFieldBuilder<Types, Model, false, Shape>;
+> = PrismaObjectFieldBuilder<Types, Model, Shape>;
 
 interface BaseSelection {
   include?: unknown;
@@ -180,7 +184,6 @@ type RelationShapeFromInclude<
 export type PrismaObjectRefOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  FindUnique,
   Include,
   Select,
   Shape extends object,
@@ -189,8 +192,7 @@ export type PrismaObjectRefOptions<
     | {
         include?: Include & Model['Include'];
         select?: never;
-        findUnique?: FindUnique &
-          (((parent: Shape, context: Types['Context']) => Model['WhereUnique']) | null);
+        findUnique?: ((parent: Shape, context: Types['Context']) => Model['WhereUnique']) | null;
       }
     | {
         select: Model['Select'] & Select;
@@ -203,7 +205,6 @@ export type PrismaObjectImplementationOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
-  FindUnique,
   Select,
   Shape extends object,
 > = Omit<
@@ -215,8 +216,7 @@ export type PrismaObjectImplementationOptions<
   fields?: PrismaObjectFieldsShape<
     Types,
     Model,
-    FindUnique extends null ? true : false,
-    Shape & (FindUnique extends null ? {} : { [prismaModelName]?: Model['Name'] }),
+    Shape & { [prismaModelName]?: Model['Name'] },
     Select
   >;
 };
@@ -225,17 +225,15 @@ export type PrismaObjectTypeOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
-  FindUnique,
   Include,
   Select,
   Shape extends object,
-> = PrismaObjectImplementationOptions<Types, Model, Interfaces, FindUnique, Select, Shape> &
-  PrismaObjectRefOptions<Types, Model, FindUnique, Include, Select, Shape>;
+> = PrismaObjectImplementationOptions<Types, Model, Interfaces, Select, Shape> &
+  PrismaObjectRefOptions<Types, Model, Include, Select, Shape>;
 
 export type PrismaInterfaceRefOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  FindUnique,
   Include,
   Select,
   Shape extends object,
@@ -244,8 +242,7 @@ export type PrismaInterfaceRefOptions<
     | {
         include?: Include & Model['Include'];
         select?: never;
-        findUnique?: FindUnique &
-          (((parent: Shape, context: Types['Context']) => Model['WhereUnique']) | null);
+        findUnique?: ((parent: Shape, context: Types['Context']) => Model['WhereUnique']) | null;
       }
     | {
         select: Model['Select'] & Select;
@@ -258,7 +255,6 @@ export type PrismaInterfaceImplementationOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
-  FindUnique,
   Select,
   Shape extends object,
 > = Omit<
@@ -269,8 +265,7 @@ export type PrismaInterfaceImplementationOptions<
   fields?: PrismaObjectFieldsShape<
     Types,
     Model,
-    FindUnique extends null ? true : false,
-    Shape & (FindUnique extends null ? {} : { [prismaModelName]?: Model['Name'] }),
+    Shape & { [prismaModelName]?: Model['Name'] },
     Select
   >;
 };
@@ -279,12 +274,11 @@ export type PrismaInterfaceTypeOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
-  FindUnique,
   Include,
   Select,
   Shape extends object,
-> = PrismaInterfaceImplementationOptions<Types, Model, Interfaces, FindUnique, Select, Shape> &
-  PrismaInterfaceRefOptions<Types, Model, FindUnique, Include, Select, Shape>;
+> = PrismaInterfaceImplementationOptions<Types, Model, Interfaces, Select, Shape> &
+  PrismaInterfaceRefOptions<Types, Model, Include, Select, Shape>;
 
 type NameOrVariant =
   | {
@@ -328,7 +322,7 @@ export type PrismaNodeOptions<
         OutputShape<Types, 'ID'>,
         MaybePromise<OutputShape<Types, 'ID'>>
       >,
-      'args' | 'nullable' | 'resolve' | 'type'
+      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
     > &
       (
         | {
@@ -348,7 +342,6 @@ export type PrismaNodeOptions<
     fields?: PrismaObjectFieldsShape<
       Types,
       Model,
-      false,
       Shape & { [prismaModelName]?: Model['Name'] },
       Select
     >;
@@ -405,11 +398,12 @@ type CursorFromRelation<
   : never;
 
 type RefForRelation<
+  Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Field extends keyof Model['Relations'],
 > = Model['Relations'][Field] extends unknown[]
-  ? [ObjectRef<Model['Relations'][Field]>]
-  : ObjectRef<Model['Relations'][Field]>;
+  ? [ObjectRef<Types, Model['Relations'][Field]>]
+  : ObjectRef<Types, Model['Relations'][Field]>;
 
 export type RelatedFieldOptions<
   Types extends SchemaTypes,
@@ -418,51 +412,49 @@ export type RelatedFieldOptions<
   Nullable extends boolean,
   Args extends InputFieldMap,
   ResolveReturnShape,
-  NeedsResolve extends boolean,
   Shape,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
     Shape,
-    RefForRelation<Model, Field>,
+    RefForRelation<Types, Model, Field>,
     Nullable,
     Args,
     ResolveReturnShape
   >,
-  'description' | 'resolve' | 'type'
-> &
-  (NeedsResolve extends false
-    ? {
-        resolve?: (
-          query: QueryFromRelation<Model, Field & keyof Model['Include']>,
-          parent: Shape,
-          args: InputShapeFromFields<Args>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<
-          ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>
-        >;
-      }
-    : {
-        resolve: (
-          query: QueryFromRelation<Model, Field & keyof Model['Include']>,
-          parent: Shape,
-          args: InputShapeFromFields<Args>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<
-          ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>
-        >;
-      }) & {
-    description?: string | false;
-    type?: PrismaRef<TypesForRelation<Types, Model, Field>>;
-    query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-  };
+  'description' | 'type' | InferredFieldOptionKeys
+> & {
+  resolve?: (
+    query: QueryFromRelation<Model, Field & keyof Model['Include']>,
+    parent: Shape,
+    args: InputShapeFromFields<Args>,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>>;
+  description?: string | false;
+  type?: PrismaRef<Types, TypesForRelation<Types, Model, Field>>;
+  query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
+  onNull?:
+    | 'error'
+    | ((
+        parent: Shape,
+        args: InputShapeFromFields<Args>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => MaybePromise<
+        Error | ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>
+      >);
+} & ({
+    field: boolean extends Nullable ? Types['DefaultFieldNullability'] : Nullable;
+    relation: Model['Relations'][Field]['Nullable'];
+  } extends { field: false; relation: true }
+    ? { onNull: {} }
+    : {});
 
 export type VariantFieldOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  Variant extends PrismaRef<Model>,
+  Variant extends PrismaRef<Types, Model>,
   Args extends InputFieldMap,
   isNull,
   Shape,
@@ -475,7 +467,7 @@ export type VariantFieldOptions<
     Args,
     Model['Shape']
   >,
-  'resolve' | 'type'
+  InferredFieldOptionKeys | 'type'
 > & {
   isNull?: isNull &
     ((
@@ -489,41 +481,29 @@ export type VariantFieldOptions<
 export type RelationCountOptions<
   Types extends SchemaTypes,
   Shape,
-  NeedsResolve extends boolean,
   Where,
   Args extends InputFieldMap,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>,
-  'resolve' | 'type'
-> &
-  (NeedsResolve extends false
-    ? {
-        resolve?: (
-          parent: Shape,
-          args: InputShapeFromFields<Args>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<number>;
-      }
-    : {
-        resolve: (
-          parent: Shape,
-          args: InputShapeFromFields<Args>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<number>;
-      }) & {
-    where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
-  };
+  'type' | InferredFieldOptionKeys
+> & {
+  resolve?: (
+    parent: Shape,
+    args: InputShapeFromFields<Args>,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<number>;
+  where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
+};
 
 export type PrismaFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends
-    | PrismaRef<PrismaModelTypes>
+    | PrismaRef<Types, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    | [PrismaRef<PrismaModelTypes>],
+    | [PrismaRef<Types, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Args extends InputFieldMap,
@@ -531,35 +511,46 @@ export type PrismaFieldOptions<
   ResolveShape,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
-> = FieldOptionsFromKind<
-  Types,
-  ParentShape,
-  Param,
-  Nullable,
-  Args,
-  Kind,
-  ResolveShape,
-  ResolveReturnShape
-> extends infer FieldOptions
-  ? Omit<FieldOptions, 'resolve' | 'type'> & {
-      type: Type;
-      resolve: FieldOptions extends { resolve?: (parent: infer Parent, ...args: any[]) => unknown }
-        ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
-        : PrismaFieldResolver<Types, Model, ParentShape, Param, Args, Nullable, ResolveReturnShape>;
-    }
-  : never;
+> =
+  FieldOptionsFromKind<
+    Types,
+    ParentShape,
+    Param,
+    Nullable,
+    Args,
+    Kind,
+    ResolveShape,
+    ResolveReturnShape
+  > extends infer FieldOptions
+    ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
+        type: Type;
+        resolve: FieldOptions extends {
+          resolve?: (parent: infer Parent, ...args: any[]) => unknown;
+        }
+          ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
+          : PrismaFieldResolver<
+              Types,
+              Model,
+              ParentShape,
+              Param,
+              Args,
+              Nullable,
+              ResolveReturnShape
+            >;
+      }
+    : never;
 
 export type PrismaFieldWithInputOptions<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind,
-  Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
-  Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+  Args extends InputFieldMap,
+  Fields extends InputFieldMap,
   Type extends
-    | PrismaRef<PrismaModelTypes>
+    | PrismaRef<Types, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    | [PrismaRef<PrismaModelTypes>],
+    | [PrismaRef<Types, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Nullable extends FieldNullability<Param>,
@@ -575,7 +566,8 @@ export type PrismaFieldWithInputOptions<
     Model,
     Param,
     Args & {
-      [K in InputName]: InputFieldRef<
+      [K in InputName]: ArgumentRef<
+        Types,
         InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
       >;
     },
@@ -589,7 +581,8 @@ export type PrismaFieldWithInputOptions<
   PothosSchemaTypes.FieldWithInputBaseOptions<
     Types,
     Args & {
-      [K in InputName]: InputFieldRef<
+      [K in InputName]: ArgumentRef<
+        Types,
         InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
       >;
     },
@@ -625,8 +618,8 @@ export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends
-    | PrismaInterfaceRef<PrismaModelTypes>
-    | PrismaRef<PrismaModelTypes>
+    | PrismaInterfaceRef<Types, PrismaModelTypes>
+    | PrismaRef<Types, PrismaModelTypes>
     | keyof Types['PrismaTypes'],
   Model extends PrismaModelTypes,
   Param extends OutputType<Types>,
@@ -641,13 +634,13 @@ export type PrismaConnectionFieldOptions<
     ParentShape,
     Param,
     Nullable,
-    InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments> &
+    InputFieldsFromShape<Types, PothosSchemaTypes.DefaultConnectionArguments, 'Arg'> &
       (InputFieldMap extends Args ? {} : Args),
     Kind,
     ParentShape,
     ResolveReturnShape
   >,
-  'args' | 'resolve' | 'type'
+  'args' | InferredFieldOptionKeys | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -660,7 +653,7 @@ export type PrismaConnectionFieldOptions<
       Args,
       ResolveReturnShape
     >,
-    'resolve' | 'type'
+    InferredFieldOptionKeys | 'type'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
@@ -700,83 +693,61 @@ export type RelatedConnectionOptions<
   Field extends Model['ListRelations'],
   Nullable extends boolean,
   Args extends InputFieldMap,
-  NeedsResolve extends boolean,
   // eslint-disable-next-line @typescript-eslint/sort-type-constituents
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
     Model['Shape'],
-    ObjectRef<unknown>,
+    ObjectRef<Types, unknown>,
     Nullable,
-    InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments> &
+    InputFieldsFromShape<Types, PothosSchemaTypes.DefaultConnectionArguments, 'InputObject'> &
       (InputFieldMap extends Args ? {} : Args),
     unknown
   >,
-  'args' | 'description' | 'resolve' | 'type'
+  'args' | 'description' | InferredFieldOptionKeys | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
       Types,
       Model['Shape'],
-      ObjectRef<unknown>,
+      ObjectRef<Types, unknown>,
       false,
       false,
       Nullable,
       Args,
       unknown
     >,
-    'resolve' | 'type'
+    InferredFieldOptionKeys | 'type'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
-    ? (NeedsResolve extends false
-        ? {
-            resolve?: (
-              query: {
-                include?: Model['Include'];
-                cursor?: Model['WhereUnique'];
-                take: number;
-                skip: number;
-              },
-              parent: Model['Shape'],
-              args: ConnectionArgs,
-              context: Types['Context'],
-              info: GraphQLResolveInfo,
-            ) => MaybePromise<
-              ShapeFromTypeParam<
-                Types,
-                [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
-                Nullable
-              >
-            >;
-          }
-        : {
-            resolve: (
-              query: {
-                include?: Model['Include'];
-                cursor?: Model['WhereUnique'];
-                take: number;
-                skip: number;
-              },
-              parent: Model['Shape'],
-              args: ConnectionArgs,
-              context: Types['Context'],
-              info: GraphQLResolveInfo,
-            ) => MaybePromise<
-              ShapeFromTypeParam<
-                Types,
-                [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
-                Nullable
-              >
-            >;
-          }) & {
+    ? {
+        resolve?: (
+          query: {
+            include?: Model['Include'];
+            cursor?: Model['WhereUnique'];
+            take: number;
+            skip: number;
+          },
+          parent: Model['Shape'],
+          args: ConnectionArgs,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => MaybePromise<
+          ShapeFromTypeParam<
+            Types,
+            [ObjectRef<Types, Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+            Nullable
+          >
+        >;
+      } & {
         description?: string | false;
         query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-        type?: PrismaRef<TypesForRelation<Types, Model, Field>>;
+        type?: PrismaRef<Types, TypesForRelation<Types, Model, Field>>;
         cursor: CursorFromRelation<Model, Field>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
-        totalCount?: NeedsResolve extends false ? boolean : false;
+        totalCount?: boolean;
       }
     : never);
 
@@ -834,8 +805,10 @@ export type PrismaConnectionShape<
       }
     : never
 ) extends infer C
-  ? [C] extends [{ edges: MaybePromise<readonly (infer Edge)[]> }]
-    ? Omit<C, 'edges'> & { edges: MaybePromise<(Edge & { connection: C })[]> }
+  ? [C] extends [
+      { edges: MaybePromise<readonly (infer Edge | null | undefined)[] | null | undefined> },
+    ]
+    ? Omit<C, 'edges'> & { edges: (Edge & { connection: C })[] }
     : C
   : never;
 
@@ -853,3 +826,32 @@ export type UniqueFieldsFromWhereUnique<T> = string &
       ? keyof T
       : K
     : never);
+
+interface DMMFField {
+  type: string;
+  kind: string;
+  name: string;
+  isRequired: boolean;
+  isList: boolean;
+  hasDefaultValue: boolean;
+  isUnique: boolean;
+  isId: boolean;
+  documentation?: string;
+  relationName?: string;
+  relationFromFields?: readonly string[];
+  isUpdatedAt?: boolean;
+}
+
+export interface PothosPrismaDatamodel {
+  datamodel: {
+    models: Record<
+      string,
+      {
+        fields: readonly DMMFField[];
+        primaryKey: { name: string | null; fields: readonly string[] } | null;
+        uniqueIndexes: { name: string | null; fields: readonly string[] }[];
+        documentation?: string;
+      }
+    >;
+  };
+}

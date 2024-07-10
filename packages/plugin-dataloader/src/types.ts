@@ -3,6 +3,7 @@ import {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
+  InferredFieldOptionKeys,
   InputFieldMap,
   InputShapeFromFields,
   InterfaceParam,
@@ -36,7 +37,7 @@ export type LoadableFieldOptions<
   ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>,
-  'resolve'
+  InferredFieldOptionKeys
 > & {
   byPath?: ByPath;
   load: (
@@ -76,7 +77,7 @@ export type LoadableListFieldOptions<
   ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
-  'resolve' | 'type'
+  InferredFieldOptionKeys | 'type'
 > & {
   type: Type;
   byPath?: ByPath;
@@ -109,7 +110,7 @@ export type LoadableGroupFieldOptions<
   ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
-  'resolve' | 'type'
+  InferredFieldOptionKeys | 'type'
 > & {
   type: Type;
   byPath?: ByPath;
@@ -162,7 +163,7 @@ export type DataloaderObjectTypeOptions<
 > = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   ObjectTypeOptions<
     Types,
-    NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
+    NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Types, Shape>,
     Shape,
     Interfaces
   >;
@@ -178,7 +179,7 @@ export type LoadableInterfaceOptions<
 > = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   InterfaceTypeOptions<
     Types,
-    NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
+    NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Types, Shape>,
     Shape,
     Interfaces
   >;

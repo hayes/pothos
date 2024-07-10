@@ -10,9 +10,11 @@ interface Types {
   Interfaces: { Character: Character };
   Context: ContextType;
   SubGraphs: 'Private' | 'Public';
+  Defaults: 'v3';
 }
 
 export default new SchemaBuilder<Types>({
+  defaults: 'v3',
   plugins: [ErrorsPlugin, SubGraphPlugin, RelayPlugin, WithInputPlugin],
   subGraphs: {
     fieldsInheritFromTypes: true,

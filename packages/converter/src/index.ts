@@ -594,15 +594,11 @@ export default class PothosConverter {
     if (type instanceof GraphQLNonNull) {
       if (type.ofType instanceof GraphQLList && !(type.ofType.ofType instanceof GraphQLNonNull)) {
         writer.write('nullable: { list: false, items: true },');
-      }
-    } else if (type instanceof GraphQLList) {
-      if (type.ofType instanceof GraphQLNonNull) {
-        writer.write('nullable: true,');
       } else {
-        writer.write(`nullable: { list: true, items: true },`);
+        writer.write('nullable: false,');
       }
-    } else {
-      writer.write('nullable: true,');
+    } else if (type instanceof GraphQLList && !(type.ofType instanceof GraphQLNonNull)) {
+      writer.write(`nullable: { list: false, items: true },`);
     }
   }
 
@@ -682,9 +678,7 @@ export default class PothosConverter {
       writer.writeLine('},');
     }
 
-    const interfaces = gqlTypes.filter(
-      (type) => type instanceof GraphQLInterfaceType,
-    ) as GraphQLInterfaceType[];
+    const interfaces = gqlTypes.filter((type) => type instanceof GraphQLInterfaceType);
     if (interfaces.length > 0) {
       writer.writeLine('Interfaces: {');
       writer.indent(() => {

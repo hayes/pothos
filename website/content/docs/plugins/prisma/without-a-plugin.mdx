@@ -1,0 +1,130 @@
+---
+title: Prisma without a plugin
+description: Using Prisma without a plugin
+---
+
+Using prisma without a plugin is relatively straight forward using the `builder.objectRef` method.
+
+The easiest way to create types backed by prisma looks something like:
+
+```typescript
+import { Post, PrismaClient, User } from '@prisma/client';
+
+const db = new PrismaClient();
+const UserObject = builder.objectRef<User>('User');
+const PostObject = builder.objectRef<Post>('Post');
+
+UserObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    posts: t.field({
+      type: [PostObject],
+      resolve: (user) =>
+        db.post.findMany({
+          where: { authorId: user.id },
+        }),
+    }),
+  }),
+});
+
+PostObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.field({
+      type: UserObject,
+      resolve: (post) => db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
+    }),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    me: t.field({
+      type: UserObject,
+      resolve: (root, args, ctx) => db.user.findUniqueOrThrow({ where: { id: ctx.userId } }),
+    }),
+  }),
+});
+```
+
+This sets up User, and Post objects with a few fields, and a `me` query that returns the current
+user. There are a few things to note in this setup:
+
+1. We split up the `builder.objectRef` and the `implement` calls, rather than calling
+   `builder.objectRef(...).implement(...)`. This prevents typescript from getting tripped up by the
+   circular references between posts and users.
+2. We use `findUniqueOrThrow` because those fields are not nullable. Using `findUnique`, prisma will
+   return a null if the object is not found. An alternative is to mark these fields as nullable.
+3. The refs to our object types are called `UserObject` and `PostObject`, this is because `User` and
+   `Post` are the names of the types imported from prisma. We could instead alias the types when we
+   import them so we can name the refs to our GraphQL types after the models.
+
+This setup is fairly simple, but it is easy to see the n+1 issues we might run into. Prisma helps
+with this by batching queries together, but there are also things we can do in our implementation to
+improve things.
+
+One thing we could do if we know we will usually be loading the author any time we load a post is to
+make the author part of shape required for a post:
+
+```typescript
+const UserObject = builder.objectRef<User>('User');
+// We add the author here in the objectRef
+const PostObject = builder.objectRef<Post & { author: User }>('Post');
+
+UserObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    posts: t.field({
+      type: [PostObject],
+      resolve: (user) =>
+        db.post.findMany({
+          // We now need to include the author when we query for posts
+          include: {
+            author: true,
+          },
+          where: { authorId: user.id },
+        }),
+    }),
+  }),
+});
+
+PostObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.field({
+      type: UserObject,
+      // Now we can just return the author from the post instead of querying for it
+      resolve: (post) => post.author,
+    }),
+  }),
+});
+```
+
+We may not always want to query for the author though, so we could make the author optional and fall
+back to using a query if it was not provided by the parent resolver:
+
+```typescript
+const PostObject = builder.objectRef<Post & { author?: User }>('Post');
+
+PostObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.field({
+      type: UserObject,
+      resolve: (post) =>
+        post.author ?? db.user.findUnique({ rejectOnNotFound: true, where: { id: post.authorId } }),
+    }),
+  }),
+});
+```
+
+With this setup, a parent resolver has the option to include the author, but we have a fallback
+incase it does not.
+
+There are other patterns like data loaders than can be used to reduce n+1 issues, and make your
+graph more efficient, but they are too complex to describe here.

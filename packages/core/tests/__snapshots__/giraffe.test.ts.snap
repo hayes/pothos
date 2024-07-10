@@ -2,15 +2,15 @@
 
 exports[`giraffe example > generates expected schema 1`] = `
 "interface Animal {
-  diet: Diet!
+  diet: Diet
 }
 
 interface AnimalFromClass {
-  diet: Diet!
+  diet: Diet
 }
 
 interface AnimalFromRef {
-  diet: Diet!
+  diet: Diet
 }
 
 """
@@ -30,32 +30,32 @@ input FindGiraffeInput {
 
 """Long necks, cool patterns, taller than you."""
 type Giraffe implements Animal {
-  age: Int!
+  age: Int
 
   """
   While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium
   """
-  diet: Diet!
-  height(unit: LengthUnit! = Meters): Float!
-  name: String!
-  oldName(old: Boolean @deprecated(reason: "because")): String! @deprecated(reason: "should use name instead")
-  species: GiraffeSpecies!
+  diet: Diet
+  height(unit: LengthUnit! = Meters): Float
+  name: String
+  oldName(old: Boolean @deprecated(reason: "because")): String @deprecated(reason: "should use name instead")
+  species: GiraffeSpecies
 }
 
 union GiraffeFact = GiraffeNumericFact | GiraffeStringFact
 
 """Long necks, cool patterns, taller than you."""
 type GiraffeFromClass implements AnimalFromClass {
-  age: Int!
-  diet: Diet!
-  name: String!
+  age: Int
+  diet: Diet
+  name: String
 }
 
 """Long necks, cool patterns, taller than you."""
 type GiraffeFromRef implements AnimalFromRef {
-  age: Int!
-  diet: Diet!
-  name: String!
+  age: Int
+  diet: Diet
+  name: String
 }
 
 input GiraffeInput {
@@ -65,8 +65,8 @@ input GiraffeInput {
 }
 
 type GiraffeNumericFact {
-  fact: String!
-  value: Float!
+  fact: String
+  value: Float
 }
 
 enum GiraffeSpecies {
@@ -79,7 +79,7 @@ enum GiraffeSpecies {
 }
 
 type GiraffeStringFact {
-  fact: String!
+  fact: String
 }
 
 enum LengthUnit {
@@ -88,23 +88,23 @@ enum LengthUnit {
 }
 
 type Mutation {
-  createGiraffe(input: GiraffeInput!): GiraffeFromClass!
-  createGiraffeWithFriends(input: RecursiveGiraffeInput!): [GiraffeFromClass!]!
-  findGiraffe(where: FindGiraffeInput!): GiraffeFromClass!
+  createGiraffe(input: GiraffeInput!): GiraffeFromClass
+  createGiraffeWithFriends(input: RecursiveGiraffeInput!): [GiraffeFromClass!]
+  findGiraffe(where: FindGiraffeInput!): GiraffeFromClass
 }
 
 scalar PositiveInt
 
 type Query {
-  animal: Animal!
-  animalClass: AnimalFromClass!
-  animalRef: AnimalFromRef!
-  date: Date!
-  giraffe: Giraffe!
-  giraffeClass: GiraffeFromClass!
-  giraffeFacts: [GiraffeFact!]!
-  giraffeRef: GiraffeFromRef!
-  positive: PositiveInt!
+  animal: Animal
+  animalClass: AnimalFromClass
+  animalRef: AnimalFromRef
+  date: Date
+  giraffe: Giraffe
+  giraffeClass: GiraffeFromClass
+  giraffeFacts: [GiraffeFact!]
+  giraffeRef: GiraffeFromRef
+  positive: PositiveInt
 }
 
 input RecursiveGiraffeInput {

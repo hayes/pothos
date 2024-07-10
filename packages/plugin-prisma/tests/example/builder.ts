@@ -6,7 +6,7 @@ import SimpleObjects from '@pothos/plugin-simple-objects';
 import PrismaPlugin from '../../src';
 // eslint-disable-next-line import/no-useless-path-segments
 import { Prisma, PrismaClient } from '../client/index';
-import PrismaTypes from '../generated.js';
+import PrismaTypes, { getDatamodel } from '../generated.js';
 
 export const prisma = new PrismaClient({
   log: [
@@ -29,7 +29,7 @@ export const prisma = new PrismaClient({
   ],
 });
 
-const builder = new SchemaBuilder<{
+interface Types {
   Scalars: {
     Decimal: {
       Input: Prisma.Decimal;
@@ -43,17 +43,23 @@ const builder = new SchemaBuilder<{
   AuthScopes: {
     user: boolean;
   };
-}>({
+}
+
+const builder = new SchemaBuilder<Types>({
   plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin, ComplexityPlugin, SimpleObjects],
-  relayOptions: {},
+  relay: {
+    nodeFieldOptions: {
+      nullable: false,
+    },
+  },
   prisma: {
     filterConnectionTotalCount: true,
     client: () => prisma,
-    dmmf: Prisma.dmmf,
+    dmmf: getDatamodel(),
     exposeDescriptions: true,
     onUnusedQuery: 'error',
   },
-  errorOptions: {
+  errors: {
     defaultTypes: [Error],
   },
 });
