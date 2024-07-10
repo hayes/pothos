@@ -1,6 +1,6 @@
 import type { GraphQLFieldExtensions } from 'graphql';
 import type {
-  InferredResolveOptionsByKind,
+  InferredFieldOptionsByKind,
   InputFieldMap,
   InputShapeFromFields,
   Resolver,
@@ -18,7 +18,7 @@ import type {
 
 declare global {
   export namespace PothosSchemaTypes {
-    export interface InferredResolveOptions<
+    export interface InferredFieldOptions<
       Types extends SchemaTypes,
       ResolveShape = unknown,
       Type extends TypeParam<Types> = TypeParam<Types>,
@@ -178,9 +178,9 @@ declare global {
       ResolveReturnShape,
     > {
       Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> &
-        InferredResolveOptionsByKind<
+        InferredFieldOptionsByKind<
           Types,
-          Types['InferredResolveOptionsKind'],
+          Types['InferredFieldOptionsKind'],
           Types['Root'],
           Type,
           Nullable,
@@ -188,9 +188,9 @@ declare global {
           ResolveReturnShape
         >;
       Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> &
-        InferredResolveOptionsByKind<
+        InferredFieldOptionsByKind<
           Types,
-          Types['InferredResolveOptionsKind'],
+          Types['InferredFieldOptionsKind'],
           Types['Root'],
           Type,
           Nullable,
@@ -205,9 +205,9 @@ declare global {
         ResolveShape,
         ResolveReturnShape
       > &
-        InferredResolveOptionsByKind<
+        InferredFieldOptionsByKind<
           Types,
-          Types['InferredResolveOptionsKind'],
+          Types['InferredFieldOptionsKind'],
           ResolveShape,
           Type,
           Nullable,
@@ -215,9 +215,9 @@ declare global {
           ResolveReturnShape
         >;
       Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> &
-        InferredResolveOptionsByKind<
+        InferredFieldOptionsByKind<
           Types,
-          Types['InferredResolveOptionsKind'],
+          Types['InferredFieldOptionsKind'],
           ParentShape,
           Type,
           Nullable,
@@ -233,9 +233,9 @@ declare global {
         ResolveReturnShape
       > &
         Partial<
-          InferredResolveOptionsByKind<
+          InferredFieldOptionsByKind<
             Types,
-            Types['InferredResolveOptionsKind'],
+            Types['InferredFieldOptionsKind'],
             ParentShape,
             Type,
             Nullable,

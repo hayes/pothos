@@ -1,4 +1,3 @@
-import { PothosSchemaError } from '../errors';
 import {
   FieldKind,
   outputFieldShapeKey,
@@ -20,17 +19,16 @@ export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends Field
     config: PothosOutputFieldConfig<Types>,
   ) => PothosOutputFieldConfig<Types> | void)[] = [];
 
-  private initConfig:
-    | ((name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>)
-    | null;
+  private initConfig: (
+    name: string,
+    typeConfig: PothosTypeConfig,
+  ) => PothosOutputFieldConfig<Types>;
 
   private onUseCallbacks = new Set<(config: PothosOutputFieldConfig<Types>) => void>();
 
   constructor(
     kind: Kind,
-    initConfig:
-      | ((name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>)
-      | null = null,
+    initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>,
   ) {
     this.kind = kind;
     this.initConfig = initConfig;
@@ -43,10 +41,6 @@ export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends Field
   }
 
   getConfig(name: string, typeConfig: PothosTypeConfig): PothosOutputFieldConfig<Types> {
-    if (!this.initConfig) {
-      throw new PothosSchemaError(`Field ${typeConfig.name}.${name} has not been implemented`);
-    }
-
     const config = this.pendingActions.reduce(
       (cfg, cb) => cb(cfg) ?? cfg,
       this.initConfig(name, typeConfig),

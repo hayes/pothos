@@ -465,7 +465,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
   const {
     edgesFieldOptions: {
       nullable: edgesNullable = {
-        items: true,
+        items: this.defaultFieldNullability,
         list: this.defaultFieldNullability,
       },
       ...edgesFieldOptions

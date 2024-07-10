@@ -1,7 +1,7 @@
 import {
   EmptyToOptional,
   FieldNullability,
-  InferredResolveOptionsKeys,
+  InferredFieldOptionKeys,
   Normalize,
   SchemaTypes,
   TypeParam,
@@ -57,7 +57,7 @@ export type ErrorFieldOptions<
         {},
         Shape
       >,
-      'args' | 'nullable' | 'type' | InferredResolveOptionsKeys
+      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
     > & {
       name?: string;
     }

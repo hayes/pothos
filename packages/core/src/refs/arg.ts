@@ -1,4 +1,3 @@
-import { PothosSchemaError } from '../errors';
 import {
   inputFieldShapeKey,
   PothosInputFieldConfig,
@@ -11,26 +10,28 @@ export class ArgumentRef<Types extends SchemaTypes, T = unknown> {
 
   fieldName?: string;
 
+  $inferInput!: T;
+
   [inputFieldShapeKey]!: T;
 
   protected pendingActions: ((
     config: PothosInputFieldConfig<Types>,
   ) => PothosInputFieldConfig<Types> | void)[] = [];
 
-  private initConfig:
-    | ((name: string, field: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>)
-    | null;
+  private initConfig: (
+    name: string,
+    field: string,
+    typeConfig: PothosTypeConfig,
+  ) => PothosInputFieldConfig<Types>;
 
   private onUseCallbacks = new Set<(config: PothosInputFieldConfig<Types>) => void>();
 
   constructor(
-    initConfig:
-      | ((
-          name: string,
-          field: string,
-          typeConfig: PothosTypeConfig,
-        ) => PothosInputFieldConfig<Types>)
-      | null = null,
+    initConfig: (
+      name: string,
+      field: string,
+      typeConfig: PothosTypeConfig,
+    ) => PothosInputFieldConfig<Types>,
   ) {
     this.initConfig = initConfig;
   }
@@ -50,10 +51,6 @@ export class ArgumentRef<Types extends SchemaTypes, T = unknown> {
     field: string,
     typeConfig: PothosTypeConfig,
   ): PothosInputFieldConfig<Types> {
-    if (!this.initConfig) {
-      throw new PothosSchemaError(`Field ${typeConfig.name}.${name} has not been implemented`);
-    }
-
     const config = this.pendingActions.reduce(
       (config, cb) => cb(config) ?? config,
       this.initConfig(name, field, typeConfig),

@@ -89,6 +89,6 @@ export type ExposeNullableOption<Types extends SchemaTypes, Type extends TypePar
     items: true;
     list: true;
 } : never : Awaited<ParentShape[Name]> extends NonNullable<Awaited<ParentShape[Name]>> ? boolean : true);
-export type InferredResolveOptionsKind<Types extends SchemaTypes = SchemaTypes> = keyof PothosSchemaTypes.InferredResolveOptions<Types>;
-export type InferredResolveOptionsByKind<Types extends SchemaTypes, Kind extends InferredResolveOptionsKind, ResolveShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveReturnShape = unknown> = PothosSchemaTypes.InferredResolveOptions<Types, ResolveShape, Type, Nullable, Args, ResolveReturnShape>[Kind];
-export type InferredResolveOptionsKeys<Kind extends InferredResolveOptionsKind = InferredResolveOptionsKind> = PothosSchemaTypes.InferredResolveOptions<SchemaTypes>[Kind] extends infer Options ? Options extends unknown ? keyof Options : never : never;
+export type InferredFieldOptionsKind<Types extends SchemaTypes = SchemaTypes> = keyof PothosSchemaTypes.InferredFieldOptions<Types>;
+export type InferredFieldOptionsByKind<Types extends SchemaTypes, Kind extends InferredFieldOptionsKind, ResolveShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveReturnShape = unknown> = PothosSchemaTypes.InferredFieldOptions<Types, ResolveShape, Type, Nullable, Args, ResolveReturnShape>[Kind];
+export type InferredFieldOptionKeys<Kind extends InferredFieldOptionsKind = InferredFieldOptionsKind> = PothosSchemaTypes.InferredFieldOptions<SchemaTypes>[Kind] extends infer Options ? Options extends unknown ? keyof Options : never : never;

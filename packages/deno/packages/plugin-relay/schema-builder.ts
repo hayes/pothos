@@ -320,7 +320,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, i
 schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, edgesNullable: edgesNullableField, nodeNullable, edgesField, ...connectionOptions }, edgeOptionsOrRef) {
     verifyRef(type);
     const { edgesFieldOptions: { nullable: edgesNullable = {
-        items: true,
+        items: this.defaultFieldNullability,
         list: this.defaultFieldNullability,
     }, ...edgesFieldOptions } = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relay ?? {};
     const connectionRef = this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);

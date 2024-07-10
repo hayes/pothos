@@ -74,8 +74,8 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
         pothosOptions: FieldOptionsFromKind<Types, unknown, TypeParam<Types>, FieldNullability<[
             unknown
         ]>, InputFieldMap, K, unknown, unknown> & MergeUnion<{
-            [K in keyof PothosSchemaTypes.InferredResolveOptions<SchemaTypes>]: PothosSchemaTypes.InferredResolveOptions<SchemaTypes>[K];
-        }[keyof PothosSchemaTypes.InferredResolveOptions<SchemaTypes>]>;
+            [K in keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]: PothosSchemaTypes.InferredFieldOptions<SchemaTypes>[K];
+        }[keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]>;
     }>;
 }[Kind];
 export interface PothosInputFieldConfig<Types extends SchemaTypes> extends Omit<GraphQLInputFieldConfig, "type"> {

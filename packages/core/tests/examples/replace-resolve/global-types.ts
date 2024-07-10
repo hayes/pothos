@@ -15,7 +15,7 @@ declare global {
       resolve2Plugin: PothosResolve2Plugin<Types>;
     }
 
-    export interface InferredResolveOptions<
+    export interface InferredFieldOptions<
       Types extends SchemaTypes,
       ResolveShape = unknown,
       Type extends TypeParam<Types> = TypeParam<Types>,

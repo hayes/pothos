@@ -1,11 +1,11 @@
 // @ts-nocheck
 import type { GraphQLFieldExtensions } from 'https://cdn.skypack.dev/graphql?dts';
-import type { InferredResolveOptionsByKind, InputFieldMap, InputShapeFromFields, Resolver, Subscriber, } from '../builder-options.ts';
+import type { InferredFieldOptionsByKind, InputFieldMap, InputShapeFromFields, Resolver, Subscriber, } from '../builder-options.ts';
 import type { SchemaTypes } from '../schema-types.ts';
 import type { FieldNullability, FieldRequiredness, InputShapeFromTypeParam, InputType, ShapeFromTypeParam, TypeParam, } from '../type-params.ts';
 declare global {
     export namespace PothosSchemaTypes {
-        export interface InferredResolveOptions<Types extends SchemaTypes, ResolveShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveReturnShape = unknown> {
+        export interface InferredFieldOptions<Types extends SchemaTypes, ResolveShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveReturnShape = unknown> {
             Resolve: {
                 /**
                  * Resolver function for this field
@@ -50,11 +50,11 @@ declare global {
             subscribe: Subscriber<Types["Root"], InputShapeFromFields<Args>, Types["Context"], ResolveShape>;
         }
         export interface FieldOptionsByKind<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {
-            Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> & InferredResolveOptionsByKind<Types, Types["InferredResolveOptionsKind"], Types["Root"], Type, Nullable, Args, ResolveReturnShape>;
-            Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> & InferredResolveOptionsByKind<Types, Types["InferredResolveOptionsKind"], Types["Root"], Type, Nullable, Args, ResolveReturnShape>;
-            Subscription: SubscriptionFieldOptions<Types, Type, Nullable, Args, ResolveShape, ResolveReturnShape> & InferredResolveOptionsByKind<Types, Types["InferredResolveOptionsKind"], ResolveShape, Type, Nullable, Args, ResolveReturnShape>;
-            Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & InferredResolveOptionsByKind<Types, Types["InferredResolveOptionsKind"], ParentShape, Type, Nullable, Args, ResolveReturnShape>;
-            Interface: InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & Partial<InferredResolveOptionsByKind<Types, Types["InferredResolveOptionsKind"], ParentShape, Type, Nullable, Args, ResolveReturnShape>>;
+            Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], Types["Root"], Type, Nullable, Args, ResolveReturnShape>;
+            Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], Types["Root"], Type, Nullable, Args, ResolveReturnShape>;
+            Subscription: SubscriptionFieldOptions<Types, Type, Nullable, Args, ResolveShape, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], ResolveShape, Type, Nullable, Args, ResolveReturnShape>;
+            Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], ParentShape, Type, Nullable, Args, ResolveReturnShape>;
+            Interface: InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & Partial<InferredFieldOptionsByKind<Types, Types["InferredFieldOptionsKind"], ParentShape, Type, Nullable, Args, ResolveReturnShape>>;
         }
         export interface InputFieldOptions<Types extends SchemaTypes = SchemaTypes, Type extends InputType<Types> | [
             InputType<Types>

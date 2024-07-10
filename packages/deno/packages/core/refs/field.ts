@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { PothosSchemaError } from '../errors.ts';
 import { FieldKind, outputFieldShapeKey, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
 export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends FieldKind = FieldKind> {
     kind: FieldKind;
@@ -7,9 +6,9 @@ export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends Field
     $inferType!: T;
     [outputFieldShapeKey]!: T;
     protected pendingActions: ((config: PothosOutputFieldConfig<Types>) => PothosOutputFieldConfig<Types> | void)[] = [];
-    private initConfig: ((name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>) | null;
+    private initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>;
     private onUseCallbacks = new Set<(config: PothosOutputFieldConfig<Types>) => void>();
-    constructor(kind: Kind, initConfig: ((name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>) | null = null) {
+    constructor(kind: Kind, initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>) {
         this.kind = kind;
         this.initConfig = initConfig;
     }
@@ -17,9 +16,6 @@ export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends Field
         this.pendingActions.push(cb);
     }
     getConfig(name: string, typeConfig: PothosTypeConfig): PothosOutputFieldConfig<Types> {
-        if (!this.initConfig) {
-            throw new PothosSchemaError(`Field ${typeConfig.name}.${name} has not been implemented`);
-        }
         const config = this.pendingActions.reduce((cfg, cb) => cb(cfg) ?? cfg, this.initConfig(name, typeConfig));
         for (const cb of this.onUseCallbacks) {
             this.onUseCallbacks.delete(cb);

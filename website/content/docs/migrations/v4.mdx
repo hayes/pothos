@@ -359,7 +359,7 @@ generic argument to the type.
 ## Field options
 
 The global interfaces for FieldOptions no-longer include the `resolve` option, which has moved to
-the `InferredResolveOptions` interface to allow plugins to replace or change the resolve functions
+the `InferredFieldOptions` interface to allow plugins to replace or change the resolve functions
 types globally.
 
 This means that when extending the `FieldOptionsByKind` interface, if you previously extended one of
@@ -394,9 +394,9 @@ export interface FieldOptionsByKind<
 +     Args,
 +     ResolveReturnShape
 +   > &
-+   InferredResolveOptionsByKind<
++   InferredFieldOptionsByKind<
 +     Types,
-+     Types['InferredResolveOptionsKind'],
++     Types['InferredFieldOptionsKind'],
 +     ParentShape,
 +     Type,
 +     Nullable,
@@ -406,7 +406,7 @@ export interface FieldOptionsByKind<
 }
 ```
 
-The `InferredResolveOptionsByKind` interface can be used to get the `resolve` option by default, but
+The `InferredFieldOptionsByKind` interface can be used to get the `resolve` option by default, but
 will also work for plugins that replace the `resolve` function with a different options for
 configuring how a field is resolved. Some custom object types may want to explicitly define a
 `resolve` option type, or omit it entirely (eg, the SimpleObject plugin does not use resolvers).

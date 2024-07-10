@@ -2,7 +2,7 @@ import SchemaBuilder from '../../../src';
 import TestPlugin from './plugin';
 
 const builder = new SchemaBuilder<{
-  InferredResolveOptionsKind: 'Resolve2';
+  InferredFieldOptionsKind: 'Resolve2';
 }>({
   plugins: [TestPlugin],
 });

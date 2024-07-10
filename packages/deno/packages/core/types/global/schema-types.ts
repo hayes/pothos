@@ -4,7 +4,7 @@ import type { GraphQLDirective } from 'https://cdn.skypack.dev/graphql?dts';
 import type { PluginConstructorMap } from '../plugins.ts';
 import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types.ts';
 import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils.ts';
-import { InferredResolveOptionsKind } from '../builder-options.ts';
+import { InferredFieldOptionsKind } from '../builder-options.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -50,7 +50,7 @@ declare global {
             Context: object;
             DefaultFieldNullability: boolean;
             DefaultInputFieldRequiredness: boolean;
-            InferredResolveOptionsKind: InferredResolveOptionsKind;
+            InferredFieldOptionsKind: InferredFieldOptionsKind;
         }
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> extends SchemaTypes {
             Defaults: PartialTypes["Defaults"] & SchemaTypes["Defaults"];
@@ -60,7 +60,7 @@ declare global {
             Interfaces: PartialTypes["Interfaces"] & {};
             Root: PartialTypes["Root"] & {};
             Context: PartialTypes["Context"] & {};
-            InferredResolveOptionsKind: PartialTypes["InferredResolveOptionsKind"] extends InferredResolveOptionsKind ? PartialTypes["InferredResolveOptionsKind"] : "Resolve";
+            InferredFieldOptionsKind: PartialTypes["InferredFieldOptionsKind"] extends InferredFieldOptionsKind ? PartialTypes["InferredFieldOptionsKind"] : "Resolve";
             DefaultFieldNullability: PartialTypes["Defaults"] extends "v3" ? PartialTypes["DefaultFieldNullability"] extends true ? true : false : PartialTypes["DefaultFieldNullability"] extends false ? false : true;
             DefaultInputFieldRequiredness: PartialTypes["DefaultInputFieldRequiredness"] extends true ? true : false;
             outputShapes: {

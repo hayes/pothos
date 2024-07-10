@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { InferredResolveOptionsKind } from './builder-options.ts';
+import { InferredFieldOptionsKind } from './builder-options.ts';
 export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
     outputShapes: {
         String: unknown;
@@ -42,7 +42,7 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
     };
     DefaultFieldNullability: boolean;
     DefaultInputFieldRequiredness: boolean;
-    InferredResolveOptionsKind: InferredResolveOptionsKind;
+    InferredFieldOptionsKind: InferredFieldOptionsKind;
     Root: object;
     Context: object;
 }

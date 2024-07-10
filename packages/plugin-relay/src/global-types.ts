@@ -4,7 +4,7 @@ import {
   FieldOptionsFromKind,
   FieldRef,
   FieldRequiredness,
-  InferredResolveOptionsKeys,
+  InferredFieldOptionKeys,
   InputFieldMap,
   InputFieldsFromShape,
   InputOrArgRef,
@@ -329,7 +329,7 @@ declare global {
               ResolveReturnShape,
               ConnectionResult
             > &
-              Omit<FieldOptions, 'args' | 'type' | InferredResolveOptionsKeys>
+              Omit<FieldOptions, 'args' | 'type' | InferredFieldOptionKeys>
           : never,
         ...args: NormalizeArgs<
           [
@@ -464,7 +464,7 @@ declare global {
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | InferredResolveOptionsKeys | 'type'
+        'args' | 'nullable' | InferredFieldOptionKeys | 'type'
       >;
     }
 
@@ -502,7 +502,7 @@ declare global {
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | InferredResolveOptionsKeys | 'type'
+        'args' | 'nullable' | InferredFieldOptionKeys | 'type'
       >;
     }
 
