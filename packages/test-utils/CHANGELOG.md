@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 2.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+
 ## 2.0.0
 
 ### Major Changes

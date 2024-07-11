@@ -1,5 +1,13 @@
 # @giraphql/plugin-complexity
 
+## 4.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+
 ## 4.0.0
 
 ### Major Changes
