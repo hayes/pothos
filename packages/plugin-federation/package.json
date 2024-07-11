@@ -47,7 +47,7 @@
   },
   "peerDependencies": {
     "@apollo/subgraph": "^2.0.0",
-    "graphql": "^16.8.1"
+    "graphql": ">=16.6.0"
   },
   "devDependencies": {
     "@apollo/gateway": "^2.8.2",
