@@ -1,6 +1,6 @@
 {
   "name": "@pothos/tracing-opentelemetry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Opentelemetry utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -49,8 +49,8 @@
   "peerDependencies": {
     "@opentelemetry/api": "*",
     "@opentelemetry/semantic-conventions": "*",
-    "@pothos/core": "4.0.0",
-    "@pothos/plugin-tracing": "1.0.0",
+    "@pothos/core": "4.0.1",
+    "@pothos/plugin-tracing": "1.0.1",
     "graphql": ">=16.6.0"
   },
   "devDependencies": {

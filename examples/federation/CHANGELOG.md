@@ -1,5 +1,15 @@
 # @pothos-examples/federation
 
+## 3.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+  - @pothos/plugin-directives@4.0.1
+  - @pothos/plugin-federation@4.0.1
+
 ## 3.0.0
 
 ### Major Changes

@@ -1,5 +1,14 @@
 # @pothos/plugin-prisma-utils
 
+## 1.0.2
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+  - @pothos/plugin-prisma@4.0.2
+
 ## 1.0.1
 
 ### Patch Changes

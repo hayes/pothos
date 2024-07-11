@@ -1,5 +1,20 @@
 # @pothos-examples/complex-app
 
+## 2.0.3
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+  - @pothos/plugin-dataloader@4.0.1
+  - @pothos/plugin-prisma@4.0.2
+  - @pothos/plugin-prisma-utils@1.0.2
+  - @pothos/plugin-relay@4.0.1
+  - @pothos/plugin-scope-auth@4.0.1
+  - @pothos/plugin-simple-objects@4.0.2
+  - @pothos/plugin-zod@4.0.1
+
 ## 2.0.2
 
 ### Patch Changes
