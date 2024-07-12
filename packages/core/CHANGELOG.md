@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.2
+
+### Patch Changes
+
+- 777f6de: Add builder.$inferSchemaTypes
+
 ## 4.0.1
 
 ### Patch Changes
