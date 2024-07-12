@@ -22,6 +22,7 @@ import { UnionRef } from './refs/union.ts';
 import type { AbstractReturnShape, AddVersionedDefaultsToBuilderOptions, BaseEnum, ConfigurableRef, EnumParam, EnumTypeOptions, EnumValues, InputFieldMap, InputFieldsFromShape, InputShape, InputShapeFromFields, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, InterfaceTypeOptions, MutationFieldsShape, MutationFieldThunk, NormalizeArgs, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectTypeOptions, OutputShape, ParentShape, PluginConstructorMap, PothosInputObjectTypeConfig, QueryFieldsShape, QueryFieldThunk, RecursivelyNormalizeNullableFields, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, ValuesFromEnum, } from './types/index.ts';
 import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.ts';
 export class SchemaBuilder<Types extends SchemaTypes> {
+    $inferSchemaTypes!: Types;
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
     static optionNormalizers: Map<string, {
         v3?: (options: AddVersionedDefaultsToBuilderOptions<SchemaTypes, "v3">) => Partial<NormalizeSchemeBuilderOptions<SchemaTypes>>;

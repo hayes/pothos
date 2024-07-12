@@ -34,7 +34,9 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
             this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
             this.builder.subscriptionField(fieldConfig.name, (t) => t.field({
                 ...fieldConfig.pothosOptions,
-                resolve: (parent, args, context, info) => (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
+                resolve: (parent, args, context, info) => 
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
                 subscribe: (parent, args, context, info) => {
                     const manager = new SubscriptionManager({
                         value: parent,

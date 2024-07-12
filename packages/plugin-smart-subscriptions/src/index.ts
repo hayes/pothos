@@ -62,6 +62,7 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
           t.field({
             ...fieldConfig.pothosOptions,
             resolve: (parent, args, context, info) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
             subscribe: (parent, args, context, info) => {
               const manager = new SubscriptionManager({
