@@ -18,9 +18,74 @@ const MyInput = builder.inputType('MyInput', {
 });
 
 // { id: string; name: string; }
-type MyInputShape = typeof MyInput.$inferInput; /
+type MyInputShape = typeof MyInput.$inferInput;
 
 // infer the shape of the Prisma User model
 const UserRef = builder.prismaObject('User', {});
 type UserType = typeof UserRef.$inferType;
+```
+
+When building helpers, most Pothos types have a generic called `Types` that extends `SchemaTypes`.
+This combines all the defaults and settings passed in when creating the SchemaBuilder. To make you
+own type helpers and utility functions, you often need access the the `Types` used by your builder.
+
+This can be inferred from the builder using `typeof builder.$inferSchemaTypes`.
+
+The following is a simple helper that for creating objects that have an `id` field. The helper
+itself isn't that useful, but shows how inferring SchemaTypes from a builder can work.
+
+```ts
+type BuilderTypes = typeof builder.$inferSchemaTypes;
+
+function createObjectWithId<T extends { id: string }>(
+  name: string,
+  fields: (t: PothosSchemaTypes.ObjectFieldBuilder<BuilderTypes, T>) => FieldMap,
+) {
+  const ref = builder.objectRef<T>(name);
+
+  ref.implement({
+    fields: (t) => ({
+      ...fields(t),
+      id: t.id({
+        resolve: (parent) => parent.id,
+        nullable: false,
+      }),
+    }),
+  });
+
+  return ref;
+}
+
+createObjectWithId<{
+  id: string;
+  name: string;
+}>('User', (t) => ({
+  name: t.exposeString('name'),
+}));
+```
+
+Rather than explicitly using the inferred type, you can also infer SchemaTypes from the builder in
+an argument. In the following example, we pass in the builder to the createPaginationArgs, and infer
+the `Types` from the provided builder. This is useful when building helpers that might be used with
+multiple builder instances.
+
+```ts
+function createPaginationArgs<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+) {
+  return builder.args((t) => ({
+    limit: t.int(),
+    offset: t.int(),
+  }));
+}
+
+builder.queryField('getUsers', (t) =>
+  t.field({
+    type: [Shaveable],
+    args: {
+      ...createPaginationArgs(builder),
+    },
+    resolve: () => [],
+  }),
+);
 ```

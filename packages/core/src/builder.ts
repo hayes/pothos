@@ -72,6 +72,8 @@ import type {
 import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
 
 export class SchemaBuilder<Types extends SchemaTypes> {
+  $inferSchemaTypes!: Types;
+
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
 
   static optionNormalizers: Map<
