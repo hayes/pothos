@@ -618,7 +618,7 @@ export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends
-    | PrismaInterfaceRef<Types, PrismaModelTypes>
+    | PrismaInterfaceRef<any, PrismaModelTypes>
     | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes'],
   Model extends PrismaModelTypes,
