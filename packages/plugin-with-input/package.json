@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-with-input",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "A Pothos plugin for defining fields with input objects",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -45,7 +45,7 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@pothos/core": "4.0.1",
+    "@pothos/core": "4.0.2",
     "graphql": ">=16.6.0"
   },
   "devDependencies": {
