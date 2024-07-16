@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.4
+
+### Patch Changes
+
+- a95bd0a: Add support for composite types when inferring PrismaTypes from client (thanks to @2coo)
+
 ## 4.0.3
 
 ### Patch Changes

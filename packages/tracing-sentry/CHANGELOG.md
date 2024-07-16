@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 1.0.3
+
+### Patch Changes
+
+- 2a4f293: Fix ignoreError option in sentry tracing plugin
+
 ## 1.0.2
 
 ### Patch Changes
