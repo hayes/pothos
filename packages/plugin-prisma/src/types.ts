@@ -827,7 +827,7 @@ export type UniqueFieldsFromWhereUnique<T> = string &
       : K
     : never);
 
-export type Simplify<T> = {
+type Simplify<T> = {
   [K in keyof T]: T[K];
 } & {};
 
@@ -842,16 +842,14 @@ type CapitalizeFirst<S extends string> = S extends `${infer F}${infer R}`
   ? `${Uppercase<F>}${R}`
   : S;
 
-type InferShapeWithComposites<Model> = Simplify<
+type InferModelShape<Model> = Simplify<
   InferField<Model, 'scalars'> & InferComposites<InferField<Model, 'composites'>>
 >;
 
 // Infer relations for a given model
 type InferRelations<Model> = {
   [K in keyof Model]: {
-    Shape: Model[K] extends Array<any>
-      ? InferShapeWithComposites<Model[K][0]>[]
-      : InferShapeWithComposites<Model[K]>;
+    Shape: Model[K] extends Array<any> ? InferModelShape<Model[K][0]>[] : InferModelShape<Model[K]>;
     Name: InferField<InferItemOfArray<Model[K]>, 'name'>;
     Nullable: IsNullable<Model[K]>;
   };
@@ -920,7 +918,7 @@ type PrismaPayload<T> = T extends {
 export type PrismaTypesFromClient<ClientType, PrismaUtils extends boolean = false> = {
   [K in ExtractModelKeys<ClientType> as CapitalizeFirst<K & string>]: PrismaModelTypes & {
     Name: CapitalizeFirst<K & string>;
-    Shape: InferShapeWithComposites<PrismaPayload<ClientType[K]>>;
+    Shape: InferModelShape<PrismaPayload<ClientType[K]>>;
     Include: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'include'>;
     Select: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'select'>;
     OrderBy: InferItemOfArray<InferField<PrismaArgs<ClientType[K], 'findFirst'>, 'orderBy'>>;
