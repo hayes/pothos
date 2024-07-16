@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.5
+
+### Patch Changes
+
+- 094396d: Fix t.withAuth used with prismaField and PrismaObjectRefs
+
 ## 4.0.4
 
 ### Patch Changes
