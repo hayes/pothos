@@ -60,7 +60,7 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<
           return runFunction(
             () => resolver(source, args, ctx, info),
             (error) => {
-              if (error) {
+              if (error && !(tracingOptions?.ignoreError ?? options?.ignoreError)) {
                 span.setStatus({
                   code: 2,
                   message: error instanceof Error ? error.message : 'Unknown error',
