@@ -500,10 +500,10 @@ export type PrismaFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends
-    | PrismaRef<Types, PrismaModelTypes>
+    | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    | [PrismaRef<Types, PrismaModelTypes>],
+    | [PrismaRef<any, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Args extends InputFieldMap,
@@ -547,10 +547,10 @@ export type PrismaFieldWithInputOptions<
   Args extends InputFieldMap,
   Fields extends InputFieldMap,
   Type extends
-    | PrismaRef<Types, PrismaModelTypes>
+    | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    | [PrismaRef<Types, PrismaModelTypes>],
+    | [PrismaRef<any, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Nullable extends FieldNullability<Param>,
@@ -619,7 +619,7 @@ export type PrismaConnectionFieldOptions<
   ParentShape,
   Type extends
     | PrismaInterfaceRef<Types, PrismaModelTypes>
-    | PrismaRef<Types, PrismaModelTypes>
+    | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes'],
   Model extends PrismaModelTypes,
   Param extends OutputType<Types>,

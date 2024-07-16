@@ -255,10 +255,10 @@ declare global {
       prismaField: <
         Args extends InputFieldMap,
         TypeParam extends
-          | PrismaRef<Types, PrismaModelTypes>
+          | PrismaRef<any, PrismaModelTypes>
           | keyof Types['PrismaTypes']
           | [keyof Types['PrismaTypes']]
-          | [PrismaRef<Types, PrismaModelTypes>],
+          | [PrismaRef<any, PrismaModelTypes>],
         Nullable extends FieldNullability<Type>,
         ResolveShape,
         ResolveReturnShape,
@@ -268,9 +268,9 @@ declare global {
         Model extends PrismaModelTypes = PrismaModelTypes &
           (TypeParam extends [keyof Types['PrismaTypes']]
             ? Types['PrismaTypes'][TypeParam[0]]
-            : TypeParam extends [PrismaRef<Types, PrismaModelTypes>]
+            : TypeParam extends [PrismaRef<any, PrismaModelTypes>]
               ? TypeParam[0][typeof prismaModelKey]
-              : TypeParam extends PrismaRef<Types, PrismaModelTypes>
+              : TypeParam extends PrismaRef<any, PrismaModelTypes>
                 ? TypeParam[typeof prismaModelKey]
                 : TypeParam extends keyof Types['PrismaTypes']
                   ? Types['PrismaTypes'][TypeParam]
@@ -292,7 +292,7 @@ declare global {
 
       prismaConnection: 'relay' extends PluginName
         ? <
-            Type extends PrismaRef<Types, PrismaModelTypes> | keyof Types['PrismaTypes'],
+            Type extends PrismaRef<any, PrismaModelTypes> | keyof Types['PrismaTypes'],
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
@@ -357,10 +357,10 @@ declare global {
         ? <
             Fields extends InputFieldMap,
             TypeParam extends
-              | PrismaRef<Types, PrismaModelTypes>
+              | PrismaRef<any, PrismaModelTypes>
               | keyof Types['PrismaTypes']
               | [keyof Types['PrismaTypes']]
-              | [PrismaRef<Types, PrismaModelTypes>],
+              | [PrismaRef<any, PrismaModelTypes>],
             Type extends TypeParam extends [unknown]
               ? [ObjectRef<Types, Model['Shape']>]
               : ObjectRef<Types, Model['Shape']>,
@@ -373,9 +373,9 @@ declare global {
             Model extends PrismaModelTypes = PrismaModelTypes &
               (TypeParam extends [keyof Types['PrismaTypes']]
                 ? Types['PrismaTypes'][TypeParam[0]]
-                : TypeParam extends [PrismaRef<Types, PrismaModelTypes>]
+                : TypeParam extends [PrismaRef<any, PrismaModelTypes>]
                   ? TypeParam[0][typeof prismaModelKey]
-                  : TypeParam extends PrismaRef<Types, PrismaModelTypes>
+                  : TypeParam extends PrismaRef<any, PrismaModelTypes>
                     ? TypeParam[typeof prismaModelKey]
                     : TypeParam extends keyof Types['PrismaTypes']
                       ? Types['PrismaTypes'][TypeParam]
