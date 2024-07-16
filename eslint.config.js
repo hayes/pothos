@@ -104,6 +104,8 @@ const ignores = [
   'packages/plugin-prisma/prisma',
   'packages/plugin-prisma/tests/client',
   'packages/plugin-prisma/tests/generated.ts',
+  'packages/plugin-prisma/tests/*/generated.ts',
+  'packages/plugin-prisma/tests/*/client/',
   'scripts',
   'tests/client/*',
   'website/public',
