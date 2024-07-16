@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "name": "@pothos-examples/prisma-federation",
   "main": "src/index.ts",
   "types": "src/index.ts",
