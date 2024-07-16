@@ -827,6 +827,10 @@ export type UniqueFieldsFromWhereUnique<T> = string &
       : K
     : never);
 
+type Simplify<T> = {
+  [K in keyof T]: T[K];
+} & {};
+
 // Infer the type of a specific field from a given type
 type InferField<T, N extends string> = T extends { [K in N]?: infer U | null } ? U : never;
 
@@ -838,17 +842,15 @@ type CapitalizeFirst<S extends string> = S extends `${infer F}${infer R}`
   ? `${Uppercase<F>}${R}`
   : S;
 
-// Find the field type in an object or array of objects
-type FindField<T, F extends string> =
-  T extends Array<any> ? T[0][F] : T extends Record<string, unknown> ? T[F] : never;
+type InferModelShape<Model> = Simplify<
+  InferField<Model, 'scalars'> & InferComposites<InferField<Model, 'composites'>>
+>;
 
 // Infer relations for a given model
 type InferRelations<Model> = {
   [K in keyof Model]: {
-    Shape: Model[K] extends Array<any>
-      ? FindField<Model[K], 'scalars'>[]
-      : FindField<Model[K], 'scalars'>;
-    Name: FindField<Model[K], 'name'>;
+    Shape: Model[K] extends Array<any> ? InferModelShape<Model[K][0]>[] : InferModelShape<Model[K]>;
+    Name: InferField<InferItemOfArray<Model[K]>, 'name'>;
     Nullable: IsNullable<Model[K]>;
   };
 };
@@ -856,6 +858,28 @@ type InferRelations<Model> = {
 // Create a list of keys that represent array relations
 type InferRelationList<Model> = {
   [K in keyof Model as Model[K] extends Array<any> ? K : never]: K;
+};
+
+// Make a type nullable if IsNullable is true
+type MakeNullable<T, IsNullable extends boolean> = IsNullable extends true ? T | null : T;
+
+// Infer the item of an array
+type InferItemOfArray<T> = T extends Array<infer U> ? U : T;
+
+// Infers the composites of a given model
+type InferComposites<Model> = {
+  [K in keyof Model]: Model[K] extends Array<any>
+    ? Simplify<
+        InferField<Model[K][0], 'scalars'> & InferComposites<InferField<Model[K][0], 'composites'>>
+      >[]
+    : 'composites' extends keyof Exclude<Model[K], null>
+      ? MakeNullable<
+          Simplify<
+            InferField<Model[K], 'scalars'> & InferComposites<InferField<Model[K], 'composites'>>
+          >,
+          IsNullable<Model[K]>
+        >
+      : InferField<Model[K], 'scalars'>;
 };
 
 type ExtractModelKeys<T> = {
@@ -891,20 +915,20 @@ type PrismaPayload<T> = T extends {
  * @example
  * `type PrismaTypes = PrismaTypesFromClient<typeof prisma>`
  **/
-export type PrismaTypesFromClient<ClientType> = {
+export type PrismaTypesFromClient<ClientType, PrismaUtils extends boolean = false> = {
   [K in ExtractModelKeys<ClientType> as CapitalizeFirst<K & string>]: PrismaModelTypes & {
     Name: CapitalizeFirst<K & string>;
-    Shape: InferField<PrismaPayload<ClientType[K]>, 'scalars'>;
+    Shape: InferModelShape<PrismaPayload<ClientType[K]>>;
     Include: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'include'>;
     Select: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'select'>;
-    OrderBy: InferField<PrismaArgs<ClientType[K], 'findMany'>, 'orderBy'>;
+    OrderBy: InferItemOfArray<InferField<PrismaArgs<ClientType[K], 'findFirst'>, 'orderBy'>>;
     WhereUnique: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'where'>;
     Where: InferField<PrismaArgs<ClientType[K], 'findFirst'>, 'where'>;
     ListRelations: keyof InferRelationList<InferField<PrismaPayload<ClientType[K]>, 'objects'>>;
     RelationName: keyof InferField<PrismaPayload<ClientType[K]>, 'objects'>;
     Relations: InferRelations<InferField<PrismaPayload<ClientType[K]>, 'objects'>>;
-    Create: InferField<PrismaArgs<ClientType[K], 'create'>, 'data'>;
-    Update: InferField<PrismaArgs<ClientType[K], 'update'>, 'data'>;
+    Create: PrismaUtils extends true ? InferField<PrismaArgs<ClientType[K], 'create'>, 'data'> : {};
+    Update: PrismaUtils extends true ? InferField<PrismaArgs<ClientType[K], 'update'>, 'data'> : {};
   };
 };
 

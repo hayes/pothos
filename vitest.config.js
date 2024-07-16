@@ -11,5 +11,9 @@ export default defineConfig({
       'packages/plugin-directives/**/*',
       '**/node_modules/**',
     ],
+    typecheck: {
+      enabled: true,
+      tsconfig: 'tsconfig.type.json',
+    },
   },
 });
