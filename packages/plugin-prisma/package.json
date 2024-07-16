@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "generate": "prisma generate",
+    "generate": "prisma generate && prisma generate --schema=./tests/prisma-types-from-client/schema.prisma",
     "type": "tsc --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",

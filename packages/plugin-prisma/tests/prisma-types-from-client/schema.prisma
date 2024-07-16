@@ -1,0 +1,52 @@
+generator client {
+    provider = "prisma-client-js"
+    output   = "./client"
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+generator pothos {
+    provider          = "node -r @swc-node/register ./src/generator.ts"
+    clientOutput      = "./client"
+    pluginPath        = "../../src"
+    output            = "./generated.ts"
+    generateDatamodel = true
+    documentation     = true
+    prismaUtils       = false
+}
+
+model Book {
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    title  String
+    author User   @relation(fields: [userId], references: [id])
+    userId String @db.ObjectId
+}
+
+type Capital {
+    name String
+}
+
+type Country {
+    name String
+    code String
+
+    capital Capital?
+}
+
+type Address {
+    street  String
+    city    String
+    zip     String
+    country Country?
+}
+
+model User {
+    id   String @id @default(auto()) @map("_id") @db.ObjectId
+    name String
+    Book Book[]
+
+    addresses Address[]
+}
