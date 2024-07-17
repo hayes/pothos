@@ -582,8 +582,7 @@ Removing whole types from the schema needs to be done by transforming the schema
 - `builder.configStore.onTypeConfig`: Takes a type ref and a callback, and will invoke the callback
   with the config for the referenced type once available.
 
-- `builder.configStore.onFieldUse` Takes a field ref \(returned by a field builder\) and a callback
-  to invoke once the config for the field is available.
+- `fieldRef.onFirstUse` Takes a callback to invoke once the config for the field is available.
 
 - `buildCache.getTypeConfig` Gets the config for a given type after it has been passed through any
   modifications applied by plugins.
