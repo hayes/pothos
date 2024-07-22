@@ -773,3 +773,17 @@ const ThingsConnection = builder.connectionObject({
   nodeNullable: false,
 });
 ```
+
+### Extending the `Node` interface
+
+Use the `nodeInterfaceRef` method of your Builder.
+
+For example, to add a new derived field on the interface:
+
+```ts
+builder.interfaceField(builder.nodeInterfaceRef(), 'extra', (t) =>
+  t.string({
+    resolve: () => 'it works',
+  })
+);
+```
