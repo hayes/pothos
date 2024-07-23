@@ -1,4 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
+import { inArray, sql, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
 import { createContextCache, SchemaTypes } from '@pothos/core';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
 import { selectionStateFromInfo } from './utils/map-query';
@@ -29,10 +30,17 @@ export class ModelLoader {
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
+  schema: TablesRelationalConfig;
+  table: TableRelationalConfig;
+  pk;
+
   constructor(context: object, builder: PothosSchemaTypes.SchemaBuilder<never>, modelName: string) {
     this.context = context;
     this.builder = builder;
     this.modelName = modelName;
+    this.schema = builder.options.drizzle.client._.schema!;
+    this.table = this.schema[modelName];
+    this.pk = sql`(${sql.join(this.table.primaryKey, sql`, `)})`;
   }
 
   static forModel<Types extends SchemaTypes>(
@@ -42,10 +50,21 @@ export class ModelLoader {
     return createContextCache((model) => new ModelLoader(model, builder as never, modelName));
   }
 
+  pkFromModel(model: object) {
+    return this.table.primaryKey.map((key) => {
+      const columnName = key.name as keyof typeof model;
+      if (columnName in model) {
+        return model[columnName] as string | number;
+      }
+
+      throw new Error(`Primary key column ${columnName} not found on ${this.modelName}`);
+    });
+  }
+
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(this.context, info);
+      const selection = selectionStateFromInfo(this.schema, this.context, info);
       this.queryCache.set(key, {
         selection,
         query: selectionToQuery(selection),
@@ -85,6 +104,62 @@ export class ModelLoader {
     }
 
     return this.initLoad(selection, model);
+  }
+
+  initLoad(selection: SelectionState, model: object) {
+    const promise = createResolvablePromise<Record<string, unknown> | null>();
+    const entry = {
+      state: selection,
+      models: new Map([[model, promise]]),
+    };
+    this.staged.add(entry);
+
+    const nextTick = createResolvablePromise<void>();
+
+    nextTick.promise.then(() => {
+      const api = (
+        this.builder.options.drizzle.client.query as Record<
+          string,
+          { findMany: (...args: unknown[]) => Promise<Record<string, unknown>[]> }
+        >
+      )[this.modelName];
+
+      const query = api.findMany({
+        ...selectionToQuery(selection),
+        where: inArray(
+          this.pk,
+          [entry.models.keys()].map(([model]) => this.pkFromModel(model)),
+        ),
+      });
+
+      query.then(
+        (results) => {
+          for (const [model, promise] of entry.models.entries()) {
+            const result = results.find((row) =>
+              this.table.primaryKey.every(
+                (key) => row[key.name] === (model as Record<string, unknown>)[key.name],
+              ),
+            );
+
+            if (result) {
+              promise.resolve(result ?? null);
+            } else
+              promise.reject(
+                new Error(`Model ${this.modelName}(${this.pkFromModel(model)}) not found`),
+              );
+          }
+        },
+        (err) => {
+          for (const promise of entry.models.values()) {
+            promise.reject(err);
+          }
+        },
+      );
+    });
+
+    setTimeout(() => void nextTick.resolve(), 0);
+
+    return promise.promise;
   }
 }
 

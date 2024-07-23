@@ -3,6 +3,7 @@ import './field-builder';
 import './schema-builder';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
+import { ModelLoader } from './model-loader';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
 
 export * from './types';
@@ -91,24 +92,14 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         );
       }
 
-      // const columnName = primaryKeys[0].name;
-      // const modelName = parentConfig.extensions?.pothosDrizzleModel as string;
+      const modelName = parentConfig.extensions?.pothosDrizzleModel as string;
 
-      // (this.builder.options.drizzle.client.query as any)[modelName]
-      //   .findFirst({
-      //     // ...queryFromInfo,
-      //     where: (user, { eq }) => eq(user[columnName], parent[columnName]),
-      //     with: {
-      //       posts: {
-      //         limit: 1,
-      //       },
-      //     },
-      //   })
-      //   .then(console.log);
-
-      throw new Error(
-        `Field ${fieldConfig.name} not resolved in initial query and dataloader not implemented yet`,
-      );
+      return ModelLoader.forModel(
+        modelName,
+        this.builder,
+      )(context)
+        .loadSelection(info, parent as object)
+        .then((result) => resolver(result, args, context, info));
     };
   }
 }

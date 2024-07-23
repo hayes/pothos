@@ -13,6 +13,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [users.id],
   }),
   posts: many(posts),
+  usersToGroups: many(usersToGroups),
 }));
 
 export const profileInfo = sqliteTable('profile_info', {
@@ -59,7 +60,9 @@ export const groups = sqliteTable('groups', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name'),
 });
-
+export const groupsRelations = relations(groups, ({ many }) => ({
+  usersToGroups: many(usersToGroups),
+}));
 export const usersToGroups = sqliteTable(
   'users_to_groups',
   {
@@ -71,10 +74,16 @@ export const usersToGroups = sqliteTable(
       .references(() => groups.id),
   },
   (t) => ({
-    pk: primaryKey(t.userId, t.groupId),
+    pk: primaryKey({ columns: [t.userId, t.groupId] }),
   }),
 );
-
-export const groupsRelations = relations(groups, ({ many }) => ({
-  usersToGroups: many(usersToGroups),
+export const usersToGroupsRelations = relations(usersToGroups, ({ one }) => ({
+  group: one(groups, {
+    fields: [usersToGroups.groupId],
+    references: [groups.id],
+  }),
+  user: one(users, {
+    fields: [usersToGroups.userId],
+    references: [users.id],
+  }),
 }));

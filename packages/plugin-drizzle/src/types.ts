@@ -37,7 +37,7 @@ import { SelectionMap } from './utils/selections';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface DrizzlePluginOptions<Types extends SchemaTypes> {
-  client: { _: { schema?: TablesRelationalConfig } };
+  client: { _: { schema?: TablesRelationalConfig }; query: {} };
 }
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
