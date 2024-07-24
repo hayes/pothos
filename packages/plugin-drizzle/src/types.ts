@@ -203,6 +203,7 @@ export type DrizzleFieldSelection =
           | boolean
           | ((args: object, context: object) => DBQueryConfig<'one', false>),
         path?: IndirectInclude | string[],
+        type?: string,
       ) => DBQueryConfig<'one', false> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap);

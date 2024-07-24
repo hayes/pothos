@@ -292,13 +292,27 @@ function addFieldSelection(
     fieldSelectionMap = fieldSelect(
       args,
       context,
-      (rawQuery, indirectInclude) => {
+      (rawQuery, indirectInclude, expectedType) => {
         const returnType = getNamedType(field.type);
         const query = typeof rawQuery === 'function' ? rawQuery(args, context) : rawQuery;
         const normalizedIndirectInclude = Array.isArray(indirectInclude)
-          ? normalizeInclude(indirectInclude, getIndirectType(returnType, info))
+          ? normalizeInclude(
+              indirectInclude,
+              getIndirectType(returnType, info),
+              expectedType ? getNamedType(info.schema.getType(expectedType)) : undefined,
+            )
           : indirectInclude;
-        const fieldState = createStateForSelection(schema, returnType, state);
+        const fieldState = createStateForSelection(
+          schema,
+          getIndirectType(
+            normalizedIndirectInclude
+              ? info.schema.getType(normalizedIndirectInclude.getType())!
+              : returnType,
+            info,
+          ),
+          state,
+        );
+
         if (typeof query === 'object' && Object.keys(query).length > 0) {
           mergeSelection(schema, fieldState, { columns: {}, ...query });
         }
@@ -500,8 +514,12 @@ export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo
   return targetType;
 }
 
-export function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclude {
-  let currentType = type;
+export function normalizeInclude(
+  path: string[],
+  type: GraphQLNamedType,
+  expectedType?: GraphQLNamedType,
+): IndirectInclude {
+  let currentType = path.length > 0 ? type : expectedType ?? type;
 
   const normalized: { name: string; type: string }[] = [];
 
@@ -526,7 +544,9 @@ export function normalizeInclude(path: string[], type: GraphQLNamedType): Indire
   }
 
   return {
-    getType: () => (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
+    getType: () =>
+      expectedType?.name ??
+      (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
     path: normalized,
   };
 }

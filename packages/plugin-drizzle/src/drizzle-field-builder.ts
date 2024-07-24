@@ -25,7 +25,12 @@ import {
   TypesForRelation,
 } from './types';
 import { getRefFromModel } from './utils/refs';
-import { drizzleCursorConnectionQuery, getCursorFormatter, getCursorParser } from './utils/cursors';
+import {
+  drizzleCursorConnectionQuery,
+  getCursorFormatter,
+  getCursorParser,
+  wrapConnectionResult,
+} from './utils/cursors';
 import { FieldNode } from 'graphql';
 import { SelectionMap } from './utils/selections';
 
@@ -275,7 +280,7 @@ export class DrizzleObjectFieldBuilder<
         ...options,
         extensions: {
           ...extensions,
-          pothosPrismaSelect: relationSelect,
+          pothosDrizzleSelect: relationSelect,
         },
         type: ref,
         resolve: (
@@ -283,16 +288,15 @@ export class DrizzleObjectFieldBuilder<
           args: PothosSchemaTypes.DefaultConnectionArguments,
           context: {},
         ) => {
-          throw new Error('Not implemented');
-          // const connectionQuery = getQuery(args, context);
-          // return wrapConnectionResult(
-          //   parent,
-          //   (parent as Record<string, never>)[name],
-          //   args,
-          //   connectionQuery.take,
-          //   formatCursor,
-          //   (parent as { _count?: Record<string, number> })._count?.[name],
-          // );
+          const connectionQuery = getQuery(args, context);
+          return wrapConnectionResult(
+            parent,
+            (parent as Record<string, never>)[name],
+            args,
+            connectionQuery.limit,
+            formatCursor,
+            (parent as { _count?: Record<string, number> })._count?.[name],
+          );
         },
       },
       connectionOptions instanceof ObjectRef
