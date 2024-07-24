@@ -1,5 +1,6 @@
 import {
   BuildQueryResult,
+  Column,
   DBQueryConfig,
   Many,
   Relation,
@@ -414,10 +415,10 @@ export type RelatedConnectionOptions<
         >;
         // query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
         type?: DrizzleRef<Types, TableConfig['relations'][Field]['referencedTable']['_']['name']>;
-        cursor: Extract<
-          Types['DrizzleRelationSchema'][TableConfig['relations'][Field]['referencedTable']['_']['name']]['columns'],
-          { isUnique: true }
-        >['name'];
+        cursor: (
+          columns: Types['DrizzleRelationSchema'][TableConfig['relations'][Field]['referencedTable']['_']['name']]['columns'],
+        ) => Column;
+
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         // totalCount?: NeedsResolve extends false ? boolean : false;

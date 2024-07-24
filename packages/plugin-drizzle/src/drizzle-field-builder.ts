@@ -1,4 +1,4 @@
-import { InferModelFromColumns, Many, TableRelationalConfig } from 'drizzle-orm';
+import { Column, InferModelFromColumns, Many, TableRelationalConfig } from 'drizzle-orm';
 import {
   CompatibleTypes,
   ExposeNullability,
@@ -25,6 +25,9 @@ import {
   TypesForRelation,
 } from './types';
 import { getRefFromModel } from './utils/refs';
+import { drizzleCursorConnectionQuery, getCursorFormatter, getCursorParser } from './utils/cursors';
+import { FieldNode } from 'graphql';
+import { SelectionMap } from './utils/selections';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -169,7 +172,7 @@ export class DrizzleObjectFieldBuilder<
       totalCount?: boolean;
       maxSize?: number | ((args: {}, ctx: {}) => number);
       defaultSize?: number | ((args: {}, ctx: {}) => number);
-      cursor: string;
+      cursor: (columns: TableConfig['columns']) => Column;
       extensions: {};
       description?: string;
       query: ((args: {}, ctx: {}) => {}) | {};
@@ -184,146 +187,133 @@ export class DrizzleObjectFieldBuilder<
     connectionOptions = {},
     edgeOptions = {},
   ) {
-    // const relationField = getRelation(this.model, this.builder, name);
-    // const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
-    // let typeName: string | undefined;
-    // const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
-    // const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
-    // const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
-    //   const connectionQuery = prismaCursorConnectionQuery({
-    //     parseCursor,
-    //     ctx,
-    //     maxSize,
-    //     defaultSize,
-    //     args,
-    //   });
-    //   const {
-    //     take = connectionQuery.take,
-    //     skip = connectionQuery.skip,
-    //     cursor = connectionQuery.cursor,
-    //     ...fieldQuery
-    //   } = ((typeof query === 'function' ? query(args, ctx) : query) ??
-    //     {}) as typeof connectionQuery;
-    //   return {
-    //     ...fieldQuery,
-    //     ...connectionQuery,
-    //     take,
-    //     skip,
-    //     ...(cursor ? { cursor } : {}),
-    //   };
-    // };
-    // const cursorSelection = ModelLoader.getCursorSelection(
-    //   ref as never,
-    //   relationField.type,
-    //   cursorValue,
-    //   this.builder,
-    // );
-    // const relationSelect = (
-    //   args: object,
-    //   context: object,
-    //   nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
-    //   getSelection: (path: string[]) => FieldNode | null,
-    // ) => {
-    //   const nested = nestedQuery(getQuery(args, context), {
-    //     getType: () => {
-    //       if (!typeName) {
-    //         typeName = this.builder.configStore.getTypeConfig(ref).name;
-    //       }
-    //       return typeName;
-    //     },
-    //     paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
-    //   }) as SelectionMap;
-    //   const hasTotalCount = totalCount && !!getSelection(['totalCount']);
-    //   const countSelect = this.builder.options.prisma.filterConnectionTotalCount
-    //     ? nested.where
-    //       ? { where: nested.where }
-    //       : true
-    //     : true;
-    //   return {
-    //     select: {
-    //       ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
-    //       [name]: nested?.select
-    //         ? {
-    //             ...nested,
-    //             select: {
-    //               ...cursorSelection,
-    //               ...nested.select,
-    //             },
-    //           }
-    //         : nested,
-    //     },
-    //   };
-    // };
-    // const fieldRef = (
-    //   this as unknown as {
-    //     connection: (...args: unknown[]) => FieldRef<Types, unknown>;
-    //   }
-    // ).connection(
-    //   {
-    //     ...options,
-    //     description: getFieldDescription(this.model, this.builder, name, description),
-    //     extensions: {
-    //       ...extensions,
-    //       pothosPrismaSelect: relationSelect,
-    //       pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
-    //       pothosPrismaFallback:
-    //         resolve &&
-    //         ((
-    //           q: { take: number },
-    //           parent: unknown,
-    //           args: PothosSchemaTypes.DefaultConnectionArguments,
-    //           context: {},
-    //           info: GraphQLResolveInfo,
-    //         ) =>
-    //           Promise.resolve(
-    //             resolve(
-    //               {
-    //                 ...q,
-    //                 ...getQuery(args, context),
-    //               } as never,
-    //               parent,
-    //               args,
-    //               context,
-    //               info,
-    //             ),
-    //           ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor))),
-    //     },
-    //     type: ref,
-    //     resolve: (
-    //       parent: unknown,
-    //       args: PothosSchemaTypes.DefaultConnectionArguments,
-    //       context: {},
-    //     ) => {
-    //       const connectionQuery = getQuery(args, context);
-    //       return wrapConnectionResult(
-    //         parent,
-    //         (parent as Record<string, never>)[name],
-    //         args,
-    //         connectionQuery.take,
-    //         formatCursor,
-    //         (parent as { _count?: Record<string, number> })._count?.[name],
-    //       );
-    //     },
-    //   },
-    //   connectionOptions instanceof ObjectRef
-    //     ? connectionOptions
-    //     : {
-    //         ...connectionOptions,
-    //         fields: totalCount
-    //           ? (
-    //               t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
-    //             ) => ({
-    //               totalCount: t.int({
-    //                 nullable: false,
-    //                 resolve: (parent, args, context) => parent.totalCount,
-    //               }),
-    //               ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
-    //             })
-    //           : (connectionOptions as { fields: undefined }).fields,
-    //       },
-    //   edgeOptions,
-    // );
-    // return fieldRef;
+    const relationField =
+      this.builder.options.drizzle.client._.schema?.[this.table].relations[name as string];
+    const relatedModel =
+      this.builder.options.drizzle.client._.schema?.[relationField?.referencedTableName!]!;
+
+    if (!relationField) {
+      throw new PothosSchemaError(
+        `Could not find relation ${name as string} on table ${this.table}`,
+      );
+    }
+
+    const ref = options.type ?? getRefFromModel(relationField.referencedTableName, this.builder);
+    let typeName: string | undefined;
+
+    const cursorColumns = [cursorValue(relatedModel?.columns)];
+    const formatCursor = getCursorFormatter(cursorColumns);
+    const parseCursor = getCursorParser(cursorColumns);
+    const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
+      const connectionQuery = drizzleCursorConnectionQuery({
+        parseCursor,
+        ctx,
+        maxSize,
+        defaultSize,
+        args,
+      });
+      const {
+        limit = connectionQuery.limit,
+        offset = connectionQuery.offset,
+        cursor = connectionQuery.cursor,
+        ...fieldQuery
+      } = ((typeof query === 'function' ? query(args, ctx) : query) ??
+        {}) as typeof connectionQuery;
+      return {
+        ...fieldQuery,
+        ...connectionQuery,
+        limit,
+        offset,
+        ...(cursor ? { cursor } : {}),
+      };
+    };
+    const cursorSelection: Record<string, boolean> = {};
+
+    cursorColumns.forEach((column) => {
+      cursorSelection[column.name] = true;
+    });
+
+    const relationSelect = (
+      args: object,
+      context: object,
+      nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
+      getSelection: (path: string[]) => FieldNode | null,
+    ) => {
+      typeName ??= this.builder.configStore.getTypeConfig(ref).name;
+      const nested = nestedQuery(getQuery(args, context), {
+        getType: () => typeName!,
+        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
+      }) as SelectionMap;
+      // const hasTotalCount = totalCount && !!getSelection(['totalCount']);
+      // const countSelect = this.builder.options.prisma.filterConnectionTotalCount
+      //   ? nested.where
+      //     ? { where: nested.where }
+      //     : true
+      //   : true;
+
+      return {
+        with: {
+          // ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
+          [name]: nested
+            ? {
+                ...nested,
+                columns: {
+                  ...nested.columns,
+                  ...cursorSelection,
+                },
+              }
+            : nested,
+        },
+      };
+    };
+    const fieldRef = (
+      this as unknown as {
+        connection: (...args: unknown[]) => FieldRef<Types, unknown>;
+      }
+    ).connection(
+      {
+        ...options,
+        extensions: {
+          ...extensions,
+          pothosPrismaSelect: relationSelect,
+        },
+        type: ref,
+        resolve: (
+          parent: unknown,
+          args: PothosSchemaTypes.DefaultConnectionArguments,
+          context: {},
+        ) => {
+          throw new Error('Not implemented');
+          // const connectionQuery = getQuery(args, context);
+          // return wrapConnectionResult(
+          //   parent,
+          //   (parent as Record<string, never>)[name],
+          //   args,
+          //   connectionQuery.take,
+          //   formatCursor,
+          //   (parent as { _count?: Record<string, number> })._count?.[name],
+          // );
+        },
+      },
+      connectionOptions instanceof ObjectRef
+        ? connectionOptions
+        : {
+            ...connectionOptions,
+            fields: totalCount
+              ? (
+                  t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
+                ) => ({
+                  totalCount: t.int({
+                    nullable: false,
+                    resolve: (parent, args, context) => parent.totalCount,
+                  }),
+                  ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
+                })
+              : (connectionOptions as { fields: undefined }).fields,
+          },
+      edgeOptions,
+    );
+    return fieldRef;
   } as never;
 
   constructor(

@@ -1,0 +1,360 @@
+/* eslint-disable no-nested-ternary */
+import { decodeBase64, encodeBase64, MaybePromise, PothosValidationError } from '@pothos/core';
+import { extendWithUsage } from './usage';
+import { Column } from 'drizzle-orm';
+
+const DEFAULT_MAX_SIZE = 100;
+const DEFAULT_SIZE = 20;
+
+export function formatCursorChunk(value: unknown) {
+  if (value instanceof Date) {
+    return `D:${String(Number(value))}`;
+  }
+
+  switch (typeof value) {
+    case 'number':
+      return `N:${value}`;
+    case 'string':
+      return `S:${value}`;
+    case 'bigint':
+      return `I:${value}`;
+    default:
+      throw new PothosValidationError(`Unsupported cursor type ${typeof value}`);
+  }
+}
+
+export function formatDrizzleCursor(record: Record<string, unknown>, fields: Column[]) {
+  return getCursorFormatter(fields)(record);
+}
+
+export function getCursorFormatter(fields: Column[]) {
+  if (fields.length === 0) {
+    throw new PothosValidationError('Cursor must have at least one field');
+  }
+
+  return (value: Record<string, unknown>) => {
+    if (fields.length > 1) {
+      return encodeBase64(`DC:J:${JSON.stringify(fields.map((col) => value[col.name]))}`);
+    }
+
+    return encodeBase64(`DC:${formatCursorChunk(value[fields[0].name])}`);
+  };
+}
+
+export function parseDrizzleCursor(cursor: unknown) {
+  if (typeof cursor !== 'string') {
+    throw new PothosValidationError('Cursor must be a string');
+  }
+
+  try {
+    const decoded = decodeBase64(cursor);
+    const [, type, value] = decoded.match(/^GPC:(\w):(.*)/) as [string, string, string];
+
+    switch (type) {
+      case 'S':
+        return value;
+      case 'N':
+        return Number.parseInt(value, 10);
+      case 'D':
+        return new Date(Number.parseInt(value, 10));
+      case 'J':
+        return JSON.parse(value) as unknown;
+      case 'I':
+        return BigInt(value);
+      default:
+        throw new PothosValidationError(`Invalid cursor type ${type}`);
+    }
+  } catch {
+    throw new PothosValidationError(`Invalid cursor: ${cursor}`);
+  }
+}
+
+export function parseID(id: string, dataType: string): unknown {
+  if (!id) {
+    return id;
+  }
+
+  switch (dataType) {
+    case 'String':
+      return id;
+    case 'Int':
+      return Number.parseInt(id, 10);
+    case 'BigInt':
+      return BigInt(id);
+    case 'Boolean':
+      return id !== 'false';
+    case 'Float':
+    case 'Decimal':
+      return Number.parseFloat(id);
+    case 'DateTime':
+      return new Date(id);
+    case 'Json':
+      return JSON.parse(id) as unknown;
+    case 'Byte':
+      return Buffer.from(id, 'base64');
+    default:
+      return id;
+  }
+}
+
+// export function getDefaultIDSerializer<Types extends SchemaTypes>(
+//   modelName: string,
+//   fieldName: string,
+//   builder: PothosSchemaTypes.SchemaBuilder<Types>,
+// ): (parent: Record<string, unknown>) => unknown {
+//   const model = getModel(modelName, builder);
+
+//   const field = model.fields.find((f) => f.name === fieldName);
+
+//   if (field) {
+//     return (parent) => serializeID(parent[fieldName], field.type);
+//   }
+
+//   if ((model.primaryKey?.name ?? model.primaryKey?.fields.join('_')) === fieldName) {
+//     const fields = model.primaryKey!.fields.map((n) => model.fields.find((f) => f.name === n)!);
+//     return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+//   }
+
+//   const index = model.uniqueIndexes.find((idx) => (idx.name ?? idx.fields.join('_')) === fieldName);
+
+//   if (index) {
+//     const fields = index.fields.map((n) => model.fields.find((f) => f.name === n)!);
+//     return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+//   }
+
+//   throw new PothosValidationError(`Unable to find ${fieldName} for model ${modelName}`);
+// }
+
+// export function getDefaultIDParser<Types extends SchemaTypes>(
+//   modelName: string,
+//   fieldName: string,
+//   builder: PothosSchemaTypes.SchemaBuilder<Types>,
+// ): (id: string) => unknown {
+//   if (!fieldName) {
+//     throw new PothosValidationError('Missing field name');
+//   }
+//   const model = getModel(modelName, builder);
+
+//   const field = model.fields.find((f) => f.name === fieldName);
+
+//   if (field) {
+//     return (id) => parseID(id, field.type);
+//   }
+
+//   const index = model.uniqueIndexes.find((idx) => (idx.name ?? idx.fields.join('_')) === fieldName);
+
+//   let fields: DMMFField[] | undefined;
+//   if ((model.primaryKey?.name ?? model.primaryKey?.fields.join('_')) === fieldName) {
+//     fields = model.primaryKey!.fields.map((n) => model.fields.find((f) => f.name === n)!);
+//   } else if (index) {
+//     fields = index.fields.map((n) => model.fields.find((f) => f.name === n)!);
+//   }
+
+//   if (!fields) {
+//     throw new PothosValidationError(`Unable to find ${fieldName} for model ${modelName}`);
+//   }
+
+//   return (id) => {
+//     const parts = JSON.parse(id) as unknown;
+
+//     if (!Array.isArray(parts)) {
+//       throw new PothosValidationError(`Invalid id received for ${fieldName} of ${modelName}`);
+//     }
+
+//     const result: Record<string, unknown> = {};
+
+//     for (let i = 0; i < fields!.length; i += 1) {
+//       result[fields![i].name] = parseID(parts[i] as string, fields![i].type);
+//     }
+
+//     return result;
+//   };
+// }
+
+// export function serializeID(id: unknown, dataType: string) {
+//   switch (dataType) {
+//     case 'Json':
+//       return JSON.stringify(id);
+//     case 'Byte':
+//       return (id as Buffer).toString('base64');
+//     default:
+//       return String(id);
+//   }
+// }
+
+export function getCursorParser(fields: readonly Column[]) {
+  if (fields.length === 0) {
+    throw new PothosValidationError('Cursor must have at least one field');
+  }
+
+  return (cursor: unknown) => {
+    const parsed = parseDrizzleCursor(cursor) as unknown[];
+
+    if (fields.length === 1) {
+      return { [fields[0].name]: parsed };
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new PothosValidationError(
+        `Expected compound cursor to contain an array, but got ${parsed}`,
+      );
+    }
+
+    const record: Record<string, unknown> = {};
+
+    fields.forEach((field, i) => {
+      record[field.name] = parsed[i];
+    });
+
+    return record;
+  };
+}
+
+export interface DrizzleCursorConnectionQueryOptions {
+  args: PothosSchemaTypes.DefaultConnectionArguments;
+  ctx: {};
+  defaultSize?: number | ((args: {}, ctx: {}) => number);
+  maxSize?: number | ((args: {}, ctx: {}) => number);
+  parseCursor: (cursor: string) => Record<string, unknown>;
+}
+
+interface ResolveDrizzleCursorConnectionOptions extends DrizzleCursorConnectionQueryOptions {
+  parent?: unknown;
+  query: {};
+  totalCount?: number | (() => MaybePromise<number>);
+}
+
+export function drizzleCursorConnectionQuery({
+  args,
+  ctx,
+  maxSize = DEFAULT_MAX_SIZE,
+  defaultSize = DEFAULT_SIZE,
+  parseCursor,
+}: DrizzleCursorConnectionQueryOptions) {
+  const { before, after, first, last } = args;
+  if (first != null && first < 0) {
+    throw new PothosValidationError('Argument "first" must be a non-negative integer');
+  }
+
+  if (last != null && last < 0) {
+    throw new PothosValidationError('Argument "last" must be a non-negative integer');
+  }
+
+  if (before && after) {
+    throw new PothosValidationError(
+      'Arguments "before" and "after" are not supported at the same time',
+    );
+  }
+
+  if (before != null && first != null) {
+    throw new PothosValidationError(
+      'Arguments "before" and "first" are not supported at the same time',
+    );
+  }
+
+  if (after != null && last != null) {
+    throw new PothosValidationError(
+      'Arguments "after" and "last" are not supported at the same time',
+    );
+  }
+
+  const cursor = before ?? after;
+
+  const maxSizeForConnection = typeof maxSize === 'function' ? maxSize(args, ctx) : maxSize;
+  const defaultSizeForConnection =
+    typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
+
+  let limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+
+  if (before ?? last) {
+    limit = -limit;
+  }
+
+  return cursor == null
+    ? { limit, offset: 0 }
+    : {
+        cursor: parseCursor(cursor),
+        limit,
+        offset: 1,
+      };
+}
+
+export function wrapConnectionResult<T extends {}>(
+  parent: unknown,
+  results: readonly T[],
+  args: PothosSchemaTypes.DefaultConnectionArguments,
+  limit: number,
+  cursor: (node: T) => string,
+  totalCount?: number | (() => MaybePromise<number>) | null,
+  resolveNode?: (node: unknown) => unknown,
+) {
+  const gotFullResults = results.length === Math.abs(limit);
+  const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
+  const hasPreviousPage = args.after ? true : args.before ?? args.last ? gotFullResults : false;
+  const nodes = gotFullResults
+    ? results.slice(limit < 0 ? 1 : 0, limit < 0 ? results.length : -1)
+    : results;
+
+  const connection = {
+    parent,
+    args,
+    totalCount,
+    edges: [] as ({ cursor: string; node: unknown } | null)[],
+    pageInfo: {
+      startCursor: null as string | null,
+      endCursor: null as string | null,
+      hasPreviousPage,
+      hasNextPage,
+    },
+  };
+
+  const edges = nodes.map((value, index) =>
+    value == null
+      ? null
+      : resolveNode
+        ? {
+            connection,
+            ...value,
+            cursor: cursor(value),
+            node: resolveNode(value),
+          }
+        : {
+            connection,
+            cursor: cursor(value),
+            node: value,
+          },
+  );
+
+  connection.edges = edges;
+  connection.pageInfo.startCursor = edges[0]?.cursor ?? null;
+  connection.pageInfo.endCursor = edges[edges.length - 1]?.cursor ?? null;
+
+  return connection;
+}
+
+export async function resolveDrizzleCursorConnection<T extends {}>(
+  options: ResolveDrizzleCursorConnectionOptions,
+  cursor: (node: T) => string,
+  resolve: (query: {
+    include?: {};
+    cursor?: {};
+    limit: number;
+    offset: number;
+  }) => MaybePromise<readonly T[]>,
+) {
+  const query = drizzleCursorConnectionQuery(options);
+  const results = await resolve(extendWithUsage(options.query, query));
+
+  if (!results) {
+    return results;
+  }
+
+  return wrapConnectionResult(
+    options.parent,
+    results,
+    options.args,
+    query.limit,
+    cursor,
+    options.totalCount,
+  );
+}

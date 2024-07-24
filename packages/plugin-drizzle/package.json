@@ -22,7 +22,7 @@
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm vitest --run --segfault-retry=3"
+    "test": "pnpm vitest --run"
   },
   "repository": {
     "type": "git",
@@ -56,6 +56,7 @@
     "drizzle-kit": "^0.23.0",
     "drizzle-orm": "^0.32.0",
     "graphql": "^16.8.1",
-    "graphql-tag": "^2.12.6"
+    "graphql-tag": "^2.12.6",
+    "postgres": "^3.4.4"
   }
 }

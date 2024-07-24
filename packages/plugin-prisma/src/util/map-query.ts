@@ -403,11 +403,15 @@ function addFieldSelection(
   }
 }
 
-export function queryFromInfo<T extends SelectionMap['select'] | undefined = undefined>({
+export function queryFromInfo<
+  Select extends SelectionMap['select'] | undefined = undefined,
+  Include extends SelectionMap['select'] | undefined = undefined,
+>({
   context,
   info,
   typeName,
   select,
+  include,
   path = [],
   paths = [],
   withUsageCheck = false,
@@ -415,16 +419,22 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
-  select?: T;
   path?: string[];
   paths?: string[][];
   withUsageCheck?: boolean;
-}): { include?: {} } | { select: T } {
+} & (
+  | { include?: Include; select?: never }
+  | { select?: Select; include?: never }
+)): undefined extends Include
+  ? {
+      select: Select;
+    }
+  : { include: Include } {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
 
   let state: SelectionState | undefined;
-  const initialSelection = select ? { select } : undefined;
+  const initialSelection = select ? { select } : include ? { include } : undefined;
 
   if (path.length > 0 || paths.length > 0) {
     const { pothosPrismaIndirectInclude } = (returnType.extensions ?? {}) as {
@@ -479,7 +489,7 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
 
   setLoaderMappings(context, info, state.mappings);
 
-  const query = selectionToQuery(state) as { select: T };
+  const query = selectionToQuery(state) as { select: Select; include: Include };
 
   return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
