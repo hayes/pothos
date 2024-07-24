@@ -1,5 +1,11 @@
 /* eslint-disable no-param-reassign */
-import { DBQueryConfig, SQL, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
+import {
+  DBQueryConfig,
+  SQL,
+  TableRelationalConfig,
+  TablesRelationalConfig,
+  getOperators,
+} from 'drizzle-orm';
 import { PothosValidationError } from '@pothos/core';
 import { deepEqual } from './deep-equal';
 import { LoaderMappings } from './loader-map';
@@ -13,11 +19,10 @@ export interface SelectionState {
   extras: Map<string, SQL.Aliased>;
   mappings: LoaderMappings;
   parent?: SelectionState;
+  depth: number;
 }
 
-export type SelectionMap = DBQueryConfig<'one', false> & {
-  extras?: Record<string, SQL.Aliased>;
-};
+export type SelectionMap = DBQueryConfig<'one', false>;
 
 export function selectionCompatible(
   state: SelectionState,
@@ -43,9 +48,12 @@ export function selectionCompatible(
     return false;
   }
 
+  const resolvedExtras =
+    typeof extras === 'function' ? extras(state.table.columns, getOperators()) : extras;
+
   if (
-    extras &&
-    Object.entries(extras).some(([key, value]) => {
+    resolvedExtras &&
+    Object.entries(resolvedExtras).some(([key, value]) => {
       const sql = state.extras.get(key);
 
       return sql && (sql.sql !== value.sql || sql.fieldAlias !== value.fieldAlias);
@@ -103,6 +111,7 @@ export function createState(table: TableRelationalConfig, parent?: SelectionStat
     extras: new Map(),
     mappings: {},
     allColumns: false,
+    depth: parent ? parent.depth + 1 : 0,
   };
 }
 
@@ -130,8 +139,11 @@ export function mergeSelection(
     state.query = query;
   }
 
-  if (extras) {
-    for (const [key, value] of Object.entries(extras)) {
+  const resolvedExtras =
+    typeof extras === 'function' ? extras(state.table.columns, getOperators()) : extras;
+
+  if (resolvedExtras) {
+    for (const [key, value] of Object.entries(resolvedExtras)) {
       state.extras.set(key, value);
     }
   }
@@ -166,7 +178,7 @@ export function mergeSelection(
 }
 
 export function selectionToQuery(state: SelectionState): SelectionMap {
-  const query: SelectionMap = {
+  const query: SelectionMap & { extras: Record<string, unknown> } = {
     ...state.query,
     with: {},
     columns: {},
@@ -180,6 +192,9 @@ export function selectionToQuery(state: SelectionState): SelectionMap {
   } else {
     for (const key of state.columns) {
       query.columns![key] = true;
+    }
+    for (const { name } of state.table.primaryKey) {
+      query.columns![name] = true;
     }
   }
 

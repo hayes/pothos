@@ -5,7 +5,7 @@
 - [ ] connections
 - [ ] connection helpers
 - [ ] query usage checks
-- [ ] normalize extras callback functions before merging
+- [x] normalize extras callback functions before merging
 - [ ] with input integration
 - [ ] errors integration
 - [x] drizzle field methods on builder
@@ -14,7 +14,7 @@
 - [ ] tests
 - [ ] docs
 - [ ] variants
-- [ ] fallback dataloader
+- [x] fallback dataloader
 - [ ] custom dataloader override
-- [ ] default selections for id/data-loading
+- [x] default selections for id/data-loading
 - [ ] interface check for compatibility of implementors

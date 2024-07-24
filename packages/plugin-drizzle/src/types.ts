@@ -192,14 +192,17 @@ export type DrizzleObjectFieldOptions<
   };
 
 export type DrizzleFieldSelection =
-  | SelectionMap
+  | DBQueryConfig<'one', false>
   | ((
       args: {},
       ctx: object,
       mergeNestedSelection: (
-        selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
+        selection:
+          | SelectionMap
+          | boolean
+          | ((args: object, context: object) => DBQueryConfig<'one', false>),
         path?: IndirectInclude | string[],
-      ) => SelectionMap | boolean,
+      ) => DBQueryConfig<'one', false> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap);
 

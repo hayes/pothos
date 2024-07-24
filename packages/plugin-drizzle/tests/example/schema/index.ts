@@ -1,4 +1,4 @@
-import { not, sql } from 'drizzle-orm';
+import { Column, not, sql } from 'drizzle-orm';
 import builder from '../builder';
 import { db } from '../db';
 
@@ -19,7 +19,7 @@ builder.drizzleObject('users', {
   },
   fields: (t) => ({
     email: t.string({
-      resolve: (user) => `${user.lowercase.replace(' ', '-')}@example.com`,
+      resolve: (user) => `${user.lowercase.replaceAll(' ', '-')}@example.com`,
       // field level selects can be merged in (only queried when the field is requested)
       // combines with selections from object level
       select: {
@@ -29,9 +29,9 @@ builder.drizzleObject('users', {
         columns: {
           invitedBy: true,
         },
-        extras: {
-          lowercase: sql<string>`lower(name)`.as('lowercase'),
-        },
+        extras: (user: Record<string, Column>) => ({
+          lowercase: sql<string>`lower(${user.name})`.as('lowercase'),
+        }),
       },
     }),
     // column values can be exposed even if they are not in the default selection (will be selected automatically)
@@ -39,11 +39,13 @@ builder.drizzleObject('users', {
     posts: t.relation('posts', {
       args: {
         limit: t.arg.int(),
+        oldestFirst: t.arg.boolean(),
       },
       // use args to modify how a relation is queried
       query: (args) => ({
         limit: args.limit ?? 10,
-        where: (post, { eq }) => not(eq(post.id, 1)),
+        where: (post, { eq }) => not(eq(post.id, 3)),
+        orderBy: (post, ops) => (args.oldestFirst ? ops.asc(post.id) : ops.desc(post.id)),
       }),
       // relation available to other plugins even when selections are at the field level
       // authScopes: (user) => user.posts.length > 0,
@@ -64,10 +66,13 @@ builder.queryField('user', (t) =>
       id: t.arg.int({ required: true }),
     },
     resolve: async (query, root, args, ctx, info) => {
-      const result = await db.query.users.findFirst({
+      const drizzleQuery = db.query.users.findFirst({
         ...query,
         where: (user, { eq }) => eq(user.id, args.id),
       });
+
+      console.log(drizzleQuery.toSQL());
+      const result = await drizzleQuery;
 
       return result;
     },

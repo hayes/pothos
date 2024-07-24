@@ -1,5 +1,5 @@
 /* eslint-disable no-continue */
-import { TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
+import { DBQueryConfig, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
 import {
   FieldNode,
   FragmentDefinitionNode,
@@ -52,7 +52,7 @@ function addTypeSelectionsForField(
 
   const { pothosDrizzleSelect, pothosDrizzleIndirectInclude } = (type.extensions ?? {}) as {
     pothosDrizzleIndirectInclude?: IndirectInclude;
-    pothosDrizzleSelect?: SelectionMap;
+    pothosDrizzleSelect?: DBQueryConfig<'one', false>;
   };
 
   if (
@@ -282,7 +282,7 @@ function addFieldSelection(
 
   const fieldSelect = field.extensions?.pothosDrizzleSelect as DrizzleFieldSelection | undefined;
 
-  let fieldSelectionMap: SelectionMap | undefined;
+  let fieldSelectionMap: DBQueryConfig<'one', false> | undefined;
   let mappings: LoaderMappings = {};
   if (typeof fieldSelect === 'function') {
     const args = getArgumentValues(field, selection, info.variableValues) as Record<
