@@ -32,8 +32,8 @@ type SchemaTypes {
       Output: unknown;
     };
   };
-  // When provided, fields will be nullable by default (requires corresponding change in builder options)
-  DefaultFieldNullability?: true;
+  // When set to false, fields will be NonNullable by default (requires corresponding change in builder options)
+  DefaultFieldNullability?: false;
   // When provided, input fields and arguments will be required by default (requires corresponding change in builder options)
   DefaultInputFieldRequiredness?: true;
 }

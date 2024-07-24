@@ -151,7 +151,6 @@ builder.objectType('Poll', {
   fields: (t) => ({
     question: t.exposeString('question', {}),
     answers: t.field({
-      nullable: true,
       type: ['Answer'],
       subscribe: (subscriptions, poll) => subscriptions.register(`poll-answers/${poll.id}`),
       resolve: (parent, args, context, info) => {
@@ -169,7 +168,6 @@ builder.objectType('Poll', {
   fields: (t) => ({
     question: t.exposeString('question', {}),
     answers: t.field({
-      nullable: true,
       type: ['Answer'],
       canRefetch: true,
       subscribe: (subscriptions, poll) =>

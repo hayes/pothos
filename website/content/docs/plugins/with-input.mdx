@@ -114,7 +114,6 @@ builder.queryType({
   fields: (t) => ({
     example: t.fieldWithInput({
       type: 'Boolean',
-      nullable: true,
       argOptions: {
         required: false,
       },
@@ -140,7 +139,6 @@ builder.queryField('user', (t) =>
     input: {
       id: t.input.id({ required: true }),
     },
-    nullable: true,
     resolve: (query, _, args) =>
       prisma.user.findUnique({
         where: {
