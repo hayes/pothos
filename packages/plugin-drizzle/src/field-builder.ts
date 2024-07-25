@@ -53,7 +53,6 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
     type,
     maxSize = this.builder.options.drizzle?.maxConnectionSize,
     defaultSize = this.builder.options.drizzle?.defaultConnectionSize,
-    query,
     resolve,
     // totalCount,
     ...options
@@ -87,23 +86,10 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
-        const { orderBy, where, ...select } =
-          (typeof query === 'function' ? query(args, context) : query) ?? {};
-
         const drizzleModel =
           this.builder.options.drizzle.client._.schema?.[
             typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName
           ]!;
-
-        const queryObj = queryFromInfo({
-          context,
-          info,
-          select,
-          paths: [['nodes'], ['edges', 'node']],
-          typeName,
-          schema: this.builder.options.drizzle.client._.schema!,
-          // withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
-        });
 
         // const returnType = getNamedType(info.returnType);
         // const fields =
@@ -121,14 +107,11 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         // );
 
         return resolveDrizzleCursorConnection(
+          drizzleModel,
+          info,
+          typeName,
+          this.builder.options.drizzle.client._.schema!,
           {
-            parent,
-            query: queryObj,
-            orderBy:
-              typeof orderBy === 'function'
-                ? orderBy(drizzleModel.columns)
-                : orderBy ?? drizzleModel.primaryKey,
-            where: typeof where === 'function' ? where(drizzleModel.columns, ops) : undefined,
             ctx: context,
             maxSize,
             defaultSize,

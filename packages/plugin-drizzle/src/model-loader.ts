@@ -116,46 +116,52 @@ export class ModelLoader {
 
     const nextTick = createResolvablePromise<void>();
 
-    nextTick.promise.then(() => {
-      const api = (
-        this.builder.options.drizzle.client.query as Record<
-          string,
-          { findMany: (...args: unknown[]) => Promise<Record<string, unknown>[]> }
-        >
-      )[this.modelName];
+    nextTick.promise
+      .then(() => {
+        const api = (
+          this.builder.options.drizzle.client.query as Record<
+            string,
+            { findMany: (...args: unknown[]) => Promise<Record<string, unknown>[]> }
+          >
+        )[this.modelName];
 
-      const query = api.findMany({
-        ...selectionToQuery(selection),
-        where: inArray(
-          this.pk,
-          [entry.models.keys()].map(([model]) => this.pkFromModel(model)),
-        ),
-      });
+        const query = api.findMany({
+          ...selectionToQuery(selection),
+          where: inArray(
+            this.pk,
+            [entry.models.keys()].map(([model]) => this.pkFromModel(model)),
+          ),
+        });
 
-      query.then(
-        (results) => {
-          for (const [model, promise] of entry.models.entries()) {
-            const result = results.find((row) =>
-              this.table.primaryKey.every(
-                (key) => row[key.name] === (model as Record<string, unknown>)[key.name],
-              ),
-            );
-
-            if (result) {
-              promise.resolve(result ?? null);
-            } else
-              promise.reject(
-                new Error(`Model ${this.modelName}(${this.pkFromModel(model)}) not found`),
+        query.then(
+          (results) => {
+            for (const [model, promise] of entry.models.entries()) {
+              const result = results.find((row) =>
+                this.table.primaryKey.every(
+                  (key) => row[key.name] === (model as Record<string, unknown>)[key.name],
+                ),
               );
-          }
-        },
-        (err) => {
-          for (const promise of entry.models.values()) {
-            promise.reject(err);
-          }
-        },
-      );
-    });
+
+              if (result) {
+                promise.resolve(result ?? null);
+              } else
+                promise.reject(
+                  new Error(`Model ${this.modelName}(${this.pkFromModel(model)}) not found`),
+                );
+            }
+          },
+          (err) => {
+            for (const promise of entry.models.values()) {
+              promise.reject(err);
+            }
+          },
+        );
+      })
+      .catch((err) => {
+        for (const promise of entry.models.values()) {
+          promise.reject(err);
+        }
+      });
 
     setTimeout(() => void nextTick.resolve(), 0);
 

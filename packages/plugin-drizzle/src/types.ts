@@ -4,6 +4,7 @@ import {
   DBQueryConfig,
   Many,
   Relation,
+  SQL,
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
@@ -286,18 +287,28 @@ export type QueryForField<
   ? QueryConfig | ((args: InputShapeFromFields<Args>, context: Types['Context']) => QueryConfig)
   : never;
 
-export type QueryForConnection<
+export type QueryForRelatedConnection<
   Types extends SchemaTypes,
   Table extends TableRelationalConfig,
   Args,
 > = Omit<
   DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
-  'columns' | 'extra' | 'with' | 'orderBy' | 'limit' | 'offset'
+  'orderBy' | 'limit' | 'offset' | 'columns' | 'extra' | 'with'
 > & {
   orderBy?: (columns: Table['columns']) => ConnectionOrderBy;
 } extends infer QueryConfig
   ? QueryConfig | ((args: Args, context: Types['Context']) => QueryConfig)
   : never;
+
+export type QueryForDrizzleConnection<
+  Types extends SchemaTypes,
+  Table extends TableRelationalConfig,
+> = Omit<
+  DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
+  'orderBy' | 'limit' | 'offset'
+> & {
+  orderBy?: (columns: Table['columns']) => ConnectionOrderBy;
+};
 
 export type ListRelation<T extends TableRelationalConfig> = {
   [K in keyof T['relations']]: T['relations'][K] extends Many<string> ? K : never;
@@ -349,20 +360,19 @@ export type DrizzleConnectionFieldOptions<
         type: Type;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
-        query?: QueryForConnection<
-          Types,
-          Types['DrizzleRelationSchema'][Type extends DrizzleRef<Types, infer K>
-            ? K
-            : Type & keyof Types['DrizzleRelationSchema']],
-          ConnectionArgs
-        >;
+
         resolve: (
-          query: {
-            // include?: Model['Include'];
-            // cursor?: Model['WhereUnique'];
-            // take: number;
-            // skip: number;
-          },
+          query: <
+            T extends QueryForRelatedConnection<
+              Types,
+              Types['DrizzleRelationSchema'][Type extends DrizzleRef<Types, infer K>
+                ? K
+                : Type & keyof Types['DrizzleRelationSchema']],
+              ConnectionArgs
+            >,
+          >(
+            selection?: T,
+          ) => Omit<T, 'orderBy'> & { orderBy: SQL },
           parent: ParentShape,
           args: ConnectionArgs,
           context: Types['Context'],
@@ -420,12 +430,6 @@ export type RelatedConnectionOptions<
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         resolve?: (
-          query: {
-            // include?: Model['Include'];
-            // cursor?: Model['WhereUnique'];
-            // take: number;
-            // skip: number;
-          },
           parent: Shape,
           args: ConnectionArgs,
           context: Types['Context'],
@@ -437,7 +441,7 @@ export type RelatedConnectionOptions<
             Nullable
           >
         >;
-        query?: QueryForConnection<Types, NodeTable, ConnectionArgs>;
+        query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         type?: DrizzleRef<Types, Table['relations'][Field]['referencedTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

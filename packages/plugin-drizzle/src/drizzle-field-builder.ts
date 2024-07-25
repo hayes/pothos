@@ -277,7 +277,6 @@ export class DrizzleObjectFieldBuilder<
         ) => {
           const { select, cursorColumns } = getQuery(args, context);
           return wrapConnectionResult(
-            parent,
             (parent as Record<string, never>)[name],
             args,
             select.limit,

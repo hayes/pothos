@@ -1,9 +1,23 @@
 /* eslint-disable no-nested-ternary */
-import { decodeBase64, encodeBase64, MaybePromise, PothosValidationError } from '@pothos/core';
-import { extendWithUsage } from './usage';
-import { Column, getOperators, getOrderByOperators, SQL } from 'drizzle-orm';
-import { ConnectionOrderBy } from '../types';
+import {
+  decodeBase64,
+  encodeBase64,
+  MaybePromise,
+  PothosValidationError,
+  SchemaTypes,
+} from '@pothos/core';
+import {
+  Column,
+  getOperators,
+  getOrderByOperators,
+  SQL,
+  TableRelationalConfig,
+  TablesRelationalConfig,
+} from 'drizzle-orm';
+import { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
 import { SelectionMap } from './selections';
+import { GraphQLResolveInfo } from 'graphql';
+import { queryFromInfo } from './map-query';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -221,12 +235,6 @@ export interface DrizzleCursorConnectionQueryOptions {
   where?: SQL;
 }
 
-interface ResolveDrizzleCursorConnectionOptions extends DrizzleCursorConnectionQueryOptions {
-  parent?: unknown;
-  query: SelectionMap;
-  // totalCount?: number | (() => MaybePromise<number>);
-}
-
 const orderByOps = getOrderByOperators();
 
 function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
@@ -360,7 +368,6 @@ export function drizzleCursorConnectionQuery({
 }
 
 export function wrapConnectionResult<T extends {}>(
-  parent: unknown,
   results: readonly T[],
   args: PothosSchemaTypes.DefaultConnectionArguments,
   limit: number,
@@ -376,7 +383,6 @@ export function wrapConnectionResult<T extends {}>(
     : results;
 
   const connection = {
-    parent,
     args,
     totalCount,
     edges: [] as ({ cursor: string; node: unknown } | null)[],
@@ -417,37 +423,55 @@ export function wrapConnectionResult<T extends {}>(
 }
 
 export async function resolveDrizzleCursorConnection<T extends {}>(
-  options: ResolveDrizzleCursorConnectionOptions,
-  resolve: (query: {
-    limit: number;
-    offset: number;
-    with?: {};
-    columns?: {};
-    where?: SQL;
-  }) => MaybePromise<readonly T[]>,
+  table: TableRelationalConfig,
+  info: GraphQLResolveInfo,
+  typeName: string,
+  schema: TablesRelationalConfig,
+  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy'>,
+  resolve: (
+    queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
+  ) => MaybePromise<readonly T[]>,
 ) {
-  const { cursorColumns, ...query } = drizzleCursorConnectionQuery(options);
+  let query;
+  let formatter;
+  const results = await resolve((q) => {
+    const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
+      ...options,
+      orderBy: q.orderBy ? q.orderBy(table.columns) : table.primaryKey,
+    });
+    formatter = getCursorFormatter(cursorColumns);
 
-  const results = await resolve(
-    extendWithUsage(options.query, {
-      ...query,
-      columns: {
-        ...options.query.columns,
-        ...query.columns,
+    const where = typeof q.where === 'function' ? q.where(table.columns, getOperators()) : q.where;
+
+    query = queryFromInfo({
+      context: options.ctx,
+      info,
+      select: {
+        ...connectionQuery,
+        columns: {
+          ...q.columns,
+          ...connectionQuery.columns,
+        },
+        where: ops.and(connectionQuery.where, where),
       },
-    }),
-  );
+      paths: [['nodes'], ['edges', 'node']],
+      typeName,
+      schema,
+      // withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+    });
+
+    return query;
+  });
 
   if (!results) {
     return results;
   }
 
   return wrapConnectionResult(
-    options.parent,
     results,
     options.args,
-    query.limit,
-    getCursorFormatter(cursorColumns),
+    query!.limit,
+    formatter!,
     // options.totalCount,
   );
 }
