@@ -1,7 +1,8 @@
 /* eslint-disable no-nested-ternary */
 import { decodeBase64, encodeBase64, MaybePromise, PothosValidationError } from '@pothos/core';
 import { extendWithUsage } from './usage';
-import { Column } from 'drizzle-orm';
+import { Column, getOperators, getOrderByOperators, SQL } from 'drizzle-orm';
+import { ConnectionOrderBy } from '../types';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -48,7 +49,7 @@ export function parseDrizzleCursor(cursor: unknown) {
 
   try {
     const decoded = decodeBase64(cursor);
-    const [, type, value] = decoded.match(/^GPC:(\w):(.*)/) as [string, string, string];
+    const [, type, value] = decoded.match(/^DC:(\w):(.*)/) as [string, string, string];
 
     switch (type) {
       case 'S':
@@ -215,7 +216,8 @@ export interface DrizzleCursorConnectionQueryOptions {
   ctx: {};
   defaultSize?: number | ((args: {}, ctx: {}) => number);
   maxSize?: number | ((args: {}, ctx: {}) => number);
-  parseCursor: (cursor: string) => Record<string, unknown>;
+  orderBy: ConnectionOrderBy;
+  where?: SQL;
 }
 
 interface ResolveDrizzleCursorConnectionOptions extends DrizzleCursorConnectionQueryOptions {
@@ -224,12 +226,51 @@ interface ResolveDrizzleCursorConnectionOptions extends DrizzleCursorConnectionQ
   totalCount?: number | (() => MaybePromise<number>);
 }
 
+const orderByOps = getOrderByOperators();
+
+function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
+  if (!Array.isArray(orderBy)) {
+    return parseOrderBy([orderBy], invert);
+  }
+
+  const asc = invert ? 'desc' : 'asc';
+  const desc = invert ? 'asc' : 'desc';
+
+  const normalized: { direction: 'asc' | 'desc'; column: Column }[] = orderBy.map((field) => {
+    if (typeof field === 'object' && 'asc' in field) {
+      return {
+        direction: asc,
+        column: field.asc,
+      };
+    } else if (typeof field === 'object' && 'desc' in field) {
+      return {
+        direction: desc,
+        column: field.desc,
+      };
+    }
+
+    return {
+      direction: asc,
+      column: field,
+    };
+  });
+
+  return {
+    normalized,
+    columns: normalized.map((field) => field.column),
+    sql: normalized.map((field) => orderByOps[field.direction](field.column)),
+  };
+}
+
+const ops = getOperators();
+
 export function drizzleCursorConnectionQuery({
   args,
   ctx,
   maxSize = DEFAULT_MAX_SIZE,
   defaultSize = DEFAULT_SIZE,
-  parseCursor,
+  orderBy,
+  where,
 }: DrizzleCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
   if (first != null && first < 0) {
@@ -270,13 +311,51 @@ export function drizzleCursorConnectionQuery({
     limit = -limit;
   }
 
-  return cursor == null
-    ? { limit, offset: 0 }
-    : {
-        cursor: parseCursor(cursor),
-        limit,
-        offset: 1,
-      };
+  const parsedOrderBy = parseOrderBy(orderBy, limit < 0);
+
+  const columns: Record<string, boolean> = {};
+
+  parsedOrderBy.columns.forEach((column) => {
+    columns[column.name] = true;
+  });
+
+  let whereClauses: (SQL | undefined)[] = where ? [where] : [];
+
+  if (cursor) {
+    const cursorParser = getCursorParser(parsedOrderBy.columns);
+    const parsedCursor = cursorParser(cursor);
+
+    whereClauses.push(
+      ops.or(
+        ...parsedOrderBy.normalized.map(({ direction, column }, index) => {
+          const compare =
+            direction === 'asc'
+              ? ops.gt(column, parsedCursor[column.name])
+              : ops.lt(column, parsedCursor[column.name]);
+
+          if (index === 0) {
+            return compare;
+          }
+
+          return ops.and(
+            ...parsedOrderBy.normalized
+              .slice(0, index)
+              .map(({ column: c }) => ops.eq(c, parsedCursor[c.name])),
+            compare,
+          );
+        }),
+      ),
+    );
+  }
+
+  return {
+    cursorColumns: parsedOrderBy.columns,
+    columns,
+    orderBy: parsedOrderBy.sql,
+    limit,
+    offset: cursor === null ? 0 : 1,
+    where: ops.and(...whereClauses),
+  };
 }
 
 export function wrapConnectionResult<T extends {}>(
@@ -324,6 +403,10 @@ export function wrapConnectionResult<T extends {}>(
             node: value,
           },
   );
+
+  if (args.last && !args.first) {
+    edges.reverse();
+  }
 
   connection.edges = edges;
   connection.pageInfo.startCursor = edges[0]?.cursor ?? null;

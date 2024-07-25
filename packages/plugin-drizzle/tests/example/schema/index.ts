@@ -54,7 +54,12 @@ builder.drizzleObject('users', {
       //                           ^?
     }),
     postsConnection: t.relatedConnection('posts', {
-      cursor: (post) => post.id,
+      query: () => ({
+        where: (post, ops) => ops.ne(post.id, 25),
+        orderBy: (post) => ({
+          asc: post.id,
+        }),
+      }),
     }),
     invitee: t.relation('invitee'),
     // postsConnection: t.relatedConnection('posts', {
@@ -76,7 +81,11 @@ builder.queryField('user', (t) =>
         where: (user, { eq }) => eq(user.id, args.id),
       });
 
+      console.log(drizzleQuery.toSQL());
+
       const result = await drizzleQuery;
+
+      console.dir(result, { depth: null });
 
       return result;
     },

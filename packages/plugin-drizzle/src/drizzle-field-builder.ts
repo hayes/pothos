@@ -1,4 +1,4 @@
-import { Column, InferModelFromColumns, Many, TableRelationalConfig } from 'drizzle-orm';
+import { InferModelFromColumns, Many, TableRelationalConfig } from 'drizzle-orm';
 import {
   CompatibleTypes,
   ExposeNullability,
@@ -28,7 +28,6 @@ import { getRefFromModel } from './utils/refs';
 import {
   drizzleCursorConnectionQuery,
   getCursorFormatter,
-  getCursorParser,
   wrapConnectionResult,
 } from './utils/cursors';
 import { FieldNode } from 'graphql';
@@ -165,7 +164,6 @@ export class DrizzleObjectFieldBuilder<
     {
       maxSize,
       defaultSize,
-      cursor: cursorValue,
       query,
       resolve,
       extensions,
@@ -177,7 +175,6 @@ export class DrizzleObjectFieldBuilder<
       totalCount?: boolean;
       maxSize?: number | ((args: {}, ctx: {}) => number);
       defaultSize?: number | ((args: {}, ctx: {}) => number);
-      cursor: (columns: TableConfig['columns']) => Column;
       extensions: {};
       description?: string;
       query: ((args: {}, ctx: {}) => {}) | {};
@@ -206,37 +203,32 @@ export class DrizzleObjectFieldBuilder<
     const ref = options.type ?? getRefFromModel(relationField.referencedTableName, this.builder);
     let typeName: string | undefined;
 
-    const cursorColumns = [cursorValue(relatedModel?.columns)];
-    const formatCursor = getCursorFormatter(cursorColumns);
-    const parseCursor = getCursorParser(cursorColumns);
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
-      const connectionQuery = drizzleCursorConnectionQuery({
-        parseCursor,
+      const { limit, offset, orderBy, where, ...fieldQuery } =
+        (typeof query === 'function' ? query(args, ctx) : query) ?? {};
+
+      const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
         maxSize,
         defaultSize,
         args,
+        orderBy: orderBy ? orderBy(relatedModel.columns) : relatedModel.primaryKey,
       });
-      const {
-        limit = connectionQuery.limit,
-        offset = connectionQuery.offset,
-        cursor = connectionQuery.cursor,
-        ...fieldQuery
-      } = ((typeof query === 'function' ? query(args, ctx) : query) ??
-        {}) as typeof connectionQuery;
+
       return {
-        ...fieldQuery,
-        ...connectionQuery,
-        limit,
-        offset,
-        ...(cursor ? { cursor } : {}),
+        select: {
+          ...fieldQuery,
+          ...connectionQuery,
+          columns: {
+            ...fieldQuery.columns,
+            ...columns,
+          },
+          limit: Math.abs(limit ?? connectionQuery.limit),
+          offset: offset ?? connectionQuery.offset,
+        },
+        cursorColumns,
       };
     };
-    const cursorSelection: Record<string, boolean> = {};
-
-    cursorColumns.forEach((column) => {
-      cursorSelection[column.name] = true;
-    });
 
     const relationSelect = (
       args: object,
@@ -245,7 +237,7 @@ export class DrizzleObjectFieldBuilder<
       getSelection: (path: string[]) => FieldNode | null,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
-      const nested = nestedQuery(getQuery(args, context), {
+      const nested = nestedQuery(getQuery(args, context).select, {
         getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
@@ -259,15 +251,7 @@ export class DrizzleObjectFieldBuilder<
       return {
         with: {
           // ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
-          [name]: nested
-            ? {
-                ...nested,
-                columns: {
-                  ...nested.columns,
-                  ...cursorSelection,
-                },
-              }
-            : nested,
+          [name]: nested,
         },
       };
     };
@@ -288,13 +272,13 @@ export class DrizzleObjectFieldBuilder<
           args: PothosSchemaTypes.DefaultConnectionArguments,
           context: {},
         ) => {
-          const connectionQuery = getQuery(args, context);
+          const { select, cursorColumns } = getQuery(args, context);
           return wrapConnectionResult(
             parent,
             (parent as Record<string, never>)[name],
             args,
-            connectionQuery.limit,
-            formatCursor,
+            select.limit,
+            getCursorFormatter(cursorColumns),
             (parent as { _count?: Record<string, number> })._count?.[name],
           );
         },

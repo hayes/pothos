@@ -284,6 +284,19 @@ export type QueryForField<
   ? QueryConfig | ((args: InputShapeFromFields<Args>, context: Types['Context']) => QueryConfig)
   : never;
 
+export type QueryForConnection<
+  Types extends SchemaTypes,
+  Table extends TableRelationalConfig,
+  Args,
+> = Omit<
+  DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
+  'columns' | 'extra' | 'with' | 'orderBy' | 'limit' | 'offset'
+> & {
+  orderBy?: (columns: Table['columns']) => ConnectionOrderBy;
+} extends infer QueryConfig
+  ? QueryConfig | ((args: Args, context: Types['Context']) => QueryConfig)
+  : never;
+
 export type ListRelation<T extends TableRelationalConfig> = {
   [K in keyof T['relations']]: T['relations'][K] extends Many<string> ? K : never;
 }[keyof T['relations']];
@@ -351,22 +364,24 @@ export type DrizzleConnectionFieldOptions<
             ? ListResolveValue<Shape, Item, ResolveReturnShape>
             : MaybePromise<Shape>
           : never;
-        totalCount?: (
-          parent: ParentShape,
-          args: ConnectionArgs,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<number>;
+        // totalCount?: (
+        //   parent: ParentShape,
+        //   args: ConnectionArgs,
+        //   context: Types['Context'],
+        //   info: GraphQLResolveInfo,
+        // ) => MaybePromise<number>;
       }
     : never);
 
 export type RelatedConnectionOptions<
   Types extends SchemaTypes,
   Shape,
-  TableConfig extends TableRelationalConfig,
-  Field extends keyof TableConfig['relations'],
+  Table extends TableRelationalConfig,
+  Field extends keyof Table['relations'],
   Nullable extends boolean,
   Args extends InputFieldMap,
+  NodeTable extends
+    TableRelationalConfig = Types['DrizzleRelationSchema'][Table['relations'][Field]['referencedTable']['_']['name']],
   // eslint-disable-next-line @typescript-eslint/sort-type-constituents
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
@@ -410,21 +425,24 @@ export type RelatedConnectionOptions<
         ) => MaybePromise<
           ShapeFromTypeParam<
             Types,
-            [ObjectRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>>],
+            [ObjectRef<Types, TypesForRelation<Types, Table['relations'][Field]>>],
             Nullable
           >
         >;
-        // query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-        type?: DrizzleRef<Types, TableConfig['relations'][Field]['referencedTable']['_']['name']>;
-        cursor: (
-          columns: Types['DrizzleRelationSchema'][TableConfig['relations'][Field]['referencedTable']['_']['name']]['columns'],
-        ) => Column;
+        query?: QueryForConnection<Types, NodeTable, ConnectionArgs>;
+        type?: DrizzleRef<Types, Table['relations'][Field]['referencedTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         // totalCount?: NeedsResolve extends false ? boolean : false;
       }
     : never);
+
+export type ConnectionOrderBy =
+  | Column
+  | { asc: Column }
+  | { desc: Column }
+  | (Column | { asc: Column } | { desc: Column })[];
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
 
