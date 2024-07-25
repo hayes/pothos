@@ -39,6 +39,8 @@ import { SelectionMap } from './utils/selections';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface DrizzlePluginOptions<Types extends SchemaTypes> {
   client: { _: { schema?: TablesRelationalConfig }; query: {} };
+  maxConnectionSize?: number;
+  defaultConnectionSize?: number;
 }
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
@@ -345,9 +347,15 @@ export type DrizzleConnectionFieldOptions<
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         type: Type;
-        cursor: Extract<TableConfig['columns'][string], { isUnique: true }>['name'];
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
+        query?: QueryForConnection<
+          Types,
+          Types['DrizzleRelationSchema'][Type extends DrizzleRef<Types, infer K>
+            ? K
+            : Type & keyof Types['DrizzleRelationSchema']],
+          ConnectionArgs
+        >;
         resolve: (
           query: {
             // include?: Model['Include'];

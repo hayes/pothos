@@ -30,6 +30,7 @@ import {
   SelectionState,
   selectionToQuery,
 } from './selections';
+import { wrapWithUsageCheck } from './usage';
 
 export interface IndirectInclude {
   getType: () => string;
@@ -379,7 +380,7 @@ function addFieldSelection(
   }
 }
 
-export function queryFromInfo<T extends SelectionMap | undefined = undefined>({
+export function queryFromInfo<T extends SelectionMap>({
   schema,
   context,
   info,
@@ -397,7 +398,7 @@ export function queryFromInfo<T extends SelectionMap | undefined = undefined>({
   path?: string[];
   paths?: string[][];
   withUsageCheck?: boolean;
-}): { include?: {} } | { select: T } {
+}): T {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
 
@@ -452,10 +453,9 @@ export function queryFromInfo<T extends SelectionMap | undefined = undefined>({
 
   setLoaderMappings(context, info, state.mappings);
 
-  const query = selectionToQuery(state) as { select: T };
+  const query = selectionToQuery(state) as T;
 
-  return query;
-  // return withUsageCheck ? wrapWithUsageCheck(query) : query;
+  return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
 
 export function selectionStateFromInfo(

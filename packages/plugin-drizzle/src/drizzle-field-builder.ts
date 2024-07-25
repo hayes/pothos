@@ -1,4 +1,4 @@
-import { InferModelFromColumns, Many, TableRelationalConfig } from 'drizzle-orm';
+import { getOperators, InferModelFromColumns, Many, TableRelationalConfig } from 'drizzle-orm';
 import {
   CompatibleTypes,
   ExposeNullability,
@@ -42,6 +42,8 @@ const RootBuilder: {
     graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
+
+const ops = getOperators();
 
 export class DrizzleObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -162,8 +164,8 @@ export class DrizzleObjectFieldBuilder<
     this: DrizzleObjectFieldBuilder<SchemaTypes, TableConfig, boolean>,
     name: string,
     {
-      maxSize,
-      defaultSize,
+      maxSize = this.builder.options.drizzle?.maxConnectionSize,
+      defaultSize = this.builder.options.drizzle?.defaultConnectionSize,
       query,
       resolve,
       extensions,
@@ -213,6 +215,7 @@ export class DrizzleObjectFieldBuilder<
         defaultSize,
         args,
         orderBy: orderBy ? orderBy(relatedModel.columns) : relatedModel.primaryKey,
+        where: where ? where(relatedModel.columns, ops) : undefined,
       });
 
       return {

@@ -3,6 +3,7 @@ import { decodeBase64, encodeBase64, MaybePromise, PothosValidationError } from 
 import { extendWithUsage } from './usage';
 import { Column, getOperators, getOrderByOperators, SQL } from 'drizzle-orm';
 import { ConnectionOrderBy } from '../types';
+import { SelectionMap } from './selections';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -222,8 +223,8 @@ export interface DrizzleCursorConnectionQueryOptions {
 
 interface ResolveDrizzleCursorConnectionOptions extends DrizzleCursorConnectionQueryOptions {
   parent?: unknown;
-  query: {};
-  totalCount?: number | (() => MaybePromise<number>);
+  query: SelectionMap;
+  // totalCount?: number | (() => MaybePromise<number>);
 }
 
 const orderByOps = getOrderByOperators();
@@ -353,7 +354,7 @@ export function drizzleCursorConnectionQuery({
     columns,
     orderBy: parsedOrderBy.sql,
     limit,
-    offset: cursor === null ? 0 : 1,
+    offset: cursor ? 1 : 0,
     where: ops.and(...whereClauses),
   };
 }
@@ -417,16 +418,25 @@ export function wrapConnectionResult<T extends {}>(
 
 export async function resolveDrizzleCursorConnection<T extends {}>(
   options: ResolveDrizzleCursorConnectionOptions,
-  cursor: (node: T) => string,
   resolve: (query: {
-    include?: {};
-    cursor?: {};
     limit: number;
     offset: number;
+    with?: {};
+    columns?: {};
+    where?: SQL;
   }) => MaybePromise<readonly T[]>,
 ) {
-  const query = drizzleCursorConnectionQuery(options);
-  const results = await resolve(extendWithUsage(options.query, query));
+  const { cursorColumns, ...query } = drizzleCursorConnectionQuery(options);
+
+  const results = await resolve(
+    extendWithUsage(options.query, {
+      ...query,
+      columns: {
+        ...options.query.columns,
+        ...query.columns,
+      },
+    }),
+  );
 
   if (!results) {
     return results;
@@ -437,7 +447,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     results,
     options.args,
     query.limit,
-    cursor,
-    options.totalCount,
+    getCursorFormatter(cursorColumns),
+    // options.totalCount,
   );
 }

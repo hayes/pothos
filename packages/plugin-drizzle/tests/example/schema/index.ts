@@ -92,6 +92,31 @@ builder.queryField('user', (t) =>
   }),
 );
 
+builder.queryField('postsConnection', (t) =>
+  t.drizzleConnection({
+    type: 'posts',
+    query: () => ({
+      orderBy: (post) => post.content,
+      where: (post, ops) => ops.ne(post.id, 25),
+    }),
+    resolve: async (query, root, args, ctx, info) => {
+      console.log(query);
+      const drizzleQuery = db.query.posts.findMany({
+        ...query,
+        // where: (user, { eq }) => eq(user.id, args.id),
+      });
+
+      console.log(drizzleQuery.toSQL());
+
+      const result = await drizzleQuery;
+
+      console.dir(result, { depth: null });
+
+      return result;
+    },
+  }),
+);
+
 builder.drizzleObject('posts', {
   name: 'Post',
   select: {

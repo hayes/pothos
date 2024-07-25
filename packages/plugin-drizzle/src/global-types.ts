@@ -269,7 +269,9 @@ declare global {
               Types,
               ParentShape,
               Type,
-              Types['DrizzleRelationSchema'][Type & keyof Types['DrizzleRelationSchema']],
+              Types['DrizzleRelationSchema'][Type extends DrizzleRef<Types, infer K>
+                ? K
+                : Type & keyof Types['DrizzleRelationSchema']],
               ObjectRef<Types, Shape>,
               Nullable,
               Args,

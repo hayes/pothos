@@ -18,7 +18,7 @@ schemaBuilderProto.drizzleObject = function drizzleObject(
       ...options.extensions,
       pothosDrizzleModel: table,
       pothosDrizzleTable: this.options.drizzle.client._.schema?.[table],
-      pothosDrizzleSelect: select,
+      pothosDrizzleSelect: select ?? {},
     },
     name,
     fields: fields ? () => fields(new DrizzleObjectFieldBuilder(ref.name, this, table)) : undefined,
