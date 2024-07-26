@@ -468,6 +468,54 @@ schemaBuilder.prismaCreate = function prismaCreate<
   return ref;
 };
 
+schemaBuilder.prismaCreateMany = function prismaCreateMany(
+  type: string,
+  { name, fields, ...options }: PrismaCreateOptions<SchemaTypes, PrismaModelTypes, unknown>,
+) {
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type as never, this)}CreateManyInput`);
+  const model = getModel(type, this);
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: InputFieldMap = {};
+      const fieldMap = typeof fields === 'function' ? fields(t) : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldModel = model.fields.find(({ name: fieldName }) => fieldName === field)!;
+
+        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+        if (!fieldOption) {
+          return;
+        }
+
+        fieldDefs[field] =
+          fieldOption instanceof InputFieldRef
+            ? fieldOption
+            : t.field({
+                required:
+                  fieldModel.isRequired &&
+                  !fieldModel.isList &&
+                  !fieldModel.hasDefaultValue &&
+                  !fieldModel.isUpdatedAt,
+                type:
+                  fieldModel.isList && fieldModel.kind !== 'object'
+                    ? [fieldOption as InputRef<unknown>]
+                    : (fieldOption as InputRef<unknown>),
+              });
+      });
+
+      return fieldDefs as never;
+    },
+  });
+
+  return ref;
+};
+
 schemaBuilder.prismaUpdate = function prismaUpdate<
   Name extends keyof SchemaTypes['PrismaTypes'],
   Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
@@ -634,6 +682,35 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
             fields: (t2) => ({
               where: whereType instanceof InputFieldRef ? whereType : t2.field({ type: whereType }),
               data: dataType instanceof InputFieldRef ? dataType : t2.field({ type: dataType }),
+            }),
+          });
+
+          fieldDefs[field] = t.field({
+            required: false,
+            type: [nestedRef],
+          });
+        } else if (fieldModel.isList && field === 'createMany') {
+          const {
+            name: nestedName = `${ref.name}CreateMany`,
+            data: dataType,
+            skipDuplicates,
+          } = fieldOption as {
+            name?: string;
+            data: InputFieldRef<SchemaTypes> | InputRef<unknown>;
+            skipDuplicates?: InputFieldRef<SchemaTypes> | InputRef<unknown>;
+          };
+
+          const nestedRef = this.inputType(nestedName, {
+            fields: (t2) => ({
+              ...(skipDuplicates
+                ? {
+                    skipDuplicates:
+                      skipDuplicates instanceof InputFieldRef
+                        ? skipDuplicates
+                        : t2.field({ type: skipDuplicates }),
+                  }
+                : {}),
+              data: dataType instanceof InputFieldRef ? dataType : t2.field({ type: [dataType] }),
             }),
           });
 

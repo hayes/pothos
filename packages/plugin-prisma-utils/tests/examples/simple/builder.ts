@@ -26,7 +26,7 @@ export const prisma = new PrismaClient({
   ],
 });
 
-interface PothosTypes {
+export interface PothosTypes {
   Context: {
     user: { id: number };
   };

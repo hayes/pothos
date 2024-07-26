@@ -212,6 +212,21 @@ export interface PrismaCreateOptions<
     );
 }
 
+export interface PrismaCreateManyOptions<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Fields,
+> extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
+  name?: string;
+  fields: Fields &
+    (
+      | PrismaCreateManyFields<Types, Model>
+      | ((
+          t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
+        ) => PrismaCreateManyFields<Types, Model>)
+    );
+}
+
 export type NonListShape<T> = T extends (infer S)[] ? S : T;
 export type NonListInputWithShape<Types extends SchemaTypes, T> = InputWithShape<
   Types,
@@ -221,6 +236,13 @@ export type NonListInputWithShape<Types extends SchemaTypes, T> = InputWithShape
 
 export type PrismaCreateFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
   [K in keyof Model['Create']]?: NonListInputWithShape<Types, Model['Shape'][K]>;
+};
+
+export type PrismaCreateManyFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
+  [K in Exclude<keyof Model['Shape'], Model['RelationName']>]?: NonListInputWithShape<
+    Types,
+    Model['Shape'][K]
+  >;
 };
 
 export interface PrismaCreateOneRelationOptions<
@@ -386,6 +408,19 @@ export interface PrismaUpdateManyRelationFields<
       ? T
       : never
   >;
+  createMany?: Model['Update'][Relation & keyof Model['Update']] & {
+    createMany?: { data: unknown };
+  } extends {
+    createMany?: {
+      skipDuplicates?: boolean;
+      data: infer D;
+    };
+  }
+    ? {
+        name?: string;
+        data: NonListInputWithShape<Types, Extract<D, Array<unknown>>>;
+      }
+    : never;
   set?: InputWithShape<
     Types,
     Model['Update'][Relation & keyof Model['Update']] & { set?: unknown } extends {

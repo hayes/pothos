@@ -84,6 +84,53 @@ class PrismaGenerator {
     return name;
   }
 
+  addCreateMany(type: string, without: string) {
+    const name = `${type}CreateManyWithout${capitalize(without)}Input`;
+    const prismaName = `${type}CreateMany${capitalize(without)}Input`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(type);
+    const relationField = model.fields.find((field) => field.name === without)!;
+
+    const fields = mapFields(model, (field) => {
+      if (field.name === without || relationField.relationFromFields?.includes(field.name)) {
+        return null;
+      }
+
+      let filter: string | undefined;
+
+      if (field.kind === 'scalar') {
+        filter = `'${field.type}'`;
+      }
+
+      if (field.kind === 'enum') {
+        filter = this.addEnum(field.type);
+      }
+
+      if (filter) {
+        return parse`({ ${field.name}: ${filter}})`;
+      }
+
+      return null;
+    });
+
+    this.statements.push(
+      ...parse/* ts */ `
+      export const ${name}: InputObjectRef<Types, Prisma.Prisma.${prismaName}> = builder.prismaCreateMany('${type}', {
+        name: '${name}',
+        fields: () => (${printExpression(fields)})
+      });
+    `,
+    );
+
+    return name;
+  }
+
   addCreateRelation(modelName: string, relation: string) {
     const name = `${modelName}Create${capitalize(relation)}`;
 
@@ -195,6 +242,10 @@ class PrismaGenerator {
         export const ${name} = builder.prismaUpdateRelation('${modelName}', '${relation}', {
           fields: () => ({
             create: ${this.addCreate(relatedModel.name, [relatedFieldName.name])},
+            createMany: {
+              skipDuplicates: 'Boolean',
+              data: ${this.addCreateMany(relatedModel.name, relatedFieldName.name)},
+            },
             set: ${this.addWhereUnique(relatedModel.name)},
             disconnect: ${this.addWhereUnique(relatedModel.name)},
             delete: ${this.addWhereUnique(relatedModel.name)},

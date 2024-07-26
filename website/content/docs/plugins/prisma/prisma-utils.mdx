@@ -231,6 +231,11 @@ export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
     // Not all update methods need to be defined
     // created with builder.prismaCreate
     create: PostCreateWithoutAuthor,
+    // created with builder.prismaCreateMany
+    createMany: {
+      skipDuplicates: 'Boolean',
+      data: PostCreateManyWithoutAuthor,
+    },
     // created with builder.prismaWhereUnique
     set: PostUniqueFilter,
     // created with builder.prismaWhereUnique

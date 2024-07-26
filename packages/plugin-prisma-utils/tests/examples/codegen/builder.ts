@@ -26,7 +26,7 @@ export const prisma = new PrismaClient({
   ],
 });
 
-export const builder = new SchemaBuilder<{
+export interface Types {
   Context: {
     user: { id: number };
   };
@@ -37,7 +37,9 @@ export const builder = new SchemaBuilder<{
     };
   };
   PrismaTypes: PrismaTypes;
-}>({
+}
+
+export const builder = new SchemaBuilder<Types>({
   plugins: [PrismaPlugin, PrismaUtils],
   prisma: {
     client: prisma,

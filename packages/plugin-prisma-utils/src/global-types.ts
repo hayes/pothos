@@ -1,4 +1,4 @@
-import { InputShapeFromTypeParam, InputType, SchemaTypes } from '@pothos/core';
+import { InputShapeFromTypeParam, InputType, Normalize, SchemaTypes } from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
 import {
   FilterListOps,
@@ -26,6 +26,7 @@ import type {
   IntFieldUpdateOperationsInput,
   IntUpdateOps,
   PothosPrismaUtilsPlugin,
+  PrismaCreateManyOptions,
   PrismaIntAtomicUpdateOptions,
 } from '.';
 
@@ -124,6 +125,19 @@ declare global {
         type: Name,
         options: PrismaCreateOptions<Types, Model, Fields>,
       ) => InputObjectRef<Types, PickFields<Model['Create'], Fields>>;
+
+      prismaCreateMany: <
+        Name extends keyof Types['PrismaTypes'],
+        Fields extends Partial<
+          Record<Exclude<keyof Model['Shape'], Model['RelationName']>, unknown>
+        >,
+        Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+          ? Types['PrismaTypes'][Name]
+          : never,
+      >(
+        type: Name,
+        options: PrismaCreateManyOptions<Types, Model, Fields>,
+      ) => InputObjectRef<Types, Normalize<PickFields<Model['Shape'], Fields>>>;
 
       prismaCreateRelation: <
         Name extends keyof Types['PrismaTypes'],

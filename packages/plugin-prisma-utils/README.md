@@ -79,7 +79,7 @@ const MyEnumFilter = builder.prismaFilter(MyEnum, {
 ### Creating filters for Prisma objects (compatible with a "where" clause)
 
 ```typescript
-const UserFilter = builder.prismaWhere('User', {
+const UserWhere = builder.prismaWhere('User', {
   fields: {
     id: IDFilter,
   },
@@ -112,7 +112,7 @@ export const StringListFilter = builder.prismaScalarListFilter('String', {
 ### Creating list filters for Prisma objects
 
 ```typescript
-const UserListFilter = builder.prismaListFilter(UserFilter, {
+const UserListFilter = builder.prismaListFilter(UserWhere, {
   ops: ['every', 'some', 'none'],
 });
 ```
@@ -222,6 +222,11 @@ export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
     // Not all update methods need to be defined
     // created with builder.prismaCreate
     create: PostCreateWithoutAuthor,
+    // created with builder.prismaCreateMany
+    createMany: {
+      skipDuplicates: 'Boolean',
+      data: PostCreateManyWithoutAuthor,
+    },
     // created with builder.prismaWhereUnique
     set: PostUniqueFilter,
     // created with builder.prismaWhereUnique

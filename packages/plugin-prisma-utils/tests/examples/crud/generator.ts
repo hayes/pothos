@@ -238,6 +238,56 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
     });
   }
 
+  getCreateManyInput<Name extends string & keyof Types['PrismaTypes']>(
+    modelName: Name,
+    without?: string[],
+  ) {
+    const withoutName = (without ?? []).map((name) => `Without${capitalize(name)}`).join('');
+    const fullName = `${modelName}Create${withoutName}Input`;
+
+    return this.getRef(modelName, fullName, () => {
+      const model = getModel(modelName, this.builder);
+
+      return this.builder.prismaCreateMany(modelName, {
+        name: fullName,
+        fields: (() => {
+          const fields: Record<string, InputTypeParam<Types>> = {};
+          const withoutFields = model.fields.filter((field) => without?.includes(field.name));
+          const relationIds = model.fields.flatMap((field) => field.relationFromFields ?? []);
+
+          model.fields
+            .filter(
+              (field) =>
+                !withoutFields.some(
+                  (f) => f.name === field.name || f.relationFromFields?.includes(field.name),
+                ) && !relationIds.includes(field.name),
+            )
+            .forEach((field) => {
+              let type;
+              switch (field.kind) {
+                case 'scalar':
+                  type = this.mapScalarType(field.type) as InputType<Types>;
+                  break;
+                case 'enum':
+                  type = this.getEnum(field.type);
+                  break;
+                case 'unsupported':
+                  break;
+                default:
+                  throw new Error(`Unknown field kind ${field.kind}`);
+              }
+
+              if (type) {
+                fields[field.name] = type;
+              }
+            });
+
+          return fields;
+        }) as never,
+      }) as InputObjectRef<Types, (PrismaModelTypes & Types['PrismaTypes'][Name])['Create']>;
+    });
+  }
+
   getCreateRelationInput<
     Name extends string & keyof Types['PrismaTypes'],
     Relation extends Model['RelationName'],
@@ -339,6 +389,10 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
           if (relationField.isList) {
             return {
               create: this.getCreateInput(relationField.type as Name, [relatedFieldName]),
+              createMany: {
+                skipDuplicates: 'Boolean',
+                data: this.getCreateInput(relationField.type as Name, [relatedFieldName]),
+              },
               set: this.getWhereUnique(relationField.type as Name),
               disconnect: this.getWhereUnique(relationField.type as Name),
               delete: this.getWhereUnique(relationField.type as Name),
