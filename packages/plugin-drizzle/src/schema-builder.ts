@@ -1,14 +1,16 @@
 import SchemaBuilder, { ObjectRef, SchemaTypes } from '@pothos/core';
 import { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 import { getRefFromModel } from './utils/refs';
+import { DrizzleObjectRef } from './object-ref';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-schemaBuilderProto.drizzleObject = function drizzleObject(
-  table,
-  { name, select, fields, ...options },
-) {
-  const ref = getRefFromModel(table, this, 'object') as ObjectRef<SchemaTypes, unknown>;
+schemaBuilderProto.drizzleObject = function drizzleObject(table, { select, fields, ...options }) {
+  const name = options.variant ?? options.name ?? table;
+
+  const ref = options.variant
+    ? new DrizzleObjectRef(options.variant, name)
+    : (getRefFromModel(table, this, 'object') as ObjectRef<SchemaTypes, unknown>);
 
   ref.name = name ?? table;
 

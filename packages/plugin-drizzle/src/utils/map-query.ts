@@ -51,30 +51,30 @@ function addTypeSelectionsForField(
     return;
   }
 
-  const { pothosDrizzleSelect, pothosDrizzleIndirectInclude } = (type.extensions ?? {}) as {
-    pothosDrizzleIndirectInclude?: IndirectInclude;
+  const { pothosDrizzleSelect, pothosIndirectInclude } = (type.extensions ?? {}) as {
+    pothosIndirectInclude?: IndirectInclude;
     pothosDrizzleSelect?: DBQueryConfig<'one', false>;
   };
 
   if (
-    (!!pothosDrizzleIndirectInclude?.path && pothosDrizzleIndirectInclude.path.length > 0) ||
-    (!!pothosDrizzleIndirectInclude?.paths && pothosDrizzleIndirectInclude.paths.length === 0)
+    (!!pothosIndirectInclude?.path && pothosIndirectInclude.path.length > 0) ||
+    (!!pothosIndirectInclude?.paths && pothosIndirectInclude.paths.length === 0)
   ) {
     resolveIndirectIncludePaths(
       type,
       info,
       selection,
       [],
-      pothosDrizzleIndirectInclude.paths ?? [pothosDrizzleIndirectInclude.path!],
+      pothosIndirectInclude.paths ?? [pothosIndirectInclude.path!],
       indirectPath,
       (resolvedType, field, path) => {
         addTypeSelectionsForField(schema, resolvedType, context, info, state, field, path);
       },
     );
-  } else if (pothosDrizzleIndirectInclude) {
+  } else if (pothosIndirectInclude) {
     addTypeSelectionsForField(
       schema,
-      info.schema.getType(pothosDrizzleIndirectInclude.getType())!,
+      info.schema.getType(pothosIndirectInclude.getType())!,
       context,
       info,
       state,
@@ -325,7 +325,7 @@ function addFieldSelection(
             returnType,
             info,
             selection,
-            (returnType.extensions?.pothosDrizzleIndirectInclude as { path: [] })?.path ?? [],
+            (returnType.extensions?.pothosIndirectInclude as { path: [] })?.path ?? [],
             normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
             [],
             (resolvedType, resolvedField, path) => {
@@ -405,15 +405,15 @@ export function queryFromInfo<T extends SelectionMap>({
   let state: SelectionState | undefined;
 
   if (path.length > 0 || paths.length > 0) {
-    const { pothosDrizzleIndirectInclude } = (returnType.extensions ?? {}) as {
-      pothosDrizzleIndirectInclude?: IndirectInclude;
+    const { pothosIndirectInclude } = (returnType.extensions ?? {}) as {
+      pothosIndirectInclude?: IndirectInclude;
     };
 
     resolveIndirectInclude(
       returnType,
       info,
       info.fieldNodes[0],
-      pothosDrizzleIndirectInclude?.path ?? [],
+      pothosIndirectInclude?.path ?? [],
       [],
       (indirectType, indirectField, subPath) => {
         resolveIndirectIncludePaths(
@@ -505,9 +505,9 @@ function createStateForSelection(
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {
   let targetType = type;
 
-  while (targetType.extensions?.pothosDrizzleIndirectInclude) {
+  while (targetType.extensions?.pothosIndirectInclude) {
     targetType = info.schema.getType(
-      (targetType.extensions?.pothosDrizzleIndirectInclude as IndirectInclude).getType(),
+      (targetType.extensions?.pothosIndirectInclude as IndirectInclude).getType(),
     )!;
   }
 

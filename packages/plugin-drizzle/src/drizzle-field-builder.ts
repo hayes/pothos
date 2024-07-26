@@ -6,6 +6,7 @@ import {
   FieldRef,
   InputFieldMap,
   InterfaceParam,
+  isThenable,
   MaybePromise,
   NormalizeArgs,
   ObjectRef,
@@ -23,6 +24,7 @@ import {
   RelatedFieldOptions,
   ShapeFromConnection,
   TypesForRelation,
+  VariantFieldOptions,
 } from './types';
 import { getRefFromModel } from './utils/refs';
 import {
@@ -30,8 +32,8 @@ import {
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors';
-import { FieldNode } from 'graphql';
 import { SelectionMap } from './utils/selections';
+import { DrizzleRef } from './interface-ref';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -169,12 +171,10 @@ export class DrizzleObjectFieldBuilder<
       query,
       resolve,
       extensions,
-      totalCount,
       description,
       ...options
     }: {
       type?: ObjectRef<Types, unknown, unknown>;
-      totalCount?: boolean;
       maxSize?: number | ((args: {}, ctx: {}) => number);
       defaultSize?: number | ((args: {}, ctx: {}) => number);
       extensions: {};
@@ -237,23 +237,16 @@ export class DrizzleObjectFieldBuilder<
       args: object,
       context: object,
       nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
-      getSelection: (path: string[]) => FieldNode | null,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
       const nested = nestedQuery(getQuery(args, context).select, {
         getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
-      // const hasTotalCount = totalCount && !!getSelection(['totalCount']);
-      // const countSelect = this.builder.options.prisma.filterConnectionTotalCount
-      //   ? nested.where
-      //     ? { where: nested.where }
-      //     : true
-      //   : true;
 
       return {
+        columns: {},
         with: {
-          // ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
           [name]: nested,
         },
       };
@@ -281,7 +274,6 @@ export class DrizzleObjectFieldBuilder<
             args,
             select.limit,
             getCursorFormatter(cursorColumns),
-            (parent as { _count?: Record<string, number> })._count?.[name],
           );
         },
       },
@@ -289,17 +281,6 @@ export class DrizzleObjectFieldBuilder<
         ? connectionOptions
         : {
             ...connectionOptions,
-            fields: totalCount
-              ? (
-                  t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
-                ) => ({
-                  totalCount: t.int({
-                    nullable: false,
-                    resolve: (parent, args, context) => parent.totalCount,
-                  }),
-                  ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
-                })
-              : (connectionOptions as { fields: undefined }).fields,
           },
       edgeOptions,
     );
@@ -316,6 +297,57 @@ export class DrizzleObjectFieldBuilder<
 
     this.table = table;
     this.typename = typename;
+  }
+
+  variant<
+    Variant extends DrizzleRef<Types, TableConfig['tsName']> | TableConfig['tsName'],
+    Args extends InputFieldMap,
+    Nullable,
+    ResolveReturn,
+  >(
+    variant: Variant,
+    ...allArgs: NormalizeArgs<
+      [
+        options: VariantFieldOptions<
+          Types,
+          TableConfig['tsName'] & keyof Types['DrizzleRelationSchema'],
+          Variant,
+          Args,
+          Nullable,
+          Shape,
+          ResolveReturn
+        >,
+      ]
+    >
+  ): FieldRef<Types, ResolveReturn, 'Object'> {
+    const [{ isNull, nullable, ...options } = {} as never] = allArgs;
+    const ref: DrizzleRef<Types> =
+      typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
+
+    const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
+      nestedQuery({});
+
+    return this.field({
+      ...(options as {}),
+      type: ref,
+      extensions: {
+        ...options?.extensions,
+        pothosDrizzleSelect: selfSelect,
+      },
+      nullable: nullable ?? !!isNull,
+      resolve: isNull
+        ? (parent, args, context, info) => {
+            const parentIsNull = isNull(parent as never, args as never, context, info);
+            if (parentIsNull) {
+              if (isThenable(parentIsNull)) {
+                return parentIsNull.then((resolved) => (resolved ? null : parent)) as never;
+              }
+              return null as never;
+            }
+            return parent as never;
+          }
+        : (parent) => parent as never,
+    }) as FieldRef<Types, ResolveReturn, 'Object'>;
   }
 
   relation<
@@ -355,6 +387,7 @@ export class DrizzleObjectFieldBuilder<
 
     const relationSelect = (args: object, context: object, nestedQuery: (query: unknown) => {}) => {
       const relQuery = {
+        columns: {},
         with: {
           [name]: {
             ...nestedQuery(query),

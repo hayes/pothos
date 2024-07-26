@@ -372,7 +372,6 @@ export function wrapConnectionResult<T extends {}>(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   limit: number,
   cursor: (node: T) => string,
-  totalCount?: number | (() => MaybePromise<number>) | null,
   resolveNode?: (node: unknown) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(limit);
@@ -384,7 +383,6 @@ export function wrapConnectionResult<T extends {}>(
 
   const connection = {
     args,
-    totalCount,
     edges: [] as ({ cursor: string; node: unknown } | null)[],
     pageInfo: {
       startCursor: null as string | null,
@@ -467,11 +465,5 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     return results;
   }
 
-  return wrapConnectionResult(
-    results,
-    options.args,
-    query!.limit,
-    formatter!,
-    // options.totalCount,
-  );
+  return wrapConnectionResult(results, options.args, query!.limit, formatter!);
 }

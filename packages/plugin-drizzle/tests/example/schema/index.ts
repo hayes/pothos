@@ -2,6 +2,36 @@ import { Column, not, sql } from 'drizzle-orm';
 import builder from '../builder';
 import { db } from '../db';
 
+const Viewer = builder.drizzleObject('users', {
+  variant: 'Viewer',
+  select: {
+    columns: {
+      id: true,
+    },
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    user: t.variant('users'),
+  }),
+});
+
+builder.queryField('me', (t) =>
+  t.drizzleField({
+    type: Viewer,
+    resolve: async (query) => {
+      const drizzleQuery = db.query.users.findFirst({
+        ...query,
+        where: (user, { eq }) => eq(user.id, 1),
+      });
+
+      console.dir(query);
+
+      return drizzleQuery;
+    },
+  }),
+);
+
 builder.drizzleObject('users', {
   name: 'User',
   // Default selection when query users (optional, defaults to all columns)
@@ -62,6 +92,9 @@ builder.drizzleObject('users', {
       }),
     }),
     invitee: t.relation('invitee'),
+    viewer: t.variant(Viewer, {
+      isNull: (user) => user.id !== 1,
+    }),
     // postsConnection: t.relatedConnection('posts', {
     //   description: "A connection to a user's posts",
     //   resolve: (user) => user.posts,
@@ -75,17 +108,17 @@ builder.queryField('user', (t) =>
     args: {
       id: t.arg.int({ required: true }),
     },
-    resolve: async (query, root, args, ctx, info) => {
+    resolve: async (query, root, args) => {
       const drizzleQuery = db.query.users.findFirst({
         ...query,
         where: (user, { eq }) => eq(user.id, args.id),
       });
 
-      console.log(drizzleQuery.toSQL());
+      console.log(query);
 
       const result = await drizzleQuery;
 
-      console.dir(result, { depth: null });
+      // console.dir(result, { depth: null });
 
       return result;
     },
@@ -95,7 +128,7 @@ builder.queryField('user', (t) =>
 builder.queryField('postsConnection', (t) =>
   t.drizzleConnection({
     type: 'posts',
-    resolve: async (query, root, args, ctx, info) => {
+    resolve: async (query) => {
       const q = query({
         where: (post, ops) => ops.ne(post.id, 25),
       });

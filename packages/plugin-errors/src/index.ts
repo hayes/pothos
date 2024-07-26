@@ -177,7 +177,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         extensions: {
           ...unionOptions.extensions,
           getDataloader,
-          pothosPrismaIndirectInclude: {
+          pothosIndirectInclude: {
             getType: () => typeName,
             path: directResult ? [] : [{ type: resultName, name: dataFieldName }],
           },

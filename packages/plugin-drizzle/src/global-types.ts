@@ -27,6 +27,7 @@ import type {
   DrizzleConnectionFieldOptions,
   DrizzleConnectionShape,
   DrizzleFieldOptions,
+  DrizzleFieldWithInputOptions,
   DrizzleInterfaceOptions,
   DrizzleObjectFieldOptions,
   DrizzleObjectOptions,
@@ -210,29 +211,37 @@ declare global {
     > {
       drizzleField: <
         Args extends InputFieldMap,
-        Param extends keyof Types['DrizzleRelationSchema'] | [keyof Types['DrizzleRelationSchema']],
+        Param extends
+          | keyof Types['DrizzleRelationSchema']
+          | [keyof Types['DrizzleRelationSchema']]
+          | DrizzleRef<Types>
+          | [DrizzleRef<Types>],
         Nullable extends FieldNullability<Type>,
         ResolveShape,
         ResolveReturnShape,
         Type extends TypeParam<Types> = Param extends [unknown]
-          ? [
-              ObjectRef<
+          ? Param[0] extends DrizzleRef<Types>
+            ? Param[0]
+            : [
+                ObjectRef<
+                  Types,
+                  BuildQueryResult<
+                    Types['DrizzleRelationSchema'],
+                    Types['DrizzleRelationSchema'][Param[0] & keyof Types['DrizzleRelationSchema']],
+                    true
+                  >
+                >,
+              ]
+          : Param extends DrizzleRef<Types>
+            ? Param
+            : ObjectRef<
                 Types,
                 BuildQueryResult<
                   Types['DrizzleRelationSchema'],
-                  Types['DrizzleRelationSchema'][Param[0] & keyof Types['DrizzleRelationSchema']],
+                  Types['DrizzleRelationSchema'][Param & keyof Types['DrizzleRelationSchema']],
                   true
                 >
               >,
-            ]
-          : ObjectRef<
-              Types,
-              BuildQueryResult<
-                Types['DrizzleRelationSchema'],
-                Types['DrizzleRelationSchema'][Param & keyof Types['DrizzleRelationSchema']],
-                true
-              >
-            >,
       >(
         options: DrizzleFieldOptions<
           Types,
@@ -313,6 +322,64 @@ declare global {
             >
           ) => FieldRef<Types, ShapeFromConnection<ConnectionShapeHelper<Types, Shape, Nullable>>>
         : '@pothos/plugin-relay is required to use this method';
+
+      drizzleFieldWithInput: 'withInput' extends PluginName
+        ? <
+            Fields extends InputFieldMap,
+            Args extends InputFieldMap,
+            Param extends
+              | keyof Types['DrizzleRelationSchema']
+              | [keyof Types['DrizzleRelationSchema']]
+              | DrizzleRef<Types>
+              | [DrizzleRef<Types>],
+            Nullable extends FieldNullability<Type>,
+            ResolveShape,
+            ResolveReturnShape,
+            ArgRequired extends boolean,
+            InputName extends string = 'input',
+            Type extends TypeParam<Types> = Param extends [unknown]
+              ? Param[0] extends DrizzleRef<Types>
+                ? Param[0]
+                : [
+                    ObjectRef<
+                      Types,
+                      BuildQueryResult<
+                        Types['DrizzleRelationSchema'],
+                        Types['DrizzleRelationSchema'][Param[0] &
+                          keyof Types['DrizzleRelationSchema']],
+                        true
+                      >
+                    >,
+                  ]
+              : Param extends DrizzleRef<Types>
+                ? Param
+                : ObjectRef<
+                    Types,
+                    BuildQueryResult<
+                      Types['DrizzleRelationSchema'],
+                      Types['DrizzleRelationSchema'][Param & keyof Types['DrizzleRelationSchema']],
+                      true
+                    >
+                  >,
+          >(
+            options: DrizzleFieldWithInputOptions<
+              Types,
+              ParentShape,
+              Type,
+              Nullable,
+              Args,
+              Kind,
+              ResolveShape,
+              ResolveReturnShape,
+              Param,
+              InputName,
+              Fields,
+              boolean extends ArgRequired
+                ? (Types & { WithInputArgRequired: boolean })['WithInputArgRequired']
+                : ArgRequired
+            >,
+          ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>
+        : '@pothos/plugin-with-input is required to use this method';
     }
 
     export interface ConnectionFieldOptions<
@@ -349,6 +416,15 @@ declare global {
       before?: string | null | undefined;
       after?: string | null | undefined;
     }
+
     export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {}
+
+    export interface FieldWithInputBaseOptions<
+      Types extends SchemaTypes,
+      Args extends InputFieldMap,
+      Fields extends InputFieldMap,
+      InputName extends string,
+      ArgRequired extends boolean,
+    > {}
   }
 }

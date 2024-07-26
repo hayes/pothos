@@ -6,8 +6,8 @@
 - [ ] connection helpers
 - [ ] query usage checks
 - [x] normalize extras callback functions before merging
-- [ ] with input integration
-- [ ] errors integration
+- [x] with input integration
+- [x] errors integration
 - [x] drizzle field methods on builder
 - [x] drizzle refs
 - [x] drizzle interface types

@@ -52,11 +52,14 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
   }) as never;
 };
 
-fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput({
-  type,
-  resolve,
-  ...options
-}) {
+fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
+  this: typeof fieldBuilderProto,
+  {
+    type,
+    resolve,
+    ...options
+  }: { type: ObjectRef<SchemaTypes, unknown> | [string]; resolve: (...args: unknown[]) => unknown },
+) {
   const modelOrRef = Array.isArray(type) ? type[0] : type;
   const typeRef =
     typeof modelOrRef === 'string'
@@ -85,7 +88,7 @@ fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput({
       );
     },
   }) as never;
-};
+} as never;
 
 fieldBuilderProto.prismaConnection = function prismaConnection<
   Type extends keyof SchemaTypes['PrismaTypes'],

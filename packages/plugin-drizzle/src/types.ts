@@ -10,10 +10,12 @@ import {
 } from 'drizzle-orm';
 import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import {
+  ArgumentRef,
   FieldKind,
   FieldMap,
   FieldNullability,
   FieldOptionsFromKind,
+  InferredFieldOptionKeys,
   InferredFieldOptionsByKind,
   InputFieldMap,
   InputFieldsFromShape,
@@ -46,29 +48,35 @@ export interface DrizzlePluginOptions<Types extends SchemaTypes> {
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
 
+type NameOrVariant =
+  | {
+      name?: never;
+      variant?: string;
+    }
+  | {
+      name?: string;
+      variant?: never;
+    };
+
 export type DrizzleObjectOptions<
   Types extends SchemaTypes,
   Table,
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
-> = Omit<
-  ObjectTypeOptions<Types, ObjectRef<Types, Shape>, Shape, Interfaces> & {
-    name: string;
+> = Omit<ObjectTypeOptions<Types, ObjectRef<Types, Shape>, Shape, Interfaces>, 'fields'> &
+  NameOrVariant & {
     select?: Selection;
-  },
-  'fields'
-> & {
-  fields?: (
-    t: DrizzleObjectFieldBuilder<
-      Types,
-      Table extends keyof Types['DrizzleRelationSchema']
-        ? Types['DrizzleRelationSchema'][Table]
-        : never,
-      Shape & { [drizzleTableName]?: Table }
-    >,
-  ) => FieldMap;
-};
+    fields?: (
+      t: DrizzleObjectFieldBuilder<
+        Types,
+        Table extends keyof Types['DrizzleRelationSchema']
+          ? Types['DrizzleRelationSchema'][Table]
+          : never,
+        Shape & { [drizzleTableName]?: Table }
+      >,
+    ) => FieldMap;
+  };
 
 export type DrizzleInterfaceOptions<
   Types extends SchemaTypes,
@@ -132,6 +140,51 @@ export type DrizzleFieldOptions<
     info: GraphQLResolveInfo,
   ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
 };
+
+export type DrizzleFieldWithInputOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  Kind extends FieldKind,
+  ResolveShape,
+  ResolveReturnShape,
+  Param,
+  InputName extends string,
+  Fields extends InputFieldMap,
+  ArgRequired extends boolean,
+> = Omit<
+  DrizzleFieldOptions<
+    Types,
+    ParentShape,
+    Type,
+    Nullable,
+    Args & {
+      [K in InputName]: ArgumentRef<
+        Types,
+        InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
+      >;
+    },
+    Kind,
+    ResolveShape,
+    ResolveReturnShape,
+    Param
+  >,
+  'args'
+> &
+  PothosSchemaTypes.FieldWithInputBaseOptions<
+    Types,
+    Args & {
+      [K in InputName]: ArgumentRef<
+        Types,
+        InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
+      >;
+    },
+    Fields,
+    InputName,
+    ArgRequired
+  >;
 
 export type DrizzleObjectFieldOptions<
   Types extends SchemaTypes,
@@ -243,6 +296,34 @@ export type RelatedFieldOptions<
   description?: string | false;
   type?: ObjectRef<Types, TypesForRelation<Types, Table['relations'][Field]>>;
   query?: QueryForField<Types, Args, Table['relations'][Field]>;
+};
+
+export type VariantFieldOptions<
+  Types extends SchemaTypes,
+  Table extends keyof Types['DrizzleRelationSchema'],
+  Variant extends DrizzleRef<Types, Table> | Table,
+  Args extends InputFieldMap,
+  isNull,
+  Shape,
+  ResolveReturnShape,
+> = Omit<
+  PothosSchemaTypes.ObjectFieldOptions<
+    Types,
+    Shape,
+    Variant extends DrizzleRef<Types> ? Variant : DrizzleRef<Types, Table>,
+    unknown extends isNull ? false : true,
+    Args,
+    ResolveReturnShape
+  >,
+  InferredFieldOptionKeys | 'type'
+> & {
+  isNull?: isNull &
+    ((
+      parent: Shape,
+      args: InputShapeFromFields<Args>,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<boolean>);
 };
 
 export type RefForRelation<Types extends SchemaTypes, Rel extends Relation> = Rel extends {

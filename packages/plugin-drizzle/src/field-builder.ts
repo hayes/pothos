@@ -1,12 +1,12 @@
-import { getNamedType, GraphQLResolveInfo, isInterfaceType, isObjectType, Kind } from 'graphql';
-import { FieldKind, MaybePromise, ObjectRef, RootFieldBuilder, SchemaTypes } from '@pothos/core';
+import { GraphQLResolveInfo } from 'graphql';
+import { FieldKind, ObjectRef, RootFieldBuilder, SchemaTypes } from '@pothos/core';
 import { queryFromInfo } from './utils/map-query';
 import { getRefFromModel } from './utils/refs';
 import { FieldRef } from '@pothos/core';
 import { DrizzleRef } from './interface-ref';
 import { DrizzleConnectionFieldOptions } from './types';
-import { getOperators, TableRelationalConfig } from 'drizzle-orm';
-import { getCursorFormatter, resolveDrizzleCursorConnection } from './utils/cursors';
+import { TableRelationalConfig } from 'drizzle-orm';
+import { resolveDrizzleCursorConnection } from './utils/cursors';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -17,9 +17,9 @@ const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFi
 fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...options }) {
   const modelOrRef = Array.isArray(type) ? type[0] : type;
   const typeRef =
-    // typeof modelOrRef === 'string' ?
-    getRefFromModel(modelOrRef as string, this.builder);
-  // : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
+    typeof modelOrRef === 'string'
+      ? getRefFromModel(modelOrRef, this.builder)
+      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
   const typeParam = Array.isArray(type)
     ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
     : typeRef;
@@ -39,7 +39,40 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
   }) as never;
 };
 
-const ops = getOperators();
+fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
+  this: typeof fieldBuilderProto,
+  {
+    type,
+    resolve,
+    ...options
+  }: { type: ObjectRef<SchemaTypes, unknown> | [string]; resolve: (...args: unknown[]) => unknown },
+) {
+  const modelOrRef = Array.isArray(type) ? type[0] : type;
+  const typeRef =
+    typeof modelOrRef === 'string'
+      ? getRefFromModel(modelOrRef, this.builder)
+      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
+  const typeParam = Array.isArray(type)
+    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
+    : typeRef;
+
+  return (
+    this as typeof fieldBuilderProto & { fieldWithInput: typeof fieldBuilderProto.field }
+  ).fieldWithInput({
+    ...(options as {}),
+    type: typeParam,
+    resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      const query = queryFromInfo({
+        schema: this.builder.options.drizzle.client._.schema!,
+        context,
+        info,
+        // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
+      });
+
+      return resolve(query, parent, args as never, context, info) as never;
+    },
+  });
+} as never;
 
 fieldBuilderProto.drizzleConnection = function drizzleConnection<
   Type extends
@@ -54,7 +87,6 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
     maxSize = this.builder.options.drizzle?.maxConnectionSize,
     defaultSize = this.builder.options.drizzle?.defaultConnectionSize,
     resolve,
-    // totalCount,
     ...options
   }: DrizzleConnectionFieldOptions<
     SchemaTypes,
@@ -91,21 +123,6 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
             typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName
           ]!;
 
-        // const returnType = getNamedType(info.returnType);
-        // const fields =
-        //   isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
-
-        // const selections = info.fieldNodes;
-
-        // const totalCountOnly = selections.every(
-        //   (selection) =>
-        //     selection.selectionSet?.selections.length === 1 &&
-        //     selection.selectionSet.selections.every(
-        //       (s) =>
-        //         s.kind === Kind.FIELD && fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
-        //     ),
-        // );
-
         return resolveDrizzleCursorConnection(
           drizzleModel,
           info,
@@ -116,12 +133,9 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
             maxSize,
             defaultSize,
             args,
-            // totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
 
           (q) => {
-            // if (totalCountOnly) return [];
-
             // return checkIfQueryIsUsed(
             //   this.builder,
             //   query,
@@ -136,24 +150,6 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
       ? connectionOptions
       : {
           ...connectionOptions,
-          fields:
-            // totalCount
-            //   ? (
-            //       t: PothosSchemaTypes.ObjectFieldBuilder<
-            //         SchemaTypes,
-            //         { totalCount?: () => MaybePromise<number> }
-            //       >,
-            //     ) => ({
-            //       totalCount: t.int({
-            //         nullable: false,
-            //         extensions: {
-            //           pothosPrismaTotalCount: true,
-            //         },
-            //         resolve: (parent, args, context) => parent.totalCount?.(),
-            //       }),
-            //       ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
-            //     }) :
-            (connectionOptions as { fields: undefined }).fields,
           extensions: {
             ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
           },
