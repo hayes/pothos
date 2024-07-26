@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 1.0.6
+
+### Patch Changes
+
+- 4736cd2: Fix typing for list column inputs defined with t.field
+
 ## 1.0.5
 
 ### Patch Changes
