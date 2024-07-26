@@ -716,7 +716,7 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
 
           fieldDefs[field] = t.field({
             required: false,
-            type: [nestedRef],
+            type: nestedRef,
           });
         } else if ((field === 'disconnect' || field === 'delete') && fieldOption === true) {
           fieldDefs[field] = t.field({

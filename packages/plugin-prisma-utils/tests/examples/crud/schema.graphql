@@ -286,7 +286,7 @@ input MediaUniqueFilter {
 input MediaUpdatePostsRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutMediaInput!]
-  createMany: [MediaUpdatePostsRelationInputCreateMany!]
+  createMany: MediaUpdatePostsRelationInputCreateMany
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutMediaFilter!]
   disconnect: [PostMediaUniqueFilter!]
@@ -578,7 +578,7 @@ input PostUpdateAuthorRelationInput {
 input PostUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutPostInput!]
-  createMany: [PostUpdateCommentsRelationInputCreateMany!]
+  createMany: PostUpdateCommentsRelationInputCreateMany
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutPostFilter!]
   disconnect: [CommentUniqueFilter!]
@@ -621,7 +621,7 @@ input PostUpdateInput {
 input PostUpdateMediaRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutPostInput!]
-  createMany: [PostUpdateMediaRelationInputCreateMany!]
+  createMany: PostUpdateMediaRelationInputCreateMany
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutPostFilter!]
   disconnect: [PostMediaUniqueFilter!]
@@ -900,7 +900,7 @@ input UserUniqueFilter {
 input UserUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutAuthorInput!]
-  createMany: [UserUpdateCommentsRelationInputCreateMany!]
+  createMany: UserUpdateCommentsRelationInputCreateMany
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutAuthorFilter!]
   disconnect: [CommentUniqueFilter!]
@@ -927,7 +927,7 @@ input UserUpdateCommentsRelationInputUpdateMany {
 input UserUpdateFollowersRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutToInput!]
-  createMany: [UserUpdateFollowersRelationInputCreateMany!]
+  createMany: UserUpdateFollowersRelationInputCreateMany
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutToFilter!]
   disconnect: [FollowUniqueFilter!]
@@ -954,7 +954,7 @@ input UserUpdateFollowersRelationInputUpdateMany {
 input UserUpdateFollowingRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutFromInput!]
-  createMany: [UserUpdateFollowingRelationInputCreateMany!]
+  createMany: UserUpdateFollowingRelationInputCreateMany
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutFromFilter!]
   disconnect: [FollowUniqueFilter!]
@@ -993,7 +993,7 @@ input UserUpdateInput {
 input UserUpdateMediaRelationInput {
   connect: [MediaUniqueFilter!]
   create: [MediaCreateWithoutUploadedByInput!]
-  createMany: [UserUpdateMediaRelationInputCreateMany!]
+  createMany: UserUpdateMediaRelationInputCreateMany
   delete: [MediaUniqueFilter!]
   deleteMany: [MediaWithoutUploadedByFilter!]
   disconnect: [MediaUniqueFilter!]
@@ -1020,7 +1020,7 @@ input UserUpdateMediaRelationInputUpdateMany {
 input UserUpdatePostsRelationInput {
   connect: [PostUniqueFilter!]
   create: [PostCreateWithoutAuthorInput!]
-  createMany: [UserUpdatePostsRelationInputCreateMany!]
+  createMany: UserUpdatePostsRelationInputCreateMany
   delete: [PostUniqueFilter!]
   deleteMany: [PostWithoutAuthorFilter!]
   disconnect: [PostUniqueFilter!]
