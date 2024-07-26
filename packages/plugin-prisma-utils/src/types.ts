@@ -151,8 +151,8 @@ export type PrismaWhereUniqueFieldType<
   | InputRef<Model['WhereUnique'][K]>
   | InputWithShape<Types, Model['Shape'][K]>;
 
-type InputWithShape<Types extends SchemaTypes, T> =
-  | InputFieldRef<Types, T | null | undefined>
+type InputWithShape<Types extends SchemaTypes, T, FieldShape = T> =
+  | InputFieldRef<Types, FieldShape | null | undefined>
   | InputRef<T>
   | (new (...args: any[]) => T)
   | (keyof Types['inputShapes'] extends infer U
@@ -215,7 +215,8 @@ export interface PrismaCreateOptions<
 export type NonListShape<T> = T extends (infer S)[] ? S : T;
 export type NonListInputWithShape<Types extends SchemaTypes, T> = InputWithShape<
   Types,
-  NonListShape<T>
+  NonListShape<T>,
+  T
 >;
 
 export type PrismaCreateFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
