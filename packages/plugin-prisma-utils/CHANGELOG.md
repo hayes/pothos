@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 1.1.0
+
+### Minor Changes
+
+- 50c7e40: Add prismaCreateMany helper
+
 ## 1.0.6
 
 ### Patch Changes
