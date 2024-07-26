@@ -289,12 +289,18 @@ input MediaUniqueFilter {
 input MediaUpdatePostsRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutMediaInput!]
+  createMany: MediaUpdatePostsRelationInputCreateMany
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutMediaFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
   update: [MediaUpdatePostsRelationInputUpdate!]
   updateMany: [MediaUpdatePostsRelationInputUpdateMany!]
+}
+
+input MediaUpdatePostsRelationInputCreateMany {
+  data: [PostMediaCreateWithoutMediaInput!]
+  skipDuplicates: Boolean
 }
 
 input MediaUpdatePostsRelationInputUpdate {
@@ -575,12 +581,18 @@ input PostUpdateAuthorRelationInput {
 input PostUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutPostInput!]
+  createMany: PostUpdateCommentsRelationInputCreateMany
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutPostFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
   update: [PostUpdateCommentsRelationInputUpdate!]
   updateMany: [PostUpdateCommentsRelationInputUpdateMany!]
+}
+
+input PostUpdateCommentsRelationInputCreateMany {
+  data: [CommentCreateWithoutPostInput!]
+  skipDuplicates: Boolean
 }
 
 input PostUpdateCommentsRelationInputUpdate {
@@ -612,12 +624,18 @@ input PostUpdateInput {
 input PostUpdateMediaRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutPostInput!]
+  createMany: PostUpdateMediaRelationInputCreateMany
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutPostFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
   update: [PostUpdateMediaRelationInputUpdate!]
   updateMany: [PostUpdateMediaRelationInputUpdateMany!]
+}
+
+input PostUpdateMediaRelationInputCreateMany {
+  data: [PostMediaCreateWithoutPostInput!]
+  skipDuplicates: Boolean
 }
 
 input PostUpdateMediaRelationInputUpdate {
@@ -885,12 +903,18 @@ input UserUniqueFilter {
 input UserUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutAuthorInput!]
+  createMany: UserUpdateCommentsRelationInputCreateMany
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutAuthorFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
   update: [UserUpdateCommentsRelationInputUpdate!]
   updateMany: [UserUpdateCommentsRelationInputUpdateMany!]
+}
+
+input UserUpdateCommentsRelationInputCreateMany {
+  data: [CommentCreateWithoutAuthorInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateCommentsRelationInputUpdate {
@@ -906,12 +930,18 @@ input UserUpdateCommentsRelationInputUpdateMany {
 input UserUpdateFollowersRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutToInput!]
+  createMany: UserUpdateFollowersRelationInputCreateMany
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutToFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
   update: [UserUpdateFollowersRelationInputUpdate!]
   updateMany: [UserUpdateFollowersRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowersRelationInputCreateMany {
+  data: [FollowCreateWithoutToInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateFollowersRelationInputUpdate {
@@ -927,12 +957,18 @@ input UserUpdateFollowersRelationInputUpdateMany {
 input UserUpdateFollowingRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutFromInput!]
+  createMany: UserUpdateFollowingRelationInputCreateMany
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutFromFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
   update: [UserUpdateFollowingRelationInputUpdate!]
   updateMany: [UserUpdateFollowingRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowingRelationInputCreateMany {
+  data: [FollowCreateWithoutFromInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateFollowingRelationInputUpdate {
@@ -960,12 +996,18 @@ input UserUpdateInput {
 input UserUpdateMediaRelationInput {
   connect: [MediaUniqueFilter!]
   create: [MediaCreateWithoutUploadedByInput!]
+  createMany: UserUpdateMediaRelationInputCreateMany
   delete: [MediaUniqueFilter!]
   deleteMany: [MediaWithoutUploadedByFilter!]
   disconnect: [MediaUniqueFilter!]
   set: [MediaUniqueFilter!]
   update: [UserUpdateMediaRelationInputUpdate!]
   updateMany: [UserUpdateMediaRelationInputUpdateMany!]
+}
+
+input UserUpdateMediaRelationInputCreateMany {
+  data: [MediaCreateWithoutUploadedByInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateMediaRelationInputUpdate {
@@ -981,12 +1023,18 @@ input UserUpdateMediaRelationInputUpdateMany {
 input UserUpdatePostsRelationInput {
   connect: [PostUniqueFilter!]
   create: [PostCreateWithoutAuthorInput!]
+  createMany: UserUpdatePostsRelationInputCreateMany
   delete: [PostUniqueFilter!]
   deleteMany: [PostWithoutAuthorFilter!]
   disconnect: [PostUniqueFilter!]
   set: [PostUniqueFilter!]
   update: [UserUpdatePostsRelationInputUpdate!]
   updateMany: [UserUpdatePostsRelationInputUpdateMany!]
+}
+
+input UserUpdatePostsRelationInputCreateMany {
+  data: [PostCreateWithoutAuthorInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdatePostsRelationInputUpdate {

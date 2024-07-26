@@ -47,6 +47,20 @@ input CommentCreateAuthorRelationInput {
   create: UserCreateWithoutComments
 }
 
+input CommentCreateManyWithoutAuthorInput {
+  content: String!
+  createdAt: DateTime
+  id: Int
+  postId: Int!
+}
+
+input CommentCreateManyWithoutPostInput {
+  authorId: Int!
+  content: String!
+  createdAt: DateTime
+  id: Int
+}
+
 input CommentCreatePostRelationInput {
   connect: PostUniqueFilter
   create: PostCreateWithoutComments
@@ -183,6 +197,40 @@ input FindUniqueRelationsCreate {
   withID_id: String!
   withUnique: FindUniqueRelationsCreateWithUniqueRelationInput!
   withUnique_id: String!
+}
+
+input FindUniqueRelationsCreateManyWithoutWithCompositeIDInput {
+  id: String!
+  withCompositeUnique_a: String!
+  withCompositeUnique_b: String!
+  withID_id: String!
+  withUnique_id: String!
+}
+
+input FindUniqueRelationsCreateManyWithoutWithCompositeUniqueInput {
+  id: String!
+  withCompositeID_a: String!
+  withCompositeID_b: String!
+  withID_id: String!
+  withUnique_id: String!
+}
+
+input FindUniqueRelationsCreateManyWithoutWithIDInput {
+  id: String!
+  withCompositeID_a: String!
+  withCompositeID_b: String!
+  withCompositeUnique_a: String!
+  withCompositeUnique_b: String!
+  withUnique_id: String!
+}
+
+input FindUniqueRelationsCreateManyWithoutWithUniqueInput {
+  id: String!
+  withCompositeID_a: String!
+  withCompositeID_b: String!
+  withCompositeUnique_a: String!
+  withCompositeUnique_b: String!
+  withID_id: String!
 }
 
 input FindUniqueRelationsCreateWithCompositeIDRelationInput {
@@ -431,6 +479,14 @@ input FollowCreateFromRelationInput {
   create: UserCreateWithoutFollowing
 }
 
+input FollowCreateManyWithoutFromInput {
+  toId: Int!
+}
+
+input FollowCreateManyWithoutToInput {
+  fromId: Int!
+}
+
 input FollowCreateToRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutFollowers
@@ -538,6 +594,11 @@ input MediaCreate {
   url: String!
 }
 
+input MediaCreateManyWithoutUploadedByInput {
+  id: Int
+  url: String!
+}
+
 input MediaCreatePostsRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutMedia!]
@@ -598,12 +659,18 @@ input MediaUpdate {
 input MediaUpdatePostsRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutMedia!]
+  createMany: MediaUpdatePostsRelationInputCreateMany
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutMediaFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
   update: [MediaUpdatePostsRelationInputUpdate!]
   updateMany: [MediaUpdatePostsRelationInputUpdateMany!]
+}
+
+input MediaUpdatePostsRelationInputCreateMany {
+  data: [PostMediaCreateManyWithoutMediaInput!]
+  skipDuplicates: Boolean
 }
 
 input MediaUpdatePostsRelationInputUpdate {
@@ -694,6 +761,19 @@ input PostCreateCommentsRelationInput {
   create: [CommentCreateWithoutPost!]
 }
 
+input PostCreateManyWithoutAuthorInput {
+  categories: [Category!]
+  content: String
+  createdAt: DateTime
+  id: Int
+  published: Boolean
+  ratings: [Int!]
+  tags: [String!]
+  title: String!
+  updatedAt: DateTime
+  views: Int
+}
+
 input PostCreateMediaRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutPost!]
@@ -776,6 +856,18 @@ input PostMediaCreate {
   order: Int!
   post: PostMediaCreatePostRelationInput!
   postId: Int!
+}
+
+input PostMediaCreateManyWithoutMediaInput {
+  id: Int
+  order: Int!
+  postId: Int!
+}
+
+input PostMediaCreateManyWithoutPostInput {
+  id: Int
+  mediaId: Int!
+  order: Int!
 }
 
 input PostMediaCreateMediaRelationInput {
@@ -927,12 +1019,18 @@ input PostUpdateAuthorRelationInput {
 input PostUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutPost!]
+  createMany: PostUpdateCommentsRelationInputCreateMany
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutPostFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
   update: [PostUpdateCommentsRelationInputUpdate!]
   updateMany: [PostUpdateCommentsRelationInputUpdateMany!]
+}
+
+input PostUpdateCommentsRelationInputCreateMany {
+  data: [CommentCreateManyWithoutPostInput!]
+  skipDuplicates: Boolean
 }
 
 input PostUpdateCommentsRelationInputUpdate {
@@ -948,12 +1046,18 @@ input PostUpdateCommentsRelationInputUpdateMany {
 input PostUpdateMediaRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutPost!]
+  createMany: PostUpdateMediaRelationInputCreateMany
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutPostFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
   update: [PostUpdateMediaRelationInputUpdate!]
   updateMany: [PostUpdateMediaRelationInputUpdateMany!]
+}
+
+input PostUpdateMediaRelationInputCreateMany {
+  data: [PostMediaCreateManyWithoutPostInput!]
+  skipDuplicates: Boolean
 }
 
 input PostUpdateMediaRelationInputUpdate {
@@ -1309,12 +1413,18 @@ input UserUpdate {
 input UserUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutAuthor!]
+  createMany: UserUpdateCommentsRelationInputCreateMany
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutAuthorFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
   update: [UserUpdateCommentsRelationInputUpdate!]
   updateMany: [UserUpdateCommentsRelationInputUpdateMany!]
+}
+
+input UserUpdateCommentsRelationInputCreateMany {
+  data: [CommentCreateManyWithoutAuthorInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateCommentsRelationInputUpdate {
@@ -1330,12 +1440,18 @@ input UserUpdateCommentsRelationInputUpdateMany {
 input UserUpdateFollowersRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutTo!]
+  createMany: UserUpdateFollowersRelationInputCreateMany
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutToFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
   update: [UserUpdateFollowersRelationInputUpdate!]
   updateMany: [UserUpdateFollowersRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowersRelationInputCreateMany {
+  data: [FollowCreateManyWithoutToInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateFollowersRelationInputUpdate {
@@ -1351,12 +1467,18 @@ input UserUpdateFollowersRelationInputUpdateMany {
 input UserUpdateFollowingRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutFrom!]
+  createMany: UserUpdateFollowingRelationInputCreateMany
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutFromFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
   update: [UserUpdateFollowingRelationInputUpdate!]
   updateMany: [UserUpdateFollowingRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowingRelationInputCreateMany {
+  data: [FollowCreateManyWithoutFromInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateFollowingRelationInputUpdate {
@@ -1372,12 +1494,18 @@ input UserUpdateFollowingRelationInputUpdateMany {
 input UserUpdateMediaRelationInput {
   connect: [MediaUniqueFilter!]
   create: [MediaCreateWithoutUploadedBy!]
+  createMany: UserUpdateMediaRelationInputCreateMany
   delete: [MediaUniqueFilter!]
   deleteMany: [MediaWithoutUploadedByFilter!]
   disconnect: [MediaUniqueFilter!]
   set: [MediaUniqueFilter!]
   update: [UserUpdateMediaRelationInputUpdate!]
   updateMany: [UserUpdateMediaRelationInputUpdateMany!]
+}
+
+input UserUpdateMediaRelationInputCreateMany {
+  data: [MediaCreateManyWithoutUploadedByInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdateMediaRelationInputUpdate {
@@ -1393,12 +1521,18 @@ input UserUpdateMediaRelationInputUpdateMany {
 input UserUpdatePostsRelationInput {
   connect: [PostUniqueFilter!]
   create: [PostCreateWithoutAuthor!]
+  createMany: UserUpdatePostsRelationInputCreateMany
   delete: [PostUniqueFilter!]
   deleteMany: [PostWithoutAuthorFilter!]
   disconnect: [PostUniqueFilter!]
   set: [PostUniqueFilter!]
   update: [UserUpdatePostsRelationInputUpdate!]
   updateMany: [UserUpdatePostsRelationInputUpdateMany!]
+}
+
+input UserUpdatePostsRelationInputCreateMany {
+  data: [PostCreateManyWithoutAuthorInput!]
+  skipDuplicates: Boolean
 }
 
 input UserUpdatePostsRelationInputUpdate {
@@ -1526,12 +1660,18 @@ input WithCompositeIDUpdate {
 input WithCompositeIDUpdateFindUniqueRelationsRelationInput {
   connect: [FindUniqueRelationsUniqueFilter!]
   create: [FindUniqueRelationsCreateWithoutWithCompositeID!]
+  createMany: WithCompositeIDUpdateFindUniqueRelationsRelationInputCreateMany
   delete: [FindUniqueRelationsUniqueFilter!]
   deleteMany: [FindUniqueRelationsWithoutWithCompositeIDFilter!]
   disconnect: [FindUniqueRelationsUniqueFilter!]
   set: [FindUniqueRelationsUniqueFilter!]
   update: [WithCompositeIDUpdateFindUniqueRelationsRelationInputUpdate!]
   updateMany: [WithCompositeIDUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithCompositeIDUpdateFindUniqueRelationsRelationInputCreateMany {
+  data: [FindUniqueRelationsCreateManyWithoutWithCompositeIDInput!]
+  skipDuplicates: Boolean
 }
 
 input WithCompositeIDUpdateFindUniqueRelationsRelationInputUpdate {
@@ -1597,12 +1737,18 @@ input WithCompositeUniqueUpdate {
 input WithCompositeUniqueUpdateFindUniqueRelationsRelationInput {
   connect: [FindUniqueRelationsUniqueFilter!]
   create: [FindUniqueRelationsCreateWithoutWithCompositeUnique!]
+  createMany: WithCompositeUniqueUpdateFindUniqueRelationsRelationInputCreateMany
   delete: [FindUniqueRelationsUniqueFilter!]
   deleteMany: [FindUniqueRelationsWithoutWithCompositeUniqueFilter!]
   disconnect: [FindUniqueRelationsUniqueFilter!]
   set: [FindUniqueRelationsUniqueFilter!]
   update: [WithCompositeUniqueUpdateFindUniqueRelationsRelationInputUpdate!]
   updateMany: [WithCompositeUniqueUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithCompositeUniqueUpdateFindUniqueRelationsRelationInputCreateMany {
+  data: [FindUniqueRelationsCreateManyWithoutWithCompositeUniqueInput!]
+  skipDuplicates: Boolean
 }
 
 input WithCompositeUniqueUpdateFindUniqueRelationsRelationInputUpdate {
@@ -1657,12 +1803,18 @@ input WithIDUpdate {
 input WithIDUpdateFindUniqueRelationsRelationInput {
   connect: [FindUniqueRelationsUniqueFilter!]
   create: [FindUniqueRelationsCreateWithoutWithID!]
+  createMany: WithIDUpdateFindUniqueRelationsRelationInputCreateMany
   delete: [FindUniqueRelationsUniqueFilter!]
   deleteMany: [FindUniqueRelationsWithoutWithIDFilter!]
   disconnect: [FindUniqueRelationsUniqueFilter!]
   set: [FindUniqueRelationsUniqueFilter!]
   update: [WithIDUpdateFindUniqueRelationsRelationInputUpdate!]
   updateMany: [WithIDUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithIDUpdateFindUniqueRelationsRelationInputCreateMany {
+  data: [FindUniqueRelationsCreateManyWithoutWithIDInput!]
+  skipDuplicates: Boolean
 }
 
 input WithIDUpdateFindUniqueRelationsRelationInputUpdate {
@@ -1715,12 +1867,18 @@ input WithUniqueUpdate {
 input WithUniqueUpdateFindUniqueRelationsRelationInput {
   connect: [FindUniqueRelationsUniqueFilter!]
   create: [FindUniqueRelationsCreateWithoutWithUnique!]
+  createMany: WithUniqueUpdateFindUniqueRelationsRelationInputCreateMany
   delete: [FindUniqueRelationsUniqueFilter!]
   deleteMany: [FindUniqueRelationsWithoutWithUniqueFilter!]
   disconnect: [FindUniqueRelationsUniqueFilter!]
   set: [FindUniqueRelationsUniqueFilter!]
   update: [WithUniqueUpdateFindUniqueRelationsRelationInputUpdate!]
   updateMany: [WithUniqueUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithUniqueUpdateFindUniqueRelationsRelationInputCreateMany {
+  data: [FindUniqueRelationsCreateManyWithoutWithUniqueInput!]
+  skipDuplicates: Boolean
 }
 
 input WithUniqueUpdateFindUniqueRelationsRelationInputUpdate {
