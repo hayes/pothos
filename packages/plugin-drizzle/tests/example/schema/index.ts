@@ -32,8 +32,11 @@ builder.queryField('me', (t) =>
   }),
 );
 
-builder.drizzleObject('users', {
+builder.drizzleNode('users', {
   name: 'User',
+  id: {
+    column: (user) => user.id,
+  },
   // Default selection when query users (optional, defaults to all columns)
   select: {
     columns: {

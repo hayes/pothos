@@ -28,6 +28,7 @@ import {
   Normalize,
   ObjectRef,
   ObjectTypeOptions,
+  OutputShape,
   OutputType,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -60,7 +61,7 @@ type NameOrVariant =
 
 export type DrizzleObjectOptions<
   Types extends SchemaTypes,
-  Table,
+  Table extends keyof Types['DrizzleRelationSchema'],
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
@@ -70,9 +71,7 @@ export type DrizzleObjectOptions<
     fields?: (
       t: DrizzleObjectFieldBuilder<
         Types,
-        Table extends keyof Types['DrizzleRelationSchema']
-          ? Types['DrizzleRelationSchema'][Table]
-          : never,
+        Types['DrizzleRelationSchema'][Table],
         Shape & { [drizzleTableName]?: Table }
       >,
     ) => FieldMap;
@@ -80,7 +79,7 @@ export type DrizzleObjectOptions<
 
 export type DrizzleInterfaceOptions<
   Types extends SchemaTypes,
-  Table,
+  Table extends keyof Types['DrizzleRelationSchema'],
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
@@ -90,17 +89,57 @@ export type DrizzleInterfaceOptions<
     select?: Selection;
   },
   'fields'
-> & {
-  fields?: (
-    t: DrizzleObjectFieldBuilder<
-      Types,
-      Table extends keyof Types['DrizzleRelationSchema']
-        ? Types['DrizzleRelationSchema'][Table]
-        : never,
-      Shape & { [drizzleTableName]?: Table }
-    >,
-  ) => FieldMap;
-};
+> &
+  NameOrVariant & {
+    fields?: (
+      t: DrizzleObjectFieldBuilder<
+        Types,
+        Types['DrizzleRelationSchema'][Table],
+        Shape & { [drizzleTableName]?: Table }
+      >,
+    ) => FieldMap;
+  };
+
+export type DrizzleNodeOptions<
+  Types extends SchemaTypes,
+  Table extends keyof Types['DrizzleRelationSchema'],
+  Shape,
+  Selection,
+  Interfaces extends InterfaceParam<Types>[],
+> = NameOrVariant &
+  Omit<
+    | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+    | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
+    'fields' | 'isTypeOf'
+  > & {
+    id: Omit<
+      FieldOptionsFromKind<
+        Types,
+        Shape,
+        'ID',
+        false,
+        {},
+        'Object',
+        OutputShape<Types, 'ID'>,
+        MaybePromise<OutputShape<Types, 'ID'>>
+      >,
+      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+    > & {
+      column:
+        | Column
+        | Column[]
+        | ((columns: Types['DrizzleRelationSchema'][Table]['columns']) => Column | Column[]);
+    };
+    name: string;
+    select?: Selection;
+    fields?: (
+      t: DrizzleObjectFieldBuilder<
+        Types,
+        Types['DrizzleRelationSchema'][Table],
+        Shape & { [drizzleTableName]?: Table }
+      >,
+    ) => FieldMap;
+  };
 
 export type DrizzleFieldOptions<
   Types extends SchemaTypes,

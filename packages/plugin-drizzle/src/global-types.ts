@@ -29,6 +29,7 @@ import type {
   DrizzleFieldOptions,
   DrizzleFieldWithInputOptions,
   DrizzleInterfaceOptions,
+  DrizzleNodeOptions,
   DrizzleObjectFieldOptions,
   DrizzleObjectOptions,
   DrizzlePluginOptions,
@@ -37,6 +38,7 @@ import type {
 } from './types';
 
 import type { PothosDrizzlePlugin } from '.';
+import { DrizzleNodeRef } from './node-ref';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -100,6 +102,29 @@ declare global {
         table: Table,
         options: DrizzleInterfaceOptions<Types, Table, Shape, Selection, Interfaces>,
       ) => DrizzleInterfaceRef<Types, Table, Shape>;
+
+      drizzleNode: 'relay' extends PluginName
+        ? <
+            Interfaces extends InterfaceParam<Types>[],
+            Table extends keyof Types['DrizzleRelationSchema'],
+            Selection extends
+              | DBQueryConfig<
+                  'one',
+                  false,
+                  Types['DrizzleRelationSchema'],
+                  Types['DrizzleRelationSchema'][Table]
+                >
+              | true,
+            Shape = BuildQueryResult<
+              Types['DrizzleRelationSchema'],
+              Types['DrizzleRelationSchema'][Table],
+              Selection
+            >,
+          >(
+            table: Table,
+            options: DrizzleNodeOptions<Types, Table, Shape, Selection, Interfaces>,
+          ) => DrizzleNodeRef<Types, Table, Shape>
+        : '@pothos/plugin-relay is required to use this method';
 
       drizzleObjectField: <
         Type extends DrizzleObjectRef<Types> | keyof Types['DrizzleRelationSchema'],

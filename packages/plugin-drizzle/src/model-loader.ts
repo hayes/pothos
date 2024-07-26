@@ -1,8 +1,8 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { inArray, sql, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
+import { Column, inArray, sql, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
 import { createContextCache, SchemaTypes } from '@pothos/core';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
-import { selectionStateFromInfo } from './utils/map-query';
+import { selectionStateFromInfo, stateFromInfo } from './utils/map-query';
 import {
   mergeSelection,
   selectionCompatible,
@@ -32,26 +32,39 @@ export class ModelLoader {
 
   schema: TablesRelationalConfig;
   table: TableRelationalConfig;
-  pk;
+  columns: Column[];
+  selectSQL;
 
-  constructor(context: object, builder: PothosSchemaTypes.SchemaBuilder<never>, modelName: string) {
+  constructor(
+    context: object,
+    builder: PothosSchemaTypes.SchemaBuilder<never>,
+    modelName: string,
+    columns?: Column[],
+  ) {
     this.context = context;
     this.builder = builder;
     this.modelName = modelName;
     this.schema = builder.options.drizzle.client._.schema!;
     this.table = this.schema[modelName];
-    this.pk = sql`(${sql.join(this.table.primaryKey, sql`, `)})`;
+    this.columns = columns ?? this.table.primaryKey;
+    this.selectSQL =
+      this.columns.length > 1
+        ? sql`(${sql.join(this.columns, sql`, `)})`
+        : this.columns[0].getSQL();
   }
 
   static forModel<Types extends SchemaTypes>(
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    columns?: Column[],
   ) {
-    return createContextCache((model) => new ModelLoader(model, builder as never, modelName));
+    return createContextCache(
+      (model) => new ModelLoader(model, builder as never, modelName, columns),
+    );
   }
 
-  pkFromModel(model: object) {
-    return this.table.primaryKey.map((key) => {
+  sqlForModel(model: object) {
+    const values = this.columns.map((key) => {
       const columnName = key.name as keyof typeof model;
       if (columnName in model) {
         return model[columnName] as string | number;
@@ -59,12 +72,33 @@ export class ModelLoader {
 
       throw new Error(`Primary key column ${columnName} not found on ${this.modelName}`);
     });
+
+    return this.columns.length > 1 ? values : values[0];
   }
 
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
       const selection = selectionStateFromInfo(this.schema, this.context, info);
+      this.queryCache.set(key, {
+        selection,
+        query: selectionToQuery(selection),
+      });
+    }
+
+    return this.queryCache.get(key)!;
+  }
+
+  getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
+    const key = cacheKey(typeName, info.path);
+    if (!this.queryCache.has(key)) {
+      const selection = stateFromInfo({
+        schema: this.schema,
+        context: this.context,
+        info,
+        typeName,
+      });
+
       this.queryCache.set(key, {
         selection,
         query: selectionToQuery(selection),
@@ -85,6 +119,18 @@ export class ModelLoader {
       if (mappings) {
         setLoaderMappings(this.context, info, mappings.mappings);
       }
+    }
+
+    return result;
+  }
+
+  async loadSelectionForField(info: GraphQLResolveInfo, model: object, returnType: string) {
+    const { selection, query } = this.getSelectionForField(info, returnType);
+
+    const result = await this.stageQuery(selection, query, model);
+
+    if (result) {
+      setLoaderMappings(this.context, info, selection.mappings);
     }
 
     return result;
@@ -128,8 +174,8 @@ export class ModelLoader {
         const query = api.findMany({
           ...selectionToQuery(selection),
           where: inArray(
-            this.pk,
-            [entry.models.keys()].map(([model]) => this.pkFromModel(model)),
+            this.selectSQL,
+            [entry.models.keys()].map(([model]) => this.sqlForModel(model)),
           ),
         });
 
@@ -146,7 +192,7 @@ export class ModelLoader {
                 promise.resolve(result ?? null);
               } else
                 promise.reject(
-                  new Error(`Model ${this.modelName}(${this.pkFromModel(model)}) not found`),
+                  new Error(`Model ${this.modelName}(${this.sqlForModel(model)}) not found`),
                 );
             }
           },

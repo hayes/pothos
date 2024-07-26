@@ -380,16 +380,7 @@ function addFieldSelection(
   }
 }
 
-export function queryFromInfo<T extends SelectionMap>({
-  schema,
-  context,
-  info,
-  typeName,
-  select,
-  path = [],
-  paths = [],
-  withUsageCheck = false,
-}: {
+export interface QueryFromInfoOptions<T extends SelectionMap> {
   schema: TablesRelationalConfig;
   context: object;
   info: GraphQLResolveInfo;
@@ -398,7 +389,30 @@ export function queryFromInfo<T extends SelectionMap>({
   path?: string[];
   paths?: string[][];
   withUsageCheck?: boolean;
-}): T {
+}
+
+export function queryFromInfo<T extends SelectionMap>({
+  withUsageCheck,
+  ...options
+}: QueryFromInfoOptions<T>): T {
+  const state = stateFromInfo(options);
+
+  setLoaderMappings(options.context, options.info, state.mappings);
+
+  const query = selectionToQuery(state) as T;
+
+  return withUsageCheck ? wrapWithUsageCheck(query) : query;
+}
+
+export function stateFromInfo<T extends SelectionMap>({
+  schema,
+  context,
+  info,
+  typeName,
+  select,
+  path = [],
+  paths = [],
+}: QueryFromInfoOptions<T>) {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
 
@@ -451,11 +465,7 @@ export function queryFromInfo<T extends SelectionMap>({
     state = createStateForSelection(schema, type, undefined, select);
   }
 
-  setLoaderMappings(context, info, state.mappings);
-
-  const query = selectionToQuery(state) as T;
-
-  return withUsageCheck ? wrapWithUsageCheck(query) : query;
+  return state;
 }
 
 export function selectionStateFromInfo(

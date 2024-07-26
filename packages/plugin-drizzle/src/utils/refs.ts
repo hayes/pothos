@@ -1,5 +1,5 @@
 import { SchemaTypes } from '@pothos/core';
-import { DrizzleRef } from '../interface-ref';
+import { DrizzleInterfaceRef, DrizzleRef } from '../interface-ref';
 import { DrizzleObjectRef } from '../object-ref';
 
 export const refMap = new WeakMap<object, Map<string, DrizzleRef<never>>>();
@@ -17,7 +17,7 @@ export function getRefFromModel<Types extends SchemaTypes>(
   if (!cache.has(name)) {
     cache.set(
       name,
-      type === 'object' ? new DrizzleObjectRef(name, name) : new DrizzleObjectRef(name, name),
+      type === 'object' ? new DrizzleObjectRef(name, name) : new DrizzleInterfaceRef(name, name),
     );
   }
 

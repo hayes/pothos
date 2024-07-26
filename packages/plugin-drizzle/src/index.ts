@@ -64,6 +64,14 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       });
     }
 
+    const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as ReturnType<
+      typeof ModelLoader.forModel
+    >;
+
+    if (!modelLoader) {
+      throw new Error(`ModelLoader not found for type ${parentConfig.name}`);
+    }
+
     return (parent, args, context, info) => {
       let mapping = getLoaderMapping(context, info.path, info.parentType.name);
 
@@ -92,12 +100,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         );
       }
 
-      const modelName = parentConfig.extensions?.pothosDrizzleModel as string;
-
-      return ModelLoader.forModel(
-        modelName,
-        this.builder,
-      )(context)
+      return modelLoader(context)
         .loadSelection(info, parent as object)
         .then((result) => resolver(result, args, context, info));
     };
