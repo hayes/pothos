@@ -24,13 +24,13 @@ jobs:
       # Label used to access the service container
       postgres:
         # Docker Hub image
-        image: postgres
+        image: mghayes/multi-postgres:v2
         ports:
           - '5455:5432'
         env:
           POSTGRES_USER: prisma
           POSTGRES_PASSWORD: prisma
-          POSTGRES_DB: tests
+          POSTGRES_MULTIPLE_DATABASES: tests,drizzle
 
         # Set health checks to wait until postgres has started
         options: >-

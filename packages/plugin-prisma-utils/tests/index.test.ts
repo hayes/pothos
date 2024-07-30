@@ -54,13 +54,13 @@ describe('prisma utils', () => {
               "author": {
                 "name": "Zelma Runte",
               },
-              "id": "13",
+              "id": "14",
             },
             {
               "author": {
                 "name": "Zelma Runte",
               },
-              "id": "14",
+              "id": "13",
             },
           ],
         },

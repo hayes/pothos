@@ -432,7 +432,7 @@ export type QueryForRelatedConnection<
   DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
   'orderBy' | 'limit' | 'offset' | 'columns' | 'extra' | 'with'
 > & {
-  orderBy: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
+  orderBy?: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
 } extends infer QueryConfig
   ? QueryConfig | ((args: Args, context: Types['Context']) => QueryConfig)
   : never;
@@ -444,7 +444,7 @@ export type QueryForDrizzleConnection<
   DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
   'orderBy' | 'limit' | 'offset'
 > & {
-  orderBy: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
+  orderBy?: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
 };
 
 export type ListRelation<T extends TableRelationalConfig> = {
