@@ -303,6 +303,7 @@ export class DrizzleObjectFieldBuilder<
     Variant extends DrizzleRef<Types, TableConfig['tsName']> | TableConfig['tsName'],
     Args extends InputFieldMap,
     Nullable,
+    ResolveShape,
     ResolveReturn,
   >(
     variant: Variant,
@@ -315,6 +316,7 @@ export class DrizzleObjectFieldBuilder<
           Args,
           Nullable,
           Shape,
+          ResolveShape,
           ResolveReturn
         >,
       ]

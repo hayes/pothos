@@ -10,6 +10,7 @@ import {
   Column,
   getOperators,
   getOrderByOperators,
+  RelationalSchemaConfig,
   SQL,
   TableRelationalConfig,
   TablesRelationalConfig,
@@ -18,6 +19,7 @@ import { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
 import { SelectionMap } from './selections';
 import { GraphQLResolveInfo } from 'graphql';
 import { queryFromInfo } from './map-query';
+import { PothosDrizzleSchemaConfig } from './config';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -395,7 +397,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   table: TableRelationalConfig,
   info: GraphQLResolveInfo,
   typeName: string,
-  schema: TablesRelationalConfig,
+  config: PothosDrizzleSchemaConfig,
   options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy'>,
   resolve: (
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
@@ -406,7 +408,11 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   const results = await resolve((q) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ...options,
-      orderBy: q.orderBy ? q.orderBy(table.columns) : table.primaryKey,
+      orderBy: q.orderBy
+        ? typeof q.orderBy === 'function'
+          ? q.orderBy(table.columns)
+          : q.orderBy
+        : table.primaryKey,
     });
     formatter = getCursorFormatter(cursorColumns);
 
@@ -425,7 +431,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
       },
       paths: [['nodes'], ['edges', 'node']],
       typeName,
-      schema,
+      config,
       // withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
     });
 

@@ -1,5 +1,10 @@
 /* eslint-disable no-continue */
-import { DBQueryConfig, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
+import {
+  DBQueryConfig,
+  RelationalSchemaConfig,
+  TableRelationalConfig,
+  TablesRelationalConfig,
+} from 'drizzle-orm';
 import {
   FieldNode,
   FragmentDefinitionNode,
@@ -31,6 +36,7 @@ import {
   selectionToQuery,
 } from './selections';
 import { wrapWithUsageCheck } from './usage';
+import { PothosDrizzleSchemaConfig } from './config';
 
 export interface IndirectInclude {
   getType: () => string;
@@ -39,7 +45,7 @@ export interface IndirectInclude {
 }
 
 function addTypeSelectionsForField(
-  schema: TablesRelationalConfig,
+  config: PothosDrizzleSchemaConfig,
   type: GraphQLNamedType,
   context: object,
   info: GraphQLResolveInfo,
@@ -68,12 +74,12 @@ function addTypeSelectionsForField(
       pothosIndirectInclude.paths ?? [pothosIndirectInclude.path!],
       indirectPath,
       (resolvedType, field, path) => {
-        addTypeSelectionsForField(schema, resolvedType, context, info, state, field, path);
+        addTypeSelectionsForField(config, resolvedType, context, info, state, field, path);
       },
     );
   } else if (pothosIndirectInclude) {
     addTypeSelectionsForField(
-      schema,
+      config,
       info.schema.getType(pothosIndirectInclude.getType())!,
       context,
       info,
@@ -89,11 +95,11 @@ function addTypeSelectionsForField(
   }
 
   if (pothosDrizzleSelect) {
-    mergeSelection(schema, state, { ...pothosDrizzleSelect });
+    mergeSelection(config, state, { ...pothosDrizzleSelect });
   }
 
   if (selection.selectionSet) {
-    addNestedSelections(schema, type, context, info, state, selection.selectionSet, indirectPath);
+    addNestedSelections(config, type, context, info, state, selection.selectionSet, indirectPath);
   }
 }
 
@@ -193,7 +199,7 @@ function resolveIndirectInclude(
 }
 
 function addNestedSelections(
-  schema: TablesRelationalConfig,
+  config: PothosDrizzleSchemaConfig,
   type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
   info: GraphQLResolveInfo,
@@ -205,7 +211,7 @@ function addNestedSelections(
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
-        addFieldSelection(schema, type, context, info, state, selection, indirectPath);
+        addFieldSelection(config, type, context, info, state, selection, indirectPath);
 
         continue;
       case Kind.FRAGMENT_SPREAD:
@@ -221,7 +227,7 @@ function addNestedSelections(
         }
 
         addNestedSelections(
-          schema,
+          config,
           parentType,
           context,
           info,
@@ -245,7 +251,7 @@ function addNestedSelections(
         }
 
         addNestedSelections(
-          schema,
+          config,
           parentType,
           context,
           info,
@@ -265,7 +271,7 @@ function addNestedSelections(
 }
 
 function addFieldSelection(
-  schema: TablesRelationalConfig,
+  config: PothosDrizzleSchemaConfig,
   type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
   info: GraphQLResolveInfo,
@@ -304,7 +310,7 @@ function addFieldSelection(
             )
           : indirectInclude;
         const fieldState = createStateForSelection(
-          schema,
+          config,
           getIndirectType(
             normalizedIndirectInclude
               ? info.schema.getType(normalizedIndirectInclude.getType())!
@@ -315,7 +321,7 @@ function addFieldSelection(
         );
 
         if (typeof query === 'object' && Object.keys(query).length > 0) {
-          mergeSelection(schema, fieldState, { columns: {}, ...query });
+          mergeSelection(config, fieldState, { columns: {}, ...query });
         }
         if (
           (!!normalizedIndirectInclude?.path && normalizedIndirectInclude.path.length > 0) ||
@@ -330,7 +336,7 @@ function addFieldSelection(
             [],
             (resolvedType, resolvedField, path) => {
               addTypeSelectionsForField(
-                schema,
+                config,
                 resolvedType,
                 context,
                 info,
@@ -341,7 +347,7 @@ function addFieldSelection(
             },
           );
         }
-        addTypeSelectionsForField(schema, returnType, context, info, fieldState, selection, []);
+        addTypeSelectionsForField(config, returnType, context, info, fieldState, selection, []);
         // eslint-disable-next-line prefer-destructuring
         mappings = fieldState.mappings;
         return selectionToQuery(fieldState);
@@ -369,7 +375,7 @@ function addFieldSelection(
   }
 
   if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
-    mergeSelection(schema, state, fieldSelectionMap);
+    mergeSelection(config, state, fieldSelectionMap);
     // eslint-disable-next-line no-param-reassign
     state.mappings[selection.alias?.value ?? selection.name.value] = {
       field: selection.name.value,
@@ -381,7 +387,7 @@ function addFieldSelection(
 }
 
 export interface QueryFromInfoOptions<T extends SelectionMap> {
-  schema: TablesRelationalConfig;
+  config: PothosDrizzleSchemaConfig;
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
@@ -405,7 +411,7 @@ export function queryFromInfo<T extends SelectionMap>({
 }
 
 export function stateFromInfo<T extends SelectionMap>({
-  schema,
+  config,
   context,
   info,
   typeName,
@@ -440,10 +446,10 @@ export function stateFromInfo<T extends SelectionMap>({
             : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested) => {
-            state = createStateForSelection(schema, resolvedType, undefined, select);
+            state = createStateForSelection(config, resolvedType, undefined, select);
 
             addTypeSelectionsForField(
-              schema,
+              config,
               typeName ? type : resolvedType,
               context,
               info,
@@ -456,27 +462,27 @@ export function stateFromInfo<T extends SelectionMap>({
       },
     );
   } else {
-    state = createStateForSelection(schema, type, undefined, select);
+    state = createStateForSelection(config, type, undefined, select);
 
-    addTypeSelectionsForField(schema, type, context, info, state, info.fieldNodes[0], []);
+    addTypeSelectionsForField(config, type, context, info, state, info.fieldNodes[0], []);
   }
 
   if (!state) {
-    state = createStateForSelection(schema, type, undefined, select);
+    state = createStateForSelection(config, type, undefined, select);
   }
 
   return state;
 }
 
 export function selectionStateFromInfo(
-  schema: TablesRelationalConfig,
+  config: PothosDrizzleSchemaConfig,
   context: object,
   info: GraphQLResolveInfo,
   typeName?: string,
 ) {
   const type = typeName ? info.schema.getTypeMap()[typeName] : info.parentType;
 
-  const state = createStateForSelection(schema, type);
+  const state = createStateForSelection(config, type);
 
   if (!(isObjectType(type) || isInterfaceType(type))) {
     throw new PothosValidationError(
@@ -484,13 +490,13 @@ export function selectionStateFromInfo(
     );
   }
 
-  addFieldSelection(schema, type, context, info, state, info.fieldNodes[0], []);
+  addFieldSelection(config, type, context, info, state, info.fieldNodes[0], []);
 
   return state;
 }
 
 function createStateForSelection(
-  schema: TablesRelationalConfig,
+  config: PothosDrizzleSchemaConfig,
   type: GraphQLNamedType,
   parent?: SelectionState,
   initialSelections?: SelectionMap,
@@ -506,7 +512,7 @@ function createStateForSelection(
   const state = createState(pothosDrizzleTable, parent);
 
   if (initialSelections) {
-    mergeSelection(schema, state, initialSelections);
+    mergeSelection(config, state, initialSelections);
   }
 
   return state;

@@ -3,7 +3,7 @@ import schema from './schema';
 
 const server = createTestServer({
   schema,
-  contextFactory: () => ({}),
+  context: () => ({}),
 });
 
 server.listen(3000, () => {

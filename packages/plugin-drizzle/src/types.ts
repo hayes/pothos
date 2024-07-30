@@ -4,6 +4,7 @@ import {
   DBQueryConfig,
   Many,
   Relation,
+  RelationalSchemaConfig,
   SQL,
   TableRelationalConfig,
   TablesRelationalConfig,
@@ -42,7 +43,7 @@ import { SelectionMap } from './utils/selections';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface DrizzlePluginOptions<Types extends SchemaTypes> {
-  client: { _: { schema?: TablesRelationalConfig }; query: {} };
+  client: { _: Partial<RelationalSchemaConfig<TablesRelationalConfig>>; query: {} };
   maxConnectionSize?: number;
   defaultConnectionSize?: number;
 }
@@ -340,25 +341,41 @@ export type RelatedFieldOptions<
 export type VariantFieldOptions<
   Types extends SchemaTypes,
   Table extends keyof Types['DrizzleRelationSchema'],
-  Variant extends DrizzleRef<Types, Table> | Table,
+  Variant extends DrizzleRef<any, Table> | Table,
   Args extends InputFieldMap,
   isNull,
   Shape,
+  ResolveShape,
   ResolveReturnShape,
 > = Omit<
-  PothosSchemaTypes.ObjectFieldOptions<
+  FieldOptionsFromKind<
     Types,
     Shape,
-    Variant extends DrizzleRef<Types> ? Variant : DrizzleRef<Types, Table>,
+    Variant extends DrizzleRef<any> ? Variant : DrizzleRef<any, Table>,
     unknown extends isNull ? false : true,
     Args,
+    'DrizzleObject',
+    ResolveShape,
     ResolveReturnShape
   >,
   InferredFieldOptionKeys | 'type'
 > & {
   isNull?: isNull &
     ((
-      parent: Shape,
+      parent: Normalize<
+        Omit<
+          unknown extends ResolveShape
+            ? Shape
+            : BuildQueryResult<
+                Types['DrizzleRelationSchema'],
+                ExtractTable<Types, Shape>,
+                Record<string, unknown> &
+                  (ResolveShape extends (...args: any[]) => infer R ? R : ResolveShape)
+              > &
+                Shape,
+          typeof drizzleTableName
+        >
+      >,
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
       info: GraphQLResolveInfo,
@@ -415,7 +432,7 @@ export type QueryForRelatedConnection<
   DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
   'orderBy' | 'limit' | 'offset' | 'columns' | 'extra' | 'with'
 > & {
-  orderBy?: (columns: Table['columns']) => ConnectionOrderBy;
+  orderBy: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
 } extends infer QueryConfig
   ? QueryConfig | ((args: Args, context: Types['Context']) => QueryConfig)
   : never;
@@ -427,7 +444,7 @@ export type QueryForDrizzleConnection<
   DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
   'orderBy' | 'limit' | 'offset'
 > & {
-  orderBy?: (columns: Table['columns']) => ConnectionOrderBy;
+  orderBy: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
 };
 
 export type ListRelation<T extends TableRelationalConfig> = {
@@ -438,7 +455,7 @@ export type DrizzleConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends
-    | DrizzleRef<Types, keyof Types['DrizzleRelationSchema']>
+    | DrizzleRef<any, keyof Types['DrizzleRelationSchema']>
     | keyof Types['DrizzleRelationSchema'],
   TableConfig extends TableRelationalConfig,
   Param extends OutputType<Types>,
@@ -485,7 +502,7 @@ export type DrizzleConnectionFieldOptions<
           query: <
             T extends QueryForRelatedConnection<
               Types,
-              Types['DrizzleRelationSchema'][Type extends DrizzleRef<Types, infer K>
+              Types['DrizzleRelationSchema'][Type extends DrizzleRef<any, infer K>
                 ? K
                 : Type & keyof Types['DrizzleRelationSchema']],
               ConnectionArgs
@@ -502,12 +519,6 @@ export type DrizzleConnectionFieldOptions<
             ? ListResolveValue<Shape, Item, ResolveReturnShape>
             : MaybePromise<Shape>
           : never;
-        // totalCount?: (
-        //   parent: ParentShape,
-        //   args: ConnectionArgs,
-        //   context: Types['Context'],
-        //   info: GraphQLResolveInfo,
-        // ) => MaybePromise<number>;
       }
     : never);
 
@@ -561,8 +572,8 @@ export type RelatedConnectionOptions<
             Nullable
           >
         >;
-        query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
-        type?: DrizzleRef<Types, Table['relations'][Field]['referencedTable']['_']['name']>;
+        query: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
+        type?: DrizzleRef<any, Table['relations'][Field]['referencedTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
@@ -599,3 +610,20 @@ export type DrizzleConnectionShape<
   : never;
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };
+
+export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape extends {}>
+  extends Omit<
+    PothosSchemaTypes.InputObjectTypeOptions<
+      Types,
+      InputFieldsFromShape<Types, Shape, 'InputObject'>
+    >,
+    'fields'
+  > {
+  name?: string;
+}
+
+export interface DrizzleGraphQLInputExtensions {
+  table: string;
+  tableConfig: TableRelationalConfig;
+  inputType: 'insert' | 'filters' | 'orderBy' | 'update';
+}

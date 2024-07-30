@@ -7,6 +7,7 @@ import { DrizzleRef } from './interface-ref';
 import { DrizzleConnectionFieldOptions } from './types';
 import { TableRelationalConfig } from 'drizzle-orm';
 import { resolveDrizzleCursorConnection } from './utils/cursors';
+import { getSchemaConfig } from './utils/config';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -28,7 +29,7 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
       const query = queryFromInfo({
-        schema: this.builder.options.drizzle.client._.schema!,
+        config: getSchemaConfig(this.builder),
         context,
         info,
         // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
@@ -63,7 +64,7 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
       const query = queryFromInfo({
-        schema: this.builder.options.drizzle.client._.schema!,
+        config: getSchemaConfig(this.builder),
         context,
         info,
         // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
@@ -127,7 +128,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
           drizzleModel,
           info,
           typeName,
-          this.builder.options.drizzle.client._.schema!,
+          getSchemaConfig(this.builder),
           {
             ctx: context,
             maxSize,

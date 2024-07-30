@@ -50,12 +50,16 @@
   "devDependencies": {
     "@libsql/client": "^0.7.0",
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-add-graphql": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-scope-auth": "workspace:*",
+    "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
+    "drizzle-graphql": "^0.8.4",
     "drizzle-kit": "^0.23.0",
     "drizzle-orm": "^0.32.0",
     "graphql": "^16.8.1",
+    "graphql-scalars": "^1.23.0",
     "graphql-tag": "^2.12.6",
     "postgres": "^3.4.4"
   }

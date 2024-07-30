@@ -7,14 +7,15 @@ import SchemaBuilder, {
   PothosError,
   SchemaTypes,
   FieldRef,
+  InputObjectRef,
 } from '@pothos/core';
 import { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 import { getRefFromModel } from './utils/refs';
 import { DrizzleObjectRef } from './object-ref';
-import { DrizzleNodeOptions } from './types';
+import { DrizzleGraphQLInputExtensions, DrizzleNodeOptions } from './types';
 import { getColumnParser, getColumnSerializer } from './utils/cursors';
 import { DrizzleNodeRef } from './node-ref';
-import { GraphQLResolveInfo } from 'graphql';
+import { GraphQLInputObjectType, GraphQLResolveInfo } from 'graphql';
 import { ModelLoader } from './model-loader';
 import { DrizzleInterfaceRef } from './interface-ref';
 
@@ -192,3 +193,107 @@ schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type
     );
   });
 };
+
+schemaBuilderProto.drizzleGraphQLOrderBy = function drizzleGraphQLOrderBy(
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  table: string,
+  type: GraphQLInputObjectType,
+  options?: { extensions?: {} },
+) {
+  return (
+    this as typeof this & {
+      addGraphQLInput: (
+        type: GraphQLInputObjectType,
+        options: Record<string, unknown>,
+      ) => InputObjectRef<SchemaTypes, {}>;
+    }
+  ).addGraphQLInput(type, {
+    ...options,
+    extensions: {
+      ...options?.extensions,
+      drizzleGraphQL: {
+        inputType: 'orderBy',
+        table,
+        tableConfig: this.options.drizzle.client._.schema?.[table]!,
+      } satisfies DrizzleGraphQLInputExtensions,
+    },
+  });
+} as never;
+
+schemaBuilderProto.drizzleGraphQLFilters = function drizzleGraphQLFilters(
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  table: string,
+  type: GraphQLInputObjectType,
+  options?: { extensions?: {} },
+) {
+  return (
+    this as typeof this & {
+      addGraphQLInput: (
+        type: GraphQLInputObjectType,
+        options: Record<string, unknown>,
+      ) => InputObjectRef<SchemaTypes, {}>;
+    }
+  ).addGraphQLInput(type, {
+    ...options,
+    extensions: {
+      ...options?.extensions,
+      drizzleGraphQL: {
+        inputType: 'filters',
+        table,
+        tableConfig: this.options.drizzle.client._.schema?.[table]!,
+      } satisfies DrizzleGraphQLInputExtensions,
+    },
+  });
+} as never;
+
+schemaBuilderProto.drizzleGraphQLInsert = function drizzleGraphQLInsert(
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  table: string,
+  type: GraphQLInputObjectType,
+  options?: { extensions?: {} },
+) {
+  return (
+    this as typeof this & {
+      addGraphQLInput: (
+        type: GraphQLInputObjectType,
+        options: Record<string, unknown>,
+      ) => InputObjectRef<SchemaTypes, {}>;
+    }
+  ).addGraphQLInput(type, {
+    ...options,
+    extensions: {
+      ...options?.extensions,
+      drizzleGraphQL: {
+        inputType: 'insert',
+        table,
+        tableConfig: this.options.drizzle.client._.schema?.[table]!,
+      } satisfies DrizzleGraphQLInputExtensions,
+    },
+  });
+} as never;
+
+schemaBuilderProto.drizzleGraphQLUpdate = function drizzleGraphQLUpdate(
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  table: string,
+  type: GraphQLInputObjectType,
+  options?: { extensions?: {} },
+) {
+  return (
+    this as typeof this & {
+      addGraphQLInput: (
+        type: GraphQLInputObjectType,
+        options: Record<string, unknown>,
+      ) => InputObjectRef<SchemaTypes, {}>;
+    }
+  ).addGraphQLInput(type, {
+    ...options,
+    extensions: {
+      ...options?.extensions,
+      drizzleGraphQL: {
+        inputType: 'update',
+        table,
+        tableConfig: this.options.drizzle.client._.schema?.[table]!,
+      } satisfies DrizzleGraphQLInputExtensions,
+    },
+  });
+} as never;

@@ -4,7 +4,7 @@ import schema from './schema';
 
 const server = createTestServer({
   schema,
-  contextFactory: () => ({
+  context: () => ({
     User,
   }),
 });

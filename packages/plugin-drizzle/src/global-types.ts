@@ -4,6 +4,7 @@ import type {
   BuildQueryResult,
   DBQueryConfig,
   ExtractTablesWithRelations,
+  SQL,
   TableRelationalConfig,
 } from 'drizzle-orm';
 import {
@@ -24,6 +25,7 @@ import { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 import { DrizzleInterfaceRef, DrizzleRef } from './interface-ref';
 import { DrizzleObjectRef, drizzleTableKey } from './object-ref';
 import type {
+  AddGraphQLInputTypeOptions,
   DrizzleConnectionFieldOptions,
   DrizzleConnectionShape,
   DrizzleFieldOptions,
@@ -39,6 +41,7 @@ import type {
 
 import type { PothosDrizzlePlugin } from '.';
 import { DrizzleNodeRef } from './node-ref';
+import { GraphQLInputObjectType } from 'graphql';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -203,6 +206,38 @@ declare global {
         type: Type,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, false, Shape>) => FieldMap,
       ) => void;
+
+      drizzleGraphQLOrderBy: 'addGraphQL' extends PluginName
+        ? <Table extends keyof Types['DrizzleRelationSchema']>(
+            table: Table,
+            type: GraphQLInputObjectType,
+            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+          ) => InputObjectRef<Types, SQL | SQL[]>
+        : '@pothos/plugin-add-graphql is required to use this method';
+
+      drizzleGraphQLFilters: 'addGraphQL' extends PluginName
+        ? <Table extends keyof Types['DrizzleRelationSchema']>(
+            table: Table,
+            type: GraphQLInputObjectType,
+            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+          ) => InputObjectRef<Types, SQL>
+        : '@pothos/plugin-add-graphql is required to use this method';
+
+      drizzleGraphQLInsert: 'addGraphQL' extends PluginName
+        ? <Table extends keyof Types['DrizzleRelationSchema']>(
+            table: Table,
+            type: GraphQLInputObjectType,
+            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+          ) => InputObjectRef<Types, Record<string, unknown>>
+        : '@pothos/plugin-add-graphql is required to use this method';
+
+      drizzleGraphQLUpdate: 'addGraphQL' extends PluginName
+        ? <Table extends keyof Types['DrizzleRelationSchema']>(
+            table: Table,
+            type: GraphQLInputObjectType,
+            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+          ) => InputObjectRef<Types, Record<string, unknown>>
+        : '@pothos/plugin-add-graphql is required to use this method';
     }
 
     export interface PothosKindToGraphQLType {
@@ -239,13 +274,13 @@ declare global {
         Param extends
           | keyof Types['DrizzleRelationSchema']
           | [keyof Types['DrizzleRelationSchema']]
-          | DrizzleRef<Types>
-          | [DrizzleRef<Types>],
+          | DrizzleRef<any>
+          | [DrizzleRef<any>],
         Nullable extends FieldNullability<Type>,
         ResolveShape,
         ResolveReturnShape,
         Type extends TypeParam<Types> = Param extends [unknown]
-          ? Param[0] extends DrizzleRef<Types>
+          ? Param[0] extends DrizzleRef<any>
             ? Param[0]
             : [
                 ObjectRef<
@@ -257,7 +292,7 @@ declare global {
                   >
                 >,
               ]
-          : Param extends DrizzleRef<Types>
+          : Param extends DrizzleRef<any>
             ? Param
             : ObjectRef<
                 Types,
@@ -284,12 +319,12 @@ declare global {
       drizzleConnection: 'relay' extends PluginName
         ? <
             Type extends
-              | DrizzleRef<Types, keyof Types['DrizzleRelationSchema']>
+              | DrizzleRef<any, keyof Types['DrizzleRelationSchema']>
               | keyof Types['DrizzleRelationSchema'],
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
-            Shape = Type extends DrizzleRef<Types, keyof Types['DrizzleRelationSchema'], infer S>
+            Shape = Type extends DrizzleRef<any, keyof Types['DrizzleRelationSchema'], infer S>
               ? S
               : BuildQueryResult<
                   Types['DrizzleRelationSchema'],
@@ -303,7 +338,7 @@ declare global {
               Types,
               ParentShape,
               Type,
-              Types['DrizzleRelationSchema'][Type extends DrizzleRef<Types, infer K>
+              Types['DrizzleRelationSchema'][Type extends DrizzleRef<any, infer K>
                 ? K
                 : Type & keyof Types['DrizzleRelationSchema']],
               ObjectRef<Types, Shape>,
@@ -355,15 +390,15 @@ declare global {
             Param extends
               | keyof Types['DrizzleRelationSchema']
               | [keyof Types['DrizzleRelationSchema']]
-              | DrizzleRef<Types>
-              | [DrizzleRef<Types>],
+              | DrizzleRef<any>
+              | [DrizzleRef<any>],
             Nullable extends FieldNullability<Type>,
             ResolveShape,
             ResolveReturnShape,
             ArgRequired extends boolean,
             InputName extends string = 'input',
             Type extends TypeParam<Types> = Param extends [unknown]
-              ? Param[0] extends DrizzleRef<Types>
+              ? Param[0] extends DrizzleRef<any>
                 ? Param[0]
                 : [
                     ObjectRef<
@@ -376,7 +411,7 @@ declare global {
                       >
                     >,
                   ]
-              : Param extends DrizzleRef<Types>
+              : Param extends DrizzleRef<any>
                 ? Param
                 : ObjectRef<
                     Types,

@@ -733,15 +733,24 @@ importers:
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
+      '@pothos/plugin-add-graphql':
+        specifier: workspace:*
+        version: link:../plugin-add-graphql
       '@pothos/plugin-relay':
         specifier: workspace:*
         version: link:../plugin-relay
       '@pothos/plugin-scope-auth':
         specifier: workspace:*
         version: link:../plugin-scope-auth
+      '@pothos/plugin-with-input':
+        specifier: workspace:*
+        version: link:../plugin-with-input
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
+      drizzle-graphql:
+        specifier: ^0.8.4
+        version: 0.8.4(drizzle-orm@0.32.0(@libsql/client@0.7.0)(@opentelemetry/api@1.9.0)(@prisma/client@5.16.2)(@types/better-sqlite3@7.6.11)(@types/pg@8.11.6)(@types/react@18.3.3)(postgres@3.4.4)(react@18.3.1))(graphql@16.9.0)
       drizzle-kit:
         specifier: ^0.23.0
         version: 0.23.0
@@ -751,6 +760,9 @@ importers:
       graphql:
         specifier: ^16.8.1
         version: 16.9.0
+      graphql-scalars:
+        specifier: ^1.23.0
+        version: 1.23.0(graphql@16.9.0)
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.9.0)
@@ -5973,6 +5985,12 @@ packages:
     resolution: {integrity: sha512-ASRY5QhDk7FK+XrQtQyvhpDKanLluEEQtWl/J7Lxuf/b+i8RYh997QeXvL85xitrmRKVlx9c7eTrcRdq2GS4eA==}
     engines: {node: '>=10'}
 
+  drizzle-graphql@0.8.4:
+    resolution: {integrity: sha512-FYALOc4R7k4dHOPseTFFt2LT5QzKmv62j3eMeXYHkk3qKbmlG1Lz66aBsPYpm74fOCrzlH1PiiM122bwx4Brew==}
+    peerDependencies:
+      drizzle-orm: '>=0.30.9'
+      graphql: ^16.8.1
+
   drizzle-kit@0.23.0:
     resolution: {integrity: sha512-w9jE97z193dd4jzAyj4Uv2SOh8Ydue70Ki6W0awy4bGM1aPXan6zD6Yv+nNTA6oGgNTDl2MJFxutjHG4fden5g==}
     hasBin: true
@@ -7083,6 +7101,12 @@ packages:
 
   graphql-middleware@6.1.35:
     resolution: {integrity: sha512-azawK7ApUYtcuPGRGBR9vDZu795pRuaFhO5fgomdJppdfKRt7jwncuh0b7+D3i574/4B+16CNWgVpnGVlg3ZCg==}
+    peerDependencies:
+      graphql: ^16.8.1
+
+  graphql-parse-resolve-info@4.13.0:
+    resolution: {integrity: sha512-VVJ1DdHYcR7hwOGQKNH+QTzuNgsLA8l/y436HtP9YHoX6nmwXRWq3xWthU3autMysXdm0fQUbhTZCx0W9ICozw==}
+    engines: {node: '>=8.6'}
     peerDependencies:
       graphql: ^16.8.1
 
@@ -16871,6 +16895,14 @@ snapshots:
       p-event: 2.3.1
       pify: 4.0.1
 
+  drizzle-graphql@0.8.4(drizzle-orm@0.32.0(@libsql/client@0.7.0)(@opentelemetry/api@1.9.0)(@prisma/client@5.16.2)(@types/better-sqlite3@7.6.11)(@types/pg@8.11.6)(@types/react@18.3.3)(postgres@3.4.4)(react@18.3.1))(graphql@16.9.0):
+    dependencies:
+      drizzle-orm: 0.32.0(@libsql/client@0.7.0)(@opentelemetry/api@1.9.0)(@prisma/client@5.16.2)(@types/better-sqlite3@7.6.11)(@types/pg@8.11.6)(@types/react@18.3.3)(postgres@3.4.4)(react@18.3.1)
+      graphql: 16.9.0
+      graphql-parse-resolve-info: 4.13.0(graphql@16.9.0)
+    transitivePeerDependencies:
+      - supports-color
+
   drizzle-kit@0.23.0:
     dependencies:
       '@esbuild-kit/esm-loader': 2.6.5
@@ -18361,6 +18393,14 @@ snapshots:
       '@graphql-tools/delegate': 8.8.1(graphql@16.9.0)
       '@graphql-tools/schema': 8.5.1(graphql@16.9.0)
       graphql: 16.9.0
+
+  graphql-parse-resolve-info@4.13.0(graphql@16.9.0):
+    dependencies:
+      debug: 4.3.5
+      graphql: 16.9.0
+      tslib: 2.6.3
+    transitivePeerDependencies:
+      - supports-color
 
   graphql-rate-limit-directive@2.0.5(@graphql-tools/utils@10.3.1(graphql@16.9.0))(graphql@16.9.0)(rate-limiter-flexible@5.0.3):
     dependencies:

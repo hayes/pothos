@@ -2,7 +2,7 @@ import { createTestServer } from '@pothos/test-utils';
 import { schema } from './schema';
 
 const server = createTestServer({
-  contextFactory: () => ({
+  context: () => ({
     log: console.log,
   }),
   schema,

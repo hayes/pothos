@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`drizzle plugin > produces the expected schema 1`] = `
+""""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the \`date-time\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
+type Mutation {
+  commentOnPost(input: MutationCommentOnPostInput!): comments
+  createPost(input: MutationCreatePostInput!): Post
+  likePost(postId: ID!): Post
+  publishPost(postId: ID!): Post
+}
+
+input MutationCommentOnPostInput {
+  postId: ID!
+  text: String!
+}
+
+input MutationCreatePostInput {
+  category: String!
+  content: String!
+  published: Boolean
+  title: String!
+}
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Post {
+  author: User
+  category: String
+  comments: [comments!]
+  content: String
+  createdAt: DateTime
+  id: ID
+  likes: Int
+  published: Boolean
+  title: String
+  updatedAt: DateTime
+}
+
+type Query {
+  me: Viewer
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+  post(id: ID!): Post
+  posts(after: String, before: String, category: String, first: Int, last: Int): QueryPostsConnection
+}
+
+type QueryPostsConnection {
+  edges: [QueryPostsConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type User implements Node {
+  bio: String
+  email: String
+  firstName: String
+  fullName: String
+  id: ID!
+  isAdmin: Boolean!
+  lastName: String
+  posts(limit: Int, offset: Int): [Post!]
+  postsConnection(after: String, before: String, first: Int, last: Int): UserPostsConnection
+  viewer: Viewer
+}
+
+type UserPostsConnection {
+  edges: [UserPostsConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type UserPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type Viewer {
+  comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
+  drafts: [Post!]
+  id: ID
+  roles: [String!]
+  user: User!
+  username: String
+}
+
+type ViewerCommentsConnection {
+  edges: [ViewerCommentsConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type ViewerCommentsConnectionEdge {
+  cursor: String!
+  node: comments
+}
+
+type comments {
+  author: User
+  id: ID
+  post: Post
+  text: String
+}"
+`;

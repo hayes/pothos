@@ -1,5 +1,12 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { Column, inArray, sql, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
+import {
+  Column,
+  inArray,
+  RelationalSchemaConfig,
+  sql,
+  TableRelationalConfig,
+  TablesRelationalConfig,
+} from 'drizzle-orm';
 import { createContextCache, SchemaTypes } from '@pothos/core';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
 import { selectionStateFromInfo, stateFromInfo } from './utils/map-query';
@@ -10,6 +17,7 @@ import {
   SelectionState,
   selectionToQuery,
 } from './utils/selections';
+import { getSchemaConfig, PothosDrizzleSchemaConfig } from './utils/config';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -30,7 +38,7 @@ export class ModelLoader {
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
-  schema: TablesRelationalConfig;
+  config: PothosDrizzleSchemaConfig;
   table: TableRelationalConfig;
   columns: Column[];
   selectSQL;
@@ -44,8 +52,8 @@ export class ModelLoader {
     this.context = context;
     this.builder = builder;
     this.modelName = modelName;
-    this.schema = builder.options.drizzle.client._.schema!;
-    this.table = this.schema[modelName];
+    this.config = getSchemaConfig(builder);
+    this.table = this.config.schema[modelName];
     this.columns = columns ?? this.table.primaryKey;
     this.selectSQL =
       this.columns.length > 1
@@ -79,7 +87,7 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(this.schema, this.context, info);
+      const selection = selectionStateFromInfo(this.config, this.context, info);
       this.queryCache.set(key, {
         selection,
         query: selectionToQuery(selection),
@@ -93,7 +101,7 @@ export class ModelLoader {
     const key = cacheKey(typeName, info.path);
     if (!this.queryCache.has(key)) {
       const selection = stateFromInfo({
-        schema: this.schema,
+        config: this.config,
         context: this.context,
         info,
         typeName,
@@ -139,7 +147,7 @@ export class ModelLoader {
   async stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
       if (selectionCompatible(entry.state, query)) {
-        mergeSelection(this.builder.options.drizzle.client._.schema!, entry.state, query);
+        mergeSelection(this.config, entry.state, query);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());

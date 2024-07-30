@@ -1,6 +1,7 @@
 /* eslint-disable no-param-reassign */
 import {
   DBQueryConfig,
+  RelationalSchemaConfig,
   SQL,
   TableRelationalConfig,
   TablesRelationalConfig,
@@ -9,6 +10,7 @@ import {
 import { PothosValidationError } from '@pothos/core';
 import { deepEqual } from './deep-equal';
 import { LoaderMappings } from './loader-map';
+import { PothosDrizzleSchemaConfig } from './config';
 
 export interface SelectionState {
   table: TableRelationalConfig;
@@ -116,7 +118,7 @@ export function createState(table: TableRelationalConfig, parent?: SelectionStat
 }
 
 export function mergeSelection(
-  schema: TablesRelationalConfig,
+  config: PothosDrizzleSchemaConfig,
   state: SelectionState,
   { with: withSelection, extras, columns, ...query }: SelectionMap,
 ) {
@@ -128,10 +130,7 @@ export function mergeSelection(
         throw new PothosValidationError(`Relation ${key} does not exist on ${state.table.dbName}`);
       }
 
-      const table = schema[relation.referencedTableName];
-
-      // TODO: make sure that nested extras are normalized
-      merge(table, key, value as SelectionMap | boolean);
+      merge(config.dbToSchema[relation.referencedTableName], key, value as SelectionMap | boolean);
     });
   }
 
@@ -168,10 +167,10 @@ export function mergeSelection(
     const selection = value === true ? {} : value;
 
     if (state.with.has(key)) {
-      mergeSelection(schema, state.with.get(key)!, selection);
+      mergeSelection(config, state.with.get(key)!, selection);
     } else {
       const relatedState = createState(table, state);
-      mergeSelection(schema, relatedState, selection);
+      mergeSelection(config, relatedState, selection);
       state.with.set(key, relatedState);
     }
   }
