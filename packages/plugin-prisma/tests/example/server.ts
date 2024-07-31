@@ -13,7 +13,7 @@ prisma.$use((params, next) => {
   return next(params);
 });
 
-const server = createTestServer({ schema, contextFactory: () => ({ user: { id: 1 } }) });
+const server = createTestServer({ schema, context: () => ({ user: { id: 1 } }) });
 
 server.listen(3000, () => {
   console.log('🚀 Server started at http://127.0.0.1:3000');

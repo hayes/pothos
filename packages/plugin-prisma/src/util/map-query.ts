@@ -49,36 +49,32 @@ function addTypeSelectionsForField(
     return;
   }
 
-  const {
-    pothosPrismaInclude,
-    pothosPrismaSelect,
-    pothosPrismaIndirectInclude,
-    pothosPrismaModel,
-  } = (type.extensions ?? {}) as {
-    pothosPrismaModel?: string;
-    pothosPrismaInclude?: IncludeMap;
-    pothosPrismaSelect?: IncludeMap;
-    pothosPrismaIndirectInclude?: IndirectInclude;
-  };
+  const { pothosPrismaInclude, pothosPrismaSelect, pothosIndirectInclude, pothosPrismaModel } =
+    (type.extensions ?? {}) as {
+      pothosPrismaModel?: string;
+      pothosPrismaInclude?: IncludeMap;
+      pothosPrismaSelect?: IncludeMap;
+      pothosIndirectInclude?: IndirectInclude;
+    };
 
   if (
-    (!!pothosPrismaIndirectInclude?.path && pothosPrismaIndirectInclude.path.length > 0) ||
-    (!!pothosPrismaIndirectInclude?.paths && pothosPrismaIndirectInclude.paths.length === 0)
+    (!!pothosIndirectInclude?.path && pothosIndirectInclude.path.length > 0) ||
+    (!!pothosIndirectInclude?.paths && pothosIndirectInclude.paths.length === 0)
   ) {
     resolveIndirectIncludePaths(
       type,
       info,
       selection,
       [],
-      pothosPrismaIndirectInclude.paths ?? [pothosPrismaIndirectInclude.path!],
+      pothosIndirectInclude.paths ?? [pothosIndirectInclude.path!],
       indirectPath,
       (resolvedType, field, path) => {
         addTypeSelectionsForField(resolvedType, context, info, state, field, path);
       },
     );
-  } else if (pothosPrismaIndirectInclude) {
+  } else if (pothosIndirectInclude) {
     addTypeSelectionsForField(
-      info.schema.getType(pothosPrismaIndirectInclude.getType())!,
+      info.schema.getType(pothosIndirectInclude.getType())!,
       context,
       info,
       state,
@@ -335,7 +331,7 @@ function addFieldSelection(
             returnType,
             info,
             selection,
-            (returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? [],
+            (returnType.extensions?.pothosIndirectInclude as { path: [] })?.path ?? [],
             normalizedIndirectInclude?.paths ??
               (normalizedIndirectInclude?.path ? [normalizedIndirectInclude.path] : []),
             [],
@@ -403,11 +399,15 @@ function addFieldSelection(
   }
 }
 
-export function queryFromInfo<T extends SelectionMap['select'] | undefined = undefined>({
+export function queryFromInfo<
+  Select extends SelectionMap['select'] | undefined = undefined,
+  Include extends SelectionMap['select'] | undefined = undefined,
+>({
   context,
   info,
   typeName,
   select,
+  include,
   path = [],
   paths = [],
   withUsageCheck = false,
@@ -415,27 +415,33 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
-  select?: T;
   path?: string[];
   paths?: string[][];
   withUsageCheck?: boolean;
-}): { include?: {} } | { select: T } {
+} & (
+  | { include?: Include; select?: never }
+  | { select?: Select; include?: never }
+)): undefined extends Include
+  ? {
+      select: Select;
+    }
+  : { include: Include } {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
 
   let state: SelectionState | undefined;
-  const initialSelection = select ? { select } : undefined;
+  const initialSelection = select ? { select } : include ? { include } : undefined;
 
   if (path.length > 0 || paths.length > 0) {
-    const { pothosPrismaIndirectInclude } = (returnType.extensions ?? {}) as {
-      pothosPrismaIndirectInclude?: IndirectInclude;
+    const { pothosIndirectInclude } = (returnType.extensions ?? {}) as {
+      pothosIndirectInclude?: IndirectInclude;
     };
 
     resolveIndirectInclude(
       returnType,
       info,
       info.fieldNodes[0],
-      pothosPrismaIndirectInclude?.path ?? [],
+      pothosIndirectInclude?.path ?? [],
       [],
       (indirectType, indirectField, subPath) => {
         resolveIndirectIncludePaths(
@@ -479,7 +485,7 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
 
   setLoaderMappings(context, info, state.mappings);
 
-  const query = selectionToQuery(state) as { select: T };
+  const query = selectionToQuery(state) as { select: Select; include: Include };
 
   return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
@@ -530,9 +536,9 @@ function createStateForType(
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {
   let targetType = type;
 
-  while (targetType.extensions?.pothosPrismaIndirectInclude) {
+  while (targetType.extensions?.pothosIndirectInclude) {
     targetType = info.schema.getType(
-      (targetType.extensions?.pothosPrismaIndirectInclude as IndirectInclude).getType(),
+      (targetType.extensions?.pothosIndirectInclude as IndirectInclude).getType(),
     )!;
   }
 

@@ -3,8 +3,10 @@ import schema from './schema';
 import User from './user';
 
 const server = createTestServer({
-  contextFactory: (req) => ({
-    User: req.headers['x-user-id'] ? new User(req.headers) : null,
+  context: ({ request }) => ({
+    User: request.headers.get('x-user-id')
+      ? new User(Object.fromEntries(request.headers.entries()))
+      : null,
   }),
   schema,
 });

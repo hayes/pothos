@@ -4,7 +4,7 @@ import schema from './schema';
 
 const server = createTestServer({
   schema,
-  contextFactory: (): { complexity: ComplexityResult } => ({
+  context: (): { complexity: ComplexityResult } => ({
     complexity: {
       depth: 5,
       breadth: 10,

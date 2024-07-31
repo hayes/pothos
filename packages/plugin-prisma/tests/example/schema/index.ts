@@ -1286,7 +1286,7 @@ builder.queryField('blog', (t) =>
         info,
         typeName: 'Post',
         path: ['posts'],
-        select: { author: true },
+        include: { author: true },
       });
 
       return {

@@ -353,7 +353,7 @@ declare global {
           >
         : '@pothos/plugin-relay is required to use this method';
 
-      prismaFieldWithInput: 'prisma' extends PluginName
+      prismaFieldWithInput: 'withInput' extends PluginName
         ? <
             Fields extends InputFieldMap,
             TypeParam extends
@@ -399,7 +399,7 @@ declare global {
                 : ArgRequired
             >,
           ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>
-        : '@pothos/plugin-prisma is required to use this method';
+        : '@pothos/plugin-with-input is required to use this method';
     }
 
     export interface ConnectionFieldOptions<

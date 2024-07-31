@@ -11,9 +11,12 @@ services:
     ports:
       - '5455:5432'
 
+    volumes:
+      - ./scripts/pg-init-scripts:/docker-entrypoint-initdb.d
+
     environment:
       POSTGRES_USER: prisma
 
       POSTGRES_PASSWORD: prisma
 
-      POSTGRES_DB: tests
+      POSTGRES_MULTIPLE_DATABASES: tests,drizzle

@@ -7,7 +7,7 @@ export const pubsub = new PubSub();
 
 const server = createTestServer({
   schema,
-  contextFactory: () => ({
+  context: () => ({
     Poll,
     pubsub,
   }),

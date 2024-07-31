@@ -9,7 +9,7 @@ export const pubsub = new PubSub();
 
 const server = createTestServer({
   schema,
-  contextFactory: (): ContextType => ({
+  context: (): ContextType => ({
     Poll,
     pubsub,
     log: (info) =>

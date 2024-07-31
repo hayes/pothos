@@ -137,10 +137,6 @@ export class PrismaObjectFieldBuilder<
                     >
                   >
                 >
-              | ObjectRef<
-                  Types,
-                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
-                >
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
                   ObjectRef<

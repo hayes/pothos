@@ -1,14 +1,16 @@
-import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
 import { execute, GraphQLSchema } from 'graphql';
-import { createYoga, Plugin } from 'graphql-yoga';
+import { createYoga, Plugin, YogaServerOptions } from 'graphql-yoga';
 
-export interface TestServerOptions {
+export interface TestServerOptions<ServerContext, UserContext>
+  extends YogaServerOptions<ServerContext, UserContext> {
   execute?: typeof execute;
-  schema: GraphQLSchema;
-  contextFactory?: (req: IncomingMessage, res: ServerResponse) => object;
 }
 
-export function createTestServer(options: TestServerOptions) {
+export function createTestServer<
+  ServerContext extends Record<string, any> = {},
+  UserContext extends Record<string, any> = {},
+>(options: TestServerOptions<ServerContext, UserContext>) {
   const executePlugin: Plugin | undefined = options.execute
     ? {
         onExecute: (event) => {
@@ -18,10 +20,10 @@ export function createTestServer(options: TestServerOptions) {
     : undefined;
 
   const yoga = createYoga({
+    ...options,
     graphqlEndpoint: '/',
     graphiql: true,
-    schema: options.schema,
-    context: options.contextFactory ?? (() => ({})),
+    context: options.context ?? (() => ({})),
     plugins: executePlugin ? [executePlugin] : [],
     maskedErrors: {
       isDev: true,
