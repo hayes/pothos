@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.0
+
+### Minor Changes
+
+- 307340a: Use a shared directive name for defining indirect resolutions
+
 ## 4.0.2
 
 ### Patch Changes
