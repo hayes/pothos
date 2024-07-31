@@ -71,10 +71,12 @@ builder.queryFields((t) => ({
       id: t.arg.id({ required: true }),
     },
     resolve: (query, root, args, ctx) =>
-      db.query.posts.findFirst({
-        ...query,
-        where: eq(posts.id, Number.parseInt(args.id, 10)),
-      }),
+      db.query.posts.findFirst(
+        query({
+          orderBy: (post, ops) => ops.desc(post.id),
+          where: eq(posts.id, Number.parseInt(args.id, 10)),
+        }),
+      ),
   }),
   posts: t.drizzleConnection({
     type: 'posts',
@@ -82,21 +84,24 @@ builder.queryFields((t) => ({
       category: t.arg.string(),
     },
     resolve: (query, root, args, ctx) =>
-      db.query.posts.findMany({
-        ...query({
-          where: args.category
-            ? (post, { inArray }) =>
-                inArray(
-                  post.categoryId,
-                  db
-                    .select({ id: categories.id })
-                    .from(categories)
-                    .where(args.category ? eq(categories.name, args.category) : undefined),
-                )
-            : undefined,
+      db.query.posts.findMany(
+        query({
+          where: (post, { inArray }) =>
+            and(
+              eq(post.published, 1),
+              args.category
+                ? inArray(
+                    post.categoryId,
+                    db
+                      .select({ id: categories.id })
+                      .from(categories)
+                      .where(args.category ? eq(categories.name, args.category) : undefined),
+                  )
+                : undefined,
+            ),
           orderBy: (post) => ({ desc: post.id }),
         }),
-      }),
+      ),
   }),
 }));
 
@@ -115,10 +120,11 @@ builder.mutationFields((t) => ({
           userId: ctx.user.id,
         })
         .onConflictDoNothing();
-      return db.query.posts.findFirst({
-        ...query,
-        where: eq(posts.id, postId),
-      });
+      return db.query.posts.findFirst(
+        query({
+          where: eq(posts.id, postId),
+        }),
+      );
     },
   }),
   commentOnPost: t.withAuth({ loggedIn: true }).fieldWithInput({
@@ -178,10 +184,11 @@ builder.mutationFields((t) => ({
           published: 1,
         })
         .where(and(eq(posts.id, postId), eq(posts.authorId, ctx.user.id)));
-      return db.query.posts.findFirst({
-        ...query,
-        where: eq(posts.id, postId),
-      });
+      return db.query.posts.findFirst(
+        query({
+          where: eq(posts.id, postId),
+        }),
+      );
     },
   }),
 }));

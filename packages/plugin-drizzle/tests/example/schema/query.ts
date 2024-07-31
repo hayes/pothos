@@ -7,10 +7,11 @@ builder.queryType({
     me: t.withAuth({ loggedIn: true }).drizzleField({
       type: Viewer,
       resolve: (query, root, args, ctx) =>
-        db.query.users.findFirst({
-          ...query,
-          where: (user, { eq }) => eq(user.id, ctx.user.id),
-        }),
+        db.query.users.findFirst(
+          query({
+            where: (user, { eq }) => eq(user.id, ctx.user.id),
+          }),
+        ),
     }),
   }),
 });

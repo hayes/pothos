@@ -145,6 +145,7 @@ export type DrizzleNodeOptions<
 export type DrizzleFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
+  Table extends keyof Types['DrizzleRelationSchema'],
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
@@ -167,13 +168,7 @@ export type DrizzleFieldOptions<
 > & {
   type: Param;
   resolve: (
-    query: DBQueryConfig<
-      Param extends [unknown] ? 'many' : 'one',
-      false,
-      Types['DrizzleRelationSchema'],
-      Types['DrizzleRelationSchema'][keyof Types['DrizzleRelationSchema'] &
-        (Param extends [unknown] ? Param[0] : Param)]
-    >,
+    query: <T extends QueryForDrizzleField<Types, Param, Table>>(selection?: T) => T,
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
     ctx: Types['Context'],
@@ -184,6 +179,7 @@ export type DrizzleFieldOptions<
 export type DrizzleFieldWithInputOptions<
   Types extends SchemaTypes,
   ParentShape,
+  Table extends keyof Types['DrizzleRelationSchema'],
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
@@ -198,6 +194,7 @@ export type DrizzleFieldWithInputOptions<
   DrizzleFieldOptions<
     Types,
     ParentShape,
+    Table,
     Type,
     Nullable,
     Args & {
@@ -423,6 +420,20 @@ export type QueryForField<
 ) extends infer QueryConfig
   ? QueryConfig | ((args: InputShapeFromFields<Args>, context: Types['Context']) => QueryConfig)
   : never;
+
+export type QueryForDrizzleField<
+  Types extends SchemaTypes,
+  Param,
+  Table extends keyof Types['DrizzleRelationSchema'],
+> = Omit<
+  DBQueryConfig<
+    'many',
+    true,
+    Types['DrizzleRelationSchema'],
+    Types['DrizzleRelationSchema'][Table]
+  >,
+  Param extends [unknown] ? never : 'limit'
+>;
 
 export type QueryForRelatedConnection<
   Types extends SchemaTypes,

@@ -28,14 +28,20 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
     ...(options as {}),
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({
-        config: getSchemaConfig(this.builder),
+      return resolve(
+        (select) =>
+          queryFromInfo({
+            config: getSchemaConfig(this.builder),
+            context,
+            select,
+            info,
+            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
+          }),
+        parent,
+        args as never,
         context,
         info,
-        // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-      });
-
-      return resolve(query, parent, args as never, context, info) as never;
+      ) as never;
     },
   }) as never;
 };

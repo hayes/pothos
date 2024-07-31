@@ -279,33 +279,29 @@ declare global {
         Nullable extends FieldNullability<Type>,
         ResolveShape,
         ResolveReturnShape,
-        Type extends TypeParam<Types> = Param extends [unknown]
-          ? Param[0] extends DrizzleRef<any>
+        Table extends
+          keyof Types['DrizzleRelationSchema'] = Param extends keyof Types['DrizzleRelationSchema']
+          ? Param
+          : Param extends [keyof Types['DrizzleRelationSchema']]
             ? Param[0]
-            : [
-                ObjectRef<
-                  Types,
-                  BuildQueryResult<
-                    Types['DrizzleRelationSchema'],
-                    Types['DrizzleRelationSchema'][Param[0] & keyof Types['DrizzleRelationSchema']],
-                    true
-                  >
-                >,
-              ]
-          : Param extends DrizzleRef<any>
-            ? Param
-            : ObjectRef<
-                Types,
-                BuildQueryResult<
-                  Types['DrizzleRelationSchema'],
-                  Types['DrizzleRelationSchema'][Param & keyof Types['DrizzleRelationSchema']],
-                  true
-                >
-              >,
+            : Param extends DrizzleRef<any, infer T>
+              ? T & keyof Types['DrizzleRelationSchema']
+              : Param extends [DrizzleRef<any, infer T>]
+                ? T & keyof Types['DrizzleRelationSchema']
+                : never,
+        Type extends TypeParam<Types> = ObjectRef<
+          Types,
+          BuildQueryResult<
+            Types['DrizzleRelationSchema'],
+            Types['DrizzleRelationSchema'][Table],
+            true
+          >
+        >,
       >(
         options: DrizzleFieldOptions<
           Types,
           ParentShape,
+          Table,
           Type,
           Nullable,
           Args,
@@ -397,34 +393,29 @@ declare global {
             ResolveReturnShape,
             ArgRequired extends boolean,
             InputName extends string = 'input',
-            Type extends TypeParam<Types> = Param extends [unknown]
-              ? Param[0] extends DrizzleRef<any>
+            Table extends
+              keyof Types['DrizzleRelationSchema'] = Param extends keyof Types['DrizzleRelationSchema']
+              ? Param
+              : Param extends [keyof Types['DrizzleRelationSchema']]
                 ? Param[0]
-                : [
-                    ObjectRef<
-                      Types,
-                      BuildQueryResult<
-                        Types['DrizzleRelationSchema'],
-                        Types['DrizzleRelationSchema'][Param[0] &
-                          keyof Types['DrizzleRelationSchema']],
-                        true
-                      >
-                    >,
-                  ]
-              : Param extends DrizzleRef<any>
-                ? Param
-                : ObjectRef<
-                    Types,
-                    BuildQueryResult<
-                      Types['DrizzleRelationSchema'],
-                      Types['DrizzleRelationSchema'][Param & keyof Types['DrizzleRelationSchema']],
-                      true
-                    >
-                  >,
+                : Param extends DrizzleRef<any, infer T>
+                  ? T & keyof Types['DrizzleRelationSchema']
+                  : Param extends [DrizzleRef<any, infer T>]
+                    ? T & keyof Types['DrizzleRelationSchema']
+                    : never,
+            Type extends TypeParam<Types> = ObjectRef<
+              Types,
+              BuildQueryResult<
+                Types['DrizzleRelationSchema'],
+                Types['DrizzleRelationSchema'][Table],
+                true
+              >
+            >,
           >(
             options: DrizzleFieldWithInputOptions<
               Types,
               ParentShape,
+              Table,
               Type,
               Nullable,
               Args,
