@@ -10,7 +10,7 @@ builder.queryField('exampleQuery', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.input.id,
+    resolve: (_root, args) => args.input.id,
   }),
 );
 
@@ -20,7 +20,7 @@ builder.mutationField('exampleMutation', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.input.id,
+    resolve: (_root, args) => args.input.id,
   }),
 );
 
@@ -30,7 +30,7 @@ builder.subscriptionField('exampleSubscription', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.input.id,
+    resolve: (_root, args) => args.input.id,
     async *subscribe() {
       yield await {};
       return {};
@@ -57,7 +57,7 @@ builder.objectField(TestObj, 'exampleObjectField', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.input.id,
+    resolve: (_root, args) => args.input.id,
   }),
 );
 
@@ -85,7 +85,7 @@ builder.interfaceField(TestInterface, 'exampleInterfaceField', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.input.id,
+    resolve: (_root, args) => args.input.id,
   }),
 );
 
@@ -106,7 +106,7 @@ builder.queryField('withOptions', (t) =>
     },
     type: 'ID',
     // @ts-expect-error input is not required
-    resolve: (root, args) => args.custom.id,
+    resolve: (_root, args) => args.custom.id,
   }),
 );
 
@@ -125,7 +125,7 @@ builder.mutationField('withOptions', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.custom.id,
+    resolve: (_root, args) => args.custom.id,
   }),
 );
 
@@ -144,7 +144,7 @@ builder.subscriptionField('withOptions', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.custom.id,
+    resolve: (_root, args) => args.custom.id,
     async *subscribe() {
       yield await {};
       return {};
@@ -167,7 +167,7 @@ builder.objectField(TestObj, 'withOptions', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.custom.id,
+    resolve: (_root, args) => args.custom.id,
   }),
 );
 
@@ -186,7 +186,7 @@ builder.interfaceField(TestInterface, 'withOptions', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
-    resolve: (root, args) => args.custom.id,
+    resolve: (_root, args) => args.custom.id,
   }),
 );
 
@@ -202,7 +202,7 @@ builder.queryField('withValidation', (t) =>
       }),
     },
     type: 'String',
-    resolve: (root, args) => args.input.email,
+    resolve: (_root, args) => args.input.email,
   }),
 );
 

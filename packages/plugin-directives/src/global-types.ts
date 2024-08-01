@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   EnumValues,
   FieldNullability,
   FieldRequiredness,
@@ -11,7 +10,7 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { DirectiveLocation, Directives } from './types';
+import type { DirectiveLocation, Directives } from './types';
 
 import type { PothosDirectivesPlugin } from '.';
 

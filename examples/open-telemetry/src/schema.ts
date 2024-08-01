@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
 import { createOpenTelemetryWrapper } from '@pothos/tracing-opentelemetry';
-import { tracer, TracingOptions } from './zipkinTracer';
+import { type TracingOptions, tracer } from './zipkinTracer';
 
 const createSpan = createOpenTelemetryWrapper<TracingOptions>(tracer, {
   includeSource: true,
@@ -28,7 +28,7 @@ builder.queryType({
   fields: (t) => ({
     hello: t.string({
       args: { name: t.arg.string(), delay: t.arg.int() },
-      resolve: async (parent, { name, delay }) =>
+      resolve: async (_parent, { name, delay }) =>
         tracer.startActiveSpan('resolving hello', async () => {
           const hello = `hello, ${name ?? 'World'}`;
 

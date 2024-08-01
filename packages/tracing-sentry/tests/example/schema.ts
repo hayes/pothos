@@ -1,5 +1,5 @@
 import { builder } from './builder';
-import { Comments, IComment, IPost, IUser, Posts, Users } from './data';
+import { Comments, type IComment, type IPost, type IUser, Posts, Users } from './data';
 
 export const User = builder.objectRef<IUser>('User');
 export const Post = builder.objectRef<IPost>('Post');
@@ -67,7 +67,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Posts.get(String(args.id)),
+      resolve: (_root, args) => Posts.get(String(args.id)),
     }),
     posts: t.field({
       type: [Post],
@@ -76,7 +76,7 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (root, args) =>
+      resolve: (_root, args) =>
         [...Posts.values()].slice(args.skip ?? 0, args.take ?? DEFAULT_PAGE_SIZE),
     }),
     user: t.field({
@@ -85,7 +85,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => {
+      resolve: (_root, args) => {
         const user = Users.get(String(args.id));
 
         if (!user) {

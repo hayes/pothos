@@ -1,8 +1,8 @@
-import { GraphQLResolveInfo } from 'graphql';
+import type { GraphQLResolveInfo } from 'graphql';
 
 export type MaybePromise<T> = Promise<T> | T;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I,
 ) => void
@@ -52,10 +52,14 @@ export type NormalizeNullableFields<T extends object> = Normalize<
 
 // Check if T is a Record of string keys who's values are not functions
 export type IsSimpleRecord<T> = (
-  [T] extends [Record<string, any>] // eslint-disable-line @typescript-eslint/no-explicit-any
+  [T] extends [
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    Record<string, any>,
+  ]
     ? keyof T extends infer K
       ? K extends string
-        ? T[K] extends (...args: any[]) => unknown
+        ? // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          T[K] extends (...args: any[]) => unknown
           ? // check if T[K] is any (T[K] is distributed, so it can't also be a number unless its any)
             [1] extends [T[K]]
             ? never
@@ -72,7 +76,8 @@ export type RecursivelyNormalizeNullableFields<T> = T extends null | undefined
   ? null | undefined
   : T extends (infer L)[]
     ? RecursivelyNormalizeNullableFields<L>[]
-    : T extends (...args: any[]) => unknown
+    : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      T extends (...args: any[]) => unknown
       ? T
       : keyof T extends string
         ? IsSimpleRecord<T> extends true

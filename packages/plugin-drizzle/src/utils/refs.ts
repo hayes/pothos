@@ -1,5 +1,5 @@
-import { SchemaTypes } from '@pothos/core';
-import { DrizzleInterfaceRef, DrizzleRef } from '../interface-ref';
+import type { SchemaTypes } from '@pothos/core';
+import { DrizzleInterfaceRef, type DrizzleRef } from '../interface-ref';
 import { DrizzleObjectRef } from '../object-ref';
 
 export const refMap = new WeakMap<object, Map<string, DrizzleRef<never>>>();

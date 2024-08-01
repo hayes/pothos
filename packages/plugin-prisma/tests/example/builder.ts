@@ -3,8 +3,7 @@ import ComplexityPlugin from '@pothos/plugin-complexity';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import SimpleObjects from '@pothos/plugin-simple-objects';
-import PrismaPlugin, { PrismaTypesFromClient } from '../../src';
-// eslint-disable-next-line import/no-useless-path-segments
+import PrismaPlugin, { queryFromInfo, type PrismaTypesFromClient } from '../../src';
 import { Prisma, PrismaClient } from '../client/index';
 import { getDatamodel } from '../generated.js';
 

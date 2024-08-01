@@ -1,12 +1,11 @@
-/* eslint-disable no-underscore-dangle */
 import {
+  type ResolveCursorConnectionArgs,
   resolveArrayConnection,
   resolveCursorConnection,
-  ResolveCursorConnectionArgs,
 } from '@pothos/plugin-relay';
 import { prismaConnectionHelpers } from '../../../src';
 import { queryFromInfo } from '../../../src/util/map-query';
-import { Post } from '../../client';
+import type { Post } from '../../client';
 import builder, { prisma } from '../builder';
 
 const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
@@ -170,7 +169,7 @@ const Viewer = builder.prismaInterface('User', {
 builder.prismaInterfaceField(Viewer, 'user', (t) => t.variant('User'));
 builder.prismaInterfaceFields(Viewer, (t) => ({
   postPreviews: t.field({
-    select: (args, ctx, nestedSelection) => ({
+    select: (_args, _ctx, nestedSelection) => ({
       posts: nestedSelection(
         {
           take: 2,
@@ -249,7 +248,7 @@ const User = builder.prismaNode('User', {
   nullable: true,
   fields: (t) => ({
     viewer: t.variant(Viewer, {
-      isNull: (user, args, ctx) => user.id !== ctx.user.id,
+      isNull: (user, _args, ctx) => user.id !== ctx.user.id,
     }),
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
@@ -300,7 +299,7 @@ const User = builder.prismaNode('User', {
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { ...(query as { where?: {} }).where, authorId: user.id },
+          where: { ...(query as { where?: object }).where, authorId: user.id },
         }),
     }),
     postNodes: t.relation('posts', {
@@ -320,7 +319,7 @@ const User = builder.prismaNode('User', {
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { ...(query as { where?: {} }).where, authorId: user.id },
+          where: { ...(query as { where?: object }).where, authorId: user.id },
         }),
     }),
     postsConnection: t.relatedConnection(
@@ -379,7 +378,7 @@ const User = builder.prismaNode('User', {
     }),
     commentsConnection: t.relatedConnection('comments', { cursor: 'id' }),
     commentedPosts: t.relation('posts', {
-      query: (args, ctx) => ({
+      query: (_args, ctx) => ({
         take: 3,
         where: {
           comments: {
@@ -392,7 +391,7 @@ const User = builder.prismaNode('User', {
     }),
     commentedPostsConnection: t.relatedConnection('posts', {
       cursor: 'id',
-      query: (args, ctx) => ({
+      query: (_args, ctx) => ({
         where: {
           comments: {
             some: {
@@ -410,7 +409,7 @@ const User = builder.prismaNode('User', {
       select: {
         comments: true,
       },
-      resolve: (query, user) => user.comments,
+      resolve: (_query, user) => user.comments,
     }),
   }),
 });
@@ -518,7 +517,7 @@ builder.prismaObjectFields('Post', (t) => ({
       items: true,
       list: true,
     },
-    select: (args, ctx, nestedSelection) => ({
+    select: (_args, _ctx, nestedSelection) => ({
       author: nestedSelection({}, [], 'User'),
     }),
     resolve: (post) => (post.author ? User.addBrand([post.author]) : []),
@@ -529,7 +528,7 @@ builder.prismaObjectFields('Post', (t) => ({
       items: true,
       list: true,
     },
-    select: (args, ctx, nestedSelection) => ({
+    select: (_args, _ctx, nestedSelection) => ({
       author: nestedSelection({}, [], 'NormalViewer'),
     }),
     resolve: (post) => (post.author ? NormalViewer.addBrand([post.author]) : []),
@@ -655,7 +654,7 @@ const Profile = builder.prismaObject('Profile', {
     }),
     user: t.relation('user', {
       nullable: true,
-      resolve: (query, profile, args, ctx, info) =>
+      resolve: (query, profile, _args, _ctx, _info) =>
         prisma.user.findUnique({
           ...query,
           where: {
@@ -740,14 +739,14 @@ const PostRef = builder.prismaObject('Post', {
     }),
     commentsConnection: t.relatedConnection('comments', { cursor: 'id' }, CommentConnection),
     ownComments: t.relation('comments', {
-      query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
+      query: (_args, ctx) => ({ where: { authorId: ctx.user.id } }),
     }),
     ownCommentsConnection: t.relatedConnection('comments', {
       cursor: 'id',
-      query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
+      query: (_args, ctx) => ({ where: { authorId: ctx.user.id } }),
     }),
     media: t.field({
-      select: (args, ctx, nestedSelection) => ({
+      select: (_args, _ctx, nestedSelection) => ({
         media: {
           select: {
             order: true,
@@ -781,7 +780,7 @@ builder.prismaObject('Comment', {
     post: t.relation('post'),
     content: t.exposeString('content'),
     postAuthor: t.field({
-      select: (args, ctx, nestedSelection) => ({
+      select: (_args, _ctx, nestedSelection) => ({
         post: {
           select: {
             author: nestedSelection(true),
@@ -807,7 +806,7 @@ builder.queryType({
   fields: (t) => ({
     viewer: t.prismaField({
       type: Viewer,
-      resolve: (query, root, args, ctx, info) =>
+      resolve: (query, _root, _args, ctx, _info) =>
         prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
@@ -815,7 +814,7 @@ builder.queryType({
     }),
     viewerNode: t.prismaField({
       type: ViewerNode,
-      resolve: (query, root, args, ctx, info) =>
+      resolve: (query, _root, _args, ctx, _info) =>
         prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
@@ -824,7 +823,7 @@ builder.queryType({
     me: t.prismaField({
       type: 'User',
       nullable: true,
-      resolve: (query, root, args, ctx, info) =>
+      resolve: (query, _root, _args, ctx, _info) =>
         prisma.user.findUnique({
           ...query,
           where: { id: ctx.user.id },
@@ -833,7 +832,7 @@ builder.queryType({
     selectMe: t.prismaField({
       type: SelectUser,
       nullable: true,
-      resolve: (query, root, args, ctx, info) =>
+      resolve: (query, _root, _args, ctx, _info) =>
         prisma.user.findUnique({
           ...query,
           where: { id: ctx.user.id },
@@ -841,7 +840,7 @@ builder.queryType({
     }),
     users: t.prismaField({
       type: ['User'],
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: async (query, _root, _args, _ctx, _info) =>
         prisma.user.findMany({
           ...query,
           take: 2,
@@ -853,7 +852,7 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       nullable: true,
-      resolve: (query, root, args) =>
+      resolve: (query, _root, args) =>
         prisma.post.findUnique({
           ...query,
           where: { id: Number.parseInt(String(args.id), 10) },
@@ -861,16 +860,16 @@ builder.queryType({
     }),
     posts: t.prismaField({
       type: ['Post'],
-      resolve: (query, root, args) => prisma.post.findMany({ ...query, take: 3 }),
+      resolve: (query, _root, _args) => prisma.post.findMany({ ...query, take: 3 }),
     }),
     selectPosts: t.prismaField({
       type: [SelectPost],
-      resolve: (query, root, args) => prisma.post.findMany({ ...query, take: 3 }),
+      resolve: (query, _root, _args) => prisma.post.findMany({ ...query, take: 3 }),
     }),
     usersWithError: t.prismaField({
       errors: {},
       type: ['User'],
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: async (query, _root, _args, _ctx, _info) =>
         prisma.user.findMany({
           ...query,
           take: 2,
@@ -886,8 +885,8 @@ builder.queryType({
           test: t.arg.boolean({}),
         },
         complexity: (args) => (args.test ? 1 : 0),
-        resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
-        totalCount: (parent, args, context, info) => prisma.user.count(),
+        resolve: async (query, _parent, _args) => prisma.user.findMany({ ...query }),
+        totalCount: (_parent, _args, _context, _info) => prisma.user.count(),
       },
       {
         fields: (e) => ({
@@ -915,7 +914,7 @@ builder.queryType({
       {
         type: 'Unrelated',
         cursor: 'id',
-        resolve: async (query, parent, args) => {
+        resolve: async (query, parent, _args) => {
           const things = await prisma.unrelated.findMany({ ...query });
 
           return things.map((thing) => ({ ...thing, parent }));
@@ -930,7 +929,7 @@ builder.queryType({
       defaultSize: 10,
       maxSize: 15,
       errors: {},
-      resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
+      resolve: async (query, _parent, _args) => prisma.user.findMany({ ...query }),
     }),
     nullableUserConnection: t.prismaConnection({
       type: 'User',
@@ -938,7 +937,7 @@ builder.queryType({
       cursor: 'id',
       defaultSize: 10,
       maxSize: 15,
-      resolve: async (query, parent, args) => {
+      resolve: (query, _parent, args) => {
         if (args.first === 0) {
           return null;
         }
@@ -974,7 +973,7 @@ builder.queryType({
         items: true,
         list: true,
       },
-      resolve: async (root, args, context, info) => {
+      resolve: async (_root, _args, context, info) => {
         const user = await prisma.user.findFirstOrThrow({
           where: { id: 1 },
           ...queryFromInfo({
@@ -992,7 +991,7 @@ builder.queryType({
         items: true,
         list: true,
       },
-      resolve: async (root, args, context, info) => {
+      resolve: async (_root, _args, context, info) => {
         const user = await prisma.user.findFirstOrThrow({
           where: { id: 1 },
           ...queryFromInfo({
@@ -1043,7 +1042,7 @@ builder.queryField('withIDSelectConnection', (t) =>
   t.prismaConnection({
     type: WithIDSelect,
     cursor: 'id',
-    resolve: (query, parent, args) => prisma.withID.findMany({ ...query }),
+    resolve: (query, _parent, _args) => prisma.withID.findMany({ ...query }),
   }),
 );
 
@@ -1124,7 +1123,7 @@ builder.queryField('withCompositeConnection', (t) =>
     type: WithCompositeUniqueNodeSelect,
     cursor: 'a_b',
     complexity: (args) => args.first ?? 1,
-    resolve: (query, parent, args) => prisma.withCompositeUnique.findMany({ ...query }),
+    resolve: (query, _parent, _args) => prisma.withCompositeUnique.findMany({ ...query }),
   }),
 );
 
@@ -1162,6 +1161,7 @@ builder.queryFields((t) => ({
   findUniqueRelations: t.prismaField({
     type: 'FindUniqueRelations',
     resolve: (query) => {
+      // biome-ignore lint/complexity/noVoid: <explanation>
       void query.include;
 
       return prisma.findUniqueRelations.findUniqueOrThrow({
@@ -1268,6 +1268,7 @@ const Blog = builder.objectRef<{ posts: Post[]; pages: number[] }>('Blog').imple
     posts: t.prismaField({
       type: ['Post'],
       resolve: (query, blog) => {
+        // biome-ignore lint/complexity/noVoid: <explanation>
         void query.include;
 
         return blog.posts;
@@ -1280,7 +1281,7 @@ const Blog = builder.objectRef<{ posts: Post[]; pages: number[] }>('Blog').imple
 builder.queryField('blog', (t) =>
   t.field({
     type: Blog,
-    resolve: async (_, args, context, info) => {
+    resolve: async (_, _args, context, info) => {
       const query = queryFromInfo({
         context,
         info,

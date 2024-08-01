@@ -20,7 +20,6 @@ export function wrapWithUsageCheck<T extends Object>(obj: T): T {
     Object.defineProperty(result, key, {
       enumerable: true,
       configurable: true,
-      // eslint-disable-next-line @typescript-eslint/no-loop-func
       get() {
         used = true;
         return obj[key as keyof T];
@@ -47,7 +46,6 @@ export function extendWithUsage<T extends object, U extends object>(
 
   for (const key of [usageSymbol, ...Object.keys(original)]) {
     if (key in result) {
-      // eslint-disable-next-line no-continue
       continue;
     }
 

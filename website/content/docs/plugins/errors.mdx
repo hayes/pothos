@@ -253,8 +253,7 @@ function flattenErrors(
   error: ZodFormattedError<unknown>,
   path: string[],
 ): { path: string[]; message: string }[] {
-  // eslint-disable-next-line no-underscore-dangle
-  const errors = error._errors.map((message) => ({
+    const errors = error._errors.map((message) => ({
     path,
     message,
   }));

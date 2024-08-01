@@ -3,9 +3,9 @@ import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import SubGraphPlugin from '../../../src';
-import { Character, ContextType, Droid, Human } from './backing-models';
+import type { Character, ContextType, Droid, Human } from './backing-models';
 
-interface Types {
+export interface Types {
   Objects: { Droid: Droid; Human: Human; String: string };
   Interfaces: { Character: Character };
   Context: ContextType;

@@ -1,6 +1,6 @@
 import builder from '../builder';
-import { IPost } from '../types';
-import { countCall, postCounts, postsCounts, postSortedCounts, postsSortedCounts } from './counts';
+import type { IPost } from '../types';
+import { countCall, postCounts, postSortedCounts, postsCounts, postsSortedCounts } from './counts';
 
 const Post = builder.objectRef<IPost>('Post').implement({
   fields: (t) => ({
@@ -98,9 +98,9 @@ builder.queryFields((t) => ({
   postNullable: t.loadable({
     type: Post,
     nullable: true,
-    load: (ids: number[], context) =>
+    load: (ids: number[]) =>
       Promise.resolve(ids.map((id) => ({ id, title: `${id} title`, content: `${id} content` }))),
-    resolve: (_root, args) => null,
+    resolve: (_root) => null,
   }),
   postsNullable: t.loadable({
     type: [Post],
@@ -108,9 +108,9 @@ builder.queryFields((t) => ({
       list: false,
       items: true,
     },
-    load: (ids: number[], context) =>
+    load: (ids: number[]) =>
       Promise.resolve(ids.map((id) => ({ id, title: `${id} title`, content: `${id} content` }))),
-    resolve: (_root, args) => [null],
+    resolve: (_root) => [null],
   }),
 
   oneToMany: t.loadableList({

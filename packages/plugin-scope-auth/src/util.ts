@@ -1,4 +1,4 @@
-import { Path, PothosFieldConfig, SchemaTypes } from '@pothos/core';
+import type { Path, PothosFieldConfig, SchemaTypes } from '@pothos/core';
 
 import type { AuthScopeMap } from '.';
 

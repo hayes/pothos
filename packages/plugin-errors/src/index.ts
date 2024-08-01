@@ -1,17 +1,16 @@
 import './global-types';
-import { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  ImplementableObjectRef,
-  PothosObjectTypeConfig,
-  PothosOutputFieldConfig,
+  type ImplementableObjectRef,
+  type PothosOutputFieldConfig,
   PothosSchemaError,
-  SchemaTypes,
+  type SchemaTypes,
   sortClasses,
   typeBrandKey,
   unwrapOutputFieldType,
 } from '@pothos/core';
-import { GetTypeName } from './types';
+import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';
+import type { GetTypeName } from './types';
 
 export * from './types';
 
@@ -35,7 +34,6 @@ function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boolean })
     get(err, val, receiver) {
       if (val === unwrapError) {
         return () => {
-          // eslint-disable-next-line no-param-reassign
           state.wrapped = false;
         };
       }
@@ -58,12 +56,11 @@ function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boolean })
   });
 }
 
-const errorTypeMap = new WeakMap<{}, new (...args: any[]) => Error>();
+const errorTypeMap = new WeakMap<{}, new (...args: never[]) => Error>();
 
 export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapIsTypeOf(
     isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
-    config: PothosObjectTypeConfig,
   ): GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined {
     if (isTypeOf) {
       return (parent, context, info) => {
@@ -171,7 +168,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
       return this.builder.unionType(unionName, {
         types: [...errorTypes, resultType],
-        resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultType,
+        resolveType: (obj) => (errorTypeMap.get(obj as {}) as never) ?? resultType,
         ...defaultUnionOptions,
         ...unionOptions,
         extensions: {

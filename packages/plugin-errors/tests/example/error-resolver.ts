@@ -1,14 +1,13 @@
-/* eslint-disable unicorn/custom-error-definition */
 import SchemaBuilder, {
-  FieldNullability,
-  InputFieldMap,
-  InputShapeFromFields,
-  ListResolveValue,
-  MaybePromise,
-  Resolver,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  TypeParam,
+  type FieldNullability,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  type ListResolveValue,
+  type MaybePromise,
+  type Resolver,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
 } from '@pothos/core';
 
 type ResolveShapeWithErrors<Shape, Errors> = [Shape] extends [
@@ -32,7 +31,10 @@ declare global {
     > {
       ResolveWithErrors: {
         errors?: {
-          types?: (new (...args: any[]) => ResolveReturnShape)[];
+          types?: (new (
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            ...args: any[]
+          ) => ResolveReturnShape)[];
         };
         /**
          * Resolver function for this field
@@ -100,7 +102,7 @@ builder.queryType({
 builder.subscriptionType({
   fields: (t) => ({
     hello: t.string({
-      // eslint-disable-next-line @typescript-eslint/require-await
+      // biome-ignore lint/suspicious/useAwait: <explanation>
       async *subscribe() {
         yield 'Hello';
         yield 'World';

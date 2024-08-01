@@ -1,8 +1,6 @@
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-underscore-dangle */
-import { LoaderMappings, SelectionMap } from '../types';
+import type { LoaderMappings, SelectionMap } from '../types';
 import { deepEqual } from './deep-equal';
-import { FieldMap } from './relation-map';
+import type { FieldMap } from './relation-map';
 
 export type SelectionMode = 'include' | 'select';
 
@@ -114,15 +112,15 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
   }
 
   if (include) {
-    Object.keys(include).forEach((key) => {
+    for (const key of Object.keys(include)) {
       merge(key, include[key]);
-    });
+    }
   }
 
   if (select) {
-    Object.keys(select).forEach((key) => {
+    for (const key of Object.keys(select)) {
       merge(key, select[key]);
-    });
+    }
   }
 
   if (Object.keys(query).length > 0) {
@@ -136,9 +134,9 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
 
     if (key === '_count') {
       const counts = (value as { select?: Record<string, boolean> }).select ?? {};
-      Object.keys(counts).forEach((count) => {
+      for (const count of Object.keys(counts)) {
         state.counts.set(count, counts[count]);
-      });
+      }
 
       return;
     }
@@ -184,10 +182,10 @@ export function selectionToQuery(state: SelectionState): SelectionMap {
   }
 
   if (state.mode === 'select') {
-    state.fields.forEach((field) => {
+    for (const field of state.fields) {
       hasSelection = true;
       nestedIncludes[field] = true;
-    });
+    }
 
     return {
       ...(state.query as SelectionMap),

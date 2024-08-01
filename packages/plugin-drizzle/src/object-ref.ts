@@ -1,8 +1,8 @@
 import {
+  ObjectRef,
+  type SchemaTypes,
   abstractReturnShapeKey,
   brandWithType,
-  ObjectRef,
-  SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
 import type { WithBrand } from './types';
@@ -30,7 +30,9 @@ export class DrizzleObjectRef<
     value: V,
   ): V extends T[] ? { [K in keyof V]: WithBrand<V[K]> } : WithBrand<V> {
     if (Array.isArray(value)) {
-      value.forEach((val) => void brandWithType(val, this.name as never));
+      for (const val of value) {
+        brandWithType(val, this.name as never);
+      }
 
       return value as never;
     }

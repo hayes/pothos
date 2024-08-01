@@ -1,7 +1,11 @@
 import './global-types';
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
-import { TracingFieldOptions, TracingFieldWrapper } from './types';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import type { TracingFieldOptions, TracingFieldWrapper } from './types';
 
 const pluginName = 'tracing';
 

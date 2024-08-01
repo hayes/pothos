@@ -13,5 +13,4 @@ builder.addScalarType('DateTime', DateTimeResolver);
 
 export const schema = builder.toSchema();
 
-// eslint-disable-next-line unicorn/prefer-module
 writeFileSync(resolve(__dirname, '../schema.graphql'), printSchema(schema));

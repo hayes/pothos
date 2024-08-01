@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-redeclare */
 import './types/global';
 import { SchemaBuilder as SchemaBuilderClass } from './builder';
 import { FieldBuilder as InternalFieldBuilder } from './fieldUtils/builder';

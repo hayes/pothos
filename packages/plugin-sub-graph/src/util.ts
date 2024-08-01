@@ -1,5 +1,5 @@
-import { GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLType } from 'graphql';
 import { PothosSchemaError } from '@pothos/core';
+import { GraphQLList, type GraphQLNamedType, GraphQLNonNull, type GraphQLType } from 'graphql';
 
 export function replaceType<T extends GraphQLType>(
   type: T,

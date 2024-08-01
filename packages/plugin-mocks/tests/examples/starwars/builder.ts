@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import Mocks from '../../../src';
-import { Character, ContextType, Droid, Human } from './backing-models';
+import type { Character, ContextType, Droid, Human } from './backing-models';
 
 export interface Types {
   Objects: { Droid: Droid; Human: Human; String: string };

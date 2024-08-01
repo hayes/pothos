@@ -1,18 +1,19 @@
 import './global-types';
 import './schema-builder';
 import './field-builder';
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  BuildCache,
-  PothosOutputFieldConfig,
+  type BuildCache,
+  type PothosOutputFieldConfig,
   PothosSchemaError,
-  PothosTypeConfig,
-  SchemaTypes,
+  type PothosTypeConfig,
+  type SchemaTypes,
 } from '@pothos/core';
-import { ModelLoader } from './model-loader';
+// biome-ignore lint/style/useImportType: <explanation>
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import type { ModelLoader } from './model-loader';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
-import { PrismaModelTypes } from './types';
+import type { PrismaModelTypes } from './types';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors';
 import { getModel, getRefFromModel } from './util/datamodel';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
@@ -56,7 +57,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
     let model = typeConfig.extensions?.pothosPrismaModel as string | undefined;
 
-    typeConfig.interfaces.forEach((iface) => {
+    for (const iface of typeConfig.interfaces) {
       const interfaceModel = this.buildCache.getTypeConfig(iface, 'Interface').extensions
         ?.pothosPrismaModel as string | undefined;
 
@@ -69,7 +70,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
         model = interfaceModel;
       }
-    });
+    }
 
     return {
       ...typeConfig,
@@ -133,12 +134,12 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     const parentTypes = new Set([fieldConfig.parentType]);
 
     if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
-      parentConfig.interfaces.forEach((iface) => {
+      for (const iface of parentConfig.interfaces) {
         const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
         if (interfaceConfig.extensions?.pothosPrismaModel) {
           parentTypes.add(interfaceConfig.name);
         }
-      });
+      }
     }
 
     return (parent, args, context, info) => {

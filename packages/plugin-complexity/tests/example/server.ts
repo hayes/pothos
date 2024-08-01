@@ -1,5 +1,5 @@
 import { createTestServer } from '@pothos/test-utils';
-import { ComplexityResult } from '../../src';
+import type { ComplexityResult } from '../../src';
 import schema from './schema';
 
 const server = createTestServer({

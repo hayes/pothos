@@ -1,12 +1,12 @@
 import './global-types';
-import { defaultFieldResolver, GraphQLFieldResolver, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  BuildCache,
-  FieldRef,
-  PothosOutputFieldConfig,
-  SchemaTypes,
+  type BuildCache,
+  type FieldRef,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
 } from '@pothos/core';
+import { type GraphQLFieldResolver, type GraphQLTypeResolver, defaultFieldResolver } from 'graphql';
 import SubscriptionCache from './cache';
 import { getFieldSubscribe } from './create-field-data';
 import SubscriptionManager from './manager';
@@ -62,9 +62,8 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
           t.field({
             ...fieldConfig.pothosOptions,
             resolve: (parent, args, context, info) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
-            subscribe: (parent, args, context, info) => {
+            subscribe: (parent, _args, context) => {
               const manager = new SubscriptionManager({
                 value: parent,
                 debounceDelay: this.debounceDelay,
@@ -87,10 +86,10 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
                       });
                     },
                     async return() {
-                      return manager.return();
+                      return await manager.return();
                     },
                     async throw(error: unknown) {
-                      return manager.throw(error);
+                      return await manager.throw(error);
                     },
                   };
                 },
@@ -103,7 +102,7 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
     return fieldConfig;
   }
 
-  override createRequestData(context: Types['Context']) {
+  override createRequestData(_context: Types['Context']) {
     return {};
   }
 

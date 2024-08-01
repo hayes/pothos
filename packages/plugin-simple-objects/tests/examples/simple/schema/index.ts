@@ -46,7 +46,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (parent, args, { User }) => {
+      resolve: (_parent, args, { User }) => {
         const user = User.map.get(Number.parseInt(args.id, 10));
 
         if (!user) {

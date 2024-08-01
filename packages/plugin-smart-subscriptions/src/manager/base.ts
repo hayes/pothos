@@ -1,5 +1,5 @@
-import { RegisterOptions } from '../types';
-import SubscriptionManager from '.';
+import type SubscriptionManager from '.';
+import type { RegisterOptions } from '../types';
 
 export default class BaseSubscriptionManager {
   manager: SubscriptionManager;
@@ -16,6 +16,8 @@ export default class BaseSubscriptionManager {
   }
 
   reRegister() {
-    this.registrations.forEach((options) => void this.manager.register(options));
+    for (const options of this.registrations) {
+      this.manager.register(options);
+    }
   }
 }

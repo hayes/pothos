@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '../../../src';
-import { Customer, User } from './types';
+import type { Customer, User } from './types';
 
 export default new SchemaBuilder<{
   Interfaces: {

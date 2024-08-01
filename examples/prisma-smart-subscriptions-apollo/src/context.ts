@@ -1,7 +1,6 @@
-import { IncomingMessage, ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { PubSub } from 'graphql-subscriptions';
-// eslint-disable-next-line import/no-relative-packages
-import { User } from '../prisma/client';
+import type { User } from '../prisma/client';
 import { db } from './db';
 
 interface SelectType {

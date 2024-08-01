@@ -67,7 +67,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (query, root, args) =>
+      resolve: (query, _root, args) =>
         db.post.findUnique({
           ...query,
           where: { id: Number.parseInt(args.id, 10) },
@@ -79,7 +79,7 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (query, root, args) =>
+      resolve: (query, _root, args) =>
         db.post.findMany({
           ...query,
           take: args.take ?? DEFAULT_PAGE_SIZE,
@@ -89,7 +89,7 @@ builder.queryType({
     postsConnection: t.prismaConnection({
       type: 'Post',
       cursor: 'id',
-      resolve: (query, root, args) =>
+      resolve: (query, _root, _args) =>
         db.post.findMany({
           ...query,
         }),

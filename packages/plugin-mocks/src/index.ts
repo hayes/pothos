@@ -1,7 +1,11 @@
 import './global-types';
-import { GraphQLFieldResolver } from 'graphql';
-import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
-import { ResolverMap } from './types';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { GraphQLFieldResolver } from 'graphql';
+import type { ResolverMap } from './types';
 
 const pluginName = 'mocks';
 

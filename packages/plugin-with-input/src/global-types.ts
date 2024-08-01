@@ -1,14 +1,14 @@
 import {
-  FieldKind,
-  FieldNullability,
-  FieldRef,
-  InputFieldMap,
+  type FieldKind,
+  type FieldNullability,
+  type FieldRef,
+  type InputFieldMap,
   InputFieldRef,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  TypeParam,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
 } from '@pothos/core';
-import {
+import type {
   FieldWithInputOptions,
   WithInputArgOptions,
   WithInputBuilderOptions,

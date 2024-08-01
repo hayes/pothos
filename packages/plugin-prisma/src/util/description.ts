@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-import { SchemaTypes } from '@pothos/core';
+import type { SchemaTypes } from '@pothos/core';
 import { getFieldData, getModel } from './datamodel';
 
 export function getFieldDescription<Types extends SchemaTypes>(

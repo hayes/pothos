@@ -11,14 +11,14 @@ builder.objectType('Poll', {
         context.logSub('re-fetch', `poll ${poll.id}`);
 
         return new Promise<Poll>((resolve) => {
-          setTimeout(() => void resolve(context.Poll.map.get(poll.id)!), 1000);
+          setTimeout(() => resolve(context.Poll.map.get(poll.id)!), 1000);
         });
       },
     });
   },
   fields: (t) => ({
     id: t.id({
-      resolve: (poll, args, ctx, info) => {
+      resolve: (poll, _args, ctx, info) => {
         ctx.log(info);
 
         return poll.id;
@@ -32,7 +32,7 @@ builder.objectType('Poll', {
       nullable: true,
       type: ['Answer'],
       canRefetch: true,
-      resolve: (parent, args, context, info) => {
+      resolve: (parent, _args, context, info) => {
         context.log(info);
 
         return parent.answers;
@@ -41,7 +41,7 @@ builder.objectType('Poll', {
     refetchableAnswers: t.field({
       nullable: true,
       type: ['RefetchableAnswer'],
-      resolve: (parent, args, context, info) => {
+      resolve: (parent, _args, context, info) => {
         context.log(info);
 
         return parent.answers;
@@ -55,12 +55,12 @@ builder.objectType('Answer', {
     id: t.exposeID('id', {}),
     value: t.exposeString('value', {}),
     count: t.int({
-      subscribe: (subscriptions, parent, args, context) => {
+      subscribe: (subscriptions, parent, _args, context) => {
         context.logSub('subscribe', `poll-result/${parent.id}`);
 
         subscriptions.register(`poll-result/${parent.id}`);
       },
-      resolve: (parent, args, ctx, info) => {
+      resolve: (parent, _args, ctx, info) => {
         ctx.log(info);
 
         return parent.count;
@@ -74,12 +74,12 @@ builder.objectType('RefetchableAnswer', {
     id: t.exposeID('id', {}),
     value: t.exposeString('value', {}),
     count: t.int({
-      subscribe: (subscriptions, parent, args, context) => {
+      subscribe: (subscriptions, parent, _args, context) => {
         context.logSub('subscribe', `poll-result/${parent.id}`);
 
         subscriptions.register(`poll-result/${parent.id}`);
       },
-      resolve: (parent, args, ctx, info) => {
+      resolve: (parent, _args, ctx, info) => {
         ctx.log(info);
 
         return parent.count;
@@ -93,8 +93,8 @@ builder.queryFields((t) => ({
   polls: t.field({
     type: ['Poll'],
     smartSubscription: true,
-    subscribe: (subscriptions) => void subscriptions.register('polls'),
-    resolve: (root, args, ctx, info) => {
+    subscribe: (subscriptions) => subscriptions.register('polls'),
+    resolve: (_root, _args, ctx, info) => {
       ctx.log(info);
 
       return [...Poll.map.values()];
@@ -107,7 +107,7 @@ builder.queryFields((t) => ({
       id: t.arg.int({ required: true }),
     },
     smartSubscription: true,
-    resolve: (root, args, ctx, info) => {
+    resolve: (_root, args, ctx, info) => {
       ctx.log(info);
 
       return Poll.map.get(args.id);
@@ -122,7 +122,7 @@ builder.mutationFields((t) => ({
       question: t.arg.string({ required: true }),
       answers: t.arg.stringList({ required: true }),
     },
-    resolve: async (root, args, { pubsub }) => {
+    resolve: async (_root, args, { pubsub }) => {
       const poll = Poll.create(args.question, args.answers);
 
       await pubsub.publish(POLLS, poll.id);
@@ -137,7 +137,7 @@ builder.mutationFields((t) => ({
       answer: t.arg.int({ required: true }),
       skipPollPublish: t.arg.boolean({ required: false }),
     },
-    resolve: async (root, args, { pubsub, log }, info) => {
+    resolve: async (_root, args, { pubsub, log }, info) => {
       log(info);
 
       const poll = Poll.map.get(Number(args.id));

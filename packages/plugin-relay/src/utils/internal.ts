@@ -1,5 +1,5 @@
+import { type PartialResolveInfo, PothosValidationError, type SchemaTypes } from '@pothos/core';
 import { GraphQLResolveInfo } from 'graphql';
-import { PartialResolveInfo, PothosValidationError, SchemaTypes } from '@pothos/core';
 import { decodeGlobalID, encodeGlobalID } from './global-ids';
 
 export function internalEncodeGlobalID<Types extends SchemaTypes>(

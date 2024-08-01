@@ -70,7 +70,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.id({ required: true }),
     },
-    resolve: (query, root, args, ctx) =>
+    resolve: (query, _root, args) =>
       db.query.posts.findFirst(
         query({
           orderBy: (post, ops) => ops.desc(post.id),
@@ -83,7 +83,7 @@ builder.queryFields((t) => ({
     args: {
       category: t.arg.string(),
     },
-    resolve: (query, root, args, ctx) =>
+    resolve: (query, _root, args) =>
       db.query.posts.findMany(
         query({
           where: (post, { inArray }) =>
@@ -111,7 +111,7 @@ builder.mutationFields((t) => ({
     args: {
       postId: t.arg.id({ required: true }),
     },
-    resolve: async (query, root, args, ctx) => {
+    resolve: async (query, _root, args, ctx) => {
       const postId = Number.parseInt(args.postId, 10);
       await db
         .insert(postLikes)
@@ -133,7 +133,7 @@ builder.mutationFields((t) => ({
       postId: t.input.id({ required: true }),
       text: t.input.string({ required: true }),
     },
-    resolve: async (root, { input }, ctx) => {
+    resolve: async (_root, { input }, ctx) => {
       const result = await db
         .insert(comments)
         .values([
@@ -155,7 +155,7 @@ builder.mutationFields((t) => ({
       category: t.input.string({ required: true }),
       published: t.input.boolean(),
     },
-    resolve: async (root, { input }, ctx) => {
+    resolve: async (_root, { input }, ctx) => {
       const result = await db
         .insert(posts)
         .values([
@@ -176,7 +176,7 @@ builder.mutationFields((t) => ({
     args: {
       postId: t.arg.id({ required: true }),
     },
-    resolve: async (query, root, args, ctx) => {
+    resolve: async (query, _root, args, ctx) => {
       const postId = Number.parseInt(args.postId, 10);
       await db
         .update(posts)

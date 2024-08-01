@@ -1,24 +1,24 @@
-import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   completeValue,
   createContextCache,
-  FieldMap,
-  FieldRef,
+  type FieldMap,
+  type FieldRef,
   getTypeBrand,
   InputObjectRef,
-  InterfaceParam,
-  InterfaceRef,
-  MaybePromise,
-  ObjectFieldsShape,
-  ObjectParam,
+  type InterfaceParam,
+  type InterfaceRef,
+  type MaybePromise,
+  type ObjectFieldsShape,
+  type ObjectParam,
   ObjectRef,
-  OutputRef,
+  type OutputRef,
   PothosValidationError,
-  SchemaTypes,
+  type SchemaTypes,
   verifyRef,
 } from '@pothos/core';
+import { type GraphQLResolveInfo, defaultTypeResolver } from 'graphql';
 import { NodeRef } from './node-ref';
-import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
+import type { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -112,14 +112,12 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 
       try {
         if (typeof value === 'object') {
-          // eslint-disable-next-line no-underscore-dangle
           const typename = (value as { __typename: string }).__typename;
 
           if (typename) {
             return typename;
           }
 
-          // eslint-disable-next-line no-underscore-dangle
           const nodeRef = (value as { __type: OutputRef }).__type;
 
           if (nodeRef) {
@@ -141,7 +139,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
       [this.options.relay?.idFieldName ?? 'id']: t.globalID({
         ...this.options.relay?.idFieldOptions,
         nullable: false,
-        resolve: (parent) => {
+        resolve: (_parent) => {
           throw new PothosValidationError('id field not implemented');
         },
       }),
@@ -172,10 +170,10 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
           },
           resolve: resolveNodeFn
             ? (root, args, context, info) =>
-                resolveNodeFn(root, args, context, info, (ids) =>
+                resolveNodeFn(root, args, context, info, (_ids) =>
                   completeValue(resolveNodes(this, context, info, [args.id]), (nodes) => nodes[0]),
                 ) as never
-            : (root, args, context, info) =>
+            : (_root, args, context, info) =>
                 completeValue(resolveNodes(this, context, info, [args.id]), (nodes) => nodes[0]),
         }) as FieldRef<SchemaTypes, unknown>,
     );
@@ -211,10 +209,10 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
                 args as { ids: { id: string; typename: string }[] },
                 context,
                 info,
-                (ids) =>
+                (_ids) =>
                   resolveNodes(this, context, info, args.ids as { id: string; typename: string }[]),
               ) as never
-          : (root, args, context, info) =>
+          : (_root, args, context, info) =>
               resolveNodes(
                 this,
                 context,
@@ -248,7 +246,7 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
       isTypeOf:
         options.isTypeOf ??
         (typeof param === 'function'
-          ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
+          ? (maybeNode: unknown, _context: object, _info: GraphQLResolveInfo) => {
               if (!maybeNode) {
                 return false;
               }
@@ -287,7 +285,6 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
         ...id,
         args: {},
         resolve: (parent, args, context, info): MaybePromise<GlobalIDShape<SchemaTypes>> =>
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           completeValue(id.resolve(parent, args, context, info), (globalId) => ({
             type: nodeConfig.name,
             id: globalId,
@@ -329,7 +326,9 @@ schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fiel
     });
   };
 
-  connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
+  for (const ref of connectionRefs.get(this) ?? []) {
+    onRef(ref);
+  }
 
   if (!globalConnectionFieldsMap.has(this)) {
     globalConnectionFieldsMap.set(this, []);
@@ -404,7 +403,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
             clientMutationId: t.id({
               nullable: this.options.relay?.clientMutationId === 'optional',
               ...clientMutationIdFieldOptions,
-              resolve: (parent, _args, context, info) =>
+              resolve: (_parent, _args, context, info) =>
                 mutationIdCache(context).get(String(info.path.prev!.key))!,
             }),
           }
@@ -442,7 +441,6 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     }),
   );
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return {
     inputType: inputRef,
     payloadType: payloadRef,
@@ -550,7 +548,9 @@ schemaBuilderProto.connectionObject = function connectionObject(
 
   connectionRefs.get(this)!.push(connectionRef);
 
-  globalConnectionFieldsMap.get(this)?.forEach((fieldFn) => void fieldFn(connectionRef));
+  for (const fieldFn of globalConnectionFieldsMap.get(this) ?? []) {
+    fieldFn(connectionRef);
+  }
 
   return connectionRef as never;
 };

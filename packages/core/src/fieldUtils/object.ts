@@ -1,4 +1,4 @@
-import { SchemaTypes } from '../types';
+import type { SchemaTypes } from '../types';
 import { FieldBuilder } from './builder';
 
 export class ObjectFieldBuilder<Types extends SchemaTypes, ParentShape> extends FieldBuilder<

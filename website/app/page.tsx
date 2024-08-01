@@ -1,9 +1,10 @@
 import { getPage, getPages } from '@/app/source';
+import { DocsBody, DocsPage } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
-import { DocsPage, DocsBody } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
 
-export default async function HomePage({ params }: { params: { slug?: string[] } }) {
+// biome-ignore lint/suspicious/useAwait: <explanation>
+export default async function HomePage(_props: { params: { slug?: string[] } }) {
   const page = getPage([]);
 
   if (page == null) {
@@ -28,10 +29,12 @@ export async function generateStaticParams() {
   }));
 }
 
-export function generateMetadata() {
+export function generateMetadata(): Metadata {
   const page = getPage([]);
 
-  if (page == null) notFound();
+  if (page == null) {
+    notFound();
+  }
 
   return {
     title: page.data.title,

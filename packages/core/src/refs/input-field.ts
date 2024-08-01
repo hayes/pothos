@@ -1,8 +1,8 @@
 import {
+  type PothosInputFieldConfig,
+  type PothosTypeConfig,
+  type SchemaTypes,
   inputFieldShapeKey,
-  PothosInputFieldConfig,
-  PothosTypeConfig,
-  SchemaTypes,
 } from '../types';
 
 export class InputFieldRef<Types extends SchemaTypes, T = unknown> {
@@ -16,7 +16,7 @@ export class InputFieldRef<Types extends SchemaTypes, T = unknown> {
 
   protected pendingActions: ((
     config: PothosInputFieldConfig<Types>,
-  ) => PothosInputFieldConfig<Types> | void)[] = [];
+  ) => PothosInputFieldConfig<Types> | undefined)[] = [];
 
   private initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>;
 
@@ -29,7 +29,7 @@ export class InputFieldRef<Types extends SchemaTypes, T = unknown> {
   }
 
   updateConfig(
-    cb: (config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | void,
+    cb: (config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | undefined,
   ) {
     this.pendingActions.push(cb);
   }

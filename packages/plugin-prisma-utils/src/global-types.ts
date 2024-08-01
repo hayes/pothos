@@ -1,6 +1,6 @@
-import { InputShapeFromTypeParam, InputType, Normalize, SchemaTypes } from '@pothos/core';
-import { PrismaModelTypes } from '@pothos/plugin-prisma';
-import {
+import type { InputShapeFromTypeParam, InputType, Normalize, SchemaTypes } from '@pothos/core';
+import type { PrismaModelTypes } from '@pothos/plugin-prisma';
+import type {
   FilterListOps,
   FilterOps,
   FilterShape,

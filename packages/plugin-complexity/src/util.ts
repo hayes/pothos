@@ -1,19 +1,19 @@
+import { PothosValidationError } from '@pothos/core';
 import {
-  DocumentNode,
-  GraphQLResolveInfo,
-  GraphQLSchema,
+  type DocumentNode,
+  type GraphQLResolveInfo,
+  type GraphQLSchema,
   Kind,
-  OperationDefinitionNode,
+  type OperationDefinitionNode,
   parse,
 } from 'graphql';
-import { PothosValidationError } from '@pothos/core';
 import { complexityFromSelectionSet } from './calculate-complexity';
 
 export function complexityFromQuery(
   query: DocumentNode | string,
   options: {
     schema: GraphQLSchema;
-    ctx?: {};
+    ctx?: object;
     variables?: Record<string, unknown>;
   },
 ) {
@@ -30,7 +30,6 @@ export function complexityFromQuery(
   const fragments = parsedQuery.definitions.reduce<GraphQLResolveInfo['fragments']>(
     (fragments, def) => {
       if (def.kind === Kind.FRAGMENT_DEFINITION) {
-        // eslint-disable-next-line no-param-reassign
         fragments[def.name.value] = def;
       }
 

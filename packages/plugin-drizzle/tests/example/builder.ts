@@ -4,7 +4,7 @@ import ScopeAuthPlugin from '@pothos/plugin-relay';
 import RelayPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import DrizzlePlugin from '../../src';
-import { db, DrizzleSchema } from './db';
+import { type DrizzleSchema, db } from './db';
 
 export interface BaseContext {
   user?: {

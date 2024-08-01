@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { PothosSchemaError } from './errors';
 import { BaseTypeRef } from './refs/base';
 import { InputObjectRef } from './refs/input-object';
@@ -46,7 +45,7 @@ export class ConfigStore<Types extends SchemaTypes> {
   }
 
   addFields(param: ConfigurableRef<Types>, fields: () => FieldMap) {
-    this.onTypeConfig(param, (config, ref) => {
+    this.onTypeConfig(param, (_config, ref) => {
       if (
         !(
           ref instanceof InterfaceRef ||
@@ -64,7 +63,7 @@ export class ConfigStore<Types extends SchemaTypes> {
   }
 
   addInputFields(param: ConfigurableRef<Types>, fields: () => InputFieldMap) {
-    this.onTypeConfig(param, (config, ref) => {
+    this.onTypeConfig(param, (_config, ref) => {
       if (!(ref instanceof InputObjectRef)) {
         throw new PothosSchemaError(
           `Can not add fields to ${ref} because it is not an input object`,
@@ -83,14 +82,14 @@ export class ConfigStore<Types extends SchemaTypes> {
 
     if (pendingResolutions.length > 0) {
       if (typeof resolved === 'string' && this.typeConfigs.has(resolved)) {
-        pendingResolutions.forEach((cb) => {
+        for (const cb of pendingResolutions) {
           const config = this.typeConfigs.get(resolved)!;
           cb(config, this.implementors.get(config.name)!);
-        });
+        }
       } else {
-        pendingResolutions.forEach((cb) => {
+        for (const cb of pendingResolutions) {
           this.onTypeConfig(resolved as ConfigurableRef<Types>, cb);
-        });
+        }
       }
     }
 
@@ -191,14 +190,16 @@ export class ConfigStore<Types extends SchemaTypes> {
       if (this.pendingTypeConfigResolutions.has(config.name)) {
         const cbs = this.pendingTypeConfigResolutions.get(config.name)!;
 
-        cbs.forEach((cb) => void cb(config, ref as BaseTypeRef<Types>));
+        for (const cb of cbs) {
+          cb(config, ref as BaseTypeRef<Types>);
+        }
       }
 
       this.pendingTypeConfigResolutions.delete(config.name);
     });
   }
 
-  subscribeToFields(ref: BaseTypeRef<Types>) {}
+  subscribeToFields(_ref: BaseTypeRef<Types>) {}
 
   hasImplementation(typeName: string) {
     return this.typeConfigs.has(typeName);
@@ -326,7 +327,9 @@ export class ConfigStore<Types extends SchemaTypes> {
 
     this.pendingActions = [];
 
-    pendingActions.forEach((fn) => void fn());
+    for (const fn of pendingActions) {
+      fn();
+    }
 
     if (this.pendingTypeConfigResolutions.size > 0) {
       throw new PothosSchemaError(
@@ -366,11 +369,10 @@ export class ConfigStore<Types extends SchemaTypes> {
       return String(ref);
     }
 
-    // eslint-disable-next-line func-names
-    if (typeof ref === 'function' && ref.name !== function () {}.name) {
+    if (typeof ref === 'function' && ref.name !== (() => {}).name) {
       return `function ${ref.name}`;
     }
 
-    return `<unnamed ref or enum>`;
+    return '<unnamed ref or enum>';
   }
 }

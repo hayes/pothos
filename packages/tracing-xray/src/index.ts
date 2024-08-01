@@ -1,12 +1,12 @@
+import { createSpanWithParent, runFunction } from '@pothos/plugin-tracing';
 import {
+  Subsegment,
   getNamespace,
   getSegment,
   isAutomaticMode,
   setSegment,
-  Subsegment,
 } from 'aws-xray-sdk-core';
-import { GraphQLFieldResolver, GraphQLResolveInfo, print } from 'graphql';
-import { createSpanWithParent, runFunction } from '@pothos/plugin-tracing';
+import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';
 import { AttributeNames, SpanNames } from './enums';
 
 export * from './enums';
@@ -26,10 +26,10 @@ interface XRayWrapperOptions<T> {
 
 export function createXRayWrapper<T = unknown>(options?: XRayWrapperOptions<T>) {
   return <Context extends object = object>(
-      resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
-      fieldOptions: T,
-      tracingOptions?: XRayWrapperOptions<T>,
-    ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
+    resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
+    fieldOptions: T,
+    tracingOptions?: XRayWrapperOptions<T>,
+  ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
     (source: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => {
       const segment = createSpanWithParent<Subsegment | null>(context, info, (path, parent) => {
         const parentSegment = parent ?? getSegment();

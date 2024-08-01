@@ -1,12 +1,18 @@
-import { print } from 'graphql';
-import { Plugin } from 'graphql-yoga';
-import { AttributeValue, diag, DiagConsoleLogger, DiagLogLevel, trace } from '@opentelemetry/api';
+import {
+  type AttributeValue,
+  DiagConsoleLogger,
+  DiagLogLevel,
+  diag,
+  trace,
+} from '@opentelemetry/api';
 import { ZipkinExporter } from '@opentelemetry/exporter-zipkin';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { AttributeNames, SpanNames } from '@pothos/tracing-opentelemetry';
+import { print } from 'graphql';
+import type { Plugin } from 'graphql-yoga';
 
 export const provider = new NodeTracerProvider({});
 provider.addSpanProcessor(

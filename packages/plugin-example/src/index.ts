@@ -1,16 +1,15 @@
-/* eslint-disable no-console */
 import './global-types';
-import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  PothosEnumValueConfig,
-  PothosInputFieldConfig,
-  PothosInterfaceTypeConfig,
-  PothosOutputFieldConfig,
-  PothosTypeConfig,
-  PothosUnionTypeConfig,
-  SchemaTypes,
+  type PothosEnumValueConfig,
+  type PothosInputFieldConfig,
+  type PothosInterfaceTypeConfig,
+  type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  type PothosUnionTypeConfig,
+  type SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 
 export * from './types';
 
@@ -54,6 +53,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => {
@@ -65,6 +65,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
     fieldConfig: PothosOutputFieldConfig<Types>,
   ) {
     return subscribe;
@@ -72,6 +73,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
     typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ) {
     return resolveType;

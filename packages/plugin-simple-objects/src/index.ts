@@ -1,18 +1,18 @@
 import './global-types';
 import SchemaBuilder, {
   BasePlugin,
-  FieldMap,
-  InterfaceFieldsShape,
-  InterfaceParam,
+  type FieldMap,
+  type InterfaceFieldsShape,
+  type InterfaceParam,
   InterfaceRef,
-  Normalize,
-  ObjectFieldsShape,
+  type Normalize,
+  type ObjectFieldsShape,
   ObjectRef,
-  ParentShape,
-  SchemaTypes,
-  UnionToIntersection,
+  type ParentShape,
+  type SchemaTypes,
+  type UnionToIntersection,
 } from '@pothos/core';
-import { OutputShapeFromFields } from './types';
+import type { OutputShapeFromFields } from './types';
 
 const pluginName = 'simpleObjects';
 
@@ -62,7 +62,7 @@ proto.simpleInterface = function simpleInterface<
 ) {
   const ref = new InterfaceRef<SchemaTypes, Shape>(name);
 
-  this.interfaceType(ref, options as {});
+  this.interfaceType(ref, options as object);
 
   if (extraFields) {
     this.interfaceFields(ref, extraFields);

@@ -79,5 +79,4 @@ async function seed() {
   await queryClient.end();
 }
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
 seed().catch(console.error);

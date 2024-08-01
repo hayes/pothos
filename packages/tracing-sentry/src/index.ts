@@ -1,6 +1,6 @@
-import { GraphQLFieldResolver, GraphQLResolveInfo, print } from 'graphql';
 import { pathToString, runFunction } from '@pothos/plugin-tracing';
 import * as Sentry from '@sentry/node';
+import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';
 import { AttributeNames } from './enums';
 
 export * from './enums';
@@ -21,10 +21,10 @@ interface SentryWrapperOptions<T> {
 
 export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<T>) {
   return <Context extends object = object>(
-      resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
-      fieldOptions: T,
-      tracingOptions?: SentryWrapperOptions<T>,
-    ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
+    resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
+    fieldOptions: T,
+    tracingOptions?: SentryWrapperOptions<T>,
+  ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
     (source, args, ctx, info) => {
       const parentSpan = Sentry.getActiveSpan();
 

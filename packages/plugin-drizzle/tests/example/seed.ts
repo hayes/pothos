@@ -25,7 +25,7 @@ async function seed() {
   const userRows = await db
     .insert(users)
     .values(
-      Array.from({ length: 100 }).map((_, i) => ({
+      Array.from({ length: 100 }).map(() => ({
         username: faker.internet.userName(),
         firstName: faker.person.firstName(),
         lastName: faker.person.lastName(),
@@ -78,5 +78,4 @@ async function seed() {
   );
 }
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
 seed().catch(console.error);

@@ -1,5 +1,5 @@
 import builder from '../builder';
-import { ContextType } from '../types';
+import type { ContextType } from '../types';
 import { animalCounts, countCall } from './counts';
 
 export const TestInterface = builder.interfaceRef<{ id: number }>('TestInterface').implement({
@@ -59,6 +59,6 @@ builder.queryField('animals', (t) =>
         required: true,
       }),
     },
-    resolve: (root, args) => args.ids.map((id) => Number.parseInt(String(id), 10)),
+    resolve: (_root, args) => args.ids.map((id) => Number.parseInt(String(id), 10)),
   }),
 );

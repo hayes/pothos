@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import type PrismaTypes from '../prisma/generated';
 import { db } from './db';
-import { pubsub } from './pubsub';
+import type { pubsub } from './pubsub';
 
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;

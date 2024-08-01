@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   FieldNullability,
   FieldRequiredness,
   InputFieldMap,
@@ -9,7 +8,7 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { ValidationOptions, ValidationPluginOptions } from './types';
+import type { ValidationOptions, ValidationPluginOptions } from './types';
 
 import type { PothosZodPlugin } from '.';
 

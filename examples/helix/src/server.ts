@@ -1,4 +1,3 @@
-/* eslint-disable no-magic-numbers */
 import { createServer } from 'node:http';
 import { URL, URLSearchParams } from 'node:url';
 import {

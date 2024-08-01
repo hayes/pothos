@@ -1,4 +1,4 @@
-import { Column, not, sql } from 'drizzle-orm';
+import { type Column, not, sql } from 'drizzle-orm';
 import builder from '../builder';
 import { db } from '../db';
 
@@ -67,7 +67,7 @@ builder.queryField('user', (t) =>
     args: {
       id: t.arg.int({ required: true }),
     },
-    resolve: async (query, root, args, ctx, info) => {
+    resolve: async (query, _root, args, _ctx, _info) => {
       const drizzleQuery = db.query.users.findFirst({
         ...query,
         where: (user, { eq }) => eq(user.id, args.id),

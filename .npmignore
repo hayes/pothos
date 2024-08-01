@@ -5,7 +5,6 @@ logs/
 *.log
 
 # Cache
-.eslintcache/
 .idea/
 .npm/
 .vscode/
@@ -30,19 +29,14 @@ tests/
 # Configs
 .babelrc
 .dockerignore
-.eslintignore
-.eslintrc.js
 .flowconfig
 .gitattributes
 .gitignore
 .npmrc
-.prettierignore
 .yarnc
 babel.config.js
 dangerfile.ts
-prettier.config.js
 tsconfig.json
-tsconfig.eslint.json
 tsconfig.options.json
 webpack.config.js
 *.tsbuildinfo

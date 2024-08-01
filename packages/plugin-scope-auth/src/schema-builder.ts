@@ -1,11 +1,10 @@
-import SchemaBuilder, { isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
+import SchemaBuilder, { isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
-import { AuthFailure } from './types';
+import type { AuthFailure } from './types';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-// eslint-disable-next-line consistent-return
 schemaBuilderProto.runAuthScopes = function runAuthScopes(
   context,
   scopes,

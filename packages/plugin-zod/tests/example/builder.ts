@@ -8,7 +8,7 @@ export default new SchemaBuilder<{
 }>({
   plugins: ['zod'],
   zod: {
-    validationError: (error, args, ctx, info) =>
+    validationError: (error) =>
       error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', '),
   },
 });

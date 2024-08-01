@@ -1,14 +1,14 @@
+import SchemaBuilder from '@pothos/core';
 import {
-  execute,
-  GraphQLEnumType,
-  GraphQLInputObjectType,
-  GraphQLObjectType,
+  type GraphQLEnumType,
+  type GraphQLInputObjectType,
+  type GraphQLObjectType,
   Kind,
+  execute,
   lexicographicSortSchema,
   printSchema,
 } from 'graphql';
 import gql from 'graphql-tag';
-import SchemaBuilder from '@pothos/core';
 import schema from './example/schema';
 
 describe('extends example schema', () => {

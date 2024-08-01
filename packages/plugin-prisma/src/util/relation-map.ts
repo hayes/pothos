@@ -1,5 +1,5 @@
 import { createContextCache } from '@pothos/core';
-import { DMMF, RuntimeDataModel } from './get-client';
+import type { DMMF, RuntimeDataModel } from './get-client';
 
 export interface FieldMap {
   model: string;
@@ -16,33 +16,33 @@ export function createRelationMap({ models }: DMMF['datamodel'] | RuntimeDataMod
   const relationMap: RelationMap = new Map();
 
   if (Array.isArray(models)) {
-    models.forEach((model) => {
+    for (const model of models) {
       relationMap.set(model.name, { model: model.name, relations: new Map() });
-    });
+    }
 
-    models.forEach((model) => {
+    for (const model of models) {
       const map = relationMap.get(model.name)!.relations;
 
-      model.fields.forEach((field) => {
+      for (const field of model.fields) {
         if (field.kind === 'object' && relationMap.has(field.type)) {
           map.set(field.name, relationMap.get(field.type)!);
         }
-      });
-    });
+      }
+    }
   } else {
-    Object.keys(models).forEach((name) => {
+    for (const name of Object.keys(models)) {
       relationMap.set(name, { model: name, relations: new Map() });
-    });
+    }
 
-    Object.entries(models).forEach(([name, model]) => {
+    for (const [name, model] of Object.entries(models)) {
       const map = relationMap.get(name)!.relations;
 
-      model.fields.forEach((field) => {
+      for (const field of model.fields) {
         if (field.kind === 'object' && relationMap.has(field.type)) {
           map.set(field.name, relationMap.get(field.type)!);
         }
-      });
-    });
+      }
+    }
   }
 
   return relationMap;

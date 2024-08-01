@@ -1,15 +1,14 @@
-/* eslint-disable logical-assignment-operators */
-import { GraphQLResolveInfo } from 'graphql';
 import {
+  type MaybePromise,
+  type ObjectParam,
+  type OutputType,
+  PothosValidationError,
+  type SchemaTypes,
   brandWithType,
   createContextCache,
-  MaybePromise,
-  ObjectParam,
-  OutputType,
-  PothosValidationError,
-  SchemaTypes,
 } from '@pothos/core';
-import { NodeObjectOptions } from '../types';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { NodeObjectOptions } from '../types';
 
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 
@@ -23,9 +22,9 @@ export async function resolveNodes<Types extends SchemaTypes>(
   const idsByType: Record<string, Set<unknown>> = {};
   const results: Record<string, MaybePromise<unknown>> = {};
 
-  globalIDs.forEach((globalID, i) => {
+  for (const globalID of globalIDs) {
     if (globalID == null) {
-      return;
+      continue;
     }
 
     const { id, typename } = globalID;
@@ -33,12 +32,12 @@ export async function resolveNodes<Types extends SchemaTypes>(
 
     if (requestCache.has(cacheKey)) {
       results[cacheKey] = requestCache.get(cacheKey)!;
-      return;
+      continue;
     }
 
     idsByType[typename] = idsByType[typename] ?? new Set();
     idsByType[typename].add(id);
-  });
+  }
 
   await Promise.all(
     Object.keys(idsByType).map(async (typename) => {

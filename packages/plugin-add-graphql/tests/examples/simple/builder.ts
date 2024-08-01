@@ -1,5 +1,5 @@
-import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import SchemaBuilder from '@pothos/core';
+import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import AddGraphQLPlugin from '../../../src';
 
 interface Types {

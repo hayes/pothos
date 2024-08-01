@@ -1,9 +1,9 @@
 import {
-  FieldKind,
+  type FieldKind,
+  type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  type SchemaTypes,
   outputFieldShapeKey,
-  PothosOutputFieldConfig,
-  PothosTypeConfig,
-  SchemaTypes,
 } from '../types';
 
 export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends FieldKind = FieldKind> {
@@ -17,7 +17,7 @@ export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends Field
 
   protected pendingActions: ((
     config: PothosOutputFieldConfig<Types>,
-  ) => PothosOutputFieldConfig<Types> | void)[] = [];
+  ) => PothosOutputFieldConfig<Types> | undefined)[] = [];
 
   private initConfig: (
     name: string,
@@ -35,7 +35,7 @@ export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends Field
   }
 
   updateConfig(
-    cb: (config: PothosOutputFieldConfig<Types>) => PothosOutputFieldConfig<Types> | void,
+    cb: (config: PothosOutputFieldConfig<Types>) => PothosOutputFieldConfig<Types> | undefined,
   ) {
     this.pendingActions.push(cb);
   }

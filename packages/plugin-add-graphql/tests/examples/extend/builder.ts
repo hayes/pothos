@@ -1,3 +1,4 @@
+import SchemaBuilder from '@pothos/core';
 import {
   GraphQLID,
   GraphQLInterfaceType,
@@ -7,7 +8,6 @@ import {
   GraphQLSchema,
   GraphQLString,
 } from 'graphql';
-import SchemaBuilder from '@pothos/core';
 import AddGraphQLPlugin from '../../../src';
 
 const Node = new GraphQLInterfaceType({

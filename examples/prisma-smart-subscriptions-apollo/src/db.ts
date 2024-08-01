@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-relative-packages
 import { PrismaClient } from '../prisma/client';
 import { pubsub } from './pubsub';
 
@@ -17,9 +16,8 @@ db.$use(async (params, next) => {
     params.action === 'createMany'
   ) {
     console.log(`🚀 ${params.action} ${params.model}`);
-    void pubsub.publish(`dbUpdated${model}`, {});
+    pubsub.publish(`dbUpdated${model}`, {});
   }
   // See results here
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return result;
 });

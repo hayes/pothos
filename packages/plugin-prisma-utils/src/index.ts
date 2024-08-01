@@ -2,11 +2,11 @@ import './global-types';
 import './schema-builder';
 import SchemaBuilder, {
   BasePlugin,
-  BuildCache,
+  type BuildCache,
   createInputValueMapper,
   mapInputFields,
-  PothosOutputFieldConfig,
-  SchemaTypes,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
   unwrapInputFieldType,
 } from '@pothos/core';
 
@@ -31,9 +31,9 @@ function normalizeInputObject(object: unknown, nullableFields: Set<string>): unk
 
   const mapped: Record<string, unknown> = {};
 
-  (Object.keys(object) as (keyof typeof object)[]).forEach((key) => {
+  for (const key of Object.keys(object) as (keyof typeof object)[]) {
     mapped[key] = !nullableFields.has(key) && object[key] === null ? undefined : object[key];
-  });
+  }
 
   return mapped;
 }

@@ -126,7 +126,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => products.find((product) => product.id === args.id),
+      resolve: (_root, args) => products.find((product) => product.id === args.id),
     }),
   }),
 });

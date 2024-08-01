@@ -66,7 +66,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Posts.get(String(args.id)),
+      resolve: (_root, args) => Posts.get(String(args.id)),
     }),
     posts: t.field({
       type: [Post],
@@ -75,7 +75,7 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (root, { skip, take }) =>
+      resolve: (_root, { skip, take }) =>
         [...Posts.values()].slice(skip ?? 0, (skip ?? 0) + (take ?? DEFAULT_PAGE_SIZE)),
     }),
     user: t.field({
@@ -84,7 +84,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Users.get(String(args.id)),
+      resolve: (_root, args) => Users.get(String(args.id)),
     }),
   }),
 });

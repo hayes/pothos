@@ -1,4 +1,4 @@
-import { Human } from '../backing-models';
+import type { Human } from '../backing-models';
 import builder from '../builder';
 import { CharacterRef } from './character';
 

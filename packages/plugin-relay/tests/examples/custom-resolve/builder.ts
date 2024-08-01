@@ -13,11 +13,10 @@ export default new SchemaBuilder<{
   defaults: 'v3',
   relayOptions: {
     nodeQueryOptions: {
-      resolve: (root, { id }, context, info) => users[Number.parseInt(String(id.id), 10)],
+      resolve: (_root, { id }) => users[Number.parseInt(String(id.id), 10)],
     },
     nodesQueryOptions: {
-      resolve: (root, { ids }, context, info) =>
-        ids.map(({ id }) => users[Number.parseInt(String(id), 10)]),
+      resolve: (_root, { ids }) => ids.map(({ id }) => users[Number.parseInt(String(id), 10)]),
     },
   },
 });

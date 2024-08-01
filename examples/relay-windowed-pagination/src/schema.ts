@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { builder } from './builder';
 import { Comments, Posts, Users } from './data';
-import { IComment, IPost, IUser, PageCursor, PageCursors } from './types';
+import type { IComment, IPost, IUser, PageCursor, PageCursors } from './types';
 import { resolveWindowedConnection } from './util';
 
 export const User = builder.objectRef<IUser>('User');
@@ -134,11 +133,11 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Posts.get(String(args.id)),
+      resolve: (_root, args) => Posts.get(String(args.id)),
     }),
     posts: t.connection({
       type: Post,
-      resolve: (root, args) =>
+      resolve: (_root, args) =>
         resolveWindowedConnection({ args }, ({ limit, offset }) => ({
           items: [...Posts.values()].slice(offset, offset + limit),
           totalCount: Posts.size,
@@ -150,7 +149,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Users.get(String(args.id)),
+      resolve: (_root, args) => Users.get(String(args.id)),
     }),
   }),
 });

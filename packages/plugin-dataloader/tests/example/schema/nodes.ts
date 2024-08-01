@@ -1,5 +1,5 @@
 import builder from '../builder';
-import { ContextType } from '../types';
+import type { ContextType } from '../types';
 import { countCall, userNodeCounts } from './counts';
 import { TestInterface } from './interfaces';
 
@@ -20,14 +20,15 @@ const UserNode = builder.loadableNodeRef('UserNode', {
 
 builder.objectType(UserNode, {
   interfaces: [TestInterface],
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   isTypeOf: (obj) => (obj as any).objType === 'UserNode',
-  fields: (t) => ({}),
+  fields: () => ({}),
 });
 
 class ClassThing {
   id: number;
 
-  name: string = 'some name';
+  name = 'some name';
 
   constructor(id = 123) {
     this.id = id;
@@ -42,10 +43,8 @@ const ClassThingRef = builder.loadableNode(ClassThing, {
     parse: (id) => id,
   },
   loaderOptions: { maxBatchSize: 20 },
-  // eslint-disable-next-line @typescript-eslint/require-await
-  load: async (keys, context: ContextType) =>
-    keys.map((k) => new ClassThing(Number.parseInt(k, 10))),
-  fields: (t) => ({}),
+  load: async (keys) => keys.map((k) => new ClassThing(Number.parseInt(k, 10))),
+  fields: () => ({}),
 });
 
 class LoadableParseTest {
@@ -66,8 +65,7 @@ const LoadableParseRef = builder.loadableNode(LoadableParseTest, {
     parse: (id) => Number.parseInt(id, 10),
   },
   loaderOptions: { maxBatchSize: 20 },
-  // eslint-disable-next-line @typescript-eslint/require-await
-  load: async (keys, context: ContextType) => keys.map((k) => new LoadableParseTest(k)),
+  load: async (keys, _context: ContextType) => keys.map((k) => new LoadableParseTest(k)),
   fields: (t) => ({
     idNumber: t.exposeInt('id'),
   }),
@@ -80,7 +78,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '1',
+    resolve: (_root, args) => args.id ?? '1',
   }),
   userNodes: t.field({
     type: [UserNode],
@@ -110,6 +108,6 @@ builder.queryFields((t) => ({
     args: {
       ids: t.arg.globalIDList({ for: LoadableParseRef }),
     },
-    resolve: (source, args) => args.ids?.map((id) => id.id) ?? ([] as any),
+    resolve: (_source, args) => args.ids?.map((id) => id.id) ?? [],
   }),
 }));

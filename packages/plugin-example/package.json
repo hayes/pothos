@@ -30,20 +30,14 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": [
-    "pothos",
-    "graphql",
-    "schema",
-    "example",
-    "plugin"
-  ],
+  "keywords": ["pothos", "graphql", "schema", "example", "plugin"],
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "peerDependencies": {
     "@pothos/core": "4.0.2",
-    "graphql": ">=16.6.0"
+    "graphql": "^16.8.1"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",

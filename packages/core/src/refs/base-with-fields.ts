@@ -1,4 +1,4 @@
-import {
+import type {
   FieldMap,
   InterfaceParam,
   PothosInterfaceTypeConfig,
@@ -9,7 +9,7 @@ import {
   SchemaTypes,
 } from '../types';
 import { BaseTypeRef } from './base';
-import { FieldRef } from './field';
+import type { FieldRef } from './field';
 
 export type ObjectLikeConfig =
   | PothosMutationTypeConfig

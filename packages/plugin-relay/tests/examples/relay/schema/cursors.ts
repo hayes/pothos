@@ -1,4 +1,4 @@
-import { resolveCursorConnection, ResolveCursorConnectionArgs } from '../../../../src';
+import { type ResolveCursorConnectionArgs, resolveCursorConnection } from '../../../../src';
 import builder from '../builder';
 
 const CursorObject = builder.objectRef<{ id: number }>('CursorObject').implement({
@@ -10,7 +10,7 @@ const CursorObject = builder.objectRef<{ id: number }>('CursorObject').implement
 builder.queryField('cursorConnection', (t) =>
   t.connection({
     type: CursorObject,
-    resolve: async (root, args) =>
+    resolve: async (_root, args) =>
       resolveCursorConnection(
         {
           defaultSize: 5,

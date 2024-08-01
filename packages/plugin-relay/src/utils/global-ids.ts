@@ -1,4 +1,4 @@
-import { decodeBase64, encodeBase64, PothosValidationError } from '@pothos/core';
+import { PothosValidationError, decodeBase64, encodeBase64 } from '@pothos/core';
 
 export function encodeGlobalID(typename: string, id: bigint | number | string) {
   return encodeBase64(`${typename}:${id}`);
@@ -7,6 +7,7 @@ export function encodeGlobalID(typename: string, id: bigint | number | string) {
 const typenameRegex = /^[A-Z_a-z]\w*$/;
 
 export function decodeGlobalID(globalID: string) {
+  // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
   let decoded;
   try {
     decoded = decodeBase64(globalID).split(':');

@@ -1,7 +1,6 @@
-/* eslint-disable max-classes-per-file */
-import DataLoader from 'dataloader';
-import { ImplementableObjectRef, ObjectRef, SchemaTypes } from '@pothos/core';
-import { DataLoaderOptions } from '../types';
+import { ImplementableObjectRef, ObjectRef, type SchemaTypes } from '@pothos/core';
+import type DataLoader from 'dataloader';
+import type { DataLoaderOptions } from '../types';
 import { dataloaderGetter } from '../util';
 
 export class LoadableObjectRef<
@@ -52,7 +51,6 @@ export class ImplementableLoadableObjectRef<
       typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey;
 
     this.builder.configStore.onTypeConfig(this, (config) => {
-      // eslint-disable-next-line no-param-reassign
       config.extensions = {
         ...config.extensions,
         getDataloader: this.getDataloader,

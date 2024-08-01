@@ -1,4 +1,4 @@
-import { User } from './types';
+import type { User } from './types';
 
 export const users: User[] = Array.from({ length: 10 })
   .fill(0)

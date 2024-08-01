@@ -1,4 +1,3 @@
-/* eslint-disable no-magic-numbers */
 import { faker } from '@faker-js/faker';
 import { PrismaClient } from './client/index.js';
 
@@ -48,4 +47,4 @@ void main()
     console.error(error);
     throw error;
   })
-  .finally(() => void prisma.$disconnect());
+  .finally(() => prisma.$disconnect());

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '../../../src';
 import { db } from '../db';
@@ -27,7 +26,7 @@ const builder = new SchemaBuilder<{
   relayOptions: {},
   defaultFieldNullability: true,
   scopeAuthOptions: {
-    unauthorizedError: (parent, context, info, result) =>
+    unauthorizedError: (_parent, _context, _info, result) =>
       new Error(`${result.failure.kind}: ${result.message}`),
     runScopesOnType: true,
   },
@@ -46,7 +45,7 @@ const builder = new SchemaBuilder<{
     asyncPermission: async (perm) => {
       context.count?.('asyncPermission');
 
-      return !!context.user?.permissions.includes(perm);
+      return await !!context.user?.permissions.includes(perm);
     },
   }),
 });
@@ -76,9 +75,9 @@ builder.queryType({
   fields: (t) => ({
     me: t.field({
       type: User,
-      resolve: (parent, args, context) => context.user,
+      resolve: (_parent, _args, context) => context.user,
     }),
-    me2: t.field({ type: User2, resolve: (parent, args, context) => context.user }),
+    me2: t.field({ type: User2, resolve: (_parent, _args, context) => context.user }),
     test: t.string({ authScopes: () => false, resolve: () => 'test' }),
   }),
 });

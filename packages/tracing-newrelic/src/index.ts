@@ -1,6 +1,6 @@
-import { GraphQLFieldResolver, print } from 'graphql';
-import newrelic from 'newrelic';
 import { pathToString } from '@pothos/plugin-tracing';
+import { type GraphQLFieldResolver, print } from 'graphql';
+import newrelic from 'newrelic';
 import { AttributeNames } from './enums';
 
 export * from './enums';
@@ -12,10 +12,10 @@ export interface NewRelicWrapperOptions {
 
 export function createNewrelicWrapper<T>(options?: NewRelicWrapperOptions) {
   return <Context extends object = object>(
-      resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
-      fieldOptions?: T,
-      tracingOptions?: NewRelicWrapperOptions,
-    ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
+    resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
+    _fieldOptions?: T,
+    tracingOptions?: NewRelicWrapperOptions,
+  ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
     (source, args, ctx, info) =>
       newrelic.startSegment('graphql.resolve', true, () => {
         newrelic.addCustomSpanAttributes({

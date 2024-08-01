@@ -1,10 +1,9 @@
-// eslint-disable-next-line simple-import-sort/imports
-import { tracer } from './tracer'; // Tracer must be imported first
-import { print } from 'graphql';
-import { createYoga, Plugin } from 'graphql-yoga';
 import { createServer } from 'node:http';
+import { print } from 'graphql';
+import { type Plugin, createYoga } from 'graphql-yoga';
 import { AttributeNames, SpanNames } from '../../src';
 import { schema } from './schema';
+import { tracer } from './tracer'; // Tracer must be imported first
 
 const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {
@@ -39,7 +38,6 @@ const yoga = createYoga({
   plugins: [tracingPlugin],
 });
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const server = createServer(yoga);
 
 server.listen(3000);

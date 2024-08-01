@@ -1,16 +1,15 @@
-/* eslint-disable no-param-reassign */
 import './global-types';
-import { GraphQLSchema } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  PothosEnumValueConfig,
-  PothosInputFieldConfig,
-  PothosOutputFieldConfig,
-  PothosTypeConfig,
-  SchemaTypes,
+  type PothosEnumValueConfig,
+  type PothosInputFieldConfig,
+  type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  type SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLSchema } from 'graphql';
 import mockAst from './mock-ast';
-import { DirectiveList } from './types';
+import type { DirectiveList } from './types';
 
 export * from './types';
 
@@ -31,8 +30,8 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         ...fieldConfig.extensions,
         directives: this.normalizeDirectives(
           this.mergeDirectives(
-            fieldConfig.extensions?.directives as Record<string, {}>,
-            options.directives as unknown as Record<string, {}>,
+            fieldConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
           ),
         ),
       },
@@ -52,8 +51,8 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         ...fieldConfig.extensions,
         directives: this.normalizeDirectives(
           this.mergeDirectives(
-            fieldConfig.extensions?.directives as Record<string, {}>,
-            options.directives as unknown as Record<string, {}>,
+            fieldConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
           ),
         ),
       },
@@ -73,8 +72,8 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         ...valueConfig.extensions,
         directives: this.normalizeDirectives(
           this.mergeDirectives(
-            valueConfig.extensions?.directives as Record<string, {}>,
-            options.directives as unknown as Record<string, {}>,
+            valueConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
           ),
         ),
       },
@@ -94,8 +93,8 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         ...typeConfig.extensions,
         directives: this.normalizeDirectives(
           this.mergeDirectives(
-            typeConfig.extensions?.directives as Record<string, {}>,
-            options.directives as unknown as Record<string, {}>,
+            typeConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
           ),
         ),
       },
@@ -107,8 +106,8 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
       ...schema.extensions,
       directives: this.normalizeDirectives(
         this.mergeDirectives(
-          (schema.extensions?.directives as Record<string, {}>) ?? {},
-          this.options.schemaDirectives as unknown as Record<string, {}>,
+          (schema.extensions?.directives as Record<string, object>) ?? {},
+          this.options.schemaDirectives as unknown as Record<string, object>,
         ),
       ),
     };
@@ -119,8 +118,8 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   mergeDirectives(
-    left: DirectiveList | Record<string, {}>,
-    right: DirectiveList | Record<string, {}>,
+    left: DirectiveList | Record<string, object>,
+    right: DirectiveList | Record<string, object>,
   ) {
     if (!(left && right)) {
       return left || right;
@@ -136,7 +135,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
     ];
   }
 
-  normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
+  normalizeDirectives(directives: DirectiveList | Record<string, object>) {
     if (this.builder.options.directives?.useGraphQLToolsUnorderedDirectives) {
       if (!Array.isArray(directives)) {
         return directives;

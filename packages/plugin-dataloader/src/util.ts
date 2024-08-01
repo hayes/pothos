@@ -1,6 +1,6 @@
-import DataLoader, { Options } from 'dataloader';
-import { GraphQLResolveInfo } from 'graphql';
-import { createContextCache, isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
+import { type MaybePromise, type SchemaTypes, createContextCache, isThenable } from '@pothos/core';
+import DataLoader, { type Options } from 'dataloader';
+import type { GraphQLResolveInfo } from 'graphql';
 
 export function rejectErrors<T>(
   val: MaybePromise<readonly (Error | T)[]>,

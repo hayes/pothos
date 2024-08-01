@@ -1,16 +1,15 @@
-/* eslint-disable no-param-reassign */
+import { PothosValidationError } from '@pothos/core';
 import {
-  DBQueryConfig,
+  type DBQueryConfig,
   RelationalSchemaConfig,
-  SQL,
-  TableRelationalConfig,
+  type SQL,
+  type TableRelationalConfig,
   TablesRelationalConfig,
   getOperators,
 } from 'drizzle-orm';
-import { PothosValidationError } from '@pothos/core';
+import type { PothosDrizzleSchemaConfig } from './config';
 import { deepEqual } from './deep-equal';
-import { LoaderMappings } from './loader-map';
-import { PothosDrizzleSchemaConfig } from './config';
+import type { LoaderMappings } from './loader-map';
 
 export interface SelectionState {
   table: TableRelationalConfig;
@@ -123,7 +122,7 @@ export function mergeSelection(
   { with: withSelection, extras, columns, ...query }: SelectionMap,
 ) {
   if (withSelection) {
-    Object.entries(withSelection).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(withSelection)) {
       const relation = state.table.relations[key];
 
       if (!relation) {
@@ -131,7 +130,7 @@ export function mergeSelection(
       }
 
       merge(config.dbToSchema[relation.referencedTableName], key, value as SelectionMap | boolean);
-    });
+    }
   }
 
   if (Object.keys(query).length > 0) {

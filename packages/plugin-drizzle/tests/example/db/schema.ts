@@ -48,12 +48,8 @@ export const posts = sqliteTable('posts', {
       onDelete: 'cascade',
     }),
   categoryId: integer('category_id').references(() => categories.id),
-  createdAt: text('createdAt')
-    .notNull()
-    .default(sql`(current_timestamp)`),
-  updatedAt: text('createdAt')
-    .notNull()
-    .default(sql`(current_timestamp)`),
+  createdAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
 });
 
 export const postLikes = sqliteTable(
@@ -82,12 +78,8 @@ export const comments = sqliteTable('comments', {
   postId: integer('post_id')
     .notNull()
     .references(() => posts.id, { onDelete: 'cascade' }),
-  createdAt: text('createdAt')
-    .notNull()
-    .default(sql`(current_timestamp)`),
-  updatedAt: text('createdAt')
-    .notNull()
-    .default(sql`(current_timestamp)`),
+  createdAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
 });
 
 export const categories = sqliteTable('categories', {

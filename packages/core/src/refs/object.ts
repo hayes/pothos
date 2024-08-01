@@ -1,15 +1,14 @@
-/* eslint-disable max-classes-per-file */
 import {
-  InterfaceParam,
-  ObjectTypeOptions,
-  OutputRef,
+  type InterfaceParam,
+  type ObjectTypeOptions,
+  type OutputRef,
+  type PothosMutationTypeConfig,
+  type PothosObjectTypeConfig,
+  type PothosQueryTypeConfig,
+  type PothosSubscriptionTypeConfig,
+  type SchemaTypes,
   outputShapeKey,
   parentShapeKey,
-  PothosMutationTypeConfig,
-  PothosObjectTypeConfig,
-  PothosQueryTypeConfig,
-  PothosSubscriptionTypeConfig,
-  SchemaTypes,
 } from '../types';
 import { TypeRefWithFields } from './base-with-fields';
 

@@ -1,4 +1,4 @@
-import { AttributeValue } from '@opentelemetry/api';
+import type { AttributeValue } from '@opentelemetry/api';
 import SchemaBuilder from '@pothos/core';
 import TracingPlugin, { isEnumField, isRootField, isScalarField } from '@pothos/plugin-tracing';
 import { createOpenTelemetryWrapper } from '../../src';
@@ -41,7 +41,7 @@ export const builder2 = new SchemaBuilder<{ Tracing: TracingOptions }>({
   tracing: {
     default: (config) => {
       if (isRootField(config)) {
-        return (root, args, ctx, info) => ({ spanName: info.operation.name?.value });
+        return (_root, _args, _ctx, info) => ({ spanName: info.operation.name?.value });
       }
 
       return false;
@@ -52,7 +52,7 @@ export const builder2 = new SchemaBuilder<{ Tracing: TracingOptions }>({
 
 const createNamedSpan = createOpenTelemetryWrapper<Exclude<TracingOptions, false>>(tracer, {
   includeSource: true,
-  onSpan: (span, options, source, args, ctx, info) => {
+  onSpan: (span, _options, _source, _args, _ctx, info) => {
     // if this is a root field
     if (!info.path.prev && info.operation.name?.value) {
       span.updateName(info.operation.name?.value);
@@ -63,13 +63,13 @@ export const builder3 = new SchemaBuilder<{ Tracing: TracingOptions }>({
   plugins: [TracingPlugin],
   tracing: {
     default: (config) => isRootField(config),
-    wrap: (resolver, options, config) => createNamedSpan(resolver, options),
+    wrap: (resolver, options) => createNamedSpan(resolver, options),
   },
 });
 
 const createSpanFromOperation = createOpenTelemetryWrapper<Exclude<TracingOptions, false>>(tracer, {
   includeSource: true,
-  onSpan: (span, options, source, args, ctx, info) => {
+  onSpan: (span, options, _source, _args, _ctx, info) => {
     if (
       typeof options === 'object' &&
       options.useOperationAsSpanName &&
@@ -88,6 +88,6 @@ export const builder4 = new SchemaBuilder<{ Tracing: TracingOptions }>({
       }
       return false;
     },
-    wrap: (resolver, options, config) => createSpanFromOperation(resolver, options),
+    wrap: (resolver, options) => createSpanFromOperation(resolver, options),
   },
 });

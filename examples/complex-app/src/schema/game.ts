@@ -87,6 +87,7 @@ builder.mutationField('createGame', (t) =>
     },
     resolve: async (query, _, { input }) => {
       const game = await db.game.create({
+        ...query,
         data: {
           complete: input.complete ?? false,
           opponentName: input.opponentName,

@@ -25,8 +25,9 @@ export function Posts() {
 
   return (
     <div className={styles.grid}>
-      {data?.posts?.map((post) => (
-        <div className={styles.card}>
+      {data?.posts?.map((post, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+        <div key={i} className={styles.card}>
           <h2>{post.title}</h2>
           <p>{post.content}</p>
         </div>

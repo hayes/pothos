@@ -1,5 +1,5 @@
-import DataLoader from 'dataloader';
-import { SchemaTypes, UnionRef } from '@pothos/core';
+import { type SchemaTypes, UnionRef } from '@pothos/core';
+import type DataLoader from 'dataloader';
 
 export class LoadableUnionRef<
   Types extends SchemaTypes,

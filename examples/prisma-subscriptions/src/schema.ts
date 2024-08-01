@@ -1,7 +1,12 @@
 import { printSchema } from 'graphql';
 import { builder } from './builder';
 import { db } from './db';
-import { MutationType, PubSubEvent, PubSubPostEvent, PubSubUserEvent } from './pubsub';
+import {
+  MutationType,
+  type PubSubEvent,
+  type PubSubPostEvent,
+  type PubSubUserEvent,
+} from './pubsub';
 
 builder.prismaObject('User', {
   fields: (t) => ({
@@ -45,7 +50,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (query, root, args) =>
+      resolve: (query, _root, args) =>
         db.post.findUnique({
           ...query,
           where: { id: Number.parseInt(String(args.id), 10) },
@@ -57,7 +62,7 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (query, root, args) =>
+      resolve: (query, _root, args) =>
         db.post.findMany({
           ...query,
           take: args.take ?? DEFAULT_PAGE_SIZE,
@@ -70,7 +75,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (query, root, args) =>
+      resolve: (query, _root, args) =>
         db.user.findUnique({
           ...query,
           where: { id: Number.parseInt(String(args.id), 10) },
@@ -88,7 +93,7 @@ builder.mutationType({
         content: t.arg.string({ required: true }),
         authorId: t.arg.id({ required: true }),
       },
-      resolve: async (query, root, args, ctx) => {
+      resolve: async (query, _root, args, ctx) => {
         const post = await db.post.create({
           ...query,
           data: {
@@ -116,7 +121,7 @@ builder.mutationType({
         title: t.arg.string(),
         content: t.arg.string(),
       },
-      resolve: async (query, root, args, ctx) => {
+      resolve: async (query, _root, args, ctx) => {
         const post = await db.post.update({
           ...query,
           where: { id: Number.parseInt(String(args.id), 10) },
@@ -140,7 +145,7 @@ builder.mutationType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: async (query, root, args, ctx) => {
+      resolve: async (query, _root, args, ctx) => {
         const post = await db.post.delete({
           ...query,
           where: { id: Number.parseInt(String(args.id), 10) },
@@ -160,7 +165,7 @@ builder.mutationType({
         firstName: t.arg.string({ required: true }),
         lastName: t.arg.string({ required: true }),
       },
-      resolve: async (query, root, args, ctx) => {
+      resolve: async (query, _root, args, ctx) => {
         const user = await db.user.create({
           ...query,
           data: {
@@ -185,7 +190,7 @@ builder.mutationType({
         firstName: t.arg.string(),
         lastName: t.arg.string(),
       },
-      resolve: async (query, root, args, ctx) => {
+      resolve: async (query, _root, args, ctx) => {
         const user = await db.user.update({
           ...query,
           where: { id: Number.parseInt(String(args.id), 10) },
@@ -209,7 +214,7 @@ builder.mutationType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: async (query, root, args, ctx) => {
+      resolve: async (query, _root, args, ctx) => {
         const user = await db.user.delete({
           ...query,
           where: { id: Number.parseInt(String(args.id), 10) },
@@ -278,12 +283,12 @@ builder.subscriptionType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      subscribe: (root, args, ctx) => ctx.pubsub.subscribe('post', args.id),
+      subscribe: (_root, args, ctx) => ctx.pubsub.subscribe('post', args.id),
       resolve: (event) => event,
     }),
     posts: t.field({
       type: SubscriptionPostEvent,
-      subscribe: (root, args, ctx) => ctx.pubsub.subscribe('posts'),
+      subscribe: (_root, _args, ctx) => ctx.pubsub.subscribe('posts'),
       resolve: (payload) => payload,
     }),
     user: t.field({
@@ -292,12 +297,12 @@ builder.subscriptionType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      subscribe: (root, args, ctx) => ctx.pubsub.subscribe('user', args.id),
+      subscribe: (_root, args, ctx) => ctx.pubsub.subscribe('user', args.id),
       resolve: (event) => event,
     }),
     users: t.field({
       type: SubscriptionUserEvent,
-      subscribe: (root, args, ctx) => ctx.pubsub.subscribe('users'),
+      subscribe: (_root, _args, ctx) => ctx.pubsub.subscribe('users'),
       resolve: (payload) => payload,
     }),
   }),

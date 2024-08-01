@@ -1,7 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-empty-interface */
-import { GraphQLResolveInfo } from 'graphql';
-import {
+import type {
   FieldKind,
   FieldMap,
   FieldNullability,
@@ -15,24 +12,25 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
-import { PrismaNodeRef } from './node-ref';
-import { prismaModelKey, PrismaObjectRef } from './object-ref';
-import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { PrismaInterfaceRef, PrismaRef } from './interface-ref';
+import type { PrismaNodeRef } from './node-ref';
+import type { PrismaObjectRef, prismaModelKey } from './object-ref';
+import type { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
 import {
-  PrismaClient,
-  PrismaConnectionFieldOptions,
-  PrismaConnectionShape,
-  PrismaFieldOptions,
-  PrismaFieldWithInputOptions,
-  PrismaInterfaceTypeOptions,
+  type PrismaClient,
+  type PrismaConnectionFieldOptions,
+  type PrismaConnectionShape,
+  type PrismaFieldOptions,
+  type PrismaFieldWithInputOptions,
+  type PrismaInterfaceTypeOptions,
+  type PrismaModelTypes,
+  type PrismaNodeOptions,
+  type PrismaObjectFieldOptions,
+  type PrismaObjectTypeOptions,
+  type ShapeFromConnection,
+  type ShapeFromSelection,
   prismaModelName,
-  PrismaModelTypes,
-  PrismaNodeOptions,
-  PrismaObjectFieldOptions,
-  PrismaObjectTypeOptions,
-  ShapeFromConnection,
-  ShapeFromSelection,
 } from './types';
 
 import type { PothosPrismaPlugin } from '.';
@@ -254,10 +252,11 @@ declare global {
     > {
       prismaField: <
         Args extends InputFieldMap,
-        TypeParam extends
+        TypeParam extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
           | PrismaRef<any, PrismaModelTypes>
           | keyof Types['PrismaTypes']
           | [keyof Types['PrismaTypes']]
+          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
           | [PrismaRef<any, PrismaModelTypes>],
         Nullable extends FieldNullability<Type>,
         ResolveShape,
@@ -268,9 +267,11 @@ declare global {
         Model extends PrismaModelTypes = PrismaModelTypes &
           (TypeParam extends [keyof Types['PrismaTypes']]
             ? Types['PrismaTypes'][TypeParam[0]]
-            : TypeParam extends [PrismaRef<any, PrismaModelTypes>]
+            : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+              TypeParam extends [PrismaRef<any, PrismaModelTypes>]
               ? TypeParam[0][typeof prismaModelKey]
-              : TypeParam extends PrismaRef<any, PrismaModelTypes>
+              : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                TypeParam extends PrismaRef<any, PrismaModelTypes>
                 ? TypeParam[typeof prismaModelKey]
                 : TypeParam extends keyof Types['PrismaTypes']
                   ? Types['PrismaTypes'][TypeParam]
@@ -292,6 +293,7 @@ declare global {
 
       prismaConnection: 'relay' extends PluginName
         ? <
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
             Type extends PrismaRef<any, PrismaModelTypes> | keyof Types['PrismaTypes'],
             Nullable extends boolean,
             ResolveReturnShape,
@@ -356,10 +358,11 @@ declare global {
       prismaFieldWithInput: 'withInput' extends PluginName
         ? <
             Fields extends InputFieldMap,
-            TypeParam extends
+            TypeParam extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
               | PrismaRef<any, PrismaModelTypes>
               | keyof Types['PrismaTypes']
               | [keyof Types['PrismaTypes']]
+              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
               | [PrismaRef<any, PrismaModelTypes>],
             Type extends TypeParam extends [unknown]
               ? [ObjectRef<Types, Model['Shape']>]
@@ -373,9 +376,11 @@ declare global {
             Model extends PrismaModelTypes = PrismaModelTypes &
               (TypeParam extends [keyof Types['PrismaTypes']]
                 ? Types['PrismaTypes'][TypeParam[0]]
-                : TypeParam extends [PrismaRef<any, PrismaModelTypes>]
+                : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                  TypeParam extends [PrismaRef<any, PrismaModelTypes>]
                   ? TypeParam[0][typeof prismaModelKey]
-                  : TypeParam extends PrismaRef<any, PrismaModelTypes>
+                  : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                    TypeParam extends PrismaRef<any, PrismaModelTypes>
                     ? TypeParam[typeof prismaModelKey]
                     : TypeParam extends keyof Types['PrismaTypes']
                       ? Types['PrismaTypes'][TypeParam]

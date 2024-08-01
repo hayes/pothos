@@ -1,8 +1,13 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
+import {
+  type MaybePromise,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+  isThenable,
+} from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
-import { AuthScopeFailureType, ResolveStep, UnauthorizedResolver } from './types';
+import { AuthScopeFailureType, type ResolveStep, type UnauthorizedResolver } from './types';
 
 import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
 
@@ -27,7 +32,7 @@ export function resolveHelper<Types extends SchemaTypes>(
   const globalUnauthorizedError = plugin.builder.options.scopeAuth?.unauthorizedError;
   const defaultUnauthorizedError: UnauthorizedErrorFn<Types, object, {}> = (
     parent,
-    args,
+    _args,
     context,
     info,
     result,
@@ -59,7 +64,6 @@ export function resolveHelper<Types extends SchemaTypes>(
       for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
 
-        // eslint-disable-next-line @typescript-eslint/no-loop-func
         const stepResult = run(cache, parent, args, context, info, (val) => {
           resolvedValue = val;
         });

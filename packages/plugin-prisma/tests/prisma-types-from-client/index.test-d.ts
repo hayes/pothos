@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import { PrismaTypesFromClient } from '../../src';
+import type { PrismaTypesFromClient } from '../../src';
 import { PrismaClient } from './client';
-import PrismaTypes from './generated';
+import type PrismaTypes from './generated';
 
 describe('PrismaTypesFromClient', () => {
   const db = new PrismaClient();

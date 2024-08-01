@@ -1,20 +1,20 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  createContextCache,
-  InterfaceRef,
-  ObjectRef,
+  type InterfaceRef,
+  type ObjectRef,
   PothosSchemaError,
-  SchemaTypes,
+  type SchemaTypes,
+  createContextCache,
 } from '@pothos/core';
-import { PrismaDelegate, SelectionMap } from './types';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { PrismaDelegate, SelectionMap } from './types';
 import { getDelegateFromModel, getModel } from './util/datamodel';
 import { getClient } from './util/get-client';
 import { cacheKey, setLoaderMappings } from './util/loader-map';
 import { selectionStateFromInfo } from './util/map-query';
 import {
+  type SelectionState,
   mergeSelection,
   selectionCompatible,
-  SelectionState,
   selectionToQuery,
 } from './util/selections';
 
@@ -75,7 +75,7 @@ export class ModelLoader {
             ? () => {
                 throw new PothosSchemaError(`Missing findUnique for ${ref.name}`);
               }
-            : findUnique ?? this.getDefaultFindUnique(ref, modelName, builder),
+            : findUnique ?? ModelLoader.getDefaultFindUnique(ref, modelName, builder),
         ),
     );
   }
@@ -147,9 +147,9 @@ export class ModelLoader {
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): (model: Record<string, unknown>) => {} {
-    const findBy = this.getDefaultFindBy(ref, modelName, builder);
+    const findBy = ModelLoader.getDefaultFindBy(ref, modelName, builder);
 
-    return this.getFindUnique(findBy);
+    return ModelLoader.getFindUnique(findBy);
   }
 
   static getDefaultIDSelection<Types extends SchemaTypes>(
@@ -157,7 +157,7 @@ export class ModelLoader {
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): Record<string, boolean> {
-    const findBy = this.getDefaultFindBy(ref, modelName, builder);
+    const findBy = ModelLoader.getDefaultFindBy(ref, modelName, builder);
 
     if (typeof findBy === 'string') {
       return { [findBy]: true };
@@ -236,7 +236,7 @@ export class ModelLoader {
       throw new PothosSchemaError(`Unable to find field or index for ${fieldName} of ${ref.name}`);
     }
 
-    return this.getFindUnique(findBy);
+    return ModelLoader.getFindUnique(findBy);
   }
 
   getSelection(info: GraphQLResolveInfo) {
@@ -277,7 +277,7 @@ export class ModelLoader {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
         }
 
-        return entry.models.get(model)!.promise;
+        return await entry.models.get(model)!.promise;
       }
     }
 
@@ -298,31 +298,29 @@ export class ModelLoader {
     this.staged.add(entry);
 
     const nextTick = createResolvablePromise<void>();
-    void this.tick.then(() => {
+    this.tick.then(() => {
       this.staged.delete(entry);
 
       for (const [model, { resolve, reject }] of entry.models) {
         if (this.delegate.findUniqueOrThrow) {
-          void this.delegate
+          this.delegate
             .findUniqueOrThrow({
               ...selectionToQuery(state),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
-            // eslint-disable-next-line promise/no-nesting
             .then(resolve as () => {}, reject);
         } else {
-          void this.delegate
+          this.delegate
             .findUnique({
               rejectOnNotFound: true,
               ...selectionToQuery(state),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
-            // eslint-disable-next-line promise/no-nesting
             .then(resolve as () => {}, reject);
         }
       }
     });
-    setTimeout(() => void nextTick.resolve(), 0);
+    setTimeout(() => nextTick.resolve(), 0);
     this.tick = nextTick.promise;
 
     return promise.promise;

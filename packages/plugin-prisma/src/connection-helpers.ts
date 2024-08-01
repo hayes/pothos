@@ -1,5 +1,5 @@
-import { InputFieldMap, InputShapeFromFields, ObjectRef, SchemaTypes } from '@pothos/core';
-import { PrismaRef } from './interface-ref';
+import type { InputFieldMap, InputShapeFromFields, ObjectRef, SchemaTypes } from '@pothos/core';
+import type { PrismaRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
 import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types';
 import {

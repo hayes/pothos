@@ -1,4 +1,4 @@
-import { InferredFieldOptionsKind } from './builder-options';
+import type { InferredFieldOptionsKind } from './builder-options';
 
 export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   outputShapes: {
@@ -33,7 +33,9 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
 }
 
 export type MergedScalars<PartialTypes extends Partial<PothosSchemaTypes.UserSchemaTypes>> = (
-  PartialTypes['Defaults'] extends 'v3' ? V3DefaultScalars : DefaultScalars
+  PartialTypes['Defaults'] extends 'v3'
+    ? V3DefaultScalars
+    : DefaultScalars
 ) extends infer Defaults
   ? SchemaTypes['Scalars'] & {
       [K in keyof Defaults | keyof PartialTypes['Scalars']]: K extends keyof PartialTypes['Scalars']
@@ -70,7 +72,6 @@ export interface V3DefaultScalars {
 
 export type BaseScalarNames = 'Boolean' | 'Float' | 'ID' | 'Int' | 'String';
 
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export type ScalarName<Types extends SchemaTypes> = string &
   (BaseScalarNames | keyof Types['Scalars']);
 

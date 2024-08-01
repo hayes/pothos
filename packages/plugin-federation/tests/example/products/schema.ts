@@ -1,6 +1,6 @@
-import { DirectiveLocation, GraphQLDirective } from 'graphql';
 import SchemaBuilder from '@pothos/core';
 import DirectivesPlugin from '@pothos/plugin-directives';
+import { DirectiveLocation, GraphQLDirective } from 'graphql';
 import FederationPlugin from '../../../src';
 
 const builder = new SchemaBuilder<{
@@ -111,7 +111,7 @@ builder.queryType({
           defaultValue: 5,
         }),
       },
-      resolve: (root, args) => products.slice(0, args.first ?? 5),
+      resolve: (_root, args) => products.slice(0, args.first ?? 5),
     }),
   }),
 });

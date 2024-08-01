@@ -87,7 +87,7 @@ const Node = builder.interfaceRef<{ id: string }>('Node').implement({
 const Node2 = builder.interfaceRef<{ id: string }>('Node2').implement({
   interfaces: [Node],
   subGraphs: ['Private'],
-  fields: (t) => ({}),
+  fields: () => ({}),
 });
 
 builder.objectRef<{ id: string; name: string }>('NodeThing').implement({

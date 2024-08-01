@@ -28,14 +28,14 @@ export class Poll {
   static create(question: string, answers: string[]) {
     const poll = new Poll(question, answers);
 
-    this.map.set(poll.id, poll);
+    Poll.map.set(poll.id, poll);
 
     return poll;
   }
 
   static reset() {
-    this.map = new Map<number, Poll>();
-    this.lastID = 0;
-    this.lastAnswerID = 0;
+    Poll.map = new Map<number, Poll>();
+    Poll.lastID = 0;
+    Poll.lastAnswerID = 0;
   }
 }

@@ -1,11 +1,10 @@
-import type { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
-  InterfaceParam,
-  ObjectParam,
-  OutputRef,
+  type InterfaceParam,
+  type ObjectParam,
+  type OutputRef,
   PothosSchemaError,
-  SchemaTypes,
-  ShapeFromTypeParam,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
 } from '@pothos/core';
 import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
 import { ImplementableLoadableInterfaceRef } from './refs/interface';
@@ -17,7 +16,7 @@ import type {
   LoadableUnionOptions,
   ShapeFromLoadResult,
 } from './types';
-import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
+import type { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
 import { dataloaderGetter } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -207,7 +206,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
     isTypeOf:
       options.isTypeOf ??
       (typeof nameOrRef === 'function'
-        ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
+        ? (maybeNode: unknown) => {
             if (!maybeNode) {
               return false;
             }

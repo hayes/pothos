@@ -1,33 +1,33 @@
 import './global-types';
+import SchemaBuilder, {
+  type ArgumentRef,
+  type EnumRef,
+  type EnumValueConfigMap,
+  type InputFieldRef,
+  type InputType,
+  type InputTypeParam,
+  type ObjectParam,
+  type ObjectRef,
+  type OutputType,
+  type SchemaTypes,
+  type TypeParam,
+} from '@pothos/core';
 import {
+  type GraphQLEnumType,
+  type GraphQLInputObjectType,
+  type GraphQLInputType,
+  type GraphQLInterfaceType,
+  type GraphQLNamedInputType,
+  type GraphQLNamedOutputType,
+  type GraphQLObjectType,
+  type GraphQLOutputType,
+  type GraphQLUnionType,
   defaultFieldResolver,
   getNamedType,
-  GraphQLEnumType,
-  GraphQLInputObjectType,
-  GraphQLInputType,
-  GraphQLInterfaceType,
-  GraphQLNamedInputType,
-  GraphQLNamedOutputType,
-  GraphQLObjectType,
-  GraphQLOutputType,
-  GraphQLUnionType,
   isListType,
   isNonNullType,
 } from 'graphql';
-import SchemaBuilder, {
-  ArgumentRef,
-  EnumRef,
-  EnumValueConfigMap,
-  InputFieldRef,
-  InputType,
-  InputTypeParam,
-  ObjectParam,
-  ObjectRef,
-  OutputType,
-  SchemaTypes,
-  TypeParam,
-} from '@pothos/core';
-import {
+import type {
   AddGraphQLEnumTypeOptions,
   AddGraphQLInputTypeOptions,
   AddGraphQLInterfaceTypeOptions,
@@ -126,13 +126,13 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
         ...newFields,
       };
 
-      Object.entries(existingFields).forEach(([fieldName, field]) => {
+      for (const [fieldName, field] of Object.entries(existingFields)) {
         if (newFields[fieldName] !== undefined) {
           if (newFields[fieldName] === null) {
             delete combinedFields[fieldName];
           }
 
-          return;
+          continue;
         }
 
         const args: Record<string, ArgumentRef<SchemaTypes>> = {};
@@ -156,7 +156,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
           deprecationReason: field.deprecationReason ?? undefined,
           resolve: (field.resolve ?? defaultFieldResolver) as never,
         });
-      });
+      }
 
       return combinedFields as {};
     },
@@ -196,13 +196,13 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
         ...newFields,
       };
 
-      Object.entries(existingFields).forEach(([fieldName, field]) => {
+      for (const [fieldName, field] of Object.entries(existingFields)) {
         if (newFields[fieldName] !== undefined) {
           if (newFields[fieldName] === null) {
             delete combinedFields[fieldName];
           }
 
-          return;
+          continue;
         }
 
         const args: Record<string, ArgumentRef<SchemaTypes>> = {};
@@ -224,7 +224,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
           deprecationReason: field.deprecationReason ?? undefined,
           resolve: field.resolve as never,
         });
-      });
+      }
 
       return combinedFields as {};
     },
@@ -241,7 +241,6 @@ proto.addGraphQLUnion = function addGraphQLUnion<Shape>(
     ...options
   }: AddGraphQLUnionTypeOptions<SchemaTypes, ObjectRef<SchemaTypes, Shape>> = {},
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return this.unionType<ObjectParam<SchemaTypes>, Shape>(options?.name ?? type.name, {
     ...options,
     description: type.description ?? undefined,
@@ -311,13 +310,13 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
         ...newFields,
       };
 
-      Object.entries(existingFields).forEach(([fieldName, field]) => {
+      for (const [fieldName, field] of Object.entries(existingFields)) {
         if (newFields[fieldName] !== undefined) {
           if (newFields[fieldName] === null) {
             delete combinedFields[fieldName];
           }
 
-          return;
+          continue;
         }
 
         combinedFields[fieldName] = t.field({
@@ -326,7 +325,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
           defaultValue: field.defaultValue,
           extensions: field.extensions,
         });
-      });
+      }
 
       return combinedFields as never;
     },

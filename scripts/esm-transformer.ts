@@ -1,8 +1,7 @@
 import * as ts from 'typescript';
 
-import { dirname, join, resolve } from 'path';
-import * as fs from 'fs';
-import { throws } from 'assert';
+import * as fs from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 type LoadedFile = {
   path: string;
@@ -12,9 +11,11 @@ type LoadedFile = {
 function resolveImport(mod: string, source: string) {
   if (mod.endsWith('.js')) {
     return mod;
-  } else if (mod.startsWith('@') && mod.split('/').length < 3) {
+  }
+  if (mod.startsWith('@') && mod.split('/').length < 3) {
     return mod;
-  } else if (!mod.startsWith('.') && !mod.includes('/')) {
+  }
+  if (!mod.startsWith('.') && !mod.includes('/')) {
     return mod;
   }
 
@@ -42,7 +43,7 @@ function resolveImport(mod: string, source: string) {
   throw new Error(`Module not found ${mod} from ${source}`);
 }
 
-const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
+const importTransformer = (context) => {
   return (sourceFile) => {
     const visitor = (node: ts.Node): ts.Node => {
       if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
@@ -83,7 +84,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
         const updatedNode = ts.factory.updateImportTypeNode(
           node,
           ts.factory.updateLiteralTypeNode(node.argument, ts.factory.createStringLiteral(mod)),
-          node.assertions,
+          node.attributes,
           node.qualifier,
           node.typeArguments,
         );
@@ -98,7 +99,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
   };
 };
 
-function getFiles(dir: string, root = false): string[] {
+function getFiles(dir: string): string[] {
   const results = fs.readdirSync(dir, {
     withFileTypes: true,
   });
@@ -112,7 +113,7 @@ function getFiles(dir: string, root = false): string[] {
     return fullPath.endsWith('.js') || fullPath.endsWith('.d.ts') ? [fullPath] : [];
   });
 
-  return paths.flatMap((entry) => entry);
+  return paths.flat();
 }
 
 function loadFile(file: string): LoadedFile {
@@ -128,7 +129,7 @@ function loadFile(file: string): LoadedFile {
 }
 
 function getAllFiles() {
-  return getFiles(join(process.cwd(), `esm`), true).map((entry) => loadFile(entry));
+  return getFiles(join(process.cwd(), 'esm')).map((entry) => loadFile(entry));
 }
 
 function build() {

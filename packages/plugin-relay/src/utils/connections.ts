@@ -1,11 +1,11 @@
 import {
+  type MaybePromise,
+  PothosValidationError,
+  type SchemaTypes,
   decodeBase64,
   encodeBase64,
-  MaybePromise,
-  PothosValidationError,
-  SchemaTypes,
 } from '@pothos/core';
-import { ConnectionShape, DefaultConnectionArguments } from '../types';
+import type { ConnectionShape, DefaultConnectionArguments } from '../types';
 
 // Since we know the return types of the connection helpers, we can
 // remove the MaybePromise wrappers on the ConnectionResult shape
@@ -209,8 +209,8 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
   const inverted = after ? !!last && !first : (!!before && !first) || (!first && !!last);
 
   return {
-    before: before ?? void 0,
-    after: after ?? void 0,
+    before: before ?? undefined,
+    after: after ?? undefined,
     limit,
     expectedSize: limit - 1,
     inverted,
@@ -219,6 +219,7 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
   };
 }
 
+// biome-ignore lint/suspicious/noRedeclare: <explanation>
 type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 
 export async function resolveCursorConnection<

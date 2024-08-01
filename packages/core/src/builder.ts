@@ -1,15 +1,15 @@
 import {
   GraphQLBoolean,
-  GraphQLDirective,
+  type GraphQLDirective,
   GraphQLFloat,
   GraphQLID,
   GraphQLInt,
-  GraphQLObjectType,
-  GraphQLScalarSerializer,
-  GraphQLScalarType,
+  type GraphQLObjectType,
+  type GraphQLScalarSerializer,
+  type GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
-  GraphQLTypeResolver,
+  type GraphQLTypeResolver,
   lexicographicSortSchema,
 } from 'graphql';
 import { BuildCache } from './build-cache';
@@ -43,30 +43,30 @@ import type {
   InputFieldsFromShape,
   InputShape,
   InputShapeFromFields,
-  InterfaceFieldsShape,
   InterfaceFieldThunk,
+  InterfaceFieldsShape,
   InterfaceParam,
   InterfaceTypeOptions,
-  MutationFieldsShape,
   MutationFieldThunk,
+  MutationFieldsShape,
   NormalizeArgs,
   NormalizeSchemeBuilderOptions,
-  ObjectFieldsShape,
   ObjectFieldThunk,
+  ObjectFieldsShape,
   ObjectParam,
   ObjectTypeOptions,
   OutputShape,
   ParentShape,
   PluginConstructorMap,
   PothosInputObjectTypeConfig,
-  QueryFieldsShape,
   QueryFieldThunk,
+  QueryFieldsShape,
   RecursivelyNormalizeNullableFields,
   ScalarName,
   SchemaTypes,
   ShapeFromEnumValues,
-  SubscriptionFieldsShape,
   SubscriptionFieldThunk,
+  SubscriptionFieldsShape,
   ValuesFromEnum,
 } from './types';
 import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
@@ -99,11 +99,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   constructor(options: PothosSchemaTypes.SchemaBuilderOptions<Types>) {
     this.options = [...SchemaBuilder.optionNormalizers.values()].reduce((opts, normalize) => {
       if (options.defaults && typeof normalize[options.defaults] === 'function') {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return {
-          ...opts,
-          ...normalize[options.defaults]!(opts),
-        } as PothosSchemaTypes.SchemaBuilderOptions<Types>;
+        return Object.assign(opts, normalize[options.defaults]!(opts));
       }
 
       return opts;
@@ -116,9 +112,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
         options as {
           defaultFieldNullability?: boolean;
         }
-      ).defaultFieldNullability ??
-      // eslint-disable-next-line no-unneeded-ternary
-      (options.defaults === 'v3' ? false : true);
+      ).defaultFieldNullability ?? options.defaults !== 'v3';
 
     this.defaultInputFieldRequiredness =
       (
@@ -137,14 +131,14 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       ) => Partial<NormalizeSchemeBuilderOptions<SchemaTypes>>;
     },
   ) {
-    if (!this.allowPluginReRegistration && this.plugins[name]) {
+    if (!SchemaBuilder.allowPluginReRegistration && SchemaBuilder.plugins[name]) {
       throw new PothosError(`Received multiple implementations for plugin ${name}`);
     }
 
-    this.plugins[name] = plugin;
+    SchemaBuilder.plugins[name] = plugin;
 
     if (normalizeOptions) {
-      this.optionNormalizers.set(name, normalizeOptions);
+      SchemaBuilder.optionNormalizers.set(name, normalizeOptions);
     }
   }
 
@@ -471,9 +465,9 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     });
 
     if (Array.isArray(options.types)) {
-      options.types.forEach((type) => {
+      for (const type of options.types) {
         verifyRef(type);
-      });
+      }
     }
 
     this.configStore.addTypeRef(ref);
@@ -653,11 +647,11 @@ export class SchemaBuilder<Types extends SchemaTypes> {
 
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
 
-    scalars.forEach((scalar) => {
+    for (const scalar of scalars) {
       if (!this.configStore.hasImplementation(scalar.name)) {
         this.addScalarType(scalar.name as ScalarName<Types>, scalar);
       }
-    });
+    }
 
     const buildCache = new BuildCache(this, options);
 

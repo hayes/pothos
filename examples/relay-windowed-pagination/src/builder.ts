@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import { PageCursors } from './types';
+import type { PageCursors } from './types';
 
 export const builder = new SchemaBuilder<{
   Connection: {

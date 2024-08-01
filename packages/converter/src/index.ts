@@ -1,23 +1,23 @@
 import {
   GraphQLEnumType,
-  GraphQLEnumValue,
-  GraphQLField,
-  GraphQLInputField,
+  type GraphQLEnumValue,
+  type GraphQLField,
+  type GraphQLInputField,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
   GraphQLList,
-  GraphQLNamedType,
+  type GraphQLNamedType,
   GraphQLNonNull,
   GraphQLObjectType,
   GraphQLScalarType,
-  GraphQLSchema,
-  GraphQLType,
+  type GraphQLSchema,
+  type GraphQLType,
   GraphQLUnionType,
 } from 'graphql';
 import {
-  CodeBlockWriter,
+  type CodeBlockWriter,
   Project,
-  SourceFile,
+  type SourceFile,
   StructureKind,
   VariableDeclarationKind,
 } from 'ts-morph';
@@ -116,13 +116,13 @@ export default class PothosConverter {
       });
     }
 
-    gqlTypes.forEach((type) => {
+    for (const type of gqlTypes) {
       if (type.name.startsWith('__') || builtins.includes(type.name)) {
-        return;
+        continue;
       }
 
       if (this.types && !this.types.includes(type.name)) {
-        return;
+        continue;
       }
 
       if (type instanceof GraphQLUnionType) {
@@ -132,37 +132,37 @@ export default class PothosConverter {
       } else if (type instanceof GraphQLScalarType) {
         this.scalarType(type);
       }
-    });
+    }
 
-    gqlTypes.forEach((type) => {
+    for (const type of gqlTypes) {
       if (this.types && !this.types.includes(type.name)) {
-        return;
+        continue;
       }
 
       if (type instanceof GraphQLInputObjectType) {
         this.inputType(type);
       }
-    });
+    }
 
-    gqlTypes.forEach((type) => {
+    for (const type of gqlTypes) {
       if (this.types && !this.types.includes(type.name)) {
-        return;
+        continue;
       }
       if (this.types && !this.types.includes(type.name)) {
-        return;
+        continue;
       }
       if (type instanceof GraphQLInterfaceType) {
         this.interfaceType(type);
       }
-    });
+    }
 
-    gqlTypes.forEach((type) => {
+    for (const type of gqlTypes) {
       if (this.types && !this.types.includes(type.name)) {
-        return;
+        continue;
       }
 
       if (type.name.startsWith('__')) {
-        return;
+        continue;
       }
 
       if (type instanceof GraphQLObjectType) {
@@ -180,7 +180,7 @@ export default class PothosConverter {
             this.objectType(type);
         }
       }
-    });
+    }
 
     if (!this.types) {
       this.sourcefile.addVariableStatement({
@@ -369,7 +369,7 @@ export default class PothosConverter {
       name: `${type.name}Shape`,
       properties: fields.map((field) => ({
         name: field.name,
-        type: (writer) => void this.writeInputFieldShape(writer, field.type, type),
+        type: (writer) => this.writeInputFieldShape(writer, field.type, type),
       })),
     });
   }
@@ -388,11 +388,11 @@ export default class PothosConverter {
               this.writeDescription(writer, type);
               writer.writeLine('values: {');
               writer.indent(() => {
-                type.getValues().forEach((value) => {
+                for (const value of type.getValues()) {
                   writer.writeLine(`${value.name}: {`);
                   writer.indent(() => {
                     this.writeDescription(writer, value);
-                    writer.write(`value: `);
+                    writer.write('value: ');
                     if (value.value) {
                       writer.write(
                         typeof value.value === 'number'
@@ -405,7 +405,7 @@ export default class PothosConverter {
                     writer.newLine();
                   });
                   writer.writeLine('},');
-                });
+                }
               });
               writer.writeLine('},');
             });
@@ -425,9 +425,9 @@ export default class PothosConverter {
     const fields = Object.keys(fieldMap).map((f) => fieldMap[f]);
     writer.writeLine('fields: t => ({');
     writer.indent(() => {
-      fields.forEach((field) => {
+      for (const field of fields) {
         if (inheritedFields.includes(field.name)) {
-          return;
+          continue;
         }
 
         writer.writeLine(`${field.name}: t.field({`);
@@ -449,7 +449,7 @@ export default class PothosConverter {
           }
         });
         writer.writeLine('})');
-      });
+      }
     });
     writer.writeLine('}),');
   }
@@ -460,7 +460,7 @@ export default class PothosConverter {
       const fieldMap = type.getFields();
       const fields = Object.keys(fieldMap).map((name) => fieldMap[name]);
 
-      fields.forEach((field) => {
+      for (const field of fields) {
         writer.writeLine(`${field.name}: t.field({`);
         writer.indent(() => {
           writer.write('type: ');
@@ -474,7 +474,7 @@ export default class PothosConverter {
           writer.newLine();
         });
         writer.writeLine('}),');
-      });
+      }
     });
     writer.writeLine('}),');
   }
@@ -557,23 +557,22 @@ export default class PothosConverter {
       if (isRecursive(type)) {
         writer.write(`${rootType.name}Shape`);
         throw new Error(type.toString());
-      } else {
-        writer.write('{');
-        writer.newLine();
-        writer.indent(() => {
-          const fieldMap = type.getFields();
-          const fields = Object.keys(fieldMap).map((name) => fieldMap[name]);
-
-          fields.forEach((field) => {
-            writer.write(`${field.name}: `);
-            this.writeInputFieldShape(writer, field.type, rootType);
-            writer.write(';');
-            writer.newLine();
-          });
-        });
-        writer.newLine();
-        writer.write('}');
       }
+      writer.write('{');
+      writer.newLine();
+      writer.indent(() => {
+        const fieldMap = type.getFields();
+        const fields = Object.keys(fieldMap).map((name) => fieldMap[name]);
+
+        for (const field of fields) {
+          writer.write(`${field.name}: `);
+          this.writeInputFieldShape(writer, field.type, rootType);
+          writer.write(';');
+          writer.newLine();
+        }
+      });
+      writer.newLine();
+      writer.write('}');
     } else if (type instanceof GraphQLEnumType) {
       writer.write(
         type
@@ -598,7 +597,7 @@ export default class PothosConverter {
         writer.write('nullable: false,');
       }
     } else if (type instanceof GraphQLList && !(type.ofType instanceof GraphQLNonNull)) {
-      writer.write(`nullable: { list: false, items: true },`);
+      writer.write('nullable: { list: false, items: true },');
     }
   }
 
@@ -606,18 +605,18 @@ export default class PothosConverter {
     if (type instanceof GraphQLNonNull) {
       if (type.ofType instanceof GraphQLList) {
         if (type.ofType.ofType instanceof GraphQLNonNull) {
-          writer.write(`{ list: true, items: true }`);
+          writer.write('{ list: true, items: true }');
         } else {
-          writer.write(`{ list: true, items: false }`);
+          writer.write('{ list: true, items: false }');
         }
       } else {
         writer.write('true');
       }
     } else if (type instanceof GraphQLList) {
       if (type.ofType instanceof GraphQLNonNull) {
-        writer.write(`{ list: false, items: true }`);
+        writer.write('{ list: false, items: true }');
       } else {
-        writer.write(`{ list: false, items: false }`);
+        writer.write('{ list: false, items: false }');
       }
     } else {
       writer.write('false');
@@ -628,7 +627,7 @@ export default class PothosConverter {
     if (type.args.length > 0) {
       writer.write('args: {');
       writer.indent(() => {
-        type.args.forEach((arg) => {
+        for (const arg of type.args) {
           writer.writeLine(`${arg.name}: t.arg({`);
           writer.indent(() => {
             writer.write('type: ');
@@ -648,7 +647,7 @@ export default class PothosConverter {
           });
           writer.newLine();
           writer.writeLine('}),');
-        });
+        }
       });
       writer.writeLine('},');
     }
@@ -671,9 +670,9 @@ export default class PothosConverter {
     if (objects.length > 0) {
       writer.writeLine('Objects: {');
       writer.indent(() => {
-        objects.forEach((type) => {
+        for (const type of objects) {
           writer.writeLine(`${type.name}: unknown,`);
-        });
+        }
       });
       writer.writeLine('},');
     }
@@ -682,9 +681,9 @@ export default class PothosConverter {
     if (interfaces.length > 0) {
       writer.writeLine('Interfaces: {');
       writer.indent(() => {
-        interfaces.forEach((type) => {
+        for (const type of interfaces) {
           writer.writeLine(`${type.name}: unknown,`);
-        });
+        }
       });
       writer.writeLine('},');
     }
@@ -695,9 +694,9 @@ export default class PothosConverter {
     if (scalars.length > 0) {
       writer.writeLine('Scalars: {');
       writer.indent(() => {
-        scalars.forEach((type) => {
+        for (const type of scalars) {
           writer.writeLine(`${type.name}: { Input: unknown, Output: unknown },`);
-        });
+        }
       });
       writer.writeLine('},');
     }

@@ -1,5 +1,4 @@
 import builder from '../builder';
-// eslint-disable-next-line import/no-cycle
 import { B } from './circular-b';
 
 export const A = builder.objectRef<{}>('A');

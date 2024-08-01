@@ -1,19 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import '@pothos/plugin-directives';
-import { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import {
-  FieldNullability,
-  FieldRequiredness,
-  InferredFieldOptionsByKind,
+  type FieldNullability,
+  type FieldRequiredness,
   InferredFieldOptionKeys,
-  InputFieldMap,
-  InputType,
-  MaybePromise,
-  Resolver,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  TypeParam,
+  type InferredFieldOptionsByKind,
+  type InputFieldMap,
+  type InputType,
+  type MaybePromise,
+  type Resolver,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
 } from '@pothos/core';
+import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import type { ExternalEntityRef } from './external-ref';
 
 import type {

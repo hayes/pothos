@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo } from 'graphql';
-import {
+import type {
   FieldNullability,
   InputFieldMap,
   InputShapeFromFields,
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { SmartSubscriptionOptions } from './types';
 
 import type {

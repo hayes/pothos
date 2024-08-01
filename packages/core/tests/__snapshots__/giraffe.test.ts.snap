@@ -132,7 +132,7 @@ exports[`giraffe example > mutations > mutate some stuff 1`] = `
       {
         "age": 5,
         "diet": "HERBIVOROUS",
-        "name": "James",
+        "name": "Gina",
       },
     ],
   },

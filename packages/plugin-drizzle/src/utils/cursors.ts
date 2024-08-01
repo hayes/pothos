@@ -1,25 +1,23 @@
-/* eslint-disable no-nested-ternary */
 import {
+  type MaybePromise,
+  PothosValidationError,
+  type SchemaTypes,
   decodeBase64,
   encodeBase64,
-  MaybePromise,
-  PothosValidationError,
-  SchemaTypes,
 } from '@pothos/core';
 import {
-  Column,
+  type Column,
+  type DBQueryConfig,
+  type SQL,
+  type TableRelationalConfig,
   getOperators,
   getOrderByOperators,
-  RelationalSchemaConfig,
-  SQL,
-  TableRelationalConfig,
-  TablesRelationalConfig,
 } from 'drizzle-orm';
-import { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
-import { SelectionMap } from './selections';
-import { GraphQLResolveInfo } from 'graphql';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
+import type { PothosDrizzleSchemaConfig } from './config';
 import { queryFromInfo } from './map-query';
-import { PothosDrizzleSchemaConfig } from './config';
+import type { SelectionMap } from './selections';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -224,7 +222,8 @@ function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
         direction: asc,
         column: field.asc,
       };
-    } else if (typeof field === 'object' && 'desc' in field) {
+    }
+    if (typeof field === 'object' && 'desc' in field) {
       return {
         direction: desc,
         column: field.desc,
@@ -297,11 +296,11 @@ export function drizzleCursorConnectionQuery({
 
   const columns: Record<string, boolean> = {};
 
-  parsedOrderBy.columns.forEach((column) => {
+  for (const column of parsedOrderBy.columns) {
     columns[column.name] = true;
-  });
+  }
 
-  let whereClauses: (SQL | undefined)[] = where ? [where] : [];
+  const whereClauses: (SQL | undefined)[] = where ? [where] : [];
 
   if (cursor) {
     const cursorParser = getCursorParser(parsedOrderBy.columns);
@@ -345,7 +344,7 @@ export function wrapConnectionResult<T extends {}>(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   limit: number,
   cursor: (node: T) => string,
-  resolveNode?: (node: unknown) => unknown,
+  resolveNode?: (node: Record<string, unknown>) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(limit);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
@@ -365,7 +364,7 @@ export function wrapConnectionResult<T extends {}>(
     },
   };
 
-  const edges = nodes.map((value, index) =>
+  const edges = nodes.map((value) =>
     value == null
       ? null
       : resolveNode
@@ -403,8 +402,8 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
 ) {
-  let query;
-  let formatter;
+  let query: DBQueryConfig<'many', false>;
+  let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ...options,
@@ -442,5 +441,5 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     return results;
   }
 
-  return wrapConnectionResult(results, options.args, query!.limit, formatter!);
+  return wrapConnectionResult(results, options.args, query!.limit as number, formatter!);
 }

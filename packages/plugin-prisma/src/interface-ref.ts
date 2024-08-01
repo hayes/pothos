@@ -1,5 +1,5 @@
-import { InterfaceRef, SchemaTypes } from '@pothos/core';
-import { prismaModelKey, PrismaObjectRef } from './object-ref';
+import { InterfaceRef, type SchemaTypes } from '@pothos/core';
+import { type PrismaObjectRef, prismaModelKey } from './object-ref';
 import type { PrismaModelTypes } from './types';
 
 export type PrismaRef<Types extends SchemaTypes, Model extends PrismaModelTypes, T = {}> =

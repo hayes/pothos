@@ -1,5 +1,5 @@
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
+import type { PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 
 export type TracingFieldWrapper<Types extends SchemaTypes> = (
   resolver: GraphQLFieldResolver<unknown, Types['Context'], Record<string, unknown>>,

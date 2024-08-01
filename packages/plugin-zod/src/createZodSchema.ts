@@ -1,6 +1,6 @@
-import * as zod from 'zod';
 import { PothosSchemaError } from '@pothos/core';
-import {
+import * as zod from 'zod';
+import type {
   ArrayValidationOptions,
   BaseValidationOptions,
   NumberValidationOptions,
@@ -49,7 +49,7 @@ const arrayValidations = [
 
 const objectValidations = [...baseValidations, 'type'] as const;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 function validatorCreator<T extends BaseValidationOptions<any>>(
   type: NonNullable<T['type']>,
   validationNames: readonly (keyof T)[],

@@ -1,13 +1,13 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { FieldKind, ObjectRef, RootFieldBuilder, SchemaTypes } from '@pothos/core';
+import { type FieldKind, ObjectRef, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
+import type { FieldRef } from '@pothos/core';
+import type { TableRelationalConfig } from 'drizzle-orm';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { DrizzleRef } from './interface-ref';
+import type { DrizzleConnectionFieldOptions } from './types';
+import { getSchemaConfig } from './utils/config';
+import { resolveDrizzleCursorConnection } from './utils/cursors';
 import { queryFromInfo } from './utils/map-query';
 import { getRefFromModel } from './utils/refs';
-import { FieldRef } from '@pothos/core';
-import { DrizzleRef } from './interface-ref';
-import { DrizzleConnectionFieldOptions } from './types';
-import { TableRelationalConfig } from 'drizzle-orm';
-import { resolveDrizzleCursorConnection } from './utils/cursors';
-import { getSchemaConfig } from './utils/config';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -158,7 +158,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
       : {
           ...connectionOptions,
           extensions: {
-            ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
+            ...(connectionOptions as Record<string, object> | undefined)?.extensions,
           },
         },
     edgeOptions,

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import AWSXRay from 'aws-xray-sdk-core';
 import { print } from 'graphql';
-import { createYoga, Plugin } from 'graphql-yoga';
+import { type Plugin, createYoga } from 'graphql-yoga';
 import { AttributeNames, SpanNames } from '../../src';
 import { schema } from './schema';
 
@@ -39,7 +39,6 @@ const yoga = createYoga({
   maskedErrors: false,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const server = createServer(yoga);
 
 server.listen(3000);

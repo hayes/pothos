@@ -1,25 +1,23 @@
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-continue */
+import { PothosValidationError, getMappedArgumentValues } from '@pothos/core';
 import {
-  FieldNode,
-  FragmentDefinitionNode,
+  type FieldNode,
+  type FragmentDefinitionNode,
+  type GraphQLField,
+  GraphQLIncludeDirective,
+  type GraphQLInterfaceType,
+  type GraphQLNamedType,
+  type GraphQLObjectType,
+  type GraphQLResolveInfo,
+  GraphQLSkipDirective,
+  type InlineFragmentNode,
+  Kind,
+  type SelectionSetNode,
   getDirectiveValues,
   getNamedType,
-  GraphQLField,
-  GraphQLIncludeDirective,
-  GraphQLInterfaceType,
-  GraphQLNamedType,
-  GraphQLObjectType,
-  GraphQLResolveInfo,
-  GraphQLSkipDirective,
-  InlineFragmentNode,
   isInterfaceType,
   isObjectType,
-  Kind,
-  SelectionSetNode,
 } from 'graphql';
-import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
-import {
+import type {
   FieldSelection,
   IncludeMap,
   IndirectInclude,
@@ -27,12 +25,12 @@ import {
   SelectionMap,
 } from '../types';
 import { setLoaderMappings } from './loader-map';
-import { FieldMap } from './relation-map';
+import type { FieldMap } from './relation-map';
 import {
+  type SelectionState,
   createState,
   mergeSelection,
   selectionCompatible,
-  SelectionState,
   selectionToQuery,
 } from './selections';
 import { wrapWithUsageCheck } from './usage';
@@ -355,7 +353,6 @@ function addFieldSelection(
 
         addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
 
-        // eslint-disable-next-line prefer-destructuring
         mappings = fieldState.mappings;
 
         return selectionToQuery(fieldState);

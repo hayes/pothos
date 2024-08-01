@@ -1,6 +1,5 @@
-/* eslint-disable unicorn/no-useless-promise-resolve-reject */
 import * as zod from 'zod';
-import { ValidationOptions } from '../../../src';
+import type { ValidationOptions } from '../../../src';
 import builder from '../builder';
 
 interface RecursiveShape {
@@ -32,9 +31,9 @@ Recursive.implement({
 });
 
 enum Enum1 {
-  One,
-  Two,
-  Three,
+  One = 0,
+  Two = 1,
+  Three = 2,
 }
 
 const Enum1Type = builder.enumType(Enum1, {
@@ -176,7 +175,7 @@ builder.queryType({
           message: 'contactInfo should include at least 2 aliases',
         },
       ],
-      resolve(parent, args) {
+      resolve(_parent, args) {
         return args.odd;
       },
     }),

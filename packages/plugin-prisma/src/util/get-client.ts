@@ -1,6 +1,5 @@
-/* eslint-disable no-underscore-dangle */
-import { createContextCache, SchemaTypes } from '@pothos/core';
-import { PrismaClient } from '../types';
+import { type SchemaTypes, createContextCache } from '@pothos/core';
+import type { PrismaClient } from '../types';
 
 export interface DMMFField {
   type: string;

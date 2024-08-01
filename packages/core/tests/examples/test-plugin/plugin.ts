@@ -1,14 +1,12 @@
 import './global-types';
-import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
+import type { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  PothosEnumValueConfig,
-  PothosInputFieldConfig,
-  PothosInterfaceTypeConfig,
-  PothosOutputFieldConfig,
-  PothosTypeConfig,
-  PothosUnionTypeConfig,
-  SchemaTypes,
+  type PothosEnumValueConfig,
+  type PothosInputFieldConfig,
+  type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  type SchemaTypes,
 } from '../../../src';
 
 const pluginName = 'test';
@@ -52,21 +50,21 @@ export class PothosTestPlugin<Types extends SchemaTypes> extends BasePlugin<Type
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: PothosOutputFieldConfig<Types>,
+    _fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => resolver(parent, args, context, info);
   }
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    fieldConfig: PothosOutputFieldConfig<Types>,
+    _fieldConfig: PothosOutputFieldConfig<Types>,
   ) {
     return subscribe;
   }
 
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
-    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
+    _typeConfig: PothosTypeConfig,
   ) {
     return resolveType;
   }

@@ -1,4 +1,4 @@
-import { SchemaTypes } from '@pothos/core';
+import type { SchemaTypes } from '@pothos/core';
 import { DrizzleObjectRef } from './object-ref';
 
 export class DrizzleNodeRef<

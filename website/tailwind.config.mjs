@@ -7,26 +7,26 @@ const lightContrast = 100;
 /** @type {import('fumadocs-ui/tailwind-plugin').Preset} */
 const pothosPreset = {
   light: {
-    background: `0 0% 98%`,
-    foreground: `0 0% 3.9%`,
+    background: '0 0% 98%',
+    foreground: '0 0% 3.9%',
     muted: `${lightHue} 90% 96.1%`,
-    'muted-foreground': `0 0% 45.1%`,
-    popover: `0 0% 98%`,
-    'popover-foreground': `0 0% 15.1%`,
+    'muted-foreground': '0 0% 45.1%',
+    popover: '0 0% 98%',
+    'popover-foreground': '0 0% 15.1%',
     card: `${lightHue} 60% 98%`,
-    'card-foreground': `0 0% 3.9%`,
+    'card-foreground': '0 0% 3.9%',
     border: `${lightHue} 50% 89.8%`,
     primary: `${lightContrast} 80% 20.2%`,
-    'primary-foreground': `0 0% 98%`,
+    'primary-foreground': '0 0% 98%',
     secondary: `${lightHue} 40% 60%`,
-    'secondary-foreground': `0 0% 9%`,
+    'secondary-foreground': '0 0% 9%',
     accent: `${lightHue} 40% 80%`,
-    'accent-foreground': `0 0% 9%`,
+    'accent-foreground': '0 0% 9%',
     ring: `${lightHue} 100% 63.9%`,
   },
   dark: {
     'card-foreground': `${darkHue} 60% 94.5%`,
-    'primary-foreground': `0 0% 9%`,
+    'primary-foreground': '0 0% 9%',
     'secondary-foreground': `${darkHue} 80% 90%`,
     ring: `${darkContrast} 100% 85%`,
     card: `${darkHue} 50% 10%`,
@@ -44,7 +44,8 @@ const pothosPreset = {
   },
   css: {
     '.dark body': {
-      'background-image': `linear-gradient(rgba(5, 255, 105, 0.05), transparent 20rem, transparent)`,
+      'background-image':
+        'linear-gradient(rgba(5, 255, 105, 0.05), transparent 20rem, transparent)',
     },
     'main#nd-docs-layout>div:last-child.sticky': {
       'min-width': '300px !important',

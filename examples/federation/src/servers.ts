@@ -7,7 +7,7 @@ export const servers = [
   { name: 'reviews', server: reviewsServer },
 ];
 
-export async function startServers() {
+export function startServers() {
   return Promise.all(
     servers.map(async ({ server, name }) => {
       const { url } = await startStandaloneServer(server, { listen: { port: 0 } });

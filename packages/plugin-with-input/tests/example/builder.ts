@@ -63,7 +63,7 @@ builderWithNonRequireInputs.queryType({
           required: true,
         }),
       },
-      resolve: (root, args) => {
+      resolve: (_root, args) => {
         // @ts-expect-error input is not required
         const result = args.input.example;
 
@@ -80,7 +80,7 @@ builderWithNonRequireInputs.queryType({
           required: true,
         }),
       },
-      resolve: (root, args) => {
+      resolve: (_root, args) => {
         const result = args.input.example;
 
         return result;

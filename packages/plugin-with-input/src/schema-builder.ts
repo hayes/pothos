@@ -1,4 +1,4 @@
-import { InputFieldBuilder, RootFieldBuilder, SchemaTypes } from '@pothos/core';
+import { InputFieldBuilder, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
 
 const rootBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -26,7 +26,7 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
   input,
   ...fieldOptions
 }) {
-  const inputRef = this.builder.inputRef(typeName ?? `UnnamedWithInput`);
+  const inputRef = this.builder.inputRef(typeName ?? 'UnnamedWithInput');
   const fieldRef = this.field({
     args: {
       ...args,
@@ -61,6 +61,6 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
 
 Object.defineProperty(rootBuilderProto, 'input', {
   get: function getInputBuilder(this: RootFieldBuilder<SchemaTypes, unknown>) {
-    return new InputFieldBuilder(this.builder, 'InputObject', `UnnamedWithInput`);
+    return new InputFieldBuilder(this.builder, 'InputObject', 'UnnamedWithInput');
   },
 });

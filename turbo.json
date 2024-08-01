@@ -2,9 +2,7 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "generate": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "outputs": [
         "prisma/client/**",
         "prisma/generated.d.ts",
@@ -16,29 +14,15 @@
       ]
     },
     "build": {
-      "dependsOn": [
-        "generate",
-        "^build"
-      ],
-      "outputs": [
-        "dts/**",
-        "lib/**",
-        "esm/**",
-        ".next"
-      ]
+      "dependsOn": ["generate", "^build"],
+      "outputs": ["dts/**", "lib/**", "esm/**", ".next"]
     },
     "type": {
-      "dependsOn": [
-        "generate",
-        "^build"
-      ],
+      "dependsOn": ["generate", "^build"],
       "outputs": []
     },
     "test": {
-      "dependsOn": [
-        "generate",
-        "^build"
-      ],
+      "dependsOn": ["generate", "^build"],
       "outputs": []
     }
   }

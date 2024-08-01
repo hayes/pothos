@@ -1,5 +1,5 @@
-import { printSchema } from 'graphql';
 import { printSubgraphSchema } from '@apollo/subgraph';
+import { printSchema } from 'graphql';
 import { schema } from './example/compatibility/products/schema';
 
 describe('federation', () => {

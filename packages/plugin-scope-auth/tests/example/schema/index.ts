@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 import './custom-errors';
 import './with-auth';
 import { RequestCache } from '../../../src';
@@ -11,7 +10,7 @@ builder.queryField('currentId', (t) =>
     authScopes: {
       loggedIn: true,
     },
-    resolve: (parent, args, context) => context.user.id,
+    resolve: (_parent, _args, context) => context.user.id,
   }),
 );
 
@@ -23,7 +22,7 @@ builder.subscriptionType({
       authScopes: {
         loggedIn: true,
       },
-      async *subscribe(root, args, context) {
+      async *subscribe(_root, _args, context) {
         if (!context.user) {
           throw new Error('Should have run auth first');
         }
@@ -53,7 +52,7 @@ const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
 });
 
 const ObjForAdminFn = builder.objectRef<{}>('ObjForAdminFn').implement({
-  authScopes: (parent, context) => {
+  authScopes: (_parent, context) => {
     context.count?.('ObjForAdminFn');
 
     return {
@@ -68,10 +67,10 @@ const ObjForAdminFn = builder.objectRef<{}>('ObjForAdminFn').implement({
 });
 
 const ObjForAdminAsyncFn = builder.objectRef<{}>('ObjForAdminAsyncFn').implement({
-  authScopes: async (parent, context) => {
+  authScopes: async (_parent, context) => {
     context.count?.('ObjForAdminAsyncFn');
 
-    return {
+    return await {
       admin: true,
     };
   },
@@ -152,7 +151,7 @@ const ObjForAll = builder.objectRef<{}>('ObjForAll').implement({
 });
 
 const ObjForAllFn = builder.objectRef<{}>('ObjForAllFn').implement({
-  authScopes: (parent, context) => {
+  authScopes: (_parent, context) => {
     context.count?.('ObjForAllFn');
 
     return {
@@ -186,7 +185,7 @@ const ObjForAny = builder.objectRef<{}>('ObjForAny').implement({
 });
 
 const ObjForAnyFn = builder.objectRef<{}>('ObjForAnyFn').implement({
-  authScopes: (parent, context) => {
+  authScopes: (_parent, context) => {
     context.count?.('ObjForAnyFn');
 
     return {
@@ -216,7 +215,7 @@ const ObjEmptyAll = builder.objectRef<{}>('ObjEmptyAll').implement({
 });
 
 const ObjEmptyAllFn = builder.objectRef<{}>('ObjEmptyAllFn').implement({
-  authScopes: (parent, context) => {
+  authScopes: (_parent, context) => {
     context.count?.('ObjEmptyAllFn');
 
     return {
@@ -242,7 +241,7 @@ const ObjEmptyAny = builder.objectRef<{}>('ObjEmptyAny').implement({
 });
 
 const ObjEmptyAnyFn = builder.objectRef<{}>('ObjEmptyAnyFn').implement({
-  authScopes: (parent, context) => {
+  authScopes: (_parent, context) => {
     context.count?.('ObjEmptyAnyFn');
 
     return {
@@ -397,7 +396,7 @@ const ObjWithIfaceSkipFields = builder.objectRef<{}>('ObjWithIfaceSkipFields').i
 });
 
 builder.queryType({
-  grantScopes: (root, context) => {
+  grantScopes: (_root, context) => {
     context.count?.('Query.grantScopes');
 
     return ['grantedFromQuery'];
@@ -406,14 +405,14 @@ builder.queryType({
     customError: t.string({
       nullable: true,
       authScopes: () => false,
-      unauthorizedError: (parent, args, context, info, result) =>
+      unauthorizedError: (_parent, _args, _context, _info, result) =>
         new Error(`${result.failure.kind}: ${result.message}`),
       resolve: () => 'test',
     }),
     customErrorMessage: t.string({
       nullable: true,
       authScopes: () => false,
-      unauthorizedError: (parent, args, context, info, result) =>
+      unauthorizedError: (_parent, _args, _context, _info, result) =>
         `${result.failure.kind}: ${result.message}`,
       resolve: () => 'test',
     }),
@@ -475,7 +474,7 @@ builder.queryType({
       resolve: () => 'ok',
     }),
     forAdminFn: t.string({
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, _args, context) => {
         context.count?.('forAdminFn');
 
         return {
@@ -485,10 +484,10 @@ builder.queryType({
       resolve: () => 'ok',
     }),
     forAdminAsyncFn: t.string({
-      authScopes: async (parent, args, context) => {
+      authScopes: async (_parent, _args, context) => {
         context.count?.('forAdminAsyncFn');
 
-        return {
+        return await {
           admin: true,
         };
       },
@@ -499,7 +498,7 @@ builder.queryType({
         permission: t.arg.string({}),
       },
       nullable: true,
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, args, context) => {
         context.count?.('forSyncPermissionFn');
 
         return {
@@ -513,7 +512,7 @@ builder.queryType({
         permission: t.arg.string({}),
       },
       nullable: true,
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, args, context) => {
         context.count?.('forAsyncPermissionFn');
 
         return {
@@ -523,7 +522,7 @@ builder.queryType({
       resolve: () => 'ok',
     }),
     forAllFn: t.string({
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, _args, context) => {
         context.count?.('forAllFn');
 
         return {
@@ -537,7 +536,7 @@ builder.queryType({
       resolve: () => 'ok',
     }),
     forAnyFn: t.string({
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, _args, context) => {
         context.count?.('forAnyFn');
 
         return {
@@ -551,7 +550,7 @@ builder.queryType({
       resolve: () => 'ok',
     }),
     emptyAnyFn: t.string({
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, _args, context) => {
         context.count?.('emptyAnyFn');
 
         return {
@@ -561,7 +560,7 @@ builder.queryType({
       resolve: () => 'ok',
     }),
     emptyAllFn: t.string({
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, _args, context) => {
         context.count?.('emptyAllFn');
 
         return {
@@ -574,7 +573,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      authScopes: (parent, args, context) => {
+      authScopes: (_parent, args, context) => {
         context.count?.('forBooleanFn');
 
         return args.result;
@@ -649,7 +648,7 @@ builder.queryType({
       args: {
         permission: t.arg.string(),
       },
-      resolve: (parent, args) => ({ permission: args.permission ?? 'a' }),
+      resolve: (_parent, args) => ({ permission: args.permission ?? 'a' }),
     }),
     ObjForAsyncPermFn: t.field({
       type: ObjForAsyncPermFn,
@@ -657,7 +656,7 @@ builder.queryType({
       args: {
         permission: t.arg.string(),
       },
-      resolve: (parent, args) => ({ permission: args.permission ?? 'b' }),
+      resolve: (_parent, args) => ({ permission: args.permission ?? 'b' }),
     }),
     ObjForAllFn: t.field({
       type: ObjForAllFn,
@@ -687,7 +686,7 @@ builder.queryType({
           required: true,
         }),
       },
-      resolve: (parent, args) => ({ result: args.result }),
+      resolve: (_parent, args) => ({ result: args.result }),
     }),
     ObjExpectsGrants: t.field({
       type: ObjExpectsGrants,
@@ -706,7 +705,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => ({}),
     }),
     ObjExpectsGrantsAsyncFn: t.field({
@@ -715,7 +714,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: async (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => ({}),
     }),
     ObjFieldExpectsGrants: t.field({
@@ -736,7 +735,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => ({}),
     }),
     ObjFieldExpectsGrantsAsyncFn: t.field({
@@ -745,7 +744,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: async (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => ({}),
     }),
     ObjExpectsGrantsList: t.field({
@@ -765,7 +764,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => [{}, {}],
     }),
     ObjExpectsGrantsListAsyncFn: t.field({
@@ -774,7 +773,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: async (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => [{}, {}],
     }),
     ObjFieldExpectsGrantsList: t.field({
@@ -794,7 +793,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => [{}, {}],
     }),
     ObjFieldExpectsGrantsListAsyncFn: t.field({
@@ -803,7 +802,7 @@ builder.queryType({
       args: {
         result: t.arg.boolean({ required: true }),
       },
-      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      grantScopes: async (_parent, args) => (args.result ? ['grantedFromParent'] : []),
       resolve: () => [{}, {}],
     }),
     ObjAdminIface: t.field({
@@ -819,7 +818,7 @@ builder.queryType({
           required: true,
         }),
       },
-      resolve: (parent, args) => ({ result: args.result }),
+      resolve: (_parent, args) => ({ result: args.result }),
     }),
     IfaceForAdmin: t.field({
       type: IfaceForAdmin,
@@ -834,7 +833,7 @@ builder.queryType({
           required: true,
         }),
       },
-      resolve: (parent, args) => ({ result: args.result }),
+      resolve: (_parent, args) => ({ result: args.result }),
     }),
     ObjWithSkipFields: t.field({
       type: ObjWithSkipFields,
@@ -853,7 +852,7 @@ builder.queryType({
       authScopes: {
         syncPermission: 'a',
       },
-      resolve: (parent, args, context) => {
+      resolve: (_parent, _args, context) => {
         context.user = new User({
           'x-user-id': '1',
           'x-permissions': 'b',

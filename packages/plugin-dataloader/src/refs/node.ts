@@ -1,14 +1,13 @@
-/* eslint-disable max-classes-per-file */
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  completeValue,
-  FieldRef,
+  type FieldRef,
   ImplementableObjectRef,
-  InterfaceRef,
+  type InterfaceRef,
   ObjectFieldBuilder,
-  SchemaTypes,
+  type SchemaTypes,
+  completeValue,
 } from '@pothos/core';
-import { DataLoaderOptions, LoadableNodeId } from '../types';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { DataLoaderOptions, LoadableNodeId } from '../types';
 import { dataloaderGetter } from '../util';
 import { LoadableObjectRef } from './object';
 
@@ -80,13 +79,11 @@ export class ImplementableLoadableNodeRef<
       typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey;
 
     this.builder.configStore.onTypeConfig(this, (config) => {
-      // eslint-disable-next-line no-param-reassign
       config.extensions = {
         ...config.extensions,
         getDataloader: this.getDataloader,
         cacheResolved: this.cacheResolved,
       };
-      // eslint-disable-next-line no-param-reassign
       (config.pothosOptions as { loadManyWithoutCache: unknown }).loadManyWithoutCache = (
         ids: Key[],
         context: SchemaTypes['Context'],
@@ -105,7 +102,7 @@ export class ImplementableLoadableNodeRef<
           globalID: (options: unknown) => FieldRef<Types>;
         }
       ).globalID({
-        ...(this.builder.options as { relayOptions?: { idFieldOptions?: {} } }).relayOptions
+        ...(this.builder.options as { relayOptions?: { idFieldOptions?: object } }).relayOptions
           ?.idFieldOptions,
         ...id,
         nullable: false,

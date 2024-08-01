@@ -1,16 +1,16 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  assertArray,
-  FieldKind,
-  FieldNullability,
-  InputFieldMap,
-  InputShapeFromFields,
-  InterfaceRef,
+  type FieldKind,
+  type FieldNullability,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  type InterfaceRef,
   ObjectRef,
   RootFieldBuilder,
-  SchemaTypes,
+  type SchemaTypes,
+  assertArray,
 } from '@pothos/core';
-import {
+import type { GraphQLResolveInfo } from 'graphql';
+import type {
   ConnectionShape,
   GlobalIDFieldOptions,
   GlobalIDListFieldOptions,

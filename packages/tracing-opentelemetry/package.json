@@ -51,7 +51,7 @@
     "@opentelemetry/semantic-conventions": "*",
     "@pothos/core": "4.0.2",
     "@pothos/plugin-tracing": "1.0.2",
-    "graphql": ">=16.6.0"
+    "graphql": "^16.8.1"
   },
   "devDependencies": {
     "@envelop/core": "^5.0.1",
@@ -69,6 +69,6 @@
     "@pothos/test-utils": "workspace:*",
     "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "5.6.0"
+    "graphql-yoga": "5.6.2"
   }
 }

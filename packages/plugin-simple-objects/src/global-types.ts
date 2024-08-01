@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   FieldMap,
   FieldNullability,
   InputFieldMap,
@@ -12,7 +11,7 @@ import {
   TypeParam,
   UnionToIntersection,
 } from '@pothos/core';
-import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
+import type { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
 
 import type { PothosSimpleObjectsPlugin } from '.';
 

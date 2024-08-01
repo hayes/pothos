@@ -62,7 +62,7 @@ const Media = builder.objectRef<{ id: string }>('Media').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     test: t.string({
-      resolve: (media) => 'test field from interfaceObject',
+      resolve: () => 'test field from interfaceObject',
     }),
   }),
 });

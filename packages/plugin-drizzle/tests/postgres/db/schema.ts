@@ -22,7 +22,7 @@ export const profileInfo = pgTable('profile_info', {
   metadata: text('metadata'),
 });
 
-export const profileRelations = relations(profileInfo, ({ one, many }) => ({
+export const profileRelations = relations(profileInfo, ({ one }) => ({
   profileInfo: one(users, {
     fields: [profileInfo.userId],
     references: [users.id],

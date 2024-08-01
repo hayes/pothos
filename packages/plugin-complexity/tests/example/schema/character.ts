@@ -1,4 +1,4 @@
-import { Character } from '../backing-models';
+import type { Character } from '../backing-models';
 import builder from '../builder';
 import { getFriends } from '../data';
 import { Episode } from './episode';

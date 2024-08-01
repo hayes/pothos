@@ -1,30 +1,30 @@
 import {
-  FieldKind,
-  FieldNullability,
-  FieldOptionsFromKind,
-  FieldRef,
-  FieldRequiredness,
-  InferredFieldOptionKeys,
-  InputFieldMap,
-  InputFieldsFromShape,
-  InputOrArgRef,
-  InputShapeFromFields,
-  InputShapeFromTypeParam,
+  type FieldKind,
+  type FieldNullability,
+  type FieldOptionsFromKind,
+  type FieldRef,
+  type FieldRequiredness,
+  type InferredFieldOptionKeys,
+  type InputFieldMap,
+  type InputFieldsFromShape,
+  type InputOrArgRef,
+  type InputShapeFromFields,
+  type InputShapeFromTypeParam,
+  type InterfaceParam,
+  type NormalizeArgs,
+  type ObjectFieldThunk,
+  type ObjectFieldsShape,
+  type ObjectParam,
+  type OutputShape,
+  type OutputType,
+  type ParentShape,
+  type Resolver,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
   inputShapeKey,
-  InterfaceParam,
-  NormalizeArgs,
-  ObjectFieldsShape,
-  ObjectFieldThunk,
-  ObjectParam,
-  OutputShape,
-  OutputType,
-  ParentShape,
-  Resolver,
-  SchemaTypes,
-  ShapeFromTypeParam,
 } from '@pothos/core';
-import { NodeRef } from './node-ref';
-import {
+import type { NodeRef } from './node-ref';
+import type {
   ConnectionResultShape,
   ConnectionShape,
   ConnectionShapeForType,
@@ -223,6 +223,7 @@ declare global {
         Types,
         InputShapeFromTypeParam<
           Types,
+          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
           GlobalIDInputShape<For extends { parseId?: (...args: any[]) => infer T } ? T : string>,
           Req
         >,
@@ -239,6 +240,7 @@ declare global {
             {
               [inputShapeKey]: {
                 typename: string;
+                // biome-ignore lint/suspicious/noExplicitAny: <explanation>
                 id: For extends { parseId?: (...args: any[]) => infer T } ? T : string;
               };
             },
@@ -316,6 +318,7 @@ declare global {
         > extends infer FieldOptions
           ? ConnectionFieldOptions<
               Types,
+              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
               FieldOptions extends { resolve?: (parent: infer P, ...args: any[]) => unknown }
                 ? P
                 : unknown extends ResolveShape

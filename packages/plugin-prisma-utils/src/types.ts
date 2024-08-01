@@ -1,6 +1,6 @@
 // Type map: https://github.com/prisma/prisma/blob/main/packages/client/src/runtime/utils/common.ts#L63
 
-import {
+import type {
   BaseEnum,
   InputFieldMap,
   InputFieldRef,
@@ -8,7 +8,7 @@ import {
   InputType,
   SchemaTypes,
 } from '@pothos/core';
-import { PrismaModelTypes } from '@pothos/plugin-prisma';
+import type { PrismaModelTypes } from '@pothos/plugin-prisma';
 
 export type FilterListOps = 'every' | 'none' | 'some';
 export type ScalarListOps = 'equals' | 'has' | 'hasEvery' | 'hasSome' | 'isEmpty';
@@ -154,7 +154,10 @@ export type PrismaWhereUniqueFieldType<
 type InputWithShape<Types extends SchemaTypes, T, FieldShape = T> =
   | InputFieldRef<Types, FieldShape | null | undefined>
   | InputRef<T>
-  | (new (...args: any[]) => T)
+  | (new (
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      ...args: any[]
+    ) => T)
   | (keyof Types['inputShapes'] extends infer U
       ? U extends string
         ? Types['inputShapes'][U & keyof Types['inputShapes']] extends T
@@ -418,7 +421,7 @@ export interface PrismaUpdateManyRelationFields<
   }
     ? {
         name?: string;
-        data: NonListInputWithShape<Types, Extract<D, Array<unknown>>>;
+        data: NonListInputWithShape<Types, Extract<D, unknown[]>>;
       }
     : never;
   set?: InputWithShape<
@@ -492,6 +495,7 @@ export interface PrismaUpdateManyRelationFields<
   >;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type FieldKeys<T> = T extends (...args: any[]) => infer R ? keyof R : keyof T;
 
 export type PickFields<T, Fields> = Pick<T, FieldKeys<Fields> & keyof T>;
