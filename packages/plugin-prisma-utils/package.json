@@ -45,10 +45,10 @@
     "@prisma/generator-helper": "^5.17.0"
   },
   "peerDependencies": {
-    "@pothos/core": "4.0.2",
-    "@pothos/plugin-prisma": "4.1.0",
+    "@pothos/core": "*",
+    "@pothos/plugin-prisma": "*",
     "@prisma/client": "*",
-    "graphql": "^16.8.1"
+    "graphql": ">=16.6.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",

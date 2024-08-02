@@ -1,61 +1,61 @@
 {
-  "name": "@pothos/plugin-directives",
-  "version": "4.0.1",
-  "description": "Directive plugin for Pothos, enables using graphql-tools based directives with Pothos",
-  "main": "./lib/index.js",
-  "types": "./dts/index.d.ts",
-  "module": "./esm/index.js",
-  "exports": {
-    "import": {
-      "default": "./esm/index.js"
-    },
-    "require": {
-      "types": "./dts/index.d.ts",
-      "default": "./lib/index.js"
-    }
-  },
-  "scripts": {
-    "type": "tsc --project tsconfig.type.json",
-    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
-    "build:clean": "git clean -dfX esm lib",
-    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
-    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
-    "build:dts": "tsc",
-    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm jest --runInBand"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git",
-    "directory": "packages/plugin-directives"
-  },
-  "author": "Michael Hayes",
-  "license": "ISC",
-  "keywords": [
-    "pothos",
-    "graphql",
-    "schema",
-    "directives",
-    "tools",
-    "visitor",
-    "transforms",
-    "plugin"
-  ],
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "peerDependencies": {
-    "graphql": "^16.8.1"
-  },
-  "devDependencies": {
-    "@graphql-tools/utils": "^10.3.2",
-    "@pothos/core": "workspace:*",
-    "@pothos/test-utils": "workspace:*",
-    "graphql": "^16.8.1",
-    "graphql-rate-limit-directive": "^2.0.5",
-    "graphql-tag": "^2.12.6",
-    "rate-limiter-flexible": "^5.0.3"
-  },
-  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+	"name": "@pothos/plugin-directives",
+	"version": "4.0.1",
+	"description": "Directive plugin for Pothos, enables using graphql-tools based directives with Pothos",
+	"main": "./lib/index.js",
+	"types": "./dts/index.d.ts",
+	"module": "./esm/index.js",
+	"exports": {
+		"import": {
+			"default": "./esm/index.js"
+		},
+		"require": {
+			"types": "./dts/index.d.ts",
+			"default": "./lib/index.js"
+		}
+	},
+	"scripts": {
+		"type": "tsc --project tsconfig.type.json",
+		"build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+		"build:clean": "git clean -dfX esm lib",
+		"build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
+		"build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
+		"build:dts": "tsc",
+		"esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+		"test": "pnpm jest --runInBand"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hayes/pothos.git",
+		"directory": "packages/plugin-directives"
+	},
+	"author": "Michael Hayes",
+	"license": "ISC",
+	"keywords": [
+		"pothos",
+		"graphql",
+		"schema",
+		"directives",
+		"tools",
+		"visitor",
+		"transforms",
+		"plugin"
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"peerDependencies": {
+		"graphql": ">=16.6.0"
+	},
+	"devDependencies": {
+		"@graphql-tools/utils": "^10.3.2",
+		"@pothos/core": "workspace:*",
+		"@pothos/test-utils": "workspace:*",
+		"graphql": "^16.8.1",
+		"graphql-rate-limit-directive": "^2.0.5",
+		"graphql-tag": "^2.12.6",
+		"rate-limiter-flexible": "^5.0.3"
+	},
+	"gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

@@ -37,9 +37,9 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@pothos/core": "4.0.2",
+    "@pothos/core": "*",
     "dataloader": "2",
-    "graphql": "^16.8.1"
+    "graphql": ">=16.6.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",

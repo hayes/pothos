@@ -38,7 +38,7 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": "^16.8.1"
+    "graphql": ">=16.6.0"
   },
   "devDependencies": {
     "@libsql/client": "^0.8.0",
