@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 1.2.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
 ## 1.1.1
 
 ### Patch Changes

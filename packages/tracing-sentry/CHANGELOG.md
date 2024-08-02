@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 1.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
 ## 1.0.3
 
 ### Patch Changes

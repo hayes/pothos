@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma-utils",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "A Pothos plugin containing utility functions for building prisma inputs",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -33,7 +33,13 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "typescript", "prisma"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "prisma"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

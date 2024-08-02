@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-zod",
-  "version": "4.0.2",
+  "version": "4.1.0",
   "description": "A Pothos plugin for adding argument validation",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -31,7 +31,15 @@
     "url": "git+https://github.com/hayes/pothos.git",
     "directory": "packages/plugin-zod"
   },
-  "keywords": ["pothos", "graphql", "schema", "typescript", "zod", "validation", "validate"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "zod",
+    "validation",
+    "validate"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

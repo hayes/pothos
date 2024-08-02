@@ -1,6 +1,6 @@
 {
 	"name": "@pothos/plugin-with-input",
-	"version": "4.0.2",
+	"version": "4.1.0",
 	"description": "A Pothos plugin for defining fields with input objects",
 	"main": "./lib/index.js",
 	"types": "./dts/index.d.ts",
@@ -32,7 +32,14 @@
 	},
 	"author": "Michael Hayes",
 	"license": "ISC",
-	"keywords": ["pothos", "graphql", "schema", "typescript", "plugin", "input"],
+	"keywords": [
+		"pothos",
+		"graphql",
+		"schema",
+		"typescript",
+		"plugin",
+		"input"
+	],
 	"publishConfig": {
 		"access": "public",
 		"provenance": true

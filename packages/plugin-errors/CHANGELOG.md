@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
 ## 4.1.0
 
 ### Minor Changes

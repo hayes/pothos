@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
 ## 4.1.0
 
 ### Minor Changes
@@ -1033,7 +1039,7 @@
   You will need to remove PrismaClient from the builder types, so your builder setup now looks like:
 
   ```typescript
-  import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin-prisma';
+  import PrismaPlugin, { PrismaTypes } from "@giraphql/plugin-prisma";
 
   export default new SchemaBuilder<{}>({
     prisma: {
@@ -1049,9 +1055,9 @@
   builder.prismaObject(prisma.post, {
     findUnique: (post) => ({ id: post.id }),
     fields: (t) => ({
-      id: t.exposeID('id'),
-      title: t.exposeString('title'),
-      author: t.relation('author'),
+      id: t.exposeID("id"),
+      title: t.exposeString("title"),
+      author: t.relation("author"),
     }),
   });
 
