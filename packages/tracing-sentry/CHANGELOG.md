@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 1.1.1
+
+### Patch Changes
+
+- 951988d: Remove @sentry/tracing from @pothos/sentry-tracing
+
 ## 1.1.0
 
 ### Minor Changes

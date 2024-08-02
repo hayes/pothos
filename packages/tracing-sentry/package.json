@@ -1,6 +1,6 @@
 {
 	"name": "@pothos/tracing-sentry",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "Sentry utilities for the Pothos tracing plugin",
 	"main": "./lib/index.js",
 	"types": "./dts/index.d.ts",
