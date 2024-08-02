@@ -25,6 +25,7 @@ import {
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
+import type { PothosPrismaQueryFn } from './util/map-query';
 
 export interface PrismaDelegate {
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -382,10 +383,7 @@ type QueryFromRelation<
       include?: infer I;
       select?: infer S;
     }
-    ? {
-        include?: NonNullable<I>;
-        select?: NonNullable<S>;
-      }
+    ? PothosPrismaQueryFn<NonNullable<I>, NonNullable<S>>
     : never
   : never;
 
@@ -597,10 +595,7 @@ export type PrismaFieldResolver<
   Nullable extends FieldNullability<Param>,
   ResolveReturnShape,
 > = (
-  query: {
-    include?: Model['Include'];
-    select?: Model['Select'];
-  },
+  query: PothosPrismaQueryFn<Model['Include'], Model['Select']>,
   parent: Parent,
   args: InputShapeFromFields<Args>,
   context: Types['Context'],
@@ -660,12 +655,15 @@ export type PrismaConnectionFieldOptions<
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         resolve: (
-          query: {
-            include?: Model['Include'];
-            cursor?: Model['WhereUnique'];
-            take: number;
-            skip: number;
-          },
+          query: PothosPrismaQueryFn<
+            Model['Include'],
+            Model['Select'],
+            {
+              cursor?: Model['WhereUnique'];
+              take: number;
+              skip: number;
+            }
+          >,
           parent: ParentShape,
           args: ConnectionArgs,
           context: Types['Context'],

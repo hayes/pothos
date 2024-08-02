@@ -44,10 +44,9 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, root, args) =>
-        db.post.findUnique({
-          ...query,
+        db.post.findUnique(query({
           where: { id: Number.parseInt(String(args.id), 10) },
-        }),
+        })),
     }),
     posts: t.prismaField({
       type: ['Post'],
@@ -55,12 +54,11 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (query, root, args) =>
-        db.post.findMany({
-          ...query,
+      resolve: (query, _root, args) =>
+        db.post.findMany(query({
           take: args.take ?? DEFAULT_PAGE_SIZE,
           skip: args.skip ?? 0,
-        }),
+        })),
     }),
     user: t.prismaField({
       type: 'User',
@@ -69,10 +67,9 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, root, args) =>
-        db.user.findUnique({
-          ...query,
+        db.user.findUnique(query({
           where: { id: Number.parseInt(String(args.id), 10) },
-        }),
+        })),
     }),
   }),
 });

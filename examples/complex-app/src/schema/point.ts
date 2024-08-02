@@ -37,22 +37,23 @@ builder.mutationField('addPoint', (t) =>
     resolve: async (query, _, { input }) => {
       const game = await db.game.findUniqueOrThrow({ where: { id: parseID(input.gameId) } });
 
-      return db.point.create({
-        ...query,
-        data: {
-          scored: input.scored,
-          startedOnOffense: input.startedOnOffense,
-          players: {
-            connect: input.playerIds.map((id) => ({ id: parseID(id) })),
+      return db.point.create(
+        query({
+          data: {
+            scored: input.scored,
+            startedOnOffense: input.startedOnOffense,
+            players: {
+              connect: input.playerIds.map((id) => ({ id: parseID(id) })),
+            },
+            game: {
+              connect: { id: game.id },
+            },
+            team: {
+              connect: { id: game.teamId },
+            },
           },
-          game: {
-            connect: { id: game.id },
-          },
-          team: {
-            connect: { id: game.teamId },
-          },
-        },
-      });
+        }),
+      );
     },
   }),
 );

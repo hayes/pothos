@@ -111,12 +111,13 @@ builder.queryField('posts', (t) =>
     type: ['Post'],
     args: { filter: t.arg({ type: PostFilter }), order: t.arg({ type: PostOrderBy }) },
     resolve: (query, _, args) =>
-      prisma.post.findMany({
-        ...query,
-        where: args.filter ?? undefined,
-        orderBy: args.order ?? undefined,
-        take: 3,
-      }),
+      prisma.post.findMany(
+        query({
+          where: args.filter ?? undefined,
+          orderBy: args.order ?? undefined,
+          take: 3,
+        }),
+      ),
   }),
 );
 
@@ -174,7 +175,7 @@ builder.mutationType({
       args: {
         data: t.arg({ type: CreateUserInput, required: true }),
       },
-      resolve: (query, _, args) => prisma.user.create({ ...query, data: args.data }),
+      resolve: (query, _, args) => prisma.user.create(query({ data: args.data })),
     }),
     createPosts: t.prismaField({
       type: ['Post'],
@@ -182,7 +183,7 @@ builder.mutationType({
         data: t.arg({ type: [CreatePostInput], required: true }),
       },
       resolve: async (query) => {
-        await prisma.post.create({ ...query, data: { title: '123', authorId: 1 } });
+        await prisma.post.create(query({ data: { title: '123', authorId: 1 } }));
 
         return [];
       },
@@ -194,11 +195,12 @@ builder.mutationType({
         data: t.arg({ type: UpdatePostInput, required: true }),
       },
       resolve: (query, _, args) =>
-        prisma.post.update({
-          ...query,
-          where: { id: args.id },
-          data: args.data,
-        }),
+        prisma.post.update(
+          query({
+            where: { id: args.id },
+            data: args.data,
+          }),
+        ),
     }),
   }),
 });
