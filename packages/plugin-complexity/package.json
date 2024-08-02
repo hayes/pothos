@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-complexity",
-  "version": "4.0.2",
+  "version": "4.1.0",
   "description": "A Pothos plugin for defining and limiting complexity of queries",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -31,7 +31,16 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "plugin", "complexity", "depth", "query", "limit"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "plugin",
+    "complexity",
+    "depth",
+    "query",
+    "limit"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

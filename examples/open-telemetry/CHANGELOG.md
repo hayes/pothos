@@ -1,5 +1,18 @@
 # @pothos-examples/open-telemetry
 
+## 2.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+### Patch Changes
+
+- Updated dependencies [27af377]
+  - @pothos/tracing-opentelemetry@1.1.0
+  - @pothos/plugin-tracing@1.1.0
+  - @pothos/core@4.1.0
+
 ## 2.0.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-mocks",
-  "version": "4.0.2",
+  "version": "4.1.0",
   "description": "A Pothos plugin for mocking resolvers",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -31,7 +31,16 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "typescript", "mock", "mocks", "test", "stub"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "mock",
+    "mocks",
+    "test",
+    "stub"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

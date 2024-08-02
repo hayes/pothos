@@ -1,6 +1,6 @@
 {
   "name": "@pothos/converter",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "A converter for generating typescript that implements an SDL input schema",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -31,7 +31,13 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "typescript", "converter"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "converter"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

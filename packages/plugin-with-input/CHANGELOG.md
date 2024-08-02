@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 4.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
 ## 4.0.2
 
 ### Patch Changes
@@ -97,7 +103,7 @@
   An example usage of this:
 
   ```ts
-  import WithInputPlugin from '@pothos/plugin-with-input';
+  import WithInputPlugin from "@pothos/plugin-with-input";
   const builder = new SchemaBuilder({
     plugins: [WithInputPlugin],
     withInput: {
@@ -105,7 +111,7 @@
         name: ({ parentTypeName, fieldName }) => {
           const capitalizedFieldName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}`;
           // This will remove the default Query/Mutation prefix from the input type name
-          if (parentTypeName === 'Query' || parentTypeName === 'Mutation') {
+          if (parentTypeName === "Query" || parentTypeName === "Mutation") {
             return `${capitalizedFieldName}Input`;
           }
 
