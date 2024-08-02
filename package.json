@@ -13,7 +13,7 @@
     "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm i",
     "clean": "rm -rf ./{packages/*,examples*,website}/{tsconfig.*tsbuildinfo,lib,esm,dts,.turbo,.next} && git checkout -- 'packages/*/esm/*'",
     "ci": "pnpm turbo run build generate test type --concurrency=4 && pnpm run lint:ci",
-    "ci:version": "changeset version && pnpm install --frozen-lockfile false",
+    "ci:version": "pnpm lint && changeset version && pnpm lint --write && pnpm install --frozen-lockfile false",
     "coverage": "pnpm run test -- --coverage",
     "format": "biome format",
     "lint": "biome check",

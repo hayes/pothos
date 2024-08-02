@@ -31,16 +31,7 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": [
-    "pothos",
-    "graphql",
-    "schema",
-    "plugin",
-    "complexity",
-    "depth",
-    "query",
-    "limit"
-  ],
+  "keywords": ["pothos", "graphql", "schema", "plugin", "complexity", "depth", "query", "limit"],
   "publishConfig": {
     "access": "public",
     "provenance": true

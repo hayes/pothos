@@ -1,65 +1,65 @@
 {
-	"name": "@pothos/plugin-federation",
-	"description": "A Pothos plugin for implementing apollo federation subGraphs",
-	"version": "4.1.0",
-	"main": "./lib/index.js",
-	"types": "./dts/index.d.ts",
-	"module": "./esm/index.js",
-	"exports": {
-		"import": {
-			"default": "./esm/index.js"
-		},
-		"require": {
-			"types": "./dts/index.d.ts",
-			"default": "./lib/index.js"
-		}
-	},
-	"scripts": {
-		"type": "tsc --project tsconfig.type.json",
-		"build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
-		"build:clean": "git clean -dfX esm lib",
-		"build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
-		"build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
-		"build:dts": "tsc",
-		"esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-		"test": "pnpm jest --runInBand"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/hayes/pothos.git",
-		"directory": "packages/plugin-federation"
-	},
-	"author": "Michael Hayes",
-	"license": "ISC",
-	"keywords": [
-		"pothos",
-		"giraphql",
-		"graphql",
-		"schema",
-		"typescript",
-		"apollo",
-		"federation",
-		"subgraph"
-	],
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
-	},
-	"peerDependencies": {
-		"@apollo/subgraph": "^2.0.0",
-		"graphql": ">=16.6.0"
-	},
-	"devDependencies": {
-		"@apollo/gateway": "^2.8.4",
-		"@apollo/server": "^4.10.5",
-		"@apollo/subgraph": "2.8.4",
-		"@graphql-tools/utils": "^10.3.2",
-		"@pothos/core": "workspace:*",
-		"@pothos/plugin-directives": "workspace:*",
-		"@pothos/test-utils": "workspace:*",
-		"axios": "^1.7.3",
-		"graphql": "^16.8.1",
-		"graphql-tag": "^2.12.6"
-	},
-	"gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+  "name": "@pothos/plugin-federation",
+  "description": "A Pothos plugin for implementing apollo federation subGraphs",
+  "version": "4.1.0",
+  "main": "./lib/index.js",
+  "types": "./dts/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm jest --runInBand"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-federation"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "pothos",
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "apollo",
+    "federation",
+    "subgraph"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@apollo/subgraph": "^2.0.0",
+    "graphql": ">=16.6.0"
+  },
+  "devDependencies": {
+    "@apollo/gateway": "^2.8.4",
+    "@apollo/server": "^4.10.5",
+    "@apollo/subgraph": "2.8.4",
+    "@graphql-tools/utils": "^10.3.2",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-directives": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "axios": "^1.7.3",
+    "graphql": "^16.8.1",
+    "graphql-tag": "^2.12.6"
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

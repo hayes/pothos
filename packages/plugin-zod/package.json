@@ -31,15 +31,7 @@
     "url": "git+https://github.com/hayes/pothos.git",
     "directory": "packages/plugin-zod"
   },
-  "keywords": [
-    "pothos",
-    "graphql",
-    "schema",
-    "typescript",
-    "zod",
-    "validation",
-    "validate"
-  ],
+  "keywords": ["pothos", "graphql", "schema", "typescript", "zod", "validation", "validate"],
   "publishConfig": {
     "access": "public",
     "provenance": true

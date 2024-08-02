@@ -1,93 +1,93 @@
 {
-	"name": "@pothos/plugin-prisma",
-	"version": "4.2.0",
-	"description": "A Pothos plugin for more efficient integration with prisma",
-	"main": "./lib/index.js",
-	"types": "./dts/index.d.ts",
-	"module": "./esm/index.js",
-	"exports": {
-		".": {
-			"import": {
-				"default": "./esm/index.js"
-			},
-			"require": {
-				"types": "./dts/index.d.ts",
-				"default": "./lib/index.js"
-			}
-		},
-		"./generated": {
-			"import": {
-				"types": "./esm/generated.d.ts",
-				"default": "./esm/generated.js"
-			},
-			"require": {
-				"types": "./generated.d.ts",
-				"default": "./generated.js"
-			}
-		}
-	},
-	"scripts": {
-		"generate": "prisma generate && prisma generate --schema=./tests/prisma-types-from-client/schema.prisma",
-		"type": "tsc --project tsconfig.type.json",
-		"build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
-		"build:clean": "git clean -dfX esm lib",
-		"build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
-		"build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
-		"build:dts": "tsc",
-		"esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-		"test": "pnpm vitest run"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/hayes/pothos.git",
-		"directory": "packages/plugin-prisma"
-	},
-	"bin": {
-		"prisma-pothos-types": "./bin/generator.js"
-	},
-	"author": "Michael Hayes",
-	"license": "ISC",
-	"keywords": [
-		"pothos",
-		"graphql",
-		"schema",
-		"typescript",
-		"prisma",
-		"db",
-		"postgres",
-		"mysql",
-		"sql",
-		"sqlite",
-		"mongo"
-	],
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
-	},
-	"dependencies": {
-		"@prisma/generator-helper": "^5.17.0"
-	},
-	"prisma": {
-		"seed": "node prisma/seed.mjs"
-	},
-	"peerDependencies": {
-		"@pothos/core": "*",
-		"@prisma/client": "*",
-		"graphql": ">=16.6.0",
-		"typescript": ">=4.7.2"
-	},
-	"devDependencies": {
-		"@pothos/core": "workspace:*",
-		"@pothos/plugin-complexity": "workspace:*",
-		"@pothos/plugin-errors": "workspace:*",
-		"@pothos/plugin-relay": "workspace:*",
-		"@pothos/plugin-simple-objects": "workspace:*",
-		"@pothos/test-utils": "workspace:*",
-		"@prisma/client": "^5.17.0",
-		"graphql": "^16.8.1",
-		"graphql-scalars": "^1.23.0",
-		"graphql-tag": "^2.12.6",
-		"prisma": "^5.17.0",
-		"vitest": "^2.0.5"
-	}
+  "name": "@pothos/plugin-prisma",
+  "version": "4.2.0",
+  "description": "A Pothos plugin for more efficient integration with prisma",
+  "main": "./lib/index.js",
+  "types": "./dts/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "default": "./esm/index.js"
+      },
+      "require": {
+        "types": "./dts/index.d.ts",
+        "default": "./lib/index.js"
+      }
+    },
+    "./generated": {
+      "import": {
+        "types": "./esm/generated.d.ts",
+        "default": "./esm/generated.js"
+      },
+      "require": {
+        "types": "./generated.d.ts",
+        "default": "./generated.js"
+      }
+    }
+  },
+  "scripts": {
+    "generate": "prisma generate && prisma generate --schema=./tests/prisma-types-from-client/schema.prisma",
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-prisma"
+  },
+  "bin": {
+    "prisma-pothos-types": "./bin/generator.js"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "prisma",
+    "db",
+    "postgres",
+    "mysql",
+    "sql",
+    "sqlite",
+    "mongo"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@prisma/generator-helper": "^5.17.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.mjs"
+  },
+  "peerDependencies": {
+    "@pothos/core": "*",
+    "@prisma/client": "*",
+    "graphql": ">=16.6.0",
+    "typescript": ">=4.7.2"
+  },
+  "devDependencies": {
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-complexity": "workspace:*",
+    "@pothos/plugin-errors": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-simple-objects": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "@prisma/client": "^5.17.0",
+    "graphql": "^16.8.1",
+    "graphql-scalars": "^1.23.0",
+    "graphql-tag": "^2.12.6",
+    "prisma": "^5.17.0",
+    "vitest": "^2.0.5"
+  }
 }
