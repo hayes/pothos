@@ -50,7 +50,6 @@
 		"@pothos/core": "*",
 		"@pothos/plugin-tracing": "*",
 		"@sentry/node": "*",
-		"@sentry/tracing": "*",
 		"graphql": ">=16.6.0"
 	},
 	"devDependencies": {
