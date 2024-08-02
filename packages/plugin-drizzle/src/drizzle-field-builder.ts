@@ -1,23 +1,29 @@
-import { getOperators, InferModelFromColumns, Many, TableRelationalConfig } from 'drizzle-orm';
 import {
-  CompatibleTypes,
-  ExposeNullability,
-  FieldKind,
-  FieldRef,
-  InputFieldMap,
-  InterfaceParam,
-  isThenable,
-  MaybePromise,
-  NormalizeArgs,
+  type CompatibleTypes,
+  type ExposeNullability,
+  type FieldKind,
+  type FieldRef,
+  type InputFieldMap,
+  type InterfaceParam,
+  type MaybePromise,
+  type NormalizeArgs,
   ObjectRef,
-  PluginName,
+  type PluginName,
   PothosSchemaError,
   RootFieldBuilder,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  TypeParam,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
+  isThenable,
 } from '@pothos/core';
 import {
+  type InferModelFromColumns,
+  Many,
+  type TableRelationalConfig,
+  getOperators,
+} from 'drizzle-orm';
+import type { DrizzleRef } from './interface-ref';
+import type {
   DrizzleConnectionShape,
   ListRelation,
   RelatedConnectionOptions,
@@ -26,18 +32,16 @@ import {
   TypesForRelation,
   VariantFieldOptions,
 } from './types';
-import { getRefFromModel } from './utils/refs';
 import {
   drizzleCursorConnectionQuery,
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors';
-import { SelectionMap } from './utils/selections';
-import { DrizzleRef } from './interface-ref';
+import { getRefFromModel } from './utils/refs';
+import type { SelectionMap } from './utils/selections';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
-  // eslint-disable-next-line @typescript-eslint/prefer-function-type
   new <Types extends SchemaTypes, Shape, Kind extends FieldKind>(
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     kind: FieldKind,
@@ -236,7 +240,7 @@ export class DrizzleObjectFieldBuilder<
     const relationSelect = (
       args: object,
       context: object,
-      nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
+      nestedQuery: (query: unknown, path?: unknown) => { select?: object },
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
       const nested = nestedQuery(getQuery(args, context).select, {
@@ -326,8 +330,11 @@ export class DrizzleObjectFieldBuilder<
     const ref: DrizzleRef<Types> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
-    const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
-      nestedQuery({});
+    const selfSelect = (
+      _args: object,
+      _context: object,
+      nestedQuery: (query: unknown) => unknown,
+    ) => nestedQuery({});
 
     return this.field({
       ...(options as {}),

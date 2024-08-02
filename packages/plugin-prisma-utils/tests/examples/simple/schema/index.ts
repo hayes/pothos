@@ -1,5 +1,5 @@
-import { InputRef } from '@pothos/core';
-import { Prisma } from '../../../client';
+import type { InputRef } from '@pothos/core';
+import type { Prisma } from '../../../client';
 import builder, { prisma } from '../builder';
 
 const StringFilter = builder.prismaFilter('String', {
@@ -30,7 +30,7 @@ builder.queryField('post', (t) =>
       }),
       list: t.arg({ type: StringListFilter }),
     },
-    resolve: (query, _, args) =>
+    resolve: (_query, _, args) =>
       prisma.post.findFirst({
         where: {
           title: args.title ?? undefined,
@@ -181,7 +181,7 @@ builder.mutationType({
       args: {
         data: t.arg({ type: [CreatePostInput], required: true }),
       },
-      resolve: async (query, _, args) => {
+      resolve: async (query) => {
         await prisma.post.create({ ...query, data: { title: '123', authorId: 1 } });
 
         return [];

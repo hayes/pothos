@@ -1,21 +1,21 @@
 import './global-types';
 import './schema-builder';
 import './field-builders';
-import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  FieldKind,
-  PothosInterfaceTypeConfig,
-  PothosMutationTypeConfig,
-  PothosObjectTypeConfig,
-  PothosOutputFieldConfig,
-  PothosQueryTypeConfig,
+  type FieldKind,
+  type PothosInterfaceTypeConfig,
+  type PothosMutationTypeConfig,
+  type PothosObjectTypeConfig,
+  type PothosOutputFieldConfig,
+  type PothosQueryTypeConfig,
   PothosSchemaError,
-  PothosSubscriptionTypeConfig,
-  PothosUnionTypeConfig,
+  type PothosSubscriptionTypeConfig,
+  type PothosUnionTypeConfig,
   RootFieldBuilder,
-  SchemaTypes,
+  type SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
 import { isTypeOfHelper } from './is-type-of-helper';
 import RequestCache from './request-cache';
 import { resolveHelper } from './resolve-helper';
@@ -26,7 +26,7 @@ import {
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
 } from './steps';
-import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
+import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
 
 export { RequestCache };
 export * from './errors';
@@ -120,7 +120,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
-    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ): GraphQLTypeResolver<unknown, Types['Context']> {
     return (...args) => {
       inResolveType = true;
@@ -203,7 +202,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       !skipInterfaceScopes &&
       !(typeConfig.kind === 'Object' && typeConfig.pothosOptions.skipInterfaceScopes)
     ) {
-      interfaceConfigs.forEach((interfaceConfig) => {
+      for (const interfaceConfig of interfaceConfigs) {
         if (interfaceConfig.pothosOptions.authScopes) {
           steps.push(
             createTypeAuthScopesStep(
@@ -212,7 +211,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
             ),
           );
         }
-      });
+      }
     }
 
     if (parentGrantScopes) {

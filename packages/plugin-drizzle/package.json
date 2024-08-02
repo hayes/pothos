@@ -31,14 +31,7 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": [
-    "pothos",
-    "graphql",
-    "schema",
-    "typescript",
-    "drizzle",
-    "plugin"
-  ],
+  "keywords": ["pothos", "graphql", "schema", "typescript", "drizzle", "plugin"],
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -48,7 +41,7 @@
     "graphql": "^16.8.1"
   },
   "devDependencies": {
-    "@libsql/client": "^0.7.0",
+    "@libsql/client": "^0.8.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-add-graphql": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
@@ -56,8 +49,8 @@
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "drizzle-graphql": "^0.8.4",
-    "drizzle-kit": "^0.23.0",
-    "drizzle-orm": "^0.32.0",
+    "drizzle-kit": "^0.23.1",
+    "drizzle-orm": "^0.32.1",
     "graphql": "^16.8.1",
     "graphql-scalars": "^1.23.0",
     "graphql-tag": "^2.12.6",

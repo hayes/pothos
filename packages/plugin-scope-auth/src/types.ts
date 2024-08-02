@@ -1,5 +1,4 @@
-import { GraphQLResolveInfo } from 'graphql';
-import {
+import type {
   FieldNullability,
   InputFieldMap,
   InputShapeFromFields,
@@ -10,6 +9,7 @@ import {
   TypeParam,
   UnionToIntersection,
 } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import type RequestCache from './request-cache';
 
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
@@ -153,6 +153,7 @@ export type ContextForAuth<
   : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
 
 type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   ...args: any[]
 ) => infer R
   ? ContextForAuthUnion<Types, R>

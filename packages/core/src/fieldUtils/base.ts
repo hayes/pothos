@@ -1,5 +1,5 @@
 import { defaultFieldResolver } from 'graphql';
-import { ArgumentRef } from '../refs/arg';
+import type { ArgumentRef } from '../refs/arg';
 import { FieldRef } from '../refs/field';
 import type {
   FieldKind,
@@ -8,7 +8,7 @@ import type {
   Resolver,
   ShapeFromTypeParam,
 } from '../types';
-import { FieldNullability, SchemaTypes, TypeParam } from '../types';
+import type { FieldNullability, SchemaTypes, TypeParam } from '../types';
 import { typeFromParam } from '../utils';
 
 export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
@@ -33,7 +33,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     Nullable extends FieldNullability<Type>,
     Args extends InputFieldMap = {},
   >(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}> & {
       resolve?: Resolver<unknown, {}, {}, unknown, unknown>;
     },
@@ -43,13 +43,13 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
       (name, typeConfig) => {
         const args: Record<string, PothosInputFieldConfig<Types>> = {};
         if (options.args) {
-          Object.keys(options.args).forEach((argName) => {
-            args[argName] = (options.args![argName] as ArgumentRef<Types, unknown>).getConfig(
+          for (const [argName, arg] of Object.entries(options.args)) {
+            args[argName] = (arg as ArgumentRef<Types, unknown>).getConfig(
               argName,
               name,
               typeConfig,
             );
-          });
+          }
         }
 
         let { resolve } = options as { resolve?: (...argList: unknown[]) => unknown };

@@ -1,17 +1,23 @@
-import { getNamedType, GraphQLResolveInfo, isInterfaceType, isObjectType, Kind } from 'graphql';
 import {
-  FieldKind,
-  FieldRef,
-  InputFieldMap,
-  isThenable,
-  MaybePromise,
+  type FieldKind,
+  type FieldRef,
+  type InputFieldMap,
+  type MaybePromise,
   ObjectRef,
   PothosError,
   RootFieldBuilder,
-  SchemaTypes,
+  type SchemaTypes,
+  isThenable,
 } from '@pothos/core';
+import {
+  type GraphQLResolveInfo,
+  Kind,
+  getNamedType,
+  isInterfaceType,
+  isObjectType,
+} from 'graphql';
 import { ModelLoader } from './model-loader';
-import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
+import type { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
 import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } from './util/cursors';
 import { getRefFromModel } from './util/datamodel';
 import { queryFromInfo } from './util/map-query';
@@ -177,7 +183,9 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           },
           formatCursor,
           (q) => {
-            if (totalCountOnly) return [];
+            if (totalCountOnly) {
+              return [];
+            }
 
             return checkIfQueryIsUsed(
               this.builder,
@@ -205,13 +213,13 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
                   extensions: {
                     pothosPrismaTotalCount: true,
                   },
-                  resolve: (parent, args, context) => parent.totalCount?.(),
+                  resolve: (parent) => parent.totalCount?.(),
                 }),
                 ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
               })
             : (connectionOptions as { fields: undefined }).fields,
           extensions: {
-            ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
+            ...(connectionOptions as Record<string, object> | undefined)?.extensions,
           },
         },
     edgeOptions,
@@ -257,8 +265,8 @@ function checkIfQueryIsUsed<Types extends SchemaTypes, T>(
 
     if (onUnusedQuery === 'error') {
       throw new PothosError(message);
-    } else if (onUnusedQuery === 'warn') {
-      // eslint-disable-next-line no-console
+    }
+    if (onUnusedQuery === 'warn') {
       console.warn(message);
     }
   }

@@ -38,6 +38,7 @@ builder.mutationField('addPoint', (t) =>
       const game = await db.game.findUniqueOrThrow({ where: { id: parseID(input.gameId) } });
 
       return db.point.create({
+        ...query,
         data: {
           scored: input.scored,
           startedOnOffense: input.startedOnOffense,

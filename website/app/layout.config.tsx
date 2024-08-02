@@ -1,9 +1,9 @@
-import { type BaseLayoutProps, type DocsLayoutProps } from 'fumadocs-ui/layout';
 import { pageTree } from '@/app/source';
+import type { DocsLayoutProps } from 'fumadocs-ui/layout';
 import Image from 'next/image';
 
 // shared configuration
-export const baseOptions: BaseLayoutProps = {
+export const baseOptions = {
   githubUrl: 'https://github.com/hayes/pothos',
   nav: {
     title: <Image src="/assets/logo-name-auto.svg" alt="Pothos" width={125} height={30} />,

@@ -1,5 +1,5 @@
+import type { DMMF } from '@prisma/generator-helper';
 import ts from 'typescript';
-import { DMMF } from '@prisma/generator-helper';
 
 export function updateOptionNode(
   statement: ts.Node,

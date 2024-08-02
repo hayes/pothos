@@ -1,5 +1,6 @@
+import { type SchemaTypes, createContextCache } from '@pothos/core';
 import {
-  GraphQLNamedType,
+  type GraphQLNamedType,
   isEnumType,
   isInputObjectType,
   isInterfaceType,
@@ -7,7 +8,6 @@ import {
   isScalarType,
   isUnionType,
 } from 'graphql';
-import { createContextCache, SchemaTypes } from '@pothos/core';
 
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 
@@ -41,5 +41,5 @@ export function addReferencedType<Types extends SchemaTypes>(
     return;
   }
 
-  builder.configStore.onPrepare(() => void addTypeToSchema(builder, type));
+  builder.configStore.onPrepare(() => addTypeToSchema(builder, type));
 }

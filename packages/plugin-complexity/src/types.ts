@@ -1,5 +1,5 @@
-import { GraphQLField, GraphQLResolveInfo } from 'graphql';
-import { SchemaTypes } from '@pothos/core';
+import type { SchemaTypes } from '@pothos/core';
+import type { GraphQLField, GraphQLResolveInfo } from 'graphql';
 
 export enum ComplexityErrorKind {
   Complexity = 'Complexity',

@@ -406,7 +406,6 @@ Many graphql server implementations have ways to wrap or replace the execution c
 slightly different.
 
 ```ts
-// eslint-disable-next-line simple-import-sort/imports
 import { tracer } from './tracer'; // Tracer should be imported first if it handles additional instrumentation
 import { print } from 'graphql';
 import { createYoga, Plugin } from 'graphql-yoga';
@@ -607,7 +606,6 @@ Many graphql server implementations have ways to wrap or replace the execution c
 slightly different.
 
 ```ts
-// eslint-disable-next-line simple-import-sort/imports
 import newrelic from 'newrelic'; // newrelic must be imported first
 import { print } from 'graphql';
 import { createYoga, Plugin } from 'graphql-yoga';

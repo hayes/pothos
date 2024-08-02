@@ -1,18 +1,18 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  FieldKind,
-  FieldNullability,
-  FieldRef,
-  InputFieldMap,
-  InputShapeFromFields,
-  OutputType,
+  type FieldKind,
+  type FieldNullability,
+  type FieldRef,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  type OutputType,
   RootFieldBuilder,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  TypeParam,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
 } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { LoadableGroupFieldOptions, LoadableListFieldOptions } from './types';
-import { LoadableFieldOptions, LoaderShapeFromType } from './types';
+import type { LoadableFieldOptions, LoaderShapeFromType } from './types';
 import { pathDataloaderGetter, rejectErrors } from './util';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
@@ -189,7 +189,6 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
 
       for (const value of values) {
         if (value == null) {
-          // eslint-disable-next-line no-continue
           continue;
         }
 

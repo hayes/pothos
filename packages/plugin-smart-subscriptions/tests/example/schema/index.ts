@@ -1,8 +1,8 @@
 import './poll';
 import builder from '../builder';
 
-builder.queryType({ fields: (t) => ({}) });
-builder.mutationType({ fields: (t) => ({}) });
+builder.queryType({ fields: () => ({}) });
+builder.mutationType({ fields: () => ({}) });
 builder.subscriptionType({
   fields: (t) => ({
     test: t.int({
@@ -14,6 +14,7 @@ builder.subscriptionType({
             new Promise<IteratorResult<number, never>>((resolve) => {
               setTimeout(() => {
                 resolve({
+                  // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
                   value: (i += 1),
                   done: false,
                 });

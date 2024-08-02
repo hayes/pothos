@@ -1,34 +1,32 @@
-/* eslint-disable no-nested-ternary */
-/* eslint-disable no-underscore-dangle */
 import {
-  FieldNode,
+  type CompatibleTypes,
+  type ExposeNullability,
+  type FieldKind,
+  type FieldRef,
+  type InferredFieldOptionKeys,
+  type InputFieldMap,
+  type InterfaceParam,
+  type MaybePromise,
+  type NormalizeArgs,
+  ObjectRef,
+  type PluginName,
+  RootFieldBuilder,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
+  isThenable,
+} from '@pothos/core';
+import {
+  type FieldNode,
+  type GraphQLResolveInfo,
+  Kind,
   getNamedType,
-  GraphQLResolveInfo,
   isInterfaceType,
   isObjectType,
-  Kind,
 } from 'graphql';
-import {
-  CompatibleTypes,
-  ExposeNullability,
-  FieldKind,
-  FieldRef,
-  InferredFieldOptionKeys,
-  InputFieldMap,
-  InterfaceParam,
-  isThenable,
-  MaybePromise,
-  NormalizeArgs,
-  ObjectRef,
-  PluginName,
-  RootFieldBuilder,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  TypeParam,
-} from '@pothos/core';
-import { PrismaRef } from './interface-ref';
+import type { PrismaRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
-import {
+import type {
   PrismaConnectionShape,
   PrismaModelTypes,
   RelatedConnectionOptions,
@@ -47,11 +45,11 @@ import {
 } from './util/cursors';
 import { getRefFromModel, getRelation } from './util/datamodel';
 import { getFieldDescription } from './util/description';
-import { FieldMap } from './util/relation-map';
+import type { FieldMap } from './util/relation-map';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
-  // eslint-disable-next-line @typescript-eslint/prefer-function-type
+  // biome-ignore lint/suspicious/noRedeclare: <explanation>
   new <Types extends SchemaTypes, Shape, Kind extends FieldKind>(
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     kind: FieldKind,
@@ -59,21 +57,26 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
-type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
-  PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
-    Context: infer T;
-  }
-    ? T extends object
-      ? T
-      : object
-    : object;
-
-type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {} = {}> =
-  PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
-    Scopes: infer T;
-  }
+type ContextForAuth<
+  Types extends SchemaTypes,
+  Scopes extends {} = {},
+> = PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
+  Context: infer T;
+}
+  ? T extends object
     ? T
-    : never;
+    : object
+  : object;
+
+type FieldAuthScopes<
+  Types extends SchemaTypes,
+  Parent,
+  Args extends {} = {},
+> = PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
+  Scopes: infer T;
+}
+  ? T
+  : never;
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -285,7 +288,7 @@ export class PrismaObjectFieldBuilder<
     const relationSelect = (
       args: object,
       context: object,
-      nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
+      nestedQuery: (query: unknown, path?: unknown) => { select?: object },
       getSelection: (path: string[]) => FieldNode | null,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
@@ -407,7 +410,7 @@ export class PrismaObjectFieldBuilder<
                     extensions: {
                       pothosPrismaTotalCount: true,
                     },
-                    resolve: (parent, args, context) => parent.totalCount,
+                    resolve: (parent, _args, _context) => parent.totalCount,
                   }),
                   ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
                 })
@@ -454,8 +457,8 @@ export class PrismaObjectFieldBuilder<
     const { query = {}, resolve, extensions, onNull, ...rest } = options;
 
     const relationSelect = (
-      args: object,
-      context: object,
+      _args: object,
+      _context: object,
       nestedQuery: (query: unknown) => unknown,
     ) => ({ select: { [name]: nestedQuery(query) } });
 
@@ -527,7 +530,7 @@ export class PrismaObjectFieldBuilder<
       type: 'Int',
       nullable: false,
       select: countSelect as never,
-      resolve: (parent, args, context, info) =>
+      resolve: (parent, _args, _context, _info) =>
         (parent as unknown as { _count: Record<string, never> })._count?.[name],
     }) as FieldRef<Types, number, 'Object'>;
   }
@@ -555,8 +558,11 @@ export class PrismaObjectFieldBuilder<
     const ref: PrismaRef<Types, PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
-    const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
-      nestedQuery({});
+    const selfSelect = (
+      _args: object,
+      _context: object,
+      nestedQuery: (query: unknown) => unknown,
+    ) => nestedQuery({});
 
     return this.field({
       ...(options as {}),
@@ -680,7 +686,6 @@ function addScopes(
 ) {
   const originalCreateField = builder.createField;
 
-  // eslint-disable-next-line no-param-reassign
   builder.createField = function createField(options) {
     return originalCreateField.call(this, {
       authScopes: scopes,

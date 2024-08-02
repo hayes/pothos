@@ -29,7 +29,7 @@ builder.queryType({
         where: t.arg({ type: UserUniqueFilter, required: true }),
       },
       nullable: true,
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args) =>
         prisma.user.findUnique({
           ...query,
           where: args.where,
@@ -47,7 +47,7 @@ builder.queryType({
           },
         }),
       },
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args) =>
         prisma.user.findMany({
           ...query,
           where: args.filter,
@@ -134,7 +134,7 @@ builder.mutationType({
       args: {
         data: t.arg({ type: UserCreate, required: true }),
       },
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args, _ctx) =>
         prisma.user.create({
           ...query,
           data: args.data,
@@ -146,7 +146,7 @@ builder.mutationType({
         where: t.arg({ type: UserUniqueFilter, required: true }),
         data: t.arg({ type: UserUpdate, required: true }),
       },
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args, _ctx) =>
         prisma.user.update({
           ...query,
           where: args.where,
@@ -158,7 +158,7 @@ builder.mutationType({
       args: {
         where: t.arg({ type: UserUniqueFilter, required: true }),
       },
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args, _ctx) =>
         prisma.user.delete({
           ...query,
           where: args.where,
@@ -169,7 +169,7 @@ builder.mutationType({
       args: {
         data: t.arg({ type: PostCreate, required: true }),
       },
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args, _ctx) =>
         prisma.post.create({
           ...query,
           data: args.data,
@@ -181,7 +181,7 @@ builder.mutationType({
         where: t.arg({ type: PostUniqueFilter, required: true }),
         data: t.arg({ type: PostUpdate, required: true }),
       },
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args, _ctx) =>
         prisma.post.update({
           ...query,
           where: args.where,
@@ -193,7 +193,7 @@ builder.mutationType({
       args: {
         where: t.arg({ type: PostUniqueFilter, required: true }),
       },
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, args, _ctx) =>
         prisma.post.delete({
           ...query,
           where: args.where,
@@ -203,7 +203,7 @@ builder.mutationType({
       args: {
         where: t.arg({ type: PostFilter, required: true }),
       },
-      resolve: async (root, args) => {
+      resolve: async (_root, args) => {
         await prisma.post.deleteMany({
           where: args.where,
         });
@@ -216,7 +216,6 @@ builder.mutationType({
 
 export const schema = builder.toSchema();
 
-// eslint-disable-next-line unicorn/prefer-module
 writeFileSync(resolve(__dirname, '../schema.graphql'), printSchema(schema));
 
 export default schema;

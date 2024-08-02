@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type { NormalizeArgs, SchemaTypes } from '@pothos/core';
+import type {
   GraphQLEnumType,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
@@ -8,8 +8,7 @@ import {
   GraphQLSchema,
   GraphQLUnionType,
 } from 'graphql';
-import { NormalizeArgs, SchemaTypes } from '@pothos/core';
-import {
+import type {
   AddGraphQLEnumTypeOptions,
   AddGraphQLInputTypeOptions,
   AddGraphQLInterfaceTypeOptions,

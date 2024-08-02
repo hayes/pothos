@@ -11,7 +11,7 @@ builder.objectType(Giraffe, {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
-      resolve: (parent) => 5, // hard coded so test don't break over time
+      resolve: () => 5, // hard coded so test don't break over time
     }),
   }),
 });
@@ -23,7 +23,7 @@ builder.objectType('Giraffe', {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
-      resolve: (parent) => 5, // hard coded so test don't break over time
+      resolve: () => 5, // hard coded so test don't break over time
     }),
     oldName: t.string({
       deprecationReason: 'should use name instead',
@@ -42,7 +42,7 @@ builder.objectType(GiraffeRef, {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
-      resolve: (parent) => 5, // hard coded so test don't break over time
+      resolve: () => 5, // hard coded so test don't break over time
     }),
   }),
 });

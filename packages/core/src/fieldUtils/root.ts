@@ -1,6 +1,6 @@
 import { ListRef } from '../refs/list';
 import type { ArgBuilder, InputFieldMap, NormalizeArgs, ShapeFromTypeParam } from '../types';
-import {
+import type {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,

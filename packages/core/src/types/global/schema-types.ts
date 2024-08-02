@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import type { GraphQLDirective } from 'graphql';
+import type { InferredFieldOptionsKind } from '../builder-options';
 import type { PluginConstructorMap } from '../plugins';
 import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types';
 import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils';
-import { InferredFieldOptionsKind } from '../builder-options';
 
 declare global {
   export namespace PothosSchemaTypes {

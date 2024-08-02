@@ -7,8 +7,5 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true
   },
-  "include": [
-    "prisma/*.ts",
-    "src/**/*"
-  ]
+  "include": ["prisma/*.ts", "src/**/*"]
 }

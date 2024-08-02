@@ -115,7 +115,7 @@ builder.drizzleNode('users', {
       select: {
         id: true,
       },
-      isNull: (user, args, ctx) => user.id !== ctx.user?.id,
+      isNull: (user, _args, ctx) => user.id !== ctx.user?.id,
     }),
   }),
 });

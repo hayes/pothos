@@ -1,4 +1,4 @@
-import { ZodError, ZodFormattedError } from 'zod';
+import { ZodError, type ZodFormattedError } from 'zod';
 import type { Builder } from './builder';
 
 export function createSchema(builder: Builder) {
@@ -40,7 +40,7 @@ export function createSchema(builder: Builder) {
         args: {
           name: t.arg.string({ required: true }),
         },
-        resolve: (parent, { name }) => {
+        resolve: (_parent, { name }) => {
           if (!name.startsWith(name.slice(0, 1).toUpperCase())) {
             throw new Error('name must be capitalized');
           }
@@ -56,7 +56,7 @@ export function createSchema(builder: Builder) {
         args: {
           name: t.arg.string({ required: true }),
         },
-        resolve: (parent, { name }) => {
+        resolve: (_parent, { name }) => {
           if (name.length < 5) {
             throw new LengthError(5);
           }
@@ -120,7 +120,7 @@ export function createSchema(builder: Builder) {
       errors: {
         types: [Error],
       },
-      resolve: (parent, args) => {
+      resolve: (_parent, args) => {
         if (args.throw) {
           throw new Error('Error from simpleError field');
         }
@@ -136,9 +136,8 @@ export function createSchema(builder: Builder) {
       errors: {
         types: [Extended2Error, Error, ExtendedError],
       },
-      resolve: (parent, args) => {
+      resolve: (_parent, args) => {
         if (args.throw === 'other') {
-          // eslint-disable-next-line @typescript-eslint/no-throw-literal
           throw new OtherError('Error from extendedError');
         }
 
@@ -168,9 +167,8 @@ export function createSchema(builder: Builder) {
       errors: {
         types: [Extended2Error, Error, ExtendedError],
       },
-      resolve: (parent, args) => {
+      resolve: (_parent, args) => {
         if (args.throw === 'other') {
-          // eslint-disable-next-line @typescript-eslint/no-throw-literal
           throw new OtherError('Error from extendedError');
         }
 
@@ -195,7 +193,6 @@ export function createSchema(builder: Builder) {
     error: ZodFormattedError<unknown>,
     path: string[],
   ): { path: string[]; message: string }[] {
-    // eslint-disable-next-line no-underscore-dangle
     const errors = error._errors.map((message) => ({
       path,
       message,
@@ -272,7 +269,7 @@ export function createSchema(builder: Builder) {
           },
         }),
       },
-      validate: (err) => false,
+      validate: (_err) => false,
       resolve: () => true,
     }),
   );
@@ -292,7 +289,7 @@ export function createSchema(builder: Builder) {
       args: {
         shouldThrow: t.arg.boolean(),
       },
-      resolve: (root, args) => {
+      resolve: (_root, args) => {
         if (args.shouldThrow) {
           throw new Error('Boom');
         }

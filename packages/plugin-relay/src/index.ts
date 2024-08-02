@@ -6,9 +6,9 @@ import SchemaBuilder, {
   BasePlugin,
   createInputValueMapper,
   mapInputFields,
-  PartialResolveInfo,
-  PothosOutputFieldConfig,
-  SchemaTypes,
+  type PartialResolveInfo,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
 } from '@pothos/core';
 import { internalDecodeGlobalID } from './utils/internal';
 

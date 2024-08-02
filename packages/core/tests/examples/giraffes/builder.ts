@@ -2,9 +2,9 @@ import '../test-plugin/global-types';
 import SchemaBuilder from '../../../src';
 
 export enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVORIOUS,
+  HERBIVOROUS = 0,
+  CARNIVOROUS = 1,
+  OMNIVORIOUS = 2,
 }
 
 export class Animal {

@@ -1,7 +1,7 @@
 import builder from '../builder';
-import { ContextType } from '../types';
+import type { ContextType } from '../types';
 import { countCall, petCounts } from './counts';
-import { Cat, CatObject, Dog, DogObject } from './interfaces';
+import { type Cat, CatObject, type Dog, DogObject } from './interfaces';
 
 const Pet = builder.loadableUnion('Pet', {
   types: [CatObject, DogObject],
@@ -33,6 +33,6 @@ builder.queryField('pets', (t) =>
         required: true,
       }),
     },
-    resolve: (root, args) => args.ids.map((id) => Number.parseInt(String(id), 10)),
+    resolve: (_root, args) => args.ids.map((id) => Number.parseInt(String(id), 10)),
   }),
 );

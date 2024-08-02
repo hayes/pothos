@@ -1,13 +1,13 @@
 import {
-  BaseEnum,
-  EnumRef,
+  type BaseEnum,
+  type EnumRef,
   InputObjectRef,
-  InputType,
-  InputTypeParam,
-  SchemaTypes,
+  type InputType,
+  type InputTypeParam,
+  type SchemaTypes,
 } from '@pothos/core';
-import { getModel, PrismaModelTypes } from '@pothos/plugin-prisma';
-import { FilterOps } from '../../../src';
+import { type PrismaModelTypes, getModel } from '@pothos/plugin-prisma';
+import type { FilterOps } from '../../../src';
 import * as Prisma from '../../client';
 
 const filterOps = ['equals', 'in', 'notIn', 'not', 'is', 'isNot'] as const;
@@ -65,6 +65,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ),
             )
             .forEach((field) => {
+              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
               let type;
               switch (field.kind) {
                 case 'scalar':
@@ -121,6 +122,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 model.primaryKey?.fields.includes(field.name),
             )
             .forEach((field) => {
+              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
               let type;
               switch (field.kind) {
                 case 'scalar':
@@ -160,6 +162,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
           const fields: Record<string, InputType<Types> | boolean> = {};
 
           model.fields.forEach((field) => {
+            // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
             let type;
             switch (field.kind) {
               case 'scalar':
@@ -210,6 +213,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ) && !relationIds.includes(field.name),
             )
             .forEach((field) => {
+              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
               let type;
               switch (field.kind) {
                 case 'scalar':
@@ -263,6 +267,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ) && !relationIds.includes(field.name),
             )
             .forEach((field) => {
+              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
               let type;
               switch (field.kind) {
                 case 'scalar':
@@ -341,6 +346,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ) && !relationIds.includes(field.name),
             )
             .forEach((field) => {
+              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
               let type;
               switch (field.kind) {
                 case 'scalar':

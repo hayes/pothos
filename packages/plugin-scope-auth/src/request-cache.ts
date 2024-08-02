@@ -1,19 +1,18 @@
-/* eslint-disable @typescript-eslint/promise-function-async */
-import { GraphQLResolveInfo } from 'graphql';
 import {
+  type MaybePromise,
+  type Path,
+  PothosValidationError,
+  type SchemaTypes,
   createContextCache,
   isThenable,
-  MaybePromise,
-  Path,
-  PothosValidationError,
-  SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import {
-  AuthFailure,
+  type AuthFailure,
   AuthScopeFailureType,
-  AuthScopeMap,
-  ScopeLoaderMap,
-  TypeAuthScopesFunction,
+  type AuthScopeMap,
+  type ScopeLoaderMap,
+  type TypeAuthScopesFunction,
 } from './types';
 import { cacheKey, canCache } from './util';
 
@@ -95,7 +94,9 @@ export default class RequestCache<Types extends SchemaTypes> {
     if (this.grantCache.has(key)) {
       const set = this.grantCache.get(key)!;
 
-      scopes.forEach((scope) => set.add(scope));
+      for (const scope of scopes) {
+        set.add(scope);
+      }
     } else {
       this.grantCache.set(key, new Set(scopes));
     }
@@ -166,7 +167,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         );
       }
 
-      let result;
+      let result: MaybePromise<boolean>;
 
       if (this.treatErrorsAsUnauthorized) {
         try {
@@ -254,7 +255,6 @@ export default class RequestCache<Types extends SchemaTypes> {
         if (forAll) {
           return failure;
         }
-        // eslint-disable-next-line no-continue
         continue;
       }
 
@@ -356,13 +356,13 @@ export default class RequestCache<Types extends SchemaTypes> {
 
     return Promise.all(promises).then((results) => {
       let hasSuccess = false;
-      results.forEach((result) => {
+      for (const result of results) {
         if (result) {
           problems.push(result);
         } else {
           hasSuccess = true;
         }
-      });
+      }
 
       if (forAll) {
         return problems.length > 0 ? failure : null;
@@ -424,7 +424,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     const cache = typeCache.get(type)!;
 
     if (!cache.has(parent)) {
-      let result;
+      let result: ReturnType<TypeAuthScopesFunction<Types, unknown>>;
 
       if (this.treatErrorsAsUnauthorized) {
         try {

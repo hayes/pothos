@@ -1,13 +1,12 @@
-/* eslint-disable max-classes-per-file */
-import DataLoader from 'dataloader';
 import {
   ImplementableInterfaceRef,
-  InterfaceParam,
+  type InterfaceParam,
   InterfaceRef,
-  InterfaceTypeOptions,
-  SchemaTypes,
+  type InterfaceTypeOptions,
+  type SchemaTypes,
 } from '@pothos/core';
-import { DataLoaderOptions } from '../types';
+import type DataLoader from 'dataloader';
+import type { DataLoaderOptions } from '../types';
 import { dataloaderGetter } from '../util';
 
 export class LoadableInterfaceRef<

@@ -30,7 +30,7 @@ export default yargs().command(
     const output = converter.toString();
 
     if (argv.out) {
-      fs.writeFileSync(path.resolve((process.cwd(), argv.out as string)), output);
+      fs.writeFileSync(path.resolve(process.cwd(), argv.out as string), output);
     } else {
       process.stdout.write(output);
     }

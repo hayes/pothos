@@ -1,4 +1,4 @@
-import { Resolver, SchemaTypes, Subscriber } from '@pothos/core';
+import type { Resolver, SchemaTypes, Subscriber } from '@pothos/core';
 
 export type Resolvers<Types extends SchemaTypes, Parent> = Record<
   string,

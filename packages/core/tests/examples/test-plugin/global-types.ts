@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '../../../src';
 import type { PothosTestPlugin } from './plugin';
 

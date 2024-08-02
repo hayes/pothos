@@ -1,16 +1,16 @@
 import './global-types';
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  ContextCache,
+  type ContextCache,
   createContextCache,
-  PothosOutputFieldConfig,
+  type PothosOutputFieldConfig,
   PothosValidationError,
-  SchemaTypes,
+  type SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import { calculateComplexity } from './calculate-complexity';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
-import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './types';
+import { type ComplexityErrorFn, ComplexityErrorKind, type ComplexityResult } from './types';
 
 export * from './types';
 export * from './util';
@@ -146,7 +146,6 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
       max = max(ctx);
     }
 
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     if (max?.complexity || max?.depth || max?.breadth) {
       return max;
     }

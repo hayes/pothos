@@ -1,5 +1,3 @@
-/* eslint-disable max-classes-per-file */
-/* eslint-disable no-magic-numbers */
 import { faker } from '@faker-js/faker';
 
 faker.seed(123);

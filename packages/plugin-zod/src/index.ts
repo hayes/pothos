@@ -1,24 +1,24 @@
 import './global-types';
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import * as zod from 'zod';
 import SchemaBuilder, {
   BasePlugin,
   mapInputFields,
-  PothosInputFieldConfig,
-  PothosInputFieldType,
-  PothosOutputFieldConfig,
+  type PothosInputFieldConfig,
+  type PothosInputFieldType,
+  type PothosOutputFieldConfig,
   PothosSchemaError,
   PothosValidationError,
   resolveInputTypeConfig,
-  SchemaTypes,
+  type SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import * as zod from 'zod';
 import createZodSchema, {
   combine,
   createArrayValidator,
   isArrayValidator,
   refine,
 } from './createZodSchema';
-import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types';
+import type { RefineConstraint, ValidationOptionUnion, ValidationOptions } from './types';
 
 export * from './types';
 
@@ -81,15 +81,13 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
 
     const args: Record<string, zod.ZodType<unknown>> = {};
 
-    Object.keys(fieldConfig.args).forEach((argName) => {
-      const validator = fieldConfig.args[argName].extensions?.validator as
-        | zod.ZodType<unknown>
-        | undefined;
+    for (const [argName, arg] of Object.entries(fieldConfig.args)) {
+      const validator = arg.extensions?.validator as zod.ZodType<unknown> | undefined;
 
       if (validator) {
         args[argName] = validator;
       }
-    });
+    }
 
     let validator: zod.ZodTypeAny = zod.object(args).passthrough();
 

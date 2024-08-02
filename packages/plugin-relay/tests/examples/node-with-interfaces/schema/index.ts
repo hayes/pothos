@@ -30,7 +30,7 @@ builder.queryField('nullConnection', (t) =>
     args: {
       ...t.arg.connectionArgs(),
     },
-    resolve: (root, args) => ({
+    resolve: () => ({
       edges: null,
       pageInfo: { hasNextPage: false, hasPreviousPage: false },
     }),

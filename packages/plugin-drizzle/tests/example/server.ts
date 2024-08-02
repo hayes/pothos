@@ -1,5 +1,5 @@
 import { createTestServer } from '@pothos/test-utils';
-import { BaseContext } from './builder';
+import type { BaseContext } from './builder';
 import { db } from './db';
 import { schema } from './schema';
 

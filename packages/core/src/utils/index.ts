@@ -1,22 +1,22 @@
 import {
-  DirectiveNode,
-  FieldNode,
+  type DirectiveNode,
+  type FieldNode,
+  type GraphQLDirective,
+  type GraphQLField,
   getArgumentValues,
-  GraphQLDirective,
-  GraphQLField,
 } from 'graphql';
 import { PothosSchemaError, PothosValidationError } from '../errors';
 import { InputListRef } from '../refs/input-list';
 import { ListRef } from '../refs/list';
 import {
-  InputType,
-  InputTypeParam,
-  OutputType,
-  PartialResolveInfo,
-  PothosOutputFieldConfig,
-  SchemaTypes,
+  type InputType,
+  type InputTypeParam,
+  type OutputType,
+  type PartialResolveInfo,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+  type TypeParam,
   typeBrandKey,
-  TypeParam,
 } from '../types';
 
 export * from './base64';

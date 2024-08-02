@@ -1,6 +1,4 @@
-/* eslint-disable max-classes-per-file */
-
-import { GraphQLError, GraphQLErrorOptions } from 'graphql';
+import { GraphQLError, type GraphQLErrorOptions } from 'graphql';
 
 export class PothosError extends GraphQLError {
   constructor(message: string, options?: GraphQLErrorOptions) {

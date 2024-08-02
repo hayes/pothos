@@ -1,11 +1,12 @@
 import './global.css';
-import { RootProvider } from 'fumadocs-ui/provider';
-import { DocsLayout, Layout } from 'fumadocs-ui/layout';
+import Link from 'fumadocs-core/link';
 import { Banner } from 'fumadocs-ui/components/banner';
+import { HomeLayout as Layout } from 'fumadocs-ui/home-layout';
+import { DocsLayout } from 'fumadocs-ui/layout';
+import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { baseOptions, docsOptions } from './layout.config';
-import Link from 'fumadocs-core/link';
 
 const inter = Inter({
   subsets: ['latin'],

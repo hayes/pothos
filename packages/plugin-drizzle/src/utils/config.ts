@@ -1,5 +1,9 @@
-import { createContextCache, SchemaTypes } from '@pothos/core';
-import { RelationalSchemaConfig, TableRelationalConfig, TablesRelationalConfig } from 'drizzle-orm';
+import { type SchemaTypes, createContextCache } from '@pothos/core';
+import type {
+  RelationalSchemaConfig,
+  TableRelationalConfig,
+  TablesRelationalConfig,
+} from 'drizzle-orm';
 
 export interface PothosDrizzleSchemaConfig extends RelationalSchemaConfig<TablesRelationalConfig> {
   dbToSchema: Record<string, TableRelationalConfig>;

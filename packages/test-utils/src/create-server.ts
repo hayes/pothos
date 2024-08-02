@@ -1,6 +1,6 @@
-import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
-import { execute, GraphQLSchema } from 'graphql';
-import { createYoga, Plugin, YogaServerOptions } from 'graphql-yoga';
+import { IncomingMessage, Server, ServerResponse, createServer } from 'node:http';
+import { GraphQLSchema, type execute } from 'graphql';
+import { type Plugin, type YogaServerOptions, createYoga } from 'graphql-yoga';
 
 export interface TestServerOptions<ServerContext, UserContext>
   extends YogaServerOptions<ServerContext, UserContext> {
@@ -8,7 +8,9 @@ export interface TestServerOptions<ServerContext, UserContext>
 }
 
 export function createTestServer<
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   ServerContext extends Record<string, any> = {},
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   UserContext extends Record<string, any> = {},
 >(options: TestServerOptions<ServerContext, UserContext>) {
   const executePlugin: Plugin | undefined = options.execute
@@ -30,6 +32,5 @@ export function createTestServer<
     },
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   return createServer(yoga);
 }

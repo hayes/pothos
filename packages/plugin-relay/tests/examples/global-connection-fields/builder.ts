@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '../../../src';
-import { Poll } from './data';
-import { ContextType } from './types';
+import type { Poll } from './data';
+import type { ContextType } from './types';
 
 export default new SchemaBuilder<{
   Objects: {

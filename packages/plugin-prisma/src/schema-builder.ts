@@ -1,20 +1,20 @@
 import './global-types';
-import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   brandWithType,
   completeValue,
-  FieldRef,
-  InterfaceRef,
-  OutputType,
+  type FieldRef,
+  type InterfaceRef,
+  type OutputType,
   PothosError,
-  SchemaTypes,
+  type SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import { PrismaInterfaceRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
 import { PrismaNodeRef } from './node-ref';
 import { PrismaObjectRef } from './object-ref';
 import { PrismaObjectFieldBuilder } from './prisma-field-builder';
-import { PrismaModelTypes, PrismaNodeOptions } from './types';
+import type { PrismaModelTypes, PrismaNodeOptions } from './types';
 import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
 import { getModelDescription } from './util/description';
@@ -187,12 +187,12 @@ schemaBuilderProto.prismaNode = function prismaNode(
             globalID: (options: Record<string, unknown>) => FieldRef<SchemaTypes, unknown>;
           }
         ).globalID({
-          ...(this.options as { relayOptions?: { idFieldOptions?: {} } }).relayOptions
+          ...(this.options as { relayOptions?: { idFieldOptions?: object } }).relayOptions
             ?.idFieldOptions,
           ...idOptions,
           nullable: false,
           args: {},
-          resolve: (parent: never, args: object, context: object, info: GraphQLResolveInfo) =>
+          resolve: (parent: never, _args: object, context: object) =>
             completeValue(resolve(parent, context), (id) => ({
               type: nodeConfig.name,
               id,

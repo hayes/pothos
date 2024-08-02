@@ -1,16 +1,16 @@
 import { not, rule } from 'graphql-shield';
 import { builder } from './builder';
-import { Comments, IComment, IPost, IUser, Posts, Users } from './data';
+import { Comments, type IComment, type IPost, type IUser, Posts, Users } from './data';
 
 export const User = builder.objectRef<IUser>('User');
 export const Post = builder.objectRef<IPost>('Post');
 export const Comment = builder.objectRef<IComment>('Comment');
 
 const isAuthenticated = rule({ cache: 'contextual' })(
-  (parent, args, ctx: { user: { id: number } }, info) => !!ctx.user,
+  (_parent, _args, ctx: { user: { id: number } }, _info) => !!ctx.user,
 );
 const isAdmin = rule({ cache: 'contextual' })(
-  (parent, args, ctx: { user: { id: number } }, info) => ctx.user.id === 1,
+  (_parent, _args, ctx: { user: { id: number } }, _info) => ctx.user.id === 1,
 );
 
 User.implement({
@@ -79,7 +79,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Posts.get(String(args.id)),
+      resolve: (_root, args) => Posts.get(String(args.id)),
     }),
     posts: t.field({
       shield: isAuthenticated,
@@ -89,7 +89,7 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (root, args) =>
+      resolve: (_root, args) =>
         [...Posts.values()].slice(args.skip ?? 0, args.take ?? DEFAULT_PAGE_SIZE),
     }),
     user: t.field({
@@ -99,7 +99,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Users.get(String(args.id)),
+      resolve: (_root, args) => Users.get(String(args.id)),
     }),
   }),
 });

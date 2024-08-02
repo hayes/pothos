@@ -9,16 +9,16 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@apollo/gateway": "2.8.2",
-    "@apollo/server": "^4.10.4",
-    "@apollo/subgraph": "2.8.2",
+    "@apollo/gateway": "2.8.4",
+    "@apollo/server": "^4.10.5",
+    "@apollo/subgraph": "2.8.4",
     "@faker-js/faker": "^8.4.1",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/plugin-federation": "workspace:*",
-    "@prisma/client": "^5.16.2",
+    "@prisma/client": "^5.17.0",
     "graphql": "^16.8.1",
-    "prisma": "^5.16.2"
+    "prisma": "^5.17.0"
   },
   "publishConfig": {
     "access": "public"

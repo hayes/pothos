@@ -3,7 +3,7 @@ import { PothosSchemaError } from '../errors';
 import { BaseTypeRef } from '../refs/base';
 import { InputListRef } from '../refs/input-list';
 import { ListRef } from '../refs/list';
-import {
+import type {
   FieldNullability,
   FieldRequiredness,
   InputType,

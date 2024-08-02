@@ -1,12 +1,12 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldBuilder,
-  InterfaceParam,
-  MaybePromise,
+  type InterfaceParam,
+  type MaybePromise,
   ObjectRef,
   RootFieldBuilder,
-  SchemaTypes,
+  type SchemaTypes,
 } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import type {
   ExternalEntityOptions,
   Selection,
@@ -70,7 +70,7 @@ export class ExternalEntityRef<
         ...(this.key ? keyDirective(this.key) : []),
         { name: 'extends', args: {} },
       ]) as [],
-      fields: (t) => ({
+      fields: () => ({
         ...externalFields?.(
           new RootFieldBuilder(this.builder, 'ExternalEntity', 'Object') as never,
         ),

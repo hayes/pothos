@@ -3,7 +3,7 @@ import {
   MutationFieldBuilder,
   ObjectFieldBuilder,
   QueryFieldBuilder,
-  SchemaTypes,
+  type SchemaTypes,
   SubscriptionFieldBuilder,
 } from '@pothos/core';
 
@@ -52,7 +52,6 @@ function addScopes(
 ) {
   const originalCreateField = builder.createField;
 
-  // eslint-disable-next-line no-param-reassign
   builder.createField = function createField(options) {
     return originalCreateField.call(this, {
       authScopes: scopes,

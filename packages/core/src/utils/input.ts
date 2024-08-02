@@ -1,6 +1,6 @@
 import type { BuildCache } from '../build-cache';
 import { PothosSchemaError } from '../errors';
-import {
+import type {
   PothosInputFieldConfig,
   PothosInputFieldType,
   PothosTypeConfig,
@@ -121,7 +121,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 
     let result = false;
 
-    map.forEach((mapping) => {
+    for (const mapping of map.values()) {
       if (mapping.value !== null) {
         result = true;
       } else if (
@@ -131,7 +131,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
       ) {
         result = true;
       }
-    });
+    }
 
     hasMappings.set(map, result);
 
@@ -147,8 +147,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
 ) {
   const map = new Map<string, InputFieldMapping<Types, T>>();
 
-  Object.keys(inputs).forEach((fieldName) => {
-    const inputField = inputs[fieldName];
+  for (const [fieldName, inputField] of Object.entries(inputs)) {
     const typeConfig = resolveInputTypeConfig(inputField.type, buildCache);
     const fieldMapping = mapper(inputField);
 
@@ -162,7 +161,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
         });
       }
 
-      return;
+      continue;
     }
 
     const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(
@@ -189,7 +188,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
       value: fieldMapping,
       fields: typeFields,
     });
-  });
+  }
 
   return map;
 }

@@ -1,23 +1,16 @@
-import { GraphQLResolveInfo } from 'graphql';
-import {
-  Column,
-  inArray,
-  RelationalSchemaConfig,
-  sql,
-  TableRelationalConfig,
-  TablesRelationalConfig,
-} from 'drizzle-orm';
-import { createContextCache, SchemaTypes } from '@pothos/core';
+import { type SchemaTypes, createContextCache } from '@pothos/core';
+import { type Column, type TableRelationalConfig, inArray, sql } from 'drizzle-orm';
+import type { GraphQLResolveInfo } from 'graphql';
+import { type PothosDrizzleSchemaConfig, getSchemaConfig } from './utils/config';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
 import { selectionStateFromInfo, stateFromInfo } from './utils/map-query';
 import {
+  type SelectionMap,
+  type SelectionState,
   mergeSelection,
   selectionCompatible,
-  SelectionMap,
-  SelectionState,
   selectionToQuery,
 } from './utils/selections';
-import { getSchemaConfig, PothosDrizzleSchemaConfig } from './utils/config';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -144,7 +137,7 @@ export class ModelLoader {
     return result;
   }
 
-  async stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
+  stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
       if (selectionCompatible(entry.state, query)) {
         mergeSelection(this.config, entry.state, query);
@@ -198,10 +191,11 @@ export class ModelLoader {
 
               if (result) {
                 promise.resolve(result ?? null);
-              } else
+              } else {
                 promise.reject(
                   new Error(`Model ${this.modelName}(${this.sqlForModel(model)}) not found`),
                 );
+              }
             }
           },
           (err) => {
@@ -217,7 +211,7 @@ export class ModelLoader {
         }
       });
 
-    setTimeout(() => void nextTick.resolve(), 0);
+    setTimeout(() => nextTick.resolve(), 0);
 
     return promise.promise;
   }

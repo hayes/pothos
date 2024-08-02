@@ -1,19 +1,19 @@
+import { printSubgraphSchema } from '@apollo/subgraph';
+import { EntityType, entitiesField, serviceField } from '@apollo/subgraph/dist/types';
+import SchemaBuilder, { type MaybePromise, type SchemaTypes } from '@pothos/core';
 import {
   GraphQLList,
-  GraphQLNamedType,
+  type GraphQLNamedType,
   GraphQLNonNull,
   GraphQLObjectType,
-  GraphQLResolveInfo,
+  type GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLUnionType,
   isObjectType,
   lexicographicSortSchema,
 } from 'graphql';
-import { printSubgraphSchema } from '@apollo/subgraph';
-import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/types';
-import SchemaBuilder, { MaybePromise, SchemaTypes } from '@pothos/core';
 import { ExternalEntityRef } from './external-ref';
-import { Selection, SelectionFromShape, selectionShapeKey } from './types';
+import { type Selection, type SelectionFromShape, selectionShapeKey } from './types';
 import { entityMapping, getUsedDirectives, mergeDirectives } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;

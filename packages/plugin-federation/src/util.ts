@@ -1,13 +1,13 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { SchemaTypes } from '@pothos/core';
-import { KeyDirective, Selection } from './types';
+import type { SchemaTypes } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { KeyDirective, Selection } from './types';
 
-type DirectiveList = { name: string; args?: {} }[];
-type DirectiveOption = DirectiveList | Record<string, {}>;
+type DirectiveList = { name: string; args?: object }[];
+type DirectiveOption = DirectiveList | Record<string, object>;
 
 export function keyDirective(key: KeyDirective<object> | KeyDirective<object>[]): {
   name: string;
-  args?: {};
+  args?: object;
 }[] {
   if (Array.isArray(key)) {
     return key.map(({ selection, resolvable }) => ({
@@ -43,7 +43,7 @@ export function mergeDirectives(
 }
 
 export const entityMapping = new WeakMap<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   PothosSchemaTypes.SchemaBuilder<any>,
   Map<
     string,
@@ -55,11 +55,8 @@ export const entityMapping = new WeakMap<
   >
 >();
 
-export const usedDirectives = new Map<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  PothosSchemaTypes.SchemaBuilder<any>,
-  Set<string>
->();
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+export const usedDirectives = new Map<PothosSchemaTypes.SchemaBuilder<any>, Set<string>>();
 
 export function getUsedDirectives<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -79,5 +76,7 @@ export function addUsedDirectives<Types extends SchemaTypes>(
   }
 
   const set = usedDirectives.get(builder)!;
-  directives.forEach((directive) => set.add(directive));
+  for (const directive of directives) {
+    set.add(directive);
+  }
 }

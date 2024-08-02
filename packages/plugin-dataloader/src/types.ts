@@ -1,5 +1,4 @@
-import DataLoader from 'dataloader';
-import {
+import type {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
@@ -21,6 +20,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import type DataLoader from 'dataloader';
 
 export type DataloaderKey = bigint | number | string;
 

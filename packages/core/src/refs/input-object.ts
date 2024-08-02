@@ -1,14 +1,13 @@
-/* eslint-disable max-classes-per-file */
 import {
-  InputFieldMap,
-  InputFieldsFromShape,
-  InputRef,
+  type InputFieldMap,
+  type InputFieldsFromShape,
+  type InputRef,
+  type PothosInputObjectTypeConfig,
+  type SchemaTypes,
   inputShapeKey,
-  PothosInputObjectTypeConfig,
-  SchemaTypes,
 } from '../types';
 import { BaseTypeRef } from './base';
-import { InputFieldRef } from './input-field';
+import type { InputFieldRef } from './input-field';
 
 export class InputObjectRef<Types extends SchemaTypes, T>
   extends BaseTypeRef<Types, PothosInputObjectTypeConfig>

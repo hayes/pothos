@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   FieldNullability,
   InputFieldMap,
   InputShapeFromFields,
@@ -7,7 +6,7 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { TracingFieldOptions, TracingFieldWrapper } from './types';
+import type { TracingFieldOptions, TracingFieldWrapper } from './types';
 
 import type { PothosTracingPlugin } from '.';
 

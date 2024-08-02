@@ -1,6 +1,6 @@
-import { ArgBuilder, ObjectRef } from '../../../../src';
-import { InputFieldBuilder } from '../../../../src/fieldUtils/input';
-import builder, { TypesWithDefault } from '../builder';
+import type { ArgBuilder, ObjectRef } from '../../../../src';
+import type { InputFieldBuilder } from '../../../../src/fieldUtils/input';
+import builder, { type TypesWithDefault } from '../builder';
 
 type PothosTypes = typeof builder extends PothosSchemaTypes.SchemaBuilder<infer T> ? T : never;
 
@@ -40,13 +40,13 @@ builder.mutationType({
       args: {
         ...createCommonArgs(t.arg),
       },
-      resolve: (parent, args) => !!args.reason,
+      resolve: (_parent, args) => !!args.reason,
     }),
     mutation2: t.boolean({
       args: {
         ...createCommonArgs(t.arg),
       },
-      resolve: (parent, args) => !!args.reason,
+      resolve: (_parent, args) => !!args.reason,
     }),
   }),
 });

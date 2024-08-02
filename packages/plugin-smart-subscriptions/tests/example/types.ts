@@ -1,6 +1,6 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { PubSub } from 'graphql-subscriptions';
-import { Poll } from './data';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { PubSub } from 'graphql-subscriptions';
+import type { Poll } from './data';
 
 export interface ContextType {
   Poll: typeof Poll;

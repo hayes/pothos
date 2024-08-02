@@ -1,8 +1,7 @@
-// eslint-disable-next-line simple-import-sort/imports
-import newrelic from 'newrelic'; // newrelic must be imported first
-import { print } from 'graphql';
-import { createYoga, Plugin } from 'graphql-yoga';
 import { createServer } from 'node:http';
+import { print } from 'graphql';
+import { type Plugin, createYoga } from 'graphql-yoga';
+import newrelic from 'newrelic'; // newrelic must be imported first
 import { AttributeNames } from '../../src';
 import { schema } from './schema';
 
@@ -20,7 +19,6 @@ const yoga = createYoga({
   plugins: [tracingPlugin],
 });
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const server = createServer(yoga);
 
 server.listen(3000);

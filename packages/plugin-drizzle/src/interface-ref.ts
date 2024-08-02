@@ -1,5 +1,5 @@
-import { InterfaceRef, SchemaTypes } from '@pothos/core';
-import { DrizzleObjectRef, drizzleTableKey } from './object-ref';
+import { InterfaceRef, type SchemaTypes } from '@pothos/core';
+import { type DrizzleObjectRef, drizzleTableKey } from './object-ref';
 
 export type DrizzleRef<
   Types extends SchemaTypes,

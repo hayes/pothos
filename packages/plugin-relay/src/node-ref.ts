@@ -1,4 +1,4 @@
-import { ObjectRef, SchemaTypes } from '@pothos/core';
+import { ObjectRef, type SchemaTypes } from '@pothos/core';
 
 export const relayIDShapeKey = Symbol.for('Pothos.relayIDShapeKey');
 

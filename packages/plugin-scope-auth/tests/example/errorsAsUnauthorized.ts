@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/require-await */
 import SchemaBuilder from '@pothos/core';
-import ScopeAuthPlugin, { AuthFailure, AuthScopeFailureType } from '../../src';
+import ScopeAuthPlugin, { type AuthFailure, AuthScopeFailureType } from '../../src';
 import { db } from './db';
 import User from './user';
 
@@ -43,7 +42,7 @@ const builder = new SchemaBuilder<{
   relay: {},
   scopeAuth: {
     treatErrorsAsUnauthorized: true,
-    unauthorizedError: (parent, context, info, result) => {
+    unauthorizedError: (_parent, context, _info, result) => {
       if (context.throwFirst) {
         throwFirstError(result.failure, context.throwFirst);
       }
@@ -133,6 +132,7 @@ builder.queryType({
       resolve: () => true,
     }),
     inlineAsync: t.boolean({
+      // biome-ignore lint/suspicious/useAwait: <explanation>
       authScopes: async () => {
         throw new Error('inlineAsync');
       },

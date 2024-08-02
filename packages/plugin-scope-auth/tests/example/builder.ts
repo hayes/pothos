@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/require-await */
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../../prisma/generated';
 import ScopeAuthPlugin from '../../src';
 import { db } from './db';
-import User from './user';
+import type User from './user';
 
 interface Context {
   user: User | null;
@@ -58,7 +57,7 @@ const builder = new SchemaBuilder<{
         asyncPermission: async (perm) => {
           context.count?.('asyncPermission');
 
-          return !!context.user?.permissions.includes(perm);
+          return await !!context.user?.permissions.includes(perm);
         },
       };
     },

@@ -15,7 +15,7 @@ interface Types {
   };
   Scalars: {
     Date: { Input: Date | string; Output: Date | string };
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     AnyJson: { Input: any | string; Output: unknown };
   };
   Context: { userID: number };
@@ -71,7 +71,7 @@ builder.objectType(Giraffe, {
     age: t.exposeInt('age'),
     a: t.field({
       type: 'Boolean',
-      resolve: (parent, args) => false,
+      resolve: () => false,
     }),
   }),
 });
@@ -125,6 +125,7 @@ interface ExampleShape {
   id?: string;
   ids: string[];
   more: ExampleShape;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   json?: any;
 }
 
@@ -190,11 +191,11 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id(),
       },
-      resolve: (parent, args) => Number.parseInt(args.example2.more.more.more.example.id, 10),
+      resolve: (_parent, args) => Number.parseInt(args.example2.more.more.more.example.id, 10),
     }),
     // Using a union type
     related: t.field({
-      resolve: (parent) => ({
+      resolve: () => ({
         body: 'stuff',
         title: 'hi',
       }),
@@ -222,7 +223,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(n, 10)),
+      resolve: (_parent, args) => (args.ids || []).map((n) => Number.parseInt(n, 10)),
     }),
     sparseList: t.idList({
       args: {
@@ -237,7 +238,7 @@ builder.objectType('User', {
         list: false,
         items: true,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     notSparseList: t.idList({
       args: {
@@ -252,7 +253,7 @@ builder.objectType('User', {
         list: true,
         items: false,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     defaultArgs: t.idList({
       args: {
@@ -261,7 +262,7 @@ builder.objectType('User', {
           defaultValue: ['abc'],
         }),
       },
-      resolve: (parent, args) => [123, ...args.ids],
+      resolve: (_parent, args) => [123, ...args.ids],
     }),
     fact: t.exposeString('funFact', { nullable: true }),
   }),
@@ -313,7 +314,7 @@ builder.objectType('Sheep', {
       args: {
         id: t.arg.id(),
       },
-      resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
+      resolve: (_p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
     thing: t.field({
       type: Stuff,
@@ -411,6 +412,7 @@ builder.queryField('nestedLists', (t) =>
     },
     resolve: (_, args) => {
       const date: Date | string | null | undefined = args.nestedListInput?.date;
+      // biome-ignore lint/complexity/noVoid: <explanation>
       void date;
 
       return args.input;

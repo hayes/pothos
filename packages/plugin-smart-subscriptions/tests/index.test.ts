@@ -1,7 +1,7 @@
 import {
+  type ExecutionResult,
+  type GraphQLResolveInfo,
   execute,
-  ExecutionResult,
-  GraphQLResolveInfo,
   lexicographicSortSchema,
   printSchema,
   subscribe,
@@ -347,7 +347,6 @@ describe('smart subscriptions', () => {
       },
     });
 
-    // eslint-disable-next-line require-atomic-updates
     log = [];
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`

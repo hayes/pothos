@@ -1,30 +1,29 @@
-/* eslint-disable prefer-destructuring */
 import './global-types';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosInputFieldConfig,
+  type PothosOutputFieldConfig,
+  PothosSchemaError,
+  type PothosTypeConfig,
+  type SchemaTypes,
+} from '@pothos/core';
 import {
-  getNamedType,
   GraphQLEnumType,
-  GraphQLFieldConfigArgumentMap,
-  GraphQLFieldConfigMap,
-  GraphQLInputFieldConfigMap,
+  type GraphQLFieldConfigArgumentMap,
+  type GraphQLFieldConfigMap,
+  type GraphQLInputFieldConfigMap,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
-  GraphQLNamedType,
+  type GraphQLNamedType,
   GraphQLObjectType,
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLUnionType,
+  getNamedType,
   isInterfaceType,
   isNonNullType,
   isObjectType,
 } from 'graphql';
-import SchemaBuilder, {
-  BasePlugin,
-  PothosInputFieldConfig,
-  PothosOutputFieldConfig,
-  PothosSchemaError,
-  PothosTypeConfig,
-  SchemaTypes,
-} from '@pothos/core';
 import { replaceType } from './util';
 
 const pluginName = 'subGraph';
@@ -46,7 +45,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     const subGraphs = Array.isArray(subGraph) ? subGraph : [subGraph];
 
     const config = schema.toConfig();
-    const newTypes = this.filterTypes(config.types, subGraphs);
+    const newTypes = PothosSubGraphPlugin.filterTypes(config.types, subGraphs);
     const returnedInterfaces = new Set<string>();
 
     for (const type of newTypes.values()) {
@@ -95,9 +94,9 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
   static filterTypes(types: readonly GraphQLNamedType[], subGraphs: string[]) {
     const newTypes = new Map<string, GraphQLNamedType>();
 
-    types.forEach((type) => {
+    for (const type of types) {
       if (type.name.startsWith('__')) {
-        return;
+        continue;
       }
 
       if (
@@ -111,7 +110,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
       }
 
       if (!intersect((type.extensions?.subGraphs as string[]) || [], subGraphs)) {
-        return;
+        continue;
       }
 
       if (type instanceof GraphQLScalarType || type instanceof GraphQLEnumType) {
@@ -126,7 +125,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
               typeConfig.interfaces
                 .filter((iface) => newTypes.has(iface.name))
                 .map((iface) => replaceType(iface, newTypes, typeConfig.name, subGraphs)),
-            fields: this.filterFields(type, newTypes, subGraphs),
+            fields: PothosSubGraphPlugin.filterFields(type, newTypes, subGraphs),
           }),
         );
       } else if (type instanceof GraphQLInterfaceType) {
@@ -139,7 +138,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
               typeConfig.interfaces.map((iface) =>
                 replaceType(iface, newTypes, typeConfig.name, subGraphs),
               ),
-            fields: this.filterFields(type, newTypes, subGraphs),
+            fields: PothosSubGraphPlugin.filterFields(type, newTypes, subGraphs),
           }),
         );
       } else if (type instanceof GraphQLUnionType) {
@@ -160,11 +159,11 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           type.name,
           new GraphQLInputObjectType({
             ...typeConfig,
-            fields: this.mapInputFields(type, newTypes, subGraphs),
+            fields: PothosSubGraphPlugin.mapInputFields(type, newTypes, subGraphs),
           }),
         );
       }
-    });
+    }
 
     return newTypes;
   }
@@ -179,9 +178,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     return () => {
       const newFields: GraphQLFieldConfigMap<unknown, unknown> = {};
 
-      Object.keys(oldFields).forEach((fieldName) => {
-        const fieldConfig = oldFields[fieldName];
-
+      for (const [fieldName, fieldConfig] of Object.entries(oldFields)) {
         const newArguments: GraphQLFieldConfigArgumentMap = {};
 
         if (
@@ -191,10 +188,10 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           ) ||
           !newTypes.has(getNamedType(fieldConfig.type).name)
         ) {
-          return;
+          continue;
         }
 
-        fieldConfig.args.forEach((argConfig) => {
+        for (const argConfig of fieldConfig.args) {
           const argSubGraphs = argConfig.extensions?.subGraphs as string[] | undefined;
 
           if (argSubGraphs && !intersect(argSubGraphs, subGraphs)) {
@@ -204,7 +201,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
               );
             }
 
-            return;
+            continue;
           }
 
           newArguments[argConfig.name] = {
@@ -220,7 +217,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
               subGraphs,
             ),
           };
-        });
+        }
 
         newFields[fieldName] = {
           description: fieldConfig.description,
@@ -237,7 +234,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           ),
           args: newArguments,
         };
-      });
+      }
 
       return newFields;
     };
@@ -253,8 +250,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     return () => {
       const newFields: GraphQLInputFieldConfigMap = {};
 
-      Object.keys(oldFields).forEach((fieldName) => {
-        const fieldConfig = oldFields[fieldName];
+      for (const [fieldName, fieldConfig] of Object.entries(oldFields)) {
         const fieldSubGraphs = fieldConfig.extensions?.subGraphs as string[] | undefined;
 
         if (fieldSubGraphs && !intersect(fieldSubGraphs, subGraphs)) {
@@ -264,7 +260,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
             );
           }
 
-          return;
+          continue;
         }
 
         newFields[fieldName] = {
@@ -280,7 +276,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
             subGraphs,
           ),
         };
-      });
+      }
 
       return newFields;
     };

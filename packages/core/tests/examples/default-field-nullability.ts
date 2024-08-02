@@ -123,7 +123,7 @@ nullableFieldBuilder.queryType({
           },
         }),
       },
-      resolve: (parent, args) => {
+      resolve: (_parent, args) => {
         expectNullable(args.nullable);
         expectNonNullable(args.nonNullable);
         expectNullable(args.nullableList);
@@ -243,7 +243,7 @@ nonNullableFieldBuilder.queryType({
           },
         }),
       },
-      resolve: (parent, args) => {
+      resolve: (_parent, args) => {
         expectNullable(args.nullable);
         expectNonNullable(args.nonNullable);
         expectNullable(args.nullableList);
@@ -259,5 +259,5 @@ nonNullableFieldBuilder.queryType({
   }),
 });
 
-function expectNullable<T>(arg: null extends T ? T : never) {}
-function expectNonNullable<T>(arg: null extends T ? never : T) {}
+function expectNullable<T>(_arg: null extends T ? T : never) {}
+function expectNonNullable<T>(_arg: null extends T ? never : T) {}

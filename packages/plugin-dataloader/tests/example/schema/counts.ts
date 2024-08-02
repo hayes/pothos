@@ -1,6 +1,6 @@
 import { createContextCache } from '@pothos/core';
 import builder from '../builder';
-import { ContextType } from '../types';
+import type { ContextType } from '../types';
 
 export const usersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const sortedUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
@@ -37,9 +37,9 @@ const Count = builder
 builder.queryFields((t) => ({
   counts: t.field({
     type: [Count],
-    resolve: async (root, args, context) => {
+    resolve: async (_root, _args, context) => {
       await new Promise((resolve) => {
-        setTimeout(() => void resolve(null), 5);
+        setTimeout(() => resolve(null), 5);
       });
 
       return [

@@ -1,4 +1,4 @@
-import { Customer } from './types';
+import type { Customer } from './types';
 
 export const customers: Customer[] = Array.from({ length: 10 })
   .fill(0)

@@ -1,16 +1,16 @@
 import './global-types';
 import './field-builder';
 import './schema-builder';
-import DataLoader from 'dataloader';
-import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   isThenable,
-  MaybePromise,
-  PothosOutputFieldConfig,
-  SchemaTypes,
+  type MaybePromise,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
   unwrapOutputFieldType,
 } from '@pothos/core';
+import type DataLoader from 'dataloader';
+import type { GraphQLFieldResolver } from 'graphql';
 
 export * from './refs';
 export * from './types';

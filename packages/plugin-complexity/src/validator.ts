@@ -1,5 +1,5 @@
-import { FragmentDefinitionNode, GraphQLError, Kind, ValidationRule } from 'graphql';
 import { PothosValidationError } from '@pothos/core';
+import { type FragmentDefinitionNode, GraphQLError, Kind, type ValidationRule } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity';
 
 export function createComplexityRule({
@@ -35,11 +35,11 @@ export function createComplexityRule({
     const schema = validationContext.getSchema();
     const fragments: Record<string, FragmentDefinitionNode> = {};
 
-    validationContext.getDocument().definitions.forEach((def) => {
+    for (const def of validationContext.getDocument().definitions) {
       if (def.kind === Kind.FRAGMENT_DEFINITION) {
         fragments[def.name.value] = def;
       }
-    });
+    }
 
     return {
       OperationDefinition: {

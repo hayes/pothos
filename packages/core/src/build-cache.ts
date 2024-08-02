@@ -1,54 +1,53 @@
-/* eslint-disable no-continue */
 import {
-  defaultFieldResolver,
-  defaultTypeResolver,
   GraphQLBoolean,
   GraphQLEnumType,
-  GraphQLFieldConfigArgumentMap,
-  GraphQLFieldConfigMap,
+  type GraphQLFieldConfigArgumentMap,
+  type GraphQLFieldConfigMap,
   GraphQLFloat,
   GraphQLID,
-  GraphQLInputFieldConfigMap,
+  type GraphQLInputFieldConfigMap,
   GraphQLInputObjectType,
-  GraphQLInputType,
+  type GraphQLInputType,
   GraphQLInt,
   GraphQLInterfaceType,
   GraphQLList,
-  GraphQLNamedType,
+  type GraphQLNamedType,
   GraphQLNonNull,
   GraphQLObjectType,
-  GraphQLOutputType,
+  type GraphQLOutputType,
   GraphQLScalarType,
   GraphQLString,
-  GraphQLTypeResolver,
+  type GraphQLTypeResolver,
   GraphQLUnionType,
+  defaultFieldResolver,
+  defaultTypeResolver,
 } from 'graphql';
 import type { SchemaBuilder } from './builder';
 import type { ConfigStore } from './config-store';
 import { PothosError, PothosSchemaError } from './errors';
-import { BasePlugin, MergedPlugins } from './plugins';
+import { type BasePlugin, MergedPlugins } from './plugins';
 import { BuiltinScalarRef } from './refs/builtin-scalar';
 import {
-  InputType,
-  OutputType,
-  PothosEnumTypeConfig,
-  PothosEnumValueConfig,
-  PothosInputFieldConfig,
-  PothosInputFieldType,
-  PothosInputObjectTypeConfig,
-  PothosInterfaceTypeConfig,
-  PothosKindToGraphQLTypeClass,
-  PothosMutationTypeConfig,
-  PothosObjectTypeConfig,
-  PothosOutputFieldConfig,
-  PothosOutputFieldType,
-  PothosQueryTypeConfig,
-  PothosScalarTypeConfig,
-  PothosSubscriptionTypeConfig,
-  PothosTypeConfig,
-  PothosTypeKind,
-  PothosUnionTypeConfig,
-  SchemaTypes,
+  type InputType,
+  type OutputType,
+  type PothosEnumTypeConfig,
+  type PothosEnumValueConfig,
+  type PothosInputFieldConfig,
+  type PothosInputFieldType,
+  type PothosInputObjectTypeConfig,
+  type PothosInterfaceTypeConfig,
+  type PothosKindToGraphQLTypeClass,
+  type PothosMutationTypeConfig,
+  type PothosObjectTypeConfig,
+  type PothosOutputFieldConfig,
+  type PothosOutputFieldType,
+  type PothosQueryTypeConfig,
+  type PothosScalarTypeConfig,
+  type PothosSubscriptionTypeConfig,
+  type PothosTypeConfig,
+  type PothosTypeKind,
+  type PothosUnionTypeConfig,
+  type SchemaTypes,
   typeBrandKey,
 } from './types';
 import { assertNever, getTypeBrand, isThenable } from './utils';
@@ -136,10 +135,10 @@ export class BuildCache<Types extends SchemaTypes> {
 
     const fieldConfigs: Record<string, PothosInputFieldConfig<Types>> = {};
 
-    Object.keys(fields).forEach((fieldName) => {
+    for (const fieldName of Object.keys(fields)) {
       fieldConfigs[fieldName] = fields[fieldName].extensions
         ?.pothosConfig as PothosInputFieldConfig<Types>;
-    });
+    }
 
     return fieldConfigs;
   }
@@ -163,55 +162,55 @@ export class BuildCache<Types extends SchemaTypes> {
   buildAll() {
     this.configStore.prepareForBuild();
 
-    this.configStore.typeConfigs.forEach((config) => {
+    for (const config of this.configStore.typeConfigs.values()) {
       if (config.kind === 'Enum' || config.kind === 'Scalar') {
         this.buildTypeFromConfig(config);
       }
-    });
+    }
 
-    this.configStore.typeConfigs.forEach((config) => {
+    for (const config of this.configStore.typeConfigs.values()) {
       if (config.kind === 'InputObject') {
         this.buildTypeFromConfig(config);
       }
-    });
+    }
 
-    this.types.forEach((type) => {
+    for (const type of this.types.values()) {
       if (type instanceof GraphQLInputObjectType) {
         type.getFields();
       }
-    });
+    }
 
-    this.configStore.typeConfigs.forEach((config) => {
+    for (const config of this.configStore.typeConfigs.values()) {
       if (config.kind === 'Interface') {
         this.buildTypeFromConfig(config);
       }
-    });
+    }
 
-    this.configStore.typeConfigs.forEach((config) => {
+    for (const config of this.configStore.typeConfigs.values()) {
       if (config.kind === 'Object') {
         this.buildTypeFromConfig(config);
       }
-    });
+    }
 
-    this.configStore.typeConfigs.forEach((config) => {
+    for (const config of this.configStore.typeConfigs.values()) {
       if (config.kind === 'Union') {
         this.buildTypeFromConfig(config);
       }
-    });
+    }
 
-    this.configStore.typeConfigs.forEach((config) => {
+    for (const config of this.configStore.typeConfigs.values()) {
       if (config.kind === 'Query' || config.kind === 'Mutation' || config.kind === 'Subscription') {
         this.buildTypeFromConfig(config);
       }
-    });
+    }
 
-    this.types.forEach((type) => {
+    for (const type of this.types.values()) {
       if (type instanceof GraphQLObjectType || type instanceof GraphQLInterfaceType) {
         type.getFields();
       } else if (type instanceof GraphQLUnionType) {
         type.getTypes();
       }
-    });
+    }
   }
 
   buildTypeFromConfig(baseConfig: PothosTypeConfig) {
@@ -315,16 +314,16 @@ export class BuildCache<Types extends SchemaTypes> {
 
       const argMap = new Map<string, PothosInputFieldConfig<Types>>();
 
-      Object.keys(config.args).forEach((argName) => {
+      for (const argName of Object.keys(config.args)) {
         argMap.set(argName, config.args[argName]);
-      });
+      }
 
       const args = this.buildInputFields(argMap);
       const argConfigs: Record<string, PothosInputFieldConfig<Types>> = {};
 
-      Object.keys(config.args).forEach((argName) => {
+      for (const argName of Object.keys(config.args)) {
         argConfigs[argName] = this.inputFieldConfigs.get(config.args[argName])!;
-      });
+      }
 
       config.args = argConfigs;
 
@@ -382,7 +381,7 @@ export class BuildCache<Types extends SchemaTypes> {
   private getInterfaceFields(type: GraphQLInterfaceType): GraphQLFieldConfigMap<unknown, object> {
     const interfaceFields = type
       .getInterfaces()
-      .reduce((all, iface) => ({ ...this.getFields(iface), ...all }), {});
+      .reduce((all, iface) => Object.assign(all, this.getFields(iface)), {});
 
     const configs = this.configStore.getFields(type.name, 'Interface');
 
@@ -397,7 +396,7 @@ export class BuildCache<Types extends SchemaTypes> {
   private getObjectFields(type: GraphQLObjectType): GraphQLFieldConfigMap<unknown, object> {
     const interfaceFields = type
       .getInterfaces()
-      .reduce((all, iface) => ({ ...this.getFields(iface), ...all }), {});
+      .reduce((all, iface) => Object.assign(all, this.getFields(iface)), {});
 
     const objectFields = this.buildFields(this.configStore.getFields(type.name, 'Object'));
 

@@ -1,4 +1,4 @@
-import { SchemaTypes } from '@pothos/core';
+import type { SchemaTypes } from '@pothos/core';
 
 export type DirectiveLocation =
   | 'ARGUMENT_DEFINITION'
@@ -13,7 +13,7 @@ export type DirectiveLocation =
   | 'SCHEMA'
   | 'UNION';
 
-export type DirectiveList = { name: string; args?: {} }[];
+export type DirectiveList = { name: string; args?: object }[];
 
 export type DirectivesFor<Types extends SchemaTypes, Location extends DirectiveLocation> = {
   [K in keyof Types['Directives']]: Location extends Types['Directives'][K]['locations']

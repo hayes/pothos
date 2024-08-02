@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import SimpleObjectsPlugin from '../../../src';
-import { ContextType } from './types';
+import type { ContextType } from './types';
 
 interface Types {
   Context: ContextType;

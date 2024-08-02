@@ -1,16 +1,14 @@
-import { GraphQLSchema, isObjectType } from 'graphql';
-import { applyMiddleware } from 'graphql-middleware';
-import { IRules, shield } from 'graphql-shield';
-import { ShieldRule } from 'graphql-shield/typings/types';
 import SchemaBuilder, {
   BasePlugin,
-  FieldNullability,
-  InputFieldMap,
-  SchemaTypes,
-  TypeParam,
+  type FieldNullability,
+  type InputFieldMap,
+  type SchemaTypes,
+  type TypeParam,
 } from '@pothos/core';
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
+import { type GraphQLSchema, isObjectType } from 'graphql';
+import { applyMiddleware } from 'graphql-middleware';
+import { type IRules, shield } from 'graphql-shield';
+import type { ShieldRule } from 'graphql-shield/typings/types';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -66,16 +64,16 @@ export class ShieldPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 
     const rules: IRules = {};
 
-    Object.keys(types).forEach((typeName) => {
+    for (const typeName of Object.keys(types)) {
       const type = types[typeName];
       if (!isObjectType(type)) {
-        return;
+        continue;
       }
 
       const rule = (
         (type.extensions?.pothosOptions ?? {}) as PothosSchemaTypes.ObjectTypeOptions<
           SchemaTypes,
-          {}
+          object
         >
       ).shield;
 
@@ -89,7 +87,7 @@ export class ShieldPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 
       const fields = type.getFields();
 
-      Object.keys(fields).forEach((fieldName) => {
+      for (const fieldName of Object.keys(fields)) {
         const field = fields[fieldName];
 
         const { shield: fieldRule } = (field.extensions?.pothosOptions ?? {}) as {
@@ -99,8 +97,8 @@ export class ShieldPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
         if (fieldRule) {
           ruleMap[fieldName] = fieldRule;
         }
-      });
-    });
+      }
+    }
 
     return applyMiddleware(schema, shield(rules));
   }

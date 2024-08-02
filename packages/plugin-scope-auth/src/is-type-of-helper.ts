@@ -1,5 +1,5 @@
-import { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'graphql';
-import { isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
+import { type MaybePromise, type SchemaTypes, isThenable } from '@pothos/core';
+import type { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'graphql';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 

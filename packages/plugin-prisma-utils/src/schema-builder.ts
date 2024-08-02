@@ -1,18 +1,18 @@
 import SchemaBuilder, {
   BaseTypeRef,
-  EnumRef,
-  InputFieldMap,
+  type EnumRef,
+  type InputFieldMap,
   InputFieldRef,
-  InputObjectRef,
-  InputRef,
-  InputShapeFromTypeParam,
-  InputType,
-  InputTypeParam,
+  type InputObjectRef,
+  type InputRef,
+  type InputShapeFromTypeParam,
+  type InputType,
+  type InputTypeParam,
   PothosSchemaError,
-  SchemaTypes,
+  type SchemaTypes,
 } from '@pothos/core';
-import { getModel, PrismaModelTypes } from '@pothos/plugin-prisma';
-import {
+import { type PrismaModelTypes, getModel } from '@pothos/plugin-prisma';
+import type {
   FilterListOps,
   FilterOps,
   FilterShape,
@@ -62,8 +62,7 @@ schemaBuilder.prismaFilter = function prismaFilter<
     >(filterName);
 
   const opsOptions: Record<string, unknown> = Array.isArray(ops)
-    ? ((ops as string[]).reduce<Record<string, {}>>((map, op) => {
-        // eslint-disable-next-line no-param-reassign
+    ? ((ops as string[]).reduce<Record<string, object>>((map, op) => {
         map[op] = {};
         return map;
       }, {}) as {})
@@ -144,8 +143,7 @@ schemaBuilder.prismaListFilter = function prismaListFilter<
 
   const ref = this.inputRef(filterName);
   const opsOptions: Record<string, unknown> = Array.isArray(ops)
-    ? ((ops as readonly string[]).reduce<Record<string, {}>>((map, op) => {
-        // eslint-disable-next-line no-param-reassign
+    ? ((ops as readonly string[]).reduce<Record<string, object>>((map, op) => {
         map[op] = {};
         return map;
       }, {}) as {})
@@ -189,8 +187,7 @@ schemaBuilder.prismaScalarListFilter = function prismaScalarListFilter<
 
   const ref = this.inputRef(filterName);
   const opsOptions: Record<string, unknown> = Array.isArray(ops)
-    ? ((ops as readonly string[]).reduce<Record<string, {}>>((map, op) => {
-        // eslint-disable-next-line no-param-reassign
+    ? ((ops as readonly string[]).reduce<Record<string, object>>((map, op) => {
         map[op] = {};
         return map;
       }, {}) as {})
@@ -275,9 +272,7 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
 
       const fieldMap = typeof fields === 'function' ? fields() : fields;
 
-      Object.keys(fieldMap).forEach((field) => {
-        const fieldOption = fieldMap[field as keyof typeof fieldMap];
-
+      for (const [field, fieldOption] of Object.entries(fieldMap)) {
         if (typeof fieldOption === 'function') {
           const { type: fieldType, ...fieldOptions } = (
             fieldOption as () => PothosSchemaTypes.InputFieldOptions<SchemaTypes>
@@ -299,7 +294,7 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
             type: fieldOption as InputRef<unknown>,
           });
         }
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -336,10 +331,9 @@ schemaBuilder.prismaWhere = function prismaWhere<
       const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
-      Object.keys(fieldMap).forEach((field) => {
-        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+      for (const [field, fieldOption] of Object.entries(fieldMap)) {
         if (!fieldOption) {
-          return;
+          continue;
         }
 
         if (field === 'AND' || field === 'OR' || field === 'NOT') {
@@ -354,7 +348,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
                   ...(typeof fieldOption === 'object' ? fieldOption : {}),
                 });
 
-          return;
+          continue;
         }
 
         fieldDefs[field] =
@@ -364,7 +358,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
                 required: false,
                 type: fieldOption as InputRef<unknown>,
               });
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -395,10 +389,9 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
       const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
-      Object.keys(fieldMap).forEach((field) => {
-        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+      for (const [field, fieldOption] of Object.entries(fieldMap)) {
         if (!fieldOption) {
-          return;
+          continue;
         }
 
         fieldDefs[field] =
@@ -408,7 +401,7 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
                 required: false,
                 type: fieldOption as InputRef<unknown>,
               });
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -437,12 +430,12 @@ schemaBuilder.prismaCreate = function prismaCreate<
       const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
-      Object.keys(fieldMap).forEach((field) => {
+      for (const field of Object.keys(fieldMap)) {
         const fieldModel = model.fields.find(({ name: fieldName }) => fieldName === field)!;
 
         const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
         if (!fieldOption) {
-          return;
+          continue;
         }
 
         fieldDefs[field] =
@@ -459,7 +452,7 @@ schemaBuilder.prismaCreate = function prismaCreate<
                     ? [fieldOption as InputRef<unknown>]
                     : (fieldOption as InputRef<unknown>),
               });
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -485,12 +478,12 @@ schemaBuilder.prismaCreateMany = function prismaCreateMany(
       const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
-      Object.keys(fieldMap).forEach((field) => {
+      for (const field of Object.keys(fieldMap)) {
         const fieldModel = model.fields.find(({ name: fieldName }) => fieldName === field)!;
 
         const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
         if (!fieldOption) {
-          return;
+          continue;
         }
 
         fieldDefs[field] =
@@ -507,7 +500,7 @@ schemaBuilder.prismaCreateMany = function prismaCreateMany(
                     ? [fieldOption as InputRef<unknown>]
                     : (fieldOption as InputRef<unknown>),
               });
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -542,11 +535,11 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
       const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
-      Object.keys(fieldMap).forEach((field) => {
+      for (const field of Object.keys(fieldMap)) {
         const fieldModel = model.fields.find(({ name: fieldName }) => fieldName === field)!;
         const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
         if (!fieldOption) {
-          return;
+          continue;
         }
 
         fieldDefs[field] =
@@ -559,7 +552,7 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
                     ? [fieldOption as InputRef<unknown>]
                     : (fieldOption as InputRef<unknown>),
               });
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -602,10 +595,9 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
       const fieldDefs: InputFieldMap = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
-      Object.keys(fieldMap).forEach((field) => {
-        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+      for (const [field, fieldOption] of Object.entries(fieldMap)) {
         if (!fieldOption) {
-          return;
+          continue;
         }
 
         fieldDefs[field] =
@@ -617,7 +609,7 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
                   ? [fieldOption as InputRef<SchemaTypes>]
                   : (fieldOption as InputRef<SchemaTypes>),
               });
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -659,10 +651,9 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
       const model = getModel(type, this);
       const fieldModel = model.fields.find((field) => field.name === relation)!;
 
-      Object.keys(fieldMap).forEach((field) => {
-        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+      for (const [field, fieldOption] of Object.entries(fieldMap)) {
         if (!fieldOption) {
-          return;
+          continue;
         }
 
         if (fieldOption instanceof InputFieldRef) {
@@ -731,7 +722,7 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
               : (fieldOption as InputRef<unknown>),
           });
         }
-      });
+      }
 
       return fieldDefs as never;
     },
@@ -779,12 +770,12 @@ schemaBuilder.prismaIntAtomicUpdate = function prismaIntUpdateOperations({
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<SchemaTypes, unknown>> = {};
 
-      ops.forEach((op) => {
+      for (const op of ops) {
         fieldDefs[op] = t.field({
           required: false,
           type: 'Int',
         });
-      });
+      }
 
       return fieldDefs;
     },

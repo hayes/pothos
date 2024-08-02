@@ -1,5 +1,11 @@
 import './global-types';
-import { FieldMap, FieldRef, GenericFieldRef, InterfaceParam, SchemaTypes } from '@pothos/core';
+import type {
+  FieldMap,
+  FieldRef,
+  GenericFieldRef,
+  InterfaceParam,
+  SchemaTypes,
+} from '@pothos/core';
 
 export const selectionShapeKey = Symbol.for('Pothos.federationSelectionKey');
 

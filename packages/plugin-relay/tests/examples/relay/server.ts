@@ -1,5 +1,5 @@
-import { PubSub } from 'graphql-subscriptions';
 import { createTestServer } from '@pothos/test-utils';
+import { PubSub } from 'graphql-subscriptions';
 import { Poll } from './data';
 import schema from './schema';
 

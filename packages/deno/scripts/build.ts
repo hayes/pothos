@@ -1,6 +1,6 @@
-import * as fs from 'fs/promises';
-import { statSync, existsSync } from 'fs';
-import * as path from 'path';
+import { existsSync, statSync } from 'node:fs';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import * as ts from 'typescript';
 
 const packageDir = path.resolve(__dirname, '../../');
@@ -69,7 +69,7 @@ async function getFiles(dir: string, root = false): Promise<string[]> {
       }),
   );
 
-  return paths.flatMap((entry) => entry);
+  return paths.flat();
 }
 
 async function getPackages() {
@@ -94,12 +94,12 @@ async function loadFile(file: string): Promise<LoadedFile> {
       path: newPath,
       content: Buffer.from(`// @ts-nocheck\n${printer.printFile(result.transformed[0])}`, 'utf8'),
     };
-  } else {
-    return {
-      path: newPath,
-      content: await fs.readFile(file),
-    };
   }
+
+  return {
+    path: newPath,
+    content: await fs.readFile(file),
+  };
 }
 
 async function getAllFiles() {
@@ -109,7 +109,7 @@ async function getAllFiles() {
     projects.map((dir) => getFiles(path.join(packageDir, dir), true)),
   );
 
-  const files = results.flatMap((entry) => entry);
+  const files = results.flat();
   const modFiles = projects.map((dir) => ({
     path: path.join(targetDir, dir, 'mod.ts'),
     content: Buffer.from(modFile, 'utf8'),
@@ -118,7 +118,7 @@ async function getAllFiles() {
   return [...(await Promise.all(files.map((file) => loadFile(file)))), ...modFiles];
 }
 
-const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
+const importTransformer = (context) => {
   return (sourceFile) => {
     const visitor = (node: ts.Node): ts.Node => {
       if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
@@ -129,10 +129,11 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
 
           if (mod.startsWith('.')) {
             const modulePath = path.resolve(dirName, mod);
-            const tsPath = modulePath + '.ts';
-            const dtsPath = modulePath + '.d.ts';
+            const tsPath = `${modulePath}.ts`;
+            const dtsPath = `${modulePath}.d.ts`;
 
             const stat = existsSync(modulePath) && statSync(modulePath);
+            // biome-ignore lint/complexity/useOptionalChain: <explanation>
             if (stat && stat.isDirectory()) {
               mod = path.join(modulePath, 'index.ts');
             } else if (existsSync(tsPath)) {

@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import { Character, ContextType, Droid, Human } from './backing-models';
+import type { Character, ContextType, Droid, Human } from './backing-models';
 
 interface Types {
   Objects: { Droid: Droid; Human: Human; String: string };

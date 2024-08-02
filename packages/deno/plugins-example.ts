@@ -1,4 +1,6 @@
 import { printSchema } from 'https://cdn.skypack.dev/graphql@v15.5.0?dts';
+import SchemaBuilder from './packages/core/mod.ts';
+import DataloaderPlugin from './packages/plugin-dataloader/mod.ts';
 import DirectivesPlugin from './packages/plugin-directives/mod.ts';
 import MocksPlugin from './packages/plugin-mocks/mod.ts';
 import RelayPlugin from './packages/plugin-relay/mod.ts';
@@ -7,8 +9,6 @@ import SimpleObjectsPlugin from './packages/plugin-simple-objects/mod.ts';
 import SmartSubscriptionsPlugin from './packages/plugin-smart-subscriptions/mod.ts';
 import SubGraphPlugin from './packages/plugin-sub-graph/mod.ts';
 import ValidationPlugin from './packages/plugin-zod/mod.ts';
-import DataloaderPlugin from './packages/plugin-dataloader/mod.ts';
-import SchemaBuilder from './packages/core/mod.ts';
 
 const builder = new SchemaBuilder<{
   AuthScopes: {

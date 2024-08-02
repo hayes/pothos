@@ -13,7 +13,6 @@ logs/
 .npm/
 .vagrant/
 /.vscode/
-.eslintcache
 .yarnclean
 .husky
 

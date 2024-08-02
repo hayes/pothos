@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type {
   GraphQLIsTypeOfFn,
   GraphQLResolveInfo,
@@ -72,6 +71,7 @@ declare global {
       Fields extends InputFieldMap = InputFieldMap,
     > extends BaseTypeOptions<Types> {
       isOneOf?: boolean;
+      // biome-ignore lint/correctness/noUndeclaredVariables: <explanation>
       fields: (t: InputFieldBuilder<Types, 'InputObject'>) => Fields;
     }
 

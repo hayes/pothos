@@ -1,4 +1,8 @@
-import { PageInfoShape, resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
+import {
+  type PageInfoShape,
+  resolveArrayConnection,
+  resolveOffsetConnection,
+} from '../../../../src';
 import builder from '../builder';
 
 class IDWithColon {
@@ -80,7 +84,7 @@ builder.node(BatchLoadableNumberThing, {
 builder.queryFields((t) => ({
   numbers: t.connection({
     type: NumberThing,
-    resolve: (parent, args) =>
+    resolve: (_parent, args) =>
       resolveOffsetConnection({ args }, ({ limit, offset }) => {
         const items = [];
 
@@ -93,7 +97,7 @@ builder.queryFields((t) => ({
   }),
   oddNumbers: t.connection({
     type: NumberThing,
-    resolve: (parent, args) =>
+    resolve: (_parent, args) =>
       resolveOffsetConnection({ args }, ({ limit, offset }) => {
         const items = [];
 
@@ -110,7 +114,7 @@ builder.queryFields((t) => ({
   batchNumbers: t.connection(
     {
       type: BatchLoadableNumberThing,
-      resolve: (parent, args) => {
+      resolve: (_parent, args) => {
         const numbers: BatchLoadableNumberThing[] = [];
 
         for (let i = 0; i < 200; i += 1) {
@@ -179,7 +183,7 @@ builder.queryFields((t) => ({
   associatingReturnType: t.connection(
     {
       type: BatchLoadableNumberThing,
-      resolve: (parent, args) => {
+      resolve: (_parent, args) => {
         const numbers: BatchLoadableNumberThing[] = [];
 
         for (let i = 0; i < 200; i += 1) {
@@ -235,7 +239,7 @@ builder.queryField('sharedConnection', (t) =>
     args: {
       ...t.arg.connectionArgs(),
     },
-    resolve: (root, args) =>
+    resolve: (_root, args) =>
       resolveOffsetConnection({ args }, ({ limit, offset }) => {
         const items = [];
 
@@ -269,7 +273,7 @@ builder.queryField('sharedConnectionAndEdge', (t) =>
       },
       complexity: (args) => args.complexity ?? 1,
       type: NumberThing,
-      resolve: (root, args) =>
+      resolve: (_root, args) =>
         resolveOffsetConnection({ args }, ({ limit, offset }) => {
           const items = [];
 
@@ -287,9 +291,9 @@ builder.queryField('sharedConnectionAndEdge', (t) =>
 builder.queryField('sharedEdgeConnection', (t) =>
   t.connection(
     {
-      complexity: (args, ctx) => args.first ?? 20,
+      complexity: (args, _ctx) => args.first ?? 20,
       type: NumberThing,
-      resolve: (root, args) =>
+      resolve: (_root, args) =>
         resolveOffsetConnection({ args }, ({ limit, offset }) => {
           const items = [];
 
@@ -311,7 +315,7 @@ builder.queryField('idWithColon', (t) =>
     args: {
       id: t.arg.globalID({ required: true, for: [IDWithColonRef] }),
     },
-    resolve: (root, args) => new IDWithColon(args.id.id),
+    resolve: (_root, args) => new IDWithColon(args.id.id),
   }),
 );
 
@@ -321,7 +325,7 @@ builder.queryField('idsWithColon', (t) =>
     args: {
       ids: t.arg.globalIDList({ required: true, for: [IDWithColonRef] }),
     },
-    resolve: (root, args) => args.ids.map((id) => new IDWithColon(id.id)),
+    resolve: (_root, args) => args.ids.map((id) => new IDWithColon(id.id)),
   }),
 );
 
@@ -332,7 +336,7 @@ builder.queryField('numberThingByID', (t) =>
     args: {
       id: t.arg.globalID({ required: true, for: [NumberThingRef] }),
     },
-    resolve: (root, args) => new NumberThing(args.id.id),
+    resolve: (_root, args) => new NumberThing(args.id.id),
   }),
 );
 
@@ -343,7 +347,7 @@ builder.queryField('numberThingsByIDs', (t) =>
     args: {
       ids: t.arg.globalIDList({ required: true, for: [NumberThingRef] }),
     },
-    resolve: (root, args) => args.ids.map(({ id }) => new NumberThing(id)),
+    resolve: (_root, args) => args.ids.map(({ id }) => new NumberThing(id)),
   }),
 );
 

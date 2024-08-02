@@ -1,6 +1,6 @@
-import { GraphQLFieldResolver, GraphQLResolveInfo, print } from 'graphql';
-import { context as opentelemetryContext, Span, trace, Tracer } from '@opentelemetry/api';
+import { type Span, type Tracer, context as opentelemetryContext, trace } from '@opentelemetry/api';
 import { createSpanWithParent, runFunction } from '@pothos/plugin-tracing';
+import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';
 import { AttributeNames, SpanNames } from './enums';
 
 export * from './enums';
@@ -24,10 +24,10 @@ export function createOpenTelemetryWrapper<T = unknown>(
   options?: TracingWrapperOptions<T>,
 ) {
   return <Context extends object = object>(
-      resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
-      fieldOptions: T,
-      tracingOptions?: TracingWrapperOptions<T>,
-    ) =>
+    resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
+    fieldOptions: T,
+    tracingOptions?: TracingWrapperOptions<T>,
+  ) =>
     (parent: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => {
       const span = createSpanWithParent<Span>(context, info, (path, parentSpan) => {
         const spanContext = parentSpan

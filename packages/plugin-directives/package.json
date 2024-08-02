@@ -46,10 +46,10 @@
     "provenance": true
   },
   "peerDependencies": {
-    "graphql": ">=16.6.0"
+    "graphql": "^16.8.1"
   },
   "devDependencies": {
-    "@graphql-tools/utils": "^10.3.1",
+    "@graphql-tools/utils": "^10.3.2",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "^16.8.1",

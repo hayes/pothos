@@ -12,7 +12,7 @@ interface Types {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    Date: { Input: string; Output: String };
+    Date: { Input: string; Output: string };
   };
   Context: { userID: number };
 }
@@ -156,12 +156,12 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id(),
       },
-      resolve: (parent, args) =>
+      resolve: (_parent, args) =>
         Number.parseInt(String(args.example2.more.more.more.example.id), 10),
     }),
     // Using a union type
     related: t.field({
-      resolve: (parent) => ({
+      resolve: (_parent) => ({
         body: 'stuff',
         title: 'hi',
       }),
@@ -189,7 +189,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
+      resolve: (_parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
     }),
     sparseList: t.idList({
       args: {
@@ -204,7 +204,7 @@ builder.objectType('User', {
         list: false,
         items: true,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     notSparseList: t.idList({
       args: {
@@ -219,7 +219,7 @@ builder.objectType('User', {
         list: true,
         items: false,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     defaultArgs: t.idList({
       args: {
@@ -228,7 +228,7 @@ builder.objectType('User', {
           defaultValue: ['abc'],
         }),
       },
-      resolve: (parent, args) => [123, ...args.ids],
+      resolve: (_parent, args) => [123, ...args.ids],
     }),
     fact: t.exposeString('funFact', { nullable: true }),
   }),
@@ -274,7 +274,7 @@ builder.objectType('Sheep', {
       args: {
         id: t.arg.id(),
       },
-      resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
+      resolve: (_p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
     thing: t.field({
       type: Stuff,

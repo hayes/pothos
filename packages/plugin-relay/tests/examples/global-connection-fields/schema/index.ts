@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-useless-promise-resolve-reject */
 import './poll';
 import './numbers';
 import builder from '../builder';
@@ -69,7 +68,7 @@ builder.queryType({
           required: true,
         }),
       },
-      resolve(parent, args) {
+      resolve(_parent, args) {
         return JSON.stringify({
           normal: args.normalId,
           inputObj: {
@@ -103,7 +102,7 @@ builder.queryType({
   }),
 });
 
-builder.mutationType({ fields: (t) => ({}) });
+builder.mutationType({ fields: () => ({}) });
 
 builder.relayMutationField(
   'exampleMutation',
@@ -115,7 +114,7 @@ builder.relayMutationField(
     }),
   },
   {
-    resolve: async (root, args) => {
+    resolve: (_root, args) => {
       if (!args.input.clientMutationId) {
         throw new Error('clientMutationId is missing');
       }
@@ -146,7 +145,7 @@ builder.relayMutationField(
   },
   {
     description: 'mutation field',
-    resolve: async (root, args) => {
+    resolve: (_root, args) => {
       if (!args.customInput.clientMutationId) {
         throw new Error('clientMutationId is missing');
       }

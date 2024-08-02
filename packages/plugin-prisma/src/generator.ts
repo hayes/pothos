@@ -1,11 +1,8 @@
-/* eslint-disable unicorn/prefer-module */
-/* eslint-disable no-magic-numbers */
-/* eslint-disable no-nested-ternary */
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve as resolvePath, posix } from 'node:path';
+import { dirname, join, posix, resolve as resolvePath } from 'node:path';
+import { type DMMF, generatorHandler } from '@prisma/generator-helper';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
-import { DMMF, generatorHandler } from '@prisma/generator-helper';
-import { PothosPrismaDatamodel } from './types';
+import type { PothosPrismaDatamodel } from './types';
 
 const MIN_TS_VERSION = [4, 5, 2];
 
@@ -83,7 +80,7 @@ function trimDmmf(dmmf: DMMF.Document, documentation = false): PothosPrismaDatam
     },
   };
 
-  dmmf.datamodel.models.forEach((model) => {
+  for (const model of dmmf.datamodel.models) {
     trimmed.datamodel.models[model.name] = {
       fields: model.fields.map((field) => ({
         type: field.type,
@@ -108,7 +105,7 @@ function trimDmmf(dmmf: DMMF.Document, documentation = false): PothosPrismaDatam
       })),
       documentation: documentation ? model.documentation : undefined,
     };
-  });
+  }
 
   return trimmed;
 }

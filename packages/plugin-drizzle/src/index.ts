@@ -1,17 +1,16 @@
 import './global-types';
 import './field-builder';
 import './schema-builder';
-import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   createInputValueMapper,
   mapInputFields,
-  PartialResolveInfo,
-  PothosOutputFieldConfig,
-  SchemaTypes,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
 } from '@pothos/core';
-import { ModelLoader } from './model-loader';
-import { DrizzleGraphQLInputExtensions } from './types';
+import type { GraphQLFieldResolver } from 'graphql';
+import type { ModelLoader } from './model-loader';
+import type { DrizzleGraphQLInputExtensions } from './types';
 import {
   extractFilters,
   extractOrderBy,
@@ -44,37 +43,31 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     );
 
     const argMapper = argMappings
-      ? createInputValueMapper(
-          argMappings,
-          (input, mappings, ctx: Types['Context'], info: PartialResolveInfo) => {
-            if (!mappings.value) {
-              return input;
-            }
+      ? createInputValueMapper(argMappings, (input, mappings) => {
+          if (!mappings.value) {
+            return input;
+          }
 
-            const { table, tableConfig, inputType } = mappings.value;
+          const { table, tableConfig, inputType } = mappings.value;
 
-            switch (inputType) {
-              case 'orderBy':
-                return extractOrderBy(tableConfig, input as never);
-              case 'filters':
-                return extractFilters(tableConfig, table, input as never);
-              case 'insert':
-                return remapFromGraphQLSingleInput(input as never, tableConfig);
-              case 'update':
-                return remapFromGraphQLSingleInput(input as never, tableConfig);
+          switch (inputType) {
+            case 'orderBy':
+              return extractOrderBy(tableConfig, input as never);
+            case 'filters':
+              return extractFilters(tableConfig, table, input as never);
+            case 'insert':
+              return remapFromGraphQLSingleInput(input as never, tableConfig);
+            case 'update':
+              return remapFromGraphQLSingleInput(input as never, tableConfig);
 
-              default:
-                throw new Error(`Unknown drizzle input type: ${inputType}`);
-            }
-          },
-        )
+            default:
+              throw new Error(`Unknown drizzle input type: ${inputType}`);
+          }
+        })
       : null;
 
     const argMappers: typeof fieldConfig.argMappers = argMapper
-      ? [
-          ...(fieldConfig.argMappers ?? []),
-          (args, context, info) => argMapper(args, undefined, context, info),
-        ]
+      ? [...(fieldConfig.argMappers ?? []), (args) => argMapper(args, undefined)]
       : fieldConfig.argMappers;
 
     if (fieldConfig.kind === 'DrizzleObject' && fieldConfig.pothosOptions.select) {
@@ -121,12 +114,12 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     const parentTypes = new Set([fieldConfig.parentType]);
 
     if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
-      parentConfig.interfaces.forEach((iface) => {
+      for (const iface of parentConfig.interfaces) {
         const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
         if (interfaceConfig.extensions?.pothosDrizzleModel) {
           parentTypes.add(interfaceConfig.name);
         }
-      });
+      }
     }
 
     const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as ReturnType<

@@ -37,9 +37,8 @@ builder.queryFields((t) => ({
   countManyUser: t.field({
     type: 'Int',
     smartSubscription: true,
-    subscribe: (subscriptions, root, args, ctx, info) =>
-      void subscriptions.register('dbUpdatedUser'),
-    resolve: (root, args, ctx, info) => ctx.db.user.count(),
+    subscribe: (subscriptions) => subscriptions.register('dbUpdatedUser'),
+    resolve: (_root, _args, ctx) => ctx.db.user.count(),
   }),
 }));
 
@@ -53,7 +52,7 @@ builder.mutationType({
         firstName: t.arg.string({ required: true }),
         lastName: t.arg.string({ required: true }),
       },
-      resolve: (include, root, args, ctx, info) =>
+      resolve: (include, _root, args, ctx) =>
         ctx.db.user.create({
           data: args,
           ...include,

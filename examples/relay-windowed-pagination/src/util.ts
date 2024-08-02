@@ -1,11 +1,10 @@
-/* eslint-disable no-continue */
-import { MaybePromise } from '@pothos/core';
+import type { MaybePromise } from '@pothos/core';
 import {
-  DefaultConnectionArguments,
+  type DefaultConnectionArguments,
   offsetToCursor,
   resolveOffsetConnection,
 } from '@pothos/plugin-relay';
-import { PageCursor, PageCursors } from './types';
+import type { PageCursor, PageCursors } from './types';
 
 const DEFAULT_MAX_AROUND = 3;
 
@@ -38,7 +37,8 @@ export async function resolveWindowedConnection<T>(
 
       if (pageOffset < -1) {
         continue;
-      } else if (pageOffset >= totalCount) {
+      }
+      if (pageOffset >= totalCount) {
         break;
       }
 

@@ -1,4 +1,4 @@
-import { Droid } from '../backing-models';
+import type { Droid } from '../backing-models';
 import builder from '../builder';
 import { CharacterRef } from './character';
 

@@ -45,7 +45,9 @@ builder.mutationField('withAuth', (t) =>
 builder.subscriptionField('withAuth', (t) =>
   t.withAuth({ loggedIn: true }).boolean({
     nullable: true,
-    // eslint-disable-next-line require-yield, @typescript-eslint/require-await
+
+    // biome-ignore lint/suspicious/useAwait: <explanation>
+    // biome-ignore lint/correctness/useYield: <explanation>
     subscribe: async function* subscribe() {
       return {};
     },
@@ -82,7 +84,7 @@ builder.queryField('withAuthPrismaUser', (t) =>
   t.withAuth({ loggedIn: true }).prismaField({
     type: 'User',
     nullable: true,
-    resolve: (query, root, args, ctx) =>
+    resolve: (query, _root, _args, ctx) =>
       db.user.findUniqueOrThrow({
         ...query,
         where: { id: Number.parseInt(ctx.user.id, 10) },
@@ -98,7 +100,7 @@ builder.queryField('withAuthFunction', (t) =>
     .prismaField({
       type: 'User',
       nullable: true,
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, _args, ctx) =>
         db.user.findUniqueOrThrow({
           ...query,
           where: { id: Number.parseInt(ctx.user.id, 10) },
@@ -112,7 +114,7 @@ builder.queryField('withAuthBoolean', (t) =>
     .prismaField({
       type: 'User',
       nullable: true,
-      resolve: (query, root, args, ctx) =>
+      resolve: (query, _root, _args, ctx) =>
         'isLoggedIn' in ctx
           ? db.user.findUniqueOrThrow({
               ...query,
@@ -125,13 +127,13 @@ builder.queryField('withAuthBoolean', (t) =>
 builder.queryField('withAll', (t) =>
   t.withAuth({ $all: { loggedIn: true, admin: true } }).boolean({
     nullable: true,
-    resolve: (root, args, ctx) => ctx.isAdmin && ctx.isLoggedIn,
+    resolve: (_root, _args, ctx) => ctx.isAdmin && ctx.isLoggedIn,
   }),
 );
 
 builder.queryField('withAny', (t) =>
   t.withAuth({ $any: { loggedIn: true, admin: true } }).boolean({
-    resolve: (root, args, ctx) =>
+    resolve: (_root, _args, ctx) =>
       ('isAdmin' in ctx && ctx.isAdmin) || ('isLoggedIn' in ctx && ctx.isLoggedIn),
   }),
 );

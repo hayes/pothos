@@ -9,7 +9,7 @@ import type {
   InputTypeParam,
   NormalizeArgs,
 } from '../types';
-import { InputType, SchemaTypes } from '../types';
+import type { InputType, SchemaTypes } from '../types';
 import { inputTypeFromParam } from '../utils';
 
 export class InputFieldBuilder<
@@ -103,12 +103,13 @@ export class InputFieldBuilder<
         (Function.prototype as unknown as Record<string, unknown>)[key] === undefined,
     );
 
-    ([...Object.keys(this), ...protoKeys] as (keyof InputFieldBuilder<Types, 'Arg'>)[]).forEach(
-      (key) => {
-        (builder as unknown as Record<string, unknown>)[key] =
-          typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
-      },
-    );
+    for (const key of [...Object.keys(this), ...protoKeys] as (keyof InputFieldBuilder<
+      Types,
+      'Arg'
+    >)[]) {
+      (builder as unknown as Record<string, unknown>)[key] =
+        typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
+    }
 
     return builder as ArgBuilder<Types>;
   }

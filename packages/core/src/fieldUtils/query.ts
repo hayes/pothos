@@ -1,4 +1,4 @@
-import { SchemaTypes } from '../types';
+import type { SchemaTypes } from '../types';
 import { RootFieldBuilder } from './root';
 
 export class QueryFieldBuilder<Types extends SchemaTypes, ParentShape> extends RootFieldBuilder<

@@ -8,9 +8,5 @@
     "allowSyntheticDefaultImports": true,
     "module": "ESNext"
   },
-  "include": [
-    "prisma/*.ts",
-    "src/**/*",
-    "scripts/**/*"
-  ]
+  "include": ["prisma/*.ts", "src/**/*", "scripts/**/*"]
 }

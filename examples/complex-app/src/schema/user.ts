@@ -50,7 +50,7 @@ builder.queryField('viewer', (t) =>
   t.prismaField({
     type: User,
     nullable: true,
-    resolve: (query, root, args, ctx) => {
+    resolve: (query, _root, _args, ctx) => {
       if (!ctx.user) {
         return null;
       }

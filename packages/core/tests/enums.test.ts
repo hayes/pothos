@@ -1,15 +1,15 @@
 import { execute } from 'graphql';
 import gql from 'graphql-tag';
-import SchemaBuilder, { SchemaTypes } from '../src';
+import SchemaBuilder, { type SchemaTypes } from '../src';
 
 describe('ways to add enums', () => {
   enum ChessPieceNumeric {
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King,
+    Pawn = 0,
+    Knight = 1,
+    Bishop = 2,
+    Rook = 3,
+    Queen = 4,
+    King = 5,
   }
 
   enum ChessPieceString {
@@ -104,7 +104,7 @@ describe('ways to add enums', () => {
         }
       `,
     });
-    // eslint-disable-next-line no-underscore-dangle
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     const values = (introspection.data as any).__type.enumValues.map(
       (v: { name: string }) => v.name,
     );

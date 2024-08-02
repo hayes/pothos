@@ -1,6 +1,6 @@
 import './global-types';
 import './schema-builder';
-import SchemaBuilder, { BasePlugin, SchemaTypes } from '@pothos/core';
+import SchemaBuilder, { BasePlugin, type SchemaTypes } from '@pothos/core';
 
 export * from './types';
 

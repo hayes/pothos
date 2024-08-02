@@ -1,3 +1,4 @@
+import { envelop, useLogger, useSchema } from '@envelop/core';
 import fastify from 'fastify';
 import {
   getGraphQLParameters,
@@ -6,7 +7,6 @@ import {
   sendResult,
   shouldRenderGraphiQL,
 } from 'graphql-helix';
-import { envelop, useLogger, useSchema } from '@envelop/core';
 import { schema as rawSchema } from './schema';
 
 export const getEnveloped = envelop({
@@ -20,7 +20,6 @@ const app = fastify();
 app.route({
   method: ['GET', 'POST'],
   url: '/graphql',
-  // eslint-disable-next-line consistent-return
   handler: async (req, res) => {
     const { parse, validate, contextFactory, execute, schema } = getEnveloped({ req });
     const request = {
@@ -31,7 +30,7 @@ app.route({
     };
 
     if (shouldRenderGraphiQL(request)) {
-      void res.type('text/html');
+      res.type('text/html');
 
       return renderGraphiQL({});
     }
@@ -49,7 +48,7 @@ app.route({
       contextFactory,
     });
 
-    void sendResult(result, res.raw);
+    sendResult(result, res.raw);
     res.sent = true;
   },
 });

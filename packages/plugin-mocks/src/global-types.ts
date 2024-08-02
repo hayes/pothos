@@ -1,5 +1,5 @@
-import { SchemaTypes } from '@pothos/core';
-import { ResolverMap } from './types';
+import type { SchemaTypes } from '@pothos/core';
+import type { ResolverMap } from './types';
 
 import type { PothosMocksPlugin } from '.';
 

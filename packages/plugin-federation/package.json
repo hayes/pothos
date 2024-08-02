@@ -47,17 +47,17 @@
   },
   "peerDependencies": {
     "@apollo/subgraph": "^2.0.0",
-    "graphql": ">=16.6.0"
+    "graphql": "^16.8.1"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.8.2",
-    "@apollo/server": "^4.10.4",
-    "@apollo/subgraph": "2.8.2",
-    "@graphql-tools/utils": "^10.3.1",
+    "@apollo/gateway": "^2.8.4",
+    "@apollo/server": "^4.10.5",
+    "@apollo/subgraph": "2.8.4",
+    "@graphql-tools/utils": "^10.3.2",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "axios": "^1.7.2",
+    "axios": "^1.7.3",
     "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6"
   },

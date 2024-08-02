@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
-import { lexicographicSortSchema, printSchema } from 'graphql';
 import { transform } from '@swc/core';
+import { lexicographicSortSchema, printSchema } from 'graphql';
 import PothosConverter from '../src';
 import exampleSchema from './examples/random-stuff';
 import starwarsSchema from './examples/starwars/schema';
@@ -15,13 +15,12 @@ async function execTS(script: string) {
     const chunks: Buffer[] = [];
     const child = spawn('node', {
       stdio: ['pipe', 'pipe', 'inherit'],
-      // eslint-disable-next-line unicorn/prefer-module
       cwd: __dirname,
     });
 
-    child.on('error', (err) => void reject(err));
+    child.on('error', (err) => reject(err));
     child.stdout.on('data', (chunk) => chunks.push(chunk));
-    child.stdout.on('end', () => void resolve(Buffer.concat(chunks).toString()));
+    child.stdout.on('end', () => resolve(Buffer.concat(chunks).toString()));
 
     child.stdin.write(compiled.code);
     child.stdin.end();

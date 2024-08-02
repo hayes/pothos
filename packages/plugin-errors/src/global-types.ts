@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   FieldNullability,
   InputFieldMap,
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { ErrorFieldOptions, ErrorsPluginOptions } from './types';
+import type { ErrorFieldOptions, ErrorsPluginOptions } from './types';
 
 import type { PothosErrorsPlugin } from '.';
 

@@ -1,14 +1,13 @@
 import { initContextCache } from '@pothos/core';
-import { LoadableRef } from '../../src';
+import type { LoadableRef } from '../../src';
 import { User } from './schema/objects';
-import { ContextType } from './types';
+import type { ContextType } from './types';
 
 let nextID = 0;
 
 export const createContext = (): ContextType => {
   const callCounts = new Map<string, number>();
   const context: ContextType = {
-    // eslint-disable-next-line no-plusplus
     id: nextID++,
 
     ...initContextCache(),

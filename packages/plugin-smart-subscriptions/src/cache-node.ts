@@ -1,4 +1,4 @@
-import { MaybePromise, PothosValidationError, SchemaTypes } from '@pothos/core';
+import { type MaybePromise, PothosValidationError, type SchemaTypes } from '@pothos/core';
 import type SubscriptionCache from './cache';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
@@ -33,7 +33,9 @@ export default class CacheNode<Types extends SchemaTypes> {
       this.fieldManager.reRegister();
     }
 
-    this.typeManagers.forEach((manager) => void manager.reRegister());
+    for (const manager of this.typeManagers.values()) {
+      manager.reRegister();
+    }
   }
 
   managerForField() {

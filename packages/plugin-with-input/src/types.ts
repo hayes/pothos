@@ -1,14 +1,14 @@
 import {
   ArgumentRef,
-  FieldKind,
-  FieldNullability,
-  FieldOptionsFromKind,
-  InputFieldMap,
-  InputFieldRef,
-  InputRef,
-  InputShapeFromFields,
-  SchemaTypes,
-  TypeParam,
+  type FieldKind,
+  type FieldNullability,
+  type FieldOptionsFromKind,
+  type InputFieldMap,
+  type InputFieldRef,
+  type InputRef,
+  type InputShapeFromFields,
+  type SchemaTypes,
+  type TypeParam,
 } from '@pothos/core';
 
 export interface WithInputBuilderOptions<Types extends SchemaTypes> {

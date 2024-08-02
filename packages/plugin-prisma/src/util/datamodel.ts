@@ -1,7 +1,7 @@
-import { ObjectRef, PothosSchemaError, SchemaTypes } from '@pothos/core';
-import { PrismaInterfaceRef, PrismaRef } from '../interface-ref';
+import { type ObjectRef, PothosSchemaError, type SchemaTypes } from '@pothos/core';
+import { PrismaInterfaceRef, type PrismaRef } from '../interface-ref';
 import { PrismaObjectRef } from '../object-ref';
-import { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types';
+import type { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types';
 import { getDMMF } from './get-client';
 
 export const refMap = new WeakMap<object, Map<string, PrismaRef<never, PrismaModelTypes>>>();

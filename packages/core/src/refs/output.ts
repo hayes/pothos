@@ -1,4 +1,4 @@
-import { outputShapeKey, parentShapeKey, SchemaTypes } from '../types';
+import { type SchemaTypes, outputShapeKey, parentShapeKey } from '../types';
 import { BaseTypeRef } from './base';
 
 export class OutputTypeRef<Types extends SchemaTypes, T, P = T> extends BaseTypeRef<Types> {

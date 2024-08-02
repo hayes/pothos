@@ -49,7 +49,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (query, root, args) =>
+      resolve: (query, _root, args) =>
         db.user.findUnique({
           ...query,
           where: { id: Number.parseInt(args.id, 10) },
@@ -59,7 +59,7 @@ builder.queryType({
       type: 'User',
       nullable: true,
       cursor: 'id',
-      resolve: (query, root, args) =>
+      resolve: (query, _root, _args) =>
         db.user.findMany({
           ...query,
         }),

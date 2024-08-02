@@ -8,10 +8,7 @@
     "experimentalDecorators": false,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "lib": [
-      "esnext",
-      "dom"
-    ],
+    "lib": ["esnext", "dom"],
     "module": "Preserve",
     "moduleResolution": "Bundler",
     "noEmitOnError": false,
@@ -25,11 +22,7 @@
     "strict": true,
     "target": "es2019",
     "composite": true,
-    "typeRoots": [
-      "node_modules"
-    ],
-    "types": [
-      "vitest/globals"
-    ]
+    "typeRoots": ["node_modules"],
+    "types": ["vitest/globals"]
   }
 }

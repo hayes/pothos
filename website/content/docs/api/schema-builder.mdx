@@ -17,13 +17,13 @@ graphql.js Schema.
 ```typescript
 type SchemaTypes {
   // Shape of the context arg in your resolvers
-  Context?: {};
+  Context?: object;
   // A map of Object type names to their backing models.
-  Objects?: {};
+  Objects?: object;
   // A map of Input type names to their backing models.
-  Inputs?: {};
+  Inputs?: object;
   // A map of Interface type names to their backing models.
-  Interfaces?: {};
+  Interfaces?: object;
   // Map of scalar names to Input and Output shapes.  Can be used to overwrite default scalar types,
   // or to add type information for custom scalars
   Scalars?: {

@@ -8,8 +8,6 @@
     "outDir": "dts",
     "rootDir": "src"
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src/**/*"],
   "extends": "../../tsconfig.options.json"
 }

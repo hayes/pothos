@@ -1,13 +1,12 @@
-/* eslint-disable unicorn/prefer-top-level-await */
 import { createServer } from 'node:http';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
 import * as express from 'express';
 import { useServer } from 'graphql-ws/lib/use/ws';
 import { WebSocketServer } from 'ws';
-import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
-import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { createContext, defaultContext } from './context';
 import { schema as schemaPothos } from './schema';
 
@@ -35,7 +34,7 @@ const server = new ApolloServer({
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
     {
-      // eslint-disable-next-line @typescript-eslint/require-await
+      // biome-ignore lint/suspicious/useAwait: <explanation>
       async serverWillStart() {
         return {
           async drainServer() {

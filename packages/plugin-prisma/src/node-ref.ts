@@ -1,4 +1,4 @@
-import { SchemaTypes } from '@pothos/core';
+import type { SchemaTypes } from '@pothos/core';
 import { PrismaObjectRef } from './object-ref';
 import type { PrismaModelTypes } from './types';
 

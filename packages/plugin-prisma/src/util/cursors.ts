@@ -1,13 +1,12 @@
-/* eslint-disable no-nested-ternary */
 import {
+  type MaybePromise,
+  PothosValidationError,
+  type SchemaTypes,
   decodeBase64,
   encodeBase64,
-  MaybePromise,
-  PothosValidationError,
-  SchemaTypes,
 } from '@pothos/core';
 import { getModel } from './datamodel';
-import { DMMFField } from './get-client';
+import type { DMMFField } from './get-client';
 import { extendWithUsage } from './usage';
 
 const DEFAULT_MAX_SIZE = 100;
@@ -303,7 +302,7 @@ export function wrapConnectionResult<T extends {}>(
     },
   };
 
-  const edges = nodes.map((value, index) =>
+  const edges = nodes.map((value) =>
     value == null
       ? null
       : resolveNode
@@ -331,8 +330,8 @@ export async function resolvePrismaCursorConnection<T extends {}>(
   options: ResolvePrismaCursorConnectionOptions,
   cursor: (node: T) => string,
   resolve: (query: {
-    include?: {};
-    cursor?: {};
+    include?: object;
+    cursor?: object;
     take: number;
     skip: number;
   }) => MaybePromise<readonly T[]>,

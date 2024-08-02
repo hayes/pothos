@@ -1,5 +1,9 @@
 import './global-types';
-import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '../../../src';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+} from '../../../src';
 
 const pluginName = 'test';
 

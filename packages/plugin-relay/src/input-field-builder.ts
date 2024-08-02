@@ -1,5 +1,10 @@
-import { FieldRequiredness, InputFieldBuilder, ObjectRef, SchemaTypes } from '@pothos/core';
-import { GlobalIDInputFieldOptions, GlobalIDListInputFieldOptions } from './types';
+import {
+  type FieldRequiredness,
+  InputFieldBuilder,
+  type ObjectRef,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { GlobalIDInputFieldOptions, GlobalIDListInputFieldOptions } from './types';
 
 type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
 

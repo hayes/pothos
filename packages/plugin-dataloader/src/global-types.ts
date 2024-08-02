@@ -1,4 +1,4 @@
-import {
+import type {
   FieldKind,
   FieldNullability,
   FieldRef,
@@ -11,13 +11,13 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
-import { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface';
-import { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object';
-import { LoadableUnionRef } from './refs/union';
-import {
-  DataloaderObjectTypeOptions,
+import type { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
+import type { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface';
+import type { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object';
+import type { LoadableUnionRef } from './refs/union';
+import type {
   DataLoaderOptions,
+  DataloaderObjectTypeOptions,
   LoadableFieldOptions,
   LoadableNodeId,
   LoadableNodeOptions,

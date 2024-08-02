@@ -27,7 +27,7 @@ export class User {
   static create(firstName: string, lastName: string, role: 'Admin' | 'User') {
     const user = new User(firstName, lastName, role);
 
-    this.map.set(user.id, user);
+    User.map.set(user.id, user);
 
     return user;
   }

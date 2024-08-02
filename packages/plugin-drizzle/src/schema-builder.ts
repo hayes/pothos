@@ -1,23 +1,23 @@
 import SchemaBuilder, {
   brandWithType,
   completeValue,
-  InterfaceRef,
-  ObjectRef,
-  OutputType,
+  type InterfaceRef,
+  type ObjectRef,
+  type OutputType,
   PothosError,
-  SchemaTypes,
-  FieldRef,
-  InputObjectRef,
+  type SchemaTypes,
+  type FieldRef,
+  type InputObjectRef,
 } from '@pothos/core';
+import type { GraphQLInputObjectType, GraphQLResolveInfo } from 'graphql';
 import { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
-import { getRefFromModel } from './utils/refs';
-import { DrizzleObjectRef } from './object-ref';
-import { DrizzleGraphQLInputExtensions, DrizzleNodeOptions } from './types';
-import { getColumnParser, getColumnSerializer } from './utils/cursors';
-import { DrizzleNodeRef } from './node-ref';
-import { GraphQLInputObjectType, GraphQLResolveInfo } from 'graphql';
-import { ModelLoader } from './model-loader';
 import { DrizzleInterfaceRef } from './interface-ref';
+import { ModelLoader } from './model-loader';
+import { DrizzleNodeRef } from './node-ref';
+import { DrizzleObjectRef } from './object-ref';
+import type { DrizzleGraphQLInputExtensions, DrizzleNodeOptions } from './types';
+import { getColumnParser, getColumnSerializer } from './utils/cursors';
+import { getRefFromModel } from './utils/refs';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -139,12 +139,12 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
             globalID: (options: Record<string, unknown>) => FieldRef<SchemaTypes, unknown>;
           }
         ).globalID({
-          ...(this.options as { relayOptions?: { idFieldOptions?: {} } }).relayOptions
+          ...(this.options as { relayOptions?: { idFieldOptions?: object } }).relayOptions
             ?.idFieldOptions,
           ...idOptions,
           nullable: false,
           args: {},
-          resolve: (parent: never, args: object, context: object, info: GraphQLResolveInfo) =>
+          resolve: (parent: never) =>
             completeValue(resolve(parent), (id) => ({
               type: nodeConfig.name,
               id,
@@ -198,7 +198,7 @@ schemaBuilderProto.drizzleGraphQLOrderBy = function drizzleGraphQLOrderBy(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   table: string,
   type: GraphQLInputObjectType,
-  options?: { extensions?: {} },
+  options?: { extensions?: object },
 ) {
   return (
     this as typeof this & {
@@ -224,7 +224,7 @@ schemaBuilderProto.drizzleGraphQLFilters = function drizzleGraphQLFilters(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   table: string,
   type: GraphQLInputObjectType,
-  options?: { extensions?: {} },
+  options?: { extensions?: object },
 ) {
   return (
     this as typeof this & {
@@ -250,7 +250,7 @@ schemaBuilderProto.drizzleGraphQLInsert = function drizzleGraphQLInsert(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   table: string,
   type: GraphQLInputObjectType,
-  options?: { extensions?: {} },
+  options?: { extensions?: object },
 ) {
   return (
     this as typeof this & {
@@ -276,7 +276,7 @@ schemaBuilderProto.drizzleGraphQLUpdate = function drizzleGraphQLUpdate(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   table: string,
   type: GraphQLInputObjectType,
-  options?: { extensions?: {} },
+  options?: { extensions?: object },
 ) {
   return (
     this as typeof this & {

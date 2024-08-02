@@ -1,4 +1,4 @@
-import {
+import type {
   EmptyToOptional,
   FieldNullability,
   InferredFieldOptionKeys,
@@ -10,7 +10,10 @@ import {
 export type GetTypeName = (options: { parentTypeName: string; fieldName: string }) => string;
 
 export interface ErrorsPluginOptions<Types extends SchemaTypes> {
-  defaultTypes?: (new (...args: any[]) => Error)[];
+  defaultTypes?: (new (
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    ...args: any[]
+  ) => Error)[];
   directResult?: boolean;
   defaultUnionOptions?: Normalize<
     Omit<PothosSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
@@ -30,7 +33,10 @@ export type ErrorFieldOptions<
   Shape,
   Nullable extends FieldNullability<Type>,
 > = EmptyToOptional<{
-  types?: (new (...args: any[]) => Error)[];
+  types?: (new (
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    ...args: any[]
+  ) => Error)[];
   directResult?: Type extends unknown[] ? false : boolean;
   union: Normalize<
     Omit<PothosSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {

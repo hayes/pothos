@@ -1,15 +1,15 @@
 import './global-types';
 import './schema-builder';
-import { defaultFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  PothosEnumValueConfig,
-  PothosInputFieldConfig,
-  PothosOutputFieldConfig,
-  PothosTypeConfig,
-  SchemaTypes,
-  TypeParam,
+  type PothosEnumValueConfig,
+  type PothosInputFieldConfig,
+  type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  type SchemaTypes,
+  type TypeParam,
 } from '@pothos/core';
+import { defaultFieldResolver } from 'graphql';
 import { providesMap } from './external-ref';
 import { addUsedDirectives, entityMapping, keyDirective, mergeDirectives } from './util';
 

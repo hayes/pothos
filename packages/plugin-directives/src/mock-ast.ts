@@ -1,39 +1,36 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-
-/* eslint-disable no-param-reassign */
 import './global-types';
 import {
-  ArgumentNode,
-  astFromValue,
-  ConstDirectiveNode,
-  ConstValueNode,
-  DirectiveNode,
-  EnumValueDefinitionNode,
-  FieldDefinitionNode,
-  GraphQLArgument,
+  type ArgumentNode,
+  type ConstDirectiveNode,
+  type ConstValueNode,
+  type DirectiveNode,
+  type EnumValueDefinitionNode,
+  type FieldDefinitionNode,
+  type GraphQLArgument,
   GraphQLEnumType,
-  GraphQLEnumValue,
-  GraphQLField,
-  GraphQLFieldMap,
-  GraphQLInputField,
-  GraphQLInputFieldMap,
+  type GraphQLEnumValue,
+  type GraphQLField,
+  type GraphQLFieldMap,
+  type GraphQLInputField,
+  type GraphQLInputFieldMap,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
   GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
   GraphQLScalarType,
-  GraphQLSchema,
-  GraphQLType,
+  type GraphQLSchema,
+  type GraphQLType,
   GraphQLUnionType,
-  InputValueDefinitionNode,
+  type InputValueDefinitionNode,
   Kind,
-  ListTypeNode,
-  NamedTypeNode,
-  OperationTypeNode,
+  type ListTypeNode,
+  type NamedTypeNode,
+  type OperationTypeNode,
+  type TypeNode,
+  type ValueNode,
+  astFromValue,
   parseValue,
-  TypeNode,
-  ValueNode,
 } from 'graphql';
 import type { DirectiveList } from './types';
 
@@ -72,7 +69,7 @@ export default function mockAst(schema: GraphQLSchema) {
     },
   ];
 
-  Object.keys(types).forEach((typeName) => {
+  for (const typeName of Object.keys(types)) {
     const type = types[typeName];
 
     if (type instanceof GraphQLObjectType) {
@@ -125,7 +122,7 @@ export default function mockAst(schema: GraphQLSchema) {
         directives: directiveNodes(type.extensions?.directives as DirectiveList),
       };
     }
-  });
+  }
 }
 
 function typeNode(type: GraphQLType): TypeNode {
@@ -168,7 +165,7 @@ function valueNode(value: unknown): ValueNode {
 }
 
 function directiveNodes(
-  directives: DirectiveList | Record<string, {}> | undefined,
+  directives: DirectiveList | Record<string, object> | undefined,
   deprecationReason?: string | null,
 ): readonly ConstDirectiveNode[] {
   if (!directives) {
@@ -179,7 +176,7 @@ function directiveNodes(
     ? directives
     : Object.keys(directives).flatMap((name) =>
         Array.isArray(directives[name])
-          ? (directives[name] as {}[]).map((args) => ({
+          ? (directives[name] as object[]).map((args) => ({
               name,
               args,
             }))

@@ -1,4 +1,30 @@
 import {
+  type ArgumentRef,
+  type FieldKind,
+  type FieldMap,
+  type FieldNullability,
+  type FieldOptionsFromKind,
+  type InferredFieldOptionKeys,
+  type InferredFieldOptionsByKind,
+  type InputFieldMap,
+  type InputFieldsFromShape,
+  type InputShapeFromFields,
+  type InterfaceParam,
+  type InterfaceRef,
+  type InterfaceTypeOptions,
+  type ListResolveValue,
+  type MaybePromise,
+  type Normalize,
+  type ObjectRef,
+  type ObjectTypeOptions,
+  type OutputShape,
+  type OutputType,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
+  typeBrandKey,
+} from '@pothos/core';
+import type {
   BuildQueryResult,
   Column,
   DBQueryConfig,
@@ -9,40 +35,13 @@ import {
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
-import { FieldNode, GraphQLResolveInfo } from 'graphql';
-import {
-  ArgumentRef,
-  FieldKind,
-  FieldMap,
-  FieldNullability,
-  FieldOptionsFromKind,
-  InferredFieldOptionKeys,
-  InferredFieldOptionsByKind,
-  InputFieldMap,
-  InputFieldsFromShape,
-  InputShapeFromFields,
-  InterfaceParam,
-  InterfaceRef,
-  InterfaceTypeOptions,
-  ListResolveValue,
-  MaybePromise,
-  Normalize,
-  ObjectRef,
-  ObjectTypeOptions,
-  OutputShape,
-  OutputType,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  typeBrandKey,
-  TypeParam,
-} from '@pothos/core';
+import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
-import { type DrizzleRef } from './interface-ref';
-import { IndirectInclude } from './utils/map-query';
-import { SelectionMap } from './utils/selections';
+import type { DrizzleRef } from './interface-ref';
+import type { IndirectInclude } from './utils/map-query';
+import type { SelectionMap } from './utils/selections';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export interface DrizzlePluginOptions<Types extends SchemaTypes> {
+export interface DrizzlePluginOptions<_Types extends SchemaTypes> {
   client: { _: Partial<RelationalSchemaConfig<TablesRelationalConfig>>; query: {} };
   maxConnectionSize?: number;
   defaultConnectionSize?: number;
@@ -238,6 +237,7 @@ export type DrizzleObjectFieldOptions<
         : BuildQueryResult<
             Types['DrizzleRelationSchema'],
             ExtractTable<Types, ParentShape>,
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
             Record<string, unknown> & (Select extends (...args: any[]) => infer R ? R : Select)
           > &
             ParentShape,
@@ -338,6 +338,7 @@ export type RelatedFieldOptions<
 export type VariantFieldOptions<
   Types extends SchemaTypes,
   Table extends keyof Types['DrizzleRelationSchema'],
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   Variant extends DrizzleRef<any, Table> | Table,
   Args extends InputFieldMap,
   isNull,
@@ -348,6 +349,7 @@ export type VariantFieldOptions<
   FieldOptionsFromKind<
     Types,
     Shape,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     Variant extends DrizzleRef<any> ? Variant : DrizzleRef<any, Table>,
     unknown extends isNull ? false : true,
     Args,
@@ -367,6 +369,7 @@ export type VariantFieldOptions<
                 Types['DrizzleRelationSchema'],
                 ExtractTable<Types, Shape>,
                 Record<string, unknown> &
+                  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
                   (ResolveShape extends (...args: any[]) => infer R ? R : ResolveShape)
               > &
                 Shape,
@@ -465,16 +468,14 @@ export type ListRelation<T extends TableRelationalConfig> = {
 export type DrizzleConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends
-    | DrizzleRef<any, keyof Types['DrizzleRelationSchema']>
-    | keyof Types['DrizzleRelationSchema'],
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  DrizzleRef<any, keyof Types['DrizzleRelationSchema']> | keyof Types['DrizzleRelationSchema'],
   TableConfig extends TableRelationalConfig,
   Param extends OutputType<Types>,
   Nullable extends boolean,
   Args extends InputFieldMap,
   ResolveReturnShape,
   Kind extends FieldKind,
-  // eslint-disable-next-line @typescript-eslint/sort-type-constituents
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -510,15 +511,7 @@ export type DrizzleConnectionFieldOptions<
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
 
         resolve: (
-          query: <
-            T extends QueryForRelatedConnection<
-              Types,
-              Types['DrizzleRelationSchema'][Type extends DrizzleRef<any, infer K>
-                ? K
-                : Type & keyof Types['DrizzleRelationSchema']],
-              ConnectionArgs
-            >,
-          >(
+          query: <T extends QueryForRelatedConnection<Types, TableConfig, ConnectionArgs>>(
             selection?: T,
           ) => Omit<T, 'orderBy'> & { orderBy: SQL },
           parent: ParentShape,
@@ -542,7 +535,6 @@ export type RelatedConnectionOptions<
   Args extends InputFieldMap,
   NodeTable extends
     TableRelationalConfig = Types['DrizzleRelationSchema'][Table['relations'][Field]['referencedTable']['_']['name']],
-  // eslint-disable-next-line @typescript-eslint/sort-type-constituents
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -584,6 +576,7 @@ export type RelatedConnectionOptions<
           >
         >;
         query: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
         type?: DrizzleRef<any, Table['relations'][Field]['referencedTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

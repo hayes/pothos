@@ -1,33 +1,35 @@
-import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import {
-  ArgumentRef,
-  FieldKind,
-  FieldMap,
-  FieldNullability,
-  FieldOptionsFromKind,
-  InferredFieldOptionsByKind,
-  InferredFieldOptionKeys,
-  InputFieldMap,
-  InputFieldsFromShape,
-  InputShapeFromFields,
-  InterfaceParam,
-  ListResolveValue,
-  MaybePromise,
-  Normalize,
-  ObjectRef,
-  OutputShape,
-  OutputType,
-  SchemaTypes,
-  ShapeFromTypeParam,
-  ShapeWithNullability,
+  type ArgumentRef,
+  type FieldKind,
+  type FieldMap,
+  type FieldNullability,
+  type FieldOptionsFromKind,
+  type InferredFieldOptionKeys,
+  type InferredFieldOptionsByKind,
+  type InputFieldMap,
+  type InputFieldsFromShape,
+  type InputShapeFromFields,
+  type InterfaceParam,
+  type ListResolveValue,
+  type MaybePromise,
+  type Normalize,
+  type ObjectRef,
+  type OutputShape,
+  type OutputType,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type ShapeWithNullability,
+  type TypeParam,
   typeBrandKey,
-  TypeParam,
 } from '@pothos/core';
-import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
+import type { FieldNode, GraphQLResolveInfo } from 'graphql';
+import type { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
 
 export interface PrismaDelegate {
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   findUniqueOrThrow?: (...args: any[]) => Promise<unknown>;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   findUnique: (...args: any[]) => Promise<unknown>;
 }
 
@@ -84,6 +86,7 @@ export type PrismaObjectFieldOptions<
         ShapeFromSelection<
           Types,
           ExtractModel<Types, ParentShape>,
+          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
           { select: Select extends (...args: any[]) => infer S ? S : Select }
         >,
 > = PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Nullable, Args, ResolveReturnShape> &
@@ -499,10 +502,11 @@ export type RelationCountOptions<
 export type PrismaFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     | [PrismaRef<any, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
@@ -511,34 +515,26 @@ export type PrismaFieldOptions<
   ResolveShape,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
-> =
-  FieldOptionsFromKind<
-    Types,
-    ParentShape,
-    Param,
-    Nullable,
-    Args,
-    Kind,
-    ResolveShape,
-    ResolveReturnShape
-  > extends infer FieldOptions
-    ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
-        type: Type;
-        resolve: FieldOptions extends {
-          resolve?: (parent: infer Parent, ...args: any[]) => unknown;
-        }
-          ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
-          : PrismaFieldResolver<
-              Types,
-              Model,
-              ParentShape,
-              Param,
-              Args,
-              Nullable,
-              ResolveReturnShape
-            >;
+> = FieldOptionsFromKind<
+  Types,
+  ParentShape,
+  Param,
+  Nullable,
+  Args,
+  Kind,
+  ResolveShape,
+  ResolveReturnShape
+> extends infer FieldOptions
+  ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
+      type: Type;
+      resolve: FieldOptions extends {
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        resolve?: (parent: infer Parent, ...args: any[]) => unknown;
       }
-    : never;
+        ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
+        : PrismaFieldResolver<Types, Model, ParentShape, Param, Args, Nullable, ResolveReturnShape>;
+    }
+  : never;
 
 export type PrismaFieldWithInputOptions<
   Types extends SchemaTypes,
@@ -546,10 +542,11 @@ export type PrismaFieldWithInputOptions<
   Kind extends FieldKind,
   Args extends InputFieldMap,
   Fields extends InputFieldMap,
-  Type extends
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     | [PrismaRef<any, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
@@ -617,8 +614,9 @@ export type PrismaFieldResolver<
 export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     | PrismaInterfaceRef<any, PrismaModelTypes>
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes'],
   Model extends PrismaModelTypes,
@@ -627,7 +625,6 @@ export type PrismaConnectionFieldOptions<
   Args extends InputFieldMap,
   ResolveReturnShape,
   Kind extends FieldKind,
-  // eslint-disable-next-line @typescript-eslint/sort-type-constituents
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -693,7 +690,6 @@ export type RelatedConnectionOptions<
   Field extends Model['ListRelations'],
   Nullable extends boolean,
   Args extends InputFieldMap,
-  // eslint-disable-next-line @typescript-eslint/sort-type-constituents
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -758,7 +754,7 @@ export type IncludeMap = Record<string, SelectionMap | boolean>;
 export interface SelectionMap {
   select?: Record<string, SelectionMap | boolean>;
   include?: Record<string, SelectionMap | boolean>;
-  where?: {};
+  where?: object;
 }
 
 export type FieldSelection =
@@ -849,7 +845,8 @@ type InferModelShape<Model> = Simplify<
 // Infer relations for a given model
 type InferRelations<Model> = {
   [K in keyof Model]: {
-    Shape: Model[K] extends Array<any> ? InferModelShape<Model[K][0]>[] : InferModelShape<Model[K]>;
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    Shape: Model[K] extends any[] ? InferModelShape<Model[K][0]>[] : InferModelShape<Model[K]>;
     Name: InferField<InferItemOfArray<Model[K]>, 'name'>;
     Nullable: IsNullable<Model[K]>;
   };
@@ -857,7 +854,8 @@ type InferRelations<Model> = {
 
 // Create a list of keys that represent array relations
 type InferRelationList<Model> = {
-  [K in keyof Model as Model[K] extends Array<any> ? K : never]: K;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  [K in keyof Model as Model[K] extends any[] ? K : never]: K;
 };
 
 // Make a type nullable if IsNullable is true
@@ -868,7 +866,8 @@ type InferItemOfArray<T> = T extends Array<infer U> ? U : T;
 
 // Infers the composites of a given model
 type InferComposites<Model> = {
-  [K in keyof Model]: Model[K] extends Array<any>
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  [K in keyof Model]: Model[K] extends any[]
     ? Simplify<
         InferField<Model[K][0], 'scalars'> & InferComposites<InferField<Model[K][0], 'composites'>>
       >[]

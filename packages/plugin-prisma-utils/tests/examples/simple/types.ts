@@ -19,5 +19,4 @@ export interface Droid extends CharacterFields {
 
 export type Character = Droid | Human;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ContextType {}
+export type ContextType = {};

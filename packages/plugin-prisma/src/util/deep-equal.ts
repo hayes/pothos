@@ -1,4 +1,3 @@
-/* eslint-disable no-continue */
 export function deepEqual(left: unknown, right: unknown, ignore?: Set<string>) {
   if (left === right) {
     return true;

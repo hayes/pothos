@@ -1,42 +1,41 @@
-/* eslint-disable no-continue */
+import { PothosValidationError } from '@pothos/core';
 import {
-  DBQueryConfig,
+  type DBQueryConfig,
   RelationalSchemaConfig,
-  TableRelationalConfig,
+  type TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
 import {
-  FieldNode,
-  FragmentDefinitionNode,
+  type FieldNode,
+  type FragmentDefinitionNode,
+  type GraphQLField,
+  GraphQLIncludeDirective,
+  type GraphQLInterfaceType,
+  type GraphQLNamedType,
+  type GraphQLObjectType,
+  type GraphQLResolveInfo,
+  GraphQLSkipDirective,
+  type InlineFragmentNode,
+  Kind,
+  type SelectionSetNode,
   getArgumentValues,
   getDirectiveValues,
   getNamedType,
-  GraphQLField,
-  GraphQLIncludeDirective,
-  GraphQLInterfaceType,
-  GraphQLNamedType,
-  GraphQLObjectType,
-  GraphQLResolveInfo,
-  GraphQLSkipDirective,
-  InlineFragmentNode,
   isInterfaceType,
   isObjectType,
-  Kind,
-  SelectionSetNode,
 } from 'graphql';
-import { PothosValidationError } from '@pothos/core';
-import { type DrizzleFieldSelection } from '../types';
-import { LoaderMappings, setLoaderMappings } from './loader-map';
+import type { DrizzleFieldSelection } from '../types';
+import type { PothosDrizzleSchemaConfig } from './config';
+import { type LoaderMappings, setLoaderMappings } from './loader-map';
 import {
+  type SelectionMap,
+  type SelectionState,
   createState,
   mergeSelection,
   selectionCompatible,
-  SelectionMap,
-  SelectionState,
   selectionToQuery,
 } from './selections';
 import { wrapWithUsageCheck } from './usage';
-import { PothosDrizzleSchemaConfig } from './config';
 
 export interface IndirectInclude {
   getType: () => string;
@@ -348,7 +347,6 @@ function addFieldSelection(
           );
         }
         addTypeSelectionsForField(config, returnType, context, info, fieldState, selection, []);
-        // eslint-disable-next-line prefer-destructuring
         mappings = fieldState.mappings;
         return selectionToQuery(fieldState);
       },
@@ -376,7 +374,6 @@ function addFieldSelection(
 
   if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
     mergeSelection(config, state, fieldSelectionMap);
-    // eslint-disable-next-line no-param-reassign
     state.mappings[selection.alias?.value ?? selection.name.value] = {
       field: selection.name.value,
       type: type.name,

@@ -1,35 +1,35 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  ArgumentRef,
-  EmptyToOptional,
-  FieldKind,
-  FieldNullability,
-  FieldOptionsFromKind,
-  FieldRequiredness,
-  InferredFieldOptionKeys,
-  InputFieldMap,
-  InputFieldRef,
-  InputFieldsFromShape,
-  InputRef,
-  InputShapeFromFields,
+  type ArgumentRef,
+  type EmptyToOptional,
+  type FieldKind,
+  type FieldNullability,
+  type FieldOptionsFromKind,
+  type FieldRequiredness,
+  type InferredFieldOptionKeys,
+  type InputFieldMap,
+  type InputFieldRef,
+  type InputFieldsFromShape,
+  type InputRef,
+  type InputShapeFromFields,
+  type InterfaceParam,
+  type MaybePromise,
+  type Normalize,
+  type ObjectFieldsShape,
+  type ObjectParam,
+  type ObjectRef,
+  type ObjectTypeOptions,
+  type OutputRef,
+  type OutputRefShape,
+  type OutputShape,
+  type OutputType,
+  type ParentShape,
+  type Resolver,
+  type SchemaTypes,
+  type ShapeFromListTypeParam,
+  type ShapeFromTypeParam,
   inputShapeKey,
-  InterfaceParam,
-  MaybePromise,
-  Normalize,
-  ObjectFieldsShape,
-  ObjectParam,
-  ObjectRef,
-  ObjectTypeOptions,
-  OutputRef,
-  OutputRefShape,
-  OutputShape,
-  OutputType,
-  ParentShape,
-  Resolver,
-  SchemaTypes,
-  ShapeFromListTypeParam,
-  ShapeFromTypeParam,
 } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   idFieldName?: string;
@@ -388,43 +388,42 @@ export type ConnectionShapeFromResolve<
     EdgeNullability,
     NodeNullability
   >,
-> =
-  Resolved extends Promise<infer T>
-    ? NonNullable<T> extends ConnectionShapeForType<
+> = Resolved extends Promise<infer T>
+  ? NonNullable<T> extends ConnectionShapeForType<
+      Types,
+      Type,
+      Nullable,
+      EdgeNullability,
+      NodeNullability
+    >
+    ? NonNullable<T>
+    : ConnectionShapeForType<
         Types,
         Type,
         Nullable,
         EdgeNullability,
-        NodeNullability
+        NodeNullability,
+        ConnectionResult
+      > &
+        NonNullable<T>
+  : Resolved extends ConnectionShapeForType<
+        Types,
+        Type,
+        Nullable,
+        EdgeNullability,
+        NodeNullability,
+        ConnectionResult
       >
-      ? NonNullable<T>
-      : ConnectionShapeForType<
-          Types,
-          Type,
-          Nullable,
-          EdgeNullability,
-          NodeNullability,
-          ConnectionResult
-        > &
-          NonNullable<T>
-    : Resolved extends ConnectionShapeForType<
-          Types,
-          Type,
-          Nullable,
-          EdgeNullability,
-          NodeNullability,
-          ConnectionResult
-        >
-      ? NonNullable<Resolved>
-      : ConnectionShapeForType<
-          Types,
-          Type,
-          Nullable,
-          EdgeNullability,
-          NodeNullability,
-          ConnectionResult
-        > &
-          NonNullable<Resolved>;
+    ? NonNullable<Resolved>
+    : ConnectionShapeForType<
+        Types,
+        Type,
+        Nullable,
+        EdgeNullability,
+        NodeNullability,
+        ConnectionResult
+      > &
+        NonNullable<Resolved>;
 
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}
 
