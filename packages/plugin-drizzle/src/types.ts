@@ -52,11 +52,11 @@ export type DrizzlePluginOptions<Types extends SchemaTypes> = {
 } & (
   | {
       client: DrizzleClient;
-      schema?: Partial<RelationalSchemaConfig<TablesRelationalConfig>>;
+      schema?: Record<string, unknown>;
     }
   | {
       client: (ctx: Types['Context']) => DrizzleClient;
-      schema: Partial<RelationalSchemaConfig<TablesRelationalConfig>>;
+      schema: Record<string, unknown>;
     }
 );
 

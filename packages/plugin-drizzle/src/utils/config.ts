@@ -1,8 +1,10 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
-import type {
-  RelationalSchemaConfig,
-  TableRelationalConfig,
-  TablesRelationalConfig,
+import {
+  type RelationalSchemaConfig,
+  type TableRelationalConfig,
+  type TablesRelationalConfig,
+  createTableRelationsHelpers,
+  extractTablesRelationalConfig,
 } from 'drizzle-orm';
 import type { DrizzleClient } from '../types';
 
@@ -11,9 +13,21 @@ export interface PothosDrizzleSchemaConfig extends RelationalSchemaConfig<Tables
 }
 const configCache = createContextCache(
   (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>): PothosDrizzleSchemaConfig => {
-    const config = (builder.options.drizzle.schema ??
-      (builder.options.drizzle.client as DrizzleClient)
-        ._) as RelationalSchemaConfig<TablesRelationalConfig>;
+    let config: RelationalSchemaConfig<TablesRelationalConfig>;
+    if (builder.options.drizzle.schema) {
+      const tablesConfig = extractTablesRelationalConfig(
+        builder.options.drizzle.schema,
+        createTableRelationsHelpers,
+      );
+      config = {
+        fullSchema: builder.options.drizzle.schema,
+        schema: tablesConfig.tables,
+        tableNamesMap: tablesConfig.tableNamesMap,
+      };
+    } else {
+      config = (builder.options.drizzle.client as DrizzleClient)
+        ._ as RelationalSchemaConfig<TablesRelationalConfig>;
+    }
 
     const dbToSchema = Object.values(config.schema).reduce<Record<string, TableRelationalConfig>>(
       (acc, table) => {

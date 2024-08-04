@@ -3,8 +3,10 @@ import AddGraphQL from '@pothos/plugin-add-graphql';
 import ScopeAuthPlugin from '@pothos/plugin-relay';
 import RelayPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
+import { createTableRelationsHelpers, extractTablesRelationalConfig } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/libsql';
 import DrizzlePlugin from '../../src';
-import { type DrizzleSchema, db } from './db';
+import { type DrizzleSchema, client, db, schema } from './db';
 
 export interface BaseContext {
   user?: {
@@ -32,7 +34,8 @@ export interface PothosTypes {
 export const builder = new SchemaBuilder<PothosTypes>({
   plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin, AddGraphQL, WithInputPlugin],
   drizzle: {
-    client: db,
+    client: (_ctx) => drizzle(client, { schema }),
+    schema,
   },
   scopeAuth: {
     authScopes: (ctx) => ({
