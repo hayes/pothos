@@ -32,6 +32,7 @@ import type {
   TypesForRelation,
   VariantFieldOptions,
 } from './types';
+import { getSchemaConfig } from './utils/config';
 import {
   drizzleCursorConnectionQuery,
   getCursorFormatter,
@@ -195,10 +196,12 @@ export class DrizzleObjectFieldBuilder<
     connectionOptions = {},
     edgeOptions = {},
   ) {
-    const relationField =
-      this.builder.options.drizzle.client._.schema?.[this.table].relations[name as string];
-    const relatedModel =
-      this.builder.options.drizzle.client._.schema?.[relationField?.referencedTableName!]!;
+    const relationField = getSchemaConfig(this.builder).schema?.[this.table].relations[
+      name as string
+    ];
+    const relatedModel = getSchemaConfig(this.builder).schema?.[
+      relationField?.referencedTableName!
+    ]!;
 
     if (!relationField) {
       throw new PothosSchemaError(
@@ -381,8 +384,9 @@ export class DrizzleObjectFieldBuilder<
     >
   ): FieldRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>, 'Object'> {
     const [options = {} as never] = allArgs;
-    const relationField =
-      this.builder.options.drizzle.client._.schema?.[this.table].relations[name as string];
+    const relationField = getSchemaConfig(this.builder).schema?.[this.table].relations[
+      name as string
+    ];
 
     if (!relationField) {
       throw new PothosSchemaError(

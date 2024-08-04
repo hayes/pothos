@@ -41,11 +41,24 @@ import type { DrizzleRef } from './interface-ref';
 import type { IndirectInclude } from './utils/map-query';
 import type { SelectionMap } from './utils/selections';
 
-export interface DrizzlePluginOptions<_Types extends SchemaTypes> {
-  client: { _: Partial<RelationalSchemaConfig<TablesRelationalConfig>>; query: {} };
+export type DrizzleClient = {
+  _: Partial<RelationalSchemaConfig<TablesRelationalConfig>>;
+  query: {};
+};
+
+export type DrizzlePluginOptions<Types extends SchemaTypes> = {
   maxConnectionSize?: number;
   defaultConnectionSize?: number;
-}
+} & (
+  | {
+      client: DrizzleClient;
+      schema?: Partial<RelationalSchemaConfig<TablesRelationalConfig>>;
+    }
+  | {
+      client: (ctx: Types['Context']) => DrizzleClient;
+      schema: Partial<RelationalSchemaConfig<TablesRelationalConfig>>;
+    }
+);
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
 

@@ -125,10 +125,9 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
-        const drizzleModel =
-          this.builder.options.drizzle.client._.schema?.[
-            typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName
-          ]!;
+        const drizzleModel = getSchemaConfig(this.builder).schema?.[
+          typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName
+        ]!;
 
         return resolveDrizzleCursorConnection(
           drizzleModel,

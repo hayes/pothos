@@ -1,7 +1,8 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
 import { type Column, type TableRelationalConfig, inArray, sql } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { type PothosDrizzleSchemaConfig, getSchemaConfig } from './utils/config';
+import type { DrizzleClient } from './types';
+import { type PothosDrizzleSchemaConfig, getClient, getSchemaConfig } from './utils/config';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
 import { selectionStateFromInfo, stateFromInfo } from './utils/map-query';
 import {
@@ -35,6 +36,7 @@ export class ModelLoader {
   table: TableRelationalConfig;
   columns: Column[];
   selectSQL;
+  client: DrizzleClient;
 
   constructor(
     context: object,
@@ -52,6 +54,8 @@ export class ModelLoader {
       this.columns.length > 1
         ? sql`(${sql.join(this.columns, sql`, `)})`
         : this.columns[0].getSQL();
+
+    this.client = getClient(builder, context);
   }
 
   static forModel<Types extends SchemaTypes>(
@@ -166,7 +170,7 @@ export class ModelLoader {
     nextTick.promise
       .then(() => {
         const api = (
-          this.builder.options.drizzle.client.query as Record<
+          this.client.query as Record<
             string,
             { findMany: (...args: unknown[]) => Promise<Record<string, unknown>[]> }
           >
