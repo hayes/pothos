@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.2.0
+
+### Minor Changes
+
+- 566ca22: Add option to initialize drizzle client with context
+
 ## 0.1.0
 
 ### Minor Changes
