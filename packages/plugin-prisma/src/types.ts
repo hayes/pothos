@@ -435,7 +435,8 @@ export type RelatedFieldOptions<
     info: GraphQLResolveInfo,
   ) => MaybePromise<ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>>;
   description?: string | false;
-  type?: PrismaRef<Types, TypesForRelation<Types, Model, Field>>;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  type?: PrismaRef<any, TypesForRelation<Types, Model, Field>>;
   query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
   onNull?:
     | 'error'
@@ -457,7 +458,8 @@ export type RelatedFieldOptions<
 export type VariantFieldOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  Variant extends PrismaRef<Types, Model>,
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  Variant extends PrismaRef<any, Model>,
   Args extends InputFieldMap,
   isNull,
   Shape,
@@ -739,7 +741,8 @@ export type RelatedConnectionOptions<
       } & {
         description?: string | false;
         query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-        type?: PrismaRef<Types, TypesForRelation<Types, Model, Field>>;
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        type?: PrismaRef<any, TypesForRelation<Types, Model, Field>>;
         cursor: CursorFromRelation<Model, Field>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

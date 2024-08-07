@@ -53,6 +53,7 @@
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
+    "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^5.17.0",
     "graphql": "^16.8.1",
@@ -61,6 +62,7 @@
     "prettier": "^3.3.3",
     "prisma": "^5.17.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "zod": "^3.23.8"
   }
 }

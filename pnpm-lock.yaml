@@ -893,6 +893,9 @@ importers:
       '@pothos/plugin-prisma':
         specifier: workspace:*
         version: link:../plugin-prisma
+      '@pothos/plugin-with-input':
+        specifier: workspace:*
+        version: link:../plugin-with-input
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
@@ -920,6 +923,9 @@ importers:
       typescript:
         specifier: ^5.5.4
         version: 5.5.4
+      zod:
+        specifier: ^3.23.8
+        version: 3.23.8
 
   packages/plugin-relay:
     devDependencies:

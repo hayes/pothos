@@ -989,7 +989,6 @@ input PostOrderBy {
 }
 
 input PostUniqueFilter {
-  createdAt: DateTime
   id: Int
 }
 

@@ -19,7 +19,7 @@ generator pothos {
 
 model Post {
   id         Int         @id @default(autoincrement())
-  createdAt  DateTime    @unique @default(now())
+  createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   title      String
   content    String?

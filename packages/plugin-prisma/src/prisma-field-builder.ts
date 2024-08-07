@@ -536,7 +536,8 @@ export class PrismaObjectFieldBuilder<
   }
 
   variant<
-    Variant extends Model['Name'] | PrismaRef<Types, Model>,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    Variant extends Model['Name'] | PrismaRef<any, Model>,
     Args extends InputFieldMap,
     Nullable,
   >(
@@ -546,7 +547,8 @@ export class PrismaObjectFieldBuilder<
         options: VariantFieldOptions<
           Types,
           Model,
-          Variant extends PrismaRef<Types, Model> ? Variant : PrismaRef<Types, Model>,
+          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          Variant extends PrismaRef<any, Model> ? Variant : PrismaRef<Types, Model>,
           Args,
           Nullable,
           Shape

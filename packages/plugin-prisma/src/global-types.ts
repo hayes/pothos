@@ -298,10 +298,12 @@ declare global {
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
-            Model extends PrismaModelTypes = Type extends PrismaRef<Types, infer T>
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            Model extends PrismaModelTypes = Type extends PrismaRef<any, infer T>
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-            Shape = Type extends PrismaRef<Types, PrismaModelTypes, infer S> ? S : Model['Shape'],
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            Shape = Type extends PrismaRef<any, PrismaModelTypes, infer S> ? S : Model['Shape'],
             ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             EdgeInterfaces extends InterfaceParam<Types>[] = [],
           >(

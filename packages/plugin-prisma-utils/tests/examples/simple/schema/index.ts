@@ -1,4 +1,5 @@
 import type { InputRef } from '@pothos/core';
+import * as z from 'zod';
 import type { Prisma } from '../../../client';
 import builder, { prisma } from '../builder';
 
@@ -44,6 +45,7 @@ builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
     author: t.relation('author'),
+    title: t.exposeString('title'),
   }),
 });
 
@@ -122,8 +124,34 @@ builder.queryField('posts', (t) =>
 
 const CreateUserPostsInput = builder.prismaCreateRelation('User', 'posts', {
   fields: () => ({
-    create: CreatePostInput,
+    create: CreateUserPostInput,
     connect: PostWhereUnique,
+  }),
+});
+
+const CreateUserPostInput = builder.prismaCreate('Post', {
+  name: 'CreateUserPostsInput',
+  fields: () => ({
+    title: 'String',
+  }),
+});
+
+const CreateManyPostsInput = builder.prismaCreateMany('Post', {
+  fields: () => ({
+    title: 'String',
+  }),
+});
+
+const CreateManyPostsInputData = builder.inputType('EnvironmentManyVariableCreateInputData', {
+  fields: (t) => ({
+    data: t.field({ type: [CreateManyPostsInput], required: true }),
+    skipDuplicates: t.boolean(),
+  }),
+});
+
+const CreateManyPostsInputDataCreate = builder.inputType('EnvironmentManyVariableCreate', {
+  fields: (t) => ({
+    createMany: t.field({ type: CreateManyPostsInputData }),
   }),
 });
 
@@ -175,6 +203,34 @@ builder.mutationType({
         data: t.arg({ type: CreateUserInput, required: true }),
       },
       resolve: (query, _, args) => prisma.user.create({ ...query, data: args.data }),
+    }),
+    createUserWithManyPosts: t.prismaFieldWithInput({
+      type: 'User',
+      input: {
+        name: t.input.string({ required: true }),
+        email: t.input.string({ required: true }),
+        posts: t.input.field({
+          type: CreateManyPostsInputDataCreate,
+          required: true,
+        }),
+      },
+      resolve: (query, _, { input }) => {
+        console.log({ input });
+        return prisma.user.create({
+          ...query,
+          data: {
+            ...input,
+            posts: {
+              createMany: input.posts.createMany
+                ? {
+                    data: input.posts.createMany.data,
+                    skipDuplicates: input.posts.createMany.skipDuplicates ?? undefined,
+                  }
+                : undefined,
+            },
+          },
+        });
+      },
     }),
     createPosts: t.prismaField({
       type: ['Post'],

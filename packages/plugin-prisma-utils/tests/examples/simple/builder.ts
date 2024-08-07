@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
+import WithInputPlugin from '@pothos/plugin-with-input';
 import PrismaUtils from '../../../src';
 import { PrismaClient } from '../../client/index';
 import type PrismaTypes from '../../generated.js';
@@ -39,7 +40,7 @@ export interface PothosTypes {
 }
 
 export default new SchemaBuilder<PothosTypes>({
-  plugins: [PrismaPlugin, PrismaUtils],
+  plugins: [WithInputPlugin, PrismaPlugin, PrismaUtils],
   prisma: {
     client: prisma,
     exposeDescriptions: true,

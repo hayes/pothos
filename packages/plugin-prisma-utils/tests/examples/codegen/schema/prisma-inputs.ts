@@ -205,7 +205,6 @@ export const PostUniqueFilter = builder.prismaWhereUnique("Post", {
   name: "PostUniqueFilter",
   fields: () => ({
     id: "Int",
-    createdAt: "DateTime",
   }),
 });
 export const CommentOrderBy: InputObjectRef<

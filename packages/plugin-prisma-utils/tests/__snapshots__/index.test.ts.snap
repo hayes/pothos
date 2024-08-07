@@ -9,7 +9,20 @@ input CommentListFilter {
   some: CommentFilter
 }
 
+input CreateUserPostsInput {
+  title: String!
+}
+
 scalar DateTime
+
+input EnvironmentManyVariableCreate {
+  createMany: EnvironmentManyVariableCreateInputData
+}
+
+input EnvironmentManyVariableCreateInputData {
+  data: [PostCreateManyInput!]!
+  skipDuplicates: Boolean
+}
 
 input IntAtomicUpdate {
   decrement: Int
@@ -27,7 +40,14 @@ input IntFilter {
 type Mutation {
   createPosts(data: [PostCreateInput!]!): [Post!]
   createUser(data: UserCreateInput!): User
+  createUserWithManyPosts(input: MutationCreateUserWithManyPostsInput!): User
   updatePost(data: PostUpdateInput!, id: Int!): Post
+}
+
+input MutationCreateUserWithManyPostsInput {
+  email: String!
+  name: String!
+  posts: EnvironmentManyVariableCreate!
 }
 
 enum OrderBy {
@@ -38,10 +58,15 @@ enum OrderBy {
 type Post {
   author: User
   id: ID
+  title: String
 }
 
 input PostCreateInput {
   authorId: String!
+  title: String!
+}
+
+input PostCreateManyInput {
   title: String!
 }
 
@@ -110,7 +135,7 @@ input UserCreateInput {
 
 input UserCreatePostsRelationInput {
   connect: [PostWhereUnique!]
-  create: [PostCreateInput!]
+  create: [CreateUserPostsInput!]
 }
 
 input UserFilter {
