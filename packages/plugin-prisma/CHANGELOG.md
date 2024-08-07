@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.1
+
+### Patch Changes
+
+- fc44ea7: Fix a few cases where passing PrismaRefs for field types breaks model inference
+
 ## 4.2.0
 
 ### Minor Changes

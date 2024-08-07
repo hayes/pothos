@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.3.0
+
+### Minor Changes
+
+- fc44ea7: Strip path prefixes in built code
+
 ## 0.2.1
 
 ### Patch Changes
