@@ -66,9 +66,15 @@ input NestedListInput {
   list: [[Int!]]!
 }
 
+input OneOfExample @oneOf {
+  a: String
+  b: String
+}
+
 type Query {
   constructor: Boolean
   nestedLists(input: [[[String!]!]]!, nestedListInput: NestedListInput): [[[String!]!]]
+  oneOf(oneOf: OneOfExample!): String!
   sheep: Sheep
   stuff: [stuff!]
   user: User

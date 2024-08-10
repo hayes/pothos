@@ -138,3 +138,5 @@ export interface PartialResolveInfo {
   variableValues: GraphQLResolveInfo['variableValues'];
   schema: GraphQLResolveInfo['schema'];
 }
+
+export type Simplify<T> = { [KeyType in keyof T]: T[KeyType] } & {};

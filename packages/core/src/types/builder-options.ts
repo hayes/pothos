@@ -24,6 +24,7 @@ import type {
   Normalize,
   NormalizeNullableFields,
   RemoveNeverKeys,
+  Simplify,
 } from './utils';
 
 export type AddVersionedDefaultsToBuilderOptions<
@@ -210,6 +211,19 @@ export type ValidateInterfaces<
     ? Interfaces
     : 'Object shape must extend interface shape'
   : never;
+
+export type OneOfInputShapeFromFields<Fields extends InputFieldMap> =
+  keyof Fields extends infer K extends keyof Fields
+    ? K extends unknown
+      ? Simplify<
+          {
+            [Name in K]: NonNullable<InputShapeFromField<Fields[K]>>;
+          } & {
+            [Name in keyof Fields as Name extends K ? never : Name]?: never;
+          }
+        >
+      : never
+    : never;
 
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
   [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;

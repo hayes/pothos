@@ -55,6 +55,7 @@ import type {
   ObjectFieldsShape,
   ObjectParam,
   ObjectTypeOptions,
+  OneOfInputShapeFromFields,
   OutputShape,
   ParentShape,
   PluginConstructorMap,
@@ -583,10 +584,16 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       : Param extends keyof Types['Inputs']
         ? InputFieldsFromShape<Types, InputShape<Types, Param> & object, 'InputObject'>
         : InputFieldMap,
+    IsOneOf extends boolean = boolean,
   >(
     param: Param,
-    options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>,
-  ): PothosSchemaTypes.InputObjectRef<Types, InputShapeFromFields<Fields>> {
+    options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields> & {
+      isOneOf?: IsOneOf;
+    },
+  ): PothosSchemaTypes.InputObjectRef<
+    Types,
+    [IsOneOf] extends [true] ? OneOfInputShapeFromFields<Fields> : InputShapeFromFields<Fields>
+  > {
     verifyRef(param);
     const name = typeof param === 'string' ? param : (param as { name: string }).name;
 
@@ -594,7 +601,10 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       typeof param === 'string'
         ? new InputObjectRef<Types, InputShapeFromFields<Fields>>(name)
         : param
-    ) as PothosSchemaTypes.InputObjectRef<Types, InputShapeFromFields<Fields>>;
+    ) as PothosSchemaTypes.InputObjectRef<
+      Types,
+      [IsOneOf] extends [true] ? OneOfInputShapeFromFields<Fields> : InputShapeFromFields<Fields>
+    >;
 
     ref.updateConfig({
       kind: 'InputObject',

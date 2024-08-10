@@ -346,6 +346,24 @@ builder.queryType({
         shaved: true,
       }),
     }),
+    oneOf: t.string({
+      args: {
+        oneOf: t.arg({
+          required: true,
+          type: builder.inputType('OneOfExample', {
+            isOneOf: true,
+            fields: (t) => ({
+              a: t.string(),
+              b: t.string(),
+            }),
+          }),
+        }),
+      },
+      nullable: false,
+      resolve: (_, { oneOf }) => {
+        return oneOf.a ?? oneOf.b;
+      },
+    }),
   }),
 });
 
