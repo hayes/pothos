@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- 8219539: Add proper typeing for isOneOf option on builder.inputType
+
 ## 4.1.0
 
 ### Minor Changes
