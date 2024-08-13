@@ -9,6 +9,7 @@ import SchemaBuilder, {
   type FieldRef,
   type InputObjectRef,
 } from '@pothos/core';
+import type { Column } from 'drizzle-orm';
 import type { GraphQLInputObjectType, GraphQLResolveInfo } from 'graphql';
 import { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 import { DrizzleInterfaceRef } from './interface-ref';
@@ -17,7 +18,7 @@ import { DrizzleNodeRef } from './node-ref';
 import { DrizzleObjectRef } from './object-ref';
 import type { DrizzleGraphQLInputExtensions, DrizzleNodeOptions } from './types';
 import { getSchemaConfig } from './utils/config';
-import { getColumnParser, getColumnSerializer } from './utils/cursors';
+import { getIDParser, getIDSerializer } from './utils/cursors';
 import { getRefFromModel } from './utils/refs';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -87,16 +88,25 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
     name,
     variant,
     ...options
-  }: DrizzleNodeOptions<SchemaTypes, keyof SchemaTypes['DrizzleRelationSchema'], {}, {}, []>,
+  }: DrizzleNodeOptions<
+    SchemaTypes,
+    keyof SchemaTypes['DrizzleRelationSchema'],
+    {},
+    {},
+    [],
+    Column
+  >,
 ) {
   const tableConfig = getSchemaConfig(this).schema![table];
   const idColumn = typeof column === 'function' ? column(tableConfig.columns) : column;
   const idColumns = Array.isArray(idColumn) ? idColumn : [idColumn];
   const interfaceRef = this.nodeInterfaceRef?.();
-  const resolve = getColumnSerializer(idColumns);
-  const idParser = getColumnParser(idColumns);
+  const resolve = getIDSerializer(idColumns);
+  const idParser = getIDParser(idColumns);
   const typeName = variant ?? name ?? table;
-  const nodeRef = new DrizzleNodeRef(typeName, table);
+  const nodeRef = new DrizzleNodeRef(typeName, table, {
+    parseId: idParser,
+  });
   const modelLoader = ModelLoader.forModel(table, this, idColumns);
 
   if (!interfaceRef) {

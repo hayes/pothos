@@ -44,7 +44,7 @@ export const Viewer = builder.drizzleObject('users', {
   }),
 });
 
-builder.drizzleNode('users', {
+export const User = builder.drizzleNode('users', {
   name: 'User',
   id: {
     column: (user) => user.id,

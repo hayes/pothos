@@ -43,6 +43,35 @@ export function formatDrizzleCursor(record: Record<string, unknown>, fields: Col
   return getCursorFormatter(fields)(record);
 }
 
+export function formatIDChunk(value: unknown) {
+  if (value instanceof Date) {
+    return `${String(Number(value))}`;
+  }
+
+  switch (typeof value) {
+    case 'number':
+    case 'string':
+    case 'bigint':
+      return `${value}`;
+    default:
+      throw new PothosValidationError(`Unsupported ID type ${typeof value}`);
+  }
+}
+
+export function getIDSerializer(fields: Column[]) {
+  if (fields.length === 0) {
+    throw new PothosValidationError('Column serializer must have at least one field');
+  }
+
+  return (value: Record<string, unknown>) => {
+    if (fields.length > 1) {
+      return `${JSON.stringify(fields.map((col) => value[col.name]))}`;
+    }
+
+    return `${formatIDChunk(value[fields[0].name])}`;
+  };
+}
+
 export function getColumnSerializer(fields: Column[]) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column serializer must have at least one field');
@@ -113,32 +142,73 @@ export function parseSerializedDrizzleColumn(value: unknown) {
   }
 }
 
-export function parseID(id: string, dataType: string): unknown {
+export function parseSerializedIDColumn(id: string, field: Column): unknown {
   if (!id) {
     return id;
   }
 
-  switch (dataType) {
-    case 'String':
-      return id;
-    case 'Int':
-      return Number.parseInt(id, 10);
-    case 'BigInt':
-      return BigInt(id);
-    case 'Boolean':
-      return id !== 'false';
-    case 'Float':
-    case 'Decimal':
-      return Number.parseFloat(id);
-    case 'DateTime':
-      return new Date(id);
-    case 'Json':
-      return JSON.parse(id) as unknown;
-    case 'Byte':
-      return Buffer.from(id, 'base64');
-    default:
-      return id;
+  try {
+    switch (field.dataType) {
+      case 'date':
+        return new Date(id);
+      case 'string':
+        return id;
+      case 'number':
+        return Number.parseInt(id, 10);
+      case 'bigint':
+        return BigInt(id);
+      default:
+        throw new PothosValidationError(`Unsupported ID type ${field.dataType}`);
+    }
+  } catch (error: unknown) {
+    if (error instanceof PothosValidationError) {
+      throw error;
+    }
+
+    throw new PothosValidationError(`Invalid serialized ID: ${id}`);
   }
+}
+
+export function getIDParser(fields: readonly Column[]) {
+  if (fields.length === 0) {
+    throw new PothosValidationError('Column parser must have at least one field');
+  }
+
+  return (value: string) => {
+    if (fields.length === 1) {
+      return { [fields[0].name]: parseSerializedIDColumn(value, fields[0]) };
+    }
+
+    try {
+      const parsed = JSON.parse(value) as unknown[];
+
+      if (!Array.isArray(parsed)) {
+        throw new PothosValidationError(
+          `Expected compound ID to contain an array, but got ${value}`,
+        );
+      }
+
+      if (parsed.length !== fields.length) {
+        throw new PothosValidationError(
+          `Expected compound ID to contain ${fields.length} elements, but got ${parsed.length}`,
+        );
+      }
+
+      const record: Record<string, unknown> = {};
+
+      fields.forEach((field, i) => {
+        record[field.name] = parsed[i];
+      });
+
+      return record;
+    } catch (error: unknown) {
+      if (error instanceof PothosValidationError) {
+        throw error;
+      }
+
+      throw new PothosValidationError(`Invalid serialized ID: ${value}`);
+    }
+  };
 }
 
 export function getColumnParser(fields: readonly Column[]) {
@@ -156,6 +226,12 @@ export function getColumnParser(fields: readonly Column[]) {
     if (!Array.isArray(parsed)) {
       throw new PothosValidationError(
         `Expected compound cursor to contain an array, but got ${parsed}`,
+      );
+    }
+
+    if (parsed.length !== fields.length) {
+      throw new PothosValidationError(
+        `Expected compound cursor to contain ${fields.length} elements, but got ${parsed.length}`,
       );
     }
 
@@ -404,7 +480,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
 ) {
   let query: DBQueryConfig<'many', false>;
   let formatter: (node: Record<string, unknown>) => string;
-  const results = await resolve((q) => {
+  const results = await resolve((q = {}) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ...options,
       orderBy: q.orderBy

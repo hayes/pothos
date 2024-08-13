@@ -91,9 +91,9 @@ export class DrizzleObjectFieldBuilder<
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         field: Field,
-        options: RelatedConnectionOptions<Types, Shape, TableConfig, Field, Nullable, Args>,
         ...args: NormalizeArgs<
           [
+            options: RelatedConnectionOptions<Types, Shape, TableConfig, Field, Nullable, Args>,
             connectionOptions:
               | ObjectRef<
                   Types,
@@ -182,17 +182,17 @@ export class DrizzleObjectFieldBuilder<
       type?: ObjectRef<Types, unknown, unknown>;
       maxSize?: number | ((args: {}, ctx: {}) => number);
       defaultSize?: number | ((args: {}, ctx: {}) => number);
-      extensions: {};
+      extensions?: {};
       description?: string;
-      query: ((args: {}, ctx: {}) => {}) | {};
-      resolve: (
+      query?: ((args: {}, ctx: {}) => {}) | {};
+      resolve?: (
         query: {},
         parent: unknown,
         args: {},
         ctx: {},
         info: {},
       ) => MaybePromise<readonly {}[]>;
-    },
+    } = {},
     connectionOptions = {},
     edgeOptions = {},
   ) {

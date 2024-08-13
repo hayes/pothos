@@ -1,6 +1,6 @@
 import { builder } from '../builder';
 import { db } from '../db';
-import { Viewer } from './user';
+import { User, Viewer } from './user';
 
 builder.queryType({
   fields: (t) => ({
@@ -12,6 +12,19 @@ builder.queryType({
             where: (user, { eq }) => eq(user.id, ctx.user.id),
           }),
         ),
+    }),
+    user: t.drizzleField({
+      type: 'users',
+      args: {
+        id: t.arg.globalID({ required: true, for: User }),
+      },
+      resolve: (query, _root, { id }) => {
+        return db.query.users.findFirst(
+          query({
+            where: (user, { eq }) => eq(user.id, id.id.id),
+          }),
+        );
+      },
     }),
   }),
 });

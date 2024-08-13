@@ -119,6 +119,7 @@ export type DrizzleNodeOptions<
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
+  IDColumn extends Column,
 > = NameOrVariant &
   Omit<
     | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
@@ -139,9 +140,9 @@ export type DrizzleNodeOptions<
       'args' | 'nullable' | 'type' | InferredFieldOptionKeys
     > & {
       column:
-        | Column
-        | Column[]
-        | ((columns: Types['DrizzleRelationSchema'][Table]['columns']) => Column | Column[]);
+        | IDColumn
+        | IDColumn[]
+        | ((columns: Types['DrizzleRelationSchema'][Table]['columns']) => IDColumn | IDColumn[]);
     };
     name: string;
     select?: Selection;
@@ -588,7 +589,7 @@ export type RelatedConnectionOptions<
             Nullable
           >
         >;
-        query: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
+        query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
         type?: DrizzleRef<any, Table['relations'][Field]['referencedTable']['_']['name']>;
 

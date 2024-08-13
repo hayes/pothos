@@ -14,6 +14,7 @@ import type {
 } from '@pothos/core';
 import type {
   BuildQueryResult,
+  Column,
   DBQueryConfig,
   ExtractTablesWithRelations,
   SQL,
@@ -116,6 +117,7 @@ declare global {
                   Types['DrizzleRelationSchema'][Table]
                 >
               | true,
+            IDColumn extends Column,
             Shape = BuildQueryResult<
               Types['DrizzleRelationSchema'],
               Types['DrizzleRelationSchema'][Table],
@@ -123,8 +125,15 @@ declare global {
             >,
           >(
             table: Table,
-            options: DrizzleNodeOptions<Types, Table, Shape, Selection, Interfaces>,
-          ) => DrizzleNodeRef<Types, Table, Shape>
+            options: DrizzleNodeOptions<Types, Table, Shape, Selection, Interfaces, IDColumn>,
+          ) => DrizzleNodeRef<
+            Types,
+            Table,
+            Shape,
+            {
+              [K in IDColumn['_']['name']]: Extract<IDColumn, { _: { name: K } }>['_']['data'];
+            }
+          >
         : '@pothos/plugin-relay is required to use this method';
 
       drizzleObjectField: <
