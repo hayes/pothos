@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.4.0
+
+### Minor Changes
+
+- e6a3fb8: Fix query being required, and improve node IDs
+
 ## 0.3.0
 
 ### Minor Changes
