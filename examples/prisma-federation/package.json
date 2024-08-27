@@ -14,7 +14,7 @@
     "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "dependencies": {
-    "@apollo/gateway": "2.8.4",
+    "@apollo/gateway": "2.8.5",
     "@apollo/server": "^4.10.5",
     "@apollo/subgraph": "2.8.4",
     "@faker-js/faker": "^8.4.1",
