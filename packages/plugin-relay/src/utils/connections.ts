@@ -17,6 +17,7 @@ interface ResolveOffsetConnectionOptions {
   args: DefaultConnectionArguments;
   defaultSize?: number;
   maxSize?: number;
+  totalCount?: number;
 }
 
 export interface ResolveCursorConnectionOptions<T> {
@@ -60,7 +61,11 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   }
 
   let startOffset = after ? afterOffset + 1 : 0;
-  let endOffset = before ? Math.max(beforeOffset, startOffset) : Number.POSITIVE_INFINITY;
+  let endOffset = before
+    ? Math.max(beforeOffset, startOffset)
+    : options.totalCount != null
+      ? Math.max(options.totalCount, 0)
+      : Number.POSITIVE_INFINITY;
 
   if (first != null) {
     endOffset = Math.min(endOffset, startOffset + first);
@@ -92,8 +97,9 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 export async function resolveOffsetConnection<
   T,
   U extends Promise<readonly T[] | null> | readonly T[] | null,
+  C extends number | undefined = undefined,
 >(
-  options: ResolveOffsetConnectionOptions,
+  options: ResolveOffsetConnectionOptions & { totalCount?: C },
   resolve: (params: {
     offset: number;
     limit: number;
@@ -106,7 +112,7 @@ export async function resolveOffsetConnection<
       U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
       T extends NonNullable<T> ? false : { list: false; items: true },
       false
-    >
+    > & { totalCount: C }
   >
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
@@ -130,6 +136,7 @@ export async function resolveOffsetConnection<
 
   return {
     edges: trimmed as never,
+    totalCount: options.totalCount as never,
     pageInfo: {
       startCursor: offsetToCursor(offset),
       endCursor: offsetToCursor(offset + trimmed.length - 1),
@@ -163,9 +170,12 @@ export function resolveArrayConnection<T>(
     false,
     T extends NonNullable<T> ? false : { list: false; items: true },
     false
-  >
+  > & { totalCount: number }
 > {
-  const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
+  const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs({
+    totalCount: array.length,
+    ...options,
+  });
 
   const nodes = array.slice(offset, offset + limit);
 
@@ -182,6 +192,7 @@ export function resolveArrayConnection<T>(
 
   return {
     edges: trimmed as never,
+    totalCount: array.length,
     pageInfo: {
       startCursor: offsetToCursor(offset),
       endCursor: offsetToCursor(offset + trimmed.length - 1),

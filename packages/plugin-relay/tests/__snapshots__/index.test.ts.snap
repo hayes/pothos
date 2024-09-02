@@ -196,6 +196,7 @@ type QueryBatchNumbersConnection {
   connectionField: Int
   edges: [QueryBatchNumbersConnectionEdge]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type QueryBatchNumbersConnectionEdge {
@@ -574,6 +575,39 @@ exports[`relay example schema > queries > query array based connections 1`] = `
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
+    },
+    "batchNumbersLast": {
+      "connectionField": 3,
+      "edges": [
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTc=",
+          "edgeField": 197,
+          "node": {
+            "number": 197,
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
+          "edgeField": 198,
+          "node": {
+            "number": 198,
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+          "edgeField": 199,
+          "node": {
+            "number": 199,
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTc=",
+      },
+      "totalCount": 200,
     },
     "beforeAndAfter": {
       "edges": [

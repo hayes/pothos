@@ -130,6 +130,7 @@ builder.queryFields((t) => ({
           nullable: true,
           resolve: (parent) => parent.edges.length,
         }),
+        totalCount: u.exposeInt('totalCount'),
       }),
     },
     {

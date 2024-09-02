@@ -204,6 +204,23 @@ describe('relay example schema', () => {
                 number
               }
             }
+          },
+          batchNumbersLast: batchNumbers(last: 3) {
+            connectionField
+            totalCount
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              startCursor
+              endCursor
+            }
+            edges {
+              edgeField
+              cursor
+              node {
+                number
+              }
+            }
           }
           firstAfterAtEnd: batchNumbers(first: 3, after: "T2Zmc2V0Q29ubmVjdGlvbjoxOTc=") {
             pageInfo {

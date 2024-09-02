@@ -63,9 +63,9 @@ builder.queryFields((t) => ({
         });
 
         return {
-          totalCount: 500,
           other: 'abc',
           ...result,
+          totalCount: 500,
         };
       },
     },
@@ -90,9 +90,9 @@ builder.queryFields((t) => ({
         }
 
         return {
-          totalCount: 500,
           other: 'abc',
           ...result,
+          totalCount: 500,
         };
       },
     },
@@ -117,9 +117,9 @@ builder.queryFields((t) => ({
       ]);
 
       return {
-        totalCount: 500,
         other: 'abc',
         ...result,
+        totalCount: 500,
       };
     },
   }),
@@ -135,9 +135,7 @@ builder.queryFields((t) => ({
         numbers.push(new BatchLoadableNumberThing(i));
       }
 
-      const result = resolveArrayConnection({ args }, numbers);
-
-      return result && { totalCount: 500, ...result };
+      return resolveArrayConnection({ args }, numbers);
     },
   }),
   extraNode: t.node({
@@ -172,8 +170,8 @@ builder.queryField('sharedConnection', (t) =>
       });
 
       return {
-        totalCount: 500,
         ...result,
+        totalCount: 500,
       };
     },
   }),

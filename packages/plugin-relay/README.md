@@ -1,5 +1,3 @@
-# Relay Plugin
-
 The Relay plugin adds a number of builder methods and helper functions to simplify building a relay
 compatible schema.
 
@@ -294,6 +292,7 @@ records to be fetched at once. These limits can be configure using the following
   args: ConnectionArguments;
   defaultSize?: number; // defaults to 20
   maxSize?: number; // defaults to 100
+  totalCount?: number // required to support using `last` without `before`
 }
 ```
 
