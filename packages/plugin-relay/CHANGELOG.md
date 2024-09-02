@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- f3e8940: Add totalCount option to resolveOffsetConnection, which enables using `last` on offset and array connections without `before`
+
 ## 4.1.0
 
 ### Minor Changes
