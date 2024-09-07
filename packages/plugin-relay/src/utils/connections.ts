@@ -202,7 +202,7 @@ export function resolveArrayConnection<T>(
   };
 }
 
-function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
+export function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
   const { before, after, first, last } = options.args;
 
   const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
@@ -231,7 +231,7 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
 }
 
 // biome-ignore lint/suspicious/noRedeclare: <explanation>
-type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
+export type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 
 export async function resolveCursorConnection<
   U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,
