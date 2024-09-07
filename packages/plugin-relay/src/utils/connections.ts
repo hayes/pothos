@@ -202,7 +202,7 @@ export function resolveArrayConnection<T>(
   };
 }
 
-export function parseCursorCurserArgs(options: ResolveOffsetConnectionOptions) {
+export function parseCursorConnectionArgs(options: ResolveOffsetConnectionOptions) {
   const { before, after, first, last } = options.args;
 
   const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
