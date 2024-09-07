@@ -202,7 +202,7 @@ export function resolveArrayConnection<T>(
   };
 }
 
-function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
+export function parseCursorConnectionArgs(options: ResolveOffsetConnectionOptions) {
   const { before, after, first, last } = options.args;
 
   const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
@@ -242,7 +242,7 @@ export async function resolveCursorConnection<
   RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
 > {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
-    parseCurserArgs(options);
+    parseCursorConnectionArgs(options);
 
   const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;
 
