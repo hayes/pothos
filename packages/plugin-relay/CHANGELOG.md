@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.1
+
+### Patch Changes
+
+- 3085a2c: Export parseCurserConnectionArgs function
+
 ## 4.2.0
 
 ### Minor Changes
