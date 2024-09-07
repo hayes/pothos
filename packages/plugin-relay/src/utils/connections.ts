@@ -242,7 +242,7 @@ export async function resolveCursorConnection<
   RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
 > {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
-    parseCursorCurserArgs(options);
+    parseCursorConnectionArgs(options);
 
   const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;
 
