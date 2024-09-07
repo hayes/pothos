@@ -202,7 +202,7 @@ export function resolveArrayConnection<T>(
   };
 }
 
-export function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
+export function parseCursorCurserArgs(options: ResolveOffsetConnectionOptions) {
   const { before, after, first, last } = options.args;
 
   const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
@@ -231,7 +231,7 @@ export function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
 }
 
 // biome-ignore lint/suspicious/noRedeclare: <explanation>
-export type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
+type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 
 export async function resolveCursorConnection<
   U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,
@@ -242,7 +242,7 @@ export async function resolveCursorConnection<
   RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
 > {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
-    parseCurserArgs(options);
+    parseCursorCurserArgs(options);
 
   const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;
 
