@@ -41,9 +41,20 @@ type Post {
   createdAt: DateTime
   id: ID
   likes: Int
+  likesConnection(after: String, before: String, first: Int, last: Int): PostLikesConnection
   published: Boolean
   title: String
   updatedAt: DateTime
+}
+
+type PostLikesConnection {
+  edges: [PostLikesConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type PostLikesConnectionEdge {
+  cursor: String!
+  node: postLikes
 }
 
 type Query {
@@ -75,6 +86,7 @@ type User implements Node {
   lastName: String
   posts(limit: Int, offset: Int): [Post!]
   postsConnection(after: String, before: String, first: Int, last: Int): UserPostsConnection
+  unOrderedPostsConnection(after: String, before: String, first: Int, last: Int): UserUnOrderedPostsConnection
   viewer: Viewer
 }
 
@@ -84,6 +96,16 @@ type UserPostsConnection {
 }
 
 type UserPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type UserUnOrderedPostsConnection {
+  edges: [UserUnOrderedPostsConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type UserUnOrderedPostsConnectionEdge {
   cursor: String!
   node: Post
 }
@@ -112,4 +134,9 @@ type comments {
   id: ID
   post: Post
   text: String
+}
+
+type postLikes {
+  post: Post
+  user: User
 }

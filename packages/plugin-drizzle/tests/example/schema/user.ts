@@ -111,6 +111,11 @@ export const User = builder.drizzleNode('users', {
         }),
       }),
     }),
+    unOrderedPostsConnection: t.relatedConnection('posts', {
+      query: () => ({
+        where: (post, { eq }) => eq(post.published, 1),
+      }),
+    }),
     viewer: t.variant(Viewer, {
       select: {
         id: true,

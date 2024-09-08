@@ -56,11 +56,22 @@ const Post = builder.drizzleObject('posts', {
         const result = await db
           .select({ count: count() })
           .from(postLikes)
-          .where(eq(postLikes.postId, post.id));
+          .where(eq(postLikes.postId, post.id!));
 
         return result[0].count ?? 0;
       },
     }),
+    likesConnection: t.relatedConnection('likes', {}),
+  }),
+});
+
+builder.drizzleObject('postLikes', {
+  select: {
+    columns: {},
+  },
+  fields: (t) => ({
+    post: t.relation('post'),
+    user: t.relation('user'),
   }),
 });
 

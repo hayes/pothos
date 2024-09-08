@@ -12,21 +12,21 @@
   },
   "dependencies": {
     "classnames": "^2.5.1",
-    "fumadocs-core": "13.0.2",
-    "fumadocs-docgen": "^1.1.0",
-    "fumadocs-mdx": "9.0.0",
-    "fumadocs-ui": "13.0.2",
-    "next": "^14.2.5",
+    "fumadocs-core": "13.4.9",
+    "fumadocs-docgen": "^1.2.0",
+    "fumadocs-mdx": "10.0.2",
+    "fumadocs-ui": "13.4.9",
+    "next": "^14.2.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/mdx": "^2.0.13",
-    "@types/react": "^18.3.3",
+    "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.40",
-    "tailwindcss": "^3.4.7",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
     "typescript": "^5.5.4"
   }
 }

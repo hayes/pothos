@@ -36,21 +36,27 @@ export const profile = sqliteTable('profile', {
   bio: text('bio'),
 });
 
-export const posts = sqliteTable('posts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  slug: text('slug').unique(),
-  title: text('title').notNull(),
-  content: text('content').notNull(),
-  published: integer('published').notNull().default(0),
-  authorId: integer('author_id')
-    .notNull()
-    .references(() => users.id, {
-      onDelete: 'cascade',
-    }),
-  categoryId: integer('category_id').references(() => categories.id),
-  createdAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
-  updatedAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
-});
+export const posts = sqliteTable(
+  'posts',
+  {
+    id: integer('id'),
+    slug: text('slug').unique(),
+    title: text('title').notNull(),
+    content: text('content').notNull(),
+    published: integer('published').notNull().default(0),
+    authorId: integer('author_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'cascade',
+      }),
+    categoryId: integer('category_id').references(() => categories.id),
+    createdAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
+    updatedAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+  }),
+);
 
 export const postLikes = sqliteTable(
   'post_likes',

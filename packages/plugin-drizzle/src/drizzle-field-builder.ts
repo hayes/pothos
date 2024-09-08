@@ -196,20 +196,17 @@ export class DrizzleObjectFieldBuilder<
     connectionOptions = {},
     edgeOptions = {},
   ) {
-    const relationField = getSchemaConfig(this.builder).schema?.[this.table].relations[
-      name as string
-    ];
-    const relatedModel = getSchemaConfig(this.builder).schema?.[
-      relationField?.referencedTableName!
-    ]!;
+    const schemaConfig = getSchemaConfig(this.builder);
+    const relationField = schemaConfig.schema?.[this.table].relations[name as string];
+    const relatedModel = schemaConfig.dbToSchema[relationField?.referencedTableName];
 
-    if (!relationField) {
+    if (!relatedModel) {
       throw new PothosSchemaError(
         `Could not find relation ${name as string} on table ${this.table}`,
       );
     }
 
-    const ref = options.type ?? getRefFromModel(relationField.referencedTableName, this.builder);
+    const ref = options.type ?? getRefFromModel(relatedModel.tsName, this.builder);
     let typeName: string | undefined;
 
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
@@ -384,17 +381,17 @@ export class DrizzleObjectFieldBuilder<
     >
   ): FieldRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>, 'Object'> {
     const [options = {} as never] = allArgs;
-    const relationField = getSchemaConfig(this.builder).schema?.[this.table].relations[
-      name as string
-    ];
+    const schemaConfig = getSchemaConfig(this.builder);
+    const relationField = schemaConfig.schema?.[this.table].relations[name as string];
+    const relatedModel = schemaConfig.dbToSchema[relationField?.referencedTableName];
 
-    if (!relationField) {
+    if (!relatedModel) {
       throw new PothosSchemaError(
         `Could not find relation ${name as string} on table ${this.table}`,
       );
     }
 
-    const ref = options.type ?? getRefFromModel(relationField.referencedTableName, this.builder);
+    const ref = options.type ?? getRefFromModel(relatedModel.tsName, this.builder);
 
     const { query = {}, extensions, ...rest } = options;
 

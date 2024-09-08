@@ -70,7 +70,7 @@ async function seed() {
   await db.insert(comments).values(
     postRows.flatMap((post) =>
       Array.from({ length: faker.number.int({ min: 0, max: 15 }) }).map(() => ({
-        postId: post.id,
+        postId: post.id!,
         authorId: userRows[faker.number.int({ min: 0, max: userRows.length - 1 })].id,
         text: faker.lorem.paragraph(),
       })),
