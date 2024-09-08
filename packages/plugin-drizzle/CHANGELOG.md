@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.4.1
+
+### Patch Changes
+
+- a6d105b: fix aliased table relations
+
 ## 0.4.0
 
 ### Minor Changes
