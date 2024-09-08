@@ -46,21 +46,21 @@ describe('prisma utils', () => {
           "posts": [
             {
               "author": {
-                "name": "Zelma Runte",
+                "name": "Schuyler Bergnaum",
               },
-              "id": "12",
+              "id": "26",
             },
             {
               "author": {
-                "name": "Zelma Runte",
+                "name": "Schuyler Bergnaum",
               },
-              "id": "14",
+              "id": "28",
             },
             {
               "author": {
-                "name": "Zelma Runte",
+                "name": "Schuyler Bergnaum",
               },
-              "id": "13",
+              "id": "27",
             },
           ],
         },
