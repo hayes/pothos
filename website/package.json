@@ -5,7 +5,8 @@
     "dev": "next dev",
     "next-build": "next build",
     "build-ci": "next build",
-    "start": "next start"
+    "start": "next start",
+    "postinstall": "fumadocs-mdx"
   },
   "engines": {
     "pnpm": ">=9.0.0"

@@ -1,6 +1,8 @@
-import { pageTree } from '@/app/source';
+import { source } from '@/app/source';
 import type { DocsLayoutProps } from 'fumadocs-ui/layout';
 import Image from 'next/image';
+
+source.pageTree;
 
 // shared configuration
 export const baseOptions = {
@@ -25,5 +27,5 @@ export const baseOptions = {
 // docs layout configuration
 export const docsOptions: DocsLayoutProps = {
   ...baseOptions,
-  tree: pageTree,
+  tree: source.pageTree,
 };

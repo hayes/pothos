@@ -3,6 +3,7 @@
   "files": {
     "ignore": [
       ".turbo",
+      ".source",
       "examples/**/prisma/**/*",
       "packages/**/prisma/**/*",
       "packages/plugin-prisma/**/client/**/*",

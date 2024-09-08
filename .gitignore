@@ -27,6 +27,7 @@ tmp/
 .pnpm-store
 .turbo
 .env
+.source
 
 # Custom
 *.min.js

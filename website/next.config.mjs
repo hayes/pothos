@@ -1,11 +1,6 @@
-import { remarkInstall } from 'fumadocs-docgen';
-import createMDX from 'fumadocs-mdx/config';
+import { createMDX } from 'fumadocs-mdx/next';
 
-const withMDX = createMDX({
-  mdxOptions: {
-    remarkPlugins: [remarkInstall],
-  },
-});
+const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {

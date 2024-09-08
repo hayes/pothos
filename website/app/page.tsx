@@ -1,36 +1,36 @@
-import { getPage, getPages } from '@/app/source';
+import { source } from '@/app/source';
+import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { DocsBody, DocsPage } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 // biome-ignore lint/suspicious/useAwait: <explanation>
-export default async function HomePage(_props: { params: { slug?: string[] } }) {
-  const page = getPage([]);
-
-  if (page == null) {
+export default async function HomePage(props: { params: { slug?: string[] } }) {
+  const page = source.getPage(props.params.slug);
+  if (!page) {
     notFound();
   }
 
-  const MDX = page.data.exports.default;
+  const MDX = page.data.body;
 
   return (
-    <DocsPage toc={page.data.exports.toc} full={page.data.full}>
+    <DocsPage toc={page.data.toc}>
       <DocsBody>
         <h1>{page.data.title}</h1>
-        <MDX />
+        <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
   );
 }
 
 export async function generateStaticParams() {
-  return getPages().map((page) => ({
+  return source.getPages().map((page) => ({
     slug: page.slugs,
   }));
 }
 
 export function generateMetadata(): Metadata {
-  const page = getPage([]);
+  const page = source.getPage([]);
 
   if (page == null) {
     notFound();
