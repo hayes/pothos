@@ -39,8 +39,12 @@ export function formatCursorChunk(value: unknown) {
   }
 }
 
-export function formatDrizzleCursor(record: Record<string, unknown>, fields: Column[]) {
-  return getCursorFormatter(fields)(record);
+export function formatDrizzleCursor(
+  record: Record<string, unknown>,
+  fields: Column[],
+  config: PothosDrizzleSchemaConfig,
+) {
+  return getCursorFormatter(fields, config)(record);
 }
 
 export function formatIDChunk(value: unknown) {
@@ -58,40 +62,40 @@ export function formatIDChunk(value: unknown) {
   }
 }
 
-export function getIDSerializer(fields: Column[]) {
+export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column serializer must have at least one field');
   }
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      return `${JSON.stringify(fields.map((col) => value[col.name]))}`;
+      return `${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
     }
 
-    return `${formatIDChunk(value[fields[0].name])}`;
+    return `${formatIDChunk(value[config.columnToTsName(fields[0])])}`;
   };
 }
 
-export function getColumnSerializer(fields: Column[]) {
+export function getColumnSerializer(fields: Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column serializer must have at least one field');
   }
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      return `J:${JSON.stringify(fields.map((col) => value[col.name]))}`;
+      return `J:${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
     }
 
-    return `${formatCursorChunk(value[fields[0].name])}`;
+    return `${formatCursorChunk(value[config.columnToTsName(fields[0])])}`;
   };
 }
 
-export function getCursorFormatter(fields: Column[]) {
+export function getCursorFormatter(fields: Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
     throw new PothosValidationError('Cursor must have at least one field');
   }
 
-  const serializer = getColumnSerializer(fields);
+  const serializer = getColumnSerializer(fields, config);
 
   return (value: Record<string, unknown>) => {
     return encodeBase64(`DC:${serializer(value)}`);
@@ -489,7 +493,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
           : q.orderBy
         : table.primaryKey,
     });
-    formatter = getCursorFormatter(cursorColumns);
+    formatter = getCursorFormatter(cursorColumns, config);
 
     const where = typeof q.where === 'function' ? q.where(table.columns, getOperators()) : q.where;
 

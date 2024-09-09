@@ -277,7 +277,7 @@ export class DrizzleObjectFieldBuilder<
             (parent as Record<string, never>)[name],
             args,
             select.limit,
-            getCursorFormatter(cursorColumns),
+            getCursorFormatter(cursorColumns, schemaConfig),
           );
         },
       },

@@ -1,15 +1,18 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
 import {
+  type Column,
   type RelationalSchemaConfig,
   type TableRelationalConfig,
   type TablesRelationalConfig,
   createTableRelationsHelpers,
   extractTablesRelationalConfig,
+  getTableName,
 } from 'drizzle-orm';
 import type { DrizzleClient } from '../types';
 
 export interface PothosDrizzleSchemaConfig extends RelationalSchemaConfig<TablesRelationalConfig> {
   dbToSchema: Record<string, TableRelationalConfig>;
+  columnToTsName: (column: Column) => string;
 }
 const configCache = createContextCache(
   (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>): PothosDrizzleSchemaConfig => {
@@ -37,8 +40,33 @@ const configCache = createContextCache(
       {},
     );
 
+    const columnMappings = Object.values(dbToSchema).reduce<Record<string, Record<string, string>>>(
+      (acc, table) => {
+        acc[table.dbName] = Object.entries(table.columns).reduce<Record<string, string>>(
+          (acc, [name, column]) => {
+            acc[column.name] = name;
+            return acc;
+          },
+          {},
+        );
+        return acc;
+      },
+      {},
+    );
+
     return {
       dbToSchema,
+      columnToTsName: (column) => {
+        const tableName = getTableName(column.table);
+        const table = columnMappings[tableName];
+        const columnName = table?.[column.name];
+
+        if (!columnName) {
+          throw new Error(`Could not find column mapping for ${tableName}.${column.name}`);
+        }
+
+        return columnName;
+      },
       ...config,
     };
   },
