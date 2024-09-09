@@ -223,18 +223,7 @@ export type DrizzleFieldWithInputOptions<
   >,
   'args'
 > &
-  PothosSchemaTypes.FieldWithInputBaseOptions<
-    Types,
-    Args & {
-      [K in InputName]: ArgumentRef<
-        Types,
-        InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
-      >;
-    },
-    Fields,
-    InputName,
-    ArgRequired
-  >;
+  PothosSchemaTypes.FieldWithInputBaseOptions<Types, Args, Fields, InputName, ArgRequired>;
 
 export type DrizzleObjectFieldOptions<
   Types extends SchemaTypes,

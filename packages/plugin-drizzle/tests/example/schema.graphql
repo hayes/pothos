@@ -64,6 +64,7 @@ type Query {
   post(id: ID!): Post
   posts(after: String, before: String, category: String, first: Int, last: Int): QueryPostsConnection
   user(id: ID!): User
+  userWithInput(input: QueryUserWithInputInput!): User
 }
 
 type QueryPostsConnection {
@@ -74,6 +75,10 @@ type QueryPostsConnection {
 type QueryPostsConnectionEdge {
   cursor: String!
   node: Post
+}
+
+input QueryUserWithInputInput {
+  id: ID!
 }
 
 type User implements Node {

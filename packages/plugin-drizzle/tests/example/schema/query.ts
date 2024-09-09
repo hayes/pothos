@@ -26,5 +26,18 @@ builder.queryType({
         );
       },
     }),
+    userWithInput: t.drizzleFieldWithInput({
+      type: 'users',
+      input: {
+        id: t.input.globalID({ required: true, for: User }),
+      },
+      resolve: (query, _root, { input: { id } }) => {
+        return db.query.users.findFirst(
+          query({
+            where: (user, { eq }) => eq(user.id, id.id.id),
+          }),
+        );
+      },
+    }),
   }),
 });

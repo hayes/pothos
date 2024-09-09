@@ -8,6 +8,7 @@ import { getSchemaConfig } from './utils/config';
 import { resolveDrizzleCursorConnection } from './utils/cursors';
 import { queryFromInfo } from './utils/map-query';
 import { getRefFromModel } from './utils/refs';
+import type { SelectionMap } from './utils/selections';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -69,16 +70,22 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
     ...(options as {}),
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({
-        config: getSchemaConfig(this.builder),
+      return resolve(
+        (select: SelectionMap) =>
+          queryFromInfo({
+            config: getSchemaConfig(this.builder),
+            context,
+            select,
+            info,
+            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
+          }),
+        parent,
+        args as never,
         context,
         info,
-        // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-      });
-
-      return resolve(query, parent, args as never, context, info) as never;
+      ) as never;
     },
-  });
+  }) as never;
 } as never;
 
 fieldBuilderProto.drizzleConnection = function drizzleConnection<

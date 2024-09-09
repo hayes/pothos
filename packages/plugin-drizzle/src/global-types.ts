@@ -394,8 +394,6 @@ declare global {
 
       drizzleFieldWithInput: 'withInput' extends PluginName
         ? <
-            Fields extends InputFieldMap,
-            Args extends InputFieldMap,
             Param extends
               | keyof Types['DrizzleRelationSchema']
               | [keyof Types['DrizzleRelationSchema']]
@@ -407,6 +405,8 @@ declare global {
             ResolveShape,
             ResolveReturnShape,
             ArgRequired extends boolean,
+            Fields extends InputFieldMap = {},
+            Args extends InputFieldMap = {},
             InputName extends string = 'input',
             Table extends
               keyof Types['DrizzleRelationSchema'] = Param extends keyof Types['DrizzleRelationSchema']
