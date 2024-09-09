@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.4.2
+
+### Patch Changes
+
+- cc5f993: Fix cursors using aliased coluns
+
 ## 0.4.1
 
 ### Patch Changes
