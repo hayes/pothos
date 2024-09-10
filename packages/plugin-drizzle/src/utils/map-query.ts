@@ -1,9 +1,7 @@
-import { PothosValidationError } from '@pothos/core';
-import {
-  type DBQueryConfig,
-  RelationalSchemaConfig,
-  type TableRelationalConfig,
-  TablesRelationalConfig,
+import { PothosValidationError, getMappedArgumentValues } from '@pothos/core';
+import type {
+  DBQueryConfig,
+  TableRelationalConfig,
 } from 'drizzle-orm';
 import {
   type FieldNode,
@@ -18,7 +16,6 @@ import {
   type InlineFragmentNode,
   Kind,
   type SelectionSetNode,
-  getArgumentValues,
   getDirectiveValues,
   getNamedType,
   isInterfaceType,
@@ -291,7 +288,7 @@ function addFieldSelection(
   let fieldSelectionMap: DBQueryConfig<'one', false> | undefined;
   let mappings: LoaderMappings = {};
   if (typeof fieldSelect === 'function') {
-    const args = getArgumentValues(field, selection, info.variableValues) as Record<
+    const args = getMappedArgumentValues(field, selection, context, info) as Record<
       string,
       unknown
     >;
