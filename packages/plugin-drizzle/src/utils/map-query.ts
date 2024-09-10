@@ -1,8 +1,5 @@
 import { PothosValidationError, getMappedArgumentValues } from '@pothos/core';
-import type {
-  DBQueryConfig,
-  TableRelationalConfig,
-} from 'drizzle-orm';
+import type { DBQueryConfig, TableRelationalConfig } from 'drizzle-orm';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
