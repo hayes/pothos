@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.4.6
+
+### Patch Changes
+
+- 0aadded: improve handling of null cursor values
+
 ## 0.4.5
 
 ### Patch Changes
