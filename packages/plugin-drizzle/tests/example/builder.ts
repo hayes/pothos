@@ -3,7 +3,6 @@ import AddGraphQL from '@pothos/plugin-add-graphql';
 import ScopeAuthPlugin from '@pothos/plugin-relay';
 import RelayPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
-import { createTableRelationsHelpers, extractTablesRelationalConfig } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import DrizzlePlugin from '../../src';
 import { type DrizzleSchema, client, db, schema } from './db';

@@ -393,7 +393,7 @@ export type RefForRelation<Types extends SchemaTypes, Rel extends Relation> = Re
 
 export type TypesForRelation<Types extends SchemaTypes, Rel extends Relation> = BuildQueryResult<
   Types['DrizzleRelationSchema'],
-  Types['DrizzleRelationSchema'][Rel['referencedTable']['_']['name']],
+  Types['DrizzleRelationSchemaByDbName'][Rel['referencedTableName']],
   true
 >;
 
@@ -410,7 +410,7 @@ export type QueryForField<
           'one',
           false,
           Types['DrizzleRelationSchema'],
-          Types['DrizzleRelationSchema'][Rel['referencedTable']['_']['name']]
+          Types['DrizzleRelationSchemaByDbName'][Rel['referencedTableName']]
         >,
         'columns' | 'extra' | 'with'
       >
@@ -419,7 +419,7 @@ export type QueryForField<
           'many',
           false,
           Types['DrizzleRelationSchema'],
-          Types['DrizzleRelationSchema'][Rel['referencedTable']['_']['name']]
+          Types['DrizzleRelationSchemaByDbName'][Rel['referencedTableName']]
         >,
         'columns' | 'extra' | 'with'
       >
@@ -537,7 +537,7 @@ export type RelatedConnectionOptions<
   Nullable extends boolean,
   Args extends InputFieldMap,
   NodeTable extends
-    TableRelationalConfig = Types['DrizzleRelationSchema'][Table['relations'][Field]['referencedTable']['_']['name']],
+    TableRelationalConfig = Types['DrizzleRelationSchemaByDbName'][Table['relations'][Field]['referencedTableName']],
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -580,7 +580,7 @@ export type RelatedConnectionOptions<
         >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-        type?: DrizzleRef<any, Table['relations'][Field]['referencedTable']['_']['name']>;
+        type?: DrizzleRef<any, Table['relations'][Field]['referencedTableName']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

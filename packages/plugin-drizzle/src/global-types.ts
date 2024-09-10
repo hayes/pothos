@@ -13,6 +13,7 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type {
+  AnyTable,
   BuildQueryResult,
   Column,
   DBQueryConfig,
@@ -42,6 +43,10 @@ import type { GraphQLInputObjectType } from 'graphql';
 import type { PothosDrizzlePlugin } from '.';
 import type { DrizzleNodeRef } from './node-ref';
 
+type MapToDbName<T> = {
+  [K in keyof T as T[K] extends { dbName: infer K2 extends string } ? K2 : K]: T[K];
+};
+
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
@@ -55,11 +60,15 @@ declare global {
     export interface UserSchemaTypes {
       DrizzleSchema: Record<string, unknown>;
       DrizzleRelationSchema: Record<string, TableRelationalConfig>;
+      DrizzleRelationSchemaByDbName: Record<string, TableRelationalConfig>;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       DrizzleSchema: PartialTypes['DrizzleSchema'] & {};
       DrizzleRelationSchema: ExtractTablesWithRelations<PartialTypes['DrizzleSchema'] & {}>;
+      DrizzleRelationSchemaByDbName: MapToDbName<
+        ExtractTablesWithRelations<PartialTypes['DrizzleSchema'] & {}>
+      >;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
