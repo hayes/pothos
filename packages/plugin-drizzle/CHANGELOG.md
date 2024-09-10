@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.4.7
+
+### Patch Changes
+
+- e98383b: use getMappedArgumentValues to improve relay compatibility
+
 ## 0.4.6
 
 ### Patch Changes
