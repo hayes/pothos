@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.4.4
+
+### Patch Changes
+
+- 6dbe790: fix drizzleField list types
+
 ## 0.4.3
 
 ### Patch Changes
