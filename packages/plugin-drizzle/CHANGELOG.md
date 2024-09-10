@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.4.5
+
+### Patch Changes
+
+- bc73a7b: Fix table types for queries on relations to aliased tables
+
 ## 0.4.4
 
 ### Patch Changes
