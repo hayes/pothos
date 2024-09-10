@@ -26,6 +26,19 @@ builder.queryType({
         );
       },
     }),
+    users: t.drizzleField({
+      type: ['users'],
+      args: {
+        id: t.arg.globalID({ required: true, for: User }),
+      },
+      resolve: (query, _root, { id }) => {
+        return db.query.users.findMany(
+          query({
+            where: (user, { eq }) => eq(user.id, id.id.id),
+          }),
+        );
+      },
+    }),
     userWithInput: t.drizzleFieldWithInput({
       type: 'users',
       input: {

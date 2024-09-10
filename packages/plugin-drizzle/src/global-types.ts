@@ -300,14 +300,25 @@ declare global {
                 Param extends [DrizzleRef<any, infer T>]
                 ? T & keyof Types['DrizzleRelationSchema']
                 : never,
-        Type extends TypeParam<Types> = ObjectRef<
-          Types,
-          BuildQueryResult<
-            Types['DrizzleRelationSchema'],
-            Types['DrizzleRelationSchema'][Table],
-            true
-          >
-        >,
+        Type extends TypeParam<Types> = Param extends [unknown]
+          ? [
+              ObjectRef<
+                Types,
+                BuildQueryResult<
+                  Types['DrizzleRelationSchema'],
+                  Types['DrizzleRelationSchema'][Table],
+                  true
+                >
+              >,
+            ]
+          : ObjectRef<
+              Types,
+              BuildQueryResult<
+                Types['DrizzleRelationSchema'],
+                Types['DrizzleRelationSchema'][Table],
+                true
+              >
+            >,
       >(
         options: DrizzleFieldOptions<
           Types,
