@@ -23,6 +23,10 @@ const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
 
 export function formatCursorChunk(value: unknown) {
+  if (value == null) {
+    return null;
+  }
+
   if (value instanceof Date) {
     return `D:${String(Number(value))}`;
   }
@@ -86,7 +90,7 @@ export function getColumnSerializer(fields: Column[], config: PothosDrizzleSchem
       return `J:${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
     }
 
-    return `${formatCursorChunk(value[config.columnToTsName(fields[0])])}`;
+    return formatCursorChunk(value[config.columnToTsName(fields[0])]);
   };
 }
 
