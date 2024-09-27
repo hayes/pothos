@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.1
+
+### Patch Changes
+
+- 75f7830: Fix t.loadable with nullable: { items: true }
+
 ## 4.1.0
 
 ### Minor Changes
