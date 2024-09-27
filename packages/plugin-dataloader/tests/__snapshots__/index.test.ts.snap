@@ -88,6 +88,7 @@ type Query {
   loadableParseNodes(ids: [ID!]): [LoadableParseTest!]
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  nullablePosts(ids: [Int!]!): [Post]
   nullableUser(id: String): NullableUser
   nullableUsers(ids: [String!]): [NullableUser]
   oneToMany(id: ID!): [Post]

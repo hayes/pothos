@@ -198,7 +198,7 @@ export type LoaderShapeFromType<
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
 > = Type extends [TypeParam<Types>]
-  ? ShapeFromTypeParam<Types, Type[0], Nullable>
+  ? ShapeFromTypeParam<Types, Type[0], Nullable extends { items: infer N } ? N : Nullable>
   : ShapeFromTypeParam<Types, Type, Nullable>;
 
 export interface LoadableRef<K, V, C> {

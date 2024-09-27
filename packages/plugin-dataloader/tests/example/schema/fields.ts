@@ -56,6 +56,30 @@ builder.queryFields((t) => ({
     },
     resolve: (_root, args) => Promise.resolve(args.ids),
   }),
+  nullablePosts: t.loadable({
+    type: [Post],
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      ids: t.arg.intList({
+        required: true,
+      }),
+    },
+    load: (ids: number[], context) => {
+      countCall(context, postsCounts, ids.length);
+
+      return Promise.resolve(
+        ids.map((id) =>
+          id > 0
+            ? ({ id, title: `${id} title`, content: `${id} content` } as IPost | null)
+            : new Error(`Invalid ID ${id}`),
+        ),
+      );
+    },
+    resolve: (_root, args) => Promise.resolve(args.ids),
+  }),
   postSorted: t.loadable({
     type: Post,
     nullable: true,
