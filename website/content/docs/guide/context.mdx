@@ -100,3 +100,57 @@ const server = createServer(yoga);
 
 server.listen(3000);
 ```
+
+## Context when using multiple protocols
+
+In some specific situations multiple protocols could be used for handling the graphql operations against the same executable graphql schema. One common example of this is using [HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP)(Hypertext Transfer Protocol) protocol for handling graphql query and mutation operations and using [Websocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) protocol for handling graphql subscription operations. Because the protocols are different, the protocol specific information that might be passed in the graphql context could differ depending on the graphql operation that is being executed. **Now, our personal recommendation is to keep your executable graphql schema and its inner layers protocol agnostic to not have to deal with a situation like this.**
+
+We're working with two different graphql contexts within our graphql resolvers and we want strong type-safety while working with them. For this use case we recommend using [typescript discriminated unions](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions) for combining types for different graphql contexts into a single union type that can be passed to pothos schema builder initializer. In the following example `Context` is a union type between graphql context types for HTTP and Websocket protocol specific graphql contexts, where the `isSubscription` boolean field is the discriminator. This context type is passed as the type for `Context` field in the generic accepted by the pothos schema builder initializer. Within the resolver implementations for a graphql schema created using this pothos schema builder, the graphql context can be discriminated between its two protocol specific types by using the `isSubscription` field. This would help us get the type-safe graphql context that we can make use of in our graphql resolvers. In the following code we perform this discrimination by checking the value of `isSubscription` boolean field in the `if` and `else` blocks within the graphql resolvers:
+
+```typescript
+type Context =
+  | {
+      isSubscription: false;
+      http: "HTTP specific context field."
+    }
+  | {
+      isSubscription: true;
+      websocket: "Websocket specific context field.";
+    };
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+}>({});
+
+builder.mutationType({
+  fields: (t) => ({
+    incrementCount: t.int({
+      resolve: (parent, args, ctx) => {
+        if (ctx.isSubscription === false) {
+          // Access the HTTP protocol specific context fields.
+          ctx.http;
+        } else {
+          // Access the Websocket protocol specific context fields.
+          ctx.websocket;
+        }
+      },
+    }),
+  }),
+});
+
+builder.subscriptionType({
+  fields: (t) => ({
+    currentCount: t.int({
+      subscribe: (parent, args, ctx) => {
+        if (ctx.isSubscription === false) {
+          // Access the HTTP protocol specific context fields.
+          ctx.http;
+        } else {
+          // Access the Websocket protocol specific context fields.
+          ctx.websocket;
+        }
+      },
+    }),
+  }),
+});
+```

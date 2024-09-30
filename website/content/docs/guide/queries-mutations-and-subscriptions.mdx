@@ -1,6 +1,6 @@
 ---
-title: Queries and Mutations
-description: Guide for adding queries and mutations to your schema
+title: Queries, Mutations and Subscriptions
+description: Guide for adding queries, mutations and subscriptions to your schema
 ---
 
 There are a few different ways to add queries to your schema. The simplest way is to define a
@@ -121,4 +121,32 @@ builder.mutationField('createGiraffe', (t) =>
     },
   }),
 );
+```
+# Subscriptions
+
+Subscriptions too work just like queries and mutations where you can use the `builder.subscriptionType()`,
+`builder.subscriptionField()`, and `builder.subscriptionFields()` methods to add subscriptions to your
+schema.
+
+```typescript
+builder.mutationType({
+  fields: (t) => ({
+    incrementCount: t.int({
+      resolve: (_parent, _args, ctx) => {
+        ctx.count.value += 1;
+        ctx.pubSub.publish('COUNT_INCREMENT', ctx.count.value);
+        return ctx.count.value;
+      },
+    }),
+  }),
+});
+
+builder.subscriptionType({
+  fields: (t) => ({
+    incrementedCount: t.int({
+      subscribe: (_parent, _args, ctx) => ctx.pubSub.subscribe('COUNT_INCREMENT'),
+      resolve: (count) => count,
+    }),
+  }),
+});
 ```

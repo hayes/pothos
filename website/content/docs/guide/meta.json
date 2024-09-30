@@ -2,7 +2,7 @@
   "title": "Guide",
   "pages": [
     "objects",
-    "queries-and-mutations",
+    "queries-mutations-and-subscriptions",
     "schema-builder",
     "fields",
     "args",
