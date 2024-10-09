@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- e6ca3fa: Fix a couple incorrect generics in plugin system types
+
 ## 4.2.0
 
 ### Minor Changes
