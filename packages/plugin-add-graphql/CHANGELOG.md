@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 4.2.0
+
+### Minor Changes
+
+- e6ca3fa: Support nested lists
+
 ## 4.1.0
 
 ### Minor Changes
