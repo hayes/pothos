@@ -36,6 +36,14 @@ const User = new GraphQLObjectType<{ id: string; name: string; profile?: { bio?:
       type: new GraphQLList(new GraphQLNonNull(Post)),
       resolve: () => [{ id: '123', title: 'title', content: 'content' }],
     },
+    nestedPosts: {
+      args: {
+        ids: {
+          type: new GraphQLList(new GraphQLNonNull(new GraphQLList(GraphQLID))),
+        },
+      },
+      type: new GraphQLList(new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Post)))),
+    },
   }),
 });
 

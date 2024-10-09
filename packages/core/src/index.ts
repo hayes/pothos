@@ -20,9 +20,11 @@ import { UnionRef as InternalUnionRef } from './refs/union';
 import type {
   AddVersionedDefaultsToBuilderOptions,
   FieldKind,
+  InputTypeParam,
   NormalizeSchemeBuilderOptions,
   RootName,
   SchemaTypes,
+  TypeParam,
 } from './types';
 
 export * from './errors';
@@ -158,7 +160,7 @@ export const InputObjectRef = InternalInputObjectRef as new <Types extends Schem
 
 export type InputListRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputListRef<Types, T>;
 export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(
-  name: string,
+  listType: InputTypeParam<Types>,
   required: boolean,
 ) => PothosSchemaTypes.InputListRef<Types, T>;
 
@@ -197,7 +199,7 @@ export const UnionRef = InternalUnionRef as new <Types extends SchemaTypes, T, P
 
 export type ListRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ListRef<Types, T, P>;
 export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P = T>(
-  name: string,
+  listType: TypeParam<Types>,
   nullable: boolean,
 ) => PothosSchemaTypes.ListRef<Types, T, P>;
 

@@ -10,7 +10,7 @@ import { BaseTypeRef } from './base';
 
 export class EnumRef<Types extends SchemaTypes, T, U = T>
   extends BaseTypeRef<Types, PothosEnumTypeConfig>
-  implements OutputRef, InputRef, PothosSchemaTypes.EnumRef<Types, T, U>
+  implements OutputRef<T>, InputRef<U>, PothosSchemaTypes.EnumRef<Types, T, U>
 {
   override kind = 'Enum' as const;
 

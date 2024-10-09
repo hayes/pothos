@@ -1,5 +1,7 @@
 import './global-types';
 import SchemaBuilder, {
+  InputListRef,
+  ListRef,
   type ArgumentRef,
   type EnumRef,
   type EnumValueConfigMap,
@@ -17,13 +19,11 @@ import {
   type GraphQLInputObjectType,
   type GraphQLInputType,
   type GraphQLInterfaceType,
-  type GraphQLNamedInputType,
-  type GraphQLNamedOutputType,
   type GraphQLObjectType,
   type GraphQLOutputType,
+  type GraphQLType,
   type GraphQLUnionType,
   defaultFieldResolver,
-  getNamedType,
   isListType,
   isNonNullType,
 } from 'graphql';
@@ -39,21 +39,41 @@ import { addReferencedType } from './utils';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-function resolveOutputTypeRef(
+function resolveNullableOutputRef(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  type: GraphQLNamedOutputType,
-) {
+  type: GraphQLOutputType,
+): OutputType<SchemaTypes> {
+  if (isNonNullType(type)) {
+    throw new Error('Expected a nullable type');
+  }
+
+  if (isListType(type)) {
+    const nullable = !isNonNullType(type.ofType);
+    const listType = nullable ? type.ofType : type.ofType.ofType;
+
+    return new ListRef(resolveNullableOutputRef(builder, listType), nullable);
+  }
+
   addReferencedType(builder, type);
 
   return type.name as OutputType<SchemaTypes>;
 }
 
-function resolveInputTypeRef(
+function resolveNullableInputRef(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  type: GraphQLNamedInputType,
-) {
-  addReferencedType(builder, type);
+  type: GraphQLType,
+): InputTypeParam<SchemaTypes> {
+  if (isNonNullType(type)) {
+    throw new Error('Expected a nullable type');
+  }
 
+  if (isListType(type)) {
+    const required = isNonNullType(type.ofType);
+    const listType = required ? type.ofType.ofType : type.ofType;
+    return new InputListRef(resolveNullableInputRef(builder, listType), required);
+  }
+
+  addReferencedType(builder, type);
   return type.name as InputType<SchemaTypes>;
 }
 
@@ -61,25 +81,13 @@ function resolveOutputType(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   type: GraphQLOutputType,
 ): { type: TypeParam<SchemaTypes>; nullable: boolean } {
-  const namedType = getNamedType(type);
   const isNullable = !isNonNullType(type);
   const nonNullable = isNonNullType(type) ? type.ofType : type;
-  const isList = isListType(nonNullable);
-  const typeRef = resolveOutputTypeRef(builder, namedType);
-
-  if (!isList) {
-    return {
-      type: typeRef,
-      nullable: isNullable,
-    };
-  }
+  const typeRef = resolveNullableOutputRef(builder, nonNullable);
 
   return {
-    type: [typeRef],
-    nullable: {
-      list: isNullable,
-      items: !isNonNullType(nonNullable.ofType),
-    } as unknown as boolean,
+    type: typeRef,
+    nullable: isNullable,
   };
 }
 
@@ -87,25 +95,13 @@ function resolveInputType(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   type: GraphQLInputType,
 ): { type: InputTypeParam<SchemaTypes>; required: boolean } {
-  const namedType = getNamedType(type);
   const isNullable = !isNonNullType(type);
   const nonNullable = isNonNullType(type) ? type.ofType : type;
-  const isList = isListType(nonNullable);
-  const typeRef = resolveInputTypeRef(builder, namedType);
-
-  if (!isList) {
-    return {
-      type: typeRef,
-      required: !isNullable,
-    };
-  }
+  const typeRef = resolveNullableInputRef(builder, nonNullable);
 
   return {
-    type: [typeRef],
-    required: {
-      list: !isNullable,
-      items: isNonNullType(nonNullable.ofType),
-    } as unknown as boolean,
+    type: typeRef,
+    required: !isNullable,
   };
 }
 
@@ -118,7 +114,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
     description: type.description ?? undefined,
     isTypeOf: type.isTypeOf as never,
     extensions: { ...type.extensions, ...extensions },
-    interfaces: () => type.getInterfaces().map((i) => resolveOutputTypeRef(this, i)) as [],
+    interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
     fields: (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
       const existingFields = type.getFields();
       const newFields = fields?.(t) ?? {};
@@ -188,7 +184,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
     description: type.description ?? undefined,
     resolveType: type.resolveType as never,
     extensions: { ...type.extensions, ...extensions },
-    interfaces: () => type.getInterfaces().map((i) => resolveOutputTypeRef(this, i)) as [],
+    interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
     fields: (t) => {
       const existingFields = type.getFields();
       const newFields = fields?.(t) ?? {};
@@ -246,7 +242,7 @@ proto.addGraphQLUnion = function addGraphQLUnion<Shape>(
     description: type.description ?? undefined,
     resolveType: type.resolveType as never,
     extensions: { ...type.extensions, ...extensions },
-    types: types ?? (type.getTypes().map((t) => resolveOutputTypeRef(this, t)) as []),
+    types: types ?? (type.getTypes().map((t) => resolveNullableOutputRef(this, t)) as []),
   });
 };
 

@@ -9,6 +9,7 @@ describe('simple objects example schema', () => {
       "type AddedUser implements Node {
         id: ID!
         name: String
+        nestedPosts(ids: [[ID]!]): [[Post!]!]
         posts: [Post!]
         profile: Profile
       }

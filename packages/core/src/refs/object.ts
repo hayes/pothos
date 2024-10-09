@@ -19,7 +19,7 @@ export type ObjectLikeConfig =
   | PothosSubscriptionTypeConfig;
 export class ObjectRef<Types extends SchemaTypes, T, P = T>
   extends TypeRefWithFields<Types, ObjectLikeConfig>
-  implements OutputRef, PothosSchemaTypes.ObjectRef<Types, T, P>
+  implements OutputRef<T>, PothosSchemaTypes.ObjectRef<Types, T, P>
 {
   override kind = 'Object' as const;
 

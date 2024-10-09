@@ -11,7 +11,7 @@ import { TypeRefWithFields } from './base-with-fields';
 
 export class InterfaceRef<Types extends SchemaTypes, T, P = T>
   extends TypeRefWithFields<Types, PothosInterfaceTypeConfig>
-  implements OutputRef, PothosSchemaTypes.InterfaceRef<Types, T, P>
+  implements OutputRef<T>, PothosSchemaTypes.InterfaceRef<Types, T, P>
 {
   override kind = 'Interface' as const;
 

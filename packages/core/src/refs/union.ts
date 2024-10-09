@@ -9,7 +9,7 @@ import { BaseTypeRef } from './base';
 
 export class UnionRef<Types extends SchemaTypes, T, P = T>
   extends BaseTypeRef<Types, PothosUnionTypeConfig>
-  implements OutputRef, PothosSchemaTypes.UnionRef<Types, T, P>
+  implements OutputRef<T>, PothosSchemaTypes.UnionRef<Types, T, P>
 {
   override kind = 'Union' as const;
 
