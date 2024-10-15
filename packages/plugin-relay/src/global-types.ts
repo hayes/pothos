@@ -23,7 +23,7 @@ import {
   type ShapeFromTypeParam,
   inputShapeKey,
 } from '@pothos/core';
-import type { NodeRef } from './node-ref';
+import type { ImplementableNodeRef, NodeRef } from './node-ref';
 import type {
   ConnectionResultShape,
   ConnectionShape,
@@ -39,6 +39,7 @@ import type {
   NodeFieldOptions,
   NodeListFieldOptions,
   NodeObjectOptions,
+  NodeRefOptions,
   PageInfoShape,
   RelayMutationFieldOptions,
   RelayMutationInputOptions,
@@ -86,6 +87,12 @@ declare global {
     export interface SchemaBuilder<Types extends SchemaTypes> {
       pageInfoRef: () => ObjectRef<Types, PageInfoShape>;
       nodeInterfaceRef: () => InterfaceRef<Types, unknown>;
+
+      nodeRef: <Shape, IDShape = string, Param extends string | ObjectRef<Types, Shape> = string>(
+        param: Param,
+        options: NodeRefOptions<Types, Shape, Shape, IDShape>,
+        fields?: ObjectFieldsShape<Types, Shape>,
+      ) => Param extends string ? ImplementableNodeRef<Types, Shape, Shape, IDShape> : Param;
 
       node: <
         Interfaces extends InterfaceParam<Types>[],

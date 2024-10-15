@@ -1,12 +1,4 @@
-import {
-  type FieldRef,
-  ImplementableObjectRef,
-  type InterfaceRef,
-  ObjectFieldBuilder,
-  type SchemaTypes,
-  completeValue,
-} from '@pothos/core';
-import type { GraphQLResolveInfo } from 'graphql';
+import { ImplementableObjectRef, type ObjectRef, type SchemaTypes } from '@pothos/core';
 import type { DataLoaderOptions, LoadableNodeId } from '../types';
 import { dataloaderGetter } from '../util';
 import { LoadableObjectRef } from './object';
@@ -78,41 +70,23 @@ export class ImplementableLoadableNodeRef<
     this.cacheResolved =
       typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey;
 
-    this.builder.configStore.onTypeConfig(this, (config) => {
-      config.extensions = {
+    (
+      this.builder as typeof builder & {
+        nodeRef: (ref: ObjectRef<Types, unknown>, options: Record<string, unknown>) => void;
+      }
+    ).nodeRef(this, {
+      id,
+      loadManyWithoutCache: (ids: Key[], context: SchemaTypes['Context']) =>
+        this.getDataloader(context).loadMany(ids),
+    });
+
+    this.updateConfig((config) => ({
+      ...config,
+      extensions: {
         ...config.extensions,
         getDataloader: this.getDataloader,
         cacheResolved: this.cacheResolved,
-      };
-      (config.pothosOptions as { loadManyWithoutCache: unknown }).loadManyWithoutCache = (
-        ids: Key[],
-        context: SchemaTypes['Context'],
-      ) => this.getDataloader(context).loadMany(ids);
-    });
-
-    this.addInterfaces([
-      (
-        this.builder as typeof this.builder & { nodeInterfaceRef: () => InterfaceRef<Types, {}> }
-      ).nodeInterfaceRef(),
-    ]);
-
-    this.addFields(() => ({
-      id: (
-        new ObjectFieldBuilder(this.builder) as PothosSchemaTypes.FieldBuilder<Types, 'Object'> & {
-          globalID: (options: unknown) => FieldRef<Types>;
-        }
-      ).globalID({
-        ...(this.builder.options as { relayOptions?: { idFieldOptions?: object } }).relayOptions
-          ?.idFieldOptions,
-        ...id,
-        nullable: false,
-        args: {},
-        resolve: (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) =>
-          completeValue(id.resolve(parent, args, context, info), (globalId) => ({
-            type: name,
-            id: globalId,
-          })),
-      }),
+      },
     }));
   }
 }

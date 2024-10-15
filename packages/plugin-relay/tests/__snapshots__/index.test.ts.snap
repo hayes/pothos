@@ -92,6 +92,11 @@ type NumberRef implements Node {
   id: ID!
 }
 
+type NumberThingNodeRef implements Node {
+  id: ID!
+  number: Int!
+}
+
 input OtherInput {
   someField: String
 }
@@ -166,6 +171,7 @@ type Query {
   moreNodes: [Node]!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  numberNodeRef: NumberThingNodeRef!
   numberRef: NumberRef!
   numberThingByID(id: ID!): Number
   numberThingsByIDs(ids: [ID!]!): [Number!]

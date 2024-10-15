@@ -1,25 +1,24 @@
 import SchemaBuilder, {
+  BaseTypeRef,
   completeValue,
   createContextCache,
   type FieldMap,
   type FieldRef,
   getTypeBrand,
   InputObjectRef,
-  type InterfaceParam,
   type InterfaceRef,
-  type MaybePromise,
   type ObjectFieldsShape,
-  type ObjectParam,
   ObjectRef,
   type OutputRef,
   PothosValidationError,
   type SchemaTypes,
   verifyRef,
 } from '@pothos/core';
-import { type GraphQLResolveInfo, defaultTypeResolver } from 'graphql';
-import { NodeRef } from './node-ref';
-import type { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
+import { defaultTypeResolver } from 'graphql';
+import { ImplementableNodeRef, NodeRef } from './node-ref';
+import type { ConnectionShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
+import { addNodeProperties } from './utils/add-node-props';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -226,80 +225,58 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   return ref;
 };
 
-schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...options }, fields) {
+schemaBuilderProto.nodeRef = function nodeRef(param, options) {
+  if (typeof param === 'string') {
+    return new ImplementableNodeRef(this, param, options) as never;
+  }
+
+  addNodeProperties(param.name, this, param, undefined, options);
+
+  return param as never;
+};
+
+schemaBuilderProto.node = function node(
+  param,
+  {
+    id,
+    name,
+    loadMany,
+    loadOne,
+    loadWithoutCache,
+    loadManyWithoutCache,
+    brandLoadedObjects,
+    ...options
+  },
+  fields,
+) {
   verifyRef(param);
-  const interfacesWithNode: () => InterfaceParam<SchemaTypes>[] = () => [
-    this.nodeInterfaceRef(),
-    ...(typeof interfaces === 'function' ? interfaces() : interfaces ?? []),
-  ];
 
-  let nodeName!: string;
+  const nodeName =
+    typeof param === 'string' ? param : param instanceof BaseTypeRef ? param.name : name!;
 
-  const ref = this.objectType<[], ObjectParam<SchemaTypes>>(
-    param,
+  const ref = new NodeRef(this, nodeName, param, {
+    id,
+    loadMany,
+    loadOne,
+    loadWithoutCache,
+    loadManyWithoutCache,
+    brandLoadedObjects,
+  });
+
+  if (typeof param !== 'string') {
+    this.configStore.associateParamWithRef(param, ref);
+  }
+
+  this.objectType(
+    ref,
     {
-      ...(options as {}),
-      extensions: {
-        ...extensions,
-        pothosParseGlobalID: id.parse,
-      },
-      isTypeOf:
-        options.isTypeOf ??
-        (typeof param === 'function'
-          ? (maybeNode: unknown, _context: object, _info: GraphQLResolveInfo) => {
-              if (!maybeNode) {
-                return false;
-              }
-
-              if (maybeNode instanceof (param as Function)) {
-                return true;
-              }
-
-              const proto = Object.getPrototypeOf(maybeNode) as { constructor: unknown };
-
-              try {
-                if (proto?.constructor) {
-                  const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
-
-                  return config.name === nodeName;
-                }
-              } catch {
-                // ignore
-              }
-
-              return false;
-            }
-          : undefined),
-      interfaces: interfacesWithNode as () => [],
+      name: nodeName,
+      ...options,
     },
     fields,
   );
 
-  this.configStore.onTypeConfig(ref, (nodeConfig) => {
-    nodeName = nodeConfig.name;
-
-    this.objectField(ref, this.options.relay?.idFieldName ?? 'id', (t) =>
-      t.globalID<{}, false, MaybePromise<GlobalIDShape<SchemaTypes>>>({
-        nullable: false,
-        ...this.options.relay?.idFieldOptions,
-        ...id,
-        args: {},
-        resolve: (parent, args, context, info): MaybePromise<GlobalIDShape<SchemaTypes>> =>
-          completeValue(id.resolve(parent, args, context, info), (globalId) => ({
-            type: nodeConfig.name,
-            id: globalId,
-          })),
-      }),
-    );
-  });
-
-  const nodeRef = new NodeRef(ref.name, {
-    parseId: id.parse,
-  });
-
-  this.configStore.associateParamWithRef(nodeRef, ref);
-
-  return nodeRef as never;
+  return ref as never;
 };
 
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {

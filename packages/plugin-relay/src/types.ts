@@ -433,16 +433,11 @@ export type NodeBaseObjectOptionsForParam<
   Interfaces extends InterfaceParam<Types>[],
 > = ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>;
 
-export type NodeObjectOptions<
-  Types extends SchemaTypes,
-  Param extends ObjectParam<Types>,
-  Interfaces extends InterfaceParam<Types>[],
-  IDShape = string,
-> = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & {
+export type NodeRefOptions<Types extends SchemaTypes, T, P = T, IDShape = string> = {
   id: Omit<
     FieldOptionsFromKind<
       Types,
-      ParentShape<Types, Param>,
+      P,
       'ID',
       false,
       {},
@@ -455,24 +450,29 @@ export type NodeObjectOptions<
     parse?: (id: string, ctx: Types['Context']) => IDShape;
   };
   brandLoadedObjects?: boolean;
-  loadOne?: (
-    id: IDShape,
-    context: Types['Context'],
-  ) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
+  loadOne?: (id: IDShape, context: Types['Context']) => MaybePromise<T | null | undefined>;
   loadMany?: (
     ids: IDShape[],
     context: Types['Context'],
-  ) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+  ) => MaybePromise<readonly MaybePromise<T | null | undefined>[]>;
   loadWithoutCache?: (
     id: IDShape,
     context: Types['Context'],
     info: GraphQLResolveInfo,
-  ) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
+  ) => MaybePromise<T | null | undefined>;
   loadManyWithoutCache?: (
     ids: IDShape[],
     context: Types['Context'],
-  ) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+  ) => MaybePromise<readonly MaybePromise<T | null | undefined>[]>;
 };
+
+export type NodeObjectOptions<
+  Types extends SchemaTypes,
+  Param extends ObjectParam<Types>,
+  Interfaces extends InterfaceParam<Types>[],
+  IDShape = string,
+> = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> &
+  NodeRefOptions<Types, OutputShape<Types, Param>, ParentShape<Types, Param>, IDShape>;
 
 export type GlobalIDFieldOptions<
   Types extends SchemaTypes,

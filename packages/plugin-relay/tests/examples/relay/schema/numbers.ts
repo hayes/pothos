@@ -62,6 +62,20 @@ const NumberThingRef = builder.node(NumberThing, {
   }),
 });
 
+const NumberThingNodeRef = builder.nodeRef<NumberThing, number>('NumberThingNodeRef', {
+  id: {
+    resolve: (n) => n.id,
+    parse: (id) => Number.parseInt(id, 10),
+  },
+  loadOne: (id) => new NumberThing(id),
+});
+
+NumberThingNodeRef.implement({
+  fields: (t) => ({
+    number: t.exposeInt('id', {}),
+  }),
+});
+
 const NumberRef = builder.node(builder.objectRef<NumberThing>('NumberRef'), {
   id: {
     resolve: (n) => n.id,
@@ -151,6 +165,10 @@ builder.queryFields((t) => ({
   numberRef: t.field({
     type: NumberRef,
     resolve: () => ({ id: 123 }),
+  }),
+  numberNodeRef: t.field({
+    type: NumberThingNodeRef,
+    resolve: () => new NumberThing(123),
   }),
 }));
 

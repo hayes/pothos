@@ -1,4 +1,11 @@
-import { ObjectRef, type SchemaTypes } from '@pothos/core';
+import {
+  ImplementableObjectRef,
+  type ObjectParam,
+  ObjectRef,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { NodeRefOptions } from './types';
+import { addNodeProperties } from './utils/add-node-props';
 
 export const relayIDShapeKey = Symbol.for('Pothos.relayIDShapeKey');
 
@@ -12,12 +19,35 @@ export class NodeRef<Types extends SchemaTypes, T, P = T, IDShape = string> exte
   parseId: ((id: string, ctx: object) => IDShape) | undefined;
 
   constructor(
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
     name: string,
-    options: {
-      parseId?: (id: string, ctx: object) => IDShape;
-    },
+    param: ObjectParam<Types>,
+    options: NodeRefOptions<Types, T, P, IDShape>,
   ) {
     super(name);
-    this.parseId = options.parseId;
+    this.parseId = options.id.parse;
+
+    addNodeProperties(name, builder, this, param, options);
+  }
+}
+
+export class ImplementableNodeRef<
+  Types extends SchemaTypes,
+  T,
+  P = T,
+  IDShape = string,
+> extends ImplementableObjectRef<Types, T, P> {
+  parseId: ((id: string, ctx: object) => IDShape) | undefined;
+
+  constructor(
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    name: string,
+    options: NodeRefOptions<Types, T, P, IDShape>,
+  ) {
+    super(builder, name);
+
+    this.parseId = options.id.parse;
+
+    addNodeProperties(name, builder, this, undefined, options);
   }
 }

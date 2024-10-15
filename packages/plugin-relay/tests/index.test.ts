@@ -398,11 +398,47 @@ describe('relay example schema', () => {
         document: query,
         contextValue: {},
       });
-      console.log(result.errors);
 
       expect(result.data).toMatchInlineSnapshot(`
         {
           "inputGlobalID": "{"id":{"typename":"abc","id":"123"},"idList":[null,{"typename":"abc","id":"123"}],"inputObj":{"circular":{"id":{"typename":"abc","id":"123"},"idList":[{"typename":"abc","id":"123"}],"otherList":[{"someField":"abc"}]},"id":{"typename":"abc","id":"123"},"idList":[null,{"typename":"abc","id":"123"}],"otherList":[{"someField":"abc"}]},"normalId":"123"}",
+        }
+      `);
+    });
+
+    it('nodeRef', async () => {
+      const query = gql`
+        {
+          numberNodeRef {
+            id
+            number
+            __typename
+          }
+          node(id: "TnVtYmVyUmVmOjEyMw==") {
+            id
+            __typename
+            number
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result.data).toMatchInlineSnapshot(`
+        {
+          "node": {
+            "__typename": "NumberRef",
+            "id": "TnVtYmVyUmVmOjEyMw==",
+          },
+          "numberNodeRef": {
+            "__typename": "NumberThingNodeRef",
+            "id": "TnVtYmVyVGhpbmdOb2RlUmVmOjEyMw==",
+            "number": 123,
+          },
         }
       `);
     });
