@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- 6a80a7c: Add builder.nodeRef method
+
 ## 4.2.1
 
 ### Patch Changes

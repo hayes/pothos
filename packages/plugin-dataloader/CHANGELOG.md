@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- 6a80a7c: Use builder.nodeRef in ImplementableLoadableNodeRef to avoid re-implementing node logic
+
 ## 4.1.1
 
 ### Patch Changes
