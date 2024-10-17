@@ -54,7 +54,7 @@ through the SchemaTypes generic parameter.
 Note that when implementing the graphql-scalars library, the best types to use for `Input` and
 `Output` types are _not_ always intuitive. For example, you might assume that the `JSON` type from
 graphql-scalars would utilize the global `JSON` type, or another JSON type imported from a library
-that tries to enumarate potential JSON values, but it is ussually better to just use `unknown`. A
+that tries to enumerate potential JSON values, but it is usually better to just use `unknown`. A
 good place to start if you are unsure what type to use it the check the `codegenScalarType` inside
 file where the scalar is defined by `graphql-scalars`
 ([BigInt scalar definition, for reference](https://github.com/Urigo/graphql-scalars/blob/6bdccebb27a7f9be7b5d01dfb052a3e9c17432fc/src/scalars/BigInt.ts#L92)).
