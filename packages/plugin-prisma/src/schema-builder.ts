@@ -179,7 +179,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     this.objectField(
       ref,
-      (this.options as { relayOptions?: { idFieldName?: string } }).relayOptions?.idFieldName ??
+      (this.options as { relay?: { idFieldName?: string } }).relay?.idFieldName ??
         'id',
       (t) =>
         (
@@ -187,7 +187,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
             globalID: (options: Record<string, unknown>) => FieldRef<SchemaTypes, unknown>;
           }
         ).globalID({
-          ...(this.options as { relayOptions?: { idFieldOptions?: object } }).relayOptions
+          ...(this.options as { relay?: { idFieldOptions?: object } }).relay
             ?.idFieldOptions,
           ...idOptions,
           nullable: false,
