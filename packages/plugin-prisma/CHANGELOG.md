@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.2
+
+### Patch Changes
+
+- 2f91f2b: Fix ref relay options in plugin-prisma
+
 ## 4.2.1
 
 ### Patch Changes
