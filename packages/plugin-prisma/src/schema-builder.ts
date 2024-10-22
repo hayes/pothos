@@ -125,7 +125,6 @@ schemaBuilderProto.prismaNode = function prismaNode(
   }: PrismaNodeOptions<SchemaTypes, PrismaModelTypes, [], never, {}, {}, undefined>,
 ) {
   const fieldName = field as unknown as string;
-  const interfaceRef = this.nodeInterfaceRef?.();
   const resolve = rawResolve ?? getDefaultIDSerializer(type, fieldName, this);
   const idParser = fieldName ? getDefaultIDParser(type, fieldName, this) : undefined;
   const typeName = variant ?? name ?? type;
@@ -135,16 +134,20 @@ schemaBuilderProto.prismaNode = function prismaNode(
         rawFindUnique(resolve(parent as never, context) as string, context)
     : ModelLoader.getFindUniqueForField(nodeRef, type, fieldName, this);
 
-  if (!interfaceRef) {
-    throw new PothosError('builder.prismaNode requires @pothos/plugin-relay to be installed');
-  }
-
   const extendedOptions = {
     ...options,
     name,
     variant,
-    interfaces: [interfaceRef],
     findUnique,
+  };
+
+  const ref = this.prismaObject(type, extendedOptions as never);
+
+  (this as typeof this & { nodeRef: (ref: unknown, options: unknown) => unknown }).nodeRef(ref, {
+    id: {
+      ...idOptions,
+      resolve: (parent: never, _args: object, context: object) => resolve(parent, context),
+    },
     loadWithoutCache: async (
       id: string,
       context: SchemaTypes['Context'],
@@ -168,37 +171,6 @@ schemaBuilderProto.prismaNode = function prismaNode(
 
       return record;
     },
-  };
-
-  const ref = this.prismaObject(type, extendedOptions as never);
-
-  if (options.interfaces) {
-    ref.addInterfaces(options.interfaces);
-  }
-
-  this.configStore.onTypeConfig(ref, (nodeConfig) => {
-    this.objectField(
-      ref,
-      (this.options as { relayOptions?: { idFieldName?: string } }).relayOptions?.idFieldName ??
-        'id',
-      (t) =>
-        (
-          t as unknown as {
-            globalID: (options: Record<string, unknown>) => FieldRef<SchemaTypes, unknown>;
-          }
-        ).globalID({
-          ...(this.options as { relayOptions?: { idFieldOptions?: object } }).relayOptions
-            ?.idFieldOptions,
-          ...idOptions,
-          nullable: false,
-          args: {},
-          resolve: (parent: never, _args: object, context: object) =>
-            completeValue(resolve(parent, context), (id) => ({
-              type: nodeConfig.name,
-              id,
-            })),
-        }),
-    );
   });
 
   this.configStore.associateParamWithRef(nodeRef, ref);
