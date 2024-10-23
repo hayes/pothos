@@ -111,7 +111,7 @@ const PostFilter = builder.prismaWhere('Post', {
 builder.queryField('posts', (t) =>
   t.prismaField({
     type: ['Post'],
-    args: { filter: t.arg({ type: PostFilter }), order: t.arg({ type: PostOrderBy }) },
+    args: { filter: t.arg({ type: PostFilter }), order: t.arg({ type: [PostOrderBy] }) },
     resolve: (query, _, args) =>
       prisma.post.findMany({
         ...query,

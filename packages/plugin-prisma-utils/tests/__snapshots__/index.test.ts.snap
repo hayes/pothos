@@ -104,7 +104,7 @@ input ProfileOrderBy {
 
 type Query {
   post(list: StringListFilter, title: StringFilter): Post
-  posts(filter: PostFilter, order: PostOrderBy): [Post!]
+  posts(filter: PostFilter, order: [PostOrderBy!]): [Post!]
 }
 
 input StringFilter {

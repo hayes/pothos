@@ -23,7 +23,7 @@ describe('prisma utils', () => {
     const query = gql`
       query {
         posts(
-          order: { author: { name: Desc, profile: null } }
+          order: [{ author: { name: Desc, profile: null } }, {id: Asc }]
           filter: { id: { not: { equals: 11 } } }
         ) {
           id
@@ -54,13 +54,13 @@ describe('prisma utils', () => {
               "author": {
                 "name": "Schuyler Bergnaum",
               },
-              "id": "28",
+              "id": "27",
             },
             {
               "author": {
                 "name": "Schuyler Bergnaum",
               },
-              "id": "27",
+              "id": "28",
             },
           ],
         },
@@ -75,12 +75,17 @@ describe('prisma utils', () => {
             "include": {
               "author": true,
             },
-            "orderBy": {
-              "author": {
-                "name": "desc",
-                "profile": undefined,
+            "orderBy": [
+              {
+                "author": {
+                  "name": "desc",
+                  "profile": undefined,
+                },
               },
-            },
+              {
+                "id": "asc",
+              },
+            ],
             "take": 3,
             "where": {
               "id": {
