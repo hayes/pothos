@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.1
+
+### Patch Changes
+
+- 71a722a: Handle async subsdcribe methods
+
 ## 4.1.0
 
 ### Minor Changes
