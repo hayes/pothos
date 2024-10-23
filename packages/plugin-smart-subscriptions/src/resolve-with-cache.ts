@@ -36,7 +36,11 @@ export default function resolveWithCache<Types extends SchemaTypes>(
   function cacheResult(result: unknown) {
     const cacheNode = cache.add(info, key, canRefetch, result);
 
-    subscribe?.(cacheNode.managerForField(), parent, args, context, info);
+    const sub = subscribe?.(cacheNode.managerForField(), parent, args, context, info);
+
+    if (isThenable(sub)) {
+      return sub.then(() => result);
+    }
 
     return result;
   }
