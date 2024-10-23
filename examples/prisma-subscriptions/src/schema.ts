@@ -51,10 +51,11 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, _root, args) =>
-        db.post.findUnique({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-        }),
+        db.post.findUnique(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+          }),
+        ),
     }),
     posts: t.prismaField({
       type: ['Post'],
@@ -63,11 +64,12 @@ builder.queryType({
         skip: t.arg.int(),
       },
       resolve: (query, _root, args) =>
-        db.post.findMany({
-          ...query,
-          take: args.take ?? DEFAULT_PAGE_SIZE,
-          skip: args.skip ?? 0,
-        }),
+        db.post.findMany(
+          query({
+            take: args.take ?? DEFAULT_PAGE_SIZE,
+            skip: args.skip ?? 0,
+          }),
+        ),
     }),
     user: t.prismaField({
       type: 'User',
@@ -76,10 +78,11 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, _root, args) =>
-        db.user.findUnique({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-        }),
+        db.user.findUnique(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+          }),
+        ),
     }),
   }),
 });
@@ -94,16 +97,17 @@ builder.mutationType({
         authorId: t.arg.id({ required: true }),
       },
       resolve: async (query, _root, args, ctx) => {
-        const post = await db.post.create({
-          ...query,
-          data: {
-            title: args.title,
-            content: args.content,
-            author: {
-              connect: { id: Number.parseInt(String(args.authorId), 10) },
+        const post = await db.post.create(
+          query({
+            data: {
+              title: args.title,
+              content: args.content,
+              author: {
+                connect: { id: Number.parseInt(String(args.authorId), 10) },
+              },
             },
-          },
-        });
+          }),
+        );
 
         ctx.pubsub.publish('post', post.id, {
           mutationType: MutationType.CREATED,
@@ -122,14 +126,15 @@ builder.mutationType({
         content: t.arg.string(),
       },
       resolve: async (query, _root, args, ctx) => {
-        const post = await db.post.update({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-          data: {
-            title: args.title ?? undefined,
-            content: args.content ?? undefined,
-          },
-        });
+        const post = await db.post.update(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+            data: {
+              title: args.title ?? undefined,
+              content: args.content ?? undefined,
+            },
+          }),
+        );
 
         ctx.pubsub.publish('post', post.id, {
           mutationType: MutationType.UPDATED,
@@ -146,10 +151,11 @@ builder.mutationType({
         id: t.arg.id({ required: true }),
       },
       resolve: async (query, _root, args, ctx) => {
-        const post = await db.post.delete({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-        });
+        const post = await db.post.delete(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+          }),
+        );
 
         ctx.pubsub.publish('post', post.id, {
           mutationType: MutationType.DELETED,
@@ -166,13 +172,14 @@ builder.mutationType({
         lastName: t.arg.string({ required: true }),
       },
       resolve: async (query, _root, args, ctx) => {
-        const user = await db.user.create({
-          ...query,
-          data: {
-            firstName: args.firstName,
-            lastName: args.lastName,
-          },
-        });
+        const user = await db.user.create(
+          query({
+            data: {
+              firstName: args.firstName,
+              lastName: args.lastName,
+            },
+          }),
+        );
 
         ctx.pubsub.publish('user', user.id, {
           mutationType: MutationType.CREATED,
@@ -191,14 +198,15 @@ builder.mutationType({
         lastName: t.arg.string(),
       },
       resolve: async (query, _root, args, ctx) => {
-        const user = await db.user.update({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-          data: {
-            firstName: args.firstName ?? undefined,
-            lastName: args.lastName ?? undefined,
-          },
-        });
+        const user = await db.user.update(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+            data: {
+              firstName: args.firstName ?? undefined,
+              lastName: args.lastName ?? undefined,
+            },
+          }),
+        );
 
         ctx.pubsub.publish('user', user.id, {
           mutationType: MutationType.UPDATED,
@@ -215,10 +223,11 @@ builder.mutationType({
         id: t.arg.id({ required: true }),
       },
       resolve: async (query, _root, args, ctx) => {
-        const user = await db.user.delete({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-        });
+        const user = await db.user.delete(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+          }),
+        );
 
         ctx.pubsub.publish('user', user.id, {
           mutationType: MutationType.DELETED,
@@ -250,10 +259,11 @@ SubscriptionPostEvent.implement({
       type: 'Post',
       nullable: true,
       resolve: (query, event) =>
-        db.post.findUnique({
-          ...query,
-          where: { id: event.post.id },
-        }),
+        db.post.findUnique(
+          query({
+            where: { id: event.post.id },
+          }),
+        ),
     }),
   }),
 });
@@ -267,10 +277,11 @@ SubscriptionUserEvent.implement({
       type: 'User',
       nullable: true,
       resolve: (query, event) =>
-        db.user.findUnique({
-          ...query,
-          where: { id: event.user.id },
-        }),
+        db.user.findUnique(
+          query({
+            where: { id: event.user.id },
+          }),
+        ),
     }),
   }),
 });
