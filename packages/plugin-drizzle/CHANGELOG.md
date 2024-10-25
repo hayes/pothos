@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.5.0
+
+### Minor Changes
+
+- aadc82c: export client cache so it can be reset during request
+
 ## 0.4.7
 
 ### Patch Changes

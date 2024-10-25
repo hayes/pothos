@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- aadc82c: export client cache so it can be reset during request
+
 ## 4.2.2
 
 ### Patch Changes
