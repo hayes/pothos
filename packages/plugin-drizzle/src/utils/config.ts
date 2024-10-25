@@ -72,19 +72,21 @@ const configCache = createContextCache(
   },
 );
 
-const clientCache = createContextCache((builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => {
-  const clientConfig = builder.options.drizzle.client;
-  const getClient =
-    typeof clientConfig === 'function'
-      ? createContextCache((ctx) => clientConfig(ctx))
-      : (_ctx: object) => clientConfig;
+export const drizzleClientCache = createContextCache(
+  (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => {
+    const clientConfig = builder.options.drizzle.client;
+    const getClient =
+      typeof clientConfig === 'function'
+        ? createContextCache((ctx) => clientConfig(ctx))
+        : (_ctx: object) => clientConfig;
 
-  return createContextCache((context: object) => {
-    const client = getClient(context);
+    return createContextCache((context: object) => {
+      const client = getClient(context);
 
-    return client;
-  });
-});
+      return client;
+    });
+  },
+);
 
 export function getSchemaConfig<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -96,5 +98,5 @@ export function getClient<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
 ) {
-  return clientCache(builder as never)(context);
+  return drizzleClientCache(builder as never)(context);
 }

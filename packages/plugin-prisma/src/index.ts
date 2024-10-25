@@ -19,6 +19,7 @@ import { getModel, getRefFromModel } from './util/datamodel';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
 import { queryFromInfo } from './util/map-query';
 
+export { prismaClientCache } from './util/get-client';
 export { prismaConnectionHelpers } from './connection-helpers';
 export { PrismaInterfaceRef } from './interface-ref';
 export { PrismaNodeRef } from './node-ref';

@@ -17,6 +17,7 @@ import {
   remapFromGraphQLSingleInput,
 } from './utils/drizzle-graphql';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
+export { drizzleClientCache } from './utils/config';
 
 export * from './types';
 

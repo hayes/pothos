@@ -40,7 +40,7 @@ export interface RuntimeDataModel {
   >;
 }
 
-const prismaClientCache = createContextCache(
+export const prismaClientCache = createContextCache(
   (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
     createContextCache((context: object) =>
       typeof builder.options.prisma.client === 'function'
