@@ -39,8 +39,6 @@ export class ModelLoader {
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
-  delegate: PrismaDelegate;
-
   tick = Promise.resolve();
 
   constructor(
@@ -53,10 +51,6 @@ export class ModelLoader {
     this.builder = builder;
     this.findUnique = findUnique;
     this.modelName = modelName;
-    this.delegate = getDelegateFromModel(
-      getClient(this.builder, this.context as never),
-      this.modelName,
-    );
   }
 
   static forRef<Types extends SchemaTypes>(
@@ -285,6 +279,11 @@ export class ModelLoader {
   }
 
   async initLoad(state: SelectionState, initialModel: {}) {
+    const delegate = getDelegateFromModel(
+      getClient(this.builder, this.context as never),
+      this.modelName,
+    );
+
     const models = new Map<object, ResolvablePromise<Record<string, unknown> | null>>();
 
     const promise = createResolvablePromise<Record<string, unknown> | null>();
@@ -302,15 +301,15 @@ export class ModelLoader {
       this.staged.delete(entry);
 
       for (const [model, { resolve, reject }] of entry.models) {
-        if (this.delegate.findUniqueOrThrow) {
-          this.delegate
+        if (delegate.findUniqueOrThrow) {
+          delegate
             .findUniqueOrThrow({
               ...selectionToQuery(state),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
         } else {
-          this.delegate
+          delegate
             .findUnique({
               rejectOnNotFound: true,
               ...selectionToQuery(state),
