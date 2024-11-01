@@ -36,7 +36,6 @@ export class ModelLoader {
   table: TableRelationalConfig;
   columns: Column[];
   selectSQL;
-  client: DrizzleClient;
 
   constructor(
     context: object,
@@ -54,8 +53,6 @@ export class ModelLoader {
       this.columns.length > 1
         ? sql`(${sql.join(this.columns, sql`, `)})`
         : this.columns[0].getSQL();
-
-    this.client = getClient(builder, context);
   }
 
   static forModel<Types extends SchemaTypes>(
@@ -166,11 +163,12 @@ export class ModelLoader {
     this.staged.add(entry);
 
     const nextTick = createResolvablePromise<void>();
+    const client = getClient(this.builder, this.context);
 
     nextTick.promise
       .then(() => {
         const api = (
-          this.client.query as Record<
+          client.query as Record<
             string,
             { findMany: (...args: unknown[]) => Promise<Record<string, unknown>[]> }
           >
