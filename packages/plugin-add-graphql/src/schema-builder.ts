@@ -150,7 +150,9 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
           args,
           description: field.description ?? undefined,
           deprecationReason: field.deprecationReason ?? undefined,
+          extensions: field.extensions,
           resolve: (field.resolve ?? defaultFieldResolver) as never,
+          ...(field.subscribe ? { subscribe: field.subscribe } : {}),
         });
       }
 
@@ -219,6 +221,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
           description: field.description ?? undefined,
           deprecationReason: field.deprecationReason ?? undefined,
           resolve: field.resolve as never,
+          extensions: field.extensions,
         });
       }
 
