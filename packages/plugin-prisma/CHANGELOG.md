@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.1
+
+### Patch Changes
+
+- 52a70e9: Load client when db request is initialized rather than caching on model loader
+
 ## 4.3.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 4.2.1
+
+### Patch Changes
+
+- 7a4fa4c: Fix added subscription fields with custom subscribe method
+
 ## 4.2.0
 
 ### Minor Changes
