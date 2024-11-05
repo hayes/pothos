@@ -10,8 +10,8 @@ import type {
   TypeParam,
 } from '@pothos/core';
 
-import type { PothosSubGraphPlugin } from '.';
 import type { GraphQLNamedType } from 'graphql';
+import type { PothosSubGraphPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
