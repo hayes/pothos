@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.2.0
+
+### Minor Changes
+
+- de28b57: expose hasResolvableKey helper
+
 ## 4.1.0
 
 ### Minor Changes
