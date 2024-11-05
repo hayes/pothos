@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- de28b57: Add explicitlyIncludeType option to subGraph options
+
 ## 4.1.0
 
 ### Minor Changes
