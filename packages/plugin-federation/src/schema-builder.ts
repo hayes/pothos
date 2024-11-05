@@ -18,7 +18,7 @@ import { entityMapping, getUsedDirectives, mergeDirectives } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-function hasResolvableKey(type: GraphQLNamedType) {
+export function hasResolvableKey(type: GraphQLNamedType) {
   if (Array.isArray(type.extensions?.directives)) {
     return type.extensions?.directives.some(
       (d: { name: string; args: Record<string, unknown> }) =>

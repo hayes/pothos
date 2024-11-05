@@ -11,6 +11,7 @@ import type {
 } from '@pothos/core';
 
 import type { PothosSubGraphPlugin } from '.';
+import type { GraphQLNamedType } from 'graphql';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -81,6 +82,10 @@ declare global {
         defaultForTypes?: Types['SubGraphs'][];
         defaultForFields?: Types['SubGraphs'][];
         fieldsInheritFromTypes?: boolean;
+        explicitlyIncludeType?: (
+          type: GraphQLNamedType,
+          subGraphs: Types['SubGraphs'][],
+        ) => boolean;
       };
     }
 

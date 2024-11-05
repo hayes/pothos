@@ -171,6 +171,13 @@ type Human implements Character {
   name: String!
 }
 
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
 type Query {
   droid(
     """id of the character"""

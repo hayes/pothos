@@ -19,6 +19,7 @@ export default new SchemaBuilder<Types>({
   subGraphs: {
     fieldsInheritFromTypes: true,
     defaultForTypes: ['Private'],
+    explicitlyIncludeType: (type) => type.name === 'PageInfo',
   },
   errorOptions: {
     defaultTypes: [],

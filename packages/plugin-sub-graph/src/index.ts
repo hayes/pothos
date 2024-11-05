@@ -41,7 +41,11 @@ function intersect(left: string[], right: string[]) {
 }
 
 export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  static createSubGraph(schema: GraphQLSchema, subGraph: string[] | string) {
+  static createSubGraph<Types extends SchemaTypes>(
+    schema: GraphQLSchema,
+    subGraph: string[] | string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ) {
     const subGraphs = Array.isArray(subGraph) ? subGraph : [subGraph];
 
     const config = schema.toConfig();
@@ -86,7 +90,10 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
       subscription: newTypes.get('Subscription') as GraphQLObjectType,
       // Explicitly include types that implement an interface that can be resolved in the subGraph
       types: [...newTypes.values()].filter(
-        (type) => (isObjectType(type) || isInterfaceType(type)) && hasReturnedInterface(type),
+        (type) =>
+          builder.options.subGraphs?.explicitlyIncludeType?.(type, [subGraph].flat()) ||
+          ((isObjectType(type) || isInterfaceType(type)) &&
+            hasReturnedInterface(type as GraphQLInterfaceType | GraphQLObjectType)),
       ),
     });
   }
@@ -284,7 +291,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
 
   override afterBuild(schema: GraphQLSchema) {
     if (this.options.subGraph) {
-      return PothosSubGraphPlugin.createSubGraph(schema, this.options.subGraph);
+      return PothosSubGraphPlugin.createSubGraph(schema, this.options.subGraph, this.builder);
     }
 
     return schema;
