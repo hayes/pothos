@@ -13,15 +13,15 @@ export function rejectErrors<T>(
 }
 
 export function loadAndSort<K, V, C, LoadResult, Args = never>(
-  load: (keys: K[], context: C, args: Args) => MaybePromise<LoadResult>,
+  load: (keys: K[], context: C, args: Args, info: GraphQLResolveInfo) => MaybePromise<LoadResult>,
   toKey: false | ((val: V) => K) | undefined,
 ) {
   if (!toKey) {
     return load;
   }
 
-  return async (keys: K[], context: C, args: Args) => {
-    const list = await load(keys, context, args);
+  return async (keys: K[], context: C, args: Args, info: GraphQLResolveInfo) => {
+    const list = await load(keys, context, args, info);
     const map = new Map<K, V>();
     const results = new Array<V | null>();
 
@@ -61,7 +61,12 @@ export function dataloaderGetter<K, V, C>(
 
 export function pathDataloaderGetter<K, V, C, Args>(
   loaderOptions: Options<K, V, C> | undefined,
-  load: (keys: K[], context: SchemaTypes['Context'], args: Args) => Promise<readonly (Error | V)[]>,
+  load: (
+    keys: K[],
+    context: SchemaTypes['Context'],
+    args: Args,
+    info: GraphQLResolveInfo,
+  ) => Promise<readonly (Error | V)[]>,
   toKey: ((val: V) => K) | undefined,
   sort: boolean | ((val: V) => K) | undefined,
   byPath?: boolean,
@@ -72,6 +77,7 @@ export function pathDataloaderGetter<K, V, C, Args>(
     keys: readonly K[],
     context: SchemaTypes['Context'],
     args: Args,
+    info: GraphQLResolveInfo,
   ) => Promise<V[]>;
 
   return (args: Args, ctx: SchemaTypes['Context'], info: GraphQLResolveInfo) => {
@@ -79,7 +85,7 @@ export function pathDataloaderGetter<K, V, C, Args>(
     const map = cache(ctx);
 
     if (!map.has(key)) {
-      map.set(key, new DataLoader<K, V, C>((keys) => loader(keys, ctx, args), loaderOptions));
+      map.set(key, new DataLoader<K, V, C>((keys) => loader(keys, ctx, args, info), loaderOptions));
     }
 
     return map.get(key)!;

@@ -21,6 +21,7 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type DataLoader from 'dataloader';
+import type { GraphQLResolveInfo } from 'graphql';
 
 export type DataloaderKey = bigint | number | string;
 
@@ -44,6 +45,7 @@ export type LoadableFieldOptions<
     keys: Key[],
     context: Types['Context'],
     args: false extends ByPath ? never : InputShapeFromFields<Args>,
+    info: false extends ByPath ? never : GraphQLResolveInfo,
   ) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
   sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
@@ -85,6 +87,7 @@ export type LoadableListFieldOptions<
     keys: Key[],
     context: Types['Context'],
     args: false extends ByPath ? never : InputShapeFromFields<Args>,
+    info: false extends ByPath ? never : GraphQLResolveInfo,
   ) => Promise<readonly (Error | ShapeFromTypeParam<Types, [Type], Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, [Type], Nullable>, CacheKey>;
   sort?: (value: ShapeFromTypeParam<Types, [Type], false>) => Key;
@@ -118,6 +121,7 @@ export type LoadableGroupFieldOptions<
     keys: Key[],
     context: Types['Context'],
     args: false extends ByPath ? never : InputShapeFromFields<Args>,
+    info: false extends ByPath ? never : GraphQLResolveInfo,
   ) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;
   loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, Type, true>[], CacheKey>;
   group: (value: ShapeFromTypeParam<Types, Type, false>) => Key;

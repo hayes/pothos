@@ -56,7 +56,7 @@ fieldBuilderProto.loadable = function loadable<
     InputShapeFromFields<Args>
   >(
     loaderOptions,
-    (keys, ctx, args) => load(keys, ctx, args as never),
+    (keys, ctx, args, info) => load(keys, ctx, args as never, info as never),
     undefined,
     sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key,
     byPath,
@@ -124,7 +124,7 @@ fieldBuilderProto.loadableList = function loadableList<
     InputShapeFromFields<Args>
   >(
     loaderOptions,
-    (keys, ctx, args) => load(keys, ctx, args as never),
+    (keys, ctx, args, info) => load(keys, ctx, args as never, info as never),
     undefined,
     sort as (value: ShapeFromTypeParam<SchemaTypes, [Type], Nullable>) => Key,
     byPath,
@@ -183,8 +183,8 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
     InputShapeFromFields<Args>
   >(
     loaderOptions,
-    async (keys, ctx, args) => {
-      const values = await load(keys, ctx, args as never);
+    async (keys, ctx, args, info) => {
+      const values = await load(keys, ctx, args as never, info as never);
       const groups = new Map<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[]>();
 
       for (const value of values) {
