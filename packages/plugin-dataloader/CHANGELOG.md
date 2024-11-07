@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- 10e364c: expose info when using byPath
+
 ## 4.2.0
 
 ### Minor Changes
