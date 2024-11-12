@@ -178,7 +178,7 @@ export class ModelLoader {
           ...selectionToQuery(selection),
           where: inArray(
             this.selectSQL,
-            [entry.models.keys()].map(([model]) => this.sqlForModel(model)),
+            [...entry.models.keys()].map((model) => this.sqlForModel(model)),
           ),
         });
 
