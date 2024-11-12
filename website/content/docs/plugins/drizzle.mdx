@@ -43,6 +43,7 @@ const builder = new SchemaBuilder<PothosTypes>({
   plugins: [DrizzlePlugin],
   drizzle: {
     client: db,
+    schema
   },
 });
 ```
@@ -57,7 +58,7 @@ import * as schema from './schema';
 import { drizzle } from 'drizzle-orm/...';
 import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
-import RelayPlugin from '@pothos/plugin-scope-auth';
+import RelayPlugin from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
 
 const db = drizzle(client, { schema });
