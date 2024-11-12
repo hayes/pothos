@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.5.2
+
+### Patch Changes
+
+- c71b6bd: fix: drizzle plugin model loader when multiple models are requested
+
 ## 0.5.1
 
 ### Patch Changes
