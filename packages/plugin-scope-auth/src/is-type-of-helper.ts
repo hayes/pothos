@@ -16,14 +16,19 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
       ? globalUnauthorizedError(parent, context, info, result)
       : result.message;
 
-  return (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+  return (
+    parent: unknown,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+    abortSignal: AbortSignal | undefined,
+  ) => {
     const cache = RequestCache.fromContext(context, plugin.builder);
 
     function runSteps(index: number): MaybePromise<boolean> {
       for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
 
-        const stepResult = run(cache, parent, {}, context, info, () => {});
+        const stepResult = run(cache, parent, {}, context, info, abortSignal, () => {});
 
         if (isThenable(stepResult)) {
           return stepResult.then((result) => {

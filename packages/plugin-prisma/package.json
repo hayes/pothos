@@ -73,7 +73,7 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "@prisma/client": "*",
-    "graphql": ">=16.6.0",
+    "graphql": "canary-pr-4288",
     "typescript": ">=4.7.2"
   },
   "devDependencies": {
@@ -84,7 +84,7 @@
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^5.19.1",
-    "graphql": ">=16.6.0",
+    "graphql": "canary-pr-4288",
     "graphql-scalars": "^1.23.0",
     "graphql-tag": "^2.12.6",
     "prisma": "^5.19.1",

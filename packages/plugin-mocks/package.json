@@ -38,12 +38,12 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "canary-pr-4288"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": ">=16.6.0",
+    "graphql": "canary-pr-4288",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

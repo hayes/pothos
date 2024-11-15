@@ -1,4 +1,4 @@
-import { PothosValidationError } from '@pothos/core';
+import { PartialResolveInfo, PothosValidationError } from '@pothos/core';
 import {
   type DocumentNode,
   type GraphQLResolveInfo,
@@ -46,10 +46,11 @@ export function complexityFromQuery(
     throw new PothosValidationError(`No root type found for operation ${operation.operation}`);
   }
 
-  const info = {
+  const info: PartialResolveInfo = {
     schema: options.schema,
     fragments,
-    variableValues: options.variables ?? {},
+    // TODO: get sources!
+    variableValues: { sources: {}, coerced: options.variables ?? {} },
   };
 
   return complexityFromSelectionSet(options.ctx ?? {}, info, operation.selectionSet, rootType);

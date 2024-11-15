@@ -404,7 +404,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
             }
           : {}),
       },
-      resolve: (root, fieldArgs, context, info) => {
+      resolve: (root, fieldArgs, context, info, abortSignal) => {
         if (inputRef) {
           mutationIdCache(context).set(
             String(info.path.key),
@@ -413,7 +413,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
           );
         }
 
-        return resolve(root, fieldArgs as never, context, info);
+        return resolve(root, fieldArgs as never, context, info, abortSignal);
       },
     }),
   );

@@ -45,6 +45,7 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
+  abortSignal: AbortSignal | undefined,
 ) => [Type] extends [readonly (infer Item)[] | null | undefined]
   ? ListResolveValue<Type, Item, Return>
   : MaybePromise<Type>;
@@ -68,6 +69,7 @@ export type Subscriber<Parent, Args, Context, Shape> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
+  abortSignal: AbortSignal | undefined,
 ) => MaybePromise<AsyncIterable<Shape>>;
 
 export type EnumValues<Types extends SchemaTypes> = EnumValueConfigMap<Types> | readonly string[];

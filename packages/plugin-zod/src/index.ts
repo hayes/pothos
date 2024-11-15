@@ -120,7 +120,7 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
         }
       };
 
-    return async (parent, rawArgs, context, info) =>
+    return async (parent, rawArgs, context, info, abortSignal) =>
       resolver(
         parent,
         (await (validatorWithErrorHandling
@@ -128,6 +128,7 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
           : validator.parseAsync(rawArgs))) as object,
         context,
         info,
+        abortSignal,
       );
   }
 

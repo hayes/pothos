@@ -31,8 +31,8 @@ export function addNodeProperties<Types extends SchemaTypes, T, P = T, IDShape =
       ...builder.options.relay?.idFieldOptions,
       ...options.id,
       args: {},
-      resolve: (parent, args, context, info) =>
-        completeValue(options.id.resolve(parent, args, context, info), (globalId) => ({
+      resolve: (parent, args, context, info, abortSignal) =>
+        completeValue(options.id.resolve(parent, args, context, info, abortSignal), (globalId) => ({
           type: name,
           id: globalId,
         })),

@@ -15,9 +15,9 @@ export const builder = new SchemaBuilder<{
     default: (config) =>
       isRootField(config) ||
       (!isExposedField(config) && !isScalarField(config) && !isEnumField(config)),
-    wrap: (resolver) => (source, args, ctx, info) =>
+    wrap: (resolver) => (source, args, ctx, info, abortSignal) =>
       runFunction(
-        () => resolver(source, args, ctx, info),
+        () => resolver(source, args, ctx, info, abortSignal),
         (error, duration) => {
           if (error) {
             ctx.log(

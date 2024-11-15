@@ -17,7 +17,7 @@
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/plugin-federation": "workspace:*",
     "@prisma/client": "^5.19.1",
-    "graphql": "^16.8.1",
+    "graphql": "canary-pr-4288",
     "prisma": "^5.19.1"
   },
   "publishConfig": {

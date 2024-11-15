@@ -39,7 +39,7 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "dataloader": "2",
-    "graphql": ">=16.6.0"
+    "graphql": "canary-pr-4288"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
@@ -47,7 +47,7 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "dataloader": "^2.2.2",
-    "graphql": "^16.8.1",
+    "graphql": "canary-pr-4288",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

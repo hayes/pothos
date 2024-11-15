@@ -27,13 +27,16 @@
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-zod": "workspace:*",
     "@prisma/client": "^5.19.1",
-    "graphql": "^16.8.1",
+    "graphql": "canary-pr-4288",
     "graphql-scalars": "^1.23.0",
     "graphql-yoga": "5.7.0",
     "prisma": "^5.19.1",
     "react": "^18.3.1",
     "urql": "^4.1.0",
     "zod": "^3.23.8"
+  },
+  "overrides": {
+    "graphql": "canary-pr-4288"
   },
   "publishConfig": {
     "access": "public"

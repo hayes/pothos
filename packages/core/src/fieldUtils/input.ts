@@ -141,6 +141,7 @@ export class InputFieldBuilder<
               description: opts.description,
               deprecationReason: opts.deprecationReason,
               defaultValue: opts.defaultValue,
+              defaultValueLiteral: opts.defaultValueLiteral,
               extensions: opts.extensions ?? {},
             };
           })
@@ -162,6 +163,7 @@ export class InputFieldBuilder<
               description: opts.description,
               deprecationReason: opts.deprecationReason,
               defaultValue: opts.defaultValue,
+              defaultValueLiteral: opts.defaultValueLiteral,
               extensions: opts.extensions ?? {},
             };
           });

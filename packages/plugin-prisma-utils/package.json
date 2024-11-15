@@ -48,7 +48,7 @@
     "@pothos/core": "*",
     "@pothos/plugin-prisma": "*",
     "@prisma/client": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "canary-pr-4288"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
@@ -56,7 +56,7 @@
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^5.19.1",
-    "graphql": ">=16.6.0",
+    "graphql": "canary-pr-4288",
     "graphql-scalars": "^1.23.0",
     "graphql-tag": "^2.12.6",
     "prettier": "^3.3.3",

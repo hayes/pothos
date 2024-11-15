@@ -18,7 +18,7 @@ export function getFieldSubscribe<Types extends SchemaTypes>(
 
   if (field.kind === 'Subscription' && plugin.smartSubscriptionsToQueryField.has(field.name)) {
     return plugin.smartSubscriptionsToQueryField.get(field.name)!
-      .subscribe as FieldSubscriber<Types>;
+      .subscribe as unknown as FieldSubscriber<Types>;
   }
 
   return null;

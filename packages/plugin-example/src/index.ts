@@ -56,10 +56,10 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
     // biome-ignore lint/correctness/noUnusedVariables: <explanation>
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    return (parent, args, context, info) => {
+    return (parent, args, context, info, abortSignal) => {
       console.log(`Resolving ${info.parentType}.${info.fieldName}`);
 
-      return resolver(parent, args, context, info);
+      return resolver(parent, args, context, info, abortSignal);
     };
   }
 

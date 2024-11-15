@@ -62,9 +62,9 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
     }
 
     if (isList) {
-      return (parent, args, context, info) => {
+      return (parent, args, context, info, abortSignal) => {
         const loader = getDataloader(context);
-        const promiseOrResults = resolver(parent, args, context, info) as MaybePromise<
+        const promiseOrResults = resolver(parent, args, context, info, abortSignal) as MaybePromise<
           unknown[] | null | undefined
         >;
 
@@ -76,8 +76,8 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
       };
     }
 
-    return (parent, args, context, info) =>
-      loadIfID(resolver(parent, args, context, info), getDataloader(context));
+    return (parent, args, context, info, abortSignal) =>
+      loadIfID(resolver(parent, args, context, info, abortSignal), getDataloader(context));
   }
 }
 

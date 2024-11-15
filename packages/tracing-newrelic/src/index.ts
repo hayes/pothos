@@ -16,7 +16,7 @@ export function createNewrelicWrapper<T>(options?: NewRelicWrapperOptions) {
     _fieldOptions?: T,
     tracingOptions?: NewRelicWrapperOptions,
   ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
-    (source, args, ctx, info) =>
+    (source, args, ctx, info, abortSignal) =>
       newrelic.startSegment('graphql.resolve', true, () => {
         newrelic.addCustomSpanAttributes({
           [AttributeNames.FIELD_NAME]: info.fieldName,
@@ -32,6 +32,6 @@ export function createNewrelicWrapper<T>(options?: NewRelicWrapperOptions) {
           newrelic.addCustomSpanAttribute(AttributeNames.FIELD_ARGS, JSON.stringify(args, null, 2));
         }
 
-        return resolver(source, args, ctx, info);
+        return resolver(source, args, ctx, info, abortSignal);
       });
 }

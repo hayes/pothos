@@ -49,4 +49,5 @@ export type FieldSubscriber<Types extends SchemaTypes> = (
   args: {},
   context: object,
   info: GraphQLResolveInfo,
+  abortSignal: AbortSignal | undefined,
 ) => void;

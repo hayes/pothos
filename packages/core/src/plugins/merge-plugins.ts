@@ -76,7 +76,7 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
     if (fieldConfig.argMappers.length) {
       const argMappers = fieldConfig.argMappers;
 
-      return (parent, args, context, info) => {
+      return (parent, args, context, info, abortSignal) => {
         const mappedArgs = argMappers.reduce(
           (acc, argMapper) => {
             return argMapper(acc, context, info);
@@ -84,7 +84,7 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
           args as Record<string, unknown>,
         );
 
-        return wrapped(parent, mappedArgs, context, info);
+        return wrapped(parent, mappedArgs, context, info, abortSignal);
       };
     }
 
@@ -105,7 +105,7 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
     }
 
     const argMappers = fieldConfig.argMappers;
-    return (parent, args, context, info) => {
+    return (parent, args, context, info, abortSignal) => {
       const mappedArgs = argMappers.reduce(
         (acc, argMapper) => {
           return argMapper(acc, context, info);
@@ -113,7 +113,7 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
         args as Record<string, unknown>,
       );
 
-      return wrapped(parent, mappedArgs, context, info);
+      return wrapped(parent, mappedArgs, context, info, abortSignal);
     };
   }
 

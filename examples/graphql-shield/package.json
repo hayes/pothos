@@ -11,7 +11,7 @@
   "dependencies": {
     "@faker-js/faker": "^9.0.0",
     "@pothos/core": "workspace:*",
-    "graphql": "^16.8.1",
+    "graphql": "canary-pr-4288",
     "graphql-middleware": "^6.1.35",
     "graphql-shield": "^7.6.5",
     "graphql-yoga": "5.7.0"

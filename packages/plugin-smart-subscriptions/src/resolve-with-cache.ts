@@ -12,6 +12,7 @@ export default function resolveWithCache<Types extends SchemaTypes>(
   args: object,
   context: object,
   info: GraphQLResolveInfo,
+  abortSignal: AbortSignal | undefined,
 ) {
   const key = cache.cacheKey(info.path);
 
@@ -31,12 +32,12 @@ export default function resolveWithCache<Types extends SchemaTypes>(
     }
   }
 
-  const resultOrPromise = resolve(parent, args, context, info);
+  const resultOrPromise = resolve(parent, args, context, info, abortSignal);
 
   function cacheResult(result: unknown) {
     const cacheNode = cache.add(info, key, canRefetch, result);
 
-    const sub = subscribe?.(cacheNode.managerForField(), parent, args, context, info);
+    const sub = subscribe?.(cacheNode.managerForField(), parent, args, context, info, abortSignal);
 
     if (isThenable(sub)) {
       return sub.then(() => result);

@@ -47,7 +47,7 @@ function wrapResolver<Types extends SchemaTypes>(
   }
 
   if (typeof tracingOptions === 'function') {
-    return (source, args, ctx, info) => {
+    return (source, args, ctx, info, abortSignal) => {
       const options = (
         tracingOptions as (
           parent: unknown,
@@ -58,10 +58,16 @@ function wrapResolver<Types extends SchemaTypes>(
       )(source, args, ctx, info);
 
       if (options === null || options === false) {
-        return resolver(source, args, ctx, info);
+        return resolver(source, args, ctx, info, abortSignal);
       }
 
-      return wrap(resolver, options as never, fieldConfig)(source, args as {}, ctx, info);
+      return wrap(resolver, options as never, fieldConfig)(
+        source,
+        args as {},
+        ctx,
+        info,
+        abortSignal,
+      );
     };
   }
 
