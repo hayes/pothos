@@ -169,6 +169,7 @@ type Query {
   forAsyncPermission: String
   forAsyncPermissionFn(permission: String): String
   forBooleanFn(result: Boolean!): String
+  forBoundPermission: String
   forSyncPermission: String
   forSyncPermissionFn(permission: String): String
   grantedFromRoot: String

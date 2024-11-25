@@ -441,6 +441,12 @@ builder.queryType({
       },
       resolve: () => 'ok',
     }),
+    forBoundPermission: t.string({
+      authScopes: {
+        boundPermission: true,
+      },
+      resolve: () => 'ok',
+    }),
     forAll: t.string({
       authScopes: {
         $all: {
