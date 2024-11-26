@@ -64,7 +64,7 @@ const builder = new SchemaBuilder<{
         },
         boundPermission(this: AuthScopes) {
           return this.admin;
-        }
+        },
       };
     },
   },
