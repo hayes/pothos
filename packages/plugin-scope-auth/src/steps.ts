@@ -101,8 +101,8 @@ export function createResolveStep<Types extends SchemaTypes>(
   return {
     errorMessage: (_parent, _args, _context, info) =>
       `Unknown issue resolving ${info.parentType}.${info.fieldName}`,
-    run: (_state, parent, args, context, info, setResolved) => {
-      const result: unknown = resolver(parent, args, context, info);
+    run: (_state, parent, args, context, info, abortSignal, setResolved) => {
+      const result: unknown = resolver(parent, args, context, info, abortSignal);
 
       if (isThenable(result)) {
         return Promise.resolve(result).then((resolved) => {

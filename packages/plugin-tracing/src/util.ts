@@ -112,12 +112,12 @@ export function wrapResolver<C>(
   resolver: GraphQLFieldResolver<unknown, C, {}>,
   end: (error: unknown, duration: number) => void,
 ): GraphQLFieldResolver<unknown, C, {}> {
-  return (source, args, ctx, info) => {
+  return (source, args, ctx, info, abortSignal) => {
     const start = performance.now();
 
     let result: unknown;
     try {
-      result = resolver(source, args, ctx, info);
+      result = resolver(source, args, ctx, info, abortSignal);
     } catch (error: unknown) {
       end(error, performance.now() - start);
 

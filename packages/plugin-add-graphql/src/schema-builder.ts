@@ -140,7 +140,8 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
             ...input,
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
-            defaultValue: arg.defaultValue,
+            defaultValue: arg.defaultValue?.value,
+            defaultValueLiteral: arg.defaultValue?.literal,
             extensions: arg.extensions,
           });
         }
@@ -210,7 +211,8 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
             ...resolveInputType(this, arg.type),
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
-            defaultValue: arg.defaultValue,
+            defaultValue: arg.defaultValue?.value,
+            defaultValueLiteral: arg.defaultValue?.literal,
             extensions: arg.extensions,
           });
         }
@@ -321,7 +323,8 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
         combinedFields[fieldName] = t.field({
           ...resolveInputType(this, field.type),
           description: field.description ?? undefined,
-          defaultValue: field.defaultValue,
+          defaultValue: field.defaultValue?.value,
+          defaultValueLiteral: field.defaultValue?.literal,
           extensions: field.extensions,
         });
       }

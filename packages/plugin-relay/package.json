@@ -49,13 +49,13 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "canary-pr-4288"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/plugin-complexity": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": ">=16.6.0",
+    "graphql": "canary-pr-4288",
     "graphql-subscriptions": "^2.0.0",
     "graphql-tag": "^2.12.6"
   },

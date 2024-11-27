@@ -13,7 +13,7 @@
     "@faker-js/faker": "^9.0.0",
     "@pothos/core": "workspace:*",
     "fastify": "^4.28.1",
-    "graphql": "^16.8.1",
+    "graphql": "canary-pr-4288",
     "graphql-helix": "^1.13.0"
   },
   "publishConfig": {

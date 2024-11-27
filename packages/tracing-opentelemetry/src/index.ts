@@ -28,7 +28,13 @@ export function createOpenTelemetryWrapper<T = unknown>(
     fieldOptions: T,
     tracingOptions?: TracingWrapperOptions<T>,
   ) =>
-    (parent: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => {
+    (
+      parent: unknown,
+      args: {},
+      context: Context,
+      info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
+    ) => {
       const span = createSpanWithParent<Span>(context, info, (path, parentSpan) => {
         const spanContext = parentSpan
           ? trace.setSpan(opentelemetryContext.active(), parentSpan)
@@ -61,7 +67,7 @@ export function createOpenTelemetryWrapper<T = unknown>(
       options?.onSpan?.(span, fieldOptions, parent, args, context, info);
 
       return runWithSpan(span, !!(tracingOptions?.ignoreError ?? options?.ignoreError), () =>
-        resolver(parent, args, context, info),
+        resolver(parent, args, context, info, abortSignal),
       );
     };
 }

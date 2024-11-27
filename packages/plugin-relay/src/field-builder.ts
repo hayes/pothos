@@ -41,8 +41,9 @@ fieldBuilderProto.globalIDList = function globalIDList<
       args: InputShapeFromFields<Args>,
       context: object,
       info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
     ) => {
-      const result = await resolve(parent, args, context, info);
+      const result = await resolve(parent, args, context, info, abortSignal);
 
       if (!result) {
         return result;
@@ -86,8 +87,9 @@ fieldBuilderProto.globalID = function globalID<
       args: InputShapeFromFields<Args>,
       context: object,
       info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
     ) => {
-      const result = await resolve(parent, args, context, info);
+      const result = await resolve(parent, args, context, info, abortSignal);
 
       if (!result || typeof result !== 'object') {
         return result;
@@ -110,8 +112,14 @@ fieldBuilderProto.node = function node({ id, ...options }) {
     ...(options as {}),
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
-    resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawID = (await id(parent, args as never, context, info)) as unknown as
+    resolve: async (
+      parent: unknown,
+      args: {},
+      context: object,
+      info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
+    ) => {
+      const rawID = (await id(parent, args as never, context, info, abortSignal)) as unknown as
         | GlobalIDShape<SchemaTypes>
         | string
         | null
@@ -142,8 +150,14 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
       items: true,
     },
     type: [this.builder.nodeInterfaceRef()],
-    resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawIDList = await ids(parent, args as never, context, info);
+    resolve: async (
+      parent: unknown,
+      args: {},
+      context: object,
+      info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
+    ) => {
+      const rawIDList = await ids(parent, args as never, context, info, abortSignal);
 
       assertArray(rawIDList);
 

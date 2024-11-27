@@ -25,11 +25,11 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<
     fieldOptions: T,
     tracingOptions?: SentryWrapperOptions<T>,
   ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
-    (source, args, ctx, info) => {
+    (source, args, ctx, info, abortSignal) => {
       const parentSpan = Sentry.getActiveSpan();
 
       if (!parentSpan) {
-        return resolver(source, args, ctx, info);
+        return resolver(source, args, ctx, info, abortSignal);
       }
 
       const attributes: Record<string, string> = {
@@ -58,8 +58,8 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<
           options?.onSpan?.(span, fieldOptions, source, args, ctx, info);
 
           return runFunction(
-            () => resolver(source, args, ctx, info),
-            (error) => {
+            () => resolver(source, args, ctx, info, abortSignal),
+            (error: any) => {
               if (error && !(tracingOptions?.ignoreError ?? options?.ignoreError)) {
                 span.setStatus({
                   code: 2,

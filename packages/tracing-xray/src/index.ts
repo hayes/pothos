@@ -30,7 +30,13 @@ export function createXRayWrapper<T = unknown>(options?: XRayWrapperOptions<T>) 
     fieldOptions: T,
     tracingOptions?: XRayWrapperOptions<T>,
   ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
-    (source: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => {
+    (
+      source: unknown,
+      args: {},
+      context: Context,
+      info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
+    ) => {
       const segment = createSpanWithParent<Subsegment | null>(context, info, (path, parent) => {
         const parentSegment = parent ?? getSegment();
 
@@ -61,7 +67,7 @@ export function createXRayWrapper<T = unknown>(options?: XRayWrapperOptions<T>) 
       });
 
       if (!segment) {
-        return resolver(source, args, context, info);
+        return resolver(source, args, context, info, abortSignal);
       }
 
       return runFunction(
@@ -72,10 +78,10 @@ export function createXRayWrapper<T = unknown>(options?: XRayWrapperOptions<T>) 
             return session.runAndReturn(() => {
               setSegment(segment);
 
-              return resolver(source, args, context, info);
+              return resolver(source, args, context, info, abortSignal);
             });
           }
-          return resolver(source, args, context, info);
+          return resolver(source, args, context, info, abortSignal);
         },
         (error) => {
           segment.close(error as Error | null);

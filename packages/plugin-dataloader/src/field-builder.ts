@@ -71,8 +71,9 @@ fieldBuilderProto.loadable = function loadable<
       args: InputShapeFromFields<Args>,
       context: {},
       info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
     ) => {
-      const ids = await resolve(parent, args, context, info);
+      const ids = await resolve(parent, args, context, info, abortSignal);
 
       if (ids == null) {
         return null;
@@ -139,8 +140,9 @@ fieldBuilderProto.loadableList = function loadableList<
       args: InputShapeFromFields<Args>,
       context: {},
       info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
     ) => {
-      const ids = await resolve(parent, args, context, info);
+      const ids = await resolve(parent, args, context, info, abortSignal);
       const loader = getLoader(args, context, info);
 
       return loader.load(ids as Key);
@@ -216,8 +218,9 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
       args: InputShapeFromFields<Args>,
       context: {},
       info: GraphQLResolveInfo,
+      abortSignal: AbortSignal | undefined,
     ) => {
-      const ids = await resolve(parent, args, context, info);
+      const ids = await resolve(parent, args, context, info, abortSignal);
       const loader = getLoader(args, context, info);
 
       return loader.load(ids as Key);

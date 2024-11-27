@@ -43,7 +43,7 @@ builder.queryType({
           type: UserOrderBy,
           required: true,
           defaultValue: {
-            id: 'asc',
+            id: 'Asc',
           },
         }),
       },
@@ -69,7 +69,7 @@ builder.prismaObject('User', {
           type: PostOrderBy,
           required: true,
           defaultValue: {
-            id: 'asc',
+            id: 'Asc',
           },
         }),
       },
@@ -106,7 +106,7 @@ builder.prismaObject('Post', {
           type: CommentOrderBy,
           required: true,
           defaultValue: {
-            id: 'asc',
+            id: 'Asc',
           },
         }),
       },

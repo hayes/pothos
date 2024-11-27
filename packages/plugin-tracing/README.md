@@ -177,11 +177,11 @@ export const builder = new SchemaBuilder<{
   plugins: [TracingPlugin],
   tracing: {
     default: (config) => isRootField(config) || (!isScalarField(config) && !isEnumField(config)),
-    wrap: (resolver, options) => (source, args, ctx, info) => {
+    wrap: (resolver, options) => (source, args, ctx, info, abortSignal) => {
       doSomethingFirst(args);
 
       return runFunction(
-        () => resolver(source, args, ctx, info),
+        () => resolver(source, args, ctx, info, abortSignal),
         (error, duration) => {
           console.log(
             `Executed resolver for ${info.parentType}.${info.fieldName} in ${duration}ms`,
@@ -215,14 +215,14 @@ export const builder = new SchemaBuilder<{
       return false;
     },
     // The `tracing` options are passed as the second argument for wrap
-    wrap: (resolver, options, fieldConfig) => (source, args, ctx, info) => {
+    wrap: (resolver, options, fieldConfig) => (source, args, ctx, info, abortSignal) => {
       const span = tracer.createSpan();
 
       if (options.attributes) {
         span.setAttributes();
       }
       return runFunction(
-        () => resolver(source, args, ctx, info),
+        () => resolver(source, args, ctx, info, abortSignal),
         () => {
           span.end();
         },
@@ -300,7 +300,7 @@ export const builder = new SchemaBuilder<{
     },
     // Wrap is now only called once for each field at build time
     // since we don't depend on args to generate the tracing options
-    wrap: (resolver, options, fieldConfig) => (source, args, ctx, info) => {
+    wrap: (resolver, options, fieldConfig) => (source, args, ctx, info, abortSignal) => {
       const span = tracer.createSpan();
 
       if (options.includeArgs) {
@@ -308,7 +308,7 @@ export const builder = new SchemaBuilder<{
       }
 
       return runFunction(
-        () => resolver(source, args, ctx, info),
+        () => resolver(source, args, ctx, info, abortSignal),
         () => {
           span.end();
         },

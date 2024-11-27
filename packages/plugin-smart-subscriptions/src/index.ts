@@ -11,6 +11,7 @@ import SubscriptionCache from './cache';
 import { getFieldSubscribe } from './create-field-data';
 import SubscriptionManager from './manager';
 import resolveWithCache from './resolve-with-cache';
+import { abort } from 'process';
 
 const DEFAULT_DEBOUNCE_DELAY = 10;
 
@@ -61,8 +62,14 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
         (t) =>
           t.field({
             ...fieldConfig.pothosOptions,
-            resolve: (parent, args, context, info) =>
-              (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
+            resolve: (parent, args, context, info, abortSignal) =>
+              (fieldConfig.resolve ?? defaultFieldResolver)(
+                parent,
+                args,
+                context,
+                info,
+                abortSignal,
+              ) as never,
             subscribe: (parent, _args, context) => {
               const manager = new SubscriptionManager({
                 value: parent,
@@ -122,11 +129,11 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
 
     const subscribe = getFieldSubscribe(field, this);
 
-    return (parent, args, context, info) => {
+    return (parent, args, context, info, abortSignal) => {
       const { cache } = this.requestData(context);
 
       if (!cache) {
-        return resolve(parent, args, context, info);
+        return resolve(parent, args, context, info, abortSignal);
       }
 
       return resolveWithCache(
@@ -138,6 +145,7 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
         args as {},
         context,
         info,
+        abortSignal,
       );
     };
   }

@@ -55,7 +55,13 @@ export function resolveHelper<Types extends SchemaTypes>(
   const createError: UnauthorizedErrorFn<Types, object, {}> =
     fieldConfig.pothosOptions.unauthorizedError ?? defaultUnauthorizedError;
 
-  return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
+  return (
+    parent: unknown,
+    args: {},
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+    abortSignal: AbortSignal | undefined,
+  ) => {
     let resolvedValue: unknown;
 
     const cache = RequestCache.fromContext(context, plugin.builder);
@@ -64,7 +70,7 @@ export function resolveHelper<Types extends SchemaTypes>(
       for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
 
-        const stepResult = run(cache, parent, args, context, info, (val) => {
+        const stepResult = run(cache, parent, args, context, info, abortSignal, (val) => {
           resolvedValue = val;
         });
 

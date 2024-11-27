@@ -133,6 +133,7 @@ export interface ResolveStep<Types extends SchemaTypes> {
     args: Record<string, unknown>,
     context: {},
     info: GraphQLResolveInfo,
+    abortSignal: AbortSignal | undefined,
     setResolved: (val: unknown) => void,
   ) => MaybePromise<AuthFailure | null>;
   errorMessage:

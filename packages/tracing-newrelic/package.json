@@ -48,7 +48,7 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "@pothos/plugin-tracing": "*",
-    "graphql": ">=16.6.0",
+    "graphql": "canary-pr-4288",
     "newrelic": "*"
   },
   "devDependencies": {
@@ -56,7 +56,7 @@
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@types/newrelic": "^9.14.4",
-    "graphql": ">=16.6.0",
+    "graphql": "canary-pr-4288",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "5.7.0",
     "newrelic": "^12.3.1"

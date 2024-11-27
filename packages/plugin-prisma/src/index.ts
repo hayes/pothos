@@ -143,7 +143,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
     }
 
-    return (parent, args, context, info) => {
+    return (parent, args, context, info, abortSignal) => {
       let mapping = getLoaderMapping(context, info.path, info.parentType.name);
 
       if (!mapping) {
@@ -158,7 +158,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       if ((!loadedCheck || loadedCheck(parent, info)) && mapping) {
         setLoaderMappings(context, info, mapping);
 
-        return resolver(parent, args, context, info);
+        return resolver(parent, args, context, info, abortSignal);
       }
 
       if (fallback) {
@@ -167,7 +167,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
       return loaderCache(context)
         .loadSelection(info, parent as object)
-        .then((result) => resolver(result, args, context, info));
+        .then((result) => resolver(result, args, context, info, abortSignal));
     };
   }
 }

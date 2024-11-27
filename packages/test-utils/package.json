@@ -35,7 +35,7 @@
     "provenance": true
   },
   "dependencies": {
-    "graphql": "^16.8.1",
+    "graphql": "canary-pr-4288",
     "graphql-yoga": "^5.7.0",
     "ts-morph": "^23.0.0",
     "yargs": "^17.7.2"

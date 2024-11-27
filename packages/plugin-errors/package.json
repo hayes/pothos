@@ -38,13 +38,13 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "canary-pr-4288"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/plugin-zod": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "^16.8.1",
+    "graphql": "canary-pr-4288",
     "graphql-tag": "^2.12.6",
     "zod": "^3.23.8"
   },

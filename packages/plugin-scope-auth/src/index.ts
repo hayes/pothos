@@ -162,7 +162,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         return isTypeOf?.(source, context, info) ?? false;
       }
 
-      return runSteps(source, context, info);
+      return runSteps(source, context, info, undefined);
     };
   }
 

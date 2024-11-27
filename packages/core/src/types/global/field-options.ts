@@ -1,4 +1,4 @@
-import type { GraphQLFieldExtensions } from 'graphql';
+import type { ConstValueNode, GraphQLFieldExtensions } from 'graphql';
 import type {
   InferredFieldOptionsByKind,
   InputFieldMap,
@@ -12,6 +12,7 @@ import type {
   FieldRequiredness,
   InputShapeFromTypeParam,
   InputType,
+  OutputShape,
   ShapeFromTypeParam,
   TypeParam,
 } from '../type-params';
@@ -259,7 +260,9 @@ declare global {
       /** determines if this field can be omitted (or set as null) */
       required?: Req;
       /** default value if this field is not included in the query */
-      defaultValue?: InputShapeFromTypeParam<Types, Type, Req>;
+      defaultValue?: unknown;
+      /** default value if this field is not included in the query */
+      defaultValueLiteral?: ConstValueNode | undefined;
       /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
       extensions?: Readonly<Record<string, unknown>>;
     }

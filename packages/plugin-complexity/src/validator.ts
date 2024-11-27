@@ -56,7 +56,8 @@ export function createComplexityRule({
             context,
             {
               fragments,
-              variableValues,
+              // TODO: add sources!
+              variableValues: { sources: {}, coerced: variableValues },
               schema,
             },
             node.selectionSet,

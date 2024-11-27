@@ -131,7 +131,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       throw new Error(`ModelLoader not found for type ${parentConfig.name}`);
     }
 
-    return (parent, args, context, info) => {
+    return (parent, args, context, info, abortSignal) => {
       let mapping = getLoaderMapping(context, info.path, info.parentType.name);
 
       if (!mapping) {
@@ -146,7 +146,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       if (mapping) {
         setLoaderMappings(context, info, mapping);
 
-        return resolver(parent, args, context, info);
+        return resolver(parent, args, context, info, abortSignal);
       }
 
       const primaryKeys = (
@@ -161,7 +161,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
       return modelLoader(context)
         .loadSelection(info, parent as object)
-        .then((result) => resolver(result, args, context, info));
+        .then((result) => resolver(result, args, context, info, abortSignal));
     };
   }
 }

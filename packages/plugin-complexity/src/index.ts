@@ -96,9 +96,9 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
       return resolver;
     }
 
-    return (parent, args, context, info) => {
+    return (parent, args, context, info, abortSignal) => {
       this.checkComplexity(context, info);
-      return resolver(parent, args, context, info);
+      return resolver(parent, args, context, info, abortSignal);
     };
   }
 
