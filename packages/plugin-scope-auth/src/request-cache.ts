@@ -159,7 +159,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     const key = this.cacheKey ? this.cacheKey(arg) : arg;
 
     if (!cache.has(key)) {
-      const loader = scopes[name];
+      let loader = scopes[name];
 
       if (typeof loader !== 'function') {
         throw new PothosValidationError(
@@ -167,6 +167,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         );
       }
 
+      loader = loader.bind(scopes);
       let result: MaybePromise<boolean>;
 
       if (this.treatErrorsAsUnauthorized) {

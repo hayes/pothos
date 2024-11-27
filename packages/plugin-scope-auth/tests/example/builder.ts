@@ -11,17 +11,20 @@ interface Context {
   count?: (name: string) => void;
 }
 
+interface AuthScopes {
+  loggedIn: boolean;
+  admin: boolean;
+  syncPermission: string;
+  asyncPermission: string;
+  boundPermission: boolean;
+}
+
 const builder = new SchemaBuilder<{
   Context: Context;
   Interfaces: {
     StringInterface: {};
   };
-  AuthScopes: {
-    loggedIn: boolean;
-    admin: boolean;
-    syncPermission: string;
-    asyncPermission: string;
-  };
+  AuthScopes: AuthScopes;
   AuthContexts: {
     loggedIn: Context & { user: User; isLoggedIn: true };
     admin: Context & { user: User; isAdmin: true };
@@ -58,6 +61,9 @@ const builder = new SchemaBuilder<{
           context.count?.('asyncPermission');
 
           return await !!context.user?.permissions.includes(perm);
+        },
+        boundPermission(this: AuthScopes) {
+          return this.admin;
         },
       };
     },

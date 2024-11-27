@@ -198,6 +198,62 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
+  it('field scope with bound loader', async () => {
+    const query = gql`
+      query {
+        forBoundPermission
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        user: new User({
+          'x-user-id': '1',
+          'x-roles': 'admin',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "forBoundPermission": "ok",
+        },
+      }
+    `);
+  });
+
+  it('field scope with bound loader (unauthorized)', async () => {
+    const query = gql`
+      query {
+        forBoundPermission
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        user: new User({
+          'x-user-id': '1',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "forBoundPermission": null,
+        },
+        "errors": [
+          [GraphQLError: Not authorized to resolve Query.forBoundPermission],
+        ],
+      }
+    `);
+  });
+
   it('field with $any (sync)', async () => {
     const query = gql`
       query {
