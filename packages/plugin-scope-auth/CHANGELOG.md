@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.1
+
+### Patch Changes
+
+- 174c7b0: Bind `authScopes` loaders to returned provider
+
 ## 4.1.0
 
 ### Minor Changes
