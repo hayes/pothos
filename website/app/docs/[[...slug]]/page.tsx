@@ -4,9 +4,8 @@ import { DocsBody, DocsPage } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-// biome-ignore lint/suspicious/useAwait: <explanation>
 export default async function Page({ params }: { params: { slug?: string[] } }) {
-  const page = source.getPage(params.slug);
+  const page = source.getPage((await params).slug);
 
   if (page == null) {
     notFound();
@@ -30,8 +29,8 @@ export async function generateStaticParams() {
   }));
 }
 
-export function generateMetadata({ params }: { params: { slug?: string[] } }): Metadata {
-  const page = source.getPage(params.slug);
+export async function generateMetadata({ params }: { params: { slug?: string[] } }): Metadata {
+  const page = source.getPage((await params).slug);
 
   if (page == null) {
     notFound();

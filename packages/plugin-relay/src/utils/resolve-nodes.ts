@@ -67,7 +67,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
   );
 
   return globalIDs.map((globalID) =>
-    globalID == null ? null : results[`${globalID.typename}:${globalID.id}`] ?? null,
+    globalID == null ? null : (results[`${globalID.typename}:${globalID.id}`] ?? null),
   );
 }
 

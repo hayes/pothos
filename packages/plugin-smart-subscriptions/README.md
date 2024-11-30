@@ -55,7 +55,7 @@ const builder = new SchemaBuilder({
 const builder = new SchemaBuilder({
   smartSubscriptions: {
     ...subscribeOptionsFromIterator((name, { pubsub }) => {
-      return pubsub.asyncIterator(name);
+      return pubsub.asyncIterableIterator(name);
     }),
   },
 });

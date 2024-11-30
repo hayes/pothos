@@ -55,7 +55,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
-      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+      : ((options as { name?: string }).name ?? (nameOrRef as { name: string }).name);
 
   const ref = new ImplementableLoadableObjectRef<SchemaTypes, Key | Shape, Shape, Key, CacheKey>(
     this,
@@ -94,7 +94,7 @@ schemaBuilderProto.loadableInterface = function loadableInterface<
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
-      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+      : ((options as { name?: string }).name ?? (nameOrRef as { name: string }).name);
 
   const ref = new ImplementableLoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
     this,
@@ -182,7 +182,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
-      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+      : ((options as { name?: string }).name ?? (nameOrRef as { name: string }).name);
 
   const ref = new LoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(
     this,

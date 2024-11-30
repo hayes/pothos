@@ -14,7 +14,7 @@ export function getFieldDescription<Types extends SchemaTypes>(
 
   return (
     (usePrismaDescription
-      ? description ?? getFieldData(model, builder, fieldName).documentation
+      ? (description ?? getFieldData(model, builder, fieldName).documentation)
       : description) || undefined
   );
 }
@@ -30,7 +30,8 @@ export function getModelDescription<Types extends SchemaTypes>(
     (typeof exposeDescriptions === 'object' && exposeDescriptions?.models === true);
 
   return (
-    (usePrismaDescription ? description ?? getModel(model, builder).documentation : description) ||
-    undefined
+    (usePrismaDescription
+      ? (description ?? getModel(model, builder).documentation)
+      : description) || undefined
   );
 }

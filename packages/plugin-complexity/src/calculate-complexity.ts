@@ -88,7 +88,7 @@ function complexityFromField(
   complexity +=
     typeof complexityOption === 'number'
       ? complexityOption
-      : complexityOption?.field ?? DEFAULT_COMPLEXITY;
+      : (complexityOption?.field ?? DEFAULT_COMPLEXITY);
 
   return { complexity, depth, breadth };
 }

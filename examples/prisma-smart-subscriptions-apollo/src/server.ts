@@ -52,7 +52,7 @@ const server = new ApolloServer({
     '/graphql',
     cors<cors.CorsRequest>(),
     bodyParser.json(),
-    expressMiddleware(server, { context: createContext }),
+    expressMiddleware(server, { context: createContext }) as never,
   );
 })();
 

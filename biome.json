@@ -17,7 +17,8 @@
       "packages/deno/packages",
       ".vscode/**/*",
       "generated.ts",
-      "codegen/schema/prisma-inputs.ts"
+      "codegen/schema/prisma-inputs.ts",
+      "schema.graphql"
     ]
   },
   "formatter": {

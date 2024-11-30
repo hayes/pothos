@@ -266,11 +266,11 @@ export async function resolveCursorConnection<
   );
 
   const startCursor =
-    edges.length > 0 ? edges[0]?.cursor : options.args.after ?? options.args.before ?? '';
+    edges.length > 0 ? edges[0]?.cursor : (options.args.after ?? options.args.before ?? '');
   const endCursor =
     edges.length > 0
       ? edges[edges.length - 1]?.cursor
-      : options.args.after ?? options.args.before ?? '';
+      : (options.args.after ?? options.args.before ?? '');
 
   return {
     edges: edges as never,

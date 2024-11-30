@@ -547,7 +547,7 @@ function normalizeInclude(
   type: GraphQLNamedType,
   expectedType?: GraphQLNamedType,
 ): IndirectInclude {
-  let currentType = path.length > 0 ? type : expectedType ?? type;
+  let currentType = path.length > 0 ? type : (expectedType ?? type);
 
   const normalized: { name: string; type: string }[] = [];
 

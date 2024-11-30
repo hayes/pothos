@@ -475,7 +475,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
   const edgeItemsNullable =
     typeof edgesNullableOption === 'object' && 'items' in (edgesNullableOption as {})
       ? edgesNullableOption.items
-      : this.options.relay?.nodeFieldOptions?.nullable ?? true;
+      : (this.options.relay?.nodeFieldOptions?.nullable ?? true);
 
   this.objectType(connectionRef, {
     ...(this.options.relay?.defaultConnectionTypeOptions as {}),

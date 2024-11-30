@@ -178,7 +178,10 @@ export function serializeID(id: unknown, dataType: string) {
     case 'Json':
       return JSON.stringify(id);
     case 'Byte':
-      return (id as Buffer).toString('base64');
+      if (id instanceof Uint8Array) {
+        return Buffer.from(id).toString('base64');
+      }
+      return (id as Buffer | Uint8Array).toString('base64');
     default:
       return String(id);
   }
@@ -284,7 +287,7 @@ export function wrapConnectionResult<T extends {}>(
 ) {
   const gotFullResults = results.length === Math.abs(take);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : args.before ?? args.last ? gotFullResults : false;
+  const hasPreviousPage = args.after ? true : (args.before ?? args.last) ? gotFullResults : false;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;

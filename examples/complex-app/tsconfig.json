@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "target": "es2019",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,

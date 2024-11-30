@@ -125,7 +125,7 @@ function getCommonDirectives<
   const tags =
     typeof config.pothosOptions.tag === 'string'
       ? [config.pothosOptions.tag]
-      : config.pothosOptions.tag ?? [];
+      : (config.pothosOptions.tag ?? []);
   const tagDirectives = tags.map((tag) => ({ name: 'tag', args: { name: tag } }));
   const requiresScopes = config.pothosOptions.requiresScopes
     ? { name: 'requiresScopes', args: { scopes: config.pothosOptions.requiresScopes } }

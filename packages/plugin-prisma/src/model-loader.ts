@@ -69,7 +69,7 @@ export class ModelLoader {
             ? () => {
                 throw new PothosSchemaError(`Missing findUnique for ${ref.name}`);
               }
-            : findUnique ?? ModelLoader.getDefaultFindUnique(ref, modelName, builder),
+            : (findUnique ?? ModelLoader.getDefaultFindUnique(ref, modelName, builder)),
         ),
     );
   }

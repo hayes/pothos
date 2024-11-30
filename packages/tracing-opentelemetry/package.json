@@ -57,18 +57,18 @@
     "@envelop/core": "^5.0.2",
     "@envelop/opentelemetry": "^6.3.1",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.53.0",
-    "@opentelemetry/instrumentation": "^0.53.0",
-    "@opentelemetry/instrumentation-http": "^0.53.0",
-    "@opentelemetry/resources": "^1.26.0",
-    "@opentelemetry/sdk-trace-base": "^1.26.0",
-    "@opentelemetry/sdk-trace-node": "^1.26.0",
-    "@opentelemetry/semantic-conventions": "^1.27.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.55.0",
+    "@opentelemetry/instrumentation": "^0.55.0",
+    "@opentelemetry/instrumentation-http": "^0.55.0",
+    "@opentelemetry/resources": "^1.28.0",
+    "@opentelemetry/sdk-trace-base": "^1.28.0",
+    "@opentelemetry/sdk-trace-node": "^1.28.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": ">=16.6.0",
+    "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "5.7.0"
+    "graphql-yoga": "5.10.4"
   }
 }

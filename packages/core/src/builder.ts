@@ -154,7 +154,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     const name =
       typeof param === 'string'
         ? param
-        : (options as { name?: string }).name ?? (param as { name: string }).name;
+        : ((options as { name?: string }).name ?? (param as { name: string }).name);
 
     if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
       throw new PothosSchemaError(`Invalid object name ${name} use .create${name}Type() instead`);
@@ -372,7 +372,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     const name =
       typeof param === 'string'
         ? param
-        : (options as { name?: string }).name ?? (param as { name: string }).name;
+        : ((options as { name?: string }).name ?? (param as { name: string }).name);
 
     const ref =
       param instanceof BaseTypeRef

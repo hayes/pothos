@@ -138,7 +138,7 @@ export function prismaConnectionHelpers<
       mergeSelection(selectState, nestedSelect);
     }
 
-    const baseQuery = typeof query === 'function' ? query(args, ctx) : query ?? {};
+    const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
 
     return {
       ...baseQuery,

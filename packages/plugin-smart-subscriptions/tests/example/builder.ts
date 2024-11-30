@@ -16,6 +16,6 @@ interface UserSchemaTypes {
 export default new SchemaBuilder<UserSchemaTypes>({
   plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
-    ...subscribeOptionsFromIterator((name, { pubsub }) => pubsub.asyncIterator(name)),
+    ...subscribeOptionsFromIterator((name, { pubsub }) => pubsub.asyncIterableIterator(name)),
   },
 });

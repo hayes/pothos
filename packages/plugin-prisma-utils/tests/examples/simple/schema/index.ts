@@ -138,7 +138,7 @@ const CreateUserPostInput = builder.prismaCreate('Post', {
 
 const CreateManyPostsInput = builder.prismaCreateMany('Post', {
   fields: () => ({
-    title: 'String',
+    title: 'String' as const,
   }),
 });
 

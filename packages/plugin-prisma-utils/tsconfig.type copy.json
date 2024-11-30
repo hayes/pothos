@@ -1,7 +1,0 @@
-{
-  "compilerOptions": {
-    "skipLibCheck": false
-  },
-  "extends": "../../tsconfig.options.json",
-  "include": ["src/**/*", "tests/**/*"]
-}

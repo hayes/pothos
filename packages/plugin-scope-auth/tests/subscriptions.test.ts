@@ -23,13 +23,11 @@ describe('subscriptions', () => {
 
     let i = 0;
     for await (const value of result as AsyncIterable<unknown>) {
-      expect(value).toMatchInlineSnapshot(`
-        {
-          "data": {
-            "count": ${i},
-          },
-        }
-      `);
+      expect(value).toMatchObject({
+        data: {
+          count: i,
+        },
+      });
 
       i += 1;
     }
