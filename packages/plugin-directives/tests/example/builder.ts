@@ -9,6 +9,14 @@ type DirectiveTypes = {
       duration: number;
     };
   };
+  cacheControl: {
+    locations: 'FIELD_DEFINITION' | 'OBJECT' | 'INTERFACE' | 'UNION';
+    args: {
+      scope?: 'PRIVATE' | 'PUBLIC';
+      maxAge?: number;
+      inheritMaxAge?: boolean;
+    };
+  };
   s: {
     locations: 'SCALAR';
     args: { foo: number };

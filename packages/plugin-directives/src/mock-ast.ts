@@ -40,7 +40,7 @@ export default function mockAst(schema: GraphQLSchema) {
   schema.extensionASTNodes = [
     {
       kind: Kind.SCHEMA_EXTENSION,
-      directives: directiveNodes(schema.extensions?.directives as DirectiveList),
+      directives: directiveNodes(schema.extensions?.directives as DirectiveList, null, schema),
       operationTypes: (
         [
           {
@@ -78,8 +78,8 @@ export default function mockAst(schema: GraphQLSchema) {
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
         interfaces: type.getInterfaces().map((iface) => typeNode(iface) as NamedTypeNode),
-        fields: fieldNodes(type.getFields()),
-        directives: directiveNodes(type.extensions?.directives as DirectiveList),
+        fields: fieldNodes(type.getFields(), schema),
+        directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLInterfaceType) {
       type.astNode = {
@@ -87,8 +87,8 @@ export default function mockAst(schema: GraphQLSchema) {
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
         interfaces: type.getInterfaces().map((iface) => typeNode(iface) as NamedTypeNode),
-        fields: fieldNodes(type.getFields()),
-        directives: directiveNodes(type.extensions?.directives as DirectiveList),
+        fields: fieldNodes(type.getFields(), schema),
+        directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLUnionType) {
       type.astNode = {
@@ -96,30 +96,30 @@ export default function mockAst(schema: GraphQLSchema) {
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
         types: type.getTypes().map((iface) => typeNode(iface) as NamedTypeNode),
-        directives: directiveNodes(type.extensions?.directives as DirectiveList),
+        directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLEnumType) {
       type.astNode = {
         kind: Kind.ENUM_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
-        values: enumValueNodes(type.getValues()),
-        directives: directiveNodes(type.extensions?.directives as DirectiveList),
+        values: enumValueNodes(type.getValues(), schema),
+        directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLScalarType) {
       type.astNode = {
         kind: Kind.SCALAR_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
-        directives: directiveNodes(type.extensions?.directives as DirectiveList),
+        directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLInputObjectType) {
       type.astNode = {
         kind: Kind.INPUT_OBJECT_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
-        fields: inputFieldNodes(type.getFields()),
-        directives: directiveNodes(type.extensions?.directives as DirectiveList),
+        fields: inputFieldNodes(type.getFields(), schema),
+        directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     }
   }
@@ -140,13 +140,17 @@ function typeNode(type: GraphQLType): TypeNode {
   return { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: type.name } };
 }
 
-function valueNode(value: unknown): ValueNode {
+function valueNode(value: unknown, arg?: GraphQLArgument): ValueNode {
   if (value == null) {
     return { kind: Kind.NULL };
   }
 
+  if (arg) {
+    return astFromValue(value, arg.type) as ValueNode;
+  }
+
   if (Array.isArray(value)) {
-    return { kind: Kind.LIST, values: value.map(valueNode) };
+    return { kind: Kind.LIST, values: value.map((val) => valueNode(val)) };
   }
 
   switch (typeof value) {
@@ -166,7 +170,8 @@ function valueNode(value: unknown): ValueNode {
 
 function directiveNodes(
   directives: DirectiveList | Record<string, object> | undefined,
-  deprecationReason?: string | null,
+  deprecationReason: string | null,
+  schema: GraphQLSchema,
 ): readonly ConstDirectiveNode[] {
   if (!directives) {
     return [];
@@ -195,8 +200,10 @@ function directiveNodes(
     });
   }
 
-  return directiveList.map(
-    (directive): DirectiveNode => ({
+  return directiveList.map((directive): DirectiveNode => {
+    const directiveDef = schema.getDirective(directive.name);
+    directiveDef?.args.find((arg) => arg.name);
+    return {
       kind: Kind.DIRECTIVE,
       name: { kind: Kind.NAME, value: directive.name },
       arguments:
@@ -205,14 +212,20 @@ function directiveNodes(
           (argName): ArgumentNode => ({
             kind: Kind.ARGUMENT,
             name: { kind: Kind.NAME, value: argName },
-            value: valueNode((directive.args as Record<string, unknown>)[argName]),
+            value: valueNode(
+              (directive.args as Record<string, unknown>)[argName],
+              directiveDef?.args.find((arg) => arg.name === argName),
+            ),
           }),
         ),
-    }),
-  ) as readonly ConstDirectiveNode[];
+    };
+  }) as readonly ConstDirectiveNode[];
 }
 
-function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionNode[] {
+function fieldNodes(
+  fields: GraphQLFieldMap<unknown, unknown>,
+  schema: GraphQLSchema,
+): FieldDefinitionNode[] {
   return Object.keys(fields).map((fieldName) => {
     const field: GraphQLField<unknown, unknown> = fields[fieldName];
 
@@ -220,11 +233,12 @@ function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionN
       kind: Kind.FIELD_DEFINITION,
       description: field.description ? { kind: Kind.STRING, value: field.description } : undefined,
       name: { kind: Kind.NAME, value: fieldName },
-      arguments: argumentNodes(field.args),
+      arguments: argumentNodes(field.args, schema),
       type: typeNode(field.type),
       directives: directiveNodes(
         field.extensions?.directives as DirectiveList,
-        field.deprecationReason,
+        field.deprecationReason ?? null,
+        schema,
       ),
     };
 
@@ -232,7 +246,10 @@ function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionN
   });
 }
 
-function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode[] {
+function inputFieldNodes(
+  fields: GraphQLInputFieldMap,
+  schema: GraphQLSchema,
+): InputValueDefinitionNode[] {
   return Object.keys(fields).map((fieldName) => {
     const field: GraphQLInputField = fields[fieldName];
 
@@ -246,7 +263,8 @@ function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode
       defaultValue: field.defaultValue === undefined ? undefined : defaultValueNode,
       directives: directiveNodes(
         field.extensions?.directives as DirectiveList,
-        field.deprecationReason,
+        field.deprecationReason ?? null,
+        schema,
       ),
     };
 
@@ -254,7 +272,10 @@ function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode
   });
 }
 
-function argumentNodes(args: readonly GraphQLArgument[]): InputValueDefinitionNode[] {
+function argumentNodes(
+  args: readonly GraphQLArgument[],
+  schema: GraphQLSchema,
+): InputValueDefinitionNode[] {
   return args.map((arg): InputValueDefinitionNode => {
     const defaultValueNode = astFromValue(arg.defaultValue, arg.type) as ConstValueNode;
 
@@ -266,7 +287,8 @@ function argumentNodes(args: readonly GraphQLArgument[]): InputValueDefinitionNo
       defaultValue: arg.defaultValue === undefined ? undefined : defaultValueNode,
       directives: directiveNodes(
         arg.extensions?.directives as DirectiveList,
-        arg.deprecationReason,
+        arg.deprecationReason ?? null,
+        schema,
       ),
     };
 
@@ -274,7 +296,10 @@ function argumentNodes(args: readonly GraphQLArgument[]): InputValueDefinitionNo
   });
 }
 
-function enumValueNodes(values: readonly GraphQLEnumValue[]): readonly EnumValueDefinitionNode[] {
+function enumValueNodes(
+  values: readonly GraphQLEnumValue[],
+  schema: GraphQLSchema,
+): readonly EnumValueDefinitionNode[] {
   return values.map((value): EnumValueDefinitionNode => {
     value.astNode = {
       kind: Kind.ENUM_VALUE_DEFINITION,
@@ -282,7 +307,8 @@ function enumValueNodes(values: readonly GraphQLEnumValue[]): readonly EnumValue
       name: { kind: Kind.NAME, value: value.name },
       directives: directiveNodes(
         value.extensions?.directives as DirectiveList,
-        value.deprecationReason,
+        value.deprecationReason ?? null,
+        schema,
       ),
     };
 

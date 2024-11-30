@@ -1,3 +1,4 @@
+import { printSchemaWithDirectives } from '@graphql-tools/utils';
 import SchemaBuilder from '@pothos/core';
 import {
   type GraphQLEnumType,
@@ -13,7 +14,11 @@ import schema from './example/schema';
 
 describe('extends example schema', () => {
   it('generates expected schema', () => {
-    expect(printSchema(lexicographicSortSchema(schema))).toMatchSnapshot();
+    expect(printSchema(schema)).toMatchSnapshot();
+  });
+
+  it('generates expected schema with directives', () => {
+    expect(printSchemaWithDirectives(schema)).toMatchSnapshot();
   });
 
   it('has expected directives in extensions', () => {

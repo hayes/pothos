@@ -1,7 +1,24 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`extends example schema generates expected schema 1`] = `
-"scalar Date
+""""Marks a field as cacheable"""
+directive @cacheControl(
+  """Inherit max age from parent"""
+  inheritMaxAge: Boolean
+
+  """The maximum age of the cache in seconds"""
+  maxAge: Int
+
+  """The scope for the cache"""
+  scope: CacheControlScope = PRIVATE
+) on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+
+enum CacheControlScope {
+  PRIVATE
+  PUBLIC
+}
+
+scalar Date
 
 enum EN {
   ONE
@@ -35,8 +52,72 @@ type Obj {
 }
 
 type Query {
+  cacheControlPrivate: String
+  cacheControlPublic: String
   test(arg1: String, myInput: MyInput, myOtherInput: MyOtherInput = {}): String
 }
 
 union UN = Obj"
+`;
+
+exports[`extends example schema generates expected schema with directives 1`] = `
+"schema {
+  query: Query
+}
+
+"""Marks a field as cacheable"""
+directive @cacheControl(
+  """Inherit max age from parent"""
+  inheritMaxAge: Boolean
+  """The maximum age of the cache in seconds"""
+  maxAge: Int
+  """The scope for the cache"""
+  scope: CacheControlScope = PRIVATE
+) on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+
+enum CacheControlScope {
+  PRIVATE
+  PUBLIC
+}
+
+scalar Date @s(foo: 123)
+
+enum EN @e(foo: 123) {
+  ONE @ev(foo: 123)
+  TWO
+}
+
+interface IF @i(foo: 123) {
+  field: String
+}
+
+input In @io(foo: 123) {
+  test: String @if(foo: 123)
+}
+
+input MyInput {
+  booleanWithDefault: Boolean = false
+  enumWithDefault: EN = TWO
+  id: ID!
+  idWithDefault: ID = 123
+  ids: [ID!]!
+  idsWithDefault: [ID!] = [123, 456]
+  stringWithDefault: String = "default string"
+}
+
+input MyOtherInput {
+  booleanWithDefault: Boolean = false
+}
+
+type Obj @o(foo: 123) {
+  field: String
+}
+
+type Query @o(foo: 123) @rateLimit(limit: 1, duration: 5) {
+  cacheControlPrivate: String @cacheControl(scope: PRIVATE, maxAge: 100, inheritMaxAge: true)
+  cacheControlPublic: String @cacheControl(scope: PUBLIC, maxAge: 100, inheritMaxAge: true)
+  test(arg1: String @a(foo: 123), myInput: MyInput, myOtherInput: MyOtherInput = {}): String @f(foo: 123)
+}
+
+union UN @u(foo: 123) = Obj"
 `;

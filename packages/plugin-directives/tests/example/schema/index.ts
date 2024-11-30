@@ -1,3 +1,10 @@
+import {
+  DirectiveLocation,
+  GraphQLBoolean,
+  GraphQLDirective,
+  GraphQLEnumType,
+  GraphQLInt,
+} from 'graphql';
 import { rateLimitDirective } from 'graphql-rate-limit-directive';
 import builder from '../builder';
 
@@ -50,6 +57,26 @@ builder.queryType({
     },
   },
   fields: (t) => ({
+    cacheControlPrivate: t.string({
+      directives: {
+        cacheControl: {
+          scope: 'PRIVATE',
+          maxAge: 100,
+          inheritMaxAge: true,
+        },
+      },
+      resolve: () => 'hi',
+    }),
+    cacheControlPublic: t.string({
+      directives: {
+        cacheControl: {
+          scope: 'PUBLIC',
+          maxAge: 100,
+          inheritMaxAge: true,
+        },
+      },
+      resolve: () => 'hi',
+    }),
     test: t.string({
       directives: [
         {
@@ -121,7 +148,43 @@ builder.scalarType('Date', {
   serialize: () => new Date(),
 });
 
+export const cacheControlDirective = new GraphQLDirective({
+  locations: [
+    DirectiveLocation.FIELD_DEFINITION,
+    DirectiveLocation.OBJECT,
+    DirectiveLocation.INTERFACE,
+    DirectiveLocation.UNION,
+  ],
+  name: 'cacheControl',
+  description: 'Marks a field as cacheable',
+  args: {
+    scope: {
+      defaultValue: 'PRIVATE',
+      description: 'The scope for the cache',
+      type: new GraphQLEnumType({
+        name: 'CacheControlScope',
+        values: {
+          PUBLIC: { value: 'PUBLIC' },
+          PRIVATE: { value: 'PRIVATE' },
+        },
+      }),
+    },
+    maxAge: {
+      description: 'The maximum age of the cache in seconds',
+      type: GraphQLInt,
+    },
+    inheritMaxAge: {
+      description: 'Inherit max age from parent',
+      type: GraphQLBoolean,
+    },
+  },
+});
+
 const { rateLimitDirectiveTransformer } = rateLimitDirective();
-const schema = rateLimitDirectiveTransformer(builder.toSchema());
+const schema = rateLimitDirectiveTransformer(
+  builder.toSchema({
+    directives: [cacheControlDirective],
+  }),
+);
 
 export default schema;
