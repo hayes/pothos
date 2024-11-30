@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- ea9981f: Improve ast representation of direvtive arguments
+
 ## 4.1.0
 
 ### Minor Changes
