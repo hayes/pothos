@@ -4,9 +4,8 @@ import { DocsBody, DocsPage } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-// biome-ignore lint/suspicious/useAwait: <explanation>
-export default async function HomePage(props: { params: { slug?: string[] } }) {
-  const page = source.getPage(props.params.slug);
+export default async function HomePage(props: { params: Promise<{ slug?: string[] }> }) {
+  const page = source.getPage((await props.params).slug);
   if (!page) {
     notFound();
   }

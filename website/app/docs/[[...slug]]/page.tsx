@@ -4,7 +4,7 @@ import { DocsBody, DocsPage } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-export default async function Page({ params }: { params: { slug?: string[] } }) {
+export default async function Page({ params }: { params: Promise<{ slug?: string[] }> }) {
   const page = source.getPage((await params).slug);
 
   if (page == null) {
@@ -29,7 +29,9 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: { params: { slug?: string[] } }): Metadata {
+export async function generateMetadata({
+  params,
+}: { params: Promise<{ slug?: string[] }> }): Promise<Metadata> {
   const page = source.getPage((await params).slug);
 
   if (page == null) {
