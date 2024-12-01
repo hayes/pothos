@@ -33,19 +33,20 @@ builder.queryFields((t) => ({
   teams: t.prismaConnection({
     type: 'Team',
     cursor: 'id',
-    resolve: (query) => db.team.findMany({ ...query, orderBy: { createdAt: 'desc' } }),
+    resolve: (query) => db.team.findMany(query({ orderBy: { createdAt: 'desc' } })),
   }),
   team: t.prismaField({
     type: 'Team',
     args: { id: t.arg.id({ required: true }) },
     nullable: true,
     resolve: (query, _, { id }) =>
-      db.team.findUnique({
-        ...query,
-        where: {
-          id: parseID(id),
-        },
-      }),
+      db.team.findUnique(
+        query({
+          where: {
+            id: parseID(id),
+          },
+        }),
+      ),
   }),
 }));
 
@@ -71,19 +72,20 @@ builder.mutationField('createTeam', (t) =>
       input: t.arg({ type: CreateTeamInput, required: true }),
     },
     resolve: (query, _, { input }) =>
-      db.team.create({
-        ...query,
-        data: {
-          name: input.name,
-          players: {
-            create: input.players
-              ? input.players.map((player) => ({
-                  name: player.name,
-                  number: player.number,
-                }))
-              : [],
+      db.team.create(
+        query({
+          data: {
+            name: input.name,
+            players: {
+              create: input.players
+                ? input.players.map((player) => ({
+                    name: player.name,
+                    number: player.number,
+                  }))
+                : [],
+            },
           },
-        },
-      }),
+        }),
+      ),
   }),
 );

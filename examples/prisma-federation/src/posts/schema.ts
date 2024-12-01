@@ -35,7 +35,7 @@ const User = builder.externalRef('User', builder.selection<{ id: string }>('id')
       resolve: (query, user) =>
         db.user
           .findUniqueOrThrow({ where: { id: Number.parseInt(user.id, 10) } })
-          .posts({ orderBy: { updatedAt: 'desc' }, ...query }),
+          .posts(query({ orderBy: { updatedAt: 'desc' } })),
     }),
   }),
 });
@@ -68,10 +68,11 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, _root, args) =>
-        db.post.findUnique({
-          ...query,
-          where: { id: Number.parseInt(args.id, 10) },
-        }),
+        db.post.findUnique(
+          query({
+            where: { id: Number.parseInt(args.id, 10) },
+          }),
+        ),
     }),
     posts: t.prismaField({
       type: ['Post'],
@@ -80,19 +81,17 @@ builder.queryType({
         skip: t.arg.int(),
       },
       resolve: (query, _root, args) =>
-        db.post.findMany({
-          ...query,
-          take: args.take ?? DEFAULT_PAGE_SIZE,
-          skip: args.skip ?? 0,
-        }),
+        db.post.findMany(
+          query({
+            take: args.take ?? DEFAULT_PAGE_SIZE,
+            skip: args.skip ?? 0,
+          }),
+        ),
     }),
     postsConnection: t.prismaConnection({
       type: 'Post',
       cursor: 'id',
-      resolve: (query, _root, _args) =>
-        db.post.findMany({
-          ...query,
-        }),
+      resolve: (query, _root, _args) => db.post.findMany(query({})),
     }),
   }),
 });
