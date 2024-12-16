@@ -1,0 +1,177 @@
+---
+title: Selections
+description: how to use custom includes and selections to optimize your prisma queries
+---
+
+## Includes on types
+
+In some cases, you may want to always pre-load certain relations. This can be helpful for defining
+fields directly on type where the underlying data may come from a related table.
+
+```typescript
+builder.prismaObject('User', {
+  // This will always include the profile when a user object is loaded.  Deeply nested relations can
+  // also be included this way.
+  include: {
+    profile: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      // The profile relation will always be loaded, and user will now be typed to include the
+      // profile field so you can return the bio from the nested profile relation.
+      resolve: (user) => user.profile.bio,
+    }),
+  }),
+});
+```
+
+## Select mode for types
+
+By default, the prisma plugin will use `include` when including relations, or generating fallback
+queries. This means we are always loading all columns of a table when loading it in a
+`t.prismaField` or a `t.relation`. This is usually what we want, but in some cases, you may want to
+select specific columns instead. This can be useful if you have tables with either a very large
+number of columns, or specific columns with large payloads you want to avoid loading.
+
+To do this, you can add a `select` instead of an include to your `prismaObject`:
+
+```typescript
+builder.prismaObject('User', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+The `t.expose*` and `t.relation` methods will all automatically add selections for the exposed
+fields _WHEN THEY ARE QUERIED_, ensuring that only the requested columns will be loaded from the
+database.
+
+In addition to the `t.expose` and `t.relation`, you can also add custom selections to other fields:
+
+```typescript
+builder.prismaObject('User', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      // This will select user.profile.bio when the the `bio` field is queried
+      select: {
+        profile: {
+          select: {
+            bio: true,
+          },
+        },
+      },
+      resolve: (user) => user.profile.bio,
+    }),
+  }),
+});
+```
+
+## Using arguments or context in your selections
+
+The following is a slightly contrived example, but shows how arguments can be used when creating a
+selection for a field:
+
+```typescript
+const PostDraft = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    commentFromDate: t.string({
+      args: {
+        date: t.arg({ type: 'Date', required: true }),
+      },
+      select: (args) => ({
+        comments: {
+          take: 1,
+          where: {
+            createdAt: {
+              gt: args.date,
+            },
+          },
+        },
+      }),
+      resolve: (post) => post.comments[0]?.content,
+    }),
+  }),
+});
+```
+
+## Optimized queries without `t.prismaField`
+
+In some cases, it may be useful to get an optimized query for fields where you can't use
+`t.prismaField`.
+
+This may be required for combining with other plugins, or because your query does not directly
+return a `PrismaObject`. In these cases, you can use the `queryFromInfo` helper. An example of this
+might be a mutation that wraps the prisma object in a result type.
+
+```typescript
+const Post = builder.prismaObject('Post', {...});
+
+builder.objectRef<{
+  success: boolean;
+  post?: Post
+  }>('CreatePostResult').implement({
+  fields: (t) => ({
+    success: t.boolean(),
+    post: t.field({
+      type: Post,
+      nullable:
+      resolve: (result) => result.post,
+    }),
+  }),
+});
+
+builder.mutationField(
+  'createPost',
+  {
+    args: (t) => ({
+      title: t.string({ required: true }),
+      ...
+    }),
+  },
+  {
+    resolve: async (parent, args, context, info) => {
+      if (!validateCreatePostArgs(args)) {
+        return {
+          success: false,
+        }
+      }
+
+      const post = prisma.city.create({
+        ...queryFromInfo({
+          context,
+          info,
+          // nested path where the selections for this type can be found
+          path: ['post']
+          // optionally you can pass a custom initial selection, generally you wouldn't need this
+          // but if the field at `path` is not selected, the initial selection set may be empty
+          select: {
+            comments: true,
+          },
+        }),
+        data: {
+          title: args.input.title,
+          ...
+        },
+      });
+
+      return {
+        success: true,
+        post,
+      }
+    },
+  },
+);
+```

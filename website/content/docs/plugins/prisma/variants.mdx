@@ -1,0 +1,102 @@
+---
+title: Type variants
+description: How to define multiple GraphQL types based on the same prisma model
+---
+
+The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
+Additional types are called `variants`. You will always need to have a "Primary" variant (defined as
+described above). Additional variants can be defined by providing a `variant` option instead of a
+`name` option when creating the type:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  });
+});
+```
+
+You can define variant fields that reference one variant from another:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // Using the model name ('User') will reference the primary variant
+    user: t.variant('User'),
+  });
+});
+
+const User = builder.prismaNode('User', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  fields: (t) => ({
+    // To reference another variant, use the returned object Ref instead of the model name:
+    viewer: t.variant(Viewer, {
+      // return null for viewer if the parent User is not the current user
+      isNull: (user, args, ctx) => user.id !== ctx.user.id,
+    }),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+You can also use variants when defining relations by providing a `type` option:
+
+```typescript
+const PostDraft = builder.prismaNode('Post', {
+  variant: 'PostDraft'
+  // This set's what database field to use for the nodes id field
+  id: { field: 'id' },
+  // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    drafts: t.relation('posts', {
+      // This will cause this relation to use the PostDraft variant rather than the default Post variant
+      type: PostDraft,
+      query: { where: { draft: true } },
+    }),
+  });
+});
+```
+
+You may run into circular reference issues if you use 2 prisma object refs to reference each other.
+To avoid this, you can split out the field definition for one of the relationships using
+`builder.prismaObjectField`
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    user: t.variant(User),
+  });
+});
+
+const User = builder.prismaNode('User', {
+  interfaces: [Named],
+  id: {
+    resolve: (user) => user.id,
+  },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+// Viewer references the `User` ref in its field definition,
+// referencing the `User` in fields would cause a circular type issue
+builder.prismaObjectField(Viewer, 'user', t.variant(User));
+```
+
+This same workaround applies when defining relations using variants.

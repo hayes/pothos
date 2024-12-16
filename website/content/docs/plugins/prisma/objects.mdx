@@ -67,3 +67,12 @@ take advantage of more efficient queries.
 The `query` object will contain an object with `include` or `select` options to pre-load data needed
 to resolve nested parts of the current query. The included/selected fields are based on which fields
 are being queried, and the options provided when defining those fields and types.
+
+
+## Extending prisma objects
+
+The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support
+using selections, or exposing fields not in the default selection. To use these features, you can
+use
+
+`builder.prismaObjectField` or `builder.prismaObjectFields` instead.
