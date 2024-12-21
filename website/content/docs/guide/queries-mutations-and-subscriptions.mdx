@@ -150,3 +150,10 @@ builder.subscriptionType({
   }),
 });
 ```
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn">
+  Ensure that the `subscribe` function is always defined before the `resolve` function,
+  otherwise you may run into issues with the resolver arguments not being typed correctly.
+</Callout>
