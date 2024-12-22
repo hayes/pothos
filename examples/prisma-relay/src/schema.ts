@@ -42,18 +42,16 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, _root, args) =>
-        db.post.findUnique({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-        }),
+        db.post.findUnique(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+          }),
+        ),
     }),
     posts: t.prismaConnection({
       type: 'Post',
       cursor: 'id',
-      resolve: (query) =>
-        db.post.findMany({
-          ...query,
-        }),
+      resolve: (query) => db.post.findMany(query),
     }),
     user: t.prismaField({
       type: 'User',
@@ -62,10 +60,11 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, _root, args) =>
-        db.user.findUnique({
-          ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
-        }),
+        db.user.findUnique(
+          query({
+            where: { id: Number.parseInt(String(args.id), 10) },
+          }),
+        ),
     }),
   }),
 });

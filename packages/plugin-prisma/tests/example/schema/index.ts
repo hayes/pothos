@@ -122,11 +122,13 @@ const Viewer = builder.prismaInterface('User', {
       type: PostRef,
       args: postConnectionHelpers.getArgs(),
       resolve: async (user, args, ctx, info) => {
-        const comments = await prisma.comment.findMany({
-          ...(queryFromInfo({
-            context: ctx,
-            info,
-            path: ['edges', 'node'],
+        const queryFn = queryFromInfo({
+          context: ctx,
+          info,
+          path: ['edges', 'node'],
+        });
+        const comments = await prisma.comment.findMany(
+          queryFn({
             select: {
               post: {
                 include: {
@@ -135,17 +137,13 @@ const Viewer = builder.prismaInterface('User', {
                 },
               },
             },
-          }) as {
-            include: {
-              post: { include: { comments: { include: { author: true } } } };
-            };
+            where: {
+              authorId: user.id,
+            },
           }),
-          where: {
-            authorId: user.id,
-          },
-        });
+        );
 
-        return postConnectionHelpers.resolve(comments, args, ctx);
+        return postConnectionHelpers.resolve(comments as never, args, ctx);
       },
     }),
     aComments: t.relatedConnection(

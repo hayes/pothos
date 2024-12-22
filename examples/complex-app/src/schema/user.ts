@@ -55,12 +55,13 @@ builder.queryField('viewer', (t) =>
         return null;
       }
 
-      return db.user.findUnique({
-        ...query,
-        where: {
-          id: ctx.user.id,
-        },
-      });
+      return db.user.findUnique(
+        query({
+          where: {
+            id: ctx.user.id,
+          },
+        }),
+      );
     },
   }),
 );
