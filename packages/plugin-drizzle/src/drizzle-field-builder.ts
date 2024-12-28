@@ -210,7 +210,7 @@ export class DrizzleObjectFieldBuilder<
     let typeName: string | undefined;
 
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
-      const { limit, offset, orderBy, where, ...fieldQuery } =
+      const { limit, orderBy, where, ...fieldQuery } =
         (typeof query === 'function' ? query(args, ctx) : query) ?? {};
 
       const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
@@ -231,7 +231,6 @@ export class DrizzleObjectFieldBuilder<
             ...columns,
           },
           limit: Math.abs(limit ?? connectionQuery.limit),
-          offset: offset ?? connectionQuery.offset,
         },
         cursorColumns,
       };
