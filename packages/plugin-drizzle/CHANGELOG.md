@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.5.3
+
+### Patch Changes
+
+- 67295e5: Fix drizzle cursors skipping first node after a cursor
+
 ## 0.5.2
 
 ### Patch Changes
