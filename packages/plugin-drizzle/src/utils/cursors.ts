@@ -418,7 +418,6 @@ export function drizzleCursorConnectionQuery({
     columns,
     orderBy: parsedOrderBy.sql,
     limit,
-    offset: cursor ? 1 : 0,
     where: ops.and(...whereClauses),
   };
 }
