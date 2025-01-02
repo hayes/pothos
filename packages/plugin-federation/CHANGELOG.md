@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.2.1
+
+### Patch Changes
+
+- da8d7c4: Fix handling of list items in builder.selection
+
 ## 4.2.0
 
 ### Minor Changes
