@@ -634,3 +634,5 @@ export interface DrizzleGraphQLInputExtensions {
   tableConfig: TableRelationalConfig;
   inputType: 'insert' | 'filters' | 'orderBy' | 'update';
 }
+
+export { DrizzleObjectRef } from './object-ref';
