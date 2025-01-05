@@ -635,4 +635,4 @@ export interface DrizzleGraphQLInputExtensions {
   inputType: 'insert' | 'filters' | 'orderBy' | 'update';
 }
 
-export { DrizzleObjectRef } from "./object-ref";
+export { DrizzleObjectRef } from './object-ref';
