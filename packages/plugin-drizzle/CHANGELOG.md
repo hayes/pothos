@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.6.0
+
+### Minor Changes
+
+- 4315edc: Export Object ref type in drizzle plugin
+
 ## 0.5.3
 
 ### Patch Changes
