@@ -17,11 +17,18 @@ import { ListRef as InternalListRef } from './refs/list';
 import { ObjectRef as InternalObjectRef } from './refs/object';
 import { ScalarRef as InternalScalarRef } from './refs/scalar';
 import { UnionRef as InternalUnionRef } from './refs/union';
+import { FieldRef as InternalFieldRef } from './refs/field';
+import { InputFieldRef as InternalInputFieldRef } from './refs/input-field';
+import { ArgumentRef as InternalArgumentRef } from './refs/arg';
+
 import type {
   AddVersionedDefaultsToBuilderOptions,
   FieldKind,
   InputTypeParam,
   NormalizeSchemeBuilderOptions,
+  PothosInputFieldConfig,
+  PothosOutputFieldConfig,
+  PothosTypeConfig,
   RootName,
   SchemaTypes,
   TypeParam,
@@ -203,12 +210,37 @@ export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P =
   nullable: boolean,
 ) => PothosSchemaTypes.ListRef<Types, T, P>;
 
+export type FieldRef<
+  Types extends SchemaTypes,
+  T = unknown,
+  Kind extends FieldKind = FieldKind,
+> = PothosSchemaTypes.FieldRef<Types, T, Kind>;
+export const FieldRef = InternalFieldRef as new <
+  Types extends SchemaTypes,
+  T = unknown,
+  Kind extends FieldKind = FieldKind,
+>(
+  kind: Kind,
+  initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>,
+) => PothosSchemaTypes.FieldRef<Types, T, Kind>;
+
+export type InputFieldRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputFieldRef<Types, T>;
+export const InputFieldRef = InternalInputFieldRef as new <Types extends SchemaTypes, T>(
+  initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>,
+) => PothosSchemaTypes.InputFieldRef<Types, T>;
+
+export type ArgumentRef<Types extends SchemaTypes, T> = PothosSchemaTypes.ArgumentRef<Types, T>;
+export const ArgumentRef = InternalArgumentRef as new <Types extends SchemaTypes, T>(
+  initConfig: (
+    name: string,
+    field: string,
+    typeConfig: PothosTypeConfig,
+  ) => PothosInputFieldConfig<Types>,
+) => PothosSchemaTypes.ArgumentRef<Types, T>;
+
 export { BuildCache } from './build-cache';
-export { ArgumentRef } from './refs/arg';
 export { BuiltinScalarRef } from './refs/builtin-scalar';
-export { FieldRef } from './refs/field';
 export { InputTypeRef } from './refs/input';
-export { InputFieldRef } from './refs/input-field';
 export { ImplementableInputObjectRef } from './refs/input-object';
 export { ImplementableInterfaceRef } from './refs/interface';
 export { MutationRef } from './refs/mutation';
