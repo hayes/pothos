@@ -5,7 +5,9 @@ import {
   type SchemaTypes,
 } from '../types';
 
-export class InputFieldRef<Types extends SchemaTypes, T = unknown> {
+export class InputFieldRef<Types extends SchemaTypes, T = unknown>
+  implements PothosSchemaTypes.InputFieldRef<Types, T>
+{
   kind = 'InputObject' as const;
 
   fieldName?: string;

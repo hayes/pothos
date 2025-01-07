@@ -258,9 +258,9 @@ export type InputOrArgRef<
   T,
   Kind extends 'Arg' | 'InputObject',
 > = Kind extends 'Arg'
-  ? ArgumentRef<Types, T>
+  ? PothosSchemaTypes.ArgumentRef<Types, T>
   : Kind extends 'InputObject'
-    ? InputFieldRef<Types, T>
+    ? PothosSchemaTypes.InputFieldRef<Types, T>
     : never;
 
 export interface GenericFieldRef<T = unknown> {

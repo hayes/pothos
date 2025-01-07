@@ -20,6 +20,9 @@ import type {
 } from '../../refs/object';
 import type { ScalarRef as InternalScalarRef } from '../../refs/scalar';
 import type { UnionRef as InternalUnionRef } from '../../refs/union';
+import type { FieldRef as InternalFieldRef } from '../../refs/field';
+import type { InputFieldRef as InternalInputFieldRef } from '../../refs/input-field';
+import type { ArgumentRef as InternalArgumentRef } from '../../refs/arg';
 import type { FieldKind } from '../builder-options';
 import type { SchemaTypes } from '../schema-types';
 
@@ -87,5 +90,17 @@ declare global {
       extends InternalUnionRef<Types, T, P> {}
     export interface ListRef<Types extends SchemaTypes, T, P = T>
       extends InternalListRef<Types, T, P> {}
+
+    export interface FieldRef<
+      Types extends SchemaTypes,
+      T = unknown,
+      Kind extends FieldKind = FieldKind,
+    > extends InternalFieldRef<Types, T, Kind> {}
+
+    export interface InputFieldRef<Types extends SchemaTypes, T>
+      extends InternalInputFieldRef<Types, T> {}
+
+    export interface ArgumentRef<Types extends SchemaTypes, T>
+      extends InternalArgumentRef<Types, T> {}
   }
 }
