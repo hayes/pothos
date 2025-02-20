@@ -110,7 +110,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
       ]),
     },
   });
-  const queryType = schema.getType('Query') as GraphQLObjectType | undefined;
+  const queryType = schema.getQueryType();
   const types = schema.getTypeMap();
 
   queryType?.toConfig();
@@ -127,7 +127,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
   });
 
   const newQuery = new GraphQLObjectType({
-    name: 'Query',
+    name: queryType?.name ?? 'Query',
     description: queryType?.description,
     astNode: queryType?.astNode,
     extensions: queryType?.extensions,
@@ -148,8 +148,8 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
 
   const subGraphSchema = new GraphQLSchema({
     query: newQuery,
-    mutation: schema.getType('Mutation') as GraphQLObjectType,
-    subscription: schema.getType('Subscription') as GraphQLObjectType,
+    mutation: schema.getMutationType(),
+    subscription: schema.getSubscriptionType(),
     extensions: schema.extensions,
     directives: schema.getDirectives(),
     extensionASTNodes: schema.extensionASTNodes,

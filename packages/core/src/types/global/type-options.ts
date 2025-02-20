@@ -49,7 +49,9 @@ declare global {
         | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
     }
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName>
-      extends BaseTypeOptions<Types> {}
+      extends BaseTypeOptions<Types> {
+      name?: string;
+    }
 
     export interface QueryTypeOptions<Types extends SchemaTypes = SchemaTypes>
       extends RootTypeOptions<Types, 'Query'> {

@@ -167,13 +167,13 @@ export default class PothosConverter {
 
       if (type instanceof GraphQLObjectType) {
         switch (type.name) {
-          case 'Query':
+          case this.schema.getQueryType()?.name ?? 'Query':
             this.queryType(type);
             break;
-          case 'Mutation':
+          case this.schema.getMutationType()?.name ?? 'Mutation':
             this.mutationType(type);
             break;
-          case 'Subscription':
+          case this.schema.getSubscriptionType()?.name ?? 'Subscription':
             this.subscriptionType(type);
             break;
           default:
@@ -204,6 +204,11 @@ export default class PothosConverter {
     this.sourcefile.addStatements((writer) => {
       writer.writeLine('builder.queryType({');
       writer.indent(() => {
+        if (type.name !== 'Query') {
+          writer.write('name:');
+          writer.quote(type.name);
+          writer.writeLine(',');
+        }
         this.writeDescription(writer, type);
         this.writeObjectShape(writer, type);
       });
@@ -215,6 +220,11 @@ export default class PothosConverter {
     this.sourcefile.addStatements((writer) => {
       writer.writeLine('builder.mutationType({');
       writer.indent(() => {
+        if (type.name !== 'Mutation') {
+          writer.write('name:');
+          writer.quote(type.name);
+          writer.writeLine(',');
+        }
         this.writeDescription(writer, type);
         this.writeObjectShape(writer, type);
       });
@@ -226,6 +236,11 @@ export default class PothosConverter {
     this.sourcefile.addStatements((writer) => {
       writer.writeLine('builder.subscriptionType({');
       writer.indent(() => {
+        if (type.name !== 'Subscription') {
+          writer.write('name:');
+          writer.quote(type.name);
+          writer.writeLine(',');
+        }
         this.writeDescription(writer, type);
         this.writeObjectShape(writer, type);
       });
@@ -442,7 +457,7 @@ export default class PothosConverter {
             `resolve: (parent, args, context, info) => { throw new Error('Not implemented') },`,
           );
 
-          if (type.name === 'Subscription') {
+          if (type.name === (this.schema.getSubscriptionType()?.name ?? 'Subscription')) {
             writer.writeLine(
               `subscribe: (parent, args, context, info) => { throw new Error('Not implemented') },`,
             );

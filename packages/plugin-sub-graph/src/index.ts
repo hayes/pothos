@@ -85,9 +85,11 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
       extensions: config.extensions,
       extensionASTNodes: config.extensionASTNodes,
       assumeValid: false,
-      query: newTypes.get('Query') as GraphQLObjectType,
-      mutation: newTypes.get('Mutation') as GraphQLObjectType,
-      subscription: newTypes.get('Subscription') as GraphQLObjectType,
+      query: newTypes.get(schema.getQueryType()?.name ?? 'Query') as GraphQLObjectType,
+      mutation: newTypes.get(schema.getMutationType()?.name ?? 'Mutation') as GraphQLObjectType,
+      subscription: newTypes.get(
+        schema.getSubscriptionType()?.name ?? 'Subscription',
+      ) as GraphQLObjectType,
       // Explicitly include types that implement an interface that can be resolved in the subGraph
       types: [...newTypes.values()].filter(
         (type) =>

@@ -230,14 +230,18 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ): QueryRef<Types> {
     const [options = {}, fields] = args;
 
-    const ref = new QueryRef<Types>('Query', {
+    const ref = new QueryRef<Types>(options.name ?? 'Query', {
       kind: 'Query',
       graphqlKind: 'Object',
-      name: 'Query',
+      name: options.name ?? 'Query',
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.QueryTypeOptions,
       extensions: options.extensions,
     });
+
+    if (ref.name !== 'Query') {
+      this.configStore.associateParamWithRef('Query', ref);
+    }
 
     this.configStore.addTypeRef(ref);
 
@@ -270,16 +274,20 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     const [options = {}, fields] = args;
 
-    const ref = new MutationRef<Types>('Mutation', {
+    const ref = new MutationRef<Types>(options.name ?? 'Mutation', {
       kind: 'Mutation',
       graphqlKind: 'Object',
-      name: 'Mutation',
+      name: options.name ?? 'Mutation',
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.MutationTypeOptions,
       extensions: options.extensions,
     });
 
     this.configStore.addTypeRef(ref);
+
+    if (ref.name !== 'Mutation') {
+      this.configStore.associateParamWithRef('Mutation', ref);
+    }
 
     if (fields) {
       this.configStore.addFields('Mutation', () => fields(new MutationFieldBuilder(this)));
@@ -313,16 +321,20 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     const [options = {}, fields] = args;
 
-    const ref = new SubscriptionRef<Types>('Subscription', {
+    const ref = new SubscriptionRef<Types>(options.name ?? 'Subscription', {
       kind: 'Subscription',
       graphqlKind: 'Object',
-      name: 'Subscription',
+      name: options.name ?? 'Subscription',
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.SubscriptionTypeOptions,
       extensions: options.extensions,
     });
 
     this.configStore.addTypeRef(ref);
+
+    if (ref.name !== 'Subscription') {
+      this.configStore.associateParamWithRef('Subscription', ref);
+    }
 
     if (fields) {
       this.configStore.addFields('Subscription', () => fields(new SubscriptionFieldBuilder(this)));
@@ -671,10 +683,20 @@ export class SchemaBuilder<Types extends SchemaTypes> {
 
     const builtTypes = [...buildCache.types.values()];
 
+    const queryName = this.configStore.hasConfig('Query')
+      ? this.configStore.getTypeConfig('Query').name
+      : 'Query';
+    const mutationName = this.configStore.hasConfig('Mutation')
+      ? this.configStore.getTypeConfig('Mutation').name
+      : 'Mutation';
+    const subscriptionName = this.configStore.hasConfig('Subscription')
+      ? this.configStore.getTypeConfig('Subscription').name
+      : 'Subscription';
+
     const schema = new GraphQLSchema({
-      query: buildCache.types.get('Query') as GraphQLObjectType | undefined,
-      mutation: buildCache.types.get('Mutation') as GraphQLObjectType | undefined,
-      subscription: buildCache.types.get('Subscription') as GraphQLObjectType | undefined,
+      query: buildCache.types.get(queryName) as GraphQLObjectType | undefined,
+      mutation: buildCache.types.get(mutationName) as GraphQLObjectType | undefined,
+      subscription: buildCache.types.get(subscriptionName) as GraphQLObjectType | undefined,
       extensions: extensions ?? {},
       directives: directives as GraphQLDirective[],
       types: builtTypes,
