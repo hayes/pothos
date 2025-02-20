@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- 456da16: Add support for custom names on Root types
+
 ## 4.1.0
 
 ### Minor Changes
