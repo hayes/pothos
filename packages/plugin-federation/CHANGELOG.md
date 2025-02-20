@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.3.0
+
+### Minor Changes
+
+- 456da16: Add support for custom names on Root types
+
 ## 4.2.1
 
 ### Patch Changes

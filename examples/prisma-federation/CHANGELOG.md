@@ -1,5 +1,16 @@
 # @pothos-examples/relay
 
+## 3.1.13
+
+### Patch Changes
+
+- Updated dependencies [456da16]
+  - @pothos/plugin-federation@4.3.0
+  - @pothos/core@4.4.0
+  - @pothos/plugin-directives@4.2.0
+  - @pothos/plugin-prisma@4.4.0
+  - @pothos/plugin-relay@4.3.0
+
 ## 3.1.12
 
 ### Patch Changes
