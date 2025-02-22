@@ -28,7 +28,7 @@ const User = builder.externalRef('User', builder.selection<{ id: string }>('id')
       resolve: (query, user) =>
         db.user
           .findUniqueOrThrow({ where: { id: Number.parseInt(user.id, 10) } })
-          .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
+          .comments(query({ orderBy: { updatedAt: 'desc' } })),
     }),
   }),
 });
@@ -43,7 +43,7 @@ const Post = builder.externalRef('Post', builder.selection<{ id: string }>('id')
       resolve: (query, post) =>
         db.post
           .findUniqueOrThrow({ where: { id: Number.parseInt(post.id, 10) } })
-          .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
+          .comments(query({ orderBy: { updatedAt: 'desc' } })),
     }),
   }),
 });
@@ -76,10 +76,11 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, _root, { id }) =>
-        db.comment.findUniqueOrThrow({
-          ...query,
-          where: { id: Number.parseInt(id, 10) },
-        }),
+        db.comment.findUniqueOrThrow(
+          query({
+            where: { id: Number.parseInt(id, 10) },
+          }),
+        ),
     }),
   }),
 });
