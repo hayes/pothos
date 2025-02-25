@@ -4,6 +4,7 @@ import './schema-builder';
 import SchemaBuilder, {
   BasePlugin,
   createInputValueMapper,
+  type InputTypeFieldsMapping,
   mapInputFields,
   type PothosOutputFieldConfig,
   type SchemaTypes,
@@ -26,6 +27,10 @@ const pluginName = 'drizzle';
 export default pluginName;
 
 export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  private mappingCache = new Map<
+    string,
+    InputTypeFieldsMapping<Types, DrizzleGraphQLInputExtensions>
+  >();
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
@@ -41,6 +46,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
         return null;
       },
+      this.mappingCache,
     );
 
     const argMapper = argMappings

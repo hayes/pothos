@@ -5,6 +5,7 @@ import './schema-builder';
 import SchemaBuilder, {
   BasePlugin,
   createInputValueMapper,
+  type InputTypeFieldsMapping,
   mapInputFields,
   type PartialResolveInfo,
   type PothosOutputFieldConfig,
@@ -21,18 +22,32 @@ const pluginName = 'relay';
 export default pluginName;
 
 export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  private mappingCache = new Map<
+    string,
+    InputTypeFieldsMapping<
+      Types,
+      { typename: string; parseId: (id: string, ctx: object) => unknown }[] | boolean
+    >
+  >();
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
-    const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
-      if (inputField.extensions?.isRelayGlobalID) {
-        return (inputField.extensions?.relayGlobalIDFor ??
-          inputField.extensions?.relayGlobalIDAlwaysParse ??
-          false) as { typename: string; parseId: (id: string, ctx: object) => unknown }[] | boolean;
-      }
+    const argMappings = mapInputFields(
+      fieldConfig.args,
+      this.buildCache,
+      (inputField) => {
+        if (inputField.extensions?.isRelayGlobalID) {
+          return (inputField.extensions?.relayGlobalIDFor ??
+            inputField.extensions?.relayGlobalIDAlwaysParse ??
+            false) as
+            | { typename: string; parseId: (id: string, ctx: object) => unknown }[]
+            | boolean;
+        }
 
-      return null;
-    });
+        return null;
+      },
+      this.mappingCache,
+    );
 
     if (!argMappings) {
       return fieldConfig;

@@ -4,6 +4,7 @@ import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
   createInputValueMapper,
+  type InputTypeFieldsMapping,
   mapInputFields,
   type PothosOutputFieldConfig,
   type SchemaTypes,
@@ -43,24 +44,34 @@ export class PothosPrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlug
     super(cache, pluginName);
   }
 
+  private mappingCache = new Map<
+    string,
+    InputTypeFieldsMapping<Types, { nullableFields: Set<string> }>
+  >();
+
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
-    const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
-      const inputType = this.buildCache.getTypeConfig(unwrapInputFieldType(inputField.type));
+    const argMappings = mapInputFields(
+      fieldConfig.args,
+      this.buildCache,
+      (inputField) => {
+        const inputType = this.buildCache.getTypeConfig(unwrapInputFieldType(inputField.type));
 
-      if (inputType.extensions?.pothosPrismaInput) {
-        return (
-          typeof inputType.extensions?.pothosPrismaInput === 'object'
-            ? inputType.extensions?.pothosPrismaInput
-            : {
-                nullableFields: new Set(),
-              }
-        ) as { nullableFields: Set<string> };
-      }
+        if (inputType.extensions?.pothosPrismaInput) {
+          return (
+            typeof inputType.extensions?.pothosPrismaInput === 'object'
+              ? inputType.extensions?.pothosPrismaInput
+              : {
+                  nullableFields: new Set(),
+                }
+          ) as { nullableFields: Set<string> };
+        }
 
-      return null;
-    });
+        return null;
+      },
+      this.mappingCache,
+    );
 
     if (!argMappings) {
       return fieldConfig;

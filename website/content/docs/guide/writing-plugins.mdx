@@ -481,6 +481,10 @@ The relay plugin uses these methods to decode `globalID` inputs:
 
 ```typescript
 export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  // Optionally create a cache for input mappings so that mappings can be reused across multiple fields
+  // Be sure to only provide a mapping cache if your argument mappings are not specific to the current field
+  private mappingCache = new Map<string, InputTypeFieldsMapping<Types, boolean>>();
+
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -493,7 +497,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
 
       // returning null means no mapping will be created for this input field
       return null;
-    });
+    }, this.mappingCache);
 
     // If all fields reachable through args return null for their mapping, we don't need to wrap the resolver
     if (!argMappings) {

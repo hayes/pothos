@@ -1,6 +1,7 @@
 import './global-types';
 import SchemaBuilder, {
   BasePlugin,
+  type InputTypeFieldsMapping,
   mapInputFields,
   type PothosInputFieldConfig,
   type PothosInputFieldType,
@@ -64,6 +65,8 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
     return fieldConfig;
   }
 
+  private mappingCache = new Map<string, InputTypeFieldsMapping<Types, zod.ZodType<unknown>>>();
+
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -73,6 +76,7 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
       fieldConfig.args,
       this.buildCache,
       (field) => field.extensions?.validator ?? null,
+      this.mappingCache,
     );
 
     if (!argMap && !fieldConfig.pothosOptions.validate) {

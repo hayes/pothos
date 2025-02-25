@@ -62,18 +62,12 @@ export function mapInputFields<Types extends SchemaTypes, T>(
   inputs: Record<string, PothosInputFieldConfig<Types>>,
   buildCache: BuildCache<Types>,
   mapper: (config: PothosInputFieldConfig<Types>) => T | null,
+  cache: Map<string, InputTypeFieldsMapping<Types, T>> = new Map(),
 ): InputFieldsMapping<Types, T> | null {
   const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
   const hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>();
 
-  return filterMapped(
-    internalMapInputFields(
-      inputs,
-      buildCache,
-      mapper,
-      new Map<string, InputTypeFieldsMapping<Types, T>>(),
-    ),
-  );
+  return filterMapped(internalMapInputFields(inputs, buildCache, mapper, cache));
 
   function filterMapped(map: InputFieldsMapping<Types, T>) {
     if (filterMappings.has(map)) {
