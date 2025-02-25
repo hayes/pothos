@@ -1,5 +1,12 @@
 # @pothos-examples/simple-interfaces
 
+## 3.1.4
+
+### Patch Changes
+
+- Updated dependencies [28ce7ff]
+  - @pothos/core@4.4.1
+
 ## 3.1.3
 
 ### Patch Changes
