@@ -64,6 +64,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
   mapper: (config: PothosInputFieldConfig<Types>) => T | null,
 ): InputFieldsMapping<Types, T> | null {
   const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
+  const hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>();
 
   return filterMapped(
     internalMapInputFields(
@@ -90,7 +91,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         return;
       }
 
-      const hasNestedMappings = checkForMappings(mapping.fields.map!);
+      const hasNestedMappings = checkForMappings(mapping.fields.map!, hasMappings);
 
       if (mapping.value !== null || hasNestedMappings) {
         const filteredTypeFields = filterMapped(mapping.fields.map!);
@@ -111,7 +112,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 
   function checkForMappings(
     map: InputFieldsMapping<Types, T>,
-    hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>(),
+    hasMappings: Map<InputFieldsMapping<Types, T>, boolean>,
   ): boolean {
     if (hasMappings.has(map)) {
       return hasMappings.get(map)!;
