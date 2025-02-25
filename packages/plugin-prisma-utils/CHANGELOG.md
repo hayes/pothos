@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 1.3.0
+
+### Minor Changes
+
+- 9cfb6a7: cache input mappings accross resolvers to reduce memory ussage in large schemas
+
 ## 1.2.0
 
 ### Minor Changes

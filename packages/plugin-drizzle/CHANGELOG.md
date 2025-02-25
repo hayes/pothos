@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.7.0
+
+### Minor Changes
+
+- 9cfb6a7: cache input mappings accross resolvers to reduce memory ussage in large schemas
+
 ## 0.6.0
 
 ### Minor Changes
