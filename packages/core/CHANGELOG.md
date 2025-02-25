@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.1
+
+### Patch Changes
+
+- 28ce7ff: Improve build times for complex schemas with input mappers
+
 ## 4.4.0
 
 ### Minor Changes
