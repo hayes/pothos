@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.5.0
+
+### Minor Changes
+
+- 9cfb6a7: cache input mappings accross resolvers to reduce memory ussage in large schemas
+
 ## 4.4.1
 
 ### Patch Changes
