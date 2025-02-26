@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 4.2.2
+
+### Patch Changes
+
+- 4af88f1: correctly pass through isOneOf setting from native GraphQL input objects
+
 ## 4.2.1
 
 ### Patch Changes
