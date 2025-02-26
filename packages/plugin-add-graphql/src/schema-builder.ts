@@ -301,6 +301,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
     ...options,
     description: type.description ?? undefined,
     extensions: { ...type.extensions, ...extensions },
+    isOneOf: type.isOneOf,
     fields: (t) => {
       const existingFields = type.getFields();
       const newFields: Record<string, InputFieldRef<SchemaTypes, unknown> | null> =
