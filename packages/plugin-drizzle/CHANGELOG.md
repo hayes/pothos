@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.7.1
+
+### Patch Changes
+
+- c1db173: Fix error plugin compatability
+
 ## 0.7.0
 
 ### Minor Changes
