@@ -6,6 +6,11 @@ A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the \`da
 """
 scalar DateTime
 
+type Error {
+  message: String
+  stack: String
+}
+
 type Mutation {
   commentOnPost(input: MutationCommentOnPostInput!): comments
   createPost(input: MutationCreatePostInput!): Post
@@ -65,10 +70,17 @@ type Query {
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   post(id: ID!): Post
+  postWithErrors(id: ID!): QueryPostWithErrorsResult
   posts(after: String, before: String, category: String, first: Int, last: Int): QueryPostsConnection
   user(id: ID!): User
   userWithInput(input: QueryUserWithInputInput!): User
   users(id: ID!): [User!]
+}
+
+union QueryPostWithErrorsResult = Error | QueryPostWithErrorsSuccess
+
+type QueryPostWithErrorsSuccess {
+  data: Post!
 }
 
 type QueryPostsConnection {

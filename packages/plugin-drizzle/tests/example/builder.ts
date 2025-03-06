@@ -1,9 +1,9 @@
 import SchemaBuilder from '@pothos/core';
 import AddGraphQL from '@pothos/plugin-add-graphql';
+import ErrorsPlugin from '@pothos/plugin-errors';
 import ScopeAuthPlugin from '@pothos/plugin-relay';
 import RelayPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
-import ErrorsPlugin from '@pothos/plugin-errors';
 import { drizzle } from 'drizzle-orm/libsql';
 import DrizzlePlugin from '../../src';
 import { type DrizzleSchema, client, db, schema } from './db';
