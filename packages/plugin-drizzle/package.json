@@ -44,6 +44,7 @@
     "@libsql/client": "^0.14.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-add-graphql": "workspace:*",
+    "@pothos/plugin-errors": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-with-input": "workspace:*",

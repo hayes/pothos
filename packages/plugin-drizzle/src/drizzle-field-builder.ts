@@ -218,8 +218,16 @@ export class DrizzleObjectFieldBuilder<
         maxSize,
         defaultSize,
         args,
-        orderBy: orderBy ? orderBy(relatedModel.columns) : relatedModel.primaryKey,
-        where: where ? where(relatedModel.columns, ops) : undefined,
+        orderBy: orderBy
+          ? typeof orderBy === 'function'
+            ? orderBy(relatedModel.columns)
+            : orderBy
+          : relatedModel.primaryKey,
+        where: where
+          ? typeof where === 'function'
+            ? where(relatedModel.columns, ops)
+            : where
+          : undefined,
       });
 
       return {

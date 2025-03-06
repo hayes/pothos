@@ -89,6 +89,22 @@ builder.queryFields((t) => ({
         }),
       ),
   }),
+  postWithErrors: t.drizzleField({
+    type: 'posts',
+    errors: {
+      types: [Error],
+    },
+    args: {
+      id: t.arg.id({ required: true }),
+    },
+    resolve: (query, _root, args) =>
+      db.query.posts.findFirst(
+        query({
+          orderBy: (post, ops) => ops.desc(post.id),
+          where: eq(posts.id, Number.parseInt(args.id, 10)),
+        }),
+      ),
+  }),
   posts: t.drizzleConnection({
     type: 'posts',
     args: {
@@ -203,3 +219,11 @@ builder.mutationFields((t) => ({
     },
   }),
 }));
+
+builder.objectType(Error, {
+  name: 'Error',
+  fields: (t) => ({
+    message: t.exposeString('message'),
+    stack: t.exposeString('stack'),
+  }),
+});

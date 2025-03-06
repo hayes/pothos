@@ -304,12 +304,10 @@ function addFieldSelection(
           : indirectInclude;
         const fieldState = createStateForSelection(
           config,
-          getIndirectType(
-            normalizedIndirectInclude
-              ? info.schema.getType(normalizedIndirectInclude.getType())!
-              : returnType,
-            info,
-          ),
+          info,
+          normalizedIndirectInclude
+            ? info.schema.getType(normalizedIndirectInclude.getType())!
+            : returnType,
           state,
         );
 
@@ -437,7 +435,7 @@ export function stateFromInfo<T extends SelectionMap>({
             : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested) => {
-            state = createStateForSelection(config, resolvedType, undefined, select);
+            state = createStateForSelection(config, info, resolvedType, undefined, select);
 
             addTypeSelectionsForField(
               config,
@@ -453,13 +451,13 @@ export function stateFromInfo<T extends SelectionMap>({
       },
     );
   } else {
-    state = createStateForSelection(config, type, undefined, select);
+    state = createStateForSelection(config, info, type, undefined, select);
 
     addTypeSelectionsForField(config, type, context, info, state, info.fieldNodes[0], []);
   }
 
   if (!state) {
-    state = createStateForSelection(config, type, undefined, select);
+    state = createStateForSelection(config, info, type, undefined, select);
   }
 
   return state;
@@ -473,7 +471,7 @@ export function selectionStateFromInfo(
 ) {
   const type = typeName ? info.schema.getTypeMap()[typeName] : info.parentType;
 
-  const state = createStateForSelection(config, type);
+  const state = createStateForSelection(config, info, type);
 
   if (!(isObjectType(type) || isInterfaceType(type))) {
     throw new PothosValidationError(
@@ -488,16 +486,18 @@ export function selectionStateFromInfo(
 
 function createStateForSelection(
   config: PothosDrizzleSchemaConfig,
+  info: GraphQLResolveInfo,
   type: GraphQLNamedType,
   parent?: SelectionState,
   initialSelections?: SelectionMap,
 ) {
-  const { pothosDrizzleTable } = (type.extensions ?? {}) as {
+  const targetType = getIndirectType(type, info);
+  const { pothosDrizzleTable } = (targetType.extensions ?? {}) as {
     pothosDrizzleTable?: TableRelationalConfig;
   };
 
   if (!pothosDrizzleTable) {
-    throw new PothosValidationError(`Expected ${type.name} to have a table config`);
+    throw new PothosValidationError(`Expected ${targetType.name} to have a table config`);
   }
 
   const state = createState(pothosDrizzleTable, parent);
