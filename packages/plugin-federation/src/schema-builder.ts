@@ -121,28 +121,31 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
 
   const hasEntities = entityTypes.length > 0;
 
-  const updatedEntityType = new GraphQLUnionType({
-    ...EntityType.toConfig(),
-    types: entityTypes.filter(isObjectType),
-  });
-
-  const newQuery = new GraphQLObjectType({
+  const newQuery: GraphQLObjectType = new GraphQLObjectType({
     name: queryType?.name ?? 'Query',
     description: queryType?.description,
     astNode: queryType?.astNode,
     extensions: queryType?.extensions,
-    fields: {
-      ...(hasEntities && {
-        _entities: {
-          ...entitiesField,
-          type: new GraphQLNonNull(new GraphQLList(updatedEntityType)),
+    fields: () => {
+      const updatedEntityType = new GraphQLUnionType({
+        ...EntityType.toConfig(),
+        types: entityTypes
+          .filter(isObjectType)
+          .map((type) => (type === queryType ? newQuery : type)),
+      });
+      return {
+        ...(hasEntities && {
+          _entities: {
+            ...entitiesField,
+            type: new GraphQLNonNull(new GraphQLList(updatedEntityType)),
+          },
+        }),
+        _service: {
+          ...serviceField,
+          resolve: () => ({ sdl }),
         },
-      }),
-      _service: {
-        ...serviceField,
-        resolve: () => ({ sdl }),
-      },
-      ...queryType?.toConfig().fields,
+        ...queryType?.toConfig().fields,
+      };
     },
   });
 
@@ -153,11 +156,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
     extensions: schema.extensions,
     directives: schema.getDirectives(),
     extensionASTNodes: schema.extensionASTNodes,
-    types: [
-      ...Object.values(types).filter((type) => type.name !== 'Query'),
-      newQuery,
-      ...(hasEntities ? [updatedEntityType] : []),
-    ],
+    types: [...Object.values(types).filter((type) => type.name !== 'Query'), newQuery],
   });
 
   const sorted = lexicographicSortSchema(subGraphSchema);
