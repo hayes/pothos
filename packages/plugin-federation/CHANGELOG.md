@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.3.1
+
+### Patch Changes
+
+- cf83a15: Support Query type as entity
+
 ## 4.3.0
 
 ### Minor Changes
