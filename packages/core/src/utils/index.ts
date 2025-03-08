@@ -154,8 +154,8 @@ export function unwrapInputListParam<Types extends SchemaTypes>(
  */
 export function completeValue<T, R>(
   valOrPromise: PromiseLike<T> | T,
-  onSuccess: (completedVal: T) => R,
-  onError?: (errVal: unknown) => R,
+  onSuccess: (completedVal: T) => PromiseLike<R> | R,
+  onError?: (errVal: unknown) => PromiseLike<R> | R,
 ): Promise<R> | R {
   if (isThenable(valOrPromise)) {
     return Promise.resolve(valOrPromise).then(onSuccess, onError);
