@@ -369,25 +369,42 @@ import builder from '../builder';
 //   }),
 // );
 
-const someSchema = zod.unknown();
+const stringSchema = zod.string().min(2).startsWith('A');
+const stringSchema2 = zod
+  .string()
+  .startsWith('a')
+  .transform(async (val) => val.toUpperCase());
+
+const inputSchema = zod.object({
+  someField: zod.string().min(2).startsWith('A'),
+});
+
+const argSchema = zod.object({
+  someArg: zod.string().min(2).startsWith('A'),
+  someInput: inputSchema,
+  other: zod.string().min(2).startsWith('A'),
+});
 
 // Schema for inputs
 const SomeInput = builder.inputType('SomeInput', {
-  validate: someSchema,
+  validate: inputSchema,
   fields: (t) => ({
-    someField: t.string({ validate: someSchema }).validate(someSchema),
+    someField: t.string({ validate: stringSchema }).validate(stringSchema2),
   }),
 });
 
 builder.queryFields((t) => ({
   someQuery: t.string({
     args: {
-      someArg: t.arg.string({ validate: someSchema }).validate(someSchema),
-      someInput: t.arg({ type: SomeInput }).validate(someSchema),
+      someArg: t.arg.string({ validate: stringSchema }).validate(stringSchema2),
+      someInput: t.arg({ type: SomeInput }).validate(inputSchema),
+      other: t.arg.string(),
     },
-    validate: someSchema,
-    resolve: () => 'result',
+    validate: argSchema,
+    resolve: (_, args) => JSON.stringify(args, null, 2),
   }),
 }));
+
+builder.queryType({});
 
 export default builder.toSchema();
