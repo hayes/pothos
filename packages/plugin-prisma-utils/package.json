@@ -33,7 +33,13 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "typescript", "prisma"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "prisma"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -48,7 +54,7 @@
     "@pothos/core": "*",
     "@pothos/plugin-prisma": "*",
     "@prisma/client": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "^16.8.1"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
@@ -63,6 +69,6 @@
     "prisma": "^6.0.0",
     "ts-node": "^10.9.2",
     "typescript": "5.5.4",
-    "zod": "^3.23.8"
+    "zod": "^3.24.1"
   }
 }

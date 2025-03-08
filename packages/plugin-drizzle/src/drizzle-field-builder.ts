@@ -452,13 +452,13 @@ export class DrizzleObjectFieldBuilder<
           >,
       ]
     >
-  ) {
+  ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'DrizzleObject'> {
     const [name, options = {} as never] = args;
 
     const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
     const usingSelect = !!typeConfig.extensions?.pothosDrizzleSelect;
 
-    return this.exposeField(name as never, {
+    return this.exposeField<Type, Nullable, never>(name as never, {
       ...options,
       extensions: {
         ...options.extensions,
