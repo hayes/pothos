@@ -1,6 +1,6 @@
-import type { MaybePromise, SchemaTypes } from '@pothos/core';
+import type { SchemaTypes } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { ZodError, ZodSchema } from 'zod';
+import type { ZodError } from 'zod';
 
 export interface ValidationPluginOptions<Types extends SchemaTypes> {
   validationError?: ValidationErrorFn<Types>;
