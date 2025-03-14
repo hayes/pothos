@@ -3,13 +3,13 @@ import { type DrizzleObjectRef, drizzleTableKey } from './object-ref';
 
 export type DrizzleRef<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationSchema'] = keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'] = keyof Types['DrizzleRelationsConfig'],
   T = {},
 > = DrizzleInterfaceRef<Types, Table, T> | DrizzleObjectRef<Types, Table, T>;
 
 export class DrizzleInterfaceRef<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationSchema'] = keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'] = keyof Types['DrizzleRelationsConfig'],
   T = {},
 > extends InterfaceRef<Types, T> {
   [drizzleTableKey]!: Table;

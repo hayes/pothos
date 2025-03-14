@@ -37,7 +37,7 @@ schemaBuilderProto.drizzleObject = function drizzleObject(table, { select, field
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).schema?.[table],
+      pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
       pothosDrizzleSelect: select ?? {},
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
     },
@@ -65,7 +65,7 @@ schemaBuilderProto.drizzleInterface = function drizzleInterface(
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).schema?.[table],
+      pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
       pothosDrizzleSelect: select ?? {},
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
     },
@@ -82,7 +82,7 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
     nodeInterfaceRef?: () => InterfaceRef<SchemaTypes, unknown>;
   },
-  table: keyof SchemaTypes['DrizzleRelationSchema'],
+  table: keyof SchemaTypes['DrizzleRelations']['config'],
   {
     id: { column, ...idOptions },
     name,
@@ -90,7 +90,7 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
     ...options
   }: DrizzleNodeOptions<
     SchemaTypes,
-    keyof SchemaTypes['DrizzleRelationSchema'],
+    keyof SchemaTypes['DrizzleRelations']['config'],
     {},
     {},
     [],
@@ -98,7 +98,7 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   >,
 ) {
   const schemaConfig = getSchemaConfig(this);
-  const tableConfig = schemaConfig.schema![table];
+  const tableConfig = schemaConfig.relations.tablesConfig[table];
   const idColumn = typeof column === 'function' ? column(tableConfig.columns) : column;
   const idColumns = Array.isArray(idColumn) ? idColumn : [idColumn];
   const interfaceRef = this.nodeInterfaceRef?.();
@@ -226,7 +226,7 @@ schemaBuilderProto.drizzleGraphQLOrderBy = function drizzleGraphQLOrderBy(
       drizzleGraphQL: {
         inputType: 'orderBy',
         table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
+        tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
       } satisfies DrizzleGraphQLInputExtensions,
     },
   });
@@ -252,7 +252,7 @@ schemaBuilderProto.drizzleGraphQLFilters = function drizzleGraphQLFilters(
       drizzleGraphQL: {
         inputType: 'filters',
         table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
+        tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
       } satisfies DrizzleGraphQLInputExtensions,
     },
   });
@@ -278,7 +278,7 @@ schemaBuilderProto.drizzleGraphQLInsert = function drizzleGraphQLInsert(
       drizzleGraphQL: {
         inputType: 'insert',
         table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
+        tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
       } satisfies DrizzleGraphQLInputExtensions,
     },
   });
@@ -304,7 +304,7 @@ schemaBuilderProto.drizzleGraphQLUpdate = function drizzleGraphQLUpdate(
       drizzleGraphQL: {
         inputType: 'update',
         table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
+        tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
       } satisfies DrizzleGraphQLInputExtensions,
     },
   });
