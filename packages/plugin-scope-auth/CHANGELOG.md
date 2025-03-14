@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.2
+
+### Patch Changes
+
+- c2c504b: Fix parent type on on withAuth fields
+
 ## 4.1.1
 
 ### Patch Changes
