@@ -19,18 +19,16 @@ const server = createTestServer({
         id: true,
       },
       with: {
-        roles: {
-          with: {
-            role: true,
-          },
-        },
+        roles: true,
       },
-      where: (user, { eq }) => eq(user.id, Number.parseInt(userId, 10)),
+      where: {
+        id: Number.parseInt(userId, 10),
+      },
     });
 
     return {
       user: user ?? undefined,
-      roles: user?.roles.map((role) => role.role.name) ?? [],
+      roles: user?.roles.map((role) => role.name) ?? [],
     };
   },
 });

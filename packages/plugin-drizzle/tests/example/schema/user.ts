@@ -20,26 +20,30 @@ export const Viewer = builder.drizzleObject('users', {
     user: t.variant('users'),
     comments: t.relatedConnection('comments', {
       query: {
-        orderBy: { desc: comments.id },
+        orderBy: (comment) => {
+          return {
+            desc: comment.id,
+          };
+        },
       },
     }),
     drafts: t.relation('posts', {
       query: {
-        where: (post, { eq }) => eq(post.published, 0),
-        orderBy: (post, ops) => ops.desc(post.updatedAt),
+        where: {
+          published: 0,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
       },
     }),
     roles: t.stringList({
       select: {
         with: {
-          roles: {
-            with: {
-              role: true,
-            },
-          },
+          roles: true,
         },
       },
-      resolve: (user) => user.roles.map((role) => role.role.name),
+      resolve: (user) => user.roles.map((role) => role.name),
     }),
   }),
 });
@@ -77,15 +81,11 @@ export const User = builder.drizzleNode('users', {
       select: {
         columns: {},
         with: {
-          roles: {
-            with: {
-              role: true,
-            },
-          },
+          roles: true,
         },
       },
       nullable: false,
-      resolve: (user) => user.roles?.some((role) => role.role.name === 'admin') ?? false,
+      resolve: (user) => user.roles?.some((role) => role.name === 'admin') ?? false,
     }),
     fullName: t.string({
       resolve: (user) => `${user.firstName} ${user.lastName}`,
@@ -98,22 +98,32 @@ export const User = builder.drizzleNode('users', {
       query: (args) => ({
         limit: args.limit ?? 10,
         offset: args.offset ?? 0,
-        where: (post, { eq }) => eq(post.published, 1),
-        orderBy: (post, ops) => ops.desc(post.updatedAt),
+        where: {
+          published: 1,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
       }),
     }),
     postsConnection: t.relatedConnection('posts', {
       query: () => ({
-        where: (post, { eq }) => eq(post.published, 1),
+        where: {
+          published: 1,
+        },
         // Ordering requires a different format for connections so that cursor pagination can be inverted
-        orderBy: (post) => ({
-          desc: post.id,
-        }),
+        orderBy: (post) => {
+          return {
+            desc: post.id,
+          };
+        },
       }),
     }),
     unOrderedPostsConnection: t.relatedConnection('posts', {
       query: () => ({
-        where: (post, { eq }) => eq(post.published, 1),
+        where: {
+          published: 1,
+        },
       }),
     }),
     viewer: t.variant(Viewer, {

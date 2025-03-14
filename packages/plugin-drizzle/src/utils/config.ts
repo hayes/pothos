@@ -1,41 +1,25 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
-import {
-  type Column,
-  type RelationalSchemaConfig,
-  type TableRelationalConfig,
-  type TablesRelationalConfig,
-  createTableRelationsHelpers,
-  extractTablesRelationalConfig,
-  getTableName,
-} from 'drizzle-orm';
+import { type AnyRelations, type Column, type Table, getTableName } from 'drizzle-orm';
 import type { DrizzleClient } from '../types';
 
-export interface PothosDrizzleSchemaConfig extends RelationalSchemaConfig<TablesRelationalConfig> {
+export interface PothosDrizzleSchemaConfig {
   skipDeferredFragments: boolean;
-  dbToSchema: Record<string, TableRelationalConfig>;
+  relations: AnyRelations;
+  getPrimaryKey: (tableName: string) => Column[];
   columnToTsName: (column: Column) => string;
 }
 const configCache = createContextCache(
   (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>): PothosDrizzleSchemaConfig => {
-    let config: RelationalSchemaConfig<TablesRelationalConfig>;
-    if (builder.options.drizzle.schema) {
-      const tablesConfig = extractTablesRelationalConfig(
-        builder.options.drizzle.schema,
-        createTableRelationsHelpers,
-      );
-      config = {
-        fullSchema: builder.options.drizzle.schema,
-        schema: tablesConfig.tables,
-        tableNamesMap: tablesConfig.tableNamesMap,
-      };
+    let relations: AnyRelations;
+    if (builder.options.drizzle.relations) {
+      relations = builder.options.drizzle.relations;
     } else {
-      config = (builder.options.drizzle.client as DrizzleClient)
-        ._ as RelationalSchemaConfig<TablesRelationalConfig>;
+      relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
-    const dbToSchema = Object.values(config.schema).reduce<Record<string, TableRelationalConfig>>(
+    const dbToSchema = Object.values(relations.tables).reduce<Record<string, Table>>(
       (acc, table) => {
-        acc[table.dbName] = table;
+        acc[getTableName(table)] = table;
         return acc;
       },
       {},
@@ -43,9 +27,9 @@ const configCache = createContextCache(
 
     const columnMappings = Object.values(dbToSchema).reduce<Record<string, Record<string, string>>>(
       (acc, table) => {
-        acc[table.dbName] = Object.entries(table.columns).reduce<Record<string, string>>(
+        acc[getTableName(table)] = Object.entries(table).reduce<Record<string, string>>(
           (acc, [name, column]) => {
-            acc[column.name] = name;
+            acc[(column as Column).name] = name;
             return acc;
           },
           {},
@@ -57,7 +41,6 @@ const configCache = createContextCache(
 
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
-      dbToSchema,
       columnToTsName: (column) => {
         const tableName = getTableName(column.table);
         const table = columnMappings[tableName];
@@ -69,7 +52,30 @@ const configCache = createContextCache(
 
         return columnName;
       },
-      ...config,
+      getPrimaryKey: (tableName) => {
+        const tableConfig = builder.options.drizzle.getTableConfig(relations.tables[tableName]);
+
+        const primaryKey = tableConfig.columns.find((column) => column.primary);
+
+        if (primaryKey) {
+          return [primaryKey];
+        }
+
+        const primaryKeys = tableConfig.primaryKeys.find((key) => key.columns.length > 0);
+
+        if (primaryKeys) {
+          return primaryKeys.columns;
+        }
+
+        const uniqueColumn = tableConfig.columns.find((column) => column.isUnique);
+
+        if (uniqueColumn) {
+          return [uniqueColumn];
+        }
+
+        throw new Error(`Could not find primary key for table ${tableName}`);
+      },
+      relations,
     };
   },
 );

@@ -1,7 +1,7 @@
 import { and, count, eq, sql } from 'drizzle-orm';
 import { builder } from '../builder';
 import { db } from '../db';
-import { categories, comments, postLikes, posts } from '../db/schema';
+import { comments, postLikes, posts } from '../db/schema';
 import { Comment } from './comment';
 
 const Post = builder.drizzleObject('posts', {
@@ -61,17 +61,6 @@ const Post = builder.drizzleObject('posts', {
         return result[0].count ?? 0;
       },
     }),
-    likesConnection: t.relatedConnection('likes', {}),
-  }),
-});
-
-builder.drizzleObject('postLikes', {
-  select: {
-    columns: {},
-  },
-  fields: (t) => ({
-    post: t.relation('post'),
-    user: t.relation('user'),
   }),
 });
 
@@ -85,7 +74,9 @@ builder.queryFields((t) => ({
       db.query.posts.findFirst(
         query({
           orderBy: (post, ops) => ops.desc(post.id),
-          where: eq(posts.id, Number.parseInt(args.id, 10)),
+          where: {
+            id: Number.parseInt(args.id, 10),
+          },
         }),
       ),
   }),
@@ -101,7 +92,9 @@ builder.queryFields((t) => ({
       db.query.posts.findFirst(
         query({
           orderBy: (post, ops) => ops.desc(post.id),
-          where: eq(posts.id, Number.parseInt(args.id, 10)),
+          where: {
+            id: Number.parseInt(args.id, 10),
+          },
         }),
       ),
   }),
@@ -110,25 +103,27 @@ builder.queryFields((t) => ({
     args: {
       category: t.arg.string(),
     },
-    resolve: (query, _root, args) =>
-      db.query.posts.findMany(
-        query({
-          where: (post, { inArray }) =>
-            and(
-              eq(post.published, 1),
-              args.category
-                ? inArray(
-                    post.categoryId,
-                    db
-                      .select({ id: categories.id })
-                      .from(categories)
-                      .where(args.category ? eq(categories.name, args.category) : undefined),
-                  )
-                : undefined,
-            ),
-          orderBy: (post) => ({ desc: post.id }),
+    resolve: (query, _root, args) => {
+      return db.query.posts.findMany({
+        ...query({
+          where: {
+            published: 1,
+            ...(args.category
+              ? {
+                  category: {
+                    name: args.category,
+                  },
+                }
+              : {}),
+          },
+          orderBy: (post) => {
+            return {
+              desc: post.id,
+            };
+          },
         }),
-      ),
+      });
+    },
   }),
 }));
 
@@ -149,7 +144,9 @@ builder.mutationFields((t) => ({
         .onConflictDoNothing();
       return db.query.posts.findFirst(
         query({
-          where: eq(posts.id, postId),
+          where: {
+            id: postId,
+          },
         }),
       );
     },
@@ -213,7 +210,9 @@ builder.mutationFields((t) => ({
         .where(and(eq(posts.id, postId), eq(posts.authorId, ctx.user.id)));
       return db.query.posts.findFirst(
         query({
-          where: eq(posts.id, postId),
+          where: {
+            id: postId,
+          },
         }),
       );
     },

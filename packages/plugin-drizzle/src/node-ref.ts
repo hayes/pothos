@@ -5,7 +5,7 @@ export const relayIDShapeKey = Symbol.for('Pothos.relayIDShapeKey');
 
 export class DrizzleNodeRef<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationSchema'] = keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'] = keyof Types['DrizzleRelationsConfig'],
   T = {},
   IDShape = string,
 > extends DrizzleObjectRef<Types, Table, T> {
