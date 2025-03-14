@@ -171,7 +171,7 @@ declare global {
           > & {
             authScopes: Scopes;
             resolve: Resolver<
-              Types['Root'],
+              ParentShape,
               InputShapeFromFields<Args>,
               ContextForAuth<Types, Scopes>,
               ShapeFromTypeParam<Types, Type, Nullable>,

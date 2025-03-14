@@ -8,10 +8,11 @@ import {
 import {
   type Column,
   type DBQueryConfig,
+  type OrderByOperators,
   type SQL,
+  type Table,
   type TableRelationalConfig,
-  getOperators,
-  getOrderByOperators,
+  operators,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
@@ -73,6 +74,7 @@ export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaCon
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
+      fields.map((field) => field.keyAsName);
       return `${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
     }
 
@@ -290,8 +292,6 @@ export interface DrizzleCursorConnectionQueryOptions {
   where?: SQL;
 }
 
-const orderByOps = getOrderByOperators();
-
 function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
   if (!Array.isArray(orderBy)) {
     return parseOrderBy([orderBy], invert);
@@ -323,11 +323,10 @@ function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
   return {
     normalized,
     columns: normalized.map((field) => field.column),
-    sql: normalized.map((field) => orderByOps[field.direction](field.column)),
+    orderBy: (table: Table, ops: OrderByOperators) =>
+      normalized.map((field) => ops[field.direction](table[field.column.name as never])),
   };
 }
-
-const ops = getOperators();
 
 export function drizzleCursorConnectionQuery({
   args,
@@ -391,21 +390,21 @@ export function drizzleCursorConnectionQuery({
     const parsedCursor = cursorParser(cursor);
 
     whereClauses.push(
-      ops.or(
+      operators.or(
         ...parsedOrderBy.normalized.map(({ direction, column }, index) => {
           const compare =
             direction === 'asc'
-              ? ops.gt(column, parsedCursor[column.name])
-              : ops.lt(column, parsedCursor[column.name]);
+              ? operators.gt(column, parsedCursor[column.name])
+              : operators.lt(column, parsedCursor[column.name]);
 
           if (index === 0) {
             return compare;
           }
 
-          return ops.and(
+          return operators.and(
             ...parsedOrderBy.normalized
               .slice(0, index)
-              .map(({ column: c }) => ops.eq(c, parsedCursor[c.name])),
+              .map(({ column: c }) => operators.eq(c, parsedCursor[c.name])),
             compare,
           );
         }),
@@ -416,9 +415,9 @@ export function drizzleCursorConnectionQuery({
   return {
     cursorColumns: parsedOrderBy.columns,
     columns,
-    orderBy: parsedOrderBy.sql,
+    orderBy: parsedOrderBy.orderBy,
     limit,
-    where: ops.and(...whereClauses),
+    where: operators.and(...whereClauses),
   };
 }
 
@@ -485,7 +484,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
 ) {
-  let query: DBQueryConfig<'many', false>;
+  let query: DBQueryConfig<'many'>;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
@@ -494,11 +493,9 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
         ? typeof q.orderBy === 'function'
           ? q.orderBy(table.columns)
           : q.orderBy
-        : table.primaryKey,
+        : config.getPrimaryKey(table.tsName),
     });
     formatter = getCursorFormatter(cursorColumns, config);
-
-    const where = typeof q.where === 'function' ? q.where(table.columns, getOperators()) : q.where;
 
     query = queryFromInfo({
       context: options.ctx,
@@ -509,8 +506,18 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
           ...q.columns,
           ...connectionQuery.columns,
         },
-        where: ops.and(connectionQuery.where, where),
-      },
+        where:
+          connectionQuery.where && q.where
+            ? {
+                AND: [
+                  q.where,
+                  {
+                    RAW: connectionQuery.where,
+                  },
+                ],
+              }
+            : q.where || (connectionQuery.where ? { RAW: connectionQuery.where } : undefined),
+      } as never,
       paths: [['nodes'], ['edges', 'node']],
       typeName,
       config,
