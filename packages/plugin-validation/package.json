@@ -1,7 +1,7 @@
 {
-  "name": "@pothos/plugin-errors",
-  "version": "4.2.0",
-  "description": "A Pothos plugin for adding typed errors into your schema",
+  "name": "@pothos/plugin-validation",
+  "version": "4.0.0",
+  "description": "A Pothos plugin for adding schema based validation",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
@@ -24,21 +24,20 @@
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
     "test": "pnpm vitest --run"
   },
+  "author": "Michael Hayes",
+  "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hayes/pothos.git",
-    "directory": "packages/plugin-errors"
+    "directory": "packages/plugin-zod"
   },
-  "author": "Michael Hayes",
-  "license": "ISC",
   "keywords": [
     "pothos",
     "graphql",
     "schema",
     "typescript",
-    "error",
-    "errors",
-    "plugin"
+    "validation",
+    "validate"
   ],
   "publishConfig": {
     "access": "public",
@@ -50,11 +49,13 @@
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
-    "@pothos/plugin-zod": "workspace:*",
     "@pothos/test-utils": "workspace:*",
+    "@standard-schema/spec": "1.0.0-beta.4",
     "graphql": "^16.8.1",
-    "graphql-tag": "^2.12.6",
-    "zod": "^3.24.1"
+    "graphql-tag": "^2.12.6"
   },
-  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc",
+  "dependencies": {
+    "zod": "^3.24.1"
+  }
 }
