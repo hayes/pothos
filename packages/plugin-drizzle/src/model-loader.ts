@@ -1,7 +1,6 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
 import { type Column, type TableRelationalConfig, inArray, sql } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { DrizzleClient } from './types';
 import { type PothosDrizzleSchemaConfig, getClient, getSchemaConfig } from './utils/config';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
 import { selectionStateFromInfo, stateFromInfo } from './utils/map-query';
@@ -35,6 +34,7 @@ export class ModelLoader {
   config: PothosDrizzleSchemaConfig;
   table: TableRelationalConfig;
   columns: Column[];
+  primaryKey: Column[];
   selectSQL;
 
   constructor(
@@ -47,8 +47,11 @@ export class ModelLoader {
     this.builder = builder;
     this.modelName = modelName;
     this.config = getSchemaConfig(builder);
-    this.table = this.config.schema[modelName];
-    this.columns = columns ?? this.table.primaryKey;
+    this.table = this.config.relations.tablesConfig[modelName];
+    this.primaryKey =
+      this.builder.options.drizzle.getTableConfig(this.config.relations.tables[modelName])
+        .primaryKeys[0]?.columns ?? [];
+    this.columns = columns ?? this.primaryKey;
     this.selectSQL =
       this.columns.length > 1
         ? sql`(${sql.join(this.columns, sql`, `)})`
@@ -84,7 +87,7 @@ export class ModelLoader {
       const selection = selectionStateFromInfo(this.config, this.context, info);
       this.queryCache.set(key, {
         selection,
-        query: selectionToQuery(selection),
+        query: selectionToQuery(this.config, selection),
       });
     }
 
@@ -103,7 +106,7 @@ export class ModelLoader {
 
       this.queryCache.set(key, {
         selection,
-        query: selectionToQuery(selection),
+        query: selectionToQuery(this.config, selection),
       });
     }
 
@@ -176,7 +179,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...selectionToQuery(selection),
+          ...selectionToQuery(this.config, selection),
           where: inArray(
             this.selectSQL,
             [...entry.models.keys()].map((model) => this.sqlForModel(model)),
@@ -187,7 +190,7 @@ export class ModelLoader {
           (results) => {
             for (const [model, promise] of entry.models.entries()) {
               const result = results.find((row) =>
-                this.table.primaryKey.every(
+                this.primaryKey.every(
                   (key) => row[key.name] === (model as Record<string, unknown>)[key.name],
                 ),
               );

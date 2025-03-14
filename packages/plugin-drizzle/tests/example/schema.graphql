@@ -46,20 +46,9 @@ type Post {
   createdAt: DateTime
   id: ID
   likes: Int
-  likesConnection(after: String, before: String, first: Int, last: Int): PostLikesConnection
   published: Boolean
   title: String
   updatedAt: DateTime
-}
-
-type PostLikesConnection {
-  edges: [PostLikesConnectionEdge]
-  pageInfo: PageInfo!
-}
-
-type PostLikesConnectionEdge {
-  cursor: String!
-  node: postLikes
 }
 
 type Query {
@@ -152,9 +141,4 @@ type comments {
   id: ID
   post: Post
   text: String
-}
-
-type postLikes {
-  post: Post
-  user: User
 }
