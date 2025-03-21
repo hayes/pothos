@@ -1,12 +1,12 @@
 import './global.css';
 import Link from 'fumadocs-core/link';
 import { Banner } from 'fumadocs-ui/components/banner';
-import { HomeLayout as Layout } from 'fumadocs-ui/home-layout';
-import { DocsLayout } from 'fumadocs-ui/layout';
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+// import { HomeLayout as Layout } from 'fumadocs-ui/layouts/home';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
-import { baseOptions, docsOptions } from './layout.config';
+import {  docsOptions } from './layout.config';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -25,7 +25,6 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
               </Link>
             </p>
           </Banner>
-          <Layout {...baseOptions}>
             <DocsLayout
               {...docsOptions}
               links={docsOptions.links}
@@ -33,9 +32,10 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
                 enabled: true,
               }}
             >
-              {children}
+              {/* <Layout {...baseOptions}> */}
+                {children}
+              {/* </Layout> */}
             </DocsLayout>
-          </Layout>
         </RootProvider>
       </body>
     </html>
