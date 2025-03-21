@@ -12,6 +12,7 @@
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.0.15",
     "classnames": "^2.5.1",
     "fumadocs-core": "15.1.1",
     "fumadocs-docgen": "^2.0.0",
