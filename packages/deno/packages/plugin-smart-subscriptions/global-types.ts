@@ -1,7 +1,6 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldNullability, InputFieldMap, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { FieldNullability, InputFieldMap, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import type { SmartSubscriptionOptions } from './types.ts';
 import type { FieldSubscriptionManager, PothosSmartSubscriptionsPlugin, TypeSubscriptionManager, } from './index.ts';
 declare global {

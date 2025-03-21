@@ -1,6 +1,6 @@
 // @ts-nocheck
-import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import type { MaybePromise, SchemaTypes } from '../core/index.ts';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import type SubscriptionManager from './manager/index.ts';
 import type FieldSubscriptionManager from './manager/field.ts';
 export interface SmartSubscriptionOptions<Context extends object> {

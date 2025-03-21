@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
+import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
 import type { BuildCache } from '../build-cache.ts';
 import type { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { BasePlugin } from './plugin.ts';

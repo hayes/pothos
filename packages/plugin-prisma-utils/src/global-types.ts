@@ -95,7 +95,7 @@ declare global {
 
       prismaWhere: <
         Name extends keyof Types['PrismaTypes'],
-        Fields extends Partial<Record<keyof Model['Where'], unknown>>,
+        Fields,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
@@ -106,7 +106,7 @@ declare global {
 
       prismaWhereUnique: <
         Name extends keyof Types['PrismaTypes'],
-        Fields extends Partial<Record<keyof Model['WhereUnique'], unknown>>,
+        Fields,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
@@ -117,7 +117,7 @@ declare global {
 
       prismaCreate: <
         Name extends keyof Types['PrismaTypes'],
-        Fields extends Partial<Record<keyof Model['Create'], unknown>>,
+        Fields,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
@@ -128,9 +128,7 @@ declare global {
 
       prismaCreateMany: <
         Name extends keyof Types['PrismaTypes'],
-        Fields extends Partial<
-          Record<Exclude<keyof Model['Shape'], Model['RelationName']>, unknown>
-        >,
+        Fields,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
@@ -155,7 +153,7 @@ declare global {
 
       prismaUpdate: <
         Name extends keyof Types['PrismaTypes'],
-        Fields extends Partial<Record<keyof Model['Update'], unknown>>,
+        Fields,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,

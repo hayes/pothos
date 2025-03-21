@@ -1,10 +1,10 @@
 // @ts-nocheck
-import { DocumentNode, GraphQLResolveInfo, GraphQLSchema, Kind, OperationDefinitionNode, parse, } from 'https://cdn.skypack.dev/graphql?dts';
 import { PothosValidationError } from '../core/index.ts';
+import { type DocumentNode, type GraphQLResolveInfo, type GraphQLSchema, Kind, type OperationDefinitionNode, parse, } from 'https://cdn.skypack.dev/graphql?dts';
 import { complexityFromSelectionSet } from './calculate-complexity.ts';
 export function complexityFromQuery(query: DocumentNode | string, options: {
     schema: GraphQLSchema;
-    ctx?: {};
+    ctx?: object;
     variables?: Record<string, unknown>;
 }) {
     const parsedQuery = typeof query === "string" ? parse(query) : query;
@@ -14,7 +14,6 @@ export function complexityFromQuery(query: DocumentNode | string, options: {
     }
     const fragments = parsedQuery.definitions.reduce<GraphQLResolveInfo["fragments"]>((fragments, def) => {
         if (def.kind === Kind.FRAGMENT_DEFINITION) {
-            // eslint-disable-next-line no-param-reassign
             fragments[def.name.value] = def;
         }
         return fragments;

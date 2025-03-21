@@ -6,3 +6,4 @@ export const queryClient = postgres('postgresql://prisma:prisma@localhost:5455/d
 export const db = drizzle(queryClient, { relations });
 
 export type DrizzleRelations = typeof relations;
+export { relations };

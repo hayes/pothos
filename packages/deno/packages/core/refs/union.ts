@@ -1,8 +1,8 @@
 // @ts-nocheck
 import type { PothosUnionTypeConfig, SchemaTypes } from '../types/index.ts';
-import { ObjectParam, OutputRef, outputShapeKey, parentShapeKey } from '../types/type-params.ts';
+import { type ObjectParam, type OutputRef, outputShapeKey, parentShapeKey, } from '../types/type-params.ts';
 import { BaseTypeRef } from './base.ts';
-export class UnionRef<Types extends SchemaTypes, T, P = T> extends BaseTypeRef<Types, PothosUnionTypeConfig> implements OutputRef, PothosSchemaTypes.UnionRef<Types, T, P> {
+export class UnionRef<Types extends SchemaTypes, T, P = T> extends BaseTypeRef<Types, PothosUnionTypeConfig> implements OutputRef<T>, PothosSchemaTypes.UnionRef<Types, T, P> {
     override kind = "Union" as const;
     $inferType!: T;
     [outputShapeKey]!: T;

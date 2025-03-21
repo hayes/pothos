@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 export type MaybePromise<T> = Promise<T> | T;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 export type RequiredKeys<T extends object> = Exclude<keyof T, OptionalKeys<T>>;
 export type OptionalKeys<T extends object> = {
@@ -36,9 +36,9 @@ export type NormalizeNullableFields<T extends object> = Normalize<{
 export type IsSimpleRecord<T> = ([
     T
 ] extends [
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     Record<string, any>
-] // eslint-disable-line @typescript-eslint/no-explicit-any
- ? keyof T extends infer K ? K extends string ? T[K] extends (...args: any[]) => unknown ? [
+] ? keyof T extends infer K ? K extends string ? T[K] extends (...args: any[]) => unknown ? [
     1
 ] extends [
     T[K]
@@ -85,3 +85,6 @@ export interface PartialResolveInfo {
     variableValues: GraphQLResolveInfo["variableValues"];
     schema: GraphQLResolveInfo["schema"];
 }
+export type Simplify<T> = {
+    [KeyType in keyof T]: T[KeyType];
+} & {};

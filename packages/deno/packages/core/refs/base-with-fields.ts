@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { FieldMap, InterfaceParam, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosSubscriptionTypeConfig, SchemaTypes, } from '../types/index.ts';
+import type { FieldMap, InterfaceParam, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosSubscriptionTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { BaseTypeRef } from './base.ts';
-import { FieldRef } from './field.ts';
+import type { FieldRef } from './field.ts';
 export type ObjectLikeConfig = PothosMutationTypeConfig | PothosObjectTypeConfig | PothosQueryTypeConfig | PothosSubscriptionTypeConfig;
 export class TypeRefWithFields<Types extends SchemaTypes, Config extends ObjectLikeConfig | PothosInterfaceTypeConfig> extends BaseTypeRef<Types, Config> {
     private fields = new Set<() => FieldMap>();

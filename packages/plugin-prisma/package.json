@@ -65,7 +65,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@prisma/generator-helper": "^6.0.0"
+    "@prisma/generator-helper": "^6.5.0"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
@@ -83,11 +83,11 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^6.0.0",
-    "graphql": "^16.8.1",
-    "graphql-scalars": "^1.24.0",
+    "@prisma/client": "^6.5.0",
+    "graphql": ">=16.6.0",
+    "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
-    "prisma": "^6.0.0",
-    "vitest": "^2.1.6"
+    "prisma": "^6.5.0",
+    "vitest": "^3.0.9"
   }
 }

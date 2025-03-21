@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { MaybePromise, PothosValidationError, SchemaTypes } from '../core/index.ts';
+import { type MaybePromise, PothosValidationError, type SchemaTypes } from '../core/index.ts';
 import type SubscriptionCache from './cache.ts';
 import FieldSubscriptionManager from './manager/field.ts';
 import TypeSubscriptionManager from './manager/type.ts';
@@ -20,7 +20,9 @@ export default class CacheNode<Types extends SchemaTypes> {
         if (this.fieldManager) {
             this.fieldManager.reRegister();
         }
-        this.typeManagers.forEach((manager) => void manager.reRegister());
+        for (const manager of this.typeManagers.values()) {
+            manager.reRegister();
+        }
     }
     managerForField() {
         this.fieldManager = new FieldSubscriptionManager(this.cache.manager, this);

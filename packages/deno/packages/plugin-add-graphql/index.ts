@@ -1,8 +1,8 @@
 // @ts-nocheck
 import './global-types.ts';
 import './schema-builder.ts';
+import SchemaBuilder, { BasePlugin, type SchemaTypes } from '../core/index.ts';
 import { GraphQLSchema } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, SchemaTypes } from '../core/index.ts';
 import { addTypeToSchema } from './utils.ts';
 const pluginName = "addGraphQL";
 export default pluginName;
