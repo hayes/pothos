@@ -17,11 +17,11 @@ import {
   isThenable,
 } from '@pothos/core';
 import {
-  getTableName,
   type InferSelectModel,
   Many,
   type Table,
   type TableRelationalConfig,
+  getTableName,
 } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
 import type {

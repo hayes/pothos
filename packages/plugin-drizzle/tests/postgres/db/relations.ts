@@ -32,6 +32,10 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.users.id,
       to: r.profileInfo.userId,
     }),
+    invitee: r.one.users({
+      from: r.users.invitedBy,
+      to: r.users.id,
+    }),
     groups: r.many.groups({
       from: r.users.id.through(r.usersToGroups.userId),
       to: r.groups.id.through(r.usersToGroups.groupId),

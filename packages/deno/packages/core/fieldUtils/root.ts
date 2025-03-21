@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { ListRef } from '../refs/list.ts';
 import type { ArgBuilder, InputFieldMap, NormalizeArgs, ShapeFromTypeParam } from '../types/index.ts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, SchemaTypes, TypeParam, } from '../types/index.ts';
+import type { FieldKind, FieldNullability, FieldOptionsFromKind, SchemaTypes, TypeParam, } from '../types/index.ts';
 import { BaseFieldUtil } from './base.ts';
 import { InputFieldBuilder } from './input.ts';
 export class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends BaseFieldUtil<Types, ParentShape, Kind> {

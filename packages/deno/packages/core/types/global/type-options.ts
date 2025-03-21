@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { GraphQLIsTypeOfFn, GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarValueParser, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
 import type { EnumValues, InputFieldMap, InterfaceFieldsShape, MutationFieldsShape, ObjectFieldsShape, QueryFieldsShape, SubscriptionFieldsShape, ValidateInterfaces, } from '../builder-options.ts';
 import type { RootName, SchemaTypes } from '../schema-types.ts';
@@ -23,6 +22,7 @@ declare global {
             interfaces?: (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
         }
         export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> extends BaseTypeOptions<Types> {
+            name?: string;
         }
         export interface QueryTypeOptions<Types extends SchemaTypes = SchemaTypes> extends RootTypeOptions<Types, "Query"> {
             fields?: QueryFieldsShape<Types>;
@@ -35,6 +35,7 @@ declare global {
         }
         export interface InputObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Fields extends InputFieldMap = InputFieldMap> extends BaseTypeOptions<Types> {
             isOneOf?: boolean;
+            // biome-ignore lint/correctness/noUndeclaredVariables: <explanation>
             fields: (t: InputFieldBuilder<Types, "InputObject">) => Fields;
         }
         export interface InterfaceTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[], ResolveType = unknown> extends BaseTypeOptions<Types> {

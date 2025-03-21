@@ -1,6 +1,6 @@
 // @ts-nocheck
+import { type PartialResolveInfo, PothosValidationError, type SchemaTypes } from '../../core/index.ts';
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { PartialResolveInfo, PothosValidationError, SchemaTypes } from '../../core/index.ts';
 import { decodeGlobalID, encodeGlobalID } from './global-ids.ts';
 export function internalEncodeGlobalID<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, typename: string, id: bigint | number | string, ctx: object) {
     if (builder.options.relay?.encodeGlobalID) {

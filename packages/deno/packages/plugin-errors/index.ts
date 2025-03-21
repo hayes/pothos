@@ -1,8 +1,8 @@
 // @ts-nocheck
 import './global-types.ts';
-import { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosSchemaError, SchemaTypes, sortClasses, typeBrandKey, unwrapOutputFieldType, } from '../core/index.ts';
-import { GetTypeName } from './types.ts';
+import SchemaBuilder, { BasePlugin, type ImplementableObjectRef, type PothosOutputFieldConfig, PothosSchemaError, type SchemaTypes, sortClasses, typeBrandKey, unwrapOutputFieldType, } from '../core/index.ts';
+import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'https://cdn.skypack.dev/graphql?dts';
+import type { GetTypeName } from './types.ts';
 export * from './types.ts';
 const pluginName = "errors";
 export default pluginName;
@@ -19,7 +19,6 @@ function createErrorProxy(target: {}, ref: unknown, state: {
         get(err, val, receiver) {
             if (val === unwrapError) {
                 return () => {
-                    // eslint-disable-next-line no-param-reassign
                     state.wrapped = false;
                 };
             }
@@ -37,9 +36,9 @@ function createErrorProxy(target: {}, ref: unknown, state: {
         },
     });
 }
-const errorTypeMap = new WeakMap<{}, new (...args: any[]) => Error>();
+const errorTypeMap = new WeakMap<{}, new (...args: never[]) => Error>();
 export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined, config: PothosObjectTypeConfig): GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined {
+    override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined): GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined {
         if (isTypeOf) {
             return (parent, context, info) => {
                 if (typeof parent === "object" && parent) {
@@ -113,13 +112,13 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
                 .extensions?.getDataloader;
             return this.builder.unionType(unionName, {
                 types: [...errorTypes, resultType],
-                resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultType,
+                resolveType: (obj) => (errorTypeMap.get(obj as {}) as never) ?? resultType,
                 ...defaultUnionOptions,
                 ...unionOptions,
                 extensions: {
                     ...unionOptions.extensions,
                     getDataloader,
-                    pothosPrismaIndirectInclude: {
+                    pothosIndirectInclude: {
                         getType: () => typeName,
                         path: directResult ? [] : [{ type: resultName, name: dataFieldName }],
                     },

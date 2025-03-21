@@ -1,8 +1,6 @@
 // @ts-nocheck
-/* eslint-disable max-classes-per-file */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { completeValue, FieldRef, ImplementableObjectRef, InterfaceRef, ObjectFieldBuilder, SchemaTypes, } from '../../core/index.ts';
-import { DataLoaderOptions, LoadableNodeId } from '../types.ts';
+import { ImplementableObjectRef, type ObjectRef, type SchemaTypes } from '../../core/index.ts';
+import type { DataLoaderOptions, LoadableNodeId } from '../types.ts';
 import { dataloaderGetter } from '../util.ts';
 import { LoadableObjectRef } from './object.ts';
 export class LoadableNodeRef<Types extends SchemaTypes, RefShape, Shape, IDShape extends bigint | number | string = string, Key extends bigint | number | string = IDShape, CacheKey = Key> extends LoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
@@ -25,41 +23,19 @@ export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, S
         this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
         this.cacheResolved =
             typeof cacheResolved === "function" ? cacheResolved : cacheResolved && toKey;
-        this.builder.configStore.onTypeConfig(this, (config) => {
-            // eslint-disable-next-line no-param-reassign
-            config.extensions = {
+        (this.builder as typeof builder & {
+            nodeRef: (ref: ObjectRef<Types, unknown>, options: Record<string, unknown>) => void;
+        }).nodeRef(this, {
+            id,
+            loadManyWithoutCache: (ids: Key[], context: SchemaTypes["Context"]) => this.getDataloader(context).loadMany(ids),
+        });
+        this.updateConfig((config) => ({
+            ...config,
+            extensions: {
                 ...config.extensions,
                 getDataloader: this.getDataloader,
                 cacheResolved: this.cacheResolved,
-            };
-            // eslint-disable-next-line no-param-reassign
-            (config.pothosOptions as {
-                loadManyWithoutCache: unknown;
-            }).loadManyWithoutCache = (ids: Key[], context: SchemaTypes["Context"]) => this.getDataloader(context).loadMany(ids);
-        });
-        this.addInterfaces([
-            (this.builder as typeof this.builder & {
-                nodeInterfaceRef: () => InterfaceRef<Types, {}>;
-            }).nodeInterfaceRef(),
-        ]);
-        this.addFields(() => ({
-            id: (new ObjectFieldBuilder(this.builder) as PothosSchemaTypes.FieldBuilder<Types, "Object"> & {
-                globalID: (options: unknown) => FieldRef<Types>;
-            }).globalID({
-                ...(this.builder.options as {
-                    relayOptions?: {
-                        idFieldOptions?: {};
-                    };
-                }).relayOptions
-                    ?.idFieldOptions,
-                ...id,
-                nullable: false,
-                args: {},
-                resolve: (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) => completeValue(id.resolve(parent, args, context, info), (globalId) => ({
-                    type: name,
-                    id: globalId,
-                })),
-            }),
+            },
         }));
     }
 }

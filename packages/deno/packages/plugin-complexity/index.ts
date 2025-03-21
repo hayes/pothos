@@ -1,10 +1,10 @@
 // @ts-nocheck
 import './global-types.ts';
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, ContextCache, createContextCache, PothosOutputFieldConfig, PothosValidationError, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, type ContextCache, createContextCache, type PothosOutputFieldConfig, PothosValidationError, type SchemaTypes, } from '../core/index.ts';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { calculateComplexity } from './calculate-complexity.ts';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.ts';
-import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './types.ts';
+import { type ComplexityErrorFn, ComplexityErrorKind, type ComplexityResult } from './types.ts';
 export * from './types.ts';
 export * from './util.ts';
 export * from './validator.ts';
@@ -98,7 +98,6 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
         if (typeof max === "function") {
             max = max(ctx);
         }
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         if (max?.complexity || max?.depth || max?.breadth) {
             return max;
         }

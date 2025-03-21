@@ -1,15 +1,15 @@
 import { PothosValidationError } from '@pothos/core';
+import {
+  type DBQueryConfig,
+  type SQLWrapper,
+  type Table,
+  type TableRelationalConfig,
+  getTableName,
+  operators,
+} from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { deepEqual } from './deep-equal';
 import type { LoaderMappings } from './loader-map';
-import {
-  operators,
-  type SQLWrapper,
-  type DBQueryConfig,
-  type TableRelationalConfig,
-  getTableName,
-  type Table,
-} from 'drizzle-orm';
 
 export interface SelectionState {
   table: TableRelationalConfig;

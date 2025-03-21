@@ -9,6 +9,7 @@ const excludedPackages = [
   'converter',
   'deno',
   'plugin-example',
+  'plugin-drizzle',
   'plugin-prisma',
   'plugin-prisma-utils',
   'test-utils',

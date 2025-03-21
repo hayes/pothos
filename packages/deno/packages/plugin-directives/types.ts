@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { SchemaTypes } from '../core/index.ts';
+import type { SchemaTypes } from '../core/index.ts';
 export type DirectiveLocation = "ARGUMENT_DEFINITION" | "ENUM_VALUE" | "ENUM" | "FIELD_DEFINITION" | "INPUT_FIELD_DEFINITION" | "INPUT_OBJECT" | "INTERFACE" | "OBJECT" | "SCALAR" | "SCHEMA" | "UNION";
 export type DirectiveList = {
     name: string;
-    args?: {};
+    args?: object;
 }[];
 export type DirectivesFor<Types extends SchemaTypes, Location extends DirectiveLocation> = {
     [K in keyof Types["Directives"]]: Location extends Types["Directives"][K]["locations"] ? K : never;

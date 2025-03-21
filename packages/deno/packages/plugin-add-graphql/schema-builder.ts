@@ -1,15 +1,31 @@
 // @ts-nocheck
 import './global-types.ts';
-import { defaultFieldResolver, getNamedType, GraphQLEnumType, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLNamedInputType, GraphQLNamedOutputType, GraphQLObjectType, GraphQLOutputType, GraphQLUnionType, isListType, isNonNullType, } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { ArgumentRef, EnumRef, EnumValueConfigMap, InputFieldRef, InputType, InputTypeParam, ObjectParam, ObjectRef, OutputType, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { AddGraphQLEnumTypeOptions, AddGraphQLInputTypeOptions, AddGraphQLInterfaceTypeOptions, AddGraphQLObjectTypeOptions, AddGraphQLUnionTypeOptions, EnumValuesWithShape, } from './types.ts';
+import SchemaBuilder, { InputListRef, ListRef, type ArgumentRef, type EnumRef, type EnumValueConfigMap, type InputFieldRef, type InputType, type InputTypeParam, type ObjectParam, type ObjectRef, type OutputType, type SchemaTypes, type TypeParam, } from '../core/index.ts';
+import { type GraphQLEnumType, type GraphQLInputObjectType, type GraphQLInputType, type GraphQLInterfaceType, type GraphQLObjectType, type GraphQLOutputType, type GraphQLType, type GraphQLUnionType, defaultFieldResolver, isListType, isNonNullType, } from 'https://cdn.skypack.dev/graphql?dts';
+import type { AddGraphQLEnumTypeOptions, AddGraphQLInputTypeOptions, AddGraphQLInterfaceTypeOptions, AddGraphQLObjectTypeOptions, AddGraphQLUnionTypeOptions, EnumValuesWithShape, } from './types.ts';
 import { addReferencedType } from './utils.ts';
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-function resolveOutputTypeRef(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, type: GraphQLNamedOutputType) {
+function resolveNullableOutputRef(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, type: GraphQLOutputType): OutputType<SchemaTypes> {
+    if (isNonNullType(type)) {
+        throw new Error("Expected a nullable type");
+    }
+    if (isListType(type)) {
+        const nullable = !isNonNullType(type.ofType);
+        const listType = nullable ? type.ofType : type.ofType.ofType;
+        return new ListRef(resolveNullableOutputRef(builder, listType), nullable);
+    }
     addReferencedType(builder, type);
     return type.name as OutputType<SchemaTypes>;
 }
-function resolveInputTypeRef(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, type: GraphQLNamedInputType) {
+function resolveNullableInputRef(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, type: GraphQLType): InputTypeParam<SchemaTypes> {
+    if (isNonNullType(type)) {
+        throw new Error("Expected a nullable type");
+    }
+    if (isListType(type)) {
+        const required = isNonNullType(type.ofType);
+        const listType = required ? type.ofType.ofType : type.ofType;
+        return new InputListRef(resolveNullableInputRef(builder, listType), required);
+    }
     addReferencedType(builder, type);
     return type.name as InputType<SchemaTypes>;
 }
@@ -17,46 +33,24 @@ function resolveOutputType(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>
     type: TypeParam<SchemaTypes>;
     nullable: boolean;
 } {
-    const namedType = getNamedType(type);
     const isNullable = !isNonNullType(type);
     const nonNullable = isNonNullType(type) ? type.ofType : type;
-    const isList = isListType(nonNullable);
-    const typeRef = resolveOutputTypeRef(builder, namedType);
-    if (!isList) {
-        return {
-            type: typeRef,
-            nullable: isNullable,
-        };
-    }
+    const typeRef = resolveNullableOutputRef(builder, nonNullable);
     return {
-        type: [typeRef],
-        nullable: {
-            list: isNullable,
-            items: !isNonNullType(nonNullable.ofType),
-        } as unknown as boolean,
+        type: typeRef,
+        nullable: isNullable,
     };
 }
 function resolveInputType(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, type: GraphQLInputType): {
     type: InputTypeParam<SchemaTypes>;
     required: boolean;
 } {
-    const namedType = getNamedType(type);
     const isNullable = !isNonNullType(type);
     const nonNullable = isNonNullType(type) ? type.ofType : type;
-    const isList = isListType(nonNullable);
-    const typeRef = resolveInputTypeRef(builder, namedType);
-    if (!isList) {
-        return {
-            type: typeRef,
-            required: !isNullable,
-        };
-    }
+    const typeRef = resolveNullableInputRef(builder, nonNullable);
     return {
-        type: [typeRef],
-        required: {
-            list: !isNullable,
-            items: isNonNullType(nonNullable.ofType),
-        } as unknown as boolean,
+        type: typeRef,
+        required: !isNullable,
     };
 }
 proto.addGraphQLObject = function addGraphQLObject<Shape>(type: GraphQLObjectType<Shape>, { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape> = {}) {
@@ -65,7 +59,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(type: GraphQLObjectTyp
         description: type.description ?? undefined,
         isTypeOf: type.isTypeOf as never,
         extensions: { ...type.extensions, ...extensions },
-        interfaces: () => type.getInterfaces().map((i) => resolveOutputTypeRef(this, i)) as [
+        interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [
         ],
         fields: (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
             const existingFields = type.getFields();
@@ -73,12 +67,12 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(type: GraphQLObjectTyp
             const combinedFields: typeof newFields = {
                 ...newFields,
             };
-            Object.entries(existingFields).forEach(([fieldName, field]) => {
+            for (const [fieldName, field] of Object.entries(existingFields)) {
                 if (newFields[fieldName] !== undefined) {
                     if (newFields[fieldName] === null) {
                         delete combinedFields[fieldName];
                     }
-                    return;
+                    continue;
                 }
                 const args: Record<string, ArgumentRef<SchemaTypes>> = {};
                 for (const { name, ...arg } of field.args) {
@@ -96,9 +90,11 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(type: GraphQLObjectTyp
                     args,
                     description: field.description ?? undefined,
                     deprecationReason: field.deprecationReason ?? undefined,
+                    extensions: field.extensions,
                     resolve: (field.resolve ?? defaultFieldResolver) as never,
+                    ...(field.subscribe ? { subscribe: field.subscribe } : {}),
                 });
-            });
+            }
             return combinedFields as {};
         },
     };
@@ -123,7 +119,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(type: 
         description: type.description ?? undefined,
         resolveType: type.resolveType as never,
         extensions: { ...type.extensions, ...extensions },
-        interfaces: () => type.getInterfaces().map((i) => resolveOutputTypeRef(this, i)) as [
+        interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [
         ],
         fields: (t) => {
             const existingFields = type.getFields();
@@ -131,12 +127,12 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(type: 
             const combinedFields: typeof newFields = {
                 ...newFields,
             };
-            Object.entries(existingFields).forEach(([fieldName, field]) => {
+            for (const [fieldName, field] of Object.entries(existingFields)) {
                 if (newFields[fieldName] !== undefined) {
                     if (newFields[fieldName] === null) {
                         delete combinedFields[fieldName];
                     }
-                    return;
+                    continue;
                 }
                 const args: Record<string, ArgumentRef<SchemaTypes>> = {};
                 for (const { name, ...arg } of field.args) {
@@ -154,21 +150,21 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(type: 
                     description: field.description ?? undefined,
                     deprecationReason: field.deprecationReason ?? undefined,
                     resolve: field.resolve as never,
+                    extensions: field.extensions,
                 });
-            });
+            }
             return combinedFields as {};
         },
     });
     return ref;
 };
 proto.addGraphQLUnion = function addGraphQLUnion<Shape>(type: GraphQLUnionType, { types, extensions, ...options }: AddGraphQLUnionTypeOptions<SchemaTypes, ObjectRef<SchemaTypes, Shape>> = {}) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.unionType<ObjectParam<SchemaTypes>, Shape>(options?.name ?? type.name, {
         ...options,
         description: type.description ?? undefined,
         resolveType: type.resolveType as never,
         extensions: { ...type.extensions, ...extensions },
-        types: types ?? (type.getTypes().map((t) => resolveOutputTypeRef(this, t)) as [
+        types: types ?? (type.getTypes().map((t) => resolveNullableOutputRef(this, t)) as [
         ]),
     });
 };
@@ -197,18 +193,19 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(type: GraphQL
         ...options,
         description: type.description ?? undefined,
         extensions: { ...type.extensions, ...extensions },
+        isOneOf: type.isOneOf,
         fields: (t) => {
             const existingFields = type.getFields();
             const newFields: Record<string, InputFieldRef<SchemaTypes, unknown> | null> = fields?.(t) ?? {};
             const combinedFields: typeof newFields = {
                 ...newFields,
             };
-            Object.entries(existingFields).forEach(([fieldName, field]) => {
+            for (const [fieldName, field] of Object.entries(existingFields)) {
                 if (newFields[fieldName] !== undefined) {
                     if (newFields[fieldName] === null) {
                         delete combinedFields[fieldName];
                     }
-                    return;
+                    continue;
                 }
                 combinedFields[fieldName] = t.field({
                     ...resolveInputType(this, field.type),
@@ -216,7 +213,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(type: GraphQL
                     defaultValue: field.defaultValue,
                     extensions: field.extensions,
                 });
-            });
+            }
             return combinedFields as never;
         },
     }) as never;
