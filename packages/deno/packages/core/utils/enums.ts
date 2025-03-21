@@ -1,18 +1,17 @@
 // @ts-nocheck
-import { BaseEnum, EnumValues, PothosEnumValueConfig, SchemaTypes } from '../types/index.ts';
+import type { BaseEnum, EnumValues, PothosEnumValueConfig, SchemaTypes } from '../types/index.ts';
 export function normalizeEnumValues<Types extends SchemaTypes>(values: EnumValues<SchemaTypes>): Record<string, PothosEnumValueConfig<Types>> {
     const result: Record<string, PothosEnumValueConfig<Types>> = {};
     if (Array.isArray(values)) {
-        values.forEach((key) => {
+        for (const key of values) {
             result[String(key)] = {
                 pothosOptions: {},
             };
-        });
+        }
     }
     else {
-        Object.entries(values).forEach(([key, value]) => {
+        for (const [key, value] of Object.entries(values)) {
             if (value && typeof value === "object") {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 result[key] = {
                     ...value,
                     pothosOptions: value as PothosSchemaTypes.EnumValueConfig<Types>,
@@ -23,20 +22,18 @@ export function normalizeEnumValues<Types extends SchemaTypes>(values: EnumValue
                     pothosOptions: {},
                 };
             }
-        });
+        }
     }
     return result;
 }
 export function valuesFromEnum<Types extends SchemaTypes>(Enum: BaseEnum, values?: Record<string, Omit<PothosSchemaTypes.EnumValueConfig<Types>, "value">>): Record<string, PothosEnumValueConfig<Types>> {
     const result: Record<string, PothosEnumValueConfig<Types>> = {};
-    Object.keys(Enum)
-        .filter((key) => typeof Enum[Enum[key]] !== "number")
-        .forEach((key) => {
+    for (const key of Object.keys(Enum).filter((key) => typeof Enum[Enum[key]] !== "number")) {
         result[key] = {
             value: Enum[key],
             pothosOptions: {},
             ...values?.[key],
         };
-    });
+    }
     return result;
 }

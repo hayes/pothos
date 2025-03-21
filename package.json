@@ -29,32 +29,23 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@changesets/cli": "^2.27.10",
-    "@faker-js/faker": "^9.2.0",
-    "@swc-node/register": "^1.10.9",
-    "@swc/cli": "^0.5.1",
-    "@swc/core": "^1.9.3",
-    "@swc/jest": "^0.2.37",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^22.10.1",
-    "@vitest/coverage-c8": "^0.33.0",
-    "globals": "^15.12.0",
-    "graphql": "^16.8.1",
-    "graphql-helix": "^1.13.0",
-    "graphql-tag": "^2.12.6",
-    "jest": "^29.7.0",
+    "@changesets/cli": "^2.28.1",
+    "@faker-js/faker": "^9.6.0",
+    "@swc-node/register": "^1.10.10",
+    "@swc/cli": "^0.6.0",
+    "@swc/core": "^1.11.11",
+    "@types/node": "^22.13.11",
     "pkg-pr-new": "^0.0.42",
-    "tsx": "^4.19.2",
-    "turbo": "^2.3.3",
-    "typescript": "5.7.2",
-    "typescript-json-schema": "^0.65.1",
-    "vitest": "^2.1.6"
+    "tsx": "^4.19.3",
+    "turbo": "^2.4.4",
+    "typescript": "5.8.2",
+    "vitest": "^3.0.9"
   },
   "engines": {
     "pnpm": ">=9.0.0"
   },
   "resolutions": {
-    "graphql": "^16.8.1",
+    "graphql": "^16.10.0",
     "@whatwg-node/fetch": "0.8.8"
   },
   "repository": {
@@ -67,16 +58,16 @@
     "url": "https://github.com/hayes/pothos/issues"
   },
   "homepage": "https://pothos-graphql.dev",
+  "packageManager": "pnpm@10.6.5",
   "pnpm": {
     "peerDependencyRules": {
       "ignoreMissing": ["webpack", "@babel/*", "@types/node"],
       "allowedVersions": {
-        "jest": "^28.1.0",
-        "graphql": "^16.5.0"
+        "graphql": "^16.10.0"
       }
     },
     "patchedDependencies": {
-      "@changesets/assemble-release-plan@6.0.5": "patches/@changesets__assemble-release-plan.patch"
+      "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch"
     }
   }
 }

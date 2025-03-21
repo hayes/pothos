@@ -3,7 +3,7 @@ import { ArgumentRef } from '../refs/arg.ts';
 import { InputFieldRef } from '../refs/input-field.ts';
 import { InputListRef } from '../refs/input-list.ts';
 import type { ArgBuilder, FieldRequiredness, InputOrArgRef, InputShapeFromTypeParam, InputTypeParam, NormalizeArgs, } from '../types/index.ts';
-import { InputType, SchemaTypes } from '../types/index.ts';
+import type { InputType, SchemaTypes } from '../types/index.ts';
 import { inputTypeFromParam } from '../utils/index.ts';
 export class InputFieldBuilder<Types extends SchemaTypes, Kind extends keyof PothosSchemaTypes.InputFieldOptionsByKind> {
     kind: Kind;
@@ -69,10 +69,10 @@ export class InputFieldBuilder<Types extends SchemaTypes, Kind extends keyof Pot
         const builder = this.field.bind(this as never) as InputFieldBuilder<Types, "Arg">["field"];
         const protoKeys = Object.keys(Object.getPrototypeOf(this) as object).filter((key) => typeof (this as Record<string, unknown>)[key] === "function" &&
             (Function.prototype as unknown as Record<string, unknown>)[key] === undefined);
-        ([...Object.keys(this), ...protoKeys] as (keyof InputFieldBuilder<Types, "Arg">)[]).forEach((key) => {
+        for (const key of [...Object.keys(this), ...protoKeys] as (keyof InputFieldBuilder<Types, "Arg">)[]) {
             (builder as unknown as Record<string, unknown>)[key] =
                 typeof this[key] === "function" ? (this[key] as Function).bind(this) : this[key];
-        });
+        }
         return builder as ArgBuilder<Types>;
     }
     /**

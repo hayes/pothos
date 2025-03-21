@@ -5,9 +5,9 @@ import ScopeAuthPlugin from '@pothos/plugin-relay';
 import RelayPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import { drizzle } from 'drizzle-orm/libsql';
+import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import DrizzlePlugin from '../../src';
 import { type DrizzleRelations, client, relations } from './db';
-import { getTableConfig } from 'drizzle-orm/sqlite-core';
 
 export interface BaseContext {
   user?: {

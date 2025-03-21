@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { InterfaceFieldBuilder, MutationFieldBuilder, ObjectFieldBuilder, QueryFieldBuilder, SchemaTypes, SubscriptionFieldBuilder, } from '../core/index.ts';
+import { InterfaceFieldBuilder, MutationFieldBuilder, ObjectFieldBuilder, QueryFieldBuilder, type SchemaTypes, SubscriptionFieldBuilder, } from '../core/index.ts';
 const objectFieldBuilder = ObjectFieldBuilder.prototype as PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, {}>;
 objectFieldBuilder.withAuth = function withAuth(scopes) {
     return addScopes(scopes, new ObjectFieldBuilder(this.builder) as never);
@@ -24,7 +24,6 @@ function addScopes(scopes: unknown, builder: {
     createField: (options: Record<string, unknown>) => unknown;
 }) {
     const originalCreateField = builder.createField;
-    // eslint-disable-next-line no-param-reassign
     builder.createField = function createField(options) {
         return originalCreateField.call(this, {
             authScopes: scopes,

@@ -1,8 +1,8 @@
 // @ts-nocheck
 import './global-types.ts';
-import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
-import { ResolverMap } from './types.ts';
+import SchemaBuilder, { BasePlugin, type PothosOutputFieldConfig, type SchemaTypes, } from '../core/index.ts';
+import type { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
+import type { ResolverMap } from './types.ts';
 const pluginName = "mocks";
 export default pluginName;
 export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

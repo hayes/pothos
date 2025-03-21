@@ -2,6 +2,17 @@ import { type Column, not, sql } from 'drizzle-orm';
 import builder from '../builder';
 import { db } from '../db';
 
+db.query.users.findMany({
+  columns: {
+    id: true,
+  },
+  with: {
+    invitee: true,
+  },
+  extras: {
+    lowercase: (user) => sql<string>`lower(${user.name})`.as('lowercase'),
+  },
+});
 builder.drizzleObject('users', {
   name: 'User',
   // Default selection when query users (optional, defaults to all columns)
@@ -19,9 +30,6 @@ builder.drizzleObject('users', {
   },
   fields: (t) => ({
     email: t.string({
-      resolve: (user) => `${user.lowercase.replaceAll(' ', '-')}@example.com`,
-      // field level selects can be merged in (only queried when the field is requested)
-      // combines with selections from object level
       select: {
         // with: {
         //   posts: true,
@@ -29,10 +37,11 @@ builder.drizzleObject('users', {
         columns: {
           invitedBy: true,
         },
-        extras: (user: Record<string, Column>) => ({
-          lowercase: sql<string>`lower(${user.name})`.as('lowercase'),
-        }),
+        extras: {
+          lowercase: (user) => sql<string>`lower(${user.name})`.as('lowercase'),
+        },
       },
+      resolve: (user) => `${user.lowercase.replaceAll(' ', '-')}@example.com`,
     }),
     // column values can be exposed even if they are not in the default selection (will be selected automatically)
     name: t.exposeString('name'),
@@ -46,7 +55,11 @@ builder.drizzleObject('users', {
       query: (args) => ({
         limit: args.limit ?? 10,
         offset: args.offset ?? 0,
-        where: (post, { eq }) => not(eq(post.id, 34)),
+        where: {
+          id: {
+            NOT: 34,
+          },
+        },
         orderBy: (post, ops) => (args.oldestFirst ? ops.asc(post.id) : ops.desc(post.id)),
       }),
       // relation available to other plugins even when selections are at the field level
@@ -70,7 +83,9 @@ builder.queryField('user', (t) =>
     resolve: async (query, _root, args, _ctx, _info) => {
       const drizzleQuery = db.query.users.findFirst({
         ...query,
-        where: (user, { eq }) => eq(user.id, args.id),
+        where: {
+          id: args.id,
+        },
       });
 
       // console.dir(query, { depth: null });

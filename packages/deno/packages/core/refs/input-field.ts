@@ -1,17 +1,17 @@
 // @ts-nocheck
-import { inputFieldShapeKey, PothosInputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { type PothosInputFieldConfig, type PothosTypeConfig, type SchemaTypes, inputFieldShapeKey, } from '../types/index.ts';
 export class InputFieldRef<Types extends SchemaTypes, T = unknown> {
     kind = "InputObject" as const;
     fieldName?: string;
     $inferInput!: T;
     [inputFieldShapeKey]!: T;
-    protected pendingActions: ((config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | void)[] = [];
+    protected pendingActions: ((config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | undefined)[] = [];
     private initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>;
     private onUseCallbacks = new Set<(config: PothosInputFieldConfig<Types>) => void>();
     constructor(initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>) {
         this.initConfig = initConfig;
     }
-    updateConfig(cb: (config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | void) {
+    updateConfig(cb: (config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | undefined) {
         this.pendingActions.push(cb);
     }
     getConfig(name: string, typeConfig: PothosTypeConfig): PothosInputFieldConfig<Types> {

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import './schema-builder.ts';
-import SchemaBuilder, { BasePlugin, SchemaTypes } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, type SchemaTypes } from '../core/index.ts';
 export * from './types.ts';
 const pluginName = "withInput";
 export default pluginName;
