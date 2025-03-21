@@ -10,7 +10,7 @@ overrides:
 
 patchedDependencies:
   '@changesets/assemble-release-plan@6.0.5':
-    hash: 3cfx2k4oor3ofz56aev53zrq3m
+    hash: deb29e78c9f5bac86ac0564bfefb313573c434bc7e22d213b872ab5fb8791e54
     path: patches/@changesets__assemble-release-plan.patch
 
 importers:
@@ -737,13 +737,13 @@ importers:
         version: link:../test-utils
       drizzle-graphql:
         specifier: ^0.8.5
-        version: 0.8.5(drizzle-orm@1.0.0-beta.1-e30ede4(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0)(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5))(graphql@16.9.0)
+        version: 0.8.5(drizzle-orm@1.0.0-beta.1-bd417c1(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0(prisma@6.0.0))(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)(prisma@6.0.0))(graphql@16.9.0)
       drizzle-kit:
-        specifier: 1.0.0-beta.1-e30ede4
-        version: 1.0.0-beta.1-e30ede4
+        specifier: beta
+        version: 1.0.0-beta.1-a916c3b
       drizzle-orm:
-        specifier: 1.0.0-beta.1-e30ede4
-        version: 1.0.0-beta.1-e30ede4(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0)(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)
+        specifier: beta
+        version: 1.0.0-beta.1-bd417c1(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0(prisma@6.0.0))(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)(prisma@6.0.0)
       graphql:
         specifier: ^16.8.1
         version: 16.9.0
@@ -6151,12 +6151,12 @@ packages:
       drizzle-orm: '>=0.30.9'
       graphql: ^16.8.1
 
-  drizzle-kit@1.0.0-beta.1-e30ede4:
-    resolution: {integrity: sha512-fE9aEvoHmrGgTb4yafZd3mIAfIiAcpLwOvx4CHIcqwM/BtplyVOuxcH52C44r0tZ1BpR4Jn03YJb7cQzoagufA==}
+  drizzle-kit@1.0.0-beta.1-a916c3b:
+    resolution: {integrity: sha512-o9WWk6aRVUJiat4KODLKMcKliJJaTX2kaF6dOBDMghwkiMBhfBNOlboa5Dlkyhy4bsgzXnKDChLAn/IhTK1dig==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.1-e30ede4:
-    resolution: {integrity: sha512-A537LcvOtQEpv3P0NQvBvmd5hpOYAlMXGkal4TdC/BRcPbF7ZYvepk2wro4/eT8Nkp3GlvGGiN/V5SpcOczbCw==}
+  drizzle-orm@1.0.0-beta.1-bd417c1:
+    resolution: {integrity: sha512-WCjjODdeDAkpo4ceCCA7pp8qFiQZbc5AAJiYxFdM7rSH4Ez71VWC5oEvIcvwepACyHUCtCxYgzKOyjFITFa8CA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -7830,7 +7830,6 @@ packages:
 
   libsql@0.4.7:
     resolution: {integrity: sha512-T9eIRCs6b0J1SHKYIvD8+KCJMcWZ900iZyxdnSCdqxN12Z1ijzT+jY5nrk72Jw4B0HGzms2NgpryArlJqvc3Lw==}
-    cpu: [x64, arm64, wasm32]
     os: [darwin, linux, win32]
 
   light-my-request@6.3.0:
@@ -11619,7 +11618,7 @@ snapshots:
       resolve-from: 5.0.0
       semver: 7.6.3
 
-  '@changesets/assemble-release-plan@6.0.5(patch_hash=3cfx2k4oor3ofz56aev53zrq3m)':
+  '@changesets/assemble-release-plan@6.0.5(patch_hash=deb29e78c9f5bac86ac0564bfefb313573c434bc7e22d213b872ab5fb8791e54)':
     dependencies:
       '@changesets/errors': 0.2.0
       '@changesets/get-dependents-graph': 2.1.2
@@ -11635,7 +11634,7 @@ snapshots:
   '@changesets/cli@2.27.10':
     dependencies:
       '@changesets/apply-release-plan': 7.0.6
-      '@changesets/assemble-release-plan': 6.0.5(patch_hash=3cfx2k4oor3ofz56aev53zrq3m)
+      '@changesets/assemble-release-plan': 6.0.5(patch_hash=deb29e78c9f5bac86ac0564bfefb313573c434bc7e22d213b872ab5fb8791e54)
       '@changesets/changelog-git': 0.2.0
       '@changesets/config': 3.0.4
       '@changesets/errors': 0.2.0
@@ -11686,7 +11685,7 @@ snapshots:
 
   '@changesets/get-release-plan@4.0.5':
     dependencies:
-      '@changesets/assemble-release-plan': 6.0.5(patch_hash=3cfx2k4oor3ofz56aev53zrq3m)
+      '@changesets/assemble-release-plan': 6.0.5(patch_hash=deb29e78c9f5bac86ac0564bfefb313573c434bc7e22d213b872ab5fb8791e54)
       '@changesets/config': 3.0.4
       '@changesets/pre': 2.0.1
       '@changesets/read': 0.6.2
@@ -16494,15 +16493,15 @@ snapshots:
       p-event: 2.3.1
       pify: 4.0.1
 
-  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-beta.1-e30ede4(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0)(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5))(graphql@16.9.0):
+  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-beta.1-bd417c1(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0(prisma@6.0.0))(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)(prisma@6.0.0))(graphql@16.9.0):
     dependencies:
-      drizzle-orm: 1.0.0-beta.1-e30ede4(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0)(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)
+      drizzle-orm: 1.0.0-beta.1-bd417c1(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0(prisma@6.0.0))(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)(prisma@6.0.0)
       graphql: 16.9.0
       graphql-parse-resolve-info: 4.13.0(graphql@16.9.0)
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-kit@1.0.0-beta.1-e30ede4:
+  drizzle-kit@1.0.0-beta.1-a916c3b:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': 2.6.5
@@ -16512,7 +16511,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@1.0.0-beta.1-e30ede4(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0)(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5):
+  drizzle-orm@1.0.0-beta.1-bd417c1(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.0.0(prisma@6.0.0))(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)(prisma@6.0.0):
     optionalDependencies:
       '@libsql/client': 0.14.0
       '@opentelemetry/api': 1.9.0
@@ -16520,6 +16519,7 @@ snapshots:
       '@types/pg': 8.11.10
       gel: 2.0.1
       postgres: 3.4.5
+      prisma: 6.0.0
 
   dset@3.1.3: {}
 
