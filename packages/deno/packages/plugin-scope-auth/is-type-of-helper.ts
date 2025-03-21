@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { isThenable, MaybePromise, SchemaTypes } from '../core/index.ts';
+import { type MaybePromise, type SchemaTypes, isThenable } from '../core/index.ts';
+import type { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { ForbiddenError } from './errors.ts';
 import RequestCache from './request-cache.ts';
 import type { PothosScopeAuthPlugin, ResolveStep, UnauthorizedForTypeErrorFn } from './index.ts';

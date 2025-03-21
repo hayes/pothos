@@ -1,7 +1,6 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-import { ErrorFieldOptions, ErrorsPluginOptions } from './types.ts';
+import type { FieldNullability, InputFieldMap, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import type { ErrorFieldOptions, ErrorsPluginOptions } from './types.ts';
 import type { PothosErrorsPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {

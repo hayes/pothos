@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
-import { defaultFieldResolver, GraphQLFieldResolver, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, BuildCache, FieldRef, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, type BuildCache, type FieldRef, type PothosOutputFieldConfig, type SchemaTypes, } from '../core/index.ts';
+import { type GraphQLFieldResolver, type GraphQLTypeResolver, defaultFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import SubscriptionCache from './cache.ts';
 import { getFieldSubscribe } from './create-field-data.ts';
 import SubscriptionManager from './manager/index.ts';
@@ -34,10 +34,8 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
             this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
             this.builder.subscriptionField(fieldConfig.name, (t) => t.field({
                 ...fieldConfig.pothosOptions,
-                resolve: (parent, args, context, info) => 
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
-                subscribe: (parent, args, context, info) => {
+                resolve: (parent, args, context, info) => (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
+                subscribe: (parent, _args, context) => {
                     const manager = new SubscriptionManager({
                         value: parent,
                         debounceDelay: this.debounceDelay,
@@ -56,10 +54,10 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
                                     });
                                 },
                                 async return() {
-                                    return manager.return();
+                                    return await manager.return();
                                 },
                                 async throw(error: unknown) {
-                                    return manager.throw(error);
+                                    return await manager.throw(error);
                                 },
                             };
                         },
@@ -69,7 +67,7 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
         }
         return fieldConfig;
     }
-    override createRequestData(context: Types["Context"]) {
+    override createRequestData(_context: Types["Context"]) {
         return {};
     }
     override wrapResolve(resolve: GraphQLFieldResolver<unknown, Types["Context"]>, field: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"]> {

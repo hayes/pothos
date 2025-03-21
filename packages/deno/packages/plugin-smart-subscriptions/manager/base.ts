@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { RegisterOptions } from '../types.ts';
-import SubscriptionManager from './index.ts';
+import type SubscriptionManager from './index.ts';
+import type { RegisterOptions } from '../types.ts';
 export default class BaseSubscriptionManager {
     manager: SubscriptionManager;
     registrations: RegisterOptions[] = [];
@@ -12,6 +12,8 @@ export default class BaseSubscriptionManager {
         this.manager.register<T>(options);
     }
     reRegister() {
-        this.registrations.forEach((options) => void this.manager.register(options));
+        for (const options of this.registrations) {
+            this.manager.register(options);
+        }
     }
 }

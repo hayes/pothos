@@ -5,8 +5,8 @@ import type { InputFieldRef } from '../refs/input-field.ts';
 import type { InterfaceRef } from '../refs/interface.ts';
 import type { ObjectRef } from '../refs/object.ts';
 import type { SchemaTypes, VersionedSchemaBuilderOptions } from './schema-types.ts';
-import type { BaseEnum, EnumParam, FieldNullability, GenericFieldRef, GenericInputFieldRef, inputFieldShapeKey, InputRef, InterfaceParam, ObjectParam, ParentShape as GetParentShape, ShapeFromTypeParam, TypeParam, } from './type-params.ts';
-import type { MaybePromise, Merge, Normalize, NormalizeNullableFields, RemoveNeverKeys, } from './utils.ts';
+import type { BaseEnum, EnumParam, FieldNullability, GenericFieldRef, GenericInputFieldRef, ParentShape as GetParentShape, InputRef, InterfaceParam, ObjectParam, ShapeFromTypeParam, TypeParam, inputFieldShapeKey, } from './type-params.ts';
+import type { MaybePromise, Merge, Normalize, NormalizeNullableFields, RemoveNeverKeys, Simplify, } from './utils.ts';
 export type AddVersionedDefaultsToBuilderOptions<Types extends SchemaTypes, Version extends keyof VersionedSchemaBuilderOptions<SchemaTypes>> = PothosSchemaTypes.SchemaBuilderOptions<Types> extends infer Options ? VersionedSchemaBuilderOptions<Types>[Version] extends infer Defaults ? RemoveNeverKeys<Defaults & Omit<Options, keyof Defaults>> : never : never;
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<PothosSchemaTypes.SchemaBuilderOptions<Types>>;
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (parent: Parent, args: Args, context: Context, info: GraphQLResolveInfo) => [
@@ -51,6 +51,11 @@ export type EnumTypeOptions<Types extends SchemaTypes, Param extends EnumParam, 
 }> : PothosSchemaTypes.EnumTypeOptions<Types, Values>;
 export type ArgBuilder<Types extends SchemaTypes> = Omit<PothosSchemaTypes.InputFieldBuilder<Types, "Arg">, "field"> & PothosSchemaTypes.InputFieldBuilder<Types, "Arg">["field"];
 export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>> = Interfaces extends InterfaceParam<Types> ? Shape extends GetParentShape<Types, Interfaces> ? Interfaces : "Object shape must extend interface shape" : never;
+export type OneOfInputShapeFromFields<Fields extends InputFieldMap> = keyof Fields extends infer K extends keyof Fields ? K extends unknown ? Simplify<{
+    [Name in K]: NonNullable<InputShapeFromField<Fields[K]>>;
+} & {
+    [Name in keyof Fields as Name extends K ? never : Name]?: never;
+}> : never : never;
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
     [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
 }>;

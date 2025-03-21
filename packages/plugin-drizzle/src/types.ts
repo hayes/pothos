@@ -35,7 +35,6 @@ import type {
   SQL,
   Table,
   TableRelationalConfig,
-  TablesRelationalConfig,
 } from 'drizzle-orm';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
@@ -45,7 +44,7 @@ import type { SelectionMap } from './utils/selections';
 
 export type DrizzleClient = {
   readonly _: {
-    readonly schema: TablesRelationalConfig | undefined;
+    readonly schema: unknown;
     readonly fullSchema: Record<string, unknown>;
     readonly tableNamesMap: Record<string, string>;
     readonly relations: AnyRelations;

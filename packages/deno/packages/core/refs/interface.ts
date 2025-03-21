@@ -1,8 +1,7 @@
 // @ts-nocheck
-/* eslint-disable max-classes-per-file */
-import { InterfaceParam, InterfaceTypeOptions, OutputRef, outputShapeKey, parentShapeKey, PothosInterfaceTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { type InterfaceParam, type InterfaceTypeOptions, type OutputRef, type PothosInterfaceTypeConfig, type SchemaTypes, outputShapeKey, parentShapeKey, } from '../types/index.ts';
 import { TypeRefWithFields } from './base-with-fields.ts';
-export class InterfaceRef<Types extends SchemaTypes, T, P = T> extends TypeRefWithFields<Types, PothosInterfaceTypeConfig> implements OutputRef, PothosSchemaTypes.InterfaceRef<Types, T, P> {
+export class InterfaceRef<Types extends SchemaTypes, T, P = T> extends TypeRefWithFields<Types, PothosInterfaceTypeConfig> implements OutputRef<T>, PothosSchemaTypes.InterfaceRef<Types, T, P> {
     override kind = "Interface" as const;
     $inferType!: T;
     [outputShapeKey]!: T;

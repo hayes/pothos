@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { GraphQLNamedType, isEnumType, isInputObjectType, isInterfaceType, isObjectType, isScalarType, isUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-import { createContextCache, SchemaTypes } from '../core/index.ts';
+import { type SchemaTypes, createContextCache } from '../core/index.ts';
+import { type GraphQLNamedType, isEnumType, isInputObjectType, isInterfaceType, isObjectType, isScalarType, isUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 export function addTypeToSchema<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, type: GraphQLNamedType) {
     if (builder.configStore.hasConfig(type.name as never)) {
@@ -29,5 +29,5 @@ export function addReferencedType<Types extends SchemaTypes>(builder: PothosSche
     if (referencedTypes(builder).has(type)) {
         return;
     }
-    builder.configStore.onPrepare(() => void addTypeToSchema(builder, type));
+    builder.configStore.onPrepare(() => addTypeToSchema(builder, type));
 }

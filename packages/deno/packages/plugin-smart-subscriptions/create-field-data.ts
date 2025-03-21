@@ -1,6 +1,6 @@
 // @ts-nocheck
 import './global-types.ts';
-import { PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
+import type { PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
 import type { FieldSubscriber } from './types.ts';
 import type { PothosSmartSubscriptionsPlugin } from './index.ts';
 export function getFieldSubscribe<Types extends SchemaTypes>(field: PothosOutputFieldConfig<Types>, plugin: PothosSmartSubscriptionsPlugin<Types>) {

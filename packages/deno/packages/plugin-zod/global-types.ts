@@ -1,7 +1,6 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { ValidationOptions, ValidationPluginOptions } from './types.ts';
+import type { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { ValidationOptions, ValidationPluginOptions } from './types.ts';
 import type { PothosZodPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {

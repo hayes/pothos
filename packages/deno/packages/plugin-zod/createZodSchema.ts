@@ -1,7 +1,7 @@
 // @ts-nocheck
-import * as zod from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
 import { PothosSchemaError } from '../core/index.ts';
-import { ArrayValidationOptions, BaseValidationOptions, NumberValidationOptions, RefineConstraint, StringValidationOptions, ValidationOptionUnion, } from './types.ts';
+import * as zod from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
+import type { ArrayValidationOptions, BaseValidationOptions, NumberValidationOptions, RefineConstraint, StringValidationOptions, ValidationOptionUnion, } from './types.ts';
 const baseValidations = ["refine", "schema"] as const;
 const numberValidations = [
     ...baseValidations,
@@ -37,7 +37,7 @@ const arrayValidations = [
     "type",
 ] as const;
 const objectValidations = [...baseValidations, "type"] as const;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 function validatorCreator<T extends BaseValidationOptions<any>>(type: NonNullable<T["type"]>, validationNames: readonly (keyof T)[], create: (options: T) => zod.ZodTypeAny) {
     function check(options: ValidationOptionUnion): options is T {
         if (typeof options !== "object" || (options.type && options.type !== type)) {

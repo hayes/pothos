@@ -1,8 +1,7 @@
 // @ts-nocheck
-/* eslint-disable max-classes-per-file */
-import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { ImplementableObjectRef, ObjectRef, SchemaTypes } from '../../core/index.ts';
-import { DataLoaderOptions } from '../types.ts';
+import { ImplementableObjectRef, ObjectRef, type SchemaTypes } from '../../core/index.ts';
+import type DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
+import type { DataLoaderOptions } from '../types.ts';
 import { dataloaderGetter } from '../util.ts';
 export class LoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends ObjectRef<Types, RefShape, Shape> {
     getDataloader;
@@ -20,7 +19,6 @@ export class ImplementableLoadableObjectRef<Types extends SchemaTypes, RefShape,
         this.cacheResolved =
             typeof cacheResolved === "function" ? cacheResolved : cacheResolved && toKey;
         this.builder.configStore.onTypeConfig(this, (config) => {
-            // eslint-disable-next-line no-param-reassign
             config.extensions = {
                 ...config.extensions,
                 getDataloader: this.getDataloader,

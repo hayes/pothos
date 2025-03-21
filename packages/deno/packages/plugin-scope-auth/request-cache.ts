@@ -1,8 +1,7 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/promise-function-async */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { createContextCache, isThenable, MaybePromise, Path, PothosValidationError, SchemaTypes, } from '../core/index.ts';
-import { AuthFailure, AuthScopeFailureType, AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction, } from './types.ts';
+import { type MaybePromise, type Path, PothosValidationError, type SchemaTypes, createContextCache, isThenable, } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import { type AuthFailure, AuthScopeFailureType, type AuthScopeMap, type ScopeLoaderMap, type TypeAuthScopesFunction, } from './types.ts';
 import { cacheKey, canCache } from './util.ts';
 const contextCache = createContextCache((ctx, builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => new RequestCache(builder, ctx));
 export default class RequestCache<Types extends SchemaTypes> {
@@ -53,7 +52,9 @@ export default class RequestCache<Types extends SchemaTypes> {
         const key = cacheKey(path);
         if (this.grantCache.has(key)) {
             const set = this.grantCache.get(key)!;
-            scopes.forEach((scope) => set.add(scope));
+            for (const scope of scopes) {
+                set.add(scope);
+            }
         }
         else {
             this.grantCache.set(key, new Set(scopes));
@@ -93,11 +94,12 @@ export default class RequestCache<Types extends SchemaTypes> {
         const cache = this.scopeCache.get(name)!;
         const key = this.cacheKey ? this.cacheKey(arg) : arg;
         if (!cache.has(key)) {
-            const loader = scopes[name];
+            let loader = scopes[name];
             if (typeof loader !== "function") {
                 throw new PothosValidationError(`Attempted to evaluate scope ${String(name)} as scope loader, but it is not a function`);
             }
-            let result;
+            loader = loader.bind(scopes);
+            let result: MaybePromise<boolean>;
             if (this.treatErrorsAsUnauthorized) {
                 try {
                     result = (loader as (param: Types["AuthScopes"][T]) => MaybePromise<boolean>)(arg);
@@ -169,7 +171,6 @@ export default class RequestCache<Types extends SchemaTypes> {
                 if (forAll) {
                     return failure;
                 }
-                // eslint-disable-next-line no-continue
                 continue;
             }
             const scope: boolean | ((arg: Types["AuthScopes"][typeof scopeName]) => MaybePromise<boolean>) = scopes[scopeName];
@@ -257,14 +258,14 @@ export default class RequestCache<Types extends SchemaTypes> {
         }
         return Promise.all(promises).then((results) => {
             let hasSuccess = false;
-            results.forEach((result) => {
+            for (const result of results) {
                 if (result) {
                     problems.push(result);
                 }
                 else {
                     hasSuccess = true;
                 }
-            });
+            }
             if (forAll) {
                 return problems.length > 0 ? failure : null;
             }
@@ -302,7 +303,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         }
         const cache = typeCache.get(type)!;
         if (!cache.has(parent)) {
-            let result;
+            let result: ReturnType<TypeAuthScopesFunction<Types, unknown>>;
             if (this.treatErrorsAsUnauthorized) {
                 try {
                     result = authScopes(parent, this.context);

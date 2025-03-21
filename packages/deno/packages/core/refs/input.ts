@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { inputShapeKey, SchemaTypes } from '../types/index.ts';
+import { type SchemaTypes, inputShapeKey } from '../types/index.ts';
 import { BaseTypeRef } from './base.ts';
 export class InputTypeRef<Types extends SchemaTypes, T> extends BaseTypeRef<Types> {
     override kind;

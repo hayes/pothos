@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { defaultFieldResolver, GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { isThenable, PothosOutputFieldConfig, PothosOutputFieldType, SchemaTypes, } from '../core/index.ts';
+import { type PothosOutputFieldConfig, type PothosOutputFieldType, type SchemaTypes, isThenable, } from '../core/index.ts';
+import { type GraphQLFieldResolver, type GraphQLResolveInfo, defaultFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 export function isRootField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {
     return (config.parentType === "Query" ||
         config.parentType === "Mutation" ||

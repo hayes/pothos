@@ -5,7 +5,6 @@ import {
   GraphQLEnumType,
   GraphQLInt,
 } from 'graphql';
-import { rateLimitDirective } from 'graphql-rate-limit-directive';
 import builder from '../builder';
 
 const myInput = builder.inputType('MyInput', {
@@ -51,10 +50,6 @@ builder.queryType({
     o: {
       foo: 123,
     },
-    rateLimit: {
-      limit: 1,
-      duration: 5,
-    },
   },
   fields: (t) => ({
     cacheControlPrivate: t.string({
@@ -78,14 +73,16 @@ builder.queryType({
       resolve: () => 'hi',
     }),
     test: t.string({
-      directives: [
-        {
-          name: 'f',
-          args: {
-            foo: 123,
-          },
+      directives: {
+        f: {
+          foo: 123,
         },
-      ],
+        rateLimit: {
+          max: 1,
+          window: '5s',
+          message: 'Too many requests, please try again in 5 seconds.',
+        },
+      },
       args: {
         arg1: t.arg.string({
           directives: {
@@ -180,11 +177,6 @@ export const cacheControlDirective = new GraphQLDirective({
   },
 });
 
-const { rateLimitDirectiveTransformer } = rateLimitDirective();
-const schema = rateLimitDirectiveTransformer(
-  builder.toSchema({
-    directives: [cacheControlDirective],
-  }),
-);
+const schema = builder.toSchema({});
 
 export default schema;
