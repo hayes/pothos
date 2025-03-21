@@ -23,10 +23,6 @@ export class DrizzleObjectRef<
   constructor(name: string, tableName: string) {
     super(name);
 
-    if (!name) {
-      throw new Error('name is required');
-    }
-
     this.tableName = tableName;
   }
 
