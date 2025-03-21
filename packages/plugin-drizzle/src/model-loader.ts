@@ -48,9 +48,7 @@ export class ModelLoader {
     this.modelName = modelName;
     this.config = getSchemaConfig(builder);
     this.table = this.config.relations.tablesConfig[modelName];
-    this.primaryKey =
-      this.builder.options.drizzle.getTableConfig(this.config.relations.tables[modelName])
-        .primaryKeys[0]?.columns ?? [];
+    this.primaryKey = this.config.getPrimaryKey(modelName);
     this.columns = columns ?? this.primaryKey;
     this.selectSQL =
       this.columns.length > 1
