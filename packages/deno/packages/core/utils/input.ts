@@ -1,7 +1,7 @@
 // @ts-nocheck
 import type { BuildCache } from '../build-cache.ts';
 import { PothosSchemaError } from '../errors.ts';
-import { PothosInputFieldConfig, PothosInputFieldType, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
+import type { PothosInputFieldConfig, PothosInputFieldType, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { unwrapInputFieldType } from './params.ts';
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
     configs: Record<string, PothosInputFieldConfig<Types>>;
@@ -37,9 +37,10 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(type: PothosIn
     }
     throw new PothosSchemaError(`Unexpected config type ${config.kind} for input ref ${String(type.ref)}`);
 }
-export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, PothosInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: PothosInputFieldConfig<Types>) => T | null): InputFieldsMapping<Types, T> | null {
+export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, PothosInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: PothosInputFieldConfig<Types>) => T | null, cache: Map<string, InputTypeFieldsMapping<Types, T>> = new Map()): InputFieldsMapping<Types, T> | null {
     const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
-    return filterMapped(internalMapInputFields(inputs, buildCache, mapper, new Map<string, InputTypeFieldsMapping<Types, T>>()));
+    const hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>();
+    return filterMapped(internalMapInputFields(inputs, buildCache, mapper, cache));
     function filterMapped(map: InputFieldsMapping<Types, T>) {
         if (filterMappings.has(map)) {
             return filterMappings.get(map)!;
@@ -51,7 +52,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<stri
                 filtered.set(fieldName, mapping);
                 return;
             }
-            const hasNestedMappings = checkForMappings(mapping.fields.map!);
+            const hasNestedMappings = checkForMappings(mapping.fields.map!, hasMappings);
             if (mapping.value !== null || hasNestedMappings) {
                 const filteredTypeFields = filterMapped(mapping.fields.map!);
                 const mappingForType = {
@@ -66,13 +67,13 @@ export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<stri
         });
         return filtered.size > 0 ? filtered : null;
     }
-    function checkForMappings(map: InputFieldsMapping<Types, T>, hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>()): boolean {
+    function checkForMappings(map: InputFieldsMapping<Types, T>, hasMappings: Map<InputFieldsMapping<Types, T>, boolean>): boolean {
         if (hasMappings.has(map)) {
             return hasMappings.get(map)!;
         }
         hasMappings.set(map, false);
         let result = false;
-        map.forEach((mapping) => {
+        for (const mapping of map.values()) {
             if (mapping.value !== null) {
                 result = true;
             }
@@ -81,15 +82,14 @@ export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<stri
                 checkForMappings(mapping.fields.map, hasMappings)) {
                 result = true;
             }
-        });
+        }
         hasMappings.set(map, result);
         return result;
     }
 }
 function internalMapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, PothosInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: PothosInputFieldConfig<Types>) => T | null, seenTypes: Map<string, InputTypeFieldsMapping<Types, T>>) {
     const map = new Map<string, InputFieldMapping<Types, T>>();
-    Object.keys(inputs).forEach((fieldName) => {
-        const inputField = inputs[fieldName];
+    for (const [fieldName, inputField] of Object.entries(inputs)) {
         const typeConfig = resolveInputTypeConfig(inputField.type, buildCache);
         const fieldMapping = mapper(inputField);
         if (typeConfig.kind === "Enum" || typeConfig.kind === "Scalar") {
@@ -101,7 +101,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(inputs: Record<str
                     value: fieldMapping,
                 });
             }
-            return;
+            continue;
         }
         const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(unwrapInputFieldType(inputField.type));
         if (!seenTypes.has(typeConfig.name)) {
@@ -120,7 +120,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(inputs: Record<str
             value: fieldMapping,
             fields: typeFields,
         });
-    });
+    }
     return map;
 }
 export function createInputValueMapper<Types extends SchemaTypes, T, Args extends unknown[] = [

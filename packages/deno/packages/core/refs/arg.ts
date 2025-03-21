@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { inputFieldShapeKey, PothosInputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { type PothosInputFieldConfig, type PothosTypeConfig, type SchemaTypes, inputFieldShapeKey, } from '../types/index.ts';
 export class ArgumentRef<Types extends SchemaTypes, T = unknown> {
     kind = "Arg" as const;
     fieldName?: string;

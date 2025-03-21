@@ -2,9 +2,9 @@
 import './global-types.ts';
 import './field-builder.ts';
 import './schema-builder.ts';
-import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes, unwrapOutputFieldType, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, isThenable, type MaybePromise, type PothosOutputFieldConfig, type SchemaTypes, unwrapOutputFieldType, } from '../core/index.ts';
+import type DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
+import type { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 export * from './refs/index.ts';
 export * from './types.ts';
 export * from './util.ts';

@@ -1,8 +1,7 @@
 // @ts-nocheck
-/* eslint-disable max-classes-per-file */
-import { InputFieldMap, InputFieldsFromShape, InputRef, inputShapeKey, PothosInputObjectTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { type InputFieldMap, type InputFieldsFromShape, type InputRef, type PothosInputObjectTypeConfig, type SchemaTypes, inputShapeKey, } from '../types/index.ts';
 import { BaseTypeRef } from './base.ts';
-import { InputFieldRef } from './input-field.ts';
+import type { InputFieldRef } from './input-field.ts';
 export class InputObjectRef<Types extends SchemaTypes, T> extends BaseTypeRef<Types, PothosInputObjectTypeConfig> implements InputRef<T>, PothosSchemaTypes.InputObjectRef<Types, T> {
     override kind = "InputObject" as const;
     $inferInput!: T;

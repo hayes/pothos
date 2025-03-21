@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { assertArray, FieldKind, FieldNullability, InputFieldMap, InputShapeFromFields, InterfaceRef, ObjectRef, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
-import { ConnectionShape, GlobalIDFieldOptions, GlobalIDListFieldOptions, GlobalIDShape, } from './types.ts';
+import { type FieldKind, type FieldNullability, type InputFieldMap, type InputShapeFromFields, type InterfaceRef, ObjectRef, RootFieldBuilder, type SchemaTypes, assertArray, } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import type { ConnectionShape, GlobalIDFieldOptions, GlobalIDListFieldOptions, GlobalIDShape, } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 import { internalDecodeGlobalID, internalEncodeGlobalID } from './utils/internal.ts';
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;

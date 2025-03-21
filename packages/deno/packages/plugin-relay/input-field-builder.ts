@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { FieldRequiredness, InputFieldBuilder, ObjectRef, SchemaTypes } from '../core/index.ts';
-import { GlobalIDInputFieldOptions, GlobalIDListInputFieldOptions } from './types.ts';
+import { type FieldRequiredness, InputFieldBuilder, type ObjectRef, type SchemaTypes, } from '../core/index.ts';
+import type { GlobalIDInputFieldOptions, GlobalIDListInputFieldOptions } from './types.ts';
 type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
 const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.InputFieldBuilder<DefaultSchemaTypes, "Arg" | "InputObject">;
 inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequiredness<[

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { outputShapeKey, parentShapeKey, SchemaTypes, TypeParam } from '../types/index.ts';
+import { type SchemaTypes, type TypeParam, outputShapeKey, parentShapeKey } from '../types/index.ts';
 import { BaseTypeRef } from './base.ts';
 export class ListRef<Types extends SchemaTypes, T, P = T> extends BaseTypeRef<Types> implements PothosSchemaTypes.ListRef<Types, T, P> {
     override kind = "List" as const;

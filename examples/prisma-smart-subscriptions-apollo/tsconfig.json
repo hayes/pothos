@@ -4,7 +4,8 @@
     "strict": true,
     "skipLibCheck": true,
     "target": "es2019",
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
+    "module": "Node16",
     "allowSyntheticDefaultImports": true
   },
   "include": ["prisma/*.ts", "src/**/*"]

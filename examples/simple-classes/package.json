@@ -9,10 +9,10 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.2.0",
+    "@faker-js/faker": "^9.6.0",
     "@pothos/core": "workspace:*",
     "graphql": "^16.8.1",
-    "graphql-yoga": "5.10.4"
+    "graphql-yoga": "5.13.2"
   },
   "publishConfig": {
     "access": "public"

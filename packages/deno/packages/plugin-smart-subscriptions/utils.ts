@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { createContextCache, PothosSchemaError } from '../core/index.ts';
+import { PothosSchemaError, createContextCache } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import type { SmartSubscriptionOptions } from './types.ts';
 export function rootName(path: GraphQLResolveInfo["path"]): string {
     if (path.prev) {
