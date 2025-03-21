@@ -1,12 +1,11 @@
 // @ts-nocheck
-import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { InterfaceParam, ObjectParam, OutputRef, PothosSchemaError, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import SchemaBuilder, { type InterfaceParam, type ObjectParam, type OutputRef, PothosSchemaError, type SchemaTypes, type ShapeFromTypeParam, } from '../core/index.ts';
 import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs/index.ts';
 import { ImplementableLoadableInterfaceRef } from './refs/interface.ts';
 import { ImplementableLoadableObjectRef } from './refs/object.ts';
 import { LoadableUnionRef } from './refs/union.ts';
 import type { DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions, ShapeFromLoadResult, } from './types.ts';
-import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types.ts';
+import type { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types.ts';
 import { dataloaderGetter } from './util.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 schemaBuilderProto.loadableObjectRef = function loadableObjectRef(name, options) {
@@ -21,11 +20,11 @@ schemaBuilderProto.loadableNodeRef = function loadableNodeRef(name, options) {
 schemaBuilderProto.loadableObject = function loadableObject<LoadResult, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key, Shape = ShapeFromLoadResult<LoadResult>>(nameOrRef: NameOrRef, options: DataloaderObjectTypeOptions<SchemaTypes, LoadResult, Key, Interfaces, NameOrRef, CacheKey, Shape>) {
     const name = typeof nameOrRef === "string"
         ? nameOrRef
-        : (options as {
+        : ((options as {
             name?: string;
         }).name ?? (nameOrRef as {
             name: string;
-        }).name;
+        }).name);
     const ref = new ImplementableLoadableObjectRef<SchemaTypes, Key | Shape, Shape, Key, CacheKey>(this, name, options as never);
     ref.implement(options);
     if (typeof nameOrRef !== "string") {
@@ -36,11 +35,11 @@ schemaBuilderProto.loadableObject = function loadableObject<LoadResult, Key exte
 schemaBuilderProto.loadableInterface = function loadableInterface<LoadResult, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends InterfaceParam<SchemaTypes> | string, CacheKey = Key, Shape = ShapeFromLoadResult<LoadResult>>(nameOrRef: NameOrRef, options: LoadableInterfaceOptions<SchemaTypes, LoadResult, Key, Interfaces, NameOrRef, CacheKey, Shape>) {
     const name = typeof nameOrRef === "string"
         ? nameOrRef
-        : (options as {
+        : ((options as {
             name?: string;
         }).name ?? (nameOrRef as {
             name: string;
-        }).name;
+        }).name);
     const ref = new ImplementableLoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(this, name, options as never);
     ref.implement(options);
     if (typeof nameOrRef !== "string") {
@@ -69,11 +68,11 @@ schemaBuilderProto.loadableNode = function loadableNode<LoadResult extends NameO
     }
     const name = typeof nameOrRef === "string"
         ? nameOrRef
-        : (options as {
+        : ((options as {
             name?: string;
         }).name ?? (nameOrRef as {
             name: string;
-        }).name;
+        }).name);
     const ref = new LoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(this, name, options as never);
     (this as typeof this & {
         node: (ref: unknown, options: unknown) => void;
@@ -90,7 +89,7 @@ schemaBuilderProto.loadableNode = function loadableNode<LoadResult extends NameO
         loadManyWithoutCache: (ids: Key[], context: SchemaTypes["Context"]) => ref.getDataloader(context).loadMany(ids),
         isTypeOf: options.isTypeOf ??
             (typeof nameOrRef === "function"
-                ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
+                ? (maybeNode: unknown) => {
                     if (!maybeNode) {
                         return false;
                     }

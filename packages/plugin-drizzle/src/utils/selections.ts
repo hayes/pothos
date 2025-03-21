@@ -1,11 +1,11 @@
 import { PothosValidationError } from '@pothos/core';
 import {
   type DBQueryConfig,
-  RelationalSchemaConfig,
-  type SQL,
+  type SQLWrapper,
+  type Table,
   type TableRelationalConfig,
-  TablesRelationalConfig,
-  getOperators,
+  getTableName,
+  operators,
 } from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { deepEqual } from './deep-equal';
@@ -17,13 +17,13 @@ export interface SelectionState {
   allColumns: boolean;
   columns: Set<string>;
   with: Map<string, SelectionState>;
-  extras: Map<string, SQL.Aliased>;
+  extras: Map<string, SQLWrapper>;
   mappings: LoaderMappings;
   parent?: SelectionState;
   depth: number;
 }
 
-export type SelectionMap = DBQueryConfig<'one', false>;
+export type SelectionMap = DBQueryConfig<'one'>;
 
 export function selectionCompatible(
   state: SelectionState,
@@ -49,15 +49,16 @@ export function selectionCompatible(
     return false;
   }
 
-  const resolvedExtras =
-    typeof extras === 'function' ? extras(state.table.columns, getOperators()) : extras;
-
   if (
-    resolvedExtras &&
-    Object.entries(resolvedExtras).some(([key, value]) => {
+    extras &&
+    Object.entries(extras).some(([key, value]) => {
+      const resolvedValue =
+        typeof value === 'function' ? value(state.table as never, operators) : value;
+
       const sql = state.extras.get(key);
 
-      return sql && (sql.sql !== value.sql || sql.fieldAlias !== value.fieldAlias);
+      // TODO: fix comparison
+      return sql && sql.getSQL() !== resolvedValue.getSQL();
     })
   ) {
     return false;
@@ -129,7 +130,8 @@ export function mergeSelection(
         throw new PothosValidationError(`Relation ${key} does not exist on ${state.table.dbName}`);
       }
 
-      merge(config.dbToSchema[relation.referencedTableName], key, value as SelectionMap | boolean);
+      const tableName = getTableName(relation.targetTable as Table);
+      merge(config.relations.tablesConfig[tableName], key, value as SelectionMap | boolean);
     }
   }
 
@@ -137,12 +139,12 @@ export function mergeSelection(
     state.query = query;
   }
 
-  const resolvedExtras =
-    typeof extras === 'function' ? extras(state.table.columns, getOperators()) : extras;
+  if (extras) {
+    for (const [key, value] of Object.entries(extras)) {
+      const resolvedValue =
+        typeof value === 'function' ? value(state.table as never, operators) : value;
 
-  if (resolvedExtras) {
-    for (const [key, value] of Object.entries(resolvedExtras)) {
-      state.extras.set(key, value);
+      state.extras.set(key, resolvedValue);
     }
   }
 
@@ -175,7 +177,10 @@ export function mergeSelection(
   }
 }
 
-export function selectionToQuery(state: SelectionState): SelectionMap {
+export function selectionToQuery(
+  config: PothosDrizzleSchemaConfig,
+  state: SelectionState,
+): SelectionMap {
   const query: SelectionMap & { extras: Record<string, unknown> } = {
     ...state.query,
     with: {},
@@ -191,7 +196,8 @@ export function selectionToQuery(state: SelectionState): SelectionMap {
     for (const key of state.columns) {
       query.columns![key] = true;
     }
-    for (const { name } of state.table.primaryKey) {
+
+    for (const { name } of config.getPrimaryKey(state.table.tsName)) {
       query.columns![name] = true;
     }
   }
@@ -201,7 +207,7 @@ export function selectionToQuery(state: SelectionState): SelectionMap {
   }
 
   state.with.forEach((sel, relation) => {
-    query.with![relation] = selectionToQuery(sel);
+    query.with![relation] = selectionToQuery(config, sel);
   });
 
   return query;

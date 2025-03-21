@@ -90,8 +90,8 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
 
 fieldBuilderProto.drizzleConnection = function drizzleConnection<
   Type extends
-    | DrizzleRef<SchemaTypes, keyof SchemaTypes['DrizzleRelationSchema']>
-    | keyof SchemaTypes['DrizzleRelationSchema'],
+    | DrizzleRef<SchemaTypes, keyof SchemaTypes['DrizzleRelations']['config']>
+    | keyof SchemaTypes['DrizzleRelations']['config'],
   Nullable extends boolean,
   ResolveReturnShape,
 >(
@@ -132,7 +132,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
-        const drizzleModel = getSchemaConfig(this.builder).schema?.[
+        const drizzleModel = getSchemaConfig(this.builder).relations.tablesConfig[
           typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName
         ]!;
 

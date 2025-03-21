@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { SchemaTypes } from '../../core/index.ts';
+import type { SchemaTypes } from '../../core/index.ts';
 import type CacheNode from '../cache-node.ts';
-import { RegisterFieldSubscriptionOptions } from '../types.ts';
+import type { RegisterFieldSubscriptionOptions } from '../types.ts';
 import BaseSubscriptionManager from './base.ts';
 import type SubscriptionManager from './index.ts';
 export default class FieldSubscriptionManager<Types extends SchemaTypes> extends BaseSubscriptionManager {

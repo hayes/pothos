@@ -12,15 +12,14 @@ import SchemaBuilder, {
 import type { GraphQLFieldResolver } from 'graphql';
 import type { ModelLoader } from './model-loader';
 import type { DrizzleGraphQLInputExtensions } from './types';
-import {
-  extractFilters,
-  extractOrderBy,
-  remapFromGraphQLSingleInput,
-} from './utils/drizzle-graphql';
+import { extractFilters, remapFromGraphQLSingleInput } from './utils/drizzle-graphql';
+import { extractOrderBy } from './utils/drizzle-graphql';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
 export { drizzleClientCache } from './utils/config';
 
 export * from './types';
+
+export { drizzleTableName } from './types';
 
 const pluginName = 'drizzle';
 
@@ -104,7 +103,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
     return {
       ...fieldConfig,
-      argMappers,
+      // argMappers,
     };
   }
 

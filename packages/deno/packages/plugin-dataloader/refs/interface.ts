@@ -1,8 +1,7 @@
 // @ts-nocheck
-/* eslint-disable max-classes-per-file */
-import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { ImplementableInterfaceRef, InterfaceParam, InterfaceRef, InterfaceTypeOptions, SchemaTypes, } from '../../core/index.ts';
-import { DataLoaderOptions } from '../types.ts';
+import { ImplementableInterfaceRef, type InterfaceParam, InterfaceRef, type InterfaceTypeOptions, type SchemaTypes, } from '../../core/index.ts';
+import type DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
+import type { DataLoaderOptions } from '../types.ts';
 import { dataloaderGetter } from '../util.ts';
 export class LoadableInterfaceRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends InterfaceRef<Types, RefShape, Shape> {
     getDataloader;

@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { ZodError, ZodSchema } from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
-import { MaybePromise, SchemaTypes } from '../core/index.ts';
+import type { MaybePromise, SchemaTypes } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import type { ZodError, ZodSchema } from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
 export interface ValidationPluginOptions<Types extends SchemaTypes> {
     validationError?: ValidationErrorFn<Types>;
 }

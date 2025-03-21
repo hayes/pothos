@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { GraphQLField, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { SchemaTypes } from '../core/index.ts';
+import type { SchemaTypes } from '../core/index.ts';
+import type { GraphQLField, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 export enum ComplexityErrorKind {
     Complexity = "Complexity",
     Depth = "Depth",

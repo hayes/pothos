@@ -1,4 +1,4 @@
-import { relations, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
@@ -86,45 +86,3 @@ export const categories = sqliteTable('categories', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),
 });
-
-export const userRelations = relations(users, ({ one, many }) => ({
-  profile: one(profile, { fields: [users.id], references: [profile.userId] }),
-  roles: many(userRoles),
-  posts: many(posts),
-  likes: many(postLikes),
-  comments: many(comments),
-}));
-
-export const profileRelations = relations(profile, ({ one }) => ({
-  user: one(users, { fields: [profile.userId], references: [users.id] }),
-}));
-
-export const rolesRelations = relations(roles, ({ many }) => ({
-  users: many(users),
-}));
-
-export const postsRelations = relations(posts, ({ one, many }) => ({
-  author: one(users, { fields: [posts.authorId], references: [users.id] }),
-  likes: many(postLikes),
-  comments: many(comments),
-  category: one(categories, { fields: [posts.categoryId], references: [categories.id] }),
-}));
-
-export const commentsRelations = relations(comments, ({ one }) => ({
-  author: one(users, { fields: [comments.authorId], references: [users.id] }),
-  post: one(posts, { fields: [comments.postId], references: [posts.id] }),
-}));
-
-export const categoriesRelations = relations(categories, ({ many }) => ({
-  posts: many(posts),
-}));
-
-export const userRolesRelations = relations(userRoles, ({ one }) => ({
-  user: one(users, { fields: [userRoles.userId], references: [users.id] }),
-  role: one(roles, { fields: [userRoles.roleId], references: [roles.id] }),
-}));
-
-export const postLikesRelations = relations(postLikes, ({ one }) => ({
-  post: one(posts, { fields: [postLikes.postId], references: [posts.id] }),
-  user: one(users, { fields: [postLikes.userId], references: [users.id] }),
-}));

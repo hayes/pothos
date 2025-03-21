@@ -221,13 +221,12 @@ export interface PrismaCreateManyOptions<
   Fields,
 > extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
   name?: string;
-  fields: Fields &
-    (
-      | PrismaCreateManyFields<Types, Model>
-      | ((
-          t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
-        ) => PrismaCreateManyFields<Types, Model>)
-    );
+  fields:
+    | (PrismaCreateManyFields<Types, Model> & Fields)
+    | (((
+        t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
+      ) => PrismaCreateManyFields<Types, Model>) &
+        Fields);
 }
 
 export type NonListShape<T> = T extends (infer S)[] ? S : T;

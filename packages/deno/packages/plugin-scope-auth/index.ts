@@ -2,13 +2,13 @@
 import './global-types.ts';
 import './schema-builder.ts';
 import './field-builders.ts';
-import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, FieldKind, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosQueryTypeConfig, PothosSchemaError, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, type FieldKind, type PothosInterfaceTypeConfig, type PothosMutationTypeConfig, type PothosObjectTypeConfig, type PothosOutputFieldConfig, type PothosQueryTypeConfig, PothosSchemaError, type PothosSubscriptionTypeConfig, type PothosUnionTypeConfig, RootFieldBuilder, type SchemaTypes, } from '../core/index.ts';
+import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import { isTypeOfHelper } from './is-type-of-helper.ts';
 import RequestCache from './request-cache.ts';
 import { resolveHelper } from './resolve-helper.ts';
 import { createFieldAuthScopesStep, createFieldGrantScopesStep, createResolveStep, createTypeAuthScopesStep, createTypeGrantScopesStep, } from './steps.ts';
-import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.ts';
+import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.ts';
 export { RequestCache };
 export * from './errors.ts';
 export * from './types.ts';
@@ -57,7 +57,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         }
         return subscriber;
     }
-    override wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig): GraphQLTypeResolver<unknown, Types["Context"]> {
+    override wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>): GraphQLTypeResolver<unknown, Types["Context"]> {
         return (...args) => {
             inResolveType = true;
             try {
@@ -106,11 +106,11 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         }
         if (!skipInterfaceScopes &&
             !(typeConfig.kind === "Object" && typeConfig.pothosOptions.skipInterfaceScopes)) {
-            interfaceConfigs.forEach((interfaceConfig) => {
+            for (const interfaceConfig of interfaceConfigs) {
                 if (interfaceConfig.pothosOptions.authScopes) {
                     steps.push(createTypeAuthScopesStep(interfaceConfig.pothosOptions.authScopes as TypeAuthScopes<Types, unknown>, interfaceConfig.name));
                 }
-            });
+            }
         }
         if (parentGrantScopes) {
             steps.push(createTypeGrantScopesStep(parentGrantScopes as TypeGrantScopes<Types, unknown>, typeConfig.name, forField));

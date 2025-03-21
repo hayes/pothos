@@ -8,8 +8,8 @@ define it separately.
 
 ### Install
 
-```bash
-yarn add @pothos/plugin-with-input
+```package-install
+npm install --save @pothos/plugin-with-input
 ```
 
 ### Setup
@@ -111,7 +111,6 @@ builder.queryType({
   fields: (t) => ({
     example: t.fieldWithInput({
       type: 'Boolean',
-      nullable: true,
       argOptions: {
         required: false,
       },
@@ -137,7 +136,6 @@ builder.queryField('user', (t) =>
     input: {
       id: t.input.id({ required: true }),
     },
-    nullable: true,
     resolve: (query, _, args) =>
       prisma.user.findUnique({
         where: {

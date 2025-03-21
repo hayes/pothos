@@ -1,4 +1,3 @@
-# Tracing Plugin
 
 This plugin adds hooks for tracing and logging resolver invocations. It also comes with a few
 additional packages for integrating with various tracing providers including opentelemetry, New
@@ -323,8 +322,8 @@ export const builder = new SchemaBuilder<{
 
 #### install
 
-```bash
-yarn add @pothos/tracing-opentelemetry @opentelemetry/semantic-conventions @opentelemetry/api
+```package-install
+npm install --save @pothos/tracing-opentelemetry @opentelemetry/semantic-conventions @opentelemetry/api
 ```
 
 #### Basic usage
@@ -447,8 +446,6 @@ const yoga = createYoga({
 });
 
 const server = createServer(yoga);
-
-server.listen(3000);
 ```
 
 Envelop also provides its own opentelemetry plugin which can be used instead of a custom plugin like
@@ -458,8 +455,8 @@ does not track the parent/child relations of spans it creates.
 ```ts
 import { provider } from './tracer'; // Tracer should be imported first if it handles additional instrumentation
 import { useOpenTelemetry } from '@envelop/opentelemetry';
-import { createServer } from 'node:http';
 import { createYoga } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { schema } from './schema';
 
 const yoga = createYoga({
@@ -478,8 +475,6 @@ const yoga = createYoga({
 });
 
 const server = createServer(yoga);
-
-server.listen(3000);
 ```
 
 #### Setting up a tracer
@@ -494,8 +489,10 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-export const provider = new NodeTracerProvider({});
-provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
+export const provider = new NodeTracerProvider({
+  spanProcessors: [new SimpleSpanProcessor(new ConsoleSpanExporter())]
+});
+
 provider.register();
 
 registerInstrumentations({
@@ -521,14 +518,14 @@ import { trace } from '@opentelemetry/api';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 
 export const provider = new NodeTracerProvider({
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'Pothos-OTEL-example',
+  resource: resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: 'Pothos-OTEL-example',
   }),
 });
 
@@ -566,8 +563,8 @@ otlp_config:
 
 #### install
 
-```bash
-yarn add @pothos/tracing-newrelic newrelic @types/newrelic
+```package-install
+npm install --save @pothos/tracing-newrelic newrelic @types/newrelic
 ```
 
 #### Basic usage
@@ -628,8 +625,6 @@ const yoga = createYoga({
 });
 
 const server = createServer(yoga);
-
-server.listen(3000);
 ```
 
 ### Using the envelop newrelic plugin
@@ -638,8 +633,8 @@ Envelop has it's own plugin for newrelic that can be combined with the tracing p
 
 ```ts
 import { useNewRelic } from '@envelop/newrelic';
-import { createServer } from 'http';
 import { createYoga } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { schema } from './schema';
 
 const yoga = createYoga({
@@ -654,16 +649,14 @@ const yoga = createYoga({
 });
 
 const server = createServer(yoga);
-
-server.listen(3000);
 ```
 
 ### Sentry
 
 #### install
 
-```bash
-yarn add @pothos/tracing-sentry @sentry/node
+```package-install
+npm install --save @pothos/tracing-sentry @sentry/node
 ```
 
 #### Basic usage
@@ -717,28 +710,20 @@ Sentry.init({
 
 const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {
-    setExecuteFn(async (options) => {
-      const transaction = Sentry.startTransaction({
-        op: 'graphql.execute',
-        name: options.operationName ?? '<unnamed operation>',
-        tags: {
-          [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
-          [AttributeNames.SOURCE]: print(options.document),
+    setExecuteFn((options) =>
+      Sentry.startSpan(
+        {
+          op: 'graphql.execute',
+          name: options.operationName ?? '<unnamed operation>',
+          forceTransaction: true,
+          attributes: {
+            [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
+            [AttributeNames.SOURCE]: print(options.document),
+          },
         },
-        data: {
-          [AttributeNames.SOURCE]: print(options.document),
-        },
-      });
-      Sentry.getCurrentHub().configureScope((scope) => scope.setSpan(transaction));
-
-      try {
-        const result = await executeFn(options);
-
-        return result;
-      } finally {
-        transaction.finish();
-      }
-    });
+        () => executeFn(options),
+      ),
+    );
   },
 };
 
@@ -748,8 +733,6 @@ const yoga = createYoga({
 });
 
 const server = createServer(yoga);
-
-server.listen(3000);
 ```
 
 ### Using the envelop sentry plugin
@@ -768,16 +751,14 @@ const yoga = createYoga({
 });
 
 const server = createServer(yoga);
-
-server.listen(3000);
 ```
 
 ### AWS XRay
 
 #### install
 
-```bash
-yarn add @pothos/tracing-xray aws-xray-sdk-core
+```package-install
+npm install --save @pothos/tracing-xray aws-xray-sdk-core
 ```
 
 #### Basic usage
@@ -857,6 +838,4 @@ const yoga = createYoga({
 });
 
 const server = createServer(yoga);
-
-server.listen(3000);
 ```

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import type { ArgumentRef } from '../refs/arg.ts';
-import { BaseTypeRef } from '../refs/base.ts';
+import type { BaseTypeRef } from '../refs/base.ts';
 import type { InputFieldRef } from '../refs/input-field.ts';
 import type { InterfaceRef } from '../refs/interface.ts';
 import type { ObjectRef } from '../refs/object.ts';
@@ -14,7 +14,9 @@ export const outputFieldShapeKey = Symbol.for("Pothos.outputFieldShapeKey");
 export const typeBrandKey = Symbol.for("Pothos.typeBrandKey");
 export type OutputShape<Types extends SchemaTypes, T> = T extends {
     [outputShapeKey]: infer U;
-} ? U : T extends new (...args: any[]) => infer U ? U extends {
+} ? U : T extends new (
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+...args: any[]) => infer U ? U extends {
     [outputShapeKey]: infer V;
 } ? V : U : T extends keyof Types["outputShapes"] ? Types["outputShapes"][T] : T extends BaseEnum ? ValuesFromEnum<T> : never;
 export type ParentShape<Types extends SchemaTypes, T> = T extends {
@@ -25,7 +27,9 @@ export type AbstractReturnShape<Types extends SchemaTypes, T, ResolveType = unkn
 } ? U : OutputShape<Types, T> : OutputShape<Types, T>;
 export type InputShape<Types extends SchemaTypes, T> = T extends {
     [inputShapeKey]: infer U;
-} ? U : T extends new (...args: any[]) => infer U ? U extends {
+} ? U : T extends new (
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+...args: any[]) => infer U ? U extends {
     [inputShapeKey]: infer V;
 } ? V : U : T extends keyof Types["inputShapes"] ? Types["inputShapes"][T] : T extends BaseEnum ? ValuesFromEnum<T> : never;
 export interface OutputRefShape<T> {
@@ -44,9 +48,11 @@ export interface InputRef<T = unknown> {
     name: string;
     kind: "Enum" | "InputList" | "InputObject" | "Scalar";
 }
-export type OutputType<Types extends SchemaTypes> = BaseEnum | keyof Types["outputShapes"]
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
- | (new (...args: any[]) => any) | {
+export type OutputType<Types extends SchemaTypes> = BaseEnum | keyof Types["outputShapes"] | (new (
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+...args: any[]
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+) => any) | {
     [outputShapeKey]: unknown;
 };
 export type InputType<Types extends SchemaTypes> = BaseEnum | keyof Types["inputShapes"] | {
@@ -59,9 +65,14 @@ export type TypeParam<Types extends SchemaTypes> = OutputType<Types> | [
 export type InputTypeParam<Types extends SchemaTypes> = InputType<Types> | [
     InputType<Types>
 ];
-export type ObjectParam<Types extends SchemaTypes> = Extract<OutputType<Types>, keyof Types["Objects"]> | ObjectRef<Types, unknown> // eslint-disable-next-line @typescript-eslint/no-explicit-any
- | (new (...args: any[]) => any);
-export type InterfaceParam<Types extends SchemaTypes> = Extract<OutputType<Types>, keyof Types["Interfaces"]> | InterfaceRef<Types, unknown> | (new (...args: any[]) => unknown);
+export type ObjectParam<Types extends SchemaTypes> = Extract<OutputType<Types>, keyof Types["Objects"]> | ObjectRef<Types, unknown> | (new (
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+...args: any[]
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+) => any);
+export type InterfaceParam<Types extends SchemaTypes> = Extract<OutputType<Types>, keyof Types["Interfaces"]> | InterfaceRef<Types, unknown> | (new (
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+...args: any[]) => unknown);
 export interface BaseEnum {
     [s: string]: number | string;
     [s: number]: string;

@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { FragmentDefinitionNode, GraphQLError, Kind, ValidationRule } from 'https://cdn.skypack.dev/graphql?dts';
 import { PothosValidationError } from '../core/index.ts';
+import { type FragmentDefinitionNode, GraphQLError, Kind, type ValidationRule } from 'https://cdn.skypack.dev/graphql?dts';
 import { complexityFromSelectionSet } from './calculate-complexity.ts';
 export function createComplexityRule({ variableValues, context, maxComplexity, maxBreadth, maxDepth, validate, onResult, }: {
     context: object;
@@ -27,11 +27,11 @@ export function createComplexityRule({ variableValues, context, maxComplexity, m
         };
         const schema = validationContext.getSchema();
         const fragments: Record<string, FragmentDefinitionNode> = {};
-        validationContext.getDocument().definitions.forEach((def) => {
+        for (const def of validationContext.getDocument().definitions) {
             if (def.kind === Kind.FRAGMENT_DEFINITION) {
                 fragments[def.name.value] = def;
             }
-        });
+        }
         return {
             OperationDefinition: {
                 enter: (node) => {

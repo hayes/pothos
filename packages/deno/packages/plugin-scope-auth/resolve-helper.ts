@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
+import { type MaybePromise, type PothosOutputFieldConfig, type SchemaTypes, isThenable, } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { ForbiddenError } from './errors.ts';
 import RequestCache from './request-cache.ts';
-import { AuthScopeFailureType, ResolveStep, UnauthorizedResolver } from './types.ts';
+import { AuthScopeFailureType, type ResolveStep, type UnauthorizedResolver } from './types.ts';
 import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from './index.ts';
 const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (_root, _args, _context, _info, error) => {
     throw error;
@@ -11,7 +11,7 @@ const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, nev
 export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Types>[], plugin: PothosScopeAuthPlugin<Types>, fieldConfig: PothosOutputFieldConfig<Types>) {
     const unauthorizedResolver = fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
     const globalUnauthorizedError = plugin.builder.options.scopeAuth?.unauthorizedError;
-    const defaultUnauthorizedError: UnauthorizedErrorFn<Types, object, {}> = (parent, args, context, info, result) => {
+    const defaultUnauthorizedError: UnauthorizedErrorFn<Types, object, {}> = (parent, _args, context, info, result) => {
         if (globalUnauthorizedError) {
             return globalUnauthorizedError(parent, context, info, result);
         }
@@ -29,7 +29,6 @@ export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Type
         function runSteps(index: number): MaybePromise<unknown> {
             for (let i = index; i < steps.length; i += 1) {
                 const { run, errorMessage } = steps[i];
-                // eslint-disable-next-line @typescript-eslint/no-loop-func
                 const stepResult = run(cache, parent, args, context, info, (val) => {
                     resolvedValue = val;
                 });

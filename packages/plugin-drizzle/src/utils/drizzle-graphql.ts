@@ -1,11 +1,10 @@
 import {
   type Column,
   type SQL,
-  Table,
   type TableRelationalConfig,
   asc,
   desc,
-  getOperators,
+  operators as ops,
 } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 
@@ -85,12 +84,12 @@ export const remapFromGraphQLSingleInput = (
         throw new GraphQLError(`Unknown column: ${key}`);
       }
 
-      if (value === null && column.notNull) {
+      if (value === null && (column as Column).notNull) {
         delete queryInput[key];
         continue;
       }
 
-      queryInput[key] = remapFromGraphQLCore(value, column, key);
+      queryInput[key] = remapFromGraphQLCore(value, column as Column, key);
     }
   }
 
@@ -139,8 +138,6 @@ export const extractOrderBy = <
 
   return res;
 };
-
-const ops = getOperators();
 
 export const extractFiltersColumn = <TColumn extends Column>(
   column: TColumn,
@@ -267,7 +264,9 @@ export const extractFilters = <TTable extends TableRelationalConfig>(
     }
 
     const column = table.columns[columnName]!;
-    variants.push(extractFiltersColumn(column, columnName, operators as Record<string, unknown>)!);
+    variants.push(
+      extractFiltersColumn(column as Column, columnName, operators as Record<string, unknown>)!,
+    );
   }
 
   return variants.length ? (variants.length > 1 ? ops.and(...variants) : variants[0]) : undefined;
