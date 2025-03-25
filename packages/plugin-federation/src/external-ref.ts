@@ -56,7 +56,7 @@ export class ExternalEntityRef<
     this.resolveReference = resolveReference;
   }
 
-  implement<Interfaces extends InterfaceParam<Types>[]>({
+  implement<const Interfaces extends InterfaceParam<Types>[]>({
     fields,
     externalFields,
     directives,

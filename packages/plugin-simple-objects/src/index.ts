@@ -26,7 +26,7 @@ const proto: PothosSchemaTypes.SchemaBuilder<SchemaTypes> =
   SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 proto.simpleObject = function simpleObject<
-  Interfaces extends InterfaceParam<SchemaTypes>[],
+  const Interfaces extends InterfaceParam<SchemaTypes>[],
   Fields extends FieldMap,
   Shape extends Normalize<
     OutputShapeFromFields<Fields> &
@@ -49,7 +49,7 @@ proto.simpleObject = function simpleObject<
 };
 
 proto.simpleInterface = function simpleInterface<
-  Interfaces extends InterfaceParam<SchemaTypes>[],
+  const Interfaces extends InterfaceParam<SchemaTypes>[],
   Fields extends FieldMap,
   Shape extends Normalize<
     OutputShapeFromFields<Fields> &

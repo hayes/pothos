@@ -10,16 +10,31 @@ interface Node {
   id: ID!
 }
 
+interface Person implements Node & Timestamps {
+  createdAt: String
+  firstName: String
+  id: ID!
+  lastName: String
+  updatedAt: String
+}
+
 type Query {
   user(id: ID!): User
 }
 
-type User implements Node {
+interface Timestamps {
+  createdAt: String
+  updatedAt: String
+}
+
+type User implements Node & Person & Timestamps {
   contactInfo: ContactInfo!
+  createdAt: String
   firstName: String
   fullName: String
   id: ID!
   lastName: String
+  updatedAt: String
 }"
 `;
 

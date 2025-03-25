@@ -46,7 +46,7 @@ export class ImplementableObjectRef<
     this.builder = builder;
   }
 
-  implement<Interfaces extends InterfaceParam<Types>[]>(
+  implement<const Interfaces extends InterfaceParam<Types>[]>(
     options: Omit<
       ObjectTypeOptions<Types, ImplementableObjectRef<Types, Shape, Parent>, Parent, Interfaces>,
       'name'

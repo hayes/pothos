@@ -19,13 +19,26 @@ const Node = builder.simpleInterface('Node', {
   }),
 });
 
+const Timestamps = builder.simpleInterface('Timestamps', {
+  fields: (t) => ({
+    createdAt: t.string(),
+    updatedAt: t.string(),
+  }),
+});
+
+const Person = builder.simpleInterface('Person', {
+  interfaces: [Node, Timestamps],
+  fields: (t) => ({
+    firstName: t.string(),
+    lastName: t.string(),
+  }),
+});
+
 const UserType = builder.simpleObject(
   'User',
   {
-    interfaces: [Node],
+    interfaces: [Node, Person, Timestamps],
     fields: (t) => ({
-      firstName: t.string(),
-      lastName: t.string(),
       contactInfo: t.field({
         type: ContactInfo,
         nullable: false,

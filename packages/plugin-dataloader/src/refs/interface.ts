@@ -62,7 +62,7 @@ export class ImplementableLoadableInterfaceRef<
       typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey;
   }
 
-  override implement<Interfaces extends InterfaceParam<Types>[]>(
+  override implement<const Interfaces extends InterfaceParam<Types>[]>(
     options: InterfaceTypeOptions<
       Types,
       ImplementableInterfaceRef<Types, RefShape, Shape>,

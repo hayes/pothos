@@ -122,8 +122,8 @@ export class PrismaObjectFieldBuilder<
         Field extends Model['ListRelations'],
         Nullable extends boolean,
         Args extends InputFieldMap,
-        ConnectionInterfaces extends InterfaceParam<Types>[] = [],
-        EdgeInterfaces extends InterfaceParam<Types>[] = [],
+        const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+        const EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         field: Field,
         options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args>,

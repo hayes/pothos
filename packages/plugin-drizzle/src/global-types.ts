@@ -73,7 +73,7 @@ declare global {
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       drizzleObject: <
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         Table extends keyof Types['DrizzleRelationSchema'],
         Selection extends
           | DBQueryConfig<
@@ -94,7 +94,7 @@ declare global {
       ) => DrizzleObjectRef<Types, Table, Shape>;
 
       drizzleInterface: <
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         Table extends keyof Types['DrizzleRelationSchema'],
         Selection extends
           | DBQueryConfig<
@@ -116,7 +116,7 @@ declare global {
 
       drizzleNode: 'relay' extends PluginName
         ? <
-            Interfaces extends InterfaceParam<Types>[],
+            const Interfaces extends InterfaceParam<Types>[],
             Table extends keyof Types['DrizzleRelationSchema'],
             Selection extends
               | DBQueryConfig<
@@ -359,8 +359,8 @@ declare global {
                   Types['DrizzleRelationSchema'][Type & keyof Types['DrizzleRelationSchema']],
                   true
                 >,
-            ConnectionInterfaces extends InterfaceParam<Types>[] = [],
-            EdgeInterfaces extends InterfaceParam<Types>[] = [],
+            const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+            const EdgeInterfaces extends InterfaceParam<Types>[] = [],
           >(
             options: DrizzleConnectionFieldOptions<
               Types,

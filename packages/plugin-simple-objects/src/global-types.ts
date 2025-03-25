@@ -22,7 +22,7 @@ declare global {
     }
     export interface SchemaBuilder<Types extends SchemaTypes> {
       simpleObject: <
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
         Shape extends Normalize<
           OutputShapeFromFields<Fields> &
@@ -35,7 +35,7 @@ declare global {
       ) => ObjectRef<Types, Shape>;
 
       simpleInterface: <
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
         Shape extends Normalize<
           OutputShapeFromFields<Fields> &

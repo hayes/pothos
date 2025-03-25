@@ -107,7 +107,7 @@ declare global {
     export interface SchemaBuilder<Types extends SchemaTypes> {
       prismaObject: <
         Name extends keyof Types['PrismaTypes'],
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
         Include = unknown,
         Select = unknown,
@@ -129,7 +129,7 @@ declare global {
 
       prismaInterface: <
         Name extends keyof Types['PrismaTypes'],
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
         Include = unknown,
         Select = unknown,
@@ -304,8 +304,8 @@ declare global {
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
             // biome-ignore lint/suspicious/noExplicitAny: <explanation>
             Shape = Type extends PrismaRef<any, PrismaModelTypes, infer S> ? S : Model['Shape'],
-            ConnectionInterfaces extends InterfaceParam<Types>[] = [],
-            EdgeInterfaces extends InterfaceParam<Types>[] = [],
+            const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+            const EdgeInterfaces extends InterfaceParam<Types>[] = [],
           >(
             options: PrismaConnectionFieldOptions<
               Types,

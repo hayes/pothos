@@ -143,7 +143,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     }
   }
 
-  objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
+  objectType<const Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
     param: Param,
     options: ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>,
     fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>,
@@ -367,7 +367,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
 
   interfaceType<
     Param extends InterfaceParam<Types>,
-    Interfaces extends InterfaceParam<Types>[],
+    const Interfaces extends InterfaceParam<Types>[],
     ResolveType,
   >(
     param: Param,

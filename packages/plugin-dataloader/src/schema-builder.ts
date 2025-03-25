@@ -36,7 +36,7 @@ schemaBuilderProto.loadableNodeRef = function loadableNodeRef(name, options) {
 schemaBuilderProto.loadableObject = function loadableObject<
   LoadResult,
   Key extends DataloaderKey,
-  Interfaces extends InterfaceParam<SchemaTypes>[],
+  const Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends ObjectParam<SchemaTypes> | string,
   CacheKey = Key,
   Shape = ShapeFromLoadResult<LoadResult>,
@@ -75,7 +75,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
 schemaBuilderProto.loadableInterface = function loadableInterface<
   LoadResult,
   Key extends DataloaderKey,
-  Interfaces extends InterfaceParam<SchemaTypes>[],
+  const Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends InterfaceParam<SchemaTypes> | string,
   CacheKey = Key,
   Shape = ShapeFromLoadResult<LoadResult>,
@@ -150,7 +150,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
   LoadResult extends NameOrRef extends ObjectParam<SchemaTypes>
     ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> | Error
     : unknown,
-  Interfaces extends InterfaceParam<SchemaTypes>[],
+  const Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends ObjectParam<SchemaTypes> | string,
   IDShape extends bigint | number | string = string,
   Key extends bigint | number | string = IDShape,

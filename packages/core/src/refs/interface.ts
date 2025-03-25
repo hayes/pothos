@@ -38,7 +38,7 @@ export class ImplementableInterfaceRef<
     this.builder = builder;
   }
 
-  implement<Interfaces extends InterfaceParam<Types>[]>(
+  implement<const Interfaces extends InterfaceParam<Types>[]>(
     options: InterfaceTypeOptions<
       Types,
       ImplementableInterfaceRef<Types, Shape, Parent>,

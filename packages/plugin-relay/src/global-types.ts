@@ -95,7 +95,7 @@ declare global {
       ) => Param extends string ? ImplementableNodeRef<Types, Shape, Shape, IDShape> : Param;
 
       node: <
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         Param extends ObjectParam<Types>,
         IDShape = string,
       >(
@@ -118,7 +118,7 @@ declare global {
         Nullable extends boolean,
         ResolveShape,
         ResolveReturnShape,
-        Interfaces extends InterfaceParam<Types>[],
+        const Interfaces extends InterfaceParam<Types>[],
         InputName extends string = 'input',
         Args extends InputFieldMap = {},
       >(
@@ -147,8 +147,8 @@ declare global {
         ResolveReturnShape,
         EdgeNullability extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
         NodeNullability extends boolean = Types['DefaultNodeNullability'],
-        ConnectionInterfaces extends InterfaceParam<Types>[] = [],
-        EdgeInterfaces extends InterfaceParam<Types>[] = [],
+        const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+        const EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         connectionOptions: ConnectionObjectOptions<
           Types,
@@ -190,7 +190,7 @@ declare global {
         Type extends OutputType<Types>,
         ResolveReturnShape,
         NodeNullability extends boolean = Types['DefaultNodeNullability'],
-        Interfaces extends InterfaceParam<Types>[] = [],
+        const Interfaces extends InterfaceParam<Types>[] = [],
       >(
         edgeOptions: ConnectionEdgeObjectOptions<
           Types,
@@ -298,8 +298,8 @@ declare global {
         ResolveReturnShape,
         EdgeNullability extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
         NodeNullability extends boolean = Types['DefaultNodeNullability'],
-        ConnectionInterfaces extends InterfaceParam<Types>[] = [],
-        EdgeInterfaces extends InterfaceParam<Types>[] = [],
+        const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+        const EdgeInterfaces extends InterfaceParam<Types>[] = [],
         ConnectionResult extends ConnectionResultShape<
           Types,
           ShapeFromTypeParam<Types, Type, false>,
