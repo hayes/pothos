@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.7.2
+
+### Patch Changes
+
+- d874bce: Improve inference of multiple interfaces
+
 ## 0.7.1
 
 ### Patch Changes

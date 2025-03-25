@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.3.2
+
+### Patch Changes
+
+- d874bce: Improve inference of multiple interfaces
+
 ## 4.3.1
 
 ### Patch Changes

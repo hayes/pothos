@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.1
+
+### Patch Changes
+
+- d874bce: Improve inference of multiple interfaces
+
 ## 4.3.0
 
 ### Minor Changes
