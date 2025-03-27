@@ -481,6 +481,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   typeName: string,
   config: PothosDrizzleSchemaConfig,
   options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy'>,
+  skipDeferredFragments: boolean | undefined,
   resolve: (
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
@@ -514,6 +515,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
       paths: [['nodes'], ['edges', 'node']],
       typeName,
       config,
+      skipDeferredFragments,
       // withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
     });
 

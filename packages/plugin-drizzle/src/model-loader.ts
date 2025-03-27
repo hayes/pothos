@@ -81,7 +81,12 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(this.config, this.context, info);
+      const selection = selectionStateFromInfo(
+        this.config,
+        this.context,
+        info,
+        this.builder.options.drizzle.skipDeferredFragments,
+      );
       this.queryCache.set(key, {
         selection,
         query: selectionToQuery(selection),
@@ -99,6 +104,7 @@ export class ModelLoader {
         context: this.context,
         info,
         typeName,
+        skipDeferredFragments: this.builder.options.drizzle.skipDeferredFragments,
       });
 
       this.queryCache.set(key, {

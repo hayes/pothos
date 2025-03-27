@@ -46,6 +46,7 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
         context,
         info,
         withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+        skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
       });
 
       return checkIfQueryIsUsed(
@@ -84,6 +85,7 @@ fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
         context,
         info,
         withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+        skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
       });
 
       return checkIfQueryIsUsed(
@@ -153,6 +155,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           paths: [['nodes'], ['edges', 'node']],
           typeName,
           withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+          skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
         });
 
         const returnType = getNamedType(info.returnType);

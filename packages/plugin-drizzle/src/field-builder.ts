@@ -36,6 +36,7 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
             context,
             select,
             info,
+            skipDeferredFragments: this.builder.options.drizzle.skipDeferredFragments,
             // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
           }),
         parent,
@@ -77,6 +78,7 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
             context,
             select,
             info,
+            skipDeferredFragments: this.builder.options.drizzle.skipDeferredFragments,
             // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
           }),
         parent,
@@ -147,7 +149,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
             defaultSize,
             args,
           },
-
+          this.builder.options.drizzle.skipDeferredFragments,
           (q) => {
             // return checkIfQueryIsUsed(
             //   this.builder,

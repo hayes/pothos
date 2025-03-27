@@ -162,7 +162,17 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if (fallback) {
-        return fallback(queryFromInfo({ context, info }), parent, args, context, info);
+        return fallback(
+          queryFromInfo({
+            context,
+            info,
+            skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments,
+          }),
+          parent,
+          args,
+          context,
+          info,
+        );
       }
 
       return loaderCache(context)
