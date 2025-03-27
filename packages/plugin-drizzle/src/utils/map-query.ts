@@ -3,6 +3,7 @@ import type { DBQueryConfig, TableRelationalConfig } from 'drizzle-orm';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
+  type FragmentSpreadNode,
   type GraphQLField,
   GraphQLIncludeDirective,
   type GraphQLInterfaceType,
@@ -208,6 +209,10 @@ function addNestedSelections(
 
         continue;
       case Kind.FRAGMENT_SPREAD:
+        if (isDeferredFragment(selection, info)) {
+          continue;
+        }
+
         parentType = info.schema.getType(
           info.fragments[selection.name.value].typeCondition.name.value,
         )! as GraphQLObjectType;
@@ -232,6 +237,10 @@ function addNestedSelections(
         continue;
 
       case Kind.INLINE_FRAGMENT:
+        if (isDeferredFragment(selection, info)) {
+          continue;
+        }
+
         parentType = selection.typeCondition
           ? (info.schema.getType(selection.typeCondition.name.value) as GraphQLObjectType)
           : type;
@@ -570,4 +579,17 @@ function fieldSkipped(info: GraphQLResolveInfo, selection: FieldNode) {
   }
 
   return false;
+}
+
+function isDeferredFragment(
+  node: FragmentSpreadNode | InlineFragmentNode,
+  info: GraphQLResolveInfo,
+) {
+  const deferDirective = info.schema.getDirective('defer');
+  if (!deferDirective) {
+    return false;
+  }
+
+  const defer = getDirectiveValues(deferDirective, node, info.variableValues);
+  return defer && defer.if !== false;
 }
