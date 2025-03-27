@@ -50,19 +50,17 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, _root, args) =>
-        db.user.findUnique({
-          ...query,
-          where: { id: Number.parseInt(args.id, 10) },
-        }),
+        db.user.findUnique(
+          query({
+            where: { id: Number.parseInt(args.id, 10) },
+          }),
+        ),
     }),
     users: t.prismaConnection({
       type: 'User',
       nullable: true,
       cursor: 'id',
-      resolve: (query, _root, _args) =>
-        db.user.findMany({
-          ...query,
-        }),
+      resolve: (query, _root, _args) => db.user.findMany(query()),
     }),
   }),
 });

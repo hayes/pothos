@@ -23,24 +23,25 @@ builder.prismaNode('Player', {
       type: 'Game',
       cursor: 'id',
       resolve: (query, player) =>
-        db.game.findMany({
-          ...query,
-          orderBy: {
-            createdAt: 'desc',
-          },
-          where: {
-            team: { id: player.teamId },
-            points: {
-              some: {
-                players: {
-                  some: {
-                    id: player.id,
+        db.game.findMany(
+          query({
+            orderBy: {
+              createdAt: 'desc',
+            },
+            where: {
+              team: { id: player.teamId },
+              points: {
+                some: {
+                  players: {
+                    some: {
+                      id: player.id,
+                    },
                   },
                 },
               },
             },
-          },
-        }),
+          }),
+        ),
     }),
   }),
 });
@@ -75,18 +76,19 @@ builder.mutationField('addPlayerToTeam', (t) =>
       input: t.arg({ type: AddPlayerToTeamInput, required: true }),
     },
     resolve: (query, _, { input }) =>
-      db.team.update({
-        ...query,
-        where: { id: parseID(input.teamId) },
-        data: {
-          players: {
-            create: {
-              name: input.player.name,
-              number: input.player.number,
+      db.team.update(
+        query({
+          where: { id: parseID(input.teamId) },
+          data: {
+            players: {
+              create: {
+                name: input.player.name,
+                number: input.player.number,
+              },
             },
           },
-        },
-      }),
+        }),
+      ),
   }),
 );
 
@@ -105,19 +107,22 @@ builder.mutationField('addPlayersToTeam', (t) =>
       input: t.arg({ type: AddPlayersToTeamInput, required: true }),
     },
     resolve: (query, _, { input }) =>
-      db.team.update({
-        ...query,
-        where: {
-          id: parseID(input.teamId),
-        },
-        data: {
-          players: {
-            create: input.players.map((player) => ({
-              name: player.name,
-              number: player.number,
-            })),
-          },
-        },
-      }),
+      db.team.update(
+        query(
+          query({
+            where: {
+              id: parseID(input.teamId),
+            },
+            data: {
+              players: {
+                create: input.players.map((player) => ({
+                  name: player.name,
+                  number: player.number,
+                })),
+              },
+            },
+          }),
+        ),
+      ),
   }),
 );

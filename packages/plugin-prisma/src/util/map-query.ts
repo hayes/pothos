@@ -33,7 +33,7 @@ import {
   selectionCompatible,
   selectionToQuery,
 } from './selections';
-import { wrapWithUsageCheck } from './usage';
+import { usageSymbol } from './usage';
 
 function addTypeSelectionsForField(
   type: GraphQLNamedType,
@@ -396,7 +396,111 @@ function addFieldSelection(
   }
 }
 
+export type PothosPrismaQueryFn<
+  Include = SelectionMap['include'],
+  Select = SelectionMap['include'],
+  Extra = {},
+> = (<const T extends Record<string, unknown>>(
+  query?: T,
+) => Record<string, string> extends T ? Extra : T & Extra) & {
+  select?: Select;
+  include?: Include;
+} & Extra;
+
+type QueryFromInfoOptions<
+  Select extends SelectionMap['select'] | undefined = undefined,
+  Include extends SelectionMap['include'] | undefined = undefined,
+> = {
+  context: object;
+  info: GraphQLResolveInfo;
+  typeName?: string;
+  path?: string[];
+  paths?: string[][];
+} & ({ include?: Include; select?: never } | { select?: Select; include?: never });
+
 export function queryFromInfo<
+  Select extends SelectionMap['select'] | undefined = undefined,
+  Include extends SelectionMap['include'] | undefined = undefined,
+>({
+  withUsageCheck,
+  select,
+  include,
+  ...options
+}: QueryFromInfoOptions<Select, Include> & { withUsageCheck?: boolean }): PothosPrismaQueryFn &
+  (undefined extends Select
+    ? { include: Include; select?: never }
+    : { include?: never; select: Select }) {
+  let cachedResult: unknown;
+  let used = false;
+  const defaultQuery = {
+    select,
+    include,
+  };
+  const queryFn: PothosPrismaQueryFn = <T extends Record<string, unknown>>(
+    { select, include, ...rest }: T = {} as T,
+  ): T => {
+    used = true;
+
+    const state = stateFromInfo({
+      ...options,
+      include,
+      select,
+    } as QueryFromInfoOptions);
+
+    setLoaderMappings(options.context, options.info, state.mappings);
+
+    cachedResult = { ...selectionToQuery(state), ...rest };
+
+    return cachedResult as T;
+  };
+
+  function getDefaultQuery() {
+    // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+    return (cachedResult ??= queryFn(defaultQuery as {})) as {
+      select?: unknown;
+      include?: unknown;
+    };
+  }
+
+  const proxy = new Proxy(queryFn, {
+    ownKeys: () => {
+      return [...Reflect.ownKeys(getDefaultQuery()), usageSymbol];
+    },
+    getOwnPropertyDescriptor: (target, prop) => {
+      if (prop === 'select' || prop === 'include') {
+        return Reflect.getOwnPropertyDescriptor(getDefaultQuery(), prop);
+      }
+
+      if (prop === usageSymbol) {
+        return {
+          enumerable: false,
+          configurable: true,
+        };
+      }
+
+      return Reflect.getOwnPropertyDescriptor(target, prop);
+    },
+    get: (target, prop) => {
+      if (prop === usageSymbol) {
+        return used;
+      }
+
+      if (prop === 'select') {
+        return getDefaultQuery().select;
+      }
+
+      if (prop === 'include') {
+        return getDefaultQuery().include;
+      }
+
+      return Reflect.get(target, prop);
+    },
+  });
+
+  return proxy as never;
+}
+
+export function stateFromInfo<
   Select extends SelectionMap['select'] | undefined = undefined,
   Include extends SelectionMap['select'] | undefined = undefined,
 >({
@@ -407,22 +511,7 @@ export function queryFromInfo<
   include,
   path = [],
   paths = [],
-  withUsageCheck = false,
-}: {
-  context: object;
-  info: GraphQLResolveInfo;
-  typeName?: string;
-  path?: string[];
-  paths?: string[][];
-  withUsageCheck?: boolean;
-} & (
-  | { include?: Include; select?: never }
-  | { select?: Select; include?: never }
-)): undefined extends Include
-  ? {
-      select: Select;
-    }
-  : { include: Include } {
+}: QueryFromInfoOptions<Select, Include>): SelectionState {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
 
@@ -480,11 +569,7 @@ export function queryFromInfo<
     state = createStateForType(type, info, undefined, initialSelection);
   }
 
-  setLoaderMappings(context, info, state.mappings);
-
-  const query = selectionToQuery(state) as { select: Select; include: Include };
-
-  return withUsageCheck ? wrapWithUsageCheck(query) : query;
+  return state;
 }
 
 export function selectionStateFromInfo(

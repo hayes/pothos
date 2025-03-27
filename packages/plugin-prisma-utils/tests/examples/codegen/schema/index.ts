@@ -30,10 +30,11 @@ builder.queryType({
       },
       nullable: true,
       resolve: (query, _root, args) =>
-        prisma.user.findUnique({
-          ...query,
-          where: args.where,
-        }),
+        prisma.user.findUnique(
+          query({
+            where: args.where,
+          }),
+        ),
     }),
     users: t.prismaField({
       type: ['User'],
@@ -48,11 +49,12 @@ builder.queryType({
         }),
       },
       resolve: (query, _root, args) =>
-        prisma.user.findMany({
-          ...query,
-          where: args.filter,
-          orderBy: args.orderBy,
-        }),
+        prisma.user.findMany(
+          query({
+            where: args.filter,
+            orderBy: args.orderBy,
+          }),
+        ),
     }),
   }),
 });
@@ -135,10 +137,11 @@ builder.mutationType({
         data: t.arg({ type: UserCreate, required: true }),
       },
       resolve: (query, _root, args, _ctx) =>
-        prisma.user.create({
-          ...query,
-          data: args.data,
-        }),
+        prisma.user.create(
+          query({
+            data: args.data,
+          }),
+        ),
     }),
     updateUser: t.prismaField({
       type: 'User',
@@ -147,11 +150,12 @@ builder.mutationType({
         data: t.arg({ type: UserUpdate, required: true }),
       },
       resolve: (query, _root, args, _ctx) =>
-        prisma.user.update({
-          ...query,
-          where: args.where,
-          data: args.data,
-        }),
+        prisma.user.update(
+          query({
+            where: args.where,
+            data: args.data,
+          }),
+        ),
     }),
     deleteUser: t.prismaField({
       type: 'User',
@@ -159,10 +163,11 @@ builder.mutationType({
         where: t.arg({ type: UserUniqueFilter, required: true }),
       },
       resolve: (query, _root, args, _ctx) =>
-        prisma.user.delete({
-          ...query,
-          where: args.where,
-        }),
+        prisma.user.delete(
+          query({
+            where: args.where,
+          }),
+        ),
     }),
     createPost: t.prismaField({
       type: 'Post',
@@ -170,10 +175,11 @@ builder.mutationType({
         data: t.arg({ type: PostCreate, required: true }),
       },
       resolve: (query, _root, args, _ctx) =>
-        prisma.post.create({
-          ...query,
-          data: args.data,
-        }),
+        prisma.post.create(
+          query({
+            data: args.data,
+          }),
+        ),
     }),
     updatePost: t.prismaField({
       type: 'Post',
@@ -182,11 +188,12 @@ builder.mutationType({
         data: t.arg({ type: PostUpdate, required: true }),
       },
       resolve: (query, _root, args, _ctx) =>
-        prisma.post.update({
-          ...query,
-          where: args.where,
-          data: args.data,
-        }),
+        prisma.post.update(
+          query({
+            where: args.where,
+            data: args.data,
+          }),
+        ),
     }),
     deletePost: t.prismaField({
       type: 'Post',
@@ -194,10 +201,11 @@ builder.mutationType({
         where: t.arg({ type: PostUniqueFilter, required: true }),
       },
       resolve: (query, _root, args, _ctx) =>
-        prisma.post.delete({
-          ...query,
-          where: args.where,
-        }),
+        prisma.post.delete(
+          query({
+            where: args.where,
+          }),
+        ),
     }),
     deleteManyPosts: t.boolean({
       args: {

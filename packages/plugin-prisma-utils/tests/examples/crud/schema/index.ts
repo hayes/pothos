@@ -19,21 +19,23 @@ builder.queryType({
       nullable: true,
       args: { where: t.arg({ type: generator.getWhereUnique('Post'), required: true }) },
       resolve: (query, _, args) =>
-        prisma.post.findUnique({
-          ...query,
-          where: args.where,
-        }),
+        prisma.post.findUnique(
+          query({
+            where: args.where,
+          }),
+        ),
     }),
     posts: t.prismaField({
       type: ['Post'],
       args: generator.findManyArgs('Post'),
       resolve: (query, _, args) =>
-        prisma.post.findMany({
-          ...query,
-          where: args.filter ?? undefined,
-          orderBy: args.orderBy ?? undefined,
-          take: 3,
-        }),
+        prisma.post.findMany(
+          query({
+            where: args.filter ?? undefined,
+            orderBy: args.orderBy ?? undefined,
+            take: 3,
+          }),
+        ),
     }),
   }),
 });
@@ -44,12 +46,13 @@ builder.mutationType({
       type: 'User',
       args: { input: t.arg({ type: generator.getCreateInput('User'), required: true }) },
       resolve: (query, _, args) =>
-        prisma.user.create({
-          ...query,
-          data: {
-            ...args.input,
-          },
-        }),
+        prisma.user.create(
+          query({
+            data: {
+              ...args.input,
+            },
+          }),
+        ),
     }),
     updateUser: t.prismaField({
       type: 'User',
@@ -58,26 +61,28 @@ builder.mutationType({
         data: t.arg({ type: generator.getUpdateInput('User'), required: true }),
       },
       resolve: (query, _, args) =>
-        prisma.user.update({
-          ...query,
-          where: {
-            ...args.where,
-          },
-          data: {
-            ...args.data,
-          },
-        }),
+        prisma.user.update(
+          query({
+            where: {
+              ...args.where,
+            },
+            data: {
+              ...args.data,
+            },
+          }),
+        ),
     }),
     createPost: t.prismaField({
       type: 'Post',
       args: { input: t.arg({ type: generator.getCreateInput('Post'), required: true }) },
       resolve: (query, _, args) =>
-        prisma.post.create({
-          ...query,
-          data: {
-            ...args.input,
-          },
-        }),
+        prisma.post.create(
+          query({
+            data: {
+              ...args.input,
+            },
+          }),
+        ),
     }),
     updatePost: t.prismaField({
       type: 'Post',
@@ -86,15 +91,16 @@ builder.mutationType({
         data: t.arg({ type: generator.getUpdateInput('Post'), required: true }),
       },
       resolve: (query, _, args) =>
-        prisma.post.update({
-          ...query,
-          where: {
-            ...args.where,
-          },
-          data: {
-            ...args.data,
-          },
-        }),
+        prisma.post.update(
+          query({
+            where: {
+              ...args.where,
+            },
+            data: {
+              ...args.data,
+            },
+          }),
+        ),
     }),
     updateManyPosts: t.int({
       args: {
