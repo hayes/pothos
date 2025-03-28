@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.5.0
+
+### Minor Changes
+
+- 2c0e072: Skip querying field selections within `@defer`red fragments
+
 ## 4.4.1
 
 ### Patch Changes
