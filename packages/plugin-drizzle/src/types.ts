@@ -49,6 +49,7 @@ export type DrizzleClient = {
 export type DrizzlePluginOptions<Types extends SchemaTypes> = {
   maxConnectionSize?: number;
   defaultConnectionSize?: number;
+  skipDeferredFragments?: boolean;
 } & (
   | {
       client: DrizzleClient;

@@ -65,7 +65,7 @@ describe('prisma', () => {
     `);
   });
 
-  it('skips fields based on @skip and @include directives', async () => {
+  it('skips fields based on @skip, @include, and @defer directives', async () => {
     const query = gql`
       query {
         me {
@@ -75,6 +75,12 @@ describe('prisma', () => {
           }
           posts(limit: 1) @include(if: false) {
             id
+          }
+          ...@defer {
+            postCount
+          }
+          ...@defer(if: true) {
+          	publishedCount
           }
         }
       }
@@ -91,6 +97,8 @@ describe('prisma', () => {
         "data": {
           "me": {
             "id": "VXNlcjox",
+            "postCount": 250,
+            "publishedCount": 149,
           },
         },
       }
@@ -109,11 +117,51 @@ describe('prisma', () => {
           "model": "User",
           "runInTransaction": false,
         },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": {
+                    "where": {
+                      "published": true,
+                    },
+                  },
+                },
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
       ]
     `);
   });
 
-  it('includes fields based on @skip and @include directives', async () => {
+  it('includes fields based on @skip, @include, and @defer directives', async () => {
     const query = gql`
       query {
         me {
@@ -123,6 +171,9 @@ describe('prisma', () => {
           }
           posts(limit: 1) @include(if: true) {
             id
+          }
+          ...@defer(if: false) {
+          	postCount
           }
         }
       }
@@ -139,6 +190,7 @@ describe('prisma', () => {
         "data": {
           "me": {
             "id": "VXNlcjox",
+            "postCount": 250,
             "posts": [
               {
                 "id": "250",
@@ -158,6 +210,11 @@ describe('prisma', () => {
           "action": "findUnique",
           "args": {
             "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
               "posts": {
                 "include": {
                   "comments": {

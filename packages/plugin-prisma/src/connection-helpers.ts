@@ -130,7 +130,11 @@ export function prismaConnectionHelpers<
       ? { select: select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
       : nestedSelection(true, ['edges', 'node']);
 
-    const selectState = createState(fieldMap, 'select');
+    const selectState = createState(
+      fieldMap,
+      'select',
+      builder.options.prisma.skipDeferredFragments ?? true,
+    );
 
     mergeSelection(selectState, { select: cursorSelection });
 

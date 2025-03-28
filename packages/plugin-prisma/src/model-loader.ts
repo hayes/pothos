@@ -236,7 +236,11 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(this.context, info);
+      const selection = selectionStateFromInfo(
+        this.context,
+        info,
+        this.builder.options.prisma.skipDeferredFragments ?? true,
+      );
       this.queryCache.set(key, {
         selection,
         query: selectionToQuery(selection),

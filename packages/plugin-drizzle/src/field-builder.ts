@@ -147,7 +147,6 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
             defaultSize,
             args,
           },
-
           (q) => {
             // return checkIfQueryIsUsed(
             //   this.builder,
