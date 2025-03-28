@@ -11,6 +11,7 @@ import {
 import type { DrizzleClient } from '../types';
 
 export interface PothosDrizzleSchemaConfig extends RelationalSchemaConfig<TablesRelationalConfig> {
+  skipDeferredFragments: boolean;
   dbToSchema: Record<string, TableRelationalConfig>;
   columnToTsName: (column: Column) => string;
 }
@@ -55,6 +56,7 @@ const configCache = createContextCache(
     );
 
     return {
+      skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       dbToSchema,
       columnToTsName: (column) => {
         const tableName = getTableName(column.table);

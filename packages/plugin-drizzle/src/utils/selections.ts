@@ -1,10 +1,8 @@
 import { PothosValidationError } from '@pothos/core';
 import {
   type DBQueryConfig,
-  RelationalSchemaConfig,
   type SQL,
   type TableRelationalConfig,
-  TablesRelationalConfig,
   getOperators,
 } from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
@@ -21,6 +19,7 @@ export interface SelectionState {
   mappings: LoaderMappings;
   parent?: SelectionState;
   depth: number;
+  skipDeferredFragments: boolean;
 }
 
 export type SelectionMap = DBQueryConfig<'one', false>;
@@ -102,9 +101,14 @@ export function mergeState(state: SelectionState, newState: SelectionState) {
   }
 }
 
-export function createState(table: TableRelationalConfig, parent?: SelectionState): SelectionState {
+export function createState(
+  table: TableRelationalConfig,
+  skipDeferredFragments: boolean,
+  parent?: SelectionState,
+): SelectionState {
   return {
     table,
+    skipDeferredFragments,
     parent,
     query: {},
     columns: new Set(),
@@ -168,7 +172,7 @@ export function mergeSelection(
     if (state.with.has(key)) {
       mergeSelection(config, state.with.get(key)!, selection);
     } else {
-      const relatedState = createState(table, state);
+      const relatedState = createState(table, state.skipDeferredFragments, state);
       mergeSelection(config, relatedState, selection);
       state.with.set(key, relatedState);
     }

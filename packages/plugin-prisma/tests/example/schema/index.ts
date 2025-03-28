@@ -3,10 +3,6 @@ import {
   resolveArrayConnection,
   resolveCursorConnection,
 } from '@pothos/plugin-relay';
-import { prismaConnectionHelpers } from '../../../src';
-import { queryFromInfo } from '../../../src/util/map-query';
-import type { Post } from '../../client';
-import builder, { prisma } from '../builder';
 import {
   DirectiveLocation,
   GraphQLBoolean,
@@ -14,6 +10,10 @@ import {
   GraphQLNonNull,
   GraphQLString,
 } from 'graphql';
+import { prismaConnectionHelpers } from '../../../src';
+import { queryFromInfo } from '../../../src/util/map-query';
+import type { Post } from '../../client';
+import builder, { prisma } from '../builder';
 
 const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
   fields: (t) => ({

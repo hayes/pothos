@@ -43,7 +43,7 @@ function addTypeSelectionsForField(
   state: SelectionState,
   selection: FieldNode,
   indirectPath: string[],
-  skipDeferredFragments: boolean,
+  deferred?: boolean,
 ) {
   if (selection.name.value.startsWith('__')) {
     return;
@@ -68,16 +68,8 @@ function addTypeSelectionsForField(
       [],
       pothosIndirectInclude.paths ?? [pothosIndirectInclude.path!],
       indirectPath,
-      (resolvedType, field, path) => {
-        addTypeSelectionsForField(
-          resolvedType,
-          context,
-          info,
-          state,
-          field,
-          path,
-          skipDeferredFragments,
-        );
+      (resolvedType, field, path, deferred) => {
+        addTypeSelectionsForField(resolvedType, context, info, state, field, path, deferred);
       },
     );
   } else if (pothosIndirectInclude) {
@@ -88,7 +80,7 @@ function addTypeSelectionsForField(
       state,
       selection,
       indirectPath,
-      skipDeferredFragments,
+      deferred,
     );
     return;
   }
@@ -108,16 +100,8 @@ function addTypeSelectionsForField(
     });
   }
 
-  if (selection.selectionSet) {
-    addNestedSelections(
-      type,
-      context,
-      info,
-      state,
-      selection.selectionSet,
-      indirectPath,
-      skipDeferredFragments,
-    );
+  if (selection.selectionSet && (!deferred || !state.skipDeferredFragments)) {
+    addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
   }
 }
 
@@ -128,13 +112,22 @@ function resolveIndirectIncludePaths(
   pathPrefix: { type?: string; name: string }[],
   includePaths: { type?: string; name: string }[][],
   path: string[],
-  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
+  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
+  deferred = false,
 ) {
   for (const includePath of includePaths) {
     if (pathPrefix.length > 0) {
-      resolveIndirectInclude(type, info, selection, [...pathPrefix, ...includePath], path, resolve);
+      resolveIndirectInclude(
+        type,
+        info,
+        selection,
+        [...pathPrefix, ...includePath],
+        path,
+        resolve,
+        deferred,
+      );
     } else {
-      resolveIndirectInclude(type, info, selection, includePath, path, resolve);
+      resolveIndirectInclude(type, info, selection, includePath, path, resolve, deferred);
     }
   }
 }
@@ -145,11 +138,12 @@ function resolveIndirectInclude(
   selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
   includePath: { type?: string; name: string }[],
   path: string[],
-  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
+  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
+  deferred = false,
   expectedType = type,
 ) {
   if (includePath.length === 0) {
-    resolve(type, selection as FieldNode, path);
+    resolve(type, selection as FieldNode, path, deferred);
     return;
   }
 
@@ -176,6 +170,7 @@ function resolveIndirectInclude(
             rest,
             [...path, sel.alias?.value ?? sel.name.value],
             resolve,
+            deferred,
           );
         }
         continue;
@@ -187,6 +182,7 @@ function resolveIndirectInclude(
           includePath,
           path,
           resolve,
+          deferred || isDeferredFragment(sel, info),
           include.type ? info.schema.getType(include.type)! : expectedType,
         );
 
@@ -201,6 +197,7 @@ function resolveIndirectInclude(
             includePath,
             path,
             resolve,
+            deferred || isDeferredFragment(sel, info),
             include.type ? info.schema.getType(include.type)! : expectedType,
           );
         }
@@ -222,7 +219,6 @@ function addNestedSelections(
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
-  skipDeferredFragments: boolean,
   expectedType = type,
 ) {
   let parentType = type;
@@ -232,19 +228,11 @@ function addNestedSelections(
         if (expectedType.name !== type.name) {
           continue;
         }
-        addFieldSelection(
-          type,
-          context,
-          info,
-          state,
-          selection,
-          indirectPath,
-          skipDeferredFragments,
-        );
+        addFieldSelection(type, context, info, state, selection, indirectPath);
 
         continue;
       case Kind.FRAGMENT_SPREAD:
-        if (skipDeferredFragments && isDeferredFragment(selection, info)) {
+        if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
           continue;
         }
 
@@ -259,7 +247,6 @@ function addNestedSelections(
           state,
           info.fragments[selection.name.value].selectionSet,
           indirectPath,
-          skipDeferredFragments,
           parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
             ? parentType
             : expectedType,
@@ -268,7 +255,7 @@ function addNestedSelections(
         continue;
 
       case Kind.INLINE_FRAGMENT:
-        if (skipDeferredFragments && isDeferredFragment(selection, info)) {
+        if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
           continue;
         }
 
@@ -283,7 +270,6 @@ function addNestedSelections(
           state,
           selection.selectionSet,
           indirectPath,
-          skipDeferredFragments,
           parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
             ? parentType
             : expectedType,
@@ -306,7 +292,6 @@ function addFieldSelection(
   state: SelectionState,
   selection: FieldNode,
   indirectPath: string[],
-  skipDeferredFragments: boolean,
 ) {
   if (selection.name.value.startsWith('__') || fieldSkipped(info, selection)) {
     return;
@@ -353,6 +338,7 @@ function addFieldSelection(
             info,
           ),
           info,
+          state.skipDeferredFragments,
           state,
         );
 
@@ -372,7 +358,7 @@ function addFieldSelection(
             normalizedIndirectInclude?.paths ??
               (normalizedIndirectInclude?.path ? [normalizedIndirectInclude.path] : []),
             [],
-            (resolvedType, resolvedField, path) => {
+            (resolvedType, resolvedField, path, deferred) => {
               addTypeSelectionsForField(
                 resolvedType,
                 context,
@@ -380,34 +366,18 @@ function addFieldSelection(
                 fieldState,
                 resolvedField,
                 path,
-                skipDeferredFragments,
+                deferred,
               );
             },
           );
         } else if (normalizedIndirectInclude) {
           const targetType = info.schema.getType(normalizedIndirectInclude.getType())!;
           if (targetType !== returnType) {
-            addTypeSelectionsForField(
-              targetType,
-              context,
-              info,
-              fieldState,
-              selection,
-              [],
-              skipDeferredFragments,
-            );
+            addTypeSelectionsForField(targetType, context, info, fieldState, selection, []);
           }
         }
 
-        addTypeSelectionsForField(
-          returnType,
-          context,
-          info,
-          fieldState,
-          selection,
-          [],
-          skipDeferredFragments,
-        );
+        addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
 
         mappings = fieldState.mappings;
 
@@ -498,7 +468,7 @@ export function queryFromInfo<
       info.fieldNodes[0],
       pothosIndirectInclude?.path ?? [],
       [],
-      (indirectType, indirectField, subPath) => {
+      (indirectType, indirectField, subPath, deferred) => {
         resolveIndirectIncludePaths(
           indirectType,
           info,
@@ -508,10 +478,11 @@ export function queryFromInfo<
             ? paths.map((p) => p.map((n) => (typeof n === 'string' ? { name: n } : n)))
             : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
-          (resolvedType, resolvedField, nested) => {
+          (resolvedType, resolvedField, nested, deferred) => {
             state = createStateForType(
               typeName ? type : resolvedType,
               info,
+              skipDeferredFragments,
               undefined,
               initialSelection,
             );
@@ -523,28 +494,21 @@ export function queryFromInfo<
               state,
               resolvedField,
               nested,
-              skipDeferredFragments,
+              deferred,
             );
           },
+          deferred,
         );
       },
     );
   } else {
-    state = createStateForType(type, info, undefined, initialSelection);
+    state = createStateForType(type, info, skipDeferredFragments, undefined, initialSelection);
 
-    addTypeSelectionsForField(
-      type,
-      context,
-      info,
-      state,
-      info.fieldNodes[0],
-      [],
-      skipDeferredFragments,
-    );
+    addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
   }
 
   if (!state) {
-    state = createStateForType(type, info, undefined, initialSelection);
+    state = createStateForType(type, info, skipDeferredFragments, undefined, initialSelection);
   }
 
   setLoaderMappings(context, info, state.mappings);
@@ -557,12 +521,12 @@ export function queryFromInfo<
 export function selectionStateFromInfo(
   context: object,
   info: GraphQLResolveInfo,
-  skipDeferredFragments = true,
+  skipDeferredFragments: boolean,
   typeName?: string,
 ) {
   const type = typeName ? info.schema.getTypeMap()[typeName] : info.parentType;
 
-  const state = createStateForType(type, info);
+  const state = createStateForType(type, info, skipDeferredFragments);
 
   if (!(isObjectType(type) || isInterfaceType(type))) {
     throw new PothosValidationError(
@@ -570,7 +534,7 @@ export function selectionStateFromInfo(
     );
   }
 
-  addFieldSelection(type, context, info, state, info.fieldNodes[0], [], skipDeferredFragments);
+  addFieldSelection(type, context, info, state, info.fieldNodes[0], []);
 
   return state;
 }
@@ -578,6 +542,7 @@ export function selectionStateFromInfo(
 function createStateForType(
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
+  skipDeferredFragments: boolean,
   parent?: SelectionState,
   initialSelections?: SelectionMap,
 ) {
@@ -588,6 +553,7 @@ function createStateForType(
   const state = createState(
     fieldMap,
     targetType.extensions?.pothosPrismaSelect ? 'select' : 'include',
+    skipDeferredFragments,
     parent,
   );
 
@@ -671,5 +637,5 @@ function isDeferredFragment(
   }
 
   const defer = getDirectiveValues(deferDirective, node, info.variableValues);
-  return defer && defer.if !== false;
+  return !!defer && defer.if !== false;
 }

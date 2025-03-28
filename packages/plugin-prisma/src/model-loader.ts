@@ -239,7 +239,7 @@ export class ModelLoader {
       const selection = selectionStateFromInfo(
         this.context,
         info,
-        this.builder.options.prisma.skipDeferredFragments,
+        this.builder.options.prisma.skipDeferredFragments ?? true,
       );
       this.queryCache.set(key, {
         selection,

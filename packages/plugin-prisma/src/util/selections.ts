@@ -13,6 +13,7 @@ export interface SelectionState {
   relations: Map<string, SelectionState>;
   mappings: LoaderMappings;
   parent?: SelectionState;
+  skipDeferredFragments: boolean;
 }
 
 export function selectionCompatible(
@@ -92,6 +93,7 @@ export function mergeState(state: SelectionState, newState: SelectionState) {
 export function createState(
   fieldMap: FieldMap,
   mode: SelectionMode,
+  skipDeferredFragments: boolean,
   parent?: SelectionState,
 ): SelectionState {
   return {
@@ -103,6 +105,7 @@ export function createState(
     counts: new Map(),
     relations: new Map(),
     mappings: {},
+    skipDeferredFragments,
   };
 }
 
@@ -148,7 +151,7 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
       if (state.relations.has(key)) {
         mergeSelection(state.relations.get(key)!, selection);
       } else {
-        const relatedState = createState(childMap, 'select');
+        const relatedState = createState(childMap, 'select', state.skipDeferredFragments);
         mergeSelection(relatedState, selection);
         state.relations.set(key, relatedState);
       }
