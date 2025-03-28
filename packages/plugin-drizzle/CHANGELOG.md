@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.8.0
+
+### Minor Changes
+
+- 2c0e072: Skip querying field selections within `@defer`red fragments
+
 ## 0.7.2
 
 ### Patch Changes
