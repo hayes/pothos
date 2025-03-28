@@ -28,7 +28,7 @@ import type {
   OutputType,
   TypeParam,
 } from './type-params';
-import type { Merge, MergeUnion, PartialResolveInfo } from './utils';
+import type { MaybePromise, Merge, MergeUnion, PartialResolveInfo } from './utils';
 
 export interface PothosQueryTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
@@ -127,7 +127,7 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
         args: Record<string, unknown>,
         context: Types['Context'],
         info: PartialResolveInfo,
-      ) => Record<string, unknown>)[];
+      ) => MaybePromise<Record<string, unknown>>)[];
       pothosOptions: FieldOptionsFromKind<
         Types,
         unknown,
