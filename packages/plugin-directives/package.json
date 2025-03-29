@@ -54,14 +54,8 @@
     "@graphql-tools/utils": "^10.8.6",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": ">=16.6.0",
     "graphql-rate-limit": "^3.3.0",
     "graphql-tag": "^2.12.6"
-  },
-  "pnpm": {
-    "overrides": {
-      "graphql": "16.10.0"
-    }
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

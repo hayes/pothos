@@ -35,6 +35,7 @@
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.11.11",
     "@types/node": "^22.13.11",
+    "graphql": "^16.10.0",
     "pkg-pr-new": "^0.0.42",
     "tsx": "^4.19.3",
     "turbo": "^2.4.4",
@@ -67,7 +68,7 @@
       }
     },
     "patchedDependencies": {
-      "@changesets/assemble-release-plan@6.0.5": "patches/@changesets__assemble-release-plan.patch"
+      "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch"
     }
   }
 }
