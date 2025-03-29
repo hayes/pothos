@@ -14,7 +14,7 @@
     "@faker-js/faker": "^9.6.0",
     "@pothos/core": "workspace:*",
     "@tanstack/react-query": "^5.69.0",
-    "graphql": "^16.8.1",
+    "graphql": "^16.10.0",
     "graphql-helix": "^1.13.0",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "5.13.2",

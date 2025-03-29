@@ -38,6 +38,9 @@ importers:
       '@types/node':
         specifier: ^22.13.11
         version: 22.13.11
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
       pkg-pr-new:
         specifier: ^0.0.42
         version: 0.0.42
@@ -581,13 +584,14 @@ importers:
         version: 17.0.33
 
   packages/core:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-scalars:
         specifier: ^1.24.2
         version: 1.24.2(graphql@16.11.0)
@@ -608,6 +612,10 @@ importers:
         version: 5.8.2
 
   packages/plugin-add-graphql:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -615,14 +623,15 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-complexity:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -630,14 +639,15 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-dataloader:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -654,14 +664,15 @@ importers:
       dataloader:
         specifier: ^2.2.3
         version: 2.2.3
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-directives:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@envelop/core':
         specifier: ^5.2.3
@@ -678,9 +689,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-rate-limit:
         specifier: ^3.3.0
         version: 3.3.0(graphql-middleware@6.1.35(graphql@16.11.0))(graphql@16.11.0)
@@ -689,6 +697,10 @@ importers:
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-drizzle:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@libsql/client':
         specifier: ^0.15.0
@@ -723,9 +735,6 @@ importers:
       drizzle-orm:
         specifier: beta
         version: 1.0.0-beta.1-c0277c0(@libsql/client@0.15.4)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.2))(typescript@5.8.2))(@types/pg@8.11.10)(gel@2.0.1)(postgres@3.4.5)(prisma@6.6.0(typescript@5.8.2))
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-scalars:
         specifier: ^1.24.2
         version: 1.24.2(graphql@16.11.0)
@@ -737,6 +746,10 @@ importers:
         version: 3.4.5
 
   packages/plugin-errors:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -747,9 +760,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -758,6 +768,10 @@ importers:
         version: 3.24.2
 
   packages/plugin-example:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -765,14 +779,15 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-federation:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@apollo/gateway':
         specifier: ^2.10.0
@@ -798,14 +813,15 @@ importers:
       axios:
         specifier: ^1.8.4
         version: 1.9.0
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-mocks:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -813,9 +829,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -825,6 +838,9 @@ importers:
       '@prisma/generator-helper':
         specifier: ^6.5.0
         version: 6.6.0
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
       typescript:
         specifier: '>=4.7.2'
         version: 5.5.4
@@ -850,9 +866,6 @@ importers:
       '@prisma/client':
         specifier: ^6.6.0
         version: 6.6.0(prisma@6.6.0(typescript@5.5.4))(typescript@5.5.4)
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-scalars:
         specifier: ^1.24.2
         version: 1.24.2(graphql@16.11.0)
@@ -871,6 +884,9 @@ importers:
       '@prisma/generator-helper':
         specifier: ^6.5.0
         version: 6.6.0
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -887,9 +903,6 @@ importers:
       '@prisma/client':
         specifier: ^6.6.0
         version: 6.6.0(prisma@6.6.0(typescript@5.8.2))(typescript@5.8.2)
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-scalars:
         specifier: ^1.24.2
         version: 1.24.2(graphql@16.11.0)
@@ -913,6 +926,10 @@ importers:
         version: 3.24.2
 
   packages/plugin-relay:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -923,9 +940,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-subscriptions:
         specifier: ^3.0.0
         version: 3.0.0(graphql@16.11.0)
@@ -934,6 +948,10 @@ importers:
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-scope-auth:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -950,9 +968,6 @@ importers:
       '@prisma/client':
         specifier: ^6.6.0
         version: 6.6.0(prisma@6.6.0(typescript@5.8.2))(typescript@5.8.2)
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -961,6 +976,10 @@ importers:
         version: 6.6.0(typescript@5.8.2)
 
   packages/plugin-simple-objects:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -968,14 +987,15 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-smart-subscriptions:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -983,9 +1003,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-subscriptions:
         specifier: ^3.0.0
         version: 3.0.0(graphql@16.11.0)
@@ -994,6 +1011,10 @@ importers:
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-sub-graph:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1010,14 +1031,15 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-tracing:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1025,14 +1047,15 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-with-input:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1049,9 +1072,6 @@ importers:
       '@prisma/client':
         specifier: ^6.6.0
         version: 6.6.0(prisma@6.6.0(typescript@5.8.2))(typescript@5.8.2)
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -1060,6 +1080,10 @@ importers:
         version: 6.6.0(typescript@5.8.2)
 
   packages/plugin-zod:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1067,9 +1091,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -1097,6 +1118,10 @@ importers:
         version: 22.13.11
 
   packages/tracing-newrelic:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1110,9 +1135,6 @@ importers:
       '@types/newrelic':
         specifier: ^9.14.8
         version: 9.14.8
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -1124,6 +1146,10 @@ importers:
         version: 12.18.0
 
   packages/tracing-opentelemetry:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@envelop/core':
         specifier: ^5.2.3
@@ -1164,9 +1190,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -1175,6 +1198,10 @@ importers:
         version: 5.13.2(graphql@16.11.0)
 
   packages/tracing-sentry:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1188,9 +1215,6 @@ importers:
       '@sentry/node':
         specifier: ^9.8.0
         version: 9.14.0
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
@@ -1199,6 +1223,10 @@ importers:
         version: 5.13.2(graphql@16.11.0)
 
   packages/tracing-xray:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1212,9 +1240,6 @@ importers:
       aws-xray-sdk-core:
         specifier: ^3.10.3
         version: 3.10.3
-      graphql:
-        specifier: ^16.10.0
-        version: 16.11.0
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)

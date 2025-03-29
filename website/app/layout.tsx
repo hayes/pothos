@@ -6,7 +6,7 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
-import {  docsOptions } from './layout.config';
+import { docsOptions } from './layout.config';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -25,17 +25,17 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
               </Link>
             </p>
           </Banner>
-            <DocsLayout
-              {...docsOptions}
-              links={docsOptions.links}
-              sidebar={{
-                enabled: true,
-              }}
-            >
-              {/* <Layout {...baseOptions}> */}
-                {children}
-              {/* </Layout> */}
-            </DocsLayout>
+          <DocsLayout
+            {...docsOptions}
+            links={docsOptions.links}
+            sidebar={{
+              enabled: true,
+            }}
+          >
+            {/* <Layout {...baseOptions}> */}
+            {children}
+            {/* </Layout> */}
+          </DocsLayout>
         </RootProvider>
       </body>
     </html>
