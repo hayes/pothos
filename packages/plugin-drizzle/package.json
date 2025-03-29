@@ -52,7 +52,6 @@
     "drizzle-graphql": "^0.8.5",
     "drizzle-kit": "beta",
     "drizzle-orm": "beta",
-    "graphql": "^16.8.1",
     "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
     "postgres": "^3.4.5"

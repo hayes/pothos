@@ -44,7 +44,6 @@
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
     "zod": "^3.24.2"
   },
