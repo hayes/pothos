@@ -24,7 +24,7 @@
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@prisma/client": "^6.5.0",
-    "graphql": ">=16.6.0",
+    "graphql": "^16.10.0",
     "prisma": "^6.5.0"
   },
   "publishConfig": {
