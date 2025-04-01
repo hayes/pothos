@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-redeclare */
 import './types/global/index.ts';
 import { SchemaBuilder as SchemaBuilderClass } from './builder.ts';
 import { FieldBuilder as InternalFieldBuilder } from './fieldUtils/builder.ts';
@@ -19,7 +18,7 @@ import { ListRef as InternalListRef } from './refs/list.ts';
 import { ObjectRef as InternalObjectRef } from './refs/object.ts';
 import { ScalarRef as InternalScalarRef } from './refs/scalar.ts';
 import { UnionRef as InternalUnionRef } from './refs/union.ts';
-import type { AddVersionedDefaultsToBuilderOptions, FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes, } from './types/index.ts';
+import type { AddVersionedDefaultsToBuilderOptions, FieldKind, InputTypeParam, NormalizeSchemeBuilderOptions, RootName, SchemaTypes, TypeParam, } from './types/index.ts';
 export * from './errors.ts';
 export * from './plugins/index.ts';
 export * from './types/index.ts';
@@ -54,7 +53,7 @@ export const EnumRef = InternalEnumRef as new <Types extends SchemaTypes, T, P =
 export type InputObjectRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputObjectRef<Types, T>;
 export const InputObjectRef = InternalInputObjectRef as new <Types extends SchemaTypes, T>(name: string) => PothosSchemaTypes.InputObjectRef<Types, T>;
 export type InputListRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputListRef<Types, T>;
-export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(name: string, required: boolean) => PothosSchemaTypes.InputListRef<Types, T>;
+export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(listType: InputTypeParam<Types>, required: boolean) => PothosSchemaTypes.InputListRef<Types, T>;
 export type InterfaceRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.InterfaceRef<Types, T, P>;
 export const InterfaceRef = InternalInterfaceRef as new <Types extends SchemaTypes, T, P = T>(name: string) => PothosSchemaTypes.InterfaceRef<Types, T, P>;
 export type ObjectRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ObjectRef<Types, T, P>;
@@ -64,7 +63,7 @@ export const ScalarRef = InternalScalarRef as new <Types extends SchemaTypes, T,
 export type UnionRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.UnionRef<Types, T, P>;
 export const UnionRef = InternalUnionRef as new <Types extends SchemaTypes, T, P = T>(name: string) => PothosSchemaTypes.UnionRef<Types, T, P>;
 export type ListRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ListRef<Types, T, P>;
-export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P = T>(name: string, nullable: boolean) => PothosSchemaTypes.ListRef<Types, T, P>;
+export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P = T>(listType: TypeParam<Types>, nullable: boolean) => PothosSchemaTypes.ListRef<Types, T, P>;
 export { BuildCache } from './build-cache.ts';
 export { ArgumentRef } from './refs/arg.ts';
 export { BuiltinScalarRef } from './refs/builtin-scalar.ts';

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { CompatibleTypes, ExposeNullability, FieldKind, FieldNullability, FieldOptionsFromKind, InferredFieldOptionKeys, NormalizeArgs, SchemaTypes, TypeParam, } from '../types/index.ts';
+import type { CompatibleTypes, ExposeNullability, FieldKind, FieldNullability, FieldOptionsFromKind, InferredFieldOptionKeys, NormalizeArgs, SchemaTypes, TypeParam, } from '../types/index.ts';
 import { RootFieldBuilder } from './root.ts';
 export class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends RootFieldBuilder<Types, ParentShape, Kind> {
     /**

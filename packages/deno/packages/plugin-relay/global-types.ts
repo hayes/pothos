@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InferredFieldOptionKeys, InputFieldMap, InputFieldsFromShape, InputOrArgRef, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
-import { NodeRef } from './node-ref.ts';
-import { ConnectionResultShape, ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, GlobalIDShape, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
+import { type FieldKind, type FieldNullability, type FieldOptionsFromKind, type FieldRef, type FieldRequiredness, type InferredFieldOptionKeys, type InputFieldMap, type InputFieldsFromShape, type InputOrArgRef, type InputShapeFromFields, type InputShapeFromTypeParam, type InterfaceParam, type NormalizeArgs, type ObjectFieldThunk, type ObjectFieldsShape, type ObjectParam, type OutputShape, type OutputType, type ParentShape, type Resolver, type SchemaTypes, type ShapeFromTypeParam, inputShapeKey, } from '../core/index.ts';
+import type { ImplementableNodeRef, NodeRef } from './node-ref.ts';
+import type { ConnectionResultShape, ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, GlobalIDShape, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, NodeRefOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
 import type { DefaultEdgesNullability, PothosRelayPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -37,6 +37,7 @@ declare global {
         export interface SchemaBuilder<Types extends SchemaTypes> {
             pageInfoRef: () => ObjectRef<Types, PageInfoShape>;
             nodeInterfaceRef: () => InterfaceRef<Types, unknown>;
+            nodeRef: <Shape, IDShape = string, Param extends string | ObjectRef<Types, Shape> = string>(param: Param, options: NodeRefOptions<Types, Shape, Shape, IDShape>, fields?: ObjectFieldsShape<Types, Shape>) => Param extends string ? ImplementableNodeRef<Types, Shape, Shape, IDShape> : Param;
             node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>, IDShape = string>(param: Param, options: NodeObjectOptions<Types, Param, Interfaces, IDShape>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) => NodeRef<Types, OutputShape<Types, Param>, ParentShape<Types, Param>, IDShape>;
             globalConnectionFields: (fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>) => void;
             globalConnectionField: (name: string, field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>) => void;
@@ -75,7 +76,9 @@ declare global {
             };
             globalID: <Req extends boolean, For extends ObjectParam<Types>>(...args: NormalizeArgs<[
                 options: GlobalIDInputFieldOptions<Types, Req, Kind, For>
-            ]>) => InputOrArgRef<Types, InputShapeFromTypeParam<Types, GlobalIDInputShape<For extends {
+            ]>) => InputOrArgRef<Types, InputShapeFromTypeParam<Types, 
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            GlobalIDInputShape<For extends {
                 parseId?: (...args: any[]) => infer T;
             } ? T : string>, Req>, Kind>;
             globalIDList: <Req extends FieldRequiredness<[
@@ -86,6 +89,7 @@ declare global {
                 {
                     [inputShapeKey]: {
                         typename: string;
+                        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
                         id: For extends {
                             parseId?: (...args: any[]) => infer T;
                         } ? T : string;
@@ -106,7 +110,9 @@ declare global {
                 unknown
             ]> = Types["DefaultEdgesNullability"], NodeNullability extends boolean = Types["DefaultNodeNullability"], ConnectionInterfaces extends InterfaceParam<Types>[] = [
             ], EdgeInterfaces extends InterfaceParam<Types>[] = [
-            ], ConnectionResult extends ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability> = ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability>>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, InputFieldsFromShape<Types, DefaultConnectionArguments, "Arg"> & (InputFieldMap extends Args ? {} : Args), Kind, ResolveShape, ResolveReturnShape> extends infer FieldOptions ? ConnectionFieldOptions<Types, FieldOptions extends {
+            ], ConnectionResult extends ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability> = ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability>>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, InputFieldsFromShape<Types, DefaultConnectionArguments, "Arg"> & (InputFieldMap extends Args ? {} : Args), Kind, ResolveShape, ResolveReturnShape> extends infer FieldOptions ? ConnectionFieldOptions<Types, 
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            FieldOptions extends {
                 resolve?: (parent: infer P, ...args: any[]) => unknown;
             } ? P : unknown extends ResolveShape ? ParentShape : ResolveShape, Type, Nullable, EdgeNullability, NodeNullability, Args, ResolveReturnShape, ConnectionResult> & Omit<FieldOptions, "args" | "type" | InferredFieldOptionKeys> : never, ...args: NormalizeArgs<[
                 connectionOptions: ObjectRef<Types, ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability, ConnectionResult>> | Omit<ConnectionObjectOptions<Types, Type, EdgeNullability, NodeNullability, ResolveReturnShape, ConnectionInterfaces>, "edgesNullable">,

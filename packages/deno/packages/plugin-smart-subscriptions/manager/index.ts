@@ -1,7 +1,5 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-throw-literal */
-/* eslint-disable no-await-in-loop */
-import { RegisterOptions } from '../types.ts';
+import type { RegisterOptions } from '../types.ts';
 type Timer = ReturnType<typeof setTimeout>;
 export default class SubscriptionManager implements AsyncIterator<object> {
     activeSubscriptions = new Set<string>();
@@ -55,7 +53,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
             }
         });
         if (maybePromise) {
-            maybePromise.catch((error) => void this.handleError(error));
+            maybePromise.catch((error) => this.handleError(error));
         }
     }
     [Symbol.asyncIterator]() {
@@ -71,7 +69,6 @@ export default class SubscriptionManager implements AsyncIterator<object> {
             value: this.value,
         };
     }
-    // eslint-disable-next-line @typescript-eslint/promise-function-async
     throw(error: unknown) {
         this.handleError(error);
         return Promise.reject<IteratorResult<object>>(error as Error);
@@ -130,7 +127,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
         if (this.rejectNext) {
             this.rejectNext(err);
         }
-        this.stop().catch((error) => void this.handleError(error));
+        this.stop().catch((error) => this.handleError(error));
     }
     private async stop() {
         if (this.stopped) {
@@ -191,7 +188,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
         }
         const { allowed, promises } = this.filterValue(name, value);
         if (promises) {
-            promises.catch((error) => void this.handleError(error));
+            promises.catch((error) => this.handleError(error));
         }
         if (!allowed) {
             return;

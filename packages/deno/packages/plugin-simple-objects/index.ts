@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
-import SchemaBuilder, { BasePlugin, FieldMap, InterfaceFieldsShape, InterfaceParam, InterfaceRef, Normalize, ObjectFieldsShape, ObjectRef, ParentShape, SchemaTypes, UnionToIntersection, } from '../core/index.ts';
-import { OutputShapeFromFields } from './types.ts';
+import SchemaBuilder, { BasePlugin, type FieldMap, type InterfaceFieldsShape, type InterfaceParam, InterfaceRef, type Normalize, type ObjectFieldsShape, ObjectRef, type ParentShape, type SchemaTypes, type UnionToIntersection, } from '../core/index.ts';
+import type { OutputShapeFromFields } from './types.ts';
 const pluginName = "simpleObjects";
 export default pluginName;
 export class PothosSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -18,7 +18,7 @@ proto.simpleObject = function simpleObject<Interfaces extends InterfaceParam<Sch
 };
 proto.simpleInterface = function simpleInterface<Interfaces extends InterfaceParam<SchemaTypes>[], Fields extends FieldMap, Shape extends Normalize<OutputShapeFromFields<Fields> & UnionToIntersection<ParentShape<SchemaTypes, Interfaces[number]>>>>(name: string, options: PothosSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Interfaces, Fields, Shape>, extraFields?: InterfaceFieldsShape<SchemaTypes, Shape>) {
     const ref = new InterfaceRef<SchemaTypes, Shape>(name);
-    this.interfaceType(ref, options as {});
+    this.interfaceType(ref, options as object);
     if (extraFields) {
         this.interfaceFields(ref, extraFields);
     }

@@ -1,9 +1,8 @@
 // @ts-nocheck
-/* eslint-disable max-classes-per-file */
-import { InterfaceParam, ObjectTypeOptions, OutputRef, outputShapeKey, parentShapeKey, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosSubscriptionTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { type InterfaceParam, type ObjectTypeOptions, type OutputRef, type PothosMutationTypeConfig, type PothosObjectTypeConfig, type PothosQueryTypeConfig, type PothosSubscriptionTypeConfig, type SchemaTypes, outputShapeKey, parentShapeKey, } from '../types/index.ts';
 import { TypeRefWithFields } from './base-with-fields.ts';
 export type ObjectLikeConfig = PothosMutationTypeConfig | PothosObjectTypeConfig | PothosQueryTypeConfig | PothosSubscriptionTypeConfig;
-export class ObjectRef<Types extends SchemaTypes, T, P = T> extends TypeRefWithFields<Types, ObjectLikeConfig> implements OutputRef, PothosSchemaTypes.ObjectRef<Types, T, P> {
+export class ObjectRef<Types extends SchemaTypes, T, P = T> extends TypeRefWithFields<Types, ObjectLikeConfig> implements OutputRef<T>, PothosSchemaTypes.ObjectRef<Types, T, P> {
     override kind = "Object" as const;
     $inferType!: T;
     [outputShapeKey]!: T;

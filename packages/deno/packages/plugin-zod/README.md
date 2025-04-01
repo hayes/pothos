@@ -10,8 +10,8 @@ options map closely to the validations available in zod.
 
 To use the zod plugin you will need to install both `zod` package and the zod plugin:
 
-```bash
-yarn add zod @pothos/plugin-zod
+```package-install
+npm install --save zod @pothos/plugin-zod
 ```
 
 ### Setup
@@ -32,7 +32,6 @@ const builder = new SchemaBuilder({
 builder.queryType({
   fields: (t) => ({
     simple: t.boolean({
-      nullable: true,
       args: {
         // Validate individual args
         email: t.arg.string({
@@ -64,7 +63,6 @@ throw an error, or return an error message or custom Error instance.
 builder.queryType({
   fields: (t) => ({
     withMessage: t.boolean({
-      nullable: true,
       args: {
         email: t.arg.string({
           validate: {
@@ -89,7 +87,6 @@ builder.queryType({
 builder.queryType({
   fields: (t) => ({
     list: t.boolean({
-      nullable: true,
       args: {
         list: t.arg.stringList({
           validate: {
@@ -115,7 +112,6 @@ options you can use the `schema` option:
 builder.queryType({
   fields: (t) => ({
     list: t.boolean({
-      nullable: true,
       args: {
         max5: t.arg.int({
           validate: {
@@ -135,7 +131,6 @@ You can also validate all arguments together using a zod schema:
 builder.queryType({
   fields: (t) => ({
     simple: t.boolean({
-      nullable: true,
       args: {
         email: t.arg.string(),
         phone: t.arg.string(),

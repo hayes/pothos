@@ -1,5 +1,5 @@
 import { source } from '@/app/source';
-import type { DocsLayoutProps } from 'fumadocs-ui/layout';
+import type { DocsLayoutProps } from 'fumadocs-ui/layouts/docs';
 import Image from 'next/image';
 
 source.pageTree;

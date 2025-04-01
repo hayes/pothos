@@ -1,6 +1,5 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { FieldNullability, InputFieldMap, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
 import type { ComplexityPluginOptions, FieldComplexity } from './types.ts';
 import type { PothosComplexityPlugin } from './index.ts';
 declare global {
