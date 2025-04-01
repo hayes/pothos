@@ -1,4 +1,4 @@
-name: Publish Any Commit
+name: Publish Pull requests
 on:
   pull_request:
 
