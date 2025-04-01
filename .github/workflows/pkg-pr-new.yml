@@ -36,4 +36,4 @@ jobs:
       - name: Build
         run: pnpm turbo build
 
-      - run: pnpm dlx pkg-pr-new publish --compact './packages/*'
+      - run: pnpm dlx pkg-pr-new publish --compact './packages/plugin-*' './packages/core' './packages/tracing-*'
