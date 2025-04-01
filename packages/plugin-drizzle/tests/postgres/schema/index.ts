@@ -31,9 +31,9 @@ builder.drizzleObject('users', {
   fields: (t) => ({
     email: t.string({
       select: {
-        // with: {
-        //   posts: true,
-        // },
+        with: {
+          posts: true,
+        },
         columns: {
           invitedBy: true,
         },
@@ -63,14 +63,13 @@ builder.drizzleObject('users', {
         orderBy: (post, ops) => (args.oldestFirst ? ops.asc(post.id) : ops.desc(post.id)),
       }),
       // relation available to other plugins even when selections are at the field level
-      // authScopes: (user) => user.posts.length > 0,
+      authScopes: (user) => user.posts.length > 0,
       //                           ^?
     }),
     invitee: t.relation('invitee'),
-    // postsConnection: t.relatedConnection('posts', {
-    //   description: "A connection to a user's posts",
-    //   resolve: (user) => user.posts,
-    // }),
+    postsConnection: t.relatedConnection('posts', {
+      description: "A connection to a user's posts",
+    }),
   }),
 });
 
@@ -88,7 +87,6 @@ builder.queryField('user', (t) =>
         },
       });
 
-      // console.dir(query, { depth: null });
       const result = await drizzleQuery;
 
       return result;

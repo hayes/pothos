@@ -1,5 +1,42 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`drizzle plugin > produces the expected postgres schema 1`] = `
+"type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Post {
+  author: User
+  content: String
+  id: ID
+}
+
+type Query {
+  user(id: Int!): User
+}
+
+type User {
+  email: String
+  invitee: User
+  name: String
+  posts(limit: Int, offset: Int, oldestFirst: Boolean): [Post!]
+  postsConnection(after: String, before: String, first: Int, last: Int): UserPostsConnection
+}
+
+type UserPostsConnection {
+  edges: [UserPostsConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type UserPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}"
+`;
+
 exports[`drizzle plugin > produces the expected schema 1`] = `
 """"
 A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the \`date-time\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
