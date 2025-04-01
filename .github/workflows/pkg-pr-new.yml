@@ -1,0 +1,39 @@
+name: Publish Pull requests
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          run_install: false
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Setup turbo cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules/.cache
+          key: turbo-${{ runner.os }}-pkg-pr-new-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm turbo build
+
+      - run: pnpm dlx pkg-pr-new publish --compact './packages/plugin-*' './packages/core' './packages/tracing-*'
