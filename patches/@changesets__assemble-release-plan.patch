@@ -1,5 +1,5 @@
 diff --git a/dist/changesets-assemble-release-plan.cjs.js b/dist/changesets-assemble-release-plan.cjs.js
-index 4f7b5e5b37bb05874a5c1d8e583e29d4a9593ecf..f4b8f726958f1b329fe5d5aea813fd4e9a4eab6e 100644
+index e32a5e5d39c3bd920201b5694632d2b44c92d486..f188013aa9987150fe6b0ce0f9ecca4c45cc95bb 100644
 --- a/dist/changesets-assemble-release-plan.cjs.js
 +++ b/dist/changesets-assemble-release-plan.cjs.js
 @@ -444,7 +444,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
@@ -12,7 +12,7 @@ index 4f7b5e5b37bb05874a5c1d8e583e29d4a9593ecf..f4b8f726958f1b329fe5d5aea813fd4e
    if (typeof preVersion !== "number") {
      throw new errors.InternalError("preVersion is not a number");
 diff --git a/dist/changesets-assemble-release-plan.esm.js b/dist/changesets-assemble-release-plan.esm.js
-index a327d9e4c709a6698f505d60d8bbf0046d4bde74..de19ad3c490c838b3748c875fabfac07ff795f0b 100644
+index 221822a2e3ac86431b8aadeaf5f01eaee72a5c8e..d9f42b05e6d8bb598bb882df32e2b8a4ec9548ae 100644
 --- a/dist/changesets-assemble-release-plan.esm.js
 +++ b/dist/changesets-assemble-release-plan.esm.js
 @@ -433,7 +433,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
