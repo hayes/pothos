@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.0
+
+### Minor Changes
+
+- c306fd7: Support adding 'Subscription', 'Query', and 'Mutation' as non-root objects when using custom names for root types
+
 ## 4.5.1
 
 ### Patch Changes
