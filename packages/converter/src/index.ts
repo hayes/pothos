@@ -678,9 +678,9 @@ export default class PothosConverter {
     const objects = gqlTypes.filter(
       (type) =>
         type instanceof GraphQLObjectType &&
-        type.name !== 'Query' &&
-        type.name !== 'Mutation' &&
-        type.name !== 'Subscription',
+        type.name !== this.schema.getQueryType()?.name &&
+        type.name !== this.schema.getMutationType()?.name &&
+        type.name !== this.schema.getSubscriptionType()?.name,
     ) as GraphQLObjectType[];
     if (objects.length > 0) {
       writer.writeLine('Objects: {');

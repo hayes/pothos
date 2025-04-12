@@ -17,10 +17,25 @@ describe('custom-root-names example', () => {
 
       type CustomQuery {
         hello: String
+        mutation: Mutation
+        query: Query
+        subscription: Subscription
       }
 
       type CustomSubscription {
         hello: Int
+      }
+
+      type Mutation {
+        id: ID
+      }
+
+      type Query {
+        id: ID
+      }
+
+      type Subscription {
+        id: ID
       }"
     `);
   });
@@ -31,6 +46,15 @@ describe('custom-root-names example', () => {
       document: gql`
       query {
         hello
+        query {
+            id
+          }
+          subscription {
+            id
+          }
+          mutation {
+            id
+          }
         __typename
       }
     `,
@@ -40,6 +64,15 @@ describe('custom-root-names example', () => {
       {
         "__typename": "CustomQuery",
         "hello": "world",
+        "mutation": {
+          "id": "123",
+        },
+        "query": {
+          "id": "123",
+        },
+        "subscription": {
+          "id": "123",
+        },
       }
     `);
   });
