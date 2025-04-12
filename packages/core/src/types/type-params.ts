@@ -111,8 +111,7 @@ export type InputType<Types extends SchemaTypes> =
 export type ConfigurableRef<Types extends SchemaTypes> =
   | BaseTypeRef<Types, unknown>
   | InputType<Types>
-  | OutputType<Types>
-  | RootName;
+  | OutputType<Types>;
 
 export type TypeParam<Types extends SchemaTypes> = OutputType<Types> | [OutputType<Types>];
 

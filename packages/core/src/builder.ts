@@ -75,6 +75,10 @@ import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from
 export class SchemaBuilder<Types extends SchemaTypes> {
   $inferSchemaTypes!: Types;
 
+  private queryRef = new QueryRef<Types>('Query');
+  private mutationRef = new MutationRef<Types>('Mutation');
+  private subscriptionRef = new SubscriptionRef<Types>('Subscription');
+
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
 
   static optionNormalizers: Map<
@@ -156,10 +160,6 @@ export class SchemaBuilder<Types extends SchemaTypes> {
         ? param
         : ((options as { name?: string }).name ?? (param as { name: string }).name);
 
-    if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
-      throw new PothosSchemaError(`Invalid object name ${name} use .create${name}Type() instead`);
-    }
-
     const ref =
       param instanceof BaseTypeRef
         ? (param as ObjectRef<Types, OutputShape<Types, Param>, ParentShape<Types, Param>>)
@@ -230,7 +230,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ): QueryRef<Types> {
     const [options = {}, fields] = args;
 
-    const ref = new QueryRef<Types>(options.name ?? 'Query', {
+    this.queryRef.updateConfig({
       kind: 'Query',
       graphqlKind: 'Object',
       name: options.name ?? 'Query',
@@ -239,29 +239,29 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       extensions: options.extensions,
     });
 
-    if (ref.name !== 'Query') {
-      this.configStore.associateParamWithRef('Query', ref);
+    if (options.name) {
+      this.queryRef.name = options.name;
     }
 
-    this.configStore.addTypeRef(ref);
+    this.configStore.addTypeRef(this.queryRef);
 
     if (fields) {
-      ref.addFields(() => fields(new QueryFieldBuilder(this)));
+      this.queryRef.addFields(() => fields(new QueryFieldBuilder(this)));
     }
 
     if (options.fields) {
-      ref.addFields(() => options.fields!(new QueryFieldBuilder(this)));
+      this.queryRef.addFields(() => options.fields!(new QueryFieldBuilder(this)));
     }
 
-    return ref;
+    return this.queryRef;
   }
 
   queryFields(fields: QueryFieldsShape<Types>) {
-    this.configStore.addFields('Query', () => fields(new QueryFieldBuilder(this)));
+    this.configStore.addFields(this.queryRef, () => fields(new QueryFieldBuilder(this)));
   }
 
   queryField(name: string, field: QueryFieldThunk<Types>) {
-    this.configStore.addFields('Query', () => ({
+    this.configStore.addFields(this.queryRef, () => ({
       [name]: field(new QueryFieldBuilder(this)),
     }));
   }
@@ -274,7 +274,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     const [options = {}, fields] = args;
 
-    const ref = new MutationRef<Types>(options.name ?? 'Mutation', {
+    this.mutationRef.updateConfig({
       kind: 'Mutation',
       graphqlKind: 'Object',
       name: options.name ?? 'Mutation',
@@ -283,29 +283,31 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       extensions: options.extensions,
     });
 
-    this.configStore.addTypeRef(ref);
+    this.configStore.addTypeRef(this.mutationRef);
 
-    if (ref.name !== 'Mutation') {
-      this.configStore.associateParamWithRef('Mutation', ref);
+    if (options.name) {
+      this.mutationRef.name = options.name;
     }
 
     if (fields) {
-      this.configStore.addFields('Mutation', () => fields(new MutationFieldBuilder(this)));
+      this.configStore.addFields(this.mutationRef, () => fields(new MutationFieldBuilder(this)));
     }
 
     if (options.fields) {
-      this.configStore.addFields('Mutation', () => options.fields!(new MutationFieldBuilder(this)));
+      this.configStore.addFields(this.mutationRef, () =>
+        options.fields!(new MutationFieldBuilder(this)),
+      );
     }
 
-    return ref;
+    return this.mutationRef;
   }
 
   mutationFields(fields: MutationFieldsShape<Types>) {
-    this.configStore.addFields('Mutation', () => fields(new MutationFieldBuilder(this)));
+    this.configStore.addFields(this.mutationRef, () => fields(new MutationFieldBuilder(this)));
   }
 
   mutationField(name: string, field: MutationFieldThunk<Types>) {
-    this.configStore.addFields('Mutation', () => ({
+    this.configStore.addFields(this.mutationRef, () => ({
       [name]: field(new MutationFieldBuilder(this)),
     }));
   }
@@ -321,7 +323,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     const [options = {}, fields] = args;
 
-    const ref = new SubscriptionRef<Types>(options.name ?? 'Subscription', {
+    this.subscriptionRef.updateConfig({
       kind: 'Subscription',
       graphqlKind: 'Object',
       name: options.name ?? 'Subscription',
@@ -330,31 +332,35 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       extensions: options.extensions,
     });
 
-    this.configStore.addTypeRef(ref);
+    this.configStore.addTypeRef(this.subscriptionRef);
 
-    if (ref.name !== 'Subscription') {
-      this.configStore.associateParamWithRef('Subscription', ref);
+    if (options.name) {
+      this.subscriptionRef.name = options.name;
     }
 
     if (fields) {
-      this.configStore.addFields('Subscription', () => fields(new SubscriptionFieldBuilder(this)));
+      this.configStore.addFields(this.subscriptionRef, () =>
+        fields(new SubscriptionFieldBuilder(this)),
+      );
     }
 
     if (options.fields) {
-      this.configStore.addFields('Subscription', () =>
+      this.configStore.addFields(this.subscriptionRef, () =>
         options.fields!(new SubscriptionFieldBuilder(this)),
       );
     }
 
-    return ref;
+    return this.subscriptionRef;
   }
 
   subscriptionFields(fields: SubscriptionFieldsShape<Types>) {
-    this.configStore.addFields('Subscription', () => fields(new SubscriptionFieldBuilder(this)));
+    this.configStore.addFields(this.subscriptionRef, () =>
+      fields(new SubscriptionFieldBuilder(this)),
+    );
   }
 
   subscriptionField(name: string, field: SubscriptionFieldThunk<Types>) {
-    this.configStore.addFields('Subscription', () => ({
+    this.configStore.addFields(this.subscriptionRef, () => ({
       [name]: field(new SubscriptionFieldBuilder(this)),
     }));
   }
@@ -683,14 +689,14 @@ export class SchemaBuilder<Types extends SchemaTypes> {
 
     const builtTypes = [...buildCache.types.values()];
 
-    const queryName = this.configStore.hasConfig('Query')
-      ? this.configStore.getTypeConfig('Query').name
+    const queryName = this.configStore.hasConfig(this.queryRef)
+      ? this.configStore.getTypeConfig(this.queryRef).name
       : 'Query';
-    const mutationName = this.configStore.hasConfig('Mutation')
-      ? this.configStore.getTypeConfig('Mutation').name
+    const mutationName = this.configStore.hasConfig(this.mutationRef)
+      ? this.configStore.getTypeConfig(this.mutationRef).name
       : 'Mutation';
-    const subscriptionName = this.configStore.hasConfig('Subscription')
-      ? this.configStore.getTypeConfig('Subscription').name
+    const subscriptionName = this.configStore.hasConfig(this.subscriptionRef)
+      ? this.configStore.getTypeConfig(this.subscriptionRef).name
       : 'Subscription';
 
     const schema = new GraphQLSchema({

@@ -409,7 +409,8 @@ export class BuildCache<Types extends SchemaTypes> {
 
   private getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
     if (type instanceof GraphQLObjectType) {
-      if (type.name === 'Query' || type.name === 'Mutation' || type.name === 'Subscription') {
+      const config = this.configStore.getTypeConfig(type.name);
+      if (config.kind === 'Query' || config.kind === 'Mutation' || config.kind === 'Subscription') {
         return this.getRootFields(type);
       }
 

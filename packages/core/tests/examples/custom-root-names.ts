@@ -8,6 +8,18 @@ builder.queryType({
     hello: t.string({
       resolve: () => 'world',
     }),
+    query: t.field({
+      type: QueryObject,
+      resolve: () => ({}),
+    }),
+    mutation: t.field({
+      type: MutationObject,
+      resolve: () => ({}),
+    }),
+    subscription: t.field({
+      type: SubscriptionObject,
+      resolve: () => ({}),
+    }),
   }),
 });
 
@@ -31,6 +43,30 @@ builder.subscriptionType({
         }
       },
       resolve: (i) => i,
+    }),
+  }),
+});
+
+const QueryObject = builder.objectRef<{}>('Query').implement({
+  fields: (t) => ({
+    id: t.id({
+      resolve: () => '123',
+    }),
+  }),
+});
+
+const MutationObject = builder.objectRef<{}>('Mutation').implement({
+  fields: (t) => ({
+    id: t.id({
+      resolve: () => '123',
+    }),
+  }),
+});
+
+const SubscriptionObject = builder.objectRef<{}>('Subscription').implement({
+  fields: (t) => ({
+    id: t.id({
+      resolve: () => '123',
     }),
   }),
 });
