@@ -1,5 +1,12 @@
 # @pothos-examples/complex-app
 
+## 2.1.22
+
+### Patch Changes
+
+- Updated dependencies [a707d00]
+  - @pothos/plugin-dataloader@4.4.0
+
 ## 2.1.21
 
 ### Patch Changes
