@@ -510,3 +510,18 @@ const User = builder.loadableObject('User', {
   }),
 });
 ```
+
+
+### Subscriptions
+
+Dataloaders are stored on the context object of the subscription.  This means that values are cached across the full lifetime of the subscription.
+
+To reset all data loaders for the current subscription, you can use the `clearAllDataLoaders` helper.
+
+
+
+```typescript
+import { clearAllDataLoaders } from '@pothos/plugin-dataloader';
+
+clearAllDataLoaders(context);
+```

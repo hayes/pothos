@@ -12,6 +12,24 @@ export function rejectErrors<T>(
   return val.map((item) => (item instanceof Error ? Promise.reject(item) : item));
 }
 
+const getAllDataLoaders = createContextCache(() => new Set<DataLoader<unknown, unknown>>());
+
+function addDataloader<K, V, C>(context: object, loader: DataLoader<K, V, C>) {
+  const loaderSet = getAllDataLoaders(context);
+
+  loaderSet.add(loader);
+
+  return loader;
+}
+
+export function clearAllDataLoaders(context: object) {
+  const loaderSet = getAllDataLoaders(context);
+
+  for (const loader of loaderSet) {
+    loader.clearAll();
+  }
+}
+
 export function loadAndSort<K, V, C, LoadResult, Args = never>(
   load: (keys: K[], context: C, args: Args, info: GraphQLResolveInfo) => MaybePromise<LoadResult>,
   toKey: false | ((val: V) => K) | undefined,
@@ -54,8 +72,8 @@ export function dataloaderGetter<K, V, C>(
     context: SchemaTypes['Context'],
   ) => Promise<V[]>;
 
-  return createContextCache(
-    (context: object) => new DataLoader<K, V, C>((keys) => loader(keys, context), loaderOptions),
+  return createContextCache((context: object) =>
+    addDataloader(context, new DataLoader<K, V, C>((keys) => loader(keys, context), loaderOptions)),
   );
 }
 
@@ -85,7 +103,13 @@ export function pathDataloaderGetter<K, V, C, Args>(
     const map = cache(ctx);
 
     if (!map.has(key)) {
-      map.set(key, new DataLoader<K, V, C>((keys) => loader(keys, ctx, args, info), loaderOptions));
+      map.set(
+        key,
+        addDataloader(
+          ctx,
+          new DataLoader<K, V, C>((keys) => loader(keys, ctx, args, info), loaderOptions),
+        ),
+      );
     }
 
     return map.get(key)!;
