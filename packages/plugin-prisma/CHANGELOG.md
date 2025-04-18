@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.0
+
+### Minor Changes
+
+- 955229a: Add support for new prisma-client generator
+
 ## 4.5.0
 
 ### Minor Changes
