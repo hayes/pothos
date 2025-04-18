@@ -15,8 +15,8 @@
   },
   "devDependencies": {
     "@swc-node/register": "^1.10.10",
-    "@swc/core": "^1.11.11",
-    "typescript": "^5.8.2"
+    "@swc/core": "^1.11.21",
+    "typescript": "^5.8.3"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

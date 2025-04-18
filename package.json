@@ -29,17 +29,17 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@changesets/cli": "^2.28.1",
-    "@faker-js/faker": "^9.6.0",
+    "@changesets/cli": "^2.29.2",
+    "@faker-js/faker": "^9.7.0",
     "@swc-node/register": "^1.10.10",
-    "@swc/cli": "^0.6.0",
-    "@swc/core": "^1.11.11",
-    "@types/node": "^22.13.11",
+    "@swc/cli": "^0.7.3",
+    "@swc/core": "^1.11.21",
+    "@types/node": "^22.14.1",
     "graphql": "^16.10.0",
     "pkg-pr-new": "^0.0.42",
     "tsx": "^4.19.3",
-    "turbo": "^2.4.4",
-    "typescript": "5.8.2",
+    "turbo": "^2.5.0",
+    "typescript": "5.8.3",
     "vitest": "^3.0.9"
   },
   "engines": {
@@ -64,7 +64,7 @@
     "peerDependencyRules": {
       "ignoreMissing": ["webpack", "@babel/*", "@types/node"],
       "allowedVersions": {
-        "graphql": "^16.10.0"
+        "graphql": ">=16.6.0"
       }
     },
     "patchedDependencies": {

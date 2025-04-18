@@ -42,7 +42,7 @@
     "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^6.5.0"
+    "@prisma/generator-helper": "^6.6.0"
   },
   "peerDependencies": {
     "@pothos/core": "*",
@@ -61,7 +61,7 @@
     "prettier": "^3.5.3",
     "prisma": "^6.6.0",
     "ts-node": "^10.9.2",
-    "typescript": "5.8.2",
-    "zod": "^3.24.2"
+    "typescript": "5.8.3",
+    "zod": "^3.24.3"
   }
 }
