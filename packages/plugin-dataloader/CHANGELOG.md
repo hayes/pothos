@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.0
+
+### Minor Changes
+
+- a707d00: Add clearAllDataloaders methdod
+
 ## 4.3.1
 
 ### Patch Changes
