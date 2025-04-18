@@ -26,11 +26,11 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-zod": "workspace:*",
-    "@prisma/client": "^6.0.0",
+    "@prisma/client": "^6.6.0",
     "graphql": "^16.8.1",
     "graphql-scalars": "^1.24.0",
     "graphql-yoga": "5.10.4",
-    "prisma": "^6.0.0",
+    "prisma": "^6.6.0",
     "react": "^18.3.1",
     "urql": "^4.2.1",
     "zod": "^3.23.8"

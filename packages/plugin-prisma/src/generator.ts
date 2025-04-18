@@ -37,7 +37,6 @@ interface GeneratorConfig {
 generatorHandler({
   onManifest: () => ({
     prettyName: 'Pothos integration',
-    requiresGenerators: ['prisma-client-js'],
     defaultOutput,
   }),
   onGenerate: async (options) => {
@@ -45,8 +44,14 @@ generatorHandler({
     const config = options.generator.config as GeneratorConfig;
     const prismaLocation =
       config.clientOutput ??
+      options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client')?.output
+        ?.value ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
         .value!;
+
+    if (!prismaLocation) {
+      throw new Error('Unable to find prisma client output when generating pothos types');
+    }
 
     const outputLocation = options.generator.output?.value ?? defaultOutput;
     const prismaTypes = buildTypes(options.dmmf, config);

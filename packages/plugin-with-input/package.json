@@ -46,9 +46,9 @@
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-zod": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^6.0.0",
+    "@prisma/client": "^6.6.0",
     "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
-    "prisma": "^6.0.0"
+    "prisma": "^6.6.0"
   }
 }

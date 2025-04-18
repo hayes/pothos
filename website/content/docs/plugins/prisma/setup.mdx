@@ -47,6 +47,23 @@ generator pothos {
 }
 ```
 
+When using the new `prisma-client` generator, the `clientOutput` option should match the `output`
+option of the `prisma-client` generator:
+
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "./prisma-client"
+}
+
+generator pothos {
+  provider     = "prisma-pothos-types"
+  clientOutput = "./prisma-client"
+  output       = "./pothos-types.ts"
+}
+```
+
+
 ### Set up the builder
 
 ```typescript
