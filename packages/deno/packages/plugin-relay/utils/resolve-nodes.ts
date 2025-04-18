@@ -1,8 +1,7 @@
 // @ts-nocheck
-/* eslint-disable logical-assignment-operators */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { brandWithType, createContextCache, MaybePromise, ObjectParam, OutputType, PothosValidationError, SchemaTypes, } from '../../core/index.ts';
-import { NodeObjectOptions } from '../types.ts';
+import { type MaybePromise, type ObjectParam, type OutputType, PothosValidationError, type SchemaTypes, brandWithType, createContextCache, } from '../../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import type { NodeObjectOptions } from '../types.ts';
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, globalIDs: ({
     id: unknown;
@@ -11,19 +10,19 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
     const requestCache = getRequestCache(context);
     const idsByType: Record<string, Set<unknown>> = {};
     const results: Record<string, MaybePromise<unknown>> = {};
-    globalIDs.forEach((globalID, i) => {
+    for (const globalID of globalIDs) {
         if (globalID == null) {
-            return;
+            continue;
         }
         const { id, typename } = globalID;
         const cacheKey = `${typename}:${id}`;
         if (requestCache.has(cacheKey)) {
             results[cacheKey] = requestCache.get(cacheKey)!;
-            return;
+            continue;
         }
         idsByType[typename] = idsByType[typename] ?? new Set();
         idsByType[typename].add(id);
-    });
+    }
     await Promise.all(Object.keys(idsByType).map(async (typename) => {
         const ids = [...idsByType[typename]];
         const config = builder.configStore.getTypeConfig(typename, "Object");
@@ -38,7 +37,7 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
             results[`${typename}:${ids[i]}`] = val;
         });
     }));
-    return globalIDs.map((globalID) => globalID == null ? null : results[`${globalID.typename}:${globalID.id}`] ?? null);
+    return globalIDs.map((globalID) => globalID == null ? null : (results[`${globalID.typename}:${globalID.id}`] ?? null));
 }
 export async function resolveUncachedNodesForType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, ids: readonly unknown[], type: OutputType<Types> | string): Promise<unknown[]> {
     const requestCache = getRequestCache(context);

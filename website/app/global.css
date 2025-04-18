@@ -1,3 +1,65 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "fumadocs-ui/css/preset.css";
+@source '../node_modules/fumadocs-ui/dist/**/*.js';
+
+@theme {
+  --color-fd-background: hsl(0, 0%, 98%);
+  --color-fd-foreground: hsl(0, 0%, 3.9%);
+  --color-fd-muted: hsl(100, 90%, 96.1%);
+  --color-fd-muted-foreground: hsl(0, 0%, 45.1%);
+  --color-fd-popover: hsl(0, 0%, 98%);
+  --color-fd-popover-foreground: hsl(0, 0%, 15.1%);
+  --color-fd-card: hsl(100, 60%, 98%);
+  --color-fd-card-foreground: hsl(0, 0%, 3.9%);
+  --color-fd-border: hsl(100, 50%, 89.8%);
+  --color-fd-primary: hsl(0, 0%, 9%);
+  --color-fd-primary-foreground: hsl(0, 0%, 98%);
+  --color-fd-secondary: hsl(100, 60%, 90%);
+  --color-fd-secondary-foreground: hsl(0, 0%, 9%);
+  --color-fd-accent: hsl(100, 40%, 80%);
+  --color-fd-accent-foreground: hsl(0, 0%, 9%);
+  --color-fd-ring: hsl(100, 100%, 63.9%);
+}
+
+.dark {
+  --color-fd-background: hsl(165, 60%, 6%);
+  --color-fd-foreground: hsl(165, 60%, 94.5%);
+  --color-fd-muted: hsl(165, 50%, 10%);
+  --color-fd-muted-foreground: hsl(165, 30%, 65%);
+  --color-fd-popover: hsl(165, 50%, 10%);
+  --color-fd-popover-foreground: hsl(165, 30%, 65%);
+  --color-fd-card: hsl(165, 50%, 10%);
+  --color-fd-card-foreground: hsl(0, 0%, 98%);
+  --color-fd-border: hsl(0, 0%, 14%);
+  --color-fd-primary: hsl(0, 0%, 98%);
+  --color-fd-primary-foreground: hsl(165, 60%, 94.5%);
+  --color-fd-secondary: hsl(165, 50%, 20%);
+  --color-fd-secondary-foreground: hsl(165, 60%, 94.5%);
+  --color-fd-accent: hsl(165, 40%, 20%);
+  --color-fd-accent-foreground: hsl(165, 60%, 94.5%);
+  --color-fd-ring: hsl(165, 100%, 85%);
+}
+
+.dark #nd-sidebar {
+  --color-fd-muted: hsl(0, 0%, 16%);
+  --color-fd-secondary: hsl(0, 0%, 18%);
+  --color-fd-muted-foreground: hsl(0, 0%, 72%);
+}
+
+.dark body {
+  background-image: linear-gradient(rgba(5, 255, 105, 0.05), transparent 20rem, transparent);
+
+  main#nd-home-layout > main:last-child {
+    min-width: 300px !important;
+    top: 56px;
+    height: calc(100dvh - 112px);
+  }
+
+  nav.max-w-container {
+    max-width: 100%;
+  }
+  #nd-docs-layout .prose ul {
+    list-style-position: outside;
+    padding-left: 16px;
+  }
+}

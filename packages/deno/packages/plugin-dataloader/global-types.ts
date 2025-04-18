@@ -1,10 +1,10 @@
 // @ts-nocheck
-import { FieldKind, FieldNullability, FieldRef, InputFieldMap, InterfaceParam, ObjectParam, OutputType, PluginName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs/index.ts';
-import { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface.ts';
-import { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object.ts';
-import { LoadableUnionRef } from './refs/union.ts';
-import { DataloaderObjectTypeOptions, DataLoaderOptions, LoadableFieldOptions, LoadableNodeId, LoadableNodeOptions, } from './types.ts';
+import type { FieldKind, FieldNullability, FieldRef, InputFieldMap, InterfaceParam, ObjectParam, OutputType, PluginName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import type { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs/index.ts';
+import type { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface.ts';
+import type { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object.ts';
+import type { LoadableUnionRef } from './refs/union.ts';
+import type { DataLoaderOptions, DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeId, LoadableNodeOptions, } from './types.ts';
 import type { LoadableGroupFieldOptions, LoadableInterfaceOptions, LoadableListFieldOptions, LoadableUnionOptions, PothosDataloaderPlugin, ShapeFromLoadResult, } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {

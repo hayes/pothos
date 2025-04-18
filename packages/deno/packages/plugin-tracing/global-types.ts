@@ -1,7 +1,6 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, InputShapeFromFields, PothosOutputFieldConfig, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { TracingFieldOptions, TracingFieldWrapper } from './types.ts';
+import type { FieldNullability, InputFieldMap, InputShapeFromFields, PothosOutputFieldConfig, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { TracingFieldOptions, TracingFieldWrapper } from './types.ts';
 import type { PothosTracingPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {

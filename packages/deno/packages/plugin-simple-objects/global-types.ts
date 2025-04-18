@@ -1,7 +1,6 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldMap, FieldNullability, InputFieldMap, InterfaceFieldsShape, InterfaceParam, Normalize, ObjectFieldsShape, ParentShape, SchemaTypes, TypeParam, UnionToIntersection, } from '../core/index.ts';
-import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.ts';
+import type { FieldMap, FieldNullability, InputFieldMap, InterfaceFieldsShape, InterfaceParam, Normalize, ObjectFieldsShape, ParentShape, SchemaTypes, TypeParam, UnionToIntersection, } from '../core/index.ts';
+import type { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.ts';
 import type { PothosSimpleObjectsPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {

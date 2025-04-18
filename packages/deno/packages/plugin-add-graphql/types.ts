@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { EnumValues, FieldMap, FieldRef, InputFieldRef, InputFieldsFromShape, NullableToOptional, ObjectParam, SchemaTypes, } from '../core/index.ts';
+import type { EnumValues, FieldMap, FieldRef, InputFieldRef, InputFieldsFromShape, NullableToOptional, ObjectParam, SchemaTypes, } from '../core/index.ts';
 export type AddGraphQLObjectFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>) => Record<string, FieldRef<Types> | null>;
 export type AddGraphQLInterfaceFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>) => Record<string, FieldRef<Types> | null>;
 export type AddGraphQLInputFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Record<string, (InputFieldRef<Types, unknown> & {

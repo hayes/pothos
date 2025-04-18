@@ -1,12 +1,12 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldKind, FieldNullability, FieldRef, InputFieldMap, InputShapeFromFields, OutputType, RootFieldBuilder, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { type FieldKind, type FieldNullability, type FieldRef, type InputFieldMap, type InputShapeFromFields, type OutputType, RootFieldBuilder, type SchemaTypes, type ShapeFromTypeParam, type TypeParam, } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import type { LoadableGroupFieldOptions, LoadableListFieldOptions } from './types.ts';
-import { LoadableFieldOptions, LoaderShapeFromType } from './types.ts';
+import type { LoadableFieldOptions, LoaderShapeFromType } from './types.ts';
 import { pathDataloaderGetter, rejectErrors } from './util.ts';
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
 fieldBuilderProto.loadable = function loadable<Args extends InputFieldMap, Type extends TypeParam<SchemaTypes>, Key, CacheKey, ResolveReturnShape, Nullable extends FieldNullability<Type> = SchemaTypes["DefaultFieldNullability"], ByPath extends boolean = boolean>({ load, sort, loaderOptions, resolve, type, byPath, ...options }: LoadableFieldOptions<SchemaTypes, unknown, Type, Nullable, Args, ResolveReturnShape, Key, CacheKey, FieldKind, ByPath>): FieldRef<SchemaTypes, unknown> {
-    const getLoader = pathDataloaderGetter<Key, LoaderShapeFromType<SchemaTypes, Type, Nullable>, CacheKey, InputShapeFromFields<Args>>(loaderOptions, (keys, ctx, args) => load(keys, ctx, args as never), undefined, sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key, byPath);
+    const getLoader = pathDataloaderGetter<Key, LoaderShapeFromType<SchemaTypes, Type, Nullable>, CacheKey, InputShapeFromFields<Args>>(loaderOptions, (keys, ctx, args, info) => load(keys, ctx, args as never, info as never), undefined, sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key, byPath);
     return this.field({
         ...options,
         type,
@@ -29,7 +29,7 @@ fieldBuilderProto.loadableList = function loadableList<Args extends InputFieldMa
 ]> = SchemaTypes["DefaultFieldNullability"], ByPath extends boolean = boolean>({ load, sort, loaderOptions, resolve, type, byPath, ...options }: LoadableListFieldOptions<SchemaTypes, unknown, Type, Nullable, Args, ResolveReturnShape, Key, CacheKey, FieldKind, ByPath>): FieldRef<SchemaTypes, unknown> {
     const getLoader = pathDataloaderGetter<Key, ShapeFromTypeParam<SchemaTypes, [
         Type
-    ], Nullable>, CacheKey, InputShapeFromFields<Args>>(loaderOptions, (keys, ctx, args) => load(keys, ctx, args as never), undefined, sort as (value: ShapeFromTypeParam<SchemaTypes, [
+    ], Nullable>, CacheKey, InputShapeFromFields<Args>>(loaderOptions, (keys, ctx, args, info) => load(keys, ctx, args as never, info as never), undefined, sort as (value: ShapeFromTypeParam<SchemaTypes, [
         Type
     ], Nullable>) => Key, byPath);
     return this.field({
@@ -46,12 +46,11 @@ fieldBuilderProto.loadableList = function loadableList<Args extends InputFieldMa
 fieldBuilderProto.loadableGroup = function loadableGroup<Args extends InputFieldMap, Type extends OutputType<SchemaTypes>, Key, CacheKey, ResolveReturnShape, Nullable extends FieldNullability<[
     Type
 ]> = SchemaTypes["DefaultFieldNullability"], ByPath extends boolean = false>({ load, group, loaderOptions, byPath, resolve, type, ...options }: LoadableGroupFieldOptions<SchemaTypes, unknown, Type, Nullable, Args, ResolveReturnShape, Key, CacheKey, FieldKind, ByPath>): FieldRef<SchemaTypes, unknown> {
-    const getLoader = pathDataloaderGetter<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[], CacheKey, InputShapeFromFields<Args>>(loaderOptions, async (keys, ctx, args) => {
-        const values = await load(keys, ctx, args as never);
+    const getLoader = pathDataloaderGetter<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[], CacheKey, InputShapeFromFields<Args>>(loaderOptions, async (keys, ctx, args, info) => {
+        const values = await load(keys, ctx, args as never, info as never);
         const groups = new Map<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[]>();
         for (const value of values) {
             if (value == null) {
-                // eslint-disable-next-line no-continue
                 continue;
             }
             const groupKey = group(value);

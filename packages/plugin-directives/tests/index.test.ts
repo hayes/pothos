@@ -1,3 +1,5 @@
+import { envelop, useEngine, useSchema } from '@envelop/core';
+import { useRateLimiter } from '@envelop/rate-limiter';
 import { printSchemaWithDirectives } from '@graphql-tools/utils';
 import SchemaBuilder from '@pothos/core';
 import {
@@ -5,12 +7,24 @@ import {
   type GraphQLInputObjectType,
   type GraphQLObjectType,
   Kind,
-  execute,
-  lexicographicSortSchema,
   printSchema,
 } from 'graphql';
 import gql from 'graphql-tag';
+
+import * as GraphQL from 'graphql';
 import schema from './example/schema';
+
+const getEnvelop = envelop({
+  plugins: [
+    useEngine(GraphQL),
+    useSchema(schema),
+    useRateLimiter({
+      identifyFn: () => '1',
+    }),
+  ],
+});
+
+const { execute } = getEnvelop();
 
 describe('extends example schema', () => {
   it('generates expected schema', () => {
@@ -27,12 +41,18 @@ describe('extends example schema', () => {
     expect(types.Obj.extensions?.directives).toStrictEqual({ o: { foo: 123 } });
     expect(types.Query.extensions?.directives).toStrictEqual({
       o: { foo: 123 },
-      rateLimit: { limit: 1, duration: 5 },
     });
 
     const testField = (types.Query as GraphQLObjectType).getFields().test;
 
-    expect(testField.extensions?.directives).toStrictEqual({ f: [{ foo: 123 }] });
+    expect(testField.extensions?.directives).toStrictEqual({
+      f: { foo: 123 },
+      rateLimit: {
+        max: 1,
+        window: '5s',
+        message: 'Too many requests, please try again in 5 seconds.',
+      },
+    });
     expect(testField.args[0].extensions?.directives).toStrictEqual({ a: { foo: 123 } });
 
     expect(types.IF.extensions?.directives).toStrictEqual({ i: { foo: 123 } });
