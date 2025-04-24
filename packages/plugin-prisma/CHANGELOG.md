@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.7.0
+
+### Minor Changes
+
+- e149c85: Import types from prismaOutput/index.js instead of directly from prismaOutput to improve esm compatability
+
 ## 4.6.0
 
 ### Minor Changes
