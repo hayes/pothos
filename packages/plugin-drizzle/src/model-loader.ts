@@ -1,5 +1,12 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
-import { type AnyTable, type Column, type SQL, type TableRelationalConfig, inArray, sql } from 'drizzle-orm';
+import {
+  type AnyTable,
+  type Column,
+  type SQL,
+  type TableRelationalConfig,
+  inArray,
+  sql,
+} from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type PothosDrizzleSchemaConfig, getClient, getSchemaConfig } from './utils/config';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
