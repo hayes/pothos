@@ -19,7 +19,10 @@ const configCache = createContextCache(
 
     const dbToSchema = Object.values(relations.tables).reduce<Record<string, Table>>(
       (acc, table) => {
-        acc[getTableName(table)] = table;
+        const tableName = getTableName(table);
+        if (tableName) {
+          acc[tableName] = table;
+        }
         return acc;
       },
       {},
