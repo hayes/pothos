@@ -1,5 +1,5 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
-import { type Column, type TableRelationalConfig, inArray, sql } from 'drizzle-orm';
+import { type AnyTable, type Column, type SQL, type TableRelationalConfig, inArray, sql } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type PothosDrizzleSchemaConfig, getClient, getSchemaConfig } from './utils/config';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
@@ -35,7 +35,7 @@ export class ModelLoader {
   table: TableRelationalConfig;
   columns: Column[];
   primaryKey: Column[];
-  selectSQL;
+  selectSQL: (table: AnyTable<{}>) => SQL;
 
   constructor(
     context: object,
@@ -50,10 +50,14 @@ export class ModelLoader {
     this.table = this.config.relations.tablesConfig[modelName];
     this.primaryKey = this.config.getPrimaryKey(modelName);
     this.columns = columns ?? this.primaryKey;
-    this.selectSQL =
-      this.columns.length > 1
-        ? sql`(${sql.join(this.columns, sql`, `)})`
-        : this.columns[0].getSQL();
+    this.selectSQL = (table) => {
+      const columns = this.columns.map((column) =>
+        Object.values(table).find(
+          (tblColumn) => 'columnType' in tblColumn && tblColumn.name === column.name,
+        ),
+      );
+      return columns.length > 1 ? sql`(${sql.join(columns, sql`, `)})` : columns[0].getSQL();
+    };
   }
 
   static forModel<Types extends SchemaTypes>(
@@ -177,10 +181,13 @@ export class ModelLoader {
 
         const query = api.findMany({
           ...selectionToQuery(this.config, selection),
-          where: inArray(
-            this.selectSQL,
-            [...entry.models.keys()].map((model) => this.sqlForModel(model)),
-          ),
+          where: {
+            RAW: (table: AnyTable<{}>) =>
+              inArray(
+                this.selectSQL(table),
+                [...entry.models.keys()].map((model) => this.sqlForModel(model)),
+              ),
+          },
         });
 
         query.then(
