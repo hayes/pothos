@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.8.1
+
+### Patch Changes
+
+- 0f2a64e: fix issue with staged queries not being reset correctly after executing
+
 ## 0.8.0
 
 ### Minor Changes
