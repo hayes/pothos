@@ -167,6 +167,7 @@ export class ModelLoader {
 
     nextTick.promise
       .then(() => {
+        this.staged.delete(entry);
         const api = (
           client.query as Record<
             string,
