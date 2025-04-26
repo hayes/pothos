@@ -22,6 +22,7 @@ import {
   type Table,
   type TableRelationalConfig,
   getTableName,
+  getTableUniqueName,
 } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
 import type {
@@ -198,7 +199,8 @@ export class DrizzleObjectFieldBuilder<
     const schemaConfig = getSchemaConfig(this.builder);
     const relationField =
       schemaConfig.relations.tablesConfig?.[this.table].relations[name as string];
-    const tableName = getTableName(relationField.targetTable as Table);
+    const tableUniqueName = getTableUniqueName(relationField.targetTable as Table);
+    const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
     const relatedModel = schemaConfig.relations.tables[tableName] as Table;
 
     if (!relatedModel) {
@@ -214,6 +216,9 @@ export class DrizzleObjectFieldBuilder<
       const { limit, orderBy, where, ...fieldQuery } =
         (typeof query === 'function' ? query(args, ctx) : query) ?? {};
 
+      const tableUniqueName = getTableUniqueName(relatedModel as Table);
+      const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
+
       const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
         maxSize,
@@ -223,7 +228,7 @@ export class DrizzleObjectFieldBuilder<
           ? typeof orderBy === 'function'
             ? orderBy(relatedModel)
             : orderBy
-          : getSchemaConfig(this.builder).getPrimaryKey(getTableName(relatedModel)),
+          : getSchemaConfig(this.builder).getPrimaryKey(tableName),
         where,
       });
 
@@ -389,7 +394,8 @@ export class DrizzleObjectFieldBuilder<
     const relationField =
       schemaConfig.relations.tablesConfig?.[this.table].relations[name as string];
 
-    const tableName = getTableName(relationField.targetTable as Table);
+    const tableUniqueName = getTableUniqueName(relationField.targetTable as Table);
+    const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
     const relatedModel = schemaConfig.relations.tables[tableName];
 
     if (!relatedModel) {

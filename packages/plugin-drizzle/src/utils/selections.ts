@@ -4,7 +4,7 @@ import {
   type SQLWrapper,
   type Table,
   type TableRelationalConfig,
-  getTableName,
+  getTableUniqueName,
   operators,
 } from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
@@ -136,7 +136,8 @@ export function mergeSelection(
         throw new PothosValidationError(`Relation ${key} does not exist on ${state.table.dbName}`);
       }
 
-      const tableName = getTableName(relation.targetTable as Table);
+      const tableUniqueName = getTableUniqueName(relation.targetTable as Table);
+      const tableName = config.relations.tableNamesMap[tableUniqueName];
       merge(config.relations.tablesConfig[tableName], key, value as SelectionMap | boolean);
     }
   }
