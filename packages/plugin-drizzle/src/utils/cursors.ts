@@ -301,13 +301,13 @@ function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
   const desc = invert ? 'asc' : 'desc';
 
   const normalized: { direction: 'asc' | 'desc'; column: Column }[] = orderBy.map((field) => {
-    if (typeof field === 'object' && 'asc' in field) {
+    if (typeof field === 'object' && 'asc' in field && typeof field.asc === 'object') {
       return {
         direction: asc,
         column: field.asc,
       };
     }
-    if (typeof field === 'object' && 'desc' in field) {
+    if (typeof field === 'object' && 'desc' in field && typeof field.desc === 'object') {
       return {
         direction: desc,
         column: field.desc,
@@ -316,7 +316,7 @@ function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
 
     return {
       direction: asc,
-      column: field,
+      column: field as Column,
     };
   });
 
@@ -324,7 +324,10 @@ function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
     normalized,
     columns: normalized.map((field) => field.column),
     orderBy: (table: Table, ops: OrderByOperators) =>
-      normalized.map((field) => ops[field.direction](table[field.column.name as never])),
+      normalized.map((field) => {
+        const column = Object.values(table).find((col) => col.name === field.column.name);
+        return ops[field.direction](column);
+      }),
   };
 }
 
