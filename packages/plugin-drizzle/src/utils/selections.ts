@@ -204,8 +204,9 @@ export function selectionToQuery(
       query.columns![key] = true;
     }
 
-    for (const { name } of config.getPrimaryKey(state.table.tsName)) {
-      query.columns![name] = true;
+    for (const column of config.getPrimaryKey(state.table.tsName)) {
+      const tsName = config.columnToTsName(column);
+      query.columns![tsName] = true;
     }
   }
 
