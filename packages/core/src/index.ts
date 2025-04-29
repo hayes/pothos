@@ -136,7 +136,6 @@ export const InputFieldBuilder = InternalInputFieldBuilder as new <
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   kind: Kind,
-  typename: string,
 ) => PothosSchemaTypes.InputFieldBuilder<Types, Kind>;
 
 export type BaseTypeRef<Types extends SchemaTypes, T> = PothosSchemaTypes.BaseTypeRef<Types, T>;

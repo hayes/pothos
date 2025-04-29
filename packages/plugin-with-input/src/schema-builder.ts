@@ -61,6 +61,6 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
 
 Object.defineProperty(rootBuilderProto, 'input', {
   get: function getInputBuilder(this: RootFieldBuilder<SchemaTypes, unknown>) {
-    return new InputFieldBuilder(this.builder, 'InputObject', 'UnnamedWithInput');
+    return new InputFieldBuilder(this.builder, 'InputObject');
   },
 });
