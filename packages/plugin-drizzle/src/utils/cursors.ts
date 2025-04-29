@@ -430,6 +430,7 @@ export function wrapConnectionResult<T extends {}>(
   limit: number,
   cursor: (node: T) => string,
   resolveNode?: (node: Record<string, unknown>) => unknown,
+  parent?: unknown,
 ) {
   const gotFullResults = results.length === Math.abs(limit);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
@@ -439,6 +440,7 @@ export function wrapConnectionResult<T extends {}>(
     : results;
 
   const connection = {
+    parent,
     args,
     edges: [] as ({ cursor: string; node: unknown } | null)[],
     pageInfo: {
