@@ -21,7 +21,6 @@ import {
   Many,
   type Table,
   type TableRelationalConfig,
-  getTableName,
   getTableUniqueName,
 } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
