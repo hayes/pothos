@@ -157,13 +157,14 @@ export function drizzleConnectionHelpers<
     const nestedSelect: Record<string, unknown> | true = select
       ? { select: select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
       : nestedSelection(true, ['edges', 'node']);
+    const queryArgs = getQueryArgs(args, ctx);
 
     const selectState = createState(
       config.relations.tables[tableName],
       builder.options.drizzle?.skipDeferredFragments ?? true,
     );
 
-    // mergeSelection(config, selectState, { select: cursorSelection });
+    mergeSelection(config, selectState, queryArgs.select);
 
     if (typeof nestedSelect === 'object' && nestedSelect) {
       mergeSelection(config, selectState, nestedSelect);
@@ -173,16 +174,8 @@ export function drizzleConnectionHelpers<
 
     return {
       ...baseQuery,
-      ...getQueryArgs(args, ctx),
       ...selectionToQuery(config, selectState),
-    } as unknown;
-    // as (Model['Select'] extends Select ? {} : { select: Select }) & {
-    //   where?: Model['Where'];
-    //   orderBy?: Model['OrderBy'];
-    //   skip?: number;
-    //   take?: number;
-    //   cursor?: Model['WhereUnique'];
-    // };
+    };
   }
 
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;
