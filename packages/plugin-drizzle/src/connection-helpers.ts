@@ -89,28 +89,21 @@ export function drizzleConnectionHelpers<
       : (refOrType as DrizzleRef<Types, Type extends DrizzleRef<Types, infer T> ? T : Type>)
           .tableName;
 
-  // const ref =
-  //   typeof refOrType === 'string'
-  //     ? getRefFromModel(tableName, builder)
-  //     : (refOrType as ObjectRef<Types, unknown>);
-
-  const formatCursor = getCursorFormatter(config.getPrimaryKey(tableName), config);
-  // const parseCursor = getCursorParser(modelName, builder, cursor);
-  // const cursorSelection = ModelLoader.getCursorSelection(ref, modelName, cursor, builder);
-  // const fieldMap = getRelationMap(getDMMF(builder)).get(modelName)!;
-
-  function resolve /*<Parent = unknown>*/(
+  function resolve<Parent = unknown>(
     list: (EdgeShape & {})[],
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
-    // parent?: Parent,
+    parent?: Parent,
   ) {
+    const { select, cursorColumns } = getQueryArgs(args, ctx);
+    const formatCursor = getCursorFormatter(cursorColumns, config);
     return wrapConnectionResult(
       list,
       args,
-      getQueryArgs(args, ctx).select.limit,
+      select.limit,
       formatCursor,
       (resolveNode as never) ?? ((edge: unknown) => edge),
+      parent,
     ) as unknown as {
       edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
       pageInfo: {
