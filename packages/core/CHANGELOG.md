@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.1
+
+### Patch Changes
+
+- bbac0e2: fix incorrect constructor args for InputFieldBuilder
+
 ## 4.6.0
 
 ### Minor Changes
