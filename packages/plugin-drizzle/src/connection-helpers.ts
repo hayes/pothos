@@ -172,10 +172,10 @@ export function drizzleConnectionHelpers<
 
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
 
-    return {
-      ...baseQuery,
-      ...selectionToQuery(config, selectState),
-    };
+		return {
+			...baseQuery,
+			...selectionToQuery(config, selectState),
+		} as unknown as Selection;
   }
 
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;
