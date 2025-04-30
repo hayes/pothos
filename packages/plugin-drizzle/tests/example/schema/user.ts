@@ -1,6 +1,29 @@
 import { sql } from 'drizzle-orm';
+import { drizzleConnectionHelpers } from '../../../src';
 import { builder } from '../builder';
-import { comments, users } from '../db/schema';
+import { comments, roles, users } from '../db/schema';
+
+const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+  select: (nestedSelection) => ({
+    with: {
+      role: nestedSelection(),
+    },
+  }),
+  query: {
+    orderBy: (userRole) => ({
+      desc: userRole.roleId,
+    }),
+  },
+  resolveNode: (userRole) => userRole.role,
+});
+
+const Role = builder.drizzleObject('roles', {
+  name: 'Role',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
 
 export const Viewer = builder.drizzleObject('users', {
   variant: 'Viewer',
@@ -44,6 +67,19 @@ export const Viewer = builder.drizzleObject('users', {
         },
       },
       resolve: (user) => user.roles.map((role) => role.name),
+    }),
+    rolesConnection: t.connection({
+      type: Role,
+      args: rolesConnection.getArgs(),
+      nodeNullable: true,
+      select: (args, ctx, nestedSelection) => ({
+        with: {
+          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+        },
+      }),
+      resolve: (user, args, ctx) => {
+        return rolesConnection.resolve(user.userRoles, args, ctx, user);
+      },
     }),
   }),
 });

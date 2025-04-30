@@ -290,6 +290,7 @@ export interface DrizzleCursorConnectionQueryOptions {
   maxSize?: number | ((args: {}, ctx: {}) => number);
   orderBy: ConnectionOrderBy;
   where?: SQL;
+  config: PothosDrizzleSchemaConfig;
 }
 
 function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
@@ -338,6 +339,7 @@ export function drizzleCursorConnectionQuery({
   defaultSize = DEFAULT_SIZE,
   orderBy,
   where,
+  config,
 }: DrizzleCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
   if (first != null && first < 0) {
@@ -386,33 +388,38 @@ export function drizzleCursorConnectionQuery({
     columns[column.name] = true;
   }
 
-  const whereClauses: (SQL | undefined)[] = where ? [where] : [];
+  const whereClauses: {}[] = [];
+
+  if (where) {
+    whereClauses.push(where);
+  }
 
   if (cursor) {
     const cursorParser = getCursorParser(parsedOrderBy.columns);
     const parsedCursor = cursorParser(cursor);
 
-    whereClauses.push(
-      operators.or(
-        ...parsedOrderBy.normalized.map(({ direction, column }, index) => {
-          const compare =
-            direction === 'asc'
-              ? operators.gt(column, parsedCursor[column.name])
-              : operators.lt(column, parsedCursor[column.name]);
+    const parts = parsedOrderBy.normalized.map(({ direction, column }, index) => {
+      const columnName = config.columnToTsName(column);
+      const compare =
+        direction === 'asc'
+          ? { [columnName]: { gt: parsedCursor[column.name] } }
+          : { [columnName]: { lt: parsedCursor[column.name] } };
 
-          if (index === 0) {
-            return compare;
-          }
+      if (index === 0) {
+        return compare;
+      }
 
-          return operators.and(
-            ...parsedOrderBy.normalized
-              .slice(0, index)
-              .map(({ column: c }) => operators.eq(c, parsedCursor[c.name])),
-            compare,
-          );
-        }),
-      ),
-    );
+      return {
+        AND: [
+          ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
+            return { [columnName]: parsedCursor[c.name] };
+          }),
+          compare,
+        ],
+      };
+    });
+
+    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
   }
 
   return {
@@ -420,7 +427,7 @@ export function drizzleCursorConnectionQuery({
     columns,
     orderBy: parsedOrderBy.orderBy,
     limit,
-    where: operators.and(...whereClauses),
+    where: whereClauses.length > 1 ? { AND: whereClauses } : whereClauses[0],
   };
 }
 

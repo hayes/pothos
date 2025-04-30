@@ -1,6 +1,7 @@
 import type { InputFieldMap, InputShapeFromFields, SchemaTypes } from '@pothos/core';
-import type { BuildQueryResult, DBQueryConfig } from 'drizzle-orm';
+import type { BuildQueryResult, DBQueryConfig, Table } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
+import type { QueryForDrizzleConnection } from './types';
 import { getSchemaConfig } from './utils/config';
 import {
   drizzleCursorConnectionQuery,
@@ -57,13 +58,9 @@ export function drizzleConnectionHelpers<
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
     ) => Selection;
-    query?: Omit<
-      DBQueryConfig<
-        'many',
-        Types['DrizzleRelationsConfig'],
-        Types['DrizzleRelationsConfig'][Type extends DrizzleRef<Types, infer T> ? T : Type]
-      >,
-      'columns' | 'extra' | 'with'
+    query?: QueryForDrizzleConnection<
+      Types,
+      Types['DrizzleRelationsConfig'][Type extends DrizzleRef<Types, infer T> ? T : Type]
     > extends infer QueryConfig
       ?
           | QueryConfig
@@ -121,6 +118,7 @@ export function drizzleConnectionHelpers<
   ) => {
     const { limit, orderBy, where, ...fieldQuery } =
       (typeof query === 'function' ? query(args, ctx) : query) ?? {};
+    const table = config.relations.tables[tableName] as Table;
 
     const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ctx,
@@ -129,10 +127,11 @@ export function drizzleConnectionHelpers<
       args,
       orderBy: orderBy
         ? typeof orderBy === 'function'
-          ? orderBy(tableName)
+          ? orderBy(table)
           : orderBy
         : getSchemaConfig(builder).getPrimaryKey(tableName),
       where,
+      config,
     });
 
     return {
@@ -171,11 +170,12 @@ export function drizzleConnectionHelpers<
     }
 
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
+    const queryResult = selectionToQuery(config, selectState);
 
-		return {
-			...baseQuery,
-			...selectionToQuery(config, selectState),
-		} as unknown as Selection;
+    return {
+      ...baseQuery,
+      ...queryResult,
+    } as unknown as Selection;
   }
 
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;

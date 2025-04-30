@@ -6,14 +6,15 @@ builder.queryType({
   fields: (t) => ({
     me: t.withAuth({ loggedIn: true }).drizzleField({
       type: Viewer,
-      resolve: (query, _root, _args, ctx) =>
-        db.query.users.findFirst(
-          query({
-            where: {
-              id: ctx.user.id,
-            },
-          }),
-        ),
+      resolve: (query, _root, _args, ctx) => {
+        const q = query({
+          where: {
+            id: ctx.user.id,
+          },
+        });
+        // console.dir(q, { depth: null });
+        return db.query.users.findFirst(q);
+      },
     }),
     user: t.drizzleField({
       type: 'users',

@@ -83,6 +83,11 @@ input QueryUserWithInputInput {
   id: ID!
 }
 
+type Role {
+  id: ID
+  name: String
+}
+
 type User implements Node {
   bio: String
   email: String
@@ -122,6 +127,7 @@ type Viewer {
   drafts: [Post!]
   id: ID
   roles: [String!]
+  rolesConnection(after: String, before: String, first: Int, last: Int): ViewerRolesConnection
   user: User!
   username: String
 }
@@ -134,6 +140,16 @@ type ViewerCommentsConnection {
 type ViewerCommentsConnectionEdge {
   cursor: String!
   node: comments
+}
+
+type ViewerRolesConnection {
+  edges: [ViewerRolesConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type ViewerRolesConnectionEdge {
+  cursor: String!
+  node: Role
 }
 
 type comments {

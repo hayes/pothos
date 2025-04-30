@@ -229,6 +229,7 @@ export class DrizzleObjectFieldBuilder<
             : orderBy
           : getSchemaConfig(this.builder).getPrimaryKey(tableName),
         where,
+        config: schemaConfig,
       });
 
       return {
