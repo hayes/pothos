@@ -160,7 +160,7 @@ export function drizzleConnectionHelpers<
     const queryArgs = getQueryArgs(args, ctx);
 
     const selectState = createState(
-      config.relations.tables[tableName],
+      config.relations.tablesConfig[tableName],
       builder.options.drizzle?.skipDeferredFragments ?? true,
     );
 
