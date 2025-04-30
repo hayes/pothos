@@ -155,7 +155,7 @@ export function drizzleConnectionHelpers<
     nestedSelection: <T extends true | {}>(selection?: T, path?: string[]) => T,
   ) {
     const nestedSelect: Record<string, unknown> | true = select
-      ? { select: select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
+      ? select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx)
       : nestedSelection(true, ['edges', 'node']);
     const queryArgs = getQueryArgs(args, ctx);
 
