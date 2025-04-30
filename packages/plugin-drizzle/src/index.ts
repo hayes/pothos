@@ -16,6 +16,7 @@ import { extractFilters, remapFromGraphQLSingleInput } from './utils/drizzle-gra
 import { extractOrderBy } from './utils/drizzle-graphql';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
 export { drizzleClientCache } from './utils/config';
+export { drizzleConnectionHelpers } from './connection-helpers';
 
 export * from './types';
 
