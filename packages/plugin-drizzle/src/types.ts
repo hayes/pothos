@@ -30,9 +30,7 @@ import type {
   Column,
   DBQueryConfig,
   Many,
-  OrderByOperators,
   Relation,
-  SQL,
   Table,
   TableRelationalConfig,
 } from 'drizzle-orm';
@@ -480,7 +478,7 @@ export type QueryForRelatedConnection<
   DBQueryConfig<'many', Types['DrizzleRelationsConfig'], Table>,
   'limit' | 'offset' | 'columns' | 'extra' | 'with' | 'orderBy'
 > & {
-  orderBy?: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
+  orderBy?: ConnectionOrderBy<Table> | ((columns: Table['columns']) => ConnectionOrderBy<Table>);
 } extends infer QueryConfig
   ? QueryConfig | ((args: Args, context: Types['Context']) => QueryConfig)
   : never;
@@ -492,7 +490,7 @@ export type QueryForDrizzleConnection<
   DBQueryConfig<'many', Types['DrizzleRelationsConfig'], Table>,
   'limit' | 'offset' | 'orderBy'
 > & {
-  orderBy?: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
+  orderBy?: ConnectionOrderBy<Table> | ((columns: Table['columns']) => ConnectionOrderBy<Table>);
 };
 
 export type ListRelation<T extends TableRelationalConfig> = {
@@ -547,7 +545,11 @@ export type DrizzleConnectionFieldOptions<
         resolve: (
           query: <T extends QueryForRelatedConnection<Types, TableConfig, ConnectionArgs>>(
             selection?: T,
-          ) => Omit<T, 'orderBy'> & { orderBy: (table: Table, ops: OrderByOperators) => SQL },
+          ) => Omit<T, 'orderBy'> & {
+            orderBy: {
+              [K in keyof TableConfig['columns']]?: 'asc' | 'desc' | undefined;
+            };
+          },
           parent: ParentShape,
           args: ConnectionArgs,
           context: Types['Context'],
@@ -619,11 +621,12 @@ export type RelatedConnectionOptions<
       }
     : never);
 
-export type ConnectionOrderBy =
+export type ConnectionOrderBy<T extends TableRelationalConfig> =
   | Column
-  | { asc: Column }
-  | { desc: Column }
-  | (Column | { asc: Column } | { desc: Column })[];
+  | Column[]
+  | {
+      [K in keyof T['columns']]?: 'asc' | 'desc' | undefined;
+    };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
 

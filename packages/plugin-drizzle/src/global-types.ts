@@ -211,37 +211,37 @@ declare global {
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, false, Shape>) => FieldMap,
       ) => void;
 
-      drizzleGraphQLOrderBy: 'addGraphQL' extends PluginName
-        ? <Table extends keyof Types['DrizzleRelationsConfig']>(
-            table: Table,
-            type: GraphQLInputObjectType,
-            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
-          ) => InputObjectRef<Types, SQL | SQL[]>
-        : '@pothos/plugin-add-graphql is required to use this method';
+      // drizzleGraphQLOrderBy: 'addGraphQL' extends PluginName
+      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //       table: Table,
+      //       type: GraphQLInputObjectType,
+      //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+      //     ) => InputObjectRef<Types, SQL | SQL[]>
+      //   : '@pothos/plugin-add-graphql is required to use this method';
 
-      drizzleGraphQLFilters: 'addGraphQL' extends PluginName
-        ? <Table extends keyof Types['DrizzleRelationsConfig']>(
-            table: Table,
-            type: GraphQLInputObjectType,
-            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
-          ) => InputObjectRef<Types, SQL>
-        : '@pothos/plugin-add-graphql is required to use this method';
+      // drizzleGraphQLFilters: 'addGraphQL' extends PluginName
+      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //       table: Table,
+      //       type: GraphQLInputObjectType,
+      //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+      //     ) => InputObjectRef<Types, SQL>
+      //   : '@pothos/plugin-add-graphql is required to use this method';
 
-      drizzleGraphQLInsert: 'addGraphQL' extends PluginName
-        ? <Table extends keyof Types['DrizzleRelationsConfig']>(
-            table: Table,
-            type: GraphQLInputObjectType,
-            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
-          ) => InputObjectRef<Types, Record<string, unknown>>
-        : '@pothos/plugin-add-graphql is required to use this method';
+      // drizzleGraphQLInsert: 'addGraphQL' extends PluginName
+      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //       table: Table,
+      //       type: GraphQLInputObjectType,
+      //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+      //     ) => InputObjectRef<Types, Record<string, unknown>>
+      //   : '@pothos/plugin-add-graphql is required to use this method';
 
-      drizzleGraphQLUpdate: 'addGraphQL' extends PluginName
-        ? <Table extends keyof Types['DrizzleRelationsConfig']>(
-            table: Table,
-            type: GraphQLInputObjectType,
-            ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
-          ) => InputObjectRef<Types, Record<string, unknown>>
-        : '@pothos/plugin-add-graphql is required to use this method';
+      // drizzleGraphQLUpdate: 'addGraphQL' extends PluginName
+      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //       table: Table,
+      //       type: GraphQLInputObjectType,
+      //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
+      //     ) => InputObjectRef<Types, Record<string, unknown>>
+      //   : '@pothos/plugin-add-graphql is required to use this method';
     }
 
     export interface PothosKindToGraphQLType {

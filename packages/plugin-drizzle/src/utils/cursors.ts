@@ -11,6 +11,7 @@ import type {
   OrderByOperators,
   SQL,
   Table,
+  TableConfig,
   TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -287,47 +288,55 @@ export interface DrizzleCursorConnectionQueryOptions {
   ctx: {};
   defaultSize?: number | ((args: {}, ctx: {}) => number);
   maxSize?: number | ((args: {}, ctx: {}) => number);
-  orderBy: ConnectionOrderBy;
+  orderBy: ConnectionOrderBy<TableRelationalConfig>;
   where?: SQL;
   config: PothosDrizzleSchemaConfig;
+  table: TableRelationalConfig | TableConfig;
 }
 
-function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
-  if (!Array.isArray(orderBy)) {
-    return parseOrderBy([orderBy], invert);
-  }
+function parseOrderBy(
+  config: PothosDrizzleSchemaConfig,
+  table: TableRelationalConfig | TableConfig,
+  orderBy: ConnectionOrderBy<TableRelationalConfig>,
+  invert: boolean,
+) {
+  const entries: [name: string, direction: 'asc' | 'desc'][] = [];
+  const columns: Column[] = [];
+  const normalized: { direction: 'asc' | 'desc'; column: Column }[] = [];
 
   const asc = invert ? 'desc' : 'asc';
   const desc = invert ? 'asc' : 'desc';
 
-  const normalized: { direction: 'asc' | 'desc'; column: Column }[] = orderBy.map((field) => {
-    if (typeof field === 'object' && 'asc' in field && typeof field.asc === 'object') {
-      return {
-        direction: asc,
-        column: field.asc,
-      };
+  if ('table' in orderBy && orderBy.table && typeof orderBy.table === 'object') {
+    entries.push([config.columnToTsName(orderBy as Column), asc]);
+    columns.push(orderBy as Column);
+    normalized.push({ direction: 'asc', column: orderBy as Column });
+  } else if (Array.isArray(orderBy)) {
+    for (const field of orderBy) {
+      entries.push([config.columnToTsName(field), asc]);
+      columns.push(field);
+      normalized.push({ direction: 'asc', column: field });
     }
-    if (typeof field === 'object' && 'desc' in field && typeof field.desc === 'object') {
-      return {
-        direction: desc,
-        column: field.desc,
-      };
-    }
-
-    return {
-      direction: asc,
-      column: field as Column,
-    };
-  });
+  } else {
+    // biome-ignore lint/complexity/noForEach: <explanation>
+    Object.entries(
+      orderBy as {
+        [k: string]: 'asc' | 'desc' | undefined;
+      },
+    ).forEach(([name, direction]) => {
+      if (direction) {
+        const column = table.columns[name] as Column;
+        columns.push(column);
+        entries.push([name, direction === 'asc' ? asc : desc]);
+        normalized.push({ direction: direction, column });
+      }
+    });
+  }
 
   return {
     normalized,
-    columns: normalized.map((field) => field.column),
-    orderBy: (table: Table, ops: OrderByOperators) =>
-      normalized.map((field) => {
-        const column = Object.values(table).find((col) => col.name === field.column.name);
-        return ops[field.direction](column);
-      }),
+    columns,
+    orderBy: Object.fromEntries(entries),
   };
 }
 
@@ -339,6 +348,7 @@ export function drizzleCursorConnectionQuery({
   orderBy,
   where,
   config,
+  table,
 }: DrizzleCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
   if (first != null && first < 0) {
@@ -362,7 +372,7 @@ export function drizzleCursorConnectionQuery({
   const limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
   const inverted = !first && !!last;
 
-  const parsedOrderBy = parseOrderBy(orderBy, false);
+  const parsedOrderBy = parseOrderBy(config, table, orderBy, inverted);
 
   const columns: Record<string, boolean> = {};
 
@@ -435,7 +445,7 @@ export function drizzleCursorConnectionQuery({
   return {
     cursorColumns: parsedOrderBy.columns,
     columns,
-    orderBy: inverted ? parseOrderBy(orderBy, true).orderBy : parsedOrderBy.orderBy,
+    orderBy: parsedOrderBy.orderBy,
     limit,
     where: whereClauses.length > 1 ? { AND: whereClauses } : whereClauses[0],
   };
@@ -495,26 +505,26 @@ export function wrapConnectionResult<T extends {}>(
 }
 
 export async function resolveDrizzleCursorConnection<T extends {}>(
-  table: TableRelationalConfig,
+  tableName: string,
   info: GraphQLResolveInfo,
   typeName: string,
   config: PothosDrizzleSchemaConfig,
-  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config'>,
+  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'>,
   resolve: (
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
 ) {
+  const table = config.relations.tablesConfig[tableName];
   let query: DBQueryConfig<'many'>;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ...options,
       config,
-      orderBy: q.orderBy
-        ? typeof q.orderBy === 'function'
-          ? q.orderBy(table.columns)
-          : q.orderBy
-        : config.getPrimaryKey(table.tsName),
+      orderBy:
+        (typeof q.orderBy === 'function' ? q.orderBy(table.columns) : q.orderBy) ??
+        config.getPrimaryKey(table.tsName),
+      table,
     });
     formatter = getCursorFormatter(cursorColumns, config);
 

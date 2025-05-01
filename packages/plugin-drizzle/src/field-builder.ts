@@ -118,6 +118,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
 ) {
   const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
   const typeName = this.builder.configStore.getTypeConfig(ref).name;
+  const tableName = typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName;
   const fieldRef = (
     this as typeof fieldBuilderProto & {
       connection: (...args: unknown[]) => FieldRef<SchemaTypes, unknown>;
@@ -132,12 +133,8 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
-        const drizzleModel = getSchemaConfig(this.builder).relations.tablesConfig[
-          typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName
-        ]!;
-
         return resolveDrizzleCursorConnection(
-          drizzleModel,
+          tableName,
           info,
           typeName,
           getSchemaConfig(this.builder),

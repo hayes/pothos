@@ -118,18 +118,14 @@ builder.queryFields((t) => ({
               }
             : {}),
         },
-        orderBy: (post) => {
+        orderBy: () => {
           if (args.sortByCategory) {
-            return [
-              {
-                asc: post.categoryId,
-              },
-              {
-                asc: post.id,
-              },
-            ];
+            return {
+              categoryId: 'asc',
+              id: 'asc',
+            };
           }
-          return args.invert ? { asc: post.id } : { desc: post.id };
+          return args.invert ? { id: 'asc' } : { id: 'desc' };
         },
       });
       // console.dir(q, { depth: null });

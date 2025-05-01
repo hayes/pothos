@@ -107,7 +107,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
     return {
       ...fieldConfig,
-      // argMappers,
+      argMappers,
     };
   }
 

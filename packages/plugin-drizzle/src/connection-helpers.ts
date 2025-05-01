@@ -1,5 +1,5 @@
 import type { InputFieldMap, InputShapeFromFields, SchemaTypes } from '@pothos/core';
-import type { BuildQueryResult, DBQueryConfig, Table } from 'drizzle-orm';
+import type { BuildQueryResult, DBQueryConfig, Table, TableRelationalConfig } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
 import type { QueryForDrizzleConnection } from './types';
 import { getSchemaConfig } from './utils/config';
@@ -14,13 +14,13 @@ import { createState, mergeSelection, selectionToQuery } from './utils/selection
 export function drizzleConnectionHelpers<
   Types extends SchemaTypes,
   Type extends DrizzleRef<Types> | keyof Types['DrizzleRelationsConfig'],
-  Selection extends
-    | DBQueryConfig<
-        'one',
-        Types['DrizzleRelationsConfig'],
-        Types['DrizzleRelationsConfig'][Type extends DrizzleRef<Types, infer T> ? T : Type]
-      >
-    | true,
+  Selection extends DBQueryConfig<'one', Types['DrizzleRelationsConfig'], Table> | true,
+  Table extends TableRelationalConfig = Types['DrizzleRelationsConfig'][Type extends DrizzleRef<
+    Types,
+    infer T
+  >
+    ? T
+    : Type],
   Shape = Type extends DrizzleRef<
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     any,
@@ -28,18 +28,10 @@ export function drizzleConnectionHelpers<
     infer S
   >
     ? S
-    : BuildQueryResult<
-        Types['DrizzleRelationsConfig'],
-        Types['DrizzleRelationsConfig'][Type & keyof Types['DrizzleRelationsConfig']],
-        true
-      >,
+    : BuildQueryResult<Types['DrizzleRelationsConfig'], Table, true>,
   EdgeShape = true extends Selection
     ? Shape
-    : BuildQueryResult<
-        Types['DrizzleRelationsConfig'],
-        Types['DrizzleRelationsConfig'][Type extends DrizzleRef<Types, infer T> ? T : Type],
-        Selection
-      >,
+    : BuildQueryResult<Types['DrizzleRelationsConfig'], Table, Selection>,
   NodeShape = EdgeShape,
   ExtraArgs extends InputFieldMap = {},
 >(
@@ -59,10 +51,7 @@ export function drizzleConnectionHelpers<
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
     ) => Selection;
-    query?: QueryForDrizzleConnection<
-      Types,
-      Types['DrizzleRelationsConfig'][Type extends DrizzleRef<Types, infer T> ? T : Type]
-    > extends infer QueryConfig
+    query?: QueryForDrizzleConnection<Types, Table> extends infer QueryConfig
       ?
           | QueryConfig
           | ((args: InputShapeFromFields<ExtraArgs>, context: Types['Context']) => QueryConfig)
@@ -118,20 +107,19 @@ export function drizzleConnectionHelpers<
   ) => {
     const { limit, orderBy, where, ...fieldQuery } =
       (typeof query === 'function' ? query(args, ctx) : query) ?? {};
-    const table = config.relations.tables[tableName] as Table;
+    const table = config.relations.tablesConfig[tableName] as Table;
 
     const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ctx,
       maxSize,
       defaultSize: typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize,
       args,
-      orderBy: orderBy
-        ? typeof orderBy === 'function'
-          ? orderBy(table)
-          : orderBy
-        : getSchemaConfig(builder).getPrimaryKey(tableName),
+      orderBy:
+        (typeof orderBy === 'function' ? orderBy(table) : orderBy) ??
+        getSchemaConfig(builder).getPrimaryKey(tableName),
       where,
       config,
+      table,
     });
 
     return {
@@ -175,7 +163,11 @@ export function drizzleConnectionHelpers<
     return {
       ...baseQuery,
       ...queryResult,
-    } as unknown as Selection;
+    } as unknown as Omit<Selection, 'orderBy'> & {
+      orderBy: {
+        [K in keyof Table['columns']]?: 'asc' | 'desc' | undefined;
+      };
+    };
   }
 
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;

@@ -10,7 +10,7 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
     }),
   }),
   query: (args: { invert?: boolean | null }) => ({
-    orderBy: (userRole) => (args.invert ? { desc: userRole.roleId } : { asc: userRole.roleId }),
+    orderBy: args.invert ? { roleId: 'desc' } : { roleId: 'asc' },
   }),
   select: (nestedSelection) => ({
     with: {
@@ -46,10 +46,8 @@ export const Viewer = builder.drizzleObject('users', {
     user: t.variant('users'),
     comments: t.relatedConnection('comments', {
       query: {
-        orderBy: (comment) => {
-          return {
-            desc: comment.id,
-          };
+        orderBy: {
+          id: 'desc',
         },
       },
     }),
@@ -162,18 +160,14 @@ export const User = builder.drizzleNode('users', {
               }
             : {}),
         },
-        orderBy: (post) => {
+        orderBy: () => {
           if (args.sortByCategory) {
-            return [
-              {
-                asc: post.categoryId,
-              },
-              {
-                asc: post.id,
-              },
-            ];
+            return {
+              categoryId: 'asc',
+              id: 'asc',
+            };
           }
-          return args.invert ? { asc: post.id } : { desc: post.id };
+          return args.invert ? { id: 'asc' } : { id: 'desc' };
         },
       }),
     }),

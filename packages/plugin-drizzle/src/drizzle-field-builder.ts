@@ -223,13 +223,12 @@ export class DrizzleObjectFieldBuilder<
         maxSize,
         defaultSize,
         args,
-        orderBy: orderBy
-          ? typeof orderBy === 'function'
-            ? orderBy(relatedModel)
-            : orderBy
-          : getSchemaConfig(this.builder).getPrimaryKey(tableName),
+        orderBy:
+          (typeof orderBy === 'function' ? orderBy(relatedModel) : orderBy) ??
+          getSchemaConfig(this.builder).getPrimaryKey(tableName),
         where,
         config: schemaConfig,
+        table: schemaConfig.relations.tablesConfig[tableName],
       });
 
       return {
