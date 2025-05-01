@@ -11,6 +11,22 @@
 - [x] drizzle interface types
 - [x] relay nodes
 - [ ] tests
+    - [x] variants
+    - [x] connectionHelpers
+    - [x] drizzleConnections
+    - [ ] compound index drizzleConnections
+    - [x] relatedConnections
+    - [ ] compound index relatedConnections
+    - [ ] related fields (columns, with, extra)
+    - [ ] custom queries on related fields
+    - [ ] drizzleField
+    - [ ] nested relations
+    - [ ] fields with select (columns, with, extra)
+    - [ ] type level select (columns, with, extra)
+    - [ ] merging compatible selections
+    - [ ] data-loaders and fallback queries
+    - [ ] nodes
+    - [ ] interfaces
 - [x] docs
 - [x] variants
 - [x] fallback dataloader
