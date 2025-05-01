@@ -105,25 +105,25 @@ builder.queryFields((t) => ({
       category: t.arg.string(),
     },
     resolve: (query, _root, args) => {
-      return db.query.posts.findMany({
-        ...query({
-          where: {
-            published: 1,
-            ...(args.category
-              ? {
-                  category: {
-                    name: args.category,
-                  },
-                }
-              : {}),
-          },
-          orderBy: (post) => {
-            return {
-              desc: post.id,
-            };
-          },
-        }),
+      const q = query({
+        where: {
+          published: 1,
+          ...(args.category
+            ? {
+                category: {
+                  name: args.category,
+                },
+              }
+            : {}),
+        },
+        orderBy: (post) => {
+          return {
+            desc: post.id,
+          };
+        },
       });
+      // console.dir(q, { depth: null });
+      return db.query.posts.findMany(q);
     },
   }),
 }));

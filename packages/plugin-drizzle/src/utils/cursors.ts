@@ -350,37 +350,20 @@ export function drizzleCursorConnectionQuery({
     throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
-  if (before && after) {
+  if (first != null && last != null) {
     throw new PothosValidationError(
-      'Arguments "before" and "after" are not supported at the same time',
+      'Arguments "first" and "last" are not supported at the same time',
     );
   }
-
-  if (before != null && first != null) {
-    throw new PothosValidationError(
-      'Arguments "before" and "first" are not supported at the same time',
-    );
-  }
-
-  if (after != null && last != null) {
-    throw new PothosValidationError(
-      'Arguments "after" and "last" are not supported at the same time',
-    );
-  }
-
-  const cursor = before ?? after;
 
   const maxSizeForConnection = typeof maxSize === 'function' ? maxSize(args, ctx) : maxSize;
   const defaultSizeForConnection =
     typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
 
-  let limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+  const limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+  const inverted = !first && !!last;
 
-  if (before ?? last) {
-    limit = -limit;
-  }
-
-  const parsedOrderBy = parseOrderBy(orderBy, limit < 0);
+  const parsedOrderBy = parseOrderBy(orderBy, false);
 
   const columns: Record<string, boolean> = {};
 
@@ -394,9 +377,9 @@ export function drizzleCursorConnectionQuery({
     whereClauses.push(where);
   }
 
-  if (cursor) {
+  if (after) {
     const cursorParser = getCursorParser(parsedOrderBy.columns);
-    const parsedCursor = cursorParser(cursor);
+    const parsedCursor = cursorParser(after);
 
     const parts = parsedOrderBy.normalized.map(({ direction, column }, index) => {
       const columnName = config.columnToTsName(column);
@@ -422,10 +405,38 @@ export function drizzleCursorConnectionQuery({
     whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
   }
 
+  if (before) {
+    const cursorParser = getCursorParser(parsedOrderBy.columns);
+    const parsedCursor = cursorParser(before);
+
+    const parts = parsedOrderBy.normalized.map(({ direction, column }, index) => {
+      const columnName = config.columnToTsName(column);
+      const compare =
+        direction === 'desc'
+          ? { [columnName]: { gt: parsedCursor[column.name] } }
+          : { [columnName]: { lt: parsedCursor[column.name] } };
+
+      if (index === 0) {
+        return compare;
+      }
+
+      return {
+        AND: [
+          ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
+            return { [columnName]: parsedCursor[c.name] };
+          }),
+          compare,
+        ],
+      };
+    });
+
+    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
+  }
+
   return {
     cursorColumns: parsedOrderBy.columns,
     columns,
-    orderBy: parsedOrderBy.orderBy,
+    orderBy: inverted ? parseOrderBy(orderBy, true).orderBy : parsedOrderBy.orderBy,
     limit,
     where: whereClauses.length > 1 ? { AND: whereClauses } : whereClauses[0],
   };
@@ -441,10 +452,8 @@ export function wrapConnectionResult<T extends {}>(
 ) {
   const gotFullResults = results.length === Math.abs(limit);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : (args.before ?? args.last) ? gotFullResults : false;
-  const nodes = gotFullResults
-    ? results.slice(limit < 0 ? 1 : 0, limit < 0 ? results.length : -1)
-    : results;
+  const hasPreviousPage = args.after ? true : !args.first && !!args.last ? gotFullResults : false;
+  const nodes = gotFullResults ? results.slice(0, -1) : results;
 
   const connection = {
     parent,
@@ -491,7 +500,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   info: GraphQLResolveInfo,
   typeName: string,
   config: PothosDrizzleSchemaConfig,
-  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy'>,
+  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config'>,
   resolve: (
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
@@ -501,6 +510,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   const results = await resolve((q = {}) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ...options,
+      config,
       orderBy: q.orderBy
         ? typeof q.orderBy === 'function'
           ? q.orderBy(table.columns)
@@ -521,12 +531,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
         where:
           connectionQuery.where && q.where
             ? {
-                AND: [
-                  q.where,
-                  {
-                    RAW: connectionQuery.where,
-                  },
-                ],
+                AND: [q.where, connectionQuery.where],
               }
             : q.where || (connectionQuery.where ? { RAW: connectionQuery.where } : undefined),
       } as never,
