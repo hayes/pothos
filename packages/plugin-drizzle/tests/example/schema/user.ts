@@ -146,15 +146,34 @@ export const User = builder.drizzleNode('users', {
       }),
     }),
     postsConnection: t.relatedConnection('posts', {
-      query: () => ({
+      args: {
+        category: t.arg.string(),
+        invert: t.arg.boolean(),
+        sortByCategory: t.arg.boolean(),
+      },
+      query: (args) => ({
         where: {
           published: 1,
+          ...(args.category
+            ? {
+                category: {
+                  name: args.category,
+                },
+              }
+            : {}),
         },
-        // Ordering requires a different format for connections so that cursor pagination can be inverted
         orderBy: (post) => {
-          return {
-            desc: post.id,
-          };
+          if (args.sortByCategory) {
+            return [
+              {
+                asc: post.categoryId,
+              },
+              {
+                asc: post.id,
+              },
+            ];
+          }
+          return args.invert ? { asc: post.id } : { desc: post.id };
         },
       }),
     }),

@@ -17,8 +17,8 @@
     - [x] custom queries on drizzleConnections
     - [x] compound index drizzleConnections
     - [x] relatedConnections
-    - [ ] custom queries on relatedConnections
-    - [ ] compound index relatedConnections
+    - [x] custom queries on relatedConnections
+    - [x] compound index relatedConnections
     - [ ] related fields (columns, with, extra)
     - [ ] custom queries on related fields
     - [ ] drizzleField
