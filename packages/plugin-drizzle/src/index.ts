@@ -77,7 +77,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       ? [...(fieldConfig.argMappers ?? []), (args) => argMapper(args, undefined)]
       : fieldConfig.argMappers;
 
-    if (fieldConfig.kind === 'DrizzleObject' && fieldConfig.pothosOptions.select) {
+    if (
+      fieldConfig.kind === 'DrizzleObject' &&
+      fieldConfig.pothosOptions.select &&
+      !fieldConfig.extensions?.pothosDrizzleSelect
+    ) {
       const { select } = fieldConfig.pothosOptions;
       return {
         ...fieldConfig,

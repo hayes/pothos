@@ -1,5 +1,6 @@
 import { builder } from '../builder';
 import { db } from '../db';
+import { users } from '../db/schema';
 import { User, Viewer } from './user';
 
 builder.queryType({
@@ -22,13 +23,13 @@ builder.queryType({
         id: t.arg.globalID({ required: true, for: User }),
       },
       resolve: (query, _root, { id }) => {
-        return db.query.users.findFirst(
-          query({
-            where: {
-              id: id.id.id,
-            },
-          }),
-        );
+        const q = query({
+          where: {
+            id: id.id.id,
+          },
+        });
+        // console.dir(q, { depth: null });
+        return db.query.users.findFirst(q);
       },
     }),
     users: t.drizzleField({

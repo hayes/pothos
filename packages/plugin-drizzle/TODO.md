@@ -1,7 +1,7 @@
 ## TODO
 
 - [x] connections
-- [ ] connection helpers
+- [x] connection helpers
 - [ ] query usage checks
 - [x] normalize extras callback functions before merging
 - [x] with input integration
@@ -18,4 +18,4 @@
 - [x] default selections for id/data-loading
 - [ ] interface check for compatibility of implementors
 - [ ] totalCount API
-- [ ] Indirect many to many connections (requires v2 relational API)
+- [x] Indirect many to many connections (requires v2 relational API)

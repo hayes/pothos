@@ -343,7 +343,7 @@ export class DrizzleObjectFieldBuilder<
       _args: object,
       _context: object,
       nestedQuery: (query: unknown) => unknown,
-    ) => nestedQuery({});
+    ) => nestedQuery(options.select ?? {});
 
     return this.field({
       ...(options as {}),

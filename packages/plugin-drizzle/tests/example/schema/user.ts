@@ -167,7 +167,9 @@ export const User = builder.drizzleNode('users', {
     }),
     viewer: t.variant(Viewer, {
       select: {
-        id: true,
+        columns: {
+          id: true,
+        },
       },
       isNull: (user, _args, ctx) => user.id !== ctx.user?.id,
     }),
