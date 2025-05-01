@@ -5,14 +5,13 @@ import {
   decodeBase64,
   encodeBase64,
 } from '@pothos/core';
-import {
-  type Column,
-  type DBQueryConfig,
-  type OrderByOperators,
-  type SQL,
-  type Table,
-  type TableRelationalConfig,
-  operators,
+import type {
+  Column,
+  DBQueryConfig,
+  OrderByOperators,
+  SQL,
+  Table,
+  TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
@@ -395,7 +394,7 @@ export function drizzleCursorConnectionQuery({
       return {
         AND: [
           ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
-            return { [columnName]: parsedCursor[c.name] };
+            return { [config.columnToTsName(c)]: parsedCursor[c.name] };
           }),
           compare,
         ],
@@ -423,7 +422,7 @@ export function drizzleCursorConnectionQuery({
       return {
         AND: [
           ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
-            return { [columnName]: parsedCursor[c.name] };
+            return { [config.columnToTsName(c)]: parsedCursor[c.name] };
           }),
           compare,
         ],
@@ -533,7 +532,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
             ? {
                 AND: [q.where, connectionQuery.where],
               }
-            : q.where || (connectionQuery.where ? { RAW: connectionQuery.where } : undefined),
+            : q.where || connectionQuery.where,
       } as never,
       paths: [['nodes'], ['edges', 'node']],
       typeName,

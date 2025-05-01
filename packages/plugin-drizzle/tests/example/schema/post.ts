@@ -103,6 +103,8 @@ builder.queryFields((t) => ({
     type: 'posts',
     args: {
       category: t.arg.string(),
+      invert: t.arg.boolean(),
+      sortByCategory: t.arg.boolean(),
     },
     resolve: (query, _root, args) => {
       const q = query({
@@ -117,9 +119,17 @@ builder.queryFields((t) => ({
             : {}),
         },
         orderBy: (post) => {
-          return {
-            desc: post.id,
-          };
+          if (args.sortByCategory) {
+            return [
+              {
+                asc: post.categoryId,
+              },
+              {
+                asc: post.id,
+              },
+            ];
+          }
+          return args.invert ? { asc: post.id } : { desc: post.id };
         },
       });
       // console.dir(q, { depth: null });

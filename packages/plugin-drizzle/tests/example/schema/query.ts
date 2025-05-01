@@ -47,6 +47,14 @@ builder.queryType({
         );
       },
     }),
+    usersConnection: t.drizzleConnection({
+      type: 'users',
+      resolve: (query) => {
+        const q = query();
+        // console.dir(q, { depth: null });
+        return db.query.users.findMany(q);
+      },
+    }),
     userWithInput: t.drizzleFieldWithInput({
       type: 'users',
       input: {
