@@ -169,7 +169,9 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
             selection.selectionSet?.selections.length === 1 &&
             selection.selectionSet.selections.every(
               (s) =>
-                s.kind === Kind.FIELD && fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
+                s.kind === Kind.FIELD &&
+                (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
+                  s.name.value === '__typename'),
             ),
         );
 

@@ -265,7 +265,22 @@ describe('defer', () => {
         "data": {
           "me": {
             "postsConnection": {
-              "edges": [],
+              "edges": [
+                {
+                  "node": {
+                    "author": {
+                      "id": "VXNlcjox",
+                    },
+                  },
+                },
+                {
+                  "node": {
+                    "author": {
+                      "id": "VXNlcjox",
+                    },
+                  },
+                },
+              ],
               "totalCount": 250,
             },
           },
@@ -283,6 +298,21 @@ describe('defer', () => {
                   "posts": true,
                 },
               },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 3,
+              },
             },
             "where": {
               "id": 1,
@@ -296,18 +326,28 @@ describe('defer', () => {
           "action": "findUniqueOrThrow",
           "args": {
             "include": {
-              "_count": {
-                "select": {
-                  "posts": true,
-                },
-              },
+              "author": true,
             },
             "where": {
-              "id": 1,
+              "id": 250,
             },
           },
           "dataPath": [],
-          "model": "User",
+          "model": "Post",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "author": true,
+            },
+            "where": {
+              "id": 249,
+            },
+          },
+          "dataPath": [],
+          "model": "Post",
           "runInTransaction": false,
         },
       ]

@@ -300,7 +300,14 @@ export class PrismaObjectFieldBuilder<
       const selection = getSelection([])!;
       const hasTotalCount = totalCount && !!getSelection(['totalCount']);
 
-      const totalCountOnly = selection.selectionSet?.selections.length === 1 && hasTotalCount;
+      const selections = selection.selectionSet?.selections.filter(
+        (sel) => !(sel.kind === Kind.FIELD && sel.name.value === '__typename'),
+      );
+      const totalCountOnly =
+        selections?.length === 1 &&
+        selections[0].kind === Kind.FIELD &&
+        selections[0].name.value === 'totalCount' &&
+        hasTotalCount;
 
       const countSelect =
         this.builder.options.prisma.filterConnectionTotalCount !== false
