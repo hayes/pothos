@@ -121,8 +121,14 @@ export function createState(
 export function mergeSelection(
   config: PothosDrizzleSchemaConfig,
   state: SelectionState,
-  { with: withSelection, extras, columns, ...query }: SelectionMap,
+  selection: SelectionMap | boolean,
 ) {
+  const {
+    with: withSelection,
+    extras,
+    columns,
+    ...query
+  } = typeof selection === 'boolean' ? {} : selection;
   if (withSelection) {
     for (const [key, value] of Object.entries(withSelection)) {
       const relation = state.table.relations[key];
@@ -155,7 +161,7 @@ export function mergeSelection(
     for (const key of Object.keys(columns)) {
       state.columns.add(key);
     }
-  } else {
+  } else if (selection === true) {
     state.allColumns = true;
   }
 
@@ -164,13 +170,11 @@ export function mergeSelection(
       return;
     }
 
-    const selection = value === true ? {} : value;
-
     if (state.with.has(key)) {
-      mergeSelection(config, state.with.get(key)!, selection);
+      mergeSelection(config, state.with.get(key)!, value);
     } else {
       const relatedState = createState(table, state.skipDeferredFragments, state);
-      mergeSelection(config, relatedState, selection);
+      mergeSelection(config, relatedState, value);
       state.with.set(key, relatedState);
     }
   }

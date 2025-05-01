@@ -12,7 +12,7 @@ builder.queryType({
             id: ctx.user.id,
           },
         });
-        console.dir(q, { depth: null });
+        // console.dir(q, { depth: null });
         const user = await db.query.users.findFirst(q);
 
         return user;

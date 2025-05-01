@@ -377,7 +377,7 @@ export function drizzleCursorConnectionQuery({
   const columns: Record<string, boolean> = {};
 
   for (const column of parsedOrderBy.columns) {
-    columns[column.name] = true;
+    columns[config.columnToTsName(column)] = true;
   }
 
   const whereClauses: {}[] = [];

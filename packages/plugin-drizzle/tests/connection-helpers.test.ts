@@ -39,7 +39,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('roleId', "roleId", 'userId', "userId", 'role', jsonb("role"))) as "r" from (select "d1"."role_id" as "roleId", "d1"."user_id" as "userId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
       ]
     `);
 
@@ -115,7 +115,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" > ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 2, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('roleId', "roleId", 'userId', "userId", 'role', jsonb("role"))) as "r" from (select "d1"."role_id" as "roleId", "d1"."user_id" as "userId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" > ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 2, 1, 1]",
       ]
     `);
 
@@ -177,7 +177,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" < ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 2, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('roleId', "roleId", 'userId', "userId", 'role', jsonb("role"))) as "r" from (select "d1"."role_id" as "roleId", "d1"."user_id" as "userId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" < ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 2, 1, 1]",
       ]
     `);
 
@@ -239,7 +239,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('roleId', "roleId", 'userId', "userId", 'role', jsonb("role"))) as "r" from (select "d1"."role_id" as "roleId", "d1"."user_id" as "userId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
       ]
     `);
 
@@ -315,7 +315,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" < ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 21, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('roleId', "roleId", 'userId', "userId", 'role', jsonb("role"))) as "r" from (select "d1"."role_id" as "roleId", "d1"."user_id" as "userId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" < ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 21, 1, 1]",
       ]
     `);
 
@@ -384,7 +384,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" > ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 3, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('roleId', "roleId", 'userId', "userId", 'role', jsonb("role"))) as "r" from (select "d1"."role_id" as "roleId", "d1"."user_id" as "userId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where ("d1"."role_id" > ? and "d0"."id" = "d1"."user_id") order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 3, 1, 1]",
       ]
     `);
 
