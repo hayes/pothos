@@ -4,16 +4,19 @@ import { builder } from '../builder';
 import { comments, roles, users } from '../db/schema';
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+  args: (t) => ({
+    invert: t.boolean({
+      defaultValue: false,
+    }),
+  }),
+  query: (args: { invert?: boolean | null }) => ({
+    orderBy: (userRole) => (args.invert ? { desc: userRole.roleId } : { asc: userRole.roleId }),
+  }),
   select: (nestedSelection) => ({
     with: {
       role: nestedSelection(),
     },
   }),
-  query: {
-    orderBy: (userRole) => ({
-      desc: userRole.roleId,
-    }),
-  },
   resolveNode: (userRole) => userRole.role,
 });
 

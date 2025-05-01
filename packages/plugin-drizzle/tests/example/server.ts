@@ -1,36 +1,10 @@
 import { createTestServer } from '@pothos/test-utils';
-import type { BaseContext } from './builder';
-import { db } from './db';
+import { createContext } from './context';
 import { schema } from './schema';
 
 const server = createTestServer({
   schema,
-  context: async ({ request }): Promise<BaseContext> => {
-    const userId = request.headers.get('authorization');
-
-    if (!userId) {
-      return {
-        roles: [],
-      };
-    }
-
-    const user = await db.query.users.findFirst({
-      columns: {
-        id: true,
-      },
-      with: {
-        roles: true,
-      },
-      where: {
-        id: Number.parseInt(userId, 10),
-      },
-    });
-
-    return {
-      user: user ?? undefined,
-      roles: user?.roles.map((role) => role.name) ?? [],
-    };
-  },
+  context: ({ request }) => createContext({ userId: request.headers.get('authorization') }),
 });
 
 server.listen(3000, () => {

@@ -127,7 +127,7 @@ type Viewer {
   drafts: [Post!]
   id: ID
   roles: [String!]
-  rolesConnection(after: String, before: String, first: Int, last: Int): ViewerRolesConnection
+  rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
   user: User!
   username: String
 }

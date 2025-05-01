@@ -7,14 +7,9 @@ import WithInputPlugin from '@pothos/plugin-with-input';
 import { drizzle } from 'drizzle-orm/libsql';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import DrizzlePlugin from '../../src';
+import type { AuthContexts, BaseContext } from './context';
 import { type DrizzleRelations, client, relations } from './db';
 
-export interface BaseContext {
-  user?: {
-    id: number;
-  };
-  roles: string[];
-}
 export interface PothosTypes {
   DrizzleRelations: DrizzleRelations;
   Context: BaseContext;
@@ -23,10 +18,7 @@ export interface PothosTypes {
     admin: boolean;
     role: string;
   };
-  AuthContexts: {
-    loggedIn: BaseContext & { user: {} };
-    role: BaseContext & { user: {} };
-  };
+  AuthContexts: AuthContexts;
   Scalars: {
     DateTime: { Input: Date; Output: Date | string };
   };

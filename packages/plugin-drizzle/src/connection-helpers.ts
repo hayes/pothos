@@ -53,6 +53,7 @@ export function drizzleConnectionHelpers<
     maxSize = builder.options.drizzle?.maxConnectionSize,
     defaultSize = builder.options.drizzle?.defaultConnectionSize,
   }: {
+    args?: (t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => ExtraArgs;
     select?: (
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
@@ -76,7 +77,6 @@ export function drizzleConnectionHelpers<
       | number
       | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) => number);
     resolveNode?: (edge: EdgeShape) => NodeShape;
-    args?: (t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => ExtraArgs;
   },
 ) {
   const config = getSchemaConfig(builder);
