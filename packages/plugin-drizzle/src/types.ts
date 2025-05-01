@@ -138,7 +138,7 @@ export type DrizzleNodeOptions<
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
-  IDColumn extends Column,
+  IDColumns,
 > = NameOrVariant &
   Omit<
     | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
@@ -158,10 +158,12 @@ export type DrizzleNodeOptions<
       >,
       'args' | 'nullable' | 'type' | InferredFieldOptionKeys
     > & {
-      column:
-        | IDColumn
-        | IDColumn[]
-        | ((columns: Types['DrizzleRelationsConfig'][Table]['columns']) => IDColumn | IDColumn[]);
+      column: IDColumns &
+        (
+          | Column
+          | Column[]
+          | ((columns: Types['DrizzleRelationsConfig'][Table]['columns']) => Column | Column[])
+        );
     };
     name: string;
     select?: Selection;
@@ -173,6 +175,24 @@ export type DrizzleNodeOptions<
       >,
     ) => FieldMap;
   };
+
+export type ShapeFromIdColumns<
+  Types extends SchemaTypes,
+  Table extends keyof Types['DrizzleRelationsConfig'],
+  IDColumns,
+> = IDColumns extends Column
+  ? IDColumns['_']['data']
+  : IDColumns extends Column[]
+    ? {
+        [K in IDColumns[number]['_']['name']]: Extract<
+          IDColumns[number],
+          { _: { name: K } }
+        >['_']['data'];
+      }
+    : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      IDColumns extends ((...args: any[]) => infer R extends Column | Column[])
+      ? ShapeFromIdColumns<Types, Table, R>
+      : never;
 
 export type DrizzleFieldOptions<
   Types extends SchemaTypes,

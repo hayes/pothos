@@ -4,7 +4,7 @@ import { createContext } from './example/context';
 import { clearDrizzleLogs, drizzleLogs } from './example/db';
 import { schema } from './example/schema';
 
-describe('drizzle connections', () => {
+describe('related connections', () => {
   afterEach(() => {
     clearDrizzleLogs();
   });

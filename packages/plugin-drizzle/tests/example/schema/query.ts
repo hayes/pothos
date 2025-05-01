@@ -25,7 +25,7 @@ builder.queryType({
       resolve: (query, _root, { id }) => {
         const q = query({
           where: {
-            id: id.id.id,
+            id: id.id,
           },
         });
         // console.dir(q, { depth: null });
@@ -41,7 +41,7 @@ builder.queryType({
         return db.query.users.findMany(
           query({
             where: {
-              id: id.id.id,
+              id: id.id,
             },
           }),
         );
@@ -64,7 +64,7 @@ builder.queryType({
         return db.query.users.findFirst(
           query({
             where: {
-              id: id.id.id,
+              id: id.id,
             },
           }),
         );

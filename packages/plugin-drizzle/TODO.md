@@ -19,7 +19,7 @@
     - [x] relatedConnections
     - [x] custom queries on relatedConnections
     - [x] compound index relatedConnections
-    - [ ] related fields (columns, with, extra)
+    - [ ] related fields
     - [ ] custom queries on related fields
     - [ ] drizzleField
     - [ ] nested relations
@@ -29,6 +29,7 @@
     - [ ] data-loaders and fallback queries
     - [ ] nodes
     - [ ] interfaces
+    - [ ] skip and defer directives
 - [x] docs
 - [x] variants
 - [x] fallback dataloader

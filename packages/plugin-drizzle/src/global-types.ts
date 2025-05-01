@@ -37,6 +37,7 @@ import type {
   DrizzleObjectOptions,
   DrizzlePluginOptions,
   ShapeFromConnection,
+  ShapeFromIdColumns,
   drizzleTableName,
 } from './types';
 
@@ -120,7 +121,7 @@ declare global {
                   Types['DrizzleRelationsConfig'][Table]
                 >
               | true,
-            IDColumn extends Column,
+            IDColumns,
             Shape = BuildQueryResult<
               Types['DrizzleRelationsConfig'],
               Types['DrizzleRelationsConfig'][Table],
@@ -128,15 +129,8 @@ declare global {
             >,
           >(
             table: Table,
-            options: DrizzleNodeOptions<Types, Table, Shape, Selection, Interfaces, IDColumn>,
-          ) => DrizzleNodeRef<
-            Types,
-            Table,
-            Shape,
-            {
-              [K in IDColumn['_']['name']]: Extract<IDColumn, { _: { name: K } }>['_']['data'];
-            }
-          >
+            options: DrizzleNodeOptions<Types, Table, Shape, Selection, Interfaces, IDColumns>,
+          ) => DrizzleNodeRef<Types, Table, Shape, ShapeFromIdColumns<Types, Table, IDColumns>>
         : '@pothos/plugin-relay is required to use this method';
 
       drizzleObjectField: <
