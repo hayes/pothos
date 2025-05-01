@@ -35,17 +35,8 @@ builder.queryType({
     }),
     users: t.drizzleField({
       type: ['users'],
-      args: {
-        id: t.arg.globalID({ required: true, for: User }),
-      },
-      resolve: (query, _root, { id }) => {
-        return db.query.users.findMany(
-          query({
-            where: {
-              id: id.id,
-            },
-          }),
-        );
+      resolve: (query) => {
+        return db.query.users.findMany(query());
       },
     }),
     usersConnection: t.drizzleConnection({

@@ -8,7 +8,7 @@ describe('related fields', () => {
   afterEach(() => {
     clearDrizzleLogs();
   });
-  it('first', async () => {
+  it('simple related field query', async () => {
     const context = await createContext({ userId: '1' });
     clearDrizzleLogs();
     const result = await execute({
@@ -16,18 +16,10 @@ describe('related fields', () => {
       document: gql`
             {
               user(id: "VXNlcjox") {
-                postsConnection(first: 2) {
-                  pageInfo {
-                    startCursor
-                    endCursor
-                    hasPreviousPage
-                    hasNextPage
-                  }
-                  edges {
-                    cursor
-                    node {
-                      id
-                    }
+                posts(limit: 3, offset: 2) {
+                  id
+                  category {
+                    name
                   }
                 }
               }
@@ -38,7 +30,7 @@ describe('related fields', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile", coalesce((select json_group_array(json_object('id', "id")) as "r" from (select "d1"."id" as "id" from "posts" as "d1" where ("d1"."published" = ? and "d0"."id" = "d1"."author_id") order by "d1"."id" desc limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 3, 1, 1]",
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile", coalesce((select json_group_array(json_object('id', "id", 'category', jsonb("category"))) as "r" from (select "d1"."id" as "id", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "categories" as "d2" where "d1"."category_id" = "d2"."id" limit ?) as "t") as "category" from "posts" as "d1" where ("d1"."published" = ? and "d0"."id" = "d1"."author_id") order by "d1"."createdAt" desc limit ? offset ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1, 3, 2, 1, 1]",
       ]
     `);
 
@@ -46,28 +38,20 @@ describe('related fields', () => {
       {
         "data": {
           "user": {
-            "postsConnection": {
-              "edges": [
-                {
-                  "cursor": "REM6TjoxNQ==",
-                  "node": {
-                    "id": "15",
-                  },
-                },
-                {
-                  "cursor": "REM6TjoxMw==",
-                  "node": {
-                    "id": "13",
-                  },
-                },
-              ],
-              "pageInfo": {
-                "endCursor": "REM6TjoxMw==",
-                "hasNextPage": true,
-                "hasPreviousPage": false,
-                "startCursor": "REM6TjoxNQ==",
+            "posts": [
+              {
+                "category": "entertainment",
+                "id": "6",
               },
-            },
+              {
+                "category": "politics",
+                "id": "7",
+              },
+              {
+                "category": "politics",
+                "id": "8",
+              },
+            ],
           },
         },
       }

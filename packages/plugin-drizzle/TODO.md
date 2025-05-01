@@ -19,17 +19,17 @@
     - [x] relatedConnections
     - [x] custom queries on relatedConnections
     - [x] compound index relatedConnections
-    - [ ] related fields
-    - [ ] custom queries on related fields
-    - [ ] drizzleField
-    - [ ] nested relations
-    - [ ] fields with select (columns, with, extra)
-    - [ ] type level select (columns, with, extra)
-    - [ ] merging compatible selections
+    - [x] related fields
+    - [x] custom queries on related fields
+    - [x] drizzleField
+    - [x] nested relations
+    - [x] fields with select (columns, with, extra)
+    - [x] type level select (columns, with, extra)
+    - [x] merging compatible selections
     - [ ] data-loaders and fallback queries
     - [ ] nodes
     - [ ] interfaces
-    - [ ] skip and defer directives
+    - [x] skip and defer directives
 - [x] docs
 - [x] variants
 - [x] fallback dataloader

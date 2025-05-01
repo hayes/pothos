@@ -8,7 +8,7 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import DrizzlePlugin from '../../src';
 import type { AuthContexts, BaseContext } from './context';
-import { type DrizzleRelations, client, relations } from './db';
+import { type DrizzleRelations, client, db, relations } from './db';
 
 export interface PothosTypes {
   DrizzleRelations: DrizzleRelations;
@@ -27,7 +27,7 @@ export interface PothosTypes {
 export const builder = new SchemaBuilder<PothosTypes>({
   plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin, AddGraphQL, WithInputPlugin, ErrorsPlugin],
   drizzle: {
-    client: (_ctx) => drizzle(client, { relations }),
+    client: (_ctx) => db,
     getTableConfig,
     relations,
   },

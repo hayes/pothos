@@ -157,16 +157,6 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         return resolver(parent, args, context, info);
       }
 
-      const primaryKeys = (
-        parentConfig.extensions!.pothosDrizzleTable as { primaryKey?: { name: string }[] }
-      ).primaryKey;
-
-      if (!primaryKeys || primaryKeys.length === 0) {
-        throw new Error(
-          `Field ${fieldConfig.name} not resolved in initial query and no primary key found for type ${parentConfig.name}`,
-        );
-      }
-
       return modelLoader(context)
         .loadSelection(info, parent as object)
         .then((result) => resolver(result, args, context, info));
