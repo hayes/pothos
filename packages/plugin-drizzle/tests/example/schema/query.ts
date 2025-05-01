@@ -1,20 +1,21 @@
 import { builder } from '../builder';
 import { db } from '../db';
-import { users } from '../db/schema';
 import { User, Viewer } from './user';
 
 builder.queryType({
   fields: (t) => ({
     me: t.withAuth({ loggedIn: true }).drizzleField({
       type: Viewer,
-      resolve: (query, _root, _args, ctx) => {
+      resolve: async (query, _root, _args, ctx) => {
         const q = query({
           where: {
             id: ctx.user.id,
           },
         });
-        // console.dir(q, { depth: null });
-        return db.query.users.findFirst(q);
+        console.dir(q, { depth: null });
+        const user = await db.query.users.findFirst(q);
+
+        return user;
       },
     }),
     user: t.drizzleField({

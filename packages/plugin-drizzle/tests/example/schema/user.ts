@@ -1,7 +1,5 @@
-import { sql } from 'drizzle-orm';
 import { drizzleConnectionHelpers } from '../../../src';
 import { builder } from '../builder';
-import { comments, roles, users } from '../db/schema';
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   args: (t) => ({
@@ -98,15 +96,20 @@ export const User = builder.drizzleNode('users', {
     with: {
       profile: true,
     },
+    extras: {
+      lowercaseFirstName: (users, sql) => {
+        return sql.sql<string>`lower(${users.firstName})`;
+      },
+    },
   },
   fields: (t) => ({
     email: t.string({
       select: {
         extras: {
-          lowercase: sql<string>`lower(${users.firstName})`.as('lowercase'),
+          lowercaseLastName: (users, sql) => sql.sql<string>`lower(${users.lastName})`,
         },
       },
-      resolve: (user) => `${user.lowercase}@example.com`,
+      resolve: (user) => `${user.lowercaseFirstName}.${user.lowercaseLastName}@example.com`,
     }),
     bio: t.string({
       resolve: (user) => user.profile?.bio,

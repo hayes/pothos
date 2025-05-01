@@ -1,11 +1,11 @@
 import { PothosValidationError } from '@pothos/core';
 import {
   type DBQueryConfig,
+  type SQLOperator,
   type SQLWrapper,
   type Table,
   type TableRelationalConfig,
   getTableUniqueName,
-  operators,
 } from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { deepEqual } from './deep-equal';
@@ -17,7 +17,7 @@ export interface SelectionState {
   allColumns: boolean;
   columns: Set<string>;
   with: Map<string, SelectionState>;
-  extras: Map<string, SQLWrapper>;
+  extras: Map<string, NonNullable<SelectionMap['extras']>[string]>;
   mappings: LoaderMappings;
   parent?: SelectionState;
   depth: number;
@@ -53,13 +53,8 @@ export function selectionCompatible(
   if (
     extras &&
     Object.entries(extras).some(([key, value]) => {
-      const resolvedValue =
-        typeof value === 'function' ? value(state.table as never, operators) : value;
-
-      const sql = state.extras.get(key);
-
-      // TODO: fix comparison
-      return sql && sql.getSQL() !== resolvedValue.getSQL();
+      const existing = state.extras.get(key);
+      return existing && existing !== value;
     })
   ) {
     return false;
@@ -148,10 +143,7 @@ export function mergeSelection(
 
   if (extras) {
     for (const [key, value] of Object.entries(extras)) {
-      const resolvedValue =
-        typeof value === 'function' ? value(state.table as never, operators) : value;
-
-      state.extras.set(key, resolvedValue);
+      state.extras.set(key, value);
     }
   }
 
