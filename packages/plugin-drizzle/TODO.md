@@ -26,7 +26,7 @@
     - [x] fields with select (columns, with, extra)
     - [x] type level select (columns, with, extra)
     - [x] merging compatible selections
-    - [ ] data-loaders and fallback queries
+    - [x] data-loaders and fallback queries
     - [x] nodes
     - [x] interfaces
     - [x] skip and defer directives
@@ -35,6 +35,8 @@
 - [x] fallback dataloader
 - [ ] custom dataloader override
 - [x] default selections for id/data-loading
-- [ ] interface check for compatibility of implementors
+- [x] interface check for compatibility of implementors
 - [ ] totalCount API
 - [x] Indirect many to many connections (requires v2 relational API)
+- [ ] rqbv2 doc
+- [ ] rqbv2 changes

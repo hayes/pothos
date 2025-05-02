@@ -3,16 +3,15 @@ import './field-builder';
 import './schema-builder';
 import SchemaBuilder, {
   BasePlugin,
-  createInputValueMapper,
   type InputTypeFieldsMapping,
-  mapInputFields,
   type PothosOutputFieldConfig,
+  PothosSchemaError,
+  type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLFieldResolver } from 'graphql';
 import type { ModelLoader } from './model-loader';
 import type { DrizzleGraphQLInputExtensions } from './types';
-// import { extractFilters, remapFromGraphQLSingleInput, extractOrderBy } from './utils/drizzle-graphql';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
 export { drizzleClientCache } from './utils/config';
 export { drizzleConnectionHelpers } from './connection-helpers';
@@ -26,10 +25,41 @@ const pluginName = 'drizzle';
 export default pluginName;
 
 export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  private mappingCache = new Map<
-    string,
-    InputTypeFieldsMapping<Types, DrizzleGraphQLInputExtensions>
-  >();
+  // private mappingCache = new Map<
+  //   string,
+  //   InputTypeFieldsMapping<Types, DrizzleGraphQLInputExtensions>
+  // >();
+  override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
+    if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
+      return typeConfig;
+    }
+
+    let model = typeConfig.extensions?.pothosDrizzleModel as string | undefined;
+
+    for (const iface of typeConfig.interfaces) {
+      const interfaceModel = this.buildCache.getTypeConfig(iface, 'Interface').extensions
+        ?.pothosDrizzleModel as string | undefined;
+
+      if (interfaceModel) {
+        if (model && model !== interfaceModel) {
+          throw new PothosSchemaError(
+            `DrizzleObjects must be based on the same prisma model as any DrizzleInterfaces they extend. ${typeConfig.name} uses ${model} and ${iface.name} uses ${interfaceModel}`,
+          );
+        }
+
+        model = interfaceModel;
+      }
+    }
+
+    return {
+      ...typeConfig,
+      extensions: {
+        ...typeConfig.extensions,
+        pothosDrizzleModel: model,
+      },
+    };
+  }
+
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
