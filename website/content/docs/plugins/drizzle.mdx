@@ -91,8 +91,8 @@ table:
 const UserRef = builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
-    firstName: t.exposeString('first_name'),
-    lastName: t.exposeString('last_name'),
+    firstName: t.exposeString('firstName'),
+    lastName: t.exposeString('lastName'),
   }),
 });
 ```
@@ -111,7 +111,7 @@ const UserRef = builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.first_name} ${user.last_name}`,
+      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
     }),
   }),
 });
@@ -135,7 +135,7 @@ const UserRef = builder.drizzleObject('users', {
       profile: true,
     },
     extras: {
-      lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`.as('lowercaseName'),
+      lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
     },
   },
   fields: (t) => ({
@@ -181,7 +181,7 @@ const UserRef = builder.drizzleObject('users', {
     email: t.string({
       select: {
         extras: {
-          lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`.as('lowercaseName'),
+          lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
         },
       },
       resolve: (user) => `${user.lowercaseName}@example.com`,
@@ -215,7 +215,7 @@ builder.drizzleObject('posts', {
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
-    firstName: t.exposeString('first_name'),
+    firstName: t.exposeString('firstName'),
     profile: t.relation('profile'),
     posts: t.relation('posts'),
   }),
@@ -235,7 +235,7 @@ specifying a `query` option on the relation:
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
-    firstName: t.exposeString('first_name'),
+    firstName: t.exposeString('firstName'),
     posts: t.relation('posts', {
       args: {
         limit: t.arg.int(),

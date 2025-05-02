@@ -44,7 +44,6 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
-
 ### Where and OrderBy
 
 The `where` and `orderBy` options have changed to match the RQBv2 API:
@@ -67,6 +66,22 @@ The `where` and `orderBy` options have changed to match the RQBv2 API:
         }),
     }),
     });
+```
+
+### extras
+
+`extras` no-longer require a `.as(name)` call, but must use a callback style to reference table columns:
+
+```diff
+const UserRef = builder.drizzleObject('users', {
+  name: 'User',
+  select: {
+    extras: {
+-      lowercaseName: sql<string>`lower(${users.firstName}).as('lowercaseName')`
++      lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
+    },
+  },
+});
 ```
 
 ### Other stuff
