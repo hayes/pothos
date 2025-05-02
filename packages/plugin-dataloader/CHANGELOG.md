@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.1
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+
 ## 4.4.0
 
 ### Minor Changes

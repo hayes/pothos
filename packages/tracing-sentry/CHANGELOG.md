@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 1.1.2
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+
 ## 1.1.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.2
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+
 ## 4.6.1
 
 ### Patch Changes
