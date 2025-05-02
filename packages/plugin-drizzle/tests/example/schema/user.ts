@@ -26,11 +26,25 @@ const Role = builder.drizzleObject('roles', {
   }),
 });
 
-export const Viewer = builder.drizzleObject('users', {
-  variant: 'Viewer',
+export const NormalViewer = builder.drizzleObject('users', {
+  variant: 'NormalViewer',
+  interfaces: () => [Viewer],
   select: {
     columns: {},
   },
+  fields: (t) => ({
+    isNormal: t.boolean({
+      resolve: () => true,
+    }),
+  }),
+});
+
+export const Viewer = builder.drizzleInterface('users', {
+  name: 'Viewer',
+  select: {
+    columns: {},
+  },
+  resolveType: () => 'NormalViewer',
   fields: (t) => ({
     id: t.exposeID('id'),
     username: t.string({

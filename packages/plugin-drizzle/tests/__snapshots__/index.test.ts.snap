@@ -82,6 +82,17 @@ interface Node {
   id: ID!
 }
 
+type NormalViewer implements Viewer {
+  comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
+  drafts: [Post!]
+  id: ID
+  isNormal: Boolean
+  roles: [String!]
+  rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
+  user: User!
+  username: String
+}
+
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -184,7 +195,7 @@ type UserUnOrderedPostsConnectionEdge {
   node: Post
 }
 
-type Viewer {
+interface Viewer {
   comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
   drafts: [Post!]
   id: ID

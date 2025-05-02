@@ -459,7 +459,7 @@ export class DrizzleObjectFieldBuilder<
   ) {
     const [name, options = {} as never] = args;
 
-    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
+    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, this.graphqlKind);
     const usingSelect = !!typeConfig.extensions?.pothosDrizzleSelect;
 
     return this.exposeField(name as never, {

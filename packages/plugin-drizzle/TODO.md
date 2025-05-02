@@ -27,8 +27,8 @@
     - [x] type level select (columns, with, extra)
     - [x] merging compatible selections
     - [ ] data-loaders and fallback queries
-    - [ ] nodes
-    - [ ] interfaces
+    - [x] nodes
+    - [x] interfaces
     - [x] skip and defer directives
 - [x] docs
 - [x] variants

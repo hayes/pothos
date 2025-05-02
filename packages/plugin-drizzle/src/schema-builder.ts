@@ -54,11 +54,7 @@ schemaBuilderProto.drizzleInterface = function drizzleInterface(
 ) {
   const name = options.name ?? table;
 
-  const ref = options.variant
-    ? new DrizzleInterfaceRef(options.variant, name)
-    : (getRefFromModel(table, this, 'interface') as InterfaceRef<SchemaTypes, unknown>);
-
-  ref.name = name ?? table;
+  const ref = new DrizzleInterfaceRef(name, table);
 
   this.interfaceType(ref, {
     ...(options as {}),
