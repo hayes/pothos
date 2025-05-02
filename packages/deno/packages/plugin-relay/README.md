@@ -1,5 +1,3 @@
-# Relay Plugin
-
 The Relay plugin adds a number of builder methods and helper functions to simplify building a relay
 compatible schema.
 
@@ -7,8 +5,8 @@ compatible schema.
 
 ### Install
 
-```bash
-yarn add @pothos/plugin-relay
+```package-install
+npm install --save @pothos/plugin-relay
 ```
 
 ### Setup
@@ -294,6 +292,7 @@ records to be fetched at once. These limits can be configure using the following
   args: ConnectionArguments;
   defaultSize?: number; // defaults to 20
   maxSize?: number; // defaults to 100
+  totalCount?: number // required to support using `last` without `before`
 }
 ```
 
@@ -375,12 +374,12 @@ builder.relayMutationField(
         return { success: true };
       }
 
-      return { sucess: false };
+      return { success: false };
     },
   },
   {
     outputFields: (t) => ({
-      sucess: t.boolean({
+      success: t.boolean({
         resolve: (result) => result.success,
       }),
     }),
@@ -737,8 +736,9 @@ The types provided for `DefaultEdgesNullability` and `DefaultNodeNullability` mu
 provided in the nullable option of `edgesFieldOptions` and `nodeFieldOptions` respectively. This
 will set the default nullability for all connections created by your builder.
 
-nullability for `edges` fields defaults to `{ list: false, items: true }` and the nullability of
-`node` fields default to `false`.
+nullability for `edges` fields defaults to `{ list: options.defaultFieldNullability, items: true }`
+and the nullability of `node` fields is the same as `options.defaultFieldNullability` (which
+defaults to `true`).
 
 #### Per connection
 
@@ -769,4 +769,18 @@ const ThingsConnection = builder.connectionObject({
   },
   nodeNullable: false,
 });
+```
+
+### Extending the `Node` interface
+
+Use the `nodeInterfaceRef` method of your Builder.
+
+For example, to add a new derived field on the interface:
+
+```ts
+builder.interfaceField(builder.nodeInterfaceRef(), 'extra', (t) =>
+  t.string({
+    resolve: () => 'it works',
+  }),
+);
 ```

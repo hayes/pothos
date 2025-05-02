@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`federation accounts schema generates expected schema 1`] = `
+exports[`federation > accounts schema > generates expected schema 1`] = `
 "extend schema
   @link(url: "https://specs.apollo.dev/federation/v2.5", import: ["@key", "@shareable", "@inaccessible", "@tag", "@interfaceObject"])
 
@@ -25,7 +25,7 @@ type User
 }"
 `;
 
-exports[`federation accounts schema generates expected schema 2`] = `
+exports[`federation > accounts schema > generates expected schema 2`] = `
 "type Media {
   id: ID
   test: String
@@ -55,7 +55,7 @@ type _Service {
 }"
 `;
 
-exports[`federation inventory schema generates expected schema 1`] = `
+exports[`federation > inventory schema > generates expected schema 1`] = `
 "extend schema
   @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@key", "@requires"])
 
@@ -71,7 +71,7 @@ type Product
 }"
 `;
 
-exports[`federation inventory schema generates expected schema 2`] = `
+exports[`federation > inventory schema > generates expected schema 2`] = `
 "type Product {
   inStock: Boolean
   price: Float
@@ -97,7 +97,7 @@ type _Service {
 }"
 `;
 
-exports[`federation products schema generates expected schema 1`] = `
+exports[`federation > products schema > generates expected schema 1`] = `
 "extend schema
   @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@composeDirective"])
   @link(url: "https://myspecs.dev/myCustomDirective/v1.0", import: ["@custom"])
@@ -134,7 +134,7 @@ type Query {
 }"
 `;
 
-exports[`federation products schema generates expected schema 2`] = `
+exports[`federation > products schema > generates expected schema 2`] = `
 "directive @custom on INTERFACE | OBJECT
 
 interface Media {
@@ -172,7 +172,7 @@ type _Service {
 }"
 `;
 
-exports[`federation reviews schema generates expected schema 1`] = `
+exports[`federation > reviews schema > generates expected schema 1`] = `
 "extend schema
   @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@key", "@provides", "@tag"])
 
@@ -203,7 +203,7 @@ type User
 }"
 `;
 
-exports[`federation reviews schema generates expected schema 2`] = `
+exports[`federation > reviews schema > generates expected schema 2`] = `
 "type Product {
   reviews: [Review!] @deprecated(reason: "test")
   upc: String

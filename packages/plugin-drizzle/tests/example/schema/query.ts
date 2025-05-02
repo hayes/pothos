@@ -6,12 +6,17 @@ builder.queryType({
   fields: (t) => ({
     me: t.withAuth({ loggedIn: true }).drizzleField({
       type: Viewer,
-      resolve: (query, _root, _args, ctx) =>
-        db.query.users.findFirst(
-          query({
-            where: (user, { eq }) => eq(user.id, ctx.user.id),
-          }),
-        ),
+      resolve: async (query, _root, _args, ctx) => {
+        const q = query({
+          where: {
+            id: ctx.user.id,
+          },
+        });
+        // console.dir(q, { depth: null });
+        const user = await db.query.users.findFirst(q);
+
+        return user;
+      },
     }),
     user: t.drizzleField({
       type: 'users',
@@ -19,24 +24,27 @@ builder.queryType({
         id: t.arg.globalID({ required: true, for: User }),
       },
       resolve: (query, _root, { id }) => {
-        return db.query.users.findFirst(
-          query({
-            where: (user, { eq }) => eq(user.id, id.id.id),
-          }),
-        );
+        const q = query({
+          where: {
+            id: id.id,
+          },
+        });
+        // console.dir(q, { depth: null });
+        return db.query.users.findFirst(q);
       },
     }),
     users: t.drizzleField({
       type: ['users'],
-      args: {
-        id: t.arg.globalID({ required: true, for: User }),
+      resolve: (query) => {
+        return db.query.users.findMany(query());
       },
-      resolve: (query, _root, { id }) => {
-        return db.query.users.findMany(
-          query({
-            where: (user, { eq }) => eq(user.id, id.id.id),
-          }),
-        );
+    }),
+    usersConnection: t.drizzleConnection({
+      type: 'users',
+      resolve: (query) => {
+        const q = query();
+        // console.dir(q, { depth: null });
+        return db.query.users.findMany(q);
       },
     }),
     userWithInput: t.drizzleFieldWithInput({
@@ -47,7 +55,9 @@ builder.queryType({
       resolve: (query, _root, { input: { id } }) => {
         return db.query.users.findFirst(
           query({
-            where: (user, { eq }) => eq(user.id, id.id.id),
+            where: {
+              id: id.id,
+            },
           }),
         );
       },

@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { InputRef, inputShapeKey, OutputRef, outputShapeKey, parentShapeKey, PothosScalarTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { type InputRef, type OutputRef, type PothosScalarTypeConfig, type SchemaTypes, inputShapeKey, outputShapeKey, parentShapeKey, } from '../types/index.ts';
 import { BaseTypeRef } from './base.ts';
-export class ScalarRef<Types extends SchemaTypes, T, U, P = T> extends BaseTypeRef<Types, PothosScalarTypeConfig> implements OutputRef, InputRef, PothosSchemaTypes.ScalarRef<Types, T, U, P> {
+export class ScalarRef<Types extends SchemaTypes, T, U, P = T> extends BaseTypeRef<Types, PothosScalarTypeConfig> implements OutputRef<T>, InputRef<U>, PothosSchemaTypes.ScalarRef<Types, T, U, P> {
     override kind = "Scalar" as const;
     $inferType!: T;
     $inferInput!: U;

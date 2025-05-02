@@ -4,7 +4,7 @@ import { PothosSchemaError } from '../errors.ts';
 import { BaseTypeRef } from '../refs/base.ts';
 import { InputListRef } from '../refs/input-list.ts';
 import { ListRef } from '../refs/list.ts';
-import { FieldNullability, FieldRequiredness, InputType, InputTypeParam, OutputType, PothosInputFieldType, PothosOutputFieldType, SchemaTypes, TypeParam, } from '../types/index.ts';
+import type { FieldNullability, FieldRequiredness, InputType, InputTypeParam, OutputType, PothosInputFieldType, PothosOutputFieldType, SchemaTypes, TypeParam, } from '../types/index.ts';
 export function unwrapOutputFieldType<Types extends SchemaTypes>(type: PothosOutputFieldType<Types>): OutputType<Types> {
     if (type.kind === "List") {
         return unwrapOutputFieldType(type.type);

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
+import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
 import type { BuildCache } from '../build-cache.ts';
 import { PothosError } from '../errors.ts';
 import type { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
@@ -67,7 +67,9 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      * @param  {PothosOutputFieldConfig} fieldConfig - the config object for the field associated with this resolve function
      * @return {GraphQLFieldResolver} - Either the original, or a new resolver function to use for this field
      */
-    wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, 
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         return resolver;
     }
     /**
@@ -76,7 +78,9 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      * @param  {PothosOutputFieldConfig} fieldConfig - the config object for the field associated with this subscribe function
      * @return {GraphQLFieldResolver} - Either the original, or a new subscribe function to use for this field
      */
-    wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
+    wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, 
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         return subscribe;
     }
     /**
@@ -85,7 +89,9 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      * @param  {PothosInterfaceTypeConfig | PothosUnionTypeConfig} typeConfig - the config object for the Interface or Union type
      * @return {GraphQLTypeResolver} - Either the original, or a new resolveType function to use for this field
      */
-    wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig): GraphQLTypeResolver<unknown, Types["Context"]> {
+    wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, 
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig): GraphQLTypeResolver<unknown, Types["Context"]> {
         return resolveType;
     }
     /**
@@ -94,7 +100,9 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      * @param  {PothosObjectTypeConfig} typeConfig - the config object for the Interface or Union type
      * @return {GraphQLTypeResolver} - Either the original, or a new resolveType function to use for this field
      */
-    wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined, typeConfig: PothosObjectTypeConfig): GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined {
+    wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined, 
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    typeConfig: PothosObjectTypeConfig): GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined {
         return isTypeOf;
     }
     protected runUnique<R>(key: unknown, cb: () => R): R {
@@ -113,7 +121,9 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      * @param  {Types['Context']} context - the context object for the current request
      * @return {object} - The data object for the current request
      */
-    protected createRequestData(context: Types["Context"]): T {
+    protected createRequestData(
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    context: Types["Context"]): T {
         throw new PothosError("createRequestData not implemented");
     }
     /**

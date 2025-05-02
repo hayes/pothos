@@ -1,6 +1,6 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromTypeParam, InputType, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromTypeParam, InputType, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { GraphQLNamedType } from 'https://cdn.skypack.dev/graphql?dts';
 import type { PothosSubGraphPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -44,6 +44,7 @@ declare global {
                 defaultForTypes?: Types["SubGraphs"][];
                 defaultForFields?: Types["SubGraphs"][];
                 fieldsInheritFromTypes?: boolean;
+                explicitlyIncludeType?: (type: GraphQLNamedType, subGraphs: Types["SubGraphs"][]) => boolean;
             };
         }
         export interface UserSchemaTypes {

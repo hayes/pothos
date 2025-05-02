@@ -14,20 +14,20 @@
     "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "dependencies": {
-    "@apollo/server": "^4.11.2",
-    "@faker-js/faker": "^9.2.0",
+    "@apollo/server": "^4.12.0",
+    "@faker-js/faker": "^9.7.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-smart-subscriptions": "workspace:*",
     "@prisma/client": "^6.6.0",
-    "body-parser": "^1.20.3",
+    "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "express": "^4.21.1",
-    "graphql": "^16.8.1",
+    "express": "^5.1.0",
+    "graphql": "^16.10.0",
     "graphql-subscriptions": "^3.0.0",
-    "graphql-ws": "^5.16.0",
+    "graphql-ws": "^6.0.4",
     "prisma": "^6.6.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.1"
   },
   "publishConfig": {
     "access": "public"
@@ -35,7 +35,7 @@
   "devDependencies": {
     "@types/body-parser": "^1.19.5",
     "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/ws": "^8.5.13"
+    "@types/express": "^5.0.1",
+    "@types/ws": "^8.18.0"
   }
 }

@@ -1,26 +1,1676 @@
 diff --git a/dist/changesets-assemble-release-plan.cjs.js b/dist/changesets-assemble-release-plan.cjs.js
-index e32a5e5d39c3bd920201b5694632d2b44c92d486..f188013aa9987150fe6b0ce0f9ecca4c45cc95bb 100644
+index e32a5e5d39c3bd920201b5694632d2b44c92d486..bae7e8080c8e9afbd38d4e93522dfb9e32001710 100644
 --- a/dist/changesets-assemble-release-plan.cjs.js
 +++ b/dist/changesets-assemble-release-plan.cjs.js
-@@ -444,7 +444,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
+@@ -10,12 +10,14 @@ var semverGt = require('semver/functions/gt');
+ var semverSatisfies = require('semver/functions/satisfies');
+ var semverInc = require('semver/functions/inc');
+ 
+-function _interopDefault (e) { return e && e.__esModule ? e : { 'default': e }; }
++function _interopDefault(e) {
++  return e && e.__esModule ? e : { default: e };
++}
+ 
+-var semverParse__default = /*#__PURE__*/_interopDefault(semverParse);
+-var semverGt__default = /*#__PURE__*/_interopDefault(semverGt);
+-var semverSatisfies__default = /*#__PURE__*/_interopDefault(semverSatisfies);
+-var semverInc__default = /*#__PURE__*/_interopDefault(semverInc);
++var semverParse__default = /*#__PURE__*/ _interopDefault(semverParse);
++var semverGt__default = /*#__PURE__*/ _interopDefault(semverGt);
++var semverSatisfies__default = /*#__PURE__*/ _interopDefault(semverSatisfies);
++var semverInc__default = /*#__PURE__*/ _interopDefault(semverInc);
+ 
+ function _defineProperty(obj, key, value) {
+   if (key in obj) {
+@@ -23,7 +25,7 @@ function _defineProperty(obj, key, value) {
+       value: value,
+       enumerable: true,
+       configurable: true,
+-      writable: true
++      writable: true,
+     });
+   } else {
+     obj[key] = value;
+@@ -37,9 +39,10 @@ function ownKeys(object, enumerableOnly) {
+ 
+   if (Object.getOwnPropertySymbols) {
+     var symbols = Object.getOwnPropertySymbols(object);
+-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
+-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+-    });
++    if (enumerableOnly)
++      symbols = symbols.filter(function (sym) {
++        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
++      });
+     keys.push.apply(keys, symbols);
+   }
+ 
+@@ -68,23 +71,25 @@ function _objectSpread2(target) {
+ 
+ function getHighestReleaseType(releases) {
+   if (releases.length === 0) {
+-    throw new Error(`Large internal Changesets error when calculating highest release type in the set of releases. Please contact the maintainers`);
++    throw new Error(
++      `Large internal Changesets error when calculating highest release type in the set of releases. Please contact the maintainers`,
++    );
+   }
+ 
+-  let highestReleaseType = "none";
++  let highestReleaseType = 'none';
+ 
+   for (let release of releases) {
+     switch (release.type) {
+-      case "major":
+-        return "major";
++      case 'major':
++        return 'major';
+ 
+-      case "minor":
+-        highestReleaseType = "minor";
++      case 'minor':
++        highestReleaseType = 'minor';
+         break;
+ 
+-      case "patch":
+-        if (highestReleaseType === "none") {
+-          highestReleaseType = "patch";
++      case 'patch':
++        if (highestReleaseType === 'none') {
++          highestReleaseType = 'patch';
+         }
+ 
+         break;
+@@ -100,11 +105,16 @@ function getCurrentHighestVersion(packageGroup, packagesByName) {
+     let pkg = packagesByName.get(pkgName);
+ 
+     if (!pkg) {
+-      console.error(`FATAL ERROR IN CHANGESETS! We were unable to version for package group: ${pkgName} in package group: ${packageGroup.toString()}`);
++      console.error(
++        `FATAL ERROR IN CHANGESETS! We were unable to version for package group: ${pkgName} in package group: ${packageGroup.toString()}`,
++      );
+       throw new Error(`fatal: could not resolve linked packages`);
+     }
+ 
+-    if (highestVersion === undefined || semverGt__default["default"](pkg.packageJson.version, highestVersion)) {
++    if (
++      highestVersion === undefined ||
++      semverGt__default['default'](pkg.packageJson.version, highestVersion)
++    ) {
+       highestVersion = pkg.packageJson.version;
+     }
+   }
+@@ -130,7 +140,9 @@ function applyLinks(releases, packagesByName, linked) {
+ 
+   for (let linkedPackages of linked) {
+     // First we filter down to all the relevant releases for one set of linked packages
+-    let releasingLinkedPackages = [...releases.values()].filter(release => linkedPackages.includes(release.name) && release.type !== "none"); // If we proceed any further we do extra work with calculating highestVersion for things that might
++    let releasingLinkedPackages = [...releases.values()].filter(
++      (release) => linkedPackages.includes(release.name) && release.type !== 'none',
++    ); // If we proceed any further we do extra work with calculating highestVersion for things that might
+     // not need one, as they only have workspace based packages
+ 
+     if (releasingLinkedPackages.length === 0) continue;
+@@ -154,21 +166,22 @@ function applyLinks(releases, packagesByName, linked) {
+ }
+ 
+ function incrementVersion(release, preInfo) {
+-  if (release.type === "none") {
++  if (release.type === 'none') {
+     return release.oldVersion;
+   }
+ 
+-  let version = semverInc__default["default"](release.oldVersion, release.type);
++  let version = semverInc__default['default'](release.oldVersion, release.type);
+ 
+-  if (preInfo !== undefined && preInfo.state.mode !== "exit") {
++  if (preInfo !== undefined && preInfo.state.mode !== 'exit') {
+     let preVersion = preInfo.preVersions.get(release.name);
+ 
+     if (preVersion === undefined) {
+-      throw new errors.InternalError(`preVersion for ${release.name} does not exist when preState is defined`);
++      throw new errors.InternalError(
++        `preVersion for ${release.name} does not exist when preState is defined`,
++      );
+     } // why are we adding this ourselves rather than passing 'pre' + versionType to semver.inc?
+     // because semver.inc with prereleases is confusing and this seems easier
+ 
+-
+     version += `-${preInfo.state.tag}.${preVersion}`;
+   }
+ 
+@@ -187,13 +200,7 @@ function incrementVersion(release, preInfo) {
+   We could solve this by inlining this function, or by returning a deep-cloned then
+   modified array, but we decided both of those are worse than this solution.
+ */
+-function determineDependents({
+-  releases,
+-  packagesByName,
+-  dependencyGraph,
+-  preInfo,
+-  config
+-}) {
++function determineDependents({ releases, packagesByName, dependencyGraph, preInfo, config }) {
+   let updated = false; // NOTE this is intended to be called recursively
+ 
+   let pkgsToSearch = [...releases.values()];
+@@ -206,96 +213,110 @@ function determineDependents({
+     const pkgDependents = dependencyGraph.get(nextRelease.name);
+ 
+     if (!pkgDependents) {
+-      throw new Error(`Error in determining dependents - could not find package in repository: ${nextRelease.name}`);
++      throw new Error(
++        `Error in determining dependents - could not find package in repository: ${nextRelease.name}`,
++      );
+     }
+ 
+-    pkgDependents.map(dependent => {
+-      let type;
+-      const dependentPackage = packagesByName.get(dependent);
+-      if (!dependentPackage) throw new Error("Dependency map is incorrect");
+-
+-      if (shouldSkipPackage.shouldSkipPackage(dependentPackage, {
+-        ignore: config.ignore,
+-        allowPrivatePackages: config.privatePackages.version
+-      })) {
+-        type = "none";
+-      } else {
+-        const dependencyVersionRanges = getDependencyVersionRanges(dependentPackage.packageJson, nextRelease);
+-
+-        for (const {
+-          depType,
+-          versionRange
+-        } of dependencyVersionRanges) {
+-          if (nextRelease.type === "none") {
+-            continue;
+-          } else if (shouldBumpMajor({
+-            dependent,
+-            depType,
+-            versionRange,
+-            releases,
++    pkgDependents
++      .map((dependent) => {
++        let type;
++        const dependentPackage = packagesByName.get(dependent);
++        if (!dependentPackage) throw new Error('Dependency map is incorrect');
++
++        if (
++          shouldSkipPackage.shouldSkipPackage(dependentPackage, {
++            ignore: config.ignore,
++            allowPrivatePackages: config.privatePackages.version,
++          })
++        ) {
++          type = 'none';
++        } else {
++          const dependencyVersionRanges = getDependencyVersionRanges(
++            dependentPackage.packageJson,
+             nextRelease,
+-            preInfo,
+-            onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
+-          })) {
+-            type = "major";
+-          } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semverSatisfies__default["default"](incrementVersion(nextRelease, preInfo), versionRange))) {
+-            switch (depType) {
+-              case "dependencies":
+-              case "optionalDependencies":
+-              case "peerDependencies":
+-                if (type !== "major" && type !== "minor") {
+-                  type = "patch";
+-                }
++          );
++
++          for (const { depType, versionRange } of dependencyVersionRanges) {
++            if (nextRelease.type === 'none') {
++              continue;
++            } else if (
++              shouldBumpMajor({
++                dependent,
++                depType,
++                versionRange,
++                releases,
++                nextRelease,
++                preInfo,
++                onlyUpdatePeerDependentsWhenOutOfRange:
++                  config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH
++                    .onlyUpdatePeerDependentsWhenOutOfRange,
++              })
++            ) {
++              type = 'major';
++            } else if (
++              (!releases.has(dependent) || releases.get(dependent).type === 'none') &&
++              (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents ===
++                'always' ||
++                !semverSatisfies__default['default'](
++                  incrementVersion(nextRelease, preInfo),
++                  versionRange,
++                ))
++            ) {
++              switch (depType) {
++                case 'dependencies':
++                case 'optionalDependencies':
++                case 'peerDependencies':
++                  if (type !== 'major' && type !== 'minor') {
++                    type = 'patch';
++                  }
+ 
+-                break;
++                  break;
+ 
+-              case "devDependencies":
+-                {
++                case 'devDependencies': {
+                   // We don't need a version bump if the package is only in the devDependencies of the dependent package
+-                  if (type !== "major" && type !== "minor" && type !== "patch") {
+-                    type = "none";
++                  if (type !== 'major' && type !== 'minor' && type !== 'patch') {
++                    type = 'none';
+                   }
+                 }
++              }
+             }
+           }
+         }
+-      }
+ 
+-      if (releases.has(dependent) && releases.get(dependent).type === type) {
+-        type = undefined;
+-      }
++        if (releases.has(dependent) && releases.get(dependent).type === type) {
++          type = undefined;
++        }
+ 
+-      return {
+-        name: dependent,
+-        type,
+-        pkgJSON: dependentPackage.packageJson
+-      };
+-    }).filter(dependentItem => !!dependentItem.type).forEach(({
+-      name,
+-      type,
+-      pkgJSON
+-    }) => {
+-      // At this point, we know if we are making a change
+-      updated = true;
+-      const existing = releases.get(name); // For things that are being given a major bump, we check if we have already
+-      // added them here. If we have, we update the existing item instead of pushing it on to search.
+-      // It is safe to not add it to pkgsToSearch because it should have already been searched at the
+-      // largest possible bump type.
+-
+-      if (existing && type === "major" && existing.type !== "major") {
+-        existing.type = "major";
+-        pkgsToSearch.push(existing);
+-      } else {
+-        let newDependent = {
+-          name,
++        return {
++          name: dependent,
+           type,
+-          oldVersion: pkgJSON.version,
+-          changesets: []
++          pkgJSON: dependentPackage.packageJson,
+         };
+-        pkgsToSearch.push(newDependent);
+-        releases.set(name, newDependent);
+-      }
+-    });
++      })
++      .filter((dependentItem) => !!dependentItem.type)
++      .forEach(({ name, type, pkgJSON }) => {
++        // At this point, we know if we are making a change
++        updated = true;
++        const existing = releases.get(name); // For things that are being given a major bump, we check if we have already
++        // added them here. If we have, we update the existing item instead of pushing it on to search.
++        // It is safe to not add it to pkgsToSearch because it should have already been searched at the
++        // largest possible bump type.
++
++        if (existing && type === 'major' && existing.type !== 'major') {
++          existing.type = 'major';
++          pkgsToSearch.push(existing);
++        } else {
++          let newDependent = {
++            name,
++            type,
++            oldVersion: pkgJSON.version,
++            changesets: [],
++          };
++          pkgsToSearch.push(newDependent);
++          releases.set(name, newDependent);
++        }
++      });
+   }
+ 
+   return updated;
+@@ -307,27 +328,37 @@ function determineDependents({
+ */
+ 
+ function getDependencyVersionRanges(dependentPkgJSON, dependencyRelease) {
+-  const DEPENDENCY_TYPES = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
++  const DEPENDENCY_TYPES = [
++    'dependencies',
++    'devDependencies',
++    'peerDependencies',
++    'optionalDependencies',
++  ];
+   const dependencyVersionRanges = [];
+ 
+   for (const type of DEPENDENCY_TYPES) {
+     var _dependentPkgJSON$typ;
+ 
+-    const versionRange = (_dependentPkgJSON$typ = dependentPkgJSON[type]) === null || _dependentPkgJSON$typ === void 0 ? void 0 : _dependentPkgJSON$typ[dependencyRelease.name];
++    const versionRange =
++      (_dependentPkgJSON$typ = dependentPkgJSON[type]) === null || _dependentPkgJSON$typ === void 0
++        ? void 0
++        : _dependentPkgJSON$typ[dependencyRelease.name];
+     if (!versionRange) continue;
+ 
+-    if (versionRange.startsWith("workspace:")) {
++    if (versionRange.startsWith('workspace:')) {
+       dependencyVersionRanges.push({
+         depType: type,
+         versionRange: // intentionally keep other workspace ranges untouched
+-        // this has to be fixed but this should only be done when adding appropriate tests
+-        versionRange === "workspace:*" ? // workspace:* actually means the current exact version, and not a wildcard similar to a reguler * range
+-        dependencyRelease.oldVersion : versionRange.replace(/^workspace:/, "")
++          // this has to be fixed but this should only be done when adding appropriate tests
++          versionRange === 'workspace:*'
++            ? // workspace:* actually means the current exact version, and not a wildcard similar to a reguler * range
++              dependencyRelease.oldVersion
++            : versionRange.replace(/^workspace:/, ''),
+       });
+     } else {
+       dependencyVersionRanges.push({
+         depType: type,
+-        versionRange
++        versionRange,
+       });
+     }
+   }
+@@ -342,57 +373,67 @@ function shouldBumpMajor({
+   releases,
+   nextRelease,
+   preInfo,
+-  onlyUpdatePeerDependentsWhenOutOfRange
++  onlyUpdatePeerDependentsWhenOutOfRange,
+ }) {
+   // we check if it is a peerDependency because if it is, our dependent bump type might need to be major.
+-  return depType === "peerDependencies" && nextRelease.type !== "none" && nextRelease.type !== "patch" && ( // 1. If onlyUpdatePeerDependentsWhenOutOfRange set to true, bump major if the version is leaving the range.
+-  // 2. If onlyUpdatePeerDependentsWhenOutOfRange set to false, bump major regardless whether or not the version is leaving the range.
+-  !onlyUpdatePeerDependentsWhenOutOfRange || !semverSatisfies__default["default"](incrementVersion(nextRelease, preInfo), versionRange)) && ( // bump major only if the dependent doesn't already has a major release.
+-  !releases.has(dependent) || releases.has(dependent) && releases.get(dependent).type !== "major");
++  return (
++    depType === 'peerDependencies' &&
++    nextRelease.type !== 'none' &&
++    nextRelease.type !== 'patch' && // 1. If onlyUpdatePeerDependentsWhenOutOfRange set to true, bump major if the version is leaving the range.
++    // 2. If onlyUpdatePeerDependentsWhenOutOfRange set to false, bump major regardless whether or not the version is leaving the range.
++    (!onlyUpdatePeerDependentsWhenOutOfRange ||
++      !semverSatisfies__default['default'](incrementVersion(nextRelease, preInfo), versionRange)) && // bump major only if the dependent doesn't already has a major release.
++    (!releases.has(dependent) ||
++      (releases.has(dependent) && releases.get(dependent).type !== 'major'))
++  );
+ }
+ 
+ // This function takes in changesets and returns one release per
+ function flattenReleases(changesets, packagesByName, config) {
+   let releases = new Map();
+-  changesets.forEach(changeset => {
++  changesets.forEach((changeset) => {
+     changeset.releases // Filter out skipped packages because they should not trigger a release
+-    // If their dependencies need updates, they will be added to releases by `determineDependents()` with release type `none`
+-    .filter(({
+-      name
+-    }) => !shouldSkipPackage.shouldSkipPackage(packagesByName.get(name), {
+-      ignore: config.ignore,
+-      allowPrivatePackages: config.privatePackages.version
+-    })).forEach(({
+-      name,
+-      type
+-    }) => {
+-      let release = releases.get(name);
+-      let pkg = packagesByName.get(name);
+-
+-      if (!pkg) {
+-        throw new Error(`"${changeset.id}" changeset mentions a release for a package "${name}" but such a package could not be found.`);
+-      }
+-
+-      if (!release) {
+-        release = {
+-          name,
+-          type,
+-          oldVersion: pkg.packageJson.version,
+-          changesets: [changeset.id]
+-        };
+-      } else {
+-        if (type === "major" || (release.type === "patch" || release.type === "none") && (type === "minor" || type === "patch")) {
+-          release.type = type;
+-        } // Check whether the bumpType will change
+-        // If the bumpType has changed recalc newVersion
+-        // push new changeset to releases
+-
++      // If their dependencies need updates, they will be added to releases by `determineDependents()` with release type `none`
++      .filter(
++        ({ name }) =>
++          !shouldSkipPackage.shouldSkipPackage(packagesByName.get(name), {
++            ignore: config.ignore,
++            allowPrivatePackages: config.privatePackages.version,
++          }),
++      )
++      .forEach(({ name, type }) => {
++        let release = releases.get(name);
++        let pkg = packagesByName.get(name);
++
++        if (!pkg) {
++          throw new Error(
++            `"${changeset.id}" changeset mentions a release for a package "${name}" but such a package could not be found.`,
++          );
++        }
+ 
+-        release.changesets.push(changeset.id);
+-      }
++        if (!release) {
++          release = {
++            name,
++            type,
++            oldVersion: pkg.packageJson.version,
++            changesets: [changeset.id],
++          };
++        } else {
++          if (
++            type === 'major' ||
++            ((release.type === 'patch' || release.type === 'none') &&
++              (type === 'minor' || type === 'patch'))
++          ) {
++            release.type = type;
++          } // Check whether the bumpType will change
++          // If the bumpType has changed recalc newVersion
++          // push new changeset to releases
++
++          release.changesets.push(changeset.id);
++        }
+ 
+-      releases.set(name, release);
+-    });
++        releases.set(name, release);
++      });
+   });
+   return releases;
+ }
+@@ -401,16 +442,20 @@ function matchFixedConstraint(releases, packagesByName, config) {
+   let updated = false;
+ 
+   for (let fixedPackages of config.fixed) {
+-    let releasingFixedPackages = [...releases.values()].filter(release => fixedPackages.includes(release.name) && release.type !== "none");
++    let releasingFixedPackages = [...releases.values()].filter(
++      (release) => fixedPackages.includes(release.name) && release.type !== 'none',
++    );
+     if (releasingFixedPackages.length === 0) continue;
+     let highestReleaseType = getHighestReleaseType(releasingFixedPackages);
+     let highestVersion = getCurrentHighestVersion(fixedPackages, packagesByName); // Finally, we update the packages so all of them are on the highest version
+ 
+     for (let pkgName of fixedPackages) {
+-      if (shouldSkipPackage.shouldSkipPackage(packagesByName.get(pkgName), {
+-        ignore: config.ignore,
+-        allowPrivatePackages: config.privatePackages.version
+-      })) {
++      if (
++        shouldSkipPackage.shouldSkipPackage(packagesByName.get(pkgName), {
++          ignore: config.ignore,
++          allowPrivatePackages: config.privatePackages.version,
++        })
++      ) {
+         continue;
+       }
+ 
+@@ -422,7 +467,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
+           name: pkgName,
+           type: highestReleaseType,
+           oldVersion: highestVersion,
+-          changesets: []
++          changesets: [],
+         });
+         continue;
+       }
+@@ -443,11 +488,11 @@ function matchFixedConstraint(releases, packagesByName, config) {
+ }
  
  function getPreVersion(version) {
-   let parsed = semverParse__default["default"](version);
+-  let parsed = semverParse__default["default"](version);
 -  let preVersion = parsed.prerelease[1] === undefined ? -1 : parsed.prerelease[1];
++  let parsed = semverParse__default['default'](version);
 +  let preVersion = parsed?.prerelease[1] === undefined ? -1 : parsed.prerelease[1];
  
-   if (typeof preVersion !== "number") {
-     throw new errors.InternalError("preVersion is not a number");
+-  if (typeof preVersion !== "number") {
+-    throw new errors.InternalError("preVersion is not a number");
++  if (typeof preVersion !== 'number') {
++    throw new errors.InternalError('preVersion is not a number');
+   }
+ 
+   preVersion++;
+@@ -460,26 +505,33 @@ function getSnapshotSuffix(template, snapshotParameters) {
+     commit: snapshotParameters.commit,
+     tag: snapshotParameters.tag,
+     timestamp: snapshotRefDate.getTime().toString(),
+-    datetime: snapshotRefDate.toISOString().replace(/\.\d{3}Z$/, "").replace(/[^\d]/g, "")
++    datetime: snapshotRefDate
++      .toISOString()
++      .replace(/\.\d{3}Z$/, '')
++      .replace(/[^\d]/g, ''),
+   }; // We need a special handling because we need to handle a case where `--snapshot` is used without any template,
+   // and the resulting version needs to be composed without a tag.
+ 
+   if (!template) {
+-    return [placeholderValues.tag, placeholderValues.datetime].filter(Boolean).join("-");
++    return [placeholderValues.tag, placeholderValues.datetime].filter(Boolean).join('-');
+   }
+ 
+   const placeholders = Object.keys(placeholderValues);
+ 
+   if (!template.includes(`{tag}`) && placeholderValues.tag !== undefined) {
+-    throw new Error(`Failed to compose snapshot version: "{tag}" placeholder is missing, but the snapshot parameter is defined (value: '${placeholderValues.tag}')`);
++    throw new Error(
++      `Failed to compose snapshot version: "{tag}" placeholder is missing, but the snapshot parameter is defined (value: '${placeholderValues.tag}')`,
++    );
+   }
+ 
+   return placeholders.reduce((prev, key) => {
+-    return prev.replace(new RegExp(`\\{${key}\\}`, "g"), () => {
++    return prev.replace(new RegExp(`\\{${key}\\}`, 'g'), () => {
+       const value = placeholderValues[key];
+ 
+       if (value === undefined) {
+-        throw new Error(`Failed to compose snapshot version: "{${key}}" placeholder is used without having a value defined!`);
++        throw new Error(
++          `Failed to compose snapshot version: "{${key}}" placeholder is used without having a value defined!`,
++        );
+       }
+ 
+       return value;
+@@ -488,7 +540,7 @@ function getSnapshotSuffix(template, snapshotParameters) {
+ }
+ 
+ function getSnapshotVersion(release, preInfo, useCalculatedVersion, snapshotSuffix) {
+-  if (release.type === "none") {
++  if (release.type === 'none') {
+     return release.oldVersion;
+   }
+   /**
+@@ -501,46 +553,67 @@ function getSnapshotVersion(release, preInfo, useCalculatedVersion, snapshotSuff
+    * You can set `snapshot.useCalculatedVersion` flag to true to use calculated versions if you don't care about the above problem.
+    */
+ 
+-
+   const baseVersion = useCalculatedVersion ? incrementVersion(release, preInfo) : `0.0.0`;
+   return `${baseVersion}-${snapshotSuffix}`;
+ }
+ 
+ function getNewVersion(release, preInfo) {
+-  if (release.type === "none") {
++  if (release.type === 'none') {
+     return release.oldVersion;
+   }
+ 
+   return incrementVersion(release, preInfo);
+ }
+ 
+-function assembleReleasePlan(changesets, packages, config, // intentionally not using an optional parameter here so the result of `readPreState` has to be passed in here
+-preState, // snapshot: undefined            ->  not using snaphot
+-// snapshot: { tag: undefined }   ->  --snapshot (empty tag)
+-// snapshot: { tag: "canary" }    ->  --snapshot canary
+-snapshot) {
++function assembleReleasePlan(
++  changesets,
++  packages,
++  config, // intentionally not using an optional parameter here so the result of `readPreState` has to be passed in here
++  preState, // snapshot: undefined            ->  not using snaphot
++  // snapshot: { tag: undefined }   ->  --snapshot (empty tag)
++  // snapshot: { tag: "canary" }    ->  --snapshot canary
++  snapshot,
++) {
+   // TODO: remove `refined*` in the next major version of this package
+   // just use `config` and `snapshot` parameters directly, typed as: `config: Config, snapshot?: SnapshotReleaseParameters`
+-  const refinedConfig = config.snapshot ? config : _objectSpread2(_objectSpread2({}, config), {}, {
+-    snapshot: {
+-      prereleaseTemplate: null,
+-      useCalculatedVersion: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.useCalculatedVersionForSnapshots
+-    }
+-  });
+-  const refinedSnapshot = typeof snapshot === "string" ? {
+-    tag: snapshot
+-  } : typeof snapshot === "boolean" ? {
+-    tag: undefined
+-  } : snapshot;
+-  let packagesByName = new Map(packages.packages.map(x => [x.packageJson.name, x]));
+-  const relevantChangesets = getRelevantChangesets(changesets, packagesByName, refinedConfig, preState);
++  const refinedConfig = config.snapshot
++    ? config
++    : _objectSpread2(
++        _objectSpread2({}, config),
++        {},
++        {
++          snapshot: {
++            prereleaseTemplate: null,
++            useCalculatedVersion:
++              config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH
++                .useCalculatedVersionForSnapshots,
++          },
++        },
++      );
++  const refinedSnapshot =
++    typeof snapshot === 'string'
++      ? {
++          tag: snapshot,
++        }
++      : typeof snapshot === 'boolean'
++        ? {
++            tag: undefined,
++          }
++        : snapshot;
++  let packagesByName = new Map(packages.packages.map((x) => [x.packageJson.name, x]));
++  const relevantChangesets = getRelevantChangesets(
++    changesets,
++    packagesByName,
++    refinedConfig,
++    preState,
++  );
+   const preInfo = getPreInfo(changesets, packagesByName, refinedConfig, preState); // releases is, at this point a list of all packages we are going to releases,
+   // flattened down to one release per package, having a reference back to their
+   // changesets, and with a calculated new versions
+ 
+   let releases = flattenReleases(relevantChangesets, packagesByName, refinedConfig);
+   let dependencyGraph = getDependentsGraph.getDependentsGraph(packages, {
+-    bumpVersionsWithWorkspaceProtocolOnly: refinedConfig.bumpVersionsWithWorkspaceProtocolOnly
++    bumpVersionsWithWorkspaceProtocolOnly: refinedConfig.bumpVersionsWithWorkspaceProtocolOnly,
+   });
+   let releasesValidated = false;
+ 
+@@ -551,7 +624,7 @@ snapshot) {
+       packagesByName,
+       dependencyGraph,
+       preInfo,
+-      config: refinedConfig
++      config: refinedConfig,
+     }); // `releases` might get mutated here
+ 
+     let fixedConstraintUpdated = matchFixedConstraint(releases, packagesByName, refinedConfig);
+@@ -559,7 +632,7 @@ snapshot) {
+     releasesValidated = !linksUpdated && !dependentAdded && !fixedConstraintUpdated;
+   }
+ 
+-  if ((preInfo === null || preInfo === void 0 ? void 0 : preInfo.state.mode) === "exit") {
++  if ((preInfo === null || preInfo === void 0 ? void 0 : preInfo.state.mode) === 'exit') {
+     for (let pkg of packages.packages) {
+       // If a package had a prerelease, but didn't trigger a version bump in the regular release,
+       // we want to give it a patch release.
+@@ -570,30 +643,45 @@ snapshot) {
+         if (!existingRelease) {
+           releases.set(pkg.packageJson.name, {
+             name: pkg.packageJson.name,
+-            type: "patch",
++            type: 'patch',
+             oldVersion: pkg.packageJson.version,
+-            changesets: []
++            changesets: [],
+           });
+-        } else if (existingRelease.type === "none" && !shouldSkipPackage.shouldSkipPackage(pkg, {
+-          ignore: refinedConfig.ignore,
+-          allowPrivatePackages: refinedConfig.privatePackages.version
+-        })) {
+-          existingRelease.type = "patch";
++        } else if (
++          existingRelease.type === 'none' &&
++          !shouldSkipPackage.shouldSkipPackage(pkg, {
++            ignore: refinedConfig.ignore,
++            allowPrivatePackages: refinedConfig.privatePackages.version,
++          })
++        ) {
++          existingRelease.type = 'patch';
+         }
+       }
+     }
+   } // Caching the snapshot version here and use this if it is snapshot release
+ 
+-
+-  const snapshotSuffix = refinedSnapshot && getSnapshotSuffix(refinedConfig.snapshot.prereleaseTemplate, refinedSnapshot);
++  const snapshotSuffix =
++    refinedSnapshot &&
++    getSnapshotSuffix(refinedConfig.snapshot.prereleaseTemplate, refinedSnapshot);
+   return {
+     changesets: relevantChangesets,
+-    releases: [...releases.values()].map(incompleteRelease => {
+-      return _objectSpread2(_objectSpread2({}, incompleteRelease), {}, {
+-        newVersion: snapshotSuffix ? getSnapshotVersion(incompleteRelease, preInfo, refinedConfig.snapshot.useCalculatedVersion, snapshotSuffix) : getNewVersion(incompleteRelease, preInfo)
+-      });
++    releases: [...releases.values()].map((incompleteRelease) => {
++      return _objectSpread2(
++        _objectSpread2({}, incompleteRelease),
++        {},
++        {
++          newVersion: snapshotSuffix
++            ? getSnapshotVersion(
++                incompleteRelease,
++                preInfo,
++                refinedConfig.snapshot.useCalculatedVersion,
++                snapshotSuffix,
++              )
++            : getNewVersion(incompleteRelease, preInfo),
++        },
++      );
+     }),
+-    preState: preInfo === null || preInfo === void 0 ? void 0 : preInfo.state
++    preState: preInfo === null || preInfo === void 0 ? void 0 : preInfo.state,
+   };
+ }
+ 
+@@ -608,13 +696,17 @@ function getRelevantChangesets(changesets, packagesByName, config, preState) {
+       const packageByName = packagesByName.get(release.name);
+ 
+       if (!packageByName) {
+-        throw new Error(`Found changeset ${changeset.id} for package ${release.name} which is not in the workspace`);
++        throw new Error(
++          `Found changeset ${changeset.id} for package ${release.name} which is not in the workspace`,
++        );
+       }
+ 
+-      if (shouldSkipPackage.shouldSkipPackage(packageByName, {
+-        ignore: config.ignore,
+-        allowPrivatePackages: config.privatePackages.version
+-      })) {
++      if (
++        shouldSkipPackage.shouldSkipPackage(packageByName, {
++          ignore: config.ignore,
++          allowPrivatePackages: config.privatePackages.version,
++        })
++      ) {
+         skippedPackages.push(release.name);
+       } else {
+         notSkippedPackages.push(release.name);
+@@ -622,13 +714,18 @@ function getRelevantChangesets(changesets, packagesByName, config, preState) {
+     }
+ 
+     if (skippedPackages.length > 0 && notSkippedPackages.length > 0) {
+-      throw new Error(`Found mixed changeset ${changeset.id}\n` + `Found ignored packages: ${skippedPackages.join(" ")}\n` + `Found not ignored packages: ${notSkippedPackages.join(" ")}\n` + "Mixed changesets that contain both ignored and not ignored packages are not allowed");
++      throw new Error(
++        `Found mixed changeset ${changeset.id}\n` +
++          `Found ignored packages: ${skippedPackages.join(' ')}\n` +
++          `Found not ignored packages: ${notSkippedPackages.join(' ')}\n` +
++          'Mixed changesets that contain both ignored and not ignored packages are not allowed',
++      );
+     }
+   }
+ 
+-  if (preState && preState.mode !== "exit") {
++  if (preState && preState.mode !== 'exit') {
+     let usedChangesetIds = new Set(preState.changesets);
+-    return changesets.filter(changeset => !usedChangesetIds.has(changeset.id));
++    return changesets.filter((changeset) => !usedChangesetIds.has(changeset.id));
+   }
+ 
+   return changesets;
+@@ -638,7 +735,10 @@ function getHighestPreVersion(packageGroup, packagesByName) {
+   let highestPreVersion = 0;
+ 
+   for (let pkg of packageGroup) {
+-    highestPreVersion = Math.max(getPreVersion(packagesByName.get(pkg).packageJson.version), highestPreVersion);
++    highestPreVersion = Math.max(
++      getPreVersion(packagesByName.get(pkg).packageJson.version),
++      highestPreVersion,
++    );
+   }
+ 
+   return highestPreVersion;
+@@ -649,10 +749,14 @@ function getPreInfo(changesets, packagesByName, config, preState) {
+     return;
+   }
+ 
+-  let updatedPreState = _objectSpread2(_objectSpread2({}, preState), {}, {
+-    changesets: changesets.map(changeset => changeset.id),
+-    initialVersions: _objectSpread2({}, preState.initialVersions)
+-  });
++  let updatedPreState = _objectSpread2(
++    _objectSpread2({}, preState),
++    {},
++    {
++      changesets: changesets.map((changeset) => changeset.id),
++      initialVersions: _objectSpread2({}, preState.initialVersions),
++    },
++  );
+ 
+   for (const [, pkg] of packagesByName) {
+     if (updatedPreState.initialVersions[pkg.packageJson.name] === undefined) {
+@@ -661,7 +765,6 @@ function getPreInfo(changesets, packagesByName, config, preState) {
+   } // Populate preVersion
+   // preVersion is the map between package name and its next pre version number.
+ 
+-
+   let preVersions = new Map();
+ 
+   for (const [, pkg] of packagesByName) {
+@@ -686,8 +789,8 @@ function getPreInfo(changesets, packagesByName, config, preState) {
+ 
+   return {
+     state: updatedPreState,
+-    preVersions
++    preVersions,
+   };
+ }
+ 
+-exports["default"] = assembleReleasePlan;
++exports['default'] = assembleReleasePlan;
 diff --git a/dist/changesets-assemble-release-plan.esm.js b/dist/changesets-assemble-release-plan.esm.js
-index 221822a2e3ac86431b8aadeaf5f01eaee72a5c8e..d9f42b05e6d8bb598bb882df32e2b8a4ec9548ae 100644
+index 221822a2e3ac86431b8aadeaf5f01eaee72a5c8e..4fff2a82c300a7f6ae07d57a4a77c8fb0473187f 100644
 --- a/dist/changesets-assemble-release-plan.esm.js
 +++ b/dist/changesets-assemble-release-plan.esm.js
-@@ -433,7 +433,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
+@@ -12,7 +12,7 @@ function _defineProperty(obj, key, value) {
+       value: value,
+       enumerable: true,
+       configurable: true,
+-      writable: true
++      writable: true,
+     });
+   } else {
+     obj[key] = value;
+@@ -26,9 +26,10 @@ function ownKeys(object, enumerableOnly) {
+ 
+   if (Object.getOwnPropertySymbols) {
+     var symbols = Object.getOwnPropertySymbols(object);
+-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
+-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+-    });
++    if (enumerableOnly)
++      symbols = symbols.filter(function (sym) {
++        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
++      });
+     keys.push.apply(keys, symbols);
+   }
+ 
+@@ -57,23 +58,25 @@ function _objectSpread2(target) {
+ 
+ function getHighestReleaseType(releases) {
+   if (releases.length === 0) {
+-    throw new Error(`Large internal Changesets error when calculating highest release type in the set of releases. Please contact the maintainers`);
++    throw new Error(
++      `Large internal Changesets error when calculating highest release type in the set of releases. Please contact the maintainers`,
++    );
+   }
+ 
+-  let highestReleaseType = "none";
++  let highestReleaseType = 'none';
+ 
+   for (let release of releases) {
+     switch (release.type) {
+-      case "major":
+-        return "major";
++      case 'major':
++        return 'major';
+ 
+-      case "minor":
+-        highestReleaseType = "minor";
++      case 'minor':
++        highestReleaseType = 'minor';
+         break;
+ 
+-      case "patch":
+-        if (highestReleaseType === "none") {
+-          highestReleaseType = "patch";
++      case 'patch':
++        if (highestReleaseType === 'none') {
++          highestReleaseType = 'patch';
+         }
+ 
+         break;
+@@ -89,7 +92,9 @@ function getCurrentHighestVersion(packageGroup, packagesByName) {
+     let pkg = packagesByName.get(pkgName);
+ 
+     if (!pkg) {
+-      console.error(`FATAL ERROR IN CHANGESETS! We were unable to version for package group: ${pkgName} in package group: ${packageGroup.toString()}`);
++      console.error(
++        `FATAL ERROR IN CHANGESETS! We were unable to version for package group: ${pkgName} in package group: ${packageGroup.toString()}`,
++      );
+       throw new Error(`fatal: could not resolve linked packages`);
+     }
+ 
+@@ -119,7 +124,9 @@ function applyLinks(releases, packagesByName, linked) {
+ 
+   for (let linkedPackages of linked) {
+     // First we filter down to all the relevant releases for one set of linked packages
+-    let releasingLinkedPackages = [...releases.values()].filter(release => linkedPackages.includes(release.name) && release.type !== "none"); // If we proceed any further we do extra work with calculating highestVersion for things that might
++    let releasingLinkedPackages = [...releases.values()].filter(
++      (release) => linkedPackages.includes(release.name) && release.type !== 'none',
++    ); // If we proceed any further we do extra work with calculating highestVersion for things that might
+     // not need one, as they only have workspace based packages
+ 
+     if (releasingLinkedPackages.length === 0) continue;
+@@ -143,21 +150,22 @@ function applyLinks(releases, packagesByName, linked) {
+ }
+ 
+ function incrementVersion(release, preInfo) {
+-  if (release.type === "none") {
++  if (release.type === 'none') {
+     return release.oldVersion;
+   }
+ 
+   let version = semverInc(release.oldVersion, release.type);
+ 
+-  if (preInfo !== undefined && preInfo.state.mode !== "exit") {
++  if (preInfo !== undefined && preInfo.state.mode !== 'exit') {
+     let preVersion = preInfo.preVersions.get(release.name);
+ 
+     if (preVersion === undefined) {
+-      throw new InternalError(`preVersion for ${release.name} does not exist when preState is defined`);
++      throw new InternalError(
++        `preVersion for ${release.name} does not exist when preState is defined`,
++      );
+     } // why are we adding this ourselves rather than passing 'pre' + versionType to semver.inc?
+     // because semver.inc with prereleases is confusing and this seems easier
+ 
+-
+     version += `-${preInfo.state.tag}.${preVersion}`;
+   }
+ 
+@@ -176,13 +184,7 @@ function incrementVersion(release, preInfo) {
+   We could solve this by inlining this function, or by returning a deep-cloned then
+   modified array, but we decided both of those are worse than this solution.
+ */
+-function determineDependents({
+-  releases,
+-  packagesByName,
+-  dependencyGraph,
+-  preInfo,
+-  config
+-}) {
++function determineDependents({ releases, packagesByName, dependencyGraph, preInfo, config }) {
+   let updated = false; // NOTE this is intended to be called recursively
+ 
+   let pkgsToSearch = [...releases.values()];
+@@ -195,96 +197,107 @@ function determineDependents({
+     const pkgDependents = dependencyGraph.get(nextRelease.name);
+ 
+     if (!pkgDependents) {
+-      throw new Error(`Error in determining dependents - could not find package in repository: ${nextRelease.name}`);
++      throw new Error(
++        `Error in determining dependents - could not find package in repository: ${nextRelease.name}`,
++      );
+     }
+ 
+-    pkgDependents.map(dependent => {
+-      let type;
+-      const dependentPackage = packagesByName.get(dependent);
+-      if (!dependentPackage) throw new Error("Dependency map is incorrect");
+-
+-      if (shouldSkipPackage(dependentPackage, {
+-        ignore: config.ignore,
+-        allowPrivatePackages: config.privatePackages.version
+-      })) {
+-        type = "none";
+-      } else {
+-        const dependencyVersionRanges = getDependencyVersionRanges(dependentPackage.packageJson, nextRelease);
+-
+-        for (const {
+-          depType,
+-          versionRange
+-        } of dependencyVersionRanges) {
+-          if (nextRelease.type === "none") {
+-            continue;
+-          } else if (shouldBumpMajor({
+-            dependent,
+-            depType,
+-            versionRange,
+-            releases,
++    pkgDependents
++      .map((dependent) => {
++        let type;
++        const dependentPackage = packagesByName.get(dependent);
++        if (!dependentPackage) throw new Error('Dependency map is incorrect');
++
++        if (
++          shouldSkipPackage(dependentPackage, {
++            ignore: config.ignore,
++            allowPrivatePackages: config.privatePackages.version,
++          })
++        ) {
++          type = 'none';
++        } else {
++          const dependencyVersionRanges = getDependencyVersionRanges(
++            dependentPackage.packageJson,
+             nextRelease,
+-            preInfo,
+-            onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
+-          })) {
+-            type = "major";
+-          } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semverSatisfies(incrementVersion(nextRelease, preInfo), versionRange))) {
+-            switch (depType) {
+-              case "dependencies":
+-              case "optionalDependencies":
+-              case "peerDependencies":
+-                if (type !== "major" && type !== "minor") {
+-                  type = "patch";
+-                }
++          );
++
++          for (const { depType, versionRange } of dependencyVersionRanges) {
++            if (nextRelease.type === 'none') {
++              continue;
++            } else if (
++              shouldBumpMajor({
++                dependent,
++                depType,
++                versionRange,
++                releases,
++                nextRelease,
++                preInfo,
++                onlyUpdatePeerDependentsWhenOutOfRange:
++                  config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH
++                    .onlyUpdatePeerDependentsWhenOutOfRange,
++              })
++            ) {
++              type = 'major';
++            } else if (
++              (!releases.has(dependent) || releases.get(dependent).type === 'none') &&
++              (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents ===
++                'always' ||
++                !semverSatisfies(incrementVersion(nextRelease, preInfo), versionRange))
++            ) {
++              switch (depType) {
++                case 'dependencies':
++                case 'optionalDependencies':
++                case 'peerDependencies':
++                  if (type !== 'major' && type !== 'minor') {
++                    type = 'patch';
++                  }
+ 
+-                break;
++                  break;
+ 
+-              case "devDependencies":
+-                {
++                case 'devDependencies': {
+                   // We don't need a version bump if the package is only in the devDependencies of the dependent package
+-                  if (type !== "major" && type !== "minor" && type !== "patch") {
+-                    type = "none";
++                  if (type !== 'major' && type !== 'minor' && type !== 'patch') {
++                    type = 'none';
+                   }
+                 }
++              }
+             }
+           }
+         }
+-      }
+ 
+-      if (releases.has(dependent) && releases.get(dependent).type === type) {
+-        type = undefined;
+-      }
++        if (releases.has(dependent) && releases.get(dependent).type === type) {
++          type = undefined;
++        }
+ 
+-      return {
+-        name: dependent,
+-        type,
+-        pkgJSON: dependentPackage.packageJson
+-      };
+-    }).filter(dependentItem => !!dependentItem.type).forEach(({
+-      name,
+-      type,
+-      pkgJSON
+-    }) => {
+-      // At this point, we know if we are making a change
+-      updated = true;
+-      const existing = releases.get(name); // For things that are being given a major bump, we check if we have already
+-      // added them here. If we have, we update the existing item instead of pushing it on to search.
+-      // It is safe to not add it to pkgsToSearch because it should have already been searched at the
+-      // largest possible bump type.
+-
+-      if (existing && type === "major" && existing.type !== "major") {
+-        existing.type = "major";
+-        pkgsToSearch.push(existing);
+-      } else {
+-        let newDependent = {
+-          name,
++        return {
++          name: dependent,
+           type,
+-          oldVersion: pkgJSON.version,
+-          changesets: []
++          pkgJSON: dependentPackage.packageJson,
+         };
+-        pkgsToSearch.push(newDependent);
+-        releases.set(name, newDependent);
+-      }
+-    });
++      })
++      .filter((dependentItem) => !!dependentItem.type)
++      .forEach(({ name, type, pkgJSON }) => {
++        // At this point, we know if we are making a change
++        updated = true;
++        const existing = releases.get(name); // For things that are being given a major bump, we check if we have already
++        // added them here. If we have, we update the existing item instead of pushing it on to search.
++        // It is safe to not add it to pkgsToSearch because it should have already been searched at the
++        // largest possible bump type.
++
++        if (existing && type === 'major' && existing.type !== 'major') {
++          existing.type = 'major';
++          pkgsToSearch.push(existing);
++        } else {
++          let newDependent = {
++            name,
++            type,
++            oldVersion: pkgJSON.version,
++            changesets: [],
++          };
++          pkgsToSearch.push(newDependent);
++          releases.set(name, newDependent);
++        }
++      });
+   }
+ 
+   return updated;
+@@ -296,27 +309,37 @@ function determineDependents({
+ */
+ 
+ function getDependencyVersionRanges(dependentPkgJSON, dependencyRelease) {
+-  const DEPENDENCY_TYPES = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
++  const DEPENDENCY_TYPES = [
++    'dependencies',
++    'devDependencies',
++    'peerDependencies',
++    'optionalDependencies',
++  ];
+   const dependencyVersionRanges = [];
+ 
+   for (const type of DEPENDENCY_TYPES) {
+     var _dependentPkgJSON$typ;
+ 
+-    const versionRange = (_dependentPkgJSON$typ = dependentPkgJSON[type]) === null || _dependentPkgJSON$typ === void 0 ? void 0 : _dependentPkgJSON$typ[dependencyRelease.name];
++    const versionRange =
++      (_dependentPkgJSON$typ = dependentPkgJSON[type]) === null || _dependentPkgJSON$typ === void 0
++        ? void 0
++        : _dependentPkgJSON$typ[dependencyRelease.name];
+     if (!versionRange) continue;
+ 
+-    if (versionRange.startsWith("workspace:")) {
++    if (versionRange.startsWith('workspace:')) {
+       dependencyVersionRanges.push({
+         depType: type,
+         versionRange: // intentionally keep other workspace ranges untouched
+-        // this has to be fixed but this should only be done when adding appropriate tests
+-        versionRange === "workspace:*" ? // workspace:* actually means the current exact version, and not a wildcard similar to a reguler * range
+-        dependencyRelease.oldVersion : versionRange.replace(/^workspace:/, "")
++          // this has to be fixed but this should only be done when adding appropriate tests
++          versionRange === 'workspace:*'
++            ? // workspace:* actually means the current exact version, and not a wildcard similar to a reguler * range
++              dependencyRelease.oldVersion
++            : versionRange.replace(/^workspace:/, ''),
+       });
+     } else {
+       dependencyVersionRanges.push({
+         depType: type,
+-        versionRange
++        versionRange,
+       });
+     }
+   }
+@@ -331,57 +354,67 @@ function shouldBumpMajor({
+   releases,
+   nextRelease,
+   preInfo,
+-  onlyUpdatePeerDependentsWhenOutOfRange
++  onlyUpdatePeerDependentsWhenOutOfRange,
+ }) {
+   // we check if it is a peerDependency because if it is, our dependent bump type might need to be major.
+-  return depType === "peerDependencies" && nextRelease.type !== "none" && nextRelease.type !== "patch" && ( // 1. If onlyUpdatePeerDependentsWhenOutOfRange set to true, bump major if the version is leaving the range.
+-  // 2. If onlyUpdatePeerDependentsWhenOutOfRange set to false, bump major regardless whether or not the version is leaving the range.
+-  !onlyUpdatePeerDependentsWhenOutOfRange || !semverSatisfies(incrementVersion(nextRelease, preInfo), versionRange)) && ( // bump major only if the dependent doesn't already has a major release.
+-  !releases.has(dependent) || releases.has(dependent) && releases.get(dependent).type !== "major");
++  return (
++    depType === 'peerDependencies' &&
++    nextRelease.type !== 'none' &&
++    nextRelease.type !== 'patch' && // 1. If onlyUpdatePeerDependentsWhenOutOfRange set to true, bump major if the version is leaving the range.
++    // 2. If onlyUpdatePeerDependentsWhenOutOfRange set to false, bump major regardless whether or not the version is leaving the range.
++    (!onlyUpdatePeerDependentsWhenOutOfRange ||
++      !semverSatisfies(incrementVersion(nextRelease, preInfo), versionRange)) && // bump major only if the dependent doesn't already has a major release.
++    (!releases.has(dependent) ||
++      (releases.has(dependent) && releases.get(dependent).type !== 'major'))
++  );
+ }
+ 
+ // This function takes in changesets and returns one release per
+ function flattenReleases(changesets, packagesByName, config) {
+   let releases = new Map();
+-  changesets.forEach(changeset => {
++  changesets.forEach((changeset) => {
+     changeset.releases // Filter out skipped packages because they should not trigger a release
+-    // If their dependencies need updates, they will be added to releases by `determineDependents()` with release type `none`
+-    .filter(({
+-      name
+-    }) => !shouldSkipPackage(packagesByName.get(name), {
+-      ignore: config.ignore,
+-      allowPrivatePackages: config.privatePackages.version
+-    })).forEach(({
+-      name,
+-      type
+-    }) => {
+-      let release = releases.get(name);
+-      let pkg = packagesByName.get(name);
+-
+-      if (!pkg) {
+-        throw new Error(`"${changeset.id}" changeset mentions a release for a package "${name}" but such a package could not be found.`);
+-      }
+-
+-      if (!release) {
+-        release = {
+-          name,
+-          type,
+-          oldVersion: pkg.packageJson.version,
+-          changesets: [changeset.id]
+-        };
+-      } else {
+-        if (type === "major" || (release.type === "patch" || release.type === "none") && (type === "minor" || type === "patch")) {
+-          release.type = type;
+-        } // Check whether the bumpType will change
+-        // If the bumpType has changed recalc newVersion
+-        // push new changeset to releases
+-
++      // If their dependencies need updates, they will be added to releases by `determineDependents()` with release type `none`
++      .filter(
++        ({ name }) =>
++          !shouldSkipPackage(packagesByName.get(name), {
++            ignore: config.ignore,
++            allowPrivatePackages: config.privatePackages.version,
++          }),
++      )
++      .forEach(({ name, type }) => {
++        let release = releases.get(name);
++        let pkg = packagesByName.get(name);
++
++        if (!pkg) {
++          throw new Error(
++            `"${changeset.id}" changeset mentions a release for a package "${name}" but such a package could not be found.`,
++          );
++        }
+ 
+-        release.changesets.push(changeset.id);
+-      }
++        if (!release) {
++          release = {
++            name,
++            type,
++            oldVersion: pkg.packageJson.version,
++            changesets: [changeset.id],
++          };
++        } else {
++          if (
++            type === 'major' ||
++            ((release.type === 'patch' || release.type === 'none') &&
++              (type === 'minor' || type === 'patch'))
++          ) {
++            release.type = type;
++          } // Check whether the bumpType will change
++          // If the bumpType has changed recalc newVersion
++          // push new changeset to releases
++
++          release.changesets.push(changeset.id);
++        }
+ 
+-      releases.set(name, release);
+-    });
++        releases.set(name, release);
++      });
+   });
+   return releases;
+ }
+@@ -390,16 +423,20 @@ function matchFixedConstraint(releases, packagesByName, config) {
+   let updated = false;
+ 
+   for (let fixedPackages of config.fixed) {
+-    let releasingFixedPackages = [...releases.values()].filter(release => fixedPackages.includes(release.name) && release.type !== "none");
++    let releasingFixedPackages = [...releases.values()].filter(
++      (release) => fixedPackages.includes(release.name) && release.type !== 'none',
++    );
+     if (releasingFixedPackages.length === 0) continue;
+     let highestReleaseType = getHighestReleaseType(releasingFixedPackages);
+     let highestVersion = getCurrentHighestVersion(fixedPackages, packagesByName); // Finally, we update the packages so all of them are on the highest version
+ 
+     for (let pkgName of fixedPackages) {
+-      if (shouldSkipPackage(packagesByName.get(pkgName), {
+-        ignore: config.ignore,
+-        allowPrivatePackages: config.privatePackages.version
+-      })) {
++      if (
++        shouldSkipPackage(packagesByName.get(pkgName), {
++          ignore: config.ignore,
++          allowPrivatePackages: config.privatePackages.version,
++        })
++      ) {
+         continue;
+       }
+ 
+@@ -411,7 +448,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
+           name: pkgName,
+           type: highestReleaseType,
+           oldVersion: highestVersion,
+-          changesets: []
++          changesets: [],
+         });
+         continue;
+       }
+@@ -433,10 +470,10 @@ function matchFixedConstraint(releases, packagesByName, config) {
  
  function getPreVersion(version) {
    let parsed = semverParse(version);
 -  let preVersion = parsed.prerelease[1] === undefined ? -1 : parsed.prerelease[1];
 +  let preVersion = parsed?.prerelease[1] === undefined ? -1 : parsed.prerelease[1];
  
-   if (typeof preVersion !== "number") {
-     throw new InternalError("preVersion is not a number");
+-  if (typeof preVersion !== "number") {
+-    throw new InternalError("preVersion is not a number");
++  if (typeof preVersion !== 'number') {
++    throw new InternalError('preVersion is not a number');
+   }
+ 
+   preVersion++;
+@@ -449,26 +486,33 @@ function getSnapshotSuffix(template, snapshotParameters) {
+     commit: snapshotParameters.commit,
+     tag: snapshotParameters.tag,
+     timestamp: snapshotRefDate.getTime().toString(),
+-    datetime: snapshotRefDate.toISOString().replace(/\.\d{3}Z$/, "").replace(/[^\d]/g, "")
++    datetime: snapshotRefDate
++      .toISOString()
++      .replace(/\.\d{3}Z$/, '')
++      .replace(/[^\d]/g, ''),
+   }; // We need a special handling because we need to handle a case where `--snapshot` is used without any template,
+   // and the resulting version needs to be composed without a tag.
+ 
+   if (!template) {
+-    return [placeholderValues.tag, placeholderValues.datetime].filter(Boolean).join("-");
++    return [placeholderValues.tag, placeholderValues.datetime].filter(Boolean).join('-');
+   }
+ 
+   const placeholders = Object.keys(placeholderValues);
+ 
+   if (!template.includes(`{tag}`) && placeholderValues.tag !== undefined) {
+-    throw new Error(`Failed to compose snapshot version: "{tag}" placeholder is missing, but the snapshot parameter is defined (value: '${placeholderValues.tag}')`);
++    throw new Error(
++      `Failed to compose snapshot version: "{tag}" placeholder is missing, but the snapshot parameter is defined (value: '${placeholderValues.tag}')`,
++    );
+   }
+ 
+   return placeholders.reduce((prev, key) => {
+-    return prev.replace(new RegExp(`\\{${key}\\}`, "g"), () => {
++    return prev.replace(new RegExp(`\\{${key}\\}`, 'g'), () => {
+       const value = placeholderValues[key];
+ 
+       if (value === undefined) {
+-        throw new Error(`Failed to compose snapshot version: "{${key}}" placeholder is used without having a value defined!`);
++        throw new Error(
++          `Failed to compose snapshot version: "{${key}}" placeholder is used without having a value defined!`,
++        );
+       }
+ 
+       return value;
+@@ -477,7 +521,7 @@ function getSnapshotSuffix(template, snapshotParameters) {
+ }
+ 
+ function getSnapshotVersion(release, preInfo, useCalculatedVersion, snapshotSuffix) {
+-  if (release.type === "none") {
++  if (release.type === 'none') {
+     return release.oldVersion;
+   }
+   /**
+@@ -490,46 +534,67 @@ function getSnapshotVersion(release, preInfo, useCalculatedVersion, snapshotSuff
+    * You can set `snapshot.useCalculatedVersion` flag to true to use calculated versions if you don't care about the above problem.
+    */
+ 
+-
+   const baseVersion = useCalculatedVersion ? incrementVersion(release, preInfo) : `0.0.0`;
+   return `${baseVersion}-${snapshotSuffix}`;
+ }
+ 
+ function getNewVersion(release, preInfo) {
+-  if (release.type === "none") {
++  if (release.type === 'none') {
+     return release.oldVersion;
+   }
+ 
+   return incrementVersion(release, preInfo);
+ }
+ 
+-function assembleReleasePlan(changesets, packages, config, // intentionally not using an optional parameter here so the result of `readPreState` has to be passed in here
+-preState, // snapshot: undefined            ->  not using snaphot
+-// snapshot: { tag: undefined }   ->  --snapshot (empty tag)
+-// snapshot: { tag: "canary" }    ->  --snapshot canary
+-snapshot) {
++function assembleReleasePlan(
++  changesets,
++  packages,
++  config, // intentionally not using an optional parameter here so the result of `readPreState` has to be passed in here
++  preState, // snapshot: undefined            ->  not using snaphot
++  // snapshot: { tag: undefined }   ->  --snapshot (empty tag)
++  // snapshot: { tag: "canary" }    ->  --snapshot canary
++  snapshot,
++) {
+   // TODO: remove `refined*` in the next major version of this package
+   // just use `config` and `snapshot` parameters directly, typed as: `config: Config, snapshot?: SnapshotReleaseParameters`
+-  const refinedConfig = config.snapshot ? config : _objectSpread2(_objectSpread2({}, config), {}, {
+-    snapshot: {
+-      prereleaseTemplate: null,
+-      useCalculatedVersion: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.useCalculatedVersionForSnapshots
+-    }
+-  });
+-  const refinedSnapshot = typeof snapshot === "string" ? {
+-    tag: snapshot
+-  } : typeof snapshot === "boolean" ? {
+-    tag: undefined
+-  } : snapshot;
+-  let packagesByName = new Map(packages.packages.map(x => [x.packageJson.name, x]));
+-  const relevantChangesets = getRelevantChangesets(changesets, packagesByName, refinedConfig, preState);
++  const refinedConfig = config.snapshot
++    ? config
++    : _objectSpread2(
++        _objectSpread2({}, config),
++        {},
++        {
++          snapshot: {
++            prereleaseTemplate: null,
++            useCalculatedVersion:
++              config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH
++                .useCalculatedVersionForSnapshots,
++          },
++        },
++      );
++  const refinedSnapshot =
++    typeof snapshot === 'string'
++      ? {
++          tag: snapshot,
++        }
++      : typeof snapshot === 'boolean'
++        ? {
++            tag: undefined,
++          }
++        : snapshot;
++  let packagesByName = new Map(packages.packages.map((x) => [x.packageJson.name, x]));
++  const relevantChangesets = getRelevantChangesets(
++    changesets,
++    packagesByName,
++    refinedConfig,
++    preState,
++  );
+   const preInfo = getPreInfo(changesets, packagesByName, refinedConfig, preState); // releases is, at this point a list of all packages we are going to releases,
+   // flattened down to one release per package, having a reference back to their
+   // changesets, and with a calculated new versions
+ 
+   let releases = flattenReleases(relevantChangesets, packagesByName, refinedConfig);
+   let dependencyGraph = getDependentsGraph(packages, {
+-    bumpVersionsWithWorkspaceProtocolOnly: refinedConfig.bumpVersionsWithWorkspaceProtocolOnly
++    bumpVersionsWithWorkspaceProtocolOnly: refinedConfig.bumpVersionsWithWorkspaceProtocolOnly,
+   });
+   let releasesValidated = false;
+ 
+@@ -540,7 +605,7 @@ snapshot) {
+       packagesByName,
+       dependencyGraph,
+       preInfo,
+-      config: refinedConfig
++      config: refinedConfig,
+     }); // `releases` might get mutated here
+ 
+     let fixedConstraintUpdated = matchFixedConstraint(releases, packagesByName, refinedConfig);
+@@ -548,7 +613,7 @@ snapshot) {
+     releasesValidated = !linksUpdated && !dependentAdded && !fixedConstraintUpdated;
+   }
+ 
+-  if ((preInfo === null || preInfo === void 0 ? void 0 : preInfo.state.mode) === "exit") {
++  if ((preInfo === null || preInfo === void 0 ? void 0 : preInfo.state.mode) === 'exit') {
+     for (let pkg of packages.packages) {
+       // If a package had a prerelease, but didn't trigger a version bump in the regular release,
+       // we want to give it a patch release.
+@@ -559,30 +624,45 @@ snapshot) {
+         if (!existingRelease) {
+           releases.set(pkg.packageJson.name, {
+             name: pkg.packageJson.name,
+-            type: "patch",
++            type: 'patch',
+             oldVersion: pkg.packageJson.version,
+-            changesets: []
++            changesets: [],
+           });
+-        } else if (existingRelease.type === "none" && !shouldSkipPackage(pkg, {
+-          ignore: refinedConfig.ignore,
+-          allowPrivatePackages: refinedConfig.privatePackages.version
+-        })) {
+-          existingRelease.type = "patch";
++        } else if (
++          existingRelease.type === 'none' &&
++          !shouldSkipPackage(pkg, {
++            ignore: refinedConfig.ignore,
++            allowPrivatePackages: refinedConfig.privatePackages.version,
++          })
++        ) {
++          existingRelease.type = 'patch';
+         }
+       }
+     }
+   } // Caching the snapshot version here and use this if it is snapshot release
+ 
+-
+-  const snapshotSuffix = refinedSnapshot && getSnapshotSuffix(refinedConfig.snapshot.prereleaseTemplate, refinedSnapshot);
++  const snapshotSuffix =
++    refinedSnapshot &&
++    getSnapshotSuffix(refinedConfig.snapshot.prereleaseTemplate, refinedSnapshot);
+   return {
+     changesets: relevantChangesets,
+-    releases: [...releases.values()].map(incompleteRelease => {
+-      return _objectSpread2(_objectSpread2({}, incompleteRelease), {}, {
+-        newVersion: snapshotSuffix ? getSnapshotVersion(incompleteRelease, preInfo, refinedConfig.snapshot.useCalculatedVersion, snapshotSuffix) : getNewVersion(incompleteRelease, preInfo)
+-      });
++    releases: [...releases.values()].map((incompleteRelease) => {
++      return _objectSpread2(
++        _objectSpread2({}, incompleteRelease),
++        {},
++        {
++          newVersion: snapshotSuffix
++            ? getSnapshotVersion(
++                incompleteRelease,
++                preInfo,
++                refinedConfig.snapshot.useCalculatedVersion,
++                snapshotSuffix,
++              )
++            : getNewVersion(incompleteRelease, preInfo),
++        },
++      );
+     }),
+-    preState: preInfo === null || preInfo === void 0 ? void 0 : preInfo.state
++    preState: preInfo === null || preInfo === void 0 ? void 0 : preInfo.state,
+   };
+ }
+ 
+@@ -597,13 +677,17 @@ function getRelevantChangesets(changesets, packagesByName, config, preState) {
+       const packageByName = packagesByName.get(release.name);
+ 
+       if (!packageByName) {
+-        throw new Error(`Found changeset ${changeset.id} for package ${release.name} which is not in the workspace`);
++        throw new Error(
++          `Found changeset ${changeset.id} for package ${release.name} which is not in the workspace`,
++        );
+       }
+ 
+-      if (shouldSkipPackage(packageByName, {
+-        ignore: config.ignore,
+-        allowPrivatePackages: config.privatePackages.version
+-      })) {
++      if (
++        shouldSkipPackage(packageByName, {
++          ignore: config.ignore,
++          allowPrivatePackages: config.privatePackages.version,
++        })
++      ) {
+         skippedPackages.push(release.name);
+       } else {
+         notSkippedPackages.push(release.name);
+@@ -611,13 +695,18 @@ function getRelevantChangesets(changesets, packagesByName, config, preState) {
+     }
+ 
+     if (skippedPackages.length > 0 && notSkippedPackages.length > 0) {
+-      throw new Error(`Found mixed changeset ${changeset.id}\n` + `Found ignored packages: ${skippedPackages.join(" ")}\n` + `Found not ignored packages: ${notSkippedPackages.join(" ")}\n` + "Mixed changesets that contain both ignored and not ignored packages are not allowed");
++      throw new Error(
++        `Found mixed changeset ${changeset.id}\n` +
++          `Found ignored packages: ${skippedPackages.join(' ')}\n` +
++          `Found not ignored packages: ${notSkippedPackages.join(' ')}\n` +
++          'Mixed changesets that contain both ignored and not ignored packages are not allowed',
++      );
+     }
+   }
+ 
+-  if (preState && preState.mode !== "exit") {
++  if (preState && preState.mode !== 'exit') {
+     let usedChangesetIds = new Set(preState.changesets);
+-    return changesets.filter(changeset => !usedChangesetIds.has(changeset.id));
++    return changesets.filter((changeset) => !usedChangesetIds.has(changeset.id));
+   }
+ 
+   return changesets;
+@@ -627,7 +716,10 @@ function getHighestPreVersion(packageGroup, packagesByName) {
+   let highestPreVersion = 0;
+ 
+   for (let pkg of packageGroup) {
+-    highestPreVersion = Math.max(getPreVersion(packagesByName.get(pkg).packageJson.version), highestPreVersion);
++    highestPreVersion = Math.max(
++      getPreVersion(packagesByName.get(pkg).packageJson.version),
++      highestPreVersion,
++    );
+   }
+ 
+   return highestPreVersion;
+@@ -638,10 +730,14 @@ function getPreInfo(changesets, packagesByName, config, preState) {
+     return;
+   }
+ 
+-  let updatedPreState = _objectSpread2(_objectSpread2({}, preState), {}, {
+-    changesets: changesets.map(changeset => changeset.id),
+-    initialVersions: _objectSpread2({}, preState.initialVersions)
+-  });
++  let updatedPreState = _objectSpread2(
++    _objectSpread2({}, preState),
++    {},
++    {
++      changesets: changesets.map((changeset) => changeset.id),
++      initialVersions: _objectSpread2({}, preState.initialVersions),
++    },
++  );
+ 
+   for (const [, pkg] of packagesByName) {
+     if (updatedPreState.initialVersions[pkg.packageJson.name] === undefined) {
+@@ -650,7 +746,6 @@ function getPreInfo(changesets, packagesByName, config, preState) {
+   } // Populate preVersion
+   // preVersion is the map between package name and its next pre version number.
+ 
+-
+   let preVersions = new Map();
+ 
+   for (const [, pkg] of packagesByName) {
+@@ -675,7 +770,7 @@ function getPreInfo(changesets, packagesByName, config, preState) {
+ 
+   return {
+     state: updatedPreState,
+-    preVersions
++    preVersions,
+   };
+ }
+ 

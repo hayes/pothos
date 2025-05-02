@@ -1,7 +1,13 @@
 import { type SchemaTypes, createContextCache } from '@pothos/core';
-import { type Column, type TableRelationalConfig, inArray, sql } from 'drizzle-orm';
+import {
+  type AnyTable,
+  type Column,
+  type SQL,
+  type TableRelationalConfig,
+  inArray,
+  sql,
+} from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { DrizzleClient } from './types';
 import { type PothosDrizzleSchemaConfig, getClient, getSchemaConfig } from './utils/config';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
 import { selectionStateFromInfo, stateFromInfo } from './utils/map-query';
@@ -35,7 +41,8 @@ export class ModelLoader {
   config: PothosDrizzleSchemaConfig;
   table: TableRelationalConfig;
   columns: Column[];
-  selectSQL;
+  primaryKey: Column[];
+  selectSQL: (table: AnyTable<{}>) => SQL;
 
   constructor(
     context: object,
@@ -47,12 +54,17 @@ export class ModelLoader {
     this.builder = builder;
     this.modelName = modelName;
     this.config = getSchemaConfig(builder);
-    this.table = this.config.schema[modelName];
-    this.columns = columns ?? this.table.primaryKey;
-    this.selectSQL =
-      this.columns.length > 1
-        ? sql`(${sql.join(this.columns, sql`, `)})`
-        : this.columns[0].getSQL();
+    this.table = this.config.relations.tablesConfig[modelName];
+    this.primaryKey = this.config.getPrimaryKey(modelName);
+    this.columns = columns ?? this.primaryKey;
+    this.selectSQL = (table) => {
+      const columns = this.columns.map((column) =>
+        Object.values(table).find(
+          (tblColumn) => 'columnType' in tblColumn && tblColumn.name === column.name,
+        ),
+      );
+      return columns.length > 1 ? sql`(${sql.join(columns, sql`, `)})` : columns[0].getSQL();
+    };
   }
 
   static forModel<Types extends SchemaTypes>(
@@ -84,7 +96,7 @@ export class ModelLoader {
       const selection = selectionStateFromInfo(this.config, this.context, info);
       this.queryCache.set(key, {
         selection,
-        query: selectionToQuery(selection),
+        query: selectionToQuery(this.config, selection),
       });
     }
 
@@ -103,7 +115,7 @@ export class ModelLoader {
 
       this.queryCache.set(key, {
         selection,
-        query: selectionToQuery(selection),
+        query: selectionToQuery(this.config, selection),
       });
     }
 
@@ -176,18 +188,21 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...selectionToQuery(selection),
-          where: inArray(
-            this.selectSQL,
-            [...entry.models.keys()].map((model) => this.sqlForModel(model)),
-          ),
+          ...selectionToQuery(this.config, selection),
+          where: {
+            RAW: (table: AnyTable<{}>) =>
+              inArray(
+                this.selectSQL(table),
+                [...entry.models.keys()].map((model) => this.sqlForModel(model)),
+              ),
+          },
         });
 
         query.then(
           (results) => {
             for (const [model, promise] of entry.models.entries()) {
               const result = results.find((row) =>
-                this.table.primaryKey.every(
+                this.primaryKey.every(
                   (key) => row[key.name] === (model as Record<string, unknown>)[key.name],
                 ),
               );

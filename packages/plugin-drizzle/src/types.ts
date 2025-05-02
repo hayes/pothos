@@ -25,15 +25,14 @@ import {
   typeBrandKey,
 } from '@pothos/core';
 import type {
+  AnyRelations,
   BuildQueryResult,
   Column,
   DBQueryConfig,
   Many,
   Relation,
-  RelationalSchemaConfig,
-  SQL,
+  Table,
   TableRelationalConfig,
-  TablesRelationalConfig,
 } from 'drizzle-orm';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
@@ -42,7 +41,12 @@ import type { IndirectInclude } from './utils/map-query';
 import type { SelectionMap } from './utils/selections';
 
 export type DrizzleClient = {
-  _: Partial<RelationalSchemaConfig<TablesRelationalConfig>>;
+  readonly _: {
+    readonly schema: unknown;
+    readonly fullSchema: Record<string, unknown>;
+    readonly tableNamesMap: Record<string, string>;
+    readonly relations: AnyRelations;
+  };
   query: {};
 };
 
@@ -53,11 +57,23 @@ export type DrizzlePluginOptions<Types extends SchemaTypes> = {
 } & (
   | {
       client: DrizzleClient;
-      schema?: Record<string, unknown>;
+      getTableConfig: (table: Table) => {
+        primaryKeys: {
+          readonly columns: Column[];
+        }[];
+        readonly columns: Column[];
+      };
+      relations?: Types['DrizzleRelations'];
     }
   | {
       client: (ctx: Types['Context']) => DrizzleClient;
-      schema: Record<string, unknown>;
+      getTableConfig: (table: Table) => {
+        primaryKeys: {
+          readonly columns: Column[];
+        }[];
+        readonly columns: Column[];
+      };
+      relations?: Types['DrizzleRelations'];
     }
 );
 
@@ -75,7 +91,7 @@ type NameOrVariant =
 
 export type DrizzleObjectOptions<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'],
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
@@ -85,7 +101,7 @@ export type DrizzleObjectOptions<
     fields?: (
       t: DrizzleObjectFieldBuilder<
         Types,
-        Types['DrizzleRelationSchema'][Table],
+        Types['DrizzleRelationsConfig'][Table],
         Shape & { [drizzleTableName]?: Table }
       >,
     ) => FieldMap;
@@ -93,7 +109,7 @@ export type DrizzleObjectOptions<
 
 export type DrizzleInterfaceOptions<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'],
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
@@ -108,7 +124,7 @@ export type DrizzleInterfaceOptions<
     fields?: (
       t: DrizzleObjectFieldBuilder<
         Types,
-        Types['DrizzleRelationSchema'][Table],
+        Types['DrizzleRelationsConfig'][Table],
         Shape & { [drizzleTableName]?: Table }
       >,
     ) => FieldMap;
@@ -116,11 +132,11 @@ export type DrizzleInterfaceOptions<
 
 export type DrizzleNodeOptions<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'],
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
-  IDColumn extends Column,
+  IDColumns,
 > = NameOrVariant &
   Omit<
     | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
@@ -140,26 +156,46 @@ export type DrizzleNodeOptions<
       >,
       'args' | 'nullable' | 'type' | InferredFieldOptionKeys
     > & {
-      column:
-        | IDColumn
-        | IDColumn[]
-        | ((columns: Types['DrizzleRelationSchema'][Table]['columns']) => IDColumn | IDColumn[]);
+      column: IDColumns &
+        (
+          | Column
+          | Column[]
+          | ((columns: Types['DrizzleRelationsConfig'][Table]['columns']) => Column | Column[])
+        );
     };
     name: string;
     select?: Selection;
     fields?: (
       t: DrizzleObjectFieldBuilder<
         Types,
-        Types['DrizzleRelationSchema'][Table],
+        Types['DrizzleRelationsConfig'][Table],
         Shape & { [drizzleTableName]?: Table }
       >,
     ) => FieldMap;
   };
 
+export type ShapeFromIdColumns<
+  Types extends SchemaTypes,
+  Table extends keyof Types['DrizzleRelationsConfig'],
+  IDColumns,
+> = IDColumns extends Column
+  ? IDColumns['_']['data']
+  : IDColumns extends Column[]
+    ? {
+        [K in IDColumns[number]['_']['name']]: Extract<
+          IDColumns[number],
+          { _: { name: K } }
+        >['_']['data'];
+      }
+    : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      IDColumns extends ((...args: any[]) => infer R extends Column | Column[])
+      ? ShapeFromIdColumns<Types, Table, R>
+      : never;
+
 export type DrizzleFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Table extends keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'],
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
@@ -193,7 +229,7 @@ export type DrizzleFieldOptions<
 export type DrizzleFieldWithInputOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Table extends keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'],
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
@@ -239,7 +275,7 @@ export type DrizzleObjectFieldOptions<
       unknown extends Select
         ? ParentShape
         : BuildQueryResult<
-            Types['DrizzleRelationSchema'],
+            Types['DrizzleRelationsConfig'],
             ExtractTable<Types, ParentShape>,
             // biome-ignore lint/suspicious/noExplicitAny: <explanation>
             Record<string, unknown> & (Select extends (...args: any[]) => infer R ? R : Select)
@@ -267,12 +303,7 @@ export type DrizzleObjectFieldOptions<
   > & {
     select?: Select &
       (
-        | DBQueryConfig<
-            'one',
-            false,
-            Types['DrizzleRelationSchema'],
-            ExtractTable<Types, ParentShape>
-          >
+        | DBQueryConfig<'one', Types['DrizzleRelationsConfig'], ExtractTable<Types, ParentShape>>
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
@@ -282,15 +313,14 @@ export type DrizzleObjectFieldOptions<
             ) => Selection,
           ) => DBQueryConfig<
             'one',
-            false,
-            Types['DrizzleRelationSchema'],
+            Types['DrizzleRelationsConfig'],
             ExtractTable<Types, ParentShape>
           >)
       );
   };
 
 export type DrizzleFieldSelection =
-  | DBQueryConfig<'one', false>
+  | DBQueryConfig<'one'>
   | ((
       args: {},
       ctx: object,
@@ -298,17 +328,17 @@ export type DrizzleFieldSelection =
         selection:
           | SelectionMap
           | boolean
-          | ((args: object, context: object) => DBQueryConfig<'one', false>),
+          | ((args: object, context: object) => DBQueryConfig<'one'>),
         path?: IndirectInclude | string[],
         type?: string,
-      ) => DBQueryConfig<'one', false> | boolean,
+      ) => DBQueryConfig<'one'> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap);
 
 export type ExtractTable<Types extends SchemaTypes, Shape> = Shape extends {
-  [drizzleTableName]?: keyof Types['DrizzleRelationSchema'];
+  [drizzleTableName]?: keyof Types['DrizzleRelationsConfig'];
 }
-  ? Types['DrizzleRelationSchema'][NonNullable<Shape[typeof drizzleTableName]>]
+  ? Types['DrizzleRelationsConfig'][NonNullable<Shape[typeof drizzleTableName]>]
   : never;
 
 export type RelatedFieldOptions<
@@ -341,7 +371,7 @@ export type RelatedFieldOptions<
 
 export type VariantFieldOptions<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'],
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   Variant extends DrizzleRef<any, Table> | Table,
   Args extends InputFieldMap,
@@ -370,7 +400,7 @@ export type VariantFieldOptions<
           unknown extends ResolveShape
             ? Shape
             : BuildQueryResult<
-                Types['DrizzleRelationSchema'],
+                Types['DrizzleRelationsConfig'],
                 ExtractTable<Types, Shape>,
                 Record<string, unknown> &
                   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -393,8 +423,8 @@ export type RefForRelation<Types extends SchemaTypes, Rel extends Relation> = Re
   : [ObjectRef<Types, TypesForRelation<Types, Rel>>];
 
 export type TypesForRelation<Types extends SchemaTypes, Rel extends Relation> = BuildQueryResult<
-  Types['DrizzleRelationSchema'],
-  Types['DrizzleRelationSchemaByDbName'][Rel['referencedTableName']],
+  Types['DrizzleRelationsConfig'],
+  Types['DrizzleRelationsConfig'][Rel['targetTable']['_']['name']],
   true
 >;
 
@@ -409,18 +439,16 @@ export type QueryForField<
     ? Omit<
         DBQueryConfig<
           'one',
-          false,
-          Types['DrizzleRelationSchema'],
-          Types['DrizzleRelationSchemaByDbName'][Rel['referencedTableName']]
+          Types['DrizzleRelationsConfig'],
+          Types['DrizzleRelationsConfig'][Rel['targetTable']['_']['name']]
         >,
         'columns' | 'extra' | 'with'
       >
     : Omit<
         DBQueryConfig<
           'many',
-          false,
-          Types['DrizzleRelationSchema'],
-          Types['DrizzleRelationSchemaByDbName'][Rel['referencedTableName']]
+          Types['DrizzleRelationsConfig'],
+          Types['DrizzleRelationsConfig'][Rel['targetTable']['_']['name']]
         >,
         'columns' | 'extra' | 'with'
       >
@@ -431,13 +459,13 @@ export type QueryForField<
 export type QueryForDrizzleField<
   Types extends SchemaTypes,
   Param,
-  Table extends keyof Types['DrizzleRelationSchema'],
+  Table extends keyof Types['DrizzleRelationsConfig'],
 > = Omit<
   DBQueryConfig<
     'many',
-    true,
-    Types['DrizzleRelationSchema'],
-    Types['DrizzleRelationSchema'][Table]
+    Types['DrizzleRelationsConfig'],
+    Types['DrizzleRelationsConfig'][Table],
+    true
   >,
   Param extends [unknown] ? never : 'limit'
 >;
@@ -447,10 +475,10 @@ export type QueryForRelatedConnection<
   Table extends TableRelationalConfig,
   Args,
 > = Omit<
-  DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
-  'orderBy' | 'limit' | 'offset' | 'columns' | 'extra' | 'with'
+  DBQueryConfig<'many', Types['DrizzleRelationsConfig'], Table>,
+  'limit' | 'offset' | 'columns' | 'extra' | 'with' | 'orderBy'
 > & {
-  orderBy?: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
+  orderBy?: ConnectionOrderBy<Table> | ((columns: Table['columns']) => ConnectionOrderBy<Table>);
 } extends infer QueryConfig
   ? QueryConfig | ((args: Args, context: Types['Context']) => QueryConfig)
   : never;
@@ -459,21 +487,21 @@ export type QueryForDrizzleConnection<
   Types extends SchemaTypes,
   Table extends TableRelationalConfig,
 > = Omit<
-  DBQueryConfig<'many', false, Types['DrizzleRelationSchema'], Table>,
-  'orderBy' | 'limit' | 'offset'
+  DBQueryConfig<'many', Types['DrizzleRelationsConfig'], Table>,
+  'limit' | 'offset' | 'orderBy'
 > & {
-  orderBy?: ConnectionOrderBy | ((columns: Table['columns']) => ConnectionOrderBy);
+  orderBy?: ConnectionOrderBy<Table> | ((columns: Table['columns']) => ConnectionOrderBy<Table>);
 };
 
 export type ListRelation<T extends TableRelationalConfig> = {
-  [K in keyof T['relations']]: T['relations'][K] extends Many<string> ? K : never;
+  [K in keyof T['relations']]: T['relations'][K] extends Many<string, string> ? K : never;
 }[keyof T['relations']];
 
 export type DrizzleConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  DrizzleRef<any, keyof Types['DrizzleRelationSchema']> | keyof Types['DrizzleRelationSchema'],
+  DrizzleRef<any, keyof Types['DrizzleRelationsConfig']> | keyof Types['DrizzleRelationsConfig'],
   TableConfig extends TableRelationalConfig,
   Param extends OutputType<Types>,
   Nullable extends boolean,
@@ -517,7 +545,11 @@ export type DrizzleConnectionFieldOptions<
         resolve: (
           query: <T extends QueryForRelatedConnection<Types, TableConfig, ConnectionArgs>>(
             selection?: T,
-          ) => Omit<T, 'orderBy'> & { orderBy: SQL },
+          ) => Omit<T, 'orderBy'> & {
+            orderBy: {
+              [K in keyof TableConfig['columns']]?: 'asc' | 'desc' | undefined;
+            };
+          },
           parent: ParentShape,
           args: ConnectionArgs,
           context: Types['Context'],
@@ -538,7 +570,7 @@ export type RelatedConnectionOptions<
   Nullable extends boolean,
   Args extends InputFieldMap,
   NodeTable extends
-    TableRelationalConfig = Types['DrizzleRelationSchemaByDbName'][Table['relations'][Field]['referencedTableName']],
+    TableRelationalConfig = Types['DrizzleRelationsConfig'][Table['relations'][Field]['targetTable']['_']['name']],
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -581,7 +613,7 @@ export type RelatedConnectionOptions<
         >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-        type?: DrizzleRef<any, Table['relations'][Field]['referencedTableName']>;
+        type?: DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
@@ -589,11 +621,12 @@ export type RelatedConnectionOptions<
       }
     : never);
 
-export type ConnectionOrderBy =
+export type ConnectionOrderBy<T extends TableRelationalConfig> =
   | Column
-  | { asc: Column }
-  | { desc: Column }
-  | (Column | { asc: Column } | { desc: Column })[];
+  | Column[]
+  | {
+      [K in keyof T['columns']]?: 'asc' | 'desc' | undefined;
+    };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
 

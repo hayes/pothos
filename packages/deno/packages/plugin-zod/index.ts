@@ -1,10 +1,10 @@
 // @ts-nocheck
 import './global-types.ts';
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import SchemaBuilder, { BasePlugin, type InputTypeFieldsMapping, mapInputFields, type PothosInputFieldConfig, type PothosInputFieldType, type PothosOutputFieldConfig, PothosSchemaError, PothosValidationError, resolveInputTypeConfig, type SchemaTypes, } from '../core/index.ts';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import * as zod from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
-import SchemaBuilder, { BasePlugin, mapInputFields, PothosInputFieldConfig, PothosInputFieldType, PothosOutputFieldConfig, PothosSchemaError, PothosValidationError, resolveInputTypeConfig, SchemaTypes, } from '../core/index.ts';
 import createZodSchema, { combine, createArrayValidator, isArrayValidator, refine, } from './createZodSchema.ts';
-import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types.ts';
+import type { RefineConstraint, ValidationOptionUnion, ValidationOptions } from './types.ts';
 export * from './types.ts';
 const pluginName = "zod";
 export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -34,19 +34,20 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
         });
         return fieldConfig;
     }
+    private mappingCache = new Map<string, InputTypeFieldsMapping<Types, zod.ZodType<unknown>>>();
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         // Only used to check if validation is required
-        const argMap = mapInputFields(fieldConfig.args, this.buildCache, (field) => field.extensions?.validator ?? null);
+        const argMap = mapInputFields(fieldConfig.args, this.buildCache, (field) => field.extensions?.validator ?? null, this.mappingCache);
         if (!argMap && !fieldConfig.pothosOptions.validate) {
             return resolver;
         }
         const args: Record<string, zod.ZodType<unknown>> = {};
-        Object.keys(fieldConfig.args).forEach((argName) => {
-            const validator = fieldConfig.args[argName].extensions?.validator as zod.ZodType<unknown> | undefined;
+        for (const [argName, arg] of Object.entries(fieldConfig.args)) {
+            const validator = arg.extensions?.validator as zod.ZodType<unknown> | undefined;
             if (validator) {
                 args[argName] = validator;
             }
-        });
+        }
         let validator: zod.ZodTypeAny = zod.object(args).passthrough();
         if (fieldConfig.pothosOptions.validate) {
             validator = refine(validator, fieldConfig.pothosOptions.validate as ValidationOptionUnion);

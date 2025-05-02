@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { ArgumentRef, EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InferredFieldOptionKeys, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
+import { type ArgumentRef, type EmptyToOptional, type FieldKind, type FieldNullability, type FieldOptionsFromKind, type FieldRequiredness, type InferredFieldOptionKeys, type InputFieldMap, type InputFieldRef, type InputFieldsFromShape, type InputRef, type InputShapeFromFields, type InterfaceParam, type MaybePromise, type Normalize, type ObjectFieldsShape, type ObjectParam, type ObjectRef, type ObjectTypeOptions, type OutputRef, type OutputRefShape, type OutputShape, type OutputType, type ParentShape, type Resolver, type SchemaTypes, type ShapeFromListTypeParam, type ShapeFromTypeParam, inputShapeKey, } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     idFieldName?: string;
     idFieldOptions?: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, PageInfoShape>, "args" | "nullable" | "type" | InferredFieldOptionKeys>>;
@@ -142,16 +142,17 @@ export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends O
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {
 }
 export type NodeBaseObjectOptionsForParam<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>;
-export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[], IDShape = string> = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & {
-    id: Omit<FieldOptionsFromKind<Types, ParentShape<Types, Param>, "ID", false, {}, "Object", OutputShape<Types, "ID">, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type"> & {
+export type NodeRefOptions<Types extends SchemaTypes, T, P = T, IDShape = string> = {
+    id: Omit<FieldOptionsFromKind<Types, P, "ID", false, {}, "Object", OutputShape<Types, "ID">, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type"> & {
         parse?: (id: string, ctx: Types["Context"]) => IDShape;
     };
     brandLoadedObjects?: boolean;
-    loadOne?: (id: IDShape, context: Types["Context"]) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
-    loadMany?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
-    loadWithoutCache?: (id: IDShape, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
-    loadManyWithoutCache?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+    loadOne?: (id: IDShape, context: Types["Context"]) => MaybePromise<T | null | undefined>;
+    loadMany?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<readonly MaybePromise<T | null | undefined>[]>;
+    loadWithoutCache?: (id: IDShape, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<T | null | undefined>;
+    loadManyWithoutCache?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<readonly MaybePromise<T | null | undefined>[]>;
 };
+export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[], IDShape = string> = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & NodeRefOptions<Types, OutputShape<Types, Param>, ParentShape<Types, Param>, IDShape>;
 export type GlobalIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "type" | InferredFieldOptionKeys> & {
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>, ResolveReturnShape>;
 };

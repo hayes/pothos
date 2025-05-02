@@ -38,10 +38,11 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "^16.10.0",
+    "drizzle-orm": "^1.0.0"
   },
   "devDependencies": {
-    "@libsql/client": "^0.14.0",
+    "@libsql/client": "^0.15.4",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-add-graphql": "workspace:*",
     "@pothos/plugin-errors": "workspace:*",
@@ -50,10 +51,9 @@
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "drizzle-graphql": "^0.8.5",
-    "drizzle-kit": "^0.28.1",
-    "drizzle-orm": "^0.36.4",
-    "graphql": "^16.8.1",
-    "graphql-scalars": "^1.24.0",
+    "drizzle-kit": "1.0.0-beta.1-c0277c0",
+    "drizzle-orm": "1.0.0-beta.1-c0277c0",
+    "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
     "postgres": "^3.4.5"
   }

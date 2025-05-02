@@ -1,9 +1,11 @@
 import { PothosValidationError } from '@pothos/core';
 import {
   type DBQueryConfig,
-  type SQL,
+  type SQLOperator,
+  type SQLWrapper,
+  type Table,
   type TableRelationalConfig,
-  getOperators,
+  getTableUniqueName,
 } from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { deepEqual } from './deep-equal';
@@ -15,14 +17,14 @@ export interface SelectionState {
   allColumns: boolean;
   columns: Set<string>;
   with: Map<string, SelectionState>;
-  extras: Map<string, SQL.Aliased>;
+  extras: Map<string, NonNullable<SelectionMap['extras']>[string]>;
   mappings: LoaderMappings;
   parent?: SelectionState;
   depth: number;
   skipDeferredFragments: boolean;
 }
 
-export type SelectionMap = DBQueryConfig<'one', false>;
+export type SelectionMap = DBQueryConfig<'one'>;
 
 export function selectionCompatible(
   state: SelectionState,
@@ -48,15 +50,11 @@ export function selectionCompatible(
     return false;
   }
 
-  const resolvedExtras =
-    typeof extras === 'function' ? extras(state.table.columns, getOperators()) : extras;
-
   if (
-    resolvedExtras &&
-    Object.entries(resolvedExtras).some(([key, value]) => {
-      const sql = state.extras.get(key);
-
-      return sql && (sql.sql !== value.sql || sql.fieldAlias !== value.fieldAlias);
+    extras &&
+    Object.entries(extras).some(([key, value]) => {
+      const existing = state.extras.get(key);
+      return existing && existing !== value;
     })
   ) {
     return false;
@@ -123,8 +121,14 @@ export function createState(
 export function mergeSelection(
   config: PothosDrizzleSchemaConfig,
   state: SelectionState,
-  { with: withSelection, extras, columns, ...query }: SelectionMap,
+  selection: SelectionMap | boolean,
 ) {
+  const {
+    with: withSelection,
+    extras,
+    columns,
+    ...query
+  } = typeof selection === 'boolean' ? {} : selection;
   if (withSelection) {
     for (const [key, value] of Object.entries(withSelection)) {
       const relation = state.table.relations[key];
@@ -133,7 +137,9 @@ export function mergeSelection(
         throw new PothosValidationError(`Relation ${key} does not exist on ${state.table.dbName}`);
       }
 
-      merge(config.dbToSchema[relation.referencedTableName], key, value as SelectionMap | boolean);
+      const tableUniqueName = getTableUniqueName(relation.targetTable as Table);
+      const tableName = config.relations.tableNamesMap[tableUniqueName];
+      merge(config.relations.tablesConfig[tableName], key, value as SelectionMap | boolean);
     }
   }
 
@@ -141,11 +147,8 @@ export function mergeSelection(
     state.query = query;
   }
 
-  const resolvedExtras =
-    typeof extras === 'function' ? extras(state.table.columns, getOperators()) : extras;
-
-  if (resolvedExtras) {
-    for (const [key, value] of Object.entries(resolvedExtras)) {
+  if (extras) {
+    for (const [key, value] of Object.entries(extras)) {
       state.extras.set(key, value);
     }
   }
@@ -158,7 +161,7 @@ export function mergeSelection(
     for (const key of Object.keys(columns)) {
       state.columns.add(key);
     }
-  } else {
+  } else if (selection === true) {
     state.allColumns = true;
   }
 
@@ -167,19 +170,20 @@ export function mergeSelection(
       return;
     }
 
-    const selection = value === true ? {} : value;
-
     if (state.with.has(key)) {
-      mergeSelection(config, state.with.get(key)!, selection);
+      mergeSelection(config, state.with.get(key)!, value);
     } else {
       const relatedState = createState(table, state.skipDeferredFragments, state);
-      mergeSelection(config, relatedState, selection);
+      mergeSelection(config, relatedState, value);
       state.with.set(key, relatedState);
     }
   }
 }
 
-export function selectionToQuery(state: SelectionState): SelectionMap {
+export function selectionToQuery(
+  config: PothosDrizzleSchemaConfig,
+  state: SelectionState,
+): SelectionMap {
   const query: SelectionMap & { extras: Record<string, unknown> } = {
     ...state.query,
     with: {},
@@ -195,8 +199,10 @@ export function selectionToQuery(state: SelectionState): SelectionMap {
     for (const key of state.columns) {
       query.columns![key] = true;
     }
-    for (const { name } of state.table.primaryKey) {
-      query.columns![name] = true;
+
+    for (const column of config.getPrimaryKey(state.table.tsName)) {
+      const tsName = config.columnToTsName(column);
+      query.columns![tsName] = true;
     }
   }
 
@@ -205,7 +211,7 @@ export function selectionToQuery(state: SelectionState): SelectionMap {
   }
 
   state.with.forEach((sel, relation) => {
-    query.with![relation] = selectionToQuery(sel);
+    query.with![relation] = selectionToQuery(config, sel);
   });
 
   return query;

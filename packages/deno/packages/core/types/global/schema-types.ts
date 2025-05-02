@@ -1,10 +1,9 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import type { GraphQLDirective } from 'https://cdn.skypack.dev/graphql?dts';
+import type { InferredFieldOptionsKind } from '../builder-options.ts';
 import type { PluginConstructorMap } from '../plugins.ts';
 import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types.ts';
 import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils.ts';
-import { InferredFieldOptionsKind } from '../builder-options.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {

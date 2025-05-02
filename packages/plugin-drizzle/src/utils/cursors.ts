@@ -5,13 +5,14 @@ import {
   decodeBase64,
   encodeBase64,
 } from '@pothos/core';
-import {
-  type Column,
-  type DBQueryConfig,
-  type SQL,
-  type TableRelationalConfig,
-  getOperators,
-  getOrderByOperators,
+import type {
+  Column,
+  DBQueryConfig,
+  OrderByOperators,
+  SQL,
+  Table,
+  TableConfig,
+  TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
@@ -73,6 +74,7 @@ export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaCon
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
+      fields.map((field) => field.keyAsName);
       return `${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
     }
 
@@ -286,48 +288,57 @@ export interface DrizzleCursorConnectionQueryOptions {
   ctx: {};
   defaultSize?: number | ((args: {}, ctx: {}) => number);
   maxSize?: number | ((args: {}, ctx: {}) => number);
-  orderBy: ConnectionOrderBy;
+  orderBy: ConnectionOrderBy<TableRelationalConfig>;
   where?: SQL;
+  config: PothosDrizzleSchemaConfig;
+  table: TableRelationalConfig | TableConfig;
 }
 
-const orderByOps = getOrderByOperators();
-
-function parseOrderBy(orderBy: ConnectionOrderBy, invert: boolean) {
-  if (!Array.isArray(orderBy)) {
-    return parseOrderBy([orderBy], invert);
-  }
+function parseOrderBy(
+  config: PothosDrizzleSchemaConfig,
+  table: TableRelationalConfig | TableConfig,
+  orderBy: ConnectionOrderBy<TableRelationalConfig>,
+  invert: boolean,
+) {
+  const entries: [name: string, direction: 'asc' | 'desc'][] = [];
+  const columns: Column[] = [];
+  const normalized: { direction: 'asc' | 'desc'; column: Column }[] = [];
 
   const asc = invert ? 'desc' : 'asc';
   const desc = invert ? 'asc' : 'desc';
 
-  const normalized: { direction: 'asc' | 'desc'; column: Column }[] = orderBy.map((field) => {
-    if (typeof field === 'object' && 'asc' in field) {
-      return {
-        direction: asc,
-        column: field.asc,
-      };
+  if ('table' in orderBy && orderBy.table && typeof orderBy.table === 'object') {
+    entries.push([config.columnToTsName(orderBy as Column), asc]);
+    columns.push(orderBy as Column);
+    normalized.push({ direction: 'asc', column: orderBy as Column });
+  } else if (Array.isArray(orderBy)) {
+    for (const field of orderBy) {
+      entries.push([config.columnToTsName(field), asc]);
+      columns.push(field);
+      normalized.push({ direction: 'asc', column: field });
     }
-    if (typeof field === 'object' && 'desc' in field) {
-      return {
-        direction: desc,
-        column: field.desc,
-      };
-    }
-
-    return {
-      direction: asc,
-      column: field,
-    };
-  });
+  } else {
+    // biome-ignore lint/complexity/noForEach: <explanation>
+    Object.entries(
+      orderBy as {
+        [k: string]: 'asc' | 'desc' | undefined;
+      },
+    ).forEach(([name, direction]) => {
+      if (direction) {
+        const column = table.columns[name] as Column;
+        columns.push(column);
+        entries.push([name, direction === 'asc' ? asc : desc]);
+        normalized.push({ direction: direction, column });
+      }
+    });
+  }
 
   return {
     normalized,
-    columns: normalized.map((field) => field.column),
-    sql: normalized.map((field) => orderByOps[field.direction](field.column)),
+    columns,
+    orderBy: Object.fromEntries(entries),
   };
 }
-
-const ops = getOperators();
 
 export function drizzleCursorConnectionQuery({
   args,
@@ -336,6 +347,8 @@ export function drizzleCursorConnectionQuery({
   defaultSize = DEFAULT_SIZE,
   orderBy,
   where,
+  config,
+  table,
 }: DrizzleCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
   if (first != null && first < 0) {
@@ -346,79 +359,95 @@ export function drizzleCursorConnectionQuery({
     throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
-  if (before && after) {
+  if (first != null && last != null) {
     throw new PothosValidationError(
-      'Arguments "before" and "after" are not supported at the same time',
+      'Arguments "first" and "last" are not supported at the same time',
     );
   }
-
-  if (before != null && first != null) {
-    throw new PothosValidationError(
-      'Arguments "before" and "first" are not supported at the same time',
-    );
-  }
-
-  if (after != null && last != null) {
-    throw new PothosValidationError(
-      'Arguments "after" and "last" are not supported at the same time',
-    );
-  }
-
-  const cursor = before ?? after;
 
   const maxSizeForConnection = typeof maxSize === 'function' ? maxSize(args, ctx) : maxSize;
   const defaultSizeForConnection =
     typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
 
-  let limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+  const limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+  const inverted = !first && !!last;
 
-  if (before ?? last) {
-    limit = -limit;
-  }
-
-  const parsedOrderBy = parseOrderBy(orderBy, limit < 0);
+  const parsedOrderBy = parseOrderBy(config, table, orderBy, inverted);
 
   const columns: Record<string, boolean> = {};
 
   for (const column of parsedOrderBy.columns) {
-    columns[column.name] = true;
+    columns[config.columnToTsName(column)] = true;
   }
 
-  const whereClauses: (SQL | undefined)[] = where ? [where] : [];
+  const whereClauses: {}[] = [];
 
-  if (cursor) {
+  if (where) {
+    whereClauses.push(where);
+  }
+
+  if (after) {
     const cursorParser = getCursorParser(parsedOrderBy.columns);
-    const parsedCursor = cursorParser(cursor);
+    const parsedCursor = cursorParser(after);
 
-    whereClauses.push(
-      ops.or(
-        ...parsedOrderBy.normalized.map(({ direction, column }, index) => {
-          const compare =
-            direction === 'asc'
-              ? ops.gt(column, parsedCursor[column.name])
-              : ops.lt(column, parsedCursor[column.name]);
+    const parts = parsedOrderBy.normalized.map(({ direction, column }, index) => {
+      const columnName = config.columnToTsName(column);
+      const compare =
+        direction === 'asc'
+          ? { [columnName]: { gt: parsedCursor[column.name] } }
+          : { [columnName]: { lt: parsedCursor[column.name] } };
 
-          if (index === 0) {
-            return compare;
-          }
+      if (index === 0) {
+        return compare;
+      }
 
-          return ops.and(
-            ...parsedOrderBy.normalized
-              .slice(0, index)
-              .map(({ column: c }) => ops.eq(c, parsedCursor[c.name])),
-            compare,
-          );
-        }),
-      ),
-    );
+      return {
+        AND: [
+          ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
+            return { [config.columnToTsName(c)]: parsedCursor[c.name] };
+          }),
+          compare,
+        ],
+      };
+    });
+
+    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
+  }
+
+  if (before) {
+    const cursorParser = getCursorParser(parsedOrderBy.columns);
+    const parsedCursor = cursorParser(before);
+
+    const parts = parsedOrderBy.normalized.map(({ direction, column }, index) => {
+      const columnName = config.columnToTsName(column);
+      const compare =
+        direction === 'desc'
+          ? { [columnName]: { gt: parsedCursor[column.name] } }
+          : { [columnName]: { lt: parsedCursor[column.name] } };
+
+      if (index === 0) {
+        return compare;
+      }
+
+      return {
+        AND: [
+          ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
+            return { [config.columnToTsName(c)]: parsedCursor[c.name] };
+          }),
+          compare,
+        ],
+      };
+    });
+
+    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
   }
 
   return {
     cursorColumns: parsedOrderBy.columns,
     columns,
-    orderBy: parsedOrderBy.sql,
+    orderBy: parsedOrderBy.orderBy,
     limit,
-    where: ops.and(...whereClauses),
+    where: whereClauses.length > 1 ? { AND: whereClauses } : whereClauses[0],
   };
 }
 
@@ -428,15 +457,15 @@ export function wrapConnectionResult<T extends {}>(
   limit: number,
   cursor: (node: T) => string,
   resolveNode?: (node: Record<string, unknown>) => unknown,
+  parent?: unknown,
 ) {
   const gotFullResults = results.length === Math.abs(limit);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : (args.before ?? args.last) ? gotFullResults : false;
-  const nodes = gotFullResults
-    ? results.slice(limit < 0 ? 1 : 0, limit < 0 ? results.length : -1)
-    : results;
+  const hasPreviousPage = args.after ? true : !args.first && !!args.last ? gotFullResults : false;
+  const nodes = gotFullResults ? results.slice(0, -1) : results;
 
   const connection = {
+    parent,
     args,
     edges: [] as ({ cursor: string; node: unknown } | null)[],
     pageInfo: {
@@ -476,29 +505,28 @@ export function wrapConnectionResult<T extends {}>(
 }
 
 export async function resolveDrizzleCursorConnection<T extends {}>(
-  table: TableRelationalConfig,
+  tableName: string,
   info: GraphQLResolveInfo,
   typeName: string,
   config: PothosDrizzleSchemaConfig,
-  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy'>,
+  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'>,
   resolve: (
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
 ) {
-  let query: DBQueryConfig<'many', false>;
+  const table = config.relations.tablesConfig[tableName];
+  let query: DBQueryConfig<'many'>;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ...options,
-      orderBy: q.orderBy
-        ? typeof q.orderBy === 'function'
-          ? q.orderBy(table.columns)
-          : q.orderBy
-        : table.primaryKey,
+      config,
+      orderBy:
+        (typeof q.orderBy === 'function' ? q.orderBy(table.columns) : q.orderBy) ??
+        config.getPrimaryKey(table.tsName),
+      table,
     });
     formatter = getCursorFormatter(cursorColumns, config);
-
-    const where = typeof q.where === 'function' ? q.where(table.columns, getOperators()) : q.where;
 
     query = queryFromInfo({
       context: options.ctx,
@@ -509,8 +537,13 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
           ...q.columns,
           ...connectionQuery.columns,
         },
-        where: ops.and(connectionQuery.where, where),
-      },
+        where:
+          connectionQuery.where && q.where
+            ? {
+                AND: [q.where, connectionQuery.where],
+              }
+            : q.where || connectionQuery.where,
+      } as never,
       paths: [['nodes'], ['edges', 'node']],
       typeName,
       config,

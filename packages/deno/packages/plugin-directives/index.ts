@@ -1,10 +1,9 @@
 // @ts-nocheck
-/* eslint-disable no-param-reassign */
 import './global-types.ts';
-import { GraphQLSchema } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, PothosEnumValueConfig, PothosInputFieldConfig, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, type PothosEnumValueConfig, type PothosInputFieldConfig, type PothosOutputFieldConfig, type PothosTypeConfig, type SchemaTypes, } from '../core/index.ts';
+import type { GraphQLSchema } from 'https://cdn.skypack.dev/graphql?dts';
 import mockAst from './mock-ast.ts';
-import { DirectiveList } from './types.ts';
+import type { DirectiveList } from './types.ts';
 export * from './types.ts';
 const pluginName = "directives";
 export default pluginName;
@@ -18,7 +17,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                directives: this.normalizeDirectives(this.mergeDirectives(fieldConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
+                directives: this.normalizeDirectives(this.mergeDirectives(fieldConfig.extensions?.directives as Record<string, object>, options.directives as unknown as Record<string, object>)),
             },
         };
     }
@@ -31,7 +30,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                directives: this.normalizeDirectives(this.mergeDirectives(fieldConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
+                directives: this.normalizeDirectives(this.mergeDirectives(fieldConfig.extensions?.directives as Record<string, object>, options.directives as unknown as Record<string, object>)),
             },
         };
     }
@@ -44,7 +43,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
             ...valueConfig,
             extensions: {
                 ...valueConfig.extensions,
-                directives: this.normalizeDirectives(this.mergeDirectives(valueConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
+                directives: this.normalizeDirectives(this.mergeDirectives(valueConfig.extensions?.directives as Record<string, object>, options.directives as unknown as Record<string, object>)),
             },
         };
     }
@@ -57,19 +56,19 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
             ...typeConfig,
             extensions: {
                 ...typeConfig.extensions,
-                directives: this.normalizeDirectives(this.mergeDirectives(typeConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
+                directives: this.normalizeDirectives(this.mergeDirectives(typeConfig.extensions?.directives as Record<string, object>, options.directives as unknown as Record<string, object>)),
             },
         };
     }
     override afterBuild(schema: GraphQLSchema) {
         schema.extensions = {
             ...schema.extensions,
-            directives: this.normalizeDirectives(this.mergeDirectives((schema.extensions?.directives as Record<string, {}>) ?? {}, this.options.schemaDirectives as unknown as Record<string, {}>)),
+            directives: this.normalizeDirectives(this.mergeDirectives((schema.extensions?.directives as Record<string, object>) ?? {}, this.options.schemaDirectives as unknown as Record<string, object>)),
         };
         mockAst(schema);
         return schema;
     }
-    mergeDirectives(left: DirectiveList | Record<string, {}>, right: DirectiveList | Record<string, {}>) {
+    mergeDirectives(left: DirectiveList | Record<string, object>, right: DirectiveList | Record<string, object>) {
         if (!(left && right)) {
             return left || right;
         }
@@ -82,7 +81,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
                 : Object.keys(right).map((name) => ({ name, args: right[name] }))),
         ];
     }
-    normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
+    normalizeDirectives(directives: DirectiveList | Record<string, object>) {
         if (this.builder.options.directives?.useGraphQLToolsUnorderedDirectives) {
             if (!Array.isArray(directives)) {
                 return directives;

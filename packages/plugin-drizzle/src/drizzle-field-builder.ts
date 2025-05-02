@@ -17,10 +17,11 @@ import {
   isThenable,
 } from '@pothos/core';
 import {
-  type InferModelFromColumns,
+  type InferSelectModel,
   Many,
+  type Table,
   type TableRelationalConfig,
-  getOperators,
+  getTableUniqueName,
 } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
 import type {
@@ -50,13 +51,11 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
-const ops = getOperators();
-
 export class DrizzleObjectFieldBuilder<
   Types extends SchemaTypes,
   TableConfig extends TableRelationalConfig,
   Shape,
-  ExposableShape = InferModelFromColumns<TableConfig['columns']>,
+  ExposableShape = InferSelectModel<Extract<TableConfig['table'], { _: { brand: 'Table' } }>>,
 > extends RootBuilder<Types, Shape, 'DrizzleObject'> {
   exposeBoolean = this.createExpose('Boolean');
 
@@ -197,8 +196,11 @@ export class DrizzleObjectFieldBuilder<
     edgeOptions = {},
   ) {
     const schemaConfig = getSchemaConfig(this.builder);
-    const relationField = schemaConfig.schema?.[this.table].relations[name as string];
-    const relatedModel = schemaConfig.dbToSchema[relationField?.referencedTableName];
+    const relationField =
+      schemaConfig.relations.tablesConfig?.[this.table].relations[name as string];
+    const tableUniqueName = getTableUniqueName(relationField.targetTable as Table);
+    const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
+    const relatedModel = schemaConfig.relations.tables[tableName] as Table;
 
     if (!relatedModel) {
       throw new PothosSchemaError(
@@ -206,28 +208,27 @@ export class DrizzleObjectFieldBuilder<
       );
     }
 
-    const ref = options.type ?? getRefFromModel(relatedModel.tsName, this.builder);
+    const ref = options.type ?? getRefFromModel(tableName, this.builder);
     let typeName: string | undefined;
 
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
       const { limit, orderBy, where, ...fieldQuery } =
         (typeof query === 'function' ? query(args, ctx) : query) ?? {};
 
+      const tableUniqueName = getTableUniqueName(relatedModel as Table);
+      const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
+
       const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
         maxSize,
         defaultSize,
         args,
-        orderBy: orderBy
-          ? typeof orderBy === 'function'
-            ? orderBy(relatedModel.columns)
-            : orderBy
-          : relatedModel.primaryKey,
-        where: where
-          ? typeof where === 'function'
-            ? where(relatedModel.columns, ops)
-            : where
-          : undefined,
+        orderBy:
+          (typeof orderBy === 'function' ? orderBy(relatedModel) : orderBy) ??
+          getSchemaConfig(this.builder).getPrimaryKey(tableName),
+        where,
+        config: schemaConfig,
+        table: schemaConfig.relations.tablesConfig[tableName],
       });
 
       return {
@@ -322,7 +323,7 @@ export class DrizzleObjectFieldBuilder<
       [
         options: VariantFieldOptions<
           Types,
-          TableConfig['tsName'] & keyof Types['DrizzleRelationSchema'],
+          TableConfig['tsName'] & keyof Types['DrizzleRelationsConfig'],
           Variant,
           Args,
           Nullable,
@@ -341,7 +342,7 @@ export class DrizzleObjectFieldBuilder<
       _args: object,
       _context: object,
       nestedQuery: (query: unknown) => unknown,
-    ) => nestedQuery({});
+    ) => nestedQuery(options.select ?? {});
 
     return this.field({
       ...(options as {}),
@@ -389,16 +390,19 @@ export class DrizzleObjectFieldBuilder<
   ): FieldRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>, 'Object'> {
     const [options = {} as never] = allArgs;
     const schemaConfig = getSchemaConfig(this.builder);
-    const relationField = schemaConfig.schema?.[this.table].relations[name as string];
-    const relatedModel = schemaConfig.dbToSchema[relationField?.referencedTableName];
+    const relationField =
+      schemaConfig.relations.tablesConfig?.[this.table].relations[name as string];
+
+    const tableUniqueName = getTableUniqueName(relationField.targetTable as Table);
+    const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
+    const relatedModel = schemaConfig.relations.tables[tableName];
 
     if (!relatedModel) {
       throw new PothosSchemaError(
         `Could not find relation ${name as string} on table ${this.table}`,
       );
     }
-
-    const ref = options.type ?? getRefFromModel(relatedModel.tsName, this.builder);
+    const ref = options.type ?? getRefFromModel(tableName, this.builder);
 
     const { query = {}, extensions, ...rest } = options;
 
@@ -455,7 +459,7 @@ export class DrizzleObjectFieldBuilder<
   ) {
     const [name, options = {} as never] = args;
 
-    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
+    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, this.graphqlKind);
     const usingSelect = !!typeConfig.extensions?.pothosDrizzleSelect;
 
     return this.exposeField(name as never, {
@@ -467,7 +471,7 @@ export class DrizzleObjectFieldBuilder<
           columns: { [name as string]: true },
         },
       },
-    });
+    }) as FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'DrizzleObject'>;
   }
 
   private createExpose<Type extends TypeParam<Types>>(type: Type) {

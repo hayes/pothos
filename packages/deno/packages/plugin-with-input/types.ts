@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ArgumentRef, FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputFieldRef, InputRef, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { ArgumentRef, type FieldKind, type FieldNullability, type FieldOptionsFromKind, type InputFieldMap, type InputFieldRef, type InputRef, type InputShapeFromFields, type SchemaTypes, type TypeParam, } from '../core/index.ts';
 export interface WithInputBuilderOptions<Types extends SchemaTypes> {
     argOptions?: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>, "required" | "type"> & {
         required?: Types["WithInputArgRequired"];

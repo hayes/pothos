@@ -1,10 +1,9 @@
 // @ts-nocheck
-import SchemaBuilder, { isThenable, MaybePromise, SchemaTypes } from '../core/index.ts';
+import SchemaBuilder, { isThenable, type MaybePromise, type SchemaTypes } from '../core/index.ts';
 import { ForbiddenError } from './errors.ts';
 import RequestCache from './request-cache.ts';
-import { AuthFailure } from './types.ts';
+import type { AuthFailure } from './types.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-// eslint-disable-next-line consistent-return
 schemaBuilderProto.runAuthScopes = function runAuthScopes(context, scopes, unauthorizedError = (result) => new ForbiddenError(result.message, result.failure)): MaybePromise<void> {
     const cache = RequestCache.fromContext(context, this);
     const resultOrPromise = cache.evaluateScopeMap(scopes);

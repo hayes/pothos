@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { FieldNode, FragmentDefinitionNode, getArgumentValues, getNamedType, GraphQLField, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isInterfaceType, isObjectType, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
-import { getMappedArgumentValues, PothosValidationError } from '../core/index.ts';
+import { PothosValidationError, getMappedArgumentValues } from '../core/index.ts';
+import { type FieldNode, type FragmentDefinitionNode, type GraphQLField, GraphQLList, type GraphQLNamedType, GraphQLNonNull, type GraphQLOutputType, type GraphQLResolveInfo, type InlineFragmentNode, Kind, type SelectionSetNode, getNamedType, isInterfaceType, isObjectType, isOutputType, } from 'https://cdn.skypack.dev/graphql?dts';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.ts';
 import type { ComplexityResult, FieldComplexity } from './index.ts';
 function isListType(type: GraphQLOutputType): boolean {
@@ -12,23 +12,23 @@ function isListType(type: GraphQLOutputType): boolean {
     }
     return false;
 }
-function complexityFromField(ctx: {}, info: PartialInfo, selection: FieldNode, type: GraphQLNamedType): ComplexityResult {
+function complexityFromField(ctx: object, info: PartialInfo, selection: FieldNode, type: GraphQLNamedType): ComplexityResult {
     let depth = 1;
     let breadth = 1;
     const fieldName = selection.name.value;
     const field = (isObjectType(type) || isInterfaceType(type)) && type.getFields()[fieldName]!;
-    let complexityOption;
+    let complexityOption: FieldComplexity<object, object> | undefined;
     if (field) {
-        complexityOption = field.extensions?.complexity as FieldComplexity<{}, {}> | undefined;
+        complexityOption = field.extensions?.complexity as FieldComplexity<object, object> | undefined;
     }
     else if (!fieldName.startsWith("__")) {
         throw new PothosValidationError(`Unknown field selected (${type.name}.${fieldName})`);
     }
     if (typeof complexityOption === "function") {
         const args = getMappedArgumentValues(field as GraphQLField<unknown, unknown>, selection, ctx, info) as Record<string, unknown>;
-        complexityOption = complexityOption(args, ctx, field as GraphQLField<unknown, {}, {}>);
+        complexityOption = complexityOption(args, ctx, field as GraphQLField<unknown, object, object>);
     }
-    let fieldMultiplier;
+    let fieldMultiplier: number;
     if (typeof complexityOption === "object" && complexityOption.multiplier !== undefined) {
         fieldMultiplier = complexityOption.multiplier;
     }
@@ -45,10 +45,10 @@ function complexityFromField(ctx: {}, info: PartialInfo, selection: FieldNode, t
     complexity +=
         typeof complexityOption === "number"
             ? complexityOption
-            : complexityOption?.field ?? DEFAULT_COMPLEXITY;
+            : (complexityOption?.field ?? DEFAULT_COMPLEXITY);
     return { complexity, depth, breadth };
 }
-export function calculateComplexity(ctx: {}, info: GraphQLResolveInfo) {
+export function calculateComplexity(ctx: object, info: GraphQLResolveInfo) {
     const operationName = `${info.operation.operation
         .slice(0, 1)
         .toUpperCase()}${info.operation.operation.slice(1)}`;
@@ -63,7 +63,7 @@ interface PartialInfo {
     variableValues: GraphQLResolveInfo["variableValues"];
     schema: GraphQLResolveInfo["schema"];
 }
-function complexityFromFragment(ctx: {}, info: PartialInfo, fragment: FragmentDefinitionNode | InlineFragmentNode, type: GraphQLNamedType): ComplexityResult {
+function complexityFromFragment(ctx: object, info: PartialInfo, fragment: FragmentDefinitionNode | InlineFragmentNode, type: GraphQLNamedType): ComplexityResult {
     const fragmentType = fragment.typeCondition
         ? info.schema.getType(fragment.typeCondition.name.value)
         : type;
@@ -75,14 +75,14 @@ function complexityFromFragment(ctx: {}, info: PartialInfo, fragment: FragmentDe
     }
     return complexityFromSelectionSet(ctx, info, fragment.selectionSet, fragmentType);
 }
-export function complexityFromSelectionSet(ctx: {}, info: PartialInfo, selectionSet: SelectionSetNode, type: GraphQLNamedType): ComplexityResult {
+export function complexityFromSelectionSet(ctx: object, info: PartialInfo, selectionSet: SelectionSetNode, type: GraphQLNamedType): ComplexityResult {
     const result = {
         depth: 0,
         breadth: 0,
         complexity: 0,
     };
     for (const selection of selectionSet.selections) {
-        let selectionResult;
+        let selectionResult: ComplexityResult;
         if (selection.kind === Kind.FIELD) {
             selectionResult = complexityFromField(ctx, info, selection, type);
         }

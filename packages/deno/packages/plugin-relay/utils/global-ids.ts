@@ -1,10 +1,11 @@
 // @ts-nocheck
-import { decodeBase64, encodeBase64, PothosValidationError } from '../../core/index.ts';
+import { PothosValidationError, decodeBase64, encodeBase64 } from '../../core/index.ts';
 export function encodeGlobalID(typename: string, id: bigint | number | string) {
     return encodeBase64(`${typename}:${id}`);
 }
 const typenameRegex = /^[A-Z_a-z]\w*$/;
 export function decodeGlobalID(globalID: string) {
+    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
     let decoded;
     try {
         decoded = decodeBase64(globalID).split(":");

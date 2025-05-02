@@ -1,4 +1,15 @@
 """
+Directs the executor to defer this fragment when the `if` argument is true or undefined.
+"""
+directive @defer(
+  """Deferred when true or undefined."""
+  if: Boolean! = true
+
+  """Unique name"""
+  label: String
+) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"""
 A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
 """
 scalar DateTime
@@ -31,6 +42,17 @@ interface Node {
   id: ID!
 }
 
+type NormalViewer implements Viewer {
+  comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
+  drafts: [Post!]
+  id: ID
+  isNormal: Boolean
+  roles: [String!]
+  rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
+  user: User!
+  username: String
+}
+
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -46,20 +68,9 @@ type Post {
   createdAt: DateTime
   id: ID
   likes: Int
-  likesConnection(after: String, before: String, first: Int, last: Int): PostLikesConnection
   published: Boolean
   title: String
   updatedAt: DateTime
-}
-
-type PostLikesConnection {
-  edges: [PostLikesConnectionEdge]
-  pageInfo: PageInfo!
-}
-
-type PostLikesConnectionEdge {
-  cursor: String!
-  node: postLikes
 }
 
 type Query {
@@ -68,10 +79,11 @@ type Query {
   nodes(ids: [ID!]!): [Node]!
   post(id: ID!): Post
   postWithErrors(id: ID!): QueryPostWithErrorsResult
-  posts(after: String, before: String, category: String, first: Int, last: Int): QueryPostsConnection
+  posts(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): QueryPostsConnection
   user(id: ID!): User
   userWithInput(input: QueryUserWithInputInput!): User
-  users(id: ID!): [User!]
+  users: [User!]
+  usersConnection(after: String, before: String, first: Int, last: Int): QueryUsersConnection
 }
 
 union QueryPostWithErrorsResult = Error | QueryPostWithErrorsSuccess
@@ -94,6 +106,21 @@ input QueryUserWithInputInput {
   id: ID!
 }
 
+type QueryUsersConnection {
+  edges: [QueryUsersConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryUsersConnectionEdge {
+  cursor: String!
+  node: User
+}
+
+type Role {
+  id: ID
+  name: String
+}
+
 type User implements Node {
   bio: String
   email: String
@@ -103,7 +130,7 @@ type User implements Node {
   isAdmin: Boolean!
   lastName: String
   posts(limit: Int, offset: Int): [Post!]
-  postsConnection(after: String, before: String, first: Int, last: Int): UserPostsConnection
+  postsConnection(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): UserPostsConnection
   unOrderedPostsConnection(after: String, before: String, first: Int, last: Int): UserUnOrderedPostsConnection
   viewer: Viewer
 }
@@ -128,11 +155,12 @@ type UserUnOrderedPostsConnectionEdge {
   node: Post
 }
 
-type Viewer {
+interface Viewer {
   comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
   drafts: [Post!]
   id: ID
   roles: [String!]
+  rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
   user: User!
   username: String
 }
@@ -147,14 +175,19 @@ type ViewerCommentsConnectionEdge {
   node: comments
 }
 
+type ViewerRolesConnection {
+  edges: [ViewerRolesConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type ViewerRolesConnectionEdge {
+  cursor: String!
+  node: Role
+}
+
 type comments {
   author: User
   id: ID
   post: Post
   text: String
-}
-
-type postLikes {
-  post: Post
-  user: User
 }

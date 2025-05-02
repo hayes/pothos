@@ -1,7 +1,7 @@
 ## TODO
 
 - [x] connections
-- [ ] connection helpers
+- [x] connection helpers
 - [ ] query usage checks
 - [x] normalize extras callback functions before merging
 - [x] with input integration
@@ -10,12 +10,33 @@
 - [x] drizzle refs
 - [x] drizzle interface types
 - [x] relay nodes
-- [ ] tests
+- [x] tests
+    - [x] variants
+    - [x] connectionHelpers
+    - [x] drizzleConnections
+    - [x] custom queries on drizzleConnections
+    - [x] compound index drizzleConnections
+    - [x] relatedConnections
+    - [x] custom queries on relatedConnections
+    - [x] compound index relatedConnections
+    - [x] related fields
+    - [x] custom queries on related fields
+    - [x] drizzleField
+    - [x] nested relations
+    - [x] fields with select (columns, with, extra)
+    - [x] type level select (columns, with, extra)
+    - [x] merging compatible selections
+    - [x] data-loaders and fallback queries
+    - [x] nodes
+    - [x] interfaces
+    - [x] skip and defer directives
 - [x] docs
 - [x] variants
 - [x] fallback dataloader
 - [ ] custom dataloader override
 - [x] default selections for id/data-loading
-- [ ] interface check for compatibility of implementors
+- [x] interface check for compatibility of implementors
 - [ ] totalCount API
-- [ ] Indirect many to many connections (requires v2 relational API)
+- [x] Indirect many to many connections (requires v2 relational API)
+- [x] rqbv2 doc
+- [x] rqbv2 changes

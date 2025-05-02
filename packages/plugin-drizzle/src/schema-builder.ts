@@ -37,7 +37,7 @@ schemaBuilderProto.drizzleObject = function drizzleObject(table, { select, field
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).schema?.[table],
+      pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
       pothosDrizzleSelect: select ?? {},
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
     },
@@ -54,18 +54,14 @@ schemaBuilderProto.drizzleInterface = function drizzleInterface(
 ) {
   const name = options.name ?? table;
 
-  const ref = options.variant
-    ? new DrizzleInterfaceRef(options.variant, name)
-    : (getRefFromModel(table, this, 'interface') as InterfaceRef<SchemaTypes, unknown>);
-
-  ref.name = name ?? table;
+  const ref = new DrizzleInterfaceRef(name, table);
 
   this.interfaceType(ref, {
     ...(options as {}),
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).schema?.[table],
+      pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
       pothosDrizzleSelect: select ?? {},
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
     },
@@ -82,7 +78,7 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
     nodeInterfaceRef?: () => InterfaceRef<SchemaTypes, unknown>;
   },
-  table: keyof SchemaTypes['DrizzleRelationSchema'],
+  table: keyof SchemaTypes['DrizzleRelations']['config'],
   {
     id: { column, ...idOptions },
     name,
@@ -90,7 +86,7 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
     ...options
   }: DrizzleNodeOptions<
     SchemaTypes,
-    keyof SchemaTypes['DrizzleRelationSchema'],
+    keyof SchemaTypes['DrizzleRelations']['config'],
     {},
     {},
     [],
@@ -98,7 +94,7 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   >,
 ) {
   const schemaConfig = getSchemaConfig(this);
-  const tableConfig = schemaConfig.schema![table];
+  const tableConfig = schemaConfig.relations.tablesConfig[table];
   const idColumn = typeof column === 'function' ? column(tableConfig.columns) : column;
   const idColumns = Array.isArray(idColumn) ? idColumn : [idColumn];
   const interfaceRef = this.nodeInterfaceRef?.();
@@ -106,7 +102,14 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   const idParser = getIDParser(idColumns);
   const typeName = variant ?? name ?? table;
   const nodeRef = new DrizzleNodeRef(typeName, table, {
-    parseId: idParser,
+    parseId: (id) => {
+      const parsed = idParser(id);
+      if (Array.isArray(idColumn)) {
+        return parsed;
+      }
+
+      return parsed[schemaConfig.columnToTsName(idColumn)];
+    },
   });
   const modelLoader = ModelLoader.forModel(table, this, idColumns);
 
@@ -206,106 +209,106 @@ schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type
   });
 };
 
-schemaBuilderProto.drizzleGraphQLOrderBy = function drizzleGraphQLOrderBy(
-  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  table: string,
-  type: GraphQLInputObjectType,
-  options?: { extensions?: object },
-) {
-  return (
-    this as typeof this & {
-      addGraphQLInput: (
-        type: GraphQLInputObjectType,
-        options: Record<string, unknown>,
-      ) => InputObjectRef<SchemaTypes, {}>;
-    }
-  ).addGraphQLInput(type, {
-    ...options,
-    extensions: {
-      ...options?.extensions,
-      drizzleGraphQL: {
-        inputType: 'orderBy',
-        table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
-      } satisfies DrizzleGraphQLInputExtensions,
-    },
-  });
-} as never;
+// schemaBuilderProto.drizzleGraphQLOrderBy = function drizzleGraphQLOrderBy(
+//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+//   table: string,
+//   type: GraphQLInputObjectType,
+//   options?: { extensions?: object },
+// ) {
+//   return (
+//     this as typeof this & {
+//       addGraphQLInput: (
+//         type: GraphQLInputObjectType,
+//         options: Record<string, unknown>,
+//       ) => InputObjectRef<SchemaTypes, {}>;
+//     }
+//   ).addGraphQLInput(type, {
+//     ...options,
+//     extensions: {
+//       ...options?.extensions,
+//       drizzleGraphQL: {
+//         inputType: 'orderBy',
+//         table,
+//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//       } satisfies DrizzleGraphQLInputExtensions,
+//     },
+//   });
+// } as never;
 
-schemaBuilderProto.drizzleGraphQLFilters = function drizzleGraphQLFilters(
-  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  table: string,
-  type: GraphQLInputObjectType,
-  options?: { extensions?: object },
-) {
-  return (
-    this as typeof this & {
-      addGraphQLInput: (
-        type: GraphQLInputObjectType,
-        options: Record<string, unknown>,
-      ) => InputObjectRef<SchemaTypes, {}>;
-    }
-  ).addGraphQLInput(type, {
-    ...options,
-    extensions: {
-      ...options?.extensions,
-      drizzleGraphQL: {
-        inputType: 'filters',
-        table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
-      } satisfies DrizzleGraphQLInputExtensions,
-    },
-  });
-} as never;
+// schemaBuilderProto.drizzleGraphQLFilters = function drizzleGraphQLFilters(
+//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+//   table: string,
+//   type: GraphQLInputObjectType,
+//   options?: { extensions?: object },
+// ) {
+//   return (
+//     this as typeof this & {
+//       addGraphQLInput: (
+//         type: GraphQLInputObjectType,
+//         options: Record<string, unknown>,
+//       ) => InputObjectRef<SchemaTypes, {}>;
+//     }
+//   ).addGraphQLInput(type, {
+//     ...options,
+//     extensions: {
+//       ...options?.extensions,
+//       drizzleGraphQL: {
+//         inputType: 'filters',
+//         table,
+//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//       } satisfies DrizzleGraphQLInputExtensions,
+//     },
+//   });
+// } as never;
 
-schemaBuilderProto.drizzleGraphQLInsert = function drizzleGraphQLInsert(
-  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  table: string,
-  type: GraphQLInputObjectType,
-  options?: { extensions?: object },
-) {
-  return (
-    this as typeof this & {
-      addGraphQLInput: (
-        type: GraphQLInputObjectType,
-        options: Record<string, unknown>,
-      ) => InputObjectRef<SchemaTypes, {}>;
-    }
-  ).addGraphQLInput(type, {
-    ...options,
-    extensions: {
-      ...options?.extensions,
-      drizzleGraphQL: {
-        inputType: 'insert',
-        table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
-      } satisfies DrizzleGraphQLInputExtensions,
-    },
-  });
-} as never;
+// schemaBuilderProto.drizzleGraphQLInsert = function drizzleGraphQLInsert(
+//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+//   table: string,
+//   type: GraphQLInputObjectType,
+//   options?: { extensions?: object },
+// ) {
+//   return (
+//     this as typeof this & {
+//       addGraphQLInput: (
+//         type: GraphQLInputObjectType,
+//         options: Record<string, unknown>,
+//       ) => InputObjectRef<SchemaTypes, {}>;
+//     }
+//   ).addGraphQLInput(type, {
+//     ...options,
+//     extensions: {
+//       ...options?.extensions,
+//       drizzleGraphQL: {
+//         inputType: 'insert',
+//         table,
+//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//       } satisfies DrizzleGraphQLInputExtensions,
+//     },
+//   });
+// } as never;
 
-schemaBuilderProto.drizzleGraphQLUpdate = function drizzleGraphQLUpdate(
-  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  table: string,
-  type: GraphQLInputObjectType,
-  options?: { extensions?: object },
-) {
-  return (
-    this as typeof this & {
-      addGraphQLInput: (
-        type: GraphQLInputObjectType,
-        options: Record<string, unknown>,
-      ) => InputObjectRef<SchemaTypes, {}>;
-    }
-  ).addGraphQLInput(type, {
-    ...options,
-    extensions: {
-      ...options?.extensions,
-      drizzleGraphQL: {
-        inputType: 'update',
-        table,
-        tableConfig: getSchemaConfig(this).schema?.[table]!,
-      } satisfies DrizzleGraphQLInputExtensions,
-    },
-  });
-} as never;
+// schemaBuilderProto.drizzleGraphQLUpdate = function drizzleGraphQLUpdate(
+//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+//   table: string,
+//   type: GraphQLInputObjectType,
+//   options?: { extensions?: object },
+// ) {
+//   return (
+//     this as typeof this & {
+//       addGraphQLInput: (
+//         type: GraphQLInputObjectType,
+//         options: Record<string, unknown>,
+//       ) => InputObjectRef<SchemaTypes, {}>;
+//     }
+//   ).addGraphQLInput(type, {
+//     ...options,
+//     extensions: {
+//       ...options?.extensions,
+//       drizzleGraphQL: {
+//         inputType: 'update',
+//         table,
+//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//       } satisfies DrizzleGraphQLInputExtensions,
+//     },
+//   });
+// } as never;

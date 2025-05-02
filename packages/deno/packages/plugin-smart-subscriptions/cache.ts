@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { BuildCache, Path, SchemaTypes } from '../core/index.ts';
+import type { BuildCache, Path, SchemaTypes } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import CacheNode from './cache-node.ts';
-import SubscriptionManager from './manager/index.ts';
+import type SubscriptionManager from './manager/index.ts';
 export default class SubscriptionCache<Types extends SchemaTypes> {
     manager: SubscriptionManager;
     buildCache: BuildCache<Types>;
@@ -63,7 +63,11 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     }
     add(info: GraphQLResolveInfo, path: string, canRefetch: boolean, value: unknown) {
         const parent = this.getParent(info);
-        const node = new CacheNode(this, path, value, canRefetch || !parent ? () => void this.invalidPaths.push(path) : parent.refetch);
+        const node = new CacheNode(this, path, value, canRefetch || !parent
+            ? () => {
+                this.invalidPaths.push(path);
+            }
+            : parent.refetch);
         this.nextCache.set(path, node);
         return node;
     }
@@ -77,7 +81,6 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
         let { key, prev } = path;
         while (prev) {
             key = `${prev.key}.${key}`;
-            // eslint-disable-next-line prefer-destructuring
             prev = prev.prev;
         }
         return key.toString();

@@ -3,10 +3,11 @@ import DirectivePlugin from '../../src';
 
 type DirectiveTypes = {
   rateLimit: {
-    locations: 'FIELD_DEFINITION' | 'OBJECT';
+    locations: 'FIELD_DEFINITION';
     args: {
-      limit: number;
-      duration: number;
+      max: number;
+      window: string;
+      message: string;
     };
   };
   cacheControl: {

@@ -54,7 +54,7 @@ function addTypeSelectionsForField(
 
   const { pothosDrizzleSelect, pothosIndirectInclude } = (type.extensions ?? {}) as {
     pothosIndirectInclude?: IndirectInclude;
-    pothosDrizzleSelect?: DBQueryConfig<'one', false>;
+    pothosDrizzleSelect?: DBQueryConfig<'one'>;
   };
 
   if (
@@ -316,7 +316,7 @@ function addFieldSelection(
 
   const fieldSelect = field.extensions?.pothosDrizzleSelect as DrizzleFieldSelection | undefined;
 
-  let fieldSelectionMap: DBQueryConfig<'one', false> | undefined;
+  let fieldSelectionMap: DBQueryConfig<'one'> | undefined;
   let mappings: LoaderMappings = {};
   if (typeof fieldSelect === 'function') {
     const args = getMappedArgumentValues(field, selection, context, info) as Record<
@@ -375,7 +375,7 @@ function addFieldSelection(
         }
         addTypeSelectionsForField(config, returnType, context, info, fieldState, selection, []);
         mappings = fieldState.mappings;
-        return selectionToQuery(fieldState);
+        return selectionToQuery(config, fieldState);
       },
       (path) => {
         const returnType = getNamedType(field.type);
@@ -429,7 +429,7 @@ export function queryFromInfo<T extends SelectionMap>({
 
   setLoaderMappings(options.context, options.info, state.mappings);
 
-  const query = selectionToQuery(state) as T;
+  const query = selectionToQuery(options.config, state) as T;
 
   return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
@@ -445,6 +445,12 @@ export function stateFromInfo<T extends SelectionMap>({
 }: QueryFromInfoOptions<T>) {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
+  const initialSelection = select
+    ? {
+        columns: {},
+        ...select,
+      }
+    : undefined;
 
   let state: SelectionState | undefined;
 
@@ -470,7 +476,13 @@ export function stateFromInfo<T extends SelectionMap>({
             : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested, deferred) => {
-            state = createStateForSelection(config, info, resolvedType, undefined, select);
+            state = createStateForSelection(
+              config,
+              info,
+              resolvedType,
+              undefined,
+              initialSelection,
+            );
 
             addTypeSelectionsForField(
               config,
@@ -488,13 +500,13 @@ export function stateFromInfo<T extends SelectionMap>({
       },
     );
   } else {
-    state = createStateForSelection(config, info, type, undefined, select);
+    state = createStateForSelection(config, info, type, undefined, initialSelection);
 
     addTypeSelectionsForField(config, type, context, info, state, info.fieldNodes[0], []);
   }
 
   if (!state) {
-    state = createStateForSelection(config, info, type, undefined, select);
+    state = createStateForSelection(config, info, type, undefined, initialSelection);
   }
 
   return state;
