@@ -1,7 +1,7 @@
 {
+  "private": true,
   "name": "@pothos-examples/nextjs",
   "version": "3.1.9",
-  "private": true,
   "scripts": {
     "generate": "tsx graphql/build-schema.ts && graphql-codegen",
     "dev": "concurrently \"yarn next dev\" \"yarn generate --watch './graphql/**/*.ts'\"",

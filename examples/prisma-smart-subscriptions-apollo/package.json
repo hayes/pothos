@@ -1,4 +1,5 @@
 {
+  "private": true,
   "$schema": "https://json.schemastore.org/package.json",
   "version": "3.1.19",
   "name": "@pothos-examples/prisma-smart-subscriptions-apollo",
