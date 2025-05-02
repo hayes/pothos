@@ -10,7 +10,7 @@
 - [x] drizzle refs
 - [x] drizzle interface types
 - [x] relay nodes
-- [ ] tests
+- [x] tests
     - [x] variants
     - [x] connectionHelpers
     - [x] drizzleConnections
@@ -38,5 +38,5 @@
 - [x] interface check for compatibility of implementors
 - [ ] totalCount API
 - [x] Indirect many to many connections (requires v2 relational API)
-- [ ] rqbv2 doc
-- [ ] rqbv2 changes
+- [x] rqbv2 doc
+- [x] rqbv2 changes
