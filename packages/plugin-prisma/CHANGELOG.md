@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.8.0
+
+### Minor Changes
+
+- 7d03f42: Allow \_\_typename for queries that only need to select count on connections
+
 ## 4.7.0
 
 ### Minor Changes
