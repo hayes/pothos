@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 1.3.1
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+
 ## 1.3.0
 
 ### Minor Changes

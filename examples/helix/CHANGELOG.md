@@ -1,5 +1,13 @@
 # @pothos-examples/helix
 
+## 3.1.9
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+- Updated dependencies [cd7f309]
+  - @pothos/core@4.6.2
+
 ## 3.1.8
 
 ### Patch Changes

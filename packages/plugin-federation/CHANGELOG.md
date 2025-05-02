@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.3.3
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+
 ## 4.3.2
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @pothos-examples/relay
 
+## 3.1.24
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+- Updated dependencies [cd7f309]
+  - @pothos/plugin-directives@4.2.1
+  - @pothos/plugin-federation@4.3.3
+  - @pothos/plugin-prisma@4.8.1
+  - @pothos/plugin-relay@4.4.2
+  - @pothos/core@4.6.2
+
 ## 3.1.23
 
 ### Patch Changes

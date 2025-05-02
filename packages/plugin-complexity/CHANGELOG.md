@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 4.1.1
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+
 ## 4.1.0
 
 ### Minor Changes

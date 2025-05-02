@@ -1,5 +1,15 @@
 # @pothos-examples/federation
 
+## 3.1.13
+
+### Patch Changes
+
+- cd7f309: Update dependencies
+- Updated dependencies [cd7f309]
+  - @pothos/plugin-directives@4.2.1
+  - @pothos/plugin-federation@4.3.3
+  - @pothos/core@4.6.2
+
 ## 3.1.12
 
 ### Patch Changes
