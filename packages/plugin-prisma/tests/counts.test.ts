@@ -23,6 +23,7 @@ describe('prisma counts', () => {
     const query = gql`
       query {
         userConnection(first: 1) {
+          __typename
           totalCount
         }
         me {
@@ -104,6 +105,7 @@ describe('prisma counts', () => {
             },
           },
           "userConnection": {
+            "__typename": "QueryUserConnection",
             "totalCount": 100,
           },
         },
@@ -234,6 +236,7 @@ describe('prisma counts', () => {
       query {
         userConnection {
           totalCount
+          __typename
         }
       }
     `;
@@ -248,6 +251,7 @@ describe('prisma counts', () => {
       {
         "data": {
           "userConnection": {
+            "__typename": "QueryUserConnection",
             "totalCount": 100,
           },
         },
@@ -259,6 +263,61 @@ describe('prisma counts', () => {
         {
           "action": "count",
           "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('queries only totalCount on related connection', async () => {
+    const query = gql`
+      query {
+        me {
+          postsConnection(first: 1) {
+            __typename
+            totalCount
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "postsConnection": {
+              "__typename": "UserPostsConnection",
+              "totalCount": 250,
+            },
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
           "dataPath": [],
           "model": "User",
           "runInTransaction": false,

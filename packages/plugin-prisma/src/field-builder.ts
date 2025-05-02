@@ -164,15 +164,13 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
 
         const selections = info.fieldNodes;
 
-        const totalCountOnly = selections.every(
-          (selection) =>
-            selection.selectionSet?.selections.length === 1 &&
-            selection.selectionSet.selections.every(
-              (s) =>
-                s.kind === Kind.FIELD &&
-                (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
-                  s.name.value === '__typename'),
-            ),
+        const totalCountOnly = selections.every((selection) =>
+          selection.selectionSet?.selections.every(
+            (s) =>
+              s.kind === Kind.FIELD &&
+              (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
+                s.name.value === '__typename'),
+          ),
         );
 
         return resolvePrismaCursorConnection(
