@@ -6,6 +6,7 @@ import type {
   RelationsFilter,
   TableRelationalConfig,
 } from 'drizzle-orm';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref';
 import type { QueryForDrizzleConnection } from './types';
 import { getSchemaConfig } from './utils/config';
@@ -14,6 +15,7 @@ import {
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors';
+import { queryFromInfo } from './utils/map-query';
 import { getRefFromModel } from './utils/refs';
 import { createState, mergeSelection, selectionToQuery } from './utils/selections';
 
@@ -142,11 +144,24 @@ export function drizzleConnectionHelpers<
     };
   };
 
+  type NestedSelection = <T extends true | {}>(selection?: T, path?: string[]) => T;
+
   function getQuery(
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
-    nestedSelection: <T extends true | {}>(selection?: T, path?: string[]) => T,
+    nestedSelectionOrInfo: NestedSelection | GraphQLResolveInfo,
   ) {
+    const nestedSelection: NestedSelection =
+      typeof nestedSelectionOrInfo === 'function'
+        ? nestedSelectionOrInfo
+        : (select, path) =>
+            queryFromInfo({
+              info: nestedSelectionOrInfo,
+              context: ctx,
+              config,
+              select,
+              path,
+            });
     const nestedSelect: Record<string, unknown> | true = select
       ? select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx)
       : nestedSelection(true, ['edges', 'node']);

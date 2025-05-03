@@ -421,4 +421,76 @@ describe('connection helpers', () => {
       }
     `);
   });
+
+  it('entry connection', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+              query {
+                  userRolesConnection(userId: 1) {
+                      pageInfo {
+                          startCursor
+                          endCursor
+                          hasPreviousPage
+                          hasNextPage
+                      }
+                      edges {
+                          cursor
+                          node {
+                              id
+                              name
+                          }
+                      }
+                  }
+              }
+          `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."role_id" as "roleId", "d0"."user_id" as "userId", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "roles" as "d1" where "d0"."role_id" = "d1"."id" limit ?) as "t") as "role" from "user_roles" as "d0" where "d0"."user_id" = ? order by "d0"."role_id" asc limit ? -- params: [1, 1, 21]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "userRolesConnection": {
+            "edges": [
+              {
+                "cursor": "REM6Tjox",
+                "node": {
+                  "id": "1",
+                  "name": "admin",
+                },
+              },
+              {
+                "cursor": "REM6Tjoy",
+                "node": {
+                  "id": "2",
+                  "name": "author",
+                },
+              },
+              {
+                "cursor": "REM6Tjoz",
+                "node": {
+                  "id": "3",
+                  "name": "user",
+                },
+              },
+            ],
+            "pageInfo": {
+              "endCursor": "REM6Tjoz",
+              "hasNextPage": false,
+              "hasPreviousPage": false,
+              "startCursor": "REM6Tjox",
+            },
+          },
+        },
+      }
+    `);
+  });
 });

@@ -1,5 +1,6 @@
 import { drizzleConnectionHelpers } from '../../../src';
 import { builder } from '../builder';
+import { db } from '../db';
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   args: (t) => ({
@@ -205,3 +206,24 @@ export const User = builder.drizzleNode('users', {
     }),
   }),
 });
+
+builder.queryField('userRolesConnection', (t) =>
+  t.connection({
+    type: Role,
+    args: {
+      userId: t.arg.int({ required: true }),
+    },
+    nodeNullable: true,
+    resolve: async (_, args, ctx, info) => {
+      const query = rolesConnection.getQuery(args, ctx, info);
+      const userRoles = await db.query.userRoles.findMany({
+        ...query,
+        where: {
+          ...query.where,
+          userId: args.userId,
+        },
+      });
+      return rolesConnection.resolve(userRoles, args, ctx);
+    },
+  }),
+);
