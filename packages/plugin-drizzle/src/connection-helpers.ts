@@ -1,5 +1,11 @@
 import type { InputFieldMap, InputShapeFromFields, SchemaTypes } from '@pothos/core';
-import type { BuildQueryResult, DBQueryConfig, Table, TableRelationalConfig } from 'drizzle-orm';
+import type {
+  BuildQueryResult,
+  DBQueryConfig,
+  ExtractTablesWithRelations,
+  RelationsFilter,
+  TableRelationalConfig,
+} from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
 import type { QueryForDrizzleConnection } from './types';
 import { getSchemaConfig } from './utils/config';
@@ -167,6 +173,7 @@ export function drizzleConnectionHelpers<
       orderBy: {
         [K in keyof Table['columns']]?: 'asc' | 'desc' | undefined;
       };
+      where: RelationsFilter<Table, ExtractTablesWithRelations<Types['DrizzleRelations']>>;
     };
   }
 
