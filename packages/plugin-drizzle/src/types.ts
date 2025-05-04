@@ -163,7 +163,6 @@ export type DrizzleNodeOptions<
           | ((columns: Types['DrizzleRelationsConfig'][Table]['columns']) => Column | Column[])
         );
     };
-    name: string;
     select?: Selection;
     fields?: (
       t: DrizzleObjectFieldBuilder<
@@ -172,7 +171,7 @@ export type DrizzleNodeOptions<
         Shape & { [drizzleTableName]?: Table }
       >,
     ) => FieldMap;
-  };
+  } & NameOrVariant;
 
 export type ShapeFromIdColumns<
   Types extends SchemaTypes,
@@ -365,7 +364,8 @@ export type RelatedFieldOptions<
   'description' | 'resolve' | 'select' | 'type'
 > & {
   description?: string | false;
-  type?: ObjectRef<Types, TypesForRelation<Types, Table['relations'][Field]>>;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  type?: DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
   query?: QueryForField<Types, Args, Table['relations'][Field]>;
 };
 

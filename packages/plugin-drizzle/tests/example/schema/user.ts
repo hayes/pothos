@@ -98,6 +98,19 @@ export const Viewer = builder.drizzleInterface('users', {
   }),
 });
 
+export const Admin = builder.drizzleNode('users', {
+  variant: 'Admin',
+  id: {
+    column: (user) => user.id,
+  },
+  select: {},
+  fields: (t) => ({
+    isAdmin: t.boolean({
+      resolve: () => true,
+    }),
+  }),
+});
+
 export const User = builder.drizzleNode('users', {
   name: 'User',
   id: {
@@ -224,6 +237,21 @@ builder.queryField('userRolesConnection', (t) =>
         },
       });
       return rolesConnection.resolve(userRoles, args, ctx);
+    },
+  }),
+);
+
+builder.queryField('admin', (t) =>
+  t.drizzleField({
+    type: Admin,
+    resolve: (query, _root, _args, ctx) => {
+      return ctx.roles.includes('admin')
+        ? db.query.users.findFirst(query({
+            where: {
+              id: ctx.user?.id,
+            },
+          }))
+        : null;
     },
   }),
 );
