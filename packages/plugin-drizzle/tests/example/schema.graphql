@@ -81,6 +81,7 @@ type Query {
   postWithErrors(id: ID!): QueryPostWithErrorsResult
   posts(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): QueryPostsConnection
   user(id: ID!): User
+  userRolesConnection(after: String, before: String, first: Int, last: Int, userId: Int!): QueryUserRolesConnection
   userWithInput(input: QueryUserWithInputInput!): User
   users: [User!]
   usersConnection(after: String, before: String, first: Int, last: Int): QueryUsersConnection
@@ -100,6 +101,16 @@ type QueryPostsConnection {
 type QueryPostsConnectionEdge {
   cursor: String!
   node: Post
+}
+
+type QueryUserRolesConnection {
+  edges: [QueryUserRolesConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryUserRolesConnectionEdge {
+  cursor: String!
+  node: Role
 }
 
 input QueryUserWithInputInput {
