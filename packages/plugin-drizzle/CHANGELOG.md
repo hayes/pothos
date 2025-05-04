@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.10.2
+
+### Patch Changes
+
+- 0a1973e: fix drizzleInterfaceFields and interface variants
+
 ## 0.10.1
 
 ### Patch Changes
