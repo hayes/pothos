@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.10.1
+
+### Patch Changes
+
+- 192c9c4: fix typing for ref on relatedFields and node variants
+
 ## 0.10.0
 
 ### Minor Changes
