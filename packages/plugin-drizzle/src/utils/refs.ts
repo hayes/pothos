@@ -1,4 +1,4 @@
-import type { SchemaTypes } from '@pothos/core';
+import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
 import { DrizzleInterfaceRef, type DrizzleRef } from '../interface-ref';
 import { DrizzleObjectRef } from '../object-ref';
 
@@ -21,5 +21,16 @@ export function getRefFromModel<Types extends SchemaTypes>(
     );
   }
 
-  return cache.get(name)! as never;
+  const ref = cache.get(name) as unknown as DrizzleRef<Types>;
+
+  if (
+    (type === 'interface' && !(ref instanceof DrizzleInterfaceRef)) ||
+    (type === 'object' && !(ref instanceof DrizzleObjectRef))
+  ) {
+    throw new PothosSchemaError(
+      `Drizzle table ${name} was created as both an object and interface.  Use 'variant' instead of 'name' in one of the implementations`,
+    );
+  }
+
+  return ref;
 }

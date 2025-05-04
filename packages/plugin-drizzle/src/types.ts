@@ -113,14 +113,9 @@ export type DrizzleInterfaceOptions<
   Shape,
   Selection,
   Interfaces extends InterfaceParam<Types>[],
-> = Omit<
-  InterfaceTypeOptions<Types, InterfaceRef<Types, Shape>, Shape, Interfaces> & {
-    name: string;
-    select?: Selection;
-  },
-  'fields'
-> &
+> = Omit<InterfaceTypeOptions<Types, InterfaceRef<Types, Shape>, Shape, Interfaces>, 'fields'> &
   NameOrVariant & {
+    select?: Selection;
     fields?: (
       t: DrizzleObjectFieldBuilder<
         Types,

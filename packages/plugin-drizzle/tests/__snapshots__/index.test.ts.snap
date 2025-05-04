@@ -94,6 +94,7 @@ type NormalViewer implements Viewer {
   isNormal: Boolean
   roles: [String!]
   rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
+  selfConnection(after: String, before: String, first: Int, last: Int): ViewerSelfConnection
   selfList: [Viewer!]
   user: User!
   username: String
@@ -219,6 +220,7 @@ interface Viewer {
   id: ID
   roles: [String!]
   rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
+  selfConnection(after: String, before: String, first: Int, last: Int): ViewerSelfConnection
   selfList: [Viewer!]
   user: User!
   username: String
@@ -242,6 +244,16 @@ type ViewerRolesConnection {
 type ViewerRolesConnectionEdge {
   cursor: String!
   node: Role
+}
+
+type ViewerSelfConnection {
+  edges: [ViewerSelfConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type ViewerSelfConnectionEdge {
+  cursor: String!
+  node: Viewer
 }
 
 type comments {

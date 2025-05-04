@@ -41,7 +41,7 @@ export const NormalViewer = builder.drizzleObject('users', {
 });
 
 export const Viewer = builder.drizzleInterface('users', {
-  name: 'Viewer',
+  variant: 'Viewer',
   select: {
     columns: {},
   },
@@ -263,3 +263,9 @@ builder.drizzleInterfaceField(Viewer, 'selfList', (t) =>
     type: Viewer,
   }),
 );
+
+builder.drizzleInterfaceFields(Viewer, (t) => ({
+  selfConnection: t.relatedConnection('manySelf', {
+    type: Viewer,
+  }),
+}));

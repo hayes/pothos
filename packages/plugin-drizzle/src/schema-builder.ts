@@ -27,10 +27,10 @@ schemaBuilderProto.drizzleObject = function drizzleObject(table, { select, field
   const name = options.variant ?? options.name ?? table;
 
   const ref = options.variant
-    ? new DrizzleObjectRef(options.variant, name)
+    ? new DrizzleObjectRef(options.variant, table)
     : (getRefFromModel(table, this, 'object') as ObjectRef<SchemaTypes, unknown>);
 
-  ref.name = name ?? table;
+  ref.name = name;
 
   this.objectType(ref, {
     ...(options as {}),
@@ -52,9 +52,13 @@ schemaBuilderProto.drizzleInterface = function drizzleInterface(
   table,
   { select, fields, ...options },
 ) {
-  const name = options.name ?? table;
+  const name = options.variant ?? options.name ?? table;
 
-  const ref = new DrizzleInterfaceRef(name, table);
+  const ref = options.variant
+    ? new DrizzleInterfaceRef(options.variant, table)
+    : (getRefFromModel(table, this, 'interface') as InterfaceRef<SchemaTypes, unknown>);
+
+  ref.name = name;
 
   this.interfaceType(ref, {
     ...(options as {}),
