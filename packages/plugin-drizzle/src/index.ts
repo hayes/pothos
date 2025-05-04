@@ -15,7 +15,6 @@ export { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 export { drizzleClientCache } from './utils/config';
 export { drizzleConnectionHelpers } from './connection-helpers';
 
-
 export * from './types';
 
 export { drizzleTableName } from './types';
