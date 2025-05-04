@@ -54,6 +54,7 @@ type NormalViewer implements Viewer {
   isNormal: Boolean
   roles: [String!]
   rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
+  selfList: [Viewer!]
   user: User!
   username: String
 }
@@ -178,6 +179,7 @@ interface Viewer {
   id: ID
   roles: [String!]
   rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
+  selfList: [Viewer!]
   user: User!
   username: String
 }

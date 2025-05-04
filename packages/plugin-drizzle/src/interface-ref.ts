@@ -16,7 +16,7 @@ export class DrizzleInterfaceRef<
   Table extends keyof Types['DrizzleRelationsConfig'] = keyof Types['DrizzleRelationsConfig'],
   T = {},
 > extends InterfaceRef<Types, T> {
-  [drizzleTableKey]!: Table;
+  [drizzleTableKey]!: Types['DrizzleRelationsConfig'][Table];
 
   tableName: string;
 

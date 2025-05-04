@@ -257,3 +257,9 @@ builder.queryField('admin', (t) =>
     },
   }),
 );
+
+builder.drizzleInterfaceField(Viewer, 'selfList', (t) =>
+  t.relation('manySelf', {
+    type: Viewer,
+  }),
+);

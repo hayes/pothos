@@ -155,7 +155,7 @@ declare global {
 
       drizzleInterfaceField: <
         Type extends DrizzleInterfaceRef<Types> | keyof Types['DrizzleRelationsConfig'],
-        TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
+        TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelationsConfig'][Type & keyof Types['DrizzleRelationsConfig']],
         Shape extends {} = Type extends DrizzleInterfaceRef<

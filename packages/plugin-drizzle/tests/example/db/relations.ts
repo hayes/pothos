@@ -43,6 +43,10 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.users.id,
       to: r.userRoles.userId,
     }),
+    manySelf: r.many.users({
+      from: r.users.id,
+      to: r.users.id,
+    }),
   },
   categories: {
     posts: r.many.posts({
