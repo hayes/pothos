@@ -1,5 +1,15 @@
 # @pothos/plugin-drizzle
 
+## 0.10.0
+
+### Minor Changes
+
+- 73a4c4e: Allow implementing entry connections with drizzleConnectionHelper
+
+### Patch Changes
+
+- 31e8c53: Fix default selection for drizzleObjects and nodes
+
 ## 0.9.0
 
 ### Minor Changes
