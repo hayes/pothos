@@ -3,7 +3,6 @@ import './field-builder';
 import './schema-builder';
 import SchemaBuilder, {
   BasePlugin,
-  type InputTypeFieldsMapping,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
@@ -11,10 +10,11 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import type { GraphQLFieldResolver } from 'graphql';
 import type { ModelLoader } from './model-loader';
-import type { DrizzleGraphQLInputExtensions } from './types';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
+export { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 export { drizzleClientCache } from './utils/config';
 export { drizzleConnectionHelpers } from './connection-helpers';
+
 
 export * from './types';
 
