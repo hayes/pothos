@@ -54,7 +54,7 @@ function addTypeSelectionsForField(
 
   const { pothosDrizzleSelect, pothosIndirectInclude } = (type.extensions ?? {}) as {
     pothosIndirectInclude?: IndirectInclude;
-    pothosDrizzleSelect?: DBQueryConfig<'one'>;
+    pothosDrizzleSelect?: boolean | DBQueryConfig<'one'>;
   };
 
   if (
@@ -101,7 +101,7 @@ function addTypeSelectionsForField(
   }
 
   if (pothosDrizzleSelect) {
-    mergeSelection(config, state, { ...pothosDrizzleSelect });
+    mergeSelection(config, state, pothosDrizzleSelect === true ? true : { ...pothosDrizzleSelect });
   }
 
   if (selection.selectionSet && (!deferred || !state.skipDeferredFragments)) {
