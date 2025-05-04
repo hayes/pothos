@@ -246,11 +246,13 @@ builder.queryField('admin', (t) =>
     type: Admin,
     resolve: (query, _root, _args, ctx) => {
       return ctx.roles.includes('admin')
-        ? db.query.users.findFirst(query({
-            where: {
-              id: ctx.user?.id,
-            },
-          }))
+        ? db.query.users.findFirst(
+            query({
+              where: {
+                id: ctx.user?.id,
+              },
+            }),
+          )
         : null;
     },
   }),
