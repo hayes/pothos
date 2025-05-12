@@ -1,0 +1,28 @@
+{
+  "private": true,
+  "name": "@pothos-examples/nestjs-apollo-middleware",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "debug": "nest start --debug --watch",
+    "start": "node dist/main"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.12.0",
+    "@faker-js/faker": "^9.7.0",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@pothos/core": "workspace:*",
+    "graphql": "^16.10.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.7",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.14.1",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3"
+  }
+}
