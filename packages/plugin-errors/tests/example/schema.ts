@@ -67,6 +67,52 @@ export function createSchema(builder: Builder) {
     }),
   });
 
+  builder.subscriptionType({
+    fields: (t) => ({
+      // Simple error handling just using base error class
+      test: t.int({
+        errors: {},
+        nullable: true,
+        args: {
+          errorOnSubscribe: t.arg.boolean(),
+          errorInIterable: t.arg.boolean(),
+          errorOnResolve: t.arg.boolean(),
+          returnNull: t.arg.boolean(),
+        },
+        subscribe: (_, { errorOnSubscribe, errorInIterable, returnNull }) => {
+          if (errorOnSubscribe) {
+            throw new Error('error on subscribe');
+          }
+
+          if (returnNull) {
+            return null as never;
+          }
+
+          return gen();
+
+          // biome-ignore lint/suspicious/useAwait: <explanation>
+          async function* gen() {
+            yield 1;
+            if (errorInIterable) {
+              throw new Error('error on subscribe');
+            }
+            yield 2;
+            yield 3;
+
+            return null;
+          }
+        },
+        resolve: (val, { errorOnResolve }) => {
+          if (errorOnResolve) {
+            throw new Error('error on resolve');
+          }
+
+          return val;
+        },
+      }),
+    }),
+  });
+
   class ExtendedError extends Error {
     errorCode = 123;
 
