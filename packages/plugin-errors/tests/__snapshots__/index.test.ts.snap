@@ -83,6 +83,16 @@ type QueryValidation2Success {
   result: Boolean!
 }
 
+type Subscription {
+  test(errorInIterable: Boolean, errorOnResolve: Boolean, errorOnSubscribe: Boolean, returnNull: Boolean): SubscriptionTestResult
+}
+
+union SubscriptionTestResult = BaseError | SubscriptionTestSuccess
+
+type SubscriptionTestSuccess {
+  data: Int!
+}
+
 type ZodError implements Error {
   fieldErrors: [ZodFieldError!]
   message: String
@@ -170,6 +180,16 @@ type SimpleError_CUSTOM_RESULT_NAME {
 }
 
 union SimpleError_CUSTOM_UNION_NAME = BaseError | SimpleError_CUSTOM_RESULT_NAME
+
+type Subscription {
+  test(errorInIterable: Boolean, errorOnResolve: Boolean, errorOnSubscribe: Boolean, returnNull: Boolean): Test_CUSTOM_UNION_NAME
+}
+
+type Test_CUSTOM_RESULT_NAME {
+  data: Int!
+}
+
+union Test_CUSTOM_UNION_NAME = BaseError | Test_CUSTOM_RESULT_NAME
 
 type Validation2_CUSTOM_RESULT_NAME {
   result: Boolean!

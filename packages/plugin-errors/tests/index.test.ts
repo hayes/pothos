@@ -1,4 +1,4 @@
-import { execute, printSchema } from 'graphql';
+import { execute, printSchema, subscribe } from 'graphql';
 import { gql } from 'graphql-tag';
 import { builder, builderWithCustomErrorTypeNames } from './example/builder';
 import { createSchema } from './example/schema';
@@ -176,5 +176,265 @@ describe('errors plugin', () => {
     expect(() => {
       builderWithCustomErrorTypeNames.toSchema();
     }).not.toThrow();
+  });
+
+  it('subscription without errors', async () => {
+    const result = await subscribe({
+      schema,
+      document: gql`
+        subscription {
+          test {
+            __typename
+            ... on Error {
+              message
+            }
+            ... on SubscriptionTestResult {
+              data
+            }
+          }
+        }
+      `,
+    });
+
+    const results = [];
+    for await (const value of result as AsyncIterable<{ data: { hello: number } }>) {
+      results.push(value);
+    }
+
+    expect(results).toMatchInlineSnapshot(`
+      [
+        {
+          "data": {
+            "test": {
+              "__typename": "SubscriptionTestSuccess",
+              "data": 1,
+            },
+          },
+        },
+        {
+          "data": {
+            "test": {
+              "__typename": "SubscriptionTestSuccess",
+              "data": 2,
+            },
+          },
+        },
+        {
+          "data": {
+            "test": {
+              "__typename": "SubscriptionTestSuccess",
+              "data": 3,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('subscription null', async () => {
+    const result = await subscribe({
+      schema,
+      document: gql`
+        subscription {
+          test(returnNull: true) {
+            __typename
+            ... on Error {
+              message
+            }
+            ... on SubscriptionTestResult {
+              data
+            }
+          }
+        }
+      `,
+    });
+
+    const results = [];
+    for await (const value of result as AsyncIterable<{ data: { hello: number } }>) {
+      results.push(value);
+    }
+
+    // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
+    expect(results).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('subscription error on subscribe', async () => {
+    const result = await subscribe({
+      schema,
+      document: gql`
+        subscription {
+          test(errorOnSubscribe: true) {
+            __typename
+            ... on Error {
+              message
+            }
+            ... on SubscriptionTestResult {
+              data
+            }
+          }
+        }
+      `,
+    });
+
+    const results = [];
+    for await (const value of result as AsyncIterable<{ data: { hello: number } }>) {
+      results.push(value);
+    }
+
+    expect(results).toMatchInlineSnapshot(`
+      [
+        {
+          "data": {
+            "test": {
+              "__typename": "BaseError",
+              "message": "error on subscribe",
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('subscription error in resolve', async () => {
+    const result = await subscribe({
+      schema,
+      document: gql`
+        subscription {
+          test(errorOnResolve: true) {
+            __typename
+            ... on Error {
+              message
+            }
+            ... on SubscriptionTestResult {
+              data
+            }
+          }
+        }
+      `,
+    });
+
+    const results = [];
+    for await (const value of result as AsyncIterable<{ data: { hello: number } }>) {
+      results.push(value);
+    }
+
+    expect(results).toMatchInlineSnapshot(`
+      [
+        {
+          "data": {
+            "test": {
+              "__typename": "BaseError",
+              "message": "error on resolve",
+            },
+          },
+        },
+        {
+          "data": {
+            "test": {
+              "__typename": "BaseError",
+              "message": "error on resolve",
+            },
+          },
+        },
+        {
+          "data": {
+            "test": {
+              "__typename": "BaseError",
+              "message": "error on resolve",
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('subscription error in iterable', async () => {
+    const result = await subscribe({
+      schema,
+      document: gql`
+        subscription {
+          test(errorInIterable: true) {
+            __typename
+            ... on Error {
+              message
+            }
+            ... on SubscriptionTestResult {
+              data
+            }
+          }
+        }
+      `,
+    });
+
+    const results = [];
+    for await (const value of result as AsyncIterable<{ data: { hello: number } }>) {
+      results.push(value);
+    }
+
+    expect(results).toMatchInlineSnapshot(`
+      [
+        {
+          "data": {
+            "test": {
+              "__typename": "SubscriptionTestSuccess",
+              "data": 1,
+            },
+          },
+        },
+        {
+          "data": {
+            "test": {
+              "__typename": "BaseError",
+              "message": "error on subscribe",
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('subscription error in iterable and resolve', async () => {
+    const result = await subscribe({
+      schema,
+      document: gql`
+        subscription {
+          test(errorInIterable: true, errorOnResolve: true) {
+            __typename
+            ... on Error {
+              message
+            }
+            ... on SubscriptionTestResult {
+              data
+            }
+          }
+        }
+      `,
+    });
+
+    const results = [];
+    for await (const value of result as AsyncIterable<{ data: { hello: number } }>) {
+      results.push(value);
+    }
+
+    expect(results).toMatchInlineSnapshot(`
+      [
+        {
+          "data": {
+            "test": {
+              "__typename": "BaseError",
+              "message": "error on resolve",
+            },
+          },
+        },
+        {
+          "data": {
+            "test": {
+              "__typename": "BaseError",
+              "message": "error on subscribe",
+            },
+          },
+        },
+      ]
+    `);
   });
 });

@@ -206,9 +206,13 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return resolver;
     }
 
-    return async (...args) => {
+    return async (source, args, context, info) => {
+      if (fieldConfig.kind === 'Subscription' && errorTypeMap.has(source as {})) {
+        return source;
+      }
+
       try {
-        return (await resolver(...args)) as never;
+        return (await resolver(source, args, context, info)) as never;
       } catch (error: unknown) {
         for (const errorType of pothosErrors) {
           if (error instanceof errorType) {
@@ -222,6 +226,45 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
         throw error;
       }
+    };
+  }
+
+  override wrapSubscribe(
+    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
+
+    if (!pothosErrors) {
+      return subscribe;
+    }
+
+    return (...args) => {
+      async function* yieldErrors() {
+        try {
+          const iter = (await subscribe(...args)) as AsyncIterableIterator<unknown>;
+
+          if (!iter) {
+            return iter;
+          }
+
+          for await (const value of iter) {
+            yield value;
+          }
+        } catch (error: unknown) {
+          for (const errorType of pothosErrors!) {
+            if (error instanceof errorType) {
+              const result = createErrorProxy(error, errorType, { wrapped: true });
+
+              errorTypeMap.set(result, errorType);
+
+              yield result;
+            }
+          }
+        }
+      }
+
+      return yieldErrors();
     };
   }
 }
