@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- fd5395f: Add proper support for errors in subscriptions
+
 ## 4.2.1
 
 ### Patch Changes
