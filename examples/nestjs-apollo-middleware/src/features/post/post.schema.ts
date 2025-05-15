@@ -1,8 +1,8 @@
 import { schemaBuilder } from 'src/graphql/schema.builder';
-import { Post } from './post.model';
-import { PostRepository } from './post.repository';
 import { UserRepository } from '../user/user.repository';
 import { UserSchema } from '../user/user.schema';
+import type { Post } from './post.model';
+import { PostRepository } from './post.repository';
 
 export const PostSchema = schemaBuilder.objectRef<Post>('Post');
 
@@ -51,6 +51,6 @@ schemaBuilder.objectField(UserSchema, 'posts', (t) =>
   t.field({
     type: [PostSchema],
     nullable: false,
-    resolve: (user, args, ctx) => ctx.get(PostRepository).getPostsByAuthorId(user.id),
+    resolve: (user, _args, ctx) => ctx.get(PostRepository).getPostsByAuthorId(user.id),
   }),
 );

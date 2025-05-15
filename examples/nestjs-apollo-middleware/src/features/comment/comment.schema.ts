@@ -1,10 +1,10 @@
 import { schemaBuilder } from 'src/graphql/schema.builder';
-import { Comment } from './comment.model';
-import { CommentRepository } from './comment.repository';
 import { PostRepository } from '../post/post.repository';
 import { PostSchema } from '../post/post.schema';
 import { UserRepository } from '../user/user.repository';
 import { UserSchema } from '../user/user.schema';
+import type { Comment } from './comment.model';
+import { CommentRepository } from './comment.repository';
 
 export const CommentSchema = schemaBuilder.objectRef<Comment>('Comment');
 

@@ -1,5 +1,5 @@
 import { schemaBuilder } from 'src/graphql/schema.builder';
-import { User } from './user.model';
+import type { User } from './user.model';
 import { UserRepository } from './user.repository';
 
 export const UserSchema = schemaBuilder.objectRef<User>('User');

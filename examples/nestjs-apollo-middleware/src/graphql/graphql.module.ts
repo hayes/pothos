@@ -1,9 +1,9 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { NextFunction, Request, Response } from 'express';
-import { GraphqlContext } from './graphql.context';
+import type { NextFunction, Request, Response } from 'express';
+import type { GraphqlContext } from './graphql.context';
 import { graphqlSchema } from './graphql.schema';
 
 @Module({

@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { Injectable } from '@nestjs/common';
-import { Comment } from './comment.model';
+import type { Comment } from './comment.model';
 
 @Injectable()
 export class CommentRepository {

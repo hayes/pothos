@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { Injectable } from '@nestjs/common';
-import { User } from './user.model';
+import type { User } from './user.model';
 
 @Injectable()
 export class UserRepository {
