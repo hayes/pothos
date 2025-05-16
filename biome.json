@@ -4,6 +4,7 @@
     "ignore": [
       ".turbo",
       ".source",
+      "examples/**/dist/**/*",
       "examples/**/prisma/**/*",
       "packages/**/prisma/**/*",
       "packages/plugin-prisma/**/client/**/*",
@@ -288,6 +289,16 @@
         "rules": {
           "complexity": {
             "noForEach": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["examples/nestjs*/**/*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
           }
         }
       }
