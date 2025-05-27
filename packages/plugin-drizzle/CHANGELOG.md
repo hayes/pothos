@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.10.3
+
+### Patch Changes
+
+- 0046a00: Correctly pass parent in connection results
+
 ## 0.10.2
 
 ### Patch Changes
