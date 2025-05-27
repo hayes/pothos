@@ -1,6 +1,8 @@
+import { count, eq } from 'drizzle-orm';
 import { drizzleConnectionHelpers } from '../../../src';
 import { builder } from '../builder';
 import { db } from '../db';
+import { comments, users } from '../db/schema';
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   args: (t) => ({
@@ -31,7 +33,9 @@ export const NormalViewer = builder.drizzleObject('users', {
   variant: 'NormalViewer',
   interfaces: () => [Viewer],
   select: {
-    columns: {},
+    columns: {
+      id: true,
+    },
   },
   fields: (t) => ({
     isNormal: t.boolean({
@@ -43,7 +47,9 @@ export const NormalViewer = builder.drizzleObject('users', {
 export const Viewer = builder.drizzleInterface('users', {
   variant: 'Viewer',
   select: {
-    columns: {},
+    columns: {
+      id: true,
+    },
   },
   resolveType: () => 'NormalViewer',
   fields: (t) => ({
@@ -63,6 +69,36 @@ export const Viewer = builder.drizzleInterface('users', {
           id: 'desc',
         },
       },
+    }, {
+      fields: (t) => ({
+        total: t.int({
+          resolve: async ({ parent }) => {
+            const result = await db.select({ count: count() }).from(comments).where(eq(comments.authorId, parent.id))
+
+            return result[0].count
+          }
+        }),
+      })
+    }),
+    drizzleConnectionComments: t.drizzleConnection( {
+      type: 'comments',
+      resolve: (query) => {
+        return db.query.comments.findMany(query({
+          orderBy: {
+            id: 'desc',
+          },
+        }))
+      }
+    }, {
+      fields: (t) => ({
+        total: t.int({
+          resolve: async ({ parent }) => {
+            const result = await db.select({ count: count() }).from(comments).where(eq(comments.authorId, parent.id))
+
+            return result[0].count
+          }
+        }),
+      })
     }),
     drafts: t.relation('posts', {
       query: {

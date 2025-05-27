@@ -286,6 +286,8 @@ export class DrizzleObjectFieldBuilder<
             args,
             select.limit,
             getCursorFormatter(cursorColumns, schemaConfig),
+            undefined,
+            parent,
           );
         },
       },

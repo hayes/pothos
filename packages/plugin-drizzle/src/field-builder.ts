@@ -152,6 +152,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
             return resolve(q as never, parent, args as never, context, info) as never;
             // );
           },
+          parent,
         );
       },
     },

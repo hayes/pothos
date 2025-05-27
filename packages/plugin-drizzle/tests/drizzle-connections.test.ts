@@ -983,4 +983,55 @@ describe('drizzle connections', () => {
       }
     `);
   });
+  it('custom totalCount field', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+            query {
+            me {
+              id
+              drizzleConnectionComments(first: 1) {
+                total
+                edges {
+                  node {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."id" as "id" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        "Query: select "d0"."id" as "id", "d0"."text" as "text", "d0"."author_id" as "authorId", "d0"."post_id" as "postId", "d0"."createdAt" as "createdAt", "d0"."createdAt" as "updatedAt" from "comments" as "d0" order by "d0"."id" desc limit ? -- params: [2]",
+        "Query: select count(*) from "comments" where "comments"."author_id" = ? -- params: [1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "drizzleConnectionComments": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "991",
+                  },
+                },
+              ],
+              "total": 13,
+            },
+            "id": "1",
+          },
+        },
+      }
+    `);
+  });
 });

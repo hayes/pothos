@@ -1086,4 +1086,55 @@ describe('related connections', () => {
       }
     `);
   });
+
+  it('custom totalCount field', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+            query {
+            me {
+              id
+              comments(first: 1) {
+                total
+                edges {
+                  node {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('id', "id", 'text', "text", 'authorId', "authorId", 'postId', "postId", 'createdAt', "createdAt", 'updatedAt', "updatedAt")) as "r" from (select "d1"."id" as "id", "d1"."text" as "text", "d1"."author_id" as "authorId", "d1"."post_id" as "postId", "d1"."createdAt" as "createdAt", "d1"."createdAt" as "updatedAt" from "comments" as "d1" where "d0"."id" = "d1"."author_id" order by "d1"."id" desc limit ?) as "t"), jsonb_array()) as "comments" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [2, 1, 1]",
+        "Query: select count(*) from "comments" where "comments"."author_id" = ? -- params: [1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "comments": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "891",
+                  },
+                },
+              ],
+              "total": 13,
+            },
+            "id": "1",
+          },
+        },
+      }
+    `);
+  });
 });

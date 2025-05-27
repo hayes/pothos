@@ -513,6 +513,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   resolve: (
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
+  parent: unknown,
 ) {
   const table = config.relations.tablesConfig[tableName];
   let query: DBQueryConfig<'many'>;
@@ -557,5 +558,5 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     return results;
   }
 
-  return wrapConnectionResult(results, options.args, query!.limit as number, formatter!);
+  return wrapConnectionResult(results, options.args, query!.limit as number, formatter!, undefined, parent);
 }

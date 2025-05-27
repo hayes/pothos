@@ -83,7 +83,7 @@ export function drizzleConnectionHelpers<
       : (refOrType as DrizzleRef<Types, Type extends DrizzleRef<Types, infer T> ? T : Type>)
           .tableName;
 
-  function resolve<Parent = unknown>(
+  function resolve<Parent = undefined>(
     list: (EdgeShape & {})[],
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
@@ -99,6 +99,7 @@ export function drizzleConnectionHelpers<
       (resolveNode as never) ?? ((edge: unknown) => edge),
       parent,
     ) as unknown as {
+      parent: Parent,
       edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
       pageInfo: {
         startCursor: string | null;

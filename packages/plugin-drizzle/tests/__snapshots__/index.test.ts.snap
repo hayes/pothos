@@ -90,6 +90,7 @@ interface Node {
 type NormalViewer implements Viewer {
   comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
   drafts: [Post!]
+  drizzleConnectionComments(after: String, before: String, first: Int, last: Int): ViewerDrizzleConnectionCommentsConnection
   id: ID
   isNormal: Boolean
   roles: [String!]
@@ -217,6 +218,7 @@ type UserUnOrderedPostsConnectionEdge {
 interface Viewer {
   comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
   drafts: [Post!]
+  drizzleConnectionComments(after: String, before: String, first: Int, last: Int): ViewerDrizzleConnectionCommentsConnection
   id: ID
   roles: [String!]
   rolesConnection(after: String, before: String, first: Int, invert: Boolean = false, last: Int): ViewerRolesConnection
@@ -229,9 +231,21 @@ interface Viewer {
 type ViewerCommentsConnection {
   edges: [ViewerCommentsConnectionEdge]
   pageInfo: PageInfo!
+  total: Int
 }
 
 type ViewerCommentsConnectionEdge {
+  cursor: String!
+  node: comments
+}
+
+type ViewerDrizzleConnectionCommentsConnection {
+  edges: [ViewerDrizzleConnectionCommentsConnectionEdge]
+  pageInfo: PageInfo!
+  total: Int
+}
+
+type ViewerDrizzleConnectionCommentsConnectionEdge {
   cursor: String!
   node: comments
 }
