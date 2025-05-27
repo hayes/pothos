@@ -558,5 +558,12 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     return results;
   }
 
-  return wrapConnectionResult(results, options.args, query!.limit as number, formatter!, undefined, parent);
+  return wrapConnectionResult(
+    results,
+    options.args,
+    query!.limit as number,
+    formatter!,
+    undefined,
+    parent,
+  );
 }

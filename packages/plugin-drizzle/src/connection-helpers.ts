@@ -99,7 +99,7 @@ export function drizzleConnectionHelpers<
       (resolveNode as never) ?? ((edge: unknown) => edge),
       parent,
     ) as unknown as {
-      parent: Parent,
+      parent: Parent;
       edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
       pageInfo: {
         startCursor: string | null;

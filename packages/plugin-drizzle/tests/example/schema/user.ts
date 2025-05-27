@@ -63,43 +63,58 @@ export const Viewer = builder.drizzleInterface('users', {
       resolve: (user) => `@${user.username}`,
     }),
     user: t.variant('users'),
-    comments: t.relatedConnection('comments', {
-      query: {
-        orderBy: {
-          id: 'desc',
-        },
-      },
-    }, {
-      fields: (t) => ({
-        total: t.int({
-          resolve: async ({ parent }) => {
-            const result = await db.select({ count: count() }).from(comments).where(eq(comments.authorId, parent.id))
-
-            return result[0].count
-          }
-        }),
-      })
-    }),
-    drizzleConnectionComments: t.drizzleConnection( {
-      type: 'comments',
-      resolve: (query) => {
-        return db.query.comments.findMany(query({
+    comments: t.relatedConnection(
+      'comments',
+      {
+        query: {
           orderBy: {
             id: 'desc',
           },
-        }))
-      }
-    }, {
-      fields: (t) => ({
-        total: t.int({
-          resolve: async ({ parent }) => {
-            const result = await db.select({ count: count() }).from(comments).where(eq(comments.authorId, parent.id))
+        },
+      },
+      {
+        fields: (t) => ({
+          total: t.int({
+            resolve: async ({ parent }) => {
+              const result = await db
+                .select({ count: count() })
+                .from(comments)
+                .where(eq(comments.authorId, parent.id));
 
-            return result[0].count
-          }
+              return result[0].count;
+            },
+          }),
         }),
-      })
-    }),
+      },
+    ),
+    drizzleConnectionComments: t.drizzleConnection(
+      {
+        type: 'comments',
+        resolve: (query) => {
+          return db.query.comments.findMany(
+            query({
+              orderBy: {
+                id: 'desc',
+              },
+            }),
+          );
+        },
+      },
+      {
+        fields: (t) => ({
+          total: t.int({
+            resolve: async ({ parent }) => {
+              const result = await db
+                .select({ count: count() })
+                .from(comments)
+                .where(eq(comments.authorId, parent.id));
+
+              return result[0].count;
+            },
+          }),
+        }),
+      },
+    ),
     drafts: t.relation('posts', {
       query: {
         where: {
