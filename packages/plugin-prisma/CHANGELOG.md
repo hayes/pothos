@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.8.2
+
+### Patch Changes
+
+- 3d5c989: Fix esm prisma output location
+
 ## 4.8.1
 
 ### Patch Changes
