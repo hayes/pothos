@@ -1,4 +1,4 @@
-import { mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, resolve as resolvePath } from 'node:path';
 import { type DMMF, generatorHandler } from '@prisma/generator-helper';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
@@ -79,7 +79,7 @@ generatorHandler({
       await generateOutput(
         options.dmmf,
         prismaTypes,
-        prismaLocation.startsWith('@') ? prismaLocation : posix.join(prismaLocation, 'index.js'),
+        prismaLocation,
         join(outputLocation, '../esm/generated.d.ts'),
         config,
         'esm',
