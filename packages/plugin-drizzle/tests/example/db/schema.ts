@@ -37,7 +37,7 @@ export const profile = sqliteTable('profile', {
 });
 
 export const posts = sqliteTable('posts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+  postId: integer('id').primaryKey({ autoIncrement: true }),
   slug: text('slug').unique(),
   title: text('title').notNull(),
   content: text('content').notNull(),
@@ -57,7 +57,7 @@ export const postLikes = sqliteTable(
   {
     postId: integer('post_id')
       .notNull()
-      .references(() => posts.id, { onDelete: 'cascade' }),
+      .references(() => posts.postId, { onDelete: 'cascade' }),
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -77,7 +77,7 @@ export const comments = sqliteTable('comments', {
     }),
   postId: integer('post_id')
     .notNull()
-    .references(() => posts.id, { onDelete: 'cascade' }),
+    .references(() => posts.postId, { onDelete: 'cascade' }),
   createdAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
   updatedAt: text('createdAt').notNull().default(sql`(current_timestamp)`),
 });
