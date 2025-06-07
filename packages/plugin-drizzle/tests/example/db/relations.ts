@@ -8,15 +8,15 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.users.id,
     }),
     comments: r.many.comments({
-      from: r.posts.id,
-      to: r.comments.id,
+      from: r.posts.postId,
+      to: r.comments.postId,
     }),
     commenters: r.many.users({
-      from: r.posts.id.through(r.comments.postId),
+      from: r.posts.postId.through(r.comments.postId),
       to: r.users.id.through(r.comments.authorId),
     }),
     likes: r.many.users({
-      from: r.posts.id.through(r.postLikes.postId),
+      from: r.posts.postId.through(r.postLikes.postId),
       to: r.users.id.through(r.postLikes.userId),
     }),
     category: r.one.categories(),
@@ -28,7 +28,7 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     likedPosts: r.many.posts({
       from: r.users.id.through(r.postLikes.userId),
-      to: r.posts.id.through(r.postLikes.postId),
+      to: r.posts.postId.through(r.postLikes.postId),
     }),
     profile: r.one.profile({
       from: r.users.id,

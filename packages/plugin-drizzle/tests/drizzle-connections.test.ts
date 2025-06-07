@@ -36,7 +36,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where "d0"."published" = ? order by "d0"."id" desc limit ? -- params: [1, 3]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where "d0"."published" = ? order by "d0"."id" desc limit ? -- params: [1, 3]",
       ]
     `);
 
@@ -98,7 +98,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where "d0"."published" = ? order by "d0"."id" asc limit ? -- params: [1, 3]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where "d0"."published" = ? order by "d0"."id" asc limit ? -- params: [1, 3]",
       ]
     `);
 
@@ -160,7 +160,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" < ?) order by "d0"."id" desc limit ? -- params: [1, 150, 3]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" < ?) order by "d0"."id" desc limit ? -- params: [1, 150, 3]",
       ]
     `);
 
@@ -222,7 +222,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" > ?) order by "d0"."id" asc limit ? -- params: [1, 2, 3]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" > ?) order by "d0"."id" asc limit ? -- params: [1, 2, 3]",
       ]
     `);
 
@@ -284,7 +284,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" desc limit ? -- params: [1, 150, 147, 3]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" desc limit ? -- params: [1, 150, 147, 3]",
       ]
     `);
 
@@ -346,7 +346,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" asc limit ? -- params: [1, 7, 2, 4]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" asc limit ? -- params: [1, 7, 2, 4]",
       ]
     `);
 
@@ -408,7 +408,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" desc limit ? -- params: [1, 150, 147, 2]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" desc limit ? -- params: [1, 150, 147, 2]",
       ]
     `);
 
@@ -464,7 +464,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" asc limit ? -- params: [1, 7, 2, 2]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."id" < ? and "d0"."id" > ?)) order by "d0"."id" asc limit ? -- params: [1, 7, 2, 2]",
       ]
     `);
 
@@ -520,7 +520,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" > ?) order by "d0"."id" desc limit ? -- params: [1, 148, 4]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" > ?) order by "d0"."id" desc limit ? -- params: [1, 148, 4]",
       ]
     `);
 
@@ -582,7 +582,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" < ?) order by "d0"."id" asc limit ? -- params: [1, 6, 4]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" < ?) order by "d0"."id" asc limit ? -- params: [1, 6, 4]",
       ]
     `);
 
@@ -644,7 +644,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" > ?) order by "d0"."id" desc limit ? -- params: [1, 148, 2]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" > ?) order by "d0"."id" desc limit ? -- params: [1, 148, 2]",
       ]
     `);
 
@@ -700,7 +700,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" < ?) order by "d0"."id" asc limit ? -- params: [1, 6, 2]",
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where ("d0"."published" = ? and "d0"."id" < ?) order by "d0"."id" asc limit ? -- params: [1, 6, 2]",
       ]
     `);
 
@@ -757,7 +757,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "categories" as "d1" where "d0"."category_id" = "d1"."id" limit ?) as "t") as "category" from "posts" as "d0" where (("d0"."published" = ? and exists (select * from "categories" as "f0" where ("d0"."category_id" = "f0"."id" and "f0"."name" = ?) limit 1)) and "d0"."id" > ?) order by "d0"."id" asc limit ? -- params: [1, 1, "entertainment", 6, 4]",
+        "Query: select "d0"."id" as "postId", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "categories" as "d1" where "d0"."category_id" = "d1"."id" limit ?) as "t") as "category" from "posts" as "d0" where (("d0"."published" = ? and exists (select * from "categories" as "f0" where ("d0"."category_id" = "f0"."id" and "f0"."name" = ?) limit 1)) and "d0"."id" > ?) order by "d0"."id" asc limit ? -- params: [1, 1, "entertainment", 6, 4]",
       ]
     `);
 
@@ -829,7 +829,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."category_id" as "categoryId", "d0"."id" as "id", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "categories" as "d1" where "d0"."category_id" = "d1"."id" limit ?) as "t") as "category" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."category_id" > ? or ("d0"."category_id" = ? and "d0"."id" > ?))) order by "d0"."category_id" asc, "d0"."id" asc limit ? -- params: [1, 1, 1, 1, 25, 4]",
+        "Query: select "d0"."category_id" as "categoryId", "d0"."id" as "postId", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "categories" as "d1" where "d0"."category_id" = "d1"."id" limit ?) as "t") as "category" from "posts" as "d0" where ("d0"."published" = ? and ("d0"."category_id" > ? or ("d0"."category_id" = ? and "d0"."id" > ?))) order by "d0"."category_id" asc, "d0"."id" asc limit ? -- params: [1, 1, 1, 1, 25, 4]",
       ]
     `);
 

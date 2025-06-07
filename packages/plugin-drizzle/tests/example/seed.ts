@@ -65,7 +65,7 @@ async function seed() {
         })),
       ),
     )
-    .returning({ id: posts.id, authorId: posts.authorId });
+    .returning({ id: posts.postId, authorId: posts.authorId });
 
   await db.insert(comments).values(
     postRows.flatMap((post) =>

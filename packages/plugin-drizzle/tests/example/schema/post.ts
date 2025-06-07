@@ -9,11 +9,11 @@ const Post = builder.drizzleObject('posts', {
   name: 'Post',
   select: {
     columns: {
-      id: true,
+      postId: true,
     },
   },
   fields: (t) => ({
-    id: t.exposeID('id'),
+    id: t.exposeID('postId'),
     title: t.exposeString('title'),
     content: t.exposeString('content'),
     author: t.relation('author'),
@@ -57,7 +57,7 @@ const Post = builder.drizzleObject('posts', {
         const result = await db
           .select({ count: count() })
           .from(postLikes)
-          .where(eq(postLikes.postId, post.id!));
+          .where(eq(postLikes.postId, post.postId!));
 
         return result[0].count ?? 0;
       },
@@ -71,15 +71,15 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.id({ required: true }),
     },
-    resolve: (query, _root, args) =>
-      db.query.posts.findFirst(
-        query({
-          orderBy: (post, ops) => ops.desc(post.id),
-          where: {
-            id: Number.parseInt(args.id, 10),
-          },
-        }),
-      ),
+    resolve: async (query, _root, args) => {
+      const result = await db.query.posts.findFirst(query({
+        where: {
+          postId: Number.parseInt(args.id, 10),
+        },
+      }));
+
+      return result;
+    }
   }),
   postWithErrors: t.drizzleField({
     type: 'posts',
@@ -92,9 +92,9 @@ builder.queryFields((t) => ({
     resolve: (query, _root, args) =>
       db.query.posts.findFirst(
         query({
-          orderBy: (post, ops) => ops.desc(post.id),
+          orderBy: (post, ops) => ops.desc(post.postId),
           where: {
-            id: Number.parseInt(args.id, 10),
+            postId: Number.parseInt(args.id, 10),
           },
         }),
       ),
@@ -122,10 +122,10 @@ builder.queryFields((t) => ({
           if (args.sortByCategory) {
             return {
               categoryId: 'asc',
-              id: 'asc',
+              postId: 'asc',
             };
           }
-          return args.invert ? { id: 'asc' } : { id: 'desc' };
+          return args.invert ? { postId: 'asc' } : { postId: 'desc' };
         },
       });
       // console.dir(q, { depth: null });
@@ -152,7 +152,7 @@ builder.mutationFields((t) => ({
       return db.query.posts.findFirst(
         query({
           where: {
-            id: postId,
+            postId,
           },
         }),
       );
@@ -214,11 +214,11 @@ builder.mutationFields((t) => ({
         .set({
           published: 1,
         })
-        .where(and(eq(posts.id, postId), eq(posts.authorId, ctx.user.id)));
+        .where(and(eq(posts.postId, postId), eq(posts.authorId, ctx.user.id)));
       return db.query.posts.findFirst(
         query({
           where: {
-            id: postId,
+            postId,
           },
         }),
       );

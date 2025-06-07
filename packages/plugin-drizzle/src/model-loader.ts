@@ -79,7 +79,7 @@ export class ModelLoader {
 
   sqlForModel(model: object) {
     const values = this.columns.map((key) => {
-      const columnName = key.name as keyof typeof model;
+      const columnName = this.config.columnToTsName(key) as keyof typeof model;
       if (columnName in model) {
         return model[columnName] as string | number;
       }
@@ -203,7 +203,9 @@ export class ModelLoader {
             for (const [model, promise] of entry.models.entries()) {
               const result = results.find((row) =>
                 this.primaryKey.every(
-                  (key) => row[key.name] === (model as Record<string, unknown>)[key.name],
+                  (key) =>
+                    row[this.config.columnToTsName(key) as keyof typeof row] ===
+                    (model as Record<string, unknown>)[this.config.columnToTsName(key)],
                 ),
               );
 

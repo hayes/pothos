@@ -246,10 +246,10 @@ export const User = builder.drizzleNode('users', {
           if (args.sortByCategory) {
             return {
               categoryId: 'asc',
-              id: 'asc',
+              postId: 'asc',
             };
           }
-          return args.invert ? { id: 'asc' } : { id: 'desc' };
+          return args.invert ? { postId: 'asc' } : { postId: 'desc' };
         },
       }),
     }),
