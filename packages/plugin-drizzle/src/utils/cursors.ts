@@ -333,7 +333,6 @@ function parseOrderBy(
     });
   }
 
-
   return {
     normalized,
     columns,

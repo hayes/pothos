@@ -72,14 +72,16 @@ builder.queryFields((t) => ({
       id: t.arg.id({ required: true }),
     },
     resolve: async (query, _root, args) => {
-      const result = await db.query.posts.findFirst(query({
-        where: {
-          postId: Number.parseInt(args.id, 10),
-        },
-      }));
+      const result = await db.query.posts.findFirst(
+        query({
+          where: {
+            postId: Number.parseInt(args.id, 10),
+          },
+        }),
+      );
 
       return result;
-    }
+    },
   }),
   postWithErrors: t.drizzleField({
     type: 'posts',
