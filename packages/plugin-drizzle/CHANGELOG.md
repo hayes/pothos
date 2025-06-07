@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.10.4
+
+### Patch Changes
+
+- d5e9505: Fix resolution for alias primaryKey columns
+
 ## 0.10.3
 
 ### Patch Changes
