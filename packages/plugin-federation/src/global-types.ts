@@ -1,4 +1,4 @@
-import '@pothos/plugin-directives';
+import "@pothos/plugin-directives";
 import {
   type FieldNullability,
   type FieldRequiredness,
@@ -11,9 +11,9 @@ import {
   type SchemaTypes,
   type ShapeFromTypeParam,
   type TypeParam,
-} from '@pothos/core';
-import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
-import type { ExternalEntityRef } from './external-ref';
+} from "@pothos/core";
+import type { GraphQLResolveInfo, GraphQLSchema } from "graphql";
+import type { ExternalEntityRef } from "./external-ref";
 
 import type {
   KeyDirective,
@@ -21,7 +21,7 @@ import type {
   Selection,
   SelectionFromShape,
   selectionShapeKey,
-} from '.';
+} from ".";
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -30,9 +30,9 @@ declare global {
     }
 
     export interface PothosKindToGraphQLType {
-      ExtendedEntity: 'Object';
-      ExternalEntity: 'Object';
-      EntityObject: 'Object';
+      ExtendedEntity: "Object";
+      ExternalEntity: "Object";
+      EntityObject: "Object";
     }
 
     export interface FieldOptionsByKind<
@@ -42,7 +42,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
-      ResolveReturnShape,
+      ResolveReturnShape
     > {
       ExtendedEntity: ObjectFieldOptions<
         Types,
@@ -55,7 +55,7 @@ declare global {
         requires?: Selection<ResolveShape & object>;
       } & InferredFieldOptionsByKind<
           Types,
-          Types['InferredFieldOptionsKind'],
+          Types["InferredFieldOptionsKind"],
           ParentShape & ResolveShape,
           Type,
           Nullable,
@@ -82,9 +82,10 @@ declare global {
         resolve: Resolver<
           ParentShape,
           Args,
-          Types['Context'],
+          Types["Context"],
           Type extends [unknown]
-            ? ((ShapeFromTypeParam<Types, Type, false> & unknown[])[number] & ResolveShape)[]
+            ? ((ShapeFromTypeParam<Types, Type, false> & unknown[])[number] &
+                ResolveShape)[]
             : ResolveShape & ShapeFromTypeParam<Types, Type, false>,
           ResolveReturnShape
         >;
@@ -94,22 +95,24 @@ declare global {
     export interface SchemaBuilder<Types extends SchemaTypes> {
       externalRef: <
         KeySelection extends Selection<object>,
-        Shape extends object = KeySelection[typeof selectionShapeKey],
+        Shape extends object = KeySelection[typeof selectionShapeKey]
       >(
         name: string,
         key?: KeySelection | KeySelection[],
         resolveReference?: (
           parent: KeySelection[typeof selectionShapeKey],
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<Shape | null | undefined>,
+          context: Types["Context"],
+          info: GraphQLResolveInfo
+        ) => MaybePromise<Shape | null | undefined>
       ) => ExternalEntityRef<Types, Shape, KeySelection>;
 
-      selection: <Shape extends object>(selection: SelectionFromShape<Shape>) => Selection<Shape>;
+      selection: <Shape extends object>(
+        selection: SelectionFromShape<Shape>
+      ) => Selection<Shape>;
 
       keyDirective: <Shape extends object, Resolvable extends boolean = true>(
         key: Selection<Shape>,
-        resolvable?: Resolvable,
+        resolvable?: Resolvable
       ) => KeyDirective<Shape, Resolvable>;
 
       toSubGraphSchema: (
@@ -117,23 +120,25 @@ declare global {
           linkUrl?: string;
           composeDirectives?: `@${string}`[];
           federationDirectives?: string[];
-        },
+        }
       ) => GraphQLSchema;
 
       asEntity: <
         Param extends InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
-        KeySelection extends Selection<object>,
+        KeySelection extends Selection<object>
       >(
         param: Param,
         options: {
           key: KeySelection | KeySelection[];
           resolveReference: (
             parent: KeySelection[typeof selectionShapeKey],
-            context: Types['Context'],
-            info: GraphQLResolveInfo,
+            context: Types["Context"],
+            info: GraphQLResolveInfo
           ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-          interfaceObject?: Param extends ObjectRef<Types, unknown> ? boolean : never;
-        },
+          interfaceObject?: Param extends ObjectRef<Types, unknown>
+            ? boolean
+            : never;
+        }
       ) => void;
     }
 
@@ -142,39 +147,44 @@ declare global {
       FederationPolicies: unknown;
     }
 
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      FederationScopes: string extends PartialTypes['FederationScopes']
+    export interface ExtendDefaultTypes<
+      PartialTypes extends Partial<UserSchemaTypes>
+    > {
+      FederationScopes: string extends PartialTypes["FederationScopes"]
         ? string
-        : PartialTypes['FederationScopes'];
-      FederationPolicies: string extends PartialTypes['FederationPolicies']
+        : PartialTypes["FederationScopes"];
+      FederationPolicies: string extends PartialTypes["FederationPolicies"]
         ? string
-        : PartialTypes['FederationPolicies'];
+        : PartialTypes["FederationPolicies"];
     }
 
     export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       shareable?: boolean;
       tag?: string[] | string;
       authenticated?: boolean;
-      requiresScopes?: Types['FederationScopes'][][];
-      policy?: Types['FederationPolicies'][][];
+      requiresScopes?: Types["FederationScopes"][][];
+      policy?: Types["FederationPolicies"][][];
+      cost?: number;
     }
 
     export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {
       authenticated?: boolean;
-      requiresScopes?: Types['FederationScopes'][][];
-      policy?: Types['FederationPolicies'][][];
+      requiresScopes?: Types["FederationScopes"][][];
+      policy?: Types["FederationPolicies"][][];
     }
 
     export interface ScalarTypeOptions<Types extends SchemaTypes> {
       authenticated?: boolean;
-      requiresScopes?: Types['FederationScopes'][][];
-      policy?: Types['FederationPolicies'][][];
+      requiresScopes?: Types["FederationScopes"][][];
+      policy?: Types["FederationPolicies"][][];
+      cost?: number;
     }
 
     export interface EnumTypeOptions<Types extends SchemaTypes> {
       authenticated?: boolean;
-      requiresScopes?: Types['FederationScopes'][][];
-      policy?: Types['FederationPolicies'][][];
+      requiresScopes?: Types["FederationScopes"][][];
+      policy?: Types["FederationPolicies"][][];
+      cost?: number;
     }
 
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
@@ -183,6 +193,7 @@ declare global {
 
     export interface EnumValueConfig<Types extends SchemaTypes> {
       inaccessible?: boolean;
+      cost?: number;
     }
 
     export interface FieldOptions<
@@ -192,24 +203,34 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
-      ResolveReturnShape,
+      ResolveReturnShape
     > {
       shareable?: boolean;
       inaccessible?: boolean;
       override?: { from: string; label?: string };
       tag?: string[] | string;
       authenticated?: boolean;
-      requiresScopes?: Types['FederationScopes'][][];
-      policy?: Types['FederationPolicies'][][];
+      requiresScopes?: Types["FederationScopes"][][];
+      policy?: Types["FederationPolicies"][][];
+      cost?: number;
+      listSize?: {
+        assumedSize?: number;
+        slicingArguments?: string[];
+        sizedFields?: string[];
+        requireOneSlicingArgument?: boolean;
+      };
     }
 
     export interface InputFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
+      Type extends InputType<Types> | [InputType<Types>] =
+        | InputType<Types>
+        | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
     > {
       inaccessible?: boolean;
       tag?: string[] | string;
+      cost?: number;
     }
   }
 }
