@@ -157,6 +157,7 @@ declare global {
       authenticated?: boolean;
       requiresScopes?: Types['FederationScopes'][][];
       policy?: Types['FederationPolicies'][][];
+      cost?: number;
     }
 
     export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {
@@ -169,12 +170,14 @@ declare global {
       authenticated?: boolean;
       requiresScopes?: Types['FederationScopes'][][];
       policy?: Types['FederationPolicies'][][];
+      cost?: number;
     }
 
     export interface EnumTypeOptions<Types extends SchemaTypes> {
       authenticated?: boolean;
       requiresScopes?: Types['FederationScopes'][][];
       policy?: Types['FederationPolicies'][][];
+      cost?: number;
     }
 
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
@@ -183,6 +186,7 @@ declare global {
 
     export interface EnumValueConfig<Types extends SchemaTypes> {
       inaccessible?: boolean;
+      cost?: number;
     }
 
     export interface FieldOptions<
@@ -201,6 +205,13 @@ declare global {
       authenticated?: boolean;
       requiresScopes?: Types['FederationScopes'][][];
       policy?: Types['FederationPolicies'][][];
+      cost?: number;
+      listSize?: {
+        assumedSize?: number;
+        slicingArguments?: string[];
+        sizedFields?: string[];
+        requireOneSlicingArgument?: boolean;
+      };
     }
 
     export interface InputFieldOptions<
@@ -210,6 +221,7 @@ declare global {
     > {
       inaccessible?: boolean;
       tag?: string[] | string;
+      cost?: number;
     }
   }
 }

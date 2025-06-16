@@ -41,6 +41,20 @@ const UserType = builder.objectRef<User>('User').implement({
     username: t.exposeString('username', {
       shareable: true,
     }),
+    expensiveField: t.string({
+      resolve: () => 'expensive',
+      cost: 10,
+    }),
+    paginatedItems: t.field({
+      type: ['String'],
+      resolve: () => ['item1', 'item2'],
+      listSize: {
+        assumedSize: 100,
+        slicingArguments: ['first', 'after'],
+        sizedFields: ['totalCount'],
+        requireOneSlicingArgument: true,
+      },
+    }),
   }),
 });
 
@@ -63,6 +77,7 @@ const Media = builder.objectRef<{ id: string }>('Media').implement({
     id: t.exposeID('id'),
     test: t.string({
       resolve: () => 'test field from interfaceObject',
+      cost: 5,
     }),
   }),
 });
@@ -74,6 +89,14 @@ builder.asEntity(Media, {
 });
 
 export const schema = builder.toSubGraphSchema({
-  linkUrl: 'https://specs.apollo.dev/federation/v2.5',
-  federationDirectives: ['@key', '@shareable', '@inaccessible', '@tag', '@interfaceObject'],
+  linkUrl: 'https://specs.apollo.dev/federation/v2.9',
+  federationDirectives: [
+    '@key',
+    '@shareable',
+    '@inaccessible',
+    '@tag',
+    '@interfaceObject',
+    '@cost',
+    '@listSize',
+  ],
 });

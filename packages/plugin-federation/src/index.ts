@@ -119,6 +119,13 @@ function getCommonDirectives<
       authenticated?: boolean;
       requiresScopes?: unknown[][];
       policy?: unknown[][];
+      cost?: number;
+      listSize?: {
+        assumedSize?: number;
+        slicingArguments?: string[];
+        sizedFields?: string[];
+        requireOneSlicingArgument?: boolean;
+      };
     };
   },
 >(config: T) {
@@ -126,12 +133,30 @@ function getCommonDirectives<
     typeof config.pothosOptions.tag === 'string'
       ? [config.pothosOptions.tag]
       : (config.pothosOptions.tag ?? []);
-  const tagDirectives = tags.map((tag) => ({ name: 'tag', args: { name: tag } }));
+  const tagDirectives = tags.map((tag) => ({
+    name: 'tag',
+    args: { name: tag },
+  }));
   const requiresScopes = config.pothosOptions.requiresScopes
-    ? { name: 'requiresScopes', args: { scopes: config.pothosOptions.requiresScopes } }
+    ? {
+        name: 'requiresScopes',
+        args: { scopes: config.pothosOptions.requiresScopes },
+      }
     : null;
   const policy = config.pothosOptions.policy
     ? { name: 'policy', args: { policies: config.pothosOptions.policy } }
+    : null;
+  const cost =
+    config.pothosOptions.cost !== undefined
+      ? { name: 'cost', args: { weight: config.pothosOptions.cost } }
+      : null;
+  const listSize = config.pothosOptions.listSize
+    ? {
+        name: 'listSize',
+        args: Object.fromEntries(
+          Object.entries(config.pothosOptions.listSize).filter(([, v]) => v !== undefined),
+        ),
+      }
     : null;
 
   return [
@@ -140,6 +165,8 @@ function getCommonDirectives<
     config.pothosOptions.authenticated ? { name: 'authenticated' } : null,
     requiresScopes,
     policy,
+    cost,
+    listSize,
     ...tagDirectives,
   ].filter(Boolean) as { name: string }[];
 }

@@ -2,14 +2,14 @@
 
 exports[`federation > accounts schema > generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.5", import: ["@key", "@shareable", "@inaccessible", "@tag", "@interfaceObject"])
+  @link(url: "https://specs.apollo.dev/federation/v2.9", import: ["@key", "@shareable", "@inaccessible", "@tag", "@interfaceObject", "@cost", "@listSize"])
 
 type Media
   @key(fields: "id")
   @interfaceObject
 {
   id: ID
-  test: String
+  test: String @cost(weight: 5)
 }
 
 type Query {
@@ -22,6 +22,8 @@ type User
   id: ID
   name: String
   username: String @shareable
+  expensiveField: String @cost(weight: 10)
+  paginatedItems: [String!] @listSize(assumedSize: 100, slicingArguments: ["first", "after"], sizedFields: ["totalCount"], requireOneSlicingArgument: true)
 }"
 `;
 
@@ -38,8 +40,10 @@ type Query {
 }
 
 type User {
+  expensiveField: String
   id: ID
   name: String
+  paginatedItems: [String!]
   username: String
 }
 
