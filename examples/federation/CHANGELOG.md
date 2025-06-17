@@ -1,5 +1,12 @@
 # @pothos-examples/federation
 
+## 3.1.14
+
+### Patch Changes
+
+- Updated dependencies [86bd0b1]
+  - @pothos/plugin-federation@4.4.0
+
 ## 3.1.13
 
 ### Patch Changes

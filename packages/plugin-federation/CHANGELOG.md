@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.4.0
+
+### Minor Changes
+
+- 86bd0b1: Add support for federation directives - cost,listsize
+
 ## 4.3.3
 
 ### Patch Changes
