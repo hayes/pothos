@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.10.5
+
+### Patch Changes
+
+- 1622740: update dependencies
+
 ## 0.10.4
 
 ### Patch Changes
