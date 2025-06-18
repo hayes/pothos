@@ -34,6 +34,9 @@ declare global {
       ResolveReturnShape = unknown,
     > {
       errors?: ErrorFieldOptions<Types, Type, ShapeFromTypeParam<Types, Type, false>, Nullable>;
+      itemErrors?: Type extends [infer Item extends TypeParam<Types>]
+        ? ErrorFieldOptions<Types, Item, ShapeFromTypeParam<Types, Item, false>, false>
+        : never;
     }
   }
 }

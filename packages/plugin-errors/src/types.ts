@@ -25,6 +25,16 @@ export interface ErrorsPluginOptions<Types extends SchemaTypes> {
       name?: GetTypeName;
     }
   >;
+  defaultItemResultOptions?: Normalize<
+    Omit<PothosSchemaTypes.ObjectTypeOptions<Types, {}>, 'interfaces' | 'isTypeOf'> & {
+      name?: GetTypeName;
+    }
+  >;
+  defaultItemUnionOptions?: Normalize<
+    Omit<PothosSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
+      name?: GetTypeName;
+    }
+  >;
 }
 
 export type ErrorFieldOptions<

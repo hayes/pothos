@@ -2,15 +2,18 @@ import './global-types';
 import SchemaBuilder, {
   BasePlugin,
   type ImplementableObjectRef,
+  type Normalize,
   type PothosOutputFieldConfig,
+  type PothosOutputFieldType,
   PothosSchemaError,
   type SchemaTypes,
   sortClasses,
   typeBrandKey,
+  type TypeParam,
   unwrapOutputFieldType,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';
-import type { GetTypeName } from './types';
+import type { ErrorFieldOptions, GetTypeName } from './types';
 
 export * from './types';
 
@@ -23,9 +26,13 @@ export function capitalize(s: string) {
 }
 
 export const defaultGetResultName: GetTypeName = ({ parentTypeName, fieldName }) =>
-  `${parentTypeName}${fieldName}Success`;
+  `${parentTypeName}${capitalize(fieldName)}Success`;
+export const defaultGetListItemResultName: GetTypeName = ({ parentTypeName, fieldName }) =>
+  `${parentTypeName}${capitalize(fieldName)}ItemSuccess`;
 export const defaultGetUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
-  `${parentTypeName}${fieldName}Result`;
+  `${parentTypeName}${capitalize(fieldName)}Result`;
+export const defaultGetListItemUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
+  `${parentTypeName}${capitalize(fieldName)}ItemResult`;
 
 export const unwrapError = Symbol.for('Pothos.unwrapErrors');
 
@@ -79,30 +86,208 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
     const errorOptions = fieldConfig.pothosOptions.errors;
-
+    const itemErrorOptions = fieldConfig.pothosOptions.itemErrors;
     const errorBuilderOptions = this.builder.options.errors;
 
-    if (!errorOptions) {
+    if (!errorOptions && !itemErrorOptions) {
       return fieldConfig;
     }
 
-    const { name: getResultName = defaultGetResultName, ...defaultResultOptions } =
-      errorBuilderOptions?.defaultResultOptions ?? {
-        name: defaultGetResultName,
-      };
-    const { name: getUnionName = defaultGetUnionName, ...defaultUnionOptions } =
-      errorBuilderOptions?.defaultUnionOptions ?? {
-        name: defaultGetUnionName,
-      };
-
     const parentTypeName = this.buildCache.getTypeConfig(fieldConfig.parentType).name;
+
+    const itemErrorTypes =
+      itemErrorOptions &&
+      sortClasses([
+        ...new Set([
+          ...(itemErrorOptions?.types ?? []),
+          ...(errorBuilderOptions?.defaultTypes ?? []),
+        ]),
+      ]);
+    const errorTypes =
+      errorOptions &&
+      sortClasses([
+        ...new Set([...(errorOptions?.types ?? []), ...(errorBuilderOptions?.defaultTypes ?? [])]),
+      ]);
+
+    let resultType = fieldConfig.pothosOptions.type;
+
+    if (itemErrorOptions) {
+      if (!Array.isArray(fieldConfig.pothosOptions.type) || fieldConfig.type.kind !== 'List') {
+        throw new PothosSchemaError(
+          `Field ${parentTypeName}.${fieldConfig.name} must return a list when 'itemErrors' is set`,
+        );
+      }
+
+      const itemFieldType = fieldConfig.type.type;
+      const itemType = fieldConfig.pothosOptions.type[0];
+
+      resultType = [
+        this.createResultType(
+          parentTypeName,
+          fieldConfig.name,
+          itemType,
+          itemFieldType,
+          itemErrorOptions,
+          `Field ${parentTypeName}.${fieldConfig.name} list items must be an ObjectType when 'directResult' is set to true`,
+          defaultGetListItemResultName,
+          defaultGetListItemUnionName,
+          errorBuilderOptions?.defaultItemResultOptions,
+          errorBuilderOptions?.defaultItemUnionOptions,
+        ),
+      ];
+
+      if (!errorOptions) {
+        return {
+          ...fieldConfig,
+          extensions: {
+            ...fieldConfig.extensions,
+            pothosItemErrors: itemErrorTypes,
+          },
+          type: {
+            ...fieldConfig.type,
+            type: {
+              kind: 'Union',
+              ref: resultType[0],
+              nullable: fieldConfig.type.type.nullable,
+            },
+          },
+        };
+      }
+    }
+
+    const unionType = this.createResultType(
+      parentTypeName,
+      fieldConfig.name,
+      resultType,
+      fieldConfig.type,
+      errorOptions!,
+      `Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`,
+      defaultGetResultName,
+      defaultGetUnionName,
+      errorBuilderOptions?.defaultResultOptions,
+      errorBuilderOptions?.defaultUnionOptions,
+    );
+
+    return {
+      ...fieldConfig,
+      extensions: {
+        ...fieldConfig.extensions,
+        pothosErrors: errorTypes,
+        pothosItemErrors: itemErrorTypes,
+      },
+      type: {
+        kind: 'Union',
+        ref: unionType,
+        nullable: fieldConfig.type.nullable,
+      },
+    };
+  }
+
+  override wrapResolve(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
+    const pothosItemErrors = fieldConfig.extensions?.pothosItemErrors as
+      | (typeof Error)[]
+      | undefined;
+
+    if (!pothosErrors && !pothosItemErrors) {
+      return resolver;
+    }
+
+    return async (source, args, context, info) => {
+      if (fieldConfig.kind === 'Subscription' && errorTypeMap.has(source as {})) {
+        return source;
+      }
+
+      try {
+        const result = (await resolver(source, args, context, info)) as never;
+
+        if (pothosItemErrors && result && typeof result === 'object' && Symbol.iterator in result) {
+          return yieldErrors(result, pothosItemErrors);
+        }
+
+        if (
+          pothosItemErrors &&
+          result &&
+          typeof result === 'object' &&
+          Symbol.asyncIterator in result
+        ) {
+          console.log(result, yieldAsyncErrors);
+          return yieldAsyncErrors(result, pothosItemErrors);
+        }
+
+        return result;
+      } catch (error: unknown) {
+        return wrapOrThrow(error, pothosErrors ?? []);
+      }
+    };
+  }
+
+  override wrapSubscribe(
+    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
+
+    if (!pothosErrors) {
+      return subscribe;
+    }
+
+    return (...args) => {
+      async function* yieldSubscribeErrors() {
+        try {
+          const iter = (await subscribe(...args)) as AsyncIterableIterator<unknown>;
+
+          if (!iter) {
+            return iter;
+          }
+
+          for await (const value of iter) {
+            yield value;
+          }
+        } catch (error: unknown) {
+          yield wrapOrThrow(error, pothosErrors ?? []);
+        }
+      }
+
+      return yieldSubscribeErrors();
+    };
+  }
+
+  createResultType(
+    parentTypeName: string,
+    fieldName: string,
+    type: TypeParam<Types>,
+    fieldType: PothosOutputFieldType<Types>,
+    errorOptions: ErrorFieldOptions<Types, TypeParam<Types>, unknown, false>,
+    directResultError: string,
+    defaultResultName: GetTypeName,
+    defaultUnionName: GetTypeName,
+    builderResultOptions: Normalize<
+      Omit<PothosSchemaTypes.ObjectTypeOptions<Types, {}>, 'interfaces' | 'isTypeOf'> & {
+        name?: GetTypeName;
+      }
+    > = {} as never,
+    builderUnionOptions: Normalize<
+      Omit<PothosSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
+        name?: GetTypeName;
+      }
+    > = {} as never,
+  ) {
+    const errorBuilderOptions = this.builder.options.errors;
+    const { name: getResultName = defaultResultName, ...defaultResultOptions } =
+      builderResultOptions ?? {};
+    const { name: getUnionName = defaultUnionName, ...defaultUnionOptions } =
+      builderUnionOptions ?? {};
 
     const {
       types = [],
       result: {
         name: resultName = getResultName({
           parentTypeName,
-          fieldName: capitalize(fieldConfig.name),
+          fieldName,
         }),
         fields: resultFieldOptions,
         ...resultObjectOptions
@@ -110,7 +295,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       union: {
         name: unionName = getUnionName({
           parentTypeName,
-          fieldName: capitalize(fieldConfig.name),
+          fieldName,
         }),
         ...unionOptions
       } = {} as never,
@@ -126,21 +311,18 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       errorBuilderOptions?.directResult ??
       false;
 
-    const typeRef = unwrapOutputFieldType(fieldConfig.type);
-
+    const typeRef = unwrapOutputFieldType(fieldType);
     const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
 
-    const unionType = this.runUnique(resultName, () => {
+    return this.runUnique(resultName, () => {
       let resultType: ImplementableObjectRef<Types, unknown>;
-      if (directResult && !Array.isArray(fieldConfig.pothosOptions.type)) {
-        resultType = fieldConfig.pothosOptions.type as ImplementableObjectRef<Types, unknown>;
+      if (directResult && !Array.isArray(fieldType)) {
+        resultType = type as ImplementableObjectRef<Types, unknown>;
 
         const resultConfig = this.builder.configStore.getTypeConfig(resultType);
 
         if (resultConfig.graphqlKind !== 'Object') {
-          throw new PothosSchemaError(
-            `Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`,
-          );
+          throw new PothosSchemaError(directResultError);
         }
       } else {
         resultType = this.builder.objectRef<unknown>(resultName);
@@ -152,18 +334,16 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
             ...resultFieldOptions?.(t),
             [dataFieldName]: t.field({
               ...dataField,
-              type: fieldConfig.pothosOptions.type,
+              type,
               nullable:
-                fieldConfig.type.kind === 'List'
-                  ? { items: fieldConfig.type.type.nullable, list: false }
-                  : false,
+                fieldType.kind === 'List' ? { items: fieldType.type.nullable, list: false } : false,
               resolve: (data) => data as never,
             }),
           }),
         });
       }
 
-      const getDataloader = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
+      const getDataloader = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldType))
         .extensions?.getDataloader;
 
       return this.builder.unionType(unionName, {
@@ -181,91 +361,6 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         },
       });
     });
-
-    return {
-      ...fieldConfig,
-      extensions: {
-        ...fieldConfig.extensions,
-        pothosErrors: errorTypes,
-      },
-      type: {
-        kind: 'Union',
-        ref: unionType,
-        nullable: fieldConfig.type.nullable,
-      },
-    };
-  }
-
-  override wrapResolve(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
-
-    if (!pothosErrors) {
-      return resolver;
-    }
-
-    return async (source, args, context, info) => {
-      if (fieldConfig.kind === 'Subscription' && errorTypeMap.has(source as {})) {
-        return source;
-      }
-
-      try {
-        return (await resolver(source, args, context, info)) as never;
-      } catch (error: unknown) {
-        for (const errorType of pothosErrors) {
-          if (error instanceof errorType) {
-            const result = createErrorProxy(error, errorType, { wrapped: true });
-
-            errorTypeMap.set(result, errorType);
-
-            return result;
-          }
-        }
-
-        throw error;
-      }
-    };
-  }
-
-  override wrapSubscribe(
-    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
-    const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
-
-    if (!pothosErrors) {
-      return subscribe;
-    }
-
-    return (...args) => {
-      async function* yieldErrors() {
-        try {
-          const iter = (await subscribe(...args)) as AsyncIterableIterator<unknown>;
-
-          if (!iter) {
-            return iter;
-          }
-
-          for await (const value of iter) {
-            yield value;
-          }
-        } catch (error: unknown) {
-          for (const errorType of pothosErrors!) {
-            if (error instanceof errorType) {
-              const result = createErrorProxy(error, errorType, { wrapped: true });
-
-              errorTypeMap.set(result, errorType);
-
-              yield result;
-            }
-          }
-        }
-      }
-
-      return yieldErrors();
-    };
   }
 }
 
@@ -275,3 +370,46 @@ SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin, {
     errors: options?.errorOptions,
   }),
 });
+
+function wrapOrThrow(error: unknown, pothosErrors: ErrorConstructor[]) {
+  for (const errorType of pothosErrors) {
+    if (error instanceof errorType) {
+      const result = createErrorProxy(error, errorType, { wrapped: true });
+
+      errorTypeMap.set(result, errorType);
+
+      return result;
+    }
+  }
+
+  throw error;
+}
+
+function* yieldErrors(result: Iterable<unknown>, pothosErrors: ErrorConstructor[]) {
+  try {
+    for (const item of result) {
+      if (item instanceof Error) {
+        yield wrapOrThrow(item, pothosErrors);
+      } else {
+        yield item;
+      }
+    }
+  } catch (error: unknown) {
+    yield wrapOrThrow(error, pothosErrors);
+  }
+}
+
+async function* yieldAsyncErrors(result: AsyncIterable<unknown>, pothosErrors: ErrorConstructor[]) {
+  console.log('yieldAsyncErrors', result);
+  try {
+    for await (const item of result) {
+      if (item instanceof Error) {
+        yield wrapOrThrow(item, pothosErrors);
+      } else {
+        yield item;
+      }
+    }
+  } catch (error: unknown) {
+    yield wrapOrThrow(error, pothosErrors);
+  }
+}
