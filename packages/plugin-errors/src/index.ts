@@ -400,7 +400,6 @@ function* yieldErrors(result: Iterable<unknown>, pothosErrors: ErrorConstructor[
 }
 
 async function* yieldAsyncErrors(result: AsyncIterable<unknown>, pothosErrors: ErrorConstructor[]) {
-  console.log('yieldAsyncErrors', result);
   try {
     for await (const item of result) {
       if (item instanceof Error) {

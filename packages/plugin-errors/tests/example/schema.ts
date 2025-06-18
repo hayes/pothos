@@ -407,20 +407,33 @@ export function createSchema(builder: Builder) {
     asyncItemErrors: t.field({
       type: [DirectResult],
       nullable: {
-        items: true,
-        list: false,
+        items: false,
+        list: true,
       },
+      errors: {},
       itemErrors: {},
-      resolve: async function* () {
-        yield {
-          id: 123,
-        };
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        yield new Error('Boom');
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        yield {
-          id: 456,
-        };
+      args: {
+        error: t.arg.boolean(),
+      },
+      resolve: (_, args) => {
+        const gen = async function* () {
+          yield {
+            id: 123,
+          };
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          yield new Error('Boom');
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          yield {
+            id: 456,
+          };
+          throw new Error('Boom');
+        }
+
+        if (args.error) {
+          throw new Error('Boom');
+        }
+
+        return gen();
       },
     }),
   }));

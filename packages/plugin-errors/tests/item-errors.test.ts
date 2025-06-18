@@ -1,6 +1,6 @@
-import { execute, printSchema, subscribe } from 'graphql';
+import { execute, experimentalExecuteIncrementally, type ExperimentalIncrementalExecutionResults,  } from 'graphql';
 import { gql } from 'graphql-tag';
-import { builder, builderWithCustomErrorTypeNames } from './example/builder';
+import { builder } from './example/builder';
 import { createSchema } from './example/schema';
 
 const schema = createSchema(builder);
@@ -143,12 +143,31 @@ describe('errors plugin', () => {
       `);
     });
 
+    // requires graphql 17
     it.skip('asyncItemErrors', async () => {
       const query = gql`
         query {
-          asyncItemErrors @stream {
+          asyncItemErrors {
+            ...on QueryAsyncItemErrorsSuccess {
+              data {
+                __typename
+                  ... on QueryAsyncItemErrorsItemSuccess {
+                    data {
+                      id
+                    }
+                  }
+                  ... on Error {
+                    message
+                  }
+              }
+            }
+            ... on Error {
+              message
+            }
+          }
+          withError: asyncItemErrors(error: true) {
             __typename
-            ... on QueryItemErrorsItemSuccess {
+            ... on QueryAsyncItemErrorsSuccess {
               data {
                 id
               }
@@ -160,27 +179,43 @@ describe('errors plugin', () => {
         }
       `;
 
-      const result = await execute({
+      const results = await execute({
         schema,
         document: query,
         contextValue: {},
-      });
+      })
 
-      expect(result).toMatchInlineSnapshot(`
+      expect(results).toMatchInlineSnapshot(`
         {
           "data": {
-            "itemErrors": [
-              {
-                "__typename": "QueryItemErrorsItemSuccess",
-                "data": {
-                  "id": "123",
+            "asyncItemErrors": {
+              "data": [
+                {
+                  "__typename": "QueryAsyncItemErrorsItemSuccess",
+                  "data": {
+                    "id": "123",
+                  },
                 },
-              },
-              {
-                "__typename": "BaseError",
-                "message": "Boom",
-              },
-            ],
+                {
+                  "__typename": "BaseError",
+                  "message": "Boom",
+                },
+                {
+                  "__typename": "QueryAsyncItemErrorsItemSuccess",
+                  "data": {
+                    "id": "123",
+                  },
+                },
+                {
+                  "__typename": "BaseError",
+                  "message": "Boom",
+                },
+              ],
+            },
+            "withError": {
+              "__typename": "BaseError",
+              "message": "Boom",
+            },
           },
         }
       `);
