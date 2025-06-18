@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.4.0
+
+### Minor Changes
+
+- d36d747: fieldNames are no longer capitalized before being passed to naming functions in the errors plugin. This behavior was a bug, but this change may cause some schema name changes who configured custom naming functions in their builder options for the errors plugin
+- 9d6a30c: Add itemErrors option for handling errors in list items
+
 ## 4.3.0
 
 ### Minor Changes

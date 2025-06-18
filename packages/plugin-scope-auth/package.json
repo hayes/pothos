@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-scope-auth",
-  "version": "4.1.3",
+  "version": "4.1.4",
   "description": "A Pothos plugin for adding scope based authorization checks to your GraphQL Schema",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

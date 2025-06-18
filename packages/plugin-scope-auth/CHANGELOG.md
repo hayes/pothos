@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.4
+
+### Patch Changes
+
+- 54555ed: Fix t.authField when used with authScopes returned from a function
+
 ## 4.1.3
 
 ### Patch Changes
