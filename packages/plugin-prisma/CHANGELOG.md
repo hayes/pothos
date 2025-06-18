@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.9.0
+
+### Minor Changes
+
+- 9d6a30c: Import from prisma directory instead of index.ts
+
 ## 4.8.2
 
 ### Patch Changes
