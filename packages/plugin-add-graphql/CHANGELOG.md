@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 4.2.4
+
+### Patch Changes
+
+- 1622740: update dependencies
+
 ## 4.2.3
 
 ### Patch Changes

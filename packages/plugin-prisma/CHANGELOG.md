@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.9.1
+
+### Patch Changes
+
+- 1622740: update dependencies
+- 1622740: revert change that omits the path from prisma generator and updated import path the import from /client.js for new generator
+
 ## 4.9.0
 
 ### Minor Changes
