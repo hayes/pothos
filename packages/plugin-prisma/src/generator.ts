@@ -49,16 +49,6 @@ generatorHandler({
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
         .value!;
 
-    // const extensions = ['.js', '.ts', '.cjs', '.mjs', '.cts', '.mts'];
-
-    // const prismaLocation =
-    //   prismaOutputLocation.startsWith('@') ||
-    //   extensions.some((ext) => prismaOutputLocation.endsWith(ext))
-    //     ? prismaOutputLocation
-    //     : prismaOutputLocation.startsWith('./')
-    //       ? `./${posix.join(prismaOutputLocation, 'index.js')}`
-    //       : posix.join(prismaOutputLocation, 'index.js');
-
     if (!prismaLocation) {
       throw new Error('Unable to find prisma client output when generating pothos types');
     }

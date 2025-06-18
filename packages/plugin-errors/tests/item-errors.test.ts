@@ -1,4 +1,4 @@
-import { execute, experimentalExecuteIncrementally, type ExperimentalIncrementalExecutionResults,  } from 'graphql';
+import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
 import { builder } from './example/builder';
 import { createSchema } from './example/schema';
@@ -183,7 +183,7 @@ describe('errors plugin', () => {
         schema,
         document: query,
         contextValue: {},
-      })
+      });
 
       expect(results).toMatchInlineSnapshot(`
         {

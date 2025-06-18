@@ -427,7 +427,7 @@ export function createSchema(builder: Builder) {
             id: 456,
           };
           throw new Error('Boom');
-        }
+        };
 
         if (args.error) {
           throw new Error('Boom');
