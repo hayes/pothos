@@ -1,6 +1,7 @@
 import './global-types';
 import {
   type ArgumentNode,
+  astFromValue,
   type ConstDirectiveNode,
   type ConstValueNode,
   type DirectiveNode,
@@ -27,10 +28,9 @@ import {
   type ListTypeNode,
   type NamedTypeNode,
   type OperationTypeNode,
+  parseValue,
   type TypeNode,
   type ValueNode,
-  astFromValue,
-  parseValue,
 } from 'graphql';
 import type { DirectiveList } from './types';
 

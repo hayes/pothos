@@ -27,9 +27,9 @@ import type { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
 
 export interface PrismaDelegate {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   findUniqueOrThrow?: (...args: any[]) => Promise<unknown>;
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   findUnique: (...args: any[]) => Promise<unknown>;
 }
 
@@ -86,7 +86,7 @@ export type PrismaObjectFieldOptions<
         ShapeFromSelection<
           Types,
           ExtractModel<Types, ParentShape>,
-          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          // biome-ignore lint/suspicious/noExplicitAny: this is fine
           { select: Select extends (...args: any[]) => infer S ? S : Select }
         >,
 > = PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Nullable, Args, ResolveReturnShape> &
@@ -435,7 +435,7 @@ export type RelatedFieldOptions<
     info: GraphQLResolveInfo,
   ) => MaybePromise<ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>>;
   description?: string | false;
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   type?: PrismaRef<any, TypesForRelation<Types, Model, Field>>;
   query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
   onNull?:
@@ -458,7 +458,7 @@ export type RelatedFieldOptions<
 export type VariantFieldOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   Variant extends PrismaRef<any, Model>,
   Args extends InputFieldMap,
   isNull,
@@ -504,11 +504,11 @@ export type RelationCountOptions<
 export type PrismaFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: this is fine
     | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     | [PrismaRef<any, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
@@ -530,7 +530,7 @@ export type PrismaFieldOptions<
   ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
       type: Type;
       resolve: FieldOptions extends {
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: this is fine
         resolve?: (parent: infer Parent, ...args: any[]) => unknown;
       }
         ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
@@ -544,11 +544,11 @@ export type PrismaFieldWithInputOptions<
   Kind extends FieldKind,
   Args extends InputFieldMap,
   Fields extends InputFieldMap,
-  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: this is fine
     | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     | [PrismaRef<any, PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
@@ -616,9 +616,9 @@ export type PrismaFieldResolver<
 export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: this is fine
     | PrismaInterfaceRef<any, PrismaModelTypes>
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     | PrismaRef<any, PrismaModelTypes>
     | keyof Types['PrismaTypes'],
   Model extends PrismaModelTypes,
@@ -741,7 +741,7 @@ export type RelatedConnectionOptions<
       } & {
         description?: string | false;
         query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: this is fine
         type?: PrismaRef<any, TypesForRelation<Types, Model, Field>>;
         cursor: CursorFromRelation<Model, Field>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
@@ -848,7 +848,7 @@ type InferModelShape<Model> = Simplify<
 // Infer relations for a given model
 type InferRelations<Model> = {
   [K in keyof Model]: {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: matching against any is okay
     Shape: Model[K] extends any[] ? InferModelShape<Model[K][0]>[] : InferModelShape<Model[K]>;
     Name: InferField<InferItemOfArray<Model[K]>, 'name'>;
     Nullable: IsNullable<Model[K]>;
@@ -857,7 +857,7 @@ type InferRelations<Model> = {
 
 // Create a list of keys that represent array relations
 type InferRelationList<Model> = {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: matching against any is okay
   [K in keyof Model as Model[K] extends any[] ? K : never]: K;
 };
 
@@ -869,7 +869,7 @@ type InferItemOfArray<T> = T extends Array<infer U> ? U : T;
 
 // Infers the composites of a given model
 type InferComposites<Model> = {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: matching against any is okay
   [K in keyof Model]: Model[K] extends any[]
     ? Simplify<
         InferField<Model[K][0], 'scalars'> & InferComposites<InferField<Model[K][0], 'composites'>>

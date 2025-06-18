@@ -1,8 +1,8 @@
 import {
+  inputFieldShapeKey,
   type PothosInputFieldConfig,
   type PothosTypeConfig,
   type SchemaTypes,
-  inputFieldShapeKey,
 } from '../types';
 
 export class InputFieldRef<Types extends SchemaTypes, T = unknown> {

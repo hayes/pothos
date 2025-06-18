@@ -1,4 +1,4 @@
-import { PothosValidationError, getMappedArgumentValues } from '@pothos/core';
+import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
@@ -8,17 +8,16 @@ import {
   GraphQLNonNull,
   type GraphQLOutputType,
   type GraphQLResolveInfo,
-  type InlineFragmentNode,
-  Kind,
-  type SelectionSetNode,
   getNamedType,
+  type InlineFragmentNode,
   isInterfaceType,
   isObjectType,
   isOutputType,
+  Kind,
+  type SelectionSetNode,
 } from 'graphql';
-import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
-
 import type { ComplexityResult, FieldComplexity } from '.';
+import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
 
 function isListType(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLList) {

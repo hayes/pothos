@@ -11,6 +11,14 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import type {
+  LoadableGroupFieldOptions,
+  LoadableInterfaceOptions,
+  LoadableListFieldOptions,
+  LoadableUnionOptions,
+  PothosDataloaderPlugin,
+  ShapeFromLoadResult,
+} from '.';
 import type { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
 import type { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface';
 import type { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object';
@@ -22,15 +30,6 @@ import type {
   LoadableNodeId,
   LoadableNodeOptions,
 } from './types';
-
-import type {
-  LoadableGroupFieldOptions,
-  LoadableInterfaceOptions,
-  LoadableListFieldOptions,
-  LoadableUnionOptions,
-  PothosDataloaderPlugin,
-  ShapeFromLoadResult,
-} from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

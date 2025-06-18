@@ -2,9 +2,9 @@ import {
   type InputFieldMap,
   type InputFieldsFromShape,
   type InputRef,
+  inputShapeKey,
   type PothosInputObjectTypeConfig,
   type SchemaTypes,
-  inputShapeKey,
 } from '../types';
 import { BaseTypeRef } from './base';
 import type { InputFieldRef } from './input-field';

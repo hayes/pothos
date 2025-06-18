@@ -5,9 +5,8 @@ import type {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import type { ComplexityPluginOptions, FieldComplexity } from './types';
-
 import type { PothosComplexityPlugin } from '.';
+import type { ComplexityPluginOptions, FieldComplexity } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {

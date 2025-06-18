@@ -11,8 +11,12 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { LoadableGroupFieldOptions, LoadableListFieldOptions } from './types';
-import type { LoadableFieldOptions, LoaderShapeFromType } from './types';
+import type {
+  LoadableFieldOptions,
+  LoadableGroupFieldOptions,
+  LoadableListFieldOptions,
+  LoaderShapeFromType,
+} from './types';
 import { pathDataloaderGetter, rejectErrors } from './util';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<

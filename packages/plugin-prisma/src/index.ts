@@ -9,8 +9,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-// biome-ignore lint/style/useImportType: <explanation>
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
 import type { PrismaModelTypes } from './types';
@@ -19,12 +18,12 @@ import { getModel, getRefFromModel } from './util/datamodel';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
 import { queryFromInfo } from './util/map-query';
 
-export { prismaClientCache } from './util/get-client';
 export { prismaConnectionHelpers } from './connection-helpers';
 export { PrismaInterfaceRef } from './interface-ref';
 export { PrismaNodeRef } from './node-ref';
-export { prismaModelKey, PrismaObjectRef } from './object-ref';
+export { PrismaObjectRef, prismaModelKey } from './object-ref';
 export * from './types';
+export { prismaClientCache } from './util/get-client';
 
 const pluginName = 'prisma';
 

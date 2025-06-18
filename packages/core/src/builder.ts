@@ -14,7 +14,7 @@ import {
 } from 'graphql';
 import { BuildCache } from './build-cache';
 import { ConfigStore } from './config-store';
-import { PothosError, PothosSchemaError } from './errors';
+import { PothosError } from './errors';
 import { InputFieldBuilder } from './fieldUtils/input';
 import { InterfaceFieldBuilder } from './fieldUtils/interface';
 import { MutationFieldBuilder } from './fieldUtils/mutation';
@@ -43,16 +43,16 @@ import type {
   InputFieldsFromShape,
   InputShape,
   InputShapeFromFields,
-  InterfaceFieldThunk,
   InterfaceFieldsShape,
+  InterfaceFieldThunk,
   InterfaceParam,
   InterfaceTypeOptions,
-  MutationFieldThunk,
   MutationFieldsShape,
+  MutationFieldThunk,
   NormalizeArgs,
   NormalizeSchemeBuilderOptions,
-  ObjectFieldThunk,
   ObjectFieldsShape,
+  ObjectFieldThunk,
   ObjectParam,
   ObjectTypeOptions,
   OneOfInputShapeFromFields,
@@ -60,14 +60,14 @@ import type {
   ParentShape,
   PluginConstructorMap,
   PothosInputObjectTypeConfig,
-  QueryFieldThunk,
   QueryFieldsShape,
+  QueryFieldThunk,
   RecursivelyNormalizeNullableFields,
   ScalarName,
   SchemaTypes,
   ShapeFromEnumValues,
-  SubscriptionFieldThunk,
   SubscriptionFieldsShape,
+  SubscriptionFieldThunk,
   ValuesFromEnum,
 } from './types';
 import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
@@ -104,6 +104,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   constructor(options: PothosSchemaTypes.SchemaBuilderOptions<Types>) {
     this.options = [...SchemaBuilder.optionNormalizers.values()].reduce((opts, normalize) => {
       if (options.defaults && typeof normalize[options.defaults] === 'function') {
+        // biome-ignore lint/performance/noAccumulatingSpread: this is fine
         return Object.assign(opts, normalize[options.defaults]!(opts));
       }
 

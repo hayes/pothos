@@ -1,4 +1,4 @@
-import { PothosValidationError, getMappedArgumentValues } from '@pothos/core';
+import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
@@ -10,13 +10,13 @@ import {
   type GraphQLObjectType,
   type GraphQLResolveInfo,
   GraphQLSkipDirective,
-  type InlineFragmentNode,
-  Kind,
-  type SelectionSetNode,
   getDirectiveValues,
   getNamedType,
+  type InlineFragmentNode,
   isInterfaceType,
   isObjectType,
+  Kind,
+  type SelectionSetNode,
 } from 'graphql';
 import type {
   FieldSelection,
@@ -28,9 +28,9 @@ import type {
 import { setLoaderMappings } from './loader-map';
 import type { FieldMap } from './relation-map';
 import {
-  type SelectionState,
   createState,
   mergeSelection,
+  type SelectionState,
   selectionCompatible,
   selectionToQuery,
 } from './selections';

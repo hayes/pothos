@@ -49,7 +49,7 @@ const arrayValidations = [
 
 const objectValidations = [...baseValidations, 'type'] as const;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: this is fine
 function validatorCreator<T extends BaseValidationOptions<any>>(
   type: NonNullable<T['type']>,
   validationNames: readonly (keyof T)[],

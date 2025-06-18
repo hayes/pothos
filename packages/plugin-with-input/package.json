@@ -32,22 +32,29 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "typescript", "plugin", "input"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "plugin",
+    "input"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "^16.10.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-zod": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^6.6.0",
+    "@prisma/client": "^6.10.1",
     "graphql-tag": "^2.12.6",
-    "prisma": "^6.6.0"
+    "prisma": "^6.10.1"
   }
 }

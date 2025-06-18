@@ -134,7 +134,7 @@ const importTransformer = (context) => {
             const dtsPath = `${modulePath}.d.ts`;
 
             const stat = existsSync(modulePath) && statSync(modulePath);
-            // biome-ignore lint/complexity/useOptionalChain: <explanation>
+            // biome-ignore lint/complexity/useOptionalChain: behavior here is correct
             if (stat && stat.isDirectory()) {
               mod = path.join(modulePath, 'index.ts');
             } else if (existsSync(tsPath)) {
@@ -145,7 +145,7 @@ const importTransformer = (context) => {
               throw new Error(`Unable to resolve modulePath ${modulePath}`);
             }
 
-            mod = path.relative(dirName, mod).replace(/^([^\.])/, './$1');
+            mod = path.relative(dirName, mod).replace(/^([^.])/, './$1');
           } else if (moduleMap[mod]) {
             const newMod = moduleMap[mod];
 

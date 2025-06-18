@@ -10,9 +10,8 @@ import type {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import type { DirectiveLocation, Directives } from './types';
-
 import type { PothosDirectivesPlugin } from '.';
+import type { DirectiveLocation, Directives } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {

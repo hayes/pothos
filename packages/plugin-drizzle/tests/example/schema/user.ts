@@ -2,7 +2,7 @@ import { count, eq } from 'drizzle-orm';
 import { drizzleConnectionHelpers } from '../../../src';
 import { builder } from '../builder';
 import { db } from '../db';
-import { comments, users } from '../db/schema';
+import { comments } from '../db/schema';
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   args: (t) => ({

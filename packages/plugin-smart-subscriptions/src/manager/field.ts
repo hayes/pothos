@@ -1,9 +1,8 @@
 import type { SchemaTypes } from '@pothos/core';
 import type CacheNode from '../cache-node';
 import type { RegisterFieldSubscriptionOptions } from '../types';
-import BaseSubscriptionManager from './base';
-
 import type SubscriptionManager from '.';
+import BaseSubscriptionManager from './base';
 
 export default class FieldSubscriptionManager<
   Types extends SchemaTypes,

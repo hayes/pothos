@@ -1,8 +1,8 @@
-import { source } from '@/app/source';
-import { useMDXComponents } from '@/mdx-components';
 import { DocsBody, DocsPage } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { source } from '@/app/source';
+import { useMDXComponents } from '@/mdx-components';
 
 export default async function Page({ params }: { params: Promise<{ slug?: string[] }> }) {
   const page = source.getPage((await params).slug);
@@ -23,6 +23,7 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
   );
 }
 
+// biome-ignore lint/suspicious/useAwait: this needs to return a promise
 export async function generateStaticParams() {
   return source.getPages().map((page) => ({
     slug: page.slugs,
@@ -31,7 +32,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: { params: Promise<{ slug?: string[] }> }): Promise<Metadata> {
+}: {
+  params: Promise<{ slug?: string[] }>;
+}): Promise<Metadata> {
   const page = source.getPage((await params).slug);
 
   if (page == null) {

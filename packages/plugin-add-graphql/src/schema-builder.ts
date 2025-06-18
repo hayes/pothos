@@ -1,13 +1,13 @@
 import './global-types';
 import SchemaBuilder, {
-  InputListRef,
-  ListRef,
   type ArgumentRef,
   type EnumRef,
   type EnumValueConfigMap,
   type InputFieldRef,
+  InputListRef,
   type InputType,
   type InputTypeParam,
+  ListRef,
   type ObjectParam,
   type ObjectRef,
   type OutputType,
@@ -15,6 +15,7 @@ import SchemaBuilder, {
   type TypeParam,
 } from '@pothos/core';
 import {
+  defaultFieldResolver,
   type GraphQLEnumType,
   type GraphQLInputObjectType,
   type GraphQLInputType,
@@ -23,7 +24,6 @@ import {
   type GraphQLOutputType,
   type GraphQLType,
   type GraphQLUnionType,
-  defaultFieldResolver,
   isListType,
   isNonNullType,
 } from 'graphql';

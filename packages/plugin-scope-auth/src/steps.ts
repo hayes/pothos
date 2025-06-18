@@ -1,4 +1,4 @@
-import { type SchemaTypes, isThenable } from '@pothos/core';
+import { isThenable, type SchemaTypes } from '@pothos/core';
 import type { GraphQLFieldResolver } from 'graphql';
 import type {
   FieldAuthScopes,

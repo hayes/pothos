@@ -1,4 +1,4 @@
-import { type SchemaTypes, createContextCache } from '@pothos/core';
+import { createContextCache, type SchemaTypes } from '@pothos/core';
 import {
   type GraphQLNamedType,
   isEnumType,

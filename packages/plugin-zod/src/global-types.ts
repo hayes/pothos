@@ -8,9 +8,8 @@ import type {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import type { ValidationOptions, ValidationPluginOptions } from './types';
-
 import type { PothosZodPlugin } from '.';
+import type { ValidationOptions, ValidationPluginOptions } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {

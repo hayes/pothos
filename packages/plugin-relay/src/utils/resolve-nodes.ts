@@ -1,11 +1,11 @@
 import {
+  brandWithType,
+  createContextCache,
   type MaybePromise,
   type ObjectParam,
   type OutputType,
   PothosValidationError,
   type SchemaTypes,
-  brandWithType,
-  createContextCache,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { NodeObjectOptions } from '../types';
@@ -71,6 +71,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
   );
 }
 
+// biome-ignore lint/suspicious/useAwait: ensure that this returns a promise
 export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,

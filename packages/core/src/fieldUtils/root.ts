@@ -1,10 +1,13 @@
 import { ListRef } from '../refs/list';
-import type { ArgBuilder, InputFieldMap, NormalizeArgs, ShapeFromTypeParam } from '../types';
 import type {
+  ArgBuilder,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
+  InputFieldMap,
+  NormalizeArgs,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '../types';
 import { BaseFieldUtil } from './base';

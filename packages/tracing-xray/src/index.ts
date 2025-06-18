@@ -1,9 +1,9 @@
 import { createSpanWithParent, runFunction } from '@pothos/plugin-tracing';
 import {
-  Subsegment,
   getNamespace,
   getSegment,
   isAutomaticMode,
+  Subsegment,
   setSegment,
 } from 'aws-xray-sdk-core';
 import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';

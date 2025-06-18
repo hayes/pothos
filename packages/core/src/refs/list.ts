@@ -1,4 +1,4 @@
-import { type SchemaTypes, type TypeParam, outputShapeKey, parentShapeKey } from '../types';
+import { outputShapeKey, parentShapeKey, type SchemaTypes, type TypeParam } from '../types';
 import { BaseTypeRef } from './base';
 
 export class ListRef<Types extends SchemaTypes, T, P = T>

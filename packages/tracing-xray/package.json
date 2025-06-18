@@ -51,7 +51,7 @@
     "@pothos/core": "*",
     "@pothos/plugin-tracing": "*",
     "aws-xray-sdk-core": "*",
-    "graphql": ">=16.6.0"
+    "graphql": "^16.10.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
@@ -59,6 +59,6 @@
     "@pothos/test-utils": "workspace:*",
     "aws-xray-sdk-core": "^3.10.3",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "5.13.4"
+    "graphql-yoga": "5.13.5"
   }
 }

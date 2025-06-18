@@ -1,4 +1,6 @@
 import {
+  defaultFieldResolver,
+  defaultTypeResolver,
   GraphQLBoolean,
   GraphQLEnumType,
   type GraphQLFieldConfigArgumentMap,
@@ -19,8 +21,6 @@ import {
   GraphQLString,
   type GraphQLTypeResolver,
   GraphQLUnionType,
-  defaultFieldResolver,
-  defaultTypeResolver,
 } from 'graphql';
 import type { SchemaBuilder } from './builder';
 import type { ConfigStore } from './config-store';
@@ -381,6 +381,7 @@ export class BuildCache<Types extends SchemaTypes> {
   private getInterfaceFields(type: GraphQLInterfaceType): GraphQLFieldConfigMap<unknown, object> {
     const interfaceFields = type
       .getInterfaces()
+      // biome-ignore lint/performance/noAccumulatingSpread: this is fine
       .reduce((all, iface) => Object.assign(all, this.getFields(iface)), {});
 
     const configs = this.configStore.getFields(type.name, 'Interface');
@@ -396,6 +397,7 @@ export class BuildCache<Types extends SchemaTypes> {
   private getObjectFields(type: GraphQLObjectType): GraphQLFieldConfigMap<unknown, object> {
     const interfaceFields = type
       .getInterfaces()
+      // biome-ignore lint/performance/noAccumulatingSpread: this is fine
       .reduce((all, iface) => Object.assign(all, this.getFields(iface)), {});
 
     const objectFields = this.buildFields(this.configStore.getFields(type.name, 'Object'));

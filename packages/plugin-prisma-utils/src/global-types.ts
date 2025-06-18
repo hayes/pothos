@@ -1,6 +1,13 @@
 import type { InputShapeFromTypeParam, InputType, Normalize, SchemaTypes } from '@pothos/core';
 import type { PrismaModelTypes } from '@pothos/plugin-prisma';
 import type {
+  IntFieldUpdateOperationsInput,
+  IntUpdateOps,
+  PothosPrismaUtilsPlugin,
+  PrismaCreateManyOptions,
+  PrismaIntAtomicUpdateOptions,
+} from '.';
+import type {
   FilterListOps,
   FilterOps,
   FilterShape,
@@ -21,14 +28,6 @@ import type {
   ScalarListFilterShape,
   ScalarListOps,
 } from './types';
-
-import type {
-  IntFieldUpdateOperationsInput,
-  IntUpdateOps,
-  PothosPrismaUtilsPlugin,
-  PrismaCreateManyOptions,
-  PrismaIntAtomicUpdateOptions,
-} from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

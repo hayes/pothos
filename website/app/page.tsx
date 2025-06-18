@@ -1,8 +1,8 @@
-import { source } from '@/app/source';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { DocsBody, DocsPage } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { source } from '@/app/source';
 
 export default async function HomePage(props: { params: Promise<{ slug?: string[] }> }) {
   const page = source.getPage((await props.params).slug);
@@ -22,6 +22,7 @@ export default async function HomePage(props: { params: Promise<{ slug?: string[
   );
 }
 
+// biome-ignore lint/suspicious/useAwait: this needs to return a promise
 export async function generateStaticParams() {
   return source.getPages().map((page) => ({
     slug: page.slugs,

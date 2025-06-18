@@ -11,9 +11,8 @@ import type {
   TypeParam,
   UnionToIntersection,
 } from '@pothos/core';
-import type { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
-
 import type { PothosSimpleObjectsPlugin } from '.';
+import type { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {

@@ -2,6 +2,7 @@ import { envelop, useEngine, useSchema } from '@envelop/core';
 import { useRateLimiter } from '@envelop/rate-limiter';
 import { printSchemaWithDirectives } from '@graphql-tools/utils';
 import SchemaBuilder from '@pothos/core';
+import * as GraphQL from 'graphql';
 import {
   type GraphQLEnumType,
   type GraphQLInputObjectType,
@@ -10,8 +11,6 @@ import {
   printSchema,
 } from 'graphql';
 import gql from 'graphql-tag';
-
-import * as GraphQL from 'graphql';
 import schema from './example/schema';
 
 const getEnvelop = envelop({

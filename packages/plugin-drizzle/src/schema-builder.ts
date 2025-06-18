@@ -1,22 +1,21 @@
 import SchemaBuilder, {
   brandWithType,
   completeValue,
+  type FieldRef,
   type InterfaceRef,
   type ObjectRef,
   type OutputType,
   PothosError,
   type SchemaTypes,
-  type FieldRef,
-  type InputObjectRef,
 } from '@pothos/core';
 import type { Column } from 'drizzle-orm';
-import type { GraphQLInputObjectType, GraphQLResolveInfo } from 'graphql';
+import type { GraphQLResolveInfo } from 'graphql';
 import { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 import { DrizzleInterfaceRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
 import { DrizzleNodeRef } from './node-ref';
 import { DrizzleObjectRef } from './object-ref';
-import type { DrizzleGraphQLInputExtensions, DrizzleNodeOptions } from './types';
+import type { DrizzleNodeOptions } from './types';
 import { getSchemaConfig } from './utils/config';
 import { getIDParser, getIDSerializer } from './utils/cursors';
 import { getRefFromModel } from './utils/refs';

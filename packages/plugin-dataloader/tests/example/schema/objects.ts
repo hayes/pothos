@@ -47,7 +47,7 @@ builder.objectFields(User, (t) => ({
     load: async (users: { id: number }[], context, args) => {
       context.countCall('User.friends');
 
-      return users.map((user) => {
+      return await users.map((user) => {
         const friends: { objType: 'UserNode'; id: number }[] = [];
         for (let i = 0; i < 5; i += 1) {
           friends.push({ objType: 'UserNode', id: Number.parseInt(`${user.id}${i}`, 10) });

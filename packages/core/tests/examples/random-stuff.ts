@@ -15,7 +15,7 @@ interface Types {
   };
   Scalars: {
     Date: { Input: Date | string; Output: Date | string };
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     AnyJson: { Input: any | string; Output: unknown };
   };
   Context: { userID: number };
@@ -125,7 +125,7 @@ interface ExampleShape {
   id?: string;
   ids: string[];
   more: ExampleShape;
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   json?: any;
 }
 
@@ -429,9 +429,7 @@ builder.queryField('nestedLists', (t) =>
       }),
     },
     resolve: (_, args) => {
-      const date: Date | string | null | undefined = args.nestedListInput?.date;
-      // biome-ignore lint/complexity/noVoid: <explanation>
-      void date;
+      const _date: Date | string | null | undefined = args.nestedListInput?.date;
 
       return args.input;
     },

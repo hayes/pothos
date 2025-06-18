@@ -1,21 +1,19 @@
-import {
-  type FieldKind,
-  type FieldNullability,
-  type FieldRef,
-  type InputFieldMap,
-  InputFieldRef,
-  type SchemaTypes,
-  type ShapeFromTypeParam,
-  type TypeParam,
+import type {
+  FieldKind,
+  FieldNullability,
+  FieldRef,
+  InputFieldMap,
+  SchemaTypes,
+  ShapeFromTypeParam,
+  TypeParam,
 } from '@pothos/core';
+import type { PothosWithInputPlugin } from '.';
 import type {
   FieldWithInputOptions,
   WithInputArgOptions,
   WithInputBuilderOptions,
   WithInputTypeOptions,
 } from './types';
-
-import type { PothosWithInputPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

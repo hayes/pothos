@@ -6,6 +6,7 @@ import {
   type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
+  isThenable,
   type MaybePromise,
   type NormalizeArgs,
   ObjectRef,
@@ -14,12 +15,11 @@ import {
   type SchemaTypes,
   type ShapeFromTypeParam,
   type TypeParam,
-  isThenable,
 } from '@pothos/core';
 import {
   type FieldNode,
+  Kind as GraphQLKind,
   type GraphQLResolveInfo,
-  Kind,
   getNamedType,
   isInterfaceType,
   isObjectType,
@@ -49,7 +49,6 @@ import type { FieldMap } from './util/relation-map';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
-  // biome-ignore lint/suspicious/noRedeclare: <explanation>
   new <Types extends SchemaTypes, Shape, Kind extends FieldKind>(
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     kind: FieldKind,
@@ -301,11 +300,11 @@ export class PrismaObjectFieldBuilder<
       const hasTotalCount = totalCount && !!getSelection(['totalCount']);
 
       const selections = selection.selectionSet?.selections.filter(
-        (sel) => !(sel.kind === Kind.FIELD && sel.name.value === '__typename'),
+        (sel) => !(sel.kind === GraphQLKind.FIELD && sel.name.value === '__typename'),
       );
       const totalCountOnly =
         selections?.length === 1 &&
-        selections[0].kind === Kind.FIELD &&
+        selections[0].kind === GraphQLKind.FIELD &&
         selections[0].name.value === 'totalCount' &&
         hasTotalCount;
 
@@ -355,7 +354,7 @@ export class PrismaObjectFieldBuilder<
             const totalCountOnly = selections.every((selection) =>
               selection.selectionSet?.selections.every(
                 (s) =>
-                  s.kind === Kind.FIELD &&
+                  s.kind === GraphQLKind.FIELD &&
                   (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
                     s.name.value === '__typename'),
               ),
@@ -514,8 +513,6 @@ export class PrismaObjectFieldBuilder<
   ): FieldRef<Types, number, 'Object'> {
     const [{ where, ...options } = {} as never] = allArgs;
 
-    const { resolve, ...rest } = options;
-
     const countSelect =
       typeof where === 'function'
         ? (args: {}, context: {}) => ({
@@ -532,7 +529,7 @@ export class PrismaObjectFieldBuilder<
           };
 
     return this.field({
-      ...(rest as {}),
+      ...(options as {}),
       type: 'Int',
       nullable: false,
       select: countSelect as never,
@@ -542,7 +539,7 @@ export class PrismaObjectFieldBuilder<
   }
 
   variant<
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     Variant extends Model['Name'] | PrismaRef<any, Model>,
     Args extends InputFieldMap,
     Nullable,
@@ -553,7 +550,7 @@ export class PrismaObjectFieldBuilder<
         options: VariantFieldOptions<
           Types,
           Model,
-          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          // biome-ignore lint/suspicious/noExplicitAny: this is fine
           Variant extends PrismaRef<any, Model> ? Variant : PrismaRef<Types, Model>,
           Args,
           Nullable,

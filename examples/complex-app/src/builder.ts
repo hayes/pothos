@@ -1,4 +1,4 @@
-import SchemaBuilder, { RootFieldBuilder } from '@pothos/core';
+import SchemaBuilder from '@pothos/core';
 import DataloaderPlugin from '@pothos/plugin-dataloader';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import PrismaUtilsPlugin from '@pothos/plugin-prisma-utils';

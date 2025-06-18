@@ -6,13 +6,12 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { SmartSubscriptionOptions } from './types';
-
 import type {
   FieldSubscriptionManager,
   PothosSmartSubscriptionsPlugin,
   TypeSubscriptionManager,
 } from '.';
+import type { SmartSubscriptionOptions } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {

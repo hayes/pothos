@@ -155,7 +155,7 @@ type InputWithShape<Types extends SchemaTypes, T, FieldShape = T> =
   | InputFieldRef<Types, FieldShape | null | undefined>
   | InputRef<T>
   | (new (
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: this is fine
       ...args: any[]
     ) => T)
   | (keyof Types['inputShapes'] extends infer U
@@ -494,7 +494,7 @@ export interface PrismaUpdateManyRelationFields<
   >;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: this is fine
 export type FieldKeys<T> = T extends (...args: any[]) => infer R ? keyof R : keyof T;
 
 export type PickFields<T, Fields> = Pick<T, FieldKeys<Fields> & keyof T>;

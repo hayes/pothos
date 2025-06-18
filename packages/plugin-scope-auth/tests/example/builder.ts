@@ -44,7 +44,7 @@ const builder = new SchemaBuilder<{
     authorizeOnSubscribe: true,
     defaultStrategy: 'all',
     authScopes: async (context) => {
-      context.count?.('authScopes');
+      await context.count?.('authScopes');
 
       // locally reference use to simulate data loaded in this authScopes fn that depends on incoming
       // context data and is not modifiable from resolvers

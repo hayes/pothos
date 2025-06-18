@@ -6,10 +6,11 @@ import type {
   FieldRequiredness,
   InputOrArgRef,
   InputShapeFromTypeParam,
+  InputType,
   InputTypeParam,
   NormalizeArgs,
+  SchemaTypes,
 } from '../types';
-import type { InputType, SchemaTypes } from '../types';
 import { inputTypeFromParam } from '../utils';
 
 export class InputFieldBuilder<

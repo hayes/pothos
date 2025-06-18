@@ -14,7 +14,7 @@ builder.subscriptionType({
             new Promise<IteratorResult<number, never>>((resolve) => {
               setTimeout(() => {
                 resolve({
-                  // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+                  // biome-ignore lint/suspicious/noAssignInExpressions: this is fine
                   value: (i += 1),
                   done: false,
                 });

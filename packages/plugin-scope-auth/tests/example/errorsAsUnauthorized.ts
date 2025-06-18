@@ -132,8 +132,8 @@ builder.queryType({
       resolve: () => true,
     }),
     inlineAsync: t.boolean({
-      // biome-ignore lint/suspicious/useAwait: <explanation>
       authScopes: async () => {
+        await 1;
         throw new Error('inlineAsync');
       },
       resolve: () => true,

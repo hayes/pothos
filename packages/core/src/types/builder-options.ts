@@ -13,10 +13,10 @@ import type {
   ParentShape as GetParentShape,
   InputRef,
   InterfaceParam,
+  inputFieldShapeKey,
   ObjectParam,
   ShapeFromTypeParam,
   TypeParam,
-  inputFieldShapeKey,
 } from './type-params';
 import type {
   MaybePromise,

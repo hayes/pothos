@@ -34,9 +34,8 @@ const server = new ApolloServer({
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
     {
-      // biome-ignore lint/suspicious/useAwait: <explanation>
       async serverWillStart() {
-        return {
+        return await {
           async drainServer() {
             await serverCleanup.dispose();
           },

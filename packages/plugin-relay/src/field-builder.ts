@@ -1,4 +1,5 @@
 import {
+  assertArray,
   type FieldKind,
   type FieldNullability,
   type InputFieldMap,
@@ -7,7 +8,6 @@ import {
   ObjectRef,
   RootFieldBuilder,
   type SchemaTypes,
-  assertArray,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type {

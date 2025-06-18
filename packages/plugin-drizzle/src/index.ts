@@ -11,13 +11,12 @@ import SchemaBuilder, {
 import type { GraphQLFieldResolver } from 'graphql';
 import type { ModelLoader } from './model-loader';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
-export { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
-export { drizzleClientCache } from './utils/config';
+
 export { drizzleConnectionHelpers } from './connection-helpers';
-
+export { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 export * from './types';
-
 export { drizzleTableName } from './types';
+export { drizzleClientCache } from './utils/config';
 
 const pluginName = 'drizzle';
 

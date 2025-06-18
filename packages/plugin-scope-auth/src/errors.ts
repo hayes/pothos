@@ -1,7 +1,6 @@
 import { PothosValidationError } from '@pothos/core';
-import { AuthScopeFailureType } from './types';
-
 import type { AuthFailure } from '.';
+import { AuthScopeFailureType } from './types';
 
 export class ForbiddenError extends PothosValidationError {
   code = 'FORBIDDEN';

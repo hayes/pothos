@@ -2,13 +2,13 @@ import {
   type InterfaceParam,
   type ObjectTypeOptions,
   type OutputRef,
+  outputShapeKey,
   type PothosMutationTypeConfig,
   type PothosObjectTypeConfig,
   type PothosQueryTypeConfig,
   type PothosSubscriptionTypeConfig,
-  type SchemaTypes,
-  outputShapeKey,
   parentShapeKey,
+  type SchemaTypes,
 } from '../types';
 import { TypeRefWithFields } from './base-with-fields';
 

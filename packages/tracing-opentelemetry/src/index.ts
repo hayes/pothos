@@ -1,4 +1,4 @@
-import { type Span, type Tracer, context as opentelemetryContext, trace } from '@opentelemetry/api';
+import { context as opentelemetryContext, type Span, type Tracer, trace } from '@opentelemetry/api';
 import { createSpanWithParent, runFunction } from '@pothos/plugin-tracing';
 import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';
 import { AttributeNames, SpanNames } from './enums';

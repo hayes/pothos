@@ -12,6 +12,7 @@ import SchemaBuilder, {
 import { defaultFieldResolver } from 'graphql';
 import { providesMap } from './external-ref';
 import { addUsedDirectives, entityMapping, keyDirective, mergeDirectives } from './util';
+
 export { hasResolvableKey } from './schema-builder';
 
 export * from './types';

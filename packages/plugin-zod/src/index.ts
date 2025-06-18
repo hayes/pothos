@@ -19,7 +19,7 @@ import createZodSchema, {
   isArrayValidator,
   refine,
 } from './createZodSchema';
-import type { RefineConstraint, ValidationOptionUnion, ValidationOptions } from './types';
+import type { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types';
 
 export * from './types';
 

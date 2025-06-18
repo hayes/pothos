@@ -8,7 +8,7 @@ export function classDepth(obj: {}): number {
   return 1 + classDepth(proto);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: this is fine
 export function sortClasses<T extends new (...args: any[]) => unknown>(classes: T[]) {
   return [...classes].sort((a, b) => {
     const depthA = classDepth(a);

@@ -5,6 +5,7 @@ import {
   type FieldRef,
   type InputFieldMap,
   type InterfaceParam,
+  isThenable,
   type MaybePromise,
   type NormalizeArgs,
   ObjectRef,
@@ -14,14 +15,13 @@ import {
   type SchemaTypes,
   type ShapeFromTypeParam,
   type TypeParam,
-  isThenable,
 } from '@pothos/core';
 import {
+  getTableUniqueName,
   type InferSelectModel,
   Many,
   type Table,
   type TableRelationalConfig,
-  getTableUniqueName,
 } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
 import type {
@@ -507,7 +507,7 @@ export class DrizzleObjectFieldBuilder<
         ]
       >
     ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'DrizzleObject'> => {
-      const [name, { description, ...options } = {} as never] = args;
+      const [name, options = {} as never] = args;
 
       return this.expose(
         name as never,

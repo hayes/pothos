@@ -1,9 +1,9 @@
 import {
+  decodeBase64,
+  encodeBase64,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
-  decodeBase64,
-  encodeBase64,
 } from '@pothos/core';
 import type { ConnectionShape, DefaultConnectionArguments } from '../types';
 
@@ -230,7 +230,7 @@ export function parseCursorConnectionArgs(options: ResolveOffsetConnectionOption
   };
 }
 
-// biome-ignore lint/suspicious/noRedeclare: <explanation>
+// biome-ignore lint/suspicious/noRedeclare: rule is wrong
 type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 
 export async function resolveCursorConnection<

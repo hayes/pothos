@@ -20,7 +20,7 @@ const UserNode = builder.loadableNodeRef('UserNode', {
 
 builder.objectType(UserNode, {
   interfaces: [TestInterface],
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   isTypeOf: (obj) => (obj as any).objType === 'UserNode',
   fields: () => ({}),
 });

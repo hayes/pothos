@@ -1,11 +1,11 @@
 import {
   type InputRef,
-  type OutputRef,
-  type PothosScalarTypeConfig,
-  type SchemaTypes,
   inputShapeKey,
+  type OutputRef,
   outputShapeKey,
+  type PothosScalarTypeConfig,
   parentShapeKey,
+  type SchemaTypes,
 } from '../types';
 import { BaseTypeRef } from './base';
 

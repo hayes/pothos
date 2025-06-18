@@ -12,6 +12,7 @@ import {
   type InputRef,
   type InputShapeFromFields,
   type InterfaceParam,
+  inputShapeKey,
   type MaybePromise,
   type Normalize,
   type ObjectFieldsShape,
@@ -27,7 +28,6 @@ import {
   type SchemaTypes,
   type ShapeFromListTypeParam,
   type ShapeFromTypeParam,
-  inputShapeKey,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 

@@ -25,22 +25,26 @@
     "git-tag": "TAG=\"release-`date +%s`\" && git tag $TAG && git push origin $TAG",
     "snapshot": "pnpm prerelease && changeset version --snapshot preview && pnpm install && changeset publish --tag preview"
   },
-  "workspaces": ["packages/*", "examples/*", "website"],
+  "workspaces": [
+    "packages/*",
+    "examples/*",
+    "website"
+  ],
   "private": true,
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@changesets/cli": "^2.29.2",
-    "@faker-js/faker": "^9.7.0",
+    "@biomejs/biome": "^2.0.0",
+    "@changesets/cli": "^2.29.4",
+    "@faker-js/faker": "^9.8.0",
     "@swc-node/register": "^1.10.10",
-    "@swc/cli": "^0.7.3",
-    "@swc/core": "^1.11.21",
-    "@types/node": "^22.14.1",
+    "@swc/cli": "^0.7.7",
+    "@swc/core": "^1.12.1",
+    "@types/node": "^24.0.3",
     "graphql": "^16.10.0",
-    "pkg-pr-new": "^0.0.42",
-    "tsx": "^4.19.3",
-    "turbo": "^2.5.0",
+    "pkg-pr-new": "^0.0.51",
+    "tsx": "^4.20.3",
+    "turbo": "^2.5.4",
     "typescript": "5.8.3",
-    "vitest": "^3.0.9"
+    "vitest": "^3.2.4"
   },
   "engines": {
     "pnpm": ">=9.0.0"
@@ -62,7 +66,11 @@
   "packageManager": "pnpm@10.6.5",
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": ["webpack", "@babel/*", "@types/node"],
+      "ignoreMissing": [
+        "webpack",
+        "@babel/*",
+        "@types/node"
+      ],
       "allowedVersions": {
         "graphql": ">=16.6.0"
       }

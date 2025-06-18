@@ -1,19 +1,19 @@
 import {
+  createContextCache,
   type InterfaceRef,
   type ObjectRef,
   PothosSchemaError,
   type SchemaTypes,
-  createContextCache,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { PrismaDelegate, SelectionMap } from './types';
+import type { SelectionMap } from './types';
 import { getDelegateFromModel, getModel } from './util/datamodel';
 import { getClient } from './util/get-client';
 import { cacheKey, setLoaderMappings } from './util/loader-map';
 import { selectionStateFromInfo } from './util/map-query';
 import {
-  type SelectionState,
   mergeSelection,
+  type SelectionState,
   selectionCompatible,
   selectionToQuery,
 } from './util/selections';
@@ -282,7 +282,7 @@ export class ModelLoader {
     return this.initLoad(selection, model);
   }
 
-  async initLoad(state: SelectionState, initialModel: {}) {
+  initLoad(state: SelectionState, initialModel: {}) {
     const delegate = getDelegateFromModel(
       getClient(this.builder, this.context as never),
       this.modelName,

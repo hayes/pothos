@@ -8,7 +8,7 @@
 // } from 'drizzle-orm';
 // import { GraphQLError } from 'graphql';
 
-// // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// // biome-ignore lint/suspicious/noExplicitAny: this is fine
 // export const remapFromGraphQLCore = (value: any, column: Column, columnName: string) => {
 //   switch (column.dataType) {
 //     case 'date': {
@@ -71,7 +71,7 @@
 // };
 
 // export const remapFromGraphQLSingleInput = (
-//   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+//   // biome-ignore lint/suspicious/noExplicitAny: this is fine
 //   queryInput: Record<string, any>,
 //   table: TableRelationalConfig,
 // ) => {
@@ -97,7 +97,7 @@
 // };
 
 // export const remapFromGraphQLArrayInput = (
-//   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+//   // biome-ignore lint/suspicious/noExplicitAny: this is fine
 //   queryInput: Record<string, any>[],
 //   table: TableRelationalConfig,
 // ) => {
@@ -117,7 +117,7 @@
 
 // export const extractOrderBy = <
 //   TTable extends TableRelationalConfig,
-//   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+//   // biome-ignore lint/suspicious/noExplicitAny: this is fine
 //   TArgs extends OrderByArgs<any> = OrderByArgs<TTable>,
 // >(
 //   table: TTable,
@@ -195,13 +195,13 @@
 //         break;
 //       case 'inArray':
 //       case 'notInArray': {
-//         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+//         // biome-ignore lint/suspicious/noExplicitAny: this is fine
 //         if (!(operatorValue as any[]).length) {
 //           throw new GraphQLError(
 //             `WHERE ${columnName}: Unable to use operator ${operatorName} with an empty array!`,
 //           );
 //         }
-//         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+//         // biome-ignore lint/suspicious/noExplicitAny: this is fine
 //         const arrayValue = (operatorValue as any[]).map((val) =>
 //           remapFromGraphQLCore(val, column, columnName),
 //         );

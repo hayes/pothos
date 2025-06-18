@@ -1,9 +1,9 @@
 import {
+  decodeBase64,
+  encodeBase64,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
-  decodeBase64,
-  encodeBase64,
 } from '@pothos/core';
 import { getModel } from './datamodel';
 import type { DMMFField } from './get-client';

@@ -31,7 +31,15 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "typescript", "add", "existing", "plugin"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "add",
+    "existing",
+    "plugin"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

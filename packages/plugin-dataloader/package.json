@@ -31,7 +31,13 @@
     "url": "git+https://github.com/hayes/pothos.git",
     "directory": "packages/plugin-dataloader"
   },
-  "keywords": ["pothos", "graphql", "schema", "typescript", "dataloader"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "dataloader"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

@@ -46,8 +46,8 @@ builder.subscriptionField('withAuth', (t) =>
   t.withAuth({ loggedIn: true }).boolean({
     nullable: true,
 
-    // biome-ignore lint/suspicious/useAwait: <explanation>
-    // biome-ignore lint/correctness/useYield: <explanation>
+    // biome-ignore lint/suspicious/useAwait: testing
+    // biome-ignore lint/correctness/useYield: testing
     subscribe: async function* subscribe() {
       return {};
     },

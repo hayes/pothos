@@ -1,20 +1,20 @@
-import { type SchemaTypes, createContextCache } from '@pothos/core';
+import { createContextCache, type SchemaTypes } from '@pothos/core';
 import {
   type AnyTable,
   type Column,
-  type SQL,
-  type TableRelationalConfig,
   inArray,
+  type SQL,
   sql,
+  type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { type PothosDrizzleSchemaConfig, getClient, getSchemaConfig } from './utils/config';
+import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config';
 import { cacheKey, setLoaderMappings } from './utils/loader-map';
 import { selectionStateFromInfo, stateFromInfo } from './utils/map-query';
 import {
+  mergeSelection,
   type SelectionMap,
   type SelectionState,
-  mergeSelection,
   selectionCompatible,
   selectionToQuery,
 } from './utils/selections';

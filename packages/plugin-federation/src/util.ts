@@ -43,7 +43,7 @@ export function mergeDirectives(
 }
 
 export const entityMapping = new WeakMap<
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   PothosSchemaTypes.SchemaBuilder<any>,
   Map<
     string,
@@ -55,7 +55,7 @@ export const entityMapping = new WeakMap<
   >
 >();
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: this is fine
 export const usedDirectives = new Map<PothosSchemaTypes.SchemaBuilder<any>, Set<string>>();
 
 export function getUsedDirectives<Types extends SchemaTypes>(

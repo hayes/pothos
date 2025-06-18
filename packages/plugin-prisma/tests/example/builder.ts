@@ -3,8 +3,8 @@ import ComplexityPlugin from '@pothos/plugin-complexity';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import SimpleObjects from '@pothos/plugin-simple-objects';
-import PrismaPlugin, { queryFromInfo, type PrismaTypesFromClient } from '../../src';
-import { Prisma, PrismaClient } from '../client/index';
+import PrismaPlugin, { type PrismaTypesFromClient } from '../../src';
+import { Prisma, PrismaClient } from '../client/client.js';
 import { getDatamodel } from '../generated.js';
 
 export const prisma = new PrismaClient({

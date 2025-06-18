@@ -8,8 +8,8 @@ import SchemaBuilder, {
   PothosSchemaError,
   type SchemaTypes,
   sortClasses,
-  typeBrandKey,
   type TypeParam,
+  typeBrandKey,
   unwrapOutputFieldType,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';

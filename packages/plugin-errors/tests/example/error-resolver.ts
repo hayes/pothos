@@ -32,7 +32,7 @@ declare global {
       ResolveWithErrors: {
         errors?: {
           types?: (new (
-            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            // biome-ignore lint/suspicious/noExplicitAny: this is fine
             ...args: any[]
           ) => ResolveReturnShape)[];
         };
@@ -102,7 +102,7 @@ builder.queryType({
 builder.subscriptionType({
   fields: (t) => ({
     hello: t.string({
-      // biome-ignore lint/suspicious/useAwait: <explanation>
+      // biome-ignore lint/suspicious/useAwait: testing
       async *subscribe() {
         yield 'Hello';
         yield 'World';

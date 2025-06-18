@@ -1,10 +1,10 @@
 import {
   type InputRef,
+  inputShapeKey,
   type OutputRef,
+  outputShapeKey,
   type PothosEnumTypeConfig,
   type SchemaTypes,
-  inputShapeKey,
-  outputShapeKey,
 } from '../types';
 import { BaseTypeRef } from './base';
 

@@ -8,6 +8,7 @@ import type {
   GraphQLSchema,
   GraphQLUnionType,
 } from 'graphql';
+import type { PothosAddGraphQLPlugin } from '.';
 import type {
   AddGraphQLEnumTypeOptions,
   AddGraphQLInputTypeOptions,
@@ -16,8 +17,6 @@ import type {
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
 } from './types';
-
-import type { PothosAddGraphQLPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

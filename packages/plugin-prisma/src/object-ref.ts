@@ -1,8 +1,8 @@
 import {
-  ObjectRef,
-  type SchemaTypes,
   abstractReturnShapeKey,
   brandWithType,
+  ObjectRef,
+  type SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
 import type { PrismaModelTypes, WithBrand } from './types';

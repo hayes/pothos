@@ -11,7 +11,7 @@ export type GetTypeName = (options: { parentTypeName: string; fieldName: string 
 
 export interface ErrorsPluginOptions<Types extends SchemaTypes> {
   defaultTypes?: (new (
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     ...args: any[]
   ) => Error)[];
   directResult?: boolean;
@@ -44,7 +44,7 @@ export type ErrorFieldOptions<
   Nullable extends FieldNullability<Type>,
 > = EmptyToOptional<{
   types?: (new (
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     ...args: any[]
   ) => Error)[];
   directResult?: Type extends unknown[] ? false : boolean;

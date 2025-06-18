@@ -1,4 +1,4 @@
-import { type SchemaTypes, isThenable } from '@pothos/core';
+import { isThenable, type SchemaTypes } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type SubscriptionCache from './cache';
 import type { FieldSubscriber } from './types';

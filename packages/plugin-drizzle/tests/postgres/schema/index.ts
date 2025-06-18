@@ -1,4 +1,4 @@
-import { type Column, not, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import builder from '../builder';
 import { db } from '../db';
 

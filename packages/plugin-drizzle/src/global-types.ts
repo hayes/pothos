@@ -15,18 +15,17 @@ import type {
 import type {
   AnyRelations,
   BuildQueryResult,
-  Column,
   DBQueryConfig,
   ExtractTablesWithRelations,
-  SQL,
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
+import type { PothosDrizzlePlugin } from '.';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
 import type { DrizzleInterfaceRef, DrizzleRef } from './interface-ref';
+import type { DrizzleNodeRef } from './node-ref';
 import type { DrizzleObjectRef, drizzleTableKey } from './object-ref';
 import type {
-  AddGraphQLInputTypeOptions,
   DrizzleConnectionFieldOptions,
   DrizzleConnectionShape,
   DrizzleFieldOptions,
@@ -36,14 +35,10 @@ import type {
   DrizzleObjectFieldOptions,
   DrizzleObjectOptions,
   DrizzlePluginOptions,
+  drizzleTableName,
   ShapeFromConnection,
   ShapeFromIdColumns,
-  drizzleTableName,
 } from './types';
-
-import type { GraphQLInputObjectType } from 'graphql';
-import type { PothosDrizzlePlugin } from '.';
-import type { DrizzleNodeRef } from './node-ref';
 
 type MapToDbName<T> = {
   [K in keyof T as T[K] extends { dbName: infer K2 extends string } ? K2 : K]: T[K];
@@ -278,9 +273,9 @@ declare global {
         Param extends
           | keyof Types['DrizzleRelationsConfig']
           | [keyof Types['DrizzleRelationsConfig']]
-          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          // biome-ignore lint/suspicious/noExplicitAny: this is fine
           | DrizzleRef<any>
-          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          // biome-ignore lint/suspicious/noExplicitAny: this is fine
           | [DrizzleRef<any>],
         Nullable extends FieldNullability<Type>,
         ResolveShape,
@@ -290,14 +285,14 @@ declare global {
           ? Param
           : Param extends [keyof Types['DrizzleRelationsConfig']]
             ? Param[0]
-            : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            : // biome-ignore lint/suspicious/noExplicitAny: this is fine
               Param extends DrizzleRef<any, infer T>
               ? T & keyof Types['DrizzleRelationsConfig']
-              : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+              : // biome-ignore lint/suspicious/noExplicitAny: this is fine
                 Param extends [DrizzleRef<any, infer T>]
                 ? T & keyof Types['DrizzleRelationsConfig']
                 : never,
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: this is fine
         Type extends TypeParam<Types> = Param extends DrizzleRef<any> | [DrizzleRef<any>]
           ? Param
           : Param extends [unknown]
@@ -335,14 +330,14 @@ declare global {
       ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
       drizzleConnection: 'relay' extends PluginName
         ? <
-            Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            Type extends // biome-ignore lint/suspicious/noExplicitAny: this is fine
               | DrizzleRef<any, keyof Types['DrizzleRelationsConfig']>
               | keyof Types['DrizzleRelationsConfig'],
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
             Shape = Type extends DrizzleRef<
-              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+              // biome-ignore lint/suspicious/noExplicitAny: this is fine
               any,
               keyof Types['DrizzleRelationsConfig'],
               infer S
@@ -360,7 +355,7 @@ declare global {
               Types,
               ParentShape,
               Type,
-              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+              // biome-ignore lint/suspicious/noExplicitAny: this is fine
               Types['DrizzleRelationsConfig'][Type extends DrizzleRef<any, infer K>
                 ? K
                 : Type & keyof Types['DrizzleRelationsConfig']],
@@ -410,9 +405,9 @@ declare global {
             Param extends
               | keyof Types['DrizzleRelationsConfig']
               | [keyof Types['DrizzleRelationsConfig']]
-              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+              // biome-ignore lint/suspicious/noExplicitAny: this is fine
               | DrizzleRef<any>
-              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+              // biome-ignore lint/suspicious/noExplicitAny: this is fine
               | [DrizzleRef<any>],
             Nullable extends FieldNullability<Type>,
             ResolveShape,
@@ -426,10 +421,10 @@ declare global {
               ? Param
               : Param extends [keyof Types['DrizzleRelationsConfig']]
                 ? Param[0]
-                : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                : // biome-ignore lint/suspicious/noExplicitAny: this is fine
                   Param extends DrizzleRef<any, infer T>
                   ? T & keyof Types['DrizzleRelationsConfig']
-                  : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                  : // biome-ignore lint/suspicious/noExplicitAny: this is fine
                     Param extends [DrizzleRef<any, infer T>]
                     ? T & keyof Types['DrizzleRelationsConfig']
                     : never,

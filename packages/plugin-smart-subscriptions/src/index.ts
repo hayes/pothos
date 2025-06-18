@@ -6,7 +6,7 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { type GraphQLFieldResolver, type GraphQLTypeResolver, defaultFieldResolver } from 'graphql';
+import { defaultFieldResolver, type GraphQLFieldResolver, type GraphQLTypeResolver } from 'graphql';
 import SubscriptionCache from './cache';
 import { getFieldSubscribe } from './create-field-data';
 import SubscriptionManager from './manager';
@@ -79,7 +79,7 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
                 [Symbol.asyncIterator]() {
                   return {
                     async next() {
-                      return manager.next().then((next) => {
+                      return await manager.next().then((next) => {
                         cache.next();
 
                         return next;

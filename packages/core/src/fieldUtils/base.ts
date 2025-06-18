@@ -3,12 +3,14 @@ import type { ArgumentRef } from '../refs/arg';
 import { FieldRef } from '../refs/field';
 import type {
   FieldKind,
+  FieldNullability,
   InputFieldMap,
   PothosInputFieldConfig,
   Resolver,
+  SchemaTypes,
   ShapeFromTypeParam,
+  TypeParam,
 } from '../types';
-import type { FieldNullability, SchemaTypes, TypeParam } from '../types';
 import { typeFromParam } from '../utils';
 
 export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
@@ -33,7 +35,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     Nullable extends FieldNullability<Type>,
     Args extends InputFieldMap = {},
   >(
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}> & {
       resolve?: Resolver<unknown, {}, {}, unknown, unknown>;
     },

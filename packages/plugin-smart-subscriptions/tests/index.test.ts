@@ -1,7 +1,7 @@
 import {
   type ExecutionResult,
-  type GraphQLResolveInfo,
   execute,
+  type GraphQLResolveInfo,
   lexicographicSortSchema,
   printSchema,
   subscribe,

@@ -1,10 +1,10 @@
 import {
+  isThenable,
   type PothosOutputFieldConfig,
   type PothosOutputFieldType,
   type SchemaTypes,
-  isThenable,
 } from '@pothos/core';
-import { type GraphQLFieldResolver, type GraphQLResolveInfo, defaultFieldResolver } from 'graphql';
+import { defaultFieldResolver, type GraphQLFieldResolver, type GraphQLResolveInfo } from 'graphql';
 
 export function isRootField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {
   return (

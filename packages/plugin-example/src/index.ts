@@ -53,8 +53,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    fieldConfig: PothosOutputFieldConfig<Types>,
+    _fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => {
       console.log(`Resolving ${info.parentType}.${info.fieldName}`);
@@ -65,16 +64,14 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    fieldConfig: PothosOutputFieldConfig<Types>,
+    _fieldConfig: PothosOutputFieldConfig<Types>,
   ) {
     return subscribe;
   }
 
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
+    _typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ) {
     return resolveType;
   }

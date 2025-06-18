@@ -90,9 +90,8 @@ export function createSchema(builder: Builder) {
 
           return gen();
 
-          // biome-ignore lint/suspicious/useAwait: <explanation>
           async function* gen() {
-            yield 1;
+            yield await 1;
             if (errorInIterable) {
               throw new Error('error on subscribe');
             }

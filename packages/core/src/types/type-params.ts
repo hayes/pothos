@@ -3,7 +3,7 @@ import type { BaseTypeRef } from '../refs/base';
 import type { InputFieldRef } from '../refs/input-field';
 import type { InterfaceRef } from '../refs/interface';
 import type { ObjectRef } from '../refs/object';
-import type { RootName, SchemaTypes } from './schema-types';
+import type { SchemaTypes } from './schema-types';
 
 export const outputShapeKey = Symbol.for('Pothos.outputShapeKey');
 export const parentShapeKey = Symbol.for('Pothos.parentShapeKey');
@@ -18,7 +18,7 @@ export type OutputShape<Types extends SchemaTypes, T> = T extends {
 }
   ? U
   : T extends new (
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: this is fine
         ...args: any[]
       ) => infer U
     ? U extends {
@@ -55,7 +55,7 @@ export type InputShape<Types extends SchemaTypes, T> = T extends {
 }
   ? U
   : T extends new (
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: this is fine
         ...args: any[]
       ) => infer U
     ? U extends {
@@ -93,9 +93,9 @@ export type OutputType<Types extends SchemaTypes> =
   | BaseEnum
   | keyof Types['outputShapes']
   | (new (
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: this is fine
       ...args: any[]
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: this is fine
     ) => any)
   | {
       [outputShapeKey]: unknown;
@@ -121,16 +121,16 @@ export type ObjectParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Objects']>
   | ObjectRef<Types, unknown>
   | (new (
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: this is fine
       ...args: any[]
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: this is fine
     ) => any);
 
 export type InterfaceParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Interfaces']>
   | InterfaceRef<Types, unknown>
   | (new (
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: this is fine
       ...args: any[]
     ) => unknown);
 

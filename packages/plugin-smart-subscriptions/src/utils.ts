@@ -1,4 +1,4 @@
-import { PothosSchemaError, createContextCache } from '@pothos/core';
+import { createContextCache, PothosSchemaError } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SmartSubscriptionOptions } from './types';
 

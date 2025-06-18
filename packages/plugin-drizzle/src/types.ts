@@ -181,7 +181,7 @@ export type ShapeFromIdColumns<
           { _: { name: K } }
         >['_']['data'];
       }
-    : // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    : // biome-ignore lint/suspicious/noExplicitAny: this is fine
       IDColumns extends ((...args: any[]) => infer R extends Column | Column[])
       ? ShapeFromIdColumns<Types, Table, R>
       : never;
@@ -271,7 +271,7 @@ export type DrizzleObjectFieldOptions<
         : BuildQueryResult<
             Types['DrizzleRelationsConfig'],
             ExtractTable<Types, ParentShape>,
-            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            // biome-ignore lint/suspicious/noExplicitAny: this is fine
             Record<string, unknown> & (Select extends (...args: any[]) => infer R ? R : Select)
           > &
             ParentShape,
@@ -359,7 +359,7 @@ export type RelatedFieldOptions<
   'description' | 'resolve' | 'select' | 'type'
 > & {
   description?: string | false;
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   type?: DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
   query?: QueryForField<Types, Args, Table['relations'][Field]>;
 };
@@ -367,7 +367,7 @@ export type RelatedFieldOptions<
 export type VariantFieldOptions<
   Types extends SchemaTypes,
   Table extends keyof Types['DrizzleRelationsConfig'],
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   Variant extends DrizzleRef<any, Table> | Table,
   Args extends InputFieldMap,
   isNull,
@@ -378,7 +378,7 @@ export type VariantFieldOptions<
   FieldOptionsFromKind<
     Types,
     Shape,
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     Variant extends DrizzleRef<any> ? Variant : DrizzleRef<any, Table>,
     unknown extends isNull ? false : true,
     Args,
@@ -398,7 +398,7 @@ export type VariantFieldOptions<
                 Types['DrizzleRelationsConfig'],
                 ExtractTable<Types, Shape>,
                 Record<string, unknown> &
-                  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                  // biome-ignore lint/suspicious/noExplicitAny: this is fine
                   (ResolveShape extends (...args: any[]) => infer R ? R : ResolveShape)
               > &
                 Shape,
@@ -495,7 +495,7 @@ export type ListRelation<T extends TableRelationalConfig> = {
 export type DrizzleConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  Type extends // biome-ignore lint/suspicious/noExplicitAny: this is fine
   DrizzleRef<any, keyof Types['DrizzleRelationsConfig']> | keyof Types['DrizzleRelationsConfig'],
   TableConfig extends TableRelationalConfig,
   Param extends OutputType<Types>,
@@ -607,7 +607,7 @@ export type RelatedConnectionOptions<
           >
         >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: this is fine
         type?: DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

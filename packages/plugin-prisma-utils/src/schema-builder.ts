@@ -11,7 +11,7 @@ import SchemaBuilder, {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { type PrismaModelTypes, getModel } from '@pothos/plugin-prisma';
+import { getModel, type PrismaModelTypes } from '@pothos/plugin-prisma';
 import type {
   FilterListOps,
   FilterOps,

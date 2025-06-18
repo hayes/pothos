@@ -6,7 +6,7 @@ import {
   type InputTypeParam,
   type SchemaTypes,
 } from '@pothos/core';
-import { type PrismaModelTypes, getModel } from '@pothos/plugin-prisma';
+import { getModel, type PrismaModelTypes } from '@pothos/plugin-prisma';
 import type { FilterOps } from '../../../src';
 import * as Prisma from '../../client';
 
@@ -65,8 +65,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ),
             )
             .forEach((field) => {
-              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-              let type;
+              let type: InputType<Types> | undefined;
               switch (field.kind) {
                 case 'scalar':
                   type = field.isList
@@ -122,8 +121,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 model.primaryKey?.fields.includes(field.name),
             )
             .forEach((field) => {
-              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-              let type;
+              let type: InputType<Types> | undefined;
               switch (field.kind) {
                 case 'scalar':
                   type = this.mapScalarType(field.type) as InputType<Types>;
@@ -162,8 +160,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
           const fields: Record<string, InputType<Types> | boolean> = {};
 
           model.fields.forEach((field) => {
-            // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-            let type;
+            let type: InputType<Types> | boolean | undefined;
             switch (field.kind) {
               case 'scalar':
               case 'enum':
@@ -213,8 +210,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ) && !relationIds.includes(field.name),
             )
             .forEach((field) => {
-              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-              let type;
+              let type: InputType<Types> | undefined;
               switch (field.kind) {
                 case 'scalar':
                   type = this.mapScalarType(field.type) as InputType<Types>;
@@ -267,8 +263,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ) && !relationIds.includes(field.name),
             )
             .forEach((field) => {
-              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-              let type;
+              let type: InputType<Types> | undefined;
               switch (field.kind) {
                 case 'scalar':
                   type = this.mapScalarType(field.type) as InputType<Types>;
@@ -346,8 +341,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 ) && !relationIds.includes(field.name),
             )
             .forEach((field) => {
-              // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-              let type;
+              let type: InputType<Types> | undefined;
               switch (field.kind) {
                 case 'scalar':
                   type = this.mapScalarType(field.type) as InputType<Types>;

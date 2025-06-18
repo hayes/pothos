@@ -11,7 +11,6 @@ import SchemaBuilder, {
   type PothosQueryTypeConfig,
   PothosSchemaError,
   type PothosSubscriptionTypeConfig,
-  type PothosUnionTypeConfig,
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';

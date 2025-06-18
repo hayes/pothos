@@ -1,6 +1,6 @@
 import type { MaybePromise } from '@pothos/core';
-import type SubscriptionManager from '.';
 import type { RegisterTypeSubscriptionOptions } from '../types';
+import type SubscriptionManager from '.';
 import BaseSubscriptionManager from './base';
 
 export default class TypeSubscriptionManager<

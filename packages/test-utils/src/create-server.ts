@@ -1,6 +1,6 @@
-import { IncomingMessage, Server, ServerResponse, createServer } from 'node:http';
-import { GraphQLSchema, type execute } from 'graphql';
-import { type Plugin, type YogaServerOptions, createYoga } from 'graphql-yoga';
+import { createServer } from 'node:http';
+import type { execute } from 'graphql';
+import { createYoga, type Plugin, type YogaServerOptions } from 'graphql-yoga';
 
 export interface TestServerOptions<ServerContext, UserContext>
   extends YogaServerOptions<ServerContext, UserContext> {
@@ -8,9 +8,9 @@ export interface TestServerOptions<ServerContext, UserContext>
 }
 
 export function createTestServer<
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   ServerContext extends Record<string, any> = {},
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   UserContext extends Record<string, any> = {},
 >(options: TestServerOptions<ServerContext, UserContext>) {
   const executePlugin: Plugin | undefined = options.execute

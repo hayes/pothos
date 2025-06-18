@@ -1,20 +1,17 @@
 import '@pothos/plugin-directives';
-import {
-  type FieldNullability,
-  type FieldRequiredness,
-  InferredFieldOptionKeys,
-  type InferredFieldOptionsByKind,
-  type InputFieldMap,
-  type InputType,
-  type MaybePromise,
-  type Resolver,
-  type SchemaTypes,
-  type ShapeFromTypeParam,
-  type TypeParam,
+import type {
+  FieldNullability,
+  FieldRequiredness,
+  InferredFieldOptionsByKind,
+  InputFieldMap,
+  InputType,
+  MaybePromise,
+  Resolver,
+  SchemaTypes,
+  ShapeFromTypeParam,
+  TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
-import type { ExternalEntityRef } from './external-ref';
-
 import type {
   KeyDirective,
   PothosFederationPlugin,
@@ -22,6 +19,7 @@ import type {
   SelectionFromShape,
   selectionShapeKey,
 } from '.';
+import type { ExternalEntityRef } from './external-ref';
 
 declare global {
   export namespace PothosSchemaTypes {

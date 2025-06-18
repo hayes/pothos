@@ -31,7 +31,15 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": ["pothos", "graphql", "schema", "typescript", "error", "errors", "plugin"],
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "error",
+    "errors",
+    "plugin"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -45,7 +53,7 @@
     "@pothos/plugin-zod": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql-tag": "^2.12.6",
-    "zod": "^3.24.3"
+    "zod": "^3.25.67"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

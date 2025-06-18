@@ -1,5 +1,4 @@
 import type { InputRef } from '@pothos/core';
-import * as z from 'zod';
 import type { Prisma } from '../../../client';
 import builder, { prisma } from '../builder';
 

@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { print } from 'graphql';
-import { type Plugin, createYoga } from 'graphql-yoga';
+import { createYoga, type Plugin } from 'graphql-yoga';
 import newrelic from 'newrelic'; // newrelic must be imported first
 import { AttributeNames } from '../../src';
 import { schema } from './schema';

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import AWSXRay from 'aws-xray-sdk-core';
 import { print } from 'graphql';
-import { type Plugin, createYoga } from 'graphql-yoga';
+import { createYoga, type Plugin } from 'graphql-yoga';
 import { AttributeNames, SpanNames } from '../../src';
 import { schema } from './schema';
 

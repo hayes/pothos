@@ -57,7 +57,7 @@
     "@pothos/test-utils": "workspace:*",
     "@types/newrelic": "^9.14.8",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "5.13.4",
-    "newrelic": "^12.18.0"
+    "graphql-yoga": "5.13.5",
+    "newrelic": "^12.21.0"
   }
 }

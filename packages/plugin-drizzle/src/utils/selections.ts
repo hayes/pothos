@@ -1,11 +1,9 @@
 import { PothosValidationError } from '@pothos/core';
 import {
   type DBQueryConfig,
-  type SQLOperator,
-  type SQLWrapper,
+  getTableUniqueName,
   type Table,
   type TableRelationalConfig,
-  getTableUniqueName,
 } from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { deepEqual } from './deep-equal';
@@ -35,7 +33,7 @@ export function selectionCompatible(
     return ignoreQuery || !selectionMap || Object.keys(state.query).length === 0;
   }
 
-  const { with: withSelection, extras, columns, ...query } = selectionMap;
+  const { with: withSelection, extras, columns: _, ...query } = selectionMap;
 
   if (
     withSelection &&

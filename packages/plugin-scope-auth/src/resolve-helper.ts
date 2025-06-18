@@ -1,15 +1,14 @@
 import {
+  isThenable,
   type MaybePromise,
   type PothosOutputFieldConfig,
   type SchemaTypes,
-  isThenable,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
+import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 import { AuthScopeFailureType, type ResolveStep, type UnauthorizedResolver } from './types';
-
-import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
 
 const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (
   _root,

@@ -153,7 +153,7 @@ export type ContextForAuth<
   : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
 
 type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
   ...args: any[]
 ) => infer R
   ? ContextForAuthUnion<Types, R>

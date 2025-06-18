@@ -12,7 +12,7 @@ import {
 } from 'graphql';
 import { prismaConnectionHelpers } from '../../../src';
 import { queryFromInfo } from '../../../src/util/map-query';
-import type { Post } from '../../client';
+import type { Post } from '../../client/client.js';
 import builder, { prisma } from '../builder';
 
 const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
@@ -1168,7 +1168,7 @@ builder.queryFields((t) => ({
   findUniqueRelations: t.prismaField({
     type: 'FindUniqueRelations',
     resolve: (query) => {
-      // biome-ignore lint/complexity/noVoid: <explanation>
+      // biome-ignore lint/complexity/noVoid: trigger query usage check
       void query.include;
 
       return prisma.findUniqueRelations.findUniqueOrThrow({
@@ -1275,7 +1275,7 @@ const Blog = builder.objectRef<{ posts: Post[]; pages: number[] }>('Blog').imple
     posts: t.prismaField({
       type: ['Post'],
       resolve: (query, blog) => {
-        // biome-ignore lint/complexity/noVoid: <explanation>
+        // biome-ignore lint/complexity/noVoid: trigger query usage check
         void query.include;
 
         return blog.posts;

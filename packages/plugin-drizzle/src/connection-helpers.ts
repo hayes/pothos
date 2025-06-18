@@ -30,7 +30,7 @@ export function drizzleConnectionHelpers<
     ? T
     : Type],
   Shape = Type extends DrizzleRef<
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     any,
     keyof Types['DrizzleRelationsConfig'],
     infer S

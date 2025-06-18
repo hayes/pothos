@@ -10,7 +10,6 @@ import type {
   GraphQLInterfaceTypeConfig,
   GraphQLObjectType,
   GraphQLObjectTypeConfig,
-  GraphQLResolveInfo,
   GraphQLScalarType,
   GraphQLScalarTypeConfig,
   GraphQLUnionType,

@@ -1,9 +1,9 @@
 import {
   type FieldKind,
+  outputFieldShapeKey,
   type PothosOutputFieldConfig,
   type PothosTypeConfig,
   type SchemaTypes,
-  outputFieldShapeKey,
 } from '../types';
 
 export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends FieldKind = FieldKind> {

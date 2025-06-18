@@ -5,9 +5,8 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import type { ErrorFieldOptions, ErrorsPluginOptions } from './types';
-
 import type { PothosErrorsPlugin } from '.';
+import type { ErrorFieldOptions, ErrorsPluginOptions } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {

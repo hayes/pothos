@@ -28,7 +28,7 @@ builder.subscriptionType({
         }
 
         for (let i = 0; i < 3; i += 1) {
-          yield new Promise<number>((resolve) => {
+          yield await new Promise<number>((resolve) => {
             setTimeout(() => {
               resolve(i);
             }, 10);

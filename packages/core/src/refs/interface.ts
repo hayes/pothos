@@ -2,10 +2,10 @@ import {
   type InterfaceParam,
   type InterfaceTypeOptions,
   type OutputRef,
-  type PothosInterfaceTypeConfig,
-  type SchemaTypes,
   outputShapeKey,
+  type PothosInterfaceTypeConfig,
   parentShapeKey,
+  type SchemaTypes,
 } from '../types';
 import { TypeRefWithFields } from './base-with-fields';
 

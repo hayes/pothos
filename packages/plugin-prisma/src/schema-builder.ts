@@ -1,11 +1,8 @@
 import './global-types';
 import SchemaBuilder, {
   brandWithType,
-  completeValue,
-  type FieldRef,
   type InterfaceRef,
   type OutputType,
-  PothosError,
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';

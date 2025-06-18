@@ -1,5 +1,5 @@
-import { type FieldKind, ObjectRef, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
 import type { FieldRef } from '@pothos/core';
+import { type FieldKind, ObjectRef, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref';

@@ -104,7 +104,7 @@ describe('ways to add enums', () => {
         }
       `,
     });
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: this is fine
     const values = (introspection.data as any).__type.enumValues.map(
       (v: { name: string }) => v.name,
     );

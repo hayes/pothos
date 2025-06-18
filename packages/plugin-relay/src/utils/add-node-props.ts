@@ -1,11 +1,11 @@
 import {
+  completeValue,
   type InterfaceRef,
   ObjectFieldBuilder,
   type ObjectParam,
   type ObjectRef,
   type OutputRef,
   type SchemaTypes,
-  completeValue,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { NodeRefOptions } from '../types';

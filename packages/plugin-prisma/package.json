@@ -83,10 +83,10 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^6.6.0",
+    "@prisma/client": "^6.10.1",
     "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
-    "prisma": "^6.6.0",
-    "vitest": "^3.0.9"
+    "prisma": "^6.10.1",
+    "vitest": "^3.2.4"
   }
 }

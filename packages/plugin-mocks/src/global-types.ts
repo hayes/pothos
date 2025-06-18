@@ -1,7 +1,6 @@
 import type { SchemaTypes } from '@pothos/core';
-import type { ResolverMap } from './types';
-
 import type { PothosMocksPlugin } from '.';
+import type { ResolverMap } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {

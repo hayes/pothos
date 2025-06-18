@@ -36,10 +36,9 @@ builder.subscriptionType({
   name: 'CustomSubscription',
   fields: (t) => ({
     hello: t.int({
-      // biome-ignore lint/suspicious/useAwait: <explanation>
       subscribe: async function* () {
         for (let i = 0; i < 3; i++) {
-          yield i;
+          yield await i;
         }
       },
       resolve: (i) => i,

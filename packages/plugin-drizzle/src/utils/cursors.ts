@@ -1,19 +1,11 @@
 import {
+  decodeBase64,
+  encodeBase64,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
-  decodeBase64,
-  encodeBase64,
 } from '@pothos/core';
-import type {
-  Column,
-  DBQueryConfig,
-  OrderByOperators,
-  SQL,
-  Table,
-  TableConfig,
-  TableRelationalConfig,
-} from 'drizzle-orm';
+import type { Column, DBQueryConfig, SQL, TableConfig, TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
 import type { PothosDrizzleSchemaConfig } from './config';
@@ -318,7 +310,6 @@ function parseOrderBy(
       normalized.push({ direction: 'asc', column: field });
     }
   } else {
-    // biome-ignore lint/complexity/noForEach: <explanation>
     Object.entries(
       orderBy as {
         [k: string]: 'asc' | 'desc' | undefined;

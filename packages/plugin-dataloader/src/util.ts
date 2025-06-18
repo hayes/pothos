@@ -1,4 +1,4 @@
-import { type MaybePromise, type SchemaTypes, createContextCache, isThenable } from '@pothos/core';
+import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import DataLoader, { type Options } from 'dataloader';
 import type { GraphQLResolveInfo } from 'graphql';
 
@@ -41,7 +41,7 @@ export function loadAndSort<K, V, C, LoadResult, Args = never>(
   return async (keys: K[], context: C, args: Args, info: GraphQLResolveInfo) => {
     const list = await load(keys, context, args, info);
     const map = new Map<K, V>();
-    const results = new Array<V | null>();
+    const results: (V | null)[] = [];
 
     for (const val of list as V[]) {
       if (val instanceof Error) {

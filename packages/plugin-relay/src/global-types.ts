@@ -11,9 +11,10 @@ import {
   type InputShapeFromFields,
   type InputShapeFromTypeParam,
   type InterfaceParam,
+  inputShapeKey,
   type NormalizeArgs,
-  type ObjectFieldThunk,
   type ObjectFieldsShape,
+  type ObjectFieldThunk,
   type ObjectParam,
   type OutputShape,
   type OutputType,
@@ -21,8 +22,8 @@ import {
   type Resolver,
   type SchemaTypes,
   type ShapeFromTypeParam,
-  inputShapeKey,
 } from '@pothos/core';
+import type { DefaultEdgesNullability, PothosRelayPlugin } from '.';
 import type { ImplementableNodeRef, NodeRef } from './node-ref';
 import type {
   ConnectionResultShape,
@@ -46,8 +47,6 @@ import type {
   RelayMutationPayloadOptions,
   RelayPluginOptions,
 } from './types';
-
-import type { DefaultEdgesNullability, PothosRelayPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -230,7 +229,7 @@ declare global {
         Types,
         InputShapeFromTypeParam<
           Types,
-          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          // biome-ignore lint/suspicious/noExplicitAny: this is fine
           GlobalIDInputShape<For extends { parseId?: (...args: any[]) => infer T } ? T : string>,
           Req
         >,
@@ -247,7 +246,7 @@ declare global {
             {
               [inputShapeKey]: {
                 typename: string;
-                // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                // biome-ignore lint/suspicious/noExplicitAny: this is fine
                 id: For extends { parseId?: (...args: any[]) => infer T } ? T : string;
               };
             },
@@ -325,7 +324,7 @@ declare global {
         > extends infer FieldOptions
           ? ConnectionFieldOptions<
               Types,
-              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+              // biome-ignore lint/suspicious/noExplicitAny: this is fine
               FieldOptions extends { resolve?: (parent: infer P, ...args: any[]) => unknown }
                 ? P
                 : unknown extends ResolveShape

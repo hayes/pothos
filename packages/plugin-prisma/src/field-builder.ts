@@ -2,19 +2,19 @@ import {
   type FieldKind,
   type FieldRef,
   type InputFieldMap,
+  isThenable,
   type MaybePromise,
   ObjectRef,
   PothosError,
   RootFieldBuilder,
   type SchemaTypes,
-  isThenable,
 } from '@pothos/core';
 import {
   type GraphQLResolveInfo,
-  Kind,
   getNamedType,
   isInterfaceType,
   isObjectType,
+  Kind,
 } from 'graphql';
 import { ModelLoader } from './model-loader';
 import type { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';

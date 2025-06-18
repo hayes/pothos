@@ -254,7 +254,7 @@ describe('errors plugin', () => {
       results.push(value);
     }
 
-    // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
+    // biome-ignore lint/style/noUnusedTemplateLiteral: snapshot
     expect(results).toMatchInlineSnapshot(`[]`);
   });
 

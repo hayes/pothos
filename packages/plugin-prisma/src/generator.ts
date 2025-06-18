@@ -4,24 +4,24 @@ import { type DMMF, generatorHandler } from '@prisma/generator-helper';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
 import type { PothosPrismaDatamodel } from './types';
 
-const MIN_TS_VERSION = [4, 5, 2];
+const MIN_TS_VERSION = [4, 5, 2] as const;
 
 const versionParts = version.split(/[.-]/g).map((part) => Number.parseInt(part, 10));
 const modifiersArg = (versionParts[0] >= 5 ? [] : [[]]) as [];
 
-function checkTSVersion() {
+function checkVersion(expected: readonly [number, number, number]) {
   for (let i = 0; i < 3; i += 1) {
     const part = versionParts[i];
-    if (part < MIN_TS_VERSION[i]) {
-      throw new Error(
-        `@pothos/plugin-prisma requires typescript version >${MIN_TS_VERSION.join('.')}`,
-      );
+    if (part < expected[i]) {
+      return false;
     }
 
-    if (part > MIN_TS_VERSION[i]) {
-      return;
+    if (part > expected[i]) {
+      return true;
     }
   }
+
+  return true;
 }
 
 const defaultOutput = resolvePath(__dirname, '../generated.d.ts');
@@ -40,14 +40,32 @@ generatorHandler({
     defaultOutput,
   }),
   onGenerate: async (options) => {
-    checkTSVersion();
+    if (!checkVersion(MIN_TS_VERSION)) {
+      throw new Error(
+        `@pothos/plugin-prisma requires typescript version >${MIN_TS_VERSION.join('.')}`,
+      );
+    }
+
     const config = options.generator.config as GeneratorConfig;
-    const prismaLocation =
+    const prismaOutputLocation =
       config.clientOutput ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client')?.output
         ?.value ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
         .value!;
+
+    const usingPureTsGenerator = !!options.otherGenerators.find(
+      (gen) => gen.provider.value === 'prisma-client',
+    );
+    const extensions = ['.js', '.ts', '.cjs', '.mjs', '.cts', '.mts'];
+
+    const prismaLocation =
+      prismaOutputLocation.startsWith('@') ||
+      extensions.some((ext) => prismaOutputLocation.endsWith(ext))
+        ? prismaOutputLocation
+        : prismaOutputLocation.startsWith('./')
+          ? `./${posix.join(prismaOutputLocation, usingPureTsGenerator ? 'client.js' : 'index.js')}`
+          : posix.join(prismaOutputLocation, usingPureTsGenerator ? 'client.js' : 'index.js');
 
     if (!prismaLocation) {
       throw new Error('Unable to find prisma client output when generating pothos types');
@@ -115,6 +133,7 @@ function trimDmmf(dmmf: DMMF.Document, documentation = false): PothosPrismaDatam
   return trimmed;
 }
 
+// biome-ignore lint/suspicious/useAwait: needs to be async
 async function generateOutput(
   dmmf: DMMF.Document,
   prismaTypes: ts.InterfaceDeclaration,

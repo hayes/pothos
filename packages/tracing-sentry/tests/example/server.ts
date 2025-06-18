@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import * as Sentry from '@sentry/node';
 import { print } from 'graphql';
-import { type Plugin, createYoga } from 'graphql-yoga';
+import { createYoga, type Plugin } from 'graphql-yoga';
 import { AttributeNames } from '../../src';
 import { schema } from './schema';
 

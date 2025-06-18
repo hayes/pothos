@@ -103,8 +103,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
    */
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    fieldConfig: PothosOutputFieldConfig<Types>,
+    _fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return resolver;
   }
@@ -117,8 +116,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
    */
   wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    fieldConfig: PothosOutputFieldConfig<Types>,
+    _fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
     return subscribe;
   }
@@ -131,8 +129,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
    */
   wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
+    _typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ): GraphQLTypeResolver<unknown, Types['Context']> {
     return resolveType;
   }
@@ -145,8 +142,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
    */
   wrapIsTypeOf(
     isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    typeConfig: PothosObjectTypeConfig,
+    _typeConfig: PothosObjectTypeConfig,
   ): GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined {
     return isTypeOf;
   }
@@ -172,10 +168,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
    * @param  {Types['Context']} context - the context object for the current request
    * @return {object} - The data object for the current request
    */
-  protected createRequestData(
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
-    context: Types['Context'],
-  ): T {
+  protected createRequestData(_context: Types['Context']): T {
     throw new PothosError('createRequestData not implemented');
   }
 

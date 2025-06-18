@@ -1,4 +1,4 @@
-import { PothosValidationError, getMappedArgumentValues } from '@pothos/core';
+import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
 import type { DBQueryConfig, TableRelationalConfig } from 'drizzle-orm';
 import {
   type FieldNode,
@@ -11,22 +11,22 @@ import {
   type GraphQLObjectType,
   type GraphQLResolveInfo,
   GraphQLSkipDirective,
-  type InlineFragmentNode,
-  Kind,
-  type SelectionSetNode,
   getDirectiveValues,
   getNamedType,
+  type InlineFragmentNode,
   isInterfaceType,
   isObjectType,
+  Kind,
+  type SelectionSetNode,
 } from 'graphql';
 import type { DrizzleFieldSelection } from '../types';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { type LoaderMappings, setLoaderMappings } from './loader-map';
 import {
-  type SelectionMap,
-  type SelectionState,
   createState,
   mergeSelection,
+  type SelectionMap,
+  type SelectionState,
   selectionCompatible,
   selectionToQuery,
 } from './selections';

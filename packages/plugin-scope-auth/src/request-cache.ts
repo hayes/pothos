@@ -1,10 +1,10 @@
 import {
+  createContextCache,
+  isThenable,
   type MaybePromise,
   type Path,
   PothosValidationError,
   type SchemaTypes,
-  createContextCache,
-  isThenable,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import {

@@ -1,7 +1,6 @@
-import * as ts from 'typescript';
-
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import * as ts from 'typescript';
 
 type LoadedFile = {
   path: string;

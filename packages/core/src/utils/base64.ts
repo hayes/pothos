@@ -5,9 +5,9 @@ const getGlobalThis = () => {
     return globalThis;
   }
 
-  // biome-ignore lint/style/noRestrictedGlobals: <explanation>
+  // biome-ignore lint/style/noRestrictedGlobals: this is fine
   if (typeof self !== 'undefined') {
-    // biome-ignore lint/style/noRestrictedGlobals: <explanation>
+    // biome-ignore lint/style/noRestrictedGlobals: this is fine
     return self;
   }
   // @ts-ignore

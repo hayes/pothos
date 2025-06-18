@@ -12,11 +12,12 @@ import { ImplementableLoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
 import type {
   DataloaderKey,
+  DataloaderObjectTypeOptions,
   LoadableInterfaceOptions,
+  LoadableNodeOptions,
   LoadableUnionOptions,
   ShapeFromLoadResult,
 } from './types';
-import type { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
 import { dataloaderGetter } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
