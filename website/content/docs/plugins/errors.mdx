@@ -238,10 +238,10 @@ builder.queryType({
 });
 ```
 
-### With validation plugin
+### With zod plugin
 
-To use this in combination with the validation plugin, ensure that that errors plugin is listed
-BEFORE the validation plugin in your plugin list.
+To use this in combination with the zod plugin, ensure that that errors plugin is listed
+BEFORE the zod plugin in your plugin list.
 
 Once your plugins are set up, you can define types for a ZodError, the same way you would for any
 other error type. Below is a simple example of how this can be done, but the specifics of how you
@@ -359,3 +359,110 @@ will always surfaced at the field that executed the query. Because there are cas
 executing queries for relation fields, these fields may still have errors if the relation was not
 pre-loaded. Detection of nested relations will continue to work if those relations use the `errors`
 plugin
+
+### List item errors
+
+For fields that return lists, you can specify `itemErrors` to wrap the list items in a union type so
+that errors can be handled per-item rather than replacing the whole list with an error.
+
+The `itemErrors` options are exactly the same as the `errors` options, but they are applied to each
+item in the list rather than the whole list.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    listWithErrors: t.string({
+      itemErrors: {},
+      resolve: (parent, { name }) => {
+        return [
+          1,
+          2,
+          new Error('Boom'),
+          3,
+        ]
+      },
+    }),
+  }),
+});
+```
+
+This will produce a GraphQL schema that looks like:
+
+```graphql
+type Query {
+  listWithErrors: [QueryListWithErrorsItemResult!]!
+}
+
+union QueryListWithErrorsItemResult = Error | QueryListWithErrorsItemSuccess
+
+type QueryListWithErrorsItemSuccess {
+  data: Int!
+}
+```
+
+Item errors also works with both sync and async iterators (in graphql@>=17, or other executors that support the @stream directive):
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    asyncListWithErrors: t.string({
+      itemErrors: {},
+      resolve: async function* () {
+        yield 1;
+        yield 2;
+        yield new Error('Boom');
+        yield 4;
+        throw new Error('Boom');
+      },
+    }),
+  }),
+});
+```
+
+When an error is yielded, an error result will be added into the list, if the generator throws an error,
+the error will be added to the list, and no more results will be returned for that field
+
+
+You can also use the `errors` and `itemErrors` options together:
+
+```typescript
+
+builder.queryType({
+  fields: (t) => ({
+    listWithErrors: t.string({
+      itemErrors: {},
+      errors: {},
+      resolve: (parent, { name }) => {
+        return [
+          1,
+          new Error('Boom'),
+          3,
+        ]
+    }),
+  }),
+});
+```
+
+This will produce a GraphQL schema that looks like:
+
+```graphql
+
+type Query {
+  listWithErrors: [QueryListWithErrorsResult!]!
+}
+
+union QueryListWithErrorsResult = Error | QueryListWithErrorsSuccess
+
+type QueryListWithErrorsSuccess {
+  data: [QueryListWithErrorsItemResult!]!
+}
+
+union QueryListWithErrorsItemResult = Error | QueryListWithErrorsItemSuccess
+
+type QueryListWithErrorsItemSuccess {
+  data: Int!
+}
+```
+
+
+

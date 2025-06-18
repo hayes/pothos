@@ -345,5 +345,98 @@ export function createSchema(builder: Builder) {
     }),
   );
 
+  builder.queryFields((t) => ({
+    itemErrors: t.field({
+      type: [DirectResult],
+      nullable: {
+        items: true,
+        list: false,
+      },
+      itemErrors: {},
+      resolve: () => {
+        return [
+          {
+            id: 123,
+          },
+          new Error('Boom'),
+        ];
+      },
+    }),
+    itemErrorsDirectResult: t.field({
+      type: [DirectResult],
+      nullable: {
+        items: true,
+        list: false,
+      },
+      itemErrors: {
+        directResult: true,
+      },
+      resolve: () => {
+        return [
+          {
+            id: 123,
+          },
+          new Error('Boom'),
+        ];
+      },
+    }),
+    itemErrorsWithFieldErrors: t.field({
+      type: [DirectResult],
+      nullable: {
+        items: true,
+        list: false,
+      },
+      args: {
+        shouldThrow: t.arg.boolean(),
+      },
+      errors: {},
+      itemErrors: {},
+      resolve: (_root, args) => {
+        if (args.shouldThrow) {
+          throw new Error('Boom');
+        }
+
+        return [
+          {
+            id: 123,
+          },
+          new Error('Boom'),
+        ];
+      },
+    }),
+    asyncItemErrors: t.field({
+      type: [DirectResult],
+      nullable: {
+        items: false,
+        list: true,
+      },
+      errors: {},
+      itemErrors: {},
+      args: {
+        error: t.arg.boolean(),
+      },
+      resolve: (_, args) => {
+        const gen = async function* () {
+          yield {
+            id: 123,
+          };
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          yield new Error('Boom');
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          yield {
+            id: 456,
+          };
+          throw new Error('Boom');
+        };
+
+        if (args.error) {
+          throw new Error('Boom');
+        }
+
+        return gen();
+      },
+    }),
+  }));
+
   return builder.toSchema();
 }

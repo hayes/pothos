@@ -42,22 +42,12 @@ generatorHandler({
   onGenerate: async (options) => {
     checkTSVersion();
     const config = options.generator.config as GeneratorConfig;
-    const prismaOutputLocation =
+    const prismaLocation =
       config.clientOutput ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client')?.output
         ?.value ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
         .value!;
-
-    const extensions = ['.js', '.ts', '.cjs', '.mjs', '.cts', '.mts'];
-
-    const prismaLocation =
-      prismaOutputLocation.startsWith('@') ||
-      extensions.some((ext) => prismaOutputLocation.endsWith(ext))
-        ? prismaOutputLocation
-        : prismaOutputLocation.startsWith('./')
-          ? `./${posix.join(prismaOutputLocation, 'index.js')}`
-          : posix.join(prismaOutputLocation, 'index.js');
 
     if (!prismaLocation) {
       throw new Error('Unable to find prisma client output when generating pothos types');

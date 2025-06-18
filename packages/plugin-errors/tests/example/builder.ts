@@ -16,10 +16,20 @@ export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
   errors: {
     defaultTypes: [Error],
     defaultResultOptions: {
-      name: ({ fieldName }) => `${fieldName}_CUSTOM_RESULT_NAME`,
+      name: ({ fieldName }) => `${capitalize(fieldName)}_CUSTOM_RESULT_NAME`,
     },
     defaultUnionOptions: {
-      name: ({ fieldName }) => `${fieldName}_CUSTOM_UNION_NAME`,
+      name: ({ fieldName }) => `${capitalize(fieldName)}_CUSTOM_UNION_NAME`,
+    },
+    defaultItemResultOptions: {
+      name: ({ fieldName }) => `${capitalize(fieldName)}_CUSTOM_ITEM_RESULT_NAME`,
+    },
+    defaultItemUnionOptions: {
+      name: ({ fieldName }) => `${capitalize(fieldName)}_CUSTOM_ITEM_UNION_NAME`,
     },
   },
 });
+
+function capitalize(s: string) {
+  return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
+}
