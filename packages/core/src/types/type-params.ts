@@ -1,6 +1,4 @@
-import type { ArgumentRef } from '../refs/arg';
 import type { BaseTypeRef } from '../refs/base';
-import type { InputFieldRef } from '../refs/input-field';
 import type { InterfaceRef } from '../refs/interface';
 import type { ObjectRef } from '../refs/object';
 import type { SchemaTypes } from './schema-types';

@@ -1,4 +1,3 @@
-import './types/global';
 import { SchemaBuilder as SchemaBuilderClass } from './builder';
 import { FieldBuilder as InternalFieldBuilder } from './fieldUtils/builder';
 import { InputFieldBuilder as InternalInputFieldBuilder } from './fieldUtils/input';
@@ -8,8 +7,11 @@ import { ObjectFieldBuilder as InternalObjectFieldBuilder } from './fieldUtils/o
 import { QueryFieldBuilder as InternalQueryFieldBuilder } from './fieldUtils/query';
 import { RootFieldBuilder as InternalRootFieldBuilder } from './fieldUtils/root';
 import { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from './fieldUtils/subscription';
+import { ArgumentRef as InternalArgumentRef } from './refs/arg';
 import { BaseTypeRef as InternalBaseTypeRef } from './refs/base';
 import { EnumRef as InternalEnumRef } from './refs/enum';
+import { FieldRef as InternalFieldRef } from './refs/field';
+import { InputFieldRef as InternalInputFieldRef } from './refs/input-field';
 import { InputListRef as InternalInputListRef } from './refs/input-list';
 import { InputObjectRef as InternalInputObjectRef } from './refs/input-object';
 import { InterfaceRef as InternalInterfaceRef } from './refs/interface';
@@ -17,9 +19,7 @@ import { ListRef as InternalListRef } from './refs/list';
 import { ObjectRef as InternalObjectRef } from './refs/object';
 import { ScalarRef as InternalScalarRef } from './refs/scalar';
 import { UnionRef as InternalUnionRef } from './refs/union';
-import { FieldRef as InternalFieldRef } from './refs/field';
-import { InputFieldRef as InternalInputFieldRef } from './refs/input-field';
-import { ArgumentRef as InternalArgumentRef } from './refs/arg';
+import './types/global';
 
 import type {
   AddVersionedDefaultsToBuilderOptions,
