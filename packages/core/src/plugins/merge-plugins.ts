@@ -15,6 +15,7 @@ import type {
   PothosUnionTypeConfig,
   SchemaTypes,
 } from '../types';
+import { completeValue, reduceMaybeAsync } from '../utils';
 import { BasePlugin } from './plugin';
 
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -77,14 +78,13 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
       const argMappers = fieldConfig.argMappers;
 
       return (parent, args, context, info) => {
-        const mappedArgs = argMappers.reduce(
-          (acc, argMapper) => {
-            return argMapper(acc, context, info);
-          },
-          args as Record<string, unknown>,
-        );
+        const mappedArgs = reduceMaybeAsync(argMappers, args, (acc, argMapper) => {
+          return argMapper(acc as Record<string, unknown>, context, info);
+        });
 
-        return wrapped(parent, mappedArgs, context, info);
+        return completeValue(mappedArgs, (mappedArgs) =>
+          wrapped(parent, mappedArgs, context, info),
+        );
       };
     }
 
@@ -106,14 +106,11 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
 
     const argMappers = fieldConfig.argMappers;
     return (parent, args, context, info) => {
-      const mappedArgs = argMappers.reduce(
-        (acc, argMapper) => {
-          return argMapper(acc, context, info);
-        },
-        args as Record<string, unknown>,
-      );
+      const mappedArgs = reduceMaybeAsync(argMappers, args, (acc, argMapper) => {
+        return argMapper(acc as Record<string, unknown>, context, info);
+      });
 
-      return wrapped(parent, mappedArgs, context, info);
+      return completeValue(mappedArgs, (mappedArgs) => wrapped(parent, mappedArgs, context, info));
     };
   }
 

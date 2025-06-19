@@ -131,7 +131,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
           continue;
         }
 
-        const args: Record<string, ArgumentRef<SchemaTypes>> = {};
+        const args: Record<string, ArgumentRef<SchemaTypes, unknown>> = {};
 
         for (const { name, ...arg } of field.args) {
           const input = resolveInputType(this, arg.type);
@@ -203,7 +203,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
           continue;
         }
 
-        const args: Record<string, ArgumentRef<SchemaTypes>> = {};
+        const args: Record<string, ArgumentRef<SchemaTypes, unknown>> = {};
 
         for (const { name, ...arg } of field.args) {
           args[name] = t.arg({
