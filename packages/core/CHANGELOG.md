@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.7.0
+
+### Minor Changes
+
+- c723a2a: Improve typing for iterables and asyncIterables in list fields
+
 ## 4.6.3
 
 ### Patch Changes
