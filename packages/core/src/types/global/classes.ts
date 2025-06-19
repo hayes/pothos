@@ -2,8 +2,11 @@ import type { SchemaBuilder as Builder } from '../../builder';
 import type { FieldBuilder as InternalFieldBuilder } from '../../fieldUtils/builder';
 import type { InputFieldBuilder as InternalInputFieldBuilder } from '../../fieldUtils/input';
 import type { RootFieldBuilder as InternalRootFieldBuilder } from '../../fieldUtils/root';
+import type { ArgumentRef as InternalArgumentRef } from '../../refs/arg';
 import type { BaseTypeRef as InternalBaseRef } from '../../refs/base';
 import type { EnumRef as InternalEnumRef } from '../../refs/enum';
+import type { FieldRef as InternalFieldRef } from '../../refs/field';
+import type { InputFieldRef as InternalInputFieldRef } from '../../refs/input-field';
 import type { InputListRef as InternalInputListRef } from '../../refs/input-list';
 import type {
   ImplementableInputObjectRef as InternalImplementableInputObjectRef,
@@ -20,9 +23,6 @@ import type {
 } from '../../refs/object';
 import type { ScalarRef as InternalScalarRef } from '../../refs/scalar';
 import type { UnionRef as InternalUnionRef } from '../../refs/union';
-import type { FieldRef as InternalFieldRef } from '../../refs/field';
-import type { InputFieldRef as InternalInputFieldRef } from '../../refs/input-field';
-import type { ArgumentRef as InternalArgumentRef } from '../../refs/arg';
 import type { FieldKind } from '../builder-options';
 import type { SchemaTypes } from '../schema-types';
 
