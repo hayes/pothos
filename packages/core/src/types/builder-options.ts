@@ -51,8 +51,9 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
 
 export type ListResolveValue<Type, Item, Return> = Return extends AsyncIterable<unknown, unknown>
   ? AsyncIterableResolverResult<Type, Item> & Return
-  : Return extends readonly unknown[] ? ArrayResolverResult<Type, Item, Return>
-  : IterableResolverResult<Type, Item> & Return;
+  : Return extends readonly unknown[]
+    ? ArrayResolverResult<Type, Item, Return>
+    : IterableResolverResult<Type, Item> & Return;
 
 type ArrayResolverResult<Type, Item, Return> = null extends Type
   ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
