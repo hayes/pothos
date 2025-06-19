@@ -84,7 +84,7 @@ export declare namespace StandardSchemaV1 {
      * The issues of failed validation.
      */
 
-    // biome-ignore lint/style/useConsistentArrayType: <explanation>
+    // biome-ignore lint/style/useConsistentArrayType: copied types
     readonly issues: ReadonlyArray<Issue>;
   }
 

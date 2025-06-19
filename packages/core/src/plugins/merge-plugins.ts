@@ -15,8 +15,8 @@ import type {
   PothosUnionTypeConfig,
   SchemaTypes,
 } from '../types';
-import { BasePlugin } from './plugin';
 import { completeValue, reduceMaybeAsync } from '../utils';
+import { BasePlugin } from './plugin';
 
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
   plugins;

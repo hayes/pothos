@@ -2,10 +2,10 @@ import './global-types';
 import './methods';
 import SchemaBuilder, {
   BasePlugin,
-  type PothosInputFieldConfig,
-  type SchemaTypes,
   mapInputFields,
+  type PothosInputFieldConfig,
   type PothosOutputFieldConfig,
+  type SchemaTypes,
   unwrapInputFieldType,
 } from '@pothos/core';
 import type { StandardSchemaV1 } from './standard-schema';

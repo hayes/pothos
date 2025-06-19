@@ -35,7 +35,7 @@ describe('validation', () => {
     `);
   });
 
-  it.only('invalid query', async () => {
+  it('invalid query', async () => {
     const query = gql`
         query {
           exampleField(

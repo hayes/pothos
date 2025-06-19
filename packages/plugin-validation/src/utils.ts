@@ -6,8 +6,8 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import type { StandardSchemaV1 } from './standard-schema';
 import { InputValidationError } from './errors';
+import type { StandardSchemaV1 } from './standard-schema';
 
 export function createArgsValidator<Types extends SchemaTypes>(
   argMappings: InputFieldsMapping<
