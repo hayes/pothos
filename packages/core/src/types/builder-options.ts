@@ -49,19 +49,26 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   ? ListResolveValue<Type, Item, Return>
   : MaybePromise<Type>;
 
-export type ListResolveValue<Type, Item, Return> = Return extends AsyncGenerator<unknown, unknown>
-  ? GeneratorResolver<Type, Item> & Return
-  : null extends Type
-    ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
-      ? Return
-      : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined
-    : Return extends MaybePromise<readonly MaybePromise<Item>[]>
-      ? Return
-      : MaybePromise<readonly MaybePromise<Item>[]>;
+export type ListResolveValue<Type, Item, Return> = Return extends AsyncIterable<unknown, unknown>
+  ? AsyncIterableResolverResult<Type, Item> & Return
+  : Return extends readonly unknown[] ? ArrayResolverResult<Type, Item, Return>
+  : IterableResolverResult<Type, Item> & Return;
 
-export type GeneratorResolver<Type, Item> = null extends Type
-  ? AsyncGenerator<Item | null | undefined, Item | null | undefined>
-  : AsyncGenerator<Item, Item>;
+type ArrayResolverResult<Type, Item, Return> = null extends Type
+  ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
+    ? Return
+    : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined
+  : Return extends MaybePromise<readonly MaybePromise<Item>[]>
+    ? Return
+    : MaybePromise<readonly MaybePromise<Item>[]>;
+
+type AsyncIterableResolverResult<Type, Item> = null extends Type
+  ? MaybePromise<AsyncIterable<MaybePromise<Item>> | null | undefined>
+  : MaybePromise<AsyncIterable<MaybePromise<Item>>>;
+
+type IterableResolverResult<Type, Item> = null extends Type
+  ? MaybePromise<Iterable<MaybePromise<Item>> | null | undefined>
+  : MaybePromise<Iterable<MaybePromise<Item>>>;
 
 export type Subscriber<Parent, Args, Context, Shape> = (
   parent: Parent,
