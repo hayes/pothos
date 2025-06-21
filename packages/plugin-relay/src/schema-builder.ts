@@ -390,6 +390,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 
   this.mutationField(fieldName, (t) =>
     t.field({
+      ...this.options.relay?.relayMutationFieldOptions,
       ...(fieldOptions as {}),
       type: payloadRef,
       args: {

@@ -32,6 +32,7 @@ The `relay` options object passed to builder can contain the following propertie
 - `idFieldOptions`: Options to pass to the id field.
 - `clientMutationId`: `omit` (default) | `required` | `optional`. Determines if clientMutationId
   fields are created on `relayMutationFields`, and if they are required.
+- `relayMutationFieldOptions`: Default options for the `relayMutationField` method.
 - `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults to `String`
 - `nodeQueryOptions`: Options for the `node` field on the query object, set to false to omit the
   field
@@ -359,7 +360,7 @@ You can use the `relayMutationField` method to define relay compliant mutation f
 will generate a mutation field, an input object with a `clientMutationId` field, and an output
 object with the corresponding `clientMutationId`.
 
-Example ussage:
+Example usage:
 
 ```typescript
 builder.relayMutationField(
@@ -372,6 +373,7 @@ builder.relayMutationField(
     }),
   },
   {
+    nullable: false, // You can optionally change the nullability of the mutation field here
     resolve: async (root, args, ctx) => {
       if (ctx.items.has(args.input.id)) {
         ctx.items.delete(args.input.id);
@@ -402,7 +404,7 @@ input DeleteItemInput {
 
 type DeleteItemPayload {
   clientMutationId: ID!
-  itWorked: Boolean!
+  success: Boolean
 }
 
 type Mutation {

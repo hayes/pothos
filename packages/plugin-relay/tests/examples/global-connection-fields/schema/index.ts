@@ -144,6 +144,7 @@ builder.relayMutationField(
     }),
   },
   {
+    nullable: true,
     description: 'mutation field',
     resolve: (_root, args) => {
       if (!args.customInput.clientMutationId) {
@@ -157,7 +158,7 @@ builder.relayMutationField(
     name: 'CustomOutputName',
     description: 'output type',
     outputFields: (t) => ({
-      itWorked: t.boolean({
+      success: t.boolean({
         resolve: (parent) => parent.status === 200,
       }),
     }),

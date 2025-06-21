@@ -19,6 +19,9 @@ export default new SchemaBuilder<{
   relay: {
     nodesOnConnection: true,
     idFieldName: 'nodeId',
+    relayMutationFieldOptions: {
+      nullable: false,
+    },
     nodeFieldOptions: {
       nullable: true,
     },

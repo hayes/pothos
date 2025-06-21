@@ -39,6 +39,10 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       'args' | 'nullable' | 'type' | InferredFieldOptionKeys
     >
   >;
+  relayMutationFieldOptions?: Omit<
+    PothosSchemaTypes.MutationFieldOptions<Types, ObjectRef<Types, {}>, boolean, {}, unknown>,
+    'args' | 'type' | InferredFieldOptionKeys
+  >;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
   edgeCursorType?: 'ID' | 'String';

@@ -176,6 +176,10 @@ const builder = new SchemaBuilder<{
     // but will be overwritten by `cursorType` so you also need to explicity set them
     edgeCursorType: 'String',
     pageInfoCursorType: 'String',
+    // If you using the new v4 nullability defaults, you may need to change the nullability of mutation fields
+    relayMutationFieldOptions: {
+      nullable: false,
+    },
   },
 });
 ```

@@ -344,7 +344,7 @@ input CustomInputName {
 
 """output type"""
 type CustomOutputName {
-  itWorked: Boolean
+  success: Boolean
 }
 
 input ExampleMutationInput {
@@ -368,7 +368,7 @@ type Mutation {
   exampleMutation(
     """mutation input arg"""
     input: ExampleMutationInput!
-  ): ExampleMutationPayload
+  ): ExampleMutationPayload!
 
   """mutation field"""
   exampleWithDescriptions(
