@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.5.0
+
+### Minor Changes
+
+- fd7121c: Add relayMutationFieldOptions to builder options
+
 ## 4.4.3
 
 ### Patch Changes
