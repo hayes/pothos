@@ -149,16 +149,14 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     this.objectField(
       ref,
-      (this.options as { relay?: { idFieldName?: string } }).relay?.idFieldName ??
-        'id',
+      (this.options as { relay?: { idFieldName?: string } }).relay?.idFieldName ?? 'id',
       (t) =>
         (
           t as unknown as {
             globalID: (options: Record<string, unknown>) => FieldRef<SchemaTypes, unknown>;
           }
         ).globalID({
-          ...(this.options as { relay?: { idFieldOptions?: object } }).relay
-            ?.idFieldOptions,
+          ...(this.options as { relay?: { idFieldOptions?: object } }).relay?.idFieldOptions,
           ...idOptions,
           nullable: false,
           args: {},
