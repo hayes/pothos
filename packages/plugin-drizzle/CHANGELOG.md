@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.10.6
+
+### Patch Changes
+
+- 111ac8c: Fix relay options for drizzleNodes
+
 ## 0.10.5
 
 ### Patch Changes
