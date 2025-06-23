@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.3
+
+### Patch Changes
+
+- 20bf95b: Add @pothos/core to peerDependencies
+
 ## 4.2.2
 
 ### Patch Changes

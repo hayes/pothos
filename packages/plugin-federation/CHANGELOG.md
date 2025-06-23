@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.4.2
+
+### Patch Changes
+
+- 20bf95b: Add @pothos/core to peerDependencies
+
 ## 4.4.1
 
 ### Patch Changes
