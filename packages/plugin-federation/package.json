@@ -46,6 +46,7 @@
     "provenance": true
   },
   "peerDependencies": {
+    "@pothos/core": "*",
     "@apollo/subgraph": "^2.0.0",
     "graphql": "^16.10.0"
   },
