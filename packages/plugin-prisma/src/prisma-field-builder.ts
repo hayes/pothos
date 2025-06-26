@@ -617,7 +617,7 @@ export class PrismaObjectFieldBuilder<
           },
       ]
     >
-  ) {
+  ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> {
     const [options = {} as never] = args;
 
     const typeConfig = this.builder.configStore.getTypeConfig(this.typename);
