@@ -56,47 +56,49 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
     if (fieldConfig.kind === 'Query' && fieldConfig.pothosOptions.smartSubscription) {
       this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
 
-      this.builder.subscriptionField(
-        fieldConfig.name,
-        (t) =>
-          t.field({
-            ...fieldConfig.pothosOptions,
-            resolve: (parent, args, context, info) =>
-              (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
-            subscribe: (parent, _args, context) => {
-              const manager = new SubscriptionManager({
-                value: parent,
-                debounceDelay: this.debounceDelay,
-                subscribe: (subName, cb) => this.subscribe(subName, context, cb),
-                unsubscribe: (subName) => this.unsubscribe(subName, context),
-              });
+      this.runUnique(`Subscription.${fieldConfig.name}`, () => {
+        this.builder.subscriptionField(
+          fieldConfig.name,
+          (t) =>
+            t.field({
+              ...fieldConfig.pothosOptions,
+              resolve: (parent, args, context, info) =>
+                (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
+              subscribe: (parent, _args, context) => {
+                const manager = new SubscriptionManager({
+                  value: parent,
+                  debounceDelay: this.debounceDelay,
+                  subscribe: (subName, cb) => this.subscribe(subName, context, cb),
+                  unsubscribe: (subName) => this.unsubscribe(subName, context),
+                });
 
-              const cache = new SubscriptionCache(manager, this.buildCache);
+                const cache = new SubscriptionCache(manager, this.buildCache);
 
-              this.requestData(context).cache = cache;
+                this.requestData(context).cache = cache;
 
-              return {
-                [Symbol.asyncIterator]() {
-                  return {
-                    async next() {
-                      return await manager.next().then((next) => {
-                        cache.next();
+                return {
+                  [Symbol.asyncIterator]() {
+                    return {
+                      async next() {
+                        return await manager.next().then((next) => {
+                          cache.next();
 
-                        return next;
-                      });
-                    },
-                    async return() {
-                      return await manager.return();
-                    },
-                    async throw(error: unknown) {
-                      return await manager.throw(error);
-                    },
-                  };
-                },
-              };
-            },
-          }) as FieldRef<Types, unknown>,
-      );
+                          return next;
+                        });
+                      },
+                      async return() {
+                        return await manager.return();
+                      },
+                      async throw(error: unknown) {
+                        return await manager.throw(error);
+                      },
+                    };
+                  },
+                };
+              },
+            }) as FieldRef<Types, unknown>,
+        );
+      });
     }
 
     return fieldConfig;
