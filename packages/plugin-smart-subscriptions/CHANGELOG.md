@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.4
+
+### Patch Changes
+
+- 3bd9799: Only add subscription fields once
+
 ## 4.1.3
 
 ### Patch Changes
