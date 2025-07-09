@@ -51,6 +51,8 @@ type NormalViewer implements Viewer {
   comments(after: String, before: String, first: Int, last: Int): ViewerCommentsConnection
   drafts: [Post!]
   drizzleConnectionComments(after: String, before: String, first: Int, last: Int): ViewerDrizzleConnectionCommentsConnection
+  firstName: String
+  hasId: Boolean
   id: ID
   isNormal: Boolean
   roles: [String!]

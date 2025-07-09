@@ -14,6 +14,7 @@ import {
   type InterfaceTypeOptions,
   type ListResolveValue,
   type MaybePromise,
+  type Merge,
   type Normalize,
   type ObjectRef,
   type ObjectTypeOptions,
@@ -630,18 +631,26 @@ export type DrizzleConnectionShape<
   T,
   Parent,
   Args extends InputFieldMap,
-> = (
+> = Merge<
   ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, T, false>> extends infer Shape
     ? Shape & {
         parent: Parent;
         args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments;
       }
     : never
-) extends infer C
+> extends infer C
   ? [C] extends [
-      { edges: MaybePromise<readonly (infer Edge | null | undefined)[] | null | undefined> },
+      {
+        edges: infer Edges;
+      },
     ]
-    ? Omit<C, 'edges'> & { edges: (Edge & { connection: C })[] }
+    ? Merge<
+        Omit<C, 'edges'> & {
+          edges: Edges extends Iterable<MaybePromise<infer Edge> | null | undefined>
+            ? Merge<Edge & { connection: C }>[]
+            : never;
+        }
+      >
     : C
   : never;
 
