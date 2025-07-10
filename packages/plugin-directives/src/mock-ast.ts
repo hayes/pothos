@@ -169,14 +169,15 @@ function valueNode(value: unknown, arg?: GraphQLArgument): ValueNode {
 }
 
 function directiveNodes(
-  directives: DirectiveList | Record<string, object> | undefined,
+  rawDirectives: DirectiveList | Record<string, object> | undefined,
   deprecationReason: string | null,
   schema: GraphQLSchema,
 ): readonly ConstDirectiveNode[] {
-  if (!directives) {
+  if (!rawDirectives && !deprecationReason) {
     return [];
   }
 
+  const directives = rawDirectives ?? [];
   const directiveList = Array.isArray(directives)
     ? directives
     : Object.keys(directives).flatMap((name) =>
@@ -192,12 +193,19 @@ function directiveNodes(
       );
 
   if (deprecationReason) {
-    directiveList.unshift({
+    const deprecatedIndex = directiveList.findIndex((directive) => directive.name === 'deprecated');
+    const deprecatedDirective = {
       name: 'deprecated',
       args: {
         reason: deprecationReason!,
       },
-    });
+    };
+
+    if (deprecatedIndex === -1) {
+      directiveList.unshift(deprecatedDirective);
+    } else {
+      directiveList[deprecatedIndex] = deprecatedDirective;
+    }
   }
 
   return directiveList.map((directive): DirectiveNode => {
