@@ -1,5 +1,15 @@
 # @pothos/plugin-drizzle
 
+## 0.11.0
+
+### Minor Changes
+
+- 12713e5: improve handling of iterable connections
+
+### Patch Changes
+
+- 12713e5: Fix parent type for builder.drizzleObjectField(s)
+
 ## 0.10.6
 
 ### Patch Changes
