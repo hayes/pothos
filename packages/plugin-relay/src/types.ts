@@ -762,6 +762,8 @@ export type GetAwaitedListItem<T> = NonNullable<Awaited<NonNullable<T>>> extends
   ? List extends Iterable<infer Item>
     ? NonNullable<Awaited<Item>>
     : List extends AsyncIterable<infer Item>
-      ? NonNullable<Awaited<Item>>
+      ? unknown extends AsyncIterable<unknown> // hack for target:<es2018
+        ? never
+        : NonNullable<Item>
       : never
   : never;

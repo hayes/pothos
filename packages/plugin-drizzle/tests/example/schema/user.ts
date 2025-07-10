@@ -39,7 +39,7 @@ export const NormalViewer = builder.drizzleObject('users', {
   },
   fields: (t) => ({
     isNormal: t.boolean({
-      resolve: (user) => true,
+      resolve: (_user) => true,
     }),
   }),
 });
