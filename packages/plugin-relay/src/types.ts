@@ -13,7 +13,9 @@ import {
   type InputShapeFromFields,
   type InterfaceParam,
   inputShapeKey,
+  type ListResolveValue,
   type MaybePromise,
+  type Merge,
   type Normalize,
   type ObjectFieldsShape,
   type ObjectParam,
@@ -299,7 +301,7 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
   type: OutputType<Types> | string;
 }
 
-export type ConnectionEdgesShape<
+export type ArrayConnectionEdgesShape<
   Types extends SchemaTypes,
   T,
   NodeNullable extends boolean,
@@ -318,6 +320,15 @@ export type ConnectionEdgesShape<
   EdgesNullable
 >;
 
+export type ConnectionEdgesShape<
+  Types extends SchemaTypes,
+  T,
+  NodeNullable extends boolean,
+  EdgesNullable extends FieldNullability<[unknown]>,
+> = ArrayConnectionEdgesShape<Types, T, NodeNullable, EdgesNullable> extends infer Edges
+  ? Awaited<ListResolveValue<Edges, Edges extends readonly (infer Item)[] ? Item : never, unknown>>
+  : never;
+
 export interface ConnectionResultShape<
   Types extends SchemaTypes,
   T,
@@ -326,6 +337,16 @@ export interface ConnectionResultShape<
 > {
   pageInfo: MaybePromise<PageInfoShape>;
   edges: MaybePromise<ConnectionEdgesShape<Types, T, NodeNullable, EdgesNullable>>;
+}
+
+export interface ArrayConnectionResultShape<
+  Types extends SchemaTypes,
+  T,
+  EdgesNullable extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
+  NodeNullable extends boolean = Types['DefaultNodeNullability'],
+> {
+  pageInfo: PageInfoShape;
+  edges: ArrayConnectionEdgesShape<Types, T, NodeNullable, EdgesNullable>;
 }
 
 export type ConnectionShape<
@@ -340,6 +361,22 @@ export type ConnectionShape<
     EdgesNullable,
     NodeNullable
   > = ConnectionResultShape<Types, T, EdgesNullable, NodeNullable>,
+> =
+  | (Nullable extends false ? never : null | undefined)
+  | Merge<ConnectionResult & Types['Connection']>;
+
+export type ArrayConnectionShape<
+  Types extends SchemaTypes,
+  T,
+  Nullable,
+  EdgesNullable extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
+  NodeNullable extends boolean = Types['DefaultNodeNullability'],
+  ConnectionResult extends ArrayConnectionResultShape<
+    Types,
+    T,
+    EdgesNullable,
+    NodeNullable
+  > = ArrayConnectionResultShape<Types, T, EdgesNullable, NodeNullable>,
 > = (Nullable extends false ? never : null | undefined) | (ConnectionResult & Types['Connection']);
 
 export type ConnectionShapeFromBaseShape<
@@ -392,42 +429,44 @@ export type ConnectionShapeFromResolve<
     EdgeNullability,
     NodeNullability
   >,
-> = Resolved extends Promise<infer T>
-  ? NonNullable<T> extends ConnectionShapeForType<
-      Types,
-      Type,
-      Nullable,
-      EdgeNullability,
-      NodeNullability
-    >
-    ? NonNullable<T>
-    : ConnectionShapeForType<
+> = Merge<
+  Resolved extends Promise<infer T>
+    ? NonNullable<T> extends ConnectionShapeForType<
         Types,
         Type,
         Nullable,
         EdgeNullability,
-        NodeNullability,
-        ConnectionResult
-      > &
-        NonNullable<T>
-  : Resolved extends ConnectionShapeForType<
-        Types,
-        Type,
-        Nullable,
-        EdgeNullability,
-        NodeNullability,
-        ConnectionResult
+        NodeNullability
       >
-    ? NonNullable<Resolved>
-    : ConnectionShapeForType<
-        Types,
-        Type,
-        Nullable,
-        EdgeNullability,
-        NodeNullability,
-        ConnectionResult
-      > &
-        NonNullable<Resolved>;
+      ? NonNullable<T>
+      : ConnectionShapeForType<
+          Types,
+          Type,
+          Nullable,
+          EdgeNullability,
+          NodeNullability,
+          ConnectionResult
+        > &
+          NonNullable<T>
+    : Resolved extends ConnectionShapeForType<
+          Types,
+          Type,
+          Nullable,
+          EdgeNullability,
+          NodeNullability,
+          ConnectionResult
+        >
+      ? NonNullable<Resolved>
+      : ConnectionShapeForType<
+          Types,
+          Type,
+          Nullable,
+          EdgeNullability,
+          NodeNullability,
+          ConnectionResult
+        > &
+          NonNullable<Resolved>
+>;
 
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}
 
@@ -718,3 +757,13 @@ export type InputShapeWithClientMutationId<
 > = InputShapeFromFields<
   Fields & { clientMutationId: InputFieldRef<Types, Types['Scalars']['ID']['Input']> }
 >;
+
+export type GetAwaitedListItem<T> = NonNullable<Awaited<NonNullable<T>>> extends infer List
+  ? List extends Iterable<infer Item>
+    ? NonNullable<Awaited<Item>>
+    : List extends AsyncIterable<infer Item>
+      ? unknown extends AsyncIterable<unknown> // hack for target:<es2018
+        ? never
+        : NonNullable<Item>
+      : never
+  : never;

@@ -12,6 +12,7 @@ import {
   type InputShapeFromTypeParam,
   type InterfaceParam,
   inputShapeKey,
+  type Merge,
   type NormalizeArgs,
   type ObjectFieldsShape,
   type ObjectFieldThunk,
@@ -30,6 +31,7 @@ import type {
   ConnectionShape,
   ConnectionShapeForType,
   ConnectionShapeFromResolve,
+  GetAwaitedListItem,
   GlobalIDFieldOptions,
   GlobalIDInputFieldOptions,
   GlobalIDInputShape,
@@ -485,19 +487,17 @@ declare global {
       Interfaces extends InterfaceParam<Types>[] = [],
     > extends ObjectTypeWithInterfaceOptions<
         Types,
-        NonNullable<
-          NonNullable<
-            Awaited<
-              ConnectionShapeFromResolve<
-                Types,
-                Type,
-                false,
-                false,
-                NodeNullability,
-                Resolved
-              >['edges']
-            >
-          >[number]
+        GetAwaitedListItem<
+          Merge<
+            ConnectionShapeFromResolve<
+              Types,
+              Type,
+              false,
+              false,
+              NodeNullability,
+              Resolved
+            >['edges']
+          >
         >,
         Interfaces
       > {

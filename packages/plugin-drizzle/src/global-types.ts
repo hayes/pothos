@@ -145,7 +145,7 @@ declare global {
       >(
         type: Type,
         fieldName: string,
-        field: (t: DrizzleObjectFieldBuilder<Types, TableConfig, false, Shape>) => FieldRef<Types>,
+        field: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldRef<Types>,
       ) => void;
 
       drizzleInterfaceField: <
@@ -165,7 +165,7 @@ declare global {
       >(
         type: Type,
         fieldName: string,
-        field: (t: DrizzleObjectFieldBuilder<Types, TableConfig, false, Shape>) => FieldRef<Types>,
+        field: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldRef<Types>,
       ) => void;
 
       drizzleObjectFields: <
@@ -184,7 +184,7 @@ declare global {
             },
       >(
         type: Type,
-        fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, false, Shape>) => FieldMap,
+        fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
       ) => void;
 
       drizzleInterfaceFields: <
@@ -203,7 +203,7 @@ declare global {
             },
       >(
         type: Type,
-        fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, false, Shape>) => FieldMap,
+        fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
       ) => void;
 
       // drizzleGraphQLOrderBy: 'addGraphQL' extends PluginName

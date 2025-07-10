@@ -39,10 +39,18 @@ export const NormalViewer = builder.drizzleObject('users', {
   },
   fields: (t) => ({
     isNormal: t.boolean({
-      resolve: () => true,
+      resolve: (_user) => true,
     }),
   }),
 });
+
+builder.drizzleObjectField(NormalViewer, 'hasId', (t) =>
+  t.boolean({ resolve: (user) => user.id !== null }),
+);
+
+builder.drizzleObjectFields(NormalViewer, (t) => ({
+  firstName: t.exposeString('firstName'),
+}));
 
 export const Viewer = builder.drizzleInterface('users', {
   variant: 'Viewer',

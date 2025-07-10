@@ -2,16 +2,11 @@ import {
   decodeBase64,
   encodeBase64,
   type MaybePromise,
+  type Merge,
   PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
-import type { ConnectionShape, DefaultConnectionArguments } from '../types';
-
-// Since we know the return types of the connection helpers, we can
-// remove the MaybePromise wrappers on the ConnectionResult shape
-type RemoveMaybePromiseProps<T> = {
-  [K in keyof T]: Awaited<T[K]>;
-};
+import type { ArrayConnectionShape, DefaultConnectionArguments } from '../types';
 
 interface ResolveOffsetConnectionOptions {
   args: DefaultConnectionArguments;
@@ -105,8 +100,8 @@ export async function resolveOffsetConnection<
     limit: number;
   }) => U & (MaybePromise<readonly T[] | null> | null),
 ): Promise<
-  RemoveMaybePromiseProps<
-    ConnectionShape<
+  Merge<
+    ArrayConnectionShape<
       SchemaTypes,
       NonNullable<T>,
       U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
@@ -163,8 +158,8 @@ export function offsetToCursor(offset: number): string {
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
   array: readonly T[],
-): RemoveMaybePromiseProps<
-  ConnectionShape<
+): Merge<
+  ArrayConnectionShape<
     SchemaTypes,
     NonNullable<T>,
     false,
@@ -238,9 +233,7 @@ export async function resolveCursorConnection<
 >(
   options: ResolveCursorConnectionOptions<NodeType<U>>,
   resolve: (params: ResolveCursorConnectionArgs) => U,
-): Promise<
-  RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
-> {
+): Promise<Merge<ArrayConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
     parseCursorConnectionArgs(options);
 

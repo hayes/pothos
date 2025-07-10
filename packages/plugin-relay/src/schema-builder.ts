@@ -7,6 +7,8 @@ import SchemaBuilder, {
   getTypeBrand,
   InputObjectRef,
   type InterfaceRef,
+  isThenable,
+  type MaybePromise,
   type ObjectFieldsShape,
   ObjectRef,
   type OutputRef,
@@ -509,10 +511,33 @@ schemaBuilderProto.connectionObject = function connectionObject(
                     this.defaultFieldNullability),
               },
               resolve: (con) =>
-                completeValue(
-                  con.edges,
-                  (edges) => edges?.map((e) => e?.node) ?? (edgeListNullable ? null : []),
-                ) as never,
+                completeValue(con.edges, (edges) => {
+                  if (!edges) {
+                    return edges;
+                  }
+
+                  if (Array.isArray(edges)) {
+                    return edges.map((e) => e?.node);
+                  }
+
+                  if ((edges as AsyncIterable<unknown>)[Symbol.asyncIterator]) {
+                    return (async function* () {
+                      for await (const edge of edges) {
+                        yield await edge;
+                      }
+                    })();
+                  }
+
+                  return (function* () {
+                    for (const edge of edges as Iterable<MaybePromise<{ node: unknown }>>) {
+                      if (isThenable(edge)) {
+                        yield Promise.resolve(edge).then((e) => e?.node);
+                      } else {
+                        yield edge?.node;
+                      }
+                    }
+                  })();
+                }) as never,
             }),
           }
         : {}),

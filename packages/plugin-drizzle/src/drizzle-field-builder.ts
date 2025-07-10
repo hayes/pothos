@@ -167,7 +167,7 @@ export class DrizzleObjectFieldBuilder<
         ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>>
       >
     : '@pothos/plugin-relay is required to use this method' = function relatedConnection(
-    this: DrizzleObjectFieldBuilder<SchemaTypes, TableConfig, boolean>,
+    this: DrizzleObjectFieldBuilder<SchemaTypes, TableConfig, {}>,
     name: string,
     {
       maxSize = this.builder.options.drizzle?.maxConnectionSize,
