@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.0
+
+### Minor Changes
+
+- 12713e5: improve handling of iterable connections
+
 ## 4.5.0
 
 ### Minor Changes

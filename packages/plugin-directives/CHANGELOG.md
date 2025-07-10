@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.2.4
+
+### Patch Changes
+
+- e15da02: Deduplicate deprecated direvtive in mock ast
+
 ## 4.2.3
 
 ### Patch Changes

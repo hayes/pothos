@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.7.1
+
+### Patch Changes
+
+- f7f8c25: Add fix for AsyncIterable when ts target is <es2018
+
 ## 4.7.0
 
 ### Minor Changes
