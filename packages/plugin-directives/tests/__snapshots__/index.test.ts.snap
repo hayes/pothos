@@ -9,7 +9,8 @@ enum EN {
 }
 
 interface IF {
-  field: String
+  deprecatedField: String @deprecated(reason: "test")
+  interfaceField: String
 }
 
 input In {
@@ -30,8 +31,10 @@ input MyOtherInput {
   booleanWithDefault: Boolean = false
 }
 
-type Obj {
+type Obj implements IF {
+  deprecatedField: String @deprecated(reason: "test")
   field: String
+  interfaceField: String
 }
 
 type Query {
@@ -56,7 +59,8 @@ enum EN @e(foo: 123) {
 }
 
 interface IF @i(foo: 123) {
-  field: String
+  deprecatedField: String @deprecated(reason: "test")
+  interfaceField: String
 }
 
 input In @io(foo: 123) {
@@ -77,8 +81,10 @@ input MyOtherInput {
   booleanWithDefault: Boolean = false
 }
 
-type Obj @o(foo: 123) {
+type Obj implements IF @o(foo: 123) {
+  deprecatedField: String @deprecated(reason: "test")
   field: String
+  interfaceField: String
 }
 
 type Query @o(foo: 123) {

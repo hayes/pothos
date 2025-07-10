@@ -97,7 +97,21 @@ builder.queryType({
   }),
 });
 
+const IF = builder.interfaceRef<{}>('IF').implement({
+  directives: {
+    i: { foo: 123 },
+  },
+  fields: (t) => ({
+    interfaceField: t.string(),
+    deprecatedField: t.string({
+      deprecationReason: 'test',
+      directives: [],
+    }),
+  }),
+});
+
 const Obj = builder.objectRef<{}>('Obj').implement({
+  interfaces: [IF],
   directives: {
     o: { foo: 123 },
   },
@@ -105,15 +119,6 @@ const Obj = builder.objectRef<{}>('Obj').implement({
     field: t.string({
       resolve: () => 'hi',
     }),
-  }),
-});
-
-builder.interfaceRef<{}>('IF').implement({
-  directives: {
-    i: { foo: 123 },
-  },
-  fields: (t) => ({
-    field: t.string(),
   }),
 });
 
