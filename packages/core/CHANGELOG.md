@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.7.2
+
+### Patch Changes
+
+- 86e1ee2: Fix async iterable compatability with older ts versions
+
 ## 4.7.1
 
 ### Patch Changes
