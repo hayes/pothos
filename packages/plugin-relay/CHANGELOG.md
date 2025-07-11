@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.1
+
+### Patch Changes
+
+- 86e1ee2: remove extra await
+
 ## 4.6.0
 
 ### Minor Changes
