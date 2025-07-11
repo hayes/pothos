@@ -523,7 +523,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
                   if ((edges as AsyncIterable<unknown>)[Symbol.asyncIterator]) {
                     return (async function* () {
                       for await (const edge of edges) {
-                        yield await edge;
+                        yield edge.node;
                       }
                     })();
                   }

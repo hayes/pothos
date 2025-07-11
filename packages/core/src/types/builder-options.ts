@@ -53,7 +53,7 @@ export type ListResolveValue<Type, Item, Return> = unknown extends AsyncIterable
   ? Return extends readonly unknown[]
     ? ArrayResolverResult<Type, Item, Return>
     : IterableResolverResult<Type, Item> & Return
-  : Return extends AsyncIterable<unknown, unknown>
+  : Return extends AsyncIterable<unknown>
     ? AsyncIterableResolverResult<Type, Item> & Return
     : Return extends readonly unknown[]
       ? ArrayResolverResult<Type, Item, Return>
