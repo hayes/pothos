@@ -316,7 +316,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
     return this.runUnique(resultName, () => {
       let resultType: ImplementableObjectRef<Types, unknown>;
-      if (directResult && !Array.isArray(fieldType)) {
+      if (directResult && fieldType.kind !== 'List') {
         resultType = type as ImplementableObjectRef<Types, unknown>;
 
         const resultConfig = this.builder.configStore.getTypeConfig(resultType);
