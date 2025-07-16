@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.2
+
+### Patch Changes
+
+- d4ecd42: Fix directResult default when used with list fields
+
 ## 4.4.1
 
 ### Patch Changes
