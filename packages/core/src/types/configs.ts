@@ -137,11 +137,11 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
         unknown,
         unknown
       > &
-        MergeUnion<
-          {
-            [K in keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]: PothosSchemaTypes.InferredFieldOptions<SchemaTypes>[K];
-          }[keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]
-        >;
+        // MergeUnion<
+        {
+          [K in keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]: PothosSchemaTypes.InferredFieldOptions<SchemaTypes>[K];
+        }[keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>];
+      // >;
     }
   >;
 }[Kind];
