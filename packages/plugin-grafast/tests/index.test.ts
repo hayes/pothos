@@ -1,5 +1,5 @@
 import { printSchema } from 'graphql';
-import { schema } from './example/builder';
+import { schema } from './examples/basic/schema';
 
 describe('grafast', () => {
   it('generates expected schema', () => {

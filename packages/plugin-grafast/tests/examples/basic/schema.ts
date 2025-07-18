@@ -21,7 +21,7 @@ builder.queryType({
   }),
 });
 
-const User = builder.objectRef<Partial<UserRow>>('User');
+const User = builder.objectRef<UserRow>('User');
 
 User.implement({
   description: 'A user',

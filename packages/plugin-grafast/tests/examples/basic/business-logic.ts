@@ -42,11 +42,11 @@ export interface FriendshipRow {
 export async function getUsersByIds(
   ids: readonly number[],
   options: GetUserOptions = {},
-): Promise<Partial<UserRow | null>[]> {
+): Promise<(UserRow | null)[]> {
   console.log('getUsersByIds', ids, options);
   const columns = options.columns ? [...new Set(['id', ...options.columns])] : ['*'];
 
-  const users = await queryAll<Partial<UserRow>>(
+  const users = await queryAll<UserRow>(
     `select ${columns.join(', ')} from users where id in (${ids.map(() => '?').join(', ')})`,
     ids,
   );
@@ -60,7 +60,7 @@ export async function getFriendshipsByUserIds(
 ) {
   console.log('getFriendshipsByUserIds', userIds, options);
   const columns = options.columns ? [...new Set(['user_id', ...options.columns])] : ['*'];
-  const friendships = await queryAll<Partial<FriendshipRow>>(
+  const friendships = await queryAll<FriendshipRow>(
     `select ${columns.join(', ')} from friendships where user_id in (${userIds
       .map(() => '?')
       .join(', ')})`,
