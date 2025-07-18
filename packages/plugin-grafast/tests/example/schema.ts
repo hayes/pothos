@@ -1,5 +1,4 @@
 import { constant, each, lambda, loadMany, loadOne } from 'grafast';
-import { defaultFieldResolver } from 'graphql';
 import { builder } from './builder';
 import type { UserRow } from './business-logic';
 import { friendshipsByUserIdCallback, userByIdCallback } from './plans';
@@ -14,23 +13,15 @@ builder.queryType({
       plan: (_, args) => {
         return lambda([args.$a, args.$b], ([a, b]) => a + b, true);
       },
-      // Pothos currently requires a resolver when not using t.expose*
-      // defaultFieldResolver is stripped out by Pothos if it is not wrapped by a plugin
-      resolve: defaultFieldResolver as never,
     }),
     currentUser: t.field({
       type: User,
-      extensions: {
-        grafast: {
-          plan: () => loadOne(constant(1), userByIdCallback),
-        },
-      },
-      resolve: defaultFieldResolver as never,
+      plan: () => loadOne(constant(1), userByIdCallback),
     }),
   }),
 });
 
-const User = builder.objectRef<UserRow>('User');
+const User = builder.objectRef<Partial<UserRow>>('User');
 
 User.implement({
   description: 'A user',
@@ -51,7 +42,6 @@ User.implement({
         });
         return $friends;
       },
-      resolve: defaultFieldResolver as never,
     }),
   }),
 });

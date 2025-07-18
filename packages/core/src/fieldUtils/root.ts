@@ -5,6 +5,7 @@ import type {
   FieldNullability,
   FieldOptionsFromKind,
   InputFieldMap,
+  Merge,
   NormalizeArgs,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -12,6 +13,8 @@ import type {
 } from '../types';
 import { BaseFieldUtil } from './base';
 import { InputFieldBuilder } from './input';
+
+type DistributeOmit<T, K> = T extends {} ? Merge<Omit<T, K extends keyof T ? K : never>> : T;
 
 export class RootFieldBuilder<
   Types extends SchemaTypes,
@@ -32,7 +35,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -51,8 +54,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'Boolean', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: 'Boolean',
     });
   }
@@ -69,7 +72,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -88,8 +91,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'Float', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: 'Float',
     });
   }
@@ -106,7 +109,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -125,8 +128,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'ID', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: 'ID',
     });
   }
@@ -143,7 +146,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -162,8 +165,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'Int', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: 'Int',
     });
   }
@@ -180,7 +183,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -199,8 +202,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'String', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: 'String',
     });
   }
@@ -217,7 +220,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -236,8 +239,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['Boolean'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: ['Boolean'],
     });
   }
@@ -254,7 +257,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -273,8 +276,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['Float'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: ['Float'],
     });
   }
@@ -291,7 +294,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -310,8 +313,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['ID'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: ['ID'],
     });
   }
@@ -328,7 +331,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -347,8 +350,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['Int'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: ['Int'],
     });
   }
@@ -365,7 +368,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -384,8 +387,8 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['String'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
+      resolve: undefined as never,
       type: ['String'],
     });
   }
