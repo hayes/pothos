@@ -1,5 +1,6 @@
 import {
   type ArgumentRef,
+  type DistributeOmit,
   type FieldKind,
   type FieldMap,
   type FieldNullability,
@@ -209,7 +210,7 @@ export type DrizzleFieldOptions<
     ResolveShape,
     ResolveReturnShape
   >,
-  'resolve' | 'type'
+  'type' | InferredFieldOptionKeys
 > & {
   type: Param;
   resolve: (
@@ -235,7 +236,7 @@ export type DrizzleFieldWithInputOptions<
   InputName extends string,
   Fields extends InputFieldMap,
   ArgRequired extends boolean,
-> = Omit<
+> = DistributeOmit<
   DrizzleFieldOptions<
     Types,
     ParentShape,
@@ -357,7 +358,7 @@ export type RelatedFieldOptions<
     },
     ResolveReturnShape
   >,
-  'description' | 'resolve' | 'select' | 'type'
+  'description' | 'select' | 'type' | InferredFieldOptionKeys
 > & {
   description?: string | false;
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -516,7 +517,7 @@ export type DrizzleConnectionFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'args' | 'resolve' | 'type'
+  'args' | 'type' | InferredFieldOptionKeys
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -529,7 +530,7 @@ export type DrizzleConnectionFieldOptions<
       Args,
       ResolveReturnShape
     >,
-    'resolve' | 'type'
+    'type' | InferredFieldOptionKeys
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
@@ -577,7 +578,7 @@ export type RelatedConnectionOptions<
       (InputFieldMap extends Args ? {} : Args),
     unknown
   >,
-  'args' | 'resolve' | 'type'
+  'args' | 'type' | InferredFieldOptionKeys
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -590,7 +591,7 @@ export type RelatedConnectionOptions<
       Args,
       unknown
     >,
-    'resolve' | 'type'
+    'type' | InferredFieldOptionKeys
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs

@@ -1,4 +1,5 @@
 import type {
+  DistributeOmit,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
@@ -210,7 +211,7 @@ export interface LoadableRef<K, V, C> {
 }
 
 export interface LoadableNodeId<Types extends SchemaTypes, Shape, IDShape> {
-  id: Omit<
+  id: DistributeOmit<
     FieldOptionsFromKind<
       Types,
       Shape,

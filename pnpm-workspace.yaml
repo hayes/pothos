@@ -1,5 +1,7 @@
 packages:
-  - 'packages/*'
-  - 'examples/*'
-  - 'website'
+  - packages/*
+  - examples/*
+  - website
   - '!**/test/**'
+onlyBuiltDependencies:
+  - sqlite3

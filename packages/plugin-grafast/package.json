@@ -1,0 +1,64 @@
+{
+  "name": "@pothos/plugin-grafast",
+  "version": "4.2.4",
+  "description": "A Pothos plugin for grafast plan resolvers",
+  "main": "./lib/index.js",
+  "types": "./dts/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm vitest --run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-add-graphql"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "grafast",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@pothos/core": "*",
+    "grafast": ">=0.1.1-beta.24",
+    "graphql": "^16.10.0"
+  },
+  "devDependencies": {
+    "@envelop/core": "^5.2.3",
+    "@envelop/parser-cache": "^9.0.0",
+    "@envelop/validation-cache": "^9.0.0",
+    "@pothos/core": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "grafast": "0.1.1-beta.24",
+    "grafserv": "0.1.1-beta.27",
+    "graphql-tag": "^2.12.6",
+    "graphql-yoga": "^5.15.1",
+    "sqlite3": "^5.1.7",
+    "tamedevil": "0.0.0-beta.8"
+  }
+}

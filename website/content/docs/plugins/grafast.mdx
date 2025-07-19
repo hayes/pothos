@@ -1,0 +1,234 @@
+---
+title: Grafast plugin
+description: A plugin for building schemas with Grafast plans instead of resolvers
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn" title="Experimental Package">
+  This package is currently experimental and will have breaking changes in the near future.
+</Callout>
+
+
+<Callout type="warn">
+  This plugin currently does not work with MOST other Pothos plugins.
+
+  Many plugins depend on wrapping resolvers to add runtime functionality to your schema, which will not work
+  with grafast.
+</Callout>
+
+## Install
+
+```package-install
+npm install --save @pothos/plugin-grafast grafast@>=0.1.1-beta.24
+```
+
+## Setup
+
+```typescript
+import GrafastPlugin from '@pothos/plugin-grafast';
+
+declare global {
+  namespace Grafast {
+    // Define the Context type used by grafast
+    interface Context extends YourContextType {}
+  }
+}
+
+type BuilderTypes = {
+  // This tells the builder to expect plans instead of resolvers
+  InferredFieldOptionsKind: 'Grafast';
+  Context: YourContextType;
+};
+
+const builder = new SchemaBuilder<BuilderTypes>({
+  plugins: [GrafastPlugin],
+});
+```
+
+## Usage
+
+For documentation on how to write plans, see the [Grafast documentation](https://grafast.org/grafast/).
+
+### Adding plans to fields
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    addTwoNumbers: t.int({
+      args: {
+        a: t.arg.int({ required: true }),
+        b: t.arg.int({ required: true }),
+      },
+      plan: (_, { $a, $b }) => {
+        return lambda([$a, $b], ([a, b]) => a + b, true);
+      },
+    }),
+  }),
+});
+```
+
+### Using resolvers
+
+Pothos and Grafast will still allow you to write resolvers when using grafast,
+but you will not have access to the 4th `GraphqlResolveInfo` argument:
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    addTwoNumbers: t.int({
+      args: {
+        a: t.arg.int({ required: true }),
+        b: t.arg.int({ required: true }),
+      },
+      resolve: (_, { a, b }) => {
+        return a + b;
+      },
+    }),
+  }),
+});
+```
+
+Resolvers should not be used to load data, but can make it easier to define a field
+that would otherwise use a simple `lambda` plan.
+
+### Abstract types
+
+Abstract types (Unions and Interfaces) may require defining a plan to resolve to the correct type.
+For more details on how polymorphic types work in Grafast, see the [Grafast documentation](https://grafast.org/grafast/polymorphism).
+
+
+#### Interfaces
+
+To implement an interface, you can implement it as you normally would in Pothos, and then call the
+`.withPlan` method on the interface ref to provide a plan for resolving the correct type.
+
+```typescript
+interface AnimalData {
+  id: string;
+  kind: 'Dog' | 'Cat';
+}
+
+export const Dog = builder.objectRef<AnimalData>('Dog').implement({
+  interfaces: [Animal],
+});
+export const Cat = builder.objectRef<AnimalData>('Cat').implement({
+  interfaces: [Animal],
+});
+
+export const Animal = builder
+  .interfaceRef<AnimalData>('Animal')
+  .implement({
+    fields: (t) => ({
+      id: t.exposeID('id'),
+    }),
+  })
+  .withPlan(($record) => {
+    return {
+      $__typename: get($record, 'kind'),
+    };
+  });
+```
+
+You can now define a query to resolve this interface:
+
+```typescript
+export const Animals = [
+  {
+    id: '1',
+    kind: 'Dog',
+  },
+  {
+    id: '2',
+    kind: 'Cat',
+  },
+] satisfies AnimalData[];
+
+function getAnimalsById(ids: readonly string[]): (AnimalData | null)[] {
+  return ids.map((id) => Animals.find((entity) => entity.id === id) ?? null);
+}
+
+builder.queryFields((t) => ({
+  animal: t.field({
+    type: Animal,
+    args: {
+      id: t.arg.string({ required: true }),
+    },
+    plan: (_, $args) => loadOne($args.$id, getAnimalsById),
+  }),
+}));
+```
+
+### Unions
+
+Unions can be implemented just like interfaces:
+
+```typescript
+interface AlienData {
+  id: string;
+  kind: 'Alien';
+}
+
+export const Alien = builder.objectRef<AlienData>('Alien').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+export const Entity = builder
+  .unionType('Entity', {
+    types: [Cat, Dog, Alien],
+  })
+  .withPlan(($record) => {
+    return {
+      $__typename: get($record, 'kind'),
+    };
+  });
+```
+
+### `planForType`
+
+When planning polymorphic types, Grafast allows you to provide a `planForType` function that
+allows you to load the correct data for the current type.
+
+This also enables changing the type of plan required for fields that return the abstract type:
+
+<Callout type="warn">
+  `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
+
+  This API is likely to change in the future.
+</Callout>
+
+```typescript
+export const Entity = builder
+  .unionType('Entity', {
+    types: [Cat, Dog, Alien],
+  })
+  .withPlan(
+    (
+      // Provide an explicit type so that the query field only needs to return the ID
+      $specifier: Step<string>,
+    ) => {
+      const $record = inhibitOnNull(loadOne($specifier, getEntitiesById));
+      return {
+        $__typename: get($record, 'kind'),
+        planForType: () => $record,
+      };
+    },
+  );
+
+builder.queryFields((t) => ({
+  entity: t.field({
+    type: Entity,
+    args: {
+      id: t.arg.string({ required: true }),
+    },
+    // Because our Entity plan loads the record, we can just return the ID here
+    plan: (_, $args) => $args.$id,
+  }),
+}));
+```
+
+
+
+

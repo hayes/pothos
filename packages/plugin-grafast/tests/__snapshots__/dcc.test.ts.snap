@@ -1,0 +1,219 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`dcc schema > generates expected schema 1`] = `
+"type ActiveCrawler implements Character & Crawler & HasInventory {
+  bestFriend: ActiveCrawler
+  crawlerNumber: Int
+  favouriteItem: Item
+  friends(first: Int): [Character!]
+  id: ID!
+  items(first: Int): [Item!]
+  name: String!
+}
+
+type BetaLocation implements Location {
+  floors: [Floor!]
+  id: ID!
+  name: String!
+}
+
+interface Character {
+  id: ID!
+  name: String!
+}
+
+type Club implements Location {
+  floors: [Floor!]
+  id: ID!
+  manager: NPC
+  name: String!
+  security: [Security!]
+  stock: [ClubStock!]
+  tagline: String!
+}
+
+union ClubStock = Consumable | MiscItem | UtilityItem
+
+type Consumable implements Created & HasContents & Item {
+  canBeFoundIn: [LootBox!]
+  contents(first: Int): [Item!]
+  creator: Crawler
+  effect: String
+  id: ID!
+  name: String
+}
+
+interface Crawler implements Character {
+  crawlerNumber: Int
+  id: ID!
+  name: String!
+}
+
+interface Created {
+  creator: Crawler
+}
+
+type DeletedCrawler implements Character & Crawler {
+  crawlerNumber: Int
+  id: ID!
+  name: String!
+}
+
+type Equipment implements Created & HasContents & Item {
+  canBeFoundIn: [LootBox!]
+  contents(first: Int): [Item!]
+  creator: Crawler
+  id: ID!
+  name: String
+}
+
+type Floor {
+  locations: [Location]
+  number: Int!
+}
+
+type Guide implements Character & NPC {
+  bestFriend: Character
+  exCrawler: Boolean
+  friends(first: Int): [Character!]
+  id: ID!
+  name: String!
+  saferoomLocation: String
+  species: Species
+}
+
+interface HasContents {
+  contents(first: Int): [Item!]
+}
+
+interface HasInventory {
+  items(first: Int): [Item!]
+}
+
+interface Item {
+  canBeFoundIn: [LootBox!]
+  id: ID!
+  name: String
+}
+
+enum ItemType {
+  Consumable
+  Equipment
+  MiscItem
+  UtilityItem
+}
+
+interface Location {
+  floors: [Floor!]
+  id: ID!
+  name: String!
+}
+
+type LootBox {
+  category: String
+  id: ID!
+  possibleItems: [Item!]
+  tier: String
+}
+
+type LootData {
+  id: ID!
+  itemId: ID!
+  itemType: String
+  lootBoxId: ID!
+  percentageChance: Int
+}
+
+type Manager implements Character & HasInventory & NPC {
+  bestFriend: Character
+  client: ActiveCrawler
+  exCrawler: Boolean
+  friends(first: Int): [Character!]
+  id: ID!
+  items(first: Int): [Item!]
+  name: String!
+  species: Species
+}
+
+type MiscItem implements Created & HasContents & Item {
+  canBeFoundIn: [LootBox!]
+  contents(first: Int): [Item!]
+  creator: Crawler
+  id: ID!
+  name: String
+}
+
+interface NPC implements Character {
+  bestFriend: Character
+  exCrawler: Boolean
+  friends(first: Int): [Character!]
+  id: ID!
+  name: String!
+  species: Species
+}
+
+type Query {
+  brokenItem: Item
+  character(id: Int!): Character
+  crawler(id: Int!): Crawler
+  floor(number: Int!): Floor
+  item(id: Int!, type: String!): Item
+  npc(id: Int!): NPC
+}
+
+type SafeRoom implements Location {
+  floors: [Floor!]
+  hasPersonalSpace: Boolean
+  id: ID!
+  manager: NPC
+  name: String!
+  stock: [SafeRoomStock!]
+}
+
+union SafeRoomStock = Consumable | Equipment | MiscItem
+
+type Security implements Character & NPC {
+  bestFriend: Character
+  clients: [Character!]
+  exCrawler: Boolean
+  friends(first: Int): [Character!]
+  id: ID!
+  name: String!
+  species: Species
+}
+
+enum Species {
+  BOPCA
+  CAT
+  CHANGELING
+  CROCODILIAN
+  GONDII
+  HALF_ELF
+  HUMAN
+  ROCK_MONSTER
+}
+
+type Staff implements Character & HasInventory & NPC {
+  bestFriend: Character
+  exCrawler: Boolean
+  friends(first: Int): [Character!]
+  id: ID!
+  items(first: Int): [Item!]
+  name: String!
+  species: Species
+}
+
+type Stairwell implements Location {
+  floors: [Floor!]
+  id: ID!
+  name: String!
+}
+
+type UtilityItem implements Created & HasContents & Item {
+  canBeFoundIn: [LootBox!]
+  contents(first: Int): [Item!]
+  creator: Crawler
+  id: ID!
+  name: String
+}"
+`;

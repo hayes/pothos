@@ -1,6 +1,7 @@
 import { ListRef } from '../refs/list';
 import type {
   ArgBuilder,
+  DistributeOmit,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
@@ -32,7 +33,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -51,10 +52,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'Boolean', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: 'Boolean',
-    });
+    } as never);
   }
 
   /**
@@ -69,7 +69,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -88,10 +88,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'Float', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: 'Float',
-    });
+    } as never);
   }
 
   /**
@@ -106,7 +105,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -125,10 +124,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'ID', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: 'ID',
-    });
+    } as never);
   }
 
   /**
@@ -143,7 +141,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -162,10 +160,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'Int', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: 'Int',
-    });
+    } as never);
   }
 
   /**
@@ -180,7 +177,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -199,10 +196,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<'String', Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: 'String',
-    });
+    } as never);
   }
 
   /**
@@ -217,7 +213,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -236,10 +232,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['Boolean'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: ['Boolean'],
-    });
+    } as never);
   }
 
   /**
@@ -254,7 +249,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -273,10 +268,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['Float'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: ['Float'],
-    });
+    } as never);
   }
 
   /**
@@ -291,7 +285,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -310,10 +304,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['ID'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: ['ID'],
-    });
+    } as never);
   }
 
   /**
@@ -328,7 +321,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -347,10 +340,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['Int'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: ['Int'],
-    });
+    } as never);
   }
 
   /**
@@ -365,7 +357,7 @@ export class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options: Omit<
+        options: DistributeOmit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -384,10 +376,9 @@ export class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<['String'], Nullable, Args>({
-      resolve: undefined as never,
       ...options,
       type: ['String'],
-    });
+    } as never);
   }
 
   /**

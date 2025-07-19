@@ -1,5 +1,6 @@
 import {
   type ArgumentRef,
+  type DistributeOmit,
   type EmptyToOptional,
   type FieldKind,
   type FieldNullability,
@@ -720,7 +721,7 @@ export type RelayMutationFieldOptions<
   ResolveShape,
   ResolveReturnShape,
   Args extends InputFieldMap = {},
-> = Omit<
+> = DistributeOmit<
   FieldOptionsFromKind<
     Types,
     Types['Root'],
