@@ -140,3 +140,7 @@ export interface PartialResolveInfo {
 }
 
 export type Simplify<T> = { [KeyType in keyof T]: T[KeyType] } & {};
+
+export type DistributeOmit<T, K> = T extends {}
+  ? { [K2 in keyof T as K2 extends K ? never : K2]: T[K2] } & {}
+  : T;

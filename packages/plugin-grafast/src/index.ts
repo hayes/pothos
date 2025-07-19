@@ -18,10 +18,7 @@ export class PothosGrafastPlugin<Types extends SchemaTypes> extends BasePlugin<T
     return typeConfig;
   }
 
-  // @ts-ignore since we need to access resolve here (maybe caused by MergeUnion)
-  override onOutputFieldConfig(
-    fieldConfig: PothosOutputFieldConfig<Types & { InferredFieldOptionsKind: 'Grafast' }>,
-  ) {
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
     let plan: typeof fieldConfig.pothosOptions.plan;
 
     if (fieldConfig.pothosOptions.plan) {
@@ -47,7 +44,7 @@ export class PothosGrafastPlugin<Types extends SchemaTypes> extends BasePlugin<T
   override beforeBuild() {}
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosGrafastPlugin as never);
+SchemaBuilder.registerPlugin(pluginName, PothosGrafastPlugin);
 
 InterfaceRef.prototype.withPlan = function withPlan(
   this: InterfaceRef<SchemaTypes, unknown>,

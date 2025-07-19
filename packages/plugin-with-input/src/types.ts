@@ -1,4 +1,5 @@
 import type {
+  DistributeOmit,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
@@ -63,7 +64,7 @@ export type FieldWithInputOptions<
   ResolveShape,
   ResolveReturnShape,
   ArgRequired extends boolean,
-> = Omit<
+> = DistributeOmit<
   FieldOptionsFromKind<
     Types,
     ParentShape,

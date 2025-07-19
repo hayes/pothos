@@ -1,11 +1,11 @@
 import { ListRef } from '../refs/list';
 import type {
   ArgBuilder,
+  DistributeOmit,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
   InputFieldMap,
-  Merge,
   NormalizeArgs,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -13,8 +13,6 @@ import type {
 } from '../types';
 import { BaseFieldUtil } from './base';
 import { InputFieldBuilder } from './input';
-
-type DistributeOmit<T, K> = T extends {} ? Merge<Omit<T, K extends keyof T ? K : never>> : T;
 
 export class RootFieldBuilder<
   Types extends SchemaTypes,
@@ -55,9 +53,8 @@ export class RootFieldBuilder<
 
     return this.createField<'Boolean', Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: 'Boolean',
-    });
+    } as never);
   }
 
   /**
@@ -92,9 +89,8 @@ export class RootFieldBuilder<
 
     return this.createField<'Float', Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: 'Float',
-    });
+    } as never);
   }
 
   /**
@@ -129,9 +125,8 @@ export class RootFieldBuilder<
 
     return this.createField<'ID', Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: 'ID',
-    });
+    } as never);
   }
 
   /**
@@ -166,9 +161,8 @@ export class RootFieldBuilder<
 
     return this.createField<'Int', Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: 'Int',
-    });
+    } as never);
   }
 
   /**
@@ -203,9 +197,8 @@ export class RootFieldBuilder<
 
     return this.createField<'String', Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: 'String',
-    });
+    } as never);
   }
 
   /**
@@ -240,9 +233,8 @@ export class RootFieldBuilder<
 
     return this.createField<['Boolean'], Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: ['Boolean'],
-    });
+    } as never);
   }
 
   /**
@@ -277,9 +269,8 @@ export class RootFieldBuilder<
 
     return this.createField<['Float'], Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: ['Float'],
-    });
+    } as never);
   }
 
   /**
@@ -314,9 +305,8 @@ export class RootFieldBuilder<
 
     return this.createField<['ID'], Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: ['ID'],
-    });
+    } as never);
   }
 
   /**
@@ -351,9 +341,8 @@ export class RootFieldBuilder<
 
     return this.createField<['Int'], Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: ['Int'],
-    });
+    } as never);
   }
 
   /**
@@ -388,9 +377,8 @@ export class RootFieldBuilder<
 
     return this.createField<['String'], Nullable, Args>({
       ...options,
-      resolve: undefined as never,
       type: ['String'],
-    });
+    } as never);
   }
 
   /**

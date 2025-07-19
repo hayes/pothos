@@ -3,6 +3,7 @@ import {
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
+  type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
   isThenable,
@@ -454,7 +455,7 @@ export class DrizzleObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'nullable' | 'resolve' | 'select'
+            'nullable' | 'select' | InferredFieldOptionKeys
           >,
       ]
     >
@@ -500,7 +501,7 @@ export class DrizzleObjectFieldBuilder<
                 {},
                 ResolveReturnShape
               >,
-              'nullable' | 'resolve' | 'select' | 'type'
+              'nullable' | 'select' | 'type' | InferredFieldOptionKeys
             > & {
               description?: string | false;
             },
