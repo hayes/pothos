@@ -62,7 +62,7 @@ builder.queryType({
 ### Using resolvers
 
 Pothos and Grafast will still allow you to write resolvers when using grafast,
-but you will not not have access to the 4th `GraphqlResolveInfo` argument:
+but you will not have access to the 4th `GraphqlResolveInfo` argument:
 
 ```typescript
 builder.queryType({
@@ -121,7 +121,7 @@ export const Animal = builder
   });
 ```
 
-You can now define a query to resolver this interface:
+You can now define a query to resolve this interface:
 
 ```typescript
 export const Animals = [
