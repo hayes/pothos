@@ -1,9 +1,29 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`grafast > generates expected schema 1`] = `
-"type Query {
+"type Alien {
+  id: ID
+}
+
+interface Animal {
+  id: ID
+}
+
+type Cat implements Animal {
+  id: ID
+}
+
+type Dog implements Animal {
+  id: ID
+}
+
+union Entity = Alien | Cat | Dog
+
+type Query {
   addTwoNumbers(a: Int!, b: Int!): Int
+  animal(id: String!): Animal
   currentUser: User
+  entity(id: String!): Entity
 }
 
 """A user"""
