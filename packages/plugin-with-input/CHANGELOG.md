@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 4.1.3
+
+### Patch Changes
+
+- 517b559: Improve types when replace resolve definitions
+
 ## 4.1.2
 
 ### Patch Changes
