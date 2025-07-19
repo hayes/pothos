@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.11.1
+
+### Patch Changes
+
+- 517b559: Improve types when replace resolve definitions
+
 ## 0.11.0
 
 ### Minor Changes

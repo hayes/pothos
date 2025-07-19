@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.7.3
+
+### Patch Changes
+
+- 517b559: Improve types when replace resolve definitions
+
 ## 4.7.2
 
 ### Patch Changes
