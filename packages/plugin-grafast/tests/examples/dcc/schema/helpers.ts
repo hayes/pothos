@@ -1,13 +1,22 @@
-import { context, each, get, inhibitOnNull, loadMany, loadOne, Maybe, type Step } from 'grafast';
+import {
+  context,
+  each,
+  get,
+  inhibitOnNull,
+  loadMany,
+  loadOne,
+  type Maybe,
+  type Step,
+} from 'grafast';
 import {
   batchGetCrawlerById,
-  type NpcData,
+  batchGetLootBoxById,
+  batchGetLootDataByItemTypeAndId,
   type CrawlerData,
   type FloorData,
   type ItemSpec,
   type ItemType,
-  batchGetLootDataByItemTypeAndId,
-  batchGetLootBoxById,
+  type NpcData,
 } from '../data';
 
 export function getCreator($source: Step<{ creator?: number }>) {

@@ -1,11 +1,11 @@
-import { useParserCache } from '@envelop/parser-cache';
+import { createServer } from 'node:http';
 import { useExtendContext, useSchema } from '@envelop/core';
+import { useParserCache } from '@envelop/parser-cache';
 import { useValidationCache } from '@envelop/validation-cache';
 import { useGrafast, useMoreDetailedErrors } from 'grafast/envelop';
-import { schema } from './schema';
-import { createServer } from 'node:http';
 import { createYoga } from 'graphql-yoga';
 import { makeDb } from './data';
+import { schema } from './schema';
 
 // Create a Yoga instance with a GraphQL schema.
 const yoga = createYoga({
@@ -42,7 +42,8 @@ server.listen(4000, () => {
   console.info('Server is running on http://localhost:4000/graphql');
 });
 
-import { printSchema } from 'graphql';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { printSchema } from 'graphql';
+
 writeFileSync(resolve(__dirname, './schema.graphql'), printSchema(schema));

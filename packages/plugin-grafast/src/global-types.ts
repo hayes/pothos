@@ -1,4 +1,3 @@
-// biome-ignore assist/source/organizeImports: <explanation>
 import type {
   FieldNullability,
   InputFieldMap,
@@ -10,9 +9,8 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { ExecutableStep, FieldArgs, ObjectStep, Step } from 'grafast';
-
-import type { PothosGrafastPlugin } from '.';
 import type { GraphQLObjectType } from 'graphql';
+import type { PothosGrafastPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

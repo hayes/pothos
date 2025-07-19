@@ -3,10 +3,10 @@ import './global-types';
 import SchemaBuilder, {
   BasePlugin,
   InterfaceRef,
-  UnionRef,
   type PothosOutputFieldConfig,
   type PothosTypeConfig,
   type SchemaTypes,
+  UnionRef,
 } from '@pothos/core';
 
 const pluginName = 'grafast' as const;

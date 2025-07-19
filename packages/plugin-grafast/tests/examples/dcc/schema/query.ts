@@ -1,9 +1,9 @@
 import { constant, context, lambda, loadOne } from 'grafast';
 import { builder } from '../builder';
+import { batchGetCrawlerById, type FloorData, type ItemSpec } from '../data';
 import { Character, Crawler, NPC } from './characters';
 import { Item } from './items';
 import { Floor } from './location';
-import { batchGetCrawlerById, type FloorData, type ItemSpec } from '../data';
 
 builder.queryType({
   fields: (t) => ({

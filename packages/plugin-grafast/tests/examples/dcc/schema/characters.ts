@@ -3,8 +3,8 @@ import {
   context,
   each,
   get,
-  inhibitOnNull,
   type InterfacePlan,
+  inhibitOnNull,
   lambda,
   loadOne,
   type Step,
@@ -13,12 +13,11 @@ import { builder } from '../builder';
 import {
   batchGetCrawlerById,
   batchGetNpcById,
-  type ItemSpec,
   type CrawlerData,
+  type ItemSpec,
   type NpcData,
 } from '../data';
 import { Species } from './enums';
-import { HasInventory, Item } from './items';
 import {
   applyLimit,
   crawlerToTypeName,
@@ -26,6 +25,7 @@ import {
   extractNpcId,
   npcToTypeName,
 } from './helpers';
+import { HasInventory, Item } from './items';
 
 const characterPlan = (($specifier) => {
   const $db = context().get('dccDb');

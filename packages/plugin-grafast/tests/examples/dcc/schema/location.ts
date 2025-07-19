@@ -7,14 +7,14 @@ import {
   batchGetSafeRoomById,
   batchGetStairwellById,
   type ClubData,
-  type SafeRoomData,
   type FloorData,
   type LocationData,
+  type SafeRoomData,
 } from '../data';
-import { NPC, Security } from './characters';
-import { Consumable, Equipment, ItemResolver, MiscItem, UtilityItem } from './items';
-import { getFloor } from './helpers';
 import { delegate } from '../delegate';
+import { NPC, Security } from './characters';
+import { getFloor } from './helpers';
+import { Consumable, Equipment, ItemResolver, MiscItem, UtilityItem } from './items';
 
 export const Location = builder
   .interfaceRef<LocationData>('Location')
