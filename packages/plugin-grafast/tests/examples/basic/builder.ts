@@ -1,12 +1,14 @@
 import SchemaBuilder from '@pothos/core';
 import GrafastPlugin from '../../../src';
 
-export const builder = new SchemaBuilder<{
+type BuilderTypes = {
   InferredFieldOptionsKind: 'Grafast';
   Scalars: {};
   Context: {
     currentUserId: string;
   };
-}>({
+};
+
+export const builder = new SchemaBuilder<BuilderTypes>({
   plugins: [GrafastPlugin],
 });

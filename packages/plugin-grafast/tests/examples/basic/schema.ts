@@ -2,6 +2,7 @@ import { constant, each, lambda, loadMany, loadOne } from 'grafast';
 import { builder } from './builder';
 import type { UserRow } from './business-logic';
 import { friendshipsByUserIdCallback, userByIdCallback } from './plans';
+import './polymorphic';
 
 builder.queryType({
   fields: (t) => ({

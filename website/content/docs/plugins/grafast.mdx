@@ -1,12 +1,21 @@
-# Grafast plugin for Pothos
+---
+title: Grafast plugin
+description: A plugin for building schemas with Grafast plans instead of resolvers
+---
 
-> ⚠️ **Experimental Package** ⚠️
->
-> This package is currently experimental and will have breaking changes in the near future.
->
-> This plugin currently does not work with MOST other Pothos plugins.
-> Many plugins depend on wrapping resolvers to add runtime functionality to your schema, which will not work
-> with grafast.
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn" title="Experimental Package">
+  This package is currently experimental and will have breaking changes in the near future.
+</Callout>
+
+
+<Callout type="warn">
+  This plugin currently does not work with MOST other Pothos plugins.
+
+  Many plugins depend on wrapping resolvers to add runtime functionality to your schema, which will not work
+  with grafast.
+</Callout>
 
 ## Install
 
@@ -184,11 +193,11 @@ allows you to load the correct data for the current type.
 
 This also enables changing the type of plan required for fields that return the abstract type:
 
-> **Warning**
->
-> `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
->
-> This API is likely to change in the future.
+<Callout type="warn">
+  `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
+
+  This API is likely to change in the future.
+</Callout>
 
 ```typescript
 export const Entity = builder

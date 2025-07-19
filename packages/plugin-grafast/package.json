@@ -45,7 +45,7 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "grafast": "0.1.1-beta.24",
+    "grafast": ">=0.1.1-beta.24",
     "graphql": "^16.10.0"
   },
   "devDependencies": {

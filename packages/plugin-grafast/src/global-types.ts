@@ -19,20 +19,30 @@ declare global {
     }
 
     export interface UnionRef<Types extends SchemaTypes, T, P = T> {
-      withPlan: <Source>(
-        plan: (step: Step<Source>) => {
-          $__typename: Step<string | null>;
-          planForType: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
-        },
+      withPlan: <Source = T>(
+        plan: (step: Step<Source>) => Source extends P
+          ? {
+              $__typename: Step<string | null>;
+              planForType?: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
+            }
+          : {
+              $__typename: Step<string | null>;
+              planForType: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
+            },
       ) => UnionRef<Types, Source, P>;
     }
 
     export interface InterfaceRef<Types extends SchemaTypes, T, P = T> {
       withPlan: <Source = T>(
-        plan: (step: Step<Source>) => {
-          $__typename: Step<string | null>;
-          planForType: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
-        },
+        plan: (step: Step<Source>) => Source extends P
+          ? {
+              $__typename: Step<string | null>;
+              planForType?: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
+            }
+          : {
+              $__typename: Step<string | null>;
+              planForType: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
+            },
       ) => InterfaceRef<Types, Source, P>;
     }
 

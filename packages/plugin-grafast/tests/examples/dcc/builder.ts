@@ -10,12 +10,13 @@ declare global {
   }
 }
 
-export const builder = new SchemaBuilder<{
+type BuilderTypes = {
   InferredFieldOptionsKind: 'Grafast';
   Scalars: {};
   Context: {
     dccDb: Database;
   };
-}>({
+};
+export const builder = new SchemaBuilder<BuilderTypes>({
   plugins: [GrafastPlugin],
 });
