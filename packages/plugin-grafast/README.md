@@ -109,16 +109,17 @@ export const Cat = builder.objectRef<AnimalData>('Cat').implement({
 
 export const Animal = builder
   .interfaceRef<AnimalData>('Animal')
-  .withPlan(($record) => {
-    return {
+  .withPlan({
+    planType: ($record) => ({
       $__typename: get($record, 'kind'),
-    };
-  })
-  .implement({
-    fields: (t) => ({
-      id: t.exposeID('id'),
     }),
-  });
+  })
+
+Animal.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
 ```
 
 You can now define a query to resolve this interface:
@@ -170,10 +171,10 @@ export const Entity = builder
   .unionType('Entity', {
     types: [Cat, Dog, Alien],
   })
-  .withPlan(($record) => {
-    return {
+  .withPlan({
+    planType: ($record) => ({
       $__typename: get($record, 'kind'),
-    };
+    }),
   });
 ```
 
@@ -184,19 +185,19 @@ allows you to load the correct data for the current type.
 
 This also enables changing the type of plan required for fields that return the abstract type:
 
-> **Warning**
->
-> `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
->
-> This API is likely to change in the future.
+<Callout type="warn">
+  `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
+
+  This API is likely to change in the future.
+</Callout>
 
 ```typescript
 export const Entity = builder
   .unionType('Entity', {
     types: [Cat, Dog, Alien],
   })
-  .withPlan(
-    (
+  .withPlan({
+    planType: (
       // Provide an explicit type so that the query field only needs to return the ID
       $specifier: Step<string>,
     ) => {
@@ -206,7 +207,7 @@ export const Entity = builder
         planForType: () => $record,
       };
     },
-  );
+  });
 
 builder.queryFields((t) => ({
   entity: t.field({
@@ -219,7 +220,3 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
-
-
-
-
