@@ -2,8 +2,11 @@ import type { SchemaBuilder as Builder } from '../../builder';
 import type { FieldBuilder as InternalFieldBuilder } from '../../fieldUtils/builder';
 import type { InputFieldBuilder as InternalInputFieldBuilder } from '../../fieldUtils/input';
 import type { RootFieldBuilder as InternalRootFieldBuilder } from '../../fieldUtils/root';
+import type { ArgumentRef as InternalArgumentRef } from '../../refs/arg';
 import type { BaseTypeRef as InternalBaseRef } from '../../refs/base';
 import type { EnumRef as InternalEnumRef } from '../../refs/enum';
+import type { FieldRef as InternalFieldRef } from '../../refs/field';
+import type { InputFieldRef as InternalInputFieldRef } from '../../refs/input-field';
 import type { InputListRef as InternalInputListRef } from '../../refs/input-list';
 import type {
   ImplementableInputObjectRef as InternalImplementableInputObjectRef,
@@ -87,5 +90,17 @@ declare global {
       extends InternalUnionRef<Types, T, P> {}
     export interface ListRef<Types extends SchemaTypes, T, P = T>
       extends InternalListRef<Types, T, P> {}
+
+    export interface FieldRef<
+      Types extends SchemaTypes,
+      T = unknown,
+      Kind extends FieldKind = FieldKind,
+    > extends InternalFieldRef<Types, T, Kind> {}
+
+    export interface InputFieldRef<Types extends SchemaTypes, T>
+      extends InternalInputFieldRef<Types, T> {}
+
+    export interface ArgumentRef<Types extends SchemaTypes, T>
+      extends InternalArgumentRef<Types, T> {}
   }
 }

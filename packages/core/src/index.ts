@@ -1,4 +1,3 @@
-import './types/global';
 import { SchemaBuilder as SchemaBuilderClass } from './builder';
 import { FieldBuilder as InternalFieldBuilder } from './fieldUtils/builder';
 import { InputFieldBuilder as InternalInputFieldBuilder } from './fieldUtils/input';
@@ -8,8 +7,11 @@ import { ObjectFieldBuilder as InternalObjectFieldBuilder } from './fieldUtils/o
 import { QueryFieldBuilder as InternalQueryFieldBuilder } from './fieldUtils/query';
 import { RootFieldBuilder as InternalRootFieldBuilder } from './fieldUtils/root';
 import { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from './fieldUtils/subscription';
+import { ArgumentRef as InternalArgumentRef } from './refs/arg';
 import { BaseTypeRef as InternalBaseTypeRef } from './refs/base';
 import { EnumRef as InternalEnumRef } from './refs/enum';
+import { FieldRef as InternalFieldRef } from './refs/field';
+import { InputFieldRef as InternalInputFieldRef } from './refs/input-field';
 import { InputListRef as InternalInputListRef } from './refs/input-list';
 import {
   ImplementableInputObjectRef as InternalImplementableInputObjectRef,
@@ -26,11 +28,16 @@ import {
 } from './refs/object';
 import { ScalarRef as InternalScalarRef } from './refs/scalar';
 import { UnionRef as InternalUnionRef } from './refs/union';
+import './types/global';
+
 import type {
   AddVersionedDefaultsToBuilderOptions,
   FieldKind,
   InputTypeParam,
   NormalizeSchemeBuilderOptions,
+  PothosInputFieldConfig,
+  PothosOutputFieldConfig,
+  PothosTypeConfig,
   RootName,
   SchemaTypes,
   TypeParam,
@@ -254,12 +261,37 @@ export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P =
   nullable: boolean,
 ) => PothosSchemaTypes.ListRef<Types, T, P>;
 
+export type FieldRef<
+  Types extends SchemaTypes,
+  T = unknown,
+  Kind extends FieldKind = FieldKind,
+> = PothosSchemaTypes.FieldRef<Types, T, Kind>;
+export const FieldRef = InternalFieldRef as new <
+  Types extends SchemaTypes,
+  T = unknown,
+  Kind extends FieldKind = FieldKind,
+>(
+  kind: Kind,
+  initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>,
+) => PothosSchemaTypes.FieldRef<Types, T, Kind>;
+
+export type InputFieldRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputFieldRef<Types, T>;
+export const InputFieldRef = InternalInputFieldRef as new <Types extends SchemaTypes, T>(
+  initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>,
+) => PothosSchemaTypes.InputFieldRef<Types, T>;
+
+export type ArgumentRef<Types extends SchemaTypes, T> = PothosSchemaTypes.ArgumentRef<Types, T>;
+export const ArgumentRef = InternalArgumentRef as new <Types extends SchemaTypes, T>(
+  initConfig: (
+    name: string,
+    field: string,
+    typeConfig: PothosTypeConfig,
+  ) => PothosInputFieldConfig<Types>,
+) => PothosSchemaTypes.ArgumentRef<Types, T>;
+
 export { BuildCache } from './build-cache';
-export { ArgumentRef } from './refs/arg';
 export { BuiltinScalarRef } from './refs/builtin-scalar';
-export { FieldRef } from './refs/field';
 export { InputTypeRef } from './refs/input';
-export { InputFieldRef } from './refs/input-field';
 export { MutationRef } from './refs/mutation';
 export { OutputTypeRef } from './refs/output';
 export { QueryRef } from './refs/query';
