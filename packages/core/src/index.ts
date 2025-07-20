@@ -11,10 +11,19 @@ import { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from './
 import { BaseTypeRef as InternalBaseTypeRef } from './refs/base';
 import { EnumRef as InternalEnumRef } from './refs/enum';
 import { InputListRef as InternalInputListRef } from './refs/input-list';
-import { InputObjectRef as InternalInputObjectRef } from './refs/input-object';
-import { InterfaceRef as InternalInterfaceRef } from './refs/interface';
+import {
+  ImplementableInputObjectRef as InternalImplementableInputObjectRef,
+  InputObjectRef as InternalInputObjectRef,
+} from './refs/input-object';
+import {
+  ImplementableInterfaceRef as InternalImplementableInterfaceRef,
+  InterfaceRef as InternalInterfaceRef,
+} from './refs/interface';
 import { ListRef as InternalListRef } from './refs/list';
-import { ObjectRef as InternalObjectRef } from './refs/object';
+import {
+  ImplementableObjectRef as InternalImplementableObjectRef,
+  ObjectRef as InternalObjectRef,
+} from './refs/object';
 import { ScalarRef as InternalScalarRef } from './refs/scalar';
 import { UnionRef as InternalUnionRef } from './refs/union';
 import type {
@@ -157,6 +166,19 @@ export const InputObjectRef = InternalInputObjectRef as new <Types extends Schem
   name: string,
 ) => PothosSchemaTypes.InputObjectRef<Types, T>;
 
+export type ImplementableInputObjectRef<
+  Types extends SchemaTypes,
+  T extends object,
+> = PothosSchemaTypes.ImplementableInputObjectRef<Types, T>;
+
+export const ImplementableInputObjectRef = InternalImplementableInputObjectRef as new <
+  Types extends SchemaTypes,
+  T extends object,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  name: string,
+) => PothosSchemaTypes.ImplementableInputObjectRef<Types, T>;
+
 export type InputListRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputListRef<Types, T>;
 export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(
   listType: InputTypeParam<Types>,
@@ -172,6 +194,21 @@ export const InterfaceRef = InternalInterfaceRef as new <Types extends SchemaTyp
   name: string,
 ) => PothosSchemaTypes.InterfaceRef<Types, T, P>;
 
+export type ImplementableInterfaceRef<
+  Types extends SchemaTypes,
+  T,
+  P = T,
+> = PothosSchemaTypes.ImplementableInterfaceRef<Types, T, P>;
+
+export const ImplementableInterfaceRef = InternalImplementableInterfaceRef as new <
+  Types extends SchemaTypes,
+  T,
+  P = T,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  name: string,
+) => PothosSchemaTypes.ImplementableInterfaceRef<Types, T, P>;
+
 export type ObjectRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ObjectRef<
   Types,
   T,
@@ -180,6 +217,21 @@ export type ObjectRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.O
 export const ObjectRef = InternalObjectRef as new <Types extends SchemaTypes, T, P = T>(
   name: string,
 ) => PothosSchemaTypes.ObjectRef<Types, T, P>;
+
+export type ImplementableObjectRef<
+  Types extends SchemaTypes,
+  T,
+  P = T,
+> = PothosSchemaTypes.ImplementableObjectRef<Types, T, P>;
+
+export const ImplementableObjectRef = InternalImplementableObjectRef as new <
+  Types extends SchemaTypes,
+  T,
+  P = T,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  name: string,
+) => PothosSchemaTypes.ImplementableObjectRef<Types, T, P>;
 
 export type ScalarRef<Types extends SchemaTypes, T, U, P = T> = PothosSchemaTypes.ScalarRef<
   Types,
@@ -208,10 +260,7 @@ export { BuiltinScalarRef } from './refs/builtin-scalar';
 export { FieldRef } from './refs/field';
 export { InputTypeRef } from './refs/input';
 export { InputFieldRef } from './refs/input-field';
-export { ImplementableInputObjectRef } from './refs/input-object';
-export { ImplementableInterfaceRef } from './refs/interface';
 export { MutationRef } from './refs/mutation';
-export { ImplementableObjectRef } from './refs/object';
 export { OutputTypeRef } from './refs/output';
 export { QueryRef } from './refs/query';
 export { SubscriptionRef } from './refs/subscription';

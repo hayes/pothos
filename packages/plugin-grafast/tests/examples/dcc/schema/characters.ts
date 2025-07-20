@@ -61,6 +61,7 @@ export const Character = builder
     id: number;
     name: string;
   }>('Character')
+  .withPlan({ planType: characterPlan })
   .implement({
     fields: (t) => ({
       id: t.exposeID('id', {
@@ -70,8 +71,7 @@ export const Character = builder
         nullable: false,
       }),
     }),
-  })
-  .withPlan(characterPlan);
+  });
 
 export const NPC = builder
   .interfaceRef<NpcData>('NPC')
@@ -100,17 +100,19 @@ export const NPC = builder
       }),
     }),
   })
-  .withPlan<number>(($npcId) => {
-    const $db = context().get('dccDb');
-    const $npc = inhibitOnNull(loadOne($npcId, $db, null, batchGetNpcById));
-    const $__typename = lambda(inhibitOnNull($npc), npcToTypeName);
+  .withPlan<number>({
+    planType: ($npcId) => {
+      const $db = context().get('dccDb');
+      const $npc = inhibitOnNull(loadOne($npcId, $db, null, batchGetNpcById));
+      const $__typename = lambda(inhibitOnNull($npc), npcToTypeName);
 
-    return {
-      $__typename,
-      planForType() {
-        return $npc;
-      },
-    };
+      return {
+        $__typename,
+        planForType() {
+          return $npc;
+        },
+      };
+    },
   });
 
 export const Guide = builder.objectRef<NpcData>('Guide').implement({
@@ -180,15 +182,17 @@ export const Staff = builder.objectRef<NpcData>('Staff').implement({
 
 export const Crawler = builder
   .interfaceRef<CrawlerData>('Crawler')
+  .withPlan({
+    planType: ($crawler) => {
+      const $__typename = lambda($crawler, crawlerToTypeName);
+      return { $__typename, planForType: () => $crawler };
+    },
+  })
   .implement({
     interfaces: [Character],
     fields: (t) => ({
       crawlerNumber: t.exposeInt('crawlerNumber'),
     }),
-  })
-  .withPlan(($crawler) => {
-    const $__typename = lambda($crawler, crawlerToTypeName);
-    return { $__typename, planForType: () => $crawler };
   });
 
 export const DeletedCrawler = builder.objectRef<CrawlerData>('DeletedCrawler').implement({

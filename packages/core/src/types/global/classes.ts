@@ -5,10 +5,19 @@ import type { RootFieldBuilder as InternalRootFieldBuilder } from '../../fieldUt
 import type { BaseTypeRef as InternalBaseRef } from '../../refs/base';
 import type { EnumRef as InternalEnumRef } from '../../refs/enum';
 import type { InputListRef as InternalInputListRef } from '../../refs/input-list';
-import type { InputObjectRef as InternalInputObjectRef } from '../../refs/input-object';
-import type { InterfaceRef as InternalInterfaceRef } from '../../refs/interface';
+import type {
+  ImplementableInputObjectRef as InternalImplementableInputObjectRef,
+  InputObjectRef as InternalInputObjectRef,
+} from '../../refs/input-object';
+import type {
+  ImplementableInterfaceRef as InternalImplementableInterfaceRef,
+  InterfaceRef as InternalInterfaceRef,
+} from '../../refs/interface';
 import type { ListRef as InternalListRef } from '../../refs/list';
-import type { ObjectRef as InternalObjectRef } from '../../refs/object';
+import type {
+  ImplementableObjectRef as InternalImplementableObjectRef,
+  ObjectRef as InternalObjectRef,
+} from '../../refs/object';
 import type { ScalarRef as InternalScalarRef } from '../../refs/scalar';
 import type { UnionRef as InternalUnionRef } from '../../refs/union';
 import type { FieldKind } from '../builder-options';
@@ -56,12 +65,22 @@ declare global {
       extends InternalEnumRef<Types, T, U> {}
     export interface InputObjectRef<Types extends SchemaTypes, T>
       extends InternalInputObjectRef<Types, T> {}
+    export interface ImplementableInputObjectRef<
+      Types extends SchemaTypes,
+      T extends object,
+      Resolved = T,
+    > extends InternalImplementableInputObjectRef<Types, T, Resolved> {}
+
     export interface InputListRef<Types extends SchemaTypes, T>
       extends InternalInputListRef<Types, T> {}
     export interface InterfaceRef<Types extends SchemaTypes, T, P = T>
       extends InternalInterfaceRef<Types, T, P> {}
+    export interface ImplementableInterfaceRef<Types extends SchemaTypes, T, P = T>
+      extends InternalImplementableInterfaceRef<Types, T, P> {}
     export interface ObjectRef<Types extends SchemaTypes, T, P = T>
       extends InternalObjectRef<Types, T, P> {}
+    export interface ImplementableObjectRef<Types extends SchemaTypes, T, P = T>
+      extends InternalImplementableObjectRef<Types, T, P> {}
     export interface ScalarRef<Types extends SchemaTypes, T, U, P = T>
       extends InternalScalarRef<Types, T, U, P> {}
     export interface UnionRef<Types extends SchemaTypes, T, P = T>

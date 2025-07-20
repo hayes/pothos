@@ -58,6 +58,7 @@ export const ItemResolver = {
 
 export const Item = builder
   .interfaceRef<ItemData>('Item')
+  .withPlan(ItemResolver)
   .implement({
     fields: (t) => ({
       id: t.exposeID('id', {
@@ -68,8 +69,7 @@ export const Item = builder
         type: [LootBox],
       }),
     }),
-  })
-  .withPlan(ItemResolver.planType);
+  });
 
 export const HasInventory = builder.interfaceRef<{}>('HasInventory').implement({
   fields: (t) => ({

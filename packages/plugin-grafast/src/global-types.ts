@@ -9,8 +9,8 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { ExecutableStep, FieldArgs, ObjectStep, Step } from 'grafast';
-import type { GraphQLObjectType } from 'graphql';
 import type { PothosGrafastPlugin } from '.';
+import type { AbstractTypePlanOptions, ObjectTypePlanOptions } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -19,31 +19,33 @@ declare global {
     }
 
     export interface UnionRef<Types extends SchemaTypes, T, P = T> {
+      withPlan: <Source = T, Specifier = Source>(
+        options: AbstractTypePlanOptions<Source, P, Specifier>,
+      ) => UnionRef<Types, Specifier, P>;
+    }
+
+    export interface ObjectRef<Types extends SchemaTypes, T, P = T> {
       withPlan: <Source = T>(
-        plan: (step: Step<Source>) => Source extends P
-          ? {
-              $__typename: Step<string | null>;
-              planForType?: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
-            }
-          : {
-              $__typename: Step<string | null>;
-              planForType: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
-            },
-      ) => UnionRef<Types, Source, P>;
+        options: ObjectTypePlanOptions<Source, P>,
+      ) => ObjectRef<Types, Source, P>;
+    }
+
+    export interface ImplementableObjectRef<Types extends SchemaTypes, T, P = T> {
+      withPlan: <Source = T>(
+        options: ObjectTypePlanOptions<Source, P>,
+      ) => ImplementableObjectRef<Types, Source, P>;
     }
 
     export interface InterfaceRef<Types extends SchemaTypes, T, P = T> {
-      withPlan: <Source = T>(
-        plan: (step: Step<Source>) => Source extends P
-          ? {
-              $__typename: Step<string | null>;
-              planForType?: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
-            }
-          : {
-              $__typename: Step<string | null>;
-              planForType: (t: GraphQLObjectType) => Step<P | null | undefined> | null;
-            },
-      ) => InterfaceRef<Types, Source, P>;
+      withPlan: <Source = T, Specifier = Source>(
+        options: AbstractTypePlanOptions<Source, P, Specifier>,
+      ) => InterfaceRef<Types, Specifier, P>;
+    }
+
+    export interface ImplementableInterfaceRef<Types extends SchemaTypes, T, P = T> {
+      withPlan: <Source = T, Specifier = Source>(
+        options: AbstractTypePlanOptions<Source, P, Specifier>,
+      ) => ImplementableInterfaceRef<Types, Specifier, P>;
     }
 
     export interface InferredFieldOptions<

@@ -1,13 +1,15 @@
-import { type AbstractTypePlanner, get, type Step } from 'grafast';
+import { get, type Step } from 'grafast';
 import './global-types';
 import SchemaBuilder, {
   BasePlugin,
   InterfaceRef,
+  ObjectRef,
   type PothosOutputFieldConfig,
   type PothosTypeConfig,
   type SchemaTypes,
   UnionRef,
 } from '@pothos/core';
+import type { AbstractTypePlanOptions, ObjectTypePlanOptions } from './types';
 
 const pluginName = 'grafast' as const;
 
@@ -48,7 +50,7 @@ SchemaBuilder.registerPlugin(pluginName, PothosGrafastPlugin);
 
 InterfaceRef.prototype.withPlan = function withPlan(
   this: InterfaceRef<SchemaTypes, unknown>,
-  planType: ($stepOrSpecifier: Step) => AbstractTypePlanner,
+  plan: AbstractTypePlanOptions<unknown, unknown>,
 ) {
   this.updateConfig((config) => ({
     ...config,
@@ -56,7 +58,7 @@ InterfaceRef.prototype.withPlan = function withPlan(
       ...config.extensions,
       grafast: {
         ...config.extensions?.grafast,
-        planType,
+        ...plan,
       },
     },
   }));
@@ -65,7 +67,7 @@ InterfaceRef.prototype.withPlan = function withPlan(
 
 UnionRef.prototype.withPlan = function withPlan(
   this: UnionRef<SchemaTypes, unknown>,
-  planType: ($stepOrSpecifier: Step) => AbstractTypePlanner,
+  plan: AbstractTypePlanOptions<unknown, unknown>,
 ) {
   this.updateConfig((config) => ({
     ...config,
@@ -73,7 +75,24 @@ UnionRef.prototype.withPlan = function withPlan(
       ...config.extensions,
       grafast: {
         ...config.extensions?.grafast,
-        planType,
+        ...plan,
+      },
+    },
+  }));
+  return this;
+};
+
+ObjectRef.prototype.withPlan = function withPlan(
+  this: ObjectRef<SchemaTypes, unknown>,
+  plan: ObjectTypePlanOptions<unknown, unknown>,
+) {
+  this.updateConfig((config) => ({
+    ...config,
+    extensions: {
+      ...config.extensions,
+      grafast: {
+        ...config.extensions?.grafast,
+        ...plan,
       },
     },
   }));

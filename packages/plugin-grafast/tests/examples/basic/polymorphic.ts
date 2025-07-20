@@ -23,16 +23,19 @@ function getAnimalsById(ids: readonly string[]): (AnimalData | null)[] {
 
 export const Animal = builder
   .interfaceRef<AnimalData>('Animal')
+  .withPlan({
+    planType: ($record) => {
+      return {
+        $__typename: get($record, 'kind'),
+      };
+    },
+  })
   .implement({
     fields: (t) => ({
       id: t.exposeID('id'),
     }),
-  })
-  .withPlan(($record) => {
-    return {
-      $__typename: get($record, 'kind'),
-    };
   });
+
 export const Dog = builder.objectRef<AnimalData>('Dog').implement({
   interfaces: [Animal],
 });
@@ -70,8 +73,8 @@ export const Entity = builder
   .unionType('Entity', {
     types: [Cat, Dog, Alien],
   })
-  .withPlan(
-    (
+  .withPlan({
+    planType: (
       // Provide an explicit type so that the query field only needs to return the ID
       $specifier: Step<string>,
     ) => {
@@ -81,7 +84,7 @@ export const Entity = builder
         planForType: () => $record,
       };
     },
-  );
+  });
 
 builder.queryFields((t) => ({
   animal: t.field({

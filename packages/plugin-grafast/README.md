@@ -52,7 +52,7 @@ builder.queryType({
         b: t.arg.int({ required: true }),
       },
       plan: (_, { $a, $b }) => {
-        return lambda([$a, $b], ([a, b]) => a + b, true);
+        return lambda([$a, $b], ([a, b]) => a + b);
       },
     }),
   }),
@@ -109,15 +109,15 @@ export const Cat = builder.objectRef<AnimalData>('Cat').implement({
 
 export const Animal = builder
   .interfaceRef<AnimalData>('Animal')
-  .implement({
-    fields: (t) => ({
-      id: t.exposeID('id'),
-    }),
-  })
   .withPlan(($record) => {
     return {
       $__typename: get($record, 'kind'),
     };
+  })
+  .implement({
+    fields: (t) => ({
+      id: t.exposeID('id'),
+    }),
   });
 ```
 

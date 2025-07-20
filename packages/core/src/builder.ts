@@ -650,7 +650,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
 
   inputRef<T extends object, Normalize = true>(
     name: string,
-  ): ImplementableInputObjectRef<
+  ): PothosSchemaTypes.ImplementableInputObjectRef<
     Types,
     RecursivelyNormalizeNullableFields<T>,
     Normalize extends false ? T : RecursivelyNormalizeNullableFields<T>
@@ -662,11 +662,11 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     >(this, name);
   }
 
-  objectRef<T>(name: string): ImplementableObjectRef<Types, T> {
+  objectRef<T>(name: string): PothosSchemaTypes.ImplementableObjectRef<Types, T> {
     return new ImplementableObjectRef<Types, T>(this, name);
   }
 
-  interfaceRef<T>(name: string): ImplementableInterfaceRef<Types, T> {
+  interfaceRef<T>(name: string): PothosSchemaTypes.ImplementableInterfaceRef<Types, T> {
     return new ImplementableInterfaceRef<Types, T>(this, name);
   }
 
