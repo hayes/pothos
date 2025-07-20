@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.8.0
+
+### Minor Changes
+
+- cb6a23a: Allow plugins to extend implementable refs
+
 ## 4.7.3
 
 ### Patch Changes
