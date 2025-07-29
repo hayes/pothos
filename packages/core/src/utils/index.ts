@@ -157,9 +157,9 @@ export function completeValue<T, R>(
   valOrPromise: PromiseLike<T> | T,
   onSuccess: (completedVal: T) => PromiseLike<R> | R,
   onError?: (errVal: unknown) => PromiseLike<R> | R,
-): Promise<R> | R {
+): Promise<Awaited<R>> | Awaited<R> {
   if (isThenable(valOrPromise)) {
-    return Promise.resolve(valOrPromise).then(onSuccess, onError);
+    return Promise.resolve(valOrPromise).then(onSuccess, onError) as Promise<Awaited<R>>;
   }
   // No need to handle onError, this should just be a try/catch inside the `onSuccess` block
   const result = onSuccess(valOrPromise);
@@ -169,7 +169,7 @@ export function completeValue<T, R>(
   if (isThenable(result)) {
     return Promise.resolve(result);
   }
-  return result;
+  return result as Awaited<R>;
 }
 
 export function getMappedArgumentValues(

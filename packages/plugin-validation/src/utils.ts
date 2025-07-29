@@ -40,15 +40,18 @@ export function createArgsValidator<Types extends SchemaTypes>(
         }
 
         if (fieldSchemas) {
-          return reduceMaybeAsync(fieldSchemas, mapped, (val, schema) =>
-            completeValue(schema['~standard'].validate(val), (result) => {
-              if (result.issues) {
-                addIssues(result.issues);
-                return null;
-              }
+          return reduceMaybeAsync(
+            fieldSchemas,
+            mapped,
+            (val, schema) =>
+              completeValue(schema['~standard'].validate(val), (result) => {
+                if (result.issues) {
+                  addIssues(result.issues);
+                  return null;
+                }
 
-              return result.value;
-            }),
+                return result.value;
+              }) as {},
           );
         }
 
@@ -63,7 +66,7 @@ export function createArgsValidator<Types extends SchemaTypes>(
       argMapper ? argMapper(args) : { value: args, issues: undefined },
       (mapped) => {
         if (mapped.issues) {
-          throw new InputValidationError(mapped.issues);
+          throw new InputValidationError(mapped);
         }
 
         if (!argsSchema) {
@@ -86,7 +89,7 @@ export function createArgsValidator<Types extends SchemaTypes>(
 
         return completeValue(validated, (result) => {
           if (issues.length) {
-            throw new InputValidationError(issues);
+            throw new InputValidationError({ issues });
           }
 
           return result as Record<string, unknown>;
@@ -210,19 +213,20 @@ function createInputValueMapper<Types extends SchemaTypes, T, Args extends unkno
     });
   };
 }
+
 function reduceMaybeAsync<T, R>(
   items: T[],
   initialValue: R,
-  fn: (value: R, item: T, i: number) => MaybePromise<R | null>,
-) {
-  function next(value: R, i: number): MaybePromise<R | null> {
+  fn: (value: R, item: T, i: number) => MaybePromise<R>,
+): MaybePromise<R | null> {
+  function next(value: R, i: number): MaybePromise<R> {
     if (i === items.length) {
       return value;
     }
 
     return completeValue(fn(value, items[i], i), (result) => {
-      return result === null ? null : next(result, i + 1);
-    });
+      return result === null ? (null as R) : next(result, i + 1);
+    }) as MaybePromise<R>;
   }
 
   return next(initialValue, 0);

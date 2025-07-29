@@ -3,7 +3,7 @@ import type { StandardSchemaV1 } from './standard-schema';
 export class InputValidationError extends PothosValidationError {
   issues: readonly StandardSchemaV1.Issue[];
 
-  constructor(issues: readonly StandardSchemaV1.Issue[]) {
+  constructor({ issues }: StandardSchemaV1.FailureResult) {
     super(
       issues
         .map((issue) => {
