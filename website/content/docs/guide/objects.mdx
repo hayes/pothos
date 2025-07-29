@@ -162,7 +162,7 @@ Object refs can be created using `builder.objectRef`, and then implemented by ca
 `implement` method on the ref, or by passing the ref to `builder.objectType`:
 
 ```typescript
-const GiraffeRef = builder.objectRef<GireffeType>('Giraffe').implement({
+const GiraffeRef = builder.objectRef<GiraffeType>('Giraffe').implement({
   description: 'Long necks, cool patterns, taller than you.',
   fields: (t) => ({}),
 });
