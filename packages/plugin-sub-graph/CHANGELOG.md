@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.0
+
+### Minor Changes
+
+- 0e81eaa: Add support for generating a schema from the intersection of multiple subgraphs
+
 ## 4.3.2
 
 ### Patch Changes
