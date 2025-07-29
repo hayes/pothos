@@ -191,6 +191,60 @@ type Query {
 }"
 `;
 
+exports[`subGraphs > all 1`] = `
+"interface Character {
+  """The friends of the character, or an empty list if they have none."""
+  friends: [Character]!
+
+  """The name of the character"""
+  name: String!
+}
+
+"""A mechanical creature in the Star Wars universe."""
+type Droid implements Character {
+  """The friends of the character, or an empty list if they have none."""
+  friends: [Character]!
+
+  """The name of the character"""
+  name: String!
+
+  """The primary function of the droid."""
+  primaryFunction(filter: FunctionFilter): String!
+}
+
+input FunctionFilter
+
+"""A humanoid creature in the Star Wars universe."""
+type Human implements Character {
+  """The friends of the character, or an empty list if they have none."""
+  friends: [Character]!
+
+  """The home planet of the human, or null if unknown."""
+  homePlanet: String
+
+  """The name of the character"""
+  name: String!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Query {
+  droid(
+    """id of the character"""
+    id: ID!
+  ): Droid!
+  human(
+    """id of the character"""
+    id: ID!
+  ): Human! @deprecated(reason: "Use \`hero\` instead.")
+}"
+`;
+
 exports[`subGraphs > full graph 1`] = `
 "interface Character {
   """Which movies they appear in."""

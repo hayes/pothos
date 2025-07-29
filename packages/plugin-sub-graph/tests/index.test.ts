@@ -26,4 +26,10 @@ describe('subGraphs', () => {
 
     expect(printSchema(lexicographicSortSchema(publicSchema))).toMatchSnapshot();
   });
+
+  it('all', () => {
+    const publicSchema = builder.toSchema({ subGraph: { all: ['Public', 'Private'] } });
+
+    expect(printSchema(lexicographicSortSchema(publicSchema))).toMatchSnapshot();
+  });
 });

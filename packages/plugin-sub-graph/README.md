@@ -34,8 +34,11 @@ const schema = builder.toSchema();
 const publicSchema = builder.toSchema({ subGraph: 'Public' });
 const internalSchema = builder.toSchema({ subGraph: 'Internal' });
 
-// You can also build a graph using multiple subgraphs:
+// You can also build a graph containing multiple subgraphs:
 const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
+
+// Or create a graph of the intersection between multiple subgraphs:
+const allSchema = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
 ```
 
 ### Options on Types
