@@ -40,3 +40,5 @@ tmp/
 
 # Local Netlify folder
 .netlify
+
+CLAUDE.md

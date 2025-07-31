@@ -4,9 +4,9 @@ import {
   type InputFieldsMapping,
   isThenable,
   type MaybePromise,
+  type PartialResolveInfo,
   type SchemaTypes,
 } from '@pothos/core';
-import { InputValidationError } from './errors';
 import type { StandardSchemaV1 } from './standard-schema';
 
 export function createArgsValidator<Types extends SchemaTypes>(
@@ -17,7 +17,15 @@ export function createArgsValidator<Types extends SchemaTypes>(
       fieldSchemas: StandardSchemaV1[];
     }
   > | null,
-  argsSchema: StandardSchemaV1 | null,
+  argsSchemas: StandardSchemaV1[] | StandardSchemaV1 | null,
+  options: {
+    validationError: (
+      failure: StandardSchemaV1.FailureResult,
+      args: Record<string, unknown>,
+      context: Types['Context'],
+      info: PartialResolveInfo,
+    ) => Error;
+  },
 ) {
   const argMapper = argMappings
     ? createInputValueMapper(argMappings, (value, mappings, addIssues) => {
@@ -40,18 +48,15 @@ export function createArgsValidator<Types extends SchemaTypes>(
         }
 
         if (fieldSchemas) {
-          return reduceMaybeAsync(
-            fieldSchemas,
-            mapped,
-            (val, schema) =>
-              completeValue(schema['~standard'].validate(val), (result) => {
-                if (result.issues) {
-                  addIssues(result.issues);
-                  return null;
-                }
+          return reduceMaybeAsync(fieldSchemas, mapped, (val, schema) =>
+            completeValue(schema['~standard'].validate(val), (result) => {
+              if (result.issues) {
+                addIssues(result.issues);
+                return null;
+              }
 
-                return result.value;
-              }) as {},
+              return result.value;
+            }),
           );
         }
 
@@ -61,35 +66,44 @@ export function createArgsValidator<Types extends SchemaTypes>(
 
   return function validateArgs(
     args: Record<string, unknown>,
+    context: Types['Context'],
+    info: PartialResolveInfo,
   ): MaybePromise<Record<string, unknown>> {
     return completeValue(
       argMapper ? argMapper(args) : { value: args, issues: undefined },
       (mapped) => {
         if (mapped.issues) {
-          throw new InputValidationError(mapped);
+          throw options.validationError(mapped, args, context, info);
         }
 
-        if (!argsSchema) {
+        // Normalize argsSchemas to array
+        const schemasArray = Array.isArray(argsSchemas)
+          ? argsSchemas
+          : argsSchemas
+            ? [argsSchemas]
+            : [];
+
+        if (schemasArray.length === 0) {
           return mapped.value;
         }
 
         const issues: StandardSchemaV1.Issue[] = [];
 
-        const validated = completeValue(
-          argsSchema['~standard'].validate(mapped.value),
-          (result) => {
+        // Validate through all schemas sequentially
+        const validated = reduceMaybeAsync(schemasArray, mapped.value, (val, schema) =>
+          completeValue(schema['~standard'].validate(val), (result) => {
             if (result.issues) {
               issues.push(...result.issues);
               return null;
             }
 
-            return result.value;
-          },
+            return result.value as Record<string, unknown>;
+          }),
         );
 
         return completeValue(validated, (result) => {
           if (issues.length) {
-            throw new InputValidationError({ issues });
+            throw options.validationError({ issues }, args, context, info);
           }
 
           return result as Record<string, unknown>;
@@ -99,7 +113,7 @@ export function createArgsValidator<Types extends SchemaTypes>(
   };
 }
 
-function createInputValueMapper<Types extends SchemaTypes, T, Args extends unknown[] = []>(
+export function createInputValueMapper<Types extends SchemaTypes, T, Args extends unknown[] = []>(
   argMap: InputFieldsMapping<Types, T>,
   mapValue: (
     val: unknown,
@@ -214,10 +228,10 @@ function createInputValueMapper<Types extends SchemaTypes, T, Args extends unkno
   };
 }
 
-function reduceMaybeAsync<T, R>(
+export function reduceMaybeAsync<T, R>(
   items: T[],
   initialValue: R,
-  fn: (value: R, item: T, i: number) => MaybePromise<R>,
+  fn: (value: R, item: T, i: number) => MaybePromise<R | null>,
 ): MaybePromise<R | null> {
   function next(value: R, i: number): MaybePromise<R> {
     if (i === items.length) {

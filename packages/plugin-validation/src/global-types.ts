@@ -12,6 +12,34 @@ import type { PothosZodPlugin } from '.';
 import type { StandardSchemaV1 } from './standard-schema';
 import type { ValidationPluginOptions } from './types';
 
+declare module 'graphql' {
+  interface GraphQLInputFieldExtensions {
+    '@pothos/plugin-validation'?: {
+      schemas?: StandardSchemaV1[];
+      parentSchemas?: StandardSchemaV1[];
+    };
+  }
+
+  interface GraphQLObjectTypeExtensions {
+    '@pothos/plugin-validation'?: {
+      schemas?: StandardSchemaV1[];
+    };
+  }
+
+  interface GraphQLInputObjectTypeExtensions {
+    '@pothos/plugin-validation'?: {
+      schemas?: StandardSchemaV1[];
+    };
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: needs to match GraphQL types
+  interface GraphQLFieldExtensions<_TSource, _TContext, _TArgs = any> {
+    '@pothos/plugin-validation'?: {
+      schemas?: StandardSchemaV1[];
+    };
+  }
+}
+
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {

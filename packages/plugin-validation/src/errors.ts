@@ -5,7 +5,7 @@ export class InputValidationError extends PothosValidationError {
 
   constructor({ issues }: StandardSchemaV1.FailureResult) {
     super(
-      issues
+      `Validation error: ${issues
         .map((issue) => {
           return `${
             issue.path
@@ -22,7 +22,7 @@ export class InputValidationError extends PothosValidationError {
               .join('.') ?? 'unknown'
           }: ${issue.message}`;
         })
-        .join(', '),
+        .join(', ')}`,
     );
 
     this.issues = issues;

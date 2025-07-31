@@ -7,8 +7,5 @@ export default new SchemaBuilder<{
   };
 }>({
   plugins: ['validation'],
-  validation: {
-    validationError: (error) =>
-      error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', '),
-  },
+  validation: {},
 });

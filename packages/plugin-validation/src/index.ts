@@ -5,9 +5,12 @@ import SchemaBuilder, {
   mapInputFields,
   type PothosInputFieldConfig,
   type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  PothosValidationError,
   type SchemaTypes,
   unwrapInputFieldType,
 } from '@pothos/core';
+import { InputValidationError } from './errors';
 import type { StandardSchemaV1 } from './standard-schema';
 import { createArgsValidator } from './utils';
 
@@ -19,19 +22,20 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
   override onInputFieldConfig(
     fieldConfig: PothosInputFieldConfig<Types>,
   ): PothosInputFieldConfig<Types> {
-    if (fieldConfig.pothosOptions.validate) {
-      const extensions = (fieldConfig.extensions ?? {}) as {
-        validationSchemas?: StandardSchemaV1[];
-      };
+    const extensions = fieldConfig.extensions ?? {};
 
+    const existingSchemas = extensions['@pothos/plugin-validation']?.schemas ?? [];
+    const optionsSchema = fieldConfig.pothosOptions.validate;
+
+    if (optionsSchema || existingSchemas.length > 0) {
       return {
         ...fieldConfig,
         extensions: {
           ...extensions,
-          validationSchemas: [
-            ...(extensions.validationSchemas ?? []),
-            fieldConfig.pothosOptions.validate,
-          ],
+          '@pothos/plugin-validation': {
+            ...extensions['@pothos/plugin-validation'],
+            schemas: optionsSchema ? [optionsSchema, ...existingSchemas] : existingSchemas,
+          },
         },
       };
     }
@@ -39,34 +43,93 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
     return fieldConfig;
   }
 
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
+    if (typeConfig.graphqlKind === 'InputObject') {
+      const extensions = (typeConfig.extensions ?? {}) as {
+        validationSchemas?: StandardSchemaV1[];
+      };
+
+      const existingSchemas = extensions.validationSchemas ?? [];
+      const optionsSchema = typeConfig.pothosOptions.validate;
+
+      if (optionsSchema || existingSchemas.length > 0) {
+        return {
+          ...typeConfig,
+          extensions: {
+            ...extensions,
+            '@pothos/plugin-validation': {
+              schemas: optionsSchema ? [optionsSchema, ...existingSchemas] : existingSchemas,
+            },
+          },
+        };
+      }
+    }
+
+    return typeConfig;
+  }
+
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
     const argsSchema = fieldConfig.pothosOptions.validate ?? null;
-    const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (field) => {
-      const fieldSchemas = (field.extensions?.validationSchemas as StandardSchemaV1[]) ?? null;
-      const fieldTypeName = unwrapInputFieldType(field.type);
-      const typeSchemas =
-        (this.buildCache.getTypeConfig(fieldTypeName).extensions
-          ?.validationSchemas as StandardSchemaV1[]) ?? null;
 
-      return fieldSchemas || typeSchemas
+    const argsSchemas = new Set(
+      Object.values(fieldConfig.args).flatMap(
+        (arg) => arg.extensions?.['@pothos/plugin-validation']?.parentSchemas ?? [],
+      ),
+    );
+
+    const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (field) => {
+      const chainedSchemas = field.extensions?.['@pothos/plugin-validation']?.schemas ?? [];
+      const optionsSchema = field.pothosOptions.validate;
+      const fieldSchemas = optionsSchema
+        ? [...chainedSchemas.slice().reverse(), optionsSchema]
+        : chainedSchemas.slice().reverse();
+
+      const fieldTypeName = unwrapInputFieldType(field.type);
+      const typeConfig = this.buildCache.getTypeConfig(fieldTypeName);
+
+      const typeSchemas =
+        typeConfig.kind === 'InputObject'
+          ? (typeConfig.extensions?.['@pothos/plugin-validation']?.schemas ?? null)
+          : null;
+
+      return fieldSchemas.length > 0 || typeSchemas
         ? {
             fieldSchemas,
-            typeSchemas,
+            typeSchemas: typeSchemas ?? [],
           }
         : null;
     });
 
-    if (!argMappings && !argsSchema) {
+    // Convert Set to Array and combine with argsSchema
+    const allArgsSchemas = [...(argsSchema ? [argsSchema] : []), ...Array.from(argsSchemas)];
+
+    if (!argMappings && allArgsSchemas.length === 0) {
       return fieldConfig;
     }
 
-    const argValidator = createArgsValidator(argMappings, argsSchema);
+    const argValidator = createArgsValidator(argMappings, allArgsSchemas, {
+      validationError: (failure, args, context) => {
+        const validationErrorFn = this.builder.options.validation?.validationError;
+        const error = validationErrorFn
+          ? validationErrorFn(failure, args, context)
+          : new InputValidationError(failure);
+
+        if (typeof error === 'string') {
+          throw new PothosValidationError(error);
+        }
+
+        throw error;
+      },
+    });
 
     return {
       ...fieldConfig,
-      argMappers: [...(fieldConfig.argMappers ?? []), (args) => argValidator(args)],
+      argMappers: [
+        ...(fieldConfig.argMappers ?? []),
+        (args, ctx, info) => argValidator(args, ctx, info),
+      ],
     };
   }
 }
