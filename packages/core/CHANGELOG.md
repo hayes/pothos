@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.8.1
+
+### Patch Changes
+
+- bc270c3: Make a few more classes extendable by plugins
+
 ## 4.8.0
 
 ### Minor Changes

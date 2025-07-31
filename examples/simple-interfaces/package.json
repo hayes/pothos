@@ -1,7 +1,7 @@
 {
   "private": true,
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "3.1.15",
+  "version": "3.1.16",
   "name": "@pothos-examples/simple-interfaces",
   "main": "src/index.ts",
   "types": "src/index.ts",
