@@ -1,0 +1,9 @@
+{
+  "include": ["**/*"],
+  "extends": "../../../tsconfig.options.json",
+  "references": [
+    {
+      "path": "../"
+    }
+  ]
+}

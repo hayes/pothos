@@ -11,6 +11,7 @@ import { ListRef } from '../refs/list';
 import {
   type InputType,
   type InputTypeParam,
+  type MaybePromise,
   type OutputType,
   type PartialResolveInfo,
   type PothosOutputFieldConfig,
@@ -154,11 +155,11 @@ export function unwrapInputListParam<Types extends SchemaTypes>(
  */
 export function completeValue<T, R>(
   valOrPromise: PromiseLike<T> | T,
-  onSuccess: (completedVal: T) => R,
-  onError?: (errVal: unknown) => R,
-): Promise<R> | R {
+  onSuccess: (completedVal: T) => PromiseLike<R> | R,
+  onError?: (errVal: unknown) => PromiseLike<R> | R,
+): Promise<Awaited<R>> | Awaited<R> {
   if (isThenable(valOrPromise)) {
-    return Promise.resolve(valOrPromise).then(onSuccess, onError);
+    return Promise.resolve(valOrPromise).then(onSuccess, onError) as Promise<Awaited<R>>;
   }
   // No need to handle onError, this should just be a try/catch inside the `onSuccess` block
   const result = onSuccess(valOrPromise);
@@ -168,7 +169,7 @@ export function completeValue<T, R>(
   if (isThenable(result)) {
     return Promise.resolve(result);
   }
-  return result;
+  return result as Awaited<R>;
 }
 
 export function getMappedArgumentValues(
@@ -183,11 +184,26 @@ export function getMappedArgumentValues(
     | undefined;
 
   if (mappers && mappers.length > 0) {
-    return mappers.reduce<Record<string, unknown>>(
-      (acc, argMapper) => argMapper(acc, context, info),
-      args,
-    );
+    return reduceMaybeAsync(mappers, args, (acc, argMapper) => argMapper(acc, context, info));
   }
 
   return args;
+}
+
+export function reduceMaybeAsync<T, R>(
+  items: T[],
+  initialValue: R,
+  fn: (value: R, item: T, i: number) => MaybePromise<R>,
+): MaybePromise<R> {
+  function next(value: R, i: number): MaybePromise<R> {
+    if (i === items.length) {
+      return value;
+    }
+
+    return completeValue(fn(value, items[i], i), (result) => {
+      return result === null ? (null as R) : next(result, i + 1);
+    });
+  }
+
+  return next(initialValue, 0);
 }

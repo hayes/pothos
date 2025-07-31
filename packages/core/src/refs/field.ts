@@ -6,7 +6,9 @@ import {
   type SchemaTypes,
 } from '../types';
 
-export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends FieldKind = FieldKind> {
+export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends FieldKind = FieldKind>
+  implements PothosSchemaTypes.FieldRef<Types, T, Kind>
+{
   kind: FieldKind;
 
   fieldName?: string;

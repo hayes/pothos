@@ -665,8 +665,8 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
             data: dataType,
           } = fieldOption as {
             name?: string;
-            where: InputFieldRef<SchemaTypes> | InputRef<unknown>;
-            data: InputFieldRef<SchemaTypes> | InputRef<unknown>;
+            where: InputFieldRef<SchemaTypes, unknown> | InputRef<unknown>;
+            data: InputFieldRef<SchemaTypes, unknown> | InputRef<unknown>;
           };
 
           const nestedRef = this.inputType(nestedName, {
@@ -687,8 +687,8 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
             skipDuplicates,
           } = fieldOption as {
             name?: string;
-            data: InputFieldRef<SchemaTypes> | InputRef<unknown>;
-            skipDuplicates?: InputFieldRef<SchemaTypes> | InputRef<unknown>;
+            data: InputFieldRef<SchemaTypes, unknown> | InputRef<unknown>;
+            skipDuplicates?: InputFieldRef<SchemaTypes, unknown> | InputRef<unknown>;
           };
 
           const nestedRef = this.inputType(nestedName, {
