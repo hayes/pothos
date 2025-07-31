@@ -1135,10 +1135,6 @@ importers:
         version: 2.12.6(graphql@16.11.0)
 
   packages/plugin-validation:
-    dependencies:
-      zod:
-        specifier: ^3.25.67
-        version: 3.25.67
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1155,6 +1151,9 @@ importers:
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.11.0)
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.67
 
   packages/plugin-with-input:
     dependencies:

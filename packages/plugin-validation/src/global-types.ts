@@ -8,7 +8,7 @@ import type {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import type { PothosZodPlugin } from '.';
+import type { PothosValidationPlugin } from '.';
 import type { StandardSchemaV1 } from './standard-schema';
 import type { ValidationPluginOptions } from './types';
 
@@ -43,7 +43,7 @@ declare module 'graphql' {
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      validation: PothosZodPlugin<Types>;
+      validation: PothosValidationPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

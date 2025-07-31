@@ -29,7 +29,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hayes/pothos.git",
-    "directory": "packages/plugin-zod"
+    "directory": "packages/plugin-validation"
   },
   "keywords": [
     "pothos",
@@ -52,10 +52,8 @@
     "@pothos/test-utils": "workspace:*",
     "@standard-schema/spec": "1.0.0-beta.4",
     "graphql": "^16.10.0",
-    "graphql-tag": "^2.12.6"
-  },
-  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc",
-  "dependencies": {
+    "graphql-tag": "^2.12.6",
     "zod": "^3.25.67"
-  }
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

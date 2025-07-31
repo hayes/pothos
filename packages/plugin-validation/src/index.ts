@@ -18,7 +18,7 @@ export * from './types';
 
 const pluginName = 'validation';
 
-export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override onInputFieldConfig(
     fieldConfig: PothosInputFieldConfig<Types>,
   ): PothosInputFieldConfig<Types> {
@@ -134,6 +134,6 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosZodPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosValidationPlugin);
 
 export default pluginName;
