@@ -1,4 +1,4 @@
-# @pothos-examples/prisma-smart-subscriptions-apollo
+# @pothos-examples/prisma-smart-subscriptions
 
 ## 3.1.29
 
