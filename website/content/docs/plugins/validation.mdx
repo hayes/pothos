@@ -51,7 +51,7 @@ builder.queryType({
 The validation plugin supports validating inputs and arguments in several different ways:
 
 - **Argument validation**: `t.arg.string({ validate: schema })` or `t.arg.string().validate(schema)` - Validate individual arguments
-- **Validate all field args**: `t.field({ args, validate: schema, ... })` or `t.field({ args: t.validate(args), ... }).validate(schema)` - Validate all arguments together
+- **Validate all field args**: `t.field({ args, validate: schema, ... })` or `t.field({ args: t.validate(args), ... })` - Validate all arguments together
 - **Input type validation**: `builder.inputType({ validate: schema, ... })` or `t.inputType({ ... }).validate(schema)` - Validate entire input objects
 - **Input field validation**: `t.string({ validate: schema })` or `t.string().validate(schema)` - Validate individual input type fields
 
