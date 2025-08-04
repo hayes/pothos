@@ -36,7 +36,7 @@ describe('Basic Validation', () => {
       expect(invalidResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: email: Invalid email",
+            "message": "Validation error: email: Invalid email address",
             "path": [
               "simple",
             ],
@@ -102,7 +102,7 @@ describe('Basic Validation', () => {
       expect(invalidItemResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: list.0: String must contain at most 3 character(s)",
+            "message": "Validation error: list.0: Too big: expected string to have <=3 characters",
             "path": [
               "list",
             ],
@@ -126,7 +126,7 @@ describe('Basic Validation', () => {
       expect(multipleInvalidResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: list.0: String must contain at most 3 character(s), list.1: String must contain at most 3 character(s)",
+            "message": "Validation error: list.0: Too big: expected string to have <=3 characters, list.1: Too big: expected string to have <=3 characters",
             "path": [
               "list",
             ],
@@ -168,7 +168,7 @@ describe('Basic Validation', () => {
       expect(invalidResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: num: Number must be greater than or equal to 2, string: String must contain at least 2 character(s)",
+            "message": "Validation error: num: Too small: expected number to be >=2, string: Too small: expected string to have >=2 characters",
             "path": [
               "argsSchema",
             ],
@@ -236,7 +236,7 @@ describe('Basic Validation', () => {
       expect(invalidResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: input.nested.id: String must contain at least 2 character(s)",
+            "message": "Validation error: input.nested.id: Too small: expected string to have >=2 characters",
             "path": [
               "soloNested",
             ],
@@ -316,7 +316,7 @@ describe('Basic Validation', () => {
       expect(invalidResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: input.nested.0.id: String must contain at least 2 character(s)",
+            "message": "Validation error: input.nested.0.id: Too small: expected string to have >=2 characters",
             "path": [
               "nestedObjectList",
             ],
@@ -356,7 +356,7 @@ describe('Basic Validation', () => {
       expect(invalidResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: input.name: String must contain at least 2 character(s)",
+            "message": "Validation error: input.name: Too small: expected string to have >=2 characters",
             "path": [
               "withSchemaInput",
             ],
@@ -382,7 +382,7 @@ describe('Basic Validation', () => {
       expect(aliasedResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: input.nested.id: String must contain at least 2 character(s)",
+            "message": "Validation error: input.nested.id: Too small: expected string to have >=2 characters",
             "path": [
               "aliasedField",
             ],

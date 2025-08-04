@@ -15,14 +15,14 @@
     "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.8.0",
+    "@faker-js/faker": "^9.9.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
-    "@prisma/client": "^6.10.1",
+    "@prisma/client": "^6.13.0",
     "graphql": "^16.10.0",
     "graphql-subscriptions": "^3.0.0",
-    "graphql-yoga": "5.13.5",
-    "prisma": "^6.10.1"
+    "graphql-yoga": "5.15.1",
+    "prisma": "^6.13.0"
   },
   "publishConfig": {
     "access": "public"

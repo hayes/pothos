@@ -50,13 +50,9 @@ builder.queryFields((t) => ({
 }));
 
 const CreateTeamInput = builder.inputType('CreateTeamInput', {
-  validate: {
-    schema: z
-      .object({
-        name: z.string().trim().nonempty(),
-      })
-      .passthrough(),
-  },
+  validate: z.object({
+    name: z.string().trim().nonempty(),
+  }),
   fields: (t) => ({
     name: t.string({ required: true }),
     players: t.field({ type: [CreatePlayerInput] }),

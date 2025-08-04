@@ -53,7 +53,7 @@ describe('Error Handling', () => {
       expect(result.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Custom validation error: Invalid email",
+            "message": "Custom validation error: Invalid email address",
             "path": [
               "testField",
             ],
@@ -105,7 +105,7 @@ describe('Error Handling', () => {
 
       expect(result.data?.testField).toBeNull();
       expect(result.errors?.[0]?.message).toBe(
-        'String error: Number must be greater than or equal to 18',
+        'String error: Too small: expected number to be >=18',
       );
     });
 
@@ -282,7 +282,7 @@ describe('Error Handling', () => {
       expect(result.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Multiple validation errors: user.name: String must contain at least 5 character(s)",
+            "message": "Multiple validation errors: user.name: Too small: expected string to have >=5 characters",
             "path": [
               "testField",
             ],
@@ -449,7 +449,7 @@ describe('Error Handling', () => {
       expect(result.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Input validation failed: String must contain at least 2 character(s)",
+            "message": "Input validation failed: Too small: expected string to have >=2 characters",
             "path": [
               "testField",
             ],

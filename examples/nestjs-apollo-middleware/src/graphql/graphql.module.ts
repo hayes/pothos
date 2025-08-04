@@ -1,5 +1,5 @@
 import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
+import { expressMiddleware } from '@as-integrations/express5';
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { NextFunction, Request, Response } from 'express';

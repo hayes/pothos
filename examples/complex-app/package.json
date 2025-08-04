@@ -17,7 +17,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.8.0",
+    "@faker-js/faker": "^9.9.0",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-dataloader": "workspace:*",
@@ -26,25 +26,25 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
-    "@pothos/plugin-zod": "workspace:*",
-    "@prisma/client": "^6.10.1",
+    "@pothos/plugin-validation": "workspace:*",
+    "@prisma/client": "^6.13.0",
     "graphql": "^16.10.0",
     "graphql-scalars": "^1.24.2",
-    "graphql-yoga": "5.13.5",
-    "prisma": "^6.10.1",
-    "react": "^19.1.0",
+    "graphql-yoga": "5.15.1",
+    "prisma": "^6.13.0",
+    "react": "^19.1.1",
     "urql": "^4.2.2",
-    "zod": "^3.25.67"
+    "zod": "^4.0.14"
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.7",
-    "@graphql-codegen/client-preset": "4.8.2",
+    "@graphql-codegen/client-preset": "4.8.3",
     "@graphql-codegen/introspection": "4.0.3",
     "@graphql-codegen/schema-ast": "^4.1.0",
-    "@types/node": "^24.0.3",
-    "typescript": "^5.8.3"
+    "@types/node": "^24.1.0",
+    "typescript": "^5.9.2"
   }
 }

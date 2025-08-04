@@ -38,6 +38,7 @@ export class ConfigStore<Types extends SchemaTypes> {
 
   private pending = true;
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: backwards compatibility
   private builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>) {

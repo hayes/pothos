@@ -49,7 +49,7 @@
     "graphql": "^16.10.0"
   },
   "devDependencies": {
-    "@libsql/client": "^0.15.9",
+    "@libsql/client": "^0.15.10",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-add-graphql": "workspace:*",
     "@pothos/plugin-errors": "workspace:*",

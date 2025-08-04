@@ -820,7 +820,7 @@ describe('Advanced Validation', () => {
       expect(result.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
         [
           {
-            "message": "Validation error: usernames.0: Username must be at least 3 characters, usernames.2: Username must be at least 3 characters, usernames.1: Username is already taken",
+            "message": "Validation error: usernames.0: Username must be at least 3 characters, usernames.1: Username is already taken, usernames.2: Username must be at least 3 characters",
             "path": [
               "validateUsernames",
             ],

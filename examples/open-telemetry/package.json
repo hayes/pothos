@@ -7,8 +7,8 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-zipkin": "^2.0.1",
-    "@opentelemetry/instrumentation": "^0.202.0",
-    "@opentelemetry/instrumentation-http": "^0.202.0",
+    "@opentelemetry/instrumentation": "^0.203.0",
+    "@opentelemetry/instrumentation-http": "^0.203.0",
     "@opentelemetry/sdk-trace-base": "^2.0.1",
     "@opentelemetry/sdk-trace-node": "^2.0.1",
     "@pothos/core": "workspace:*",
@@ -16,7 +16,7 @@
     "@pothos/tracing-opentelemetry": "workspace:*",
     "bema": "^0.1.2",
     "graphql": "^16.10.0",
-    "graphql-yoga": "5.13.5",
+    "graphql-yoga": "5.15.1",
     "tsm": "^2.3.0"
   },
   "publishConfig": {

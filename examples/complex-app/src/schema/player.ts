@@ -46,14 +46,10 @@ builder.prismaNode('Player', {
 });
 
 export const CreatePlayerInput = builder.inputType('CreatePlayerInput', {
-  validate: {
-    schema: z
-      .object({
-        name: z.string().trim().nonempty(),
-        number: z.number().int(),
-      })
-      .passthrough(),
-  },
+  validate: z.object({
+    name: z.string().trim().nonempty(),
+    number: z.number().int(),
+  }),
   fields: (t) => ({
     name: t.string({ required: true }),
     number: t.int({ required: true }),
