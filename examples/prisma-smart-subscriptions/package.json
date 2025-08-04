@@ -2,7 +2,7 @@
   "private": true,
   "$schema": "https://json.schemastore.org/package.json",
   "version": "3.1.29",
-  "name": "@pothos-examples/prisma-smart-subscriptions-apollo",
+  "name": "@pothos-examples/prisma-smart-subscriptions",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
@@ -21,6 +21,7 @@
     "@pothos/plugin-smart-subscriptions": "workspace:*",
     "@prisma/client": "^6.13.0",
     "graphql": "^16.10.0",
+    "graphql-subscriptions": "^3.0.0",
     "graphql-yoga": "5.15.1",
     "prisma": "^6.13.0"
   },

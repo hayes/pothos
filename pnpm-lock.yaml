@@ -491,6 +491,9 @@ importers:
       graphql:
         specifier: ^16.10.0
         version: 16.11.0
+      graphql-subscriptions:
+        specifier: ^3.0.0
+        version: 3.0.0(graphql@16.11.0)
       graphql-yoga:
         specifier: 5.15.1
         version: 5.15.1(graphql@16.11.0)
@@ -8685,6 +8688,7 @@ packages:
 
   libsql@0.5.17:
     resolution: {integrity: sha512-RRlj5XQI9+Wq+/5UY8EnugSWfRmHEw4hn3DKlPrkUgZONsge1PwTtHcpStP6MSNi8ohcbsRgEHJaymA33a8cBw==}
+    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   light-my-request@6.6.0:
