@@ -1,7 +1,7 @@
 import {
+  type BaseFieldOptionsFromKind,
   type FieldKind,
   type FieldNullability,
-  type FieldOptionsFromKind,
   type FieldRequiredness,
   type InputFieldMap,
   type InputFieldsFromShape,
@@ -18,7 +18,6 @@ import {
   type OutputShape,
   type OutputType,
   type ParentShape,
-  type RemovableInferredFieldOptionKeys,
   type Resolver,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -312,7 +311,7 @@ declare global {
           NodeNullability
         >,
       >(
-        options: FieldOptionsFromKind<
+        options: BaseFieldOptionsFromKind<
           Types,
           ParentShape,
           Type,
@@ -339,7 +338,7 @@ declare global {
               ResolveReturnShape,
               ConnectionResult
             > &
-              Omit<FieldOptions, 'args' | 'type' | RemovableInferredFieldOptionKeys>
+              Omit<FieldOptions, 'args' | 'type'>
           : never,
         ...args: NormalizeArgs<
           [
@@ -466,7 +465,7 @@ declare global {
       edgesNullable?: EdgeNullability;
       nodeNullable?: NodeNullability;
       edgesField?: Omit<
-        ObjectFieldOptions<
+        PothosSchemaTypes.ObjectFieldOptions<
           Types,
           {},
           ObjectRef<Types, {}>,
@@ -474,7 +473,7 @@ declare global {
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | RemovableInferredFieldOptionKeys | 'type'
+        'args' | 'nullable' | 'type'
       >;
     }
 
@@ -502,7 +501,7 @@ declare global {
       > {
       name?: string;
       nodeField?: Omit<
-        ObjectFieldOptions<
+        PothosSchemaTypes.ObjectFieldOptions<
           Types,
           {},
           ObjectRef<Types, {}>,
@@ -510,7 +509,7 @@ declare global {
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | RemovableInferredFieldOptionKeys | 'type'
+        'args' | 'nullable' | 'type'
       >;
     }
 

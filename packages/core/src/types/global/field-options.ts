@@ -245,6 +245,36 @@ declare global {
         >;
     }
 
+    export interface BaseFieldOptionsByKind<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape,
+    > {
+      Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
+      Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
+      Subscription: SubscriptionFieldOptions<
+        Types,
+        Type,
+        Nullable,
+        Args,
+        ResolveShape,
+        ResolveReturnShape
+      >;
+      Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
+      Interface: InterfaceFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
+      >;
+    }
+
     export interface InputFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],

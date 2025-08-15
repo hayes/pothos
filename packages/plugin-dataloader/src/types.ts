@@ -1,4 +1,5 @@
 import type {
+  BaseFieldOptionsFromKind,
   DistributeOmit,
   FieldKind,
   FieldNullability,
@@ -15,7 +16,6 @@ import type {
   OutputRef,
   OutputShape,
   OutputType,
-  RemovableInferredFieldOptionKeys,
   Resolver,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -37,9 +37,15 @@ export type LoadableFieldOptions<
   CacheKey,
   Kind extends FieldKind = FieldKind,
   ByPath extends boolean = boolean,
-> = Omit<
-  FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>,
-  RemovableInferredFieldOptionKeys
+> = BaseFieldOptionsFromKind<
+  Types,
+  ParentShape,
+  Type,
+  Nullable,
+  Args,
+  Kind,
+  Key,
+  ResolveReturnShape
 > & {
   byPath?: ByPath;
   load: (
@@ -79,8 +85,17 @@ export type LoadableListFieldOptions<
   Kind extends FieldKind = FieldKind,
   ByPath extends boolean = boolean,
 > = Omit<
-  FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
-  RemovableInferredFieldOptionKeys | 'type'
+  BaseFieldOptionsFromKind<
+    Types,
+    ParentShape,
+    [Type],
+    Nullable,
+    Args,
+    Kind,
+    Key,
+    ResolveReturnShape
+  >,
+  'type'
 > & {
   type: Type;
   byPath?: ByPath;
@@ -113,8 +128,17 @@ export type LoadableGroupFieldOptions<
   Kind extends FieldKind = FieldKind,
   ByPath extends boolean = boolean,
 > = Omit<
-  FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
-  RemovableInferredFieldOptionKeys | 'type'
+  BaseFieldOptionsFromKind<
+    Types,
+    ParentShape,
+    [Type],
+    Nullable,
+    Args,
+    Kind,
+    Key,
+    ResolveReturnShape
+  >,
+  'type'
 > & {
   type: Type;
   byPath?: ByPath;

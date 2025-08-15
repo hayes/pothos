@@ -10,7 +10,6 @@ import {
   type NormalizeArgs,
   ObjectRef,
   type PluginName,
-  type RemovableInferredFieldOptionKeys,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -611,7 +610,7 @@ export class PrismaObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'description' | 'nullable' | 'select' | RemovableInferredFieldOptionKeys
+            'description' | 'nullable' | 'select'
           > & {
             description?: string | false;
           },
@@ -665,7 +664,7 @@ export class PrismaObjectFieldBuilder<
                 {},
                 ResolveReturnShape
               >,
-              'description' | 'nullable' | 'select' | 'type' | RemovableInferredFieldOptionKeys
+              'description' | 'nullable' | 'select' | 'type'
             > & {
               description?: string | false;
             },

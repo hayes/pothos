@@ -1,11 +1,10 @@
 import type {
+  BaseFieldOptionsFromKind,
   CompatibleTypes,
   ExposeNullability,
   FieldKind,
   FieldNullability,
-  FieldOptionsFromKind,
   NormalizeArgs,
-  RemovableInferredFieldOptionKeys,
   SchemaTypes,
   TypeParam,
 } from '../types';
@@ -31,7 +30,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, 'Boolean', ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               'Boolean',
@@ -41,7 +40,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -66,7 +65,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, 'Float', ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               'Float',
@@ -76,7 +75,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -101,7 +100,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, 'ID', ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               'ID',
@@ -111,7 +110,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -136,7 +135,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, 'Int', ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               'Int',
@@ -146,7 +145,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -171,7 +170,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, 'String', ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               'String',
@@ -181,7 +180,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -206,7 +205,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, ['Boolean'], ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               ['Boolean'],
@@ -216,7 +215,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -241,7 +240,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, ['Float'], ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               ['Float'],
@@ -251,7 +250,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -276,7 +275,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, ['ID'], ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               ['ID'],
@@ -286,7 +285,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -311,7 +310,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, ['Int'], ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               ['Int'],
@@ -321,7 +320,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -346,7 +345,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, ['String'], ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               ['String'],
@@ -356,7 +355,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | 'type' | RemovableInferredFieldOptionKeys
+            'nullable' | 'type'
           >,
       ]
     >
@@ -387,7 +386,7 @@ export class FieldBuilder<
       [
         options: ExposeNullability<Types, Type, ParentShape, Name, Nullable> &
           Omit<
-            FieldOptionsFromKind<
+            BaseFieldOptionsFromKind<
               Types,
               ParentShape,
               Type,
@@ -397,7 +396,7 @@ export class FieldBuilder<
               ParentShape,
               ResolveReturnShape
             >,
-            'nullable' | RemovableInferredFieldOptionKeys
+            'nullable'
           >,
       ]
     >

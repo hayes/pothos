@@ -1,12 +1,11 @@
 import type {
+  BaseFieldOptionsFromKind,
   FieldKind,
   FieldNullability,
-  FieldOptionsFromKind,
   InputFieldMap,
   InputShapeFromFields,
   MaybePromise,
   Normalize,
-  RemovableInferredFieldOptionKeys,
   Resolver,
   RootName,
   SchemaTypes,
@@ -154,18 +153,15 @@ declare global {
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
       >(
         options: Normalize<
-          Omit<
-            FieldOptionsFromKind<
-              Types,
-              ParentShape,
-              Type,
-              Nullable,
-              Args,
-              Kind,
-              ResolveShape,
-              ResolveReturnShape
-            >,
-            RemovableInferredFieldOptionKeys
+          BaseFieldOptionsFromKind<
+            Types,
+            ParentShape,
+            Type,
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
           > & {
             authScopes: Scopes;
             resolve: Resolver<

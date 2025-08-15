@@ -11,7 +11,6 @@ import {
   ObjectRef,
   type PluginName,
   PothosSchemaError,
-  type RemovableInferredFieldOptionKeys,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -455,7 +454,7 @@ export class DrizzleObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'nullable' | 'select' | RemovableInferredFieldOptionKeys
+            'nullable' | 'select'
           >,
       ]
     >
@@ -501,7 +500,7 @@ export class DrizzleObjectFieldBuilder<
                 {},
                 ResolveReturnShape
               >,
-              'nullable' | 'select' | 'type' | RemovableInferredFieldOptionKeys
+              'nullable' | 'select' | 'type'
             > & {
               description?: string | false;
             },

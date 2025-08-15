@@ -1,10 +1,10 @@
 import {
   type ArgumentRef,
+  type BaseFieldOptionsFromKind,
   type DistributeOmit,
   type FieldKind,
   type FieldMap,
   type FieldNullability,
-  type FieldOptionsFromKind,
   type InferredFieldOptionsByKind,
   type InputFieldMap,
   type InputFieldsFromShape,
@@ -20,7 +20,6 @@ import {
   type ObjectTypeOptions,
   type OutputShape,
   type OutputType,
-  type RemovableInferredFieldOptionKeys,
   type SchemaTypes,
   type ShapeFromTypeParam,
   type TypeParam,
@@ -141,7 +140,7 @@ export type DrizzleNodeOptions<
     'fields' | 'isTypeOf'
   > & {
     id: Omit<
-      FieldOptionsFromKind<
+      BaseFieldOptionsFromKind<
         Types,
         Shape,
         'ID',
@@ -151,7 +150,7 @@ export type DrizzleNodeOptions<
         OutputShape<Types, 'ID'>,
         MaybePromise<OutputShape<Types, 'ID'>>
       >,
-      'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
+      'args' | 'nullable' | 'type'
     > & {
       column: IDColumns &
         (
@@ -200,7 +199,7 @@ export type DrizzleFieldOptions<
   ResolveReturnShape,
   Param,
 > = Omit<
-  FieldOptionsFromKind<
+  BaseFieldOptionsFromKind<
     Types,
     ParentShape,
     Type,
@@ -210,7 +209,7 @@ export type DrizzleFieldOptions<
     ResolveShape,
     ResolveReturnShape
   >,
-  'type' | RemovableInferredFieldOptionKeys
+  'type'
 > & {
   type: Param;
   resolve: (
@@ -258,7 +257,7 @@ export type DrizzleFieldWithInputOptions<
 > &
   PothosSchemaTypes.FieldWithInputBaseOptions<Types, Args, Fields, InputName, ArgRequired>;
 
-export type DrizzleObjectFieldOptions<
+export type DrizzleBaseObjectFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends TypeParam<Types>,
@@ -287,6 +286,56 @@ export type DrizzleObjectFieldOptions<
   Nullable,
   Args,
   ResolveReturnShape
+> & {
+  select?: Select &
+    (
+      | DBQueryConfig<'one', Types['DrizzleRelationsConfig'], ExtractTable<Types, ParentShape>>
+      | ((
+          args: InputShapeFromFields<Args>,
+          ctx: Types['Context'],
+          nestedSelection: <Selection extends boolean | {}>(
+            selection?: Selection,
+            path?: string[],
+          ) => Selection,
+        ) => DBQueryConfig<
+          'one',
+          Types['DrizzleRelationsConfig'],
+          ExtractTable<Types, ParentShape>
+        >)
+    );
+};
+
+export type DrizzleObjectFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  Select,
+  ResolveReturnShape,
+  ShapeWithSelection = Normalize<
+    Omit<
+      unknown extends Select
+        ? ParentShape
+        : BuildQueryResult<
+            Types['DrizzleRelationsConfig'],
+            ExtractTable<Types, ParentShape>,
+            // biome-ignore lint/suspicious/noExplicitAny: this is fine
+            Record<string, unknown> & (Select extends (...args: any[]) => infer R ? R : Select)
+          > &
+            ParentShape,
+      typeof drizzleTableName
+    >
+  >,
+> = DrizzleBaseObjectFieldOptions<
+  Types,
+  ParentShape,
+  Type,
+  Nullable,
+  Args,
+  Select,
+  ResolveReturnShape,
+  ShapeWithSelection
 > &
   InferredFieldOptionsByKind<
     Types,
@@ -296,24 +345,7 @@ export type DrizzleObjectFieldOptions<
     Nullable,
     Args,
     ResolveReturnShape
-  > & {
-    select?: Select &
-      (
-        | DBQueryConfig<'one', Types['DrizzleRelationsConfig'], ExtractTable<Types, ParentShape>>
-        | ((
-            args: InputShapeFromFields<Args>,
-            ctx: Types['Context'],
-            nestedSelection: <Selection extends boolean | {}>(
-              selection?: Selection,
-              path?: string[],
-            ) => Selection,
-          ) => DBQueryConfig<
-            'one',
-            Types['DrizzleRelationsConfig'],
-            ExtractTable<Types, ParentShape>
-          >)
-      );
-  };
+  >;
 
 export type DrizzleFieldSelection =
   | DBQueryConfig<'one'>
@@ -346,7 +378,7 @@ export type RelatedFieldOptions<
   ResolveReturnShape,
   Shape,
 > = Omit<
-  DrizzleObjectFieldOptions<
+  DrizzleBaseObjectFieldOptions<
     Types,
     Shape,
     RefForRelation<Types, Table['relations'][Field]>,
@@ -358,7 +390,7 @@ export type RelatedFieldOptions<
     },
     ResolveReturnShape
   >,
-  'description' | 'select' | 'type' | RemovableInferredFieldOptionKeys
+  'description' | 'select' | 'type'
 > & {
   description?: string | false;
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -377,7 +409,7 @@ export type VariantFieldOptions<
   ResolveShape,
   ResolveReturnShape,
 > = Omit<
-  FieldOptionsFromKind<
+  BaseFieldOptionsFromKind<
     Types,
     Shape,
     // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -388,7 +420,7 @@ export type VariantFieldOptions<
     ResolveShape,
     ResolveReturnShape
   >,
-  RemovableInferredFieldOptionKeys | 'type'
+  'type'
 > & {
   isNull?: isNull &
     ((
@@ -506,7 +538,7 @@ export type DrizzleConnectionFieldOptions<
   ResolveReturnShape,
   Kind extends FieldKind,
 > = Omit<
-  FieldOptionsFromKind<
+  BaseFieldOptionsFromKind<
     Types,
     ParentShape,
     Param,
@@ -517,7 +549,7 @@ export type DrizzleConnectionFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'args' | 'type' | RemovableInferredFieldOptionKeys
+  'args' | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -530,7 +562,7 @@ export type DrizzleConnectionFieldOptions<
       Args,
       ResolveReturnShape
     >,
-    'type' | RemovableInferredFieldOptionKeys
+    'type' | 'resolve'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
@@ -578,7 +610,7 @@ export type RelatedConnectionOptions<
       (InputFieldMap extends Args ? {} : Args),
     unknown
   >,
-  'args' | 'type' | RemovableInferredFieldOptionKeys
+  'args' | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -591,7 +623,7 @@ export type RelatedConnectionOptions<
       Args,
       unknown
     >,
-    'type' | RemovableInferredFieldOptionKeys
+    'type' | 'resolve'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
