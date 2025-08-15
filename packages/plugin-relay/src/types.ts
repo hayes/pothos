@@ -6,7 +6,6 @@ import {
   type FieldNullability,
   type FieldOptionsFromKind,
   type FieldRequiredness,
-  type InferredFieldOptionKeys,
   type InputFieldMap,
   type InputFieldRef,
   type InputFieldsFromShape,
@@ -27,6 +26,7 @@ import {
   type OutputShape,
   type OutputType,
   type ParentShape,
+  type RemovableInferredFieldOptionKeys,
   type Resolver,
   type SchemaTypes,
   type ShapeFromListTypeParam,
@@ -39,12 +39,12 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   idFieldOptions?: Partial<
     Omit<
       PothosSchemaTypes.ObjectFieldOptions<Types, {}, 'ID', boolean, {}, PageInfoShape>,
-      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+      'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
     >
   >;
   relayMutationFieldOptions?: Omit<
     PothosSchemaTypes.MutationFieldOptions<Types, ObjectRef<Types, {}>, boolean, {}, unknown>,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
@@ -63,7 +63,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           { id: ArgumentRef<Types, { typename: string; id: string }> },
           Promise<unknown>
         >,
-        'args' | 'type' | InferredFieldOptionKeys
+        'args' | 'type' | RemovableInferredFieldOptionKeys
       > & {
         args?: {
           id?: Omit<GlobalIDInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>, 'required'>;
@@ -88,7 +88,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           { ids: ArgumentRef<Types, { typename: string; id: string }[]> },
           Promise<unknown>[]
         >,
-        'args' | 'type' | InferredFieldOptionKeys
+        'args' | 'type' | RemovableInferredFieldOptionKeys
       > & {
         args?: {
           ids?: Omit<
@@ -123,7 +123,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       Types['Scalars']['ID']['Output']
     >,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   cursorFieldOptions: Normalize<
     Omit<
@@ -135,7 +135,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         {},
         Types['Scalars']['ID' | 'String']['Output']
       >,
-      'args' | 'type' | InferredFieldOptionKeys
+      'args' | 'type' | RemovableInferredFieldOptionKeys
     > & {
       type?: 'ID' | 'String';
     }
@@ -149,7 +149,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       GlobalIDShape<Types> | string
     >,
-    'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+    'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
   > & {
     nullable?: Types['DefaultNodeNullability'];
   };
@@ -162,7 +162,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       unknown[]
     >,
-    'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+    'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
   > & {
     nullable?: Types['DefaultEdgesNullability'];
   };
@@ -175,7 +175,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       unknown[]
     >,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   pageInfoFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
@@ -186,15 +186,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       PageInfoShape
     >,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   hasNextPageFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', boolean, {}, boolean>,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   hasPreviousPageFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', boolean, {}, boolean>,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   startCursorFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
@@ -205,7 +205,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       string | null
     >,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   endCursorFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
@@ -216,7 +216,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       string | null
     >,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   beforeArgOptions: Omit<
     PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', boolean>,
@@ -265,7 +265,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       InputFieldsFromShape<Types, DefaultConnectionArguments, 'Arg'>,
       ConnectionShape<Types, unknown, false, true, true>
     >,
-    'args' | 'type' | InferredFieldOptionKeys
+    'args' | 'type' | RemovableInferredFieldOptionKeys
   >;
   nodesOnConnection?:
     | Omit<
@@ -280,7 +280,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+        'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
       >
     | boolean;
 }>;
@@ -536,7 +536,7 @@ export type GlobalIDFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | InferredFieldOptionKeys
+  'type' | RemovableInferredFieldOptionKeys
 > & {
   resolve: Resolver<
     ParentShape,
@@ -583,7 +583,7 @@ export type NodeIDFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | InferredFieldOptionKeys
+  'type' | RemovableInferredFieldOptionKeys
 > & {
   resolve: Resolver<
     ParentShape,
@@ -612,7 +612,7 @@ export type GlobalIDListFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | InferredFieldOptionKeys
+  'type' | RemovableInferredFieldOptionKeys
 > & {
   resolve: Resolver<
     ParentShape,
@@ -647,7 +647,7 @@ export type NodeFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'nullable' | 'type' | InferredFieldOptionKeys
+  'nullable' | 'type' | RemovableInferredFieldOptionKeys
 > & {
   id: Resolver<
     ParentShape,
@@ -678,7 +678,7 @@ export type NodeListFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'nullable' | 'type' | InferredFieldOptionKeys
+  'nullable' | 'type' | RemovableInferredFieldOptionKeys
 > & {
   ids: Resolver<
     ParentShape,

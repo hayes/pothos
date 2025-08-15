@@ -2,9 +2,7 @@ import {
   type FieldKind,
   type FieldNullability,
   type FieldOptionsFromKind,
-  type FieldRef,
   type FieldRequiredness,
-  type InferredFieldOptionKeys,
   type InputFieldMap,
   type InputFieldsFromShape,
   type InputOrArgRef,
@@ -20,6 +18,7 @@ import {
   type OutputShape,
   type OutputType,
   type ParentShape,
+  type RemovableInferredFieldOptionKeys,
   type Resolver,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -340,7 +339,7 @@ declare global {
               ResolveReturnShape,
               ConnectionResult
             > &
-              Omit<FieldOptions, 'args' | 'type' | InferredFieldOptionKeys>
+              Omit<FieldOptions, 'args' | 'type' | RemovableInferredFieldOptionKeys>
           : never,
         ...args: NormalizeArgs<
           [
@@ -475,7 +474,7 @@ declare global {
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | InferredFieldOptionKeys | 'type'
+        'args' | 'nullable' | RemovableInferredFieldOptionKeys | 'type'
       >;
     }
 
@@ -511,7 +510,7 @@ declare global {
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | InferredFieldOptionKeys | 'type'
+        'args' | 'nullable' | RemovableInferredFieldOptionKeys | 'type'
       >;
     }
 

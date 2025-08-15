@@ -3,7 +3,6 @@ import {
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
-  type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
   isThenable,
@@ -11,6 +10,7 @@ import {
   type NormalizeArgs,
   ObjectRef,
   type PluginName,
+  type RemovableInferredFieldOptionKeys,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -611,7 +611,7 @@ export class PrismaObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'description' | 'nullable' | 'select' | InferredFieldOptionKeys
+            'description' | 'nullable' | 'select' | RemovableInferredFieldOptionKeys
           > & {
             description?: string | false;
           },
@@ -665,7 +665,7 @@ export class PrismaObjectFieldBuilder<
                 {},
                 ResolveReturnShape
               >,
-              'description' | 'nullable' | 'select' | 'type' | InferredFieldOptionKeys
+              'description' | 'nullable' | 'select' | 'type' | RemovableInferredFieldOptionKeys
             > & {
               description?: string | false;
             },

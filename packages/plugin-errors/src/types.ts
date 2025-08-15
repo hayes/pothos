@@ -1,8 +1,8 @@
 import type {
   EmptyToOptional,
   FieldNullability,
-  InferredFieldOptionKeys,
   Normalize,
+  RemovableInferredFieldOptionKeys,
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
@@ -73,7 +73,7 @@ export type ErrorFieldOptions<
         {},
         Shape
       >,
-      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+      'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
     > & {
       name?: string;
     }

@@ -355,3 +355,8 @@ export type InferredFieldOptionKeys<
     ? keyof Options
     : never
   : never;
+
+export type RemovableInferredFieldOptionKeys = Exclude<
+  InferredFieldOptionKeys,
+  keyof PothosSchemaTypes.FieldOptions
+>;

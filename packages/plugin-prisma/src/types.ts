@@ -4,7 +4,6 @@ import {
   type FieldMap,
   type FieldNullability,
   type FieldOptionsFromKind,
-  type InferredFieldOptionKeys,
   type InferredFieldOptionsByKind,
   type InputFieldMap,
   type InputFieldsFromShape,
@@ -17,6 +16,7 @@ import {
   type ObjectRef,
   type OutputShape,
   type OutputType,
+  type RemovableInferredFieldOptionKeys,
   type SchemaTypes,
   type ShapeFromTypeParam,
   type ShapeWithNullability,
@@ -326,7 +326,7 @@ export type PrismaNodeOptions<
         OutputShape<Types, 'ID'>,
         MaybePromise<OutputShape<Types, 'ID'>>
       >,
-      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+      'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
     > &
       (
         | {
@@ -426,7 +426,7 @@ export type RelatedFieldOptions<
     Args,
     ResolveReturnShape
   >,
-  'description' | 'type' | InferredFieldOptionKeys
+  'description' | 'type' | RemovableInferredFieldOptionKeys
 > & {
   resolve?: (
     query: QueryFromRelation<Model, Field & keyof Model['Include']>,
@@ -473,7 +473,7 @@ export type VariantFieldOptions<
     Args,
     Model['Shape']
   >,
-  InferredFieldOptionKeys | 'type'
+  RemovableInferredFieldOptionKeys | 'type'
 > & {
   isNull?: isNull &
     ((
@@ -491,7 +491,7 @@ export type RelationCountOptions<
   Args extends InputFieldMap,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>,
-  'type' | InferredFieldOptionKeys
+  'type' | RemovableInferredFieldOptionKeys
 > & {
   resolve?: (
     parent: Shape,
@@ -528,7 +528,7 @@ export type PrismaFieldOptions<
   ResolveShape,
   ResolveReturnShape
 > extends infer FieldOptions
-  ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
+  ? Omit<FieldOptions, RemovableInferredFieldOptionKeys | 'type'> & {
       type: Type;
       resolve: FieldOptions extends {
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -640,7 +640,7 @@ export type PrismaConnectionFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'args' | InferredFieldOptionKeys | 'type'
+  'args' | RemovableInferredFieldOptionKeys | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -653,7 +653,7 @@ export type PrismaConnectionFieldOptions<
       Args,
       ResolveReturnShape
     >,
-    InferredFieldOptionKeys | 'type'
+    RemovableInferredFieldOptionKeys | 'type'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
@@ -703,7 +703,7 @@ export type RelatedConnectionOptions<
       (InputFieldMap extends Args ? {} : Args),
     unknown
   >,
-  'args' | 'description' | InferredFieldOptionKeys | 'type'
+  'args' | 'description' | RemovableInferredFieldOptionKeys | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -716,7 +716,7 @@ export type RelatedConnectionOptions<
       Args,
       unknown
     >,
-    InferredFieldOptionKeys | 'type'
+    RemovableInferredFieldOptionKeys | 'type'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs

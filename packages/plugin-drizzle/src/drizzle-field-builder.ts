@@ -3,7 +3,6 @@ import {
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
-  type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
   isThenable,
@@ -12,6 +11,7 @@ import {
   ObjectRef,
   type PluginName,
   PothosSchemaError,
+  type RemovableInferredFieldOptionKeys,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -455,7 +455,7 @@ export class DrizzleObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'nullable' | 'select' | InferredFieldOptionKeys
+            'nullable' | 'select' | RemovableInferredFieldOptionKeys
           >,
       ]
     >
@@ -501,7 +501,7 @@ export class DrizzleObjectFieldBuilder<
                 {},
                 ResolveReturnShape
               >,
-              'nullable' | 'select' | 'type' | InferredFieldOptionKeys
+              'nullable' | 'select' | 'type' | RemovableInferredFieldOptionKeys
             > & {
               description?: string | false;
             },

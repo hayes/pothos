@@ -2,12 +2,11 @@ import type {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
-  FieldRef,
-  InferredFieldOptionKeys,
   InputFieldMap,
   InputShapeFromFields,
   MaybePromise,
   Normalize,
+  RemovableInferredFieldOptionKeys,
   Resolver,
   RootName,
   SchemaTypes,
@@ -166,7 +165,7 @@ declare global {
               ResolveShape,
               ResolveReturnShape
             >,
-            InferredFieldOptionKeys
+            RemovableInferredFieldOptionKeys
           > & {
             authScopes: Scopes;
             resolve: Resolver<

@@ -5,7 +5,6 @@ import {
   type FieldMap,
   type FieldNullability,
   type FieldOptionsFromKind,
-  type InferredFieldOptionKeys,
   type InferredFieldOptionsByKind,
   type InputFieldMap,
   type InputFieldsFromShape,
@@ -21,6 +20,7 @@ import {
   type ObjectTypeOptions,
   type OutputShape,
   type OutputType,
+  type RemovableInferredFieldOptionKeys,
   type SchemaTypes,
   type ShapeFromTypeParam,
   type TypeParam,
@@ -151,7 +151,7 @@ export type DrizzleNodeOptions<
         OutputShape<Types, 'ID'>,
         MaybePromise<OutputShape<Types, 'ID'>>
       >,
-      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+      'args' | 'nullable' | 'type' | RemovableInferredFieldOptionKeys
     > & {
       column: IDColumns &
         (
@@ -210,7 +210,7 @@ export type DrizzleFieldOptions<
     ResolveShape,
     ResolveReturnShape
   >,
-  'type' | InferredFieldOptionKeys
+  'type' | RemovableInferredFieldOptionKeys
 > & {
   type: Param;
   resolve: (
@@ -358,7 +358,7 @@ export type RelatedFieldOptions<
     },
     ResolveReturnShape
   >,
-  'description' | 'select' | 'type' | InferredFieldOptionKeys
+  'description' | 'select' | 'type' | RemovableInferredFieldOptionKeys
 > & {
   description?: string | false;
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -388,7 +388,7 @@ export type VariantFieldOptions<
     ResolveShape,
     ResolveReturnShape
   >,
-  InferredFieldOptionKeys | 'type'
+  RemovableInferredFieldOptionKeys | 'type'
 > & {
   isNull?: isNull &
     ((
@@ -517,7 +517,7 @@ export type DrizzleConnectionFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'args' | 'type' | InferredFieldOptionKeys
+  'args' | 'type' | RemovableInferredFieldOptionKeys
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -530,7 +530,7 @@ export type DrizzleConnectionFieldOptions<
       Args,
       ResolveReturnShape
     >,
-    'type' | InferredFieldOptionKeys
+    'type' | RemovableInferredFieldOptionKeys
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
@@ -578,7 +578,7 @@ export type RelatedConnectionOptions<
       (InputFieldMap extends Args ? {} : Args),
     unknown
   >,
-  'args' | 'type' | InferredFieldOptionKeys
+  'args' | 'type' | RemovableInferredFieldOptionKeys
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -591,7 +591,7 @@ export type RelatedConnectionOptions<
       Args,
       unknown
     >,
-    'type' | InferredFieldOptionKeys
+    'type' | RemovableInferredFieldOptionKeys
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
