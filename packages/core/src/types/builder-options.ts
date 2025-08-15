@@ -165,6 +165,25 @@ export type FieldOptionsFromKind<
   ResolveReturnShape
 >[Kind];
 
+export type BaseFieldOptionsFromKind<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  Kind extends FieldKind,
+  ResolveShape,
+  ResolveReturnShape,
+> = PothosSchemaTypes.BaseFieldOptionsByKind<
+  Types,
+  ParentShape,
+  Type,
+  Nullable,
+  Args,
+  ResolveShape,
+  ResolveReturnShape
+>[Kind];
+
 export type ObjectTypeOptions<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
