@@ -37,7 +37,8 @@ schemaBuilderProto.drizzleObject = function drizzleObject(table, { select, field
       ...options.extensions,
       pothosDrizzleModel: table,
       pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
-      pothosDrizzleSelect: select ?? true,
+      pothosDrizzleSelect:
+        typeof select === 'object' ? { columns: {}, ...select } : (select ?? true),
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
     },
     name,
@@ -65,7 +66,8 @@ schemaBuilderProto.drizzleInterface = function drizzleInterface(
       ...options.extensions,
       pothosDrizzleModel: table,
       pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
-      pothosDrizzleSelect: select ?? true,
+      pothosDrizzleSelect:
+        typeof select === 'object' ? { columns: {}, ...select } : (select ?? true),
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
     },
     name,

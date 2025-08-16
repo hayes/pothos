@@ -273,8 +273,11 @@ export type DrizzleObjectFieldOptions<
         : BuildQueryResult<
             Types['DrizzleRelationsConfig'],
             ExtractTable<Types, ParentShape>,
-            // biome-ignore lint/suspicious/noExplicitAny: this is fine
-            Record<string, unknown> & (Select extends (...args: any[]) => infer R ? R : Select)
+            Record<string, unknown> &
+              // biome-ignore lint/suspicious/noExplicitAny: this is fine
+              Select extends (...args: any[]) => infer R
+              ? R & { columns: {} }
+              : Select & { columns: {} }
           > &
             ParentShape,
       typeof drizzleTableName
@@ -401,7 +404,9 @@ export type VariantFieldOptions<
                 ExtractTable<Types, Shape>,
                 Record<string, unknown> &
                   // biome-ignore lint/suspicious/noExplicitAny: this is fine
-                  (ResolveShape extends (...args: any[]) => infer R ? R : ResolveShape)
+                  ResolveShape extends (...args: any[]) => infer R
+                  ? R & { columns: {} }
+                  : ResolveShape & { columns: {} }
               > &
                 Shape,
           typeof drizzleTableName
