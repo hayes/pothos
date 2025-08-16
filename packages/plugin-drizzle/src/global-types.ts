@@ -78,7 +78,7 @@ declare global {
         Shape = BuildQueryResult<
           Types['DrizzleRelationsConfig'],
           Types['DrizzleRelationsConfig'][Table],
-          Selection
+          true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
         table: Table,
@@ -98,7 +98,7 @@ declare global {
         Shape = BuildQueryResult<
           Types['DrizzleRelationsConfig'],
           Types['DrizzleRelationsConfig'][Table],
-          Selection
+          true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
         table: Table,
@@ -120,7 +120,7 @@ declare global {
             Shape = BuildQueryResult<
               Types['DrizzleRelationsConfig'],
               Types['DrizzleRelationsConfig'][Table],
-              Selection
+              true extends Selection ? true : Selection & { columns: {} }
             >,
           >(
             table: Table,

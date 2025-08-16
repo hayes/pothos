@@ -126,7 +126,7 @@ export function mergeSelection(
     extras,
     columns,
     ...query
-  } = typeof selection === 'boolean' ? {} : selection;
+  } = typeof selection === 'boolean' ? (selection === true ? {} : { columns: {} }) : selection;
   if (withSelection) {
     for (const [key, value] of Object.entries(withSelection)) {
       const relation = state.table.relations[key];
@@ -155,11 +155,11 @@ export function mergeSelection(
     return;
   }
 
-  if (columns) {
+  if (columns && !state.allColumns) {
     for (const key of Object.keys(columns)) {
       state.columns.add(key);
     }
-  } else if (selection === true) {
+  } else {
     state.allColumns = true;
   }
 
