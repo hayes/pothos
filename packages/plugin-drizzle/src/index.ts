@@ -121,13 +121,18 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
                   args: {},
                   ctx: Types['Context'],
                   nestedQuery: (query: unknown, path?: string[]) => never,
-                ) =>
-                  (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {})(
+                ) => ({
+                  columns: {},
+                  ...(select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {})(
                     args,
                     ctx,
                     nestedQuery,
-                  )
-              : select,
+                  ),
+                })
+              : {
+                  columns: {},
+                  ...select,
+                },
         },
       };
     }
