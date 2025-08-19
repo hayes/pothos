@@ -13,7 +13,7 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { PothosPrismaPlugin } from '.';
+import type { PothosPrismaPlugin, PrismaBaseObjectFieldOptions } from '.';
 import type { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import type { PrismaNodeRef } from './node-ref';
 import type { PrismaObjectRef, prismaModelKey } from './object-ref';
@@ -95,6 +95,26 @@ declare global {
       ResolveReturnShape,
     > {
       PrismaObject: PrismaObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveShape,
+        ResolveReturnShape
+      >;
+    }
+
+    export interface BaseFieldOptionsByKind<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape,
+    > {
+      PrismaObject: PrismaBaseObjectFieldOptions<
         Types,
         ParentShape,
         Type,

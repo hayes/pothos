@@ -80,6 +80,34 @@ declare global {
       >;
     }
 
+    export interface BaseFieldOptionsByKind<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape,
+    > {
+      SimpleObject: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
+      >;
+
+      SimpleInterface: InterfaceFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
+      >;
+    }
+
     export type SimpleObjectTypeOptions<
       Types extends SchemaTypes,
       Interfaces extends InterfaceParam<Types>[],
