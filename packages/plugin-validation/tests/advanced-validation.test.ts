@@ -11,9 +11,9 @@ describe('Advanced Validation', () => {
       const validQuery = gql`
         query {
           chainedArgTransforms(
-            numericId: "123", 
-            price: "99.99", 
-            isActive: "true", 
+            numericId: "123",
+            price: "99.99",
+            isActive: "true",
             tags: "tag1,tag2"
           )
         }
@@ -38,9 +38,9 @@ describe('Advanced Validation', () => {
       const invalidQuery = gql`
         query {
           chainedArgTransforms(
-            numericId: "0", 
-            price: "50.00", 
-            isActive: "no", 
+            numericId: "0",
+            price: "50.00",
+            isActive: "no",
             tags: "test"
           )
         }
@@ -693,8 +693,8 @@ describe('Advanced Validation', () => {
 
       const nestedFailQuery = gql`
         query {
-          createUserWithAddress(user: { 
-            username: "taken", 
+          createUserWithAddress(user: {
+            username: "taken",
             address: { zipCode: "00000" }
           })
         }

@@ -3,6 +3,7 @@ import builder from '../builder';
 import {
   AsyncChainedInput,
   ChainedTransformInput,
+  GeoWithinInput,
   InputFieldTransformTest,
   NestedObjectListInput,
   SoloNestedInput,
@@ -162,6 +163,16 @@ builder.queryField('withSchemaInput', (t) =>
     nullable: true,
     args: {
       input: t.arg({ type: WithSchemaInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('withSchemaInputArray', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      inputs: t.arg({ type: [WithSchemaInput], required: true }),
     },
     resolve: () => true,
   }),
@@ -454,6 +465,30 @@ builder.queryField('inputFieldTransformTest', (t) =>
     },
     resolve: (_parent, args) => {
       return args.input?.counter ?? 0;
+    },
+  }),
+);
+
+// Query field for testing nested array validation issue (Issue #1504)
+builder.queryField('geoWithin', (t) =>
+  t.string({
+    args: {
+      within: t.arg({
+        type: GeoWithinInput,
+        description: 'Geospatial area to filter assets by.',
+      }),
+    },
+    resolve: (_parent, args) => {
+      // This tests validation of nested arrays of PointInput
+      const result = {
+        type: args.within?.type,
+        polygonPointsCount: args.within?.polygon?.length,
+        multiPolygonCount: args.within?.multiPolygon?.length,
+        // Log the actual polygon data to verify validation is working
+        polygonData: args.within?.polygon,
+        multiPolygonData: args.within?.multiPolygon,
+      };
+      return JSON.stringify(result);
     },
   }),
 );

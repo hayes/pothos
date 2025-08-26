@@ -170,12 +170,14 @@ describe('createInputValueMapper', () => {
     | {
         kind: 'Scalar';
         isList: boolean;
+        listDepth: number;
         config: Record<string, unknown>;
         value: unknown;
       }
     | {
         kind: 'InputObject';
         isList: boolean;
+        listDepth: number;
         config: Record<string, unknown>;
         value: unknown | null;
         fields: {
@@ -186,14 +188,20 @@ describe('createInputValueMapper', () => {
     | {
         kind: 'Enum';
         isList: boolean;
+        listDepth: number;
         config: Record<string, unknown>;
         value: unknown;
       };
 
   // Helper to create mock mappings
-  const createScalarMapping = (value: unknown, isList = false): TestInputFieldMapping => ({
+  const createScalarMapping = (
+    value: unknown,
+    isList = false,
+    listDepth = 1,
+  ): TestInputFieldMapping => ({
     kind: 'Scalar',
     isList,
+    listDepth: isList ? listDepth : 0,
     config: {},
     value,
   });
@@ -202,9 +210,11 @@ describe('createInputValueMapper', () => {
     value: unknown,
     fields: Record<string, TestInputFieldMapping>,
     isList = false,
+    listDepth = 1,
   ): TestInputFieldMapping => ({
     kind: 'InputObject',
     isList,
+    listDepth: isList ? listDepth : 0,
     config: {},
     value,
     fields: {
@@ -220,13 +230,17 @@ describe('createInputValueMapper', () => {
         ['age', createScalarMapping('number')],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val, field) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'string') {
-          return String(val).toUpperCase();
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'string') {
+            return String(val).toUpperCase();
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({ name: 'john', age: 30 });
       expect(result).toEqual({
@@ -241,7 +255,11 @@ describe('createInputValueMapper', () => {
         ['age', createScalarMapping('number')],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val) => val);
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val) => val,
+        (val) => val,
+      );
 
       const result = mapper({ name: null, age: undefined });
       expect(result).toEqual({
@@ -255,13 +273,17 @@ describe('createInputValueMapper', () => {
         ['email', createScalarMapping('email')],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val, field, addIssues) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'email' && !String(val).includes('@')) {
-          addIssues([{ message: 'Invalid email' } as StandardSchemaV1.Issue]);
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field, addIssues) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'email' && !String(val).includes('@')) {
+            addIssues([{ message: 'Invalid email' } as StandardSchemaV1.Issue]);
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({ email: 'not-an-email' });
       expect(result).toEqual({
@@ -282,13 +304,17 @@ describe('createInputValueMapper', () => {
         ['address', createInputObjectMapping(null, addressFields)],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val, field) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'string') {
-          return String(val).toUpperCase();
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'string') {
+            return String(val).toUpperCase();
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({
         name: 'john',
@@ -319,13 +345,17 @@ describe('createInputValueMapper', () => {
         ['address', createInputObjectMapping(null, addressFields)],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val, field, addIssues) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'zip' && String(val).length !== 5) {
-          addIssues([{ message: 'Zip code must be 5 digits' } as StandardSchemaV1.Issue]);
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field, addIssues) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'zip' && String(val).length !== 5) {
+            addIssues([{ message: 'Zip code must be 5 digits' } as StandardSchemaV1.Issue]);
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({
         address: { zipCode: '123' },
@@ -354,6 +384,7 @@ describe('createInputValueMapper', () => {
           {
             kind: 'InputObject',
             isList: true,
+            listDepth: 1,
             config: {},
             value: null,
             fields: {
@@ -364,13 +395,17 @@ describe('createInputValueMapper', () => {
         ],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val, field) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'string') {
-          return String(val).toUpperCase();
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'string') {
+            return String(val).toUpperCase();
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({
         items: [{ name: 'item1' }, { name: 'item2' }],
@@ -395,6 +430,7 @@ describe('createInputValueMapper', () => {
           {
             kind: 'InputObject',
             isList: true,
+            listDepth: 1,
             config: {},
             value: null,
             fields: {
@@ -405,7 +441,11 @@ describe('createInputValueMapper', () => {
         ],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val) => val);
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val) => val,
+        (val) => val,
+      );
 
       const result = mapper({
         items: [{ name: 'item1' }, null, { name: 'item2' }],
@@ -430,6 +470,7 @@ describe('createInputValueMapper', () => {
           {
             kind: 'InputObject',
             isList: true,
+            listDepth: 1,
             config: {},
             value: null,
             fields: {
@@ -440,13 +481,17 @@ describe('createInputValueMapper', () => {
         ],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val, field, addIssues) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'positive' && Number(val) < 0) {
-          addIssues([{ message: 'Must be positive' } as StandardSchemaV1.Issue]);
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field, addIssues) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'positive' && Number(val) < 0) {
+            addIssues([{ message: 'Must be positive' } as StandardSchemaV1.Issue]);
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({
         numbers: [{ value: 5 }, { value: -3 }, { value: 10 }, { value: -1 }],
@@ -461,20 +506,321 @@ describe('createInputValueMapper', () => {
     });
   });
 
+  describe('nested arrays', () => {
+    it('maps nested arrays of scalars', () => {
+      const mapping = new Map<string, TestInputFieldMapping>([
+        ['matrix', createScalarMapping('number', true, 2)], // 2D array
+      ]);
+
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'number') {
+            return Number(val) * 2;
+          }
+          return val;
+        },
+        (val) => val,
+      );
+
+      const result = mapper({
+        matrix: [
+          [1, 2, 3],
+          [4, 5, 6],
+        ],
+      });
+
+      expect(result).toEqual({
+        value: {
+          matrix: [
+            [2, 4, 6],
+            [8, 10, 12],
+          ],
+        },
+        issues: undefined,
+      });
+    });
+
+    it('maps deeply nested arrays (3D)', () => {
+      const mapping = new Map<string, TestInputFieldMapping>([
+        ['tensor', createScalarMapping('string', true, 3)], // 3D array
+      ]);
+
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'string') {
+            return String(val).toUpperCase();
+          }
+          return val;
+        },
+        (val) => val,
+      );
+
+      const result = mapper({
+        tensor: [
+          [
+            ['a', 'b'],
+            ['c', 'd'],
+          ],
+          [
+            ['e', 'f'],
+            ['g', 'h'],
+          ],
+        ],
+      });
+
+      expect(result).toEqual({
+        value: {
+          tensor: [
+            [
+              ['A', 'B'],
+              ['C', 'D'],
+            ],
+            [
+              ['E', 'F'],
+              ['G', 'H'],
+            ],
+          ],
+        },
+        issues: undefined,
+      });
+    });
+
+    it('validates nested arrays with correct paths', () => {
+      const mapping = new Map<string, TestInputFieldMapping>([
+        ['scores', createScalarMapping('positive', true, 2)], // 2D array of positive numbers
+      ]);
+
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field, addIssues) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'positive' && Number(val) < 0) {
+            addIssues([{ message: 'Must be positive' } as StandardSchemaV1.Issue]);
+          }
+          return val;
+        },
+        (val) => val,
+      );
+
+      const result = mapper({
+        scores: [
+          [10, -5, 20],
+          [30, 40, -2],
+          [-1, 50, 60],
+        ],
+      });
+
+      expect(result).toEqual({
+        issues: [
+          { message: 'Must be positive', path: ['scores', 0, 1] },
+          { message: 'Must be positive', path: ['scores', 1, 2] },
+          { message: 'Must be positive', path: ['scores', 2, 0] },
+        ],
+      });
+    });
+
+    it('handles nested arrays of input objects', () => {
+      const itemMapping = new Map<string, TestInputFieldMapping>([
+        ['name', createScalarMapping('string')],
+        ['value', createScalarMapping('number')],
+      ]);
+
+      const mapping = new Map<string, TestInputFieldMapping>([
+        [
+          'groups',
+          {
+            kind: 'InputObject',
+            isList: true,
+            listDepth: 2, // 2D array of objects
+            config: {},
+            value: null,
+            fields: {
+              configs: {},
+              map: itemMapping,
+            },
+          },
+        ],
+      ]);
+
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'string') {
+            return String(val).toUpperCase();
+          }
+          if (mockField.value === 'number') {
+            return Number(val) * 10;
+          }
+          return val;
+        },
+        (val) => val,
+      );
+
+      const result = mapper({
+        groups: [
+          [
+            { name: 'item1', value: 1 },
+            { name: 'item2', value: 2 },
+          ],
+          [
+            { name: 'item3', value: 3 },
+            { name: 'item4', value: 4 },
+          ],
+        ],
+      });
+
+      expect(result).toEqual({
+        value: {
+          groups: [
+            [
+              { name: 'ITEM1', value: 10 },
+              { name: 'ITEM2', value: 20 },
+            ],
+            [
+              { name: 'ITEM3', value: 30 },
+              { name: 'ITEM4', value: 40 },
+            ],
+          ],
+        },
+        issues: undefined,
+      });
+    });
+
+    it('handles null values in nested arrays', () => {
+      const mapping = new Map<string, TestInputFieldMapping>([
+        ['data', createScalarMapping('string', true, 2)],
+      ]);
+
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val) => val,
+        (val) => val,
+      );
+
+      const result = mapper({
+        data: [['a', null, 'b'], null, ['c', 'd']],
+      });
+
+      expect(result).toEqual({
+        value: {
+          data: [['a', null, 'b'], null, ['c', 'd']],
+        },
+        issues: undefined,
+      });
+    });
+
+    it('applies field validation to the outermost array', () => {
+      const mapping = new Map<string, TestInputFieldMapping>([
+        ['matrix', createScalarMapping('number', true, 2)],
+      ]);
+
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val) => val, // mapType - runs on items
+        (val, _field, addIssues) => {
+          // mapField - runs on the outermost array
+          if (Array.isArray(val) && val.length < 2) {
+            addIssues([{ message: 'Matrix must have at least 2 rows' } as StandardSchemaV1.Issue]);
+          }
+          return val;
+        },
+      );
+
+      const result = mapper({
+        matrix: [[1, 2, 3]], // Only 1 row
+      });
+
+      expect(result).toEqual({
+        issues: [{ message: 'Matrix must have at least 2 rows', path: ['matrix'] }],
+      });
+    });
+
+    it('processes nested arrays with mixed depths', () => {
+      const nestedObjFields = new Map<string, TestInputFieldMapping>([
+        ['tags', createScalarMapping('string', true, 1)], // Array of strings
+      ]);
+
+      const mapping = new Map<string, TestInputFieldMapping>([
+        ['data', createScalarMapping('number', true, 2)], // 2D array of numbers
+        [
+          'metadata',
+          {
+            kind: 'InputObject',
+            isList: false,
+            listDepth: 0,
+            config: {},
+            value: null,
+            fields: {
+              configs: {},
+              map: nestedObjFields,
+            },
+          },
+        ],
+      ]);
+
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'number') {
+            return Number(val) + 1;
+          }
+          if (mockField.value === 'string') {
+            return String(val).toLowerCase();
+          }
+          return val;
+        },
+        (val) => val,
+      );
+
+      const result = mapper({
+        data: [
+          [1, 2],
+          [3, 4],
+        ],
+        metadata: {
+          tags: ['TAG1', 'TAG2', 'TAG3'],
+        },
+      });
+
+      expect(result).toEqual({
+        value: {
+          data: [
+            [2, 3],
+            [4, 5],
+          ],
+          metadata: {
+            tags: ['tag1', 'tag2', 'tag3'],
+          },
+        },
+        issues: undefined,
+      });
+    });
+  });
+
   describe('async mapping', () => {
     it('handles async value transformations', async () => {
       const mapping = new Map<string, TestInputFieldMapping>([
         ['username', createScalarMapping('username')],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, async (val, field) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'username') {
-          await new Promise((resolve) => setTimeout(resolve, 1));
-          return String(val).toLowerCase();
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        async (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'username') {
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            return String(val).toLowerCase();
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = await mapper({ username: 'JOHN_DOE' });
       expect(result).toEqual({
@@ -488,16 +834,20 @@ describe('createInputValueMapper', () => {
         ['username', createScalarMapping('username')],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, async (val, field, addIssues) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'username') {
-          await new Promise((resolve) => setTimeout(resolve, 1));
-          if (val === 'taken') {
-            addIssues([{ message: 'Username is taken' } as StandardSchemaV1.Issue]);
+      const mapper = createInputValueMapper(
+        mapping as never,
+        async (val, field, addIssues) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'username') {
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            if (val === 'taken') {
+              addIssues([{ message: 'Username is taken' } as StandardSchemaV1.Issue]);
+            }
           }
-        }
-        return val;
-      });
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = await mapper({ username: 'taken' });
       expect(result).toEqual({
@@ -516,6 +866,7 @@ describe('createInputValueMapper', () => {
           {
             kind: 'InputObject',
             isList: true,
+            listDepth: 1,
             config: {},
             value: null,
             fields: {
@@ -528,17 +879,21 @@ describe('createInputValueMapper', () => {
 
       const processOrder: number[] = [];
 
-      const mapper = createInputValueMapper(mapping as never, async (val, field) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'async-id') {
-          const id = Number(val);
-          // Different delays to test parallel processing
-          await new Promise((resolve) => setTimeout(resolve, 10 - id));
-          processOrder.push(id);
+      const mapper = createInputValueMapper(
+        mapping as never,
+        async (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'async-id') {
+            const id = Number(val);
+            // Different delays to test parallel processing
+            await new Promise((resolve) => setTimeout(resolve, 10 - id));
+            processOrder.push(id);
+            return val;
+          }
           return val;
-        }
-        return val;
-      });
+        },
+        (val) => val,
+      );
 
       const result = await mapper({
         items: [{ id: 1 }, { id: 2 }, { id: 3 }],
@@ -560,7 +915,11 @@ describe('createInputValueMapper', () => {
   describe('edge cases', () => {
     it('handles empty objects', () => {
       const mapping = new Map<string, TestInputFieldMapping>();
-      const mapper = createInputValueMapper(mapping as never, (val) => val);
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val) => val,
+        (val) => val,
+      );
 
       const result = mapper({});
       expect(result).toEqual({
@@ -574,7 +933,11 @@ describe('createInputValueMapper', () => {
         ['name', createScalarMapping('string')],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val) => val);
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val) => val,
+        (val) => val,
+      );
 
       const result = mapper({
         name: 'john',
@@ -601,25 +964,29 @@ describe('createInputValueMapper', () => {
       let emailProcessed = false;
       let ageProcessed = false;
 
-      const mapper = createInputValueMapper(mapping as never, (val, field, addIssues) => {
-        const mockField = field as unknown as TestInputFieldMapping;
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field, addIssues) => {
+          const mockField = field as unknown as TestInputFieldMapping;
 
-        if (mockField.value === 'email') {
-          emailProcessed = true;
-          if (!String(val).includes('@')) {
-            addIssues([{ message: 'Invalid email format' } as StandardSchemaV1.Issue]);
+          if (mockField.value === 'email') {
+            emailProcessed = true;
+            if (!String(val).includes('@')) {
+              addIssues([{ message: 'Invalid email format' } as StandardSchemaV1.Issue]);
+            }
           }
-        }
 
-        if (mockField.value === 'positive') {
-          ageProcessed = true;
-          if (Number(val) < 0) {
-            addIssues([{ message: 'Must be positive' } as StandardSchemaV1.Issue]);
+          if (mockField.value === 'positive') {
+            ageProcessed = true;
+            if (Number(val) < 0) {
+              addIssues([{ message: 'Must be positive' } as StandardSchemaV1.Issue]);
+            }
           }
-        }
 
-        return val;
-      });
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({ email: 'invalid', age: -5 });
 
@@ -651,13 +1018,17 @@ describe('createInputValueMapper', () => {
         ['root', createInputObjectMapping(null, level1Fields)],
       ]);
 
-      const mapper = createInputValueMapper(mapping as never, (val, field) => {
-        const mockField = field as unknown as TestInputFieldMapping;
-        if (mockField.value === 'string') {
-          return String(val).toUpperCase();
-        }
-        return val;
-      });
+      const mapper = createInputValueMapper(
+        mapping as never,
+        (val, field) => {
+          const mockField = field as unknown as TestInputFieldMapping;
+          if (mockField.value === 'string') {
+            return String(val).toUpperCase();
+          }
+          return val;
+        },
+        (val) => val,
+      );
 
       const result = mapper({
         root: {

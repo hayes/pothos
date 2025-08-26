@@ -17,6 +17,7 @@ export type InputFieldMapping<Types extends SchemaTypes, T> =
   | {
       kind: 'Enum';
       isList: boolean;
+      listDepth: number;
       config: PothosInputFieldConfig<Types>;
       value: T;
     }
@@ -24,12 +25,14 @@ export type InputFieldMapping<Types extends SchemaTypes, T> =
       kind: 'InputObject';
       config: PothosInputFieldConfig<Types>;
       isList: boolean;
+      listDepth: number;
       value: T | null;
       fields: InputTypeFieldsMapping<Types, T>;
     }
   | {
       kind: 'Scalar';
       isList: boolean;
+      listDepth: number;
       config: PothosInputFieldConfig<Types>;
       value: T;
     };
@@ -85,10 +88,12 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         return;
       }
 
-      const hasNestedMappings = checkForMappings(mapping.fields.map!, hasMappings);
+      const hasNestedMappings = mapping.fields.map
+        ? checkForMappings(mapping.fields.map, hasMappings)
+        : false;
 
       if (mapping.value !== null || hasNestedMappings) {
-        const filteredTypeFields = filterMapped(mapping.fields.map!);
+        const filteredTypeFields = mapping.fields.map ? filterMapped(mapping.fields.map) : null;
         const mappingForType = {
           ...mapping,
           fields: {
@@ -151,6 +156,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
         map.set(fieldName, {
           kind: typeConfig.kind,
           isList: inputField.type.kind === 'List',
+          listDepth: getListDepth(inputField.type),
           config: inputField,
           value: fieldMapping,
         });
@@ -179,6 +185,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
     map.set(fieldName, {
       kind: typeConfig.kind,
       isList: inputField.type.kind === 'List',
+      listDepth: getListDepth(inputField.type),
       config: inputField,
       value: fieldMapping,
       fields: typeFields,
@@ -207,24 +214,52 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
       }
 
       if (field.kind === 'InputObject' && field.fields.map) {
-        fieldVal = field.isList
-          ? (fieldVal as (Record<string, unknown> | null)[]).map(
-              (val) => val && mapObject(val, field.fields.map!, ...args),
-            )
-          : mapObject(fieldVal as Record<string, unknown>, field.fields.map, ...args);
+        fieldVal = mapListValue(
+          fieldVal,
+          field.listDepth,
+          (val) => val && mapObject(val, field.fields.map!, ...args),
+        );
 
         mapped[fieldName] = fieldVal;
       }
 
       if (field.kind !== 'InputObject' || field.value !== null) {
-        mapped[fieldName] = field.isList
-          ? (fieldVal as unknown[]).map((val) =>
-              val == null ? val : mapValue(val, field, ...args),
-            )
-          : mapValue(fieldVal, field, ...args);
+        mapped[fieldName] = mapListValue(fieldVal, field.listDepth, (val) =>
+          val == null ? val : mapValue(val, field, ...args),
+        );
       }
     });
 
     return mapped;
   };
+}
+
+function getListDepth<Types extends SchemaTypes>(type: PothosInputFieldType<Types>): number {
+  let depth = 0;
+  let current = type;
+
+  while (current.kind === 'List') {
+    depth++;
+    current = current.type;
+  }
+
+  return depth;
+}
+
+function mapListValue(
+  value: unknown,
+  listDepth: number,
+  mapper: (val: unknown) => unknown,
+): unknown {
+  if (listDepth === 0) {
+    return mapper(value);
+  }
+
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.map((item) =>
+    listDepth > 1 ? mapListValue(item, listDepth - 1, mapper) : mapper(item),
+  );
 }

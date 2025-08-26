@@ -115,6 +115,48 @@ export const ChainedTransformInput = builder.inputType('ChainedTransformInput', 
   }),
 });
 
+// Input types for testing nested array validation issue (Issue #1504)
+export const PointInput = builder
+  .inputType('PointInput', {
+    fields: (t) => ({
+      lat: t.float({
+        description: 'Latitude of the point',
+        required: true,
+      }),
+      lng: t.float({
+        description: 'Longitude of the point',
+        required: true,
+      }),
+    }),
+  })
+  .validate(
+    zod.object({
+      lat: zod.number().min(-90).max(90),
+      lng: zod.number().min(-180).max(180),
+    }),
+  );
+
+// Enum for GeoJSON types
+export const GeoJsonTypeEnum = builder.enumType('GeoJsonType', {
+  values: ['Polygon', 'MultiPolygon'] as const,
+});
+
+export const GeoWithinInput = builder.inputType('GeoWithinInput', {
+  fields: (t) => ({
+    type: t.field({
+      type: GeoJsonTypeEnum,
+      description: 'Type of GeoJSON object.',
+      required: true,
+    }),
+    polygon: t.field({
+      type: t.listRef(t.listRef(PointInput)), // [[PointInput]]
+    }),
+    multiPolygon: t.field({
+      type: t.listRef(t.listRef(t.listRef(PointInput))), // [[[PointInput]]]
+    }),
+  }),
+});
+
 // Input demonstrating async transformations and validations
 export const AsyncChainedInput = builder.inputType('AsyncChainedInput', {
   fields: (t) => ({
