@@ -51,10 +51,8 @@ describe('reduceMaybeAsync', () => {
     it('handles mixed sync and async operations', async () => {
       const result = await reduceMaybeAsync([1, 2, 3, 4], 0, (acc, val, i) => {
         if (i % 2 === 0) {
-          // Sync for even indices
-          return acc + val;
+            return acc + val;
         }
-        // Async for odd indices
         return Promise.resolve(acc + val);
       });
 
@@ -81,13 +79,11 @@ describe('reduceMaybeAsync', () => {
       const order: number[] = [];
 
       await reduceMaybeAsync([1, 2, 3], 0, async (acc, val, i) => {
-        // Different delays to test ordering
         await new Promise((resolve) => setTimeout(resolve, 3 - i));
         order.push(val);
         return acc + val;
       });
 
-      // Should process in order despite different delays
       expect(order).toEqual([1, 2, 3]);
     });
 
@@ -165,7 +161,6 @@ describe('reduceMaybeAsync', () => {
 });
 
 describe('createInputValueMapper', () => {
-  // Helper types to simulate the real InputFieldMapping structure
   type TestInputFieldMapping =
     | {
         kind: 'Scalar';
@@ -193,7 +188,6 @@ describe('createInputValueMapper', () => {
         value: unknown;
       };
 
-  // Helper to create mock mappings
   const createScalarMapping = (
     value: unknown,
     isList = false,
@@ -509,7 +503,7 @@ describe('createInputValueMapper', () => {
   describe('nested arrays', () => {
     it('maps nested arrays of scalars', () => {
       const mapping = new Map<string, TestInputFieldMapping>([
-        ['matrix', createScalarMapping('number', true, 2)], // 2D array
+        ['matrix', createScalarMapping('number', true, 2)],
       ]);
 
       const mapper = createInputValueMapper(
@@ -544,7 +538,7 @@ describe('createInputValueMapper', () => {
 
     it('maps deeply nested arrays (3D)', () => {
       const mapping = new Map<string, TestInputFieldMapping>([
-        ['tensor', createScalarMapping('string', true, 3)], // 3D array
+        ['tensor', createScalarMapping('string', true, 3)],
       ]);
 
       const mapper = createInputValueMapper(
@@ -591,7 +585,7 @@ describe('createInputValueMapper', () => {
 
     it('validates nested arrays with correct paths', () => {
       const mapping = new Map<string, TestInputFieldMapping>([
-        ['scores', createScalarMapping('positive', true, 2)], // 2D array of positive numbers
+        ['scores', createScalarMapping('positive', true, 2)],
       ]);
 
       const mapper = createInputValueMapper(
@@ -635,7 +629,7 @@ describe('createInputValueMapper', () => {
           {
             kind: 'InputObject',
             isList: true,
-            listDepth: 2, // 2D array of objects
+            listDepth: 2,
             config: {},
             value: null,
             fields: {
@@ -721,9 +715,8 @@ describe('createInputValueMapper', () => {
 
       const mapper = createInputValueMapper(
         mapping as never,
-        (val) => val, // mapType - runs on items
+        (val) => val,
         (val, _field, addIssues) => {
-          // mapField - runs on the outermost array
           if (Array.isArray(val) && val.length < 2) {
             addIssues([{ message: 'Matrix must have at least 2 rows' } as StandardSchemaV1.Issue]);
           }
@@ -732,7 +725,7 @@ describe('createInputValueMapper', () => {
       );
 
       const result = mapper({
-        matrix: [[1, 2, 3]], // Only 1 row
+        matrix: [[1, 2, 3]],
       });
 
       expect(result).toEqual({
@@ -742,11 +735,11 @@ describe('createInputValueMapper', () => {
 
     it('processes nested arrays with mixed depths', () => {
       const nestedObjFields = new Map<string, TestInputFieldMapping>([
-        ['tags', createScalarMapping('string', true, 1)], // Array of strings
+        ['tags', createScalarMapping('string', true, 1)],
       ]);
 
       const mapping = new Map<string, TestInputFieldMapping>([
-        ['data', createScalarMapping('number', true, 2)], // 2D array of numbers
+        ['data', createScalarMapping('number', true, 2)],
         [
           'metadata',
           {
@@ -885,7 +878,6 @@ describe('createInputValueMapper', () => {
           const mockField = field as unknown as TestInputFieldMapping;
           if (mockField.value === 'async-id') {
             const id = Number(val);
-            // Different delays to test parallel processing
             await new Promise((resolve) => setTimeout(resolve, 10 - id));
             processOrder.push(id);
             return val;
@@ -906,8 +898,6 @@ describe('createInputValueMapper', () => {
         issues: undefined,
       });
 
-      // Items should be processed in parallel (potentially out of order)
-      // but result should maintain original order
       expect(processOrder.length).toBe(3);
     });
   });
@@ -941,8 +931,8 @@ describe('createInputValueMapper', () => {
 
       const result = mapper({
         name: 'john',
-        age: 30, // Not in mapping
-        extra: 'data', // Not in mapping
+        age: 30,
+        extra: 'data',
       });
 
       expect(result).toEqual({
@@ -990,12 +980,9 @@ describe('createInputValueMapper', () => {
 
       const result = mapper({ email: 'invalid', age: -5 });
 
-      // First field is processed
       expect(emailProcessed).toBe(true);
-      // Second field is not processed because first had issues
       expect(ageProcessed).toBe(false);
 
-      // Only the first validation issue is collected
       expect(result).toEqual({
         issues: [{ message: 'Invalid email format', path: ['email'] }],
       });

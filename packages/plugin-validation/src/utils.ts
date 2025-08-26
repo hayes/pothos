@@ -77,7 +77,6 @@ export function createArgsValidator<Types extends SchemaTypes>(
           throw options.validationError(mapped, args, context, info);
         }
 
-        // Normalize argsSchemas to array
         const schemasArray = Array.isArray(argsSchemas)
           ? argsSchemas
           : argsSchemas
@@ -90,7 +89,6 @@ export function createArgsValidator<Types extends SchemaTypes>(
 
         const issues: StandardSchemaV1.Issue[] = [];
 
-        // Validate through all schemas sequentially
         const validated = reduceMaybeAsync(schemasArray, mapped.value, (val, schema) =>
           completeValue(schema['~standard'].validate(val), (result) => {
             if (result.issues) {
@@ -235,7 +233,7 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
                       promises.push(
                         completeValue(result, (newVal) => {
                           arr[i] = newVal;
-                        }),
+                        }) as Promise<unknown>,
                       );
                     }
 
