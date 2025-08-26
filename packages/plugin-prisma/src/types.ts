@@ -1,10 +1,9 @@
 import {
   type ArgumentRef,
+  type BaseFieldOptionsFromKind,
   type FieldKind,
   type FieldMap,
   type FieldNullability,
-  type FieldOptionsFromKind,
-  type InferredFieldOptionKeys,
   type InferredFieldOptionsByKind,
   type InputFieldMap,
   type InputFieldsFromShape,
@@ -73,6 +72,39 @@ type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends 
     : never
   : never;
 
+export type PrismaBaseObjectFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  Select,
+  ResolveReturnShape,
+  Shape = unknown extends Select
+    ? ParentShape
+    : ParentShape &
+        ShapeFromSelection<
+          Types,
+          ExtractModel<Types, ParentShape>,
+          // biome-ignore lint/suspicious/noExplicitAny: this is fine
+          { select: Select extends (...args: any[]) => infer S ? S : Select }
+        >,
+> = PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Nullable, Args, ResolveReturnShape> & {
+  select?: Select &
+    (
+      | ExtractModel<Types, ParentShape>['Select']
+      | ((
+          args: InputShapeFromFields<Args>,
+          ctx: Types['Context'],
+          nestedSelection: <Selection extends boolean | {}>(
+            selection?: Selection,
+            path?: string[],
+            type?: string,
+          ) => Selection,
+        ) => ExtractModel<Types, ParentShape>['Select'])
+    );
+};
+
 export type PrismaObjectFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -90,7 +122,16 @@ export type PrismaObjectFieldOptions<
           // biome-ignore lint/suspicious/noExplicitAny: this is fine
           { select: Select extends (...args: any[]) => infer S ? S : Select }
         >,
-> = PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Nullable, Args, ResolveReturnShape> &
+> = PrismaBaseObjectFieldOptions<
+  Types,
+  ParentShape,
+  Type,
+  Nullable,
+  Args,
+  Select,
+  ResolveReturnShape,
+  Shape
+> &
   InferredFieldOptionsByKind<
     Types,
     Types['InferredFieldOptionsKind'],
@@ -99,21 +140,7 @@ export type PrismaObjectFieldOptions<
     Nullable,
     Args,
     ResolveReturnShape
-  > & {
-    select?: Select &
-      (
-        | ExtractModel<Types, ParentShape>['Select']
-        | ((
-            args: InputShapeFromFields<Args>,
-            ctx: Types['Context'],
-            nestedSelection: <Selection extends boolean | {}>(
-              selection?: Selection,
-              path?: string[],
-              type?: string,
-            ) => Selection,
-          ) => ExtractModel<Types, ParentShape>['Select'])
-      );
-  };
+  >;
 
 type PrismaObjectFieldsShape<
   Types extends SchemaTypes,
@@ -316,7 +343,7 @@ export type PrismaNodeOptions<
         findUnique: (id: string, context: Types['Context']) => Model['WhereUnique'];
       }) & {
     id: Omit<
-      FieldOptionsFromKind<
+      BaseFieldOptionsFromKind<
         Types,
         Shape,
         'ID',
@@ -326,7 +353,7 @@ export type PrismaNodeOptions<
         OutputShape<Types, 'ID'>,
         MaybePromise<OutputShape<Types, 'ID'>>
       >,
-      'args' | 'nullable' | 'type' | InferredFieldOptionKeys
+      'args' | 'nullable' | 'type'
     > &
       (
         | {
@@ -426,7 +453,7 @@ export type RelatedFieldOptions<
     Args,
     ResolveReturnShape
   >,
-  'description' | 'type' | InferredFieldOptionKeys
+  'description' | 'type'
 > & {
   resolve?: (
     query: QueryFromRelation<Model, Field & keyof Model['Include']>,
@@ -473,7 +500,7 @@ export type VariantFieldOptions<
     Args,
     Model['Shape']
   >,
-  InferredFieldOptionKeys | 'type'
+  'type'
 > & {
   isNull?: isNull &
     ((
@@ -489,10 +516,7 @@ export type RelationCountOptions<
   Shape,
   Where,
   Args extends InputFieldMap,
-> = Omit<
-  PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>,
-  'type' | InferredFieldOptionKeys
-> & {
+> = Omit<PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>, 'type'> & {
   resolve?: (
     parent: Shape,
     args: InputShapeFromFields<Args>,
@@ -518,7 +542,7 @@ export type PrismaFieldOptions<
   ResolveShape,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
-> = FieldOptionsFromKind<
+> = BaseFieldOptionsFromKind<
   Types,
   ParentShape,
   Param,
@@ -528,7 +552,7 @@ export type PrismaFieldOptions<
   ResolveShape,
   ResolveReturnShape
 > extends infer FieldOptions
-  ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
+  ? Omit<FieldOptions, 'type'> & {
       type: Type;
       resolve: FieldOptions extends {
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -629,7 +653,7 @@ export type PrismaConnectionFieldOptions<
   ResolveReturnShape,
   Kind extends FieldKind,
 > = Omit<
-  FieldOptionsFromKind<
+  BaseFieldOptionsFromKind<
     Types,
     ParentShape,
     Param,
@@ -640,7 +664,7 @@ export type PrismaConnectionFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'args' | InferredFieldOptionKeys | 'type'
+  'args' | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -653,7 +677,7 @@ export type PrismaConnectionFieldOptions<
       Args,
       ResolveReturnShape
     >,
-    InferredFieldOptionKeys | 'type'
+    'resolve' | 'type'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
@@ -703,7 +727,7 @@ export type RelatedConnectionOptions<
       (InputFieldMap extends Args ? {} : Args),
     unknown
   >,
-  'args' | 'description' | InferredFieldOptionKeys | 'type'
+  'args' | 'description' | 'type'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -716,7 +740,7 @@ export type RelatedConnectionOptions<
       Args,
       unknown
     >,
-    InferredFieldOptionKeys | 'type'
+    'resolve' | 'type'
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs

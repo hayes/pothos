@@ -26,6 +26,7 @@ import type { DrizzleInterfaceRef, DrizzleRef } from './interface-ref';
 import type { DrizzleNodeRef } from './node-ref';
 import type { DrizzleObjectRef, drizzleTableKey } from './object-ref';
 import type {
+  DrizzleBaseObjectFieldOptions,
   DrizzleConnectionFieldOptions,
   DrizzleConnectionShape,
   DrizzleFieldOptions,
@@ -241,6 +242,26 @@ declare global {
 
     export interface PothosKindToGraphQLType {
       DrizzleObject: 'Object';
+    }
+
+    export interface BaseFieldOptionsByKind<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape,
+    > {
+      DrizzleObject: DrizzleBaseObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveShape,
+        ResolveReturnShape
+      >;
     }
 
     export interface FieldOptionsByKind<

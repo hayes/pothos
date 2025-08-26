@@ -89,6 +89,43 @@ declare global {
       };
     }
 
+    export interface BaseFieldOptionsByKind<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape,
+    > {
+      ExtendedEntity: ObjectFieldOptions<
+        Types,
+        ParentShape & ResolveShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
+      > & {
+        requires?: Selection<ResolveShape & object>;
+      };
+      ExternalEntity: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
+      >;
+      EntityObject: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
+      >;
+    }
+
     export interface SchemaBuilder<Types extends SchemaTypes> {
       externalRef: <
         KeySelection extends Selection<object>,
