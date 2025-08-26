@@ -93,7 +93,7 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
       }
     }
 
-    let validator: zod.ZodTypeAny = zod.object(args).passthrough();
+    let validator: zod.ZodType = zod.looseObject(args);
 
     if (fieldConfig.pothosOptions.validate) {
       validator = refine(validator, fieldConfig.pothosOptions.validate as ValidationOptionUnion);
@@ -139,7 +139,7 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
     optionsOrConstraint: RefineConstraint | ValidationOptionUnion | undefined,
     type: PothosInputFieldType<Types> | null,
     fieldName: string,
-  ): zod.ZodTypeAny {
+  ): zod.ZodType {
     const options: ValidationOptionUnion | undefined =
       Array.isArray(optionsOrConstraint) || typeof optionsOrConstraint === 'function'
         ? { refine: optionsOrConstraint }
@@ -149,9 +149,7 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
       const typeConfig = this.buildCache.getTypeConfig(type.ref, 'InputObject');
 
       let fieldValidator = refine(
-        zod.lazy(() =>
-          zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).passthrough(),
-        ),
+        zod.lazy(() => zod.looseObject(this.inputFieldValidators.get(typeConfig.name) ?? {})),
         options,
       );
 

@@ -53,7 +53,7 @@ const objectValidations = [...baseValidations, 'type'] as const;
 function validatorCreator<T extends BaseValidationOptions<any>>(
   type: NonNullable<T['type']>,
   validationNames: readonly (keyof T)[],
-  create: (options: T) => zod.ZodTypeAny,
+  create: (options: T) => zod.ZodType,
 ) {
   function check(options: ValidationOptionUnion): options is T {
     if (typeof options !== 'object' || (options.type && options.type !== type)) {
@@ -75,9 +75,9 @@ function validatorCreator<T extends BaseValidationOptions<any>>(
 }
 
 export function refine(
-  originalValidator: zod.ZodTypeAny,
+  originalValidator: zod.ZodType,
   options: RefineConstraint | ValidationOptionUnion | null | undefined,
-): zod.ZodTypeAny {
+): zod.ZodType {
   if (!options) {
     return originalValidator;
   }
@@ -93,7 +93,7 @@ export function refine(
   let validator = originalValidator;
 
   if (options.schema) {
-    validator = options.schema.pipe(originalValidator);
+    validator = (options.schema as zod.ZodType).pipe(originalValidator);
   }
 
   if (!options.refine) {
@@ -101,7 +101,7 @@ export function refine(
   }
 
   if (typeof options.refine === 'function') {
-    return validator.refine(options.refine);
+    return validator.refine(options.refine as () => boolean);
   }
 
   if (typeof options.refine?.[0] === 'function') {
@@ -222,7 +222,7 @@ export function isArrayValidator(
 
 export function createArrayValidator(
   options: ArrayValidationOptions<unknown[]>,
-  items: zod.ZodTypeAny,
+  items: zod.ZodType,
 ) {
   let validator = items.array();
 
@@ -248,7 +248,7 @@ export function createArrayValidator(
 }
 
 export const createObjectValidator = validatorCreator('object', objectValidations, (options) =>
-  refine(zod.object({}).passthrough(), options),
+  refine(zod.looseObject({}), options),
 );
 
 const validationCreators = [
@@ -272,11 +272,9 @@ export function isBaseValidator(options: ValidationOptionUnion) {
   );
 }
 
-export function combine(validators: zod.ZodTypeAny[], required: boolean) {
+export function combine(validators: zod.ZodType[], required: boolean) {
   const union =
-    validators.length > 1
-      ? zod.union(validators as [zod.ZodTypeAny, zod.ZodTypeAny])
-      : validators[0];
+    validators.length > 1 ? zod.union(validators as [zod.ZodType, zod.ZodType]) : validators[0];
 
   return required ? union : union.optional().nullable();
 }
@@ -284,7 +282,7 @@ export function combine(validators: zod.ZodTypeAny[], required: boolean) {
 export default function createZodSchema(
   optionsOrConstraint: RefineConstraint | ValidationOptionUnion | null | undefined,
   required = false,
-): zod.ZodTypeAny {
+): zod.ZodType {
   const options: ValidationOptionUnion | null | undefined =
     Array.isArray(optionsOrConstraint) || typeof optionsOrConstraint === 'function'
       ? { refine: optionsOrConstraint }
@@ -300,7 +298,7 @@ export default function createZodSchema(
 
   const typeValidators = validationCreators
     .map((create) => create(options))
-    .filter(Boolean) as zod.ZodTypeAny[];
+    .filter(Boolean) as zod.ZodType[];
 
   if (isArrayValidator(options)) {
     const items = options.items ? createZodSchema(options.items) : zod.unknown();
