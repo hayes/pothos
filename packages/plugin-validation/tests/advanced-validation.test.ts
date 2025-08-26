@@ -830,6 +830,42 @@ describe('Advanced Validation', () => {
     });
   });
 
+  describe('input field transforms', () => {
+    it('applies input field transforms correctly', async () => {
+      const query = gql`
+        query {
+          inputFieldTransformTest(input: {})
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.inputFieldTransformTest).toBe(1);
+    });
+
+    it('applies input field transforms with explicit value', async () => {
+      const query = gql`
+        query {
+          inputFieldTransformTest(input: { counter: 5 })
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.inputFieldTransformTest).toBe(6);
+    });
+  });
+
   describe('complex validation patterns', () => {
     it('validates recursive input types', async () => {
       const validQuery = gql`

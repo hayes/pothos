@@ -152,3 +152,13 @@ export const AsyncChainedInput = builder.inputType('AsyncChainedInput', {
       .validate(zod.string().transform((email) => email.toLowerCase())),
   }),
 });
+
+export const InputFieldTransformTest = builder.inputType('InputFieldTransformTest', {
+  fields: (t) => ({
+    counter: t.int({
+      required: false,
+      defaultValue: 0,
+      validate: zod.number().transform((val) => val + 1),
+    }),
+  }),
+});
