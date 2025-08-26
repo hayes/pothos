@@ -51,7 +51,7 @@ describe('reduceMaybeAsync', () => {
     it('handles mixed sync and async operations', async () => {
       const result = await reduceMaybeAsync([1, 2, 3, 4], 0, (acc, val, i) => {
         if (i % 2 === 0) {
-            return acc + val;
+          return acc + val;
         }
         return Promise.resolve(acc + val);
       });

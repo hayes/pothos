@@ -74,7 +74,6 @@ const MatrixInput = builder
     }),
   );
 
-
 const NullablePointInput = builder
   .inputType('NullablePointInput', {
     fields: (t) => ({
@@ -111,9 +110,12 @@ const NestedTransformInput = builder
         type: t.listRef(t.listRef(TransformPointInput)),
         required: true,
       }),
-      multiplier: t
-        .float({ required: true })
-        .validate(zod.number().positive().transform((val) => val * 2)),
+      multiplier: t.float({ required: true }).validate(
+        zod
+          .number()
+          .positive()
+          .transform((val) => val * 2),
+      ),
     }),
   })
   .validate(
@@ -206,9 +208,12 @@ builder.queryType({
           type: t.arg.listRef([TransformPointInput]),
           required: true,
         }),
-        factor: t.arg
-          .float({ required: true })
-          .validate(zod.number().positive().transform((n) => n + 10)),
+        factor: t.arg.float({ required: true }).validate(
+          zod
+            .number()
+            .positive()
+            .transform((n) => n + 10),
+        ),
       },
       resolve: (_parent, args) => {
         return JSON.stringify({ matrix: args.matrix, factor: args.factor });
@@ -580,7 +585,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: matrix.rows: Matrix must be rectangular"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: matrix.rows: Matrix must be rectangular"`,
+      );
     });
 
     it('should accept valid rectangular matrix', async () => {
@@ -600,7 +607,6 @@ describe('Nested Array Validation', () => {
       expect(result.data?.validateMatrix).toBeTruthy();
     });
   });
-
 
   describe('Nullable items at various nesting levels', () => {
     it('should handle nulls in simple list', async () => {
@@ -706,7 +712,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: matrix.0.2: Too small: expected number to be >0"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: matrix.0.2: Too small: expected number to be >0"`,
+      );
     });
 
     it('should validate deep nested string arrays', async () => {
@@ -778,7 +786,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: points: Each row must have at least 2 points"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: points: Each row must have at least 2 points"`,
+      );
     });
 
     it('should validate point values in nested arrays', async () => {
@@ -800,7 +810,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: points.0.0.lat: Too big: expected number to be <=90, points.1.0.lng: Too small: expected number to be >=-180"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: points.0.0.lat: Too big: expected number to be <=90, points.1.0.lng: Too small: expected number to be >=-180"`,
+      );
     });
 
     it('should accept valid nested point arrays', async () => {
@@ -845,7 +857,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: matrix.1.1: Too small: expected number to be >0, matrix.2.1: Too small: expected number to be >0"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: matrix.1.1: Too small: expected number to be >0, matrix.2.1: Too small: expected number to be >0"`,
+      );
     });
   });
 
@@ -873,7 +887,7 @@ describe('Nested Array Validation', () => {
 
       expect(result.errors).toBeUndefined();
       const data = JSON.parse(result.data?.testFieldTransforms as string);
-      
+
       expect(data.points[0][0].lat).toBe(40.713);
       expect(data.points[0][0].lng).toBe(-74.006);
       expect(data.points[0][1].lat).toBe(40.758);
@@ -900,7 +914,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: data.multiplier: Multiplier too large after doubling"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: data.multiplier: Multiplier too large after doubling"`,
+      );
     });
 
     it('should apply transforms to string lists and deduplicate', async () => {
@@ -921,9 +937,12 @@ describe('Nested Array Validation', () => {
 
       expect(result.errors).toBeUndefined();
       const data = JSON.parse(result.data?.testStringListTransforms as string);
-      
+
       expect(data.tags).toEqual(['javascript', 'typescript', 'react']);
-      expect(data.nested).toEqual([['A', 'B'], ['C', 'D']]);
+      expect(data.nested).toEqual([
+        ['A', 'B'],
+        ['C', 'D'],
+      ]);
     });
 
     it('should apply transforms to direct field arguments', async () => {
@@ -949,7 +968,7 @@ describe('Nested Array Validation', () => {
 
       expect(result.errors).toBeUndefined();
       const data = JSON.parse(result.data?.testNestedFieldValidation as string);
-      
+
       expect(data.matrix[0][0].lat).toBe(1.123);
       expect(data.matrix[0][0].lng).toBe(2.988);
       expect(data.matrix[0][1].lat).toBe(3.556);
@@ -974,7 +993,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: factor: Too small: expected number to be >0"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: factor: Too small: expected number to be >0"`,
+      );
     });
 
     it('should handle validation errors in nested transformed fields', async () => {
@@ -994,7 +1015,9 @@ describe('Nested Array Validation', () => {
       });
 
       expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(`"Validation error: data.points: Must have at least one row"`);
+      expect(result.errors?.[0]?.message).toMatchInlineSnapshot(
+        `"Validation error: data.points: Must have at least one row"`,
+      );
     });
   });
 });
