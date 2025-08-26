@@ -3,6 +3,7 @@ import builder from '../builder';
 import {
   AsyncChainedInput,
   ChainedTransformInput,
+  InputFieldTransformTest,
   NestedObjectListInput,
   SoloNestedInput,
   WithSchemaInput,
@@ -442,6 +443,17 @@ builder.queryField('asyncChainedInput', (t) =>
         username: args.input?.username, // lowercase
         email: args.input?.email, // validated and lowercase
       });
+    },
+  }),
+);
+
+builder.queryField('inputFieldTransformTest', (t) =>
+  t.int({
+    args: {
+      input: t.arg({ type: InputFieldTransformTest }),
+    },
+    resolve: (_parent, args) => {
+      return args.input?.counter ?? 0;
     },
   }),
 );

@@ -80,11 +80,11 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
     );
 
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (field) => {
-      const chainedSchemas = field.extensions?.['@pothos/plugin-validation']?.schemas ?? [];
-      const optionsSchema = field.pothosOptions.validate;
-      const fieldSchemas = optionsSchema
-        ? [...chainedSchemas.slice().reverse(), optionsSchema]
-        : chainedSchemas.slice().reverse();
+      const baseSchemas = field.extensions?.['@pothos/plugin-validation']?.schemas ?? [];
+      const argOptionsSchema = field.kind === 'Arg' && field.pothosOptions.validate;
+      const fieldSchemas = argOptionsSchema
+        ? [...baseSchemas.slice().reverse(), argOptionsSchema]
+        : baseSchemas.slice().reverse();
 
       const fieldTypeName = unwrapInputFieldType(field.type);
       const typeConfig = this.buildCache.getTypeConfig(fieldTypeName);
