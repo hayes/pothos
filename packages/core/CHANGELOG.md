@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.9.0
+
+### Minor Changes
+
+- 689accd: Fix arg mapping for nested lists
+
 ## 4.8.1
 
 ### Patch Changes
