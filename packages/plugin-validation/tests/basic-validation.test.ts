@@ -325,6 +325,46 @@ describe('Basic Validation', () => {
       `);
     });
 
+    it('validates arrays of input types with schema validation', async () => {
+      const validQuery = gql`
+        query {
+          withSchemaInputArray(inputs: [{ name: "abc" }, { name: "def" }])
+        }
+      `;
+
+      const validResult = await execute({
+        schema,
+        document: validQuery,
+        contextValue: {},
+      });
+
+      expect(validResult.data?.withSchemaInputArray).toBe(true);
+
+      const invalidQuery = gql`
+        query {
+          withSchemaInputArray(inputs: [{ name: "ab" }, { name: "c" }])
+        }
+      `;
+
+      const invalidResult = await execute({
+        schema,
+        document: invalidQuery,
+        contextValue: {},
+      });
+
+      expect(invalidResult.data?.withSchemaInputArray).toBeNull();
+      expect(invalidResult.errors?.map((e) => e.toJSON())).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Validation error: inputs.1.name: Too small: expected string to have >=2 characters",
+            "path": [
+              "withSchemaInputArray",
+            ],
+          },
+        ]
+      `);
+    });
+
     it('validates input types with schema validation', async () => {
       const validQuery = gql`
         query {

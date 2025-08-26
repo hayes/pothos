@@ -28,27 +28,14 @@ export function createArgsValidator<Types extends SchemaTypes>(
   },
 ) {
   const argMapper = argMappings
-    ? createInputValueMapper(argMappings, (value, mappings, addIssues) => {
-        const { typeSchemas, fieldSchemas } = mappings.value!;
-        const mapped = typeSchemas
-          ? reduceMaybeAsync(typeSchemas, value, (val, schema) =>
-              completeValue(schema['~standard'].validate(val), (result) => {
-                if (result.issues) {
-                  addIssues(result.issues);
-                  return null;
-                }
+    ? createInputValueMapper(
+        argMappings,
+        (value, mappings, addIssues) => {
+          if (!mappings.value?.typeSchemas.length) {
+            return value;
+          }
 
-                return result.value;
-              }),
-            )
-          : value;
-
-        if (mapped === null) {
-          return value;
-        }
-
-        if (fieldSchemas) {
-          return reduceMaybeAsync(fieldSchemas, mapped, (val, schema) =>
+          return reduceMaybeAsync(mappings.value.typeSchemas, value, (val, schema) =>
             completeValue(schema['~standard'].validate(val), (result) => {
               if (result.issues) {
                 addIssues(result.issues);
@@ -58,10 +45,24 @@ export function createArgsValidator<Types extends SchemaTypes>(
               return result.value;
             }),
           );
-        }
+        },
+        (mapped, mappings, addIssues) => {
+          if (!mappings.value?.fieldSchemas.length) {
+            return mapped;
+          }
 
-        return mapped;
-      })
+          return reduceMaybeAsync(mappings.value.fieldSchemas, mapped, (val, schema) =>
+            completeValue(schema['~standard'].validate(val), (result) => {
+              if (result.issues) {
+                addIssues(result.issues);
+                return null;
+              }
+
+              return result.value;
+            }),
+          );
+        },
+      )
     : null;
 
   return function validateArgs(
@@ -76,7 +77,6 @@ export function createArgsValidator<Types extends SchemaTypes>(
           throw options.validationError(mapped, args, context, info);
         }
 
-        // Normalize argsSchemas to array
         const schemasArray = Array.isArray(argsSchemas)
           ? argsSchemas
           : argsSchemas
@@ -89,7 +89,6 @@ export function createArgsValidator<Types extends SchemaTypes>(
 
         const issues: StandardSchemaV1.Issue[] = [];
 
-        // Validate through all schemas sequentially
         const validated = reduceMaybeAsync(schemasArray, mapped.value, (val, schema) =>
           completeValue(schema['~standard'].validate(val), (result) => {
             if (result.issues) {
@@ -115,7 +114,13 @@ export function createArgsValidator<Types extends SchemaTypes>(
 
 export function createInputValueMapper<Types extends SchemaTypes, T, Args extends unknown[] = []>(
   argMap: InputFieldsMapping<Types, T>,
-  mapValue: (
+  mapType: (
+    val: unknown,
+    mapping: InputFieldMapping<Types, T>,
+    addIssues: (issues: readonly StandardSchemaV1.Issue[]) => void,
+    ...args: Args
+  ) => unknown,
+  mapField: (
     val: unknown,
     mapping: InputFieldMapping<Types, T>,
     addIssues: (issues: readonly StandardSchemaV1.Issue[]) => void,
@@ -139,11 +144,11 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
       };
     }
 
-    const promises: Promise<unknown>[] = [];
+    const promises: PromiseLike<unknown>[] = [];
 
     map.forEach((field, fieldName) => {
       const fieldVal = (obj as Record<string, unknown>)[fieldName];
-      const fieldPromises: Promise<unknown>[] = [];
+      const fieldPromises: PromiseLike<unknown>[] = [];
 
       if (fieldVal === null || fieldVal === undefined) {
         mapped[fieldName] = fieldVal;
@@ -152,27 +157,38 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
 
       if (field.kind === 'InputObject' && field.fields.map) {
         if (field.isList) {
-          const newList = [...(fieldVal as unknown[])];
-          mapped[fieldName] = newList;
+          mapped[fieldName] = mapListValue(
+            fieldVal as (Record<string, unknown> | null)[],
+            field.listDepth,
+            (val, i, newList, indices) => {
+              if (val == null) {
+                return val;
+              }
 
-          (fieldVal as (Record<string, unknown> | null)[]).map((val, i) => {
-            if (val) {
-              const promise = completeValue(
-                mapObject(val, field.fields.map!, [...path, fieldName, i], ...args),
-                (newVal) => {
-                  if (newVal.issues) {
-                    issues.push(...newVal.issues);
-                  } else {
-                    newList[i] = newVal.value;
-                  }
-                },
+              const result = mapObject(
+                val,
+                field.fields.map!,
+                [...path, fieldName, ...indices],
+                ...args,
               );
+
+              const promise = completeValue(result, (newVal) => {
+                if (newVal.issues) {
+                  issues.push(...newVal.issues);
+                } else {
+                  newList[i] = newVal.value;
+                }
+
+                return newList[i];
+              });
 
               if (isThenable(promise)) {
                 fieldPromises.push(promise);
               }
-            }
-          });
+
+              return promise;
+            },
+          );
         } else {
           const promise = completeValue(
             mapObject(
@@ -200,11 +216,51 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
         fieldPromises.length ? Promise.all(fieldPromises) : null,
         () => {
           if (field.value !== null && !issues.length) {
+            if (field.isList) {
+              const list = mapListValue(
+                mapped[fieldName],
+                field.listDepth,
+                (val, i, arr, indices) => {
+                  if (val != null) {
+                    const result = mapType(
+                      val,
+                      field,
+                      addIssues([...path, fieldName, ...indices]),
+                      ...args,
+                    );
+
+                    if (isThenable(result)) {
+                      promises.push(
+                        completeValue(result, (newVal) => {
+                          arr[i] = newVal;
+                        }) as Promise<unknown>,
+                      );
+                    }
+
+                    return result;
+                  }
+
+                  return val;
+                },
+              );
+
+              return completeValue(
+                mapField(list, field, addIssues([...path, fieldName]), ...args),
+                (finalVal) => {
+                  mapped[fieldName] = finalVal;
+                },
+              );
+            }
+
             return completeValue(
-              mapValue(mapped[fieldName], field, addIssues([...path, fieldName]), ...args),
-              (newVal) => {
-                mapped[fieldName] = newVal;
-              },
+              mapType(mapped[fieldName], field, addIssues([...path, fieldName]), ...args),
+              (newVal) =>
+                completeValue(
+                  mapField(newVal, field, addIssues([...path, fieldName]), ...args),
+                  (newVal) => {
+                    mapped[fieldName] = newVal;
+                  },
+                ),
             );
           }
         },
@@ -244,4 +300,35 @@ export function reduceMaybeAsync<T, R>(
   }
 
   return next(initialValue, 0);
+}
+
+function mapListValue(
+  value: unknown,
+  listDepth: number,
+  mapper: (val: unknown, i: number, array: unknown[], path: number[]) => unknown,
+  currentIndices: number[] = [],
+): unknown {
+  if (listDepth === 0) {
+    throw new Error('List depth must be greater than 0 for mapping');
+  }
+
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  const newList = [...value];
+
+  for (let i = 0; i < newList.length; i++) {
+    const indices = [...currentIndices, i];
+    if (listDepth > 1) {
+      newList[i] = mapListValue(newList[i], listDepth - 1, mapper, indices);
+    } else {
+      const result = mapper(newList[i], i, newList, indices);
+      if (result !== undefined) {
+        newList[i] = result;
+      }
+    }
+  }
+
+  return newList;
 }
