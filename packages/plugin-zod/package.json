@@ -47,13 +47,13 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "graphql": "^16.10.0",
-    "zod": "^3.*"
+    "zod": "^4.*"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql-tag": "^2.12.6",
-    "zod": "^3.25.67"
+    "zod": "^4.1.3"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

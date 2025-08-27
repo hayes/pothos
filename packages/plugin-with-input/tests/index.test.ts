@@ -77,13 +77,15 @@ describe('example schema', () => {
           "errors": [
             [GraphQLError: [
           {
-            "validation": "email",
-            "code": "invalid_string",
-            "message": "Invalid email",
+            "origin": "string",
+            "code": "invalid_format",
+            "format": "email",
+            "pattern": "/^(?!\\\\.)(?!.*\\\\.\\\\.)([A-Za-z0-9_'+\\\\-\\\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\\\-]*\\\\.)+[A-Za-z]{2,}$/",
             "path": [
               "input",
               "email"
-            ]
+            ],
+            "message": "Invalid email address"
           }
         ]],
           ],

@@ -1,6 +1,6 @@
 import type { MaybePromise, SchemaTypes } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { ZodError, ZodSchema } from 'zod';
+import type { ZodError, ZodType } from 'zod';
 
 export interface ValidationPluginOptions<Types extends SchemaTypes> {
   validationError?: ValidationErrorFn<Types>;
@@ -24,7 +24,7 @@ export type RefineConstraint<T = unknown> =
   | Constraint<(value: T) => MaybePromise<boolean>>[];
 export interface BaseValidationOptions<T = unknown> {
   refine?: RefineConstraint<T>;
-  schema?: ZodSchema<T>;
+  schema?: ZodType<T>;
   type?: string;
 }
 export interface NumberValidationOptions<T extends number = number>
