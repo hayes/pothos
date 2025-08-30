@@ -18,7 +18,7 @@
     "graphql-helix": "^1.13.0",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "5.15.1",
-    "next": "15.4.5",
+    "next": "15.4.7",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },
