@@ -3,6 +3,15 @@ title: Zod Validation plugin
 description: Zod plugin docs for Pothos
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn">
+  [The new Pothos Validation plugin](https://pothos-graphql.dev/docs/plugins/validation) is now the recommended way
+  to add validation to your schema, and has support for zod, as well as several other validation libraries.
+
+  This plugin should continue to work, but does not support async validation, or validations that transform data.
+</Callout>
+
 A plugin for adding validation for field arguments based on
 [zod](https://github.com/colinhacks/zod). This plugin does not expose zod directly, but most of the
 options map closely to the validations available in zod.

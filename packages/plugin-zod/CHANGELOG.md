@@ -1,8 +1,8 @@
 # Change Log
 
-## 5.0.0
+## 4.3.0
 
-### Major Changes
+### Minor Changes
 
 - baf538d: Update zod dependency to v4
 
