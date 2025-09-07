@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/complexity/noVoid: type testing */
 import { and, count, eq, sql } from 'drizzle-orm';
 import { builder } from '../builder';
 import { db } from '../db';
@@ -73,11 +74,18 @@ builder.queryFields((t) => ({
     resolve: async (query, _root, args) => {
       const result = await db.query.posts.findFirst(
         query({
+          columns: {
+            postId: true,
+          },
           where: {
             postId: Number.parseInt(args.id, 10),
           },
         }),
       );
+
+      void result?.postId;
+      // @ts-expect-error only selected columns are accessible
+      void result?.authorId;
 
       return result;
     },

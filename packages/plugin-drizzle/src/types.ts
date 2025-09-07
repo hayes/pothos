@@ -33,6 +33,7 @@ import type {
   DBQueryConfig,
   Many,
   Relation,
+  SQL,
   Table,
   TableRelationalConfig,
 } from 'drizzle-orm';
@@ -216,7 +217,12 @@ export type DrizzleFieldOptions<
   resolve: (
     query: <T extends QueryForDrizzleField<Types, Param, Table>>(
       selection?: T,
-    ) => Omit<T, 'columns'>,
+    ) => Omit<T, 'columns' | 'extra'> & {
+      columns: T extends { columns: infer C extends {} } ? C : {};
+      extras: {
+        $pothosQueryFor: SQL<Table | undefined>;
+      } & (T extends { extra: infer E } ? E : {});
+    },
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
     ctx: Types['Context'],
@@ -540,12 +546,16 @@ export type DrizzleConnectionFieldOptions<
         resolve: (
           query: <T extends QueryForRelatedConnection<Types, TableConfig, ConnectionArgs>>(
             selection?: T,
-          ) => Omit<T, 'orderBy' | 'columns'> & {
+          ) => Omit<T, 'orderBy' | 'columns' | 'extra'> & {
+            columns: T extends { columns: infer C extends {} } ? C : {};
             orderBy: {
               [K in TableConfig['table']['_'] extends { columns: infer Columns }
                 ? keyof Columns
                 : never]?: 'asc' | 'desc' | undefined;
             };
+            extras: {
+              $pothosQueryFor: () => SQL<TableConfig['name'] | undefined>;
+            } & (T extends { extra: infer E } ? E : {});
           },
           parent: ParentShape,
           args: ConnectionArgs,
