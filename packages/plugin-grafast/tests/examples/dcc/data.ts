@@ -707,7 +707,7 @@ export const batchGetLootDataByItemTypeAndId: LoadManyCallback<
   Maybe<readonly Maybe<LootDataData>[]>,
   never,
   Database
-> = (identifiersList, { unary: data }) => {
+> = (identifiersList, { shared: data }) => {
   return identifiersList.map(([type, id]) =>
     data.lootData.filter((c) => c.itemType === type && c.itemId === id),
   );
@@ -719,7 +719,7 @@ export const batchGetLootDataByLootBoxId: LoadManyCallback<
   Maybe<readonly Maybe<LootDataData>[]>,
   never,
   Database
-> = (identifiersList, { unary: data }) => {
+> = (identifiersList, { shared: data }) => {
   return identifiersList.map((id) => data.lootData.filter((c) => c.lootBoxId === id));
 };
 

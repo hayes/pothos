@@ -1,18 +1,11 @@
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
-import { prisma } from './example/builder';
+import { prisma, queries } from './example/builder';
 import schema from './example/schema';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('select mode', () => {
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   afterAll(async () => {
@@ -174,9 +167,7 @@ describe('select mode', () => {
             "skip": 1,
             "take": 3,
           },
-          "dataPath": [],
           "model": "WithID",
-          "runInTransaction": false,
         },
         {
           "action": "findMany",
@@ -194,9 +185,7 @@ describe('select mode', () => {
             "skip": 1,
             "take": 3,
           },
-          "dataPath": [],
           "model": "WithCompositeUnique",
-          "runInTransaction": false,
         },
         {
           "action": "findUnique",
@@ -218,9 +207,7 @@ describe('select mode', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -250,9 +237,7 @@ describe('select mode', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -280,9 +265,7 @@ describe('select mode', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -365,9 +348,7 @@ describe('select mode', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -462,9 +443,7 @@ describe('select mode', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -564,9 +543,7 @@ describe('select mode', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -588,9 +565,7 @@ describe('select mode', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);

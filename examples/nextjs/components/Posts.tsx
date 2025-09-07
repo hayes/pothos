@@ -1,8 +1,8 @@
-import gql from 'graphql-tag';
+import { useQuery } from '@apollo/client/react';
 import styles from '../styles/Home.module.css';
-import { useLoadPostsQuery } from './__generated__/Posts.generated';
+import { graphql } from './__generated__';
 
-export const postsQuery = gql`
+export const postsQuery = graphql(`
   query loadPosts {
     posts(take: 4) {
       id
@@ -10,10 +10,10 @@ export const postsQuery = gql`
       content
     }
   }
-`;
+`);
 
 export function Posts() {
-  const { loading, error, data } = useLoadPostsQuery();
+  const { loading, error, data } = useQuery(postsQuery);
 
   if (loading) {
     return null;

@@ -1,17 +1,10 @@
 import { printSchema } from 'graphql';
+import { queries } from './examples/codegen/builder';
 import schema from './examples/crud/schema';
-import { prisma } from './examples/simple/builder';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('generate crud', () => {
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   it('generates schema', () => {

@@ -266,7 +266,7 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
     const relations = model.fields.filter((field) => !!field.relationName);
     const listRelations = model.fields.filter((field) => !!field.relationName && field.isList);
 
-    const createInputUnavailable = !dmmf.schema.inputObjectTypes.prisma.some(
+    const createInputUnavailable = !dmmf.schema.inputObjectTypes.prisma?.some(
       (input) => input.name === `${model.name}CreateInput`,
     );
 

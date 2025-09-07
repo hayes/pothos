@@ -1,14 +1,7 @@
 import { execute, printSchema } from 'graphql';
 import gql from 'graphql-tag';
-import { prisma } from './examples/codegen/builder';
+import { prisma, queries } from './examples/codegen/builder';
 import schema from './examples/codegen/schema';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('codegen', () => {
   beforeAll(async () => {
@@ -29,7 +22,7 @@ describe('codegen', () => {
   });
 
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   it('generates schema', () => {
@@ -247,9 +240,7 @@ describe('codegen', () => {
               "profile": true,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "update",
@@ -291,9 +282,7 @@ describe('codegen', () => {
               "email": "test@example.com",
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "update",
@@ -334,9 +323,7 @@ describe('codegen', () => {
               "email": "test@example.com",
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "update",
@@ -364,9 +351,7 @@ describe('codegen', () => {
               "email": "test@example.com",
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "delete",
@@ -375,9 +360,7 @@ describe('codegen', () => {
               "email": "test@example.com",
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);

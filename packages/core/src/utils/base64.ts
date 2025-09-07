@@ -10,7 +10,7 @@ const getGlobalThis = () => {
     // biome-ignore lint/style/noRestrictedGlobals: this is fine
     return self;
   }
-  // @ts-ignore
+
   if (typeof window !== 'undefined') {
     return window;
   }

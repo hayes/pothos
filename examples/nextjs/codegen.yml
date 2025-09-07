@@ -2,15 +2,5 @@ overwrite: true
 schema: schema.graphql
 documents: 'components/**/!(*.generated).tsx'
 generates:
-  components/__generated__/types.generated.ts:
-    plugins:
-      - typescript
-  components/:
-    preset: near-operation-file
-    presetConfig:
-      folder: __generated__
-      extension: .generated.tsx
-      baseTypesPath: __generated__/types.generated.ts
-    plugins:
-      - typescript-operations
-      - typescript-react-apollo
+  components/__generated__/:
+    preset: 'client'

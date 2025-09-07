@@ -8,9 +8,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "generate": "pnpm turbo run generate --filter='@pothos/*'",
-    "build": "pnpm turbo run build --filter='@pothos/*' && pnpm run build-deno",
-    "build-deno": "node -r @swc-node/register packages/deno/scripts/build.ts",
-    "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm i",
+    "build": "pnpm turbo run build --filter='@pothos/*'",
+    "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules && pnpm i",
     "clean": "rm -rf ./{packages/*,examples*,website}/{tsconfig.*tsbuildinfo,lib,esm,dts,.turbo,.next} && git checkout -- 'packages/*/esm/*'",
     "ci": "pnpm turbo run build generate test type --concurrency=4 && pnpm run lint:ci",
     "ci:version": "pnpm lint && changeset version && pnpm lint --write && pnpm install --frozen-lockfile false",
@@ -32,17 +31,17 @@
   ],
   "private": true,
   "devDependencies": {
-    "@biomejs/biome": "^2.1.3",
-    "@changesets/cli": "^2.29.5",
-    "@faker-js/faker": "^9.9.0",
-    "@swc-node/register": "^1.10.10",
+    "@biomejs/biome": "^2.2.3",
+    "@changesets/cli": "^2.29.6",
+    "@faker-js/faker": "^10.0.0",
+    "@swc-node/register": "^1.11.1",
     "@swc/cli": "^0.7.8",
-    "@swc/core": "^1.13.3",
-    "@types/node": "^24.1.0",
+    "@swc/core": "^1.13.5",
+    "@types/node": "^24.3.1",
     "graphql": "^16.10.0",
-    "pkg-pr-new": "^0.0.54",
-    "tsx": "^4.20.3",
-    "turbo": "^2.5.5",
+    "pkg-pr-new": "^0.0.59",
+    "tsx": "^4.20.5",
+    "turbo": "^2.5.6",
     "typescript": "5.9.2",
     "vitest": "^3.2.4"
   },
@@ -63,7 +62,7 @@
     "url": "https://github.com/hayes/pothos/issues"
   },
   "homepage": "https://pothos-graphql.dev",
-  "packageManager": "pnpm@10.6.5",
+  "packageManager": "pnpm@10.15.1",
   "pnpm": {
     "peerDependencyRules": {
       "ignoreMissing": [

@@ -7,6 +7,7 @@ import PrismaPlugin, { type PrismaTypesFromClient } from '../../src';
 import { Prisma, PrismaClient } from '../client/client.js';
 import { getDatamodel } from '../generated.js';
 
+export const queries: unknown[] = [];
 export const prisma = new PrismaClient({
   log: [
     {
@@ -26,6 +27,15 @@ export const prisma = new PrismaClient({
       level: 'warn',
     },
   ],
+}).$extends({
+  query: {
+    $allModels: {
+      $allOperations({ model, operation, args, query }) {
+        queries.push({ action: operation, model, args });
+        return query(args);
+      },
+    },
+  },
 });
 
 type PrismaTypes = PrismaTypesFromClient<typeof prisma>;

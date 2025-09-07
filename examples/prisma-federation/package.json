@@ -18,15 +18,15 @@
     "@apollo/gateway": "2.11.2",
     "@apollo/server": "^5.0.0",
     "@apollo/subgraph": "2.11.2",
-    "@faker-js/faker": "^9.9.0",
+    "@faker-js/faker": "^10.0.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/plugin-federation": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
-    "@prisma/client": "^6.13.0",
+    "@prisma/client": "^6.15.0",
     "graphql": "^16.10.0",
-    "prisma": "^6.13.0"
+    "prisma": "^6.15.0"
   },
   "publishConfig": {
     "access": "public"

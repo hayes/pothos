@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.1.3/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.3/schema.json",
   "files": {
     "includes": [
       "**",
@@ -10,13 +10,11 @@
       "!**/packages/**/prisma/**/*",
       "!**/packages/plugin-prisma/**/client/**/*",
       "!**/packages/plugin-prisma-utils/**/client/**/*",
-      "!**/packages/deno/packages/**/*",
       "!**/packages/**/*/lib/**/*",
       "!**/packages/**/*/esm/**/*",
       "!**/packages/**/*/dts/**/*",
       "!**/website/.next/**/*",
       "!**/__generated__/**/*",
-      "!**/packages/deno/packages",
       "!**/.vscode/**/*",
       "!**/generated.ts",
       "!**/codegen/schema/prisma-inputs.ts",

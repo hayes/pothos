@@ -1,4 +1,4 @@
-import { constant, context, lambda, loadOne } from 'grafast';
+import { constant, lambda, loadOne } from 'grafast';
 import { builder } from '../builder';
 import { batchGetCrawlerById, type FloorData, type ItemSpec } from '../data';
 import { Character, Crawler, NPC } from './characters';
@@ -13,8 +13,7 @@ builder.queryType({
         id: t.arg.int({ required: true }),
       },
       plan: (_, { $id }) => {
-        const $db = context().get('dccDb');
-        return loadOne($id, $db, null, batchGetCrawlerById);
+        return loadOne($id, batchGetCrawlerById);
       },
     }),
     character: t.field({

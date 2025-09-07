@@ -1,18 +1,11 @@
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
-import { prisma } from './example/builder';
+import { prisma, queries } from './example/builder';
 import schema from './example/schema';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('findUnique', () => {
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   afterAll(async () => {
@@ -312,9 +305,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'FindUniqueRelations',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -338,9 +329,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'FindUniqueRelations',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -352,9 +341,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'WithID',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -366,9 +353,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'WithUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -383,9 +368,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeID',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -400,9 +383,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -417,9 +398,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -431,9 +410,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'WithID',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -445,9 +422,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'WithUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -462,9 +437,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeID',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -479,9 +452,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -493,9 +464,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'WithID',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -507,9 +476,7 @@ describe('findUnique', () => {
             id: '1',
           },
         },
-        dataPath: [],
         model: 'WithUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -524,9 +491,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeID',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -541,9 +506,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -558,9 +521,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -575,9 +536,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeUnique',
-        runInTransaction: false,
       },
       {
         action: 'findUniqueOrThrow',
@@ -592,9 +551,7 @@ describe('findUnique', () => {
             },
           },
         },
-        dataPath: [],
         model: 'WithCompositeUnique',
-        runInTransaction: false,
       },
     ];
 

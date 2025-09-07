@@ -20,9 +20,8 @@ import {
 } from '../data';
 
 export function getCreator($source: Step<{ creator?: number }>) {
-  const $db = context().get('dccDb');
   const $id = inhibitOnNull(get($source, 'creator'));
-  return loadOne($id, $db, null, batchGetCrawlerById);
+  return loadOne($id, batchGetCrawlerById);
 }
 
 export function crawlerToTypeName(crawler: CrawlerData): string | null {
@@ -96,11 +95,12 @@ export function lootBoxesForItem($type: Step<string>, $id: Step<number>) {
   const $db = context().get('dccDb');
 
   const $lootData = inhibitOnNull(
-    loadMany([$type, $id], $db, null, batchGetLootDataByItemTypeAndId),
+    loadMany([$type, $id], {
+      load: batchGetLootDataByItemTypeAndId,
+      shared: $db,
+    }),
   );
   return each($lootData, ($lootDatum) => {
-    const $db = context().get('dccDb');
-
-    return loadOne(get($lootDatum, 'lootBoxId'), $db, null, batchGetLootBoxById);
+    return loadOne(get($lootDatum, 'lootBoxId'), batchGetLootBoxById);
   });
 }

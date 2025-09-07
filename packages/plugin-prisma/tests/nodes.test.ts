@@ -1,18 +1,11 @@
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
-import { prisma } from './example/builder';
+import { prisma, queries } from './example/builder';
 import schema from './example/schema';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('prisma', () => {
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   afterAll(async () => {
@@ -82,9 +75,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -141,9 +132,7 @@ describe('prisma', () => {
               "id": 1000,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -221,9 +210,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUnique",
@@ -239,9 +226,7 @@ describe('prisma', () => {
               "id": 2,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -346,9 +331,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -398,9 +381,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -453,9 +434,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -464,9 +443,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "Profile",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -513,9 +490,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -582,9 +557,7 @@ describe('prisma', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);

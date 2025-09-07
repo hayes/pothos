@@ -134,7 +134,7 @@ function getAllFiles() {
 function build() {
   const files = getAllFiles();
 
-  return files.map((file) => {
+  return files.forEach((file) => {
     fs.writeFileSync(file.path, file.content);
   });
 }

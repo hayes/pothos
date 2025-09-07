@@ -1,6 +1,5 @@
 import {
   coalesce,
-  context,
   each,
   get,
   type InterfacePlan,
@@ -28,14 +27,12 @@ import {
 import { HasInventory, Item } from './items';
 
 const characterPlan = (($specifier) => {
-  const $db = context().get('dccDb');
-
   const $crawlerId = inhibitOnNull(lambda($specifier, extractCrawlerId));
-  const $crawler = inhibitOnNull(loadOne($crawlerId, $db, null, batchGetCrawlerById));
+  const $crawler = inhibitOnNull(loadOne($crawlerId, batchGetCrawlerById));
   const $crawlerTypename = lambda($crawler, crawlerToTypeName);
 
   const $npcId = inhibitOnNull(lambda($specifier, extractNpcId));
-  const $npc = inhibitOnNull(loadOne($npcId, $db, null, batchGetNpcById));
+  const $npc = inhibitOnNull(loadOne($npcId, batchGetNpcById));
   const $npcTypename = lambda($npc, npcToTypeName);
 
   const $__typename = coalesce([$crawlerTypename, $npcTypename]);
@@ -102,8 +99,7 @@ export const NPC = builder
   })
   .withPlan<number>({
     planType: ($npcId) => {
-      const $db = context().get('dccDb');
-      const $npc = inhibitOnNull(loadOne($npcId, $db, null, batchGetNpcById));
+      const $npc = inhibitOnNull(loadOne($npcId, batchGetNpcById));
       const $__typename = lambda(inhibitOnNull($npc), npcToTypeName);
 
       return {
@@ -131,8 +127,7 @@ export const Manager = builder.objectRef<NpcData>('Manager').implement({
       type: ActiveCrawler,
       plan: ($manager) => {
         const $id = inhibitOnNull(get($manager, 'client') as Step<number>);
-        const $db = context().get('dccDb');
-        return loadOne($id, $db, null, batchGetCrawlerById);
+        return loadOne($id, batchGetCrawlerById);
       },
     }),
     items: t.field({
@@ -156,8 +151,7 @@ export const Security = builder.objectRef<NpcData>('Security').implement({
       plan: ($security) => {
         const $ids = inhibitOnNull(get($security, 'clients') as Step<number[]>);
         return each($ids, ($id) => {
-          const $db = context().get('dccDb');
-          return loadOne($id, $db, null, batchGetCrawlerById);
+          return loadOne($id, batchGetCrawlerById);
         });
       },
     }),
@@ -233,9 +227,7 @@ builder.objectFields(ActiveCrawler, (t) => ({
     type: ActiveCrawler,
     plan: ($activeCrawler) => {
       const $id = inhibitOnNull(get($activeCrawler, 'bestFriend') as Step<number | undefined>);
-      const $db = context().get('dccDb');
-
-      return loadOne($id, $db, null, batchGetCrawlerById);
+      return loadOne($id, batchGetCrawlerById);
     },
   }),
 }));

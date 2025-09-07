@@ -1,18 +1,11 @@
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
-import { prisma } from './example/builder';
+import { prisma, queries } from './example/builder';
 import schema from './example/schema';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('nested query', () => {
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   afterAll(async () => {
@@ -138,9 +131,7 @@ describe('nested query', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUnique",
@@ -187,9 +178,7 @@ describe('nested query', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -266,9 +255,7 @@ describe('nested query', () => {
             },
             "take": 3,
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);

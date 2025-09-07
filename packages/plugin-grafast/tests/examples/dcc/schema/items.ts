@@ -35,19 +35,18 @@ export const ItemResolver = {
       $__typename,
       planForType(t) {
         const $id = get($decoded, 'id');
-        const $db = context().get('dccDb');
 
         if (t.name === 'Equipment') {
-          return loadOne($id, $db, null, batchGetEquipmentById);
+          return loadOne($id, batchGetEquipmentById);
         }
         if (t.name === 'Consumable') {
-          return loadOne($id, $db, null, batchGetConsumableById);
+          return loadOne($id, batchGetConsumableById);
         }
         if (t.name === 'UtilityItem') {
-          return loadOne($id, $db, null, batchGetUtilityItemById);
+          return loadOne($id, batchGetUtilityItemById);
         }
         if (t.name === 'MiscItem') {
-          return loadOne($id, $db, null, batchGetMiscItemById);
+          return loadOne($id, batchGetMiscItemById);
         }
 
         return null;
@@ -178,7 +177,12 @@ builder.objectFields(LootBox, (t) => ({
       const $id = get($lootBox, 'id') as Step<number>;
       const $db = context().get('dccDb');
 
-      const $lootData = inhibitOnNull(loadMany($id, $db, null, batchGetLootDataByLootBoxId));
+      const $lootData = inhibitOnNull(
+        loadMany($id, {
+          shared: $db,
+          load: batchGetLootDataByLootBoxId,
+        }),
+      );
 
       return each($lootData, ($lootDatum) => {
         const $id = get($lootDatum, 'itemId');
@@ -206,7 +210,6 @@ export const LootData = builder.objectRef<LootDataData>('LootData').implement({
 });
 
 function getCreator($source: Step<{ creator?: number }>) {
-  const $db = context().get('dccDb');
   const $id = inhibitOnNull(get($source, 'creator'));
-  return loadOne($id, $db, null, batchGetCrawlerById);
+  return loadOne($id, batchGetCrawlerById);
 }

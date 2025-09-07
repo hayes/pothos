@@ -26,7 +26,7 @@ async function seed() {
     .insert(users)
     .values(
       Array.from({ length: 100 }).map(() => ({
-        username: faker.internet.userName(),
+        username: faker.internet.username(),
         firstName: faker.person.firstName(),
         lastName: faker.person.lastName(),
       })),

@@ -1,10 +1,13 @@
 import '../styles/globals.css';
-import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client';
+import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client';
+import { ApolloProvider } from '@apollo/client/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AppProps } from 'next/app';
 
 const client = new ApolloClient({
-  uri: '/api/graphql',
+  link: new HttpLink({
+    uri: '/api/graphql',
+  }),
   cache: new InMemoryCache(),
 });
 

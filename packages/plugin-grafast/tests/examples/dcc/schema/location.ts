@@ -18,7 +18,6 @@ import { Consumable, Equipment, ItemResolver, MiscItem, UtilityItem } from './it
 
 export const Location = builder.interfaceRef<LocationData>('Location').withPlan({
   planType: ($location) => {
-    const $db = context().get('dccDb');
     const $__typename = get($location, 'type');
     return {
       $__typename,
@@ -26,15 +25,15 @@ export const Location = builder.interfaceRef<LocationData>('Location').withPlan(
         const $id = get($location, 'id');
 
         if (t.name === 'SafeRoom') {
-          const $saferoom = loadOne($id, $db, null, batchGetSafeRoomById);
+          const $saferoom = loadOne($id, batchGetSafeRoomById);
           return delegate($saferoom, ['type', 'name', 'floors', 'id'], $location);
         }
         if (t.name === 'Club') {
-          const $club = loadOne($id, $db, null, batchGetClubById);
+          const $club = loadOne($id, batchGetClubById);
           return delegate($club, ['type', 'name', 'floors', 'id'], $location);
         }
         if (t.name === 'Stairwell') {
-          const $stairwell = loadOne($id, $db, null, batchGetStairwellById);
+          const $stairwell = loadOne($id, batchGetStairwellById);
           return delegate($stairwell, ['type', 'name', 'floors', 'id'], $location);
         }
         if (t.name === 'BetaLocation') {
@@ -101,8 +100,7 @@ export const Club = builder.objectRef<ClubData & LocationData>('Club').implement
       plan: ($club) => {
         const $ids = inhibitOnNull(get($club, 'security') as Step<number[]>);
         return each($ids, ($id) => {
-          const $db = context().get('dccDb');
-          return loadOne($id, $db, null, batchGetNpcById);
+          return loadOne($id, batchGetNpcById);
         });
       },
     }),
@@ -141,7 +139,10 @@ builder.objectFields(Floor, (t) => ({
     plan: ($floor) => {
       const $number = get($floor, 'number');
       const $db = context().get('dccDb');
-      return loadMany($number, $db, null, batchGetLocationsByFloorNumber);
+      return loadMany($number, {
+        load: batchGetLocationsByFloorNumber,
+        shared: $db,
+      });
     },
   }),
 }));

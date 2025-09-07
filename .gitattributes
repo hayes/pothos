@@ -1,2 +1,1 @@
-packages/deno/packages/**/*.ts linguist-generated
 test/postgres-data/**/* linguist-generated

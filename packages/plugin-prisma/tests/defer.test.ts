@@ -1,18 +1,11 @@
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
-import { prisma } from './example/builder';
+import { prisma, queries } from './example/builder';
 import schema from './example/schema';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('defer', () => {
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   afterAll(async () => {
@@ -64,9 +57,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -82,9 +73,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -104,9 +93,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -197,9 +184,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -211,9 +196,7 @@ describe('defer', () => {
               "id": 250,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -225,9 +208,7 @@ describe('defer', () => {
               "id": 249,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -318,9 +299,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -332,9 +311,7 @@ describe('defer', () => {
               "id": 250,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -346,9 +323,7 @@ describe('defer', () => {
               "id": 249,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -408,16 +383,12 @@ describe('defer', () => {
             "skip": 0,
             "take": 3,
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "count",
-          "args": undefined,
-          "dataPath": [],
+          "args": {},
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -433,9 +404,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -451,9 +420,7 @@ describe('defer', () => {
               "id": 2,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -513,16 +480,12 @@ describe('defer', () => {
             "skip": 0,
             "take": 3,
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "count",
-          "args": undefined,
-          "dataPath": [],
+          "args": {},
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -538,9 +501,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -556,9 +517,7 @@ describe('defer', () => {
               "id": 2,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -616,9 +575,7 @@ describe('defer', () => {
             "skip": 0,
             "take": 3,
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -634,9 +591,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -652,9 +607,7 @@ describe('defer', () => {
               "id": 2,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -712,9 +665,7 @@ describe('defer', () => {
             "skip": 0,
             "take": 3,
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -730,9 +681,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -748,9 +697,7 @@ describe('defer', () => {
               "id": 2,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -844,9 +791,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -858,9 +803,7 @@ describe('defer', () => {
               "id": 250,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -872,9 +815,7 @@ describe('defer', () => {
               "id": 249,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -968,9 +909,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -982,9 +921,7 @@ describe('defer', () => {
               "id": 250,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -996,9 +933,7 @@ describe('defer', () => {
               "id": 249,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -1076,9 +1011,7 @@ describe('defer', () => {
             "skip": 0,
             "take": 3,
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findMany",
@@ -1099,9 +1032,7 @@ describe('defer', () => {
               "authorId": 1,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
         {
           "action": "findMany",
@@ -1122,9 +1053,7 @@ describe('defer', () => {
               "authorId": 2,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -1203,9 +1132,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -1226,9 +1153,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);
@@ -1311,9 +1236,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -1325,9 +1248,7 @@ describe('defer', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -1339,9 +1260,7 @@ describe('defer', () => {
               "id": 2,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
         {
           "action": "findUniqueOrThrow",
@@ -1353,9 +1272,7 @@ describe('defer', () => {
               "id": 3,
             },
           },
-          "dataPath": [],
           "model": "User",
-          "runInTransaction": false,
         },
       ]
     `);

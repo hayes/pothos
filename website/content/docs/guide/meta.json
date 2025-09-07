@@ -20,7 +20,6 @@
     "printing-schemas",
     "changing-default-nullability",
     "writing-plugins",
-    "deno",
     "circular-references",
     "troubleshooting",
     "..."

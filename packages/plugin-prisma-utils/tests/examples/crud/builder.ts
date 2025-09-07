@@ -4,6 +4,7 @@ import PrismaUtils from '../../../src';
 import { PrismaClient } from '../../client/index';
 import type PrismaTypes from '../../generated.js';
 
+export const queries: unknown[] = [];
 export const prisma = new PrismaClient({
   log: [
     {
@@ -23,6 +24,15 @@ export const prisma = new PrismaClient({
       level: 'warn',
     },
   ],
+}).$extends({
+  query: {
+    $allModels: {
+      $allOperations({ model, operation, args, query }) {
+        queries.push({ action: operation, model, args });
+        return query(args);
+      },
+    },
+  },
 });
 
 export default new SchemaBuilder<{

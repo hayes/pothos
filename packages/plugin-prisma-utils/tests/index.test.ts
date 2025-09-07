@@ -1,18 +1,11 @@
 import { execute, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
-import { prisma } from './examples/simple/builder';
+import { queries } from './examples/simple/builder';
 import schema from './examples/simple/schema';
-
-let queries: unknown[] = [];
-prisma.$use((params, next) => {
-  queries.push(params);
-
-  return next(params);
-});
 
 describe('prisma utils', () => {
   afterEach(() => {
-    queries = [];
+    queries.length = 0;
   });
 
   it('generates schema', () => {
@@ -95,9 +88,7 @@ describe('prisma utils', () => {
               },
             },
           },
-          "dataPath": [],
           "model": "Post",
-          "runInTransaction": false,
         },
       ]
     `);
