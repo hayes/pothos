@@ -18,7 +18,7 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import {
-  getTableUniqueName,
+  getTableName,
   type InferSelectModel,
   Many,
   type Table,
@@ -197,13 +197,11 @@ export class DrizzleObjectFieldBuilder<
     edgeOptions = {},
   ) {
     const schemaConfig = getSchemaConfig(this.builder);
-    const relationField =
-      schemaConfig.relations.tablesConfig?.[this.table].relations[name as string];
-    const tableUniqueName = getTableUniqueName(relationField.targetTable as Table);
-    const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
-    const relatedModel = schemaConfig.relations.tables[tableName] as Table;
+    const relationField = schemaConfig.relations?.[this.table].relations[name as string];
+    const tableName = getTableName(relationField.targetTable as Table);
+    const relatedTable = schemaConfig.relations[tableName];
 
-    if (!relatedModel) {
+    if (!relatedTable) {
       throw new PothosSchemaError(
         `Could not find relation ${name as string} on table ${this.table}`,
       );
@@ -216,20 +214,17 @@ export class DrizzleObjectFieldBuilder<
       const { limit, orderBy, where, ...fieldQuery } =
         (typeof query === 'function' ? query(args, ctx) : query) ?? {};
 
-      const tableUniqueName = getTableUniqueName(relatedModel as Table);
-      const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
-
       const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
         maxSize,
         defaultSize,
         args,
         orderBy:
-          (typeof orderBy === 'function' ? orderBy(relatedModel) : orderBy) ??
+          (typeof orderBy === 'function' ? orderBy(relatedTable.table) : orderBy) ??
           getSchemaConfig(this.builder).getPrimaryKey(tableName),
         where,
         config: schemaConfig,
-        table: schemaConfig.relations.tablesConfig[tableName],
+        table: relatedTable,
       });
 
       return {
@@ -315,7 +310,7 @@ export class DrizzleObjectFieldBuilder<
   }
 
   variant<
-    Variant extends DrizzleRef<Types, TableConfig['tsName']> | TableConfig['tsName'],
+    Variant extends DrizzleRef<Types, TableConfig['name']> | TableConfig['name'],
     Args extends InputFieldMap,
     Nullable,
     ResolveShape,
@@ -326,7 +321,7 @@ export class DrizzleObjectFieldBuilder<
       [
         options: VariantFieldOptions<
           Types,
-          TableConfig['tsName'] & keyof Types['DrizzleRelationsConfig'],
+          TableConfig['name'] & keyof Types['DrizzleRelations'],
           Variant,
           Args,
           Nullable,
@@ -393,19 +388,16 @@ export class DrizzleObjectFieldBuilder<
   ): FieldRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>, 'Object'> {
     const [options = {} as never] = allArgs;
     const schemaConfig = getSchemaConfig(this.builder);
-    const relationField =
-      schemaConfig.relations.tablesConfig?.[this.table].relations[name as string];
+    const relationField = schemaConfig.relations?.[this.table].relations[name as string];
+    const tableName = getTableName(relationField.targetTable as Table);
+    const relatedTable = schemaConfig.relations[tableName];
 
-    const tableUniqueName = getTableUniqueName(relationField.targetTable as Table);
-    const tableName = schemaConfig.relations.tableNamesMap[tableUniqueName];
-    const relatedModel = schemaConfig.relations.tables[tableName];
-
-    if (!relatedModel) {
+    if (!relatedTable) {
       throw new PothosSchemaError(
         `Could not find relation ${name as string} on table ${this.table}`,
       );
     }
-    const ref = options.type ?? getRefFromModel(tableName, this.builder);
+    const ref = options.type ?? getRefFromModel(relatedTable.name, this.builder);
 
     const { query = {}, extensions, ...rest } = options;
 

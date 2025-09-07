@@ -36,7 +36,7 @@ schemaBuilderProto.drizzleObject = function drizzleObject(table, { select, field
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
+      pothosDrizzleTable: getSchemaConfig(this).relations[table],
       pothosDrizzleSelect:
         typeof select === 'object' ? { columns: {}, ...select } : (select ?? true),
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
@@ -65,7 +65,7 @@ schemaBuilderProto.drizzleInterface = function drizzleInterface(
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).relations.tablesConfig[table],
+      pothosDrizzleTable: getSchemaConfig(this).relations[table],
       pothosDrizzleSelect:
         typeof select === 'object' ? { columns: {}, ...select } : (select ?? true),
       pothosDrizzleLoader: ModelLoader.forModel(table, this),
@@ -99,8 +99,8 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   >,
 ) {
   const schemaConfig = getSchemaConfig(this);
-  const tableConfig = schemaConfig.relations.tablesConfig[table];
-  const idColumn = typeof column === 'function' ? column(tableConfig.columns) : column;
+  const tableConfig = schemaConfig.relations[table];
+  const idColumn = typeof column === 'function' ? column(tableConfig.table) : column;
   const idColumns = Array.isArray(idColumn) ? idColumn : [idColumn];
   const interfaceRef = this.nodeInterfaceRef?.();
   const resolve = getIDSerializer(idColumns, schemaConfig);
@@ -232,7 +232,7 @@ schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type
 //       drizzleGraphQL: {
 //         inputType: 'orderBy',
 //         table,
-//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//         tableConfig: getSchemaConfig(this).relations[table],
 //       } satisfies DrizzleGraphQLInputExtensions,
 //     },
 //   });
@@ -258,7 +258,7 @@ schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type
 //       drizzleGraphQL: {
 //         inputType: 'filters',
 //         table,
-//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//         tableConfig: getSchemaConfig(this).relations[table],
 //       } satisfies DrizzleGraphQLInputExtensions,
 //     },
 //   });
@@ -284,7 +284,7 @@ schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type
 //       drizzleGraphQL: {
 //         inputType: 'insert',
 //         table,
-//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//         tableConfig: getSchemaConfig(this).relations[table],
 //       } satisfies DrizzleGraphQLInputExtensions,
 //     },
 //   });
@@ -310,7 +310,7 @@ schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type
 //       drizzleGraphQL: {
 //         inputType: 'update',
 //         table,
-//         tableConfig: getSchemaConfig(this).relations.tablesConfig[table],
+//         tableConfig: getSchemaConfig(this).relations[table],
 //       } satisfies DrizzleGraphQLInputExtensions,
 //     },
 //   });

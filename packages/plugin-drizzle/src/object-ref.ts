@@ -11,10 +11,10 @@ export const drizzleTableKey = Symbol.for('Pothos.drizzleTableKey');
 
 export class DrizzleObjectRef<
   Types extends SchemaTypes,
-  Table extends keyof Types['DrizzleRelationsConfig'] = keyof Types['DrizzleRelationsConfig'],
+  Table extends keyof Types['DrizzleRelations'] = keyof Types['DrizzleRelations'],
   T = {},
 > extends ObjectRef<Types, T> {
-  [drizzleTableKey]!: Types['DrizzleRelationsConfig'][Table];
+  [drizzleTableKey]!: Types['DrizzleRelations'][Table];
 
   [abstractReturnShapeKey]!: WithBrand<T>;
 

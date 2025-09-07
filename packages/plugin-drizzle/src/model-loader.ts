@@ -2,6 +2,7 @@ import { createContextCache, type SchemaTypes } from '@pothos/core';
 import {
   type AnyTable,
   type Column,
+  getTableColumns,
   inArray,
   type SQL,
   sql,
@@ -54,16 +55,16 @@ export class ModelLoader {
     this.builder = builder;
     this.modelName = modelName;
     this.config = getSchemaConfig(builder);
-    this.table = this.config.relations.tablesConfig[modelName];
+    this.table = this.config.relations[modelName];
     this.primaryKey = this.config.getPrimaryKey(modelName);
     this.columns = columns ?? this.primaryKey;
     this.selectSQL = (table) => {
       const columns = this.columns.map((column) =>
-        Object.values(table).find(
+        Object.values(getTableColumns(table)).find(
           (tblColumn) => 'columnType' in tblColumn && tblColumn.name === column.name,
         ),
       );
-      return columns.length > 1 ? sql`(${sql.join(columns, sql`, `)})` : columns[0].getSQL();
+      return columns.length > 1 ? sql`(${sql.join(columns, sql`, `)})` : columns[0]!.getSQL();
     };
   }
 
