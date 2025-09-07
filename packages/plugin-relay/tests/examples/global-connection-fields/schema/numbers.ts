@@ -47,6 +47,12 @@ builder.node(BatchLoadableNumberThing, {
   }),
 });
 
+const CustomNumberEdge = builder.edgeObject({
+  name: 'CustomNumberEdge',
+  type: NumberThing,
+  nodeNullable: false,
+});
+
 builder.queryFields((t) => ({
   numbers: t.connection(
     {
@@ -102,27 +108,31 @@ builder.queryFields((t) => ({
       }),
     },
   ),
-  oddNumbers: t.connection({
-    type: NumberThing,
-    edgesNullable: {
-      items: true,
-      list: false,
-    },
-    nodeNullable: false,
-    resolve: async (_parent, args) => {
-      const result = await resolveOffsetConnection({ args }, () => [
-        new NumberThing(1),
-        null,
-        new NumberThing(3),
-      ]);
+  oddNumbers: t.connection(
+    {
+      type: NumberThing,
+      edgesNullable: {
+        items: true,
+        list: false,
+      },
+      nodeNullable: false,
+      resolve: async (_parent, args) => {
+        const result = await resolveOffsetConnection({ args }, () => [
+          new NumberThing(1),
+          null,
+          new NumberThing(3),
+        ]);
 
-      return {
-        other: 'abc',
-        ...result,
-        totalCount: 500,
-      };
+        return {
+          other: 'abc',
+          ...result,
+          totalCount: 500,
+        };
+      },
     },
-  }),
+    {},
+    CustomNumberEdge,
+  ),
 }));
 
 builder.queryFields((t) => ({

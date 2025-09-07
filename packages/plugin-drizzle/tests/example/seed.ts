@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { db } from './db';
-import { categories, comments, posts, profile, roles, userRoles, users } from './db/schema';
+import { categories, comments, posts, roles, userProfile, userRoles, users } from './db/schema';
 
 faker.seed(123);
 
@@ -44,7 +44,7 @@ async function seed() {
       ...userRows.map((user) => ({ userId: user.id, roleId: userRole.id })),
     ]);
 
-  await db.insert(profile).values(
+  await db.insert(userProfile).values(
     userRows.map((user) => ({
       userId: user.id,
       bio: faker.lorem.paragraph(),

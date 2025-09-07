@@ -577,6 +577,7 @@ export type RelatedConnectionOptions<
   Field extends keyof Table['relations'],
   Nullable extends boolean,
   Args extends InputFieldMap,
+  Type = unknown,
   NodeTable extends
     TableRelationalConfig = Types['DrizzleRelations'][Table['relations'][Field]['targetTable']['_']['name']],
 > = Omit<
@@ -621,7 +622,7 @@ export type RelatedConnectionOptions<
         >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
-        type?: DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
+        type?: Type & DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
