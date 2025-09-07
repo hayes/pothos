@@ -1,5 +1,5 @@
 import { createContextCache, type SchemaTypes } from '@pothos/core';
-import { type AnyRelations, type Column, getTableName, type Table } from 'drizzle-orm';
+import { type AnyRelations, type Column, getTableColumns, isTable, type Table } from 'drizzle-orm';
 import type { DrizzleClient } from '../types';
 
 export interface PothosDrizzleSchemaConfig {
@@ -17,46 +17,35 @@ const configCache = createContextCache(
       relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
-    const dbToSchema = Object.values(relations.tables).reduce<Record<string, Table>>(
-      (acc, table) => {
-        const tableName = getTableName(table);
-        if (tableName) {
-          acc[tableName] = table;
-        }
-        return acc;
-      },
-      {},
-    );
+    const columnNameMappings: Record<string, string> = {};
 
-    const columnMappings = Object.values(dbToSchema).reduce<Record<string, Record<string, string>>>(
-      (acc, table) => {
-        acc[getTableName(table)] = Object.entries(table).reduce<Record<string, string>>(
-          (acc, [name, column]) => {
-            acc[(column as Column).name] = name;
-            return acc;
-          },
-          {},
-        );
-        return acc;
-      },
-      {},
-    );
+    Object.values(relations).forEach(({ table }) => {
+      if (isTable(table)) {
+        Object.entries(getTableColumns(table)).forEach(([tsName, col]) => {
+          if (col.uniqueName) {
+            columnNameMappings[col.uniqueName] = tsName;
+          }
+        });
+      }
+    });
 
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       columnToTsName: (column) => {
-        const tableName = getTableName(column.table);
-        const table = columnMappings[tableName];
-        const columnName = table?.[column.name];
-
-        if (!columnName) {
-          throw new Error(`Could not find column mapping for ${tableName}.${column.name}`);
+        if (!column.uniqueName) {
+          throw new Error(`Column ${String(column.name)} has no uniqueName`);
         }
 
-        return columnName;
+        if (!(column.uniqueName in columnNameMappings)) {
+          throw new Error(`Typescript name not found for ${column.uniqueName}`);
+        }
+
+        return columnNameMappings[column.uniqueName];
       },
       getPrimaryKey: (tableName) => {
-        const tableConfig = builder.options.drizzle.getTableConfig(relations.tables[tableName]);
+        const tableConfig = builder.options.drizzle.getTableConfig(
+          relations[tableName].table as Table,
+        );
 
         const primaryKey = tableConfig.columns.find((column) => column.primary);
 

@@ -1,10 +1,5 @@
 import { PothosValidationError } from '@pothos/core';
-import {
-  type DBQueryConfig,
-  getTableUniqueName,
-  type Table,
-  type TableRelationalConfig,
-} from 'drizzle-orm';
+import type { DBQueryConfig, TableRelationalConfig } from 'drizzle-orm';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { deepEqual } from './deep-equal';
 import type { LoaderMappings } from './loader-map';
@@ -132,12 +127,10 @@ export function mergeSelection(
       const relation = state.table.relations[key];
 
       if (!relation) {
-        throw new PothosValidationError(`Relation ${key} does not exist on ${state.table.dbName}`);
+        throw new PothosValidationError(`Relation ${key} does not exist on ${state.table.name}`);
       }
 
-      const tableUniqueName = getTableUniqueName(relation.targetTable as Table);
-      const tableName = config.relations.tableNamesMap[tableUniqueName];
-      merge(config.relations.tablesConfig[tableName], key, value as SelectionMap | boolean);
+      merge(config.relations[relation.targetTableName], key, value as SelectionMap | boolean);
     }
   }
 
@@ -184,21 +177,18 @@ export function selectionToQuery(
 ): SelectionMap {
   const query: SelectionMap & { extras: Record<string, unknown> } = {
     ...state.query,
+    columns: undefined,
     with: {},
-    columns: {},
     extras: {},
   };
 
-  if (state.allColumns) {
-    for (const key of Object.keys(state.table.columns)) {
-      query.columns![key] = true;
-    }
-  } else {
+  if (!state.allColumns) {
+    query.columns = {};
     for (const key of state.columns) {
       query.columns![key] = true;
     }
 
-    for (const column of config.getPrimaryKey(state.table.tsName)) {
+    for (const column of config.getPrimaryKey(state.table.name)) {
       const tsName = config.columnToTsName(column);
       query.columns![tsName] = true;
     }

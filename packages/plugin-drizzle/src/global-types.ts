@@ -2,7 +2,6 @@ import type {
   FieldKind,
   FieldMap,
   FieldNullability,
-  FieldRef,
   InputFieldMap,
   InterfaceParam,
   NormalizeArgs,
@@ -13,10 +12,8 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type {
-  AnyRelations,
   BuildQueryResult,
   DBQueryConfig,
-  ExtractTablesWithRelations,
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
@@ -55,29 +52,23 @@ declare global {
     }
 
     export interface UserSchemaTypes {
-      DrizzleRelations: AnyRelations;
-      DrizzleRelationsConfig: TablesRelationalConfig;
+      DrizzleRelations: TablesRelationalConfig;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       DrizzleRelations: PartialTypes['DrizzleRelations'] & {};
-      DrizzleRelationsConfig: ExtractTablesWithRelations<PartialTypes['DrizzleRelations'] & {}>;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       drizzleObject: <
         const Interfaces extends InterfaceParam<Types>[],
-        Table extends keyof Types['DrizzleRelations']['tables'],
+        Table extends keyof Types['DrizzleRelations'],
         Selection extends
-          | DBQueryConfig<
-              'one',
-              Types['DrizzleRelationsConfig'],
-              Types['DrizzleRelationsConfig'][Table]
-            >
+          | DBQueryConfig<'one', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]>
           | true,
         Shape = BuildQueryResult<
-          Types['DrizzleRelationsConfig'],
-          Types['DrizzleRelationsConfig'][Table],
+          Types['DrizzleRelations'],
+          Types['DrizzleRelations'][Table],
           true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
@@ -87,17 +78,13 @@ declare global {
 
       drizzleInterface: <
         const Interfaces extends InterfaceParam<Types>[],
-        Table extends keyof Types['DrizzleRelationsConfig'],
+        Table extends keyof Types['DrizzleRelations'],
         Selection extends
-          | DBQueryConfig<
-              'one',
-              Types['DrizzleRelationsConfig'],
-              Types['DrizzleRelationsConfig'][Table]
-            >
+          | DBQueryConfig<'one', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]>
           | true,
         Shape = BuildQueryResult<
-          Types['DrizzleRelationsConfig'],
-          Types['DrizzleRelationsConfig'][Table],
+          Types['DrizzleRelations'],
+          Types['DrizzleRelations'][Table],
           true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
@@ -108,18 +95,14 @@ declare global {
       drizzleNode: 'relay' extends PluginName
         ? <
             const Interfaces extends InterfaceParam<Types>[],
-            Table extends keyof Types['DrizzleRelationsConfig'],
+            Table extends keyof Types['DrizzleRelations'],
             Selection extends
-              | DBQueryConfig<
-                  'one',
-                  Types['DrizzleRelationsConfig'],
-                  Types['DrizzleRelationsConfig'][Table]
-                >
+              | DBQueryConfig<'one', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]>
               | true,
             IDColumns,
             Shape = BuildQueryResult<
-              Types['DrizzleRelationsConfig'],
-              Types['DrizzleRelationsConfig'][Table],
+              Types['DrizzleRelations'],
+              Types['DrizzleRelations'][Table],
               true extends Selection ? true : Selection & { columns: {} }
             >,
           >(
@@ -129,17 +112,17 @@ declare global {
         : '@pothos/plugin-relay is required to use this method';
 
       drizzleObjectField: <
-        Type extends DrizzleObjectRef<Types> | keyof Types['DrizzleRelationsConfig'],
+        Type extends DrizzleObjectRef<Types> | keyof Types['DrizzleRelations'],
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
-          : Types['DrizzleRelationsConfig'][Type & keyof Types['DrizzleRelationsConfig']],
+          : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         Shape extends {} = Type extends DrizzleObjectRef<
           Types,
-          keyof Types['DrizzleRelationsConfig'],
+          keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['tsName'] }
-          : BuildQueryResult<Types['DrizzleRelationsConfig'], TableConfig, true> & {
+          ? S & { [drizzleTableName]?: TableConfig['name'] }
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
               [drizzleTableName]?: Type;
             },
       >(
@@ -149,17 +132,17 @@ declare global {
       ) => void;
 
       drizzleInterfaceField: <
-        Type extends DrizzleInterfaceRef<Types> | keyof Types['DrizzleRelationsConfig'],
+        Type extends DrizzleInterfaceRef<Types> | keyof Types['DrizzleRelations'],
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
-          : Types['DrizzleRelationsConfig'][Type & keyof Types['DrizzleRelationsConfig']],
+          : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         Shape extends {} = Type extends DrizzleInterfaceRef<
           Types,
-          keyof Types['DrizzleRelationsConfig'],
+          keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['tsName'] }
-          : BuildQueryResult<Types['DrizzleRelationsConfig'], TableConfig, true> & {
+          ? S & { [drizzleTableName]?: TableConfig['name'] }
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
               [drizzleTableName]?: Type;
             },
       >(
@@ -169,17 +152,17 @@ declare global {
       ) => void;
 
       drizzleObjectFields: <
-        Type extends DrizzleObjectRef<Types> | keyof Types['DrizzleRelationsConfig'],
+        Type extends DrizzleObjectRef<Types> | keyof Types['DrizzleRelations'],
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
-          : Types['DrizzleRelationsConfig'][Type & keyof Types['DrizzleRelationsConfig']],
+          : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         Shape extends {} = Type extends DrizzleObjectRef<
           Types,
-          keyof Types['DrizzleRelationsConfig'],
+          keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['tsName'] }
-          : BuildQueryResult<Types['DrizzleRelationsConfig'], TableConfig, true> & {
+          ? S & { [drizzleTableName]?: TableConfig['name'] }
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
               [drizzleTableName]?: Type;
             },
       >(
@@ -188,17 +171,17 @@ declare global {
       ) => void;
 
       drizzleInterfaceFields: <
-        Type extends DrizzleInterfaceRef<Types> | keyof Types['DrizzleRelationsConfig'],
+        Type extends DrizzleInterfaceRef<Types> | keyof Types['DrizzleRelations'],
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
-          : Types['DrizzleRelationsConfig'][Type & keyof Types['DrizzleRelationsConfig']],
+          : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         Shape extends {} = Type extends DrizzleInterfaceRef<
           Types,
-          keyof Types['DrizzleRelationsConfig'],
+          keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['tsName'] }
-          : BuildQueryResult<Types['DrizzleRelationsConfig'], TableConfig, true> & {
+          ? S & { [drizzleTableName]?: TableConfig['name'] }
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
               [drizzleTableName]?: Type;
             },
       >(
@@ -207,7 +190,7 @@ declare global {
       ) => void;
 
       // drizzleGraphQLOrderBy: 'addGraphQL' extends PluginName
-      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //   ? <Table extends keyof Types['DrizzleRelations']>(
       //       table: Table,
       //       type: GraphQLInputObjectType,
       //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
@@ -215,7 +198,7 @@ declare global {
       //   : '@pothos/plugin-add-graphql is required to use this method';
 
       // drizzleGraphQLFilters: 'addGraphQL' extends PluginName
-      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //   ? <Table extends keyof Types['DrizzleRelations']>(
       //       table: Table,
       //       type: GraphQLInputObjectType,
       //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
@@ -223,7 +206,7 @@ declare global {
       //   : '@pothos/plugin-add-graphql is required to use this method';
 
       // drizzleGraphQLInsert: 'addGraphQL' extends PluginName
-      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //   ? <Table extends keyof Types['DrizzleRelations']>(
       //       table: Table,
       //       type: GraphQLInputObjectType,
       //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
@@ -231,7 +214,7 @@ declare global {
       //   : '@pothos/plugin-add-graphql is required to use this method';
 
       // drizzleGraphQLUpdate: 'addGraphQL' extends PluginName
-      //   ? <Table extends keyof Types['DrizzleRelationsConfig']>(
+      //   ? <Table extends keyof Types['DrizzleRelations']>(
       //       table: Table,
       //       type: GraphQLInputObjectType,
       //       ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, {}>]>
@@ -271,8 +254,8 @@ declare global {
       drizzleField: <
         Args extends InputFieldMap,
         Param extends
-          | keyof Types['DrizzleRelationsConfig']
-          | [keyof Types['DrizzleRelationsConfig']]
+          | keyof Types['DrizzleRelations']
+          | [keyof Types['DrizzleRelations']]
           // biome-ignore lint/suspicious/noExplicitAny: this is fine
           | DrizzleRef<any>
           // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -281,16 +264,16 @@ declare global {
         ResolveShape,
         ResolveReturnShape,
         Table extends
-          keyof Types['DrizzleRelationsConfig'] = Param extends keyof Types['DrizzleRelationsConfig']
+          keyof Types['DrizzleRelations'] = Param extends keyof Types['DrizzleRelations']
           ? Param
-          : Param extends [keyof Types['DrizzleRelationsConfig']]
+          : Param extends [keyof Types['DrizzleRelations']]
             ? Param[0]
             : // biome-ignore lint/suspicious/noExplicitAny: this is fine
               Param extends DrizzleRef<any, infer T>
-              ? T & keyof Types['DrizzleRelationsConfig']
+              ? T & keyof Types['DrizzleRelations']
               : // biome-ignore lint/suspicious/noExplicitAny: this is fine
                 Param extends [DrizzleRef<any, infer T>]
-                ? T & keyof Types['DrizzleRelationsConfig']
+                ? T & keyof Types['DrizzleRelations']
                 : never,
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
         Type extends TypeParam<Types> = Param extends DrizzleRef<any> | [DrizzleRef<any>]
@@ -300,19 +283,15 @@ declare global {
                 ObjectRef<
                   Types,
                   BuildQueryResult<
-                    Types['DrizzleRelationsConfig'],
-                    Types['DrizzleRelationsConfig'][Table],
+                    Types['DrizzleRelations'],
+                    Types['DrizzleRelations'][Table],
                     true
                   >
                 >,
               ]
             : ObjectRef<
                 Types,
-                BuildQueryResult<
-                  Types['DrizzleRelationsConfig'],
-                  Types['DrizzleRelationsConfig'][Table],
-                  true
-                >
+                BuildQueryResult<Types['DrizzleRelations'], Types['DrizzleRelations'][Table], true>
               >,
       >(
         options: DrizzleFieldOptions<
@@ -331,21 +310,20 @@ declare global {
       drizzleConnection: 'relay' extends PluginName
         ? <
             Type extends // biome-ignore lint/suspicious/noExplicitAny: this is fine
-              | DrizzleRef<any, keyof Types['DrizzleRelationsConfig']>
-              | keyof Types['DrizzleRelationsConfig'],
+            DrizzleRef<any, keyof Types['DrizzleRelations']> | keyof Types['DrizzleRelations'],
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
             Shape = Type extends DrizzleRef<
               // biome-ignore lint/suspicious/noExplicitAny: this is fine
               any,
-              keyof Types['DrizzleRelationsConfig'],
+              keyof Types['DrizzleRelations'],
               infer S
             >
               ? S
               : BuildQueryResult<
-                  Types['DrizzleRelationsConfig'],
-                  Types['DrizzleRelationsConfig'][Type & keyof Types['DrizzleRelationsConfig']],
+                  Types['DrizzleRelations'],
+                  Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
                   true
                 >,
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
@@ -356,9 +334,9 @@ declare global {
               ParentShape,
               Type,
               // biome-ignore lint/suspicious/noExplicitAny: this is fine
-              Types['DrizzleRelationsConfig'][Type extends DrizzleRef<any, infer K>
+              Types['DrizzleRelations'][Type extends DrizzleRef<any, infer K>
                 ? K
-                : Type & keyof Types['DrizzleRelationsConfig']],
+                : Type & keyof Types['DrizzleRelations']],
               ObjectRef<Types, Shape>,
               Nullable,
               Args,
@@ -403,8 +381,8 @@ declare global {
       drizzleFieldWithInput: 'withInput' extends PluginName
         ? <
             Param extends
-              | keyof Types['DrizzleRelationsConfig']
-              | [keyof Types['DrizzleRelationsConfig']]
+              | keyof Types['DrizzleRelations']
+              | [keyof Types['DrizzleRelations']]
               // biome-ignore lint/suspicious/noExplicitAny: this is fine
               | DrizzleRef<any>
               // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -417,24 +395,20 @@ declare global {
             Args extends InputFieldMap = {},
             InputName extends string = 'input',
             Table extends
-              keyof Types['DrizzleRelationsConfig'] = Param extends keyof Types['DrizzleRelationsConfig']
+              keyof Types['DrizzleRelations'] = Param extends keyof Types['DrizzleRelations']
               ? Param
-              : Param extends [keyof Types['DrizzleRelationsConfig']]
+              : Param extends [keyof Types['DrizzleRelations']]
                 ? Param[0]
                 : // biome-ignore lint/suspicious/noExplicitAny: this is fine
                   Param extends DrizzleRef<any, infer T>
-                  ? T & keyof Types['DrizzleRelationsConfig']
+                  ? T & keyof Types['DrizzleRelations']
                   : // biome-ignore lint/suspicious/noExplicitAny: this is fine
                     Param extends [DrizzleRef<any, infer T>]
-                    ? T & keyof Types['DrizzleRelationsConfig']
+                    ? T & keyof Types['DrizzleRelations']
                     : never,
             Type extends TypeParam<Types> = ObjectRef<
               Types,
-              BuildQueryResult<
-                Types['DrizzleRelationsConfig'],
-                Types['DrizzleRelationsConfig'][Table],
-                true
-              >
+              BuildQueryResult<Types['DrizzleRelations'], Types['DrizzleRelations'][Table], true>
             >,
           >(
             options: DrizzleFieldWithInputOptions<

@@ -5,7 +5,14 @@ import {
   PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
-import type { Column, DBQueryConfig, SQL, TableConfig, TableRelationalConfig } from 'drizzle-orm';
+import {
+  type Column,
+  type DBQueryConfig,
+  getTableColumns,
+  type SQL,
+  type Table,
+  type TableRelationalConfig,
+} from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
 import type { PothosDrizzleSchemaConfig } from './config';
@@ -150,18 +157,23 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
   }
 
   try {
-    switch (field.dataType) {
-      case 'date':
-        return new Date(id);
-      case 'string':
-        return id;
-      case 'number':
-        return Number.parseInt(id, 10);
-      case 'bigint':
-        return BigInt(id);
-      default:
-        throw new PothosValidationError(`Unsupported ID type ${field.dataType}`);
+    if (field.dataType.startsWith('number')) {
+      return Number.parseInt(id, 10);
     }
+
+    if (field.dataType.startsWith('bigint')) {
+      return BigInt(id);
+    }
+
+    if (field.dataType.startsWith('string')) {
+      return id;
+    }
+
+    if (field.dataType === 'object date') {
+      return new Date(id);
+    }
+
+    throw new PothosValidationError(`Unsupported ID type ${field.dataType}`);
   } catch (error: unknown) {
     if (error instanceof PothosValidationError) {
       throw error;
@@ -283,12 +295,12 @@ export interface DrizzleCursorConnectionQueryOptions {
   orderBy: ConnectionOrderBy<TableRelationalConfig>;
   where?: SQL;
   config: PothosDrizzleSchemaConfig;
-  table: TableRelationalConfig | TableConfig;
+  table: TableRelationalConfig;
 }
 
 function parseOrderBy(
   config: PothosDrizzleSchemaConfig,
-  table: TableRelationalConfig | TableConfig,
+  table: TableRelationalConfig,
   orderBy: ConnectionOrderBy<TableRelationalConfig>,
   invert: boolean,
 ) {
@@ -310,13 +322,14 @@ function parseOrderBy(
       normalized.push({ direction: 'asc', column: field });
     }
   } else {
+    const tableColumns = getTableColumns(table.table as Table);
     Object.entries(
       orderBy as {
         [k: string]: 'asc' | 'desc' | undefined;
       },
     ).forEach(([name, direction]) => {
       if (direction) {
-        const column = table.columns[name] as Column;
+        const column = tableColumns[name];
         columns.push(column);
         entries.push([name, direction === 'asc' ? asc : desc]);
         normalized.push({ direction: direction, column });
@@ -506,7 +519,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   ) => MaybePromise<readonly T[]>,
   parent: unknown,
 ) {
-  const table = config.relations.tablesConfig[tableName];
+  const table = config.relations[tableName];
   let query: DBQueryConfig<'many'>;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
@@ -514,8 +527,8 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
       ...options,
       config,
       orderBy:
-        (typeof q.orderBy === 'function' ? q.orderBy(table.columns) : q.orderBy) ??
-        config.getPrimaryKey(table.tsName),
+        (typeof q.orderBy === 'function' ? q.orderBy(table.table as Table) : q.orderBy) ??
+        config.getPrimaryKey(table.name),
       table,
     });
     formatter = getCursorFormatter(cursorColumns, config);

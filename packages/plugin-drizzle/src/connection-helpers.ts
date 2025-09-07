@@ -2,7 +2,6 @@ import type { InputFieldMap, InputShapeFromFields, SchemaTypes } from '@pothos/c
 import type {
   BuildQueryResult,
   DBQueryConfig,
-  ExtractTablesWithRelations,
   RelationsFilter,
   TableRelationalConfig,
 } from 'drizzle-orm';
@@ -21,9 +20,9 @@ import { createState, mergeSelection, selectionToQuery } from './utils/selection
 
 export function drizzleConnectionHelpers<
   Types extends SchemaTypes,
-  Type extends DrizzleRef<Types> | keyof Types['DrizzleRelationsConfig'],
-  Selection extends DBQueryConfig<'one', Types['DrizzleRelationsConfig'], Table> | true,
-  Table extends TableRelationalConfig = Types['DrizzleRelationsConfig'][Type extends DrizzleRef<
+  Type extends DrizzleRef<Types> | keyof Types['DrizzleRelations'],
+  Selection extends DBQueryConfig<'one', Types['DrizzleRelations'], TableConfig> | true,
+  TableConfig extends TableRelationalConfig = Types['DrizzleRelations'][Type extends DrizzleRef<
     Types,
     infer T
   >
@@ -32,14 +31,14 @@ export function drizzleConnectionHelpers<
   Shape = Type extends DrizzleRef<
     // biome-ignore lint/suspicious/noExplicitAny: this is fine
     any,
-    keyof Types['DrizzleRelationsConfig'],
+    keyof Types['DrizzleRelations'],
     infer S
   >
     ? S
-    : BuildQueryResult<Types['DrizzleRelationsConfig'], Table, true>,
+    : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true>,
   EdgeShape = true extends Selection
     ? Shape
-    : BuildQueryResult<Types['DrizzleRelationsConfig'], Table, Selection>,
+    : BuildQueryResult<Types['DrizzleRelations'], TableConfig, Selection>,
   NodeShape = EdgeShape,
   ExtraArgs extends InputFieldMap = {},
 >(
@@ -59,7 +58,7 @@ export function drizzleConnectionHelpers<
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
     ) => Selection;
-    query?: QueryForDrizzleConnection<Types, Table> extends infer QueryConfig
+    query?: QueryForDrizzleConnection<Types, TableConfig> extends infer QueryConfig
       ?
           | QueryConfig
           | ((args: InputShapeFromFields<ExtraArgs>, context: Types['Context']) => QueryConfig)
@@ -116,7 +115,7 @@ export function drizzleConnectionHelpers<
   ) => {
     const { limit, orderBy, where, ...fieldQuery } =
       (typeof query === 'function' ? query(args, ctx) : query) ?? {};
-    const table = config.relations.tablesConfig[tableName] as Table;
+    const table = config.relations[tableName];
 
     const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ctx,
@@ -169,7 +168,7 @@ export function drizzleConnectionHelpers<
     const queryArgs = getQueryArgs(args, ctx);
 
     const selectState = createState(
-      config.relations.tablesConfig[tableName],
+      config.relations[tableName],
       builder.options.drizzle?.skipDeferredFragments ?? true,
     );
 
@@ -187,9 +186,11 @@ export function drizzleConnectionHelpers<
       ...queryResult,
     } as unknown as Omit<Selection, 'orderBy'> & {
       orderBy: {
-        [K in keyof Table['columns']]?: 'asc' | 'desc' | undefined;
+        [K in TableConfig['table']['_'] extends { columns: infer Columns }
+          ? keyof Columns
+          : never]?: 'asc' | 'desc' | undefined;
       };
-      where: RelationsFilter<Table, ExtractTablesWithRelations<Types['DrizzleRelations']>>;
+      where: RelationsFilter<TableConfig, Types['DrizzleRelations']>;
     };
   }
 
