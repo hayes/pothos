@@ -101,7 +101,6 @@ builder.queryFields((t) => ({
     resolve: (query, _root, args) =>
       db.query.posts.findFirst(
         query({
-          orderBy: (post, ops) => ops.desc(post.postId),
           where: {
             postId: Number.parseInt(args.id, 10),
           },

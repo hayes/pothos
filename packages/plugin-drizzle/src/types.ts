@@ -215,7 +215,7 @@ export type DrizzleFieldOptions<
 > & {
   type: Param;
   resolve: (
-    query: <T extends QueryForDrizzleField<Types, Param, Table>>(
+    query: <T extends QueryForDrizzleField<Types, Param, Table> = {}>(
       selection?: T,
     ) => Omit<T, 'columns' | 'extra'> & {
       columns: T extends { columns: infer C extends {} } ? C : {};
@@ -466,9 +466,10 @@ export type QueryForDrizzleField<
   Types extends SchemaTypes,
   Param,
   Table extends keyof Types['DrizzleRelations'],
-> = Omit<
-  DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]>,
-  Param extends [unknown] ? never : 'limit'
+> = DBQueryConfig<
+  Param extends [unknown] ? 'one' : 'many',
+  Types['DrizzleRelations'],
+  Types['DrizzleRelations'][Table]
 >;
 
 export type QueryForRelatedConnection<
@@ -544,8 +545,8 @@ export type DrizzleConnectionFieldOptions<
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
 
         resolve: (
-          query: <T extends QueryForRelatedConnection<Types, TableConfig, ConnectionArgs>>(
-            selection?: T,
+          query: <T = {}>(
+            selection?: T & QueryForDrizzleConnection<Types, TableConfig>,
           ) => Omit<T, 'orderBy' | 'columns' | 'extra'> & {
             columns: T extends { columns: infer C extends {} } ? C : {};
             orderBy: {
