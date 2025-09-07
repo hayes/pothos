@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.12.0
+
+### Minor Changes
+
+- 64e6e55: Update types to work with latest beta release
+
 ## 0.11.2
 
 ### Patch Changes

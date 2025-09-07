@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-drizzle",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "description": "A Pothos plugin for drizzle",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
