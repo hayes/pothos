@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.12.1
+
+### Patch Changes
+
+- e229f0e: Fix bug that incorrectly resolved table names when typescript and db names did not match
+
 ## 0.12.0
 
 ### Minor Changes
