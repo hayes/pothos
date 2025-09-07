@@ -83,41 +83,37 @@ export class DrizzleObjectFieldBuilder<
         Args extends InputFieldMap,
         const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         const EdgeInterfaces extends InterfaceParam<Types>[] = [],
+        Type = unknown,
+        Shape = // biome-ignore lint/suspicious/noExplicitAny: generic match
+        Type extends DrizzleRef<any, any>
+          ? Type['$inferType']
+          : TypesForRelation<Types, TableConfig['relations'][Field]>,
       >(
         field: Field,
         ...args: NormalizeArgs<
           [
-            options: RelatedConnectionOptions<Types, Shape, TableConfig, Field, Nullable, Args>,
+            options: RelatedConnectionOptions<
+              Types,
+              Shape,
+              TableConfig,
+              Field,
+              Nullable,
+              Args,
+              Type
+            >,
             connectionOptions:
               | ObjectRef<
                   Types,
-                  ShapeFromConnection<
-                    PothosSchemaTypes.ConnectionShapeHelper<
-                      Types,
-                      TypesForRelation<Types, TableConfig['relations'][Field]>,
-                      false
-                    >
-                  >
+                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
                 >
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
-                  ObjectRef<
-                    Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [ObjectRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>>],
-                      Nullable
-                    >
-                  >,
+                  ObjectRef<Types, ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>>,
                   false,
                   false,
                   DrizzleConnectionShape<
                     Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [ObjectRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>>],
-                      Nullable
-                    >,
+                    ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>,
                     Shape,
                     Args
                   >,
@@ -128,27 +124,16 @@ export class DrizzleObjectFieldBuilder<
                   Types,
                   {
                     cursor: string;
-                    node?: TypesForRelation<Types, TableConfig['relations'][Field]>;
+                    node?: Shape | null | undefined;
                   }
                 >
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
-                  ObjectRef<
-                    Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [ObjectRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>>],
-                      Nullable
-                    >
-                  >,
+                  ObjectRef<Types, ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>>,
                   false,
                   DrizzleConnectionShape<
                     Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [ObjectRef<Types, TypesForRelation<Types, TableConfig['relations'][Field]>>],
-                      Nullable
-                    >,
+                    ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>,
                     Shape,
                     Args
                   >,

@@ -28,7 +28,7 @@ export const userRoles = sqliteTable(
   }),
 );
 
-export const profile = sqliteTable('profile', {
+export const userProfile = sqliteTable('profile', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id')
     .notNull()

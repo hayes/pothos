@@ -568,20 +568,25 @@ const SelectUser = builder.prismaNode('User', {
         take: 5,
       },
     }),
-    postsConnection: t.relatedConnection('posts', {
-      type: SelectPost,
-      args: {
-        oldestFirst: t.arg.boolean(),
-      },
-      complexity: (args) => (args.oldestFirst ? 1 : 0),
-      query: (args) => ({
-        orderBy: {
-          createdAt: args.oldestFirst ? 'asc' : 'desc',
+    postsConnection: t.relatedConnection(
+      'posts',
+      {
+        type: SelectPost,
+        args: {
+          oldestFirst: t.arg.boolean(),
         },
-      }),
-      cursor: 'id',
-      totalCount: true,
-    }),
+        complexity: (args) => (args.oldestFirst ? 1 : 0),
+        query: (args) => ({
+          orderBy: {
+            createdAt: args.oldestFirst ? 'asc' : 'desc',
+          },
+        }),
+        cursor: 'id',
+        totalCount: true,
+      },
+      {},
+      CustomPostEdge,
+    ),
   }),
 });
 
@@ -635,6 +640,11 @@ const SelectPost = builder.prismaNode('Post', {
       CommentConnection,
     ),
   }),
+});
+
+const CustomPostEdge = builder.edgeObject({
+  name: 'SelectPostEdge',
+  type: SelectPost,
 });
 
 builder.queryField('selectPost', (t) =>

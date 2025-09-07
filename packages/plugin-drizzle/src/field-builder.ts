@@ -37,7 +37,7 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
             select,
             info,
             // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-          }),
+          }) as never,
         parent,
         args as never,
         context,

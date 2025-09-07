@@ -33,6 +33,7 @@ import type {
   DBQueryConfig,
   Many,
   Relation,
+  SQL,
   Table,
   TableRelationalConfig,
 } from 'drizzle-orm';
@@ -214,9 +215,14 @@ export type DrizzleFieldOptions<
 > & {
   type: Param;
   resolve: (
-    query: <T extends QueryForDrizzleField<Types, Param, Table>>(
+    query: <T extends QueryForDrizzleField<Types, Param, Table> = {}>(
       selection?: T,
-    ) => Omit<T, 'columns'>,
+    ) => Omit<T, 'columns' | 'extra'> & {
+      columns: T extends { columns: infer C extends {} } ? C : {};
+      extras: {
+        $pothosQueryFor: SQL<Table | undefined>;
+      } & (T extends { extra: infer E } ? E : {});
+    },
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
     ctx: Types['Context'],
@@ -460,9 +466,10 @@ export type QueryForDrizzleField<
   Types extends SchemaTypes,
   Param,
   Table extends keyof Types['DrizzleRelations'],
-> = Omit<
-  DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]>,
-  Param extends [unknown] ? never : 'limit'
+> = DBQueryConfig<
+  Param extends [unknown] ? 'one' : 'many',
+  Types['DrizzleRelations'],
+  Types['DrizzleRelations'][Table]
 >;
 
 export type QueryForRelatedConnection<
@@ -538,14 +545,18 @@ export type DrizzleConnectionFieldOptions<
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
 
         resolve: (
-          query: <T extends QueryForRelatedConnection<Types, TableConfig, ConnectionArgs>>(
-            selection?: T,
-          ) => Omit<T, 'orderBy' | 'columns'> & {
+          query: <T = {}>(
+            selection?: T & QueryForDrizzleConnection<Types, TableConfig>,
+          ) => Omit<T, 'orderBy' | 'columns' | 'extra'> & {
+            columns: T extends { columns: infer C extends {} } ? C : {};
             orderBy: {
               [K in TableConfig['table']['_'] extends { columns: infer Columns }
                 ? keyof Columns
                 : never]?: 'asc' | 'desc' | undefined;
             };
+            extras: {
+              $pothosQueryFor: () => SQL<TableConfig['name'] | undefined>;
+            } & (T extends { extra: infer E } ? E : {});
           },
           parent: ParentShape,
           args: ConnectionArgs,
@@ -566,6 +577,7 @@ export type RelatedConnectionOptions<
   Field extends keyof Table['relations'],
   Nullable extends boolean,
   Args extends InputFieldMap,
+  Type = unknown,
   NodeTable extends
     TableRelationalConfig = Types['DrizzleRelations'][Table['relations'][Field]['targetTable']['_']['name']],
 > = Omit<
@@ -610,7 +622,7 @@ export type RelatedConnectionOptions<
         >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
-        type?: DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
+        type?: Type & DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

@@ -15,7 +15,14 @@ export class DrizzleInterfaceRef<
   Types extends SchemaTypes,
   Table extends keyof Types['DrizzleRelations'] = keyof Types['DrizzleRelations'],
   T = {},
-> extends InterfaceRef<Types, T> {
+> extends InterfaceRef<
+  Types,
+  | T
+  | {
+      $pothosQueryFor: Table | undefined;
+    },
+  T
+> {
   [drizzleTableKey]!: Types['DrizzleRelations'][Table];
 
   tableName: string;

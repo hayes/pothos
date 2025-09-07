@@ -30,9 +30,9 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.users.id.through(r.postLikes.userId),
       to: r.posts.postId.through(r.postLikes.postId),
     }),
-    profile: r.one.profile({
+    profile: r.one.userProfile({
       from: r.users.id,
-      to: r.profile.userId,
+      to: r.userProfile.userId,
     }),
     roles: r.many.roles(),
     comments: r.many.comments({

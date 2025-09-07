@@ -374,6 +374,11 @@ type SelectPost implements Node {
   title: String
 }
 
+type SelectPostEdge {
+  cursor: String!
+  node: SelectPost!
+}
+
 type SelectUser implements Node {
   email: String
   following(after: String, before: String, first: Int, last: Int): SelectUserFollowingConnection
@@ -399,14 +404,9 @@ type SelectUserFollowingConnectionEdge {
 }
 
 type SelectUserPostsConnection {
-  edges: [SelectUserPostsConnectionEdge]
+  edges: [SelectPostEdge]
   pageInfo: PageInfo!
   totalCount: Int!
-}
-
-type SelectUserPostsConnectionEdge {
-  cursor: String!
-  node: SelectPost!
 }
 
 type Unrelated {

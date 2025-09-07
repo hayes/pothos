@@ -693,6 +693,7 @@ export type RelatedConnectionOptions<
   Field extends Model['ListRelations'],
   Nullable extends boolean,
   Args extends InputFieldMap,
+  Type = unknown,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -743,7 +744,7 @@ export type RelatedConnectionOptions<
         description?: string | false;
         query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
-        type?: PrismaRef<any, TypesForRelation<Types, Model, Field>>;
+        type?: Type & PrismaRef<any, TypesForRelation<Types, Model, Field>>;
         cursor: CursorFromRelation<Model, Field>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

@@ -13,7 +13,14 @@ export class DrizzleObjectRef<
   Types extends SchemaTypes,
   Table extends keyof Types['DrizzleRelations'] = keyof Types['DrizzleRelations'],
   T = {},
-> extends ObjectRef<Types, T> {
+> extends ObjectRef<
+  Types,
+  | T
+  | {
+      $pothosQueryFor: Table | undefined;
+    },
+  T
+> {
   [drizzleTableKey]!: Types['DrizzleRelations'][Table];
 
   [abstractReturnShapeKey]!: WithBrand<T>;

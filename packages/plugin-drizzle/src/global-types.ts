@@ -282,16 +282,26 @@ declare global {
             ? [
                 ObjectRef<
                   Types,
-                  BuildQueryResult<
-                    Types['DrizzleRelations'],
-                    Types['DrizzleRelations'][Table],
-                    true
-                  >
+                  | BuildQueryResult<
+                      Types['DrizzleRelations'],
+                      Types['DrizzleRelations'][Table],
+                      true
+                    >
+                  | {
+                      $pothosQueryFor: Table | undefined;
+                    }
                 >,
               ]
             : ObjectRef<
                 Types,
-                BuildQueryResult<Types['DrizzleRelations'], Types['DrizzleRelations'][Table], true>
+                | BuildQueryResult<
+                    Types['DrizzleRelations'],
+                    Types['DrizzleRelations'][Table],
+                    true
+                  >
+                | {
+                    $pothosQueryFor: Table | undefined;
+                  }
               >,
       >(
         options: DrizzleFieldOptions<
@@ -321,11 +331,15 @@ declare global {
               infer S
             >
               ? S
-              : BuildQueryResult<
-                  Types['DrizzleRelations'],
-                  Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-                  true
-                >,
+              :
+                  | BuildQueryResult<
+                      Types['DrizzleRelations'],
+                      Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                      true
+                    >
+                  | {
+                      $pothosQueryFor: Type | undefined;
+                    },
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             const EdgeInterfaces extends InterfaceParam<Types>[] = [],
           >(
@@ -408,7 +422,10 @@ declare global {
                     : never,
             Type extends TypeParam<Types> = ObjectRef<
               Types,
-              BuildQueryResult<Types['DrizzleRelations'], Types['DrizzleRelations'][Table], true>
+              | BuildQueryResult<Types['DrizzleRelations'], Types['DrizzleRelations'][Table], true>
+              | {
+                  $pothosQueryFor: Table | undefined;
+                }
             >,
           >(
             options: DrizzleFieldWithInputOptions<

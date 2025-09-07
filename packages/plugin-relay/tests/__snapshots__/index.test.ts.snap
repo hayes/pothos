@@ -342,6 +342,11 @@ input CustomInputName {
   id: ID!
 }
 
+type CustomNumberEdge {
+  cursor: String!
+  node: Number!
+}
+
 """output type"""
 type CustomOutputName {
   success: Boolean
@@ -506,16 +511,11 @@ type QueryNumbersConnectionEdge {
 }
 
 type QueryOddNumbersConnection {
-  edges: [QueryOddNumbersConnectionEdge]!
+  edges: [CustomNumberEdge]!
   nodes: [Number]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
-}
-
-type QueryOddNumbersConnectionEdge {
-  cursor: String!
-  node: Number!
 }
 
 type QueryPollsConnection {

@@ -123,41 +123,29 @@ export class PrismaObjectFieldBuilder<
         Args extends InputFieldMap,
         const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         const EdgeInterfaces extends InterfaceParam<Types>[] = [],
+        Type = unknown,
+        Shape = // biome-ignore lint/suspicious/noExplicitAny: generic match
+        Type extends PrismaRef<any, any>
+          ? Type['$inferType']
+          : TypesForRelation<Types, Model, Field>['Shape'],
       >(
         field: Field,
-        options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args>,
+        options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, Type>,
         ...args: NormalizeArgs<
           [
             connectionOptions:
               | ObjectRef<
                   Types,
-                  ShapeFromConnection<
-                    PothosSchemaTypes.ConnectionShapeHelper<
-                      Types,
-                      TypesForRelation<Types, Model, Field>['Shape'],
-                      false
-                    >
-                  >
+                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
                 >
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
-                  ObjectRef<
-                    Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [ObjectRef<Types, TypesForRelation<Types, Model, Field>['Shape']>],
-                      Nullable
-                    >
-                  >,
+                  ObjectRef<Types, ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>>,
                   false,
                   false,
                   PrismaConnectionShape<
                     Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [ObjectRef<Types, TypesForRelation<Types, Model, Field>['Shape']>],
-                      Nullable
-                    >,
+                    ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>,
                     Shape,
                     Args
                   >,
@@ -168,37 +156,16 @@ export class PrismaObjectFieldBuilder<
                   Types,
                   {
                     cursor: string;
-                    node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                    node?: Shape | null | undefined;
                   }
                 >
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
-                  ObjectRef<
-                    Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [
-                        ObjectRef<
-                          Types,
-                          Model['Relations'][Field & keyof Model['Relations']]['Shape']
-                        >,
-                      ],
-                      Nullable
-                    >
-                  >,
+                  ObjectRef<Types, ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>>,
                   false,
                   PrismaConnectionShape<
                     Types,
-                    ShapeFromTypeParam<
-                      Types,
-                      [
-                        ObjectRef<
-                          Types,
-                          Model['Relations'][Field & keyof Model['Relations']]['Shape']
-                        >,
-                      ],
-                      Nullable
-                    >,
+                    ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>,
                     Shape,
                     Args
                   >,
