@@ -17,13 +17,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import {
-  getTableName,
-  type InferSelectModel,
-  Many,
-  type Table,
-  type TableRelationalConfig,
-} from 'drizzle-orm';
+import { type InferSelectModel, Many, type TableRelationalConfig } from 'drizzle-orm';
 import type { DrizzleRef } from './interface-ref';
 import type {
   DrizzleConnectionShape,
@@ -198,8 +192,7 @@ export class DrizzleObjectFieldBuilder<
   ) {
     const schemaConfig = getSchemaConfig(this.builder);
     const relationField = schemaConfig.relations?.[this.table].relations[name as string];
-    const tableName = getTableName(relationField.targetTable as Table);
-    const relatedTable = schemaConfig.relations[tableName];
+    const relatedTable = schemaConfig.relations[relationField.targetTableName];
 
     if (!relatedTable) {
       throw new PothosSchemaError(
@@ -207,7 +200,7 @@ export class DrizzleObjectFieldBuilder<
       );
     }
 
-    const ref = options.type ?? getRefFromModel(tableName, this.builder);
+    const ref = options.type ?? getRefFromModel(relationField.targetTableName, this.builder);
     let typeName: string | undefined;
 
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
@@ -221,7 +214,7 @@ export class DrizzleObjectFieldBuilder<
         args,
         orderBy:
           (typeof orderBy === 'function' ? orderBy(relatedTable.table) : orderBy) ??
-          getSchemaConfig(this.builder).getPrimaryKey(tableName),
+          getSchemaConfig(this.builder).getPrimaryKey(relationField.targetTableName),
         where,
         config: schemaConfig,
         table: relatedTable,
@@ -389,8 +382,7 @@ export class DrizzleObjectFieldBuilder<
     const [options = {} as never] = allArgs;
     const schemaConfig = getSchemaConfig(this.builder);
     const relationField = schemaConfig.relations?.[this.table].relations[name as string];
-    const tableName = getTableName(relationField.targetTable as Table);
-    const relatedTable = schemaConfig.relations[tableName];
+    const relatedTable = schemaConfig.relations[relationField.targetTableName];
 
     if (!relatedTable) {
       throw new PothosSchemaError(

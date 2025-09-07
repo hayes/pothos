@@ -214,7 +214,9 @@ export type DrizzleFieldOptions<
 > & {
   type: Param;
   resolve: (
-    query: <T extends QueryForDrizzleField<Types, Param, Table>>(selection?: T) => T,
+    query: <T extends QueryForDrizzleField<Types, Param, Table>>(
+      selection?: T,
+    ) => Omit<T, 'columns'>,
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
     ctx: Types['Context'],
@@ -538,7 +540,7 @@ export type DrizzleConnectionFieldOptions<
         resolve: (
           query: <T extends QueryForRelatedConnection<Types, TableConfig, ConnectionArgs>>(
             selection?: T,
-          ) => Omit<T, 'orderBy'> & {
+          ) => Omit<T, 'orderBy' | 'columns'> & {
             orderBy: {
               [K in TableConfig['table']['_'] extends { columns: infer Columns }
                 ? keyof Columns
