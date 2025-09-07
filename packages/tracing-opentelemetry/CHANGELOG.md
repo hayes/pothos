@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 1.1.3
+
+### Patch Changes
+
+- 3403c66: update dependencies
+
 ## 1.1.2
 
 ### Patch Changes

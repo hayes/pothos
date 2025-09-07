@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.9.1
+
+### Patch Changes
+
+- 3403c66: update dependencies
+
 ## 4.9.0
 
 ### Minor Changes

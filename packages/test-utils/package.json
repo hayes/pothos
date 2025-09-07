@@ -1,6 +1,6 @@
 {
   "name": "@pothos/test-utils",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "shared test utils for testing Pothos packages",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

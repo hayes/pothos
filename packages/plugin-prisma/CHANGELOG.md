@@ -1,5 +1,15 @@
 # Change Log
 
+## 4.11.0
+
+### Minor Changes
+
+- b87c1dc: Improve typing for custom edge and connection types on related connections
+
+### Patch Changes
+
+- 3403c66: update dependencies
+
 ## 4.10.0
 
 ### Minor Changes
@@ -1074,14 +1084,12 @@
 ### Minor Changes
 
 - f04be64: #### Breaking
-
   - The Prisma plugin had been re-designed to use a prisma-generator to generate more efficient
     types. This requires new additional setup
   - Restored the original API that used model names as strings rather than passing in prisma
     delegates.
 
   #### New
-
   - Added support for `include` options on `prismaObject` and `prismaNode` types that are
     automatically loaded. This allows fields defined directly on those types to use nested relations
     without making additional requests.
@@ -1089,7 +1097,6 @@
     `relatedConnection` for more loading of counts.
 
   ### Fixed
-
   - Fixed some bugs related to field nullability
   - Improved include merging to further reduce the number of queries required to resolve a request
 
