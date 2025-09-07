@@ -1,5 +1,11 @@
 # @pothos/plugin-validation
 
+## 4.1.1
+
+### Patch Changes
+
+- 3403c66: update dependencies
+
 ## 4.1.0
 
 ### Minor Changes

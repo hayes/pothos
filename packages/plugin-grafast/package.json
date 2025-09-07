@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-grafast",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Pothos plugin for grafast plan resolvers",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

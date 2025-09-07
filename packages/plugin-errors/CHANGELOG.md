@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.3
+
+### Patch Changes
+
+- 3403c66: update dependencies
+
 ## 4.4.2
 
 ### Patch Changes

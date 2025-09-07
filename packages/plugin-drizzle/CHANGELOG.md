@@ -1,5 +1,15 @@
 # @pothos/plugin-drizzle
 
+## 0.13.0
+
+### Minor Changes
+
+- ede7c1d: Improve typing of query argument for drizzleField and drizzleConnection
+
+### Patch Changes
+
+- 3403c66: update dependencies
+
 ## 0.12.1
 
 ### Patch Changes
