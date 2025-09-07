@@ -759,13 +759,13 @@ importers:
         version: link:../test-utils
       drizzle-graphql:
         specifier: ^0.8.5
-        version: 0.8.5(drizzle-orm@1.0.0-beta.1-2acab7f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7))(graphql@16.11.0)
+        version: 0.8.5(drizzle-orm@1.0.0-beta.1-f92627f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7))(graphql@16.11.0)
       drizzle-kit:
-        specifier: 1.0.0-beta.1-2acab7f
-        version: 1.0.0-beta.1-2acab7f
+        specifier: 1.0.0-beta.1-f92627f
+        version: 1.0.0-beta.1-f92627f
       drizzle-orm:
-        specifier: 1.0.0-beta.1-2acab7f
-        version: 1.0.0-beta.1-2acab7f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7)
+        specifier: 1.0.0-beta.1-f92627f
+        version: 1.0.0-beta.1-f92627f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7)
       graphql-scalars:
         specifier: ^1.24.2
         version: 1.24.2(graphql@16.11.0)
@@ -6814,12 +6814,12 @@ packages:
       drizzle-orm: '>=0.30.9'
       graphql: ^16.10.0
 
-  drizzle-kit@1.0.0-beta.1-2acab7f:
-    resolution: {integrity: sha512-w6eEJXGwFeW6HZlPf0Q6Gy2S5Rd39Rssb76gcHUjOu9okrgQk7T2hXVrfBm5t9uAKFaZscLohr1aCR7KE8OBvQ==}
+  drizzle-kit@1.0.0-beta.1-f92627f:
+    resolution: {integrity: sha512-56Fe9rJs/cy9SQsZzNWhJpDQ+47zx+pUh+coTmRng3aPjAneKL/drgBVc4H1W80+hBKLTj4suO3F8LS9ppQVQw==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.1-2acab7f:
-    resolution: {integrity: sha512-+UIgPWiCHvzdtJsVVyYRHgQtLQD1sxrRz1nf16vjF0DUzxSKFpE4NgmFyYsuP//Eot8y8NLLlY2yIxt4OSMzDQ==}
+  drizzle-orm@1.0.0-beta.1-f92627f:
+    resolution: {integrity: sha512-/3vjhufSgRJsj5GBqAWBI0EugKMdjdfK9xLLIjw65sk21ius6CHNJ8r3f0/kkAVxhM6mrfYqipVKt9UYF1DwKg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -17923,15 +17923,15 @@ snapshots:
       p-event: 2.3.1
       pify: 4.0.1
 
-  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-beta.1-2acab7f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7))(graphql@16.11.0):
+  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-beta.1-f92627f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7))(graphql@16.11.0):
     dependencies:
-      drizzle-orm: 1.0.0-beta.1-2acab7f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7)
+      drizzle-orm: 1.0.0-beta.1-f92627f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7)
       graphql: 16.11.0
       graphql-parse-resolve-info: 4.14.1(graphql@16.11.0)
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-kit@1.0.0-beta.1-2acab7f:
+  drizzle-kit@1.0.0-beta.1-f92627f:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': 2.6.5
@@ -17940,7 +17940,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@1.0.0-beta.1-2acab7f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7):
+  drizzle-orm@1.0.0-beta.1-f92627f(@libsql/client@0.15.10)(@opentelemetry/api@1.9.0)(@prisma/client@6.13.0(prisma@6.13.0(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.4)(gel@2.0.2)(postgres@3.4.7)(prisma@6.13.0(typescript@5.9.2))(sqlite3@5.1.7):
     optionalDependencies:
       '@libsql/client': 0.15.10
       '@opentelemetry/api': 1.9.0

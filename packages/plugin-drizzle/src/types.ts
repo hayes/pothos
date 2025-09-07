@@ -214,7 +214,9 @@ export type DrizzleFieldOptions<
 > & {
   type: Param;
   resolve: (
-    query: <T extends QueryForDrizzleField<Types, Param, Table>>(selection?: T) => T,
+    query: <T extends QueryForDrizzleField<Types, Param, Table>>(
+      selection?: T,
+    ) => Omit<T, 'columns'>,
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
     ctx: Types['Context'],

@@ -58,8 +58,8 @@
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "drizzle-graphql": "^0.8.5",
-    "drizzle-kit": "1.0.0-beta.1-2acab7f",
-    "drizzle-orm": "1.0.0-beta.1-2acab7f",
+    "drizzle-kit": "1.0.0-beta.1-f92627f",
+    "drizzle-orm": "1.0.0-beta.1-f92627f",
     "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
     "postgres": "^3.4.7"
