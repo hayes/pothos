@@ -1,5 +1,7 @@
+import SchemaBuilder from '@pothos/core';
 import { execute, printSchema, subscribe } from 'graphql';
 import { gql } from 'graphql-tag';
+import ErrorPlugin from '../src';
 import { builder, builderWithCustomErrorTypeNames } from './example/builder';
 import { createSchema } from './example/schema';
 
@@ -436,5 +438,238 @@ describe('errors plugin', () => {
         },
       ]
     `);
+  });
+});
+
+describe('onResolvedError callback', () => {
+  it('calls onResolvedError when errors are handled', async () => {
+    const resolvedErrors: Error[] = [];
+
+    const testBuilder = new SchemaBuilder<{}>({
+      plugins: [ErrorPlugin],
+      errors: {
+        defaultTypes: [],
+        onResolvedError: (error) => {
+          resolvedErrors.push(error);
+        },
+      },
+    });
+
+    testBuilder.objectType(Error, {
+      name: 'Error',
+      fields: (t) => ({
+        message: t.exposeString('message'),
+      }),
+    });
+
+    testBuilder.queryType({
+      fields: (t) => ({
+        testField: t.field({
+          type: 'String',
+          errors: {
+            types: [Error],
+          },
+          resolve: () => {
+            throw new Error('Test error message');
+          },
+        }),
+      }),
+    });
+
+    const testSchema = testBuilder.toSchema();
+
+    const result = await execute({
+      schema: testSchema,
+      document: gql`
+        query {
+          testField {
+            __typename
+            ... on Error {
+              message
+            }
+          }
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(resolvedErrors).toHaveLength(1);
+    expect(resolvedErrors[0]).toBeInstanceOf(Error);
+    expect(resolvedErrors[0].message).toBe('Test error message');
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "testField": {
+            "__typename": "Error",
+            "message": "Test error message",
+          },
+        },
+      }
+    `);
+  });
+
+  it('does not call onResolvedError for unhandled errors', async () => {
+    const resolvedErrors: Error[] = [];
+
+    class HandledError extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = 'HandledError';
+      }
+    }
+
+    class UnhandledError extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = 'UnhandledError';
+      }
+    }
+
+    const testBuilder = new SchemaBuilder<{}>({
+      plugins: [ErrorPlugin],
+      errors: {
+        defaultTypes: [],
+        onResolvedError: (error) => {
+          resolvedErrors.push(error);
+        },
+      },
+    });
+
+    testBuilder.objectType(HandledError, {
+      name: 'HandledError',
+      fields: (t) => ({
+        message: t.exposeString('message'),
+      }),
+    });
+
+    testBuilder.queryType({
+      fields: (t) => ({
+        testField: t.field({
+          type: 'String',
+          errors: {
+            types: [HandledError],
+          },
+          resolve: () => {
+            throw new UnhandledError('This error is not handled by the plugin');
+          },
+        }),
+      }),
+    });
+
+    const testSchema = testBuilder.toSchema();
+
+    const result = await execute({
+      schema: testSchema,
+      document: gql`
+        query {
+          testField {
+            __typename
+          }
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(resolvedErrors).toHaveLength(0);
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.[0].message).toContain('This error is not handled by the plugin');
+  });
+
+  it('calls onResolvedError for handled errors but not unhandled ones', async () => {
+    const resolvedErrors: Error[] = [];
+
+    class HandledError extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = 'HandledError';
+      }
+    }
+
+    class UnhandledError extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = 'UnhandledError';
+      }
+    }
+
+    const testBuilder = new SchemaBuilder<{}>({
+      plugins: [ErrorPlugin],
+      errors: {
+        defaultTypes: [],
+        onResolvedError: (error) => {
+          resolvedErrors.push(error);
+        },
+      },
+    });
+
+    testBuilder.objectType(HandledError, {
+      name: 'HandledError',
+      fields: (t) => ({
+        message: t.exposeString('message'),
+      }),
+    });
+
+    testBuilder.queryType({
+      fields: (t) => ({
+        handledField: t.field({
+          type: 'String',
+          errors: {
+            types: [HandledError],
+          },
+          resolve: () => {
+            throw new HandledError('This error is handled');
+          },
+        }),
+        unhandledField: t.field({
+          type: 'String',
+          errors: {
+            types: [HandledError], // Only catching HandledError
+          },
+          resolve: () => {
+            throw new UnhandledError('This error is not handled');
+          },
+        }),
+      }),
+    });
+
+    const testSchema = testBuilder.toSchema();
+
+    // Test handled error
+    const handledResult = await execute({
+      schema: testSchema,
+      document: gql`
+        query {
+          handledField {
+            __typename
+            ... on HandledError {
+              message
+            }
+          }
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(resolvedErrors).toHaveLength(1);
+    expect(resolvedErrors[0]).toBeInstanceOf(HandledError);
+    expect(resolvedErrors[0].message).toBe('This error is handled');
+    expect(handledResult.errors).toBeUndefined();
+
+    const unhandledResult = await execute({
+      schema: testSchema,
+      document: gql`
+        query {
+          unhandledField {
+            __typename
+          }
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(resolvedErrors).toHaveLength(1);
+    expect(unhandledResult.errors).toBeDefined();
+    expect(unhandledResult.errors?.[0].message).toContain('This error is not handled');
   });
 });
