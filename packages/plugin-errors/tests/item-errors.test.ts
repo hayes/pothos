@@ -1,5 +1,7 @@
+import SchemaBuilder from '@pothos/core';
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
+import ErrorPlugin from '../src';
 import { builder } from './example/builder';
 import { createSchema } from './example/schema';
 
@@ -216,6 +218,117 @@ describe('errors plugin', () => {
               "__typename": "BaseError",
               "message": "Boom",
             },
+          },
+        }
+      `);
+    });
+
+    it('calls onResolvedError for item errors', async () => {
+      const resolvedErrors: Error[] = [];
+
+      const testBuilder = new SchemaBuilder<{}>({
+        plugins: [ErrorPlugin],
+        errors: {
+          defaultTypes: [Error],
+          onResolvedError: (error) => {
+            resolvedErrors.push(error);
+          },
+        },
+      });
+
+      testBuilder.objectType(Error, {
+        name: 'BaseError',
+        fields: (t) => ({
+          message: t.exposeString('message'),
+        }),
+      });
+
+      interface TestItem {
+        id: string;
+        name: string;
+      }
+
+      const TestItemType = testBuilder.objectRef<TestItem>('TestItem');
+
+      testBuilder.objectType(TestItemType, {
+        fields: (t) => ({
+          id: t.exposeString('id'),
+          name: t.exposeString('name'),
+        }),
+      });
+
+      testBuilder.queryType({
+        fields: (t) => ({
+          itemsWithErrors: t.field({
+            type: [TestItemType],
+            nullable: {
+              items: true,
+              list: false,
+            },
+            itemErrors: {},
+            resolve: () => {
+              return [
+                { id: '1', name: 'Item 1' },
+                new Error('Error in item 2') as never,
+                { id: '3', name: 'Item 3' },
+                new Error('Error in item 4') as never,
+                { id: '5', name: 'Item 5' },
+              ];
+            },
+          }),
+        }),
+      });
+
+      const testSchema = testBuilder.toSchema();
+
+      const result = await execute({
+        schema: testSchema,
+        document: gql`
+          query {
+            itemsWithErrors {
+              __typename
+              ... on TestItem {
+                id
+                name
+              }
+              ... on BaseError {
+                message
+              }
+            }
+          }
+        `,
+        contextValue: {},
+      });
+
+      expect(resolvedErrors).toHaveLength(2);
+      expect(resolvedErrors[0]).toBeInstanceOf(Error);
+      expect(resolvedErrors[0].message).toBe('Error in item 2');
+      expect(resolvedErrors[1]).toBeInstanceOf(Error);
+      expect(resolvedErrors[1].message).toBe('Error in item 4');
+
+      // Verify the complete GraphQL result structure
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "itemsWithErrors": [
+              {
+                "__typename": "QueryItemsWithErrorsItemSuccess",
+              },
+              {
+                "__typename": "BaseError",
+                "message": "Error in item 2",
+              },
+              {
+                "__typename": "QueryItemsWithErrorsItemSuccess",
+              },
+              {
+                "__typename": "BaseError",
+                "message": "Error in item 4",
+              },
+              {
+                "__typename": "QueryItemsWithErrorsItemSuccess",
+              },
+            ],
           },
         }
       `);

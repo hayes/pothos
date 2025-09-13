@@ -35,6 +35,11 @@ export interface ErrorsPluginOptions<Types extends SchemaTypes> {
       name?: GetTypeName;
     }
   >;
+  /**
+   * Callback for logging any errors which are handled by the errors plugin, this
+   * function will not be called for errors that are not handled by the errors plugin
+   **/
+  onResolvedError?: (error: Error) => void;
 }
 
 export type ErrorFieldOptions<
