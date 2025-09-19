@@ -191,6 +191,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     const pothosItemErrors = fieldConfig.extensions?.pothosItemErrors as
       | (typeof Error)[]
       | undefined;
+    const onResolvedError = this.builder.options.errors?.onResolvedError;
 
     if (!pothosErrors && !pothosItemErrors) {
       return resolver;
@@ -205,7 +206,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         const result = (await resolver(source, args, context, info)) as never;
 
         if (pothosItemErrors && result && typeof result === 'object' && Symbol.iterator in result) {
-          return yieldErrors(result, pothosItemErrors);
+          return yieldErrors(result, pothosItemErrors, onResolvedError);
         }
 
         if (
@@ -214,13 +215,12 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           typeof result === 'object' &&
           Symbol.asyncIterator in result
         ) {
-          console.log(result, yieldAsyncErrors);
-          return yieldAsyncErrors(result, pothosItemErrors);
+          return yieldAsyncErrors(result, pothosItemErrors, onResolvedError);
         }
 
         return result;
       } catch (error: unknown) {
-        return wrapOrThrow(error, pothosErrors ?? []);
+        return wrapOrThrow(error, pothosErrors ?? [], onResolvedError);
       }
     };
   }
@@ -230,6 +230,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
     const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
+    const onResolvedError = this.builder.options.errors?.onResolvedError;
 
     if (!pothosErrors) {
       return subscribe;
@@ -248,7 +249,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
             yield value;
           }
         } catch (error: unknown) {
-          yield wrapOrThrow(error, pothosErrors ?? []);
+          yield wrapOrThrow(error, pothosErrors ?? [], onResolvedError);
         }
       }
 
@@ -371,9 +372,14 @@ SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin, {
   }),
 });
 
-function wrapOrThrow(error: unknown, pothosErrors: ErrorConstructor[]) {
+function wrapOrThrow(
+  error: unknown,
+  pothosErrors: ErrorConstructor[],
+  onResolvedError?: (error: Error) => void,
+) {
   for (const errorType of pothosErrors) {
     if (error instanceof errorType) {
+      onResolvedError?.(error);
       const result = createErrorProxy(error, errorType, { wrapped: true });
 
       errorTypeMap.set(result, errorType);
@@ -385,30 +391,38 @@ function wrapOrThrow(error: unknown, pothosErrors: ErrorConstructor[]) {
   throw error;
 }
 
-function* yieldErrors(result: Iterable<unknown>, pothosErrors: ErrorConstructor[]) {
+function* yieldErrors(
+  result: Iterable<unknown>,
+  pothosErrors: ErrorConstructor[],
+  onResolvedError?: (error: Error) => void,
+) {
   try {
     for (const item of result) {
       if (item instanceof Error) {
-        yield wrapOrThrow(item, pothosErrors);
+        yield wrapOrThrow(item, pothosErrors, onResolvedError);
       } else {
         yield item;
       }
     }
   } catch (error: unknown) {
-    yield wrapOrThrow(error, pothosErrors);
+    yield wrapOrThrow(error, pothosErrors, onResolvedError);
   }
 }
 
-async function* yieldAsyncErrors(result: AsyncIterable<unknown>, pothosErrors: ErrorConstructor[]) {
+async function* yieldAsyncErrors(
+  result: AsyncIterable<unknown>,
+  pothosErrors: ErrorConstructor[],
+  onResolvedError?: (error: Error) => void,
+) {
   try {
     for await (const item of result) {
       if (item instanceof Error) {
-        yield wrapOrThrow(item, pothosErrors);
+        yield wrapOrThrow(item, pothosErrors, onResolvedError);
       } else {
         yield item;
       }
     }
   } catch (error: unknown) {
-    yield wrapOrThrow(error, pothosErrors);
+    yield wrapOrThrow(error, pothosErrors, onResolvedError);
   }
 }

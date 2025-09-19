@@ -23,6 +23,7 @@ const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
   errors: {
     defaultTypes: [],
+    // onResolvedError: (error) => console.error('Handled error:', error),
   },
 });
 
@@ -98,6 +99,7 @@ errors plugin will automatically resolve to the corresponding error object type.
 - `defaultTypes`: An array of Error classes to include in every field with error handling.
 - `directResult`: Sets the default for `directResult` option on fields (only affects non-list
   fields)
+- `onResolvedError`: A callback function that is called when an error is handled by the plugin
 - `defaultResultOptions`: Sets the defaults for `result` option on fields.
   - `name`: Function to generate a custom name on the generated result types.
     ```ts
