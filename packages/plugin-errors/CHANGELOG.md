@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.5.0
+
+### Minor Changes
+
+- 8fed4f3: Add an onResolvedError callback to builder options for logging errors handled by the plugin
+
 ## 4.4.3
 
 ### Patch Changes
