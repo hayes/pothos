@@ -120,15 +120,7 @@ const yoga = createYoga({
 });
 
 export const server = createServer(yoga);
-
 server.listen(3000);
-
-// Build schema and start server with the types we wrote above
-const server = createServer({
-  schema: builder.toSchema(),
-});
-
-server.start();
 ```
 
 ### Query your data
