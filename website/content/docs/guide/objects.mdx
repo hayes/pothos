@@ -35,7 +35,7 @@ of the schema. By passing in the Giraffe interface, We give the `ObjectRef` the 
 to ensure that fields we add to the Giraffe type are type-safe, and that any fields that reference
 the Giraffe Field return the expected data.
 
-Next, We can need to add an implementation for the `Giraffe` type:
+Next, we can add an implementation for the `Giraffe` type:
 
 ```typescript
 const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
