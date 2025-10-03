@@ -764,9 +764,9 @@ importers:
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
-      '@pothos/plugin-zod':
+      '@pothos/plugin-validation':
         specifier: workspace:*
-        version: link:../plugin-zod
+        version: link:../plugin-validation
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils

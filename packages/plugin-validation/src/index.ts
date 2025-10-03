@@ -15,6 +15,7 @@ import type { StandardSchemaV1 } from './standard-schema';
 import { createArgsValidator } from './utils';
 
 export * from './types';
+export { InputValidationError, type StandardSchemaV1 };
 
 const pluginName = 'validation';
 

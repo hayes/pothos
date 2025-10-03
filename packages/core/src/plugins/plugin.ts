@@ -122,6 +122,19 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
   }
 
   /**
+   * Called with resolve or subscribe functions, but wraps outside of argMappers so arg mapping errors can be handled
+   * @param  {GraphQLFieldResolver} resolve - the resolve function
+   * @param  {PothosOutputFieldConfig} fieldConfig - the config object for the field associated with this resolve function
+   * @return {GraphQLFieldResolver} - Either the original, or a new resolver function to use for this field
+   */
+  wrapArgMappers(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    _fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    return resolver;
+  }
+
+  /**
    * Called with the resolveType for each Interface or Union type
    * @param  {GraphQLTypeResolver} resolveType - the resolveType function
    * @param  {PothosInterfaceTypeConfig | PothosUnionTypeConfig} typeConfig - the config object for the Interface or Union type

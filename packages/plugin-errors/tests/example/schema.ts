@@ -1,4 +1,5 @@
-import { ZodError, type ZodFormattedError } from 'zod';
+import { InputValidationError, type StandardSchemaV1 } from '@pothos/plugin-validation';
+import * as z from 'zod';
 import type { Builder } from './builder';
 
 export function createSchema(builder: Builder) {
@@ -234,64 +235,37 @@ export function createSchema(builder: Builder) {
     }),
   }));
 
-  function flattenErrors(
-    error: ZodFormattedError<unknown>,
-    path: string[],
-  ): { path: string[]; message: string }[] {
-    const errors = error._errors.map((message) => ({
-      path,
-      message,
-    }));
-
-    Object.keys(error).forEach((key) => {
-      if (key !== '_errors') {
-        errors.push(
-          ...flattenErrors((error as Record<string, unknown>)[key] as ZodFormattedError<unknown>, [
-            ...path,
-            key,
-          ]),
-        );
-      }
-    });
-
-    return errors;
-  }
-
-  const ZodFieldError = builder
-    .objectRef<{
-      message: string;
-      path: string[];
-    }>('ZodFieldError')
+  const InputValidationIssue = builder
+    .objectRef<StandardSchemaV1.Issue>('InputValidationIssue')
     .implement({
       fields: (t) => ({
         message: t.exposeString('message'),
-        path: t.exposeStringList('path'),
+        path: t.stringList({
+          resolve: (issue) => issue.path?.map((p) => String(p)),
+        }),
       }),
     });
 
-  builder.objectType(ZodError, {
-    name: 'ZodError',
+  builder.objectType(InputValidationError, {
+    name: 'InputValidationError',
     interfaces: [ErrorInterface],
     fields: (t) => ({
-      fieldErrors: t.field({
-        type: [ZodFieldError],
-        resolve: (err) => flattenErrors(err.format(), []),
+      issues: t.field({
+        type: [InputValidationIssue],
+        resolve: (err) => err.issues,
       }),
     }),
   });
 
-  builder.queryField('fieldWIthValidation', (t) =>
+  builder.queryField('fieldWithValidation', (t) =>
     t.boolean({
       errors: {
-        types: [ZodError],
+        types: [InputValidationError],
         dataField: { name: 'result' },
       },
       args: {
         string: t.arg.string({
-          validate: {
-            type: 'string',
-            minLength: 3,
-          },
+          validate: z.string().min(3, 'Too short'),
         }),
       },
       resolve: () => true,
@@ -301,20 +275,15 @@ export function createSchema(builder: Builder) {
   builder.queryField('validation2', (t) =>
     t.boolean({
       errors: {
-        types: [ZodError],
+        types: [InputValidationError],
         dataField: { name: 'result' },
       },
       args: {
         stringList: t.arg.stringList({
-          validate: {
-            items: {
-              type: 'string',
-              minLength: 3,
-            },
-          },
+          validate: z.array(z.string().min(3, 'Too short')),
         }),
       },
-      validate: (_err) => false,
+      validate: z.unknown().refine(() => false, { message: 'Always fails' }),
       resolve: () => true,
     }),
   );
