@@ -33,35 +33,26 @@ npx prisma generate
 additional options:
 
 - `clientOutput`: Where the generated code will import the PrismaClient from. The default is the
-  full path of wherever the client is generated. If you are checking in the generated file, using
-  `@prisma/client` is a good option.
+  full path of wherever the client is generated. If you are checking in the generated file,
+  you should specify a relative path for this import
 - `output`: Where to write the generated types
 
 Example with more options:
 
 ```prisma
+
+generator client {
+  provider      = "prisma-client"
+  output        = "../lib/prisma"
+}
 generator pothos {
   provider = "prisma-pothos-types"
-  clientOutput = "@prisma/client"
-  output = "./pothos-types.ts"
+  clientOutput = "./prisma" // relative path from pothos output to prisma client
+  output = "../lib/pothos-prisma-types.ts"
 }
 ```
 
-When using the new `prisma-client` generator, the `clientOutput` option should match the `output`
-option of the `prisma-client` generator:
-
-```prisma
-generator client {
-  provider = "prisma-client"
-  output   = "./prisma-client"
-}
-
-generator pothos {
-  provider     = "prisma-pothos-types"
-  clientOutput = "./prisma-client"
-  output       = "./pothos-types.ts"
-}
-```
+If none of your auto-completions are working for prisma types and relations, make sure your generated types are importing from the correct location
 
 
 ### Set up the builder
@@ -70,20 +61,21 @@ generator pothos {
 import SchemaBuilder from '@pothos/core';
 import { PrismaClient } from '@prisma/client';
 import PrismaPlugin from '@pothos/plugin-prisma';
-// This is the default location for the generator, but this can be
-// customized as described above.
-// Using a type only import will help avoid issues with undeclared
-// exports in esm mode
-import type PrismaTypes from '@pothos/plugin-prisma/generated';
+
+import type PrismaTypes from '../lib/pothos-prisma-types'; // path to generated types, specified in your prisma.schema
+import { getDatamodel } from '../lib/pothos-prisma-types';
 
 const prisma = new PrismaClient({});
 
 const builder = new SchemaBuilder<{
-  PrismaTypes: PrismaTypes;
+  PrismaTypes: PrismaTypes; // This gives the builder all the type information about your prisma schema
 }>({
   plugins: [PrismaPlugin],
   prisma: {
     client: prisma,
+    // This give pothos information about your tables, relations, and indexes to help it generate optimal queries at runtime.
+    // This used to be attached to the prisma client, but has been removed in most runtimes/modes to reduce bundle size.
+    dmmf: getDatamodel(),
     // defaults to false, uses /// comments from prisma schema as descriptions
     // for object types, relations and exposed fields.
     // descriptions can be omitted by setting description to false
@@ -107,7 +99,8 @@ periodically re-create clients or create read-only clients for certain types of 
 import SchemaBuilder from '@pothos/core';
 import { PrismaClient, Prisma } from '@prisma/client';
 import PrismaPlugin from '@pothos/plugin-prisma';
-import type PrismaTypes from '@pothos/plugin-prisma/generated';
+import type PrismaTypes from '../lib/pothos-prisma-types';
+import { getDatamodel } from '../lib/pothos-prisma-types';
 
 const prisma = new PrismaClient({});
 
@@ -126,50 +119,6 @@ const builder = new SchemaBuilder<{
   plugins: [PrismaPlugin],
   prisma: {
     client: (ctx) => (ctx.user.isAdmin ? prisma : readOnlyPrisma),
-    // Because the prisma client is loaded dynamically, we need to explicitly provide the some information about the prisma schema
-    dmmf: Prisma.dmmf,
-  },
-});
-```
-
-## Edge run-times
-
-When prisma is built for edge run-times like cloudflare workers, the prisma client no-longer exposes
-the dmmf datamodel Pothos uses when building the schema. To work around this, you can have the
-pothos generator generate the datamodel instead:
-
-```prisma
-generator pothos {
-  provider          = "prisma-pothos-types"
-  clientOutput      = "@prisma/client"
-  output            = "./pothos-types.ts"
-  generateDatamodel = true
-  documentation     = false
-}
-```
-
-When using the `generateDatamodel` option, the prisma client will add a `getDatamodel` function in
-the generated output. When using this option, you should be using a `.ts` file rather than a `.d.ts`
-file for the output.
-
-When setting up the builder, you can now use the `getDatamodel` function:
-
-```typescript
-import SchemaBuilder from '@pothos/core';
-import { PrismaClient, Prisma } from '@prisma/client';
-import PrismaPlugin from '@pothos/plugin-prisma';
-import type PrismaTypes from '@pothos/plugin-prisma/generated';
-import { getDatamodel } from '@pothos/plugin-prisma/generated';
-
-const prisma = new PrismaClient({});
-
-const builder = new SchemaBuilder<{
-  Context: { user: { isAdmin: boolean } };
-  PrismaTypes: PrismaTypes;
-}>({
-  plugins: [PrismaPlugin],
-  prisma: {
-    client: prisma,
     dmmf: getDatamodel(),
   },
 });

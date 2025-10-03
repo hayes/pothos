@@ -215,7 +215,7 @@ async function generateOutput(
   );
 
   const nodes = ts.factory.createNodeArray(
-    config.generateDatamodel === 'true'
+    config.generateDatamodel !== 'false'
       ? [prismaImportStatement, dmmfImportStatement, prismaTypes, dmmfExport]
       : [prismaImportStatement, prismaTypes],
   );
