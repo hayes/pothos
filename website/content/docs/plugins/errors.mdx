@@ -245,7 +245,7 @@ builder.queryType({
 To handle validation errors you will need to enable the `unsafelyHandleInputErrors` option in the
 errors plugin options. This will allow the errors plugin to catch errors thrown by the validation plugin.
 This setting is unsafe because it wraps and catches errors at a higher level which will allow you to
-bypass other plugin hooks like the `auth` plugin.  This enables you to return structured error responses fo
+bypass other plugin hooks like the `auth` plugin.  This enables you to return structured error responses for
 validation issues which happen BEFORE auth checks are executed, but this also means that those auth checks won't be run.
 
 Once you enable the `unsafelyHandleInputErrors` option, you can define types for an InputValidationError
