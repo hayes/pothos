@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.10.0
+
+### Minor Changes
+
+- 29ae6ed: Add plugin hook for handling argMapping errors
+
 ## 4.9.1
 
 ### Patch Changes

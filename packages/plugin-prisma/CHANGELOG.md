@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.12.0
+
+### Minor Changes
+
+- 77804d1: Enable datamodel generation by default to improve prisma@>6.0 support
+
 ## 4.11.0
 
 ### Minor Changes

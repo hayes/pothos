@@ -1,5 +1,15 @@
 # @pothos/plugin-validation
 
+## 4.2.0
+
+### Minor Changes
+
+- 29ae6ed: Add unsafelyHandleInputErrors option for handling validation errors
+
+### Patch Changes
+
+- 29ae6ed: Export InputValidationError
+
 ## 4.1.1
 
 ### Patch Changes
