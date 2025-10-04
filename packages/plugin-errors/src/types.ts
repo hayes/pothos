@@ -40,6 +40,13 @@ export interface ErrorsPluginOptions<Types extends SchemaTypes> {
    * function will not be called for errors that are not handled by the errors plugin
    **/
   onResolvedError?: (error: Error) => void;
+  /**
+   * Errors thrown during custom argument validation or mapping will be processed like errors thrown in resolvers
+   * This will enables catching errors thrown by the validation plugin.
+   *
+   * This settings may have security implications because auth checks for a field will not be applied when handling input errors
+   */
+  unsafelyHandleInputErrors?: boolean;
 }
 
 export type ErrorFieldOptions<

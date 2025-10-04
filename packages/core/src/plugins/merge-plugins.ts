@@ -74,21 +74,18 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
       resolve,
     );
 
-    if (fieldConfig.argMappers.length) {
-      const argMappers = fieldConfig.argMappers;
-
-      return (parent, args, context, info) => {
-        const mappedArgs = reduceMaybeAsync(argMappers, args, (acc, argMapper) => {
-          return argMapper(acc as Record<string, unknown>, context, info);
-        });
-
-        return completeValue(mappedArgs, (mappedArgs) =>
-          wrapped(parent, mappedArgs, context, info),
-        );
-      };
+    if (!fieldConfig.argMappers.length) {
+      return this.wrapArgMappers(wrapped, fieldConfig)!;
     }
+    const argMappers = fieldConfig.argMappers;
 
-    return wrapped;
+    return this.wrapArgMappers((parent, args, context, info) => {
+      const mappedArgs = reduceMaybeAsync(argMappers, args, (acc, argMapper) => {
+        return argMapper(acc as Record<string, unknown>, context, info);
+      });
+
+      return completeValue(mappedArgs, (mappedArgs) => wrapped(parent, mappedArgs, context, info));
+    }, fieldConfig)!;
   }
 
   override wrapSubscribe(
@@ -101,17 +98,27 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
     );
 
     if (!wrapped || !fieldConfig.argMappers.length) {
-      return wrapped;
+      return this.wrapArgMappers(wrapped, fieldConfig);
     }
 
     const argMappers = fieldConfig.argMappers;
-    return (parent, args, context, info) => {
+    return this.wrapArgMappers((parent, args, context, info) => {
       const mappedArgs = reduceMaybeAsync(argMappers, args, (acc, argMapper) => {
         return argMapper(acc as Record<string, unknown>, context, info);
       });
 
       return completeValue(mappedArgs, (mappedArgs) => wrapped(parent, mappedArgs, context, info));
-    };
+    }, fieldConfig);
+  }
+
+  override wrapArgMappers(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    return this.plugins.reduceRight(
+      (nextResolveType, plugin) => plugin.wrapArgMappers(nextResolveType, fieldConfig),
+      resolver,
+    );
   }
 
   override wrapResolveType(

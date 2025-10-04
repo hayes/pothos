@@ -1,11 +1,12 @@
 import SchemaBuilder from '@pothos/core';
-import ValidationPlugin from '@pothos/plugin-zod';
+import ValidationPlugin from '@pothos/plugin-validation';
 import ErrorPlugin from '../../src';
 
 export const builder = new SchemaBuilder<{}>({
   plugins: [ErrorPlugin, ValidationPlugin],
   errors: {
     defaultTypes: [Error],
+    unsafelyHandleInputErrors: true,
   },
 });
 

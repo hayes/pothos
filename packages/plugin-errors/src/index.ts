@@ -257,6 +257,37 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     };
   }
 
+  override wrapArgMappers(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    if (!this.builder.options.errors?.unsafelyHandleInputErrors || !resolver) {
+      return resolver;
+    }
+
+    const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
+    const pothosItemErrors = fieldConfig.extensions?.pothosItemErrors as
+      | (typeof Error)[]
+      | undefined;
+    const onResolvedError = this.builder.options.errors?.onResolvedError;
+
+    if (!pothosErrors && !pothosItemErrors) {
+      return resolver;
+    }
+
+    return async (source, args, context, info) => {
+      if (fieldConfig.kind === 'Subscription' && errorTypeMap.has(source as {})) {
+        return source;
+      }
+
+      try {
+        return (await resolver(source, args, context, info)) as never;
+      } catch (error: unknown) {
+        return wrapOrThrow(error, pothosErrors ?? [], onResolvedError);
+      }
+    };
+  }
+
   createResultType(
     parentTypeName: string,
     fieldName: string,

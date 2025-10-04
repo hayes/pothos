@@ -240,76 +240,49 @@ builder.queryType({
 });
 ```
 
-### With zod plugin
+### With validation plugin
 
-To use this in combination with the zod plugin, ensure that that errors plugin is listed
-BEFORE the zod plugin in your plugin list.
+To handle validation errors you will need to enable the `unsafelyHandleInputErrors` option in the
+errors plugin options. This will allow the errors plugin to catch errors thrown by the validation plugin.
+This setting is unsafe because it wraps and catches errors at a higher level which will allow you to
+bypass other plugin hooks like the `auth` plugin.  This enables you to return structured error responses for
+validation issues which happen BEFORE auth checks are executed, but this also means that those auth checks won't be run.
 
-Once your plugins are set up, you can define types for a ZodError, the same way you would for any
-other error type. Below is a simple example of how this can be done, but the specifics of how you
-structure your error types are left up to you.
+Once you enable the `unsafelyHandleInputErrors` option, you can define types for an InputValidationError
+(or any custom error you use in the validation plugin), the same way you would for any other error type. Below
+is a simple example of how this can be done, but the specifics of how you structure your error types are left up to you.
 
 ```typescript
-// Util for flattening zod errors into something easier to represent in your Schema.
-function flattenErrors(
-  error: ZodFormattedError<unknown>,
-  path: string[],
-): { path: string[]; message: string }[] {
-    const errors = error._errors.map((message) => ({
-    path,
-    message,
-  }));
-
-  Object.keys(error).forEach((key) => {
-    if (key !== '_errors') {
-      errors.push(
-        ...flattenErrors((error as Record<string, unknown>)[key] as ZodFormattedError<unknown>, [
-          ...path,
-          key,
-        ]),
-      );
-    }
-  });
-
-  return errors;
-}
-
-// A type for the individual validation issues
-const ZodFieldError = builder
-  .objectRef<{
-    message: string;
-    path: string[];
-  }>('ZodFieldError')
+const InputValidationIssue = builder
+  .objectRef<StandardSchemaV1.Issue>('InputValidationIssue')
   .implement({
     fields: (t) => ({
       message: t.exposeString('message'),
-      path: t.exposeStringList('path'),
+      path: t.stringList({
+        resolve: (issue) => issue.path?.map((p) => String(p)),
+      }),
     }),
   });
 
-// The actual error type
-builder.objectType(ZodError, {
-  name: 'ZodError',
+builder.objectType(InputValidationError, {
+  name: 'InputValidationError',
   interfaces: [ErrorInterface],
   fields: (t) => ({
-    fieldErrors: t.field({
-      type: [ZodFieldError],
-      resolve: (err) => flattenErrors(err.format(), []),
+    issues: t.field({
+      type: [InputValidationIssue],
+      resolve: (err) => err.issues,
     }),
   }),
 });
 
-builder.queryField('fieldWIthValidation', (t) =>
+builder.queryField('fieldWithValidation', (t) =>
   t.boolean({
     errors: {
-      types: [ZodError],
+      types: [InputValidationError],
     },
     args: {
       string: t.arg.string({
-        validate: {
-          type: 'string',
-          minLength: 3,
-        },
+        validate: z.string().min(3, 'Too short'),
       }),
     },
     resolve: () => true,
@@ -326,8 +299,8 @@ query {
     ... on QueryValidationSuccess {
       data
     }
-    ... on ZodError {
-      fieldErrors {
+    ... on InputValidationError {
+      issues {
         message
         path
       }
