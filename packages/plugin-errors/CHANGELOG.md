@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.0
+
+### Minor Changes
+
+- f4ecb7e: Add unsafelyHandleInputErrors option for handling validation errors
+
 ## 4.5.0
 
 ### Minor Changes
