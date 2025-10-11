@@ -1,20 +1,12 @@
 import type {
-  FieldKind,
   FieldNullability,
   InputFieldMap,
-  ObjectParam,
   SchemaTypes,
-  ShapeFromListTypeParam,
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
 import type { PothosErrorsPlugin } from '.';
-import type {
-  ErrorFieldOptions,
-  ErrorsPluginOptions,
-  ErrorUnionFieldOptions,
-  ErrorUnionListFieldOptions,
-} from './types';
+import type { ErrorFieldOptions, ErrorsPluginOptions } from './types';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -44,49 +36,6 @@ declare global {
       itemErrors?: Type extends [infer Item extends TypeParam<Types>]
         ? ErrorFieldOptions<Types, Item, ShapeFromTypeParam<Types, Item, false>, false>
         : never;
-    }
-
-    export interface RootFieldBuilder<
-      Types extends SchemaTypes,
-      ParentShape,
-      Kind extends FieldKind = FieldKind,
-    > {
-      errorUnionField: <
-        Args extends InputFieldMap,
-        Type extends ObjectParam<Types>,
-        Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
-        ResolveShape = unknown,
-        ResolveReturnShape = unknown,
-      >(
-        options: ErrorUnionFieldOptions<
-          Types,
-          ParentShape,
-          Type,
-          Nullable,
-          Args,
-          Kind,
-          ResolveShape,
-          ResolveReturnShape
-        >,
-      ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
-      errorUnionListField: <
-        Args extends InputFieldMap,
-        Type extends ObjectParam<Types>,
-        Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
-        ResolveShape = unknown,
-        ResolveReturnShape = unknown,
-      >(
-        options: ErrorUnionListFieldOptions<
-          Types,
-          ParentShape,
-          Type,
-          Nullable,
-          Args,
-          Kind,
-          ResolveShape,
-          ResolveReturnShape
-        >,
-      ) => FieldRef<Types, ShapeFromListTypeParam<Types, [Type], Nullable>, Kind>;
     }
   }
 }
