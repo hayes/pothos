@@ -1,4 +1,5 @@
 import './global-types';
+import './field-builder';
 import SchemaBuilder, {
   BasePlugin,
   type ImplementableObjectRef,
@@ -7,63 +8,31 @@ import SchemaBuilder, {
   type PothosOutputFieldType,
   PothosSchemaError,
   type SchemaTypes,
-  sortClasses,
   type TypeParam,
-  typeBrandKey,
   unwrapOutputFieldType,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';
 import type { ErrorFieldOptions, GetTypeName } from './types';
+import {
+  defaultGetListItemResultName,
+  defaultGetListItemUnionName,
+  defaultGetResultName,
+  defaultGetUnionName,
+  errorTypeMap,
+  sortedErrors,
+  unwrapError,
+  wrapErrorIfMatches,
+  wrapOrThrow,
+  yieldAsyncErrors,
+  yieldErrors,
+} from './utils';
 
 export * from './types';
+export * from './utils';
 
 const pluginName = 'errors';
 
 export default pluginName;
-
-export function capitalize(s: string) {
-  return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
-}
-
-export const defaultGetResultName: GetTypeName = ({ parentTypeName, fieldName }) =>
-  `${parentTypeName}${capitalize(fieldName)}Success`;
-export const defaultGetListItemResultName: GetTypeName = ({ parentTypeName, fieldName }) =>
-  `${parentTypeName}${capitalize(fieldName)}ItemSuccess`;
-export const defaultGetUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
-  `${parentTypeName}${capitalize(fieldName)}Result`;
-export const defaultGetListItemUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
-  `${parentTypeName}${capitalize(fieldName)}ItemResult`;
-
-export const unwrapError = Symbol.for('Pothos.unwrapErrors');
-
-function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boolean }): {} {
-  return new Proxy(target, {
-    get(err, val, receiver) {
-      if (val === unwrapError) {
-        return () => {
-          state.wrapped = false;
-        };
-      }
-
-      if (val === typeBrandKey) {
-        return ref;
-      }
-
-      return Reflect.get(err, val, receiver) as unknown;
-    },
-    getPrototypeOf(err) {
-      const proto = Reflect.getPrototypeOf(err) as {};
-
-      if (!state.wrapped || !proto) {
-        return proto;
-      }
-
-      return createErrorProxy(proto, ref, state);
-    },
-  });
-}
-
-const errorTypeMap = new WeakMap<{}, new (...args: never[]) => Error>();
 
 export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapIsTypeOf(
@@ -97,7 +66,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
     const itemErrorTypes =
       itemErrorOptions &&
-      sortClasses([
+      sortedErrors([
         ...new Set([
           ...(itemErrorOptions?.types ?? []),
           ...(errorBuilderOptions?.defaultTypes ?? []),
@@ -105,7 +74,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       ]);
     const errorTypes =
       errorOptions &&
-      sortClasses([
+      sortedErrors([
         ...new Set([...(errorOptions?.types ?? []), ...(errorBuilderOptions?.defaultTypes ?? [])]),
       ]);
 
@@ -216,6 +185,15 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           Symbol.asyncIterator in result
         ) {
           return yieldAsyncErrors(result, pothosItemErrors, onResolvedError);
+        }
+
+        if (
+          pothosErrors &&
+          result &&
+          typeof result === 'object' &&
+          (result as object) instanceof Error
+        ) {
+          return wrapErrorIfMatches(result, pothosErrors, onResolvedError);
         }
 
         return result;
@@ -334,7 +312,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,
     } = errorOptions;
 
-    const errorTypes = sortClasses([
+    const errorTypes = sortedErrors([
       ...new Set([...types, ...(errorBuilderOptions?.defaultTypes ?? [])]),
     ]);
 
@@ -402,58 +380,3 @@ SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin, {
     errors: options?.errorOptions,
   }),
 });
-
-function wrapOrThrow(
-  error: unknown,
-  pothosErrors: ErrorConstructor[],
-  onResolvedError?: (error: Error) => void,
-) {
-  for (const errorType of pothosErrors) {
-    if (error instanceof errorType) {
-      onResolvedError?.(error);
-      const result = createErrorProxy(error, errorType, { wrapped: true });
-
-      errorTypeMap.set(result, errorType);
-
-      return result;
-    }
-  }
-
-  throw error;
-}
-
-function* yieldErrors(
-  result: Iterable<unknown>,
-  pothosErrors: ErrorConstructor[],
-  onResolvedError?: (error: Error) => void,
-) {
-  try {
-    for (const item of result) {
-      if (item instanceof Error) {
-        yield wrapOrThrow(item, pothosErrors, onResolvedError);
-      } else {
-        yield item;
-      }
-    }
-  } catch (error: unknown) {
-    yield wrapOrThrow(error, pothosErrors, onResolvedError);
-  }
-}
-
-async function* yieldAsyncErrors(
-  result: AsyncIterable<unknown>,
-  pothosErrors: ErrorConstructor[],
-  onResolvedError?: (error: Error) => void,
-) {
-  try {
-    for await (const item of result) {
-      if (item instanceof Error) {
-        yield wrapOrThrow(item, pothosErrors, onResolvedError);
-      } else {
-        yield item;
-      }
-    }
-  } catch (error: unknown) {
-    yield wrapOrThrow(error, pothosErrors, onResolvedError);
-  }
-}

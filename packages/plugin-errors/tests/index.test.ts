@@ -131,6 +131,55 @@ describe('errors plugin', () => {
     `);
   });
 
+  it('handles returned error instances', async () => {
+    const query = gql`
+      query {
+        success: errorReturned(shouldFail: false) {
+          __typename
+          ... on QueryErrorReturnedSuccess {
+            data
+          }
+          ... on ValidationError {
+            message
+            field
+          }
+        }
+        error: errorReturned(shouldFail: true) {
+          __typename
+          ... on QueryErrorReturnedSuccess {
+            data
+          }
+          ... on ValidationError {
+            message
+            field
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "error": {
+            "__typename": "ValidationError",
+            "field": "field",
+            "message": "Returned error",
+          },
+          "success": {
+            "__typename": "QueryErrorReturnedSuccess",
+            "data": "success",
+          },
+        },
+      }
+    `);
+  });
+
   it('query directResult', async () => {
     const query = gql`
       query {

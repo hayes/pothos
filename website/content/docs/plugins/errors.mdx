@@ -335,6 +335,70 @@ executing queries for relation fields, these fields may still have errors if the
 pre-loaded. Detection of nested relations will continue to work if those relations use the `errors`
 plugin
 
+### Error union fields
+
+For cases where you want to return multiple success types alongside error types without throwing exceptions,
+you can use `t.errorUnionField`. This creates a union of all specified types with automatic type resolution.
+
+```typescript
+const CreateUserSuccess = builder
+  .objectRef<{ id: string; name: string }>('CreateUserSuccess')
+  .implement({
+    fields: (t) => ({
+      id: t.exposeString('id'),
+      name: t.exposeString('name'),
+    }),
+  });
+
+builder.mutationType({
+  fields: (t) => ({
+    createUser: t.errorUnionField({
+      types: [CreateUserSuccess, ValidationError],
+      args: {
+        name: t.arg.string({ required: true }),
+      },
+      resolve: (parent, { name }) => {
+        if (name.length < 3) {
+          return new ValidationError('Name too short');
+        }
+        return { id: '123', name };
+      },
+    }),
+  }),
+});
+```
+
+This produces a union type that includes all specified success and error types. Unlike the `errors` option,
+values are returned directly rather than thrown, and no wrapper Success type is created.
+
+**Type Resolution**: Error types are automatically resolved using their constructor types. For success types,
+Pothos uses the standard type resolution strategy (checking `isTypeOf`, type brands, or falling back to
+default resolution). You can provide a custom `resolveType` function via the `union` option if needed, but
+it's typically not required for error types.
+
+For returning lists of union types, use `t.errorUnionListField` which returns an array where each item can be any of the specified types (both success and error types):
+
+```typescript
+builder.mutationType({
+  fields: (t) => ({
+    createUsers: t.errorUnionListField({
+      types: [CreateUserSuccess, ValidationError],
+      args: {
+        names: t.arg.stringList({ required: true }),
+      },
+      resolve: (parent, { names }) => {
+        return names.map(name => {
+          if (name.length < 3) {
+            return new ValidationError('Name too short');
+          }
+          return { id: String(Math.random()), name };
+        });
+      },
+    }),
+  }),
+});
+```
+
 ### List item errors
 
 For fields that return lists, you can specify `itemErrors` to wrap the list items in a union type so
