@@ -505,6 +505,158 @@ describe('errorUnionField', () => {
   });
 });
 
+describe('errorUnionListField with errors option', () => {
+  it('handles thrown error from resolver using errors option', async () => {
+    const result = await execute({
+      schema,
+      document: parse(`
+        mutation TestErrorUnionListWithErrors($throwNotFound: Boolean, $includeItemError: Boolean!) {
+          testErrorUnionListWithErrors(throwNotFound: $throwNotFound, includeItemError: $includeItemError) {
+            __typename
+            ... on MutationTestErrorUnionListWithErrorsSuccess {
+              data {
+                __typename
+                ... on CreateUserSuccess {
+                  id
+                  name
+                }
+                ... on ValidationError {
+                  message
+                  field
+                }
+              }
+            }
+            ... on NotFoundError {
+              message
+            }
+          }
+        }
+      `),
+      variableValues: { throwNotFound: true, includeItemError: false },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "testErrorUnionListWithErrors": {
+            "__typename": "NotFoundError",
+            "message": "List resolver threw NotFound",
+          },
+        },
+      }
+    `);
+  });
+
+  it('returns list with item errors using itemErrors handling', async () => {
+    const result = await execute({
+      schema,
+      document: parse(`
+        mutation TestErrorUnionListWithErrors($throwNotFound: Boolean, $includeItemError: Boolean!) {
+          testErrorUnionListWithErrors(throwNotFound: $throwNotFound, includeItemError: $includeItemError) {
+            __typename
+            ... on MutationTestErrorUnionListWithErrorsSuccess {
+              data {
+                __typename
+                ... on CreateUserSuccess {
+                  id
+                  name
+                }
+                ... on ValidationError {
+                  message
+                  field
+                }
+              }
+            }
+            ... on NotFoundError {
+              message
+            }
+          }
+        }
+      `),
+      variableValues: { throwNotFound: false, includeItemError: true },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "testErrorUnionListWithErrors": {
+            "__typename": "MutationTestErrorUnionListWithErrorsSuccess",
+            "data": [
+              {
+                "__typename": "CreateUserSuccess",
+                "id": "1",
+                "name": "User 1",
+              },
+              {
+                "__typename": "ValidationError",
+                "field": "item",
+                "message": "Item error",
+              },
+              {
+                "__typename": "CreateUserSuccess",
+                "id": "2",
+                "name": "User 2",
+              },
+            ],
+          },
+        },
+      }
+    `);
+  });
+
+  it('returns success list without errors', async () => {
+    const result = await execute({
+      schema,
+      document: parse(`
+        mutation TestErrorUnionListWithErrors($throwNotFound: Boolean, $includeItemError: Boolean!) {
+          testErrorUnionListWithErrors(throwNotFound: $throwNotFound, includeItemError: $includeItemError) {
+            __typename
+            ... on MutationTestErrorUnionListWithErrorsSuccess {
+              data {
+                __typename
+                ... on CreateUserSuccess {
+                  id
+                  name
+                }
+                ... on ValidationError {
+                  message
+                  field
+                }
+              }
+            }
+            ... on NotFoundError {
+              message
+            }
+          }
+        }
+      `),
+      variableValues: { throwNotFound: false, includeItemError: false },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "testErrorUnionListWithErrors": {
+            "__typename": "MutationTestErrorUnionListWithErrorsSuccess",
+            "data": [
+              {
+                "__typename": "CreateUserSuccess",
+                "id": "1",
+                "name": "User 1",
+              },
+              {
+                "__typename": "CreateUserSuccess",
+                "id": "2",
+                "name": "User 2",
+              },
+            ],
+          },
+        },
+      }
+    `);
+  });
+});
+
 describe('errorUnionListField', () => {
   it('returns list of success types without errors', async () => {
     const result = await execute({
@@ -769,7 +921,7 @@ describe('errorUnionListField', () => {
     `);
   });
 
-  it('returns single-item list when resolver throws', async () => {
+  it('throws GraphQL error when resolver throws', async () => {
     const result = await execute({
       schema,
       document: parse(`
@@ -793,14 +945,11 @@ describe('errorUnionListField', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "testErrorUnionListThrow": [
-            {
-              "__typename": "ValidationError",
-              "field": "thrown",
-              "message": "Thrown from list resolver",
-            },
-          ],
+          "testErrorUnionListThrow": null,
         },
+        "errors": [
+          [GraphQLError: Thrown from list resolver],
+        ],
       }
     `);
   });

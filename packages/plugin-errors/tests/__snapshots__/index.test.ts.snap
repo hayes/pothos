@@ -46,11 +46,12 @@ type LengthError implements Error {
 type Mutation {
   testErrorUnion(action: String!, shouldFail: String): MutationTestErrorUnionResult
   testErrorUnionCustomResolveType(type: String!): MutationTestErrorUnionCustomResolveTypeResult
-  testErrorUnionList(includeError: Boolean!): [MutationTestErrorUnionListResult!]
-  testErrorUnionListAsyncIterable(includeError: Boolean!, throwError: Boolean!): [MutationTestErrorUnionListAsyncIterableResult!]
-  testErrorUnionListCustomResolveType(includeError: Boolean!): [MutationTestErrorUnionListCustomResolveTypeResult!]
-  testErrorUnionListIterable(includeError: Boolean!): [MutationTestErrorUnionListIterableResult!]
-  testErrorUnionListThrow(shouldThrow: Boolean!): [MutationTestErrorUnionListThrowResult!]
+  testErrorUnionList(includeError: Boolean!): [MutationTestErrorUnionListItemResult!]
+  testErrorUnionListAsyncIterable(includeError: Boolean!, throwError: Boolean!): [MutationTestErrorUnionListAsyncIterableItemResult!]
+  testErrorUnionListCustomResolveType(includeError: Boolean!): [MutationTestErrorUnionListCustomResolveTypeItemResult!]
+  testErrorUnionListIterable(includeError: Boolean!): [MutationTestErrorUnionListIterableItemResult!]
+  testErrorUnionListThrow(shouldThrow: Boolean!): [MutationTestErrorUnionListThrowItemResult!]
+  testErrorUnionListWithErrors(includeItemError: Boolean!, throwNotFound: Boolean): MutationTestErrorUnionListWithErrorsResult
   testErrorUnionNullable(returnNull: Boolean!): MutationTestErrorUnionNullableResult
   testErrorUnionThrow(shouldFail: String!): MutationTestErrorUnionThrowResult
   testErrorUnionThrowNonError: MutationTestErrorUnionThrowNonErrorResult
@@ -59,15 +60,23 @@ type Mutation {
 
 union MutationTestErrorUnionCustomResolveTypeResult = BaseError | CreateUserSuccess | NotFoundError | ValidationError
 
-union MutationTestErrorUnionListAsyncIterableResult = BaseError | CreateUserSuccess | ValidationError
+union MutationTestErrorUnionListAsyncIterableItemResult = BaseError | CreateUserSuccess | ValidationError
 
-union MutationTestErrorUnionListCustomResolveTypeResult = BaseError | CreateUserSuccess | ValidationError
+union MutationTestErrorUnionListCustomResolveTypeItemResult = BaseError | CreateUserSuccess | ValidationError
 
-union MutationTestErrorUnionListIterableResult = BaseError | CreateUserSuccess | ValidationError
+union MutationTestErrorUnionListItemResult = BaseError | CreateUserSuccess | ValidationError
 
-union MutationTestErrorUnionListResult = BaseError | CreateUserSuccess | ValidationError
+union MutationTestErrorUnionListIterableItemResult = BaseError | CreateUserSuccess | ValidationError
 
-union MutationTestErrorUnionListThrowResult = BaseError | CreateUserSuccess | ValidationError
+union MutationTestErrorUnionListThrowItemResult = BaseError | CreateUserSuccess | ValidationError
+
+union MutationTestErrorUnionListWithErrorsItemResult = BaseError | CreateUserSuccess | ValidationError
+
+union MutationTestErrorUnionListWithErrorsResult = BaseError | MutationTestErrorUnionListWithErrorsSuccess | NotFoundError
+
+type MutationTestErrorUnionListWithErrorsSuccess {
+  data: [MutationTestErrorUnionListWithErrorsItemResult!]!
+}
 
 union MutationTestErrorUnionNullableResult = BaseError | CreateUserSuccess | ValidationError
 
@@ -318,11 +327,12 @@ type LengthError implements Error {
 type Mutation {
   testErrorUnion(action: String!, shouldFail: String): TestErrorUnion_CUSTOM_UNION_NAME
   testErrorUnionCustomResolveType(type: String!): TestErrorUnionCustomResolveType_CUSTOM_UNION_NAME
-  testErrorUnionList(includeError: Boolean!): [TestErrorUnionList_CUSTOM_UNION_NAME!]
-  testErrorUnionListAsyncIterable(includeError: Boolean!, throwError: Boolean!): [TestErrorUnionListAsyncIterable_CUSTOM_UNION_NAME!]
-  testErrorUnionListCustomResolveType(includeError: Boolean!): [TestErrorUnionListCustomResolveType_CUSTOM_UNION_NAME!]
-  testErrorUnionListIterable(includeError: Boolean!): [TestErrorUnionListIterable_CUSTOM_UNION_NAME!]
-  testErrorUnionListThrow(shouldThrow: Boolean!): [TestErrorUnionListThrow_CUSTOM_UNION_NAME!]
+  testErrorUnionList(includeError: Boolean!): [TestErrorUnionList_CUSTOM_ITEM_UNION_NAME!]
+  testErrorUnionListAsyncIterable(includeError: Boolean!, throwError: Boolean!): [TestErrorUnionListAsyncIterable_CUSTOM_ITEM_UNION_NAME!]
+  testErrorUnionListCustomResolveType(includeError: Boolean!): [TestErrorUnionListCustomResolveType_CUSTOM_ITEM_UNION_NAME!]
+  testErrorUnionListIterable(includeError: Boolean!): [TestErrorUnionListIterable_CUSTOM_ITEM_UNION_NAME!]
+  testErrorUnionListThrow(shouldThrow: Boolean!): [TestErrorUnionListThrow_CUSTOM_ITEM_UNION_NAME!]
+  testErrorUnionListWithErrors(includeItemError: Boolean!, throwNotFound: Boolean): TestErrorUnionListWithErrors_CUSTOM_UNION_NAME
   testErrorUnionNullable(returnNull: Boolean!): TestErrorUnionNullable_CUSTOM_UNION_NAME
   testErrorUnionThrow(shouldFail: String!): TestErrorUnionThrow_CUSTOM_UNION_NAME
   testErrorUnionThrowNonError: TestErrorUnionThrowNonError_CUSTOM_UNION_NAME
@@ -361,15 +371,23 @@ type Subscription {
 
 union TestErrorUnionCustomResolveType_CUSTOM_UNION_NAME = BaseError | CreateUserSuccess | NotFoundError | ValidationError
 
-union TestErrorUnionListAsyncIterable_CUSTOM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
+union TestErrorUnionListAsyncIterable_CUSTOM_ITEM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
 
-union TestErrorUnionListCustomResolveType_CUSTOM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
+union TestErrorUnionListCustomResolveType_CUSTOM_ITEM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
 
-union TestErrorUnionListIterable_CUSTOM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
+union TestErrorUnionListIterable_CUSTOM_ITEM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
 
-union TestErrorUnionListThrow_CUSTOM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
+union TestErrorUnionListThrow_CUSTOM_ITEM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
 
-union TestErrorUnionList_CUSTOM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
+union TestErrorUnionListWithErrors_CUSTOM_ITEM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
+
+type TestErrorUnionListWithErrors_CUSTOM_RESULT_NAME {
+  data: [TestErrorUnionListWithErrors_CUSTOM_ITEM_UNION_NAME!]!
+}
+
+union TestErrorUnionListWithErrors_CUSTOM_UNION_NAME = BaseError | NotFoundError | TestErrorUnionListWithErrors_CUSTOM_RESULT_NAME
+
+union TestErrorUnionList_CUSTOM_ITEM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
 
 union TestErrorUnionNullable_CUSTOM_UNION_NAME = BaseError | CreateUserSuccess | ValidationError
 

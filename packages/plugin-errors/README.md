@@ -348,18 +348,35 @@ const CreateUserSuccess = builder
     }),
   });
 
+const UpdateUserSuccess = builder
+  .objectRef<{ id: string; updatedFields: string[] }>('UpdateUserSuccess')
+  .implement({
+    fields: (t) => ({
+      id: t.exposeString('id'),
+      updatedFields: t.exposeStringList('updatedFields'),
+    }),
+  });
+
 builder.mutationType({
   fields: (t) => ({
-    createUser: t.errorUnionField({
-      types: [CreateUserSuccess, ValidationError],
+    // Returns union of multiple success types and error types
+    modifyUser: t.errorUnionField({
+      types: [CreateUserSuccess, UpdateUserSuccess, ValidationError, NotFoundError],
       args: {
+        action: t.arg.string({ required: true }),
         name: t.arg.string({ required: true }),
       },
-      resolve: (parent, { name }) => {
+      resolve: (parent, { action, name }) => {
         if (name.length < 3) {
           return new ValidationError('Name too short');
         }
-        return { id: '123', name };
+        if (action === 'create') {
+          return { id: '123', name };
+        }
+        if (action === 'update') {
+          return { id: '123', updatedFields: ['name'] };
+        }
+        return new NotFoundError('Unknown action');
       },
     }),
   }),
@@ -373,6 +390,14 @@ values are returned directly rather than thrown, and no wrapper Success type is 
 Pothos uses the standard type resolution strategy (checking `isTypeOf`, type brands, or falling back to
 default resolution). You can provide a custom `resolveType` function via the `union` option if needed, but
 it's typically not required for error types.
+
+**Handling Errors**: Both returned Error instances and thrown errors are handled automatically. You can either:
+- Return an error instance: `return new ValidationError('message')`
+- Throw an error: `throw new ValidationError('message')`
+
+Both approaches work identically and will properly resolve the error type in the union.
+
+#### Error union list fields
 
 For returning lists of union types, use `t.errorUnionListField` which returns an array where each item can be any of the specified types (both success and error types):
 
@@ -395,6 +420,64 @@ builder.mutationType({
     }),
   }),
 });
+```
+
+**AsyncIterables**: Error union list fields also support async iterables, which is useful for streaming responses. Note that async iterables require GraphQL 17+.
+
+```typescript
+builder.mutationType({
+  fields: (t) => ({
+    processItems: t.errorUnionListField({
+      types: [ProcessSuccess, ValidationError],
+      args: {
+        items: t.arg.stringList({ required: true }),
+      },
+      resolve: async function* (parent, { items }) {
+        for (const item of items) {
+          await delay(100); // Simulate async processing
+          if (item === 'invalid') {
+            yield new ValidationError('Invalid item');
+          } else {
+            yield { id: item, processed: true };
+          }
+        }
+      },
+    }),
+  }),
+});
+```
+
+### Choosing between error handling approaches
+
+The errors plugin provides three different approaches for handling errors. Here's when to use each:
+
+| Approach | When to Use | Key Features |
+|----------|-------------|--------------|
+| **`errors` option** | Single success type, want automatic wrapper | • Wraps result in a `Success` type<br>• Creates `Result` union automatically<br>• Good for simple cases with one success type |
+| **`t.errorUnionField()`** | Multiple success types needed | • No wrapper - returns types directly<br>• Supports multiple success types in one union<br>• More control over union members |
+| **`t.errorUnionListField()`** | Lists where items can individually fail | • Each array item can be success or error<br>• Supports streaming with async iterables<br>• Good for batch operations |
+
+**Example comparison:**
+
+```typescript
+// Using errors option - single success type
+createUser: t.string({
+  errors: { types: [ValidationError] },
+  resolve: (parent, args) => {
+    if (invalid) throw new ValidationError('...');
+    return 'success'; // Wrapped in CreateUserSuccess { data: 'success' }
+  },
+})
+
+// Using errorUnionField - multiple success types
+modifyUser: t.errorUnionField({
+  types: [CreateResult, UpdateResult, ValidationError],
+  resolve: (parent, args) => {
+    if (invalid) return new ValidationError('...');
+    if (creating) return { id: '1', created: true };
+    return { id: '1', updated: true }; // Returns directly, no wrapper
+  },
+})
 ```
 
 ### With the dataloader plugin

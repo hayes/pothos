@@ -655,6 +655,24 @@ export function createSchema(builder: Builder) {
         return { id: '456', name: 'Default Types Test User' };
       },
     }),
+    testErrorUnionListWithErrors: t.errorUnionListField({
+      types: [CreateUserSuccess, ValidationError],
+      errors: { types: [NotFoundError] },
+      args: {
+        throwNotFound: t.arg.boolean(),
+        includeItemError: t.arg.boolean({ required: true }),
+      },
+      resolve: (_root, args) => {
+        if (args.throwNotFound) {
+          throw new NotFoundError('List resolver threw NotFound');
+        }
+        return [
+          { id: '1', name: 'User 1' },
+          ...(args.includeItemError ? [new ValidationError('Item error', 'item')] : []),
+          { id: '2', name: 'User 2' },
+        ];
+      },
+    }),
   }));
 
   return builder.toSchema();

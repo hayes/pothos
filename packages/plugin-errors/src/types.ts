@@ -158,7 +158,7 @@ export type ErrorUnionListFieldOptions<
       ResolveShape,
       ResolveReturnShape
     >,
-    'type' | 'resolve' | 'errors'
+    'type' | 'resolve'
   > & {
     types: Type[];
     resolve?: Resolver<

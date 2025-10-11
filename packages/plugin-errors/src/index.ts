@@ -19,7 +19,7 @@ import {
   defaultGetResultName,
   defaultGetUnionName,
   errorTypeMap,
-  sortedErrors,
+  extractAndSortErrorTypes,
   unwrapError,
   wrapErrorIfMatches,
   wrapOrThrow,
@@ -66,7 +66,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
     const itemErrorTypes =
       itemErrorOptions &&
-      sortedErrors([
+      extractAndSortErrorTypes([
         ...new Set([
           ...(itemErrorOptions?.types ?? []),
           ...(errorBuilderOptions?.defaultTypes ?? []),
@@ -74,7 +74,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       ]);
     const errorTypes =
       errorOptions &&
-      sortedErrors([
+      extractAndSortErrorTypes([
         ...new Set([...(errorOptions?.types ?? []), ...(errorBuilderOptions?.defaultTypes ?? [])]),
       ]);
 
@@ -142,7 +142,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       extensions: {
         ...fieldConfig.extensions,
         pothosErrors: errorTypes,
-        pothosItemErrors: itemErrorTypes,
+        ...(itemErrorTypes ? { pothosItemErrors: itemErrorTypes } : {}),
       },
       type: {
         kind: 'Union',
@@ -198,7 +198,11 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
         return result;
       } catch (error: unknown) {
-        return wrapOrThrow(error, pothosErrors ?? [], onResolvedError);
+        if (pothosErrors) {
+          return wrapOrThrow(error, pothosErrors, onResolvedError);
+        }
+
+        throw error
       }
     };
   }
@@ -312,7 +316,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,
     } = errorOptions;
 
-    const errorTypes = sortedErrors([
+    const errorTypes = extractAndSortErrorTypes([
       ...new Set([...types, ...(errorBuilderOptions?.defaultTypes ?? [])]),
     ]);
 

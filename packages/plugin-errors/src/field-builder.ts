@@ -13,13 +13,10 @@ import {
   type GraphQLResolveInfo,
 } from 'graphql';
 import {
+  defaultGetListItemUnionName,
   defaultGetUnionName,
   errorTypeMap,
-  sortedErrors,
-  wrapErrorIfMatches,
-  wrapOrThrow,
-  yieldAsyncErrors,
-  yieldErrors,
+  extractAndSortErrorTypes,
 } from './utils';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
@@ -57,14 +54,8 @@ function createResolveType(
       return builder.configStore.getTypeConfig(typeBrand as never).name;
     }
 
-    // Use custom resolveType if provided, otherwise fall back to default
     const resultOrPromise = customResolveType
-      ? (customResolveType(parent, context, info, type) as
-          | GraphQLObjectType<unknown, object>
-          | string
-          | null
-          | undefined
-          | Promise<GraphQLObjectType<unknown, object> | string | null | undefined>)
+      ? customResolveType(parent, context, info, type)
       : defaultTypeResolver(parent, context, info, type);
 
     const getResult = (result: GraphQLObjectType<unknown, object> | string | null | undefined) => {
@@ -101,10 +92,14 @@ function createErrorUnion(
   types: TypeParam<SchemaTypes>[],
   unionOptions: Partial<PothosSchemaTypes.UnionTypeOptions<SchemaTypes>> & { name?: string },
   fieldConfig: { parentType: string; name: string },
+  defaultNameGetter: (args: { parentTypeName: string; fieldName: string }) => string,
+  isListField: boolean,
 ) {
   const parentTypeName = builder.configStore.getTypeConfig(fieldConfig.parentType).name;
-  const { name: getUnionName = defaultGetUnionName } =
-    builder.options.errors?.defaultUnionOptions ?? {};
+  const builderDefaultOptions = isListField
+    ? builder.options.errors?.defaultItemUnionOptions
+    : builder.options.errors?.defaultUnionOptions;
+  const { name: getUnionName = defaultNameGetter } = builderDefaultOptions ?? {};
 
   const unionName =
     (unionOptions.name as string | undefined) ??
@@ -112,7 +107,7 @@ function createErrorUnion(
 
   const actualUnion = builder.unionType(unionName, {
     types: types as never,
-    ...builder.options.errors?.defaultUnionOptions,
+    ...builderDefaultOptions,
     ...unionOptions,
     resolveType: createResolveType(builder, unionOptions.resolveType as never),
   });
@@ -120,87 +115,51 @@ function createErrorUnion(
   builder.configStore.associateParamWithRef(unionRef, actualUnion);
 }
 
-fieldBuilderProto.errorUnionField = function errorUnionField({
-  types,
-  union: unionOptions = {} as never,
-  resolve,
-  ...fieldOptions
-}) {
+function createErrorUnionFieldBase(
+  fieldBuilder: PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>,
+  fieldOptions: {
+    types: TypeParam<SchemaTypes>[];
+    union?: Partial<PothosSchemaTypes.UnionTypeOptions<SchemaTypes>> & { name?: string };
+    [key: string]: unknown;
+  },
+  isListField: boolean,
+) {
+  const { types, union: unionOptions = {} as never, ...restOptions } = fieldOptions;
   const unionRef = new UnionRef('UnnamedErrorUnion');
-  const allTypes = [
+  const allTypes = [...new Set([
     ...types,
-    ...(this.builder.options.errors?.defaultTypes ?? []),
-  ] as TypeParam<SchemaTypes>[];
-  const errorTypes = sortedErrors(allTypes);
-  const onResolvedError = this.builder.options.errors?.onResolvedError;
+    ...(fieldBuilder.builder.options.errors?.defaultTypes ?? []),
+  ])] as TypeParam<SchemaTypes>[];
+  const errorTypes = extractAndSortErrorTypes(allTypes);
 
-  const wrappedResolve = resolve
-    ? async (...args: unknown[]) => {
-        try {
-          const result = await (resolve as (...args: unknown[]) => unknown)(...args);
-          return wrapErrorIfMatches(result, errorTypes, onResolvedError);
-        } catch (error: unknown) {
-          return wrapOrThrow(error, errorTypes, onResolvedError);
-        }
-      }
-    : undefined;
-
-  const fieldRef = this.field({
-    ...fieldOptions,
-    resolve: wrappedResolve,
-    type: unionRef as never,
+  const fieldRef = fieldBuilder.field({
+    ...restOptions,
+    type: (isListField ? [unionRef] : unionRef) as never,
+    extensions: {
+      ...(restOptions.extensions as object),
+      ...(isListField ? { pothosItemErrors: errorTypes } : { pothosErrors: errorTypes }),
+    },
   } as never);
 
   fieldRef.onFirstUse((fieldConfig) => {
-    createErrorUnion(this.builder, unionRef, allTypes, unionOptions, fieldConfig);
+    createErrorUnion(
+      fieldBuilder.builder,
+      unionRef,
+      allTypes,
+      unionOptions,
+      fieldConfig,
+      isListField ? defaultGetListItemUnionName : defaultGetUnionName,
+      isListField,
+    );
   });
 
   return fieldRef as never;
+}
+
+fieldBuilderProto.errorUnionField = function errorUnionField(options) {
+  return createErrorUnionFieldBase(this, options, false);
 };
 
-fieldBuilderProto.errorUnionListField = function errorUnionListField({
-  types,
-  union: unionOptions = {} as never,
-  resolve,
-  ...fieldOptions
-}) {
-  const unionRef = new UnionRef('UnnamedErrorUnion');
-  const allTypes = [
-    ...types,
-    ...(this.builder.options.errors?.defaultTypes ?? []),
-  ] as TypeParam<SchemaTypes>[];
-  const errorTypes = sortedErrors(allTypes);
-  const onResolvedError = this.builder.options.errors?.onResolvedError;
-
-  const wrappedResolve = resolve
-    ? async (...args: unknown[]) => {
-        try {
-          const result = await (resolve as (...args: unknown[]) => unknown)(...args);
-
-          if (result && typeof result === 'object' && Symbol.iterator in result) {
-            return yieldErrors(result as Iterable<unknown>, errorTypes, onResolvedError);
-          }
-
-          if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
-            return yieldAsyncErrors(result as AsyncIterable<unknown>, errorTypes, onResolvedError);
-          }
-
-          return result;
-        } catch (error: unknown) {
-          return [wrapOrThrow(error, errorTypes, onResolvedError)];
-        }
-      }
-    : undefined;
-
-  const fieldRef = this.field({
-    ...fieldOptions,
-    resolve: wrappedResolve,
-    type: [unionRef] as never,
-  } as never);
-
-  fieldRef.onFirstUse((fieldConfig) => {
-    createErrorUnion(this.builder, unionRef, allTypes, unionOptions, fieldConfig);
-  });
-
-  return fieldRef as never;
+fieldBuilderProto.errorUnionListField = function errorUnionListField(options) {
+  return createErrorUnionFieldBase(this, options, true);
 };

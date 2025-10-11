@@ -3,21 +3,34 @@ import type { GetTypeName } from './types';
 
 export { typeBrandKey };
 
-// Sort a list of types, with error classes first (sorted by inheritance depth), then other types
-// Works with pure error class arrays (like in index.ts) or mixed type arrays (like in field-builder.ts)
-export function sortedErrors<T>(types: T[]) {
-  const errors: (new (...args: never[]) => unknown)[] = [];
+/**
+ * Extracts and sorts Error classes from a mixed array of types.
+ * Non-error types (like ObjectRefs) are filtered out.
+ * Error classes are sorted by inheritance depth (most specific first).
+ *
+ * @param types - Array that may contain Error classes and other types
+ * @returns Array of only Error constructors, sorted by inheritance
+ */
+export function extractAndSortErrorTypes<T>(types: T[]): ErrorConstructor[] {
+  const errorClasses: (new (...args: never[]) => unknown)[] = [];
 
   for (const type of types) {
     if (
       typeof type === 'function' &&
       ((type as unknown) === Error || type.prototype instanceof Error)
     ) {
-      errors.push(type as new (...args: never[]) => unknown);
+      errorClasses.push(type as new (...args: never[]) => unknown);
     }
   }
 
-  return sortClasses(errors) as ErrorConstructor[];
+  return sortClasses(errorClasses) as ErrorConstructor[];
+}
+
+/**
+ * @deprecated Use extractAndSortErrorTypes instead
+ */
+export function sortedErrors<T>(types: T[]): ErrorConstructor[] {
+  return extractAndSortErrorTypes(types);
 }
 
 export const unwrapError = Symbol.for('Pothos.unwrapErrors');
