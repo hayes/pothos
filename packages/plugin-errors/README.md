@@ -333,153 +333,6 @@ query {
 }
 ```
 
-### Error union fields
-
-For cases where you want to return multiple success types alongside error types without throwing exceptions,
-you can use `t.errorUnionField`. This creates a union of all specified types with automatic type resolution.
-
-```typescript
-const CreateUserSuccess = builder
-  .objectRef<{ id: string; name: string }>('CreateUserSuccess')
-  .implement({
-    fields: (t) => ({
-      id: t.exposeString('id'),
-      name: t.exposeString('name'),
-    }),
-  });
-
-const UpdateUserSuccess = builder
-  .objectRef<{ id: string; updatedFields: string[] }>('UpdateUserSuccess')
-  .implement({
-    fields: (t) => ({
-      id: t.exposeString('id'),
-      updatedFields: t.exposeStringList('updatedFields'),
-    }),
-  });
-
-builder.mutationType({
-  fields: (t) => ({
-    // Returns union of multiple success types and error types
-    modifyUser: t.errorUnionField({
-      types: [CreateUserSuccess, UpdateUserSuccess, ValidationError, NotFoundError],
-      args: {
-        action: t.arg.string({ required: true }),
-        name: t.arg.string({ required: true }),
-      },
-      resolve: (parent, { action, name }) => {
-        if (name.length < 3) {
-          return new ValidationError('Name too short');
-        }
-        if (action === 'create') {
-          return { id: '123', name };
-        }
-        if (action === 'update') {
-          return { id: '123', updatedFields: ['name'] };
-        }
-        return new NotFoundError('Unknown action');
-      },
-    }),
-  }),
-});
-```
-
-This produces a union type that includes all specified success and error types. Unlike the `errors` option,
-values are returned directly rather than thrown, and no wrapper Success type is created.
-
-**Type Resolution**: Error types are automatically resolved using their constructor types. For success types,
-Pothos uses the standard type resolution strategy (checking `isTypeOf`, type brands, or falling back to
-default resolution). You can provide a custom `resolveType` function via the `union` option if needed, but
-it's typically not required for error types.
-
-**Handling Errors**: Both returned Error instances and thrown errors are handled automatically. You can either:
-- Return an error instance: `return new ValidationError('message')`
-- Throw an error: `throw new ValidationError('message')`
-
-Both approaches work identically and will properly resolve the error type in the union.
-
-#### Error union list fields
-
-For returning lists of union types, use `t.errorUnionListField` which returns an array where each item can be any of the specified types (both success and error types):
-
-```typescript
-builder.mutationType({
-  fields: (t) => ({
-    createUsers: t.errorUnionListField({
-      types: [CreateUserSuccess, ValidationError],
-      args: {
-        names: t.arg.stringList({ required: true }),
-      },
-      resolve: (parent, { names }) => {
-        return names.map(name => {
-          if (name.length < 3) {
-            return new ValidationError('Name too short');
-          }
-          return { id: String(Math.random()), name };
-        });
-      },
-    }),
-  }),
-});
-```
-
-**AsyncIterables**: Error union list fields also support async iterables, which is useful for streaming responses. Note that async iterables require GraphQL 17+.
-
-```typescript
-builder.mutationType({
-  fields: (t) => ({
-    processItems: t.errorUnionListField({
-      types: [ProcessSuccess, ValidationError],
-      args: {
-        items: t.arg.stringList({ required: true }),
-      },
-      resolve: async function* (parent, { items }) {
-        for (const item of items) {
-          await delay(100); // Simulate async processing
-          if (item === 'invalid') {
-            yield new ValidationError('Invalid item');
-          } else {
-            yield { id: item, processed: true };
-          }
-        }
-      },
-    }),
-  }),
-});
-```
-
-### Choosing between error handling approaches
-
-The errors plugin provides three different approaches for handling errors. Here's when to use each:
-
-| Approach | When to Use | Key Features |
-|----------|-------------|--------------|
-| **`errors` option** | Single success type, want automatic wrapper | • Wraps result in a `Success` type<br>• Creates `Result` union automatically<br>• Good for simple cases with one success type |
-| **`t.errorUnionField()`** | Multiple success types needed | • No wrapper - returns types directly<br>• Supports multiple success types in one union<br>• More control over union members |
-| **`t.errorUnionListField()`** | Lists where items can individually fail | • Each array item can be success or error<br>• Supports streaming with async iterables<br>• Good for batch operations |
-
-**Example comparison:**
-
-```typescript
-// Using errors option - single success type
-createUser: t.string({
-  errors: { types: [ValidationError] },
-  resolve: (parent, args) => {
-    if (invalid) throw new ValidationError('...');
-    return 'success'; // Wrapped in CreateUserSuccess { data: 'success' }
-  },
-})
-
-// Using errorUnionField - multiple success types
-modifyUser: t.errorUnionField({
-  types: [CreateResult, UpdateResult, ValidationError],
-  resolve: (parent, args) => {
-    if (invalid) return new ValidationError('...');
-    if (creating) return { id: '1', created: true };
-    return { id: '1', updated: true }; // Returns directly, no wrapper
-  },
-})
-```
-
 ### With the dataloader plugin
 
 To use this in combination with the dataloader plugin, ensure that that errors plugin is listed
@@ -505,3 +358,82 @@ will always surfaced at the field that executed the query. Because there are cas
 executing queries for relation fields, these fields may still have errors if the relation was not
 pre-loaded. Detection of nested relations will continue to work if those relations use the `errors`
 plugin
+
+### Custom error union fields
+
+Use `t.errorUnionField` and `t.errorUnionListField` to directly specify all members of the returned union type,
+including multiple success types and error types.
+
+```typescript
+const CreateResult = builder.objectRef<{ id: string; created: true }>('CreateResult').implement({
+  isTypeOf: (obj) => 'created' in obj,
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    created: t.exposeBoolean('created'),
+  }),
+});
+
+const UpdateResult = builder.objectRef<{ id: string; updated: true }>('UpdateResult').implement({
+  isTypeOf: (obj) => 'updated' in obj,
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    updated: t.exposeBoolean('updated'),
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    modifyUser: t.errorUnionField({
+      types: [CreateResult, UpdateResult, ValidationError],
+      resolve: (parent, { action, name }) => {
+        if (name.length < 3) return new ValidationError('Name too short');
+        if (action === 'create') return { id: '123', created: true };
+        return { id: '123', updated: true };
+      },
+    }),
+    processUsers: t.errorUnionListField({
+      types: [CreateResult, UpdateResult, ValidationError],
+      resolve: (parent, { operations }) =>
+        operations.map(op =>
+          op.invalid ? new ValidationError('Invalid') :
+          op.action === 'create' ? { id: op.id, created: true } :
+          { id: op.id, updated: true }
+        ),
+    }),
+  }),
+});
+```
+
+#### Type resolution
+
+Union members are resolved using standard Pothos type resolution. You have three options:
+
+**Class-based types** (most error types) - automatically resolved via `instanceof` checks:
+```typescript
+class ValidationError extends Error { ... }
+builder.objectType(ValidationError, { name: 'ValidationError', fields: ... });
+// No isTypeOf needed - uses instanceof ValidationError
+```
+
+**`isTypeOf` function** - for plain object types:
+```typescript
+const CreateResult = builder.objectRef<{ id: string }>('CreateResult').implement({
+  isTypeOf: (obj) => 'created' in obj,
+  fields: ...
+});
+```
+
+**Custom `resolveType` on union** - for complex resolution logic:
+```typescript
+t.errorUnionField({
+  types: [CreateResult, UpdateResult, ValidationError],
+  union: {
+    resolveType: (value) => {
+      if (value instanceof ValidationError) return 'ValidationError';
+      if ('created' in value) return 'CreateResult';
+      return 'UpdateResult';
+    },
+  },
+  resolve: ...
+});
+```

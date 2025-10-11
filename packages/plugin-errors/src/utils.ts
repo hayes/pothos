@@ -3,14 +3,6 @@ import type { GetTypeName } from './types';
 
 export { typeBrandKey };
 
-/**
- * Extracts and sorts Error classes from a mixed array of types.
- * Non-error types (like ObjectRefs) are filtered out.
- * Error classes are sorted by inheritance depth (most specific first).
- *
- * @param types - Array that may contain Error classes and other types
- * @returns Array of only Error constructors, sorted by inheritance
- */
 export function extractAndSortErrorTypes<T>(types: T[]): ErrorConstructor[] {
   const errorClasses: (new (...args: never[]) => unknown)[] = [];
 
@@ -24,13 +16,6 @@ export function extractAndSortErrorTypes<T>(types: T[]): ErrorConstructor[] {
   }
 
   return sortClasses(errorClasses) as ErrorConstructor[];
-}
-
-/**
- * @deprecated Use extractAndSortErrorTypes instead
- */
-export function sortedErrors<T>(types: T[]): ErrorConstructor[] {
-  return extractAndSortErrorTypes(types);
 }
 
 export const unwrapError = Symbol.for('Pothos.unwrapErrors');
