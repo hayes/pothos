@@ -126,10 +126,9 @@ function createErrorUnionFieldBase(
 ) {
   const { types, union: unionOptions = {} as never, ...restOptions } = fieldOptions;
   const unionRef = new UnionRef('UnnamedErrorUnion');
-  const allTypes = [...new Set([
-    ...types,
-    ...(fieldBuilder.builder.options.errors?.defaultTypes ?? []),
-  ])] as TypeParam<SchemaTypes>[];
+  const allTypes = [
+    ...new Set([...types, ...(fieldBuilder.builder.options.errors?.defaultTypes ?? [])]),
+  ] as TypeParam<SchemaTypes>[];
   const errorTypes = extractAndSortErrorTypes(allTypes);
 
   const fieldRef = fieldBuilder.field({

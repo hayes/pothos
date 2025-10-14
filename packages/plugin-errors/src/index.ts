@@ -202,7 +202,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           return wrapOrThrow(error, pothosErrors, onResolvedError);
         }
 
-        throw error
+        throw error;
       }
     };
   }
