@@ -1,9 +1,16 @@
 import type {
   EmptyToOptional,
+  FieldKind,
   FieldNullability,
+  FieldOptionsFromKind,
   InferredFieldOptionKeys,
+  InputFieldMap,
+  InputShapeFromFields,
   Normalize,
+  ObjectParam,
+  Resolver,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
 
@@ -91,3 +98,79 @@ export type ErrorFieldOptions<
     }
   >;
 }>;
+
+export type ErrorUnionFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends ObjectParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  Kind extends FieldKind,
+  ResolveShape,
+  ResolveReturnShape,
+> = Normalize<
+  Omit<
+    FieldOptionsFromKind<
+      Types,
+      ParentShape,
+      Type,
+      Nullable,
+      Args,
+      Kind,
+      ResolveShape,
+      ResolveReturnShape
+    >,
+    'type' | 'resolve' | 'errors'
+  > & {
+    types: Type[];
+    resolve?: Resolver<
+      ParentShape,
+      InputShapeFromFields<Args>,
+      Types['Context'],
+      ShapeFromTypeParam<Types, Type, Nullable>
+    >;
+    union?: Normalize<
+      Omit<PothosSchemaTypes.UnionTypeOptions<Types, Type>, 'types'> & {
+        name?: string;
+      }
+    >;
+  }
+>;
+
+export type ErrorUnionListFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends ObjectParam<Types>,
+  Nullable extends FieldNullability<[Type]>,
+  Args extends InputFieldMap,
+  Kind extends FieldKind,
+  ResolveShape,
+  ResolveReturnShape,
+> = Normalize<
+  Omit<
+    FieldOptionsFromKind<
+      Types,
+      ParentShape,
+      [Type],
+      Nullable,
+      Args,
+      Kind,
+      ResolveShape,
+      ResolveReturnShape
+    >,
+    'type' | 'resolve'
+  > & {
+    types: Type[];
+    resolve?: Resolver<
+      ParentShape,
+      InputShapeFromFields<Args>,
+      Types['Context'],
+      ShapeFromTypeParam<Types, [Type], Nullable>
+    >;
+    union?: Normalize<
+      Omit<PothosSchemaTypes.UnionTypeOptions<Types, Type>, 'types'> & {
+        name?: string;
+      }
+    >;
+  }
+>;
