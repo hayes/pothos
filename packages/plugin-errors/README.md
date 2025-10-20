@@ -358,3 +358,82 @@ will always surfaced at the field that executed the query. Because there are cas
 executing queries for relation fields, these fields may still have errors if the relation was not
 pre-loaded. Detection of nested relations will continue to work if those relations use the `errors`
 plugin
+
+### Custom error union fields
+
+Use `t.errorUnionField` and `t.errorUnionListField` to directly specify all members of the returned union type,
+including multiple success types and error types.
+
+```typescript
+const CreateResult = builder.objectRef<{ id: string; created: true }>('CreateResult').implement({
+  isTypeOf: (obj) => 'created' in obj,
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    created: t.exposeBoolean('created'),
+  }),
+});
+
+const UpdateResult = builder.objectRef<{ id: string; updated: true }>('UpdateResult').implement({
+  isTypeOf: (obj) => 'updated' in obj,
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    updated: t.exposeBoolean('updated'),
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    modifyUser: t.errorUnionField({
+      types: [CreateResult, UpdateResult, ValidationError],
+      resolve: (parent, { action, name }) => {
+        if (name.length < 3) return new ValidationError('Name too short');
+        if (action === 'create') return { id: '123', created: true };
+        return { id: '123', updated: true };
+      },
+    }),
+    processUsers: t.errorUnionListField({
+      types: [CreateResult, UpdateResult, ValidationError],
+      resolve: (parent, { operations }) =>
+        operations.map(op =>
+          op.invalid ? new ValidationError('Invalid') :
+          op.action === 'create' ? { id: op.id, created: true } :
+          { id: op.id, updated: true }
+        ),
+    }),
+  }),
+});
+```
+
+#### Type resolution
+
+Union members are resolved using standard Pothos type resolution. You have three options:
+
+**Class-based types** (most error types) - automatically resolved via `instanceof` checks:
+```typescript
+class ValidationError extends Error { ... }
+builder.objectType(ValidationError, { name: 'ValidationError', fields: ... });
+// No isTypeOf needed - uses instanceof ValidationError
+```
+
+**`isTypeOf` function** - for plain object types:
+```typescript
+const CreateResult = builder.objectRef<{ id: string }>('CreateResult').implement({
+  isTypeOf: (obj) => 'created' in obj,
+  fields: ...
+});
+```
+
+**Custom `resolveType` on union** - for complex resolution logic:
+```typescript
+t.errorUnionField({
+  types: [CreateResult, UpdateResult, ValidationError],
+  union: {
+    resolveType: (value) => {
+      if (value instanceof ValidationError) return 'ValidationError';
+      if ('created' in value) return 'CreateResult';
+      return 'UpdateResult';
+    },
+  },
+  resolve: ...
+});
+```
