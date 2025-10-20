@@ -1,5 +1,13 @@
 # Change Log
 
+## 4.7.0
+
+### Minor Changes
+
+- ba5924f: Add `t.errorUnionField()` and `t.errorUnionListField()` methods for returning multiple success types alongside error types without wrapper types.
+
+  These new field builder methods provide a more flexible alternative to the `errors` option when you need to return multiple success types in a flat union
+
 ## 4.6.0
 
 ### Minor Changes
