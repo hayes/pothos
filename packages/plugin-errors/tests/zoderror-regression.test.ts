@@ -67,7 +67,6 @@ describe('ZodError regression test', () => {
       contextValue: {},
     });
 
-    console.log('Result:', JSON.stringify(result, null, 2));
     expect(result.data?.testField.__typename).toBe('ZodError');
   });
 });
