@@ -42,11 +42,14 @@ describe('ZodError regression test', () => {
       const testField = queryType.getFields()['testField'];
       const returnType = testField?.type;
       
-      console.log('Return type:', returnType);
-      console.log('Return type toString:', returnType?.toString());
-      
       // The return type should be a union that includes ZodError
-      expect(returnType?.toString()).toContain('ZodError');
+      if (returnType && 'getTypes' in returnType && typeof returnType.getTypes === 'function') {
+        const unionTypes = returnType.getTypes();
+        const typeNames = unionTypes.map((t: { name: string }) => t.name);
+        expect(typeNames).toContain('ZodError');
+      } else {
+        throw new Error('Expected return type to be a union type');
+      }
     }
 
     const result = await execute({

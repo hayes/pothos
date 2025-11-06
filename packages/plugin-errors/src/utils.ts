@@ -7,10 +7,10 @@ export function extractAndSortErrorTypes<T>(types: T[]): ErrorConstructor[] {
   const errorClasses: (new (...args: never[]) => unknown)[] = [];
 
   for (const type of types) {
-    if (
-      typeof type === 'function' &&
-      ((type as unknown) === Error || type.prototype instanceof Error)
-    ) {
+    // Accept any constructor function as a potential error type.
+    // This allows error-like classes that don't extend Error in the traditional way
+    // (e.g., ZodError in Zod v4) to still be used, as long as instanceof checks work.
+    if (typeof type === 'function') {
       errorClasses.push(type as new (...args: never[]) => unknown);
     }
   }
@@ -72,8 +72,8 @@ export function wrapOrThrow(
 ) {
   for (const errorType of pothosErrors) {
     if (error instanceof errorType) {
-      onResolvedError?.(error);
-      const result = createErrorProxy(error, errorType, { wrapped: true });
+      onResolvedError?.(error as Error);
+      const result = createErrorProxy(error as {}, errorType, { wrapped: true });
 
       errorTypeMap.set(result, errorType);
 
@@ -89,14 +89,12 @@ export function wrapErrorIfMatches(
   errorTypes: ErrorConstructor[],
   onResolvedError?: (error: Error) => void,
 ): unknown {
-  if (!(value instanceof Error)) {
-    return value;
-  }
-
+  // Check if value matches any of the error types, even if it's not instanceof Error
+  // This handles error-like objects that don't extend Error (e.g., ZodError in Zod v4)
   for (const errorType of errorTypes) {
     if (value instanceof errorType) {
-      onResolvedError?.(value);
-      const wrapped = createErrorProxy(value, errorType, { wrapped: true });
+      onResolvedError?.(value as Error);
+      const wrapped = createErrorProxy(value as {}, errorType, { wrapped: true });
       errorTypeMap.set(wrapped, errorType);
       return wrapped;
     }
