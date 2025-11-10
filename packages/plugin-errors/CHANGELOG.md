@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.8.0
+
+### Minor Changes
+
+- 7ca9b11: Improve support for non-error error classes
+
 ## 4.7.0
 
 ### Minor Changes
