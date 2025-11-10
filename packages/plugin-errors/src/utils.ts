@@ -3,24 +3,21 @@ import type { GetTypeName } from './types';
 
 export { typeBrandKey };
 
-export function extractAndSortErrorTypes<T>(types: T[]): ErrorConstructor[] {
+export function extractAndSortErrorTypes<T>(types: T[]): (new (...args: never[]) => unknown)[] {
   const errorClasses: (new (...args: never[]) => unknown)[] = [];
 
   for (const type of types) {
-    if (
-      typeof type === 'function' &&
-      ((type as unknown) === Error || type.prototype instanceof Error)
-    ) {
+    if (typeof type === 'function') {
       errorClasses.push(type as new (...args: never[]) => unknown);
     }
   }
 
-  return sortClasses(errorClasses) as ErrorConstructor[];
+  return sortClasses(errorClasses);
 }
 
 export const unwrapError = Symbol.for('Pothos.unwrapErrors');
 
-export const errorTypeMap = new WeakMap<{}, new (...args: never[]) => Error>();
+export const errorTypeMap = new WeakMap<{}, new (...args: never[]) => unknown>();
 
 export function capitalize(s: string) {
   return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
@@ -67,13 +64,13 @@ export function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boo
 
 export function wrapOrThrow(
   error: unknown,
-  pothosErrors: ErrorConstructor[],
+  pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
 ) {
   for (const errorType of pothosErrors) {
     if (error instanceof errorType) {
-      onResolvedError?.(error);
-      const result = createErrorProxy(error, errorType, { wrapped: true });
+      onResolvedError?.(error as Error);
+      const result = createErrorProxy(error as Error, errorType, { wrapped: true });
 
       errorTypeMap.set(result, errorType);
 
@@ -86,17 +83,13 @@ export function wrapOrThrow(
 
 export function wrapErrorIfMatches(
   value: unknown,
-  errorTypes: ErrorConstructor[],
+  errorTypes: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
 ): unknown {
-  if (!(value instanceof Error)) {
-    return value;
-  }
-
   for (const errorType of errorTypes) {
     if (value instanceof errorType) {
-      onResolvedError?.(value);
-      const wrapped = createErrorProxy(value, errorType, { wrapped: true });
+      onResolvedError?.(value as Error);
+      const wrapped = createErrorProxy(value as Error, errorType, { wrapped: true });
       errorTypeMap.set(wrapped, errorType);
       return wrapped;
     }
@@ -107,7 +100,7 @@ export function wrapErrorIfMatches(
 
 export function* yieldErrors(
   result: Iterable<unknown>,
-  pothosErrors: ErrorConstructor[],
+  pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
 ) {
   try {
@@ -121,7 +114,7 @@ export function* yieldErrors(
 
 export async function* yieldAsyncErrors(
   result: AsyncIterable<unknown>,
-  pothosErrors: ErrorConstructor[],
+  pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
 ) {
   try {

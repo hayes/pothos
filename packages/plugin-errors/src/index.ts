@@ -316,10 +316,6 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,
     } = errorOptions;
 
-    const errorTypes = extractAndSortErrorTypes([
-      ...new Set([...types, ...(errorBuilderOptions?.defaultTypes ?? [])]),
-    ]);
-
     const directResult =
       (errorOptions as { directResult?: boolean }).directResult ??
       errorBuilderOptions?.directResult ??
@@ -361,7 +357,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         .extensions?.getDataloader;
 
       return this.builder.unionType(unionName, {
-        types: [...errorTypes, resultType],
+        types: [...new Set([...types, ...(errorBuilderOptions?.defaultTypes ?? [])]), resultType],
         resolveType: (obj) => (errorTypeMap.get(obj as {}) as never) ?? resultType,
         ...defaultUnionOptions,
         ...unionOptions,

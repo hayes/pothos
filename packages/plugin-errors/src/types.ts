@@ -20,7 +20,7 @@ export interface ErrorsPluginOptions<Types extends SchemaTypes> {
   defaultTypes?: (new (
     // biome-ignore lint/suspicious/noExplicitAny: this is fine
     ...args: any[]
-  ) => Error)[];
+  ) => unknown)[];
   directResult?: boolean;
   defaultUnionOptions?: Normalize<
     Omit<PothosSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
@@ -65,7 +65,7 @@ export type ErrorFieldOptions<
   types?: (new (
     // biome-ignore lint/suspicious/noExplicitAny: this is fine
     ...args: any[]
-  ) => Error)[];
+  ) => unknown)[];
   directResult?: Type extends unknown[] ? false : boolean;
   union: Normalize<
     Omit<PothosSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
