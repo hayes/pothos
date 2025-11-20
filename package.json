@@ -76,6 +76,22 @@
     },
     "patchedDependencies": {
       "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "@apollo/protobufjs",
+      "@nestjs/core",
+      "@newrelic/fn-inspect",
+      "@newrelic/native-metrics",
+      "@prisma/engines",
+      "@swc/core",
+      "@tailwindcss/oxide",
+      "better-sqlite3",
+      "esbuild",
+      "microtime",
+      "oxc-resolver",
+      "prisma",
+      "protobufjs",
+      "sharp"
+    ]
   }
 }

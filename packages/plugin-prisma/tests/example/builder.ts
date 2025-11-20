@@ -4,8 +4,7 @@ import ComplexityPlugin from '@pothos/plugin-complexity';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import SimpleObjects from '@pothos/plugin-simple-objects';
-import { PrismaSQLite } from '@prisma/adapter-better-sqlite3';
-import Database from 'better-sqlite3';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import PrismaPlugin, { type PrismaTypesFromClient } from '../../src';
 import { Prisma, PrismaClient } from '../client/client.js';
 import { getDatamodel } from '../generated.js';
@@ -13,8 +12,9 @@ import { getDatamodel } from '../generated.js';
 export const queries: unknown[] = [];
 
 const dbPath = join(process.cwd(), 'prisma/dev.db');
-const sqlite = new Database(dbPath);
-const adapter = new PrismaSQLite(sqlite);
+const adapter = new PrismaBetterSqlite3({
+  url: `file:${dbPath}`,
+});
 
 export const prisma = new PrismaClient({
   adapter,
