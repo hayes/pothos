@@ -179,9 +179,9 @@ type RelationShapeFromInclude<
     : never]: K extends keyof Model['Relations']
     ? Model['Relations'][K]['Shape'] extends unknown[]
       ? ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>[]
-      : Model['Relations'][K]['Nullable'] extends false
-        ? ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>
-        : ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]> | null
+      : Model['Relations'][K]['Nullable'] extends true
+        ? ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]> | null
+        : ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>
     : unknown;
 }>;
 
@@ -449,25 +449,12 @@ export type RelatedFieldOptions<
       ) => MaybePromise<
         Error | ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>
       >);
-} & (Model['Relations'][Field]['Nullable'] extends true
-    ? boolean extends Nullable
-      ? Types['DefaultFieldNullability'] extends false
-        ? { onNull: {} }
-        : {}
-      : Nullable extends false
-        ? { onNull: {} }
-        : {}
-    : Model['Relations'][Field]['Nullable'] extends false
-      ? {}
-      : boolean extends Model['Relations'][Field]['Nullable']
-        ? boolean extends Nullable
-          ? Types['DefaultFieldNullability'] extends false
-            ? { onNull: {} }
-            : {}
-          : Nullable extends false
-            ? { onNull: {} }
-            : {}
-        : {});
+} & ({
+    field: boolean extends Nullable ? Types['DefaultFieldNullability'] : Nullable;
+    relation: Model['Relations'][Field]['Nullable'];
+  } extends { field: false; relation: true }
+    ? { onNull: {} }
+    : {});
 
 export type VariantFieldOptions<
   Types extends SchemaTypes,
@@ -885,11 +872,7 @@ type InferRelationList<Model> = {
 };
 
 // Make a type nullable if IsNullable is true
-type MakeNullable<T, IsNullable extends boolean> = IsNullable extends false
-  ? T
-  : IsNullable extends true
-    ? T | null
-    : T | null; // If IsNullable is boolean (not a literal), assume it could be null
+type MakeNullable<T, IsNullable extends boolean> = IsNullable extends true ? T | null : T;
 
 // Infer the item of an array
 type InferItemOfArray<T> = T extends Array<infer U> ? U : T;
