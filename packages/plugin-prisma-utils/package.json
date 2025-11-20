@@ -61,11 +61,11 @@
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^6.15.0",
+    "@prisma/client": "^7.0.0",
     "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
     "prettier": "^3.6.2",
-    "prisma": "^6.15.0",
+    "prisma": "^7.0.0",
     "ts-node": "^10.9.2",
     "typescript": "5.9.2",
     "zod": "^4.1.5"

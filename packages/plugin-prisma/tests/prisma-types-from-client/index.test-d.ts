@@ -4,7 +4,8 @@ import { PrismaClient } from './client';
 import type PrismaTypes from './generated';
 
 describe('PrismaTypesFromClient', () => {
-  const db = new PrismaClient();
+  // Type-only test, no actual database connection needed
+  const db = null as unknown as PrismaClient;
   const prismaTypes = {} as unknown as PrismaTypes;
   const prismaTypesFromClient = {} as unknown as PrismaTypesFromClient<typeof db, false>;
 

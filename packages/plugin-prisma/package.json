@@ -65,7 +65,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@prisma/generator-helper": "^6.15.0"
+    "@prisma/generator-helper": "^7.0.0"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
@@ -77,16 +77,20 @@
     "typescript": ">=4.7.2"
   },
   "devDependencies": {
+    "@libsql/client": "^0.15.14",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-complexity": "workspace:*",
     "@pothos/plugin-errors": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^6.15.0",
+    "@prisma/adapter-better-sqlite3": "^7.0.0",
+    "@prisma/adapter-libsql": "^7.0.0",
+    "@prisma/client": "^7.0.0",
+    "better-sqlite3": "^12.4.1",
     "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
-    "prisma": "^6.15.0",
+    "prisma": "^7.0.0",
     "vitest": "^3.2.4"
   }
 }
