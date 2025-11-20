@@ -2,6 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 datasource db {
   provider = "postgresql"
+  url      = "postgresql://prisma:prisma@localhost:5455/tests?schema=prisma-utils"
 }
 
 generator client {
