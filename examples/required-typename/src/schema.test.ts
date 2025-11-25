@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { execute, parse } from 'graphql';
+import { describe, expect, it } from 'vitest';
 import { schema } from './schema';
 
 describe('requiredTypename plugin', () => {
@@ -21,14 +21,14 @@ describe('requiredTypename plugin', () => {
     `);
 
     const result = await execute({ schema, document: query });
-    
+
     expect(result.errors).toBeUndefined();
     expect(result.data?.pets).toBeDefined();
     expect(Array.isArray(result.data?.pets)).toBe(true);
-    
+
     const pets = result.data?.pets as Array<{ __typename: string; name: string }>;
     expect(pets.length).toBeGreaterThan(0);
-    
+
     for (const pet of pets) {
       expect(pet.__typename).toBeDefined();
       expect(['Dog', 'Cat']).toContain(pet.__typename);
@@ -53,14 +53,14 @@ describe('requiredTypename plugin', () => {
     `);
 
     const result = await execute({ schema, document: query });
-    
+
     expect(result.errors).toBeUndefined();
     expect(result.data?.nodes).toBeDefined();
     expect(Array.isArray(result.data?.nodes)).toBe(true);
-    
+
     const nodes = result.data?.nodes as Array<{ __typename: string; id: string }>;
     expect(nodes.length).toBeGreaterThan(0);
-    
+
     for (const node of nodes) {
       expect(node.__typename).toBeDefined();
       expect(['Person', 'Company']).toContain(node.__typename);
@@ -82,10 +82,10 @@ describe('requiredTypename plugin', () => {
     `);
 
     const result = await execute({ schema, document: query });
-    
+
     expect(result.errors).toBeUndefined();
     expect(result.data?.pet).toBeDefined();
-    
+
     const pet = result.data?.pet as { __typename: string; name: string; breed: string };
     expect(pet.__typename).toBe('Dog');
     expect(pet.name).toBe('Fido');

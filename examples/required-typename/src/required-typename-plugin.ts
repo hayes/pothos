@@ -11,11 +11,9 @@ InterfaceRef.prototype.requiredTypename = function requiredTypename<
 };
 
 // Add requiredTypename method to UnionRef
-UnionRef.prototype.requiredTypename = function requiredTypename<
-  Types extends SchemaTypes,
-  T,
-  P,
->(this: UnionRef<Types, T, P>) {
+UnionRef.prototype.requiredTypename = function requiredTypename<Types extends SchemaTypes, T, P>(
+  this: UnionRef<Types, T, P>,
+) {
   // Return the same ref but with updated types to require __typename
   return this as unknown as UnionRef<Types, T & { __typename: string }, P>;
 };

@@ -74,27 +74,32 @@ const CompanyType = builder.objectRef<Company>('Company').implement({
 });
 
 // Create a union with requiredTypename - chained immediately
-const PetUnion = builder.unionType('Pet', {
-  types: [DogType, CatType],
-  resolveType: (pet) => pet.__typename,
-}).requiredTypename();
+const PetUnion = builder
+  .unionType('Pet', {
+    types: [DogType, CatType],
+    resolveType: (pet) => pet.__typename,
+  })
+  .requiredTypename();
 
 // Create an interface with requiredTypename - chained immediately
-const NodeInterface = builder.interfaceRef<{ id: string }>('Node').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-  }),
-}).requiredTypename();
+const NodeInterface = builder
+  .interfaceRef<{ id: string }>('Node')
+  .implement({
+    fields: (t) => ({
+      id: t.exposeID('id'),
+    }),
+  })
+  .requiredTypename();
 
 // Implement the interface on types (by re-implementing with interface)
 builder.objectType(PersonType, {
   interfaces: [NodeInterface],
-  fields: (t) => ({}),
+  fields: (_t) => ({}),
 });
 
 builder.objectType(CompanyType, {
   interfaces: [NodeInterface],
-  fields: (t) => ({}),
+  fields: (_t) => ({}),
 });
 
 // Define Query type
