@@ -553,6 +553,18 @@ importers:
         specifier: ^6.15.0
         version: 6.15.0(typescript@5.9.2)
 
+  examples/required-typename:
+    dependencies:
+      '@pothos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      graphql:
+        specifier: ^16.10.0
+        version: 16.11.0
+      graphql-yoga:
+        specifier: 5.15.2
+        version: 5.15.2(graphql@16.11.0)
+
   examples/simple-classes:
     dependencies:
       '@faker-js/faker':
