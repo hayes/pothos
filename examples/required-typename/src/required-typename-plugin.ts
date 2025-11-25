@@ -11,7 +11,7 @@ InterfaceRef.prototype.requiredTypename = function requiredTypename<
 };
 
 // Add requiredTypename method to ImplementableInterfaceRef
-// (extends InterfaceRef, so it inherits the implementation, but we add it explicitly for clarity)
+// This extends InterfaceRef but needs its own prototype method implementation
 ImplementableInterfaceRef.prototype.requiredTypename = function requiredTypename<
   Types extends SchemaTypes,
   T,
