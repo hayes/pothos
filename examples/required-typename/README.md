@@ -6,6 +6,8 @@ This example demonstrates a custom Pothos plugin that adds a `requiredTypename()
 
 The `requiredTypename()` method updates the TypeScript types of an interface or union ref to require that `__typename` is present as a required string property on any fields returning that interface or union. This helps ensure type safety when working with GraphQL's `__typename` field.
 
+**Important:** When `__typename` is provided in resolved values, no `resolveType` or `isTypeOf` is required for unions and interfaces, as GraphQL can use the `__typename` field directly to determine the concrete type.
+
 ## Plugin Implementation
 
 The plugin is implemented in `src/required-typename-plugin.ts` and includes:
@@ -23,10 +25,10 @@ import './required-typename-plugin';
 
 const builder = new SchemaBuilder({});
 
-// Create a union with required typename - chained immediately
+// Create a union with required typename
+// When __typename is provided, no resolveType is required
 const PetUnion = builder.unionType('Pet', {
   types: [DogType, CatType],
-  resolveType: (pet) => pet.__typename,
 }).requiredTypename();
 
 // Create an interface with required typename - chained immediately

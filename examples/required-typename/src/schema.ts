@@ -74,10 +74,10 @@ const CompanyType = builder.objectRef<Company>('Company').implement({
 });
 
 // Create a union with requiredTypename - chained immediately
+// When __typename is provided, no resolveType is required
 const PetUnion = builder
   .unionType('Pet', {
     types: [DogType, CatType],
-    resolveType: (pet) => pet.__typename,
   })
   .requiredTypename();
 

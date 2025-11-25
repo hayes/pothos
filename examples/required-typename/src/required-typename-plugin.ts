@@ -1,4 +1,4 @@
-import { InterfaceRef, type SchemaTypes, UnionRef } from '@pothos/core';
+import { ImplementableInterfaceRef, InterfaceRef, type SchemaTypes, UnionRef } from '@pothos/core';
 
 // Add requiredTypename method to InterfaceRef
 InterfaceRef.prototype.requiredTypename = function requiredTypename<
@@ -8,6 +8,17 @@ InterfaceRef.prototype.requiredTypename = function requiredTypename<
 >(this: InterfaceRef<Types, T, P>) {
   // Return the same ref but with updated types to require __typename
   return this as unknown as InterfaceRef<Types, T & { __typename: string }, P>;
+};
+
+// Add requiredTypename method to ImplementableInterfaceRef
+// (extends InterfaceRef, so it inherits the implementation, but we add it explicitly for clarity)
+ImplementableInterfaceRef.prototype.requiredTypename = function requiredTypename<
+  Types extends SchemaTypes,
+  T,
+  P,
+>(this: ImplementableInterfaceRef<Types, T, P>) {
+  // Return the same ref but with updated types to require __typename
+  return this as unknown as ImplementableInterfaceRef<Types, T & { __typename: string }, P>;
 };
 
 // Add requiredTypename method to UnionRef
