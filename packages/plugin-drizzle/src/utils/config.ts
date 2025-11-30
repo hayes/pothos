@@ -8,7 +8,6 @@ export interface PothosDrizzleSchemaConfig {
   getPrimaryKey: (tableName: string) => Column[];
   columnToTsName: (column: Column) => string;
 }
-
 const configCache = createContextCache(
   (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>): PothosDrizzleSchemaConfig => {
     let relations: AnyRelations;
@@ -18,26 +17,26 @@ const configCache = createContextCache(
       relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
-    // Pre-compute column to TypeScript property name mappings
-    const columnToKeyMap = new Map<Column, string>();
+    // Use column object reference as key instead of uniqueName, since uniqueName
+    // may not always be set in some drizzle-orm versions
+    const columnNameMappings = new Map<Column, string>();
 
-    for (const { table } of Object.values(relations)) {
+    Object.values(relations).forEach(({ table }) => {
       if (isTable(table)) {
-        const tableColumns = getTableColumns(table);
-        for (const [key, col] of Object.entries(tableColumns)) {
-          columnToKeyMap.set(col, key);
-        }
+        Object.entries(getTableColumns(table)).forEach(([tsName, col]) => {
+          columnNameMappings.set(col, tsName);
+        });
       }
-    }
+    });
 
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       columnToTsName: (column) => {
-        const key = columnToKeyMap.get(column);
-        if (key !== undefined) {
-          return key;
+        const tsName = columnNameMappings.get(column);
+        if (tsName === undefined) {
+          throw new Error(`Could not find TypeScript name for column ${String(column.name)}`);
         }
-        throw new Error(`Could not find TypeScript name for column ${String(column.name)}`);
+        return tsName;
       },
       getPrimaryKey: (tableName) => {
         const tableConfig = builder.options.drizzle.getTableConfig(
