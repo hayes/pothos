@@ -25,8 +25,11 @@ const configCache = createContextCache(
       relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
-    const columnNameMappings: Record<string, string> = {};
-    // Fallback mapping using table name and column name for cases where uniqueName is not available
+    // Map from (tableName, columnName) -> TypeScript property name
+    // This is the only reliable way to resolve column names since:
+    // - getColumnTable(column) always returns the table reference
+    // - getTableName(table) always returns the table name
+    // - column.name always contains the database column name
     const columnNameByTableAndName: Record<string, Record<string, string>> = {};
 
     Object.values(relations).forEach(({ table }) => {
@@ -34,10 +37,6 @@ const configCache = createContextCache(
         const tableName = getTableName(table);
         columnNameByTableAndName[tableName] = {};
         Object.entries(getTableColumns(table)).forEach(([tsName, col]) => {
-          if (col.uniqueName) {
-            columnNameMappings[col.uniqueName] = tsName;
-          }
-          // Also store by column name for fallback lookup
           columnNameByTableAndName[tableName][col.name] = tsName;
         });
       }
@@ -46,30 +45,19 @@ const configCache = createContextCache(
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       columnToTsName: (column) => {
-        // First try to find by uniqueName if available
-        if (column.uniqueName && column.uniqueName in columnNameMappings) {
-          return columnNameMappings[column.uniqueName];
+        // Use getColumnTable to get the table reference, then getTableName to get the name
+        // Combined with column.name (the db column name), we can look up the TypeScript name
+        const columnTable = getColumnTable(column);
+        const tableName = getTableName(columnTable);
+        const tableMapping = columnNameByTableAndName[tableName];
+
+        if (tableMapping && column.name in tableMapping) {
+          return tableMapping[column.name];
         }
 
-        // Fallback: try to find by table name and column name
-        // Use getColumnTable to safely access the table from the column
-        try {
-          const columnTable = getColumnTable(column);
-          const tableName = getTableName(columnTable);
-          const tableMapping = columnNameByTableAndName[tableName];
-          if (tableMapping && column.name in tableMapping) {
-            return tableMapping[column.name];
-          }
-        } catch {
-          // getColumnTable might throw if the column doesn't have a table reference
-        }
-
-        // If we still can't find it, throw a descriptive error
-        if (!column.uniqueName) {
-          throw new Error(`Column ${String(column.name)} has no uniqueName`);
-        }
-
-        throw new Error(`Typescript name not found for ${column.uniqueName}`);
+        throw new Error(
+          `Could not find TypeScript name for column ${String(column.name)} in table ${tableName}`,
+        );
       },
       getPrimaryKey: (tableName) => {
         const tableConfig = builder.options.drizzle.getTableConfig(
