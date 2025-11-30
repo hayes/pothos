@@ -14,6 +14,31 @@ export interface PothosDrizzleSchemaConfig {
   getPrimaryKey: (tableName: string) => Column[];
   columnToTsName: (column: Column) => string;
 }
+
+// Cache for column to TypeScript property name mapping
+// Uses WeakMap so column objects can be garbage collected
+const columnTsNameCache = new WeakMap<Column, string>();
+
+function getColumnTsName(column: Column): string {
+  const cached = columnTsNameCache.get(column);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  // Resolve by finding the column's key in its parent table
+  const columnTable = getColumnTable(column);
+  const tableColumns = getTableColumns(columnTable);
+
+  for (const [key, col] of Object.entries(tableColumns)) {
+    if (col === column) {
+      columnTsNameCache.set(column, key);
+      return key;
+    }
+  }
+
+  throw new Error(`Could not find TypeScript name for column ${String(column.name)}`);
+}
+
 const configCache = createContextCache(
   (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>): PothosDrizzleSchemaConfig => {
     let relations: AnyRelations;
@@ -25,21 +50,7 @@ const configCache = createContextCache(
 
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
-      columnToTsName: (column) => {
-        // Resolve the TypeScript property name directly by finding the column's key
-        // in its parent table. This works because the column object reference is the
-        // same as what's stored in getTableColumns().
-        const columnTable = getColumnTable(column);
-        const tableColumns = getTableColumns(columnTable);
-
-        for (const [key, col] of Object.entries(tableColumns)) {
-          if (col === column) {
-            return key;
-          }
-        }
-
-        throw new Error(`Could not find TypeScript name for column ${String(column.name)}`);
-      },
+      columnToTsName: getColumnTsName,
       getPrimaryKey: (tableName) => {
         const tableConfig = builder.options.drizzle.getTableConfig(
           relations[tableName].table as Table,
