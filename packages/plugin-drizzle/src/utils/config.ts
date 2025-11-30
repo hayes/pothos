@@ -1,11 +1,5 @@
 import { createContextCache, type SchemaTypes } from '@pothos/core';
-import {
-  type AnyRelations,
-  type Column,
-  getColumnTable,
-  getTableColumns,
-  type Table,
-} from 'drizzle-orm';
+import { type AnyRelations, type Column, getTableColumns, isTable, type Table } from 'drizzle-orm';
 import type { DrizzleClient } from '../types';
 
 export interface PothosDrizzleSchemaConfig {
@@ -13,30 +7,6 @@ export interface PothosDrizzleSchemaConfig {
   relations: AnyRelations;
   getPrimaryKey: (tableName: string) => Column[];
   columnToTsName: (column: Column) => string;
-}
-
-// Cache for column to TypeScript property name mapping
-// Uses WeakMap so column objects can be garbage collected
-const columnTsNameCache = new WeakMap<Column, string>();
-
-function getColumnTsName(column: Column): string {
-  const cached = columnTsNameCache.get(column);
-  if (cached !== undefined) {
-    return cached;
-  }
-
-  // Resolve by finding the column's key in its parent table
-  const columnTable = getColumnTable(column);
-  const tableColumns = getTableColumns(columnTable);
-
-  for (const [key, col] of Object.entries(tableColumns)) {
-    if (col === column) {
-      columnTsNameCache.set(column, key);
-      return key;
-    }
-  }
-
-  throw new Error(`Could not find TypeScript name for column ${String(column.name)}`);
 }
 
 const configCache = createContextCache(
@@ -48,9 +18,27 @@ const configCache = createContextCache(
       relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
+    // Pre-compute column to TypeScript property name mappings
+    const columnToKeyMap = new Map<Column, string>();
+
+    for (const { table } of Object.values(relations)) {
+      if (isTable(table)) {
+        const tableColumns = getTableColumns(table);
+        for (const [key, col] of Object.entries(tableColumns)) {
+          columnToKeyMap.set(col, key);
+        }
+      }
+    }
+
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
-      columnToTsName: getColumnTsName,
+      columnToTsName: (column) => {
+        const key = columnToKeyMap.get(column);
+        if (key !== undefined) {
+          return key;
+        }
+        throw new Error(`Could not find TypeScript name for column ${String(column.name)}`);
+      },
       getPrimaryKey: (tableName) => {
         const tableConfig = builder.options.drizzle.getTableConfig(
           relations[tableName].table as Table,
