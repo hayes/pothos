@@ -17,8 +17,6 @@ const configCache = createContextCache(
       relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
-    // Use column object reference as key instead of uniqueName, since uniqueName
-    // may not always be set in some drizzle-orm versions
     const columnNameMappings = new Map<Column, string>();
 
     Object.values(relations).forEach(({ table }) => {
