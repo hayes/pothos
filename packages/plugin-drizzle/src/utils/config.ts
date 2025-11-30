@@ -4,8 +4,6 @@ import {
   type Column,
   getColumnTable,
   getTableColumns,
-  getTableName,
-  isTable,
   type Table,
 } from 'drizzle-orm';
 import type { DrizzleClient } from '../types';
@@ -25,39 +23,22 @@ const configCache = createContextCache(
       relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
-    // Map from (tableName, columnName) -> TypeScript property name
-    // This is the only reliable way to resolve column names since:
-    // - getColumnTable(column) always returns the table reference
-    // - getTableName(table) always returns the table name
-    // - column.name always contains the database column name
-    const columnNameByTableAndName: Record<string, Record<string, string>> = {};
-
-    Object.values(relations).forEach(({ table }) => {
-      if (isTable(table)) {
-        const tableName = getTableName(table);
-        columnNameByTableAndName[tableName] = {};
-        Object.entries(getTableColumns(table)).forEach(([tsName, col]) => {
-          columnNameByTableAndName[tableName][col.name] = tsName;
-        });
-      }
-    });
-
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       columnToTsName: (column) => {
-        // Use getColumnTable to get the table reference, then getTableName to get the name
-        // Combined with column.name (the db column name), we can look up the TypeScript name
+        // Resolve the TypeScript property name directly by finding the column's key
+        // in its parent table. This works because the column object reference is the
+        // same as what's stored in getTableColumns().
         const columnTable = getColumnTable(column);
-        const tableName = getTableName(columnTable);
-        const tableMapping = columnNameByTableAndName[tableName];
+        const tableColumns = getTableColumns(columnTable);
 
-        if (tableMapping && column.name in tableMapping) {
-          return tableMapping[column.name];
+        for (const [key, col] of Object.entries(tableColumns)) {
+          if (col === column) {
+            return key;
+          }
         }
 
-        throw new Error(
-          `Could not find TypeScript name for column ${String(column.name)} in table ${tableName}`,
-        );
+        throw new Error(`Could not find TypeScript name for column ${String(column.name)}`);
       },
       getPrimaryKey: (tableName) => {
         const tableConfig = builder.options.drizzle.getTableConfig(
