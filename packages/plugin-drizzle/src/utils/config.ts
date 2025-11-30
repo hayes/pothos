@@ -2,6 +2,7 @@ import { createContextCache, type SchemaTypes } from '@pothos/core';
 import {
   type AnyRelations,
   type Column,
+  getColumnTable,
   getTableColumns,
   getTableName,
   isTable,
@@ -51,14 +52,16 @@ const configCache = createContextCache(
         }
 
         // Fallback: try to find by table name and column name
-        // Access the table from the column if available
-        const columnTable = (column as { table?: Table }).table;
-        if (columnTable && isTable(columnTable)) {
+        // Use getColumnTable to safely access the table from the column
+        try {
+          const columnTable = getColumnTable(column);
           const tableName = getTableName(columnTable);
           const tableMapping = columnNameByTableAndName[tableName];
           if (tableMapping && column.name in tableMapping) {
             return tableMapping[column.name];
           }
+        } catch {
+          // getColumnTable might throw if the column doesn't have a table reference
         }
 
         // If we still can't find it, throw a descriptive error
