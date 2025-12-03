@@ -83,6 +83,7 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
+    "@prisma/adapter-better-sqlite3": "^7.0.1",
     "@prisma/client": "^7.0.1",
     "@prisma/client-runtime-utils": "7.0.1",
     "graphql-scalars": "^1.24.2",

@@ -18,6 +18,7 @@
     "@faker-js/faker": "^10.0.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
+    "@prisma/adapter-better-sqlite3": "^7.0.1",
     "@prisma/client": "^7.0.1",
     "graphql": "^16.10.0",
     "graphql-yoga": "5.15.2",

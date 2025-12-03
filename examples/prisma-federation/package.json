@@ -24,6 +24,7 @@
     "@pothos/plugin-federation": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
+    "@prisma/adapter-better-sqlite3": "^7.0.1",
     "@prisma/client": "^7.0.1",
     "graphql": "^16.10.0",
     "prisma": "^7.0.1"

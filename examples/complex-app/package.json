@@ -27,6 +27,7 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-validation": "workspace:*",
+    "@prisma/adapter-better-sqlite3": "^7.0.1",
     "@prisma/client": "^7.0.1",
     "graphql": "^16.10.0",
     "graphql-scalars": "^1.24.2",
