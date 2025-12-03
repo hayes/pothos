@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.14.0
+
+### Minor Changes
+
+- 2a582ac: Update for drizzle@1.0.0-beta.2
+
 ## 0.13.0
 
 ### Minor Changes
