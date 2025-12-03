@@ -8,6 +8,7 @@ import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
 import ValidationPlugin from '@pothos/plugin-validation';
 import { DateTimeResolver } from 'graphql-scalars';
 import type PrismaTypes from '../prisma/generated';
+import { getDatamodel } from '../prisma/generated';
 import { db } from './db';
 
 export const builder = new SchemaBuilder<{
@@ -46,6 +47,7 @@ export const builder = new SchemaBuilder<{
   },
   prisma: {
     client: db,
+    dmmf: getDatamodel(),
   },
 });
 

@@ -1,10 +1,12 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { PrismaTypesFromClient } from '../../src';
-import { PrismaClient } from './client';
+import { PrismaClient } from './client/client';
 import type PrismaTypes from './generated';
 
 describe('PrismaTypesFromClient', () => {
-  const db = new PrismaClient();
+  const db = new PrismaClient({
+    accelerateUrl: 'prisma://accelerate.prisma-data.net/?api_key=test',
+  });
   const prismaTypes = {} as unknown as PrismaTypes;
   const prismaTypesFromClient = {} as unknown as PrismaTypesFromClient<typeof db, false>;
 

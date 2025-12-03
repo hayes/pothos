@@ -1,13 +1,10 @@
 import { InputObjectRef } from "@pothos/core";
-import * as Prisma from "../../../client";
+import * as Prisma from "../../../client/client";
 import { builder } from "../builder";
 
 type Types =
   typeof builder extends PothosSchemaTypes.SchemaBuilder<infer T> ? T : never;
 
-builder.enumType(Prisma.Category, {
-  name: "Category",
-});
 export const PostFilter: InputObjectRef<Types, Prisma.Prisma.PostWhereInput> =
   builder.prismaWhere("Post", {
     name: "PostFilter",
@@ -189,6 +186,9 @@ export const MediaListFilter = builder.prismaListFilter(MediaFilter, {
 export const StringListFilter = builder.prismaScalarListFilter("String", {
   name: "StringListFilter",
   ops: ["has", "hasSome", "hasEvery", "isEmpty", "equals"],
+});
+builder.enumType(Prisma.Category, {
+  name: "Category",
 });
 export const CategoryListFilter = builder.prismaScalarListFilter(
   Prisma.Category,

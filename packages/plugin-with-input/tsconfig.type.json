@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": false,
+    "declaration": false
   },
   "extends": "../../tsconfig.options.json",
-  "include": ["src/**/*", "tests/**/*"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["prisma/client/internal/**"]
 }

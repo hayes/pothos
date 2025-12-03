@@ -1,5 +1,6 @@
-import { Prisma, PrismaClient } from '../prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
-export const db = new PrismaClient();
+import { PrismaClient } from '../prisma/client/client';
 
-console.log(Prisma.dmmf.datamodel.models);
+const adapter = new PrismaBetterSqlite3({ url: 'file:./prisma/dev.db' });
+export const db = new PrismaClient({ adapter });

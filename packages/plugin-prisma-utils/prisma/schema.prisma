@@ -2,19 +2,20 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://prisma:prisma@localhost:5455/tests?schema=prisma-utils"
 }
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../tests/client"
+  provider     = "prisma-client"
+  output       = "../tests/client"
+  moduleFormat = "esm"
 }
 
 generator pothos {
-  provider     = "prisma-pothos-types"
-  clientOutput = "../tests/client"
-  output       = "../tests/generated.ts"
-  prismaUtils  = true
+  provider          = "prisma-pothos-types"
+  clientOutput      = "../tests/client"
+  output            = "../tests/generated.ts"
+  prismaUtils       = true
+  generateDatamodel = true
 }
 
 model Post {

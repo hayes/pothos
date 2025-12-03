@@ -1,5 +1,5 @@
 import { PubSub } from 'graphql-subscriptions';
-import type { User } from '../prisma/client';
+import type { User } from '../prisma/client/client';
 import { db } from './db';
 
 interface SelectType {

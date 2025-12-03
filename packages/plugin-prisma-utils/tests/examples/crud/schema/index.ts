@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { printSchema } from 'graphql';
-import { Category } from '../../../client';
+import { Category } from '../../../client/client';
 import builder, { prisma } from '../builder';
 import { PrismaCrudGenerator } from '../generator';
 

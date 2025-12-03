@@ -3,6 +3,7 @@ import DirectivesPlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import type PrismaTypes from '../../prisma/generated';
+import { getDatamodel } from '../../prisma/generated';
 import { db } from '../db';
 
 export const builder = new SchemaBuilder<{
@@ -14,6 +15,7 @@ export const builder = new SchemaBuilder<{
   plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin],
   prisma: {
     client: db,
+    dmmf: getDatamodel(),
   },
   relay: {},
 });

@@ -1,5 +1,25 @@
-import type { DMMF } from '@prisma/generator-helper';
 import ts from 'typescript';
+
+export interface DatamodelField {
+  type: string;
+  kind: string;
+  name: string;
+  isRequired: boolean;
+  isList: boolean;
+  hasDefaultValue: boolean;
+  isUnique: boolean;
+  isId: boolean;
+  relationName?: string;
+  relationFromFields?: readonly string[];
+  isUpdatedAt?: boolean;
+}
+
+export interface DatamodelModel {
+  name: string;
+  fields: readonly DatamodelField[];
+  primaryKey: { name: string | null; fields: readonly string[] } | null;
+  uniqueIndexes: readonly { name: string | null; fields: readonly string[] }[];
+}
 
 export function updateOptionNode(
   statement: ts.Node,
@@ -99,7 +119,10 @@ export function capitalize(str: string) {
   return str[0].toUpperCase() + str.slice(1);
 }
 
-export function mapFields(model: DMMF.Model, mapper: (field: DMMF.Field) => ts.Statement[] | null) {
+export function mapFields(
+  model: DatamodelModel,
+  mapper: (field: DatamodelField) => ts.Statement[] | null,
+) {
   const fieldProps = model.fields
     .map((field) => mapper(field))
     .filter(Boolean)
@@ -127,7 +150,7 @@ export function mapFields(model: DMMF.Model, mapper: (field: DMMF.Field) => ts.S
 }
 
 export function mapUniqueFields(
-  model: DMMF.Model,
+  model: DatamodelModel,
   mapper: (field: {
     name: string;
     kind: 'field' | 'id' | 'index';

@@ -1,19 +1,20 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
   // Generate into custom location because this repo has multiple prisma schemas
-  output   = "./client"
+  output       = "./client"
+  moduleFormat = "esm"
 }
 
 generator pothos {
-  provider     = "prisma-pothos-types"
+  provider          = "prisma-pothos-types"
   // Match client output location from above
-  clientOutput = "./client"
-  output       = "./generated.d.ts"
+  clientOutput      = "./client"
+  output            = "./generated.ts"
+  generateDatamodel = true
 }
 
 model User {

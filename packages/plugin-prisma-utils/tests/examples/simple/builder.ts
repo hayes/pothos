@@ -1,12 +1,21 @@
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import WithInputPlugin from '@pothos/plugin-with-input';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 import PrismaUtils from '../../../src';
-import { PrismaClient } from '../../client/index';
+import { PrismaClient } from '../../client/client';
 import type PrismaTypes from '../../generated.js';
+import { getDatamodel } from '../../generated.js';
+
+const pool = new pg.Pool({
+  connectionString: 'postgresql://prisma:prisma@localhost:5455/tests',
+});
+const adapter = new PrismaPg(pool, { schema: 'prisma-utils' });
 
 export const queries: unknown[] = [];
 export const prisma = new PrismaClient({
+  adapter,
   log: [
     {
       emit: 'event',
@@ -53,6 +62,7 @@ export default new SchemaBuilder<PothosTypes>({
   plugins: [WithInputPlugin, PrismaPlugin, PrismaUtils],
   prisma: {
     client: prisma,
+    dmmf: getDatamodel(),
     exposeDescriptions: true,
   },
 });

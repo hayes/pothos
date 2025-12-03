@@ -60,6 +60,7 @@ declare global {
         | {
             filterConnectionTotalCount?: boolean;
             client: PrismaClient;
+            dmmf: { datamodel: unknown };
             exposeDescriptions?:
               | boolean
               | {

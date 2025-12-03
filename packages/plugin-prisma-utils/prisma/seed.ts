@@ -1,8 +1,14 @@
-// @ts-ignore
+import { PrismaPg } from '@prisma/adapter-pg';
 import { faker } from '@faker-js/faker';
-import { PrismaClient } from '../tests/client/index.js';
+import pg from 'pg';
+import { PrismaClient } from '../tests/client/client';
 
-const prisma = new PrismaClient();
+const pool = new pg.Pool({
+  connectionString: 'postgresql://prisma:prisma@localhost:5455/tests',
+});
+const adapter = new PrismaPg(pool, { schema: 'prisma-utils' });
+
+const prisma = new PrismaClient({ adapter });
 
 faker.seed(123);
 

@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import { getDatamodel } from '../../prisma/generated';
 import ScopeAuthPlugin, { type AuthFailure, AuthScopeFailureType } from '../../src';
 import { db } from './db';
 import User from './user';
@@ -76,6 +77,7 @@ const builder = new SchemaBuilder<{
   },
   prisma: {
     client: db,
+    dmmf: getDatamodel(),
   },
   plugins: [ScopeAuthPlugin],
 });

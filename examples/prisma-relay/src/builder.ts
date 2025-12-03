@@ -2,6 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../prisma/generated';
+import { getDatamodel } from '../prisma/generated';
 import { db } from './db';
 
 export const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
@@ -9,5 +10,6 @@ export const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
   relay: {},
   prisma: {
     client: db,
+    dmmf: getDatamodel(),
   },
 });

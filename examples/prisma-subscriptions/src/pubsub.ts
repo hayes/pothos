@@ -1,5 +1,5 @@
 import { createPubSub } from 'graphql-yoga';
-import type { Post, User } from '../prisma/client';
+import type { Post, User } from '../prisma/client/client';
 
 export enum MutationType {
   CREATED = 'CREATED',

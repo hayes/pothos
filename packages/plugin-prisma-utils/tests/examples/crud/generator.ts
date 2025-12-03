@@ -8,7 +8,7 @@ import {
 } from '@pothos/core';
 import { getModel, type PrismaModelTypes } from '@pothos/plugin-prisma';
 import type { FilterOps } from '../../../src';
-import * as Prisma from '../../client';
+import * as Prisma from '../../client/client';
 
 const filterOps = ['equals', 'in', 'notIn', 'not', 'is', 'isNot'] as const;
 const sortableFilterProps = ['lt', 'lte', 'gt', 'gte'] as const;

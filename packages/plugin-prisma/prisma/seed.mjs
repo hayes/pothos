@@ -1,8 +1,14 @@
 // @ts-ignore
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { faker } from '@faker-js/faker';
-import { PrismaClient } from '../tests/client/index.js';
+import { PrismaClient } from '../tests/client/client.ts';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaBetterSqlite3(
+  { url: 'file:./dev.db' },
+  { timestampFormat: 'unixepoch-ms' },
+);
+
+const prisma = new PrismaClient({ adapter });
 
 faker.seed(123);
 

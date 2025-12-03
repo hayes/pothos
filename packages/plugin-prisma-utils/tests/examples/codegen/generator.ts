@@ -3,9 +3,10 @@ import { resolve } from 'node:path';
 import { PothosSchemaError } from '@pothos/core';
 import { format, resolveConfig } from 'prettier';
 import type ts from 'typescript';
-import * as Prisma from '../../client';
+import { getDatamodel } from '../../generated';
 import {
   capitalize,
+  type DatamodelModel,
   mapFields,
   mapUniqueFields,
   parse,
@@ -20,7 +21,7 @@ const sortableTypes = ['String', 'Int', 'Float', 'DateTime', 'BigInt'] as const;
 const listOps = ['every', 'some', 'none'] as const;
 const scalarListOps = ['has', 'hasSome', 'hasEvery', 'isEmpty', 'equals'] as const;
 
-const { dmmf } = Prisma.Prisma;
+const dmmf = getDatamodel();
 
 class PrismaGenerator {
   statements: ts.Statement[] = [];
@@ -506,28 +507,26 @@ class PrismaGenerator {
   }
 }
 
-function getModel(name: string) {
-  const modelData = dmmf.datamodel.models.find((model) => model.name === name);
+function getModel(name: string): DatamodelModel {
+  const modelData = dmmf.datamodel.models[name];
 
   if (!modelData) {
     throw new PothosSchemaError(`Model '${name}' not found in DMMF`);
   }
 
-  return modelData;
+  return { ...modelData, name };
 }
 
 const generator = new PrismaGenerator();
 
-dmmf.datamodel.enums.forEach((enumData) => {
-  generator.addEnum(enumData.name);
-});
-
-dmmf.datamodel.models.forEach((model) => {
-  generator.addWhere(model.name);
-  generator.addWhereUnique(model.name);
-  generator.addOrderBy(model.name);
-  generator.addCreate(model.name);
-  generator.addUpdate(model.name);
+// Enums are discovered through model fields (via field.kind === 'enum')
+// so we don't need to iterate them separately
+Object.keys(dmmf.datamodel.models).forEach((modelName) => {
+  generator.addWhere(modelName);
+  generator.addWhereUnique(modelName);
+  generator.addOrderBy(modelName);
+  generator.addCreate(modelName);
+  generator.addUpdate(modelName);
 });
 
 const generated = printStatements(generator.statements);
@@ -543,7 +542,7 @@ async function printCode() {
   const formatted = await format(
     /* ts */ `
   import { InputObjectRef } from '@pothos/core';
-  import * as Prisma from '../../../client';
+  import * as Prisma from '../../../client/client';
   import { builder } from '../builder';
 
   type Types = typeof builder extends PothosSchemaTypes.SchemaBuilder<infer T> ? T : never;

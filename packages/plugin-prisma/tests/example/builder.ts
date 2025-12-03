@@ -3,12 +3,19 @@ import ComplexityPlugin from '@pothos/plugin-complexity';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import SimpleObjects from '@pothos/plugin-simple-objects';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import PrismaPlugin, { type PrismaTypesFromClient } from '../../src';
 import { Prisma, PrismaClient } from '../client/client.js';
 import { getDatamodel } from '../generated.js';
 
+const adapter = new PrismaBetterSqlite3(
+  { url: 'file:./prisma/dev.db' },
+  { timestampFormat: 'unixepoch-ms' },
+);
+
 export const queries: unknown[] = [];
 export const prisma = new PrismaClient({
+  adapter,
   log: [
     {
       emit: 'event',

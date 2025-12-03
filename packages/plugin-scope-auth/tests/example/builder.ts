@@ -2,6 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../../prisma/generated';
+import { getDatamodel } from '../../prisma/generated';
 import ScopeAuthPlugin from '../../src';
 import { db } from './db';
 import type User from './user';
@@ -39,6 +40,7 @@ const builder = new SchemaBuilder<{
   },
   prisma: {
     client: db,
+    dmmf: getDatamodel(),
   },
   scopeAuth: {
     authorizeOnSubscribe: true,

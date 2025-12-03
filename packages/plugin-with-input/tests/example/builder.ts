@@ -1,11 +1,15 @@
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import ValidationPlugin from '@pothos/plugin-zod';
-import { PrismaClient } from '../../prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '../../prisma/client/client';
 import type PrismaTypes from '../../prisma/generated';
+import { getDatamodel } from '../../prisma/generated';
 import WithInputPlugin from '../../src';
 
-export const prisma = new PrismaClient();
+const adapter = new PrismaBetterSqlite3({ url: 'file:./prisma/dev.db' });
+
+export const prisma = new PrismaClient({ adapter });
 
 export default new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
@@ -21,6 +25,7 @@ export default new SchemaBuilder<{
   },
   prisma: {
     client: prisma,
+    dmmf: getDatamodel(),
   },
 });
 
@@ -51,6 +56,7 @@ export const builderWithNonRequireInputs = new SchemaBuilder<{
   },
   prisma: {
     client: prisma,
+    dmmf: getDatamodel(),
   },
 });
 
