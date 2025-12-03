@@ -22,7 +22,6 @@
     "strict": true,
     "target": "es2019",
     "composite": true,
-    "typeRoots": ["node_modules"],
-    "types": ["vitest/globals"]
+    "types": ["node", "vitest/globals"]
   }
 }

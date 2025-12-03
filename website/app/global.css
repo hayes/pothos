@@ -1,9 +1,8 @@
 @import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
-/* biome-ignore lint/suspicious/noUnknownAtRules: todo */
-@source '../node_modules/fumadocs-ui/dist/**/*.js';
+@source "../node_modules/fumadocs-ui/dist/**/*.js";
 
-/* biome-ignore lint/suspicious/noUnknownAtRules: todo */
 @theme {
   --color-fd-background: hsl(0, 0%, 98%);
   --color-fd-foreground: hsl(0, 0%, 3.9%);
@@ -40,6 +39,16 @@
   --color-fd-accent: hsl(165, 40%, 20%);
   --color-fd-accent-foreground: hsl(165, 60%, 94.5%);
   --color-fd-ring: hsl(165, 100%, 85%);
+}
+
+@media (min-width: 768px) {
+  [data-sidebar-placeholder] {
+    --fd-sidebar-width: 220px;
+  }
+
+  #nd-sidebar > * {
+    width: 100%;
+  }
 }
 
 .dark #nd-sidebar {

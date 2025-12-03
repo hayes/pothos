@@ -23,7 +23,7 @@ type User
   name: String
   username: String @shareable
   expensiveField: String @cost(weight: 10)
-  paginatedItems: [String!] @listSize(assumedSize: 100, slicingArguments: ["first", "after"], sizedFields: ["totalCount"], requireOneSlicingArgument: true)
+  paginatedItems(first: Int, offset: Int): [String!] @listSize(assumedSize: 100, slicingArguments: ["first", "offset"], requireOneSlicingArgument: true)
 }"
 `;
 
@@ -43,7 +43,7 @@ type User {
   expensiveField: String
   id: ID
   name: String
-  paginatedItems: [String!]
+  paginatedItems(first: Int, offset: Int): [String!]
   username: String
 }
 

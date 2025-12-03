@@ -53,7 +53,7 @@ export const ItemResolver = {
       },
     };
   },
-} satisfies InterfacePlan<Step<ItemData>, Step<ItemSpec>>;
+} satisfies InterfacePlan<ItemSpec, Step<ItemData>>;
 
 export const Item = builder
   .interfaceRef<ItemData>('Item')

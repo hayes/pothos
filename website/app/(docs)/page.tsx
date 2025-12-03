@@ -1,8 +1,17 @@
+import type { TOCItemType } from 'fumadocs-core/toc';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { DocsBody, DocsPage } from 'fumadocs-ui/page';
+import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { source } from '@/app/source';
+
+interface MDXPageData {
+  title?: string;
+  description?: string;
+  body: MDXContent;
+  toc: TOCItemType[];
+}
 
 export default async function HomePage(props: { params: Promise<{ slug?: string[] }> }) {
   const page = source.getPage((await props.params).slug);
@@ -10,12 +19,13 @@ export default async function HomePage(props: { params: Promise<{ slug?: string[
     notFound();
   }
 
-  const MDX = page.data.body;
+  const data = page.data as unknown as MDXPageData;
+  const MDX = data.body;
 
   return (
-    <DocsPage toc={page.data.toc}>
+    <DocsPage toc={data.toc}>
       <DocsBody>
-        <h1>{page.data.title}</h1>
+        <h1>{data.title}</h1>
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>

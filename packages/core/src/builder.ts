@@ -104,7 +104,6 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   constructor(options: PothosSchemaTypes.SchemaBuilderOptions<Types>) {
     this.options = [...SchemaBuilder.optionNormalizers.values()].reduce((opts, normalize) => {
       if (options.defaults && typeof normalize[options.defaults] === 'function') {
-        // biome-ignore lint/performance/noAccumulatingSpread: this is fine
         return Object.assign(opts, normalize[options.defaults]!(opts));
       }
 

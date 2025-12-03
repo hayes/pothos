@@ -31,19 +31,19 @@
   ],
   "private": true,
   "devDependencies": {
-    "@biomejs/biome": "^2.2.3",
-    "@changesets/cli": "^2.29.6",
-    "@faker-js/faker": "^10.0.0",
+    "@biomejs/biome": "^2.3.8",
+    "@changesets/cli": "^2.29.8",
+    "@faker-js/faker": "^10.1.0",
     "@swc-node/register": "^1.11.1",
-    "@swc/cli": "^0.7.8",
-    "@swc/core": "^1.13.5",
-    "@types/node": "^24.3.1",
+    "@swc/cli": "^0.7.9",
+    "@swc/core": "^1.15.3",
+    "@types/node": "^24.10.1",
     "graphql": "^16.10.0",
-    "pkg-pr-new": "^0.0.59",
-    "tsx": "^4.20.5",
-    "turbo": "^2.5.6",
-    "typescript": "5.9.2",
-    "vitest": "^3.2.4"
+    "pkg-pr-new": "^0.0.62",
+    "tsx": "^4.21.0",
+    "turbo": "^2.6.2",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.15"
   },
   "engines": {
     "pnpm": ">=9.0.0"
@@ -76,6 +76,13 @@
     },
     "patchedDependencies": {
       "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "@swc/core",
+      "better-sqlite3",
+      "esbuild",
+      "prisma"
+    ]
   }
 }

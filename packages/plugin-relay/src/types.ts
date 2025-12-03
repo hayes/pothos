@@ -759,12 +759,13 @@ export type InputShapeWithClientMutationId<
   Fields & { clientMutationId: InputFieldRef<Types, Types['Scalars']['ID']['Input']> }
 >;
 
-export type GetAwaitedListItem<T> = NonNullable<Awaited<NonNullable<T>>> extends infer List
-  ? List extends Iterable<infer Item>
-    ? NonNullable<Awaited<Item>>
-    : List extends AsyncIterable<infer Item>
-      ? unknown extends AsyncIterable<unknown> // hack for target:<es2018
-        ? never
-        : NonNullable<Item>
-      : never
-  : never;
+export type GetAwaitedListItem<T> =
+  NonNullable<Awaited<NonNullable<T>>> extends infer List
+    ? List extends Iterable<infer Item>
+      ? NonNullable<Awaited<Item>>
+      : List extends AsyncIterable<infer Item>
+        ? unknown extends AsyncIterable<unknown> // hack for target:<es2018
+          ? never
+          : NonNullable<Item>
+        : never
+    : never;

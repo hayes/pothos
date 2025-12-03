@@ -26,6 +26,8 @@ import {
 } from './helpers';
 import { HasInventory, Item } from './items';
 
+type CharacterData = CrawlerData | NpcData;
+
 const characterPlan = (($specifier) => {
   const $crawlerId = inhibitOnNull(lambda($specifier, extractCrawlerId));
   const $crawler = inhibitOnNull(loadOne($crawlerId, batchGetCrawlerById));
@@ -51,7 +53,7 @@ const characterPlan = (($specifier) => {
       return null;
     },
   };
-}) satisfies InterfacePlan<Step<CharacterData>, Step<number>>['planType'];
+}) satisfies InterfacePlan<number, Step<CharacterData>>['planType'];
 
 export const Character = builder
   .interfaceRef<{

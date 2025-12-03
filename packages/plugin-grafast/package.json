@@ -49,16 +49,16 @@
     "graphql": "^16.10.0"
   },
   "devDependencies": {
-    "@envelop/core": "^5.3.1",
-    "@envelop/parser-cache": "^9.0.0",
-    "@envelop/validation-cache": "^9.0.0",
+    "@envelop/core": "^5.4.0",
+    "@envelop/parser-cache": "^10.0.0",
+    "@envelop/validation-cache": "^10.0.0",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "grafast": "0.1.1-beta.26",
-    "grafserv": "0.1.1-beta.28",
+    "grafast": "1.0.0-rc.3",
+    "grafserv": "1.0.0-rc.3",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "^5.15.2",
+    "graphql-yoga": "^5.17.1",
     "sqlite3": "^5.1.7",
-    "tamedevil": "0.0.0-beta.9"
+    "tamedevil": "0.1.0-rc.2"
   }
 }

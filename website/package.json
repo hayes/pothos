@@ -12,31 +12,31 @@
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.1.13",
+    "@tailwindcss/postcss": "^4.1.17",
     "class-variance-authority": "^0.7.1",
-    "fumadocs-core": "15.7.10",
-    "fumadocs-docgen": "^3.0.0",
-    "fumadocs-mdx": "11.9.0",
-    "fumadocs-ui": "15.7.10",
-    "graphiql": "^5.2.0",
+    "fumadocs-core": "16.2.2",
+    "fumadocs-docgen": "^3.0.4",
+    "fumadocs-mdx": "14.0.4",
+    "fumadocs-ui": "16.2.2",
+    "graphiql": "^5.2.2",
     "graphql": "^16.10.0",
-    "lucide-react": "^0.542.0",
-    "next": "^15.5.2",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "lucide-react": "^0.555.0",
+    "next": "^16.0.7",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
     "remark-rehype": "^11.1.2",
-    "tailwind-merge": "^3.3.1",
-    "zod": "^4.1.5"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/mdx": "^2.0.13",
-    "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.13",
-    "typescript": "^5.9.2"
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
   }
 }

@@ -47,11 +47,14 @@ const UserType = builder.objectRef<User>('User').implement({
     }),
     paginatedItems: t.field({
       type: ['String'],
+      args: {
+        first: t.arg.int(),
+        offset: t.arg.int(),
+      },
       resolve: () => ['item1', 'item2'],
       listSize: {
         assumedSize: 100,
-        slicingArguments: ['first', 'after'],
-        sizedFields: ['totalCount'],
+        slicingArguments: ['first', 'offset'],
         requireOneSlicingArgument: true,
       },
     }),

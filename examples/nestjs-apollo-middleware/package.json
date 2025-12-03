@@ -9,21 +9,21 @@
     "start": "node dist/main"
   },
   "dependencies": {
-    "@apollo/server": "^5.0.0",
+    "@apollo/server": "^5.2.0",
     "@as-integrations/express5": "^1.1.2",
-    "@faker-js/faker": "^10.0.0",
-    "@nestjs/common": "^11.1.6",
-    "@nestjs/core": "^11.1.6",
-    "@nestjs/platform-express": "^11.1.6",
+    "@faker-js/faker": "^10.1.0",
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/core": "^11.1.9",
+    "@nestjs/platform-express": "^11.1.9",
     "@pothos/core": "workspace:*",
     "graphql": "^16.10.0",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.10",
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.3.1",
+    "@nestjs/cli": "^11.0.14",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }

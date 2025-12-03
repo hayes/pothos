@@ -56,8 +56,8 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@sentry/node": "^10.10.0",
+    "@sentry/node": "^10.28.0",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "5.15.2"
+    "graphql-yoga": "5.17.1"
   }
 }
