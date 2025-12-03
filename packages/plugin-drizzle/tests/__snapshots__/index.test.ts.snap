@@ -23,6 +23,8 @@ type User {
   invitee: User
   name: String
   posts(limit: Int, offset: Int, oldestFirst: Boolean): [Post!]
+
+  """A connection to a user's posts"""
   postsConnection(after: String, before: String, first: Int, last: Int): UserPostsConnection
 }
 

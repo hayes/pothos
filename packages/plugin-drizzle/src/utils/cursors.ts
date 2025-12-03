@@ -8,7 +8,7 @@ import {
 import {
   type Column,
   type DBQueryConfig,
-  getTableColumns,
+  getColumns,
   type SQL,
   type Table,
   type TableRelationalConfig,
@@ -322,7 +322,7 @@ function parseOrderBy(
       normalized.push({ direction: 'asc', column: field });
     }
   } else {
-    const tableColumns = getTableColumns(table.table as Table);
+    const tableColumns = getColumns(table.table as Table);
     Object.entries(
       orderBy as {
         [k: string]: 'asc' | 'desc' | undefined;

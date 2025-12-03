@@ -1,6 +1,6 @@
 export const usageSymbol = Symbol.for('Pothos.isUsed');
 
-export function wrapWithUsageCheck<T extends Object>(obj: T): T {
+export function wrapWithUsageCheck<T extends object>(obj: T): T {
   const result = {};
   let used = true;
 

@@ -37,10 +37,6 @@ import type {
   ShapeFromIdColumns,
 } from './types';
 
-type MapToDbName<T> = {
-  [K in keyof T as T[K] extends { dbName: infer K2 extends string } ? K2 : K]: T[K];
-};
-
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {

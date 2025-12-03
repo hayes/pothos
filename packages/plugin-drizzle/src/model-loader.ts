@@ -2,7 +2,7 @@ import { createContextCache, type SchemaTypes } from '@pothos/core';
 import {
   type AnyTable,
   type Column,
-  getTableColumns,
+  getColumns,
   inArray,
   type SQL,
   sql,
@@ -60,7 +60,7 @@ export class ModelLoader {
     this.columns = columns ?? this.primaryKey;
     this.selectSQL = (table) => {
       const columns = this.columns.map((column) =>
-        Object.values(getTableColumns(table)).find(
+        Object.values(getColumns(table)).find(
           (tblColumn) => 'columnType' in tblColumn && tblColumn.name === column.name,
         ),
       );

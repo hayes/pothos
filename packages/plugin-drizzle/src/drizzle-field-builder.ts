@@ -153,7 +153,7 @@ export class DrizzleObjectFieldBuilder<
       maxSize = this.builder.options.drizzle?.maxConnectionSize,
       defaultSize = this.builder.options.drizzle?.defaultConnectionSize,
       query,
-      resolve,
+      resolve: _,
       extensions,
       description,
       ...options
@@ -248,6 +248,7 @@ export class DrizzleObjectFieldBuilder<
           ...extensions,
           pothosDrizzleSelect: relationSelect,
         },
+        description,
         type: ref,
         resolve: (
           parent: unknown,

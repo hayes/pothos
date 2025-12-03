@@ -22,7 +22,7 @@ import { drizzle } from 'drizzle-orm/...';
 import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
 
-const db = drizzle(client, { schema });
+const db = drizzle({ client, schema });
 
 export interface PothosTypes {
   DrizzleSchema: typeof schema;
@@ -49,7 +49,7 @@ import DrizzlePlugin from '@pothos/plugin-drizzle';
 import RelayPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
 
-const db = drizzle(client, { schema });
+const db = drizzle({ client, schema });
 
 export interface PothosTypes {
   DrizzleSchema: typeof schema;

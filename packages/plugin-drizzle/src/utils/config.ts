@@ -1,5 +1,5 @@
 import { createContextCache, type SchemaTypes } from '@pothos/core';
-import { type AnyRelations, type Column, getTableColumns, isTable, type Table } from 'drizzle-orm';
+import { type AnyRelations, type Column, getColumns, isTable, type Table } from 'drizzle-orm';
 import type { DrizzleClient } from '../types';
 
 export interface PothosDrizzleSchemaConfig {
@@ -17,14 +17,12 @@ const configCache = createContextCache(
       relations = (builder.options.drizzle.client as DrizzleClient)._.relations;
     }
 
-    const columnNameMappings: Record<string, string> = {};
+    const columnNameMappings = new Map<Column, string>();
 
     Object.values(relations).forEach(({ table }) => {
       if (isTable(table)) {
-        Object.entries(getTableColumns(table)).forEach(([tsName, col]) => {
-          if (col.uniqueName) {
-            columnNameMappings[col.uniqueName] = tsName;
-          }
+        Object.entries(getColumns(table)).forEach(([tsName, col]) => {
+          columnNameMappings.set(col, tsName);
         });
       }
     });
@@ -32,15 +30,13 @@ const configCache = createContextCache(
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       columnToTsName: (column) => {
-        if (!column.uniqueName) {
-          throw new Error(`Column ${String(column.name)} has no uniqueName`);
+        const tsName = columnNameMappings.get(column);
+
+        if (!tsName) {
+          throw new Error(`Typescript name not found for column ${String(column.name)}`);
         }
 
-        if (!(column.uniqueName in columnNameMappings)) {
-          throw new Error(`Typescript name not found for ${column.uniqueName}`);
-        }
-
-        return columnNameMappings[column.uniqueName];
+        return tsName;
       },
       getPrimaryKey: (tableName) => {
         const tableConfig = builder.options.drizzle.getTableConfig(

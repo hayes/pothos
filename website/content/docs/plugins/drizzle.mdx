@@ -34,7 +34,7 @@ import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
 import { relations } from './db/relations';
 
-const db = drizzle(client, { relations });
+const db = drizzle({ client, relations });
 
 type DrizzleRelations = typeof relations
 
@@ -66,7 +66,7 @@ import WithInputPlugin from '@pothos/plugin-with-input';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { relations } from './db/relations';
 
-const db = drizzle(client, { relations });
+const db = drizzle({ client, relations });
 
 export interface PothosTypes {
   DrizzleRelations: typeof relations;

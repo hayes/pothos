@@ -567,7 +567,7 @@ export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo
 
   while (targetType.extensions?.pothosIndirectInclude) {
     targetType = info.schema.getType(
-      (targetType.extensions?.pothosIndirectInclude as IndirectInclude).getType(),
+      (targetType.extensions.pothosIndirectInclude as IndirectInclude).getType(),
     )!;
   }
 

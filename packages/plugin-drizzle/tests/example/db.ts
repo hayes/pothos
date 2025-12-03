@@ -1,8 +1,12 @@
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { DefaultLogger, type LogWriter } from 'drizzle-orm/logger';
 import { relations } from './db/relations';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export const client = createClient({ url: `file:${resolve(__dirname, './db/dev.db')}` });
 
@@ -23,7 +27,7 @@ class MyLogWriter implements LogWriter {
 }
 
 const logger = new DefaultLogger({ writer: new MyLogWriter() });
-export const db = drizzle(client, { relations, logger });
+export const db = drizzle({ client, relations, logger });
 
 export { relations };
 
