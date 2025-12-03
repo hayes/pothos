@@ -82,7 +82,8 @@
       "@swc/core",
       "better-sqlite3",
       "esbuild",
-      "prisma"
+      "prisma",
+      "sqlite3"
     ]
   }
 }
