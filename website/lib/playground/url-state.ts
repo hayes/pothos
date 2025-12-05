@@ -3,10 +3,13 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
 import type { PlaygroundFile } from '../../components/playground/types';
 
+export type ViewMode = 'code' | 'graphql';
+
 export interface PlaygroundURLState {
   files: PlaygroundFile[];
   query?: string;
   activeTab?: string;
+  viewMode?: ViewMode;
 }
 
 const URL_STATE_VERSION = 1;
@@ -16,6 +19,7 @@ interface EncodedState {
   f: { n: string; c: string }[];
   q?: string;
   t?: string;
+  m?: 'c' | 'g'; // viewMode: 'c' = code, 'g' = graphql
 }
 
 export function encodePlaygroundState(state: PlaygroundURLState): string {
@@ -29,6 +33,9 @@ export function encodePlaygroundState(state: PlaygroundURLState): string {
   }
   if (state.activeTab) {
     encoded.t = state.activeTab;
+  }
+  if (state.viewMode) {
+    encoded.m = state.viewMode === 'code' ? 'c' : 'g';
   }
 
   const json = JSON.stringify(encoded);
@@ -55,6 +62,7 @@ export function decodePlaygroundState(hash: string): PlaygroundURLState | null {
       })),
       query: decoded.q,
       activeTab: decoded.t,
+      viewMode: decoded.m === 'c' ? 'code' : decoded.m === 'g' ? 'graphql' : undefined,
     };
   } catch (err) {
     console.error('[Playground] Failed to decode URL state:', err);
