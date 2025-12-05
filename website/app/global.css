@@ -75,3 +75,19 @@
     padding-left: 16px;
   }
 }
+
+/* GraphiQL Playground Styles */
+.playground-graphiql {
+  --color-base: var(--color-fd-background);
+  --color-primary: 320, 95%, 43%;
+}
+
+.playground-graphiql .graphiql-container {
+  height: 100%;
+  font-family: inherit;
+}
+
+.dark .playground-graphiql {
+  --editor-background: hsl(165, 50%, 8%);
+  --color-base: hsl(165, 50%, 10%);
+}
