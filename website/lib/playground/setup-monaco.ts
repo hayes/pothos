@@ -30,7 +30,8 @@ export function setupMonacoForPothos(monaco: Monaco): void {
 
   monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
 
-  // Load all type definitions
+  // Load all type definitions from our bundled types
+  // This matches the runtime instance from pothos-bundle.ts
   for (const typeDef of pothosTypeDefinitions) {
     const moduleParts = typeDef.moduleName.split('/');
     const hasGlobalDeclaration = typeDef.content.includes('declare global');
