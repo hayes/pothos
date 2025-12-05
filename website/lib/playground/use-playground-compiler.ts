@@ -27,6 +27,8 @@ export interface UsePlaygroundCompilerResult {
   reset: () => void;
 }
 
+// Use local bundle for now since Next.js/Turbopack doesn't support dynamic imports of external URLs
+// The types from auto-typings will still come from CDN and should work correctly
 const modules: PlaygroundModules = {
   '@pothos/core': pothosModule,
   graphql: graphql,
@@ -112,7 +114,9 @@ export function usePlaygroundCompiler({
       return;
     }
 
-    if (!autoCompile) return;
+    if (!autoCompile) {
+      return;
+    }
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
