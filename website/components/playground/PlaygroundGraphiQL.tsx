@@ -2,7 +2,7 @@
 
 import type { Fetcher } from '@graphiql/toolkit';
 import { GraphiQL } from 'graphiql';
-import { graphql, printSchema, type GraphQLSchema } from 'graphql';
+import { graphql, GraphQLError, printSchema, type GraphQLSchema } from 'graphql';
 import 'graphiql/style.css';
 import { useCallback, useMemo, useState } from 'react';
 import { usePlaygroundCompiler } from '../../lib/playground/use-playground-compiler';
@@ -20,7 +20,7 @@ interface PlaygroundGraphiQLProps {
 function createFetcher(schemaRef: { current: GraphQLSchema | null }): Fetcher {
   return async ({ query, variables, operationName }) => {
     if (!schemaRef.current) {
-      return { errors: [{ message: 'Schema not ready' }] };
+      return { errors: [new GraphQLError('Schema not ready')] };
     }
     const result = await graphql({
       schema: schemaRef.current,
