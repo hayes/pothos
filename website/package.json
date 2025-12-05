@@ -6,14 +6,19 @@
     "next-build": "next build",
     "build-ci": "next build",
     "start": "next start",
+    "bundle-types": "tsx scripts/bundle-types.ts",
     "postinstall": "fumadocs-mdx"
   },
   "engines": {
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
+    "@graphiql/toolkit": "^0.11.2",
+    "@monaco-editor/react": "^4.7.0",
+    "@pothos/core": "workspace:^",
     "@tailwindcss/postcss": "^4.1.17",
     "class-variance-authority": "^0.7.1",
+    "esbuild-wasm": "^0.27.1",
     "fumadocs-core": "16.2.3",
     "fumadocs-docgen": "^3.0.4",
     "fumadocs-mdx": "14.1.0",
@@ -21,7 +26,9 @@
     "graphiql": "^5.2.2",
     "graphql": "^16.10.0",
     "lucide-react": "^0.555.0",
+    "lz-string": "^1.5.0",
     "next": "^16.0.7",
+    "next-themes": "^0.4.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "remark": "^15.0.1",
@@ -32,6 +39,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@types/lz-string": "^1.5.0",
     "@types/mdx": "^2.0.13",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
