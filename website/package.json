@@ -13,11 +13,14 @@
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
+    "@graphiql/plugin-doc-explorer": "^0.4.1",
+    "@graphiql/react": "^0.37.3",
     "@graphiql/toolkit": "^0.11.2",
     "@monaco-editor/react": "^4.7.0",
     "@pothos/core": "workspace:^",
     "@tailwindcss/postcss": "^4.1.17",
     "class-variance-authority": "^0.7.1",
+    "devicons-react": "^1.5.0",
     "esbuild-wasm": "^0.27.1",
     "fumadocs-core": "16.2.3",
     "fumadocs-docgen": "^3.0.4",
