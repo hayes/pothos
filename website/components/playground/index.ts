@@ -1,9 +1,11 @@
-export { CodeViewer } from './CodeViewer';
-export { CustomPlayground } from './CustomPlayground';
+// Examples system - used in PlaygroundEmbed
 export { examples, getExample } from './examples';
-export { MonacoEditor } from './MonacoEditor';
-export { Playground } from './Playground';
+
+// PlaygroundEmbed - used in MDX documentation
 export { PlaygroundEmbed } from './PlaygroundEmbed';
-export { PlaygroundGraphiQL } from './PlaygroundGraphiQL';
-export { SchemaViewer } from './SchemaViewer';
+
+// GraphQL Editor - used in main playground page
+export { GraphQLEditor } from './GraphQLEditor';
+
+// Types
 export type { PlaygroundExample, PlaygroundFile, PlaygroundTab } from './types';
