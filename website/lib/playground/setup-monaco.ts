@@ -108,8 +108,10 @@ export function registerPlaygroundFiles(files: Array<{ filename: string; content
     const existingModel = monaco.editor.getModel(monaco.Uri.parse(filePath));
 
     if (existingModel) {
-      // Update existing model's value
-      existingModel.setValue(file.content);
+      // Only update if content has actually changed to avoid resetting cursor position
+      if (existingModel.getValue() !== file.content) {
+        existingModel.setValue(file.content);
+      }
     } else {
       // Create new model
       monaco.editor.createModel(file.content, 'typescript', monaco.Uri.parse(filePath));
