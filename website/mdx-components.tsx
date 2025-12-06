@@ -4,7 +4,6 @@ import defaultComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
 import { PlaygroundCodeBlock } from './components/code-snippet/PlaygroundCodeBlock';
-import { PlaygroundEmbed } from './components/playground';
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -12,7 +11,6 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ...components,
     Tab,
     Tabs,
-    PlaygroundEmbed,
     // Override pre to support playground meta attributes
     pre: (props: ComponentProps<'pre'>) => {
       // Extract custom data attributes added by our Shiki transformer
