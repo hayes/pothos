@@ -53,8 +53,8 @@ test.describe('Playground', () => {
     await page.waitForTimeout(2000);
 
     // Check console logs for type loading
-    const hasTypesLog = logs.some(log =>
-      log.includes('Loaded') && log.includes('Pothos type definitions')
+    const hasTypesLog = logs.some(
+      (log) => log.includes('Loaded') && log.includes('core type definitions'),
     );
 
     console.log('Console logs:', logs);
@@ -114,7 +114,9 @@ test.describe('Playground', () => {
     await page.waitForSelector('text=✓', { timeout: 20000 });
 
     // Verify editor has syntax highlighting by checking for syntax tokens
-    const hasSyntaxTokens = await page.locator('.monaco-editor .mtk1, .monaco-editor .mtk5, .monaco-editor .mtk6').count();
+    const hasSyntaxTokens = await page
+      .locator('.monaco-editor .mtk1, .monaco-editor .mtk5, .monaco-editor .mtk6')
+      .count();
     expect(hasSyntaxTokens).toBeGreaterThan(0);
   });
 
@@ -128,8 +130,8 @@ test.describe('Playground', () => {
     // Wait a bit for schema to render
     await page.waitForTimeout(1000);
 
-    // Check that the schema panel shows GraphQL SDL
-    const schemaPanel = page.locator('.schema-viewer');
+    // Check that the schema panel shows GraphQL SDL (use first visible one)
+    const schemaPanel = page.locator('.schema-viewer').first();
     await expect(schemaPanel).toBeVisible({ timeout: 10000 });
 
     // Check for GraphQL type definitions
@@ -147,9 +149,9 @@ test.describe('Playground', () => {
     await page.waitForTimeout(1000);
 
     // Find the variables toggle button
-    const variablesToggle = page.locator('button[aria-label="Show variables"]').or(
-      page.locator('button[aria-label="Hide variables"]')
-    );
+    const variablesToggle = page
+      .locator('button[aria-label="Show variables"]')
+      .or(page.locator('button[aria-label="Hide variables"]'));
 
     // Toggle variables panel multiple times rapidly
     for (let i = 0; i < 5; i++) {
@@ -167,9 +169,8 @@ test.describe('Playground', () => {
     await page.waitForTimeout(500);
 
     // Should not have critical errors
-    const hasCriticalErrors = errors.some(err =>
-      err.toLowerCase().includes('error') &&
-      !err.toLowerCase().includes('warning')
+    const hasCriticalErrors = errors.some(
+      (err) => err.toLowerCase().includes('error') && !err.toLowerCase().includes('warning'),
     );
     expect(hasCriticalErrors).toBeFalsy();
   });
@@ -306,7 +307,11 @@ test.describe('Playground', () => {
 
     // Check for CodeMirror error indicators (lint marks or error decorations)
     // GraphiQL uses CodeMirror which adds error markers with class cm-error or lint decorations
-    const hasErrorMarker = await page.locator('.graphiql-query-editor .cm-error, .graphiql-query-editor .cm-lint-marker-error, .graphiql-query-editor .cm-lintRange-error').count();
+    const hasErrorMarker = await page
+      .locator(
+        '.graphiql-query-editor .cm-error, .graphiql-query-editor .cm-lint-marker-error, .graphiql-query-editor .cm-lintRange-error',
+      )
+      .count();
 
     // If no visible error markers, check if lint is at least configured (gutter markers)
     const hasLintGutter = await page.locator('.graphiql-query-editor .cm-lint-marker').count();
@@ -333,7 +338,9 @@ test.describe('Playground', () => {
     await page.waitForTimeout(1000);
 
     // Execute the default query
-    const executeButton = page.locator('button[aria-label*="Execute"], button.graphiql-execute-button');
+    const executeButton = page.locator(
+      'button[aria-label*="Execute"], button.graphiql-execute-button',
+    );
     await executeButton.click();
     await page.waitForTimeout(1000);
 
@@ -545,7 +552,7 @@ test.describe('Playground Embed Mode', () => {
     await page.waitForTimeout(1500);
 
     // Should have default query, not the modified one (because different schema = different storageKey)
-    const defaultQueryContent = await page.locator('.graphiql-query-editor').textContent();
+    const defaultQueryContent = await page.locator('.graphiql-query-editor').first().textContent();
     expect(defaultQueryContent).not.toContain('Modified');
     expect(defaultQueryContent).toContain('hello');
   });
@@ -635,9 +642,7 @@ test.describe('Playground Code Blocks in Documentation', () => {
     expect(iframeEditorContent).toContain('hello');
 
     // Count lines in the iframe content (should have reasonable amount of code)
-    const iframeLines = iframeEditorContent
-      ?.split('\n')
-      .filter((line) => line.trim().length > 0);
+    const iframeLines = iframeEditorContent?.split('\n').filter((line) => line.trim().length > 0);
     const iframeLineCount = iframeLines?.length || 0;
 
     // Should have at least 10 lines of code
