@@ -9,8 +9,10 @@ import {
   useGraphiQLActions,
   VariableEditor,
 } from '@graphiql/react';
-import { ChevronDown, Copy, Plus, Sparkles, X } from 'lucide-react';
+import { BracesIcon, ChevronDown, ChevronUp, Copy, GitBranch, Plus, Sparkles, Terminal, X } from 'lucide-react';
 import { type FC, useEffect, useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { ConsolePanel } from './ConsolePanel';
 
 const ResponsePlaceholder: FC = () => (
   <div className="flex h-full items-center justify-center">
@@ -21,8 +23,62 @@ const ResponsePlaceholder: FC = () => (
   </div>
 );
 
-export const GraphQLEditor: FC = () => {
-  const [showVariables, setShowVariables] = useState(false);
+interface SchemaViewerProps {
+  schemaSDL: string | null;
+}
+
+const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
+  if (!schemaSDL) {
+    return (
+      <div className="flex h-full items-center justify-center text-fd-muted-foreground">
+        Compiling schema...
+      </div>
+    );
+  }
+
+  return (
+    <Editor
+      height="100%"
+      language="graphql"
+      value={schemaSDL}
+      theme="vs-dark"
+      options={{
+        readOnly: true,
+        minimap: { enabled: false },
+        fontSize: 14,
+        lineNumbers: 'off',
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        tabSize: 2,
+        wordWrap: 'on',
+        folding: false,
+        renderLineHighlight: 'none',
+        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+        padding: { top: 16, bottom: 16 },
+      }}
+    />
+  );
+};
+
+interface GraphQLEditorProps {
+  schemaSDL: string | null;
+  consoleLogs: Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[]; timestamp: number }>;
+  showBottomPanel: boolean;
+  setShowBottomPanel: (show: boolean) => void;
+  bottomPanelTab: 'variables' | 'schema' | 'console';
+  setBottomPanelTab: (tab: 'variables' | 'schema' | 'console') => void;
+  onQueryChange?: (query: string, variables?: string) => void;
+}
+
+export const GraphQLEditor: FC<GraphQLEditorProps> = ({
+  schemaSDL,
+  consoleLogs,
+  showBottomPanel,
+  setShowBottomPanel,
+  bottomPanelTab,
+  setBottomPanelTab,
+  onQueryChange,
+}) => {
   const [hasExecuted, setHasExecuted] = useState(false);
 
   // Use GraphiQL's built-in tab management
@@ -31,6 +87,14 @@ export const GraphQLEditor: FC = () => {
     activeTabIndex: state.activeTabIndex,
     isFetching: state.isFetching,
   }));
+
+  // Track query changes for URL state
+  useEffect(() => {
+    if (onQueryChange && tabs[activeTabIndex]) {
+      const activeTab = tabs[activeTabIndex];
+      onQueryChange(activeTab.query || '', activeTab.variables || '');
+    }
+  }, [tabs, activeTabIndex, onQueryChange]);
 
   const { addTab, changeTab, closeTab, copyQuery, prettifyEditors } = useGraphiQLActions();
 
@@ -48,9 +112,9 @@ export const GraphQLEditor: FC = () => {
   };
 
   return (
-    <div className="graphiql-container graphiql-editor-container">
+    <div className="graphiql-container graphiql-editor-container flex h-full flex-col">
       {/* Main content area with rounded corners */}
-      <div className="graphiql-main">
+      <div className="graphiql-main flex min-h-0 flex-1 flex-col">
         {/* Shared header that spans both panels */}
         <div className="graphiql-session-header">
           <div className="graphiql-tabs" role="tablist" aria-label="Select active operation">
@@ -104,7 +168,7 @@ export const GraphQLEditor: FC = () => {
         {/* Content area below header */}
         <div className="graphiql-content">
           {/* Query side with background */}
-          <div className="graphiql-sessions">
+          <div className="graphiql-sessions overflow-hidden rounded-tr-lg">
             <div className="graphiql-session" role="tabpanel">
               <div className="graphiql-editors">
                 {/* Query Editor with floating toolbar */}
@@ -127,37 +191,6 @@ export const GraphQLEditor: FC = () => {
                     </ToolbarButton>
                   </div>
                 </div>
-
-                {/* Variables/Headers section */}
-                <div className="graphiql-editor-tools">
-                  <div className="graphiql-editor-tools-tabs">
-                    <button
-                      type="button"
-                      className={`graphiql-editor-tools-tab ${showVariables ? 'graphiql-editor-tools-tab-active' : ''}`}
-                      onClick={() => setShowVariables(!showVariables)}
-                    >
-                      Variables
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    className="graphiql-editor-tools-toggle"
-                    onClick={() => setShowVariables(!showVariables)}
-                    aria-label={showVariables ? 'Hide variables' : 'Show variables'}
-                  >
-                    <ChevronDown
-                      size={16}
-                      className={`transition-transform duration-200 ${showVariables ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-                </div>
-
-                {/* Variables Panel */}
-                {showVariables && (
-                  <section className="graphiql-variables-editor" aria-label="Variables">
-                    <VariableEditor />
-                  </section>
-                )}
               </div>
             </div>
           </div>
@@ -174,6 +207,97 @@ export const GraphQLEditor: FC = () => {
             >
               <ResponseEditor className="graphiql-result-window" />
             </div>
+          </div>
+        </div>
+
+        {/* Bottom panel toggle and content */}
+        <div className="graphiql-editor-tools">
+          <div className="graphiql-editor-tools-tabs">
+            <button
+              type="button"
+              className={`graphiql-editor-tools-tab ${showBottomPanel && bottomPanelTab === 'variables' ? 'graphiql-editor-tools-tab-active' : ''}`}
+              onClick={() => {
+                if (showBottomPanel && bottomPanelTab === 'variables') {
+                  setShowBottomPanel(false);
+                } else {
+                  setBottomPanelTab('variables');
+                  setShowBottomPanel(true);
+                }
+              }}
+            >
+              <BracesIcon size={14} className="mr-1.5" />
+              Variables
+            </button>
+            <button
+              type="button"
+              className={`graphiql-editor-tools-tab ${showBottomPanel && bottomPanelTab === 'schema' ? 'graphiql-editor-tools-tab-active' : ''}`}
+              onClick={() => {
+                if (showBottomPanel && bottomPanelTab === 'schema') {
+                  setShowBottomPanel(false);
+                } else {
+                  setBottomPanelTab('schema');
+                  setShowBottomPanel(true);
+                }
+              }}
+            >
+              <GitBranch size={14} className="mr-1.5" />
+              Schema SDL
+            </button>
+            <button
+              type="button"
+              className={`graphiql-editor-tools-tab ${showBottomPanel && bottomPanelTab === 'console' ? 'graphiql-editor-tools-tab-active' : ''}`}
+              onClick={() => {
+                if (showBottomPanel && bottomPanelTab === 'console') {
+                  setShowBottomPanel(false);
+                } else {
+                  setBottomPanelTab('console');
+                  setShowBottomPanel(true);
+                }
+              }}
+            >
+              <Terminal size={14} className="mr-1.5" />
+              Console
+            </button>
+          </div>
+          <button
+            type="button"
+            className="graphiql-editor-tools-toggle"
+            onClick={() => setShowBottomPanel(!showBottomPanel)}
+            aria-label={showBottomPanel ? 'Hide panel' : 'Show panel'}
+          >
+            {showBottomPanel ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </button>
+        </div>
+
+        {/* Bottom panel - Keep mounted but hide with CSS */}
+        <div
+          className="border-t border-fd-border"
+          style={{
+            display: showBottomPanel ? 'flex' : 'none',
+            height: showBottomPanel ? '40%' : 0,
+            minHeight: showBottomPanel ? '200px' : 0,
+            flexDirection: 'column',
+          }}
+          aria-hidden={!showBottomPanel}
+        >
+          {/* Variables - Keep mounted but hide with CSS */}
+          <section
+            className="graphiql-editor-tool"
+            aria-label="Query Variables"
+            style={{ display: bottomPanelTab === 'variables' ? 'flex' : 'none', flex: 1 }}
+          >
+            <VariableEditor />
+          </section>
+          {/* Schema - Keep mounted but hide with CSS */}
+          <div
+            className="schema-viewer flex-1"
+            style={{ display: bottomPanelTab === 'schema' ? 'flex' : 'none' }}
+          >
+            <SchemaViewer schemaSDL={schemaSDL} />
+          </div>
+          {/* Console - Keep mounted but hide with CSS */}
+          <div style={{ display: bottomPanelTab === 'console' ? 'flex' : 'none', flex: 1 }}>
+            <ConsolePanel messages={consoleLogs} />
           </div>
         </div>
       </div>

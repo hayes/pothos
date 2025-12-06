@@ -7,23 +7,82 @@ description: Try Pothos examples in an interactive playground
 
 Explore Pothos GraphQL schema building with interactive examples. Each example shows the TypeScript code, generated GraphQL schema, and lets you run queries.
 
-## Basic Types
+## Usage Patterns
 
-Learn how to define object types and queries:
+You can embed playground-enabled code blocks using different patterns:
 
-<PlaygroundEmbed example="basic-types" />
+### 1. Inline Code with Playground
 
-## Mutations
+Add the `playground` attribute to any code block to enable the "Open in Playground" button. The code from the block will be loaded when clicked:
 
-Define mutations with input types:
+```ts playground
+import SchemaBuilder from '@pothos/core';
 
-<PlaygroundEmbed example="mutations" />
+const builder = new SchemaBuilder({});
 
-## Interfaces & Unions
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      args: {
+        name: t.arg.string({ required: false }),
+      },
+      resolve: (_, args) => `Hello, ${args.name ?? 'World'}!`,
+    }),
+  }),
+});
 
-Using interfaces and union types for polymorphism:
+export const schema = builder.toSchema();
+```
 
-<PlaygroundEmbed example="interfaces" />
+### 2. With Pre-Registered Examples
+
+Reference a pre-registered example by ID. The example's full configuration (multiple files, default query) will be loaded:
+
+```ts playground example="basic-types"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+// This code is shown in the docs, but when opened in playground
+// it loads the full "basic-types" example with all its files
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      resolve: () => 'Hello, World!',
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+### 3. With GraphQL Query
+
+Provide a query to pre-populate the GraphiQL tab and automatically switch to it:
+
+```ts playground query="{ hello }"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      resolve: () => 'Hello, World!',
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+### 4. Example + Custom Query
+
+Combine an example with a custom query to guide users to specific functionality:
+
+```ts playground example="basic-types" query="{ user { id name email } }"
+// Opens the basic-types example with a pre-populated query
+```
 
 ## How It Works
 
