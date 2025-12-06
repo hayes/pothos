@@ -7,6 +7,8 @@
     "build-ci": "next build",
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
+    "test": "tsx scripts/test-playground-examples.test.ts",
+    "test:examples": "tsx scripts/test-playground-examples.test.ts",
     "postinstall": "fumadocs-mdx"
   },
   "engines": {
@@ -18,6 +20,13 @@
     "@graphiql/toolkit": "^0.11.2",
     "@monaco-editor/react": "^4.7.0",
     "@pothos/core": "workspace:^",
+    "@pothos/plugin-directives": "workspace:^",
+    "@pothos/plugin-errors": "workspace:^",
+    "@pothos/plugin-relay": "workspace:^",
+    "@pothos/plugin-scope-auth": "workspace:^",
+    "@pothos/plugin-simple-objects": "workspace:^",
+    "@pothos/plugin-validation": "workspace:^",
+    "@pothos/plugin-with-input": "workspace:^",
     "@tailwindcss/postcss": "^4.1.17",
     "class-variance-authority": "^0.7.1",
     "devicons-react": "^1.5.0",
@@ -48,6 +57,7 @@
     "@types/react-dom": "^19.2.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "unist-util-visit": "^5.0.0"
   }
 }

@@ -8,23 +8,31 @@ import type { Fetcher } from '@graphiql/toolkit';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { GraphqlPlain } from 'devicons-react';
 import { GraphQLError, type GraphQLSchema, graphql } from 'graphql';
+import { captureConsoleAsync } from '../../lib/playground/console-capture';
 import {
   BookOpen,
   Check,
-  ChevronLeft,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Database,
+  Download,
   FileCode2,
   GitBranch,
   Home,
   Lightbulb,
   RotateCcw,
   Share2,
+  Sparkles,
+  Terminal,
 } from 'lucide-react';
 import Link from 'next/link';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ConsolePanel } from '../../components/playground/ConsolePanel';
 import { examplesList } from '../../components/playground/examples';
 import { GraphQLEditor } from '../../components/playground/GraphQLEditor';
 import type { PlaygroundFile } from '../../components/playground/types';
+import { clearSchemaCache } from '../../lib/playground/schema-cache';
 import {
   copyToClipboard,
   createShareableURL,
@@ -96,17 +104,31 @@ function useAutoTheme() {
   return theme;
 }
 
-function createFetcher(schemaRef: { current: GraphQLSchema | null }): Fetcher {
+function createFetcher(
+  schemaRef: { current: GraphQLSchema | null },
+  onConsoleLogs: (logs: Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[] }>) => void,
+): Fetcher {
   return async ({ query, variables, operationName }) => {
     if (!schemaRef.current) {
       return { errors: [new GraphQLError('Schema not ready')] };
     }
-    return await graphql({
-      schema: schemaRef.current,
-      source: query,
-      variableValues: variables,
-      operationName,
+
+    // Use safe console capture utility
+    const { result, logs } = await captureConsoleAsync(async () => {
+      return await graphql({
+        schema: schemaRef.current!,
+        source: query,
+        variableValues: variables,
+        operationName,
+      });
     });
+
+    // Send captured logs to the parent
+    if (logs.length > 0) {
+      onConsoleLogs(logs);
+    }
+
+    return result;
   };
 }
 
@@ -119,6 +141,7 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
   const theme = useAutoTheme();
   const monaco = useMonaco();
   const [typesLoaded, setTypesLoaded] = useState(false);
+  const editorRef = useRef<Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null>(null);
 
   useEffect(() => {
     if (monaco && !typesLoaded) {
@@ -129,6 +152,24 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
     }
   }, [monaco, typesLoaded]);
 
+  // Load plugin types when source code changes
+  useEffect(() => {
+    if (monaco && typesLoaded && source) {
+      import('../../lib/playground/setup-monaco').then(({ loadPluginTypes }) => {
+        loadPluginTypes(source);
+      });
+    }
+  }, [monaco, typesLoaded, source]);
+
+  // Expose format function globally
+  useEffect(() => {
+    if (editorRef.current) {
+      (window as typeof window & { __monacoFormatHandler?: () => void }).__monacoFormatHandler = () => {
+        editorRef.current?.getAction('editor.action.formatDocument')?.run();
+      };
+    }
+  }, []);
+
   return (
     <Editor
       height="100%"
@@ -137,6 +178,9 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
       value={source}
       theme={theme}
       onChange={(value) => value !== undefined && onChange(value)}
+      onMount={(editor) => {
+        editorRef.current = editor;
+      }}
       options={{
         minimap: { enabled: false },
         fontSize: 14,
@@ -147,7 +191,12 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
         wordWrap: 'on',
         folding: true,
         renderLineHighlight: 'line',
-        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+        scrollbar: {
+          verticalScrollbarSize: 10,
+          horizontalScrollbarSize: 10,
+          vertical: 'visible',
+          horizontal: 'visible',
+        },
         padding: { top: 16, bottom: 16 },
         quickSuggestions: true,
         suggestOnTriggerCharacters: true,
@@ -166,7 +215,9 @@ const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
   if (!schemaSDL) {
     return (
       <div className="flex h-full items-center justify-center text-fd-muted-foreground">
-        Compiling schema...
+        <div className="text-center">
+          <div className="text-sm">Compiling schema...</div>
+        </div>
       </div>
     );
   }
@@ -200,33 +251,92 @@ export default function PlaygroundPage() {
     { filename: 'schema.ts', content: DEFAULT_CODE },
   ]);
   const [viewMode, setViewMode] = useState<ViewMode>('code');
-  const [rightPanel, setRightPanel] = useState<'schema' | 'docs' | 'examples' | null>('schema');
+  const [isEmbedMode, setIsEmbedMode] = useState(false);
+  const [leftPanel, setLeftPanel] = useState<'docs' | 'examples' | null>(null);
+  const [showBottomPanel, setShowBottomPanel] = useState(false);
+  const [bottomPanelTab, setBottomPanelTab] = useState<'schema' | 'console'>('console');
+  const [showGraphQLBottomPanel, setShowGraphQLBottomPanel] = useState(false);
+  const [graphQLBottomPanelTab, setGraphQLBottomPanelTab] = useState<'variables' | 'schema' | 'console'>('variables');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const [initialized, setInitialized] = useState(false);
-  const [schemaVersion, setSchemaVersion] = useState(0);
   const prevSchemaRef = useRef<GraphQLSchema | null>(null);
+  const [queryConsoleLogs, setQueryConsoleLogs] = useState<
+    Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[]; timestamp: number }>
+  >([]);
+  const [currentQuery, setCurrentQuery] = useState<string>(DEFAULT_QUERY);
+  const [currentVariables, setCurrentVariables] = useState<string>('');
 
-  // Initialize from URL state
+  // Initialize from URL (hash-based state or query parameters for backward compatibility)
   useEffect(() => {
     if (initialized) {
       return;
     }
+
+    // First check for hash-based state (new format)
     const urlState = getPlaygroundStateFromURL();
     if (urlState) {
       setFiles(urlState.files);
       if (urlState.viewMode) {
         setViewMode(urlState.viewMode);
       }
+      if (urlState.query) {
+        setCurrentQuery(urlState.query);
+      }
+      if (urlState.variables) {
+        setCurrentVariables(urlState.variables);
+      }
+      setInitialized(true);
+      return;
     }
+
+    // Fallback to query parameters for backward compatibility and special modes
+    const params = new URLSearchParams(window.location.search);
+    const exampleId = params.get('example');
+    const codeParam = params.get('code');
+    const queryParam = params.get('query');
+    const embedParam = params.get('embed') || params.get('overlay');
+
+    // Check for embed/overlay mode
+    if (embedParam === 'true') {
+      setIsEmbedMode(true);
+    }
+
+    if (exampleId) {
+      // Load example from registry
+      const example = examplesList.find((e) => e.id === exampleId);
+      if (example) {
+        setFiles(example.files);
+        setCurrentQuery(queryParam ? atob(decodeURIComponent(queryParam)) : example.defaultQuery);
+        setViewMode(queryParam ? 'graphql' : 'code');
+      }
+    } else if (codeParam) {
+      // Load custom code from parameter
+      try {
+        const decodedCode = decodeURIComponent(atob(codeParam));
+        setFiles([{ filename: 'schema.ts', content: decodedCode }]);
+        if (queryParam) {
+          setCurrentQuery(atob(decodeURIComponent(queryParam)));
+          setViewMode('graphql');
+        }
+      } catch (err) {
+        console.error('[Playground] Failed to decode code parameter:', err);
+      }
+    }
+
     setInitialized(true);
   }, [initialized]);
 
   // Sync state to URL
   useEffect(() => {
     if (initialized) {
-      setPlaygroundStateToURL({ files, viewMode });
+      setPlaygroundStateToURL({
+        files,
+        viewMode,
+        query: currentQuery !== DEFAULT_QUERY ? currentQuery : undefined,
+        variables: currentVariables || undefined,
+      });
     }
-  }, [files, viewMode, initialized]);
+  }, [files, viewMode, currentQuery, currentVariables, initialized]);
 
   const { state: compilerState } = usePlaygroundCompiler({
     files,
@@ -240,26 +350,50 @@ export default function PlaygroundPage() {
 
   const handleShare = useCallback(async () => {
     try {
-      const url = createShareableURL({ files, viewMode });
+      const url = createShareableURL({
+        files,
+        viewMode,
+        query: currentQuery !== DEFAULT_QUERY ? currentQuery : undefined,
+        variables: currentVariables || undefined,
+      });
       const success = await copyToClipboard(url);
       setShareStatus(success ? 'copied' : 'error');
     } catch {
       setShareStatus('error');
     }
     setTimeout(() => setShareStatus('idle'), 2000);
-  }, [files, viewMode]);
+  }, [files, viewMode, currentQuery, currentVariables]);
 
   const handleReset = () => {
     setFiles([{ filename: 'schema.ts', content: DEFAULT_CODE }]);
+    setCurrentQuery(DEFAULT_QUERY);
+    setCurrentVariables('');
     window.history.replaceState(null, '', '/playground');
   };
+
+  const handleQueryChange = useCallback((query: string, variables?: string) => {
+    setCurrentQuery(query);
+    setCurrentVariables(variables || '');
+  }, []);
 
   const handleLoadExample = (exampleId: string) => {
     const example = examplesList.find((e) => e.id === exampleId);
     if (example) {
       prevSchemaRef.current = null; // Force schema version increment on next compile
-      setFiles(example.files);
-      setRightPanel('schema');
+      setCurrentQuery(example.defaultQuery); // Set the query for defaultTabs
+      setFiles(example.files); // This will trigger schema recompile and key change
+
+      // Open schema panel based on view mode and screen size
+      if (viewMode === 'graphql') {
+        // In GraphQL view, always open bottom panel with schema
+        setGraphQLBottomPanelTab('schema');
+        setShowGraphQLBottomPanel(true);
+      } else if (window.innerWidth < 1280) {
+        // In code editor on small screens, open bottom panel with schema
+        setBottomPanelTab('schema');
+        setShowBottomPanel(true);
+      }
+
       window.history.replaceState(null, '', '/playground');
     }
   };
@@ -270,18 +404,63 @@ export default function PlaygroundPage() {
   useEffect(() => {
     if (schema && schema !== prevSchemaRef.current) {
       prevSchemaRef.current = schema;
-      setSchemaVersion((v) => v + 1);
+      // Clear query logs when schema changes
+      setQueryConsoleLogs([]);
     }
   }, [schema]);
 
   const fetcherSchemaRef = useMemo(() => ({ current: schema }), [schema]);
   fetcherSchemaRef.current = schema;
 
-  const fetcher = useMemo(() => createFetcher(fetcherSchemaRef), [fetcherSchemaRef]);
+  const handleQueryConsoleLogs = useCallback(
+    (logs: Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[] }>) => {
+      const timestampedLogs = logs.map((log) => ({
+        ...log,
+        timestamp: Date.now(),
+      }));
+      setQueryConsoleLogs((prev) => [...prev, ...timestampedLogs]);
+    },
+    [],
+  );
 
-  const schemaKey = schema ? `schema-v${schemaVersion}` : 'none';
+  const fetcher = useMemo(
+    () => createFetcher(fetcherSchemaRef, handleQueryConsoleLogs),
+    [fetcherSchemaRef, handleQueryConsoleLogs],
+  );
+
+  // Create a hash of schema SDL only for GraphiQL's localStorage key
+  const schemaKey = useMemo(() => {
+    if (!compilerState.schemaSDL) {
+      return 'none';
+    }
+    // Hash just the schema SDL
+    let hash = 0;
+    for (let i = 0; i < compilerState.schemaSDL.length; i++) {
+      const char = compilerState.schemaSDL.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash &= hash; // Convert to 32bit integer
+    }
+    return `schema-${Math.abs(hash).toString(36)}`;
+  }, [compilerState.schemaSDL]);
+
+  // Clear GraphiQL localStorage whenever the schema key changes
+  useEffect(() => {
+    if (schemaKey !== 'none') {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('graphiql:')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+  }, [schemaKey]);
 
   const mainFile = files.find((f) => f.filename === 'schema.ts') || files[0];
+
+  // Combine schema and query console logs
+  const allConsoleLogs = useMemo(
+    () => [...compilerState.consoleLogs, ...queryConsoleLogs].sort((a, b) => a.timestamp - b.timestamp),
+    [compilerState.consoleLogs, queryConsoleLogs],
+  );
 
   if (!initialized) {
     return (
@@ -299,11 +478,13 @@ export default function PlaygroundPage() {
             key={schemaKey}
             fetcher={fetcher}
             schema={schema}
-            defaultTabs={[{ query: DEFAULT_QUERY }]}
+            defaultTabs={[{ query: currentQuery }]}
             plugins={[DOC_EXPLORER_PLUGIN]}
+            shouldPersistHeaders={false}
           >
             <div className="graphiql-container flex min-h-0 flex-1 overflow-hidden">
-              {/* Sidebar - Left side */}
+              {/* Left Sidebar - Narrow icon bar (hidden in embed mode) */}
+              {!isEmbedMode && (
               <div className="flex h-full w-14 flex-col border-r border-fd-border bg-fd-muted/30">
                 {/* View modes */}
                 <button
@@ -330,6 +511,35 @@ export default function PlaygroundPage() {
                 >
                   <GraphqlPlain size={20} color="currentColor" />
                 </button>
+
+                <div className="my-2 border-t border-fd-border" />
+
+                {/* Panel toggles */}
+                <button
+                  type="button"
+                  title="Documentation"
+                  onClick={() => setLeftPanel(leftPanel === 'docs' ? null : 'docs')}
+                  className={`flex h-12 w-full items-center justify-center transition-colors ${
+                    leftPanel === 'docs'
+                      ? 'bg-fd-primary/10 text-fd-primary'
+                      : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
+                  }`}
+                >
+                  <BookOpen size={18} />
+                </button>
+                <button
+                  type="button"
+                  title="Examples"
+                  onClick={() => setLeftPanel(leftPanel === 'examples' ? null : 'examples')}
+                  className={`flex h-12 w-full items-center justify-center transition-colors ${
+                    leftPanel === 'examples'
+                      ? 'bg-fd-primary/10 text-fd-primary'
+                      : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
+                  }`}
+                >
+                  <Lightbulb size={18} />
+                </button>
+
                 {/* Spacer */}
                 <div className="flex-1" />
 
@@ -373,164 +583,35 @@ export default function PlaygroundPage() {
                   <Home size={20} />
                 </Link>
               </div>
+              )}
 
-              {/* Main editor area */}
-              <div className="min-h-0 flex-1 overflow-hidden">
-                {viewMode === 'code' ? (
-                  <div className="graphiql-container graphiql-editor-container h-full">
-                    <div className="graphiql-main h-full">
-                      {/* Header spans full width */}
-                      <div className="graphiql-session-header">
-                        <div className="graphiql-tabs">
-                          <div className="graphiql-tab graphiql-tab-active">
-                            <button type="button" className="graphiql-tab-button">
-                              schema.ts
-                            </button>
-                          </div>
-                        </div>
-                        {/* Status indicator */}
-                        <div className="ml-auto flex items-center gap-2 pr-2">
-                          {compilerState.isCompiling && (
-                            <span className="text-xs text-fd-muted-foreground">Compiling...</span>
-                          )}
-                          {!compilerState.isCompiling &&
-                            !compilerState.error &&
-                            compilerState.lastCompiledAt && (
-                              <span className="text-xs text-green-500">✓</span>
-                            )}
-                          {compilerState.error && (
-                            <span className="text-xs text-red-500">Error</span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Content area - full width for code editor */}
-                      <div className="graphiql-content">
-                        <div className="graphiql-sessions graphiql-sessions-full">
-                          {/* Error banner */}
-                          {compilerState.error && (
-                            <div className="border-b border-red-200 bg-red-50 px-4 py-2 dark:border-red-900 dark:bg-red-950">
-                              <pre className="overflow-x-auto text-xs text-red-600 dark:text-red-400">
-                                {compilerState.error}
-                              </pre>
-                            </div>
-                          )}
-                          <div className="graphiql-session" style={{ flex: 1, minHeight: 0 }}>
-                            <SourceEditor
-                              source={mainFile?.content || ''}
-                              onChange={handleSourceChange}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <GraphQLEditor />
-                )}
-              </div>
-
-              {/* Vertical pull-out tab */}
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setRightPanel(rightPanel ? null : 'schema')}
-                  className={`group z-10 flex h-28 w-6 flex-col items-center justify-center rounded-l-lg border border-r-0 border-fd-border bg-fd-muted/70 transition-all hover:bg-fd-muted hover:translate-x-0 ${
-                    rightPanel ? '' : 'translate-x-3'
-                  }`}
-                  title={rightPanel ? 'Collapse panel' : 'Expand panel'}
-                >
-                  {rightPanel ? (
-                    <ChevronRight
-                      size={14}
-                      className="text-fd-muted-foreground group-hover:text-fd-foreground"
-                    />
-                  ) : (
-                    <ChevronLeft
-                      size={14}
-                      className="text-fd-muted-foreground group-hover:text-fd-foreground"
-                    />
-                  )}
-                  <span
-                    className="mt-1 text-fd-muted-foreground group-hover:text-fd-foreground"
-                    style={{
-                      writingMode: 'vertical-rl',
-                      textOrientation: 'mixed',
-                      fontSize: '11px',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
-                    Schema
-                  </span>
-                </button>
-              </div>
-
-              {/* Right Panel - toggles between schema, docs, examples */}
-              {rightPanel && (
+              {/* Left Panel - Docs, Examples, Console */}
+              {leftPanel && (
                 <div
-                  className={`flex h-full flex-col border-l border-fd-border bg-fd-background ${rightPanel === 'docs' ? 'graphiql-container' : ''}`}
+                  className={`flex h-full flex-col border-r border-fd-border bg-fd-background ${leftPanel === 'docs' ? 'graphiql-container' : ''}`}
                   style={{ width: 320 }}
                 >
-                  {/* Panel tabs */}
-                  <div className="flex items-center border-b border-fd-border bg-fd-muted/30">
+                  <div className="flex items-center justify-between border-b border-fd-border bg-fd-muted/30 px-3 py-2">
+                    <span className="text-sm font-medium text-fd-foreground">
+                      {leftPanel === 'docs' && 'Documentation'}
+                      {leftPanel === 'examples' && 'Examples'}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => setRightPanel('schema')}
-                      className={`flex items-center gap-1.5 px-3 py-2 text-sm transition-colors ${
-                        rightPanel === 'schema'
-                          ? 'border-b-2 border-fd-primary text-fd-foreground'
-                          : 'text-fd-muted-foreground hover:text-fd-foreground'
-                      }`}
-                    >
-                      <GitBranch size={14} />
-                      Schema
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRightPanel('docs')}
-                      className={`flex items-center gap-1.5 px-3 py-2 text-sm transition-colors ${
-                        rightPanel === 'docs'
-                          ? 'border-b-2 border-fd-primary text-fd-foreground'
-                          : 'text-fd-muted-foreground hover:text-fd-foreground'
-                      }`}
-                    >
-                      <BookOpen size={14} />
-                      Docs
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRightPanel('examples')}
-                      className={`flex items-center gap-1.5 px-3 py-2 text-sm transition-colors ${
-                        rightPanel === 'examples'
-                          ? 'border-b-2 border-fd-primary text-fd-foreground'
-                          : 'text-fd-muted-foreground hover:text-fd-foreground'
-                      }`}
-                    >
-                      <Lightbulb size={14} />
-                      Examples
-                    </button>
-                    <div className="flex-1" />
-                    <button
-                      type="button"
-                      onClick={() => setRightPanel(null)}
-                      className="px-3 py-2 text-fd-muted-foreground hover:text-fd-foreground"
+                      onClick={() => setLeftPanel(null)}
+                      className="text-fd-muted-foreground hover:text-fd-foreground"
                     >
                       ×
                     </button>
                   </div>
 
-                  {/* Panel content */}
                   <div className="min-h-0 flex-1 overflow-auto">
-                    {rightPanel === 'schema' && (
-                      <div className="schema-viewer h-full">
-                        <SchemaViewer schemaSDL={compilerState.schemaSDL} />
-                      </div>
-                    )}
-                    {rightPanel === 'docs' && (
+                    {leftPanel === 'docs' && (
                       <div className="graphiql-doc-explorer h-full">
                         {DOC_EXPLORER_PLUGIN.content && <DOC_EXPLORER_PLUGIN.content />}
                       </div>
                     )}
-                    {rightPanel === 'examples' && (
+                    {leftPanel === 'examples' && (
                       <div className="p-2">
                         {examplesList.map((example) => (
                           <button
@@ -552,6 +633,228 @@ export default function PlaygroundPage() {
                   </div>
                 </div>
               )}
+
+              {/* Main editor area */}
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {/* Code editor - keep mounted but hide with CSS */}
+                <div
+                  className="graphiql-container graphiql-editor-container flex h-full flex-col"
+                  style={{ display: viewMode === 'code' ? 'flex' : 'none' }}
+                >
+                  <div className="graphiql-main flex min-h-0 flex-1 flex-col">
+                    {/* Header spans full width */}
+                    <div className="graphiql-session-header">
+                      <div className="graphiql-tabs">
+                        <div className="graphiql-tab graphiql-tab-active">
+                          <button type="button" className="graphiql-tab-button">
+                            schema.ts
+                          </button>
+                        </div>
+                      </div>
+                      {/* Status indicator */}
+                      <div className="ml-auto flex items-center gap-2 pr-2">
+                        {compilerState.isCompiling && (
+                          <span className="text-xs text-fd-muted-foreground">Compiling...</span>
+                        )}
+                        {!compilerState.isCompiling &&
+                          !compilerState.error &&
+                          compilerState.lastCompiledAt && (
+                            <span className="text-xs text-green-500">✓</span>
+                          )}
+                        {compilerState.error && (
+                          <span className="text-xs text-red-500">Error</span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Content area - split view with code editor and SDL */}
+                    <div className="graphiql-content flex min-h-0 flex-1">
+                      {/* Left side - Code editor */}
+                      <div className="graphiql-sessions flex min-h-0 flex-1 flex-col overflow-hidden rounded-tr-lg">
+                        {/* Error banner */}
+                        {compilerState.error && (
+                          <div className="border-b border-red-200 bg-red-50 px-4 py-2 dark:border-red-900 dark:bg-red-950">
+                            <pre className="overflow-x-auto text-xs text-red-600 dark:text-red-400">
+                              {compilerState.error}
+                            </pre>
+                          </div>
+                        )}
+                        <div className="graphiql-session relative" style={{ flex: 1, minHeight: 0 }}>
+                          <SourceEditor
+                            source={mainFile?.content || ''}
+                            onChange={handleSourceChange}
+                          />
+                          {/* Floating toolbar */}
+                          <div className="graphiql-toolbar">
+                            <button
+                              type="button"
+                              className="graphiql-toolbar-button"
+                              onClick={() => {
+                                const handler = (window as typeof window & { __monacoFormatHandler?: () => void }).__monacoFormatHandler;
+                                if (handler) {
+                                  handler();
+                                }
+                              }}
+                              title="Format code (Shift-Alt-F)"
+                            >
+                              <Sparkles size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className="graphiql-toolbar-button"
+                              onClick={async () => {
+                                await copyToClipboard(mainFile?.content || '');
+                              }}
+                              title="Copy code"
+                            >
+                              <Copy size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className="graphiql-toolbar-button"
+                              onClick={async () => {
+                                await clearSchemaCache();
+                                console.log('[Playground] Schema cache cleared');
+                              }}
+                              title="Clear compilation cache"
+                            >
+                              <Database size={16} />
+                            </button>
+                            <div className="graphiql-toolbar-divider" />
+                            <button
+                              type="button"
+                              className="graphiql-toolbar-button"
+                              onClick={async () => {
+                                const url = createShareableURL({
+                                  files,
+                                  query: currentQuery,
+                                  variables: currentVariables,
+                                  viewMode,
+                                });
+                                await copyToClipboard(url);
+                                console.log('[Playground] URL copied to clipboard');
+                              }}
+                              title="Copy shareable URL"
+                            >
+                              <Share2 size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className="graphiql-toolbar-button"
+                              onClick={() => {
+                                if (!compilerState.schemaSDL) {
+                                  return;
+                                }
+                                const blob = new Blob([compilerState.schemaSDL], { type: 'text/plain' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'schema.graphql';
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                              }}
+                              title="Download schema SDL"
+                              disabled={!compilerState.schemaSDL}
+                            >
+                              <Download size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right side - Schema SDL split view (hidden on small screens, shown in bottom panel instead) */}
+                      <div className="hidden flex-col border-l border-fd-border xl:flex" style={{ width: 400 }}>
+                        <SchemaViewer schemaSDL={compilerState.schemaSDL} />
+                      </div>
+                    </div>
+
+                    {/* Bottom panel toggle and content */}
+                    <div className="flex min-h-0 flex-col">
+                      <div className="graphiql-editor-tools">
+                        <div className="graphiql-editor-tools-tabs">
+                          {/* Show Schema SDL tab only on small screens where the split view is hidden */}
+                          <button
+                            type="button"
+                            className={`graphiql-editor-tools-tab xl:hidden ${showBottomPanel && bottomPanelTab === 'schema' ? 'graphiql-editor-tools-tab-active' : ''}`}
+                            onClick={() => {
+                              if (showBottomPanel && bottomPanelTab === 'schema') {
+                                setShowBottomPanel(false);
+                              } else {
+                                setBottomPanelTab('schema');
+                                setShowBottomPanel(true);
+                              }
+                            }}
+                          >
+                            <GitBranch size={14} className="mr-1.5" />
+                            Schema SDL
+                          </button>
+                          <button
+                            type="button"
+                            className={`graphiql-editor-tools-tab ${showBottomPanel && bottomPanelTab === 'console' ? 'graphiql-editor-tools-tab-active' : ''}`}
+                            onClick={() => {
+                              if (showBottomPanel && bottomPanelTab === 'console') {
+                                setShowBottomPanel(false);
+                              } else {
+                                setBottomPanelTab('console');
+                                setShowBottomPanel(true);
+                              }
+                            }}
+                          >
+                            <Terminal size={14} className="mr-1.5" />
+                            Console
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          className="graphiql-editor-tools-toggle"
+                          onClick={() => setShowBottomPanel(!showBottomPanel)}
+                          aria-label={showBottomPanel ? 'Hide panel' : 'Show panel'}
+                        >
+                          {showBottomPanel ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                        </button>
+                      </div>
+
+                      {/* Bottom panel - Keep mounted but hide with CSS */}
+                      <div
+                        className="border-t border-fd-border"
+                        style={{
+                          display: showBottomPanel ? 'flex' : 'none',
+                          height: showBottomPanel ? '40%' : 0,
+                          minHeight: showBottomPanel ? '200px' : 0,
+                          flexDirection: 'column',
+                        }}
+                        aria-hidden={!showBottomPanel}
+                      >
+                        {bottomPanelTab === 'schema' && (
+                          <div className="schema-viewer flex-1">
+                            <SchemaViewer schemaSDL={compilerState.schemaSDL} />
+                          </div>
+                        )}
+                        {bottomPanelTab === 'console' && (
+                          <ConsolePanel messages={allConsoleLogs} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* GraphQL query builder - keep mounted but hide with CSS */}
+                <div
+                  className="h-full"
+                  style={{ display: viewMode === 'graphql' ? 'block' : 'none' }}
+                >
+                  <GraphQLEditor
+                    schemaSDL={compilerState.schemaSDL}
+                    consoleLogs={allConsoleLogs}
+                    showBottomPanel={showGraphQLBottomPanel}
+                    setShowBottomPanel={setShowGraphQLBottomPanel}
+                    bottomPanelTab={graphQLBottomPanelTab}
+                    setBottomPanelTab={setGraphQLBottomPanelTab}
+                    onQueryChange={handleQueryChange}
+                  />
+                </div>
+              </div>
             </div>
           </GraphiQLProvider>
         </Tooltip.Provider>

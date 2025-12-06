@@ -14,17 +14,16 @@ const builder = new SchemaBuilder({});
 // Simple in-memory store
 const users = new Map<string, { id: string; name: string; email: string }>();
 
-// User type
-builder.objectType(
-  builder.objectRef<{ id: string; name: string; email: string }>('User'),
-  {
-    fields: (t) => ({
-      id: t.exposeID('id'),
-      name: t.exposeString('name'),
-      email: t.exposeString('email'),
-    }),
-  },
-);
+// User type ref
+const UserType = builder.objectRef<{ id: string; name: string; email: string }>('User');
+
+builder.objectType(UserType, {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    email: t.exposeString('email'),
+  }),
+});
 
 // Input type for creating users
 const CreateUserInput = builder.inputType('CreateUserInput', {
@@ -37,7 +36,7 @@ const CreateUserInput = builder.inputType('CreateUserInput', {
 builder.queryType({
   fields: (t) => ({
     users: t.field({
-      type: ['User'],
+      type: [UserType],
       resolve: () => Array.from(users.values()),
     }),
   }),
@@ -46,7 +45,7 @@ builder.queryType({
 builder.mutationType({
   fields: (t) => ({
     createUser: t.field({
-      type: 'User',
+      type: UserType,
       args: {
         input: t.arg({ type: CreateUserInput, required: true }),
       },

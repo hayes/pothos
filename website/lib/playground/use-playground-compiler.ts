@@ -1,11 +1,19 @@
 'use client';
 
-import * as graphql from 'graphql';
 import type { GraphQLSchema } from 'graphql';
+import * as graphql from 'graphql';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PlaygroundFile } from '../../components/playground/types';
-import { compileAndExecute, type ExecutionResult, type PlaygroundModules } from './execution-engine';
+import {
+  compileAndExecute,
+  type ConsoleMessage,
+  type ExecutionResult,
+  type PlaygroundModules,
+} from './execution-engine';
 import { pothosModule } from './pothos-bundle';
+
+// Re-export ConsoleMessage for external use
+export type { ConsoleMessage };
 
 export interface CompilerState {
   isCompiling: boolean;
@@ -13,6 +21,7 @@ export interface CompilerState {
   schemaSDL: string | null;
   error: string | null;
   lastCompiledAt: number | null;
+  consoleLogs: ConsoleMessage[];
 }
 
 export interface UsePlaygroundCompilerOptions {
@@ -45,10 +54,12 @@ export function usePlaygroundCompiler({
     schemaSDL: null,
     error: null,
     lastCompiledAt: null,
+    consoleLogs: [],
   });
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
+  const prevFilesRef = useRef(files);
 
   const compile = useCallback(async () => {
     const mainFile = files.find((f) => f.filename === 'schema.ts') || files[0];
@@ -67,7 +78,7 @@ export function usePlaygroundCompiler({
       const result: ExecutionResult = await compileAndExecute(
         mainFile.content,
         modules,
-        mainFile.filename
+        mainFile.filename,
       );
 
       if (result.success && result.schema && result.schemaSDL) {
@@ -77,12 +88,14 @@ export function usePlaygroundCompiler({
           schemaSDL: result.schemaSDL,
           error: null,
           lastCompiledAt: Date.now(),
+          consoleLogs: result.consoleLogs || [],
         });
       } else {
         setState((prev) => ({
           ...prev,
           isCompiling: false,
           error: result.error || 'Unknown compilation error',
+          consoleLogs: result.consoleLogs || [],
         }));
       }
     } catch (err) {
@@ -102,6 +115,7 @@ export function usePlaygroundCompiler({
       schemaSDL: null,
       error: null,
       lastCompiledAt: null,
+      consoleLogs: [],
     });
   }, []);
 
@@ -118,9 +132,21 @@ export function usePlaygroundCompiler({
       return;
     }
 
+    // Only set pending if files actually changed
+    const filesChanged = prevFilesRef.current !== files;
+
+    if (!filesChanged) {
+      return;
+    }
+
+    prevFilesRef.current = files;
+
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
+
+    // Set isCompiling immediately when files change
+    setState((prev) => ({ ...prev, isCompiling: true }));
 
     debounceTimerRef.current = setTimeout(() => {
       compile();
@@ -131,7 +157,7 @@ export function usePlaygroundCompiler({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [files, compile, debounceMs, autoCompile]);
+  }, [files, debounceMs, autoCompile, compile]);
 
   return { state, compile, reset };
 }

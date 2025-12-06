@@ -155,7 +155,7 @@ html:not(.dark) .graphiql-tooltip.graphiql-tooltip {
   --alpha-background-heavy: 0.15;
   --border-radius: 8px;
   --tab-bg: hsl(var(--color-base));
-  
+
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -282,7 +282,9 @@ html:not(.dark) .graphiql-editor-container {
   font-size: 13px;
   cursor: pointer;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 
@@ -346,7 +348,10 @@ html:not(.dark) .graphiql-editor-container {
   color: hsla(var(--color-neutral), var(--alpha-secondary));
   cursor: pointer;
   border-radius: 6px;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .graphiql-editor-container .graphiql-tab-add:hover {
@@ -425,7 +430,9 @@ html:not(.dark) .graphiql-editor-container {
   color: white !important;
   cursor: pointer !important;
   box-shadow: 0 2px 8px hsla(var(--color-primary), 0.4) !important;
-  transition: transform 0.1s, box-shadow 0.15s !important;
+  transition:
+    transform 0.1s,
+    box-shadow 0.15s !important;
 }
 
 .graphiql-editor-container .graphiql-execute-button:hover {
@@ -456,7 +463,9 @@ html:not(.dark) .graphiql-editor-container {
   background: hsla(var(--color-neutral), var(--alpha-background-medium)) !important;
   color: hsla(var(--color-neutral), var(--alpha-secondary)) !important;
   cursor: pointer !important;
-  transition: background 0.15s, color 0.15s !important;
+  transition:
+    background 0.15s,
+    color 0.15s !important;
 }
 
 .graphiql-editor-container .graphiql-toolbar-button:hover {
@@ -500,7 +509,7 @@ html:not(.dark) .graphiql-editor-container {
 }
 
 .graphiql-editor-container .graphiql-editor-tools-tab-active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: var(--px-12, 12px);
@@ -521,7 +530,9 @@ html:not(.dark) .graphiql-editor-container {
   background: transparent;
   color: hsla(var(--color-neutral), var(--alpha-tertiary));
   cursor: pointer;
-  transition: color 0.15s, transform 0.15s;
+  transition:
+    color 0.15s,
+    transform 0.15s;
 }
 
 .graphiql-editor-container .graphiql-editor-tools-toggle:hover {
@@ -665,4 +676,31 @@ html.dark .graphiql-doc-explorer {
 .playground-panel-close:hover {
   opacity: 1;
   background: hsla(var(--color-neutral, 219, 28%, 32%), 0.1);
+}
+
+/* ============================================
+   Rounded Corners for Editors
+   ============================================ */
+
+/* Code editor - rounded top-right (always, no responsive removal) */
+.graphiql-editor-container .graphiql-sessions.overflow-hidden,
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .graphiql-session,
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .monaco-editor,
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .overflow-guard {
+  border-top-right-radius: 0.5rem !important;
+}
+
+/* Monaco editor margin for scrollbar positioning */
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .monaco-editor {
+  margin: 8px 60px 8px 0 !important;
+}
+
+/* Query editor - rounded top-right */
+.graphiql-sessions.overflow-hidden.rounded-tr-lg,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-session,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-editors,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-query-editor-wrapper,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-query-editor,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .cm-editor {
+  border-top-right-radius: 0.5rem !important;
 }

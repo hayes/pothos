@@ -1,13 +1,16 @@
 import type { Monaco } from '@monaco-editor/react';
-import { pothosTypeDefinitions } from './pothos-types';
+import { coreTypeDefinitions, getAllPluginNames, getPluginTypeDefinitions } from './pothos-types';
 
 let initialized = false;
+let monaco: Monaco | null = null;
+const loadedPlugins = new Set<string>();
 
-export function setupMonacoForPothos(monaco: Monaco): void {
+export function setupMonacoForPothos(monacoInstance: Monaco): void {
   if (initialized) {
     return;
   }
   initialized = true;
+  monaco = monacoInstance;
 
   monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
     target: monaco.languages.typescript.ScriptTarget.ESNext,
@@ -18,7 +21,7 @@ export function setupMonacoForPothos(monaco: Monaco): void {
     esModuleInterop: true,
     skipLibCheck: true,
     jsx: monaco.languages.typescript.JsxEmit.React,
-    lib: ['esnext'],
+    lib: ['esnext', 'dom'],
     allowSyntheticDefaultImports: true,
     typeRoots: ['node_modules/@types'],
   });
@@ -30,9 +33,18 @@ export function setupMonacoForPothos(monaco: Monaco): void {
 
   monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
 
-  // Load all type definitions from our bundled types
-  // This matches the runtime instance from pothos-bundle.ts
-  for (const typeDef of pothosTypeDefinitions) {
+  // Load core type definitions (GraphQL + @pothos/core)
+  loadTypeDefinitions(coreTypeDefinitions);
+
+  console.log(`[Monaco] Loaded ${coreTypeDefinitions.length} core type definitions`);
+}
+
+function loadTypeDefinitions(typeDefs: Array<{ moduleName: string; content: string }>): void {
+  if (!monaco) {
+    return;
+  }
+
+  for (const typeDef of typeDefs) {
     const moduleParts = typeDef.moduleName.split('/');
     const hasGlobalDeclaration = typeDef.content.includes('declare global');
 
@@ -57,10 +69,52 @@ export function setupMonacoForPothos(monaco: Monaco): void {
 
     monaco.languages.typescript.typescriptDefaults.addExtraLib(content, filePath);
   }
+}
 
-  console.log(`[Monaco] Loaded ${pothosTypeDefinitions.length} Pothos type definitions`);
+/**
+ * Load plugin types dynamically based on imports in the code
+ */
+export function loadPluginTypes(code: string): void {
+  if (!monaco) {
+    return;
+  }
+
+  // Extract plugin imports from code
+  const pluginImports = extractPluginImports(code);
+  const allPluginNames = getAllPluginNames();
+
+  // Load newly imported plugins
+  for (const pluginName of Array.from(pluginImports)) {
+    if (!loadedPlugins.has(pluginName) && allPluginNames.includes(pluginName)) {
+      const pluginTypes = getPluginTypeDefinitions(pluginName);
+      loadTypeDefinitions(pluginTypes);
+      loadedPlugins.add(pluginName);
+      console.log(`[Monaco] Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
+    }
+  }
+
+  // Note: We don't unload unused plugins because Monaco doesn't provide
+  // a clean way to remove specific type definitions. This is acceptable
+  // because the extra types don't interfere with validation - they just
+  // add optional capabilities that won't be used unless the plugin is imported.
+}
+
+function extractPluginImports(code: string): Set<string> {
+  const imports = new Set<string>();
+  // Match: import ... from '@pothos/plugin-...'
+  const importRegex = /import\s+.*?\s+from\s+['"](@pothos\/plugin-[^'"]+)['"]/g;
+
+  let match = importRegex.exec(code);
+  while (match !== null) {
+    imports.add(match[1]);
+    match = importRegex.exec(code);
+  }
+
+  return imports;
 }
 
 export function resetMonacoSetup(): void {
   initialized = false;
+  monaco = null;
+  loadedPlugins.clear();
 }
