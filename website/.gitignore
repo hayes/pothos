@@ -40,3 +40,4 @@ util/search-index.js
 /lib/playground/pothos-bundle.ts
 /lib/playground/plugins-bundle.ts
 /components/playground/examples/examples-index.generated.ts
+/public/playground-examples/*.json
