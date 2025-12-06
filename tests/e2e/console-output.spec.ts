@@ -7,11 +7,13 @@ test.describe('Playground Console Output', () => {
   });
 
   test('should show Console tab in right panel', async ({ page }) => {
-    // Wait for the right panel to be visible
-    await page.waitForSelector('button:has-text("Console")', { timeout: 5000 });
+    // Wait for the editor tools tabs to be visible
+    await page.waitForSelector('.graphiql-editor-tools-tabs', { timeout: 5000 });
 
-    // Verify Console tab exists
-    const consoleTab = page.locator('button:has-text("Console")');
+    // Verify Console tab exists in the code editor bottom panel
+    const consoleTab = page
+      .locator('.graphiql-editor-tools-tabs button:has-text("Console")')
+      .first();
     await expect(consoleTab).toBeVisible();
   });
 
@@ -45,14 +47,14 @@ export const schema = builder.toSchema();`);
     // Wait for compilation
     await page.waitForTimeout(1000);
 
-    // Click the Console tab
-    await page.click('button:has-text("Console")');
+    // Click the Console tab in the bottom panel
+    await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
 
     // Wait for console panel to be visible
     await page.waitForSelector('text=Schema is building!', { timeout: 5000 });
 
-    // Verify console messages appear
-    const consolePanel = page.locator('.font-mono');
+    // Verify console messages appear in the console panel
+    const consolePanel = page.locator('.graphiql-editor-tool-content .font-mono').first();
     await expect(consolePanel).toContainText('Schema is building!');
     await expect(consolePanel).toContainText('Testing console output');
     await expect(consolePanel).toContainText('123');
@@ -85,24 +87,24 @@ export const schema = builder.toSchema();`);
     // Wait for compilation
     await page.waitForTimeout(1000);
 
-    // Click the Console tab
-    await page.click('button:has-text("Console")');
+    // Click the Console tab in the bottom panel
+    await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
 
     // Wait for console panel
     await page.waitForSelector('text=This is a log', { timeout: 5000 });
 
     // Verify all message types appear
-    await expect(page.locator('text=This is a log')).toBeVisible();
-    await expect(page.locator('text=This is a warning')).toBeVisible();
-    await expect(page.locator('text=This is an error')).toBeVisible();
-    await expect(page.locator('text=This is info')).toBeVisible();
+    await expect(page.locator('text=This is a log').first()).toBeVisible();
+    await expect(page.locator('text=This is a warning').first()).toBeVisible();
+    await expect(page.locator('text=This is an error').first()).toBeVisible();
+    await expect(page.locator('text=This is info').first()).toBeVisible();
 
     // Verify error message has red color
-    const errorMessage = page.locator('text=This is an error').locator('..');
+    const errorMessage = page.locator('text=This is an error').first().locator('..');
     await expect(errorMessage).toHaveClass(/text-red-500/);
 
     // Verify warning message has yellow color
-    const warnMessage = page.locator('text=This is a warning').locator('..');
+    const warnMessage = page.locator('text=This is a warning').first().locator('..');
     await expect(warnMessage).toHaveClass(/text-yellow-500/);
   });
 
@@ -130,14 +132,14 @@ export const schema = builder.toSchema();`);
     // Wait for compilation
     await page.waitForTimeout(1000);
 
-    // Click the Console tab
-    await page.click('button:has-text("Console")');
+    // Click the Console tab in the bottom panel
+    await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
 
     // Wait for message to appear
     await page.waitForSelector('text=Message to clear', { timeout: 5000 });
 
     // Click Clear button
-    const clearButton = page.locator('button:has-text("Clear")');
+    const clearButton = page.locator('button:has-text("Clear")').first();
     await expect(clearButton).toBeVisible();
     await clearButton.click();
 
@@ -145,7 +147,7 @@ export const schema = builder.toSchema();`);
     await page.waitForTimeout(1500);
 
     // Message should still be there after recompile since the code didn't change
-    await expect(page.locator('text=Message to clear')).toBeVisible();
+    await expect(page.locator('text=Message to clear').first()).toBeVisible();
   });
 
   test('should show "No console output" when there are no logs', async ({ page }) => {
@@ -170,11 +172,13 @@ export const schema = builder.toSchema();`);
     // Wait for compilation
     await page.waitForTimeout(1000);
 
-    // Click the Console tab
-    await page.click('button:has-text("Console")');
+    // Click the Console tab in the bottom panel
+    await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
 
-    // Should show "No console output"
-    await expect(page.locator('text=No console output')).toBeVisible();
+    // Should show "No console output" in the console panel
+    await expect(
+      page.locator('.graphiql-editor-tool-content text=No console output').first(),
+    ).toBeVisible();
   });
 
   test('should capture console output from resolver execution', async ({ page }) => {
@@ -216,8 +220,8 @@ export const schema = builder.toSchema();`);
     // and our console capture only works during schema building.
     // This is expected behavior.
 
-    // Click Console tab to verify schema-time logs only
-    await page.click('button:has-text("Console")');
+    // Click Console tab in GraphQL view to verify schema-time logs only
+    await page.locator('button:has-text("Console")').first().click();
 
     // Should not have "Resolver executed!" since it only runs during query execution
     // Only schema-building console logs are captured
