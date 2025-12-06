@@ -212,6 +212,10 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, filename, onChange, allFi
       onChange={(value) => value !== undefined && onChange(value)}
       onMount={(editor) => {
         editorRef.current = editor;
+        // Expose editor to window for testing
+        if (typeof window !== 'undefined') {
+          (window as typeof window & { monacoEditor?: typeof editor }).monacoEditor = editor;
+        }
       }}
       options={{
         minimap: { enabled: false },
