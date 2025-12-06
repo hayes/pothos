@@ -36,7 +36,6 @@ interface ExampleMetadata {
 }
 
 const EXAMPLES_DIR = join(process.cwd(), 'public', 'playground-examples');
-const OUTPUT_FILE = join(process.cwd(), 'public', 'playground-examples.json');
 const INDEX_FILE = join(process.cwd(), 'components', 'playground', 'examples', 'examples-index.generated.ts');
 
 async function buildExamples() {
@@ -68,7 +67,7 @@ async function buildExamples() {
       try {
         const queryPath = join(examplePath, 'query.graphql');
         queryContent = await readFile(queryPath, 'utf-8');
-      } catch (err) {
+      } catch {
         console.warn(`[Build Examples] No query.graphql found for ${dirName}`);
       }
 
@@ -96,10 +95,6 @@ async function buildExamples() {
 
   // Sort examples by ID for consistency
   examples.sort((a, b) => a.id.localeCompare(b.id));
-
-  // Write bundled examples JSON (for backward compatibility)
-  const output = JSON.stringify(examples, null, 2);
-  await writeFile(OUTPUT_FILE, output, 'utf-8');
 
   // Generate TypeScript index file with example IDs and metadata
   const exampleIds = examples.map(e => e.id);
@@ -144,9 +139,8 @@ export function getExampleMetadata(id: string): ExampleMetadata | undefined {
   await writeFile(INDEX_FILE, indexContent, 'utf-8');
 
   console.log(`[Build Examples] ✓ Built ${examples.length} examples`);
-  console.log(`[Build Examples] ✓ Output: ${OUTPUT_FILE}`);
   console.log(`[Build Examples] ✓ Index: ${INDEX_FILE}`);
-  console.log(`[Build Examples] Done!`);
+  console.log('[Build Examples] Done!');
 }
 
 // Run

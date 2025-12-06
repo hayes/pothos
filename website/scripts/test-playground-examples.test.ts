@@ -3,14 +3,57 @@
  * Run with: npx tsx scripts/test-playground-examples.ts
  */
 
+import { readdir, readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playground/pothos-types';
 
-// Import the examples
-const examplesPath = path.join(__dirname, '../components/playground/examples/index.ts');
-const examplesModule = require(examplesPath);
-const examples = examplesModule.examplesList;
+// Load examples from individual directories
+async function loadExamples() {
+  const examplesDir = path.join(__dirname, '../public/playground-examples');
+  const entries = await readdir(examplesDir, { withFileTypes: true });
+  const exampleDirs = entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
+
+  const examples = [];
+  for (const dirName of exampleDirs) {
+    const examplePath = path.join(examplesDir, dirName);
+
+    // Read metadata
+    const metadataPath = path.join(examplePath, 'metadata.json');
+    const metadataContent = await readFile(metadataPath, 'utf-8');
+    const metadata = JSON.parse(metadataContent);
+
+    // Read schema.ts
+    const schemaPath = path.join(examplePath, 'schema.ts');
+    const schemaContent = await readFile(schemaPath, 'utf-8');
+
+    // Read query.graphql (optional)
+    let queryContent = '';
+    try {
+      const queryPath = path.join(examplePath, 'query.graphql');
+      queryContent = await readFile(queryPath, 'utf-8');
+    } catch {
+      // Query file is optional
+    }
+
+    examples.push({
+      id: metadata.id,
+      title: metadata.title,
+      description: metadata.description,
+      tags: metadata.tags || [],
+      files: [
+        {
+          filename: 'schema.ts',
+          content: schemaContent,
+          language: 'typescript',
+        },
+      ],
+      defaultQuery: queryContent || '{\n  # Add your query here\n}',
+    });
+  }
+
+  return examples.sort((a, b) => a.id.localeCompare(b.id));
+}
 
 interface TypeCheckResult {
   success: boolean;
@@ -242,8 +285,10 @@ function testQuery(_code: string, query: string): { success: boolean; errors: st
 /**
  * Run all tests
  */
-function main() {
+async function main() {
   console.log('Type-checking playground examples...\n');
+
+  const examples = await loadExamples();
 
   let passedCount = 0;
   let failedCount = 0;
