@@ -51,9 +51,9 @@ function getWorker(): Worker {
     worker.addEventListener('error', (error) => {
       console.error('[Compiler Worker] Error:', error);
       // Reject all pending requests
-      for (const pending of pendingRequests.values()) {
+      pendingRequests.forEach((pending) => {
         pending.reject(new Error('Worker error'));
-      }
+      });
       pendingRequests.clear();
     });
   }
