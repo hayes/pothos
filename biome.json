@@ -24,9 +24,10 @@
       "!**/generated.ts",
       "!**/codegen/schema/prisma-inputs.ts",
       "!**/schema.graphql",
-      "!**/website/lib/playground/pothos-types.ts",
-      "!**/website/components/playground/examples/examples-index.generated.ts",
-      "!**/public/playground-examples/*.json"
+      "!**/lib/playground/pothos-types.ts",
+      "!**/components/playground/examples/examples-index.generated.ts",
+      "!**/public/playground-examples/*.json",
+      "!**/playground-examples/*.json"
     ]
   },
   "formatter": {
