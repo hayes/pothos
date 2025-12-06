@@ -1,8 +1,7 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { type FC, useEffect, useState } from 'react';
-import { getExample } from '../playground/examples';
+import { type FC, useEffect, useMemo } from 'react';
 import { encodePlaygroundState } from '../../lib/playground/url-state';
 
 export interface PlaygroundOverlayProps {
@@ -32,11 +31,10 @@ export interface PlaygroundOverlayProps {
  *
  * **Features:**
  * - Lazy-loaded iframe (playground bundle only loaded when opened)
- * - Dynamically loads examples on-demand
+ * - Examples loaded by the playground page on-demand
  * - Full-screen on mobile, 90% width on desktop
  * - Escape key to close
  * - Click outside to close
- * - Loading state while playground initializes
  */
 export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
   exampleId,
@@ -44,8 +42,36 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
   query,
   onClose,
 }) => {
-  const [playgroundURL, setPlaygroundURL] = useState<string>('/playground');
-  const [isLoading, setIsLoading] = useState(!!exampleId);
+  // Build playground URL - let the playground page handle example loading
+  const playgroundURL = useMemo(() => {
+    // If exampleId is provided, use query parameter (playground will load it)
+    if (exampleId) {
+      const params = new URLSearchParams();
+      params.set('example', exampleId);
+      if (query) {
+        params.set('query', btoa(query));
+      }
+      return `/playground?${params.toString()}`;
+    }
+
+    // If custom code is provided, use hash-based state
+    if (code) {
+      const state = encodePlaygroundState({
+        files: [
+          {
+            filename: 'schema.ts',
+            content: code,
+          },
+        ],
+        query,
+        viewMode: query ? 'graphql' : 'code',
+      });
+      return `/playground#${state}`;
+    }
+
+    // Default to empty playground
+    return '/playground';
+  }, [exampleId, code, query]);
 
   // Close on Escape key
   useEffect(() => {
@@ -58,50 +84,6 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
-
-  // Build playground URL using the new hash-based format
-  useEffect(() => {
-    async function loadPlaygroundURL() {
-      // If exampleId is provided, load the example from registry
-      if (exampleId) {
-        setIsLoading(true);
-        const example = await getExample(exampleId);
-        if (example) {
-          const state = encodePlaygroundState({
-            files: example.files,
-            query: query || example.defaultQuery,
-            viewMode: query ? 'graphql' : 'code',
-          });
-          setPlaygroundURL(`/playground#${state}`);
-        } else {
-          setPlaygroundURL('/playground');
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      // If custom code is provided, create a single file
-      if (code) {
-        const state = encodePlaygroundState({
-          files: [
-            {
-              filename: 'schema.ts',
-              content: code,
-            },
-          ],
-          query,
-          viewMode: query ? 'graphql' : 'code',
-        });
-        setPlaygroundURL(`/playground#${state}`);
-        return;
-      }
-
-      // Default to empty playground
-      setPlaygroundURL('/playground');
-    }
-
-    loadPlaygroundURL();
-  }, [exampleId, code, query]);
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: Escape key handler is in useEffect
@@ -127,16 +109,6 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
         >
           <X size={20} />
         </button>
-
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-fd-background/80 backdrop-blur-sm md:rounded-lg">
-            <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-fd-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-              <p className="mt-4 text-sm text-fd-muted-foreground">Loading example...</p>
-            </div>
-          </div>
-        )}
 
         {/* Playground iframe */}
         <iframe
