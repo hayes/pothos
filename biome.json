@@ -25,7 +25,6 @@
       "!**/codegen/schema/prisma-inputs.ts",
       "!**/schema.graphql",
       "!**/website/lib/playground/pothos-types.ts",
-      "!**/website/lib/playground/*-bundle.ts",
       "!**/website/components/playground/examples/examples-index.generated.ts",
       "!**/public/playground-examples/*.json"
     ]

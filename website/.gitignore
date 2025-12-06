@@ -37,7 +37,5 @@ util/search-index.js
 
 # generated playground bundles
 /lib/playground/pothos-types.ts
-/lib/playground/pothos-bundle.ts
-/lib/playground/plugins-bundle.ts
 /components/playground/examples/examples-index.generated.ts
 /public/playground-examples/*.json
