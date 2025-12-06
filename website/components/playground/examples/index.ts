@@ -38,14 +38,3 @@ export const examplesList = typedExamples;
  * Get all example IDs
  */
 export const exampleIds = typedExamples.map((ex) => ex.id);
-
-// Legacy named exports for backwards compatibility
-// These are now loaded from the JSON bundle
-export const basicTypesExample = examples['basic-types'];
-export const mutationsExample = examples.mutations;
-export const interfacesExample = examples.interfaces;
-export const enumsArgsExample = examples['enums-args'];
-export const unionsExample = examples.unions;
-export const simpleObjectsPluginExample = examples['simple-objects-plugin'];
-export const relayPluginExample = examples['relay-plugin'];
-export const withInputPluginExample = examples['with-input-plugin'];
