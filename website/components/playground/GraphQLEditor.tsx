@@ -9,9 +9,19 @@ import {
   useGraphiQLActions,
   VariableEditor,
 } from '@graphiql/react';
-import { BracesIcon, ChevronDown, ChevronUp, Copy, GitBranch, Plus, Sparkles, Terminal, X } from 'lucide-react';
-import { type FC, useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
+import {
+  BracesIcon,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  GitBranch,
+  Plus,
+  Sparkles,
+  Terminal,
+  X,
+} from 'lucide-react';
+import { type FC, useEffect, useState } from 'react';
 import { ConsolePanel } from './ConsolePanel';
 
 const ResponsePlaceholder: FC = () => (
@@ -62,12 +72,19 @@ const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
 
 interface GraphQLEditorProps {
   schemaSDL: string | null;
-  consoleLogs: Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[]; timestamp: number }>;
+  consoleLogs: Array<{
+    type: 'log' | 'warn' | 'error' | 'info';
+    args: unknown[];
+    timestamp: number;
+  }>;
   showBottomPanel: boolean;
   setShowBottomPanel: (show: boolean) => void;
   bottomPanelTab: 'variables' | 'schema' | 'console';
   setBottomPanelTab: (tab: 'variables' | 'schema' | 'console') => void;
   onQueryChange?: (query: string, variables?: string) => void;
+  onTabsChange?: (tabs: Array<{ title?: string; query: string; variables?: string }>) => void;
+  expectedQuery?: string;
+  expectedVariables?: string;
 }
 
 export const GraphQLEditor: FC<GraphQLEditorProps> = ({
@@ -78,6 +95,9 @@ export const GraphQLEditor: FC<GraphQLEditorProps> = ({
   bottomPanelTab,
   setBottomPanelTab,
   onQueryChange,
+  onTabsChange,
+  expectedQuery,
+  expectedVariables,
 }) => {
   const [hasExecuted, setHasExecuted] = useState(false);
 
@@ -96,7 +116,43 @@ export const GraphQLEditor: FC<GraphQLEditorProps> = ({
     }
   }, [tabs, activeTabIndex, onQueryChange]);
 
-  const { addTab, changeTab, closeTab, copyQuery, prettifyEditors } = useGraphiQLActions();
+  // Track all tabs changes for URL state
+  useEffect(() => {
+    if (onTabsChange && tabs.length > 0) {
+      const allTabs = tabs.map((tab) => ({
+        title: tab.title || undefined,
+        query: tab.query || '',
+        variables: tab.variables || undefined,
+      }));
+      onTabsChange(allTabs);
+    }
+  }, [tabs, onTabsChange]);
+
+  const { addTab, changeTab, closeTab, copyQuery, prettifyEditors, updateActiveTabValues } =
+    useGraphiQLActions();
+
+  // Programmatically update the query when expectedQuery/expectedVariables change
+  // This ensures GraphiQL shows the correct query even if localStorage has stale data
+  useEffect(() => {
+    if (expectedQuery !== undefined && tabs[activeTabIndex]) {
+      const currentTab = tabs[activeTabIndex];
+      // Use a small delay to ensure GraphiQL is fully mounted and visible
+      const timeoutId = setTimeout(() => {
+        // Only update if the current tab doesn't match expected values
+        if (
+          currentTab.query !== expectedQuery ||
+          (expectedVariables !== undefined && currentTab.variables !== expectedVariables)
+        ) {
+          updateActiveTabValues({
+            query: expectedQuery,
+            variables: expectedVariables,
+          });
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [expectedQuery, expectedVariables, tabs, activeTabIndex, updateActiveTabValues]);
 
   useEffect(() => {
     if (isFetching) {

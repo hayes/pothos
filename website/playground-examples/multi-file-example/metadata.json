@@ -1,0 +1,6 @@
+{
+  "id": "multi-file-example",
+  "title": "Multi-File Example",
+  "description": "Example with multiple TypeScript and GraphQL files",
+  "tags": ["advanced", "multi-file"]
+}

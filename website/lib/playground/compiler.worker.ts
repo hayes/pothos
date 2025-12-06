@@ -48,7 +48,6 @@ interface CompileErrorResponse {
 }
 
 type WorkerMessage = CompileMessage;
-type WorkerResponse = CompileSuccessResponse | CompileErrorResponse;
 
 // Handle messages from main thread
 self.addEventListener('message', async (event: MessageEvent<WorkerMessage>) => {

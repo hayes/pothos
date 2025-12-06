@@ -1,0 +1,12 @@
+# Query all posts with authors
+query GetAllPosts {
+  posts {
+    id
+    title
+    content
+    author {
+      id
+      name
+    }
+  }
+}

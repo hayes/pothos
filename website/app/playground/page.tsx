@@ -20,10 +20,12 @@ import {
   GitBranch,
   Home,
   Lightbulb,
+  Plus,
   RotateCcw,
   Share2,
   Sparkles,
   Terminal,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -141,10 +143,12 @@ function createFetcher(
 
 interface SourceEditorProps {
   source: string;
+  filename: string;
   onChange: (value: string) => void;
+  allFiles?: Array<{ filename: string; content: string }>;
 }
 
-const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
+const SourceEditor: FC<SourceEditorProps> = ({ source, filename, onChange, allFiles }) => {
   const theme = useAutoTheme();
   const monaco = useMonaco();
   const [typesLoaded, setTypesLoaded] = useState(false);
@@ -160,6 +164,24 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
       });
     }
   }, [monaco, typesLoaded]);
+
+  // Register all files with Monaco for cross-file type checking when Monaco is ready
+  // Track when files actually change to avoid infinite re-registration
+  const filesRegistered = useRef<string>('');
+  useEffect(() => {
+    if (monaco && typesLoaded && allFiles && allFiles.length > 1) {
+      // Create a key based on filenames and content lengths to detect actual changes
+      const filesKey = allFiles.map((f) => `${f.filename}:${f.content.length}`).join(',');
+
+      // Only register if files have actually changed
+      if (filesKey !== filesRegistered.current) {
+        filesRegistered.current = filesKey;
+        import('../../lib/playground/setup-monaco').then(({ registerPlaygroundFiles }) => {
+          registerPlaygroundFiles(allFiles);
+        });
+      }
+    }
+  }, [monaco, typesLoaded, allFiles]);
 
   // Load plugin types when source code changes
   useEffect(() => {
@@ -184,7 +206,7 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
     <Editor
       height="100%"
       language="typescript"
-      path="file:///playground/schema.ts"
+      path={`file:///playground/${filename}`}
       value={source}
       theme={theme}
       onChange={(value) => value !== undefined && onChange(value)}
@@ -260,6 +282,9 @@ export default function PlaygroundPage() {
   const [files, setFiles] = useState<PlaygroundFile[]>([
     { filename: 'schema.ts', content: DEFAULT_CODE },
   ]);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
+  const [editingFileIndex, setEditingFileIndex] = useState<number | null>(null);
+  const [editingFilename, setEditingFilename] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('code');
   const [isEmbedMode, setIsEmbedMode] = useState(false);
   const [leftPanel, setLeftPanel] = useState<'docs' | 'examples' | null>(null);
@@ -277,6 +302,47 @@ export default function PlaygroundPage() {
   >([]);
   const [currentQuery, setCurrentQuery] = useState<string>(DEFAULT_QUERY);
   const [currentVariables, setCurrentVariables] = useState<string>('');
+  const [exampleQueries, setExampleQueries] = useState<
+    Array<{ title?: string; query: string; variables?: string }> | undefined
+  >(undefined);
+
+  // Custom storage that ignores persisted tabs to allow defaultTabs to work
+  const customStorage = useMemo<Storage>(() => {
+    if (typeof window === 'undefined') {
+      // Return a dummy storage implementation for SSR
+      return {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+        clear: () => {},
+        key: () => null,
+        length: 0,
+      };
+    }
+
+    return {
+      getItem: (key: string) => {
+        // Block reading the tabs key - this forces GraphiQL to use defaultTabs prop
+        if (key === 'graphiql:tabState') {
+          return null;
+        }
+        return localStorage.getItem(key);
+      },
+      setItem: (key: string, value: string) => {
+        localStorage.setItem(key, value);
+      },
+      removeItem: (key: string) => {
+        localStorage.removeItem(key);
+      },
+      clear: () => {
+        localStorage.clear();
+      },
+      key: (index: number) => {
+        return localStorage.key(index);
+      },
+      length: localStorage.length,
+    };
+  }, []);
 
   // Initialize from URL (hash-based state or query parameters for backward compatibility)
   useEffect(() => {
@@ -285,6 +351,14 @@ export default function PlaygroundPage() {
     }
 
     async function initializePlayground() {
+      // Clear GraphiQL localStorage to ensure initialQuery/initialVariables from URL are used
+      // GraphiQL stores its state in localStorage with keys starting with 'graphiql:'
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('graphiql:')) {
+          localStorage.removeItem(key);
+        }
+      });
+
       // First check for hash-based state (new format)
       const urlState = getPlaygroundStateFromURL();
       if (urlState) {
@@ -297,6 +371,12 @@ export default function PlaygroundPage() {
         }
         if (urlState.variables) {
           setCurrentVariables(urlState.variables);
+        }
+        if (urlState.queries) {
+          setExampleQueries(urlState.queries);
+        }
+        if (urlState.activeFileIndex !== undefined) {
+          setActiveFileIndex(urlState.activeFileIndex);
         }
         setInitialized(true);
         return;
@@ -319,14 +399,31 @@ export default function PlaygroundPage() {
         const example = await getExample(exampleId);
         if (example) {
           setFiles(example.files);
-          setCurrentQuery(queryParam ? atob(decodeURIComponent(queryParam)) : example.defaultQuery);
+
+          // Set query tabs - use example.queries if available
+          if (example.queries && example.queries.length > 0) {
+            setExampleQueries(example.queries);
+            setCurrentQuery(
+              queryParam ? atob(decodeURIComponent(queryParam)) : example.queries[0].query,
+            );
+            setCurrentVariables(example.queries[0].variables || '');
+          } else {
+            setExampleQueries(undefined);
+            setCurrentQuery(
+              queryParam ? atob(decodeURIComponent(queryParam)) : example.defaultQuery,
+            );
+            setCurrentVariables('');
+          }
+
           setViewMode(queryParam ? 'graphql' : 'code');
         }
       } else if (codeParam) {
         // Load custom code from parameter
         try {
           const decodedCode = decodeURIComponent(atob(codeParam));
-          setFiles([{ filename: 'schema.ts', content: decodedCode }]);
+          const files = [{ filename: 'schema.ts', content: decodedCode }];
+          setFiles(files);
+
           if (queryParam) {
             setCurrentQuery(atob(decodeURIComponent(queryParam)));
             setViewMode('graphql');
@@ -348,11 +445,21 @@ export default function PlaygroundPage() {
       setPlaygroundStateToURL({
         files,
         viewMode,
-        query: currentQuery !== DEFAULT_QUERY ? currentQuery : undefined,
+        query: currentQuery, // Always save query to preserve example default queries
         variables: currentVariables || undefined,
+        queries: exampleQueries, // Save multiple query tabs
+        activeFileIndex,
       });
     }
-  }, [files, viewMode, currentQuery, currentVariables, initialized]);
+  }, [
+    files,
+    viewMode,
+    currentQuery,
+    currentVariables,
+    exampleQueries,
+    activeFileIndex,
+    initialized,
+  ]);
 
   const { state: compilerState } = usePlaygroundCompiler({
     files,
@@ -360,9 +467,81 @@ export default function PlaygroundPage() {
     autoCompile: true,
   });
 
-  const handleSourceChange = useCallback((content: string) => {
-    setFiles((prev) => prev.map((f) => (f.filename === 'schema.ts' ? { ...f, content } : f)));
-  }, []);
+  const handleSourceChange = useCallback(
+    (content: string) => {
+      setFiles((prev) => prev.map((f, i) => (i === activeFileIndex ? { ...f, content } : f)));
+    },
+    [activeFileIndex],
+  );
+
+  // File management handlers
+  const handleCreateFile = useCallback(() => {
+    // Generate a unique filename
+    let counter = 1;
+    let newFilename = 'new-file.ts';
+    while (files.some((f) => f.filename === newFilename)) {
+      counter++;
+      newFilename = `new-file-${counter}.ts`;
+    }
+
+    const newFile: PlaygroundFile = {
+      filename: newFilename,
+      content: '// New file\n',
+    };
+    setFiles((prev) => [...prev, newFile]);
+    setActiveFileIndex(files.length);
+    // Start editing the new file's name
+    setEditingFileIndex(files.length);
+    setEditingFilename(newFilename);
+  }, [files]);
+
+  const handleRenameFile = useCallback(
+    (index: number, newFilename: string) => {
+      // Validate filename
+      if (!newFilename.trim()) {
+        return;
+      }
+
+      // Check for duplicate names
+      const isDuplicate = files.some((f, i) => i !== index && f.filename === newFilename);
+      if (isDuplicate) {
+        console.error('[Playground] File with this name already exists');
+        return;
+      }
+
+      setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, filename: newFilename } : f)));
+
+      // Update Monaco models
+      import('../../lib/playground/setup-monaco').then(({ registerPlaygroundFiles }) => {
+        registerPlaygroundFiles(
+          files.map((f, i) => ({
+            filename: i === index ? newFilename : f.filename,
+            content: f.content,
+          })),
+        );
+      });
+    },
+    [files],
+  );
+
+  const handleDeleteFile = useCallback(
+    (index: number) => {
+      // Don't allow deleting the last file
+      if (files.length === 1) {
+        return;
+      }
+
+      setFiles((prev) => prev.filter((_, i) => i !== index));
+
+      // Adjust active file index if needed
+      if (activeFileIndex >= files.length - 1) {
+        setActiveFileIndex(Math.max(0, files.length - 2));
+      } else if (activeFileIndex > index) {
+        setActiveFileIndex(activeFileIndex - 1);
+      }
+    },
+    [files.length, activeFileIndex],
+  );
 
   const handleShare = useCallback(async () => {
     try {
@@ -371,6 +550,7 @@ export default function PlaygroundPage() {
         viewMode,
         query: currentQuery !== DEFAULT_QUERY ? currentQuery : undefined,
         variables: currentVariables || undefined,
+        activeFileIndex,
       });
       const result = await copyToClipboard(url);
 
@@ -385,12 +565,13 @@ export default function PlaygroundPage() {
       console.error('[Share] Unexpected error:', err);
     }
     setTimeout(() => setShareStatus('idle'), 2000);
-  }, [files, viewMode, currentQuery, currentVariables]);
+  }, [files, viewMode, currentQuery, currentVariables, activeFileIndex]);
 
   const handleReset = () => {
     setFiles([{ filename: 'schema.ts', content: DEFAULT_CODE }]);
     setCurrentQuery(DEFAULT_QUERY);
     setCurrentVariables('');
+    setActiveFileIndex(0);
     window.history.replaceState(null, '', '/playground');
   };
 
@@ -399,12 +580,43 @@ export default function PlaygroundPage() {
     setCurrentVariables(variables || '');
   }, []);
 
+  const handleTabsChange = useCallback(
+    (tabs: Array<{ title?: string; query: string; variables?: string }>) => {
+      setExampleQueries(tabs.length > 0 ? tabs : undefined);
+    },
+    [],
+  );
+
   const handleLoadExample = async (exampleId: string) => {
     const example = await getExample(exampleId);
     if (example) {
       prevSchemaRef.current = null; // Force schema version increment on next compile
-      setCurrentQuery(example.defaultQuery); // Set the query for defaultTabs
-      setFiles(example.files); // This will trigger schema recompile and key change
+
+      // Clear GraphiQL localStorage to ensure initialQuery/initialVariables are used
+      // GraphiQL stores its state in localStorage with keys starting with 'graphiql:'
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('graphiql:')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Set query tabs - use example.queries if available, otherwise fall back to defaultQuery
+      if (example.queries && example.queries.length > 0) {
+        console.log('[Playground] Setting example queries:', example.queries.length, 'queries');
+        console.log('[Playground] Query titles:', example.queries.map((q) => q.title).join(', '));
+        setExampleQueries(example.queries);
+        // Set first query as current for URL state
+        setCurrentQuery(example.queries[0].query);
+        setCurrentVariables(example.queries[0].variables || '');
+      } else {
+        console.log('[Playground] No example.queries, using defaultQuery');
+        setExampleQueries(undefined);
+        setCurrentQuery(example.defaultQuery);
+        setCurrentVariables('');
+      }
+
+      setFiles(example.files); // This will trigger schema recompile and Monaco registration
+      setActiveFileIndex(0); // Reset to first file
 
       // Open schema panel based on view mode and screen size
       if (viewMode === 'graphql') {
@@ -417,7 +629,10 @@ export default function PlaygroundPage() {
         setShowBottomPanel(true);
       }
 
-      window.history.replaceState(null, '', '/playground');
+      // Clear query parameters (like ?example=...) but preserve hash state
+      // The useEffect will update the hash with the new state
+      const currentHash = window.location.hash;
+      window.history.replaceState(null, '', `/playground${currentHash}`);
     }
   };
 
@@ -431,6 +646,22 @@ export default function PlaygroundPage() {
       setQueryConsoleLogs([]);
     }
   }, [schema]);
+
+  // Clear GraphiQL localStorage when schemaKey changes to ensure defaultTabs are used
+  // This must run BEFORE GraphiQLProvider mounts with the new key
+  const schemaKey = useMemo(() => {
+    // Clear GraphiQL's localStorage before computing the new key
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('graphiql:')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    // Include exampleQueries length in the key to force remount when queries change
+    const queriesKey = exampleQueries ? `_q${exampleQueries.length}` : '';
+    return generateSchemaKey(compilerState.schemaSDL) + queriesKey;
+  }, [compilerState.schemaSDL, exampleQueries]);
 
   const fetcherSchemaRef = useMemo(() => ({ current: schema }), [schema]);
   fetcherSchemaRef.current = schema;
@@ -451,53 +682,7 @@ export default function PlaygroundPage() {
     [fetcherSchemaRef, handleQueryConsoleLogs],
   );
 
-  // Create a hash of schema SDL for GraphiQL's localStorage key
-  // Using DJB2 hash algorithm for better distribution and performance
-  const schemaKey = useMemo(() => {
-    return generateSchemaKey(compilerState.schemaSDL);
-  }, [compilerState.schemaSDL]);
-
-  // Track previous schema key to clean up old data without destroying all GraphiQL state
-  const prevSchemaKeyRef = useRef<string>('none');
-
-  // Clear GraphiQL localStorage for previous schema when schema changes
-  // This preserves user settings while cleaning up old tabs/history
-  useEffect(() => {
-    if (schemaKey !== 'none' && prevSchemaKeyRef.current !== schemaKey) {
-      const prevKey = prevSchemaKeyRef.current;
-
-      // Only clear localStorage entries for the previous schema
-      // This approach preserves GraphiQL settings and other schemas
-      if (prevKey !== 'none') {
-        const keysToRemove: string[] = [];
-
-        // Find all keys belonging to the previous schema
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          // GraphiQL uses keys like "graphiql:tabState" - we clear all to reset state
-          // but we could be more selective by only clearing tabs/history
-          if (key?.startsWith('graphiql:')) {
-            keysToRemove.push(key);
-          }
-        }
-
-        // Remove old data
-        for (const key of keysToRemove) {
-          localStorage.removeItem(key);
-        }
-
-        if (keysToRemove.length > 0) {
-          console.log(
-            `[Playground] Cleaned up ${keysToRemove.length} localStorage entries for schema change`,
-          );
-        }
-      }
-
-      prevSchemaKeyRef.current = schemaKey;
-    }
-  }, [schemaKey]);
-
-  const mainFile = files.find((f) => f.filename === 'schema.ts') || files[0];
+  const activeFile = files[activeFileIndex] || files[0];
 
   // Combine schema and query console logs
   const allConsoleLogs = useMemo(
@@ -522,9 +707,29 @@ export default function PlaygroundPage() {
             key={schemaKey}
             fetcher={fetcher}
             schema={schema}
-            defaultTabs={[{ query: currentQuery }]}
+            defaultTabs={
+              exampleQueries && exampleQueries.length > 0
+                ? (() => {
+                    console.log(
+                      '[GraphiQL] Using exampleQueries for defaultTabs:',
+                      exampleQueries.length,
+                      'tabs',
+                    );
+                    return exampleQueries.map((q) => ({
+                      query: q.query,
+                      variables: q.variables || undefined,
+                    }));
+                  })()
+                : [
+                    {
+                      query: currentQuery,
+                      variables: currentVariables || undefined,
+                    },
+                  ]
+            }
             plugins={[DOC_EXPLORER_PLUGIN]}
             shouldPersistHeaders={false}
+            storage={customStorage}
           >
             <div className="graphiql-container flex min-h-0 flex-1 overflow-hidden">
               {/* Left Sidebar - Narrow icon bar (hidden in embed mode) */}
@@ -689,11 +894,79 @@ export default function PlaygroundPage() {
                     {/* Header spans full width */}
                     <div className="graphiql-session-header">
                       <div className="graphiql-tabs">
-                        <div className="graphiql-tab graphiql-tab-active">
-                          <button type="button" className="graphiql-tab-button">
-                            schema.ts
-                          </button>
-                        </div>
+                        {files.map((file, index) => (
+                          <div
+                            key={`${file.filename}-${index}`}
+                            className={`graphiql-tab ${index === activeFileIndex ? 'graphiql-tab-active' : ''}`}
+                          >
+                            {editingFileIndex === index ? (
+                              <input
+                                type="text"
+                                className="graphiql-tab-input"
+                                value={editingFilename}
+                                onChange={(e) => setEditingFilename(e.target.value)}
+                                onBlur={() => {
+                                  handleRenameFile(index, editingFilename);
+                                  setEditingFileIndex(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleRenameFile(index, editingFilename);
+                                    setEditingFileIndex(null);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingFileIndex(null);
+                                    setEditingFilename('');
+                                  }
+                                }}
+                                onFocus={(e) => {
+                                  // Select filename without extension
+                                  const dotIndex = e.target.value.lastIndexOf('.');
+                                  if (dotIndex > 0) {
+                                    e.target.setSelectionRange(0, dotIndex);
+                                  } else {
+                                    e.target.select();
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className="graphiql-tab-button"
+                                  onClick={() => setActiveFileIndex(index)}
+                                  onDoubleClick={() => {
+                                    setEditingFileIndex(index);
+                                    setEditingFilename(file.filename);
+                                  }}
+                                  title="Double-click to rename"
+                                >
+                                  {file.filename}
+                                </button>
+                                {files.length > 1 && (
+                                  <button
+                                    type="button"
+                                    className="graphiql-tab-close"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFile(index);
+                                    }}
+                                    title="Close file"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className="graphiql-tab-add"
+                          onClick={handleCreateFile}
+                          title="New file"
+                        >
+                          <Plus size={14} />
+                        </button>
                       </div>
                       {/* Status indicator */}
                       <div className="ml-auto flex items-center gap-2 pr-2">
@@ -725,8 +998,10 @@ export default function PlaygroundPage() {
                           style={{ flex: 1, minHeight: 0 }}
                         >
                           <SourceEditor
-                            source={mainFile?.content || ''}
+                            source={activeFile?.content || ''}
+                            filename={activeFile?.filename || 'schema.ts'}
                             onChange={handleSourceChange}
+                            allFiles={files}
                           />
                           {/* Floating toolbar */}
                           <div className="graphiql-toolbar">
@@ -749,7 +1024,7 @@ export default function PlaygroundPage() {
                               type="button"
                               className="graphiql-toolbar-button"
                               onClick={async () => {
-                                const result = await copyToClipboard(mainFile?.content || '');
+                                const result = await copyToClipboard(activeFile?.content || '');
                                 if (!result.success) {
                                   console.error('[Playground] Failed to copy code:', result.error);
                                 }
@@ -779,6 +1054,7 @@ export default function PlaygroundPage() {
                                   query: currentQuery,
                                   variables: currentVariables,
                                   viewMode,
+                                  activeFileIndex,
                                 });
                                 const result = await copyToClipboard(url);
                                 if (result.success) {
@@ -909,6 +1185,9 @@ export default function PlaygroundPage() {
                     bottomPanelTab={graphQLBottomPanelTab}
                     setBottomPanelTab={setGraphQLBottomPanelTab}
                     onQueryChange={handleQueryChange}
+                    onTabsChange={handleTabsChange}
+                    expectedQuery={currentQuery}
+                    expectedVariables={currentVariables}
                   />
                 </div>
               </div>

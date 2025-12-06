@@ -91,6 +91,32 @@ function getCachedPluginNames(): string[] {
  * Load plugin types dynamically based on imports in the code
  * Uses debouncing to avoid loading on every keystroke
  */
+/**
+ * Register playground files with Monaco for cross-file type checking
+ * This allows imports between files to work in the editor
+ */
+export function registerPlaygroundFiles(files: Array<{ filename: string; content: string }>): void {
+  if (!monaco) {
+    return;
+  }
+
+  // Register each file as a model in Monaco's virtual file system
+  for (const file of files) {
+    const filePath = `file:///playground/${file.filename}`;
+
+    // Check if model already exists
+    const existingModel = monaco.editor.getModel(monaco.Uri.parse(filePath));
+
+    if (existingModel) {
+      // Update existing model's value
+      existingModel.setValue(file.content);
+    } else {
+      // Create new model
+      monaco.editor.createModel(file.content, 'typescript', monaco.Uri.parse(filePath));
+    }
+  }
+}
+
 export function loadPluginTypes(code: string): void {
   if (!monaco) {
     return;
