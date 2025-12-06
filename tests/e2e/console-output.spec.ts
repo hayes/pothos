@@ -21,10 +21,8 @@ test.describe('Playground Console Output', () => {
     // Wait for editor to be ready
     await page.waitForSelector('.monaco-editor', { timeout: 10000 });
 
-    // Clear the editor and add code with console.log
-    await page.click('.monaco-editor');
-    await page.keyboard.press('Control+A');
-    await page.keyboard.type(`import SchemaBuilder from '@pothos/core';
+    // Set editor content directly using Monaco API (more reliable than typing)
+    const code = `import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
@@ -42,10 +40,18 @@ builder.queryType({
   }),
 });
 
-export const schema = builder.toSchema();`);
+export const schema = builder.toSchema();`;
 
-    // Wait for compilation
-    await page.waitForTimeout(1000);
+    await page.evaluate((newCode) => {
+      // biome-ignore lint/suspicious/noExplicitAny: Monaco API requires any type
+      const editor = (window as any).monaco?.editor?.getModels?.()?.[0];
+      if (editor) {
+        editor.setValue(newCode);
+      }
+    }, code);
+
+    // Wait for compilation to complete
+    await page.waitForSelector('text=✓', { timeout: 10000 });
 
     // Click the Console tab in the bottom panel
     await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
@@ -64,10 +70,8 @@ export const schema = builder.toSchema();`);
     // Wait for editor to be ready
     await page.waitForSelector('.monaco-editor', { timeout: 10000 });
 
-    // Add code with different console types
-    await page.click('.monaco-editor');
-    await page.keyboard.press('Control+A');
-    await page.keyboard.type(`import SchemaBuilder from '@pothos/core';
+    // Set editor content directly using Monaco API
+    const code = `import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
@@ -82,10 +86,18 @@ builder.queryType({
   }),
 });
 
-export const schema = builder.toSchema();`);
+export const schema = builder.toSchema();`;
 
-    // Wait for compilation
-    await page.waitForTimeout(1000);
+    await page.evaluate((newCode) => {
+      // biome-ignore lint/suspicious/noExplicitAny: Monaco API requires any type
+      const editor = (window as any).monaco?.editor?.getModels?.()?.[0];
+      if (editor) {
+        editor.setValue(newCode);
+      }
+    }, code);
+
+    // Wait for compilation to complete
+    await page.waitForSelector('text=✓', { timeout: 10000 });
 
     // Click the Console tab in the bottom panel
     await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
@@ -112,10 +124,8 @@ export const schema = builder.toSchema();`);
     // Wait for editor to be ready
     await page.waitForSelector('.monaco-editor', { timeout: 10000 });
 
-    // Add code with console.log
-    await page.click('.monaco-editor');
-    await page.keyboard.press('Control+A');
-    await page.keyboard.type(`import SchemaBuilder from '@pothos/core';
+    // Set editor content directly using Monaco API
+    const code = `import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
@@ -127,10 +137,18 @@ builder.queryType({
   }),
 });
 
-export const schema = builder.toSchema();`);
+export const schema = builder.toSchema();`;
 
-    // Wait for compilation
-    await page.waitForTimeout(1000);
+    await page.evaluate((newCode) => {
+      // biome-ignore lint/suspicious/noExplicitAny: Monaco API requires any type
+      const editor = (window as any).monaco?.editor?.getModels?.()?.[0];
+      if (editor) {
+        editor.setValue(newCode);
+      }
+    }, code);
+
+    // Wait for compilation to complete
+    await page.waitForSelector('text=✓', { timeout: 10000 });
 
     // Click the Console tab in the bottom panel
     await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
@@ -154,10 +172,8 @@ export const schema = builder.toSchema();`);
     // Wait for editor to be ready
     await page.waitForSelector('.monaco-editor', { timeout: 10000 });
 
-    // Add code WITHOUT console.log
-    await page.click('.monaco-editor');
-    await page.keyboard.press('Control+A');
-    await page.keyboard.type(`import SchemaBuilder from '@pothos/core';
+    // Set editor content directly using Monaco API (WITHOUT console.log)
+    const code = `import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
@@ -167,10 +183,18 @@ builder.queryType({
   }),
 });
 
-export const schema = builder.toSchema();`);
+export const schema = builder.toSchema();`;
 
-    // Wait for compilation
-    await page.waitForTimeout(1000);
+    await page.evaluate((newCode) => {
+      // biome-ignore lint/suspicious/noExplicitAny: Monaco API requires any type
+      const editor = (window as any).monaco?.editor?.getModels?.()?.[0];
+      if (editor) {
+        editor.setValue(newCode);
+      }
+    }, code);
+
+    // Wait for compilation to complete
+    await page.waitForSelector('text=✓', { timeout: 10000 });
 
     // Click the Console tab in the bottom panel
     await page.locator('.graphiql-editor-tools-tabs button:has-text("Console")').first().click();
@@ -185,10 +209,8 @@ export const schema = builder.toSchema();`);
     // Wait for editor to be ready
     await page.waitForSelector('.monaco-editor', { timeout: 10000 });
 
-    // Add code with console.log in resolver
-    await page.click('.monaco-editor');
-    await page.keyboard.press('Control+A');
-    await page.keyboard.type(`import SchemaBuilder from '@pothos/core';
+    // Set editor content directly using Monaco API
+    const code = `import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
@@ -203,10 +225,18 @@ builder.queryType({
   }),
 });
 
-export const schema = builder.toSchema();`);
+export const schema = builder.toSchema();`;
 
-    // Wait for compilation
-    await page.waitForTimeout(1000);
+    await page.evaluate((newCode) => {
+      // biome-ignore lint/suspicious/noExplicitAny: Monaco API requires any type
+      const editor = (window as any).monaco?.editor?.getModels?.()?.[0];
+      if (editor) {
+        editor.setValue(newCode);
+      }
+    }, code);
+
+    // Wait for compilation to complete
+    await page.waitForSelector('text=✓', { timeout: 10000 });
 
     // Switch to GraphQL view
     const graphqlButton = page.locator('button[title="GraphQL Query"]');
