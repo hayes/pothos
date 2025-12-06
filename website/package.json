@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "next-build": "next build",
-    "build-ci": "next build",
+    "build-ci": "pnpm run bundle-types && pnpm run build-examples && next build",
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
     "build-examples": "tsx scripts/build-playground-examples.ts",
