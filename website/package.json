@@ -2,7 +2,7 @@
   "name": "@pothos/website",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm run bundle-types && pnpm run build-examples && next dev",
     "next-build": "next build",
     "build-ci": "pnpm run bundle-types && pnpm run build-examples && next build",
     "start": "next start",
