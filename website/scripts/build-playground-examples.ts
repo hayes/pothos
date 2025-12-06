@@ -1,0 +1,112 @@
+#!/usr/bin/env tsx
+
+/**
+ * Build script to bundle playground examples from separate files into a JSON bundle
+ *
+ * This script:
+ * 1. Reads example directories from website/public/playground-examples/
+ * 2. Loads schema.ts, query.graphql, and metadata.json from each example
+ * 3. Bundles them into a single JSON file for dynamic loading
+ * 4. Outputs to website/public/playground-examples.json
+ */
+
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+interface ExampleFile {
+  filename: string;
+  content: string;
+  language?: 'typescript' | 'graphql';
+}
+
+interface PlaygroundExample {
+  id: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+  files: ExampleFile[];
+  defaultQuery: string;
+}
+
+interface ExampleMetadata {
+  id: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+}
+
+const EXAMPLES_DIR = join(process.cwd(), 'public', 'playground-examples');
+const OUTPUT_FILE = join(process.cwd(), 'public', 'playground-examples.json');
+
+async function buildExamples() {
+  console.log('[Build Examples] Starting...');
+
+  // Read all example directories
+  const entries = await readdir(EXAMPLES_DIR, { withFileTypes: true });
+  const exampleDirs = entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
+
+  console.log(`[Build Examples] Found ${exampleDirs.length} examples:`, exampleDirs);
+
+  const examples: PlaygroundExample[] = [];
+
+  for (const dirName of exampleDirs) {
+    try {
+      const examplePath = join(EXAMPLES_DIR, dirName);
+
+      // Read metadata
+      const metadataPath = join(examplePath, 'metadata.json');
+      const metadataContent = await readFile(metadataPath, 'utf-8');
+      const metadata: ExampleMetadata = JSON.parse(metadataContent);
+
+      // Read schema.ts
+      const schemaPath = join(examplePath, 'schema.ts');
+      const schemaContent = await readFile(schemaPath, 'utf-8');
+
+      // Read query.graphql (optional)
+      let queryContent = '';
+      try {
+        const queryPath = join(examplePath, 'query.graphql');
+        queryContent = await readFile(queryPath, 'utf-8');
+      } catch (err) {
+        console.warn(`[Build Examples] No query.graphql found for ${dirName}`);
+      }
+
+      const example: PlaygroundExample = {
+        id: metadata.id,
+        title: metadata.title,
+        description: metadata.description,
+        tags: metadata.tags,
+        files: [
+          {
+            filename: 'schema.ts',
+            content: schemaContent,
+            language: 'typescript',
+          },
+        ],
+        defaultQuery: queryContent || '{\n  # Add your query here\n}',
+      };
+
+      examples.push(example);
+      console.log(`[Build Examples] ✓ Built ${metadata.id}`);
+    } catch (err) {
+      console.error(`[Build Examples] ✗ Failed to build ${dirName}:`, err);
+    }
+  }
+
+  // Sort examples by ID for consistency
+  examples.sort((a, b) => a.id.localeCompare(b.id));
+
+  // Write output
+  const output = JSON.stringify(examples, null, 2);
+  await writeFile(OUTPUT_FILE, output, 'utf-8');
+
+  console.log(`[Build Examples] ✓ Built ${examples.length} examples`);
+  console.log(`[Build Examples] ✓ Output: ${OUTPUT_FILE}`);
+  console.log(`[Build Examples] Done!`);
+}
+
+// Run
+buildExamples().catch((err) => {
+  console.error('[Build Examples] Fatal error:', err);
+  process.exit(1);
+});

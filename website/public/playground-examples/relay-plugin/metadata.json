@@ -1,0 +1,6 @@
+{
+  "id": "relay-plugin",
+  "title": "Relay Plugin",
+  "description": "Use the Relay plugin for cursor-based pagination and global IDs",
+  "tags": []
+}

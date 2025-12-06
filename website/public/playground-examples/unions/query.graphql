@@ -1,0 +1,20 @@
+query {
+  success: doSomething(shouldSucceed: true) {
+    ... on SuccessResult {
+      message
+    }
+    ... on ErrorResult {
+      error
+      code
+    }
+  }
+  failure: doSomething(shouldSucceed: false) {
+    ... on SuccessResult {
+      message
+    }
+    ... on ErrorResult {
+      error
+      code
+    }
+  }
+}
