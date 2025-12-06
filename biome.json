@@ -1,9 +1,13 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
   "files": {
+    "ignoreUnknown": true,
+    "maxSize": 5242880,
     "includes": [
       "**",
       "!**/.claude/worktrees",
+      "!**/node_modules",
+      "!**/.next",
       "!**/.turbo",
       "!**/.source",
       "!**/examples/**/dist/**/*",
@@ -22,7 +26,8 @@
       "!**/schema.graphql",
       "!**/website/lib/playground/pothos-types.ts",
       "!**/website/lib/playground/*-bundle.ts",
-      "!**/website/components/playground/examples/examples-index.generated.ts"
+      "!**/website/components/playground/examples/examples-index.generated.ts",
+      "!**/public/playground-examples/*.json"
     ]
   },
   "formatter": {
@@ -309,6 +314,16 @@
         "rules": {
           "style": {
             "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.worker.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": "off"
           }
         }
       }
