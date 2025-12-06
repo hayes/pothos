@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { PlaygroundCodeBlock } from '../code-snippet/PlaygroundCodeBlock';
+import { PlaygroundCodeBlock } from './PlaygroundCodeBlock';
 
 /**
  * Custom pre component that handles playground meta attributes.
