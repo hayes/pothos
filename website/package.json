@@ -4,11 +4,10 @@
   "scripts": {
     "dev": "pnpm run bundle-types && pnpm run build-examples && next dev",
     "next-build": "next build",
-    "build-ci": "pnpm run bundle-types && pnpm run build-examples && next build",
+    "build-ci": "pnpm turbo run build --filter='@pothos/*' && pnpm run bundle-types && pnpm run build-examples && next build",
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
     "build-examples": "tsx scripts/build-playground-examples.ts",
-    "prebuild": "pnpm run bundle-types && pnpm run build-examples",
     "test": "tsx scripts/test-playground-examples.test.ts",
     "test:examples": "tsx scripts/test-playground-examples.test.ts",
     "postinstall": "fumadocs-mdx"
