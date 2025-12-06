@@ -26,6 +26,7 @@ interface PlaygroundExample {
   tags?: string[];
   files: ExampleFile[];
   defaultQuery: string;
+  queries?: Array<{ title?: string; query: string; variables?: string }>;
 }
 
 interface ExampleMetadata {
@@ -35,15 +36,22 @@ interface ExampleMetadata {
   tags?: string[];
 }
 
-const EXAMPLES_DIR = join(process.cwd(), 'public', 'playground-examples');
-const INDEX_FILE = join(process.cwd(), 'components', 'playground', 'examples', 'examples-index.generated.ts');
+const EXAMPLES_SOURCE_DIR = join(process.cwd(), 'playground-examples');
+const EXAMPLES_OUTPUT_DIR = join(process.cwd(), 'public', 'playground-examples');
+const INDEX_FILE = join(
+  process.cwd(),
+  'components',
+  'playground',
+  'examples',
+  'examples-index.generated.ts',
+);
 
 async function buildExamples() {
   console.log('[Build Examples] Starting...');
 
   // Read all example directories
-  const entries = await readdir(EXAMPLES_DIR, { withFileTypes: true });
-  const exampleDirs = entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
+  const entries = await readdir(EXAMPLES_SOURCE_DIR, { withFileTypes: true });
+  const exampleDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
   console.log(`[Build Examples] Found ${exampleDirs.length} examples:`, exampleDirs);
 
@@ -51,43 +59,82 @@ async function buildExamples() {
 
   for (const dirName of exampleDirs) {
     try {
-      const examplePath = join(EXAMPLES_DIR, dirName);
+      const examplePath = join(EXAMPLES_SOURCE_DIR, dirName);
 
       // Read metadata
       const metadataPath = join(examplePath, 'metadata.json');
       const metadataContent = await readFile(metadataPath, 'utf-8');
       const metadata: ExampleMetadata = JSON.parse(metadataContent);
 
-      // Read schema.ts
-      const schemaPath = join(examplePath, 'schema.ts');
-      const schemaContent = await readFile(schemaPath, 'utf-8');
+      // Read all files in the example directory
+      const exampleFiles = await readdir(examplePath, { withFileTypes: true });
 
-      // Read query.graphql (optional)
-      let queryContent = '';
-      try {
-        const queryPath = join(examplePath, 'query.graphql');
-        queryContent = await readFile(queryPath, 'utf-8');
-      } catch {
-        console.warn(`[Build Examples] No query.graphql found for ${dirName}`);
+      const files: ExampleFile[] = [];
+      const queryFileInfo: Array<{ filename: string; content: string }> = [];
+
+      for (const file of exampleFiles) {
+        if (!file.isFile()) {
+          continue;
+        }
+
+        const filename = file.name;
+
+        // Skip metadata.json
+        if (filename === 'metadata.json') {
+          continue;
+        }
+
+        const filePath = join(examplePath, filename);
+        const content = await readFile(filePath, 'utf-8');
+
+        // Collect .ts files as code files
+        if (filename.endsWith('.ts')) {
+          files.push({
+            filename,
+            content,
+            language: 'typescript',
+          });
+        }
+        // Collect .graphql files as query files
+        else if (filename.endsWith('.graphql')) {
+          queryFileInfo.push({ filename, content });
+        }
       }
+
+      // Sort files to ensure schema.ts comes first if it exists
+      files.sort((a, b) => {
+        if (a.filename === 'schema.ts') {
+          return -1;
+        }
+        if (b.filename === 'schema.ts') {
+          return 1;
+        }
+        return a.filename.localeCompare(b.filename);
+      });
+
+      // Use first query file as default, or empty query
+      const defaultQuery = queryFileInfo[0]?.content || '{\n  # Add your query here\n}';
+
+      // Build queries array for multiple tabs
+      const queries = queryFileInfo.map((fileInfo) => ({
+        title: fileInfo.filename.replace(/\.(graphql|gql)$/, ''),
+        query: fileInfo.content,
+      }));
 
       const example: PlaygroundExample = {
         id: metadata.id,
         title: metadata.title,
         description: metadata.description,
         tags: metadata.tags,
-        files: [
-          {
-            filename: 'schema.ts',
-            content: schemaContent,
-            language: 'typescript',
-          },
-        ],
-        defaultQuery: queryContent || '{\n  # Add your query here\n}',
+        files,
+        defaultQuery,
+        queries: queries.length > 0 ? queries : undefined,
       };
 
       examples.push(example);
-      console.log(`[Build Examples] ✓ Built ${metadata.id}`);
+      console.log(
+        `[Build Examples] ✓ Built ${metadata.id} (${files.length} code files, ${queryFileInfo.length} queries)`,
+      );
     } catch (err) {
       console.error(`[Build Examples] ✗ Failed to build ${dirName}:`, err);
     }
@@ -96,9 +143,15 @@ async function buildExamples() {
   // Sort examples by ID for consistency
   examples.sort((a, b) => a.id.localeCompare(b.id));
 
+  // Write individual JSON bundles for each example to public directory
+  for (const example of examples) {
+    const bundlePath = join(EXAMPLES_OUTPUT_DIR, `${example.id}.json`);
+    await writeFile(bundlePath, JSON.stringify(example, null, 2), 'utf-8');
+  }
+
   // Generate TypeScript index file with example IDs and metadata
-  const exampleIds = examples.map(e => e.id);
-  const exampleMetadata = examples.map(e => ({
+  const exampleIds = examples.map((e) => e.id);
+  const exampleMetadata = examples.map((e) => ({
     id: e.id,
     title: e.title,
     description: e.description,

@@ -12,7 +12,7 @@ import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playgro
 async function loadExamples() {
   const examplesDir = path.join(__dirname, '../public/playground-examples');
   const entries = await readdir(examplesDir, { withFileTypes: true });
-  const exampleDirs = entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
+  const exampleDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
   const examples = [];
   for (const dirName of exampleDirs) {

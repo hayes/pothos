@@ -74,7 +74,9 @@ export async function getCachedSchema(code: string): Promise<string | null> {
         const age = Date.now() - entry.timestamp;
         if (age > MAX_CACHE_AGE) {
           // Cache is stale, remove it
-          void deleteCachedSchema(code);
+          deleteCachedSchema(code).catch(() => {
+            // Ignore deletion errors
+          });
           resolve(null);
           return;
         }

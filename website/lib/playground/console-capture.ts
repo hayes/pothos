@@ -21,9 +21,7 @@ type ConsoleType = 'log' | 'warn' | 'error' | 'info';
 /**
  * Capture console output during a synchronous or asynchronous operation
  */
-export function captureConsole<T>(
-  fn: () => T,
-): { result: T; logs: ConsoleMessage[] } {
+export function captureConsole<T>(fn: () => T): { result: T; logs: ConsoleMessage[] } {
   const logs: ConsoleMessage[] = [];
 
   const capture = (type: ConsoleType) => {

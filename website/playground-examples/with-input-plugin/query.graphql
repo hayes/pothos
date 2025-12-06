@@ -1,0 +1,47 @@
+# Find a user by ID
+query FindUser {
+  findUser(input: { id: "1" }) {
+    id
+    username
+    email
+    age
+  }
+}
+
+# Search users with filters
+query SearchUsers {
+  searchUsers(input: { minAge: 25, maxAge: 35 }) {
+    id
+    username
+    age
+  }
+}
+
+# Find a post using custom arg name
+query FindPost {
+  findPost(criteria: { id: "1" }) {
+    id
+    title
+    content
+  }
+}
+
+# Create a new user
+mutation CreateUser {
+  createUser(
+    input: { username: "newuser", email: "newuser@example.com", password: "SecurePass123", age: 25 }
+  ) {
+    id
+    username
+    email
+  }
+}
+
+# Update a user
+mutation UpdateUser {
+  updateUser(input: { id: "1", email: "newemail@example.com" }) {
+    id
+    username
+    email
+  }
+}

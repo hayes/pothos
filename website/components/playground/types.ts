@@ -10,6 +10,8 @@ export interface PlaygroundExample {
   description?: string;
   files: PlaygroundFile[];
   defaultQuery: string;
+  /** Multiple queries to load as separate tabs */
+  queries?: Array<{ title?: string; query: string; variables?: string }>;
 }
 
 export type PlaygroundTab = 'code' | 'schema' | 'graphiql';

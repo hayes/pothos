@@ -36,44 +36,13 @@ export async function getExample(id: string): Promise<PlaygroundExample | undefi
   }
 
   try {
-    // Dynamically import the example JSON from the public directory
-    const response = await fetch(`/playground-examples/${id}/metadata.json`);
+    // Load the pre-built JSON bundle for this example
+    const response = await fetch(`/playground-examples/${id}.json`);
     if (!response.ok) {
-      console.error(`Failed to load example metadata: ${id}`);
+      console.error(`Failed to load example bundle: ${id}`);
       return undefined;
     }
-    const metadata = await response.json();
-
-    // Load schema file
-    const schemaResponse = await fetch(`/playground-examples/${id}/schema.ts`);
-    if (!schemaResponse.ok) {
-      console.error(`Failed to load example schema: ${id}`);
-      return undefined;
-    }
-    const schemaContent = await schemaResponse.text();
-
-    // Load query file
-    const queryResponse = await fetch(`/playground-examples/${id}/query.graphql`);
-    if (!queryResponse.ok) {
-      console.error(`Failed to load example query: ${id}`);
-      return undefined;
-    }
-    const queryContent = await queryResponse.text();
-
-    // Construct the example object
-    const example: PlaygroundExample = {
-      id: metadata.id,
-      title: metadata.title,
-      description: metadata.description,
-      files: [
-        {
-          filename: 'schema.ts',
-          content: schemaContent,
-          language: 'typescript',
-        },
-      ],
-      defaultQuery: queryContent,
-    };
+    const example: PlaygroundExample = await response.json();
 
     // Cache and return
     examplesCache.set(id, example);
