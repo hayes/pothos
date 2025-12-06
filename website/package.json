@@ -7,6 +7,8 @@
     "build-ci": "next build",
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
+    "build-examples": "tsx scripts/build-playground-examples.ts",
+    "prebuild": "pnpm run build-examples",
     "test": "tsx scripts/test-playground-examples.test.ts",
     "test:examples": "tsx scripts/test-playground-examples.test.ts",
     "postinstall": "fumadocs-mdx"
