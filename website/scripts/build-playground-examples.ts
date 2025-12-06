@@ -10,7 +10,7 @@
  * 4. Outputs to website/public/playground-examples.json
  */
 
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 interface ExampleFile {
@@ -142,6 +142,9 @@ async function buildExamples() {
 
   // Sort examples by ID for consistency
   examples.sort((a, b) => a.id.localeCompare(b.id));
+
+  // Ensure output directory exists
+  await mkdir(EXAMPLES_OUTPUT_DIR, { recursive: true });
 
   // Write individual JSON bundles for each example to public directory
   for (const example of examples) {
