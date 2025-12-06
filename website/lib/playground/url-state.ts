@@ -9,7 +9,10 @@ export interface PlaygroundURLState {
   files: PlaygroundFile[];
   query?: string;
   variables?: string;
+  /** Multiple query tabs for GraphiQL */
+  queries?: Array<{ title?: string; query: string; variables?: string }>;
   activeTab?: string;
+  activeFileIndex?: number;
   viewMode?: ViewMode;
   settings?: PlaygroundSettings;
 }
@@ -60,7 +63,8 @@ export function encodePlaygroundState(state: PlaygroundURLState): string {
     params.set('view', state.viewMode);
   }
 
-  if (state.query) {
+  // Always save query (even if empty) to preserve example default queries
+  if (state.query !== undefined) {
     params.set('query', state.query);
   }
 
@@ -68,8 +72,19 @@ export function encodePlaygroundState(state: PlaygroundURLState): string {
     params.set('vars', state.variables);
   }
 
+  // Save multiple query tabs if present
+  if (state.queries && state.queries.length > 0) {
+    const queriesJson = JSON.stringify(state.queries);
+    const compressedQueries = compressToEncodedURIComponent(queriesJson);
+    params.set('queries', compressedQueries);
+  }
+
   if (state.activeTab) {
     params.set('tab', state.activeTab);
+  }
+
+  if (state.activeFileIndex !== undefined && state.activeFileIndex > 0) {
+    params.set('file', state.activeFileIndex.toString());
   }
 
   // Add settings as readable params
@@ -178,9 +193,34 @@ function decodeV3State(params: URLSearchParams): PlaygroundURLState | null {
       state.variables = vars;
     }
 
+    // Decode multiple query tabs if present
+    const compressedQueries = params.get('queries');
+    if (compressedQueries) {
+      try {
+        const queriesJson = decompressFromEncodedURIComponent(compressedQueries);
+        if (queriesJson) {
+          state.queries = JSON.parse(queriesJson) as Array<{
+            title?: string;
+            query: string;
+            variables?: string;
+          }>;
+        }
+      } catch (err) {
+        console.error('[Playground] Failed to decode queries:', err);
+      }
+    }
+
     const tab = params.get('tab');
     if (tab) {
       state.activeTab = tab;
+    }
+
+    const fileIndex = params.get('file');
+    if (fileIndex) {
+      const index = Number.parseInt(fileIndex, 10);
+      if (!Number.isNaN(index) && index >= 0) {
+        state.activeFileIndex = index;
+      }
     }
 
     // Parse settings
@@ -297,8 +337,7 @@ export async function copyToClipboard(text: string): Promise<ClipboardResult> {
       textarea = document.createElement('textarea');
       textarea.value = text;
       // Position off-screen and make non-interactive
-      textarea.style.cssText =
-        'position: fixed; opacity: 0; pointer-events: none; left: -9999px;';
+      textarea.style.cssText = 'position: fixed; opacity: 0; pointer-events: none; left: -9999px;';
       document.body.appendChild(textarea);
 
       // Select the text
@@ -308,9 +347,7 @@ export async function copyToClipboard(text: string): Promise<ClipboardResult> {
       // Try to copy
       const success = document.execCommand('copy');
 
-      return success
-        ? { success: true }
-        : { success: false, error: 'Copy command failed' };
+      return success ? { success: true } : { success: false, error: 'Copy command failed' };
     } catch (fallbackErr) {
       console.error('[Clipboard] Fallback failed:', fallbackErr);
       return {

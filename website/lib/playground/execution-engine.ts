@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild-wasm';
 import { type GraphQLSchema, printSchema } from 'graphql';
 import { compileTypeScriptInWorker } from './compiler-worker-client';
-import { captureConsole, type ConsoleMessage as CapturedConsoleMessage } from './console-capture';
+import { captureConsole } from './console-capture';
 import { getPluginModules } from './plugins-bundle';
 import { getCachedSchema, setCachedSchema } from './schema-cache';
 
@@ -317,11 +317,125 @@ function rewriteImports(code: string): string {
   return rewritten;
 }
 
+/**
+ * Bundle multiple files together using esbuild
+ * This handles all import/export transformations and module resolution
+ */
+async function bundleFiles(files: Array<{ filename: string; content: string }>): Promise<string> {
+  if (files.length === 1) {
+    return files[0].content;
+  }
+
+  await initEsbuild();
+
+  // Find the main file (schema.ts or first file)
+  const mainFile = files.find((f) => f.filename === 'schema.ts') || files[0];
+
+  // Create a virtual file system for esbuild
+  const fileMap = new Map<string, string>();
+  for (const file of files) {
+    fileMap.set(`/playground/${file.filename}`, file.content);
+  }
+
+  try {
+    // Use esbuild to bundle with a custom plugin that provides our virtual files
+    const result = await esbuild.build({
+      stdin: {
+        contents: mainFile.content,
+        sourcefile: mainFile.filename,
+        resolveDir: '/playground',
+        loader: 'ts',
+      },
+      bundle: true,
+      write: false,
+      format: 'esm',
+      target: 'es2020',
+      platform: 'neutral',
+      // Mark external packages that will be provided by the playground runtime
+      external: ['@pothos/*', 'graphql'],
+      plugins: [
+        {
+          name: 'virtual-files',
+          setup(build) {
+            // Resolve relative imports to our virtual file system
+            build.onResolve({ filter: /^\./ }, (args) => {
+              // Remove leading './' and add file extension if missing
+              let path = args.path.replace(/^\.\//, '');
+              if (!path.endsWith('.ts') && !path.endsWith('.tsx')) {
+                path += '.ts';
+              }
+              return { path: `/playground/${path}`, namespace: 'virtual' };
+            });
+
+            // Load files from our virtual file system
+            build.onLoad({ filter: /.*/, namespace: 'virtual' }, (args) => {
+              const contents = fileMap.get(args.path);
+              if (contents === undefined) {
+                return { errors: [{ text: `File not found: ${args.path}` }] };
+              }
+              return { contents, loader: 'ts' };
+            });
+          },
+        },
+      ],
+    });
+
+    if (result.errors.length > 0) {
+      throw new Error(`Bundle errors: ${result.errors.map((e) => e.text).join(', ')}`);
+    }
+
+    // Return the bundled code
+    return new TextDecoder().decode(result.outputFiles[0].contents);
+  } catch (err) {
+    // If esbuild fails, fall back to simple concatenation with a warning
+    console.warn('[Bundler] esbuild bundling failed, using fallback:', err);
+    return files.map((f) => f.content).join('\n\n');
+  }
+}
+
+export interface CompileAndExecuteOptions {
+  files?: Array<{ filename: string; content: string }>;
+  code?: string;
+  modules: PlaygroundModules;
+  filename?: string;
+}
+
 export async function compileAndExecute(
-  code: string,
-  modules: PlaygroundModules,
-  filename = 'schema.ts',
+  codeOrOptions: string | CompileAndExecuteOptions,
+  modulesLegacy?: PlaygroundModules,
+  filenameLegacy = 'schema.ts',
 ): Promise<ExecutionResult> {
+  // Support both old and new API
+  let code: string;
+  let modules: PlaygroundModules;
+  let filename: string;
+  let files: Array<{ filename: string; content: string }> | undefined;
+
+  if (typeof codeOrOptions === 'string') {
+    // Legacy API: compileAndExecute(code, modules, filename)
+    code = codeOrOptions;
+    modules = modulesLegacy!;
+    filename = filenameLegacy;
+  } else {
+    // New API: compileAndExecute({ files, modules })
+    const options = codeOrOptions;
+    modules = options.modules;
+    filename = options.filename || 'schema.ts';
+    files = options.files;
+
+    if (files && files.length > 0) {
+      // Bundle multiple files together
+      code = await bundleFiles(files);
+    } else if (options.code) {
+      code = options.code;
+    } else {
+      return {
+        success: false,
+        error: 'No code or files provided',
+      };
+    }
+  }
+
   // Load any plugins used in the code
   const pluginModules = getPluginModules(code);
 

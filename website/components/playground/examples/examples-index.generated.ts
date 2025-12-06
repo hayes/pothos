@@ -15,14 +15,15 @@ export interface ExampleMetadata {
  * Available example IDs
  */
 export const exampleIds = [
-  "basic-types",
-  "enums-args",
-  "interfaces",
-  "mutations",
-  "relay-plugin",
-  "simple-objects-plugin",
-  "unions",
-  "with-input-plugin"
+  'basic-types',
+  'enums-args',
+  'interfaces',
+  'multi-file-example',
+  'mutations',
+  'relay-plugin',
+  'simple-objects-plugin',
+  'unions',
+  'with-input-plugin',
 ] as const;
 
 /**
@@ -30,58 +31,65 @@ export const exampleIds = [
  */
 export const exampleMetadata: ExampleMetadata[] = [
   {
-    "id": "basic-types",
-    "title": "Basic Types",
-    "description": "Define object types and queries",
-    "tags": []
+    id: 'basic-types',
+    title: 'Basic Types',
+    description: 'Define object types and queries',
+    tags: [],
   },
   {
-    "id": "enums-args",
-    "title": "Enums & Arguments",
-    "description": "Define enums and use typed arguments",
-    "tags": []
+    id: 'enums-args',
+    title: 'Enums & Arguments',
+    description: 'Define enums and use typed arguments',
+    tags: [],
   },
   {
-    "id": "interfaces",
-    "title": "Interfaces & Unions",
-    "description": "Using interfaces and union types",
-    "tags": []
+    id: 'interfaces',
+    title: 'Interfaces & Unions',
+    description: 'Using interfaces and union types',
+    tags: [],
   },
   {
-    "id": "mutations",
-    "title": "Mutations",
-    "description": "Define mutations with input types",
-    "tags": []
+    id: 'multi-file-example',
+    title: 'Multi-File Example',
+    description: 'Example with multiple TypeScript and GraphQL files',
+    tags: ['advanced', 'multi-file'],
   },
   {
-    "id": "relay-plugin",
-    "title": "Relay Plugin",
-    "description": "Use the Relay plugin for cursor-based pagination and global IDs",
-    "tags": []
+    id: 'mutations',
+    title: 'Mutations',
+    description: 'Define mutations with input types',
+    tags: [],
   },
   {
-    "id": "simple-objects-plugin",
-    "title": "Simple Objects Plugin",
-    "description": "Use the Simple Objects plugin to define objects without separate type definitions",
-    "tags": []
+    id: 'relay-plugin',
+    title: 'Relay Plugin',
+    description: 'Use the Relay plugin for cursor-based pagination and global IDs',
+    tags: [],
   },
   {
-    "id": "unions",
-    "title": "Union Types",
-    "description": "Define union types for polymorphic results",
-    "tags": []
+    id: 'simple-objects-plugin',
+    title: 'Simple Objects Plugin',
+    description:
+      'Use the Simple Objects plugin to define objects without separate type definitions',
+    tags: [],
   },
   {
-    "id": "with-input-plugin",
-    "title": "With-Input Plugin",
-    "description": "Use the With-Input plugin to easily define fields with a single input object",
-    "tags": []
-  }
+    id: 'unions',
+    title: 'Union Types',
+    description: 'Define union types for polymorphic results',
+    tags: [],
+  },
+  {
+    id: 'with-input-plugin',
+    title: 'With-Input Plugin',
+    description: 'Use the With-Input plugin to easily define fields with a single input object',
+    tags: [],
+  },
 ];
 
 /**
  * Get metadata for a specific example
  */
 export function getExampleMetadata(id: string): ExampleMetadata | undefined {
-  return exampleMetadata.find(e => e.id === id);
+  return exampleMetadata.find((e) => e.id === id);
 }

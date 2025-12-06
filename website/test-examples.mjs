@@ -1,8 +1,3 @@
-/**
- * Test script to verify all playground examples compile and can execute queries
- */
-import { graphql } from 'graphql';
-
 // Import all examples
 const exampleIds = [
   'basic-types',

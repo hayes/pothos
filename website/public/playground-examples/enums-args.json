@@ -1,0 +1,20 @@
+{
+  "id": "enums-args",
+  "title": "Enums & Arguments",
+  "description": "Define enums and use typed arguments",
+  "tags": [],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\n// Define an enum\nconst Status = builder.enumType('Status', {\n  values: ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const,\n});\n\n// Define a Post type using the enum\nconst Post = builder.objectRef<{\n  id: string;\n  title: string;\n  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';\n}>('Post');\n\nbuilder.objectType(Post, {\n  fields: (t) => ({\n    id: t.exposeID('id'),\n    title: t.exposeString('title'),\n    status: t.field({\n      type: Status,\n      resolve: (post) => post.status,\n    }),\n  }),\n});\n\n// Sample data\nconst posts = [\n  { id: '1', title: 'Hello World', status: 'PUBLISHED' as const },\n  { id: '2', title: 'Draft Post', status: 'DRAFT' as const },\n  { id: '3', title: 'Old News', status: 'ARCHIVED' as const },\n];\n\nbuilder.queryType({\n  fields: (t) => ({\n    posts: t.field({\n      type: [Post],\n      args: {\n        status: t.arg({ type: Status, required: false }),\n        limit: t.arg.int({ required: false }),\n      },\n      resolve: (_, args) => {\n        let result = posts;\n        if (args.status) {\n          result = result.filter((p) => p.status === args.status);\n        }\n        if (args.limit) {\n          result = result.slice(0, args.limit);\n        }\n        return result;\n      },\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query {\n  allPosts: posts {\n    id\n    title\n    status\n  }\n  publishedOnly: posts(status: PUBLISHED) {\n    title\n    status\n  }\n}",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query {\n  allPosts: posts {\n    id\n    title\n    status\n  }\n  publishedOnly: posts(status: PUBLISHED) {\n    title\n    status\n  }\n}"
+    }
+  ]
+}

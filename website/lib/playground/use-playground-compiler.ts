@@ -5,8 +5,8 @@ import * as graphql from 'graphql';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PlaygroundFile } from '../../components/playground/types';
 import {
-  compileAndExecute,
   type ConsoleMessage,
+  compileAndExecute,
   type ExecutionResult,
   type PlaygroundModules,
 } from './execution-engine';
@@ -80,11 +80,14 @@ export function usePlaygroundCompiler({
     setState((prev) => ({ ...prev, isCompiling: true, error: null }));
 
     try {
-      const result: ExecutionResult = await compileAndExecute(
-        mainFile.content,
-        modules,
-        mainFile.filename,
-      );
+      // Use new multi-file API if multiple files, otherwise legacy API
+      const result: ExecutionResult =
+        files.length > 1
+          ? await compileAndExecute({
+              files: files.map((f) => ({ filename: f.filename, content: f.content })),
+              modules,
+            })
+          : await compileAndExecute(mainFile.content, modules, mainFile.filename);
 
       // Only update state if this is still the latest compilation
       // This prevents race conditions where older compilations finish after newer ones

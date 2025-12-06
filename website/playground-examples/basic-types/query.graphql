@@ -1,0 +1,8 @@
+query Hello {
+  hello(name: "Pothos")
+  user(id: "1") {
+    id
+    name
+    email
+  }
+}

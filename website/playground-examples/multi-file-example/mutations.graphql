@@ -1,0 +1,12 @@
+# Create a new post
+mutation CreatePost {
+  createPost(title: "My New Post", content: "This is the content of my new post", authorId: "1") {
+    id
+    title
+    content
+    author {
+      id
+      name
+    }
+  }
+}

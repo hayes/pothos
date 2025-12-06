@@ -1,0 +1,14 @@
+query Search {
+  search(query: "test") {
+    ... on User {
+      id
+      name
+      email
+    }
+    ... on Post {
+      id
+      title
+      content
+    }
+  }
+}
