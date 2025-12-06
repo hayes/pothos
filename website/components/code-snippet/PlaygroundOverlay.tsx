@@ -1,7 +1,7 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { type FC, useEffect, useMemo } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import { getExample } from '../playground/examples';
 import { encodePlaygroundState } from '../../lib/playground/url-state';
 
@@ -32,6 +32,7 @@ export interface PlaygroundOverlayProps {
  *
  * **Features:**
  * - Lazy-loaded iframe (playground bundle only loaded when opened)
+ * - Dynamically loads examples on-demand
  * - Full-screen on mobile, 90% width on desktop
  * - Escape key to close
  * - Click outside to close
@@ -43,6 +44,9 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
   query,
   onClose,
 }) => {
+  const [playgroundURL, setPlaygroundURL] = useState<string>('/playground');
+  const [isLoading, setIsLoading] = useState(!!exampleId);
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -56,37 +60,47 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
   }, [onClose]);
 
   // Build playground URL using the new hash-based format
-  const playgroundURL = useMemo(() => {
-    // If exampleId is provided, load the example from registry
-    if (exampleId) {
-      const example = getExample(exampleId);
-      if (example) {
+  useEffect(() => {
+    async function loadPlaygroundURL() {
+      // If exampleId is provided, load the example from registry
+      if (exampleId) {
+        setIsLoading(true);
+        const example = await getExample(exampleId);
+        if (example) {
+          const state = encodePlaygroundState({
+            files: example.files,
+            query: query || example.defaultQuery,
+            viewMode: query ? 'graphql' : 'code',
+          });
+          setPlaygroundURL(`/playground#${state}`);
+        } else {
+          setPlaygroundURL('/playground');
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // If custom code is provided, create a single file
+      if (code) {
         const state = encodePlaygroundState({
-          files: example.files,
-          query: query || example.defaultQuery,
+          files: [
+            {
+              filename: 'schema.ts',
+              content: code,
+            },
+          ],
+          query,
           viewMode: query ? 'graphql' : 'code',
         });
-        return `/playground#${state}`;
+        setPlaygroundURL(`/playground#${state}`);
+        return;
       }
+
+      // Default to empty playground
+      setPlaygroundURL('/playground');
     }
 
-    // If custom code is provided, create a single file
-    if (code) {
-      const state = encodePlaygroundState({
-        files: [
-          {
-            filename: 'schema.ts',
-            content: code,
-          },
-        ],
-        query,
-        viewMode: query ? 'graphql' : 'code',
-      });
-      return `/playground#${state}`;
-    }
-
-    // Default to empty playground
-    return '/playground';
+    loadPlaygroundURL();
   }, [exampleId, code, query]);
 
   return (
@@ -113,6 +127,16 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
         >
           <X size={20} />
         </button>
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-fd-background/80 backdrop-blur-sm md:rounded-lg">
+            <div className="text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-fd-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+              <p className="mt-4 text-sm text-fd-muted-foreground">Loading example...</p>
+            </div>
+          </div>
+        )}
 
         {/* Playground iframe */}
         <iframe
