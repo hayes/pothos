@@ -16,18 +16,17 @@ interface TypeDefinition {
 
 const CORE_PACKAGES = ['core'];
 
-// Plugin types are not loaded by default because their global type augmentations
-// add required fields even when the plugin isn't imported.
-// TODO: Add plugin types conditionally based on what's imported in the example
+// Plugin packages to bundle separately
+// Plugin types are loaded dynamically based on imports to avoid
+// adding required fields from unused plugins
 const PLUGIN_PACKAGES: string[] = [
-  // 'plugin-relay',
-  // 'plugin-errors',
-  // 'plugin-validation',
-  // 'plugin-scope-auth',
-  // 'plugin-simple-objects',
-  // 'plugin-directives',
-  // 'plugin-dataloader',
-  // 'plugin-add-graphql',
+  'plugin-simple-objects',
+  'plugin-relay',
+  'plugin-with-input',
+  'plugin-scope-auth',
+  'plugin-errors',
+  'plugin-validation',
+  'plugin-directives',
 ];
 
 function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[] {
@@ -69,7 +68,7 @@ function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[]
 
 /**
  * Resolve a relative import path to an absolute module path.
- * 
+ *
  * @param relativePath - The relative import path (e.g., '../builder', './types')
  * @param currentModule - The full module name of the current file (e.g., '@pothos/core/types/global/classes')
  * @param baseModule - The base module name (e.g., '@pothos/core')
@@ -78,17 +77,17 @@ function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[]
 function resolveImportPath(
   relativePath: string,
   currentModule: string,
-  baseModule: string,
-  isIndexFile: boolean
+  _baseModule: string,
+  isIndexFile: boolean,
 ): string {
   // Remove .js extension if present
   const cleanPath = relativePath.replace(/\.js$/, '');
-  
+
   // Get the directory of the current module
   // For index files like '@pothos/core/types/global', the directory IS '@pothos/core/types/global'
   // For non-index files like '@pothos/core/types/global/classes', the directory is '@pothos/core/types/global'
   let currentDir: string;
-  
+
   if (isIndexFile) {
     // This is an index file, so the module name is the directory
     currentDir = currentModule;
@@ -97,20 +96,21 @@ function resolveImportPath(
     const parts = currentModule.split('/');
     currentDir = parts.slice(0, -1).join('/');
   }
-  
+
   // Split into path segments
   const currentParts = currentDir.split('/');
   const importParts = cleanPath.split('/');
-  
+
   // Process each segment
   const resultParts = [...currentParts];
-  
+
   for (const part of importParts) {
     if (part === '.') {
       // Current directory, do nothing
     } else if (part === '..') {
       // Go up one level
-      if (resultParts.length > 2) { // Keep at least '@pothos/core'
+      if (resultParts.length > 2) {
+        // Keep at least '@pothos/core'
         resultParts.pop();
       }
     } else {
@@ -118,7 +118,7 @@ function resolveImportPath(
       resultParts.push(part);
     }
   }
-  
+
   return resultParts.join('/');
 }
 
@@ -126,14 +126,19 @@ function processTypeContent(
   content: string,
   fullModuleName: string,
   baseModule: string,
-  isIndexFile: boolean
+  isIndexFile: boolean,
 ): string {
   let processed = content
     .replace(/\/\/# sourceMappingURL=.*$/gm, '')
     .replace(/^\/\/\/\s*<reference.*$/gm, '');
 
   // Generic function to replace import/export paths
-  function replaceRelativePath(match: string, prefix: string, relativePath: string, suffix: string): string {
+  function replaceRelativePath(
+    _match: string,
+    prefix: string,
+    relativePath: string,
+    suffix: string,
+  ): string {
     const resolved = resolveImportPath(relativePath, fullModuleName, baseModule, isIndexFile);
     return `${prefix}'${resolved}'${suffix}`;
   }
@@ -141,23 +146,19 @@ function processTypeContent(
   // Handle all import patterns with proper path resolution
   processed = processed
     // import ... from '../..path' or from './path' or from '../path'
-    .replace(
-      /(from\s*)['"](\.[^'"]+)['"]/g,
-      (match, prefix, relativePath) => replaceRelativePath(match, prefix, relativePath, '')
+    .replace(/(from\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
+      replaceRelativePath(match, prefix, relativePath, ''),
     )
     // import './path' (side-effect import)
-    .replace(
-      /(import\s*)['"](\.[^'"]+)['"]/g,
-      (match, prefix, relativePath) => replaceRelativePath(match, prefix, relativePath, '')
+    .replace(/(import\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
+      replaceRelativePath(match, prefix, relativePath, ''),
     )
     // export ... from './path'
-    .replace(
-      /(export\s+\*\s+from\s*)['"](\.[^'"]+)['"]/g,
-      (match, prefix, relativePath) => replaceRelativePath(match, prefix, relativePath, '')
+    .replace(/(export\s+\*\s+from\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
+      replaceRelativePath(match, prefix, relativePath, ''),
     )
-    .replace(
-      /(export\s+\{[^}]+\}\s+from\s*)['"](\.[^'"]+)['"]/g,
-      (match, prefix, relativePath) => replaceRelativePath(match, prefix, relativePath, '')
+    .replace(/(export\s+\{[^}]+\}\s+from\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
+      replaceRelativePath(match, prefix, relativePath, ''),
     );
 
   const hasGlobalDeclaration = processed.includes('declare global');
@@ -169,162 +170,191 @@ function processTypeContent(
   return `declare module '${fullModuleName}' {\n${processed.trim()}\n}`;
 }
 
-function generateGraphQLTypes(): string {
-  return `
-declare module 'graphql' {
-  export interface GraphQLScalarType<TInternal = unknown, TExternal = TInternal> {
-    name: string;
-    description?: string | null;
-    serialize: (value: unknown) => TExternal | null;
-    parseValue?: (value: unknown) => TInternal | null;
-    parseLiteral?: (ast: unknown, variables?: Record<string, unknown> | null) => TInternal | null;
+/**
+ * Read and bundle the full GraphQL type definitions from node_modules
+ *
+ * Instead of creating a custom stub, we bundle the real GraphQL .d.ts files.
+ * We aggregate all the type definitions into a single 'graphql' module to avoid
+ * needing to resolve internal GraphQL imports.
+ */
+function readGraphQLTypes(): TypeDefinition[] {
+  const graphqlPath = path.join(__dirname, '../../node_modules/graphql');
+  const allContent: string[] = [];
+
+  // Helper to read and process a file
+  function readFile(filePath: string): string | null {
+    if (!fs.existsSync(filePath)) {
+      return null;
+    }
+
+    let content = fs.readFileSync(filePath, 'utf-8');
+
+    // Remove internal GraphQL imports since we're bundling everything together
+    // Keep only the exported declarations
+    content = content
+      .replace(/^import\s+(?:type\s+)?{[^}]+}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
+      .replace(/^export\s+(?:type\s+)?{[^}]+}\s+from\s+['"][^'"]+['"];?\s*$/gm, '');
+
+    return content;
   }
 
-  export interface GraphQLSchema {
-    getQueryType(): GraphQLObjectType | null | undefined;
-    getMutationType(): GraphQLObjectType | null | undefined;
-    getSubscriptionType(): GraphQLObjectType | null | undefined;
+  // Read utility types first (they're used by other files)
+  const jsutilsPath = path.join(graphqlPath, 'jsutils');
+  const utilFiles = ['Maybe.d.ts', 'ObjMap.d.ts', 'Path.d.ts', 'PromiseOrValue.d.ts'];
+
+  for (const file of utilFiles) {
+    const content = readFile(path.join(jsutilsPath, file));
+    if (content) {
+      allContent.push(content);
+    }
   }
 
-  export interface GraphQLObjectType {
-    name: string;
+  // Read language (AST) definitions
+  const languagePath = path.join(graphqlPath, 'language');
+  const languageFiles = [
+    'ast.d.ts',
+    'kinds.d.ts',
+    'location.d.ts',
+    'source.d.ts',
+    'tokenKind.d.ts',
+    'directiveLocation.d.ts',
+    'predicates.d.ts',
+    'printer.d.ts',
+    'visitor.d.ts',
+  ];
+
+  for (const file of languageFiles) {
+    const content = readFile(path.join(languagePath, file));
+    if (content) {
+      allContent.push(content);
+    }
   }
 
-  export interface GraphQLInputObjectType {
-    name: string;
+  // Read type definition files
+  const typePath = path.join(graphqlPath, 'type');
+  const typeFiles = [
+    'definition.d.ts',
+    'schema.d.ts',
+    'directives.d.ts',
+    'scalars.d.ts',
+    'introspection.d.ts',
+    'validate.d.ts',
+  ];
+
+  for (const file of typeFiles) {
+    const content = readFile(path.join(typePath, file));
+    if (content) {
+      allContent.push(content);
+    }
   }
 
-  export interface GraphQLInterfaceType {
-    name: string;
+  // Read execution types
+  const executionPath = path.join(graphqlPath, 'execution');
+  const executionFiles = ['execute.d.ts', 'values.d.ts'];
+
+  for (const file of executionFiles) {
+    const content = readFile(path.join(executionPath, file));
+    if (content) {
+      allContent.push(content);
+    }
   }
 
-  export interface GraphQLUnionType {
-    name: string;
+  // Read error types
+  const errorPath = path.join(graphqlPath, 'error');
+  const errorFiles = ['GraphQLError.d.ts'];
+
+  for (const file of errorFiles) {
+    const content = readFile(path.join(errorPath, file));
+    if (content) {
+      allContent.push(content);
+    }
   }
 
-  export interface GraphQLEnumType {
-    name: string;
-  }
+  // Combine everything into a single graphql module declaration
+  const combinedContent = allContent.join('\n\n');
 
-  export type GraphQLType =
-    | GraphQLScalarType
-    | GraphQLObjectType
-    | GraphQLInterfaceType
-    | GraphQLUnionType
-    | GraphQLEnumType
-    | GraphQLInputObjectType
-    | GraphQLList<GraphQLType>
-    | GraphQLNonNull<GraphQLType>;
-
-  export interface GraphQLList<T> {
-    ofType: T;
-  }
-
-  export interface GraphQLNonNull<T> {
-    ofType: T;
-  }
-
-  export interface GraphQLField<TSource, TContext, TArgs = Record<string, unknown>> {
-    name: string;
-    type: GraphQLOutputType;
-    args: ReadonlyArray<GraphQLArgument>;
-    resolve?: GraphQLFieldResolver<TSource, TContext, TArgs>;
-  }
-
-  export interface GraphQLArgument {
-    name: string;
-    type: GraphQLInputType;
-    defaultValue?: unknown;
-  }
-
-  export type GraphQLOutputType =
-    | GraphQLScalarType
-    | GraphQLObjectType
-    | GraphQLInterfaceType
-    | GraphQLUnionType
-    | GraphQLEnumType
-    | GraphQLList<GraphQLOutputType>
-    | GraphQLNonNull<GraphQLOutputType>;
-
-  export type GraphQLInputType =
-    | GraphQLScalarType
-    | GraphQLInputObjectType
-    | GraphQLEnumType
-    | GraphQLList<GraphQLInputType>
-    | GraphQLNonNull<GraphQLInputType>;
-
-  export type GraphQLFieldResolver<TSource, TContext, TArgs = Record<string, unknown>> = (
-    source: TSource,
-    args: TArgs,
-    context: TContext,
-    info: GraphQLResolveInfo,
-  ) => unknown;
-
-  export interface GraphQLResolveInfo {
-    fieldName: string;
-    returnType: GraphQLOutputType;
-    parentType: GraphQLObjectType;
-    schema: GraphQLSchema;
-  }
-
-  export function printSchema(schema: GraphQLSchema): string;
-}
-`.trim();
+  return [
+    {
+      moduleName: 'graphql',
+      content: `declare module 'graphql' {\n${combinedContent}\n}`,
+    },
+  ];
 }
 
 function main() {
-  const allDefinitions: TypeDefinition[] = [];
+  const coreDefinitions: TypeDefinition[] = [];
+  const pluginDefinitions: Record<string, TypeDefinition[]> = {};
 
-  allDefinitions.push({
-    moduleName: 'graphql',
-    content: generateGraphQLTypes(),
-  });
+  // Add GraphQL types to core (bundled from node_modules)
+  const graphqlTypes = readGraphQLTypes();
+  coreDefinitions.push(...graphqlTypes);
 
+  // Process core packages
   for (const pkg of CORE_PACKAGES) {
     const packagePath = path.join(PACKAGES_DIR, pkg);
     const moduleName = `@pothos/${pkg}`;
     const definitions = readDtsFiles(packagePath, moduleName);
-    allDefinitions.push(...definitions);
+    coreDefinitions.push(...definitions);
   }
 
+  // Process plugin packages separately
   for (const pkg of PLUGIN_PACKAGES) {
     const packagePath = path.join(PACKAGES_DIR, pkg);
     if (fs.existsSync(packagePath)) {
       const moduleName = `@pothos/${pkg}`;
       const definitions = readDtsFiles(packagePath, moduleName);
-      allDefinitions.push(...definitions);
+      pluginDefinitions[moduleName] = definitions;
     }
   }
 
-  // Separate global declarations from module declarations
-  // Global declarations need special handling - they should be loaded first
-  const globalDeclarations = allDefinitions.filter((d) => d.content.includes('declare global'));
-  const moduleDeclarations = allDefinitions.filter((d) => !d.content.includes('declare global'));
-
-  // Reorder: globals first, then modules
-  const orderedDefinitions = [...globalDeclarations, ...moduleDeclarations];
+  // Separate core global declarations from module declarations
+  const coreGlobals = coreDefinitions.filter((d) => d.content.includes('declare global'));
+  const coreModules = coreDefinitions.filter((d) => !d.content.includes('declare global'));
+  const orderedCore = [...coreGlobals, ...coreModules];
 
   const output = `// Auto-generated Pothos type definitions for Monaco editor
 // Generated at: ${new Date().toISOString()}
+//
+// Core types are loaded immediately
+// Plugin types are loaded dynamically based on imports
 
 export interface TypeDefinition {
   moduleName: string;
   content: string;
 }
 
-export const pothosTypeDefinitions: TypeDefinition[] = ${JSON.stringify(orderedDefinitions, null, 2)};
+// Core Pothos types (always loaded)
+export const coreTypeDefinitions: TypeDefinition[] = ${JSON.stringify(orderedCore, null, 2)};
 
-export function getTypeDefinitions(): TypeDefinition[] {
-  return pothosTypeDefinitions;
+// Plugin types (loaded on-demand)
+export const pluginTypeDefinitions: Record<string, TypeDefinition[]> = ${JSON.stringify(pluginDefinitions, null, 2)};
+
+export function getCoreTypeDefinitions(): TypeDefinition[] {
+  return coreTypeDefinitions;
+}
+
+export function getPluginTypeDefinitions(pluginName: string): TypeDefinition[] {
+  return pluginTypeDefinitions[pluginName] || [];
+}
+
+export function getAllPluginNames(): string[] {
+  return Object.keys(pluginTypeDefinitions);
 }
 `;
 
   fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
   fs.writeFileSync(OUTPUT_FILE, output);
 
-  console.log(`Generated ${orderedDefinitions.length} type definitions to ${OUTPUT_FILE}`);
-  console.log(`  - ${globalDeclarations.length} global declarations`);
-  console.log(`  - ${moduleDeclarations.length} module declarations`);
+  const totalPluginDefs = Object.values(pluginDefinitions).reduce(
+    (sum, defs) => sum + defs.length,
+    0,
+  );
+  console.log(`Generated type definitions to ${OUTPUT_FILE}`);
+  console.log(`  - ${orderedCore.length} core definitions`);
+  console.log(`  - ${totalPluginDefs} plugin definitions across ${PLUGIN_PACKAGES.length} plugins`);
+  for (const [plugin, defs] of Object.entries(pluginDefinitions)) {
+    console.log(`    - ${plugin}: ${defs.length} definitions`);
+  }
 }
 
 main();

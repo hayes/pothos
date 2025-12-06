@@ -1,19 +1,36 @@
 import * as esbuild from 'esbuild-wasm';
-import { printSchema, type GraphQLSchema } from 'graphql';
+import { type GraphQLSchema, printSchema } from 'graphql';
+import { compileTypeScriptInWorker } from './compiler-worker-client';
+import { captureConsole, type ConsoleMessage as CapturedConsoleMessage } from './console-capture';
+import { getPluginModules } from './plugins-bundle';
+import { getCachedSchema, setCachedSchema } from './schema-cache';
 
 let esbuildInitialized = false;
 let initPromise: Promise<void> | null = null;
 
 async function initEsbuild(): Promise<void> {
-  if (esbuildInitialized) return;
-  if (initPromise) return initPromise;
+  if (esbuildInitialized) {
+    return;
+  }
+  if (initPromise) {
+    await initPromise;
+    return;
+  }
 
-  initPromise = esbuild.initialize({
-    wasmURL: 'https://unpkg.com/esbuild-wasm@0.27.1/esbuild.wasm',
-  });
+  initPromise = esbuild
+    .initialize({
+      wasmURL: 'https://unpkg.com/esbuild-wasm@0.27.1/esbuild.wasm',
+    })
+    .then(() => {
+      esbuildInitialized = true;
+    })
+    .catch((err) => {
+      // Reset on error so we can retry
+      initPromise = null;
+      throw err;
+    });
 
   await initPromise;
-  esbuildInitialized = true;
 }
 
 export interface CompilationResult {
@@ -22,11 +39,18 @@ export interface CompilationResult {
   error?: string;
 }
 
+export interface ConsoleMessage {
+  type: 'log' | 'warn' | 'error' | 'info';
+  args: unknown[];
+  timestamp: number;
+}
+
 export interface ExecutionResult {
   success: boolean;
   schema?: GraphQLSchema;
   schemaSDL?: string;
   error?: string;
+  consoleLogs?: ConsoleMessage[];
 }
 
 export interface PlaygroundModules {
@@ -36,8 +60,44 @@ export interface PlaygroundModules {
 
 export async function compileTypeScript(
   code: string,
-  filename = 'schema.ts'
+  filename = 'schema.ts',
+  useWorkerCompilation = true,
 ): Promise<CompilationResult> {
+  // Check cache first
+  try {
+    const cachedCode = await getCachedSchema(code);
+    if (cachedCode) {
+      console.log('[Compiler] Using cached compilation');
+      return {
+        success: true,
+        code: cachedCode,
+      };
+    }
+  } catch (err) {
+    // Cache errors are non-fatal, continue with compilation
+    console.warn('[Compiler] Cache read failed:', err);
+  }
+
+  // Try worker-based compilation first
+  if (useWorkerCompilation && typeof Worker !== 'undefined') {
+    try {
+      const result = await compileTypeScriptInWorker(code, filename);
+
+      // Cache successful compilation
+      if (result.success && result.code) {
+        setCachedSchema(code, result.code).catch((err) => {
+          console.warn('[Compiler] Failed to cache compilation:', err);
+        });
+      }
+
+      return result;
+    } catch (err) {
+      console.warn('[Compiler] Worker compilation failed, falling back to main thread:', err);
+      // Fall through to main thread compilation
+    }
+  }
+
+  // Fallback to main thread compilation
   try {
     await initEsbuild();
 
@@ -46,6 +106,11 @@ export async function compileTypeScript(
       format: 'esm',
       target: 'es2020',
       sourcemap: false,
+    });
+
+    // Cache successful compilation
+    setCachedSchema(code, result.code).catch((err) => {
+      console.warn('[Compiler] Failed to cache compilation:', err);
     });
 
     return {
@@ -61,14 +126,17 @@ export async function compileTypeScript(
   }
 }
 
-export async function executeAndBuildSchema(
+export function executeAndBuildSchema(
   compiledCode: string,
-  modules: PlaygroundModules
-): Promise<ExecutionResult> {
-  try {
+  modules: PlaygroundModules,
+  additionalModules: Record<string, unknown> = {},
+): ExecutionResult {
+  // Use safe console capture utility
+  const { result, logs } = captureConsole(() => {
     const moduleMap: Record<string, unknown> = {
       '@pothos/core': modules['@pothos/core'],
       graphql: modules.graphql,
+      ...additionalModules,
     };
 
     const wrappedCode = `
@@ -77,35 +145,41 @@ export async function executeAndBuildSchema(
         if (!__modules[name]) throw new Error('Module not found: ' + name);
         return __modules[name];
       };
-      
+
       ${rewriteImports(compiledCode)}
-      
+
       return __exports;
     `;
 
     const fn = new Function('__modules', wrappedCode);
-    const exports = fn(moduleMap);
+    return fn(moduleMap);
+  });
 
-    if (!exports.schema) {
+  try {
+    if (!result.schema) {
       return {
         success: false,
-        error: 'No schema export found. Make sure to export your schema: export const schema = builder.toSchema()',
+        error:
+          'No schema export found. Make sure to export your schema: export const schema = builder.toSchema()',
+        consoleLogs: logs,
       };
     }
 
-    const schema = exports.schema as GraphQLSchema;
+    const schema = result.schema as GraphQLSchema;
     const schemaSDL = printSchema(schema);
 
     return {
       success: true,
       schema,
       schemaSDL,
+      consoleLogs: logs,
     };
   } catch (err) {
     const error = err as Error;
     return {
       success: false,
       error: error.message,
+      consoleLogs: logs,
     };
   }
 }
@@ -113,38 +187,65 @@ export async function executeAndBuildSchema(
 function rewriteImports(code: string): string {
   let rewritten = code;
 
-  const importRegex = /import\s+(\{[^}]+\}|[^,{]+(?:\s*,\s*\{[^}]+\})?)\s+from\s*['"]([^'"]+)['"]/g;
-  
-  rewritten = rewritten.replace(importRegex, (match, imports, moduleName) => {
+  // Handle import statements - match more carefully
+  const importRegex = /import\s+(.+?)\s+from\s*['"]([^'"]+)['"]/g;
+
+  rewritten = rewritten.replace(importRegex, (_match, imports, moduleName) => {
     const cleanImports = imports.trim();
-    
-    if (cleanImports.startsWith('{')) {
+
+    // Named imports only: import { a, b } from 'module'
+    if (cleanImports.startsWith('{') && cleanImports.endsWith('}')) {
       return `const ${cleanImports} = __require('${moduleName}')`;
     }
-    
-    const parts = cleanImports.split(/\s*,\s*/);
-    const statements: string[] = [];
-    
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (trimmed.startsWith('{')) {
-        statements.push(`const ${trimmed} = __require('${moduleName}')`);
-      } else {
-        statements.push(`const ${trimmed} = __require('${moduleName}').default || __require('${moduleName}')`);
-      }
+
+    // Default import only: import Foo from 'module'
+    if (!cleanImports.includes('{') && !cleanImports.includes(',')) {
+      return `const ${cleanImports} = __require('${moduleName}').default || __require('${moduleName}')`;
     }
-    
-    return statements.join(';\n');
+
+    // Mixed import: import Foo, { a, b } from 'module'
+    const commaIndex = cleanImports.indexOf(',');
+    if (commaIndex > 0) {
+      const defaultImport = cleanImports.substring(0, commaIndex).trim();
+      const namedImports = cleanImports.substring(commaIndex + 1).trim();
+      return `const ${defaultImport} = __require('${moduleName}').default || __require('${moduleName}');\nconst ${namedImports} = __require('${moduleName}')`;
+    }
+
+    // Fallback - shouldn't reach here
+    return `const ${cleanImports} = __require('${moduleName}')`;
   });
 
+  // Handle export default
   const exportDefaultSchemaRegex = /export\s+default\s+(\w+)/g;
   rewritten = rewritten.replace(exportDefaultSchemaRegex, '__exports.default = $1');
 
-  const exportConstRegex = /export\s+const\s+(\w+)\s*=/g;
-  rewritten = rewritten.replace(exportConstRegex, '__exports.$1 = ');
+  // Handle export const - need to track which consts were exported
+  const exportedConsts = new Set<string>();
+  const exportConstRegex = /export\s+const\s+(\w+)/g;
+  let match: RegExpExecArray | null = exportConstRegex.exec(code);
+  while (match !== null) {
+    exportedConsts.add(match[1]);
+    match = exportConstRegex.exec(code);
+  }
 
+  // Remove export keyword but keep const declaration
+  rewritten = rewritten.replace(/export\s+const\s+/g, 'const ');
+
+  // Find all const declarations and add exports for the ones that were originally exported
+  // We need to do this at the end of the code
+  const constMatches: string[] = [];
+  for (const constName of Array.from(exportedConsts)) {
+    constMatches.push(`__exports.${constName} = ${constName};`);
+  }
+
+  // Append all export assignments at the end
+  if (constMatches.length > 0) {
+    rewritten = `${rewritten}\n${constMatches.join('\n')}`;
+  }
+
+  // Handle export { name }
   const exportNamedRegex = /export\s+\{\s*([^}]+)\s*\}/g;
-  rewritten = rewritten.replace(exportNamedRegex, (match, names) => {
+  rewritten = rewritten.replace(exportNamedRegex, (_match, names) => {
     const exports = names.split(',').map((n: string) => {
       const [name, alias] = n.trim().split(/\s+as\s+/);
       return `__exports.${alias || name} = ${name}`;
@@ -158,10 +259,13 @@ function rewriteImports(code: string): string {
 export async function compileAndExecute(
   code: string,
   modules: PlaygroundModules,
-  filename = 'schema.ts'
+  filename = 'schema.ts',
 ): Promise<ExecutionResult> {
+  // Load any plugins used in the code
+  const pluginModules = getPluginModules(code);
+
   const compilationResult = await compileTypeScript(code, filename);
-  
+
   if (!compilationResult.success) {
     return {
       success: false,
@@ -169,5 +273,5 @@ export async function compileAndExecute(
     };
   }
 
-  return executeAndBuildSchema(compilationResult.code!, modules);
+  return executeAndBuildSchema(compilationResult.code!, modules, pluginModules);
 }
