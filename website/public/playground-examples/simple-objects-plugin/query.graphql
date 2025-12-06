@@ -1,0 +1,26 @@
+query {
+  user(id: "1") {
+    id
+    firstName
+    lastName
+    fullName
+    age
+    isAdult
+    contactInfo {
+      email
+      phoneNumber
+      website
+    }
+  }
+  post(id: "1") {
+    id
+    title
+    excerpt
+    status
+  }
+  comments(postId: "1") {
+    id
+    preview
+    createdAt
+  }
+}
