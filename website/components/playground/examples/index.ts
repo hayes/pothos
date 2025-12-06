@@ -1,39 +1,51 @@
+/**
+ * Playground examples loader
+ *
+ * Examples are now stored as separate .ts/.graphql/.json files in
+ * public/playground-examples/ and bundled into a JSON file at build time.
+ *
+ * This provides better maintainability, easier editing, and smaller bundles.
+ */
+
 import type { PlaygroundExample } from '../types';
-import { basicTypesExample } from './basic-types';
-import { enumsArgsExample } from './enums-args';
-import { interfacesExample } from './interfaces';
-import { mutationsExample } from './mutations';
-import { relayPluginExample } from './relay-plugin';
-import { simpleObjectsPluginExample } from './simple-objects-plugin';
-import { unionsExample } from './unions';
-import { withInputPluginExample } from './with-input-plugin';
 
-export const examples: Record<string, PlaygroundExample> = {
-  // Core examples
-  'basic-types': basicTypesExample,
-  mutations: mutationsExample,
-  interfaces: interfacesExample,
-  'enums-args': enumsArgsExample,
-  unions: unionsExample,
-  // Plugin examples
-  'simple-objects-plugin': simpleObjectsPluginExample,
-  'relay-plugin': relayPluginExample,
-  'with-input-plugin': withInputPluginExample,
-};
+// Import the bundled examples JSON
+// This is generated at build time by scripts/build-playground-examples.ts
+import examplesData from '../../../public/playground-examples.json';
 
+// Type the imported JSON data
+const typedExamples = examplesData as PlaygroundExample[];
+
+// Create a map for efficient lookup
+export const examples: Record<string, PlaygroundExample> = {};
+for (const example of typedExamples) {
+  examples[example.id] = example;
+}
+
+/**
+ * Get a specific example by ID
+ */
 export function getExample(id: string): PlaygroundExample | undefined {
   return examples[id];
 }
 
-export const examplesList = Object.values(examples);
+/**
+ * Get all examples as an array
+ */
+export const examplesList = typedExamples;
 
-export {
-  basicTypesExample,
-  enumsArgsExample,
-  interfacesExample,
-  mutationsExample,
-  relayPluginExample,
-  simpleObjectsPluginExample,
-  unionsExample,
-  withInputPluginExample,
-};
+/**
+ * Get all example IDs
+ */
+export const exampleIds = typedExamples.map((ex) => ex.id);
+
+// Legacy named exports for backwards compatibility
+// These are now loaded from the JSON bundle
+export const basicTypesExample = examples['basic-types'];
+export const mutationsExample = examples.mutations;
+export const interfacesExample = examples.interfaces;
+export const enumsArgsExample = examples['enums-args'];
+export const unionsExample = examples.unions;
+export const simpleObjectsPluginExample = examples['simple-objects-plugin'];
+export const relayPluginExample = examples['relay-plugin'];
+export const withInputPluginExample = examples['with-input-plugin'];
