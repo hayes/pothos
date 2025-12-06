@@ -1,0 +1,11 @@
+query {
+  allPosts: posts {
+    id
+    title
+    status
+  }
+  publishedOnly: posts(status: PUBLISHED) {
+    title
+    status
+  }
+}
