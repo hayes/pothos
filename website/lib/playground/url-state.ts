@@ -269,24 +269,59 @@ export function createShareableURL(state: PlaygroundURLState, baseURL?: string):
   return `${base}/playground#${encoded}`;
 }
 
-export async function copyToClipboard(text: string): Promise<boolean> {
+export interface ClipboardResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Copy text to clipboard with robust fallback handling
+ *
+ * Tries modern Clipboard API first, falls back to deprecated execCommand
+ * if necessary (for older browsers or permission issues).
+ *
+ * @param text - Text to copy to clipboard
+ * @returns Object with success status and optional error message
+ */
+export async function copyToClipboard(text: string): Promise<ClipboardResult> {
+  // Try modern Clipboard API first
   try {
     await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
+    return { success: true };
+  } catch (err) {
+    console.warn('[Clipboard] Modern API failed, trying fallback:', err);
+
+    // Fallback to deprecated execCommand (still works in most browsers)
+    let textarea: HTMLTextAreaElement | null = null;
     try {
-      document.execCommand('copy');
-      return true;
-    } catch {
-      return false;
+      textarea = document.createElement('textarea');
+      textarea.value = text;
+      // Position off-screen and make non-interactive
+      textarea.style.cssText =
+        'position: fixed; opacity: 0; pointer-events: none; left: -9999px;';
+      document.body.appendChild(textarea);
+
+      // Select the text
+      textarea.select();
+      textarea.setSelectionRange(0, text.length);
+
+      // Try to copy
+      const success = document.execCommand('copy');
+
+      return success
+        ? { success: true }
+        : { success: false, error: 'Copy command failed' };
+    } catch (fallbackErr) {
+      console.error('[Clipboard] Fallback failed:', fallbackErr);
+      return {
+        success: false,
+        error: 'Clipboard access denied. Please copy the URL manually.',
+      };
     } finally {
-      document.body.removeChild(textarea);
+      // Ensure cleanup even if errors occur
+      if (textarea?.parentNode) {
+        document.body.removeChild(textarea);
+      }
     }
   }
 }
