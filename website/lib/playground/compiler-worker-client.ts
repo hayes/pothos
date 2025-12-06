@@ -61,7 +61,7 @@ function getWorker(): Worker {
   return worker;
 }
 
-export async function compileTypeScriptInWorker(
+export function compileTypeScriptInWorker(
   code: string,
   filename = 'schema.ts',
 ): Promise<CompilationResult> {
