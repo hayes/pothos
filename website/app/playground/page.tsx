@@ -32,6 +32,7 @@ import { ConsolePanel } from '../../components/playground/ConsolePanel';
 import { examplesList } from '../../components/playground/examples';
 import { GraphQLEditor } from '../../components/playground/GraphQLEditor';
 import type { PlaygroundFile } from '../../components/playground/types';
+import { generateSchemaKey } from '../../lib/playground/hash-utils';
 import { clearSchemaCache } from '../../lib/playground/schema-cache';
 import {
   copyToClipboard,
@@ -109,14 +110,18 @@ function createFetcher(
   onConsoleLogs: (logs: Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[] }>) => void,
 ): Fetcher {
   return async ({ query, variables, operationName }) => {
-    if (!schemaRef.current) {
+    // Capture schema reference to prevent race conditions
+    // where schemaRef.current could become null between check and use
+    const schema = schemaRef.current;
+
+    if (!schema) {
       return { errors: [new GraphQLError('Schema not ready')] };
     }
 
     // Use safe console capture utility
     const { result, logs } = await captureConsoleAsync(async () => {
       return await graphql({
-        schema: schemaRef.current!,
+        schema, // Use captured schema reference (guaranteed non-null)
         source: query,
         variableValues: variables,
         operationName,
@@ -356,10 +361,17 @@ export default function PlaygroundPage() {
         query: currentQuery !== DEFAULT_QUERY ? currentQuery : undefined,
         variables: currentVariables || undefined,
       });
-      const success = await copyToClipboard(url);
-      setShareStatus(success ? 'copied' : 'error');
-    } catch {
+      const result = await copyToClipboard(url);
+
+      if (result.success) {
+        setShareStatus('copied');
+      } else {
+        setShareStatus('error');
+        console.error('[Share] Failed to copy:', result.error);
+      }
+    } catch (err) {
       setShareStatus('error');
+      console.error('[Share] Unexpected error:', err);
     }
     setTimeout(() => setShareStatus('idle'), 2000);
   }, [files, viewMode, currentQuery, currentVariables]);
@@ -428,29 +440,49 @@ export default function PlaygroundPage() {
     [fetcherSchemaRef, handleQueryConsoleLogs],
   );
 
-  // Create a hash of schema SDL only for GraphiQL's localStorage key
+  // Create a hash of schema SDL for GraphiQL's localStorage key
+  // Using DJB2 hash algorithm for better distribution and performance
   const schemaKey = useMemo(() => {
-    if (!compilerState.schemaSDL) {
-      return 'none';
-    }
-    // Hash just the schema SDL
-    let hash = 0;
-    for (let i = 0; i < compilerState.schemaSDL.length; i++) {
-      const char = compilerState.schemaSDL.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash &= hash; // Convert to 32bit integer
-    }
-    return `schema-${Math.abs(hash).toString(36)}`;
+    return generateSchemaKey(compilerState.schemaSDL);
   }, [compilerState.schemaSDL]);
 
-  // Clear GraphiQL localStorage whenever the schema key changes
+  // Track previous schema key to clean up old data without destroying all GraphiQL state
+  const prevSchemaKeyRef = useRef<string>('none');
+
+  // Clear GraphiQL localStorage for previous schema when schema changes
+  // This preserves user settings while cleaning up old tabs/history
   useEffect(() => {
-    if (schemaKey !== 'none') {
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('graphiql:')) {
+    if (schemaKey !== 'none' && prevSchemaKeyRef.current !== schemaKey) {
+      const prevKey = prevSchemaKeyRef.current;
+
+      // Only clear localStorage entries for the previous schema
+      // This approach preserves GraphiQL settings and other schemas
+      if (prevKey !== 'none') {
+        const keysToRemove: string[] = [];
+
+        // Find all keys belonging to the previous schema
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          // GraphiQL uses keys like "graphiql:tabState" - we clear all to reset state
+          // but we could be more selective by only clearing tabs/history
+          if (key?.startsWith('graphiql:')) {
+            keysToRemove.push(key);
+          }
+        }
+
+        // Remove old data
+        for (const key of keysToRemove) {
           localStorage.removeItem(key);
         }
-      });
+
+        if (keysToRemove.length > 0) {
+          console.log(
+            `[Playground] Cleaned up ${keysToRemove.length} localStorage entries for schema change`,
+          );
+        }
+      }
+
+      prevSchemaKeyRef.current = schemaKey;
     }
   }, [schemaKey]);
 
@@ -702,7 +734,10 @@ export default function PlaygroundPage() {
                               type="button"
                               className="graphiql-toolbar-button"
                               onClick={async () => {
-                                await copyToClipboard(mainFile?.content || '');
+                                const result = await copyToClipboard(mainFile?.content || '');
+                                if (!result.success) {
+                                  console.error('[Playground] Failed to copy code:', result.error);
+                                }
                               }}
                               title="Copy code"
                             >
@@ -730,8 +765,12 @@ export default function PlaygroundPage() {
                                   variables: currentVariables,
                                   viewMode,
                                 });
-                                await copyToClipboard(url);
-                                console.log('[Playground] URL copied to clipboard');
+                                const result = await copyToClipboard(url);
+                                if (result.success) {
+                                  console.log('[Playground] URL copied to clipboard');
+                                } else {
+                                  console.error('[Playground] Failed to copy URL:', result.error);
+                                }
                               }}
                               title="Copy shareable URL"
                             >

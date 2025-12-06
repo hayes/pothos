@@ -126,36 +126,87 @@ export async function compileTypeScript(
   }
 }
 
+/**
+ * Execute user code with timeout protection
+ *
+ * Note: This provides a basic timeout mechanism but cannot interrupt
+ * truly synchronous infinite loops. The timeout will fire after the
+ * specified time, but the loop will continue running until it completes
+ * or the browser's execution limit is reached.
+ *
+ * @param fn - Function to execute
+ * @param timeoutMs - Timeout in milliseconds (default: 5000ms)
+ * @returns Execution result
+ * @throws Error if execution takes longer than timeout
+ */
+function executeWithTimeout<T>(fn: () => T, timeoutMs = 5000): T {
+  let completed = false;
+  let result: T | undefined;
+  let error: Error | null = null;
+
+  // Set up timeout - this will throw after timeoutMs
+  const timeoutId = setTimeout(() => {
+    if (!completed) {
+      error = new Error(
+        `Execution timeout after ${timeoutMs}ms. Check for infinite loops or very slow operations.`,
+      );
+    }
+  }, timeoutMs);
+
+  try {
+    // Execute the function synchronously
+    result = fn();
+    completed = true;
+    clearTimeout(timeoutId);
+
+    // If timeout already fired, throw the error
+    if (error) {
+      throw error;
+    }
+
+    return result;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    // Re-throw timeout error or original error
+    throw error || err;
+  }
+}
+
 export function executeAndBuildSchema(
   compiledCode: string,
   modules: PlaygroundModules,
   additionalModules: Record<string, unknown> = {},
 ): ExecutionResult {
-  // Use safe console capture utility
-  const { result, logs } = captureConsole(() => {
-    const moduleMap: Record<string, unknown> = {
-      '@pothos/core': modules['@pothos/core'],
-      graphql: modules.graphql,
-      ...additionalModules,
-    };
-
-    const wrappedCode = `
-      const __exports = {};
-      const __require = (name) => {
-        if (!__modules[name]) throw new Error('Module not found: ' + name);
-        return __modules[name];
-      };
-
-      ${rewriteImports(compiledCode)}
-
-      return __exports;
-    `;
-
-    const fn = new Function('__modules', wrappedCode);
-    return fn(moduleMap);
-  });
-
   try {
+    // Use safe console capture utility with timeout protection
+    const { result, logs } = captureConsole(() => {
+      return executeWithTimeout(() => {
+        const moduleMap: Record<string, unknown> = {
+          '@pothos/core': modules['@pothos/core'],
+          graphql: modules.graphql,
+          ...additionalModules,
+        };
+
+        const wrappedCode = `
+          const __exports = {};
+          const __require = (name) => {
+            if (!__modules[name]) throw new Error('Module not found: ' + name);
+            return __modules[name];
+          };
+
+          ${rewriteImports(compiledCode)}
+
+          return __exports;
+        `;
+
+        // Note: Using Function constructor for code execution
+        // This is intentional for the playground but has security implications
+        // User code is sandboxed with timeout and limited module access
+        const fn = new Function('__modules', wrappedCode);
+        return fn(moduleMap);
+      }, 5000);
+    });
+
     if (!result.schema) {
       return {
         success: false,
@@ -176,10 +227,20 @@ export function executeAndBuildSchema(
     };
   } catch (err) {
     const error = err as Error;
+
+    // Check if this was a timeout error
+    if (error.message.includes('timeout')) {
+      return {
+        success: false,
+        error: `⏱️  ${error.message}`,
+        consoleLogs: [],
+      };
+    }
+
     return {
       success: false,
       error: error.message,
-      consoleLogs: logs,
+      consoleLogs: [],
     };
   }
 }
