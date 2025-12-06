@@ -5,6 +5,12 @@ let initialized = false;
 let monaco: Monaco | null = null;
 const loadedPlugins = new Set<string>();
 
+// Cache getAllPluginNames result (static list)
+let cachedPluginNames: string[] | null = null;
+
+// Debounce timer for plugin loading
+let loadPluginTypesTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function setupMonacoForPothos(monacoInstance: Monaco): void {
   if (initialized) {
     return;
@@ -72,26 +78,45 @@ function loadTypeDefinitions(typeDefs: Array<{ moduleName: string; content: stri
 }
 
 /**
+ * Get cached plugin names list (avoids repeated calls to getAllPluginNames)
+ */
+function getCachedPluginNames(): string[] {
+  if (!cachedPluginNames) {
+    cachedPluginNames = getAllPluginNames();
+  }
+  return cachedPluginNames;
+}
+
+/**
  * Load plugin types dynamically based on imports in the code
+ * Uses debouncing to avoid loading on every keystroke
  */
 export function loadPluginTypes(code: string): void {
   if (!monaco) {
     return;
   }
 
-  // Extract plugin imports from code
-  const pluginImports = extractPluginImports(code);
-  const allPluginNames = getAllPluginNames();
-
-  // Load newly imported plugins
-  for (const pluginName of Array.from(pluginImports)) {
-    if (!loadedPlugins.has(pluginName) && allPluginNames.includes(pluginName)) {
-      const pluginTypes = getPluginTypeDefinitions(pluginName);
-      loadTypeDefinitions(pluginTypes);
-      loadedPlugins.add(pluginName);
-      console.log(`[Monaco] Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
-    }
+  // Clear existing timer to debounce
+  if (loadPluginTypesTimer) {
+    clearTimeout(loadPluginTypesTimer);
   }
+
+  // Debounce plugin loading to avoid excessive calls during typing
+  loadPluginTypesTimer = setTimeout(() => {
+    // Extract plugin imports from code
+    const pluginImports = extractPluginImports(code);
+    const allPluginNames = getCachedPluginNames();
+
+    // Load newly imported plugins
+    for (const pluginName of Array.from(pluginImports)) {
+      if (!loadedPlugins.has(pluginName) && allPluginNames.includes(pluginName)) {
+        const pluginTypes = getPluginTypeDefinitions(pluginName);
+        loadTypeDefinitions(pluginTypes);
+        loadedPlugins.add(pluginName);
+        console.log(`[Monaco] Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
+      }
+    }
+  }, 500); // 500ms debounce
 
   // Note: We don't unload unused plugins because Monaco doesn't provide
   // a clean way to remove specific type definitions. This is acceptable
@@ -117,4 +142,11 @@ export function resetMonacoSetup(): void {
   initialized = false;
   monaco = null;
   loadedPlugins.clear();
+  cachedPluginNames = null;
+
+  // Clear any pending debounce timer
+  if (loadPluginTypesTimer) {
+    clearTimeout(loadPluginTypesTimer);
+    loadPluginTypesTimer = null;
+  }
 }
