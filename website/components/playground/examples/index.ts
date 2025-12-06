@@ -11,12 +11,19 @@
 import type { PlaygroundExample } from '../types';
 import { exampleIds as generatedExampleIds } from './examples-index.generated';
 
+export type { ExampleMetadata } from './examples-index.generated';
 // Re-export auto-generated example IDs and metadata
 export { exampleIds, exampleMetadata, getExampleMetadata } from './examples-index.generated';
-export type { ExampleMetadata } from './examples-index.generated';
 
 // Cache for loaded examples
 const examplesCache = new Map<string, PlaygroundExample>();
+
+/**
+ * Lightweight synchronous list of examples (metadata only, no code).
+ * Use this for listing examples in the UI.
+ * Use getExample() to load the full example with code on-demand.
+ */
+export { exampleMetadata as examples } from './examples-index.generated';
 
 /**
  * Dynamically load an example by ID.

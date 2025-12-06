@@ -8,7 +8,6 @@ import type { Fetcher } from '@graphiql/toolkit';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { GraphqlPlain } from 'devicons-react';
 import { GraphQLError, type GraphQLSchema, graphql } from 'graphql';
-import { captureConsoleAsync } from '../../lib/playground/console-capture';
 import {
   BookOpen,
   Check,
@@ -29,9 +28,10 @@ import {
 import Link from 'next/link';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ConsolePanel } from '../../components/playground/ConsolePanel';
-import { examplesList } from '../../components/playground/examples';
+import { examples as examplesList, getExample } from '../../components/playground/examples';
 import { GraphQLEditor } from '../../components/playground/GraphQLEditor';
 import type { PlaygroundFile } from '../../components/playground/types';
+import { captureConsoleAsync } from '../../lib/playground/console-capture';
 import { generateSchemaKey } from '../../lib/playground/hash-utils';
 import { clearSchemaCache } from '../../lib/playground/schema-cache';
 import {
@@ -107,7 +107,9 @@ function useAutoTheme() {
 
 function createFetcher(
   schemaRef: { current: GraphQLSchema | null },
-  onConsoleLogs: (logs: Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[] }>) => void,
+  onConsoleLogs: (
+    logs: Array<{ type: 'log' | 'warn' | 'error' | 'info'; args: unknown[] }>,
+  ) => void,
 ): Fetcher {
   return async ({ query, variables, operationName }) => {
     // Capture schema reference to prevent race conditions
@@ -146,7 +148,9 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
   const theme = useAutoTheme();
   const monaco = useMonaco();
   const [typesLoaded, setTypesLoaded] = useState(false);
-  const editorRef = useRef<Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null>(null);
+  const editorRef = useRef<
+    Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null
+  >(null);
 
   useEffect(() => {
     if (monaco && !typesLoaded) {
@@ -169,9 +173,10 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, onChange }) => {
   // Expose format function globally
   useEffect(() => {
     if (editorRef.current) {
-      (window as typeof window & { __monacoFormatHandler?: () => void }).__monacoFormatHandler = () => {
-        editorRef.current?.getAction('editor.action.formatDocument')?.run();
-      };
+      (window as typeof window & { __monacoFormatHandler?: () => void }).__monacoFormatHandler =
+        () => {
+          editorRef.current?.getAction('editor.action.formatDocument')?.run();
+        };
     }
   }, []);
 
@@ -261,7 +266,9 @@ export default function PlaygroundPage() {
   const [showBottomPanel, setShowBottomPanel] = useState(false);
   const [bottomPanelTab, setBottomPanelTab] = useState<'schema' | 'console'>('console');
   const [showGraphQLBottomPanel, setShowGraphQLBottomPanel] = useState(false);
-  const [graphQLBottomPanelTab, setGraphQLBottomPanelTab] = useState<'variables' | 'schema' | 'console'>('variables');
+  const [graphQLBottomPanelTab, setGraphQLBottomPanelTab] = useState<
+    'variables' | 'schema' | 'console'
+  >('variables');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const [initialized, setInitialized] = useState(false);
   const prevSchemaRef = useRef<GraphQLSchema | null>(null);
@@ -277,58 +284,62 @@ export default function PlaygroundPage() {
       return;
     }
 
-    // First check for hash-based state (new format)
-    const urlState = getPlaygroundStateFromURL();
-    if (urlState) {
-      setFiles(urlState.files);
-      if (urlState.viewMode) {
-        setViewMode(urlState.viewMode);
-      }
-      if (urlState.query) {
-        setCurrentQuery(urlState.query);
-      }
-      if (urlState.variables) {
-        setCurrentVariables(urlState.variables);
-      }
-      setInitialized(true);
-      return;
-    }
-
-    // Fallback to query parameters for backward compatibility and special modes
-    const params = new URLSearchParams(window.location.search);
-    const exampleId = params.get('example');
-    const codeParam = params.get('code');
-    const queryParam = params.get('query');
-    const embedParam = params.get('embed') || params.get('overlay');
-
-    // Check for embed/overlay mode
-    if (embedParam === 'true') {
-      setIsEmbedMode(true);
-    }
-
-    if (exampleId) {
-      // Load example from registry
-      const example = examplesList.find((e) => e.id === exampleId);
-      if (example) {
-        setFiles(example.files);
-        setCurrentQuery(queryParam ? atob(decodeURIComponent(queryParam)) : example.defaultQuery);
-        setViewMode(queryParam ? 'graphql' : 'code');
-      }
-    } else if (codeParam) {
-      // Load custom code from parameter
-      try {
-        const decodedCode = decodeURIComponent(atob(codeParam));
-        setFiles([{ filename: 'schema.ts', content: decodedCode }]);
-        if (queryParam) {
-          setCurrentQuery(atob(decodeURIComponent(queryParam)));
-          setViewMode('graphql');
+    async function initializePlayground() {
+      // First check for hash-based state (new format)
+      const urlState = getPlaygroundStateFromURL();
+      if (urlState) {
+        setFiles(urlState.files);
+        if (urlState.viewMode) {
+          setViewMode(urlState.viewMode);
         }
-      } catch (err) {
-        console.error('[Playground] Failed to decode code parameter:', err);
+        if (urlState.query) {
+          setCurrentQuery(urlState.query);
+        }
+        if (urlState.variables) {
+          setCurrentVariables(urlState.variables);
+        }
+        setInitialized(true);
+        return;
       }
+
+      // Fallback to query parameters for backward compatibility and special modes
+      const params = new URLSearchParams(window.location.search);
+      const exampleId = params.get('example');
+      const codeParam = params.get('code');
+      const queryParam = params.get('query');
+      const embedParam = params.get('embed') || params.get('overlay');
+
+      // Check for embed/overlay mode
+      if (embedParam === 'true') {
+        setIsEmbedMode(true);
+      }
+
+      if (exampleId) {
+        // Load example from registry asynchronously
+        const example = await getExample(exampleId);
+        if (example) {
+          setFiles(example.files);
+          setCurrentQuery(queryParam ? atob(decodeURIComponent(queryParam)) : example.defaultQuery);
+          setViewMode(queryParam ? 'graphql' : 'code');
+        }
+      } else if (codeParam) {
+        // Load custom code from parameter
+        try {
+          const decodedCode = decodeURIComponent(atob(codeParam));
+          setFiles([{ filename: 'schema.ts', content: decodedCode }]);
+          if (queryParam) {
+            setCurrentQuery(atob(decodeURIComponent(queryParam)));
+            setViewMode('graphql');
+          }
+        } catch (err) {
+          console.error('[Playground] Failed to decode code parameter:', err);
+        }
+      }
+
+      setInitialized(true);
     }
 
-    setInitialized(true);
+    initializePlayground();
   }, [initialized]);
 
   // Sync state to URL
@@ -388,8 +399,8 @@ export default function PlaygroundPage() {
     setCurrentVariables(variables || '');
   }, []);
 
-  const handleLoadExample = (exampleId: string) => {
-    const example = examplesList.find((e) => e.id === exampleId);
+  const handleLoadExample = async (exampleId: string) => {
+    const example = await getExample(exampleId);
     if (example) {
       prevSchemaRef.current = null; // Force schema version increment on next compile
       setCurrentQuery(example.defaultQuery); // Set the query for defaultTabs
@@ -490,7 +501,8 @@ export default function PlaygroundPage() {
 
   // Combine schema and query console logs
   const allConsoleLogs = useMemo(
-    () => [...compilerState.consoleLogs, ...queryConsoleLogs].sort((a, b) => a.timestamp - b.timestamp),
+    () =>
+      [...compilerState.consoleLogs, ...queryConsoleLogs].sort((a, b) => a.timestamp - b.timestamp),
     [compilerState.consoleLogs, queryConsoleLogs],
   );
 
@@ -517,104 +529,104 @@ export default function PlaygroundPage() {
             <div className="graphiql-container flex min-h-0 flex-1 overflow-hidden">
               {/* Left Sidebar - Narrow icon bar (hidden in embed mode) */}
               {!isEmbedMode && (
-              <div className="flex h-full w-14 flex-col border-r border-fd-border bg-fd-muted/30">
-                {/* View modes */}
-                <button
-                  type="button"
-                  title="Source Code (TypeScript)"
-                  onClick={() => setViewMode('code')}
-                  className={`flex h-12 w-full items-center justify-center transition-colors ${
-                    viewMode === 'code'
-                      ? 'bg-fd-primary/10 text-fd-primary'
-                      : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
-                  }`}
-                >
-                  <FileCode2 size={20} />
-                </button>
-                <button
-                  type="button"
-                  title="GraphQL Query"
-                  onClick={() => setViewMode('graphql')}
-                  className={`flex h-12 w-full items-center justify-center transition-colors ${
-                    viewMode === 'graphql'
-                      ? 'bg-fd-primary/10 text-fd-primary'
-                      : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
-                  }`}
-                >
-                  <GraphqlPlain size={20} color="currentColor" />
-                </button>
-
-                <div className="my-2 border-t border-fd-border" />
-
-                {/* Panel toggles */}
-                <button
-                  type="button"
-                  title="Documentation"
-                  onClick={() => setLeftPanel(leftPanel === 'docs' ? null : 'docs')}
-                  className={`flex h-12 w-full items-center justify-center transition-colors ${
-                    leftPanel === 'docs'
-                      ? 'bg-fd-primary/10 text-fd-primary'
-                      : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
-                  }`}
-                >
-                  <BookOpen size={18} />
-                </button>
-                <button
-                  type="button"
-                  title="Examples"
-                  onClick={() => setLeftPanel(leftPanel === 'examples' ? null : 'examples')}
-                  className={`flex h-12 w-full items-center justify-center transition-colors ${
-                    leftPanel === 'examples'
-                      ? 'bg-fd-primary/10 text-fd-primary'
-                      : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
-                  }`}
-                >
-                  <Lightbulb size={18} />
-                </button>
-
-                {/* Spacer */}
-                <div className="flex-1" />
-
-                {/* Bottom actions */}
-                <div className="relative">
+                <div className="flex h-full w-14 flex-col border-r border-fd-border bg-fd-muted/30">
+                  {/* View modes */}
                   <button
                     type="button"
-                    title="Copy shareable link"
-                    onClick={handleShare}
-                    className={`flex h-12 w-full items-center justify-center transition-colors hover:bg-fd-muted hover:text-fd-foreground ${
-                      shareStatus === 'copied'
-                        ? 'text-green-500'
-                        : shareStatus === 'error'
-                          ? 'text-red-500'
-                          : 'text-fd-muted-foreground'
+                    title="Source Code (TypeScript)"
+                    onClick={() => setViewMode('code')}
+                    className={`flex h-12 w-full items-center justify-center transition-colors ${
+                      viewMode === 'code'
+                        ? 'bg-fd-primary/10 text-fd-primary'
+                        : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
                     }`}
                   >
-                    {shareStatus === 'copied' ? <Check size={16} /> : <Share2 size={16} />}
+                    <FileCode2 size={20} />
                   </button>
-                  {shareStatus === 'copied' && (
-                    <div className="absolute left-14 top-1/2 -translate-y-1/2 whitespace-nowrap rounded bg-fd-popover px-2 py-1 text-xs text-fd-foreground shadow-lg">
-                      Link copied!
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    title="GraphQL Query"
+                    onClick={() => setViewMode('graphql')}
+                    className={`flex h-12 w-full items-center justify-center transition-colors ${
+                      viewMode === 'graphql'
+                        ? 'bg-fd-primary/10 text-fd-primary'
+                        : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
+                    }`}
+                  >
+                    <GraphqlPlain size={20} color="currentColor" />
+                  </button>
+
+                  <div className="my-2 border-t border-fd-border" />
+
+                  {/* Panel toggles */}
+                  <button
+                    type="button"
+                    title="Documentation"
+                    onClick={() => setLeftPanel(leftPanel === 'docs' ? null : 'docs')}
+                    className={`flex h-12 w-full items-center justify-center transition-colors ${
+                      leftPanel === 'docs'
+                        ? 'bg-fd-primary/10 text-fd-primary'
+                        : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
+                    }`}
+                  >
+                    <BookOpen size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    title="Examples"
+                    onClick={() => setLeftPanel(leftPanel === 'examples' ? null : 'examples')}
+                    className={`flex h-12 w-full items-center justify-center transition-colors ${
+                      leftPanel === 'examples'
+                        ? 'bg-fd-primary/10 text-fd-primary'
+                        : 'text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground'
+                    }`}
+                  >
+                    <Lightbulb size={18} />
+                  </button>
+
+                  {/* Spacer */}
+                  <div className="flex-1" />
+
+                  {/* Bottom actions */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      title="Copy shareable link"
+                      onClick={handleShare}
+                      className={`flex h-12 w-full items-center justify-center transition-colors hover:bg-fd-muted hover:text-fd-foreground ${
+                        shareStatus === 'copied'
+                          ? 'text-green-500'
+                          : shareStatus === 'error'
+                            ? 'text-red-500'
+                            : 'text-fd-muted-foreground'
+                      }`}
+                    >
+                      {shareStatus === 'copied' ? <Check size={16} /> : <Share2 size={16} />}
+                    </button>
+                    {shareStatus === 'copied' && (
+                      <div className="absolute left-14 top-1/2 -translate-y-1/2 whitespace-nowrap rounded bg-fd-popover px-2 py-1 text-xs text-fd-foreground shadow-lg">
+                        Link copied!
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    title="Reset"
+                    onClick={handleReset}
+                    className="flex h-12 w-full items-center justify-center text-fd-muted-foreground transition-colors hover:bg-fd-muted hover:text-fd-foreground"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                  <div className="my-1 border-t border-fd-border" />
+                  {/* Home link */}
+                  <Link
+                    href="/"
+                    title="Back to Pothos Docs"
+                    className="flex h-12 w-full items-center justify-center text-fd-muted-foreground transition-colors hover:bg-fd-muted hover:text-fd-foreground"
+                  >
+                    <Home size={20} />
+                  </Link>
                 </div>
-                <button
-                  type="button"
-                  title="Reset"
-                  onClick={handleReset}
-                  className="flex h-12 w-full items-center justify-center text-fd-muted-foreground transition-colors hover:bg-fd-muted hover:text-fd-foreground"
-                >
-                  <RotateCcw size={16} />
-                </button>
-                <div className="my-1 border-t border-fd-border" />
-                {/* Home link */}
-                <Link
-                  href="/"
-                  title="Back to Pothos Docs"
-                  className="flex h-12 w-full items-center justify-center text-fd-muted-foreground transition-colors hover:bg-fd-muted hover:text-fd-foreground"
-                >
-                  <Home size={20} />
-                </Link>
-              </div>
               )}
 
               {/* Left Panel - Docs, Examples, Console */}
@@ -693,9 +705,7 @@ export default function PlaygroundPage() {
                           compilerState.lastCompiledAt && (
                             <span className="text-xs text-green-500">✓</span>
                           )}
-                        {compilerState.error && (
-                          <span className="text-xs text-red-500">Error</span>
-                        )}
+                        {compilerState.error && <span className="text-xs text-red-500">Error</span>}
                       </div>
                     </div>
                     {/* Content area - split view with code editor and SDL */}
@@ -710,7 +720,10 @@ export default function PlaygroundPage() {
                             </pre>
                           </div>
                         )}
-                        <div className="graphiql-session relative" style={{ flex: 1, minHeight: 0 }}>
+                        <div
+                          className="graphiql-session relative"
+                          style={{ flex: 1, minHeight: 0 }}
+                        >
                           <SourceEditor
                             source={mainFile?.content || ''}
                             onChange={handleSourceChange}
@@ -721,7 +734,9 @@ export default function PlaygroundPage() {
                               type="button"
                               className="graphiql-toolbar-button"
                               onClick={() => {
-                                const handler = (window as typeof window & { __monacoFormatHandler?: () => void }).__monacoFormatHandler;
+                                const handler = (
+                                  window as typeof window & { __monacoFormatHandler?: () => void }
+                                ).__monacoFormatHandler;
                                 if (handler) {
                                   handler();
                                 }
@@ -783,7 +798,9 @@ export default function PlaygroundPage() {
                                 if (!compilerState.schemaSDL) {
                                   return;
                                 }
-                                const blob = new Blob([compilerState.schemaSDL], { type: 'text/plain' });
+                                const blob = new Blob([compilerState.schemaSDL], {
+                                  type: 'text/plain',
+                                });
                                 const url = URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
@@ -803,7 +820,10 @@ export default function PlaygroundPage() {
                       </div>
 
                       {/* Right side - Schema SDL split view (hidden on small screens, shown in bottom panel instead) */}
-                      <div className="hidden flex-col border-l border-fd-border xl:flex" style={{ width: 400 }}>
+                      <div
+                        className="hidden flex-col border-l border-fd-border xl:flex"
+                        style={{ width: 400 }}
+                      >
                         <SchemaViewer schemaSDL={compilerState.schemaSDL} />
                       </div>
                     </div>
@@ -870,9 +890,7 @@ export default function PlaygroundPage() {
                             <SchemaViewer schemaSDL={compilerState.schemaSDL} />
                           </div>
                         )}
-                        {bottomPanelTab === 'console' && (
-                          <ConsolePanel messages={allConsoleLogs} />
-                        )}
+                        {bottomPanelTab === 'console' && <ConsolePanel messages={allConsoleLogs} />}
                       </div>
                     </div>
                   </div>
