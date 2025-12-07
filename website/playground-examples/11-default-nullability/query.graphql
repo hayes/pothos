@@ -1,0 +1,17 @@
+query DefaultNullabilityExample {
+  # Non-nullable list by default
+  users {
+    id
+    username
+    email
+    bio # This field is nullable (explicitly marked)
+    displayName
+  }
+
+  # Nullable field (explicitly marked)
+  user(id: "1") {
+    id
+    username
+    displayName
+  }
+}

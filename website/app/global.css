@@ -131,7 +131,15 @@ html.dark [data-radix-popper-content-wrapper] {
 html:not(.dark) .graphiql-container.graphiql-container,
 html:not(.dark) .graphiql-dialog.graphiql-dialog,
 html:not(.dark) .graphiql-dialog-overlay.graphiql-dialog-overlay,
-html:not(.dark) .graphiql-tooltip.graphiql-tooltip {
+html:not(.dark) .graphiql-tooltip.graphiql-tooltip,
+html.light .graphiql-container.graphiql-container,
+html.light .graphiql-dialog.graphiql-dialog,
+html.light .graphiql-dialog-overlay.graphiql-dialog-overlay,
+html.light .graphiql-tooltip.graphiql-tooltip,
+.light .graphiql-container.graphiql-container,
+.light .graphiql-dialog.graphiql-dialog,
+.light .graphiql-dialog-overlay.graphiql-dialog-overlay,
+.light .graphiql-tooltip.graphiql-tooltip {
   --color-primary: 152, 70%, 40%;
   --color-secondary: 152, 60%, 50%;
   --color-neutral: 150, 15%, 30%;
@@ -188,7 +196,11 @@ html.dark .graphiql-editor-container {
 
 /* Light mode explicit override when user has dark system preference but light site theme */
 html:not(.dark) .graphiql-editor-container.graphiql-container,
-html:not(.dark) .graphiql-editor-container {
+html:not(.dark) .graphiql-editor-container,
+html.light .graphiql-editor-container.graphiql-container,
+html.light .graphiql-editor-container,
+.light .graphiql-editor-container.graphiql-container,
+.light .graphiql-editor-container {
   --color-primary: 152, 70%, 40%;
   --color-secondary: 152, 60%, 45%;
   --color-base: 150, 20%, 99%;
@@ -594,15 +606,16 @@ html:not(.dark) .graphiql-editor-container {
   height: 100%;
 }
 
-/* Monaco backgrounds - make transparent to show container background */
+/* Make Monaco editor backgrounds transparent to show theme colors */
 .graphiql-editor-container .monaco-editor,
 .graphiql-editor-container .monaco-editor .margin,
 .graphiql-editor-container .monaco-editor-background,
-/* Schema viewer in right panel */
+.graphiql-editor-container .monaco-editor .inputarea.ime-input,
 .schema-viewer .monaco-editor,
 .schema-viewer .monaco-editor .margin,
-.schema-viewer .monaco-editor-background {
-  background: transparent;
+.schema-viewer .monaco-editor-background,
+.schema-viewer .monaco-editor .inputarea.ime-input {
+  background-color: transparent;
 }
 
 /* ============================================

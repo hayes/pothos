@@ -1,0 +1,28 @@
+{
+  "id": "03-input-objects",
+  "title": "Input Objects",
+  "description": "Learn to create input types for mutations and queries",
+  "category": "core",
+  "subcategory": "getting-started",
+  "difficulty": "beginner",
+  "order": 3,
+  "tags": ["inputs", "mutations", "arguments"],
+  "relatedDocs": ["/docs/guide/inputs"],
+  "prerequisites": ["01-first-schema"],
+  "snippets": [
+    {
+      "label": "Creating an Input Type",
+      "filename": "schema.ts",
+      "startLine": 11,
+      "endLine": 17,
+      "description": "Define input types with builder.inputType"
+    },
+    {
+      "label": "Using Input in Mutation",
+      "filename": "schema.ts",
+      "startLine": 19,
+      "endLine": 30,
+      "description": "Use input types as arguments to mutations"
+    }
+  ]
+}

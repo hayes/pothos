@@ -1,0 +1,21 @@
+{
+  "id": "validation-plugin",
+  "title": "Validation Plugin",
+  "description": "Learn to validate arguments and inputs with Zod",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 10,
+  "tags": ["validation", "zod", "arguments"],
+  "relatedDocs": ["/docs/plugins/validation"],
+  "prerequisites": ["03-input-objects"],
+  "snippets": [
+    {
+      "label": "Argument Validation",
+      "filename": "schema.ts",
+      "startLine": 16,
+      "endLine": 27,
+      "description": "Validate individual arguments with Zod schemas"
+    }
+  ]
+}

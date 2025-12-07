@@ -11,9 +11,16 @@
 import type { PlaygroundExample } from '../types';
 import { exampleIds as generatedExampleIds } from './examples-index.generated';
 
-export type { ExampleMetadata } from './examples-index.generated';
+export type { CodeSnippet, ExampleMetadata, Step } from './examples-index.generated';
 // Re-export auto-generated example IDs and metadata
-export { exampleIds, exampleMetadata, getExampleMetadata } from './examples-index.generated';
+export {
+  exampleIds,
+  exampleMetadata,
+  getExampleMetadata,
+  getExamplesByCategory,
+  getExamplesBySubcategory,
+  getOrganizedExamples,
+} from './examples-index.generated';
 
 // Cache for loaded examples
 const examplesCache = new Map<string, PlaygroundExample>();

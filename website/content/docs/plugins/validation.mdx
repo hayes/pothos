@@ -23,7 +23,7 @@ npm install --save @pothos/plugin-validation arktype
 
 ### Setup
 
-```typescript
+```typescript playground example="validation-plugin"
 import ValidationPlugin from '@pothos/plugin-validation';
 import { z } from 'zod'; // or your preferred validation library
 
@@ -61,7 +61,7 @@ The validation plugin supports validating inputs and arguments in several differ
 
 Validate each field argument independently using either the object syntax or chaining API:
 
-```typescript
+```typescript playground example="validation-plugin"
 builder.queryType({
   fields: (t) => ({
     user: t.string({
@@ -69,8 +69,9 @@ builder.queryType({
         email: t.arg.string({
           validate: z.string().email(),
         }),
-        name: t.arg.string()
-          .validate(z.string().min(2).max(50)),
+        name: t.arg.string({
+          validate: z.string().min(2).max(50),
+        }),
       },
       resolve: (_, args) => `User: ${args.name}`,
     }),

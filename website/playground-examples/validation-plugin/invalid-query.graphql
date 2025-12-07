@@ -1,0 +1,9 @@
+# This query will fail validation
+query InvalidEmail {
+  simple(email: "not-an-email")
+}
+
+# This mutation will fail - name too short
+mutation CreateInvalidUser {
+  createUser(email: "test@example.com", name: "A")
+}

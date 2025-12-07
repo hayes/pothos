@@ -1,0 +1,12 @@
+{
+  "id": "11-default-nullability",
+  "title": "Default Nullability",
+  "description": "Configure non-nullable defaults for production schemas",
+  "category": "core",
+  "subcategory": "advanced-patterns",
+  "difficulty": "beginner",
+  "order": 11,
+  "tags": ["nullability", "configuration", "defaults"],
+  "relatedDocs": ["/docs/guide/changing-default-nullability"],
+  "prerequisites": ["10-fields"]
+}

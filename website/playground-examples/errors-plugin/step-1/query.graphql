@@ -1,0 +1,11 @@
+query HelloWorld {
+  hello(name: "World") {
+    __typename
+    ... on Error {
+      message
+    }
+    ... on QueryHelloSuccess {
+      data
+    }
+  }
+}
