@@ -1,0 +1,12 @@
+query GetGiraffeFacts {
+  giraffeFacts {
+    __typename
+    ... on GiraffeStringFact {
+      fact
+    }
+    ... on GiraffeNumericFact {
+      fact
+      value
+    }
+  }
+}

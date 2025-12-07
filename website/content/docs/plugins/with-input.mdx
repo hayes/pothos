@@ -17,7 +17,7 @@ npm install --save @pothos/plugin-with-input
 
 ### Setup
 
-```typescript
+```typescript playground example="with-input-plugin"
 import WithInputPlugin from '@pothos/plugin-with-input';
 const builder = new SchemaBuilder({
   plugins: [WithInputPlugin],
@@ -35,7 +35,7 @@ const builder = new SchemaBuilder({
 
 ### Defining fields with inputs
 
-```typescript
+```typescript playground example="with-input-plugin"
 builder.queryType({
   fields: (t) => ({
     example: t.fieldWithInput({

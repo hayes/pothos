@@ -20,17 +20,25 @@ import {
   GitBranch,
   Home,
   Lightbulb,
+  Moon,
   Plus,
   RotateCcw,
   Share2,
   Sparkles,
+  Sun,
   Terminal,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ConsolePanel } from '../../components/playground/ConsolePanel';
-import { examples as examplesList, getExample } from '../../components/playground/examples';
+import {
+  type ExampleMetadata,
+  examples as examplesList,
+  getExample,
+  getOrganizedExamples,
+} from '../../components/playground/examples';
 import { GraphQLEditor } from '../../components/playground/GraphQLEditor';
 import type { PlaygroundFile } from '../../components/playground/types';
 import { captureConsoleAsync } from '../../lib/playground/console-capture';
@@ -66,45 +74,245 @@ const DEFAULT_QUERY = `{
   hello(name: "Pothos")
 }`;
 
-function useAutoTheme() {
-  const [theme, setTheme] = useState<'vs-dark' | 'vs'>('vs-dark');
+// Category configuration with icons and display names
+const CATEGORY_CONFIG = {
+  core: { label: 'Core Concepts', icon: '📚', defaultOpen: true },
+  plugins: { label: 'Plugin Features', icon: '🔌', defaultOpen: false },
+  patterns: { label: 'Advanced Patterns', icon: '🎯', defaultOpen: false },
+  examples: { label: 'Real-World Examples', icon: '💡', defaultOpen: false },
+};
 
+const DIFFICULTY_BADGES = {
+  beginner: { label: 'Beginner', className: 'bg-green-500/10 text-green-600 dark:text-green-400' },
+  intermediate: {
+    label: 'Intermediate',
+    className: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  },
+  advanced: { label: 'Advanced', className: 'bg-red-500/10 text-red-600 dark:text-red-400' },
+};
+
+/**
+ * Examples panel component with categorized, collapsible sections
+ */
+const ExamplesPanel: FC<{ onLoadExample: (id: string) => void }> = ({ onLoadExample }) => {
+  // Filter out step variants (e.g., errors-plugin-step-1, errors-plugin-step-2)
+  // Only show base examples with steps nested
+  const filteredExamples = useMemo(
+    () => examplesList.filter((ex) => !ex.id.match(/-step-\d+$/)),
+    [],
+  );
+  const organized = useMemo(() => {
+    const all = getOrganizedExamples();
+    // Filter step variants from each category
+    const filtered: Record<string, Record<string, ExampleMetadata[]>> = {};
+    for (const [category, subcategories] of Object.entries(all)) {
+      filtered[category] = {};
+      for (const [subcategory, examples] of Object.entries(subcategories)) {
+        filtered[category][subcategory] = examples.filter((ex) => !ex.id.match(/-step-\d+$/));
+      }
+    }
+    return filtered;
+  }, []);
+  const uncategorized = useMemo(
+    () => filteredExamples.filter((ex) => !ex.category),
+    [filteredExamples],
+  );
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
+    // Default to opening categories based on config
+    return new Set(
+      Object.entries(CATEGORY_CONFIG)
+        .filter(([_, config]) => config.defaultOpen)
+        .map(([key]) => key),
+    );
+  });
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
+
+  const toggleSteps = (exampleId: string) => {
+    setExpandedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(exampleId)) {
+        next.delete(exampleId);
+      } else {
+        next.add(exampleId);
+      }
+      return next;
+    });
+  };
+
+  const renderExample = (example: ExampleMetadata) => {
+    // Check if this example has steps
+    const hasSteps = example.steps && example.steps.length > 0;
+    const isStepsExpanded = expandedSteps.has(example.id);
+
+    return (
+      <div key={example.id}>
+        <button
+          type="button"
+          onClick={() => {
+            if (hasSteps) {
+              toggleSteps(example.id);
+            } else {
+              onLoadExample(example.id);
+            }
+          }}
+          className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-fd-muted"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex-1 font-medium text-fd-foreground">
+              {example.title}
+              {hasSteps && example.steps && (
+                <span className="ml-1 text-xs text-fd-muted-foreground">
+                  ({example.steps.length} steps)
+                </span>
+              )}
+            </div>
+            {hasSteps &&
+              (isStepsExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronUp className="h-3 w-3 rotate-180" />
+              ))}
+            {example.difficulty && !hasSteps && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIFFICULTY_BADGES[example.difficulty].className}`}
+              >
+                {DIFFICULTY_BADGES[example.difficulty].label}
+              </span>
+            )}
+          </div>
+          {example.description && !hasSteps && (
+            <div className="mt-0.5 text-xs text-fd-muted-foreground">{example.description}</div>
+          )}
+        </button>
+
+        {/* Show individual steps when expanded */}
+        {hasSteps && isStepsExpanded && example.steps && (
+          <div className="ml-4 mt-1 space-y-0.5">
+            {example.steps.map((step, index) => {
+              const stepExampleId = `${example.id}-${step.id}`;
+              return (
+                <button
+                  key={stepExampleId}
+                  type="button"
+                  onClick={() => onLoadExample(stepExampleId)}
+                  className="w-full rounded-md px-3 py-1.5 text-left text-xs transition-colors hover:bg-fd-muted"
+                >
+                  <div className="font-medium text-fd-foreground">
+                    {index + 1}. {step.title}
+                  </div>
+                  <div className="mt-0.5 text-xs text-fd-muted-foreground">{step.description}</div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-2">
+      {/* Categorized examples */}
+      {Object.entries(organized).map(([category, subcategories]) => {
+        const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
+        if (!config) {
+          return null;
+        }
+
+        const isExpanded = expandedCategories.has(category);
+
+        return (
+          <div key={category} className="mb-3">
+            <button
+              type="button"
+              onClick={() => toggleCategory(category)}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold text-fd-foreground transition-colors hover:bg-fd-muted"
+            >
+              <span>{config.icon}</span>
+              <span className="flex-1 text-left">{config.label}</span>
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4 rotate-180" />
+              )}
+            </button>
+
+            {isExpanded && (
+              <div className="ml-2 mt-1 space-y-1">
+                {Object.entries(subcategories).map(([subcategory, examples]) => (
+                  <div key={subcategory} className="space-y-0.5">
+                    <div className="px-2 py-1 text-xs font-medium text-fd-muted-foreground capitalize">
+                      {subcategory.replace(/-/g, ' ')}
+                    </div>
+                    {examples.map(renderExample)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Uncategorized examples (backward compatibility) */}
+      {uncategorized.length > 0 && (
+        <div className="space-y-0.5">
+          {uncategorized.length > 0 && Object.keys(organized).length > 0 && (
+            <div className="mb-2 border-t border-fd-border pt-2" />
+          )}
+          {uncategorized.map(renderExample)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+function useMonacoTheme(theme: string | undefined, resolvedTheme: string | undefined) {
+  const [monacoTheme, setMonacoTheme] = useState<'vs-dark' | 'vs'>('vs-dark');
+  const [mounted, setMounted] = useState(false);
+
+  // Track mounted state to avoid hydration mismatch
   useEffect(() => {
-    const updateTheme = () => {
-      // Check for dark class first
-      if (document.documentElement.classList.contains('dark')) {
-        setTheme('vs-dark');
-        return;
-      }
-
-      // Check for light class
-      if (document.documentElement.classList.contains('light')) {
-        setTheme('vs');
-        return;
-      }
-
-      // Fall back to system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(prefersDark ? 'vs-dark' : 'vs');
-    };
-
-    updateTheme();
-
-    // Watch for class changes
-    const observer = new MutationObserver(updateTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-    // Watch for system preference changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', updateTheme);
-
-    return () => {
-      observer.disconnect();
-      mediaQuery.removeEventListener('change', updateTheme);
-    };
+    setMounted(true);
   }, []);
 
-  return theme;
+  // Update Monaco theme when next-themes resolves or changes
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
+    // Determine effective theme: use explicit theme if set, otherwise use resolvedTheme
+    // theme can be 'light', 'dark', 'system', or undefined
+    let effectiveTheme: string | undefined;
+
+    if (theme && theme !== 'system') {
+      // User has explicitly set light or dark mode
+      effectiveTheme = theme;
+    } else {
+      // Use resolved theme (system preference or default)
+      effectiveTheme = resolvedTheme;
+    }
+
+    const newTheme = effectiveTheme === 'light' ? 'vs' : 'vs-dark';
+
+    if (newTheme !== monacoTheme) {
+      setMonacoTheme(newTheme);
+    }
+  }, [theme, resolvedTheme, mounted, monacoTheme]);
+
+  return monacoTheme;
 }
 
 function createFetcher(
@@ -149,12 +357,15 @@ interface SourceEditorProps {
 }
 
 const SourceEditor: FC<SourceEditorProps> = ({ source, filename, onChange, allFiles }) => {
-  const theme = useAutoTheme();
   const monaco = useMonaco();
   const [typesLoaded, setTypesLoaded] = useState(false);
   const editorRef = useRef<
     Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null
   >(null);
+
+  // Get current theme from next-themes (used to prevent Editor from overriding global theme)
+  const { resolvedTheme } = useTheme();
+  const editorTheme = resolvedTheme === 'light' ? 'vs' : 'vs-dark';
 
   useEffect(() => {
     if (monaco && !typesLoaded) {
@@ -208,7 +419,7 @@ const SourceEditor: FC<SourceEditorProps> = ({ source, filename, onChange, allFi
       language="typescript"
       path={`file:///playground/${filename}`}
       value={source}
-      theme={theme}
+      theme={editorTheme}
       onChange={(value) => value !== undefined && onChange(value)}
       onMount={(editor) => {
         editorRef.current = editor;
@@ -246,7 +457,9 @@ interface SchemaViewerProps {
 }
 
 const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
-  const theme = useAutoTheme();
+  // Get current theme from next-themes
+  const { resolvedTheme } = useTheme();
+  const editorTheme = resolvedTheme === 'light' ? 'vs' : 'vs-dark';
 
   if (!schemaSDL) {
     return (
@@ -263,7 +476,7 @@ const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
       height="100%"
       language="graphql"
       value={schemaSDL}
-      theme={theme}
+      theme={editorTheme}
       options={{
         readOnly: true,
         minimap: { enabled: false },
@@ -283,6 +496,59 @@ const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
 };
 
 export default function PlaygroundPage() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const monacoTheme = useMonacoTheme(theme, resolvedTheme);
+
+  // Set global Monaco theme whenever it changes OR when Monaco becomes available
+  // This ensures all Monaco editors (including those in GraphiQL) use the correct theme
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const windowWithMonaco = window as typeof window & {
+      monaco?: { editor?: { setTheme?: (theme: string) => void } };
+    };
+
+    let hasSetTheme = false;
+
+    // Function to set the theme (only once per monacoTheme change)
+    const setMonacoTheme = () => {
+      if (hasSetTheme) {
+        return true; // Already set, don't set again
+      }
+
+      if (windowWithMonaco.monaco?.editor?.setTheme) {
+        windowWithMonaco.monaco.editor.setTheme(monacoTheme);
+        hasSetTheme = true;
+        return true;
+      }
+      return false;
+    };
+
+    // Try to set theme immediately
+    if (setMonacoTheme()) {
+      return;
+    }
+
+    // If Monaco isn't ready yet, poll for it (but only set once)
+    const pollInterval = setInterval(() => {
+      if (setMonacoTheme()) {
+        clearInterval(pollInterval);
+      }
+    }, 100);
+
+    // Clean up after 10 seconds
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 10000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [monacoTheme]);
+
   const [files, setFiles] = useState<PlaygroundFile[]>([
     { filename: 'schema.ts', content: DEFAULT_CODE },
   ]);
@@ -391,6 +657,7 @@ export default function PlaygroundPage() {
       const exampleId = params.get('example');
       const codeParam = params.get('code');
       const queryParam = params.get('query');
+      const queryFileParam = params.get('queryFile');
       const embedParam = params.get('embed') || params.get('overlay');
 
       // Check for embed/overlay mode
@@ -407,10 +674,24 @@ export default function PlaygroundPage() {
           // Set query tabs - use example.queries if available
           if (example.queries && example.queries.length > 0) {
             setExampleQueries(example.queries);
+
+            // Handle queryFile parameter - find query by title (filename without extension)
+            let selectedQuery = example.queries[0];
+            if (queryFileParam) {
+              const matchedQuery = example.queries.find((q) => q.title === queryFileParam);
+              if (matchedQuery) {
+                selectedQuery = matchedQuery;
+              } else {
+                console.warn(
+                  `[Playground] Query file "${queryFileParam}" not found in example "${exampleId}"`,
+                );
+              }
+            }
+
             setCurrentQuery(
-              queryParam ? atob(decodeURIComponent(queryParam)) : example.queries[0].query,
+              queryParam ? atob(decodeURIComponent(queryParam)) : selectedQuery.query,
             );
-            setCurrentVariables(example.queries[0].variables || '');
+            setCurrentVariables(selectedQuery.variables || '');
           } else {
             setExampleQueries(undefined);
             setCurrentQuery(
@@ -419,7 +700,7 @@ export default function PlaygroundPage() {
             setCurrentVariables('');
           }
 
-          setViewMode(queryParam ? 'graphql' : 'code');
+          setViewMode(queryParam || queryFileParam ? 'graphql' : 'code');
         }
       } else if (codeParam) {
         // Load custom code from parameter
@@ -796,6 +1077,16 @@ export default function PlaygroundPage() {
                   {/* Spacer */}
                   <div className="flex-1" />
 
+                  {/* Theme toggle */}
+                  <button
+                    type="button"
+                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="flex h-12 w-full items-center justify-center text-fd-muted-foreground transition-colors hover:bg-fd-muted hover:text-fd-foreground"
+                  >
+                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                  </button>
+
                   {/* Bottom actions */}
                   <div className="relative">
                     <button
@@ -865,23 +1156,7 @@ export default function PlaygroundPage() {
                       </div>
                     )}
                     {leftPanel === 'examples' && (
-                      <div className="p-2">
-                        {examplesList.map((example) => (
-                          <button
-                            key={example.id}
-                            type="button"
-                            onClick={() => handleLoadExample(example.id)}
-                            className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-fd-muted"
-                          >
-                            <div className="font-medium text-fd-foreground">{example.title}</div>
-                            {example.description && (
-                              <div className="mt-0.5 text-xs text-fd-muted-foreground">
-                                {example.description}
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
+                      <ExamplesPanel onLoadExample={handleLoadExample} />
                     )}
                   </div>
                 </div>
@@ -985,6 +1260,7 @@ export default function PlaygroundPage() {
                         {compilerState.error && <span className="text-xs text-red-500">Error</span>}
                       </div>
                     </div>
+
                     {/* Content area - split view with code editor and SDL */}
                     <div className="graphiql-content flex min-h-0 flex-1">
                       {/* Left side - Code editor */}

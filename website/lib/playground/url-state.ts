@@ -15,6 +15,8 @@ export interface PlaygroundURLState {
   activeFileIndex?: number;
   viewMode?: ViewMode;
   settings?: PlaygroundSettings;
+  /** Current step index for multi-step examples */
+  step?: number;
 }
 
 export interface PlaygroundSettings {
@@ -85,6 +87,10 @@ export function encodePlaygroundState(state: PlaygroundURLState): string {
 
   if (state.activeFileIndex !== undefined && state.activeFileIndex > 0) {
     params.set('file', state.activeFileIndex.toString());
+  }
+
+  if (state.step !== undefined && state.step > 0) {
+    params.set('step', state.step.toString());
   }
 
   // Add settings as readable params
@@ -220,6 +226,14 @@ function decodeV3State(params: URLSearchParams): PlaygroundURLState | null {
       const index = Number.parseInt(fileIndex, 10);
       if (!Number.isNaN(index) && index >= 0) {
         state.activeFileIndex = index;
+      }
+    }
+
+    const stepIndex = params.get('step');
+    if (stepIndex) {
+      const index = Number.parseInt(stepIndex, 10);
+      if (!Number.isNaN(index) && index >= 0) {
+        state.step = index;
       }
     }
 

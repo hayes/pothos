@@ -1,0 +1,28 @@
+{
+  "id": "02-queries-mutations",
+  "title": "Queries and Mutations",
+  "description": "Learn to add queries and mutations to your schema",
+  "category": "core",
+  "subcategory": "getting-started",
+  "difficulty": "beginner",
+  "order": 2,
+  "tags": ["queries", "mutations", "basics"],
+  "relatedDocs": ["/docs/guide/queries-mutations-and-subscriptions"],
+  "prerequisites": ["01-first-schema"],
+  "snippets": [
+    {
+      "label": "Defining Query Type",
+      "filename": "schema.ts",
+      "startLine": 17,
+      "endLine": 38,
+      "description": "Add queries with builder.queryType"
+    },
+    {
+      "label": "Defining Mutation Type",
+      "filename": "schema.ts",
+      "startLine": 40,
+      "endLine": 56,
+      "description": "Add mutations with builder.mutationType"
+    }
+  ]
+}

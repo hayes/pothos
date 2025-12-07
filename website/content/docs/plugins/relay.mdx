@@ -16,7 +16,7 @@ npm install --save @pothos/plugin-relay
 
 ### Setup
 
-```typescript
+```typescript playground example="relay-plugin"
 import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
@@ -71,7 +71,7 @@ The `relay` options object passed to builder can contain the following propertie
 
 To create objects that extend the `Node` interface, you can use the new `builder.node` method.
 
-```typescript
+```typescript playground example="relay-plugin"
 // Using object refs
 const User = builder.objectRef<UserType>('User');
 // Or using a class

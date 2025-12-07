@@ -2,6 +2,7 @@ import * as esbuild from 'esbuild-wasm';
 import { type GraphQLSchema, printSchema } from 'graphql';
 import { compileTypeScriptInWorker } from './compiler-worker-client';
 import { captureConsole } from './console-capture';
+import { getDependencyModules } from './dependencies-bundle';
 import { getPluginModules } from './plugins-bundle';
 import { getCachedSchema, setCachedSchema } from './schema-cache';
 
@@ -352,7 +353,7 @@ async function bundleFiles(files: Array<{ filename: string; content: string }>):
       target: 'es2020',
       platform: 'neutral',
       // Mark external packages that will be provided by the playground runtime
-      external: ['@pothos/*', 'graphql'],
+      external: ['@pothos/*', 'graphql', 'zod'],
       plugins: [
         {
           name: 'virtual-files',
@@ -436,8 +437,9 @@ export async function compileAndExecute(
     }
   }
 
-  // Load any plugins used in the code
+  // Load any plugins and dependencies used in the code
   const pluginModules = getPluginModules(code);
+  const dependencyModules = getDependencyModules(code);
 
   const compilationResult = await compileTypeScript(code, filename);
 
@@ -448,5 +450,8 @@ export async function compileAndExecute(
     };
   }
 
-  return executeAndBuildSchema(compilationResult.code!, modules, pluginModules);
+  return executeAndBuildSchema(compilationResult.code!, modules, {
+    ...pluginModules,
+    ...dependencyModules,
+  });
 }

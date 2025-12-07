@@ -1,0 +1,45 @@
+# Query users connection with pagination
+query GetUsers {
+  users {
+    edges {
+      cursor
+      node {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
+}
+
+# Query with first/after pagination
+query GetUsersWithPagination {
+  users(first: 2, after: "0") {
+    edges {
+      cursor
+      node {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
+}
+
+# Create user mutation
+mutation CreateUser {
+  createUser(name: "Frank", email: "frank@example.com") {
+    id
+    name
+  }
+}

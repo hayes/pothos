@@ -1,0 +1,28 @@
+{
+  "id": "12-circular-references",
+  "title": "Circular References",
+  "description": "Handle circular type dependencies safely",
+  "category": "core",
+  "subcategory": "advanced-patterns",
+  "difficulty": "intermediate",
+  "order": 12,
+  "tags": ["circular-refs", "architecture", "types"],
+  "relatedDocs": ["/docs/guide/circular-references"],
+  "prerequisites": ["01-first-schema", "06-interfaces"],
+  "snippets": [
+    {
+      "label": "Creating Object Refs",
+      "filename": "schema.ts",
+      "startLine": 3,
+      "endLine": 23,
+      "description": "Use objectRef to create forward references"
+    },
+    {
+      "label": "Implementing Circular Types",
+      "filename": "schema.ts",
+      "startLine": 25,
+      "endLine": 55,
+      "description": "Define fields with bidirectional relationships"
+    }
+  ]
+}

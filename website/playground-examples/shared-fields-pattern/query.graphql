@@ -1,0 +1,12 @@
+query SharedFieldsExample {
+  # Both objects have the same common fields added via helper
+  object1 {
+    id
+    idLength
+  }
+
+  object2 {
+    id
+    idLength
+  }
+}

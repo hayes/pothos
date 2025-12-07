@@ -1,0 +1,9 @@
+query GetGiraffe {
+  giraffe {
+    name
+    heightInMeters: height
+    heightInFeet: height(unit: Feet)
+    diet
+    species
+  }
+}

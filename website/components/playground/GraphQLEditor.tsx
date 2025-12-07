@@ -21,6 +21,7 @@ import {
   Terminal,
   X,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { type FC, useEffect, useState } from 'react';
 import { ConsolePanel } from './ConsolePanel';
 
@@ -38,6 +39,10 @@ interface SchemaViewerProps {
 }
 
 const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
+  // Get current theme from next-themes
+  const { resolvedTheme } = useTheme();
+  const editorTheme = resolvedTheme === 'light' ? 'vs' : 'vs-dark';
+
   if (!schemaSDL) {
     return (
       <div className="flex h-full items-center justify-center text-fd-muted-foreground">
@@ -51,7 +56,7 @@ const SchemaViewer: FC<SchemaViewerProps> = ({ schemaSDL }) => {
       height="100%"
       language="graphql"
       value={schemaSDL}
-      theme="vs-dark"
+      theme={editorTheme}
       options={{
         readOnly: true,
         minimap: { enabled: false },

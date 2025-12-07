@@ -1,0 +1,15 @@
+query HelloWorld {
+  hello
+}
+
+query GetGiraffe {
+  giraffe {
+    name
+  }
+}
+
+query GetGiraffes {
+  giraffes {
+    name
+  }
+}

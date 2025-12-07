@@ -38,22 +38,20 @@ export const schema = builder.toSchema();
 
 Reference a pre-registered example by ID. The example's full configuration (multiple files, default query) will be loaded:
 
-```ts playground example="basic-types"
+```ts playground example="01-first-schema"
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
 // This code is shown in the docs, but when opened in playground
-// it loads the full "basic-types" example with all its files
-builder.queryType({
+// it loads the full "01-first-schema" example with all its files
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
+
+GiraffeRef.implement({
   fields: (t) => ({
-    hello: t.string({
-      resolve: () => 'Hello, World!',
-    }),
+    name: t.exposeString('name'),
   }),
 });
-
-export const schema = builder.toSchema();
 ```
 
 ### 3. With GraphQL Query
@@ -80,8 +78,8 @@ export const schema = builder.toSchema();
 
 Combine an example with a custom query to guide users to specific functionality:
 
-```ts playground example="basic-types" query="{ user { id name email } }"
-// Opens the basic-types example with a pre-populated query
+```ts playground example="01-first-schema" query="{ giraffe { name height age } }"
+// Opens the 01-first-schema example with a pre-populated query
 ```
 
 ## How It Works

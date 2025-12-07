@@ -1,0 +1,12 @@
+{
+  "id": "09-context",
+  "title": "Context",
+  "description": "Learn to use context for request-scoped data",
+  "category": "core",
+  "subcategory": "advanced-patterns",
+  "difficulty": "intermediate",
+  "order": 9,
+  "tags": ["context", "authentication", "request-scope"],
+  "relatedDocs": ["/docs/guide/context"],
+  "prerequisites": ["01-first-schema"]
+}

@@ -1,0 +1,9 @@
+# Query interface with type-specific fields
+query GetAnimal {
+  animal {
+    diet
+    ... on Giraffe {
+      name
+    }
+  }
+}

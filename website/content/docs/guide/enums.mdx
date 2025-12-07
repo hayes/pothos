@@ -7,7 +7,7 @@ Enums can be defined a number of different ways:
 
 1. Using typescript enums
 
-   ```typescript
+   ```typescript playground example="05-enums"
    export enum Diet {
      HERBIVOROUS,
      CARNIVOROUS,
@@ -21,7 +21,7 @@ Enums can be defined a number of different ways:
 
 1. Using an array of strings
 
-   ```typescript
+   ```typescript playground example="05-enums"
    export const LengthUnit = builder.enumType('LengthUnit', {
      values: ['Feet', 'Meters'] as const,
    });
@@ -31,7 +31,7 @@ Enums can be defined a number of different ways:
 
 1. Using a values object:
 
-   ```typescript
+   ```typescript playground example="05-enums"
    export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
      values: {
        Southern: {
@@ -117,7 +117,7 @@ Enums can be defined a number of different ways:
 Enums can be referenced either by the `Ref` that was returned by calling `builder.enumType` or by
 using the typescript enum. They can be used either as arguments, or as field return types:
 
-```typescript
+```typescript playground example="05-enums"
 builder.objectFields('Giraffe', (t) => ({
   height: t.float({
     args: {

@@ -3,106 +3,94 @@ import RelayPlugin from '@pothos/plugin-relay';
 
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
-  relay: {
-    // Configure relay options
-    clientMutationId: 'omit',
-    cursorType: 'String',
-  },
+  relay: {},
 });
 
-// Mock data
-const posts = [
-  { id: '1', title: 'First Post', content: 'Hello World', published: true },
-  { id: '2', title: 'Second Post', content: 'GraphQL is awesome', published: true },
-  { id: '3', title: 'Third Post', content: 'Relay makes pagination easy', published: false },
-  { id: '4', title: 'Fourth Post', content: 'Pothos is type-safe', published: true },
-  { id: '5', title: 'Fifth Post', content: 'Building APIs is fun', published: true },
-];
+// Or using a class
+class User {
+  id: string;
+  name: string;
+
+  constructor(id: string, name: string) {
+    this.id = id;
+    this.name = name;
+  }
+}
 
 const users = [
-  { id: '1', name: 'Alice', email: 'alice@example.com' },
-  { id: '2', name: 'Bob', email: 'bob@example.com' },
-  { id: '3', name: 'Charlie', email: 'charlie@example.com' },
+  { id: '1', name: 'Alice' },
+  { id: '2', name: 'Bob' },
+  { id: '3', name: 'Charlie' },
 ];
 
-// Define User and Post refs
-const UserRef = builder.objectRef<{ id: string; name: string; email: string }>('User');
-const PostRef = builder.objectRef<{
-  id: string;
-  title: string;
-  content: string;
-  published: boolean;
-}>('Post');
+const loadUserByID = (id: string) => users.find((user) => user.id === id) ?? null;
+const loadUsers = (ids: string[]) => ids.map((id) => loadUserByID(id)).filter(Boolean);
 
-// Define a User node
-const User = builder.node(UserRef, {
+builder.node(User, {
+  // define an id field
   id: {
     resolve: (user) => user.id,
+    // other options for id field can be added here
   },
-  loadOne: (id) => users.find((u) => u.id === id) || null,
-  loadMany: (ids) => ids.map((id) => users.find((u) => u.id === id) || null),
+
+  // Define only one of the following methods for loading nodes by id
+  loadOne: (id) => loadUserByID(id),
+  loadMany: (ids) => loadUsers(ids),
+  loadWithoutCache: (id) => loadUserByID(id),
+  loadManyWithoutCache: (ids) => loadUsers(ids),
+
+  // if using a class instaed of a ref, you will need to provide a name
+  name: 'User',
   fields: (t) => ({
     name: t.exposeString('name'),
-    email: t.exposeString('email'),
   }),
 });
 
-// Define a Post node
-const Post = builder.node(PostRef, {
-  id: {
-    resolve: (post) => post.id,
-  },
-  loadOne: (id) => posts.find((p) => p.id === id) || null,
-  loadMany: (ids) => ids.map((id) => posts.find((p) => p.id === id) || null),
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    content: t.exposeString('content'),
-    published: t.exposeBoolean('published'),
-  }),
-});
-
-// Query with connection fields
 builder.queryType({
   fields: (t) => ({
-    // Connection for posts with cursor-based pagination
-    posts: t.connection({
-      type: Post,
-      resolve: (_parent, _args) => {
-        // Simple implementation - in production you'd query from a database
+    user: t.field({
+      type: User,
+      nullable: true,
+      args: {
+        id: t.arg.id({ required: true }),
+      },
+      resolve: (_parent, args) => loadUserByID(args.id),
+    }),
+    users: t.connection({
+      type: User,
+      resolve: () => {
+        // Simple array-based connection resolver
         return {
-          edges: posts.map((post, index) => ({
-            cursor: `cursor:${index}`,
-            node: post,
+          edges: users.map((user, index) => ({
+            cursor: String(index),
+            node: user,
           })),
           pageInfo: {
             hasNextPage: false,
             hasPreviousPage: false,
-            startCursor: 'cursor:0',
-            endCursor: `cursor:${posts.length - 1}`,
+            startCursor: '0',
+            endCursor: String(users.length - 1),
           },
         };
       },
     }),
+  }),
+});
 
-    // Connection for users
-    users: t.connection({
+builder.mutationType({
+  fields: (t) => ({
+    createUser: t.field({
       type: User,
-      resolve: () => ({
-        edges: users.map((user, index) => ({
-          cursor: `cursor:${index}`,
-          node: user,
-        })),
-        pageInfo: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'cursor:0',
-          endCursor: `cursor:${users.length - 1}`,
-        },
-      }),
+      args: {
+        name: t.arg.string({ required: true }),
+        email: t.arg.string({ required: true }),
+      },
+      resolve: (_parent, args) => {
+        const newUser = { id: String(users.length + 1), name: args.name };
+        users.push(newUser);
+        return newUser;
+      },
     }),
-
-    // Single node lookup by global ID
-    // This is automatically provided by the relay plugin as 'node' field
   }),
 });
 

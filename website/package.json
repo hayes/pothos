@@ -3,14 +3,16 @@
   "private": true,
   "scripts": {
     "dev": "pnpm run bundle-types && pnpm run build-examples && next dev",
-    "build": "pnpm run bundle-types && pnpm run build-examples",
+    "build": "pnpm run bundle-types && pnpm run build-examples && pnpm run type",
     "next-build": "next build",
-    "build-ci": "pnpm turbo run build && next build",
+    "build-ci": "pnpm turbo run build && pnpm run type && next build",
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
     "build-examples": "tsx scripts/build-playground-examples.ts",
-    "test": "tsx scripts/test-playground-examples.test.ts",
+    "type": "tsc --noEmit",
+    "test": "pnpm run test:examples && pnpm run test:docs",
     "test:examples": "tsx scripts/test-playground-examples.test.ts",
+    "test:docs": "vitest run tests/playground-docs-validation.test.ts",
     "postinstall": "fumadocs-mdx"
   },
   "engines": {
@@ -55,11 +57,14 @@
   "devDependencies": {
     "@types/lz-string": "^1.5.0",
     "@types/mdx": "^2.0.13",
+    "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "glob": "^13.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.0.0",
+    "vitest": "^4.0.15"
   }
 }
