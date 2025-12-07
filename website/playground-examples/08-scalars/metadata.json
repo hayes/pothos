@@ -1,0 +1,12 @@
+{
+  "id": "08-scalars",
+  "title": "Scalars",
+  "description": "Learn to create custom scalar types with validation",
+  "category": "core",
+  "subcategory": "type-system",
+  "difficulty": "intermediate",
+  "order": 8,
+  "tags": ["scalars", "validation", "custom-types"],
+  "relatedDocs": ["/docs/guide/scalars"],
+  "prerequisites": ["01-first-schema"]
+}

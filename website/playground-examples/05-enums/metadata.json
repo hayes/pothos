@@ -1,0 +1,35 @@
+{
+  "id": "05-enums",
+  "title": "Enums",
+  "description": "Learn to define and use enum types in your schema",
+  "category": "core",
+  "subcategory": "type-system",
+  "difficulty": "beginner",
+  "order": 5,
+  "tags": ["enums", "types"],
+  "relatedDocs": ["/docs/guide/enums"],
+  "prerequisites": ["01-first-schema"],
+  "snippets": [
+    {
+      "label": "TypeScript Enum",
+      "filename": "schema.ts",
+      "startLine": 6,
+      "endLine": 13,
+      "description": "Define enums using TypeScript enum values"
+    },
+    {
+      "label": "Array of Strings",
+      "filename": "schema.ts",
+      "startLine": 15,
+      "endLine": 18,
+      "description": "Define enums using an array of strings with as const"
+    },
+    {
+      "label": "Values Object",
+      "filename": "schema.ts",
+      "startLine": 20,
+      "endLine": 37,
+      "description": "Define enums with descriptions and custom internal values"
+    }
+  ]
+}

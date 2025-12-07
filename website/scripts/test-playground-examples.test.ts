@@ -3,14 +3,16 @@
  * Run with: npx tsx scripts/test-playground-examples.ts
  */
 
+import { readFileSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import * as path from 'node:path';
+import { type GraphQLSchema, parse, validate } from 'graphql';
 import * as ts from 'typescript';
 import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playground/pothos-types';
 
 // Load examples from individual directories
 async function loadExamples() {
-  const examplesDir = path.join(__dirname, '../public/playground-examples');
+  const examplesDir = path.join(__dirname, '../playground-examples');
   const entries = await readdir(examplesDir, { withFileTypes: true });
   const exampleDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
@@ -109,6 +111,17 @@ function typeCheckCode(code: string, pluginNames: string[]): TypeCheckResult {
     }
 
     fileMap.set(filePath, typeDef.content);
+  }
+
+  // Add zod types if code imports it
+  if (code.includes("from 'zod'")) {
+    try {
+      const zodTypesPath = path.join(__dirname, '../node_modules/zod/index.d.ts');
+      const zodTypes = readFileSync(zodTypesPath, 'utf-8');
+      fileMap.set('node_modules/zod/index.d.ts', zodTypes);
+    } catch (error) {
+      console.warn('Warning: Could not load zod types:', error);
+    }
   }
 
   // Create compiler options
@@ -256,30 +269,124 @@ function extractPluginImports(code: string): string[] {
 }
 
 /**
- * Test GraphQL query validation
+ * Test GraphQL query validation against a schema
  */
-function testQuery(_code: string, query: string): { success: boolean; errors: string[] } {
+function testQuery(
+  code: string,
+  query: string,
+  pluginImports: string[],
+): { success: boolean; errors: string[] } {
   try {
-    // For now, we'll just check basic GraphQL syntax
-    // Full validation would require executing the code and building the schema
     const errors: string[] = [];
 
     // Basic syntax checks
     if (!query.trim()) {
       errors.push('Query is empty');
+      return { success: false, errors };
     }
 
-    // Check for balanced braces
-    const openBraces = (query.match(/{/g) || []).length;
-    const closeBraces = (query.match(/}/g) || []).length;
-    if (openBraces !== closeBraces) {
-      errors.push(`Unbalanced braces: ${openBraces} open, ${closeBraces} close`);
+    // Parse the query to check GraphQL syntax
+    let documentAST: ReturnType<typeof parse>;
+    try {
+      documentAST = parse(query);
+    } catch (error) {
+      errors.push(`GraphQL parse error: ${error instanceof Error ? error.message : String(error)}`);
+      return { success: false, errors };
+    }
+
+    // Build the schema from the code
+    let schema: GraphQLSchema;
+    try {
+      schema = buildSchemaFromCode(code, pluginImports);
+    } catch (error) {
+      errors.push(`Schema build error: ${error instanceof Error ? error.message : String(error)}`);
+      return { success: false, errors };
+    }
+
+    // Validate the query against the schema
+    const validationErrors = validate(schema, documentAST);
+    if (validationErrors.length > 0) {
+      for (const error of validationErrors) {
+        errors.push(error.message);
+      }
     }
 
     return { success: errors.length === 0, errors };
   } catch (error) {
     return { success: false, errors: [error instanceof Error ? error.message : String(error)] };
   }
+}
+
+/**
+ * Build a GraphQL schema from TypeScript code
+ */
+function buildSchemaFromCode(code: string, pluginImports: string[]): GraphQLSchema {
+  // First, compile TypeScript to JavaScript
+  const compileResult = ts.transpileModule(code, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.CommonJS,
+      esModuleInterop: true,
+    },
+  });
+
+  const jsCode = compileResult.outputText;
+
+  // Create a map of module name to content
+  const moduleMap: Record<string, unknown> = {};
+
+  // Add required modules
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  moduleMap['@pothos/core'] = require('@pothos/core');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  moduleMap.graphql = require('graphql');
+
+  // Load plugins
+  for (const pluginName of pluginImports) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      moduleMap[pluginName] = require(pluginName);
+    } catch {
+      // Plugin might not be available, skip
+    }
+  }
+
+  // Add zod if code imports it
+  if (code.includes("from 'zod'")) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      moduleMap.zod = require('zod');
+    } catch {
+      // zod not available
+    }
+  }
+
+  // Create a custom require function
+  const customRequire = (moduleName: string) => {
+    if (moduleMap[moduleName]) {
+      return moduleMap[moduleName];
+    }
+    throw new Error(`Module not found: ${moduleName}`);
+  };
+
+  // Create module and exports objects
+  const moduleObj = { exports: {} };
+  const exportsObj = moduleObj.exports;
+
+  // Execute the compiled code
+  // eslint-disable-next-line no-new-func
+  const fn = new Function('require', 'module', 'exports', jsCode);
+  fn(customRequire, moduleObj, exportsObj);
+
+  // Get the schema from exports
+  const exports = moduleObj.exports as Record<string, unknown>;
+  const schema = exports.schema || exports.default;
+
+  if (!schema) {
+    throw new Error('Schema was not exported from code');
+  }
+
+  return schema as GraphQLSchema;
 }
 
 /**
@@ -295,7 +402,7 @@ async function main() {
   const failedExamples: Array<{
     name: string;
     schemaErrors?: TypeCheckResult['errors'];
-    queryErrors?: string[];
+    queryErrors?: Array<{ file: string; errors: string[] }>;
   }> = [];
 
   for (const example of examples) {
@@ -339,24 +446,41 @@ async function main() {
       console.log('   ✅ Schema type check passed');
     }
 
-    // Test the default query if present
+    // Test all query files for this example
     let hasQueryErrors = false;
-    let queryErrors: string[] = [];
+    const queryErrors: Array<{ file: string; errors: string[] }> = [];
 
-    if (example.defaultQuery?.trim()) {
-      console.log('   🔍 Testing default query...');
-      const queryResult = testQuery(code, example.defaultQuery);
+    // Find all .graphql files in the example directory
+    const examplePath = path.join(__dirname, '../playground-examples', example.id);
+    let queryFiles: string[] = [];
+    try {
+      const files = await readdir(examplePath);
+      queryFiles = files.filter((f) => f.endsWith('.graphql'));
+    } catch {
+      // Directory might not exist or be readable
+    }
 
-      if (!queryResult.success) {
-        hasQueryErrors = true;
-        queryErrors = queryResult.errors;
-        console.log('   ❌ Query validation FAILED');
-        console.log('\n   Query Errors:');
-        for (const error of queryResult.errors) {
-          console.log(`   - ${error}`);
+    if (queryFiles.length > 0) {
+      console.log(`   🔍 Testing ${queryFiles.length} query file(s)...`);
+
+      for (const queryFile of queryFiles) {
+        const queryPath = path.join(examplePath, queryFile);
+        const queryContent = await readFile(queryPath, 'utf-8');
+
+        if (queryContent.trim()) {
+          const queryResult = testQuery(code, queryContent, pluginImports);
+
+          if (!queryResult.success) {
+            hasQueryErrors = true;
+            queryErrors.push({ file: queryFile, errors: queryResult.errors });
+            console.log(`   ❌ ${queryFile}: validation FAILED`);
+            for (const error of queryResult.errors) {
+              console.log(`      - ${error}`);
+            }
+          } else {
+            console.log(`   ✅ ${queryFile}: validation passed`);
+          }
         }
-      } else {
-        console.log('   ✅ Query validation passed');
       }
     }
 
@@ -391,8 +515,11 @@ async function main() {
       }
       if (example.queryErrors) {
         console.log('    Query errors:');
-        for (const error of example.queryErrors) {
-          console.log(`      ${error}`);
+        for (const queryError of example.queryErrors) {
+          console.log(`      ${queryError.file}:`);
+          for (const error of queryError.errors) {
+            console.log(`        - ${error}`);
+          }
         }
       }
     }

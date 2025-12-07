@@ -1,0 +1,26 @@
+{
+  "id": "errors-plugin",
+  "title": "Error Handling",
+  "description": "Handle errors elegantly with the Errors plugin using union types",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 1,
+  "tags": ["errors", "plugins", "unions"],
+  "relatedDocs": ["/docs/plugins/errors"],
+  "prerequisites": ["02-mutations-and-inputs"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Basic Error Handling",
+      "description": "Configure the Errors plugin and define error types in your schema",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "Error Case Example",
+      "description": "See how errors are returned when validation fails",
+      "order": 2
+    }
+  ]
+}

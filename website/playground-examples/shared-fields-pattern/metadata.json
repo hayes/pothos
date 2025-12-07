@@ -1,0 +1,12 @@
+{
+  "id": "shared-fields-pattern",
+  "title": "Shared Fields Pattern",
+  "description": "Learn to share common fields across multiple types using ObjectRef",
+  "category": "patterns",
+  "subcategory": "advanced-patterns",
+  "difficulty": "advanced",
+  "order": 1,
+  "tags": ["patterns", "objectref", "dry", "reusable"],
+  "relatedDocs": ["/docs/guide/patterns"],
+  "prerequisites": ["01-first-schema", "06-interfaces"]
+}

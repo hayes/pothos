@@ -1,6 +1,35 @@
 {
   "id": "relay-plugin",
   "title": "Relay Plugin",
-  "description": "Use the Relay plugin for cursor-based pagination and global IDs",
-  "tags": []
+  "description": "Nodes, connections, and global IDs for Relay",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "advanced",
+  "order": 15,
+  "tags": ["relay", "connections", "pagination", "global-ids"],
+  "relatedDocs": ["/docs/plugins/relay"],
+  "prerequisites": ["01-first-schema", "06-interfaces"],
+  "snippets": [
+    {
+      "label": "Setup Relay Plugin",
+      "filename": "schema.ts",
+      "startLine": 1,
+      "endLine": 8,
+      "description": "Import and configure the relay plugin"
+    },
+    {
+      "label": "Node Interface",
+      "filename": "schema.ts",
+      "startLine": 10,
+      "endLine": 34,
+      "description": "Implement Node interface with global IDs"
+    },
+    {
+      "label": "Connections",
+      "filename": "schema.ts",
+      "startLine": 36,
+      "endLine": 62,
+      "description": "Create paginated connections for lists"
+    }
+  ]
 }

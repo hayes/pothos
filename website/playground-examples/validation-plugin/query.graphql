@@ -1,0 +1,8 @@
+query ValidEmail {
+  simple(email: "test@example.com")
+  user(email: "alice@example.com", name: "Alice")
+}
+
+mutation CreateValidUser {
+  createUser(email: "bob@example.com", name: "Bob")
+}

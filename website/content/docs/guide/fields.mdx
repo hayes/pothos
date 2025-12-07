@@ -31,7 +31,7 @@ builder.queryType({
 
 Convenience methods are just wrappers around the `field` method that omit the `type` option.
 
-```typescript
+```typescript playground example="10-fields"
 builder.queryType({
   fields: (t) => ({
     id: t.id({ resolve: () => '123' }),

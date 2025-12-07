@@ -1,0 +1,12 @@
+# This query will fail validation - name must be capitalized
+query HelloLowercase {
+  hello(name: "world") {
+    __typename
+    ... on Error {
+      message
+    }
+    ... on QueryHelloSuccess {
+      data
+    }
+  }
+}

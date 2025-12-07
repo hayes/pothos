@@ -1,0 +1,9 @@
+query SchemaTypesExample {
+  # Query giraffe defined with SchemaTypes pattern
+  giraffe {
+    name
+    birthday
+    height
+    age
+  }
+}

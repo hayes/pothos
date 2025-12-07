@@ -1,0 +1,11 @@
+query TestQuery {
+  hello
+}
+
+mutation ReusableArgsExample1 {
+  mutation1(id: "123", reason: "testing")
+}
+
+mutation ReusableArgsExample2 {
+  mutation2(id: "456")
+}

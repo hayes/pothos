@@ -1,0 +1,12 @@
+{
+  "id": "schema-types-pattern",
+  "title": "SchemaTypes Pattern",
+  "description": "Define types using SchemaTypes mapping for string-based type references",
+  "category": "patterns",
+  "subcategory": "type-definition",
+  "difficulty": "intermediate",
+  "order": 4,
+  "tags": ["patterns", "types", "schema-builder", "type-mapping"],
+  "relatedDocs": ["/docs/guide/objects"],
+  "prerequisites": ["01-first-schema"]
+}

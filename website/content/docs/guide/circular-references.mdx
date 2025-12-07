@@ -105,11 +105,11 @@ Using object refs is often a great way to avoid issues with circular references 
 you to define the reference before defining any fields for your type. Many of the builder methods in
 Pothos and its plugins can be passed a type ref instead of a name:
 
-```typescript
+```typescript playground example="12-circular-references"
 export const User = builder.objectRef<IUser>('User');
 
 builder.objectType(User, {
-  field: (t) => ({
+  fields: (t) => ({
     // Circular references here won't cause issues, because User is already defined above
   }),
 });

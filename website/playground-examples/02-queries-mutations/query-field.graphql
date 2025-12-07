@@ -1,0 +1,10 @@
+# Individual query field pattern
+query Hello {
+  hello
+}
+
+query SingleGiraffe {
+  giraffe {
+    name
+  }
+}

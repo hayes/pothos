@@ -1,0 +1,12 @@
+{
+  "id": "10-fields",
+  "title": "Fields",
+  "description": "Learn field definition patterns and APIs",
+  "category": "core",
+  "subcategory": "getting-started",
+  "difficulty": "beginner",
+  "order": 10,
+  "tags": ["fields", "api", "basics"],
+  "relatedDocs": ["/docs/guide/fields"],
+  "prerequisites": ["01-first-schema"]
+}
