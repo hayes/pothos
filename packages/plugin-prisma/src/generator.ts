@@ -266,6 +266,10 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
     const relations = model.fields.filter((field) => !!field.relationName);
     const listRelations = model.fields.filter((field) => !!field.relationName && field.isList);
 
+    // Check if Prisma generates CreateInput and UpdateInput types for this model.
+    // Views and other read-only models in Prisma don't have these mutation types.
+    // When unavailable, we generate empty object types {} instead of referencing
+    // non-existent types, providing type safety via keyof {} = never.
     const createInputUnavailable = !dmmf.schema.inputObjectTypes.prisma?.some(
       (input) => input.name === `${model.name}CreateInput`,
     );
