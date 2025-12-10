@@ -413,13 +413,33 @@ function addFieldSelection(
 
   if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
     mergeSelection(state, fieldSelectionMap);
-    state.mappings[selection.alias?.value ?? selection.name.value] = {
-      field: selection.name.value,
-      type: type.name,
-      mappings,
-      indirectPath,
-    };
+
+    state.mappings = mergeMappings(state.mappings, {
+      [selection.alias?.value ?? selection.name.value]: {
+        field: selection.name.value,
+        type: type.name,
+        mappings,
+        indirectPath,
+      },
+    });
   }
+}
+
+function mergeMappings(existing: LoaderMappings, incoming: LoaderMappings): LoaderMappings {
+  const result: LoaderMappings = { ...existing };
+
+  for (const [key, value] of Object.entries(incoming)) {
+    if (result[key]) {
+      result[key] = {
+        ...result[key],
+        mappings: mergeMappings(result[key].mappings, value.mappings),
+      };
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
 }
 
 export function queryFromInfo<
@@ -569,7 +589,7 @@ export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo
 
   while (targetType.extensions?.pothosIndirectInclude) {
     targetType = info.schema.getType(
-      (targetType.extensions?.pothosIndirectInclude as IndirectInclude).getType(),
+      (targetType.extensions.pothosIndirectInclude as IndirectInclude).getType(),
     )!;
   }
 
