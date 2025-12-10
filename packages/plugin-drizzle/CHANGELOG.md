@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.15.0
+
+### Minor Changes
+
+- 27d5aae: Fix mappings when merging selections across fragments
+
 ## 0.14.0
 
 ### Minor Changes

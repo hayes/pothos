@@ -1,5 +1,16 @@
 # Change Log
 
+## 4.14.0
+
+### Minor Changes
+
+- 27d5aae: Fix mappings when merging selections across fragments
+
+### Patch Changes
+
+- ff7d203: Fix generator to handle Prisma views without mutation input types
+- 8f23625: Throw better error when prisma datamodel is missing
+
 ## 4.13.0
 
 ### Minor Changes
