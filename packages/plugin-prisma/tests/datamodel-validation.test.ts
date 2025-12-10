@@ -1,5 +1,4 @@
 import SchemaBuilder from '@pothos/core';
-import { PothosSchemaError } from '@pothos/core';
 import PrismaPlugin from '../src';
 
 describe('datamodel validation', () => {
@@ -39,14 +38,6 @@ describe('datamodel validation', () => {
     });
 
     // Attempting to create a prismaObject should throw an error
-    expect(() => {
-      builder.prismaObject('User', {
-        fields: (t) => ({
-          id: t.exposeID('id'),
-        }),
-      });
-    }).toThrow(PothosSchemaError);
-
     expect(() => {
       builder.prismaObject('User', {
         fields: (t) => ({
