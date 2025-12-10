@@ -53,6 +53,10 @@ interface Types {
       Input: Prisma.Decimal;
       Output: Prisma.Decimal;
     };
+    DateTime: {
+      Input: Date;
+      Output: Date;
+    };
   };
   Context: {
     user: { id: number };
@@ -90,6 +94,17 @@ builder.scalarType('Decimal', {
     }
 
     return new Prisma.Decimal(value);
+  },
+});
+
+builder.scalarType('DateTime', {
+  serialize: (value) => value.toISOString(),
+  parseValue: (value) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('DateTime must be a string');
+    }
+
+    return new Date(value);
   },
 });
 

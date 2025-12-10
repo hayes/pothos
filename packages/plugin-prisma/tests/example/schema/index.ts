@@ -1339,6 +1339,69 @@ builder.queryField('namedConnection', (t) =>
   }),
 );
 
+// Models for testing fragment alias with composite cursor issue
+const Metric = builder.prismaObject('Metric', {
+  select: {
+    propertyId: true,
+    endDate: true,
+  },
+  fields: (t) => ({
+    propertyId: t.exposeString('propertyId'),
+    endDate: t.exposeString('endDate'),
+    month: t.exposeInt('month'),
+    fieldA: t.exposeInt('fieldA'),
+    fieldB: t.exposeInt('fieldB'),
+    fieldC: t.exposeInt('fieldC'),
+  }),
+});
+
+const Property = builder.prismaObject('Property', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    metrics: t.relatedConnection('metrics', {
+      cursor: 'propertyId_endDate',
+      query: (args, ctx) => {
+        const where: any = {};
+        if (args.filter) {
+          if (args.filter.month !== null && args.filter.month !== undefined) {
+            where.month = args.filter.month;
+          }
+          if (args.filter.startDate || args.filter.endDate) {
+            where.endDate = {};
+            if (args.filter.startDate) {
+              where.endDate.gte = new Date(args.filter.startDate);
+            }
+            if (args.filter.endDate) {
+              where.endDate.lte = new Date(args.filter.endDate);
+            }
+          }
+        }
+        return { where };
+      },
+      args: {
+        filter: t.arg({
+          type: builder.inputType('MetricFilter', {
+            fields: (t) => ({
+              month: t.int(),
+              startDate: t.string(),
+              endDate: t.string(),
+            }),
+          }),
+        }),
+      },
+    }),
+  }),
+});
+
+builder.queryField('properties', (t) =>
+  t.prismaConnection({
+    type: 'Property',
+    cursor: 'id',
+    resolve: (query) => prisma.property.findMany(query),
+  }),
+);
+
 export default builder.toSchema({
   directives: [
     new GraphQLDirective({
