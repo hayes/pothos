@@ -1,19 +1,14 @@
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
-import { db } from './example/db';
-import schema from './example/schema';
+import { clearDrizzleLogs, drizzleLogs } from './example/db';
+import { schema } from './example/schema';
 
 describe('drizzle - fragment alias with different fields', () => {
-  afterAll(async () => {
-    await db.$client.end();
+  afterEach(() => {
+    clearDrizzleLogs();
   });
 
   it('should merge fields when fragments share alias but request different fields', async () => {
-    // Using Post which has explicit select: { columns: { postId: true } }
-    // This reproduces the issue where fragments with the same alias but different fields
-    // cause additional fields to be loaded via separate queries
-    // 
-    // The fix ensures all fields from both fragments are fetched in the initial query
     const query = gql`
       query {
         post(id: "1") {
@@ -38,17 +33,24 @@ describe('drizzle - fragment alias with different fields', () => {
       contextValue: { user: { id: 1 } },
     });
 
-    // Check that the query executed successfully
-    expect(result.errors).toBeUndefined();
-    expect(result.data).toBeDefined();
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."id" as "postId", "d0"."title" as "title", "d0"."content" as "content" from "posts" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+      ]
+    `);
 
-    // Verify we have the expected data structure with all fields
-    const post = result.data?.post as any;
-    expect(post).toBeDefined();
-    expect(post.id).toBeDefined();
-    
-    // Fields from both fragments should be present
-    expect(post.title).toBeDefined();
-    expect(post.content).toBeDefined();
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "post": {
+            "content": "Corpus video labore aegre unde curis sol utrum substantia degusto. Verbum conservo acceptus approbo. Tabula claro vinum blanditiis tabesco debeo ante.
+      Suadeo ceno damnatio uredo aliquam caelestis xiphias tabernus surculus collum. Adopto uterque vae comparo est sopor virga. Summa anser bene hic sono ratione.
+      Demergo uterque antea tenus aestivus spero sono calamitas. Adimpleo vesper canonicus cresco colo vigilo dens totus custodia. Cogo cultura solitudo concido calculus aegrus.",
+            "id": "1",
+            "title": "Thalassinus ustilo hic civitas.",
+          },
+        },
+      }
+    `);
   });
 });

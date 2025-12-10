@@ -401,49 +401,32 @@ function addFieldSelection(
 
   if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
     mergeSelection(config, state, fieldSelectionMap);
-    
-    // Merge mappings instead of overwriting them
-    // This ensures that when fragments share the same alias but request different fields,
-    // all field mappings are preserved
-    const aliasKey = selection.alias?.value ?? selection.name.value;
-    if (state.mappings[aliasKey]) {
-      // Recursively merge the nested mappings from both fragments
-      state.mappings[aliasKey].mappings = mergeMappings(
-        state.mappings[aliasKey].mappings,
-        mappings,
-      );
-    } else {
-      state.mappings[aliasKey] = {
+
+    state.mappings = mergeMappings(state.mappings, {
+      [selection.alias?.value ?? selection.name.value]: {
         field: selection.name.value,
         type: type.name,
         mappings,
         indirectPath,
-      };
-    }
+      },
+    });
   }
 }
 
-// Recursively merge LoaderMappings objects
-// This is needed because LoaderMappings is a recursive structure that can be nested
-function mergeMappings(
-  existing: LoaderMappings,
-  incoming: LoaderMappings,
-): LoaderMappings {
+function mergeMappings(existing: LoaderMappings, incoming: LoaderMappings): LoaderMappings {
   const result: LoaderMappings = { ...existing };
-  
+
   for (const [key, value] of Object.entries(incoming)) {
     if (result[key]) {
-      // Key exists in both - recursively merge the nested mappings
       result[key] = {
         ...result[key],
         mappings: mergeMappings(result[key].mappings, value.mappings),
       };
     } else {
-      // Key only in incoming - add it
       result[key] = value;
     }
   }
-  
+
   return result;
 }
 
