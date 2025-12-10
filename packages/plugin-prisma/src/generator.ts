@@ -270,6 +270,10 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
       (input) => input.name === `${model.name}CreateInput`,
     );
 
+    const updateInputUnavailable = !dmmf.schema.inputObjectTypes.prisma?.some(
+      (input) => input.name === `${model.name}UpdateInput`,
+    );
+
     return ts.factory.createPropertySignature(
       [],
       model.name,
@@ -334,7 +338,9 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
                 [],
                 'Update',
                 undefined,
-                ts.factory.createTypeReferenceNode(`Prisma.${model.name}UpdateInput`),
+                updateInputUnavailable
+                  ? ts.factory.createTypeLiteralNode([])
+                  : ts.factory.createTypeReferenceNode(`Prisma.${model.name}UpdateInput`),
               ),
             ]
           : [
