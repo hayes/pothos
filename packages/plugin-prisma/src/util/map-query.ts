@@ -416,10 +416,10 @@ function addFieldSelection(
     // This ensures fragments with same alias but different fields are properly combined
     const isQueryCompatible = selectionCompatible(state, fieldSelectionMap, false);
     const isFieldCompatible = selectionCompatible(state, fieldSelectionMap, true);
-    
+
     if (isQueryCompatible || isFieldCompatible) {
       mergeSelection(state, fieldSelectionMap);
-      
+
       // Merge mappings instead of overwriting them
       const aliasKey = selection.alias?.value ?? selection.name.value;
       if (state.mappings[aliasKey]) {
