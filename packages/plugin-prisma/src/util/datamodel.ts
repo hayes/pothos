@@ -81,6 +81,16 @@ export function getModel<Types extends SchemaTypes>(
     throw new PothosSchemaError(`Model '${name}' not found in DMMF`);
   }
 
+  // Validate that the model data has the required fields for Prisma v7+
+  if (!modelData.uniqueIndexes) {
+    throw new PothosSchemaError(
+      `Model '${name}' is missing required datamodel information. ` +
+        `This is likely because you're using Prisma v7+ without providing the generated datamodel. ` +
+        'Please follow the setup instructions at https://pothos-graphql.dev/docs/plugins/prisma#setup ' +
+        'to generate and configure the datamodel properly.',
+    );
+  }
+
   return modelData;
 }
 
