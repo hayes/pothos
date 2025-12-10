@@ -49,7 +49,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjox",
                   "profile": {
-                    "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                    "bio": "Debitis perspiciatis unde sunt.",
                   },
                 },
               },
@@ -63,7 +63,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjoz",
                   "profile": {
-                    "bio": "Pecco vomito itaque capillus antea umquam.",
+                    "bio": "Vitae facere minima distinctio libero quas hic.",
                   },
                 },
               },
@@ -71,7 +71,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjo0",
                   "profile": {
-                    "bio": "Comminor exercitationem patria adimpleo vere textus demulceo adamo demergo.",
+                    "bio": "Asperiores odit temporibus.",
                   },
                 },
               },
@@ -79,7 +79,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjo1",
                   "profile": {
-                    "bio": "Claudeo uberrime agnitio quo decipio eius alienus carpo advoco vilitas.",
+                    "bio": "Quas ea magni ratione voluptatibus dolore.",
                   },
                 },
               },
@@ -87,7 +87,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjo2",
                   "profile": {
-                    "bio": "Sequi sono viridis.",
+                    "bio": "Voluptatum natus minus repellendus repellendus blanditiis sit aliquam rerum quasi.",
                   },
                 },
               },
@@ -95,7 +95,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjo3",
                   "profile": {
-                    "bio": "Vehemens aeneus vetus desolo suppono acquiro.",
+                    "bio": "Rem nihil debitis repellat ipsum harum occaecati beatae corporis.",
                   },
                 },
               },
@@ -103,7 +103,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjo4",
                   "profile": {
-                    "bio": "Iusto amoveo tollo harum sperno verecundia abduco ago.",
+                    "bio": "Rerum quo velit deserunt quisquam reprehenderit animi.",
                   },
                 },
               },
@@ -111,7 +111,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjo5",
                   "profile": {
-                    "bio": "Abeo aspernatur totus claudeo conduco peior.",
+                    "bio": "Quo suscipit explicabo atque necessitatibus soluta.",
                   },
                 },
               },
@@ -119,7 +119,7 @@ describe('prisma', () => {
                 "node": {
                   "id": "VXNlcjoxMA==",
                   "profile": {
-                    "bio": "Bis minima sono depraedor chirographum repellat.",
+                    "bio": "Perspiciatis rerum impedit magnam voluptatum in quod illo itaque.",
                   },
                 },
               },
@@ -1292,7 +1292,7 @@ describe('prisma', () => {
                         "node": {
                           "author": {
                             "profile": {
-                              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                              "bio": "Debitis perspiciatis unde sunt.",
                             },
                           },
                           "id": "250",
@@ -1303,7 +1303,7 @@ describe('prisma', () => {
                         "node": {
                           "author": {
                             "profile": {
-                              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                              "bio": "Debitis perspiciatis unde sunt.",
                             },
                           },
                           "id": "249",
@@ -1324,7 +1324,7 @@ describe('prisma', () => {
                         "node": {
                           "author": {
                             "profile": {
-                              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                              "bio": "Debitis perspiciatis unde sunt.",
                             },
                           },
                           "id": "250",
@@ -1458,7 +1458,7 @@ describe('prisma', () => {
                 {
                   "node": {
                     "profile": {
-                      "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                      "bio": "Debitis perspiciatis unde sunt.",
                       "user": {
                         "id": "VXNlcjox",
                       },
@@ -1538,7 +1538,7 @@ describe('prisma', () => {
                     "node": {
                       "author": {
                         "profile": {
-                          "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                          "bio": "Debitis perspiciatis unde sunt.",
                         },
                       },
                     },
@@ -1701,36 +1701,64 @@ describe('prisma', () => {
             "following": {
               "edges": [
                 {
-                  "cursor": "R1BDOko6WzEsNF0=",
+                  "cursor": "R1BDOko6WzEsMl0=",
                   "node": {
                     "to": {
-                      "id": "VXNlcjo0",
-                      "name": "Dell Gutkowski-Kuvalis",
+                      "id": "VXNlcjoy",
+                      "name": "Kyle Schoen",
                     },
                   },
                 },
                 {
-                  "cursor": "R1BDOko6WzEsOV0=",
+                  "cursor": "R1BDOko6WzEsMjFd",
                   "node": {
                     "to": {
-                      "id": "VXNlcjo5",
-                      "name": "Adolph Hoppe",
+                      "id": "VXNlcjoyMQ==",
+                      "name": "Euna Leffler",
                     },
                   },
                 },
                 {
-                  "cursor": "R1BDOko6WzEsMTRd",
+                  "cursor": "R1BDOko6WzEsMzBd",
                   "node": {
                     "to": {
-                      "id": "VXNlcjoxNA==",
-                      "name": "Amani Streich",
+                      "id": "VXNlcjozMA==",
+                      "name": "Sydni Schmitt",
                     },
                   },
                 },
               ],
             },
             "followingAfter": {
-              "edges": [],
+              "edges": [
+                {
+                  "cursor": "R1BDOko6WzEsMzBd",
+                  "node": {
+                    "to": {
+                      "id": "VXNlcjozMA==",
+                      "name": "Sydni Schmitt",
+                    },
+                  },
+                },
+                {
+                  "cursor": "R1BDOko6WzEsMzld",
+                  "node": {
+                    "to": {
+                      "id": "VXNlcjozOQ==",
+                      "name": "Esteban Jacobson",
+                    },
+                  },
+                },
+                {
+                  "cursor": "R1BDOko6WzEsNDNd",
+                  "node": {
+                    "to": {
+                      "id": "VXNlcjo0Mw==",
+                      "name": "Renee McKenzie",
+                    },
+                  },
+                },
+              ],
             },
           },
         },
@@ -1899,7 +1927,7 @@ describe('prisma', () => {
                 {
                   "cursor": "R1BDOko6WzEsMl0=",
                   "node": {
-                    "url": "https://mature-opera.biz",
+                    "url": "http://enchanting-east.org",
                   },
                   "order": 1,
                 },
@@ -1910,7 +1938,7 @@ describe('prisma', () => {
                 {
                   "cursor": "R1BDOko6WzEsMV0=",
                   "node": {
-                    "url": "https://inexperienced-substitution.com/",
+                    "url": "https://small-body.net",
                   },
                 },
               ],
@@ -1921,7 +1949,7 @@ describe('prisma', () => {
               "edges": [
                 {
                   "node": {
-                    "authorBio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                    "authorBio": "Debitis perspiciatis unde sunt.",
                     "id": "1",
                   },
                 },
@@ -2080,7 +2108,7 @@ describe('prisma', () => {
                     "edges": [
                       {
                         "node": {
-                          "title": "Ambulo conduco quod cilicium.",
+                          "title": "Ipsa blanditiis voluptatibus.",
                         },
                       },
                     ],
@@ -2094,7 +2122,7 @@ describe('prisma', () => {
                     "edges": [
                       {
                         "node": {
-                          "title": "Demoror expedita clibanus territo spes pariatur.",
+                          "title": "Nam magnam pariatur id animi ut quae.",
                         },
                       },
                     ],

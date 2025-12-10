@@ -1,10 +1,10 @@
 // @ts-ignore
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { faker } from '@faker-js/faker';
-import { PrismaClient } from '../tests/client/client.js';
+import { PrismaClient } from '../tests/client/client.ts';
 
 const adapter = new PrismaBetterSqlite3(
-  { url: 'file:./prisma/dev.db' },
+  { url: 'file:./dev.db' },
   { timestampFormat: 'unixepoch-ms' },
 );
 
@@ -146,36 +146,6 @@ async function main() {
           },
         },
       },
-    });
-  }
-
-  console.log('creating properties and metrics');
-  
-  // Create 3 properties with metrics
-  for (let i = 1; i <= 3; i++) {
-    const property = await prisma.property.create({
-      data: {
-        id: `prop-${i}`,
-        name: `Property ${i}`,
-      },
-    });
-
-    // Create 20 metrics per property with different dates
-    const metrics = [];
-    const startYear = 2020;
-    for (let month = 0; month < 20; month++) {
-      metrics.push({
-        propertyId: property.id,
-        endDate: new Date(startYear, month, 1),
-        month: month % 12,
-        fieldA: faker.number.int({ min: 100, max: 1000 }),
-        fieldB: faker.number.int({ min: 100, max: 1000 }),
-        fieldC: faker.number.int({ min: 100, max: 1000 }),
-      });
-    }
-
-    await prisma.metric.createMany({
-      data: metrics,
     });
   }
 }

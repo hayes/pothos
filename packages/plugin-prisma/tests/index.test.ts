@@ -182,7 +182,7 @@ describe('prisma', () => {
               },
             ],
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
@@ -668,7 +668,7 @@ describe('prisma', () => {
             "profileThroughManualLookup": {
               "user": {
                 "profile": {
-                  "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                  "bio": "Debitis perspiciatis unde sunt.",
                 },
               },
             },
@@ -762,10 +762,10 @@ describe('prisma', () => {
             "__typename": "QueryUsersWithErrorSuccess",
             "data": [
               {
-                "name": "Maurine Farrell",
+                "name": "Maurine Ratke",
                 "profileWithErrors": {
                   "data": {
-                    "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                    "bio": "Debitis perspiciatis unde sunt.",
                     "user": {
                       "id": "VXNlcjox",
                     },
@@ -773,7 +773,7 @@ describe('prisma', () => {
                 },
               },
               {
-                "name": "Oren Windler",
+                "name": "Kyle Schoen",
                 "profileWithErrors": null,
               },
             ],
@@ -847,16 +847,16 @@ describe('prisma', () => {
             "data": [
               {
                 "directProfileWithErrors": {
-                  "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                  "bio": "Debitis perspiciatis unde sunt.",
                   "user": {
                     "id": "VXNlcjox",
                   },
                 },
-                "name": "Maurine Farrell",
+                "name": "Maurine Ratke",
               },
               {
                 "directProfileWithErrors": null,
-                "name": "Oren Windler",
+                "name": "Kyle Schoen",
               },
             ],
           },

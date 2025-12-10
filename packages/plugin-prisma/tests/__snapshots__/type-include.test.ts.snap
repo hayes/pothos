@@ -8,7 +8,7 @@ exports[`prisma > loads type-level includes directly, indirectly and merges with
         "edges": [
           {
             "node": {
-              "authorBio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "authorBio": "Debitis perspiciatis unde sunt.",
             },
           },
         ],
@@ -33,7 +33,7 @@ exports[`prisma > loads type-level includes directly, indirectly and merges with
               "author": {
                 "id": "VXNlcjox",
               },
-              "authorBio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "authorBio": "Debitis perspiciatis unde sunt.",
             },
           },
           {
@@ -41,7 +41,7 @@ exports[`prisma > loads type-level includes directly, indirectly and merges with
               "author": {
                 "id": "VXNlcjox",
               },
-              "authorBio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "authorBio": "Debitis perspiciatis unde sunt.",
             },
           },
         ],

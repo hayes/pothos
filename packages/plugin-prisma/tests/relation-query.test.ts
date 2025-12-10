@@ -206,7 +206,7 @@ describe('query on relations', () => {
           "post": {
             "ownComments": [
               {
-                "content": "Vilicus autus vis copia urbs arbustum summopere.",
+                "content": "Cupiditate esse eligendi ratione ratione.",
                 "id": "1",
               },
             ],
@@ -294,9 +294,9 @@ describe('query on relations', () => {
                 {
                   "node": {
                     "author": {
-                      "name": "Maurine Farrell",
+                      "name": "Maurine Ratke",
                     },
-                    "content": "Vilicus autus vis copia urbs arbustum summopere.",
+                    "content": "Cupiditate esse eligendi ratione ratione.",
                   },
                 },
               ],

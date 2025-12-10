@@ -68,11 +68,11 @@ describe('variants', () => {
           "me": {
             "__typename": "User",
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
             "viewer": {
               "__typename": "NormalViewer",
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
               "posts": [
                 {
                   "id": "1",
@@ -90,7 +90,7 @@ describe('variants', () => {
                   "id": "5",
                 },
               ],
-              "reverseName": "llerraF eniruaM",
+              "reverseName": "ektaR eniruaM",
               "user": {
                 "__typename": "User",
                 "posts": [
@@ -126,7 +126,7 @@ describe('variants', () => {
                   },
                 ],
                 "profile": {
-                  "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+                  "bio": "Debitis perspiciatis unde sunt.",
                 },
               },
             },
@@ -150,7 +150,7 @@ describe('variants', () => {
                 "id": "5",
               },
             ],
-            "reverseName": "llerraF eniruaM",
+            "reverseName": "ektaR eniruaM",
           },
           "viewerNode": {
             "__typename": "ViewerNode",

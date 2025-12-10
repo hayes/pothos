@@ -645,7 +645,7 @@ exports[`prisma > queries for list with nested relations 1`] = `
   "data": {
     "users": [
       {
-        "name": "Maurine Farrell",
+        "name": "Maurine Ratke",
         "posts": [
           {
             "author": {
@@ -729,11 +729,11 @@ exports[`prisma > queries for list with nested relations 1`] = `
           },
         ],
         "profile": {
-          "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+          "bio": "Debitis perspiciatis unde sunt.",
         },
       },
       {
-        "name": "Oren Windler",
+        "name": "Kyle Schoen",
         "posts": [
           {
             "author": {
@@ -811,70 +811,70 @@ exports[`prisma > queries for record with nested relations 1`] = `
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
