@@ -147,21 +147,3 @@ model FindUniqueRelations {
   withCompositeUnique_b String
   withCompositeUnique   WithCompositeUnique @relation(fields: [withCompositeUnique_a, withCompositeUnique_b], references: [a, b])
 }
-
-model Property {
-  id      String   @id
-  name    String
-  metrics Metric[]
-}
-
-model Metric {
-  propertyId String
-  endDate    DateTime
-  month      Int
-  fieldA     Int
-  fieldB     Int
-  fieldC     Int
-  property   Property @relation(fields: [propertyId], references: [id])
-
-  @@unique([propertyId, endDate])
-}

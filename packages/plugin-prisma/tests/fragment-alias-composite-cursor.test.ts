@@ -13,8 +13,9 @@ describe('prisma - fragment alias with different fields', () => {
   });
 
   it('should merge fields when fragments share alias but request different fields', async () => {
-    // Testing that when two fragments use the same alias but request different fields,
-    // all fields are merged and fetched in one query (not separately via findUnique)
+    // Using SelectPost which has explicit select: { id: true }
+    // This will reproduce the issue where fragments with the same alias but different fields
+    // cause additional fields to be loaded via separate findUnique queries
     const query = gql`
       query {
         me {
@@ -25,24 +26,16 @@ describe('prisma - fragment alias with different fields', () => {
       }
 
       fragment FragmentA on User {
-        postsAlias: postsConnection(first: 5) {
-          edges {
-            node {
-              id
-              title
-            }
-          }
+        postsAlias: postNodes(first: 5) {
+          id
+          title
         }
       }
 
       fragment FragmentB on User {
-        postsAlias: postsConnection(first: 5) {
-          edges {
-            node {
-              id
-              content
-            }
-          }
+        postsAlias: postNodes(first: 5) {
+          id
+          content
         }
       }
     `;
@@ -65,8 +58,8 @@ describe('prisma - fragment alias with different fields', () => {
     });
     console.log('===========================================\n');
 
-    // The key fix: Before, we would have extra findUnique queries for missing fields
-    // After the fix, all fields should be fetched together
+    // The key issue: Before the fix, we would have extra findUnique queries for missing fields
+    // After the fix, all fields should be fetched in the initial query
     const findUniqueCount = queries.filter(
       (q: any) => q.action === 'findUniqueOrThrow' || q.action === 'findUnique',
     ).length;
@@ -77,16 +70,16 @@ describe('prisma - fragment alias with different fields', () => {
     const user = result.data?.me as any;
     expect(user).toBeDefined();
     expect(user.postsAlias).toBeDefined();
-    expect(user.postsAlias.edges).toBeDefined();
+    expect(Array.isArray(user.postsAlias)).toBe(true);
 
     // Verify all fields from both fragments are present
-    if (user.postsAlias.edges.length > 0) {
-      const firstNode = user.postsAlias.edges[0].node;
+    if (user.postsAlias.length > 0) {
+      const firstPost = user.postsAlias[0];
       // Fields from FragmentA
-      expect(firstNode.id).toBeDefined();
-      expect(firstNode.title).toBeDefined();
+      expect(firstPost.id).toBeDefined();
+      expect(firstPost.title).toBeDefined();
       // Fields from FragmentB
-      expect(firstNode.content).toBeDefined();
+      expect(firstPost.content).toBeDefined();
     }
   });
 
@@ -101,24 +94,16 @@ describe('prisma - fragment alias with different fields', () => {
       }
 
       fragment FragmentA on User {
-        postsAliasA: postsConnection(first: 5) {
-          edges {
-            node {
-              id
-              title
-            }
-          }
+        postsAliasA: postNodes(first: 5) {
+          id
+          title
         }
       }
 
       fragment FragmentB on User {
-        postsAliasB: postsConnection(first: 5) {
-          edges {
-            node {
-              id
-              content
-            }
-          }
+        postsAliasB: postNodes(first: 5) {
+          id
+          content
         }
       }
     `;
