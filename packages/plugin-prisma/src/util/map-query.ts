@@ -411,14 +411,32 @@ function addFieldSelection(
     fieldSelectionMap = { select: fieldSelect };
   }
 
-  if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
-    mergeSelection(state, fieldSelectionMap);
-    state.mappings[selection.alias?.value ?? selection.name.value] = {
-      field: selection.name.value,
-      type: type.name,
-      mappings,
-      indirectPath,
-    };
+  if (fieldSelect) {
+    // Always merge selections for fields with same alias/query, even if field selections differ
+    // This ensures fragments with same alias but different fields are properly combined
+    const isQueryCompatible = selectionCompatible(state, fieldSelectionMap, false);
+    const isFieldCompatible = selectionCompatible(state, fieldSelectionMap, true);
+    
+    if (isQueryCompatible || isFieldCompatible) {
+      mergeSelection(state, fieldSelectionMap);
+      
+      // Merge mappings instead of overwriting them
+      const aliasKey = selection.alias?.value ?? selection.name.value;
+      if (state.mappings[aliasKey]) {
+        // Merge nested mappings from both fragments
+        state.mappings[aliasKey].mappings = {
+          ...state.mappings[aliasKey].mappings,
+          ...mappings,
+        };
+      } else {
+        state.mappings[aliasKey] = {
+          field: selection.name.value,
+          type: type.name,
+          mappings,
+          indirectPath,
+        };
+      }
+    }
   }
 }
 

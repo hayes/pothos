@@ -61,27 +61,27 @@ describe('nested query', () => {
                     "comments": [
                       {
                         "postAuthor": {
-                          "name": "Maurine Ratke",
+                          "name": "Maurine Farrell",
                         },
                       },
                       {
                         "postAuthor": {
-                          "name": "Maurine Ratke",
+                          "name": "Maurine Farrell",
                         },
                       },
                       {
                         "postAuthor": {
-                          "name": "Maurine Ratke",
+                          "name": "Maurine Farrell",
                         },
                       },
                     ],
                     "id": "250",
                     "media": [
                       {
-                        "url": "http://mixed-dill.org",
+                        "url": "https://apt-discourse.name/",
                       },
                       {
-                        "url": "https://fussy-jackfruit.net",
+                        "url": "https://querulous-pigsty.org/",
                       },
                     ],
                   },
@@ -93,17 +93,17 @@ describe('nested query', () => {
             "postPreviews": [
               {
                 "post": {
-                  "content": "Iusto odit nisi aliquid nostrum similique libero. Iure velit ipsa quidem aliquid. Cum similique qui reprehenderit dolores veritatis voluptatum. Voluptatum vel culpa magnam illum dignissimos nam cum. Corporis nam commodi ad animi corporis voluptas.",
+                  "content": "Atque exercitationem exercitationem reiciendis. Surculus perferendis suppono commodi conturbo calco claudeo quos aliquam. Curvo depulso cursim color cursim varietas.",
                   "createdAt": "2012-12-12T00:00:00.000Z",
                 },
-                "preview": " nisi aliquid nostrum similique libero. Iure velit ipsa quidem aliquid. Cum similique qui reprehenderit dolores veritatis voluptatum. Voluptatum vel culpa magnam illum dignissimos nam cum. Corporis nam commodi ad animi corporis voluptas.",
+                "preview": "citationem exercitationem reiciendis. Surculus perferendis suppono commodi conturbo calco claudeo quos aliquam. Curvo depulso cursim color cursim varietas.",
               },
               {
                 "post": {
-                  "content": "Officiis vel nobis debitis quidem. Laudantium blanditiis quam error excepturi dicta aliquam enim ducimus commodi. Pariatur voluptates non beatae iusto ducimus doloribus consectetur.",
+                  "content": "Conicio cognomen cur stabilis utique dolore sortitus. Quibusdam spero turbo agnosco tenax careo autem. Allatus vae quis supra acceptus paens iusto.",
                   "createdAt": "2012-12-12T00:00:00.001Z",
                 },
-                "preview": "el nobis debitis quidem. Laudantium blanditiis quam error excepturi dicta aliquam enim ducimus commodi. Pariatur voluptates non beatae iusto ducimus doloribus consectetur.",
+                "preview": "gnomen cur stabilis utique dolore sortitus. Quibusdam spero turbo agnosco tenax careo autem. Allatus vae quis supra acceptus paens iusto.",
               },
             ],
           },
@@ -217,19 +217,19 @@ describe('nested query', () => {
             "posts": [
               {
                 "author": {
-                  "name": "Maurine Ratke",
+                  "name": "Maurine Farrell",
                 },
                 "id": "1",
               },
               {
                 "author": {
-                  "name": "Maurine Ratke",
+                  "name": "Maurine Farrell",
                 },
                 "id": "2",
               },
               {
                 "author": {
-                  "name": "Maurine Ratke",
+                  "name": "Maurine Farrell",
                 },
                 "id": "3",
               },

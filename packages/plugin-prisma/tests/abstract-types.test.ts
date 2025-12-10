@@ -39,9 +39,9 @@ describe('abstract types', () => {
           "named": [
             {
               "id": "VXNlcjox",
-              "name": "Maurine Ratke",
+              "name": "Maurine Farrell",
               "profile": {
-                "bio": "Debitis perspiciatis unde sunt.",
+                "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
               },
             },
             null,
@@ -112,9 +112,9 @@ describe('abstract types', () => {
             {
               "__typename": "User",
               "id": "VXNlcjox",
-              "name": "Maurine Ratke",
+              "name": "Maurine Farrell",
               "profile": {
-                "bio": "Debitis perspiciatis unde sunt.",
+                "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
               },
             },
           ],
@@ -176,9 +176,9 @@ describe('abstract types', () => {
           "namedWithQuery": [
             {
               "id": "VXNlcjox",
-              "name": "Maurine Ratke",
+              "name": "Maurine Farrell",
               "profile": {
-                "bio": "Debitis perspiciatis unde sunt.",
+                "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
               },
             },
             null,
@@ -241,9 +241,9 @@ describe('abstract types', () => {
             {
               "__typename": "User",
               "id": "VXNlcjox",
-              "name": "Maurine Ratke",
+              "name": "Maurine Farrell",
               "profile": {
-                "bio": "Debitis perspiciatis unde sunt.",
+                "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
               },
             },
           ],
@@ -301,9 +301,9 @@ describe('abstract types', () => {
             "named": [
               {
                 "id": "VXNlcjox",
-                "name": "Maurine Ratke",
+                "name": "Maurine Farrell",
                 "profile": {
-                  "bio": "Debitis perspiciatis unde sunt.",
+                  "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
                 },
               },
             ],
@@ -375,7 +375,7 @@ describe('abstract types', () => {
               {
                 "__typename": "NormalViewer",
                 "id": "1",
-                "reverseName": "ektaR eniruaM",
+                "reverseName": "llerraF eniruaM",
               },
             ],
           },

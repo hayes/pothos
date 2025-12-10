@@ -1091,7 +1091,7 @@ describe('defer', () => {
               {
                 "author": {
                   "profile": {
-                    "bio": "Debitis perspiciatis unde sunt.",
+                    "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
                   },
                 },
                 "id": "1",
@@ -1105,7 +1105,7 @@ describe('defer', () => {
               {
                 "author": {
                   "profile": {
-                    "bio": "Vitae facere minima distinctio libero quas hic.",
+                    "bio": "Pecco vomito itaque capillus antea umquam.",
                   },
                 },
                 "id": "2001",
@@ -1191,7 +1191,7 @@ describe('defer', () => {
               {
                 "author": {
                   "profile": {
-                    "bio": "Debitis perspiciatis unde sunt.",
+                    "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
                   },
                 },
                 "id": "1",
@@ -1205,7 +1205,7 @@ describe('defer', () => {
               {
                 "author": {
                   "profile": {
-                    "bio": "Vitae facere minima distinctio libero quas hic.",
+                    "bio": "Pecco vomito itaque capillus antea umquam.",
                   },
                 },
                 "id": "2001",

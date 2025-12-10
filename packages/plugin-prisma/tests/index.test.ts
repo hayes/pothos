@@ -182,7 +182,7 @@ describe('prisma', () => {
               },
             ],
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
@@ -668,7 +668,7 @@ describe('prisma', () => {
             "profileThroughManualLookup": {
               "user": {
                 "profile": {
-                  "bio": "Debitis perspiciatis unde sunt.",
+                  "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
                 },
               },
             },
@@ -762,10 +762,10 @@ describe('prisma', () => {
             "__typename": "QueryUsersWithErrorSuccess",
             "data": [
               {
-                "name": "Maurine Ratke",
+                "name": "Maurine Farrell",
                 "profileWithErrors": {
                   "data": {
-                    "bio": "Debitis perspiciatis unde sunt.",
+                    "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
                     "user": {
                       "id": "VXNlcjox",
                     },
@@ -773,7 +773,7 @@ describe('prisma', () => {
                 },
               },
               {
-                "name": "Kyle Schoen",
+                "name": "Oren Windler",
                 "profileWithErrors": null,
               },
             ],
@@ -847,16 +847,16 @@ describe('prisma', () => {
             "data": [
               {
                 "directProfileWithErrors": {
-                  "bio": "Debitis perspiciatis unde sunt.",
+                  "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
                   "user": {
                     "id": "VXNlcjox",
                   },
                 },
-                "name": "Maurine Ratke",
+                "name": "Maurine Farrell",
               },
               {
                 "directProfileWithErrors": null,
-                "name": "Kyle Schoen",
+                "name": "Oren Windler",
               },
             ],
           },

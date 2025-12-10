@@ -82,31 +82,31 @@ describe('select mode', () => {
             },
           },
           "viewer": {
-            "bio": "Debitis perspiciatis unde sunt.",
+            "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             "postCount": 250,
             "selectUser": {
-              "name": "Maurine Ratke",
+              "name": "Maurine Farrell",
               "postCount": 250,
               "posts": [
                 {
                   "id": "U2VsZWN0UG9zdDox",
-                  "title": "Quos distinctio distinctio dignissimos vel quo maiores ea.",
+                  "title": "Denique cruciamentum conicio suspendo decens adulatio cubicularis taceo.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDoy",
-                  "title": "Voluptatem eum dolores dignissimos quia vel.",
+                  "title": "Voro earum placeat animi trepide pax.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDoz",
-                  "title": "Ut corrupti eum nostrum consequatur aliquam nostrum.",
+                  "title": "Contabesco adimpleo cogo cubicularis sufficio vulnero constans tempus optio.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDo0",
-                  "title": "Aut molestiae perspiciatis quaerat quas praesentium quia ut sed cumque.",
+                  "title": "Vorago causa magni timor cruentus suus arto paulatim uredo vorago.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDo1",
-                  "title": "Quos beatae adipisci explicabo officiis ad esse id.",
+                  "title": "Debitis teneo maxime ago nostrum tot.",
                 },
               ],
               "postsConnection": {
@@ -115,7 +115,7 @@ describe('select mode', () => {
                     "node": {
                       "createdAt": "2012-12-12T00:00:00.249Z",
                       "id": "U2VsZWN0UG9zdDoyNTA=",
-                      "title": "Ipsa blanditiis voluptatibus.",
+                      "title": "Ambulo conduco quod cilicium.",
                     },
                   },
                 ],
@@ -302,7 +302,7 @@ describe('select mode', () => {
       {
         "data": {
           "viewer": {
-            "bio": "Debitis perspiciatis unde sunt.",
+            "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             "selectUser": {
               "postsConnection": {
                 "edges": [

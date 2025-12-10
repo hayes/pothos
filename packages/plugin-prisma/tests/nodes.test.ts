@@ -44,11 +44,11 @@ describe('prisma', () => {
         "data": {
           "node": {
             "__typename": "User",
-            "email": "Maurine.Ratke@gmail.com",
+            "email": "Maurine_Farrell@hotmail.com",
             "id": "VXNlcjox",
-            "name": "Maurine Ratke",
+            "name": "Maurine Farrell",
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
               "id": "1",
               "user": {
                 "id": "VXNlcjox",
@@ -171,11 +171,11 @@ describe('prisma', () => {
           "nodes": [
             {
               "__typename": "User",
-              "email": "Maurine.Ratke@gmail.com",
+              "email": "Maurine_Farrell@hotmail.com",
               "id": "VXNlcjox",
-              "name": "Maurine Ratke",
+              "name": "Maurine Farrell",
               "profile": {
-                "bio": "Debitis perspiciatis unde sunt.",
+                "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
                 "id": "1",
                 "user": {
                   "id": "VXNlcjox",
@@ -184,9 +184,9 @@ describe('prisma', () => {
             },
             {
               "__typename": "User",
-              "email": "Kyle_Schoen@yahoo.com",
+              "email": "Oren_Windler70@gmail.com",
               "id": "VXNlcjoy",
-              "name": "Kyle Schoen",
+              "name": "Oren Windler",
               "profile": null,
             },
           ],
@@ -361,7 +361,7 @@ describe('prisma', () => {
           "named": [
             {
               "id": "VXNlcjox",
-              "name": "Maurine Ratke",
+              "name": "Maurine Farrell",
             },
             null,
           ],
@@ -471,7 +471,7 @@ describe('prisma', () => {
       {
         "data": {
           "node": {
-            "bio": "Debitis perspiciatis unde sunt.",
+            "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             "id": "Vmlld2VyTm9kZTox",
           },
         },
@@ -528,7 +528,7 @@ describe('prisma', () => {
             "postNodes": [
               {
                 "id": "U2VsZWN0UG9zdDox",
-                "title": "Quos distinctio distinctio dignissimos vel quo maiores ea.",
+                "title": "Denique cruciamentum conicio suspendo decens adulatio cubicularis taceo.",
               },
             ],
           },

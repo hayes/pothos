@@ -53,6 +53,8 @@ type CommentEdge {
   node: Comment!
 }
 
+scalar DateTime
+
 scalar Decimal
 
 interface Error {
@@ -90,6 +92,21 @@ type MediaConnection {
 type MediaEdge {
   cursor: String!
   node: Media!
+}
+
+type Metric {
+  endDate: String
+  fieldA: Int
+  fieldB: Int
+  fieldC: Int
+  month: Int
+  propertyId: String
+}
+
+input MetricFilter {
+  endDate: String
+  month: Int
+  startDate: String
 }
 
 interface Named {
@@ -187,6 +204,25 @@ type Profile {
   user: User
 }
 
+type Property {
+  id: ID
+  metrics(after: String, before: String, filter: MetricFilter, first: Int, last: Int): PropertyMetricsConnection
+  name: String
+}
+
+type PropertyMetricsConnection {
+  edges: [PropertyMetricsConnectionEdge]
+  pageInfo: PageInfo!
+
+  """default totalCount field for all connections"""
+  totalCount: Int
+}
+
+type PropertyMetricsConnectionEdge {
+  cursor: String!
+  node: Metric!
+}
+
 type Query {
   badUser: User
   blog: Blog
@@ -205,6 +241,7 @@ type Query {
   post(id: ID!): Post
   posts: [Post!]
   postsBigIntCursor(after: String, before: String, first: Int, last: Int): QueryPostsBigIntCursorConnection
+  properties(after: String, before: String, first: Int, last: Int): QueryPropertiesConnection
   selectMe: SelectUser
   selectPost(id: ID!): SelectPost
   selectPosts: [SelectPost!]
@@ -271,6 +308,19 @@ type QueryPostsBigIntCursorConnection {
 type QueryPostsBigIntCursorConnectionEdge {
   cursor: String!
   node: Post!
+}
+
+type QueryPropertiesConnection {
+  edges: [QueryPropertiesConnectionEdge]
+  pageInfo: PageInfo!
+
+  """default totalCount field for all connections"""
+  totalCount: Int
+}
+
+type QueryPropertiesConnectionEdge {
+  cursor: String!
+  node: Property!
 }
 
 type QueryUnrelatedConnection {
@@ -645,7 +695,7 @@ exports[`prisma > queries for list with nested relations 1`] = `
   "data": {
     "users": [
       {
-        "name": "Maurine Ratke",
+        "name": "Maurine Farrell",
         "posts": [
           {
             "author": {
@@ -729,11 +779,11 @@ exports[`prisma > queries for list with nested relations 1`] = `
           },
         ],
         "profile": {
-          "bio": "Debitis perspiciatis unde sunt.",
+          "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
         },
       },
       {
-        "name": "Kyle Schoen",
+        "name": "Oren Windler",
         "posts": [
           {
             "author": {
@@ -811,70 +861,70 @@ exports[`prisma > queries for record with nested relations 1`] = `
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Debitis perspiciatis unde sunt.",
+              "bio": "Talus bonus vesica vita harum currus deludo toties amet.",
             },
           },
         },
