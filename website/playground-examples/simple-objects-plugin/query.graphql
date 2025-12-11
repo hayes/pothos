@@ -1,0 +1,12 @@
+query GetUser {
+  user(id: "1") {
+    id
+    firstName
+    lastName
+    fullName
+    contactInfo {
+      email
+      phoneNumber
+    }
+  }
+}

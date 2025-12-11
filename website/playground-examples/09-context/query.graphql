@@ -1,0 +1,8 @@
+query ContextExample {
+  # Access current user from context
+  currentUser {
+    id
+    username
+    firstName
+  }
+}

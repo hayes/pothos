@@ -1,0 +1,4 @@
+# Query using fieldWithInput
+query Example {
+  example(input: { id: "123" })
+}

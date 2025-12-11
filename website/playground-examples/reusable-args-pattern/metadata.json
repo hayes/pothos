@@ -1,0 +1,12 @@
+{
+  "id": "reusable-args-pattern",
+  "title": "Reusable Args Pattern",
+  "description": "Create type-safe reusable argument builders for DRY schemas",
+  "category": "patterns",
+  "subcategory": "advanced-patterns",
+  "difficulty": "advanced",
+  "order": 2,
+  "tags": ["patterns", "args", "dry", "type-safety"],
+  "relatedDocs": ["/docs/guide/patterns"],
+  "prerequisites": ["04-args", "02-queries-mutations"]
+}

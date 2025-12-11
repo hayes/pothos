@@ -75,3 +75,667 @@
     padding-left: 16px;
   }
 }
+
+/* GraphiQL Playground Styles - Override GraphiQL's default colors with Pothos green theme */
+/* Using higher specificity to override library defaults */
+.graphiql-container,
+.graphiql-container.graphiql-container,
+.graphiql-dialog,
+.graphiql-dialog.graphiql-dialog,
+.graphiql-dialog-overlay,
+.graphiql-dialog-overlay.graphiql-dialog-overlay,
+.graphiql-tooltip,
+.graphiql-tooltip.graphiql-tooltip,
+[data-radix-popper-content-wrapper] {
+  --color-primary: 152, 70%, 40%;
+  --color-secondary: 152, 60%, 50%;
+  --color-neutral: 150, 15%, 30%;
+  --color-base: 150, 20%, 99%;
+}
+
+/* Dark mode - need to beat the @media (prefers-color-scheme: dark) and body.graphiql-dark selectors */
+.dark .graphiql-container,
+.dark .graphiql-container.graphiql-container,
+.dark .graphiql-dialog,
+.dark .graphiql-dialog.graphiql-dialog,
+.dark .graphiql-dialog-overlay,
+.dark .graphiql-dialog-overlay.graphiql-dialog-overlay,
+.dark .graphiql-tooltip,
+.dark .graphiql-tooltip.graphiql-tooltip,
+.dark [data-radix-popper-content-wrapper],
+html.dark .graphiql-container,
+html.dark .graphiql-dialog,
+html.dark .graphiql-dialog-overlay,
+html.dark .graphiql-tooltip,
+html.dark [data-radix-popper-content-wrapper] {
+  --color-primary: 152, 80%, 55%;
+  --color-secondary: 152, 70%, 60%;
+  --color-neutral: 160, 30%, 75%;
+  --color-base: 160, 50%, 10%;
+}
+
+/* Override @media prefers-color-scheme which GraphiQL uses */
+@media (prefers-color-scheme: dark) {
+  .graphiql-container.graphiql-container,
+  .graphiql-dialog.graphiql-dialog,
+  .graphiql-dialog-overlay.graphiql-dialog-overlay,
+  .graphiql-tooltip.graphiql-tooltip {
+    --color-primary: 152, 80%, 55%;
+    --color-secondary: 152, 70%, 60%;
+    --color-neutral: 160, 30%, 75%;
+    --color-base: 160, 50%, 10%;
+  }
+}
+
+/* Light mode explicit override when user has dark system preference but light site theme */
+html:not(.dark) .graphiql-container.graphiql-container,
+html:not(.dark) .graphiql-dialog.graphiql-dialog,
+html:not(.dark) .graphiql-dialog-overlay.graphiql-dialog-overlay,
+html:not(.dark) .graphiql-tooltip.graphiql-tooltip,
+html.light .graphiql-container.graphiql-container,
+html.light .graphiql-dialog.graphiql-dialog,
+html.light .graphiql-dialog-overlay.graphiql-dialog-overlay,
+html.light .graphiql-tooltip.graphiql-tooltip,
+.light .graphiql-container.graphiql-container,
+.light .graphiql-dialog.graphiql-dialog,
+.light .graphiql-dialog-overlay.graphiql-dialog-overlay,
+.light .graphiql-tooltip.graphiql-tooltip {
+  --color-primary: 152, 70%, 40%;
+  --color-secondary: 152, 60%, 50%;
+  --color-neutral: 150, 15%, 30%;
+  --color-base: 150, 20%, 99%;
+}
+
+/* ============================================
+   GraphiQL Editor Styles - Pothos Green Theme
+   ============================================ */
+
+.graphiql-editor-container.graphiql-container,
+.graphiql-editor-container {
+  --color-primary: 152, 70%, 40%;
+  --color-secondary: 152, 60%, 45%;
+  --color-base: 150, 20%, 99%;
+  --color-neutral: 150, 15%, 30%;
+  --alpha-secondary: 0.76;
+  --alpha-tertiary: 0.5;
+  --alpha-background-light: 0.07;
+  --alpha-background-medium: 0.1;
+  --alpha-background-heavy: 0.15;
+  --border-radius: 8px;
+  --tab-bg: hsl(var(--color-base));
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.dark .graphiql-editor-container.graphiql-container,
+.dark .graphiql-editor-container,
+html.dark .graphiql-editor-container {
+  --color-primary: 152, 80%, 55%;
+  --color-secondary: 152, 70%, 50%;
+  --color-base: 160, 50%, 10%;
+  --color-neutral: 160, 30%, 75%;
+  --alpha-background-light: 0.07;
+  --alpha-background-medium: 0.1;
+  --alpha-background-heavy: 0.15;
+}
+
+/* System dark preference - fallback for when no .dark class */
+@media (prefers-color-scheme: dark) {
+  .graphiql-editor-container.graphiql-container,
+  .graphiql-editor-container {
+    --color-primary: 152, 80%, 55%;
+    --color-secondary: 152, 70%, 50%;
+    --color-base: 160, 50%, 10%;
+    --color-neutral: 160, 30%, 75%;
+  }
+}
+
+/* Light mode explicit override when user has dark system preference but light site theme */
+html:not(.dark) .graphiql-editor-container.graphiql-container,
+html:not(.dark) .graphiql-editor-container,
+html.light .graphiql-editor-container.graphiql-container,
+html.light .graphiql-editor-container,
+.light .graphiql-editor-container.graphiql-container,
+.light .graphiql-editor-container {
+  --color-primary: 152, 70%, 40%;
+  --color-secondary: 152, 60%, 45%;
+  --color-base: 150, 20%, 99%;
+  --color-neutral: 150, 15%, 30%;
+}
+
+/* Main layout - single unified card like original GraphiQL */
+.graphiql-editor-container .graphiql-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: hsla(var(--color-neutral), 0.12);
+  border-radius: var(--border-radius);
+  margin: 12px;
+}
+
+/* Shared header that spans both panels */
+.graphiql-editor-container .graphiql-session-header {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: transparent;
+  min-height: 42px;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  flex-shrink: 0;
+}
+
+/* GraphiQL logo in header */
+.graphiql-editor-container .graphiql-logo {
+  margin-left: auto;
+  margin-right: 12px;
+  font-size: 14px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.graphiql-editor-container .graphiql-logo:hover {
+  opacity: 1;
+}
+
+.graphiql-editor-container .graphiql-logo em {
+  font-style: normal;
+}
+
+/* Content area below header - contains query and response side by side */
+.graphiql-editor-container .graphiql-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Sessions container (query side) - has its own background */
+.graphiql-editor-container .graphiql-sessions {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: hsl(var(--color-base));
+  border-radius: 0 0 0 var(--border-radius);
+}
+
+/* Full width sessions (for code editor without response panel) */
+.graphiql-editor-container .graphiql-sessions-full {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.graphiql-editor-container .graphiql-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.graphiql-editor-container .graphiql-tab {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 6px 28px 6px 12px;
+  border: none;
+  background: hsla(var(--color-neutral), var(--alpha-background-light));
+  color: hsla(var(--color-neutral), var(--alpha-secondary));
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  flex-shrink: 0;
+}
+
+.graphiql-editor-container .graphiql-tab:hover {
+  background: var(--tab-bg);
+  color: hsl(var(--color-neutral));
+}
+
+.graphiql-editor-container .graphiql-tab-active {
+  background: var(--tab-bg);
+  color: hsl(var(--color-neutral));
+}
+
+.graphiql-editor-container .graphiql-tab-close {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  padding: 4px;
+  border: none;
+  background: var(--tab-bg);
+  color: hsla(var(--color-neutral), var(--alpha-tertiary));
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 4px;
+}
+
+.graphiql-editor-container .graphiql-tab:hover .graphiql-tab-close,
+.graphiql-editor-container .graphiql-tab-active .graphiql-tab-close {
+  display: block;
+}
+
+.graphiql-editor-container .graphiql-tab-close:hover {
+  color: hsl(var(--color-neutral));
+}
+
+.graphiql-editor-container .graphiql-tab-button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.graphiql-editor-container .graphiql-tab-button:hover {
+  background: none;
+}
+
+.graphiql-editor-container .graphiql-tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin-bottom: 6px;
+  border: 1px solid hsla(var(--color-neutral), 0.2);
+  background: transparent;
+  color: hsla(var(--color-neutral), var(--alpha-secondary));
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.graphiql-editor-container .graphiql-tab-add:hover {
+  background: hsla(var(--color-neutral), var(--alpha-background-medium));
+  border-color: hsla(var(--color-neutral), 0.3);
+  color: hsl(var(--color-neutral));
+}
+
+/* Session panel (query side) */
+.graphiql-editor-container .graphiql-session {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Editors container */
+.graphiql-editor-container .graphiql-editors {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Query editor wrapper with floating toolbar */
+.graphiql-editor-container .graphiql-query-editor-wrapper {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.graphiql-editor-container .graphiql-query-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-right: 56px; /* Space for toolbar */
+  padding-left: 16px; /* Space for line numbers */
+  padding-top: 12px; /* Space from header */
+}
+
+/* GraphiQL's CodeMirror editor - add left margin for line numbers */
+.graphiql-editor-container .cm-editor {
+  margin-left: 4px;
+}
+
+.graphiql-editor-container .graphiql-editor {
+  padding-left: 4px;
+}
+
+/* Floating toolbar */
+.graphiql-editor-container .graphiql-toolbar {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+
+/* Execute Button - Green */
+.graphiql-editor-container .graphiql-execute-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: hsl(var(--color-primary));
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 8px hsla(var(--color-primary), 0.4);
+  transition:
+    transform 0.1s,
+    box-shadow 0.15s;
+}
+
+.graphiql-editor-container .graphiql-execute-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px hsla(var(--color-primary), 0.5);
+}
+
+.graphiql-editor-container .graphiql-execute-button:active {
+  transform: scale(0.98);
+}
+
+.graphiql-editor-container .graphiql-execute-button svg {
+  fill: white;
+  width: 16px;
+  height: 16px;
+}
+
+/* Toolbar buttons */
+.graphiql-editor-container .graphiql-toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: hsla(var(--color-neutral), var(--alpha-background-medium));
+  color: hsla(var(--color-neutral), var(--alpha-secondary));
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.graphiql-editor-container .graphiql-toolbar-button:hover {
+  background: hsla(var(--color-neutral), var(--alpha-background-heavy));
+  color: hsl(var(--color-neutral));
+}
+
+/* Editor tools (Variables/Headers toggle) - styled like original GraphiQL */
+.graphiql-editor-container .graphiql-editor-tools {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--px-8, 8px);
+  min-height: 41px;
+  border-top: 1px solid hsla(var(--color-neutral), var(--alpha-background-heavy));
+}
+
+.graphiql-editor-container .graphiql-editor-tools-tabs {
+  display: flex;
+  flex: 1;
+  gap: 0;
+}
+
+.graphiql-editor-container .graphiql-editor-tools-tab {
+  padding: var(--px-8, 8px) var(--px-12, 12px);
+  border: none;
+  background: transparent;
+  color: hsla(var(--color-neutral), var(--alpha-secondary));
+  font-size: var(--font-size-body, 14px);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+  position: relative;
+}
+
+.graphiql-editor-container .graphiql-editor-tools-tab:hover {
+  color: hsl(var(--color-neutral));
+}
+
+.graphiql-editor-container .graphiql-editor-tools-tab-active {
+  color: hsl(var(--color-neutral));
+}
+
+.graphiql-editor-container .graphiql-editor-tools-tab-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: var(--px-12, 12px);
+  right: var(--px-12, 12px);
+  height: 2px;
+  background: hsl(var(--color-primary));
+  border-radius: 1px;
+}
+
+.graphiql-editor-container .graphiql-editor-tools-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: hsla(var(--color-neutral), var(--alpha-tertiary));
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    transform 0.15s;
+}
+
+.graphiql-editor-container .graphiql-editor-tools-toggle:hover {
+  color: hsl(var(--color-neutral));
+}
+
+/* Variables editor */
+.graphiql-editor-container .graphiql-variables-editor {
+  height: 150px;
+  border-top: 1px solid hsla(var(--color-neutral), var(--alpha-background-heavy));
+  overflow: hidden;
+  padding-left: 16px;
+  padding-top: 8px;
+}
+
+/* Response panel (right side) - outside sessions so it shows main background */
+.graphiql-editor-container .graphiql-response {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.graphiql-editor-container .graphiql-response-result {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 8px;
+}
+
+.graphiql-editor-container .graphiql-response-result-hidden {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Result window from ResponseEditor */
+.graphiql-editor-container .graphiql-result-window,
+.graphiql-editor-container .result-window {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Monaco Editor - ensure proper sizing */
+.graphiql-editor-container .monaco-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.graphiql-editor-container .overflow-guard {
+  height: 100%;
+}
+
+/* Make Monaco editor backgrounds transparent to show theme colors */
+.graphiql-editor-container .monaco-editor,
+.graphiql-editor-container .monaco-editor .margin,
+.graphiql-editor-container .monaco-editor-background,
+.graphiql-editor-container .monaco-editor .inputarea.ime-input,
+.schema-viewer .monaco-editor,
+.schema-viewer .monaco-editor .margin,
+.schema-viewer .monaco-editor-background,
+.schema-viewer .monaco-editor .inputarea.ime-input {
+  background-color: transparent;
+}
+
+/* ============================================
+   Playground Panel Styles
+   ============================================ */
+
+/* Doc Explorer panel - force green theme */
+.graphiql-doc-explorer {
+  padding: 16px;
+  --color-primary: 152, 70%, 40%;
+  --color-secondary: 152, 60%, 50%;
+  --color-neutral: 150, 15%, 30%;
+  --color-base: 150, 20%, 99%;
+}
+
+.dark .graphiql-doc-explorer,
+html.dark .graphiql-doc-explorer {
+  --color-primary: 152, 80%, 55%;
+  --color-secondary: 152, 70%, 60%;
+  --color-neutral: 160, 30%, 75%;
+  --color-base: 160, 50%, 10%;
+}
+
+.graphiql-doc-explorer > .graphiql-doc-explorer-title {
+  display: none; /* Hide the built-in title since we have our own header */
+}
+
+/* Doc Explorer inner elements */
+.graphiql-doc-explorer-header,
+.graphiql-doc-explorer-content,
+.graphiql-doc-explorer-search {
+  --color-primary: inherit;
+  --color-secondary: inherit;
+  --color-neutral: inherit;
+  --color-base: inherit;
+}
+
+/* Consistent panel header styling */
+.playground-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-fd-border);
+  background: hsla(var(--color-neutral, 219, 28%, 32%), 0.07);
+}
+
+.playground-panel-header-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+}
+
+.playground-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.playground-panel-close:hover {
+  opacity: 1;
+  background: hsla(var(--color-neutral, 219, 28%, 32%), 0.1);
+}
+
+/* ============================================
+   Rounded Corners for Editors
+   ============================================ */
+
+/* Code editor - rounded top-right (always, no responsive removal) */
+.graphiql-editor-container .graphiql-sessions.overflow-hidden,
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .graphiql-session,
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .monaco-editor,
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .overflow-guard {
+  border-top-right-radius: 0.5rem;
+}
+
+/* Monaco editor margin for scrollbar positioning */
+.graphiql-editor-container .graphiql-sessions.overflow-hidden .monaco-editor {
+  margin: 8px 60px 8px 0;
+}
+
+/* Query editor - rounded top-right */
+.graphiql-sessions.overflow-hidden.rounded-tr-lg,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-session,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-editors,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-query-editor-wrapper,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .graphiql-query-editor,
+.graphiql-sessions.overflow-hidden.rounded-tr-lg .cm-editor {
+  border-top-right-radius: 0.5rem;
+}
+
+/* ============================================
+   File Management (Tabs)
+   ============================================ */
+
+/* Tab input for renaming files */
+.graphiql-tab-input {
+  background: var(--color-fd-background);
+  color: var(--color-fd-foreground);
+  border: 1px solid var(--color-fd-primary);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  min-width: 80px;
+  max-width: 200px;
+}
+
+.graphiql-tab-input:focus {
+  box-shadow: 0 0 0 2px var(--color-fd-ring);
+}

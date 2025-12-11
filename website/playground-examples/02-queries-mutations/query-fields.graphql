@@ -1,0 +1,10 @@
+# Multiple query fields added at once
+query AllQueries {
+  hello
+  giraffe {
+    name
+  }
+  giraffes {
+    name
+  }
+}

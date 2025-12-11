@@ -45,12 +45,13 @@ type used for defining objects must be a superset of the the types of any interf
 Now that we have our classes set up we can define the interface type. and add a enum definitions for
 our diet field:
 
-```typescript
+```typescript playground example="06-interfaces"
 builder.interfaceType(Animal, {
-  name: 'AnimalFromClass',
+  name: 'Animal',
   fields: (t) => ({
-    diet: t.expose('diet', {
+    diet: t.field({
       type: Diet,
+      resolve: (parent) => parent.diet,
     }),
   }),
 });
@@ -62,7 +63,7 @@ builder.enumType(Diet, {
 
 ## implementing interfaces with object types
 
-```typescript
+```typescript playground example="06-interfaces"
 builder.objectType(Giraffe, {
   name: 'Giraffe',
   interfaces: [Animal],
@@ -83,10 +84,10 @@ instance of our object type.
 
 Using interfaces as return types for fields works just like objects:
 
-```typescript
+```typescript playground example="06-interfaces"
 builder.queryFields((t) => ({
   animal: t.field({
-    type: 'Animal',
+    type: Animal,
     resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
   }),
 }));

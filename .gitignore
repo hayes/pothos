@@ -20,6 +20,7 @@ logs/
 coverage/
 dist/
 lib/
+!website/lib/
 dts/
 node_modules/
 tmp/
@@ -40,5 +41,11 @@ tmp/
 
 # Local Netlify folder
 .netlify
+
+# Test artifacts
+playwright-report/
+test-results/
+*.png
+!website/public/**/*.png
 
 CLAUDE.md

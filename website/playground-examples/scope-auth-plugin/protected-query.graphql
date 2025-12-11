@@ -1,0 +1,9 @@
+# Protected queries - require authentication
+query ProtectedMessages {
+  message
+  secretMessage
+}
+
+query EmployeeQuery {
+  employeeInfo
+}

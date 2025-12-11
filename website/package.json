@@ -2,18 +2,39 @@
   "name": "@pothos/website",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm run bundle-types && pnpm run build-examples && next dev",
+    "build": "pnpm run bundle-types && pnpm run build-examples && pnpm run type",
     "next-build": "next build",
-    "build-ci": "next build",
+    "build-ci": "pnpm turbo run build && pnpm run type && next build",
     "start": "next start",
+    "bundle-types": "tsx scripts/bundle-types.ts",
+    "build-examples": "tsx scripts/build-playground-examples.ts",
+    "type": "tsc --noEmit",
+    "test": "pnpm run test:examples && pnpm run test:docs",
+    "test:examples": "tsx scripts/test-playground-examples.test.ts",
+    "test:docs": "vitest run tests/playground-docs-validation.test.ts",
     "postinstall": "fumadocs-mdx"
   },
   "engines": {
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
+    "@graphiql/plugin-doc-explorer": "^0.4.1",
+    "@graphiql/react": "^0.37.3",
+    "@graphiql/toolkit": "^0.11.2",
+    "@monaco-editor/react": "^4.7.0",
+    "@pothos/core": "workspace:^",
+    "@pothos/plugin-directives": "workspace:^",
+    "@pothos/plugin-errors": "workspace:^",
+    "@pothos/plugin-relay": "workspace:^",
+    "@pothos/plugin-scope-auth": "workspace:^",
+    "@pothos/plugin-simple-objects": "workspace:^",
+    "@pothos/plugin-validation": "workspace:^",
+    "@pothos/plugin-with-input": "workspace:^",
     "@tailwindcss/postcss": "^4.1.17",
     "class-variance-authority": "^0.7.1",
+    "devicons-react": "^1.5.0",
+    "esbuild-wasm": "^0.27.1",
     "fumadocs-core": "16.2.3",
     "fumadocs-docgen": "^3.0.4",
     "fumadocs-mdx": "14.1.0",
@@ -21,7 +42,9 @@
     "graphiql": "^5.2.2",
     "graphql": "^16.10.0",
     "lucide-react": "^0.555.0",
+    "lz-string": "^1.5.0",
     "next": "^16.0.7",
+    "next-themes": "^0.4.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "remark": "^15.0.1",
@@ -32,11 +55,16 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@types/lz-string": "^1.5.0",
     "@types/mdx": "^2.0.13",
+    "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "glob": "^13.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "unist-util-visit": "^5.0.0",
+    "vitest": "^4.0.15"
   }
 }

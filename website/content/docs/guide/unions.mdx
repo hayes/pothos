@@ -5,7 +5,7 @@ description: Guide for defining Union types in Pothos
 
 Union types are defined with a list of object types:
 
-```typescript
+```typescript playground example="07-unions"
 const builder = new SchemaBuilder<{
   Objects: {
     GiraffeStringFact: { factKind: 'string'; fact: string };
@@ -49,21 +49,21 @@ have a shared property you can use to differentiate your union members.
 
 ## Using Union Types
 
-```typescript
+```typescript playground example="07-unions"
 builder.queryField('giraffeFacts', (t) =>
   t.field({
     type: [GiraffeFact],
     resolve: () => {
       const fact1 = {
-        factKind: 'string',
-        fact: 'A giraffe’s spots are much like human fingerprints. No two individual giraffes have exactly the same pattern',
-      } as const;
+        factKind: 'string' as const,
+        fact: "A giraffe's spots are much like human fingerprints. No two individual giraffes have exactly the same pattern",
+      };
 
       const fact2 = {
-        factKind: 'number',
+        factKind: 'number' as const,
         fact: 'Top speed (MPH)',
         value: 35,
-      } as const;
+      };
 
       return [fact1, fact2];
     },

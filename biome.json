@@ -1,15 +1,20 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
   "files": {
+    "ignoreUnknown": true,
+    "maxSize": 5242880,
     "includes": [
       "**",
+      "!**/node_modules",
+      "!**/.next",
       "!**/.turbo",
       "!**/.source",
+      "!**/playwright-report",
+      "!**/test-results",
       "!**/examples/**/dist/**/*",
       "!**/examples/**/prisma/**/*",
       "!**/packages/**/prisma/**/*",
-      "!**/packages/plugin-prisma/**/client/**/*",
-      "!**/packages/plugin-prisma-utils/**/client/**/*",
+      "!**/packages/**/client/**/*",
       "!**/packages/**/*/lib/**/*",
       "!**/packages/**/*/esm/**/*",
       "!**/packages/**/*/dts/**/*",
@@ -18,7 +23,11 @@
       "!**/.vscode/**/*",
       "!**/generated.ts",
       "!**/codegen/schema/prisma-inputs.ts",
-      "!**/schema.graphql"
+      "!**/schema.graphql",
+      "!**/lib/playground/pothos-types.ts",
+      "!**/components/playground/examples/examples-index.generated.ts",
+      "!**/public/playground-examples/*.json",
+      "!**/playground-examples/*.json"
     ]
   },
   "formatter": {
@@ -305,6 +314,16 @@
         "rules": {
           "style": {
             "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.worker.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": "off"
           }
         }
       }

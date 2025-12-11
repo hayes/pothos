@@ -1,0 +1,17 @@
+# Query a node by global ID
+query GetNode {
+  node(id: "VXNlcjox") {
+    id
+    ... on User {
+      name
+    }
+  }
+}
+
+# Query user by regular ID
+query GetUser {
+  user(id: "1") {
+    id
+    name
+  }
+}

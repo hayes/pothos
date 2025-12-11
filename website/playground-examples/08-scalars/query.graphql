@@ -1,0 +1,10 @@
+query ScalarExamples {
+  # Using PositiveInt scalar
+  countdown(from: 5)
+
+  # Using Date scalar
+  daysSince(date: "2024-01-01")
+
+  # Getting current date
+  now
+}

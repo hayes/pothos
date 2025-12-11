@@ -1,0 +1,8 @@
+# Expose helpers demonstration
+query ExposeHelpersExample {
+  id
+  int
+  float
+  boolean
+  string
+}

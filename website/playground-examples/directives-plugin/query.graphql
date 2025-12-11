@@ -1,0 +1,14 @@
+# Simple query to demonstrate directives
+query Hello {
+  hello
+}
+
+# Introspection to see directives on Query type
+query IntrospectDirectives {
+  __type(name: "Query") {
+    name
+    fields {
+      name
+    }
+  }
+}

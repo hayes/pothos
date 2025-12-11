@@ -1,0 +1,93 @@
+---
+title: Interactive Playground
+description: Try Pothos examples in an interactive playground
+---
+
+# Interactive Playground
+
+Explore Pothos GraphQL schema building with interactive examples. Each example shows the TypeScript code, generated GraphQL schema, and lets you run queries.
+
+## Usage Patterns
+
+You can embed playground-enabled code blocks using different patterns:
+
+### 1. Inline Code with Playground
+
+Add the `playground` attribute to any code block to enable the "Open in Playground" button. The code from the block will be loaded when clicked:
+
+```ts playground
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      args: {
+        name: t.arg.string({ required: false }),
+      },
+      resolve: (_, args) => `Hello, ${args.name ?? 'World'}!`,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+### 2. With Pre-Registered Examples
+
+Reference a pre-registered example by ID. The example's full configuration (multiple files, default query) will be loaded:
+
+```ts playground example="01-first-schema"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+// This code is shown in the docs, but when opened in playground
+// it loads the full "01-first-schema" example with all its files
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
+
+GiraffeRef.implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+```
+
+### 3. With GraphQL Query
+
+Provide a query to pre-populate the GraphiQL tab and automatically switch to it:
+
+```ts playground query="{ hello }"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      resolve: () => 'Hello, World!',
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+### 4. Example + Custom Query
+
+Combine an example with a custom query to guide users to specific functionality:
+
+```ts playground example="01-first-schema" query="{ giraffe { name height age } }"
+// Opens the 01-first-schema example with a pre-populated query
+```
+
+## How It Works
+
+Each playground has three tabs:
+
+1. **Code** - The TypeScript source code using Pothos
+2. **Schema** - The generated GraphQL SDL
+3. **GraphiQL** - An interactive query editor
+
+Try modifying the queries in the GraphiQL tab to explore the schema!

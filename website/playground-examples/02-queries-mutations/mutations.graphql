@@ -1,0 +1,9 @@
+mutation PostMessage {
+  post(message: "Hello from GraphQL!")
+}
+
+mutation CreateGiraffe {
+  createGiraffe(name: "Gerald") {
+    name
+  }
+}

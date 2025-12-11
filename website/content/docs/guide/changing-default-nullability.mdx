@@ -16,18 +16,11 @@ You will need to provide the new defaults in two places:
 
 2. In the Builder options, so that the correct schema is built at run time.
 
-```typescript
-// Create a Builder that makes output fields nullable by default
-export const builder = new SchemaBuilder<{
+```typescript playground example="11-default-nullability"
+// Create a Builder that makes output fields non-nullable by default
+const builder = new SchemaBuilder<{
   DefaultFieldNullability: false;
 }>({
   defaultFieldNullability: false,
-});
-
-// Create a Builder that makes input fields and arguments required by default
-export const builder = new SchemaBuilder<{
-  DefaultInputFieldRequiredness: true;
-}>({
-  defaultInputFieldRequiredness: true,
 });
 ```

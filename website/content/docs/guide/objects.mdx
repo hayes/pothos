@@ -25,7 +25,7 @@ interface Giraffe {
 The easiest way to create a new Object based in an existing Typescript type is with the `objectRef`
 method:
 
-```typescript
+```typescript playground example="01-first-schema"
 const builder = new SchemaBuilder({});
 const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
 ```
@@ -54,7 +54,7 @@ available to query on the Giraffe type.
 The `fields` function receives a `FieldBuilder` instance that can be used to define the fields for
 your type. the `FieldBuilder` will be covered in more details in the [fields guide](./fields).
 
-```typescript
+```typescript playground example="01-first-schema"
 GiraffeRef.implement(Giraffe, {
   fields: (t) => ({
     name: t.exposeString('name'),
@@ -84,7 +84,7 @@ that requires some additional logic to resolve.
 
 We can create a root `Query` object with a field that returns a giraffe using `builder.queryType`
 
-```typescript
+```typescript playground example="01-first-schema"
 builder.queryType({
   fields: (t) => ({
     giraffe: t.field({
@@ -119,25 +119,32 @@ const yoga = createYoga({
   }),
 });
 
-export const server = createServer(yoga);
-server.listen(3000);
+const server = createServer(yoga);
+server.listen(3000, () => {
+  console.info('Server is running on http://localhost:3000/graphql');
+});
 ```
 
-### Query your data
+And then to start your server:
 
-1. Run your server (either with `ts-node`) by compiling your code and running it with node.
-2. Open [http://0.0.0.0:3000/graphql](http://0.0.0.0:3000/graphql) to open the playground and query
-   your API:
+```bash
+ts-node ./src/server.ts
+```
+
+Now you should be able to open `http://localhost:3000/graphql` in your browser and run the following
+query:
 
 ```graphql
 query {
   giraffe {
     name
-    age
     height
+    age
   }
 }
 ```
+
+We've now successfully set up a server running Pothos!
 
 ## Different ways to define Object types
 
@@ -205,24 +212,40 @@ builder.queryFields((t) => ({
 You can also provide type mappings when you create the [SchemaBuilder](./schema-builder), which
 allows you to reference the types by name throughout your schema (as a string).
 
-```typescript
+```typescript playground example="schema-types-pattern"
 const builder = new SchemaBuilder<{ Objects: { Giraffe: GiraffeType } }>({});
 
 builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
-});
-
-builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: 'Giraffe',
-    resolve: () => ({
-      name: 'James',
-      birthday: new Date(Date.UTC(2012, 11, 12)),
-      heightInMeters: 5.2,
+  fields: (t) => ({
+    name: t.exposeString('name', {}),
+    birthday: t.field({
+      type: 'String',
+      resolve: (parent) => parent.birthday.toISOString(),
+    }),
+    height: t.exposeFloat('heightInMeters', {}),
+    age: t.int({
+      resolve: (parent) => {
+        const ageDifMs = Date.now() - parent.birthday.getTime();
+        const ageDate = new Date(ageDifMs);
+        return Math.abs(ageDate.getUTCFullYear() - 1970);
+      },
     }),
   }),
-}));
+});
+
+builder.queryType({
+  fields: (t) => ({
+    giraffe: t.field({
+      type: 'Giraffe',
+      resolve: () => ({
+        name: 'James',
+        birthday: new Date(Date.UTC(2012, 11, 12)),
+        heightInMeters: 5.2,
+      }),
+    }),
+  }),
+});
 ```
 
 This is ideal when you want to list out all the types for your schema in one place, or you have

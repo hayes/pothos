@@ -1,0 +1,15 @@
+# Basic argument usage
+query BasicArgExample {
+  withArgs(
+    id: "1"
+    int: 42
+    float: 3.14
+    boolean: true
+    string: "hello"
+    idList: ["1", "2"]
+    intList: [1, 2, 3]
+    floatList: [1.1, 2.2]
+    booleanList: [true, false]
+    stringList: ["a", "b", "c"]
+  )
+}
