@@ -15,6 +15,7 @@ export interface SelectionState {
   parent?: SelectionState;
   depth: number;
   skipDeferredFragments: boolean;
+  aggregation?: boolean;
 }
 
 export type SelectionMap = DBQueryConfig<'one'>;
@@ -188,9 +189,11 @@ export function selectionToQuery(
       query.columns![key] = true;
     }
 
-    for (const column of config.getPrimaryKey(state.table.name)) {
-      const tsName = config.columnToTsName(column);
-      query.columns![tsName] = true;
+    if (!state.aggregation) {
+      for (const column of config.getPrimaryKey(state.table.name)) {
+        const tsName = config.columnToTsName(column);
+        query.columns![tsName] = true;
+      }
     }
   }
 
