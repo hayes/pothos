@@ -63,7 +63,7 @@
     "@pothos/test-utils": "workspace:*",
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
-    "@types/pg": "^8.15.6",
+    "@types/pg": "^8.16.0",
     "graphql-scalars": "^1.25.0",
     "graphql-tag": "^2.12.6",
     "pg": "^8.16.3",

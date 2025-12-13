@@ -58,6 +58,6 @@
     "@types/newrelic": "^9.14.8",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "5.17.1",
-    "newrelic": "^13.6.6"
+    "newrelic": "^13.8.0"
   }
 }

@@ -33,7 +33,7 @@
     "graphql-scalars": "^1.25.0",
     "graphql-yoga": "5.17.1",
     "prisma": "^7.1.0",
-    "react": "^19.2.1",
+    "react": "^19.2.3",
     "urql": "^5.0.1",
     "zod": "^4.1.13"
   },
@@ -45,7 +45,7 @@
     "@graphql-codegen/client-preset": "5.2.1",
     "@graphql-codegen/introspection": "5.0.0",
     "@graphql-codegen/schema-ast": "^5.0.0",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.1",
     "typescript": "^5.9.3"
   }
 }

@@ -37,7 +37,7 @@
     "@swc-node/register": "^1.11.1",
     "@swc/cli": "^0.7.9",
     "@swc/core": "^1.15.3",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.1",
     "graphql": "^16.10.0",
     "pkg-pr-new": "^0.0.62",
     "tsx": "^4.21.0",

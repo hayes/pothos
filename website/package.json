@@ -12,18 +12,18 @@
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.1.17",
+    "@tailwindcss/postcss": "^4.1.18",
     "class-variance-authority": "^0.7.1",
-    "fumadocs-core": "16.2.3",
+    "fumadocs-core": "16.2.4",
     "fumadocs-docgen": "^3.0.4",
     "fumadocs-mdx": "14.1.0",
-    "fumadocs-ui": "16.2.3",
+    "fumadocs-ui": "16.2.4",
     "graphiql": "^5.2.2",
     "graphql": "^16.10.0",
-    "lucide-react": "^0.555.0",
-    "next": "^16.0.7",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
+    "lucide-react": "^0.561.0",
+    "next": "^16.0.10",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
@@ -36,7 +36,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.17",
+    "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
   }
 }

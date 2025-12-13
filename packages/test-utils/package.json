@@ -41,6 +41,6 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1"
+    "@types/node": "^25.0.1"
   }
 }
