@@ -10,7 +10,7 @@ The drizzle plugin is built on top of drizzles relational query builder, and req
 define and configure all the relevant relations in your drizzle schema. See
 https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2 for detailed documentation on the relations API.
 
-Once you have configured you have configured you drizzle schema, you can initialize your Pothos
+Once you have configured your drizzle schema, you can initialize your Pothos
 SchemaBuilder with the drizzle plugin:
 
 ```ts
@@ -180,7 +180,7 @@ const UserRef = builder.drizzleObject('users', {
 ## Relations
 
 Drizzles relational query builder allows you to define the relationships between your tables. The
-`builder.relation` method makes it easy to add fields to your GraphQL API that implement those
+`t.relation` method makes it easy to add fields to your GraphQL API that implement those
 relations:
 
 ```ts
@@ -354,32 +354,6 @@ builder.drizzleNode('users', {
 });
 ```
 
-## Relay integration
-
-Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it
-easy to comply with these best practices, the drizzle plugin has built in support for defining relay
-`nodes` and `connections`.
-
-## Relay Nodes
-
-Defining relay nodes works just like defining normal `drizzleObject`s, but requires specifying a
-column to use as the nodes `id` field.
-
-```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: {
-    column: (user) => user.id,
-    // other options for the ID field can be passed here
-  },
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
-  }),
-});
-```
-
-The id column can also be set to a list of columns for types with a composite primary key.
 
 ## Related field
 
@@ -452,6 +426,33 @@ publishedPostsCount: t.relatedCount('posts', {
     : eq(posts.published, true),
 }),
 ```
+
+## Relay integration
+
+Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it
+easy to comply with these best practices, the drizzle plugin has built in support for defining relay
+`nodes` and `connections`.
+
+## Relay Nodes
+
+Defining relay nodes works just like defining normal `drizzleObject`s, but requires specifying a
+column to use as the nodes `id` field.
+
+```ts
+builder.drizzleNode('users', {
+  name: 'User',
+  id: {
+    column: (user) => user.id,
+    // other options for the ID field can be passed here
+  },
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    lastName: t.exposeString('lastName'),
+  }),
+});
+```
+
+The id column can also be set to a list of columns for types with a composite primary key.
 
 ## Related connections
 
@@ -641,11 +642,10 @@ builder.drizzleObjectField('User', 'rolesConnection', (t) =>
         userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
       },
     }),
-    resolve: (post, args, ctx) =>
-      // This helper takes a list of nodes and formats them for the connection
-      resolve: (user, args, ctx) => {
-        return rolesConnection.resolve(user.userRoles, args, ctx, user);
-      },
+    // This helper takes a list of nodes and formats them for the connection
+    resolve: (user, args, ctx) => {
+      return rolesConnection.resolve(user.userRoles, args, ctx, user);
+    },
   }),
 );
 ```
