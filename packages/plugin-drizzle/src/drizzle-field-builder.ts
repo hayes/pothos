@@ -416,32 +416,12 @@ export class DrizzleObjectFieldBuilder<
     } as never) as never;
   }
 
-  /**
-   * Create a field that uses a relation's join condition to add computed values (like counts)
-   * to the parent selection via extras.
-   *
-   * This is useful for aggregations like counting related items without fetching them:
-   * ```ts
-   * postsCount: t.relatedField('posts', {
-   *   type: 'Int',
-   *   select: (buildFilter) => ({
-   *     extras: {
-   *       postsCount: (parent) => db.$count(posts, buildFilter(parent)),
-   *     },
-   *   }),
-   *   resolve: (user) => user.postsCount,
-   * })
-   * ```
-   *
-   * The `buildFilter` function takes the parent table reference (from Drizzle's extras callback)
-   * and returns the SQL condition for the relation join (e.g., `eq(posts.authorId, parent.id)`).
-   */
   relatedField<
     Field extends keyof TableConfig['relations'],
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     Args extends InputFieldMap,
-    Select extends DBQueryConfig<'one', Types['DrizzleRelations'], TableConfig>,
+    Select extends DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
     ShapeWithSelection = Shape &
       BuildQueryResult<Types['DrizzleRelations'], TableConfig, Select & { columns: {} }>,
   >(
@@ -455,6 +435,7 @@ export class DrizzleObjectFieldBuilder<
         buildFilter: (parentTable: TableConfig['table']) => SQL,
         args: Args extends InputFieldMap ? InputShapeFromFields<Args> : {},
         ctx: Types['Context'],
+        nestedQuery: (query: DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>) => DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
       ) => Select;
       resolve: (
         parent: ShapeWithSelection,
@@ -473,42 +454,31 @@ export class DrizzleObjectFieldBuilder<
       );
     }
 
-    // Create a function that builds the join condition given a parent table reference
     const buildFilter = (parentTable: TableConfig['table']): SQL => {
       const { sourceColumns, targetColumns } = relationField;
 
-      if (sourceColumns.length !== targetColumns.length) {
-        throw new PothosSchemaError(
-          `Relation ${relationName as string} has mismatched source/target columns`,
-        );
-      }
-
-      // Map source column names to the aliased parent table columns
-      const parentColumns = sourceColumns.map((sourceCol) => {
-        const colName = sourceCol.name;
-        return (parentTable as unknown as Record<string, unknown>)[colName];
-      });
-
-      if (sourceColumns.length === 1) {
-        return eq(targetColumns[0], parentColumns[0] as never);
-      }
-
-      // For composite keys, AND all the conditions together
-      const conditions = sourceColumns.map((_, i) =>
-        eq(targetColumns[i], parentColumns[i] as never),
-      );
-      return and(...conditions)!;
+      return and(
+        ...sourceColumns.map((sourceCol, i) =>
+          eq(targetColumns[i], parentTable[sourceCol.name as never]),
+        ),
+      )!;
     };
 
     const relationSelect = (
       args: object,
       context: Types['Context'],
-      _nestedQuery: (query: unknown) => {},
+      nestedQuery: (query: unknown) => unknown,
     ) => {
-      const selection = options.select(buildFilter as never, args as never, context);
+      const selection = options.select(
+        buildFilter as never,
+        args as never,
+        context,
+        nestedQuery as never,
+      ) as Select & { with?: unknown };
       return {
         columns: selection.columns ?? {},
         extras: selection.extras,
+        with: selection.with,
       };
     };
 
