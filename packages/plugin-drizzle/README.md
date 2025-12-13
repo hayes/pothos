@@ -180,7 +180,7 @@ const UserRef = builder.drizzleObject('users', {
 ## Relations
 
 Drizzles relational query builder allows you to define the relationships between your tables. The
-`builder.relation` method makes it easy to add fields to your GraphQL API that implement those
+`t.relation` method makes it easy to add fields to your GraphQL API that implement those
 relations:
 
 ```ts
