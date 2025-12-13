@@ -2,7 +2,7 @@ import { count, eq } from 'drizzle-orm';
 import { drizzleConnectionHelpers } from '../../../src';
 import { builder } from '../builder';
 import { db } from '../db';
-import { comments } from '../db/schema';
+import { comments, posts } from '../db/schema';
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   args: (t) => ({
@@ -233,6 +233,21 @@ export const User = builder.drizzleNode('users', {
         },
       }),
     }),
+    postsCount: t.relatedField('posts', {
+      type: 'Int',
+      select: (buildFilter) => ({
+        extras: {
+          postsCount: (parent) => db.$count(posts, buildFilter(parent)),
+        },
+      }),
+      resolve: (user) => user.postsCount,
+    }),
+    // Simple relatedCount - counts all related comments
+    commentsCount: t.relatedCount('comments'),
+    // relatedCount with where filter - counts only published posts
+    publishedPostsCount: t.relatedCount('posts', {
+      where: eq(posts.published, 1),
+    }),
     postsConnection: t.relatedConnection('posts', {
       args: {
         category: t.arg.string(),
@@ -266,6 +281,15 @@ export const User = builder.drizzleNode('users', {
         where: {
           published: 1,
         },
+      }),
+    }),
+    postsConnectionWithCount: t.relatedConnection('posts', {
+      totalCount: true,
+      query: () => ({
+        where: {
+          published: 1,
+        },
+        orderBy: { postId: 'desc' },
       }),
     }),
     viewer: t.variant(Viewer, {

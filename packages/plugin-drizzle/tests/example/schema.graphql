@@ -91,6 +91,7 @@ type Query {
   post(id: ID!): Post
   postWithErrors(id: ID!): QueryPostWithErrorsResult
   posts(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): QueryPostsConnection
+  postsWithCount(after: String, before: String, first: Int, last: Int): QueryPostsWithCountConnection
   user(id: ID!): User
   userRolesConnection(after: String, before: String, first: Int, last: Int, userId: Int!): QueryUserRolesConnection
   userWithInput(input: QueryUserWithInputInput!): User
@@ -110,6 +111,17 @@ type QueryPostsConnection {
 }
 
 type QueryPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type QueryPostsWithCountConnection {
+  edges: [QueryPostsWithCountConnectionEdge]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type QueryPostsWithCountConnectionEdge {
   cursor: String!
   node: Post
 }
@@ -145,6 +157,7 @@ type Role {
 
 type User implements Node {
   bio: String
+  commentsCount: Int!
   email: String
   firstName: String
   fullName: String
@@ -153,6 +166,9 @@ type User implements Node {
   lastName: String
   posts(limit: Int, offset: Int): [Post!]
   postsConnection(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): UserPostsConnection
+  postsConnectionWithCount(after: String, before: String, first: Int, last: Int): UserPostsConnectionWithCountConnection
+  postsCount: Int
+  publishedPostsCount: Int!
   unOrderedPostsConnection(after: String, before: String, first: Int, last: Int): UserUnOrderedPostsConnection
   viewer: Viewer
 }
@@ -163,6 +179,17 @@ type UserPostsConnection {
 }
 
 type UserPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type UserPostsConnectionWithCountConnection {
+  edges: [UserPostsConnectionWithCountConnectionEdge]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserPostsConnectionWithCountConnectionEdge {
   cursor: String!
   node: Post
 }

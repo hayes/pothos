@@ -140,6 +140,19 @@ builder.queryFields((t) => ({
       return db.query.posts.findMany(q);
     },
   }),
+  postsWithCount: t.drizzleConnection({
+    type: 'posts',
+    totalCount: () => db.$count(posts, eq(posts.published, 1)),
+    resolve: (query) => {
+      const q = query({
+        where: {
+          published: 1,
+        },
+        orderBy: { postId: 'desc' },
+      });
+      return db.query.posts.findMany(q);
+    },
+  }),
 }));
 
 builder.mutationFields((t) => ({
