@@ -1034,4 +1034,86 @@ describe('drizzle connections', () => {
       }
     `);
   });
+
+  it('drizzleConnection with totalCount callback', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          postsWithCount(first: 2) {
+            totalCount
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."id" as "postId" from "posts" as "d0" where "d0"."published" = ? order by "d0"."id" desc limit ? -- params: [1, 3]",
+        "Query: select count(*) from "posts" where "posts"."published" = ? -- params: [1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "postsWithCount": {
+            "edges": [
+              {
+                "node": {
+                  "id": "150",
+                },
+              },
+              {
+                "node": {
+                  "id": "149",
+                },
+              },
+            ],
+            "totalCount": 118,
+          },
+        },
+      }
+    `);
+  });
+
+  it('drizzleConnection totalCount only', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          postsWithCount(first: 2) {
+            totalCount
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select count(*) from "posts" where "posts"."published" = ? -- params: [1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "postsWithCount": {
+            "totalCount": 118,
+          },
+        },
+      }
+    `);
+  });
 });

@@ -4,6 +4,121 @@ import { createContext } from './example/context';
 import { clearDrizzleLogs, drizzleLogs } from './example/db';
 import { schema } from './example/schema';
 
+describe('relatedCount', () => {
+  afterEach(() => {
+    clearDrizzleLogs();
+  });
+
+  it('simple relatedCount without where filter', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+
+    const result = await execute({
+      schema,
+      document: gql`
+        {
+          user(id: "VXNlcjox") {
+            firstName
+            commentsCount
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "comments" where "comments"."author_id" = "d0"."id")) as "_comments_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "user": {
+            "commentsCount": 13,
+            "firstName": "Mason",
+          },
+        },
+      }
+    `);
+  });
+
+  it('relatedCount with where filter', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+
+    const result = await execute({
+      schema,
+      document: gql`
+        {
+          user(id: "VXNlcjox") {
+            firstName
+            publishedPostsCount
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "posts" where ("posts"."author_id" = "d0"."id" and "posts"."published" = ?))) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1, 1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "user": {
+            "firstName": "Mason",
+            "publishedPostsCount": 9,
+          },
+        },
+      }
+    `);
+  });
+
+  it('relatedCount combined with relatedField count', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+
+    const result = await execute({
+      schema,
+      document: gql`
+        {
+          user(id: "VXNlcjox") {
+            firstName
+            postsCount
+            commentsCount
+            publishedPostsCount
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "posts" where "posts"."author_id" = "d0"."id")) as "postsCount", ((select count(*) from "comments" where "comments"."author_id" = "d0"."id")) as "_comments_count", ((select count(*) from "posts" where ("posts"."author_id" = "d0"."id" and "posts"."published" = ?))) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1, 1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "user": {
+            "commentsCount": 13,
+            "firstName": "Mason",
+            "postsCount": 15,
+            "publishedPostsCount": 9,
+          },
+        },
+      }
+    `);
+  });
+});
+
 describe('relatedField', () => {
   afterEach(() => {
     clearDrizzleLogs();

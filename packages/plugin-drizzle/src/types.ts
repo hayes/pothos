@@ -51,6 +51,7 @@ export type DrizzleClient = {
     readonly relations: AnyRelations;
   };
   query: {};
+  $count: (table: Table, filter?: SQL) => SQL<number>;
 };
 
 export type DrizzlePluginOptions<Types extends SchemaTypes> = {
@@ -428,6 +429,18 @@ export type RefForRelation<Types extends SchemaTypes, Rel extends Relation> = Re
   ? ObjectRef<Types, TypesForRelation<Types, Rel>>
   : [ObjectRef<Types, TypesForRelation<Types, Rel>>];
 
+export type RelatedCountOptions<
+  Types extends SchemaTypes,
+  Shape,
+  Args extends InputFieldMap,
+  Where,
+> = Omit<
+  PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>,
+  'type' | InferredFieldOptionKeys
+> & {
+  where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
+};
+
 export type TypesForRelation<Types extends SchemaTypes, Rel extends Relation> = BuildQueryResult<
   Types['DrizzleRelations'],
   Types['DrizzleRelations'][Rel['targetTable']['_']['name']],
@@ -543,6 +556,12 @@ export type DrizzleConnectionFieldOptions<
         type: Type;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
+        totalCount?: (
+          parent: ParentShape,
+          args: ConnectionArgs,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => MaybePromise<number>;
 
         resolve: (
           query: <T = {}>(
@@ -626,7 +645,7 @@ export type RelatedConnectionOptions<
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
-        // totalCount?: NeedsResolve extends false ? boolean : false;
+        totalCount?: boolean;
       }
     : never);
 

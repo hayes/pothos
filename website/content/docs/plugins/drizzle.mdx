@@ -394,6 +394,78 @@ builder.drizzleNode('users', {
 
 The id column can also be set to a list of columns for types with a composite primary key.
 
+## Related field
+
+The `t.relatedField` method allows you to define a field based on a relation that uses custom
+selections, including aggregations like counts. This is useful when you want to expose derived data
+from a relation without loading the full related records.
+
+### Count aggregations
+
+One common use case is adding a count field that efficiently counts related records:
+
+```ts
+import { count } from 'drizzle-orm';
+
+builder.drizzleNode('users', {
+  name: 'User',
+  id: { column: (user) => user.id },
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    // Add a count of related posts
+    postsCount: t.relatedField('posts', {
+      type: 'Int',
+      // buildFilter creates the correct WHERE clause for the relation
+      select: (buildFilter) => ({
+        extras: {
+          postsCount: (parent) => db.$count(posts, buildFilter(parent)),
+        },
+      }),
+      resolve: (user) => user.postsCount,
+    }),
+  }),
+});
+```
+
+The `buildFilter` function passed to `select` generates the appropriate SQL filter based on the
+relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
+it easier to filter for the related records.
+
+## Related count
+
+For the common case of counting related records, there's a simpler `t.relatedCount` method that handles
+all the boilerplate for you:
+
+```ts
+builder.drizzleNode('users', {
+  name: 'User',
+  id: { column: (user) => user.id },
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    // Simple count of all related comments
+    commentsCount: t.relatedCount('comments'),
+    // Count with a where filter
+    publishedPostsCount: t.relatedCount('posts', {
+      where: eq(posts.published, true),
+    }),
+  }),
+});
+```
+
+The `where` option accepts either a static SQL filter or a function that receives the field arguments
+and context:
+
+```ts
+publishedPostsCount: t.relatedCount('posts', {
+  args: {
+    category: t.arg.string(),
+  },
+  where: (args, ctx) => args.category
+    ? and(eq(posts.published, true), eq(posts.category, args.category))
+    : eq(posts.published, true),
+}),
+```
+
 ## Related connections
 
 To implement a relation as a connection, you can use `t.relatedConnection` instead of `t.relation`:
@@ -442,6 +514,49 @@ builder.drizzleNode('users', {
 });
 ```
 
+### Connection totalCount
+
+You can add a `totalCount` field to your connection by setting the `totalCount` option to `true`:
+
+```ts
+builder.drizzleNode('users', {
+  name: 'User',
+  fields: (t) => ({
+    posts: t.relatedConnection('posts', {
+      totalCount: true,
+      query: () => ({
+        where: {
+          published: true,
+        },
+        orderBy: {
+          id: 'desc',
+        },
+      }),
+    }),
+  }),
+});
+```
+
+This will automatically add a `totalCount` field to the connection type. The count query is only
+executed when the `totalCount` field is actually requested in the GraphQL query, and it's included
+as a subquery in the main database query for efficiency.
+
+```graphql
+query {
+  user(id: "...") {
+    posts(first: 10) {
+      totalCount
+      edges {
+        node {
+          id
+          title
+        }
+      }
+    }
+  }
+}
+```
+
 ## Drizzle connections
 
 Similar to `t.drizzleField`, `t.drizzleConnection` allows you to define a connection field that acts
@@ -466,6 +581,35 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+### drizzleConnection totalCount
+
+You can add a `totalCount` field to a `drizzleConnection` by providing a `totalCount` callback function that returns the count:
+
+```ts
+builder.queryFields((t) => ({
+  posts: t.drizzleConnection({
+    type: 'posts',
+    // Use db.$count() for a simple count query
+    totalCount: () => db.$count(posts, eq(posts.published, true)),
+    resolve: (query, root, args, ctx) =>
+      db.query.posts.findMany(
+        query({
+          where: {
+            published: true,
+          },
+          orderBy: {
+            id: 'desc',
+          },
+        }),
+      ),
+  }),
+}));
+```
+
+The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.
+
+When only the `totalCount` field is requested (without `edges` or `nodes`), the main query is skipped entirely and only the count query is executed for efficiency.
 
 ### Indirect relations as connections
 

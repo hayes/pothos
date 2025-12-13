@@ -462,6 +462,7 @@ export function wrapConnectionResult<T extends {}>(
   cursor: (node: T) => string,
   resolveNode?: (node: Record<string, unknown>) => unknown,
   parent?: unknown,
+  totalCount?: number | (() => MaybePromise<number>) | null,
 ) {
   const gotFullResults = results.length === Math.abs(limit);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
@@ -471,6 +472,7 @@ export function wrapConnectionResult<T extends {}>(
   const connection = {
     parent,
     args,
+    totalCount,
     edges: [] as ({ cursor: string; node: unknown } | null)[],
     pageInfo: {
       startCursor: null as string | null,
@@ -513,14 +515,16 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   info: GraphQLResolveInfo,
   typeName: string,
   config: PothosDrizzleSchemaConfig,
-  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'>,
+  options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'> & {
+    totalCount?: () => MaybePromise<number>;
+  },
   resolve: (
     queryFn: (query: QueryForDrizzleConnection<SchemaTypes, TableRelationalConfig>) => SelectionMap,
   ) => MaybePromise<readonly T[]>,
   parent: unknown,
 ) {
   const table = config.relations[tableName];
-  let query: DBQueryConfig<'many'>;
+  let query: DBQueryConfig<'many'> | undefined;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
     const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
@@ -562,12 +566,29 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     return results;
   }
 
+  // Handle totalCountOnly case where resolve returns [] without calling query function
+  if (!query) {
+    return {
+      parent,
+      args: options.args,
+      totalCount: options.totalCount,
+      edges: [],
+      pageInfo: {
+        startCursor: null,
+        endCursor: null,
+        hasPreviousPage: false,
+        hasNextPage: false,
+      },
+    };
+  }
+
   return wrapConnectionResult(
     results,
     options.args,
-    query!.limit as number,
+    query.limit as number,
     formatter!,
     undefined,
     parent,
+    options.totalCount,
   );
 }

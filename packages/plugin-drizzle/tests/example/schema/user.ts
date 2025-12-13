@@ -242,6 +242,12 @@ export const User = builder.drizzleNode('users', {
       }),
       resolve: (user) => user.postsCount,
     }),
+    // Simple relatedCount - counts all related comments
+    commentsCount: t.relatedCount('comments'),
+    // relatedCount with where filter - counts only published posts
+    publishedPostsCount: t.relatedCount('posts', {
+      where: eq(posts.published, 1),
+    }),
     postsConnection: t.relatedConnection('posts', {
       args: {
         category: t.arg.string(),
@@ -275,6 +281,15 @@ export const User = builder.drizzleNode('users', {
         where: {
           published: 1,
         },
+      }),
+    }),
+    postsConnectionWithCount: t.relatedConnection('posts', {
+      totalCount: true,
+      query: () => ({
+        where: {
+          published: 1,
+        },
+        orderBy: { postId: 'desc' },
       }),
     }),
     viewer: t.variant(Viewer, {

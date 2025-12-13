@@ -1,7 +1,8 @@
-import type { FieldRef } from '@pothos/core';
+import type { FieldRef, MaybePromise } from '@pothos/core';
 import { type FieldKind, ObjectRef, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
+import { isInterfaceType, isObjectType, Kind } from 'graphql';
 import type { DrizzleRef } from './interface-ref';
 import type { DrizzleConnectionFieldOptions } from './types';
 import { getSchemaConfig } from './utils/config';
@@ -101,6 +102,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
     maxSize = this.builder.options.drizzle?.maxConnectionSize,
     defaultSize = this.builder.options.drizzle?.defaultConnectionSize,
     resolve,
+    totalCount,
     ...options
   }: DrizzleConnectionFieldOptions<
     SchemaTypes,
@@ -133,6 +135,21 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
+        const returnType = info.returnType;
+        const fields =
+          isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+
+        const selections = info.fieldNodes;
+
+        const totalCountOnly = selections.every((selection) =>
+          selection.selectionSet?.selections.every(
+            (s) =>
+              s.kind === Kind.FIELD &&
+              (fields[s.name.value]?.extensions?.pothosDrizzleTotalCount ||
+                s.name.value === '__typename'),
+          ),
+        );
+
         return resolveDrizzleCursorConnection(
           tableName,
           info,
@@ -143,8 +160,13 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
             maxSize,
             defaultSize,
             args,
+            totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
           (q) => {
+            if (totalCountOnly) {
+              return [];
+            }
+
             // return checkIfQueryIsUsed(
             //   this.builder,
             //   query,
@@ -160,6 +182,23 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
       ? connectionOptions
       : {
           ...connectionOptions,
+          fields: totalCount
+            ? (
+                t: PothosSchemaTypes.ObjectFieldBuilder<
+                  SchemaTypes,
+                  { totalCount?: () => MaybePromise<number> }
+                >,
+              ) => ({
+                totalCount: t.int({
+                  nullable: false,
+                  extensions: {
+                    pothosDrizzleTotalCount: true,
+                  },
+                  resolve: (parent) => parent.totalCount?.(),
+                }),
+                ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
+              })
+            : (connectionOptions as { fields: undefined }).fields,
           extensions: {
             ...(connectionOptions as Record<string, object> | undefined)?.extensions,
           },

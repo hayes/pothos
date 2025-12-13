@@ -1137,4 +1137,147 @@ describe('related connections', () => {
       }
     `);
   });
+
+  it('totalCount option on relatedConnection', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user(id: "VXNlcjox") {
+            postsConnectionWithCount(first: 2) {
+              totalCount
+              edges {
+                node {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    // The count should be included in the same query via extras (single query with count(*))
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "posts" where "posts"."author_id" = "d0"."id")) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where ("d1"."published" = ? and "d0"."id" = "d1"."author_id") order by "d1"."id" desc limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 3, 1, 1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "user": {
+            "postsConnectionWithCount": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "15",
+                  },
+                },
+                {
+                  "node": {
+                    "id": "13",
+                  },
+                },
+              ],
+              "totalCount": 15,
+            },
+          },
+        },
+      }
+    `);
+  });
+
+  it('totalCount option should not include count query when totalCount field is not requested', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user(id: "VXNlcjox") {
+            postsConnectionWithCount(first: 2) {
+              edges {
+                node {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    // The count should NOT be included when totalCount field is not requested (no count(*) in query)
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where ("d1"."published" = ? and "d0"."id" = "d1"."author_id") order by "d1"."id" desc limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 3, 1, 1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "user": {
+            "postsConnectionWithCount": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "15",
+                  },
+                },
+                {
+                  "node": {
+                    "id": "13",
+                  },
+                },
+              ],
+            },
+          },
+        },
+      }
+    `);
+  });
+
+  it('totalCount only - should skip fetching relation data when only totalCount is requested', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user(id: "VXNlcjox") {
+            postsConnectionWithCount(first: 2) {
+              totalCount
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    // When only totalCount is requested, the relation data should NOT be fetched (no json_group_array for posts)
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "posts" where "posts"."author_id" = "d0"."id")) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
+      ]
+    `);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "user": {
+            "postsConnectionWithCount": {
+              "totalCount": 15,
+            },
+          },
+        },
+      }
+    `);
+  });
 });
