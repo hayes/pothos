@@ -385,6 +385,7 @@ type SelectUser implements Node {
   id: ID!
   name: String
   postCount: Int!
+  postTitles: [String!]
   posts: [SelectPost!]
   postsConnection(after: String, before: String, first: Int, last: Int, oldestFirst: Boolean): SelectUserPostsConnection
   profile: Profile!

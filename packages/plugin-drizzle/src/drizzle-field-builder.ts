@@ -29,7 +29,14 @@ import {
   type Table,
   type TableRelationalConfig,
 } from 'drizzle-orm';
-import type { FieldNode } from 'graphql';
+import {
+  type FieldNode,
+  Kind as GraphQLKind,
+  type GraphQLResolveInfo,
+  getNamedType,
+  isInterfaceType,
+  isObjectType,
+} from 'graphql';
 import type { DrizzleRef } from './interface-ref';
 import type {
   DrizzleConnectionShape,
@@ -302,6 +309,7 @@ export class DrizzleObjectFieldBuilder<
           parent: unknown,
           args: PothosSchemaTypes.DefaultConnectionArguments,
           context: {},
+          info: GraphQLResolveInfo,
         ) => {
           const countKey = `_${name as string}_count`;
           const parentRecord = parent as Record<string, unknown>;
@@ -310,6 +318,34 @@ export class DrizzleObjectFieldBuilder<
             : undefined;
 
           if (!(name in parentRecord)) {
+            return {
+              parent,
+              args,
+              totalCount: countValue,
+              edges: [],
+              pageInfo: {
+                startCursor: null,
+                endCursor: null,
+                hasPreviousPage: false,
+                hasNextPage: false,
+              },
+            };
+          }
+
+          // Detect totalCountOnly to skip cursor computation when only totalCount is requested
+          const returnType = getNamedType(info.returnType);
+          const fields =
+            isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+          const totalCountOnly = info.fieldNodes.every((selection) =>
+            selection.selectionSet?.selections.every(
+              (s) =>
+                s.kind === GraphQLKind.FIELD &&
+                (fields[s.name.value]?.extensions?.pothosDrizzleTotalCount ||
+                  s.name.value === '__typename'),
+            ),
+          );
+
+          if (totalCountOnly) {
             return {
               parent,
               args,
@@ -347,6 +383,9 @@ export class DrizzleObjectFieldBuilder<
                 ) => ({
                   totalCount: t.int({
                     nullable: false,
+                    extensions: {
+                      pothosDrizzleTotalCount: true,
+                    },
                     resolve: (connection) => connection.totalCount,
                   }),
                   ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),

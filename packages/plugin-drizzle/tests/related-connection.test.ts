@@ -1280,4 +1280,39 @@ describe('related connections', () => {
       }
     `);
   });
+
+  it('totalCount only with field selecting same relation without cursor (issue #1580)', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user(id: "VXNlcjox") {
+            postTitles
+            postsConnectionWithCount(first: 2) {
+              totalCount
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toMatchInlineSnapshot(`
+      {
+        "user": {
+          "postTitles": [
+            "Thalassinus ustilo hic civitas.",
+            "Altus suspendo textor ars teneo.",
+            "Terga depulso curia tenus.",
+          ],
+          "postsConnectionWithCount": {
+            "totalCount": 15,
+          },
+        },
+      }
+    `);
+  });
 });

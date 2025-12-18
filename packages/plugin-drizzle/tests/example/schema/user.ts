@@ -292,6 +292,19 @@ export const User = builder.drizzleNode('users', {
         orderBy: { postId: 'desc' },
       }),
     }),
+    postTitles: t.stringList({
+      select: {
+        with: {
+          posts: {
+            columns: {
+              title: true,
+            },
+            limit: 3,
+          },
+        },
+      },
+      resolve: (user) => user.posts.map((p) => p.title),
+    }),
     viewer: t.variant(Viewer, {
       select: {
         columns: {

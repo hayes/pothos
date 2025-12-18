@@ -558,6 +558,15 @@ const SelectUser = builder.prismaNode('User', {
       onNull: 'error',
     }),
     postCount: t.relationCount('posts'),
+    postTitles: t.stringList({
+      select: {
+        posts: {
+          select: { title: true },
+          take: 3,
+        },
+      },
+      resolve: (user) => user.posts.map((p) => p.title),
+    }),
     following: t.relatedConnection('following', {
       complexity: (args) => args.first ?? 1,
       cursor: 'compositeID',

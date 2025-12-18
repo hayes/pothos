@@ -356,12 +356,25 @@ export class PrismaObjectFieldBuilder<
           parent: unknown,
           args: PothosSchemaTypes.DefaultConnectionArguments,
           context: {},
+          info: GraphQLResolveInfo,
         ) => {
+          const returnType = getNamedType(info.returnType);
+          const fields =
+            isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+          const totalCountOnly = info.fieldNodes.every((selection) =>
+            selection.selectionSet?.selections.every(
+              (s) =>
+                s.kind === GraphQLKind.FIELD &&
+                (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
+                  s.name.value === '__typename'),
+            ),
+          );
+
           const connectionQuery = getQuery(args, context);
 
           return wrapConnectionResult(
             parent,
-            (parent as Record<string, never>)[name] ?? [],
+            totalCountOnly ? [] : ((parent as Record<string, never>)[name] ?? []),
             args,
             connectionQuery.take,
             formatCursor,

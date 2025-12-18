@@ -913,4 +913,39 @@ describe('prisma counts', () => {
       ]
     `);
   });
+
+  it('totalCount only with field selecting same relation without cursor (issue #1580)', async () => {
+    const query = gql`
+      query {
+        selectMe {
+          postTitles
+          postsConnection {
+            totalCount
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toMatchInlineSnapshot(`
+      {
+        "selectMe": {
+          "postTitles": [
+            "Quos distinctio distinctio dignissimos vel quo maiores ea.",
+            "Voluptatem eum dolores dignissimos quia vel.",
+            "Ut corrupti eum nostrum consequatur aliquam nostrum.",
+          ],
+          "postsConnection": {
+            "totalCount": 250,
+          },
+        },
+      }
+    `);
+  });
 });
