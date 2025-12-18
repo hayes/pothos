@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.14.1
+
+### Patch Changes
+
+- 9993d01: Fix a bug where selecting only connection count at the same time as another field selected the same relation would cause an error"
+
 ## 4.14.0
 
 ### Minor Changes
