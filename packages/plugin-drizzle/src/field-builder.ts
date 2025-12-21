@@ -29,28 +29,31 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
   return this.field({
     ...(options as {}),
     type: typeParam,
-    resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      // Always analyze the selection to set loader mappings, even if the query function is not used
-      queryFromInfo({
-        config: getSchemaConfig(this.builder),
-        context,
-        info,
-      });
-      
-      return resolve(
-        (select) =>
-          queryFromInfo({
-            config: getSchemaConfig(this.builder),
-            context,
-            select,
-            info,
-            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-          }) as never,
-        parent,
-        args as never,
-        context,
-        info,
-      ) as never;
+    resolve: async (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      let queryCalled = false;
+      const queryFn = (select?: SelectionMap) => {
+        queryCalled = true;
+        return queryFromInfo({
+          config: getSchemaConfig(this.builder),
+          context,
+          select,
+          info,
+          // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
+        }) as never;
+      };
+
+      const result = await resolve(queryFn, parent, args as never, context, info);
+
+      // If the query function was not called, we still need to set the loader mappings
+      if (!queryCalled) {
+        queryFromInfo({
+          config: getSchemaConfig(this.builder),
+          context,
+          info,
+        });
+      }
+
+      return result as never;
     },
   }) as never;
 };
@@ -77,28 +80,31 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
   ).fieldWithInput({
     ...(options as {}),
     type: typeParam,
-    resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      // Always analyze the selection to set loader mappings, even if the query function is not used
-      queryFromInfo({
-        config: getSchemaConfig(this.builder),
-        context,
-        info,
-      });
-      
-      return resolve(
-        (select: SelectionMap) =>
-          queryFromInfo({
-            config: getSchemaConfig(this.builder),
-            context,
-            select,
-            info,
-            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-          }),
-        parent,
-        args as never,
-        context,
-        info,
-      ) as never;
+    resolve: async (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      let queryCalled = false;
+      const queryFn = (select?: SelectionMap) => {
+        queryCalled = true;
+        return queryFromInfo({
+          config: getSchemaConfig(this.builder),
+          context,
+          select,
+          info,
+          // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
+        });
+      };
+
+      const result = await resolve(queryFn, parent, args as never, context, info);
+
+      // If the query function was not called, we still need to set the loader mappings
+      if (!queryCalled) {
+        queryFromInfo({
+          config: getSchemaConfig(this.builder),
+          context,
+          info,
+        });
+      }
+
+      return result as never;
     },
   }) as never;
 } as never;
