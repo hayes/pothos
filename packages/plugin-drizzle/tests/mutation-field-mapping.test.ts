@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
 import { createContext } from './example/context';
@@ -26,9 +27,6 @@ describe('drizzle mutation field mappings', () => {
       `,
       contextValue: context,
     });
-
-    console.log('Number of queries:', drizzleLogs.length);
-    console.log('Queries:', drizzleLogs);
     
     // Should only see one query: the findFirst query from the mutation resolver
     // Should NOT see a second query from ModelLoader trying to load the selection
@@ -67,9 +65,6 @@ describe('drizzle mutation field mappings', () => {
       `,
       contextValue: context,
     });
-
-    console.log('Delete mutation queries:', drizzleLogs.length);
-    console.log('Queries:', drizzleLogs);
     
     // Should only see: delete query with returning
     // Should NOT see a ModelLoader query trying to load deleted records
@@ -79,7 +74,6 @@ describe('drizzle mutation field mappings', () => {
     // Should NOT contain a query that looks like "where "d0"."id" in"
     expect(drizzleLogs.filter((log) => log.includes('where "d0"."id" in')).length).toBe(0);
     
-    console.log('Result:', JSON.stringify(result, null, 2));
     expect(result.errors).toBeUndefined();
     expect(result.data?.deleteCategory).toHaveLength(1);
     expect(result.data?.deleteCategory[0]).toMatchObject({
@@ -92,21 +86,21 @@ describe('drizzle mutation field mappings', () => {
     const context = await createContext({ userId: '1' });
     clearDrizzleLogs();
     
+    const categoryName = `test-${Date.now()}`;
+    
     const result = await execute({
       schema,
       document: gql`
-        mutation {
-          createCategory(name: "new-category") {
+        mutation CreateCategory($name: String!) {
+          createCategory(name: $name) {
             id
             name
           }
         }
       `,
+      variableValues: { name: categoryName },
       contextValue: context,
     });
-
-    console.log('Create mutation queries:', drizzleLogs.length);
-    console.log('Queries:', drizzleLogs);
     
     // Should only see: insert query with returning
     // Should NOT see a ModelLoader query
@@ -119,11 +113,11 @@ describe('drizzle mutation field mappings', () => {
     expect(result.data).toMatchObject({
       createCategory: {
         id: expect.any(String),
-        name: 'new-category',
+        name: categoryName,
       },
     });
     
     // Cleanup
-    await db.delete(categories).where({ name: 'new-category' });
+    await db.delete(categories).where(eq(categories.name, categoryName));
   });
 });

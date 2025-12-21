@@ -30,6 +30,13 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
     ...(options as {}),
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      // Always analyze the selection to set loader mappings, even if the query function is not used
+      queryFromInfo({
+        config: getSchemaConfig(this.builder),
+        context,
+        info,
+      });
+      
       return resolve(
         (select) =>
           queryFromInfo({
@@ -71,6 +78,13 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
     ...(options as {}),
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      // Always analyze the selection to set loader mappings, even if the query function is not used
+      queryFromInfo({
+        config: getSchemaConfig(this.builder),
+        context,
+        info,
+      });
+      
       return resolve(
         (select: SelectionMap) =>
           queryFromInfo({
