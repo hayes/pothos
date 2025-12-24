@@ -52,13 +52,12 @@ declare global {
 
     export interface UserSchemaTypes {
       Defaults: 'v3' | 'v4';
-      Scalars: Record<
-        string,
-        {
+      Scalars: {
+        [scalar: string]: {
           Input: unknown;
           Output: unknown;
-        }
-      >;
+        };
+      };
       Objects: {};
       Inputs: {};
       Interfaces: {};
