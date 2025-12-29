@@ -48,6 +48,9 @@
     "@pothos/core": "*",
     "graphql": "^16.10.0"
   },
+  "dependencies": {
+    "@graphql-tools/utils": "^10.11.0"
+  },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",

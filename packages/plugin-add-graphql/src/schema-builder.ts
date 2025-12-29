@@ -1,4 +1,5 @@
 import './global-types';
+import { getDirectiveExtensions } from '@graphql-tools/utils';
 import SchemaBuilder, {
   type ArgumentRef,
   type EnumRef,
@@ -109,11 +110,21 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
   type: GraphQLObjectType<Shape>,
   { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape> = {},
 ) {
+  const includeSchemaDirectices = this.options.add?.includeSchemaDirectives || false;
   const typeOptions = {
     ...options,
     description: type.description ?? undefined,
     isTypeOf: type.isTypeOf as never,
-    extensions: { ...type.extensions, ...extensions },
+    extensions: {
+      ...type.extensions,
+      ...extensions,
+      ...(includeSchemaDirectices && {
+        directives: {
+          ...getDirectiveExtensions(type),
+          ...(extensions?.directives ?? {}),
+        },
+      }),
+    },
     interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
     fields: (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
       const existingFields = type.getFields();
@@ -141,7 +152,12 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
             defaultValue: arg.defaultValue,
-            extensions: arg.extensions,
+            extensions: {
+              ...arg.extensions,
+              ...(includeSchemaDirectices && {
+                directives: getDirectiveExtensions(arg),
+              }),
+            },
           });
         }
 
@@ -150,7 +166,12 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
           args,
           description: field.description ?? undefined,
           deprecationReason: field.deprecationReason ?? undefined,
-          extensions: field.extensions,
+          extensions: {
+            ...field.extensions,
+            ...(includeSchemaDirectices && {
+              directives: getDirectiveExtensions(field),
+            }),
+          },
           resolve: (field.resolve ?? defaultFieldResolver) as never,
           ...(field.subscribe ? { subscribe: field.subscribe } : {}),
         });
@@ -179,13 +200,23 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
   type: GraphQLInterfaceType,
   { fields, extensions, ...options }: AddGraphQLInterfaceTypeOptions<SchemaTypes, Shape> = {},
 ) {
+  const includeSchemaDirectices = this.options.add?.includeSchemaDirectives || false;
   const ref = this.interfaceRef<Shape>(options?.name ?? type.name);
 
   ref.implement({
     ...options,
     description: type.description ?? undefined,
     resolveType: type.resolveType as never,
-    extensions: { ...type.extensions, ...extensions },
+    extensions: {
+      ...type.extensions,
+      ...extensions,
+      ...(includeSchemaDirectices && {
+        directives: {
+          ...getDirectiveExtensions(type),
+          ...(extensions?.directives ?? {}),
+        },
+      }),
+    },
     interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
     fields: (t) => {
       const existingFields = type.getFields();
@@ -211,7 +242,12 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
             defaultValue: arg.defaultValue,
-            extensions: arg.extensions,
+            extensions: {
+              ...arg.extensions,
+              ...(includeSchemaDirectices && {
+                directives: getDirectiveExtensions(arg),
+              }),
+            },
           });
         }
 
@@ -221,7 +257,12 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
           description: field.description ?? undefined,
           deprecationReason: field.deprecationReason ?? undefined,
           resolve: field.resolve as never,
-          extensions: field.extensions,
+          extensions: {
+            ...field.extensions,
+            ...(includeSchemaDirectices && {
+              directives: getDirectiveExtensions(field),
+            }),
+          },
         });
       }
 
@@ -240,11 +281,21 @@ proto.addGraphQLUnion = function addGraphQLUnion<Shape>(
     ...options
   }: AddGraphQLUnionTypeOptions<SchemaTypes, ObjectRef<SchemaTypes, Shape>> = {},
 ) {
+  const includeSchemaDirectices = this.options.add?.includeSchemaDirectives || false;
   return this.unionType<ObjectParam<SchemaTypes>, Shape>(options?.name ?? type.name, {
     ...options,
     description: type.description ?? undefined,
     resolveType: type.resolveType as never,
-    extensions: { ...type.extensions, ...extensions },
+    extensions: {
+      ...type.extensions,
+      ...extensions,
+      ...(includeSchemaDirectices && {
+        directives: {
+          ...getDirectiveExtensions(type),
+          ...(extensions?.directives ?? {}),
+        },
+      }),
+    },
     types: types ?? (type.getTypes().map((t) => resolveNullableOutputRef(this, t)) as []),
   });
 };
@@ -257,6 +308,7 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(
     ...options
   }: AddGraphQLEnumTypeOptions<SchemaTypes, EnumValuesWithShape<SchemaTypes, Shape>> = {},
 ) {
+  const includeSchemaDirectices = this.options.add?.includeSchemaDirectives || false;
   const newValues =
     values ??
     type.getValues().reduce<EnumValueConfigMap<SchemaTypes>>((acc, value) => {
@@ -264,7 +316,12 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(
         value: value.value as never,
         description: value.description ?? undefined,
         deprecationReason: value.deprecationReason ?? undefined,
-        extensions: value.extensions,
+        extensions: {
+          ...value.extensions,
+          ...(includeSchemaDirectices && {
+            directives: getDirectiveExtensions(value),
+          }),
+        },
       };
 
       return acc;
@@ -278,7 +335,16 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(
     {
       ...options,
       description: type.description ?? undefined,
-      extensions: { ...type.extensions, ...extensions },
+      extensions: {
+        ...type.extensions,
+        ...extensions,
+        ...(includeSchemaDirectices && {
+          directives: {
+            ...getDirectiveExtensions(type),
+            ...(extensions?.directives ?? {}),
+          },
+        }),
+      },
       values: newValues,
     } as never,
   );
@@ -295,12 +361,22 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
     ...options
   }: AddGraphQLInputTypeOptions<SchemaTypes, Shape> = {},
 ) {
+  const includeSchemaDirectices = this.options.add?.includeSchemaDirectives || false;
   const ref = this.inputRef<Shape>(name);
 
   return ref.implement({
     ...options,
     description: type.description ?? undefined,
-    extensions: { ...type.extensions, ...extensions },
+    extensions: {
+      ...type.extensions,
+      ...extensions,
+      ...(includeSchemaDirectices && {
+        directives: {
+          ...getDirectiveExtensions(type),
+          ...(extensions?.directives ?? {}),
+        },
+      }),
+    },
     isOneOf: type.isOneOf,
     fields: (t) => {
       const existingFields = type.getFields();
@@ -323,7 +399,12 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
           ...resolveInputType(this, field.type),
           description: field.description ?? undefined,
           defaultValue: field.defaultValue,
-          extensions: field.extensions,
+          extensions: {
+            ...field.extensions,
+            ...(includeSchemaDirectices && {
+              directives: getDirectiveExtensions(field),
+            }),
+          },
         });
       }
 
