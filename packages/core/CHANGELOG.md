@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.10.1
+
+### Patch Changes
+
+- 83794c3: Allow declaration merging for `UserSchemaTypes.Scalars` from plugins.
+
 ## 4.10.0
 
 ### Minor Changes
