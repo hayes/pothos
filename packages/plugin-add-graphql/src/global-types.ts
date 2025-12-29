@@ -28,6 +28,7 @@ declare global {
       add?: {
         schema?: GraphQLSchema;
         types?: GraphQLNamedType[] | Record<string, GraphQLNamedType>;
+        includeSchemaDirectives?: boolean;
       };
     }
 
