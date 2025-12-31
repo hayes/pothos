@@ -409,8 +409,8 @@ export class RootFieldBuilder<
   listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(
     type: T,
     options?: { nullable?: Nullable },
-  ): ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]> {
-    return new ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]>(
+  ): ListRef<Types, Iterable<ShapeFromTypeParam<Types, T, Nullable>>> {
+    return new ListRef<Types, Iterable<ShapeFromTypeParam<Types, T, Nullable>>>(
       type,
       options?.nullable ?? false,
     );
