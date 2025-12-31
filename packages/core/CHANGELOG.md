@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.12.0
+
+### Minor Changes
+
+- 100f5f2: update inferred type of t.listRef from Array<T> to Iterable<T>
+
 ## 4.11.0
 
 ### Minor Changes
