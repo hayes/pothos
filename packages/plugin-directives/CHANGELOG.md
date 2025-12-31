@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- 5b29d51: Add support for adding astNodes to types, fields, and enum values
+
 ## 4.2.5
 
 ### Patch Changes
