@@ -73,7 +73,7 @@ export default function mockAst(schema: GraphQLSchema) {
     const type = types[typeName];
 
     if (type instanceof GraphQLObjectType) {
-      type.astNode = {
+      type.astNode ||= {
         kind: Kind.OBJECT_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
@@ -82,7 +82,7 @@ export default function mockAst(schema: GraphQLSchema) {
         directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLInterfaceType) {
-      type.astNode = {
+      type.astNode ||= {
         kind: Kind.INTERFACE_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
@@ -91,7 +91,7 @@ export default function mockAst(schema: GraphQLSchema) {
         directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLUnionType) {
-      type.astNode = {
+      type.astNode ||= {
         kind: Kind.UNION_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
@@ -99,7 +99,7 @@ export default function mockAst(schema: GraphQLSchema) {
         directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLEnumType) {
-      type.astNode = {
+      type.astNode ||= {
         kind: Kind.ENUM_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
@@ -107,14 +107,14 @@ export default function mockAst(schema: GraphQLSchema) {
         directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLScalarType) {
-      type.astNode = {
+      type.astNode ||= {
         kind: Kind.SCALAR_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
         directives: directiveNodes(type.extensions?.directives as DirectiveList, null, schema),
       };
     } else if (type instanceof GraphQLInputObjectType) {
-      type.astNode = {
+      type.astNode ||= {
         kind: Kind.INPUT_OBJECT_TYPE_DEFINITION,
         name: { kind: Kind.NAME, value: typeName },
         description: type.description ? { kind: Kind.STRING, value: type.description } : undefined,
@@ -237,7 +237,7 @@ function fieldNodes(
   return Object.keys(fields).map((fieldName) => {
     const field: GraphQLField<unknown, unknown> = fields[fieldName];
 
-    field.astNode = {
+    field.astNode ||= {
       kind: Kind.FIELD_DEFINITION,
       description: field.description ? { kind: Kind.STRING, value: field.description } : undefined,
       name: { kind: Kind.NAME, value: fieldName },
@@ -263,7 +263,7 @@ function inputFieldNodes(
 
     const defaultValueNode = astFromValue(field.defaultValue, field.type) as ConstValueNode;
 
-    field.astNode = {
+    field.astNode ||= {
       kind: Kind.INPUT_VALUE_DEFINITION,
       description: field.description ? { kind: Kind.STRING, value: field.description } : undefined,
       name: { kind: Kind.NAME, value: fieldName },
@@ -287,7 +287,7 @@ function argumentNodes(
   return args.map((arg): InputValueDefinitionNode => {
     const defaultValueNode = astFromValue(arg.defaultValue, arg.type) as ConstValueNode;
 
-    arg.astNode = {
+    arg.astNode ||= {
       kind: Kind.INPUT_VALUE_DEFINITION,
       description: arg.description ? { kind: Kind.STRING, value: arg.description } : undefined,
       name: { kind: Kind.NAME, value: arg.name },
@@ -309,7 +309,7 @@ function enumValueNodes(
   schema: GraphQLSchema,
 ): readonly EnumValueDefinitionNode[] {
   return values.map((value): EnumValueDefinitionNode => {
-    value.astNode = {
+    value.astNode ||= {
       kind: Kind.ENUM_VALUE_DEFINITION,
       description: value.description ? { kind: Kind.STRING, value: value.description } : undefined,
       name: { kind: Kind.NAME, value: value.name },

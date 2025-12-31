@@ -143,6 +143,7 @@ export class InputFieldBuilder<
               deprecationReason: opts.deprecationReason,
               defaultValue: opts.defaultValue,
               extensions: opts.extensions ?? {},
+              astNode: opts.astNode,
             };
           })
         : new InputFieldRef<Types>((name, typeConfig) => {
@@ -164,6 +165,7 @@ export class InputFieldBuilder<
               deprecationReason: opts.deprecationReason,
               defaultValue: opts.defaultValue,
               extensions: opts.extensions ?? {},
+              astNode: opts.astNode,
             };
           });
 

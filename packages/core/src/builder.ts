@@ -172,6 +172,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       interfaces: [],
       description: options.description,
       extensions: options.extensions,
+      astNode: options.astNode,
       isTypeOf: options.isTypeOf,
       pothosOptions: options as PothosSchemaTypes.ObjectTypeOptions,
     });
@@ -237,6 +238,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.QueryTypeOptions,
       extensions: options.extensions,
+      astNode: options.astNode,
     });
 
     if (options.name) {
@@ -281,6 +283,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.MutationTypeOptions,
       extensions: options.extensions,
+      astNode: options.astNode,
     });
 
     this.configStore.addTypeRef(this.mutationRef);
@@ -330,6 +333,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.SubscriptionTypeOptions,
       extensions: options.extensions,
+      astNode: options.astNode,
     });
 
     this.configStore.addTypeRef(this.subscriptionRef);
@@ -416,6 +420,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       pothosOptions: options as unknown as PothosSchemaTypes.InterfaceTypeOptions,
       extensions: options.extensions,
       resolveType: options.resolveType as GraphQLTypeResolver<unknown, unknown>,
+      astNode: options.astNode,
     });
 
     this.configStore.addTypeRef(ref);
@@ -481,6 +486,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       resolveType: options.resolveType as GraphQLTypeResolver<unknown, object>,
       pothosOptions: options as unknown as PothosSchemaTypes.UnionTypeOptions,
       extensions: options.extensions,
+      astNode: options.astNode,
     });
 
     if (Array.isArray(options.types)) {
@@ -524,6 +530,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.EnumTypeOptions<Types>,
       extensions: options.extensions,
+      astNode: options.astNode,
     });
 
     this.configStore.addTypeRef(ref);
@@ -553,6 +560,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       serialize: options.serialize as GraphQLScalarSerializer<OutputShape<Types, Name>>,
       pothosOptions: options as unknown as PothosSchemaTypes.ScalarTypeOptions,
       extensions: options.extensions,
+      astNode: options.astNode,
     });
 
     this.configStore.addTypeRef(ref);
@@ -632,6 +640,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.InputObjectTypeOptions,
       extensions: options.extensions,
+      astNode: options.astNode,
     } as PothosInputObjectTypeConfig & { isOneOf?: boolean });
 
     this.configStore.addTypeRef(ref);
@@ -706,6 +715,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       extensions: extensions ?? {},
       directives: directives as GraphQLDirective[],
       types: builtTypes,
+      astNode: options.astNode,
     });
 
     const processedSchema = buildCache.plugin.afterBuild(schema);

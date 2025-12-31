@@ -1,4 +1,8 @@
-import type { GraphQLFieldExtensions } from 'graphql';
+import type {
+  FieldDefinitionNode,
+  GraphQLFieldExtensions,
+  InputValueDefinitionNode,
+} from 'graphql';
 import type {
   InferredFieldOptionsByKind,
   InputFieldMap,
@@ -69,6 +73,7 @@ declare global {
         Types['Context'],
         InputShapeFromFields<Args>
       >;
+      astNode?: FieldDefinitionNode;
     }
 
     export interface ObjectFieldOptions<
@@ -262,6 +267,7 @@ declare global {
       defaultValue?: InputShapeFromTypeParam<Types, Type, Req>;
       /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
       extensions?: Readonly<Record<string, unknown>>;
+      astNode?: InputValueDefinitionNode;
     }
 
     export interface ArgFieldOptions<

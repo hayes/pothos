@@ -82,6 +82,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
           deprecationReason: options.deprecationReason,
           resolve,
           subscribe,
+          astNode: options.astNode,
         };
       },
     );

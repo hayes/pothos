@@ -1,4 +1,4 @@
-import type { GraphQLDirective } from 'graphql';
+import type { GraphQLDirective, SchemaDefinitionNode } from 'graphql';
 import type { InferredFieldOptionsKind } from '../builder-options';
 import type { PluginConstructorMap } from '../plugins';
 import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types';
@@ -34,6 +34,7 @@ declare global {
       directives?: readonly GraphQLDirective[];
       extensions?: Record<string, unknown>;
       sortSchema?: boolean;
+      astNode?: SchemaDefinitionNode;
     }
 
     export interface Plugins<Types extends SchemaTypes> {}

@@ -114,6 +114,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
     description: type.description ?? undefined,
     isTypeOf: type.isTypeOf as never,
     extensions: { ...type.extensions, ...extensions },
+    astNode: type.astNode ?? undefined,
     interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
     fields: (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
       const existingFields = type.getFields();
@@ -142,6 +143,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
             deprecationReason: arg.deprecationReason ?? undefined,
             defaultValue: arg.defaultValue,
             extensions: arg.extensions,
+            astNode: arg.astNode ?? undefined,
           });
         }
 
@@ -151,6 +153,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
           description: field.description ?? undefined,
           deprecationReason: field.deprecationReason ?? undefined,
           extensions: field.extensions,
+          astNode: field.astNode ?? undefined,
           resolve: (field.resolve ?? defaultFieldResolver) as never,
           ...(field.subscribe ? { subscribe: field.subscribe } : {}),
         });
@@ -186,6 +189,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
     description: type.description ?? undefined,
     resolveType: type.resolveType as never,
     extensions: { ...type.extensions, ...extensions },
+    astNode: type.astNode ?? undefined,
     interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
     fields: (t) => {
       const existingFields = type.getFields();
@@ -212,6 +216,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
             deprecationReason: arg.deprecationReason ?? undefined,
             defaultValue: arg.defaultValue,
             extensions: arg.extensions,
+            astNode: arg.astNode ?? undefined,
           });
         }
 
@@ -222,6 +227,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
           deprecationReason: field.deprecationReason ?? undefined,
           resolve: field.resolve as never,
           extensions: field.extensions,
+          astNode: field.astNode ?? undefined,
         });
       }
 
@@ -245,6 +251,7 @@ proto.addGraphQLUnion = function addGraphQLUnion<Shape>(
     description: type.description ?? undefined,
     resolveType: type.resolveType as never,
     extensions: { ...type.extensions, ...extensions },
+    astNode: type.astNode ?? undefined,
     types: types ?? (type.getTypes().map((t) => resolveNullableOutputRef(this, t)) as []),
   });
 };
@@ -265,6 +272,7 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(
         description: value.description ?? undefined,
         deprecationReason: value.deprecationReason ?? undefined,
         extensions: value.extensions,
+        astNode: value.astNode ?? undefined,
       };
 
       return acc;
@@ -279,6 +287,7 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(
       ...options,
       description: type.description ?? undefined,
       extensions: { ...type.extensions, ...extensions },
+      astNode: type.astNode ?? undefined,
       values: newValues,
     } as never,
   );
@@ -301,6 +310,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
     ...options,
     description: type.description ?? undefined,
     extensions: { ...type.extensions, ...extensions },
+    astNode: type.astNode ?? undefined,
     isOneOf: type.isOneOf,
     fields: (t) => {
       const existingFields = type.getFields();
@@ -324,6 +334,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
           description: field.description ?? undefined,
           defaultValue: field.defaultValue,
           extensions: field.extensions,
+          astNode: field.astNode ?? undefined,
         });
       }
 

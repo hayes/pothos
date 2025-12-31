@@ -1,9 +1,17 @@
 import type {
+  EnumTypeDefinitionNode,
+  EnumValueDefinitionNode,
   GraphQLIsTypeOfFn,
   GraphQLResolveInfo,
   GraphQLScalarLiteralParser,
   GraphQLScalarValueParser,
   GraphQLUnionType,
+  InputObjectTypeDefinitionNode,
+  InterfaceTypeDefinitionNode,
+  ObjectTypeDefinitionNode,
+  ScalarTypeDefinitionNode,
+  TypeDefinitionNode,
+  UnionTypeDefinitionNode,
 } from 'graphql';
 import type {
   EnumValues,
@@ -24,18 +32,21 @@ declare global {
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
       description?: string;
       extensions?: Readonly<Record<string, unknown>>;
+      astNode?: TypeDefinitionNode;
     }
     export interface EnumTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Values extends EnumValues<Types> = EnumValues<Types>,
     > extends BaseTypeOptions<Types> {
       values: Values;
+      astNode?: EnumTypeDefinitionNode;
     }
 
     export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown>
       extends BaseTypeOptions<Types> {
       fields?: ObjectFieldsShape<Types, Shape>;
       interfaces?: undefined;
+      astNode?: ObjectTypeDefinitionNode;
       isTypeOf?: GraphQLIsTypeOfFn<unknown, Types['Context']>;
     }
 
@@ -51,6 +62,7 @@ declare global {
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName>
       extends BaseTypeOptions<Types> {
       name?: string;
+      astNode?: ObjectTypeDefinitionNode;
     }
 
     export interface QueryTypeOptions<Types extends SchemaTypes = SchemaTypes>
@@ -73,6 +85,7 @@ declare global {
       Fields extends InputFieldMap = InputFieldMap,
     > extends BaseTypeOptions<Types> {
       isOneOf?: boolean;
+      astNode?: InputObjectTypeDefinitionNode;
       fields: (t: InputFieldBuilder<Types, 'InputObject'>) => Fields;
     }
 
@@ -83,6 +96,7 @@ declare global {
       ResolveType = unknown,
     > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
+      astNode?: InterfaceTypeDefinitionNode;
       interfaces?:
         | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[])
         | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
@@ -101,6 +115,7 @@ declare global {
       ResolveType = unknown,
     > extends BaseTypeOptions<Types> {
       types: Member[] | (() => Member[]);
+      astNode?: UnionTypeDefinitionNode;
       resolveType?: ResolveType &
         ((
           parent: ParentShape<Types, Member>,
@@ -121,6 +136,7 @@ declare global {
       parseValue?: GraphQLScalarValueParser<ScalarInputShape>;
       // Parses an externally provided literal value to use as an input.
       parseLiteral?: GraphQLScalarLiteralParser<ScalarInputShape>;
+      astNode?: ScalarTypeDefinitionNode;
     }
 
     export interface EnumValueConfig<Types extends SchemaTypes> {
@@ -128,6 +144,7 @@ declare global {
       value?: number | string;
       deprecationReason?: string;
       extensions?: Readonly<Record<string, unknown>>;
+      astNode?: EnumValueDefinitionNode;
     }
   }
 }
