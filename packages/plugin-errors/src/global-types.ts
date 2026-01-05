@@ -1,8 +1,10 @@
 import type {
+  AbstractReturnShape,
   FieldKind,
   FieldNullability,
   InputFieldMap,
   ObjectParam,
+  ParentShape,
   SchemaTypes,
   ShapeFromListTypeParam,
   ShapeFromTypeParam,
@@ -14,6 +16,7 @@ import type {
   ErrorsPluginOptions,
   ErrorUnionFieldOptions,
   ErrorUnionListFieldOptions,
+  ErrorUnionOptions,
 } from './types';
 
 declare global {
@@ -24,6 +27,17 @@ declare global {
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       errors?: ErrorsPluginOptions<Types>;
+    }
+
+    export interface SchemaBuilder<Types extends SchemaTypes> {
+      errorUnion: <Member extends ObjectParam<Types>, ResolveType = unknown>(
+        name: string,
+        options: ErrorUnionOptions<Types, Member>,
+      ) => UnionRef<
+        Types,
+        AbstractReturnShape<Types, Member, ResolveType>,
+        ParentShape<Types, Member>
+      >;
     }
 
     export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {

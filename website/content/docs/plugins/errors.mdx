@@ -517,3 +517,57 @@ t.errorUnionField({
   resolve: ...
 });
 ```
+
+### Using `builder.errorUnion`
+
+You can use `builder.errorUnion` to manually construct an error union type that can be used with any field.  Fields returning an error union will automatically handle returned or thrown errors.
+
+```typescript
+builder.objectType(NotFoundError, {
+  name: 'NotFoundError',
+  interfaces: [ErrorInterface],
+});
+
+builder.objectType(ValidationError, {
+  name: 'ValidationError',
+  interfaces: [ErrorInterface],
+  isTypeOf: (value) => value instanceof ValidationError,
+  fields: (t) => ({
+    field: t.exposeString('field'),
+  }),
+});
+
+const UserType = builder.objectRef<{ id: string; name: string }>('User').implement({
+  isTypeOf: (obj) => 'id' in obj && 'name' in obj,
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+const UserResult = builder.errorUnion('UserResult', {
+  types: [UserType, NotFoundError, ValidationError],
+});
+
+builder.queryField('getUser', (t) =>
+  t.field({
+    type: UserResult,
+    args: { id: t.arg.string({ required: true }) },
+    resolve: (_, { id }) => {
+      // Handles thrown errors
+      if (!id) throw new ValidationError('ID required', 'id');
+      // Handles returned errors
+      if (id === 'unknown') return new NotFoundError('User not found');
+
+      return { id, name: 'User' };
+    },
+  })
+);
+```
+
+#### Options
+
+- `types`: Array of member types (object refs, error classes, etc.)
+- `omitDefaultTypes`: Set to `true` to exclude `defaultTypes` from the builder options (default: `false`)
+- `resolveType`: Optional custom resolve function. Called after the internal error map check.
+- All other standard union type options are supported

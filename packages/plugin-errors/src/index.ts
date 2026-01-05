@@ -1,4 +1,5 @@
 import './global-types';
+import './schema-builder';
 import './field-builder';
 import SchemaBuilder, {
   BasePlugin,
@@ -59,6 +60,22 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     const errorBuilderOptions = this.builder.options.errors;
 
     if (!errorOptions && !itemErrorOptions) {
+      const innerType = unwrapOutputFieldType(fieldConfig.type);
+      const errorTypes = this.buildCache.getTypeConfig(innerType).extensions?.pothosErrorTypes as
+        | (typeof Error)[]
+        | undefined;
+
+      if (errorTypes) {
+        const isListField = fieldConfig.type.kind === 'List';
+
+        return {
+          ...fieldConfig,
+          extensions: {
+            ...fieldConfig.extensions,
+            ...(isListField ? { pothosItemErrors: errorTypes } : { pothosErrors: errorTypes }),
+          },
+        };
+      }
       return fieldConfig;
     }
 

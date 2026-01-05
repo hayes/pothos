@@ -1,4 +1,8 @@
 # Errors Plugin
+---
+title: Errors plugin
+description: Errors plugin docs for Pothos
+---
 
 A plugin for easily including error types in your GraphQL schema and hooking up error types to
 resolvers
@@ -8,7 +12,7 @@ resolvers
 ### Install
 
 ```bash
-yarn add @pothos/plugin-errors
+npm install --save @pothos/plugin-errors
 ```
 
 ### Setup
@@ -239,74 +243,47 @@ builder.queryType({
 
 ### With validation plugin
 
-To use this in combination with the validation plugin, ensure that that errors plugin is listed
-BEFORE the validation plugin in your plugin list.
+To handle validation errors you will need to enable the `unsafelyHandleInputErrors` option in the
+errors plugin options. This will allow the errors plugin to catch errors thrown by the validation plugin.
+This setting is unsafe because it wraps and catches errors at a higher level which will allow you to
+bypass other plugin hooks like the `auth` plugin.  This enables you to return structured error responses for
+validation issues which happen BEFORE auth checks are executed, but this also means that those auth checks won't be run.
 
-Once your plugins are set up, you can define types for a ZodError, the same way you would for any
-other error type. Below is a simple example of how this can be done, but the specifics of how you
-structure your error types are left up to you.
+Once you enable the `unsafelyHandleInputErrors` option, you can define types for an InputValidationError
+(or any custom error you use in the validation plugin), the same way you would for any other error type. Below
+is a simple example of how this can be done, but the specifics of how you structure your error types are left up to you.
 
 ```typescript
-// Util for flattening zod errors into something easier to represent in your Schema.
-function flattenErrors(
-  error: ZodFormattedError<unknown>,
-  path: string[],
-): { path: string[]; message: string }[] {
-    const errors = error._errors.map((message) => ({
-    path,
-    message,
-  }));
-
-  Object.keys(error).forEach((key) => {
-    if (key !== '_errors') {
-      errors.push(
-        ...flattenErrors((error as Record<string, unknown>)[key] as ZodFormattedError<unknown>, [
-          ...path,
-          key,
-        ]),
-      );
-    }
-  });
-
-  return errors;
-}
-
-// A type for the individual validation issues
-const ZodFieldError = builder
-  .objectRef<{
-    message: string;
-    path: string[];
-  }>('ZodFieldError')
+const InputValidationIssue = builder
+  .objectRef<StandardSchemaV1.Issue>('InputValidationIssue')
   .implement({
     fields: (t) => ({
       message: t.exposeString('message'),
-      path: t.exposeStringList('path'),
+      path: t.stringList({
+        resolve: (issue) => issue.path?.map((p) => String(p)),
+      }),
     }),
   });
 
-// The actual error type
-builder.objectType(ZodError, {
-  name: 'ZodError',
+builder.objectType(InputValidationError, {
+  name: 'InputValidationError',
   interfaces: [ErrorInterface],
   fields: (t) => ({
-    fieldErrors: t.field({
-      type: [ZodFieldError],
-      resolve: (err) => flattenErrors(err.format(), []),
+    issues: t.field({
+      type: [InputValidationIssue],
+      resolve: (err) => err.issues,
     }),
   }),
 });
 
-builder.queryField('fieldWIthValidation', (t) =>
+builder.queryField('fieldWithValidation', (t) =>
   t.boolean({
     errors: {
-      types: [ZodError],
+      types: [InputValidationError],
     },
     args: {
       string: t.arg.string({
-        validate: {
-          type: 'string',
-          minLength: 3,
-        },
+        validate: z.string().min(3, 'Too short'),
       }),
     },
     resolve: () => true,
@@ -323,8 +300,8 @@ query {
     ... on QueryValidationSuccess {
       data
     }
-    ... on ZodError {
-      fieldErrors {
+    ... on InputValidationError {
+      issues {
         message
         path
       }
@@ -336,7 +313,7 @@ query {
 ### With the dataloader plugin
 
 To use this in combination with the dataloader plugin, ensure that that errors plugin is listed
-BEFORE the validation plugin in your plugin list.
+BEFORE the dataloader plugin in your plugin list.
 
 If a field with `errors` returns a `loadableObject`, or `loadableNode` the errors plugin will now
 catch errors thrown when loading ids returned by the `resolve` function.
@@ -350,14 +327,118 @@ handle these types of errors.
 ### With the prisma plugin
 
 To use this in combination with the prisma plugin, ensure that that errors plugin is listed BEFORE
-the validation plugin in your plugin list. This will enable `errors` option to work work correctly
-with any field builder method from the prisma plugin.
+the prisma plugin in your plugin list. This will enable `errors` option to work correctly with any
+field builder method from the prisma plugin.
 
 `errors` can be configured for any field, but if there is an error pre-loading a relation the error
 will always surfaced at the field that executed the query. Because there are cases that fall back to
 executing queries for relation fields, these fields may still have errors if the relation was not
 pre-loaded. Detection of nested relations will continue to work if those relations use the `errors`
 plugin
+
+### List item errors
+
+For fields that return lists, you can specify `itemErrors` to wrap the list items in a union type so
+that errors can be handled per-item rather than replacing the whole list with an error.
+
+The `itemErrors` options are exactly the same as the `errors` options, but they are applied to each
+item in the list rather than the whole list.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    listWithErrors: t.string({
+      itemErrors: {},
+      resolve: (parent, { name }) => {
+        return [
+          1,
+          2,
+          new Error('Boom'),
+          3,
+        ]
+      },
+    }),
+  }),
+});
+```
+
+This will produce a GraphQL schema that looks like:
+
+```graphql
+type Query {
+  listWithErrors: [QueryListWithErrorsItemResult!]!
+}
+
+union QueryListWithErrorsItemResult = Error | QueryListWithErrorsItemSuccess
+
+type QueryListWithErrorsItemSuccess {
+  data: Int!
+}
+```
+
+Item errors also works with both sync and async iterators (in graphql@>=17, or other executors that support the @stream directive):
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    asyncListWithErrors: t.string({
+      itemErrors: {},
+      resolve: async function* () {
+        yield 1;
+        yield 2;
+        yield new Error('Boom');
+        yield 4;
+        throw new Error('Boom');
+      },
+    }),
+  }),
+});
+```
+
+When an error is yielded, an error result will be added into the list, if the generator throws an error,
+the error will be added to the list, and no more results will be returned for that field
+
+
+You can also use the `errors` and `itemErrors` options together:
+
+```typescript
+
+builder.queryType({
+  fields: (t) => ({
+    listWithErrors: t.string({
+      itemErrors: {},
+      errors: {},
+      resolve: (parent, { name }) => {
+        return [
+          1,
+          new Error('Boom'),
+          3,
+        ]
+    }),
+  }),
+});
+```
+
+This will produce a GraphQL schema that looks like:
+
+```graphql
+
+type Query {
+  listWithErrors: [QueryListWithErrorsResult!]!
+}
+
+union QueryListWithErrorsResult = Error | QueryListWithErrorsSuccess
+
+type QueryListWithErrorsSuccess {
+  data: [QueryListWithErrorsItemResult!]!
+}
+
+union QueryListWithErrorsItemResult = Error | QueryListWithErrorsItemSuccess
+
+type QueryListWithErrorsItemSuccess {
+  data: Int!
+}
+```
 
 ### Custom error union fields
 
@@ -437,3 +518,57 @@ t.errorUnionField({
   resolve: ...
 });
 ```
+
+### Using `builder.errorUnion`
+
+You can use `builder.errorUnion` to manually construct an error union type that can be used with any field.  Fields returning an error union will automatically handle returned or thrown errors.
+
+```typescript
+builder.objectType(NotFoundError, {
+  name: 'NotFoundError',
+  interfaces: [ErrorInterface],
+});
+
+builder.objectType(ValidationError, {
+  name: 'ValidationError',
+  interfaces: [ErrorInterface],
+  isTypeOf: (value) => value instanceof ValidationError,
+  fields: (t) => ({
+    field: t.exposeString('field'),
+  }),
+});
+
+const UserType = builder.objectRef<{ id: string; name: string }>('User').implement({
+  isTypeOf: (obj) => 'id' in obj && 'name' in obj,
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+const UserResult = builder.errorUnion('UserResult', {
+  types: [UserType, NotFoundError, ValidationError],
+});
+
+builder.queryField('getUser', (t) =>
+  t.field({
+    type: UserResult,
+    args: { id: t.arg.string({ required: true }) },
+    resolve: (_, { id }) => {
+      // Handles thrown errors
+      if (!id) throw new ValidationError('ID required', 'id');
+      // Handles returned errors
+      if (id === 'unknown') return new NotFoundError('User not found');
+
+      return { id, name: 'User' };
+    },
+  })
+);
+```
+
+#### Options
+
+- `types`: Array of member types (object refs, error classes, etc.)
+- `omitDefaultTypes`: Set to `true` to exclude `defaultTypes` from the builder options (default: `false`)
+- `resolveType`: Optional custom resolve function. Called after the internal error map check.
+- All other standard union type options are supported

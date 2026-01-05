@@ -102,10 +102,19 @@ export function* yieldErrors(
   result: Iterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
-) {
+): Generator<unknown> {
   try {
     for (const item of result) {
-      yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+      if (
+        item !== null &&
+        typeof item === 'object' &&
+        !(item instanceof Error) &&
+        Symbol.iterator in item
+      ) {
+        yield [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
+      } else {
+        yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+      }
     }
   } catch (error: unknown) {
     yield wrapOrThrow(error, pothosErrors, onResolvedError);
@@ -116,10 +125,34 @@ export async function* yieldAsyncErrors(
   result: AsyncIterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
-) {
+): AsyncGenerator<unknown> {
   try {
     for await (const item of result) {
-      yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+      if (
+        item !== null &&
+        typeof item === 'object' &&
+        !(item instanceof Error) &&
+        Symbol.asyncIterator in item
+      ) {
+        const nestedResults: unknown[] = [];
+        for await (const nested of yieldAsyncErrors(
+          item as AsyncIterable<unknown>,
+          pothosErrors,
+          onResolvedError,
+        )) {
+          nestedResults.push(nested);
+        }
+        yield nestedResults;
+      } else if (
+        item !== null &&
+        typeof item === 'object' &&
+        !(item instanceof Error) &&
+        Symbol.iterator in item
+      ) {
+        yield [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
+      } else {
+        yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+      }
     }
   } catch (error: unknown) {
     yield wrapOrThrow(error, pothosErrors, onResolvedError);

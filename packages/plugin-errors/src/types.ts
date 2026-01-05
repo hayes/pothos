@@ -174,3 +174,13 @@ export type ErrorUnionListFieldOptions<
     >;
   }
 >;
+
+export type ErrorUnionOptions<
+  Types extends SchemaTypes,
+  Member extends ObjectParam<Types>,
+> = Normalize<
+  Omit<PothosSchemaTypes.UnionTypeOptions<Types, Member>, 'types' | 'isErrorUnion'> & {
+    types: Member[];
+    omitDefaultTypes?: boolean;
+  }
+>;
