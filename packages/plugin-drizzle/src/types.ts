@@ -34,6 +34,7 @@ import type {
   Many,
   Relation,
   SQL,
+  SQLWrapper,
   Table,
   TableRelationalConfig,
 } from 'drizzle-orm';
@@ -43,7 +44,7 @@ import type { DrizzleRef } from './interface-ref';
 import type { IndirectInclude } from './utils/map-query';
 import type { SelectionMap } from './utils/selections';
 
-export type DrizzleClient = {
+export type DrizzleClient<TCountSource = Table | SQL | SQLWrapper> = {
   readonly _: {
     readonly schema: unknown;
     readonly fullSchema: Record<string, unknown>;
@@ -51,35 +52,42 @@ export type DrizzleClient = {
     readonly relations: AnyRelations;
   };
   query: {};
-  $count: (table: Table, filter?: SQL) => SQL<number>;
+  $count: (source: TCountSource, filter?: SQL) => SQL<number>;
 };
 
-export type DrizzlePluginOptions<Types extends SchemaTypes> = {
+type GetTableConfigFn<TTable = Table> = (table: TTable) => {
+  primaryKeys: {
+    readonly columns: Column[];
+  }[];
+  readonly columns: Column[];
+};
+
+type AnyRelationTable<Types extends SchemaTypes> =
+  Types['DrizzleRelations'][keyof Types['DrizzleRelations']]['table'];
+
+type DrizzleClientForTypes<Types extends SchemaTypes> = DrizzleClient<
+  AnyRelationTable<Types> | SQL | SQLWrapper
+>;
+
+type DrizzlePluginBaseOptions = {
   maxConnectionSize?: number;
   defaultConnectionSize?: number;
   skipDeferredFragments?: boolean;
-} & (
-  | {
-      client: DrizzleClient;
-      getTableConfig: (table: Table) => {
-        primaryKeys: {
-          readonly columns: Column[];
-        }[];
-        readonly columns: Column[];
-      };
-      relations?: Types['DrizzleRelations'];
-    }
-  | {
-      client: (ctx: Types['Context']) => DrizzleClient;
-      getTableConfig: (table: Table) => {
-        primaryKeys: {
-          readonly columns: Column[];
-        }[];
-        readonly columns: Column[];
-      };
-      relations: Types['DrizzleRelations'];
-    }
-);
+};
+
+export type DrizzlePluginOptions<Types extends SchemaTypes> = DrizzlePluginBaseOptions &
+  (
+    | {
+        client: DrizzleClientForTypes<Types>;
+        getTableConfig: GetTableConfigFn<AnyRelationTable<Types>>;
+        relations?: Types['DrizzleRelations'];
+      }
+    | {
+        client: (ctx: Types['Context']) => DrizzleClientForTypes<Types>;
+        getTableConfig: GetTableConfigFn<AnyRelationTable<Types>>;
+        relations: Types['DrizzleRelations'];
+      }
+  );
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
 
