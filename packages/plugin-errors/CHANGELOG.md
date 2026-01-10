@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.9.0
+
+### Minor Changes
+
+- 8ad5769: Add builder.errorUnion method and support for item errors in nested lists
+
 ## 4.8.0
 
 ### Minor Changes

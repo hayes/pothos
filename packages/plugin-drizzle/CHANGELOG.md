@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.16.2
+
+### Patch Changes
+
+- ab0af70: Update to support drizzle-orm 1.0.0-beta.10
+
 ## 0.16.1
 
 ### Patch Changes
