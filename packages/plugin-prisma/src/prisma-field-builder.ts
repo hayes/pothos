@@ -310,6 +310,7 @@ export class PrismaObjectFieldBuilder<
         description: getFieldDescription(this.model, this.builder, name, description),
         extensions: {
           ...extensions,
+          pothosPrismaRelationField: relationField,
           pothosPrismaSelect: relationSelect,
           pothosPrismaLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
             const returnType = getNamedType(info.returnType);
@@ -453,6 +454,7 @@ export class PrismaObjectFieldBuilder<
       description: getFieldDescription(this.model, this.builder, name, description),
       extensions: {
         ...extensions,
+        pothosPrismaRelationField: relationField,
         pothosPrismaSelect: relationSelect as never,
         pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
         pothosPrismaFallback:
