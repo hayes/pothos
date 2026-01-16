@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.14.2
+
+### Patch Changes
+
+- a0b9490: Add relationField to extensions
+
 ## 4.14.1
 
 ### Patch Changes
