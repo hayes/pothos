@@ -294,6 +294,29 @@ This is useful when you want the same relation field to behave differently depen
 in which it's queried. The `t.relatedConnection` method also supports `pathInfo` in its query
 callback.
 
+### Path info on nestedSelection
+
+When using `t.field` with a `select` callback function, path information is also available on the
+`nestedSelection` function:
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    customField: t.field({
+      type: SomeType,
+      select: (args, ctx, nestedSelection) => {
+        // Access path info from the nestedSelection function
+        console.log(nestedSelection.path);     // ['Query.user', 'User.customField']
+        console.log(nestedSelection.segments); // [{ field, alias, parentType, isList }, ...]
+
+        return nestedSelection({ columns: { id: true } });
+      },
+      resolve: (parent) => parent,
+    }),
+  }),
+});
+
 ## Drizzle Fields
 
 Drizzle objects and relations allow you to define parts of your schema backed by your drizzle
