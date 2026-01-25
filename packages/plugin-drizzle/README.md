@@ -254,6 +254,46 @@ The query API enables you to define args and convert them into parameters that w
 the relational query builder. You can read more about the relation query builder api
 [here](https://orm.drizzle.team/docs/rqb#querying)
 
+### Path-based filtering
+
+The query callback also receives a `pathInfo` parameter that provides information about the GraphQL
+query path. This enables filtering based on how a field is accessed in the query:
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    // This field returns different results based on the query path
+    posts: t.relation('posts', {
+      query: (args, ctx, pathInfo) => {
+        // pathInfo.path = ['Query.pendingReviewAuthor', 'User.posts']
+        // Check if we're accessed via the pendingReviewAuthor query
+        const isReviewContext = pathInfo?.path?.at(-2) === 'Query.pendingReviewAuthor';
+
+        return {
+          where: {
+            // Show drafts in review context, published posts otherwise
+            published: isReviewContext ? false : true,
+          },
+          orderBy: { updatedAt: 'desc' },
+        };
+      },
+    }),
+  }),
+});
+```
+
+The `pathInfo` object contains:
+
+- `path`: Array of `"ParentType.fieldName"` strings representing the query path (e.g.,
+  `['Query.user', 'User.posts']`)
+- `segments`: Detailed info for each path segment with `field`, `alias`, `parentType`, and `isList`
+  properties
+
+This is useful when you want the same relation field to behave differently depending on the context
+in which it's queried. The `t.relatedConnection` method also supports `pathInfo` in its query
+callback.
+
 ## Drizzle Fields
 
 Drizzle objects and relations allow you to define parts of your schema backed by your drizzle
