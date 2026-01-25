@@ -1,8 +1,34 @@
 import { count, eq } from 'drizzle-orm';
 import { drizzleConnectionHelpers } from '../../../src';
+import type { PathInfo } from '../../../src/types';
 import { builder } from '../builder';
 import { db } from '../db';
 import { comments, posts } from '../db/schema';
+
+const PathSegment = builder.objectRef<PathInfo['segments'][number]>('PathSegment').implement({
+  fields: (t) => ({
+    field: t.exposeString('field'),
+    alias: t.exposeString('alias'),
+    parentType: t.exposeString('parentType'),
+    isList: t.exposeBoolean('isList'),
+  }),
+});
+
+builder.queryField('capturedPathInfo', (t) =>
+  t.field({
+    type: builder.objectRef<PathInfo>('PathInfo').implement({
+      fields: (t) => ({
+        path: t.stringList({ resolve: (info) => info.path }),
+        segments: t.field({
+          type: [PathSegment],
+          resolve: (info) => info.segments,
+        }),
+      }),
+    }),
+    nullable: true,
+    resolve: (_root, _args, ctx) => ctx.capturedPathInfo ?? null,
+  }),
+);
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   args: (t) => ({
@@ -233,6 +259,34 @@ export const User = builder.drizzleNode('users', {
         },
       }),
     }),
+    postsWithPathInfo: t.relation('posts', {
+      args: {
+        testLimit: t.arg.int(),
+      },
+      query: (args, ctx, pathInfo) => {
+        ctx.capturedPathInfo = pathInfo;
+        return {
+          limit: args.testLimit ?? 5,
+          orderBy: { updatedAt: 'desc' },
+        };
+      },
+    }),
+    postsForModeration: t.relation('posts', {
+      args: {
+        limit: t.arg.int(),
+      },
+      query: (args, _ctx, pathInfo) => {
+        const isReviewContext = pathInfo?.path?.at(-2) === 'Query.pendingReviewAuthor';
+
+        return {
+          limit: args.limit ?? 10,
+          where: {
+            published: isReviewContext ? 0 : 1,
+          },
+          orderBy: { updatedAt: 'desc' },
+        };
+      },
+    }),
     postsCount: t.relatedField('posts', {
       type: 'Int',
       select: (buildFilter) => ({
@@ -351,6 +405,25 @@ builder.queryField('admin', (t) =>
           )
         : null;
     },
+  }),
+);
+
+// Example from GitHub issue #1596: query field for moderation context
+// When postsForModeration is accessed via this query, it shows draft posts
+// When accessed via the regular `user` query, it shows published posts
+builder.queryField('pendingReviewAuthor', (t) =>
+  t.drizzleField({
+    type: User,
+    nullable: true,
+    args: {
+      id: t.arg.globalID({ required: true }),
+    },
+    resolve: (query, _root, args) =>
+      db.query.users.findFirst(
+        query({
+          where: { id: Number(args.id.id) },
+        }),
+      ),
   }),
 );
 

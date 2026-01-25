@@ -112,6 +112,18 @@ type PageInfo {
   startCursor: String
 }
 
+type PathInfo {
+  path: [String!]
+  segments: [PathSegment!]
+}
+
+type PathSegment {
+  alias: String
+  field: String
+  isList: Boolean
+  parentType: String
+}
+
 type Post {
   author: User
   category: String
@@ -127,9 +139,11 @@ type Post {
 
 type Query {
   admin: Admin
+  capturedPathInfo: PathInfo
   me: Viewer
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  pendingReviewAuthor(id: ID!): User
   post(id: ID!): Post
   postWithErrors(id: ID!): QueryPostWithErrorsResult
   posts(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): QueryPostsConnection
@@ -211,6 +225,8 @@ type User implements Node {
   postsConnection(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): UserPostsConnection
   postsConnectionWithCount(after: String, before: String, first: Int, last: Int): UserPostsConnectionWithCountConnection
   postsCount: Int
+  postsForModeration(limit: Int): [Post!]
+  postsWithPathInfo(testLimit: Int): [Post!]
   publishedPostsCount: Int!
   unOrderedPostsConnection(after: String, before: String, first: Int, last: Int): UserUnOrderedPostsConnection
   viewer: Viewer
