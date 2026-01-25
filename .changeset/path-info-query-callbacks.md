@@ -10,12 +10,12 @@ PathInfo includes:
 
 Example usage:
 ```typescript
-postsForModeration: t.relation('posts', {
+posts: t.relation('posts', {
   query: (args, ctx, pathInfo) => {
-    // Check if we're a direct child of pendingReviewAuthor
-    const isReviewContext = pathInfo?.path?.at(-2) === 'Query.pendingReviewAuthor';
+    // Check if accessed via viewer (own profile) vs user (public)
+    const isViewerContext = pathInfo?.path?.at(-2) === 'Query.viewer';
     return {
-      where: { published: isReviewContext ? 0 : 1 },
+      where: { published: isViewerContext ? false : true },
     };
   },
 })

@@ -276,12 +276,14 @@ export const User = builder.drizzleNode('users', {
         limit: t.arg.int(),
       },
       query: (args, _ctx, pathInfo) => {
-        const isReviewContext = pathInfo?.path?.at(-2) === 'Query.pendingReviewAuthor';
+        // Check if accessed via me.user (own profile) vs user (public)
+        const isViewerContext = pathInfo?.path?.at(-2) === 'Viewer.user';
 
         return {
           limit: args.limit ?? 10,
           where: {
-            published: isReviewContext ? 0 : 1,
+            // Viewer sees their own drafts, public sees only published
+            published: isViewerContext ? 0 : 1,
           },
           orderBy: { updatedAt: 'desc' },
         };
@@ -405,25 +407,6 @@ builder.queryField('admin', (t) =>
           )
         : null;
     },
-  }),
-);
-
-// Example from GitHub issue #1596: query field for moderation context
-// When postsForModeration is accessed via this query, it shows draft posts
-// When accessed via the regular `user` query, it shows published posts
-builder.queryField('pendingReviewAuthor', (t) =>
-  t.drizzleField({
-    type: User,
-    nullable: true,
-    args: {
-      id: t.arg.globalID({ required: true }),
-    },
-    resolve: (query, _root, args) =>
-      db.query.users.findFirst(
-        query({
-          where: { id: Number(args.id.id) },
-        }),
-      ),
   }),
 );
 

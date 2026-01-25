@@ -224,16 +224,18 @@ describe('path-based conditional filtering (GitHub #1596)', () => {
     // Via 'user' query, postsForModeration shows published posts
     expect(regularData.user.postsForModeration.length).toBeGreaterThan(0);
 
-    // Query via 'pendingReviewAuthor' - should return DRAFT (unpublished) posts only
-    const reviewResult = await execute({
+    // Query via 'me.user' (viewer context) - should return DRAFT (unpublished) posts only
+    const viewerResult = await execute({
       schema,
       document: gql`
         {
-          pendingReviewAuthor(id: "VXNlcjox") {
-            firstName
-            postsForModeration(limit: 5) {
-              id
-              title
+          me {
+            user {
+              firstName
+              postsForModeration(limit: 5) {
+                id
+                title
+              }
             }
           }
         }
@@ -241,17 +243,17 @@ describe('path-based conditional filtering (GitHub #1596)', () => {
       contextValue: context,
     });
 
-    expect(reviewResult.errors).toBeUndefined();
-    const reviewData = reviewResult.data as {
-      pendingReviewAuthor: { firstName: string; postsForModeration: { id: string; title: string }[] };
+    expect(viewerResult.errors).toBeUndefined();
+    const viewerData = viewerResult.data as {
+      me: { user: { firstName: string; postsForModeration: { id: string; title: string }[] } };
     };
 
-    // Via 'pendingReviewAuthor' query, postsForModeration shows draft posts
+    // Via 'me.user', postsForModeration shows draft posts (viewer's own content)
     // The same field returns different data based on the query path!
-    expect(reviewData.pendingReviewAuthor.firstName).toBe('Mason');
+    expect(viewerData.me.user.firstName).toBe('Mason');
 
     // The key insight: same field (postsForModeration) returns different results
-    // based on whether it's accessed via 'user' or 'pendingReviewAuthor'
+    // based on whether it's accessed via 'user' or 'me.user'
     // This is exactly the use case from GitHub issue #1596
   });
 });
