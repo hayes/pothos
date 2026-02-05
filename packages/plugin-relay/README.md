@@ -33,7 +33,7 @@ The `relay` options object passed to builder can contain the following propertie
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
   field
 - `nodeTypeOptions`: Options for the `Node` interface type
-- `pageInfoTypeOptions`: Options for the `TypeInfo` object type
+- `pageInfoTypeOptions`: Options for the `PageInfo` object type
 - `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on connection objects
 - `clientMutationIdInputOptions`: Options for the `clientMutationId` input field on connections
   fields

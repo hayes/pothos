@@ -51,8 +51,12 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   edgeCursorType?: 'ID' | 'String';
   pageInfoCursorType?: 'ID' | 'String';
   brandLoadedObjects?: boolean;
-  nodeTypeOptions: Omit<PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>, 'fields'>;
-  pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
+  nodeTypeOptions: Omit<PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>, 'fields'> & {
+    name?: string;
+  };
+  pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'> & {
+    name?: string;
+  };
   nodeQueryOptions:
     | false
     | (Omit<

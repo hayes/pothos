@@ -49,7 +49,8 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
     return pageInfoRefMap.get(this)!;
   }
 
-  const ref = this.objectRef<PageInfoShape>('PageInfo');
+  const pageInfoTypeName = this.options.relay?.pageInfoTypeOptions?.name ?? 'PageInfo';
+  const ref = this.objectRef<PageInfoShape>(pageInfoTypeName);
 
   pageInfoRefMap.set(this, ref);
 
@@ -93,7 +94,8 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     return nodeInterfaceRefMap.get(this)!;
   }
 
-  const ref = this.interfaceRef<{}>('Node');
+  const nodeTypeName = this.options.relay?.nodeTypeOptions?.name ?? 'Node';
+  const ref = this.interfaceRef<{}>(nodeTypeName);
 
   nodeInterfaceRefMap.set(this, ref);
 

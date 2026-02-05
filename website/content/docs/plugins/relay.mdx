@@ -38,8 +38,10 @@ The `relay` options object passed to builder can contain the following propertie
   field
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
   field
-- `nodeTypeOptions`: Options for the `Node` interface type
-- `pageInfoTypeOptions`: Options for the `TypeInfo` object type
+- `nodeTypeOptions`: Options for the `Node` interface type. Supports a `name` property to customize
+  the type name.
+- `pageInfoTypeOptions`: Options for the `PageInfo` object type. Supports a `name` property to
+  customize the type name.
 - `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on connection objects
 - `clientMutationIdInputOptions`: Options for the `clientMutationId` input field on connections
   fields
@@ -66,6 +68,30 @@ The `relay` options object passed to builder can contain the following propertie
   the `load` methods of Nodes that allows the default `resolveType` implementation to identify the
   type of the node. When this is enabled, you will not need to implement an `isTypeOf` check for
   most common patterns.
+
+### Customizing type names
+
+If you have existing `Node` or `PageInfo` types in your schema that conflict with the ones generated
+by the relay plugin, you can customize the names using `nodeTypeOptions` and `pageInfoTypeOptions`:
+
+```typescript
+import RelayPlugin from '@pothos/plugin-relay';
+const builder = new SchemaBuilder({
+  plugins: [RelayPlugin],
+  relay: {
+    nodeTypeOptions: {
+      name: 'RelayNode',
+      description: 'A node in the graph',
+    },
+    pageInfoTypeOptions: {
+      name: 'RelayPageInfo',
+      description: 'Pagination information',
+    },
+  },
+});
+```
+
+Both options support all standard type options including `name`, `description`, and `extensions`.
 
 ### Creating Nodes
 
