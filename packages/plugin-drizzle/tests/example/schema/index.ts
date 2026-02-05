@@ -2,6 +2,7 @@ import './comment';
 import './post';
 import './user';
 import './query';
+import './category';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
