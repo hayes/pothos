@@ -325,6 +325,50 @@ interface User {
 }"
 `;
 
+exports[`relay example schema > generates expected schema with custom Node name 1`] = `
+""""Custom node interface"""
+interface CustomNode {
+  id: ID!
+}
+
+type Query {
+  node(id: ID!): CustomNode
+  nodes(ids: [ID!]!): [CustomNode]!
+}
+
+type TestNode implements CustomNode {
+  id: ID!
+  value: String
+}"
+`;
+
+exports[`relay example schema > generates expected schema with custom PageInfo name 1`] = `
+"type CustomPageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Query {
+  test(after: String, before: String, first: Int, last: Int): QueryTestConnection
+}
+
+type QueryTestConnection {
+  edges: [QueryTestConnectionEdge]
+  pageInfo: CustomPageInfo!
+}
+
+type QueryTestConnectionEdge {
+  cursor: String!
+  node: Test
+}
+
+type Test {
+  id: ID
+}"
+`;
+
 exports[`relay example schema > generates expected schema with globalConnectionFields 1`] = `
 "type Answer {
   count: Int
