@@ -41,6 +41,7 @@ import type { DrizzleRef } from './interface-ref';
 import type {
   DrizzleConnectionShape,
   ListRelation,
+  PathInfo,
   RelatedConnectionOptions,
   RelatedCountOptions,
   RelatedFieldOptions,
@@ -219,9 +220,23 @@ export class DrizzleObjectFieldBuilder<
       )!;
     };
 
-    const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
-      const { limit, orderBy, where, ...fieldQuery } =
-        (typeof query === 'function' ? query(args, ctx) : query) ?? {};
+    const getQuery = (
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: {},
+      pathInfo?: import('./types').PathInfo,
+    ) => {
+      const { limit, orderBy, where, ...fieldQuery } = ((typeof query === 'function'
+        ? (query as (args: {}, ctx: {}, pathInfo?: import('./types').PathInfo) => {})(
+            args,
+            ctx,
+            pathInfo,
+          )
+        : query) ?? {}) as {
+        limit?: number;
+        orderBy?: unknown;
+        where?: SQL;
+        columns?: Record<string, boolean>;
+      };
 
       const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
@@ -255,6 +270,7 @@ export class DrizzleObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown, path?: unknown) => { select?: object },
       getSelection: (path: string[]) => FieldNode | null,
+      pathInfo: import('./types').PathInfo,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
 
@@ -279,7 +295,7 @@ export class DrizzleObjectFieldBuilder<
         };
       }
 
-      const nested = nestedQuery(getQuery(args, context).select, {
+      const nested = nestedQuery(getQuery(args, context, pathInfo).select, {
         getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
@@ -500,14 +516,24 @@ export class DrizzleObjectFieldBuilder<
 
     const { query = {}, extensions, ...rest } = options;
 
-    const relationSelect = (args: object, context: object, nestedQuery: (query: unknown) => {}) => {
+    const relationSelect = (
+      args: object,
+      context: object,
+      nestedQuery: (query: unknown) => {},
+      _resolveSelection: unknown,
+      pathInfo: PathInfo,
+    ) => {
       const relQuery = {
         columns: {},
         with: {
           [name]: {
             ...nestedQuery(query),
             ...((typeof query === 'function'
-              ? (query as (args: {}, context: {}) => {})(args, context)
+              ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(
+                  args,
+                  context,
+                  pathInfo,
+                )
               : query) as {}),
           },
         },

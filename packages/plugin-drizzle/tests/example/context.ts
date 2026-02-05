@@ -1,3 +1,4 @@
+import type { PathInfo } from '../../src/types';
 import { db } from './db';
 
 export interface BaseContext {
@@ -5,6 +6,7 @@ export interface BaseContext {
     id: number;
   };
   roles: string[];
+  capturedPathInfo?: PathInfo;
 }
 
 export interface AuthContexts {

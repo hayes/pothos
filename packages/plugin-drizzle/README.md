@@ -228,6 +228,7 @@ builder.drizzleObject('users', {
         limit: t.arg.int(),
         offset: t.arg.int(),
       },
+      // query callback receives (args, ctx, pathInfo)
       query: (args) => ({
         limit: args.limit ?? 10,
         offset: args.offset ?? 0,
@@ -251,8 +252,9 @@ builder.drizzleObject('users', {
 ```
 
 The query API enables you to define args and convert them into parameters that will be passed into
-the relational query builder. You can read more about the relation query builder api
-[here](https://orm.drizzle.team/docs/rqb#querying)
+the relational query builder. The `query` callback receives `(args, ctx, pathInfo)` where `pathInfo`
+contains the GraphQL query path information (`path` and `segments`). You can read more about the
+relation query builder api [here](https://orm.drizzle.team/docs/rqb#querying)
 
 ## Drizzle Fields
 

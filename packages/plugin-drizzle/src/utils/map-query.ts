@@ -15,11 +15,12 @@ import {
   getNamedType,
   type InlineFragmentNode,
   isInterfaceType,
+  isListType,
   isObjectType,
   Kind,
   type SelectionSetNode,
 } from 'graphql';
-import type { DrizzleFieldSelection } from '../types';
+import type { DrizzleFieldSelection, FieldPathInfo, PathInfo } from '../types';
 import type { PothosDrizzleSchemaConfig } from './config';
 import { type LoaderMappings, setLoaderMappings } from './loader-map';
 import {
@@ -47,6 +48,7 @@ function addTypeSelectionsForField(
   selection: FieldNode,
   indirectPath: string[],
   deferred?: boolean,
+  segments: FieldPathInfo[] = [],
 ) {
   if (selection.name.value.startsWith('__')) {
     return;
@@ -78,6 +80,7 @@ function addTypeSelectionsForField(
           field,
           path,
           deferred,
+          segments,
         );
       },
       deferred,
@@ -92,6 +95,7 @@ function addTypeSelectionsForField(
       selection,
       indirectPath,
       deferred,
+      segments,
     );
     return;
   }
@@ -105,7 +109,16 @@ function addTypeSelectionsForField(
   }
 
   if (selection.selectionSet && (!deferred || !state.skipDeferredFragments)) {
-    addNestedSelections(config, type, context, info, state, selection.selectionSet, indirectPath);
+    addNestedSelections(
+      config,
+      type,
+      context,
+      info,
+      state,
+      selection.selectionSet,
+      indirectPath,
+      segments,
+    );
   }
 }
 
@@ -225,12 +238,13 @@ function addNestedSelections(
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
+  segments: FieldPathInfo[] = [],
 ) {
   let parentType = type;
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
-        addFieldSelection(config, type, context, info, state, selection, indirectPath);
+        addFieldSelection(config, type, context, info, state, selection, indirectPath, segments);
 
         continue;
       case Kind.FRAGMENT_SPREAD:
@@ -257,6 +271,7 @@ function addNestedSelections(
           state,
           info.fragments[selection.name.value].selectionSet,
           indirectPath,
+          segments,
         );
 
         continue;
@@ -285,6 +300,7 @@ function addNestedSelections(
           state,
           selection.selectionSet,
           indirectPath,
+          segments,
         );
 
         continue;
@@ -305,6 +321,7 @@ function addFieldSelection(
   state: SelectionState,
   selection: FieldNode,
   indirectPath: string[],
+  segments: FieldPathInfo[] = [],
 ) {
   if (selection.name.value.startsWith('__') || fieldSkipped(info, selection)) {
     return;
@@ -314,11 +331,26 @@ function addFieldSelection(
     throw new PothosValidationError(`Unknown field ${selection.name.value} on ${type.name}`);
   }
 
+  const allSegments = [
+    ...segments,
+    {
+      field: selection.name.value,
+      alias: selection.alias?.value ?? selection.name.value,
+      parentType: type.name,
+      isList: isListType(field.type) || isListType(getNamedType(field.type)),
+    },
+  ];
+
   const fieldSelect = field.extensions?.pothosDrizzleSelect as DrizzleFieldSelection | undefined;
 
   let fieldSelectionMap: DBQueryConfig<'one'> | undefined;
   let mappings: LoaderMappings = {};
   if (typeof fieldSelect === 'function') {
+    const pathInfo: PathInfo = {
+      path: allSegments.map((s) => `${s.parentType}.${s.field}`),
+      segments: allSegments,
+    };
+
     const args = getMappedArgumentValues(field, selection, context, info) as Record<
       string,
       unknown
@@ -369,11 +401,22 @@ function addFieldSelection(
                 resolvedField,
                 path,
                 deferred,
+                allSegments,
               );
             },
           );
         }
-        addTypeSelectionsForField(config, returnType, context, info, fieldState, selection, []);
+        addTypeSelectionsForField(
+          config,
+          returnType,
+          context,
+          info,
+          fieldState,
+          selection,
+          [],
+          undefined,
+          allSegments,
+        );
         mappings = fieldState.mappings;
         return selectionToQuery(config, fieldState);
       },
@@ -394,6 +437,7 @@ function addFieldSelection(
         );
         return node;
       },
+      pathInfo,
     );
   } else {
     fieldSelectionMap = fieldSelect!;
@@ -522,7 +566,31 @@ export function stateFromInfo<T extends SelectionMap>({
   } else {
     state = createStateForSelection(config, info, type, undefined, initialSelection);
 
-    addTypeSelectionsForField(config, type, context, info, state, info.fieldNodes[0], []);
+    // Create initial segment for the root query field
+    const rootFieldNode = info.fieldNodes[0];
+    const rootField = info.parentType.getFields()[rootFieldNode.name.value];
+    const initialSegments: FieldPathInfo[] = rootField
+      ? [
+          {
+            field: rootFieldNode.name.value,
+            alias: rootFieldNode.alias?.value ?? rootFieldNode.name.value,
+            parentType: info.parentType.name,
+            isList: isListType(rootField.type) || isListType(getNamedType(rootField.type)),
+          },
+        ]
+      : [];
+
+    addTypeSelectionsForField(
+      config,
+      type,
+      context,
+      info,
+      state,
+      info.fieldNodes[0],
+      [],
+      undefined,
+      initialSegments,
+    );
   }
 
   if (!state) {

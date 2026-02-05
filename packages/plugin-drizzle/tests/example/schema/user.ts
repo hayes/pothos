@@ -1,8 +1,34 @@
 import { count, eq } from 'drizzle-orm';
 import { drizzleConnectionHelpers } from '../../../src';
+import type { PathInfo } from '../../../src/types';
 import { builder } from '../builder';
 import { db } from '../db';
 import { comments, posts } from '../db/schema';
+
+const PathSegment = builder.objectRef<PathInfo['segments'][number]>('PathSegment').implement({
+  fields: (t) => ({
+    field: t.exposeString('field'),
+    alias: t.exposeString('alias'),
+    parentType: t.exposeString('parentType'),
+    isList: t.exposeBoolean('isList'),
+  }),
+});
+
+builder.queryField('capturedPathInfo', (t) =>
+  t.field({
+    type: builder.objectRef<PathInfo>('PathInfo').implement({
+      fields: (t) => ({
+        path: t.stringList({ resolve: (info) => info.path }),
+        segments: t.field({
+          type: [PathSegment],
+          resolve: (info) => info.segments,
+        }),
+      }),
+    }),
+    nullable: true,
+    resolve: (_root, _args, ctx) => ctx.capturedPathInfo ?? null,
+  }),
+);
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   args: (t) => ({
@@ -232,6 +258,36 @@ export const User = builder.drizzleNode('users', {
           updatedAt: 'desc',
         },
       }),
+    }),
+    postsWithPathInfo: t.relation('posts', {
+      args: {
+        testLimit: t.arg.int(),
+      },
+      query: (args, ctx, pathInfo) => {
+        ctx.capturedPathInfo = pathInfo;
+        return {
+          limit: args.testLimit ?? 5,
+          orderBy: { updatedAt: 'desc' },
+        };
+      },
+    }),
+    postsForModeration: t.relation('posts', {
+      args: {
+        limit: t.arg.int(),
+      },
+      query: (args, _ctx, pathInfo) => {
+        // Check if accessed via me.user (own profile) vs user (public)
+        const isViewerContext = pathInfo?.path?.at(-2) === 'Viewer.user';
+
+        return {
+          limit: args.limit ?? 10,
+          where: {
+            // Viewer sees their own drafts, public sees only published
+            published: isViewerContext ? 0 : 1,
+          },
+          orderBy: { updatedAt: 'desc' },
+        };
+      },
     }),
     postsCount: t.relatedField('posts', {
       type: 'Int',

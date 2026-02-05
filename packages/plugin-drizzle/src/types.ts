@@ -44,6 +44,18 @@ import type { DrizzleRef } from './interface-ref';
 import type { IndirectInclude } from './utils/map-query';
 import type { SelectionMap } from './utils/selections';
 
+export interface FieldPathInfo {
+  field: string;
+  alias: string;
+  parentType: string;
+  isList: boolean;
+}
+
+export interface PathInfo {
+  path: string[];
+  segments: FieldPathInfo[];
+}
+
 export type DrizzleClient<TCountSource = Table | SQL | SQLWrapper> = {
   readonly _: {
     readonly schema: unknown;
@@ -323,10 +335,11 @@ export type DrizzleObjectFieldOptions<
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: <Selection extends boolean | {}>(
+            nestedSelection: (<Selection extends boolean | {}>(
               selection?: Selection,
               path?: string[],
-            ) => Selection,
+            ) => Selection) &
+              PathInfo,
           ) => DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>)
       );
   };
@@ -345,6 +358,7 @@ export type DrizzleFieldSelection =
         type?: string,
       ) => DBQueryConfig<'one'> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
+      pathInfo: PathInfo,
     ) => SelectionMap);
 
 export type ExtractTable<Types extends SchemaTypes, Shape> = Shape extends {
@@ -480,7 +494,13 @@ export type QueryForField<
         'columns' | 'extra' | 'with'
       >
 ) extends infer QueryConfig
-  ? QueryConfig | ((args: InputShapeFromFields<Args>, context: Types['Context']) => QueryConfig)
+  ?
+      | QueryConfig
+      | ((
+          args: InputShapeFromFields<Args>,
+          context: Types['Context'],
+          pathInfo: PathInfo,
+        ) => QueryConfig)
   : never;
 
 export type QueryForDrizzleField<
@@ -503,7 +523,7 @@ export type QueryForRelatedConnection<
 > & {
   orderBy?: ConnectionOrderBy<Table> | ((table: Table) => ConnectionOrderBy<Table>);
 } extends infer QueryConfig
-  ? QueryConfig | ((args: Args, context: Types['Context']) => QueryConfig)
+  ? QueryConfig | ((args: Args, context: Types['Context'], pathInfo: PathInfo) => QueryConfig)
   : never;
 
 export type QueryForDrizzleConnection<
