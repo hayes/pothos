@@ -1,7 +1,7 @@
 {
   "private": true,
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "3.1.26",
+  "version": "3.1.27",
   "name": "@pothos-examples/relay-windowed-pagination",
   "main": "src/index.ts",
   "types": "src/index.ts",

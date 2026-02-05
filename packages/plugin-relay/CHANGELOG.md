@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.7.0
+
+### Minor Changes
+
+- bb1e9c3: Add support for customizing Node and PageInfo type names through nodeTypeOptions and pageInfoTypeOptions
+
 ## 4.6.2
 
 ### Patch Changes
