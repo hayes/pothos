@@ -100,7 +100,7 @@ const PostDraft = builder.prismaObject('Post', {
             // This will look at what fields are queried on Media
             // and automatically select uploadedBy if that relation is requested
             media: nestedSelection(
-              // This arument is the default query for the media relation
+              // This argument is the default query for the media relation
               // It could be something like: `{ select: { id: true } }` instead
               true,
             ),

@@ -152,7 +152,7 @@ this plugin used to infer all required types from the prisma client itself, but 
 poor dev experience because the complex types slowed down editors, and some more advanced use cases
 could not be typed correctly.
 
-### Add a the `pothos` generator to your prisma schema
+### Add the `pothos` generator to your prisma schema
 
 ```prisma
 generator pothos {
@@ -842,7 +842,7 @@ const PostDraft = builder.prismaObject('Post', {
             // This will look at what fields are queried on Media
             // and automatically select uploadedBy if that relation is requested
             media: nestedSelection(
-              // This arument is the default query for the media relation
+              // This argument is the default query for the media relation
               // It could be something like: `{ select: { id: true } }` instead
               true,
             ),
@@ -1130,7 +1130,7 @@ const Media = builder.prismaObject('Media', {
 // to use the normal t.connection with a prisma type
 const mediaConnectionHelpers = prismaConnectionHelpers(
   builder,
-  'PostMedia', // this should be the the join table
+  'PostMedia', // this should be the join table
   {
     cursor: 'id',
     select: (nodeSelection) => ({

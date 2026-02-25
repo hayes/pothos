@@ -146,7 +146,7 @@ errors plugin will automatically resolve to the corresponding error object type.
 - `result`: An options object for result object type. Can include any normal object type options,
   and `name` option for setting a custom name for the result type.
 - `dataField`: An options object for the data field on the result object. This field will be named
-  `data` by default, but can be written by passsing a custom `name` option.
+  `data` by default, but can be written by passing a custom `name` option.
 - `directResult`: Boolean, can only be set to true for non-list fields. This will directly include
   the fields type in the union rather than creating an intermediate Result object type. This will
   throw at build time if the type is not an object type.
@@ -159,12 +159,12 @@ errors plugin will automatically resolve to the corresponding error object type.
 4. Include the BaseError type in the `defaultTypes` in the builder config
 
 This pattern will allow you to consistently query your schema using a `... on Error { message }`
-fragment since all Error classes extend that interface. If your client want's to query details of
+fragment since all Error classes extend that interface. If your client wants to query details of
 more specialized error types, they can just add a fragment for the errors it cares about. This
 pattern should also make it easier to make future changes without unexpected breaking changes for
 your clients.
 
-The follow is a small example of this pattern:
+The following is a small example of this pattern:
 
 ```typescript
 import ErrorsPlugin from '@pothos/plugin-errors';
@@ -312,7 +312,7 @@ query {
 
 ### With the dataloader plugin
 
-To use this in combination with the dataloader plugin, ensure that that errors plugin is listed
+To use this in combination with the dataloader plugin, ensure that the errors plugin is listed
 BEFORE the dataloader plugin in your plugin list.
 
 If a field with `errors` returns a `loadableObject`, or `loadableNode` the errors plugin will now
@@ -326,12 +326,12 @@ handle these types of errors.
 
 ### With the prisma plugin
 
-To use this in combination with the prisma plugin, ensure that that errors plugin is listed BEFORE
+To use this in combination with the prisma plugin, ensure that the errors plugin is listed BEFORE
 the prisma plugin in your plugin list. This will enable `errors` option to work correctly with any
 field builder method from the prisma plugin.
 
 `errors` can be configured for any field, but if there is an error pre-loading a relation the error
-will always surfaced at the field that executed the query. Because there are cases that fall back to
+will always be surfaced at the field that executed the query. Because there are cases that fall back to
 executing queries for relation fields, these fields may still have errors if the relation was not
 pre-loaded. Detection of nested relations will continue to work if those relations use the `errors`
 plugin

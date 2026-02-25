@@ -301,7 +301,7 @@ done using a feature called `variants`. The `variants` API consists of 3 parts:
 
 - A `variant` option that can be passed instead of a name on `drizzleObjects`
 - The ability to pass an `ObjectRef` to the `type` option of `t.relation` and other similar fields
-- A `t.field` method that works similar to `t.relation, but is used to define a GraphQL field that
+- A `t.field` method that works similar to `t.relation`, but is used to define a GraphQL field that
   references a variant of the same record.
 
 ```ts

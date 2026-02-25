@@ -1,6 +1,6 @@
 ---
 title: Writing plugins
-description: Guide for defining Enum types in Pothos
+description: Guide for writing plugins for Pothos
 ---
 
 Writing plugins for Pothos may seem a little intimidating at first, because the types used by Pothos
@@ -14,7 +14,7 @@ cases.
 
 ## The type system
 
-Pothos has 2 main pieces to it's type system:
+Pothos has 2 main pieces to its type system:
 
 1. `PothosSchemaTypes`: A global namespace for shared types
 2. `SchemaTypes`: A collection of types passed around through Generics specific to each instance of
@@ -45,8 +45,8 @@ The best place to start is by looking through the
 
 The general structure of a plugin has 3 main parts:
 
-1. `index.ts` which contains a plugins actual implementation
-2. `global-types.ts` which contains any additions to `Pothos`s built in types.
+1. `index.ts` which contains a plugin's actual implementation
+2. `global-types.ts` which contains any additions to Pothos's built in types.
 3. `types.ts` which should contain any types that do NOT belong to the global `PothosSchemaTypes`
    namespace.
 
@@ -93,7 +93,7 @@ needed into `global-types.ts`.
 
 To add properties to the various config objects used by the `SchemaBuilder`, you should start by
 finding the interface that defines that config object in `@pothos/core`. Currently there are 4 main
-file that define the types that make up `PothosSchemaTypes` namespace.
+files that define the types that make up `PothosSchemaTypes` namespace.
 
 1. [`type-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/type-options.ts):
 
@@ -167,7 +167,7 @@ For the exact function signature, see the `index.ts` of the example plugin.
 
 Each of the lifecycle methods above \(except `beforeBuild`\) expect a return value that matches
 their first argument \(either a config object, or the resolve/subscribe/resolveType function\). If
-your plugin does not need to modify these values, it can simple return the value that was passed in.
+your plugin does not need to modify these values, it can simply return the value that was passed in.
 When your plugin does need to change one of the config values, you should return a copy of the
 config object with your modifications, rather than modifying the config object that was passed in.
 This can be done by either using `Object.assign`, or spreading the original config into a new object
@@ -182,8 +182,8 @@ schema builder when creating the type or field.
 If your plugin needs to add additional types or fields to the schema it should do this in the
 `beforeBuild` hook. Any types added to the schema after this, may not be included correctly. Plugins
 should also account for the fact that a new instance of the plugin will be created each time the
-schema is called, so any types or fields added the the schema should only be applied once \(per
-schema\), even if multiple instances of the plugin are created. The help with this, there is a
+schema is called, so any types or fields added to the schema should only be applied once \(per
+schema\), even if multiple instances of the plugin are created. To help with this, there is a
 `runUnique` helper on the base plugin class, which accepts a key, and a callback, and will only run
 a callback once per schema for the given key.
 
@@ -201,7 +201,7 @@ In the examples below, when "extending an interface", the interface should be ad
 
 You may have noticed that plugins are not instantiated by the user, and therefore users can't pass
 options directly into your plugin when creating it. Instead, the recommended way to configure your
-plugin is by contributing new properties to the options object passed the the SchemaBuilder
+plugin is by contributing new properties to the options object passed to the SchemaBuilder
 constructor. This can be done by extending the `SchemaBuilderOptions` interface.
 
 ```typescript
@@ -252,7 +252,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
 ### Adding options to types
 
-Each GraphQL type has it's own options interface which can be extended. For example, to extend the
+Each GraphQL type has its own options interface which can be extended. For example, to extend the
 options for creating an Object type:
 
 ```typescript
@@ -322,7 +322,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
 ### Adding new methods on builder classes
 
-Adding new method to `SchemaBuilder` or one of the `FieldBuilder` classes is also done through
+Adding new methods to `SchemaBuilder` or one of the `FieldBuilder` classes is also done through
 extending interfaces. Extending these interfaces is how typescript is able to know these methods
 exist, even though they are not defined on the original classes.
 
@@ -333,7 +333,7 @@ export interface SchemaBuilder<Types extends SchemaTypes> {
 ```
 
 The above is a simple example of defining a new `buildCustomObject` method that takes no arguments,
-and returns a reference to a new custom object type. Defining this type will not work on it's own,
+and returns a reference to a new custom object type. Defining this type will not work on its own,
 and we still need to define the actual implementation of this method. This might look like:
 
 ```typescript
@@ -347,7 +347,7 @@ schemaBuilderProto.buildCustomObject = function buildCustomObject() {
 ```
 
 Note that the above function does NOT use an arrow function, so that the function can access `this`
-as a reference the the SchemaBuilder instance.
+as a reference to the SchemaBuilder instance.
 
 ### Wrapping resolvers to add runtime functionality
 
@@ -378,7 +378,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
 ### Transforming a schema
 
-For some plugins the other provided lifecycle may not be sufficiently powerful to modify the schema
+For some plugins the other provided lifecycle hooks may not be sufficiently powerful to modify the schema
 in all the ways a plugin may want. For example removing types from the schema \(eg. the `SubGraph`
 plugin\). In these cases, the `afterBuild` hook can be used. It receives the built schema, and is
 expected to return either the schema it was passed, or a completely new schema. This allows plugins
@@ -413,7 +413,7 @@ export interface SchemaBuilderOptions<Types extends SchemaTypes> {
 As mentioned above, your plugin can also contribute its own user definable types to the SchemaTypes
 interface. You can see examples of this in the several of the plugins including the directives and
 `scope-auth` plugins. Adding your own types to SchemaTypes requires extending 2 interfaces: The
-`UserSchemaTypes` which describes the user provided type will need to extend, and the
+`UserSchemaTypes` which describes the type the user will need to provide, and the
 `ExtendDefaultTypes` interface, which is used to set default values if the User does not provide
 their own types.
 
@@ -428,11 +428,11 @@ export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes
 ```
 
 The User provided type can then be accessed using `Types['NewExampleTypes']` in any interface or
-type that receive `SchemaTypes` as a generic argument.
+type that receives `SchemaTypes` as a generic argument.
 
 ### Request data
 
-Plugins that wrap resolvers may need to store some data that us unique the current request. In these
+Plugins that wrap resolvers may need to store some data that is unique to the current request. In these
 cases your plugin can define a `createRequestData` method, and use the `requestData` method to get
 the data for the current request.
 
@@ -520,7 +520,7 @@ mapping) so that the runtime overhead is as small as possible.
 `createInputValueMapper` may be useful for some use cases, for some plugins it may be better to
 create a custom mapping function, but still use the result of `mapInputFields`.
 
-`mapInputFields` returns a map who's keys are field/argument names, and who's values are objects
+`mapInputFields` returns a map whose keys are field/argument names, and whose values are objects
 with the following shape:
 
 ```typescript

@@ -34,7 +34,7 @@ Adding types to the builder will automatically include the types in your schema 
 Types will only be added if no existing type of the same name is added to the builder before
 building the schema.
 
-Adding types recursively adds any other types that the added type depends in it's fields,
+Adding types recursively adds any other types that the added type depends on in its fields,
 interfaces, or union members.
 
 ```ts

@@ -42,7 +42,7 @@ const builder = new SchemaBuilder({
 
 ### Defining entities
 
-Defining entities for you schema is a 2 step process. First you will need to define an object type
+Defining entities for your schema is a 2 step process. First you will need to define an object type
 as you would normally, then you can convert that object type to an entity by providing a `key` (or
 `keys`), and a method to load that entity.
 
@@ -66,10 +66,10 @@ that defines the types for any fields that are part of the key. `key` may also b
 `resolveReference` will be called with the type used by the `key` selection.
 
 Entities are Object types that may be extended with or returned by fields in other services.
-`builder.asEntity` describes how the Entity will be loaded when used by another services. The `key`
+`builder.asEntity` describes how the Entity will be loaded when used by another service. The `key`
 select (or selection) should use the types of scalars your server will produce for inputs. For
 example, Apollo server will convert all ID fields to `string`s, even if resolvers in other services
-returns IDs as numbers.
+return IDs as numbers.
 
 ### Extending external entities
 
@@ -206,7 +206,7 @@ Apollo Federation(submitting if using Managed Federation, or composing manually 
 must use `printSubgraphSchema`(from `@apollo/subgraph`) or another compatible way of printing the
 schema(that includes directives) in order for it to work.
 
-### Field directives directives
+### Field directives
 
 Several federation directives can be configured directly when defining a field includes
 `@shareable`, `@tag`, `@inaccessible`, and `@override`.
@@ -227,7 +227,7 @@ For more details on these directives, see the official Federation documentation.
 
 Federation 2.3 introduces new features for federating interface definitions.
 
-You can now pass interfaces to `asEntity` to defined keys for an interface:
+You can now pass interfaces to `asEntity` to define keys for an interface:
 
 ```ts
 const Media = builder.interfaceRef<{ id: string }>('Media').implement({
@@ -262,7 +262,7 @@ builder.asEntity(Media, {
 
 See federation documentation for more details on `interfaceObject`s
 
-### composeDirective =
+### composeDirective
 
 You can apply the `composeDirective` directive when building the subgraph schema:
 
@@ -270,7 +270,7 @@ You can apply the `composeDirective` directive when building the subgraph schema
 export const schema = builder.toSubGraphSchema({
   // This adds the @composeDirective directive
   composeDirectives: ['@custom'],
-  // composeDirective requires an @link directive on the schema pointing the the url for your directive
+  // composeDirective requires an @link directive on the schema pointing to the url for your directive
   schemaDirectives: {
     link: { url: 'https://myspecs.dev/myCustomDirective/v1.0', import: ['@custom'] },
   },

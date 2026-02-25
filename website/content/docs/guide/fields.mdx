@@ -74,7 +74,7 @@ builder.queryType({
 For types not described in the `SchemaTypes` type provided to the builder, including types that can
 not be added there like [Unions](./unions) and [Enums](./enums), you can use a `Ref` returned by the
 builder method that created them in the `type` parameter. For types created using a class
-\([Objects](./enums) or [Interfaces](./interfaces)\) or [Enums](./enums) created using a typescript
+\([Objects](./objects) or [Interfaces](./interfaces)\) or [Enums](./enums) created using a typescript
 enum, you can also use the `class` or `enum` that was used to define them.
 
 ```typescript
@@ -103,7 +103,7 @@ builder.queryType({
 
 ## Lists
 
-To create a list field, you can wrap the the type in an array
+To create a list field, you can wrap the type in an array
 
 ```typescript
 builder.queryType({

@@ -37,10 +37,10 @@ const builder = new SchemaBuilder<PothosTypes>({...});
 ### Plugin methods are not defined
 
 Ensure that there is only 1 version of each pothos package, and that they are both in the same root
-node_modules directly. Pothos plugins import classes from `@pothos/core` to add plugin specific
+node_modules directory. Pothos plugins import classes from `@pothos/core` to add plugin specific
 methods to the class prototypes
 
-### Recieved multiple implementations for plugin
+### Received multiple implementations for plugin
 
 By default, Pothos doesn't allow multiple plugin registrations with the same name. During
 development, it can be helpful to disable this check by setting
@@ -59,7 +59,7 @@ circular imports will work correctly with pothos as long as the following condit
 2. `builder.toSchema()` is called in a file that is not imported by any files that use the builder.
 
 This is generally done by having a simple `builder.ts` that initializes the builder to export. This
-file can also define some core parts of your schema (the query object, scalers etc). The rest of the
+file can also define some core parts of your schema (the query object, scalars etc). The rest of the
 schema can then import the builder from `builder.ts`. A `schema.ts` file can then import all files
 that define parts of the schema. `schema.ts` can then call `builder.toSchema()` and export the
 result for use by the server.

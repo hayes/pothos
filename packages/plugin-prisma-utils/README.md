@@ -184,7 +184,7 @@ export const UserCreatePosts = builder.prismaCreateRelation('User', 'posts', {
 
 ### Inputs for update mutations
 
-You can use `builder.prismaUpdate` to Update input types for update mutations.
+You can use `builder.prismaUpdate` to create input types for update mutations.
 
 To get these types to work correctly for circular references, it is recommended to add explicit type
 annotations, but for simple types that do not have circular references the explicit types can be
@@ -278,10 +278,10 @@ very repetitive. These utilities are designed to be building blocks for generato
 functions, so that you don't need to hand write these types yourself.
 
 Pothos does not currently ship an official generator for prisma types, but there are a couple of
-example generators that can be copied and modified to suite your needs. These are intentionally
+example generators that can be copied and modified to suit your needs. These are intentionally
 somewhat limited in functionality and not written to be easily exported because they will be updated
 with breaking changes as these utilities are developed further. They are only intended as building
-blocks for you to build you own generators.
+blocks for you to build your own generators.
 
 There are 2 main approaches:
 

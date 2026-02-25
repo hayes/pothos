@@ -121,7 +121,7 @@ const Media = builder.prismaObject('Media', {
 // to use the normal t.connection with a prisma type
 const mediaConnectionHelpers = prismaConnectionHelpers(
   builder,
-  'PostMedia', // this should be the the join table
+  'PostMedia', // this should be the join table
   {
     cursor: 'id',
     select: (nodeSelection) => ({
@@ -350,10 +350,10 @@ builder.prismaObjectFields('Post', (t) => ({
 
 ### Total count on shared connection objects
 
-If you are set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
-using a custom connection object, you will need to manually add the `totalCount` field to the
+If you set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
+using a custom connection object, you will need to add the `totalCount` field to the
 connection object manually. The parent object on the connection will have a `totalCount` property
-that is either a the totalCount, or a function that will return the totalCount.
+that is either the totalCount, or a function that will return the totalCount.
 
 ```typescript
 const CommentConnection = builder.connectionObject({

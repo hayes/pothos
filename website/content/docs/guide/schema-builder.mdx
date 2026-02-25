@@ -17,7 +17,7 @@ const builder = new SchemaBuilder<{
   // Type of the context object
   Context: {};
 }>({
-  // plugins may add options that can  be provided here
+  // plugins may add options that can be provided here
 });
 ```
 
@@ -29,7 +29,7 @@ Pothos type.
 ## Backing models
 
 Pothos is built around a concept of "backing models". This may be a little confusing at first, but
-once you get your head around it can be very powerful. When you implement a GraphQL schema, you
+once you get your head around it, it can be very powerful. When you implement a GraphQL schema, you
 really have 2 schemas. The obvious schema is your GraphQL schema and it is made up of the types you
 define with the schema builder. The second schema is the schema that describes your internal data,
 and the contracts between your resolvers. The types that describe your data in your application will

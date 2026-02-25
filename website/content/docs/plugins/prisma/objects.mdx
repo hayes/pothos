@@ -57,10 +57,10 @@ This method works just like the normal `t.field` method with a couple of differe
 
 1. The `type` option must contain the name of the prisma model (eg. `User` or `[User]` for a list
    field).
-2. The `resolve` function has a new first argument `query` which should be spread into query prisma
+2. The `resolve` function has a new first argument `query` which should be spread into your prisma
    query. This will be used to load data for nested relationships.
 
-You do not need to use this method, and the `builder.prismaObject` method returns an object ref than
+You do not need to use this method, and the `builder.prismaObject` method returns an object ref that
 can be used like any other object ref (with `t.field`), but using `t.prismaField` will allow you to
 take advantage of more efficient queries.
 

@@ -61,5 +61,5 @@ In some cases, it may be important to understand the order in which plugins are 
 lifecycle hooks are applied in REVERSE order. This is done to ensure that the most important
 \(first\) plugins are applied after all other effects have been applied. For plugins that wrap
 resolvers, because the first plugins are applied last, they will be the outermost layer of wrapping
-an applied executed first. This means it is important to have plugins like `scope-auth` listed
+and executed first. This means it is important to have plugins like `scope-auth` listed
 before other less critical plugins in your SchemaBuilder.

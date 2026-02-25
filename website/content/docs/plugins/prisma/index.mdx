@@ -139,4 +139,4 @@ query {
 
 Will result in 2 calls to prisma, one to resolve everything except `oldPosts`, and a second to
 resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query,
-so we need a separate to handle the second `posts` relation.
+so we need a separate query to handle the second `posts` relation.

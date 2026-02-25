@@ -46,11 +46,11 @@ const User = builder.loadableObject('User', {
 It is **VERY IMPORTANT** to return values from `load` in an order that exactly matches the order of
 the requested IDs. The order is used to map results to their IDs, and if the results are returned in
 a different order, your GraphQL requests will end up with the wrong data. Correctly sorting results
-returned from a database or other data source can be tricky, so there this plugin has a `sort`
+returned from a database or other data source can be tricky, so this plugin has a `sort`
 option (described below) to simplify the sorting process. For more details on how the load function
 works, see the [dataloader docs](https://github.com/graphql/dataloader#batch-function).
 
-When defining fields that return `User`s, you will now be able to return either a `string` (based in
+When defining fields that return `User`s, you will now be able to return either a `string` (based on the
 ids param of `load`), or a User object (type based on the return type of `loadUsersById`).
 
 ```typescript
@@ -201,7 +201,7 @@ builder.queryField('user', (t) =>
 ### Errors
 
 Calling dataloader.loadMany will resolve to a value like `(Type | Error)[]`. Your `load` function
-may also return results in that format if your loader can have parital failures. GraphQL does not
+may also return results in that format if your loader can have partial failures. GraphQL does not
 have special handling for Error objects. Instead Pothos will map these results to something like
 `(Type | Promise<Type>)[]` where Errors are replaced with promises that will be rejected. This
 allows the normal graphql resolver flow to correctly handle these errors.
@@ -299,7 +299,7 @@ builder.queryFields((t) => ({
 ### Using with the Relay plugin
 
 If you are using the Relay plugin, there is an additional method `loadableNode` that gets added to
-the builder. You can use this method to create `node` objects that work like other loadeble objects.
+the builder. You can use this method to create `node` objects that work like other loadable objects.
 
 ```typescript
 const UserNode = builder.loadableNode('UserNode', {
@@ -319,7 +319,7 @@ in their definitions.
 There are a some general strategies to avoid this outlined in the
 [circular-references guide](../guide/circular-references).
 
-This plug also has methods for creating refs (similar to `builder.objectRef`) that can be used to
+This plugin also has methods for creating refs (similar to `builder.objectRef`) that can be used to
 split the definition and implementation of your types to avoid any issues with circular references.
 
 ```typescript
@@ -363,7 +363,7 @@ builder.objectType(User, {
 ```
 
 The above example is not useful on its own, but this pattern will allow these refs to be used with
-other that also allow you to define object types with additional behaviors.
+others that also allow you to define object types with additional behaviors.
 
 ### Caching resources loaded manually in a resolver
 
@@ -371,7 +371,7 @@ When manually loading a resource in a resolver it is not automatically added to 
 cache. If you want any resolved value to be stored in the cache in case it is used somewhere else in
 the query you can use the `cacheResolved` option.
 
-The `cacheResolved` option takes a function that converts the loaded object into it's cache Key:
+The `cacheResolved` option takes a function that converts the loaded object into its cache key:
 
 ```typescript
 const User = builder.loadableObject('User', {
@@ -384,7 +384,7 @@ const User = builder.loadableObject('User', {
 });
 ```
 
-Whenever a resolver returns a User or list or Users, those objects will automatically be added the
+Whenever a resolver returns a User or list of Users, those objects will automatically be added the
 dataloaders cache, so they can be re-used in other parts of the query.
 
 ### Sorting results from your `load` function

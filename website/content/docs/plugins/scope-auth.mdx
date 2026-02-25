@@ -291,7 +291,7 @@ Enabling this has a couple of limitations:
 ### Generalized auth functions with field specific arguments
 
 The scopes we have covered so far have all been related to information that applies to a full
-request. In more complex applications you may not make sense to enumerate all the scopes a request
+request. In more complex applications it may not make sense to enumerate all the scopes a request
 is authorized for ahead of time. To handle these cases you can define a scope loader which takes a
 parameter and dynamically determines if a request is authorized for a scope using that parameter.
 
@@ -789,7 +789,7 @@ const builder = new SchemaBuilder<{
 
 Above we are using `JSON.stringify` to generate a key. This will work for most complex objects, but
 you may want to consider something like `faster-stable-stringify` that can handle circular
-references, and swill always produce the same output regardless of the order of properties.
+references, and will always produce the same output regardless of the order of properties.
 
 ## When checks are run, and how things are cached
 
@@ -805,13 +805,13 @@ resolved, since it has access to all the arguments passed to the resolver
 
 ### authScopes functions on types
 
-When using a function for `authScopes` on a type, the function will be run the once for each
+When using a function for `authScopes` on a type, the function will be run once for each
 instance of that type in the response. It will be run lazily when the first field for that object is
 resolved, and its result will be cached and reused by all fields for that instance of the type.
 
 ### scope loaders
 
-Scope loaders will be run run whenever a field requires the corresponding scope with a unique
+Scope loaders will be run whenever a field requires the corresponding scope with a unique
 parameter. The scope loader results are cached per request based on a combination of the name of the
 scope, and its parameter.
 
@@ -831,7 +831,7 @@ resolved. It's result will be cached and reused for each field of the same insta
 - `AuthScopes`: `extends {}`. Each property is the name of its scope, each value is the type for the
   scopes parameter.
 
-- `ScopeLoaderMap`: Object who's keys are scope names \(from `AuthScopes`\) and whos values are
+- `ScopeLoaderMap`: Object whose keys are scope names \(from `AuthScopes`\) and whose values are
   either booleans \(indicating whether or not the request has the scope\) or function that take a
   parameter \(type from `AuthScope`\) and return `MaybePromise<boolean>`
 

@@ -85,7 +85,7 @@ server.listen(3000);
 - [**Prisma**](https://pothos-graphql.dev/docs/plugins/prisma)
 
   A plugin for more efficient integration with prisma that can help solve n+1 issues and more
-  efficienty resolve queries
+  efficiently resolve queries
 
 - [**Relay**](https://pothos-graphql.dev/docs/plugins/relay)
 
@@ -106,7 +106,7 @@ server.listen(3000);
 
 - [**Tracing**](https://pothos-graphql.dev/docs/plugins/tracing)
 
-  Add tracing for resolver execution, with support for opentelemetry, newrelic, century, logging,
+  Add tracing for resolver execution, with support for opentelemetry, newrelic, sentry, logging,
   and custom tracers
 
 - [**With-Input**](https://pothos-graphql.dev/docs/plugins/with-input)

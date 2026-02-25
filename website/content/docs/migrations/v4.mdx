@@ -16,7 +16,7 @@ The `4.0` release of Pothos is largely focused on updating 4 things:
 
 While the internals of Pothos have almost entirely been re-written, the public API surface should
 have a minimal changes for most users. The first 2 sets of changes will cover the majority of
-changes relevant to the majority of applications. To make the make the upgrade as simple as
+changes relevant to the majority of applications. To make the upgrade as simple as
 possible, some options were added to maintain the defaults and option names from `3.x` which are
 described in the simple upgrade section below.
 
@@ -176,7 +176,7 @@ const builder = new SchemaBuilder<{
     // but will be overwritten by `cursorType` so you also need to explicity set them
     edgeCursorType: 'String',
     pageInfoCursorType: 'String',
-    // If you using the new v4 nullability defaults, you may need to change the nullability of mutation fields
+    // If you are using the new v4 nullability defaults, you may need to change the nullability of mutation fields
     relayMutationFieldOptions: {
       nullable: false,
     },

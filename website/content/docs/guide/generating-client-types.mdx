@@ -123,19 +123,19 @@ const config: CodegenConfig = {
 
 ## Alternatives
 
-In some cases you may want to use an alternative method for loading you schema.
+In some cases you may want to use an alternative method for loading your schema.
 
 ### Printing the schema to a file
 
 You can use the `printSchema` function from `graphql` to print your schema to a file, see
 [Printing Schemas](/docs/guide/printing-schemas) for more details:
 
-By writing the schema to a file, you will be able to load the schema from a file instead importing
+By writing the schema to a file, you will be able to load the schema from a file instead of importing
 it each time you want to generate your schema.
 
-Having your schema written to a file, and checked into source control has many benifits, like easier
+Having your schema written to a file, and checked into source control has many benefits, like easier
 code reviews, and better interoperability with other schema dependent graphql tools, so setting this
-up is worth while even if you do not need it for generating client types:
+up is worthwhile even if you do not need it for generating client types:
 
 ```typescript
 import type { CodegenConfig } from '@graphql-codegen/cli';
@@ -156,7 +156,7 @@ export default config;
 
 ### Using introspection from your dev (or production) server
 
-Rather than using a schema SDL file, graphql-code-generator can also can use introspection to load
+Rather than using a schema SDL file, graphql-code-generator can also use introspection to load
 your schema. To do this, you will need to ensure that your server has introspection enabled, most
 servers will have introspection enabled by default in development, and disabled in production.
 

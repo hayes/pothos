@@ -107,7 +107,7 @@ unreachable.  This isn't normally required, but there are some edge cases where 
 
 For instance, when extending external references with the federation plugin, the externalRef may
 not be reachable directly through your schema, but you may still want to include it when building the
-schema.  To work around this, we can explicitly include any any types that have a `key` directive:
+schema.  To work around this, we can explicitly include any types that have a `key` directive:
 
 
 ```typescript

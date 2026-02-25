@@ -87,7 +87,7 @@ builder.node(User, {
   loadWithoutCache: (id) => loadUserByID(id),
   loadManyWithoutCache: (ids) => loadUsers(ids),
 
-  // if using a class instaed of a ref, you will need to provide a name
+  // if using a class instead of a ref, you will need to provide a name
   name: 'User',
   fields: (t) => ({
     name: t.exposeString('name'),
@@ -97,17 +97,17 @@ builder.node(User, {
 
 `builder.node` will create an object type that implements the `Node` interface. It will also create
 the `Node` interface the first time it is used. The `resolve` function for `id` should return a
-number or string, which will be converted to a globalID. The relay plugin adds to new query fields
+number or string, which will be converted to a globalID. The relay plugin adds two new query fields
 `node` and `nodes` which can be used to directly fetch nodes using global IDs by calling the
 provided `loadOne` or `loadMany` method. Each node will only be loaded once by id, and cached if the
-same node is loaded multiple times inn the same request. You can provide `loadWithoutCache` or
+same node is loaded multiple times in the same request. You can provide `loadWithoutCache` or
 `loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
 datasource like a dataloader.
 
 Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
 lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
 using an `instanceof` check, and falls back to checking the constructor property on the prototype.
-The means that for many cases if you are using classes in your type parameters, and all your values
+That means that for many cases if you are using classes in your type parameters, and all your values
 are instances of those classes, you won't need to implement an `isTypeOf` method, but it is usually
 better to explicitly define that behavior.
 
@@ -159,7 +159,7 @@ builder.queryFields((t) => ({
 ```
 
 The returned IDs can either be a string \(which is expected to already be a globalID\), or an object
-with the an `id` and a `type`, The type can be either the name of a name as a string, or any object
+with an `id` and a `type`. The type can be either the name of a type as a string, or any object
 that can be used in a type parameter.
 
 There are also new methods for adding globalIDs in arguments or fields of input types:
@@ -354,7 +354,7 @@ You can use the `relayMutationField` method to define relay compliant mutation f
 will generate a mutation field, an input object with a `clientMutationId` field, and an output
 object with the corresponding `clientMutationId`.
 
-Example ussage:
+Example usage:
 
 ```typescript
 builder.relayMutationField(
@@ -531,7 +531,7 @@ builder.queryFields((t) => ({
 
 The `t.node` and `t.nodes` methods can be used to add additional node fields. the expected return
 values of `id` and `ids` fields is the same as the resolve value of `t.globalID`, and can either be
-a globalID or an object with and an `id` and a `type`.
+a globalID or an object with an `id` and a `type`.
 
 Loading nodes by `id` uses a request cache, so the same node will only be loaded once per request,
 even if it is used multiple times across the schema.

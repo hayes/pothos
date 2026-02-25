@@ -3,7 +3,7 @@ title: Circular References
 description: Guide for how circular references and dependencies are managed in Pothos
 ---
 
-Circular references and Circular dependencies are common problem that can appear in a number of
+Circular references and circular dependencies are a common problem that can appear in a number of
 ways, and cause a variety of different issues.
 
 Pothos has a number of built in mitigations to help avoid these issues, and tries to provide
@@ -27,7 +27,7 @@ any other file that defines parts of the schema, this will ensure that all types
 imported, and types are not unexpectedly undefined.
 
 As you can see in the example below, the references to `Post` and `User` when defining fields are
-wrapped inside a the `fields` function. Because this function is not executed until the schema is
+wrapped inside the `fields` function. Because this function is not executed until the schema is
 loaded, these types of Circular imports should work without causing any issues.
 
 ```ts
@@ -42,7 +42,7 @@ export const User = builder.objectType('User', {
 import { User } from './user'
 
 export const Post = builder.objectType('Post', {
-    fields: t => ({ author: t.expose('author', {{ type: User }}) }),
+    fields: t => ({ author: t.expose('author', { type: User }) }),
 })
 
 // schema.js
@@ -70,7 +70,7 @@ few cases where typescript is unable to resolve circular references correctly.
 What should work without any issues:
 
 - Objects and interfaces referenced via a class
-- Objects and interfaces referenced via a string (by proving a type mapping when creating the
+- Objects and interfaces referenced via a string (by providing a type mapping when creating the
   SchemaBuilder)
 - Objects defined by plugins like Prisma that derive type information from an external source
 
@@ -78,7 +78,7 @@ Cases that may require some modification
 
 - Input objects with circular references
 - Object types defined with `builder.objectRef`
-- Objects defined by plugins like `dataloader` that infer the Backing mode type from options passed
+- Objects defined by plugins like `dataloader` that infer the backing model type from options passed
   to the type.
 
 ## Input objects

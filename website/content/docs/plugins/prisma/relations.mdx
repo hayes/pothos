@@ -1,6 +1,6 @@
 ---
 title: Relations
-description: Adding relations to prism objects
+description: Adding relations to prisma objects
 ---
 
 You can add fields for relations using the `t.relation` method:
@@ -85,7 +85,7 @@ and batched by Prisma to combine multiple queries (in an n+1 situation) to a sin
 The following are some edge cases that could cause an additional query to be necessary:
 
 - The parent object was not loaded through a field defined with `t.prismaField`, or `t.relation`
-- The root `prismaField` did not correctly spread the `query` arguments in is prisma call.
+- The root `prismaField` did not correctly spread the `query` arguments in its prisma call.
 - The query selects multiple fields that use the same relation with different filters, sorting, or
   limits
 - The query contains multiple aliases for the same relation field with different arguments in a way

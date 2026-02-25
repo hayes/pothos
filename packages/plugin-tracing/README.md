@@ -132,7 +132,7 @@ Tracers work by wrapping the execution of resolver calls. The `tracing.wrap` fun
 process as minimal as possible by simply providing the resolver for a field, and expecting a wrapped
 version of the resolver to be returned. Resolvers can throw errors or return promises, and correctly
 handling these edge cases can be a little complicated so the tracing plugin also comes with some
-helpers utilities to simplify this process.
+helper utilities to simplify this process.
 
 `tracing.wrap` takes 3 arguments:
 
@@ -197,7 +197,7 @@ export const builder = new SchemaBuilder<{
 When defining tracing options for a field, you may want to pass some resolver args to your tracing
 logic.
 
-The follow example shows how arguments might be passed to a tracer to be attached to a span:
+The following example shows how arguments might be passed to a tracer to be attached to a span:
 
 ```ts
 // Create a simple tracer that creates spans, and adds custom attributes if they are provided
@@ -629,7 +629,7 @@ const server = createServer(yoga);
 
 ### Using the envelop newrelic plugin
 
-Envelop has it's own plugin for newrelic that can be combined with the tracing plugin:
+Envelop has its own plugin for newrelic that can be combined with the tracing plugin:
 
 ```ts
 import { useNewRelic } from '@envelop/newrelic';
@@ -737,7 +737,7 @@ const server = createServer(yoga);
 
 ### Using the envelop sentry plugin
 
-Envelop has it's own plugin for Sentry that can be combined with the tracing plugin:
+Envelop has its own plugin for Sentry that can be combined with the tracing plugin:
 
 ```ts
 import { useSentry } from '@envelop/sentry';

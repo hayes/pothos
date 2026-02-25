@@ -9,14 +9,14 @@ The basic flow of a smart subscription is:
 1. Run the query the smart subscription is based on and push the initial result of that query to the
    subscription
 
-2. As the query is resolved, register any subscriptions defined on fields or types that where used
+2. As the query is resolved, register any subscriptions defined on fields or types that were used
    in the query
 
 3. When any of the subscriptions are triggered, re-execute the query and push the updated data to
    the subscription.
 
 There are additional options which will allow only the sub-tree of a field/type that triggered a
-fetch to re-resolved.
+fetch to be re-resolved.
 
 This pattern makes it easy to define subscriptions without having to worry about what parts of your
 schema are accessible via the subscribe query, since any type or field can register a subscription.
@@ -132,14 +132,14 @@ builder.objectType('Poll', {
 });
 ```
 
-Passing a `filter` function will filter the events, any only cause a re-fetch if it returns true.
+Passing a `filter` function will filter the events, and only cause a re-fetch if it returns true.
 
 `invalidateCache` is called before refetching data, to allow any cache invalidation to happen so
 that when the new data is loaded, results are not stale.
 
 `refetch` enables directly refetching the current object. When refetch is provided and a
 subscription event fires for the current object, or any of its children, other parts of the query
-that are not dependents of this object will no be refetched.
+that are not dependents of this object will not be refetched.
 
 ### registering subscriptions for fields
 
@@ -182,7 +182,7 @@ builder.objectType('Poll', {
 
 Similar to subscriptions on objects, fields can pass `filter` and `invalidateCache` functions when
 registering a subscription. Rather than passing a `refetch` function, you can set `canRefetch` to
-`true` in the field options. This will re-run the current resolve function to update it \(and it's
+`true` in the field options. This will re-run the current resolve function to update it \(and its
 children\) without having to re-run the rest of the query.
 
 ### Known limitations

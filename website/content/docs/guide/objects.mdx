@@ -8,7 +8,7 @@ explained further in later guides.
 
 ### Defining an Object type
 
-When adding a new type to your schema, you'll need to figure how the data behind this type will be
+When adding a new type to your schema, you'll need to figure out how the data behind this type will be
 represented. Pothos entirely decouples your data from your GraphQL schema, and has many different
 ways to implement Objects in your schema.
 
@@ -22,7 +22,7 @@ interface Giraffe {
 }
 ```
 
-The easiest way to create a new Object based in an existing Typescript type is with the `objectRef`
+The easiest way to create a new Object based on an existing Typescript type is with the `objectRef`
 method:
 
 ```typescript
@@ -31,9 +31,9 @@ const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
 ```
 
 This will create a new `ObjectRef` that can be used to reference the `Giraffe` type in other parts
-of the schema. By passing in the Giraffe interface, We give the `ObjectRef` the information it needs
+of the schema. By passing in the Giraffe interface, we give the `ObjectRef` the information it needs
 to ensure that fields we add to the Giraffe type are type-safe, and that any fields that reference
-the Giraffe Field return the expected data.
+the Giraffe type return the expected data.
 
 Next, we can add an implementation for the `Giraffe` type:
 
@@ -52,7 +52,7 @@ available to query on the Giraffe type.
 ### Add some fields
 
 The `fields` function receives a `FieldBuilder` instance that can be used to define the fields for
-your type. the `FieldBuilder` will be covered in more details in the [fields guide](./fields).
+your type. The `FieldBuilder` will be covered in more detail in the [fields guide](./fields).
 
 ```typescript
 GiraffeRef.implement(Giraffe, {
@@ -72,12 +72,12 @@ GiraffeRef.implement(Giraffe, {
 ```
 
 You'll notice that we haven't added any additional typescript definitions when defining our fields.
-Pothos will uses the type provided to `objectRef` to ensure that the fields we add to the Giraffe
+Pothos will use the type provided to `objectRef` to ensure that the fields we add to the Giraffe
 type are type-safe. This type is only used to ensure that the implementation is type-safe, but
-Pothos we never automatically expose properties from the underlying data without an explicit field
+Pothos will never automatically expose properties from the underlying data without an explicit field
 definition.
 
-In the example above, we have examples of "exposing" data from the underlying type, ad well as field
+In the example above, we have examples of "exposing" data from the underlying type, as well as a field
 that requires some additional logic to resolve.
 
 ## Add a query

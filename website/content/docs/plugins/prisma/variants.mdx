@@ -49,7 +49,7 @@ You can also use variants when defining relations by providing a `type` option:
 ```typescript
 const PostDraft = builder.prismaNode('Post', {
   variant: 'PostDraft'
-  // This set's what database field to use for the nodes id field
+  // This sets what database field to use for the nodes id field
   id: { field: 'id' },
   // fields work just like they do for builder.prismaObject
   fields: (t) => ({

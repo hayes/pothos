@@ -64,7 +64,7 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
-      // This will select user.profile.bio when the the `bio` field is queried
+      // This will select user.profile.bio when the `bio` field is queried
       select: {
         profile: {
           select: {

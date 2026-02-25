@@ -91,7 +91,7 @@ builder.queryType({
 ### Changing the nullability of the input arg
 
 You can configure the global default for input args when creating the builder by providing
-`WithInputArgRequired` in the builders `SchemaTypes`, and setting `withInput.argOptions.required`.
+`WithInputArgRequired` in the builder's `SchemaTypes`, and setting `withInput.argOptions.required`.
 
 ```typescript
 const builder = new SchemaBuilder<{ WithInputArgRequired: false }>({

@@ -77,18 +77,18 @@ const schema = builder.toSchema({
   - breadth: defines the maximum total selections in a query
 - complexityError: (optional `function`) defines the error to throw when the query complexity
   exceeds the limit. The function is passed the errorKind (depth, breadth, or complexity), the
-  result (with the depth, breadth, complext, and max values), and a GraphQL `info` object. It should
-  return (or throw) an error, or a an error message as a string
+  result (with the depth, breadth, complexity, and max values), and a GraphQL `info` object. It should
+  return (or throw) an error, or an error message as a string
 
 ### How complexity is calculated
 
-Complexity is calculated before resolving root any root level fields (query, mutation,
+Complexity is calculated before resolving any root level fields (query, mutation,
 subscription), and is based purely on the shape of the query before execution begins.
 
 The complexity of a query is the sum of the complexity of each selected field. If a field has
 sub-selections, the complexity of its sub-selections are multiplied by a fields multiplier, and then
 added to the fields own complexity. The default multiplier for fields is 1, and 10 for list fields.
-This multiplier is meant to the n+1 complexity of list fields.
+This multiplier is meant to represent the n+1 complexity of list fields.
 
 #### Example
 

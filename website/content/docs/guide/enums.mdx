@@ -61,7 +61,7 @@ Enums can be defined a number of different ways:
    Using a values object also allows the name of the enum value to be different from the typescript
    value used internally in your resolvers.
 
-   The keys (eg `Southern`) are used as the name of the enum value in you GraphQL schema, and the
+   The keys (eg `Southern`) are used as the name of the enum value in your GraphQL schema, and the
    `value` (eg. `'giraffa'`) property is used as the value you will receive in the arguments for
    your resolvers, or the value you need to return from your resolvers. This is similar to how
    typescript enum values can be assigned string or numeric values.
@@ -85,7 +85,7 @@ Enums can be defined a number of different ways:
 
    Modern TypeScript may prefer using objects with as const over enums to align with JavaScript
    standards. This approach essentially mirrors the "array of strings" method. You can use
-   `Object.toEntries` and `Object.fromEntries` to turn convert to Object values form described
+   `Object.toEntries` and `Object.fromEntries` to convert to Object values form described
    above.
 
    For more detailed information, you can refer to the TypeScript handbook on

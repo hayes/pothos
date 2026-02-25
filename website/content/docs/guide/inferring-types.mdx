@@ -3,7 +3,7 @@ title: Inferring Types
 description: Inferring typescript Types from Refs
 ---
 
-In some cases you may want to use the types from your input of object refs to build helpers, or
+In some cases you may want to use the types from your input or object refs to build helpers, or
 provide accurate types for other functions.
 
 To get types from any Pothos `ref` object, you can use the `$inferType` and `$inferInput` properties
@@ -26,12 +26,12 @@ type UserType = typeof UserRef.$inferType;
 ```
 
 When building helpers, most Pothos types have a generic called `Types` that extends `SchemaTypes`.
-This combines all the defaults and settings passed in when creating the SchemaBuilder. To make you
-own type helpers and utility functions, you often need access the the `Types` used by your builder.
+This combines all the defaults and settings passed in when creating the SchemaBuilder. To make your
+own type helpers and utility functions, you often need access to the `Types` used by your builder.
 
 This can be inferred from the builder using `typeof builder.$inferSchemaTypes`.
 
-The following is a simple helper that for creating objects that have an `id` field. The helper
+The following is a simple helper for creating objects that have an `id` field. The helper
 itself isn't that useful, but shows how inferring SchemaTypes from a builder can work.
 
 ```ts
