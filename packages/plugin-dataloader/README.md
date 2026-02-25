@@ -384,7 +384,7 @@ const User = builder.loadableObject('User', {
 });
 ```
 
-Whenever a resolver returns a User or list of Users, those objects will automatically be added the
+Whenever a resolver returns a User or list of Users, those objects will automatically be added to the
 dataloaders cache, so they can be re-used in other parts of the query.
 
 ### Sorting results from your `load` function
