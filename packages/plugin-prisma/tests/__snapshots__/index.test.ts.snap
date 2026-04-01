@@ -194,6 +194,7 @@ type Query {
   findUniqueRelationsSelect: FindUniqueRelations
   manualConnection(after: String, before: String, first: Int, last: Int): QueryManualConnection
   me: User
+  meWithoutQuery: User
   named: [Named]
   namedConnection(after: String, before: String, first: Int, last: Int): QueryNamedConnection
   namedUnion: [NamedUnion]

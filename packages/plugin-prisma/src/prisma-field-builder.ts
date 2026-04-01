@@ -45,6 +45,7 @@ import {
 } from './util/cursors';
 import { getRefFromModel, getRelation } from './util/datamodel';
 import { getFieldDescription } from './util/description';
+
 import type { FieldMap } from './util/relation-map';
 
 // Workaround for FieldKind not being extended on Builder classes
@@ -328,7 +329,9 @@ export class PrismaObjectFieldBuilder<
               ),
             );
 
-            return totalCountOnly || value[name] !== undefined;
+            return (totalCountOnly
+              ? (value as { _count?: Record<string, unknown> })._count?.[name] !== undefined
+              : value[name] !== undefined);
           },
           pothosPrismaFallback:
             resolve &&

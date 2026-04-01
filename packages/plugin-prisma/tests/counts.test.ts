@@ -948,4 +948,25 @@ describe('prisma counts', () => {
       }
     `);
   });
+
+  it('totalCount works when parent prismaField does not spread query (issue #1609)', async () => {
+    const query = gql`
+      query {
+        meWithoutQuery {
+          postsConnection {
+            totalCount
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.meWithoutQuery?.postsConnection?.totalCount).toBeGreaterThan(0);
+  });
 });
