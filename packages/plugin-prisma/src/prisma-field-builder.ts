@@ -329,9 +329,9 @@ export class PrismaObjectFieldBuilder<
               ),
             );
 
-            return (totalCountOnly
+            return totalCountOnly
               ? (value as { _count?: Record<string, unknown> })._count?.[name] !== undefined
-              : value[name] !== undefined);
+              : value[name] !== undefined;
           },
           pothosPrismaFallback:
             resolve &&
