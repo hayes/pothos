@@ -967,6 +967,6 @@ describe('prisma counts', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    expect(result.data?.meWithoutQuery?.postsConnection?.totalCount).toBeGreaterThan(0);
+    expect((result.data as any)?.meWithoutQuery?.postsConnection?.totalCount).toBeGreaterThan(0);
   });
 });
