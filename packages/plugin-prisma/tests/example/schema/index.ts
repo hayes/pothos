@@ -901,6 +901,17 @@ builder.queryType({
           take: 2,
         }),
     }),
+    meWithoutQuery: t.prismaField({
+      type: 'User',
+      nullable: true,
+      resolve: (query, _root, _args, ctx) => {
+        // biome-ignore lint/complexity/noVoid: Simulate forgetting to spread query - mark as used but don't apply selections
+        void (query as Record<string, unknown>).include;
+        return prisma.user.findUnique({
+          where: { id: ctx.user.id },
+        });
+      },
+    }),
     userConnection: t.prismaConnection(
       {
         type: 'User',
