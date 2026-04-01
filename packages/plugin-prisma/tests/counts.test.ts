@@ -967,6 +967,9 @@ describe('prisma counts', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    expect((result.data as any)?.meWithoutQuery?.postsConnection?.totalCount).toBeGreaterThan(0);
+    expect(
+      (result.data as Record<string, Record<string, Record<string, number>>>)?.meWithoutQuery
+        ?.postsConnection?.totalCount,
+    ).toBeGreaterThan(0);
   });
 });
