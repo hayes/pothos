@@ -1,5 +1,12 @@
 # @pothos-examples/prisma-smart-subscriptions
 
+## 3.1.40
+
+### Patch Changes
+
+- Updated dependencies [43fecad]
+  - @pothos/plugin-prisma@4.14.3
+
 ## 3.1.39
 
 ### Patch Changes
