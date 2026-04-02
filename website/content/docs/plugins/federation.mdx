@@ -283,3 +283,60 @@ export const schema = builder.toSubGraphSchema({
   ],
 });
 ```
+
+## Usage with Prisma
+
+When using the federation plugin together with the Prisma plugin, there are some important considerations to keep in mind regarding field selection in `resolveReference` functions.
+
+### Field Selection in resolveReference
+
+When using `t.exposeString()`, `t.exposeInt()`, or other expose methods in entity types, these fields are not automatically included in the `select` object when `resolveReference` is called. This can cause issues when the federation gateway tries to resolve references across subgraphs.
+
+**Problem Example:**
+
+```typescript
+const UserType = builder.objectRef<User>('User').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    slug: t.exposeString('slug'), // This field won't be auto-selected
+    name: t.exposeString('name'),
+  }),
+});
+
+builder.asEntity(UserType, {
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: (user, { prisma }) =>
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        name: true,
+        // slug is missing here, but will be needed when resolving references
+      },
+    }),
+});
+```
+
+**Solution:**
+
+Use `queryFromInfo` to automatically determine required fields:
+
+```typescript
+import { queryFromInfo } from '@pothos/plugin-prisma';
+
+builder.asEntity(UserType, {
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: (key, context, info) => {
+    return prisma.user.findUnique({
+      ...queryFromInfo({ context, info, typeName: 'User' }),
+      where: {
+        id: key.id,
+      },
+    });
+  },
+});
+```
+
+This solution automatically determines which fields are needed based on the GraphQL query information, ensuring all required fields (including exposed ones) are selected without manual specification.
+
+This limitation exists because the federation and Prisma plugins are not deeply coupled, and the federation plugin cannot automatically detect which fields will be needed when resolving entity references.
