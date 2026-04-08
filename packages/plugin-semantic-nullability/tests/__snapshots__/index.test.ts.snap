@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`plugin-semantic-nullability > per-field opt-in > generates expected schema 1`] = `
+"directive @semanticNonNull(levels: [Int!] = [0]) on FIELD_DEFINITION
+
+type Query {
+  age: Int!
+  bio: String
+  name: String
+  tags: [String]
+}"
+`;
+
+exports[`plugin-semantic-nullability > schema-wide allNonNullFields > generates expected schema 1`] = `
+"directive @semanticNonNull(levels: [Int!] = [0]) on FIELD_DEFINITION
+
+type Query {
+  age: Int!
+  bio: String
+  name: String
+}"
+`;
