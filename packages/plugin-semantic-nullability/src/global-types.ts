@@ -14,7 +14,7 @@ declare global {
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       semanticNullability?: {
-        /** When true, all non-null output fields are converted to nullable with @semanticNonNull */
+        /** When true, all non-null output fields get @semanticNonNull at level 0 */
         allNonNullFields?: boolean;
       };
     }
@@ -28,7 +28,13 @@ declare global {
       ResolveShape = unknown,
       ResolveReturnShape = unknown,
     > {
-      semanticNonNull?: boolean;
+      /**
+       * Convert non-null positions to nullable with @semanticNonNull directive.
+       * - `true`: applies to level 0 only (the field itself)
+       * - `number[]`: applies to specific levels (e.g. [0, 1] for list + items)
+       * - `false`: opt out when allNonNullFields is enabled
+       */
+      semanticNonNull?: boolean | number[];
     }
   }
 }
