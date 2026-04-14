@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.17.1
+
+### Patch Changes
+
+- e8c02e5: Fix column selection merging to respect `false` values. Columns explicitly set to `false` in a selection are no longer added to the query.
+
 ## 0.17.0
 
 ### Minor Changes
