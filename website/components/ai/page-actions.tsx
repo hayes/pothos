@@ -2,10 +2,10 @@
 import { cva } from 'class-variance-authority';
 import { buttonVariants } from 'fumadocs-ui/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from 'fumadocs-ui/components/ui/popover';
-import { twMerge as cn } from 'tailwind-merge';
 import { useCopyButton } from 'fumadocs-ui/utils/use-copy-button';
 import { Check, ChevronDown, Copy, ExternalLinkIcon, MessageCircleIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { twMerge as cn } from 'tailwind-merge';
 
 const cache = new Map<string, string>();
 
