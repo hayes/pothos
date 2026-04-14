@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { createYoga } from 'graphql-yoga';
-import { pubsub } from './pubsub';
-import { schema } from './schema';
+import { pubsub } from './pubsub.ts';
+import { schema } from './schema.ts';
 
 const yoga = createYoga({
   schema,

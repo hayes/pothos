@@ -694,28 +694,31 @@ export type DrizzleConnectionShape<
   T,
   Parent,
   Args extends InputFieldMap,
-> = Merge<
-  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, T, false>> extends infer Shape
-    ? Shape & {
-        parent: Parent;
-        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments;
-      }
-    : never
-> extends infer C
-  ? [C] extends [
-      {
-        edges: infer Edges;
-      },
-    ]
-    ? Merge<
-        Omit<C, 'edges'> & {
-          edges: Edges extends Iterable<MaybePromise<infer Edge> | null | undefined>
-            ? Merge<Edge & { connection: C }>[]
-            : never;
+> =
+  Merge<
+    ShapeFromConnection<
+      PothosSchemaTypes.ConnectionShapeHelper<Types, T, false>
+    > extends infer Shape
+      ? Shape & {
+          parent: Parent;
+          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments;
         }
-      >
-    : C
-  : never;
+      : never
+  > extends infer C
+    ? [C] extends [
+        {
+          edges: infer Edges;
+        },
+      ]
+      ? Merge<
+          Omit<C, 'edges'> & {
+            edges: Edges extends Iterable<MaybePromise<infer Edge> | null | undefined>
+              ? Merge<Edge & { connection: C }>[]
+              : never;
+          }
+        >
+      : C
+    : never;
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };
 

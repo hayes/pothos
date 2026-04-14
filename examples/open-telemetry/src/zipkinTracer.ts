@@ -14,14 +14,15 @@ import { AttributeNames, SpanNames } from '@pothos/tracing-opentelemetry';
 import { print } from 'graphql';
 import type { Plugin } from 'graphql-yoga';
 
-export const provider = new NodeTracerProvider({});
-provider.addSpanProcessor(
-  new SimpleSpanProcessor(
-    new ZipkinExporter({
-      serviceName: 'pothos-wroclaw',
-    }),
-  ),
-);
+export const provider = new NodeTracerProvider({
+  spanProcessors: [
+    new SimpleSpanProcessor(
+      new ZipkinExporter({
+        serviceName: 'pothos-wroclaw',
+      }),
+    ),
+  ],
+});
 provider.register();
 
 registerInstrumentations({

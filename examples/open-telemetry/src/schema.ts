@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
 import { createOpenTelemetryWrapper } from '@pothos/tracing-opentelemetry';
-import { type TracingOptions, tracer } from './zipkinTracer';
+import { type TracingOptions, tracer } from './zipkinTracer.ts';
 
 const createSpan = createOpenTelemetryWrapper<TracingOptions>(tracer, {
   includeSource: true,

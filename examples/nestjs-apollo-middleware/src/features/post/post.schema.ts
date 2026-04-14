@@ -1,4 +1,4 @@
-import { schemaBuilder } from 'src/graphql/schema.builder';
+import { schemaBuilder } from '../../graphql/schema.builder';
 import { UserRepository } from '../user/user.repository';
 import { UserSchema } from '../user/user.schema';
 import type { Post } from './post.model';

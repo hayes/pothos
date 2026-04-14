@@ -4,8 +4,9 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-export const provider = new NodeTracerProvider({});
-provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
+export const provider = new NodeTracerProvider({
+  spanProcessors: [new SimpleSpanProcessor(new ConsoleSpanExporter())],
+});
 provider.register();
 
 registerInstrumentations({

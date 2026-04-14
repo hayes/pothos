@@ -1,5 +1,5 @@
-import { builder } from './builder';
-import { Comment, Comments, Post, Posts, User, Users } from './data';
+import { builder } from './builder.ts';
+import { Comment, Comments, Post, Posts, User, Users } from './data.ts';
 
 builder.objectType(User, {
   name: 'User',

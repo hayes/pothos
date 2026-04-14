@@ -39,19 +39,19 @@ describe('prisma utils', () => {
           "posts": [
             {
               "author": {
-                "name": "Schuyler Bergnaum",
+                "name": "Sherri Kihn",
               },
               "id": "26",
             },
             {
               "author": {
-                "name": "Schuyler Bergnaum",
+                "name": "Sherri Kihn",
               },
               "id": "27",
             },
             {
               "author": {
-                "name": "Schuyler Bergnaum",
+                "name": "Sherri Kihn",
               },
               "id": "28",
             },

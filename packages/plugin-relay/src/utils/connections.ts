@@ -225,7 +225,6 @@ export function parseCursorConnectionArgs(options: ResolveOffsetConnectionOption
   };
 }
 
-// biome-ignore lint/suspicious/noRedeclare: rule is wrong
 type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 
 export async function resolveCursorConnection<

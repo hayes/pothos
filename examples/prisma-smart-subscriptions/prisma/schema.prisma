@@ -12,7 +12,8 @@ generator pothos {
   provider     = "prisma-pothos-types"
   // Match client output location from above
   clientOutput = "./client"
-  output       = "./generated.d.ts"
+  output            = "./generated.ts"
+  generateDatamodel = true
 }
 
 model User {

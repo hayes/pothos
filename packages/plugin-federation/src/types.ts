@@ -45,17 +45,18 @@ export type ShapeFromExternalFields<Fields extends FieldMap> = {
 type NonNullableNonList<T> =
   NonNullable<T> extends Array<infer U> ? NonNullable<U> : NonNullable<T>;
 
-export type SelectionFromShape<Shape, Space extends string = ''> = {} extends Required<Shape>
-  ? ''
-  : {
-      [K in keyof Shape]-?: Omit<Shape, K> extends infer R
-        ? NonNullableNonList<Shape[K]> extends object
-          ? `${Space}${K & string} { ${NonNullableNonList<Shape[K]> extends infer T
-              ? SelectionFromShape<T>
-              : never} }${SelectionFromShape<R, ' '>}`
-          : `${Space}${K & string}${SelectionFromShape<R, ' '>}`
-        : never;
-    }[keyof Shape];
+export type SelectionFromShape<Shape, Space extends string = ''> =
+  {} extends Required<Shape>
+    ? ''
+    : {
+        [K in keyof Shape]-?: Omit<Shape, K> extends infer R
+          ? NonNullableNonList<Shape[K]> extends object
+            ? `${Space}${K & string} { ${NonNullableNonList<Shape[K]> extends infer T
+                ? SelectionFromShape<T>
+                : never} }${SelectionFromShape<R, ' '>}`
+            : `${Space}${K & string}${SelectionFromShape<R, ' '>}`
+          : never;
+      }[keyof Shape];
 
 export interface Selection<Shape extends object> {
   selection: string;

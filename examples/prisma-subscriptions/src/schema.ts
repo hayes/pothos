@@ -1,12 +1,12 @@
 import { printSchema } from 'graphql';
-import { builder } from './builder';
-import { db } from './db';
+import { builder } from './builder.ts';
+import { db } from './db.ts';
 import {
   MutationType,
   type PubSubEvent,
   type PubSubPostEvent,
   type PubSubUserEvent,
-} from './pubsub';
+} from './pubsub.ts';
 
 builder.prismaObject('User', {
   fields: (t) => ({

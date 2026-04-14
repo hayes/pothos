@@ -1,5 +1,5 @@
 import { printSchema } from 'graphql';
-import { builder } from './builder';
+import { builder } from './builder.ts';
 
 builder.prismaObject('User', {
   fields: (t) => ({

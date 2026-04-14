@@ -50,10 +50,10 @@
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@standard-schema/spec": "1.0.0",
-    "graphql": "^16.10.0",
+    "@standard-schema/spec": "1.1.0",
+    "graphql": "^16.13.2",
     "graphql-tag": "^2.12.6",
-    "zod": "^4.1.13"
+    "zod": "^4.3.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

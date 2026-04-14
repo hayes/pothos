@@ -3,11 +3,11 @@ import PrismaPlugin from '@pothos/plugin-prisma';
 import SmartSubscriptionsPlugin, {
   subscribeOptionsFromIterator,
 } from '@pothos/plugin-smart-subscriptions';
-import type PrismaTypes from '../prisma/generated';
-import { getDatamodel } from '../prisma/generated';
-import type { Context } from './context';
-import { db } from './db';
-import { pubsub } from './pubsub';
+import type PrismaTypes from '../prisma/generated.ts';
+import { getDatamodel } from '../prisma/generated.ts';
+import type { Context } from './context.ts';
+import { db } from './db.ts';
+import { pubsub } from './pubsub.ts';
 
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;

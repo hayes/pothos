@@ -1,11 +1,13 @@
 import { createPubSub } from 'graphql-yoga';
-import type { Post, User } from '../prisma/client/client';
+import type { Post, User } from '../prisma/client/client.ts';
 
-export enum MutationType {
-  CREATED = 'CREATED',
-  UPDATED = 'UPDATED',
-  DELETED = 'DELETED',
-}
+export const MutationType = {
+  CREATED: 'CREATED',
+  UPDATED: 'UPDATED',
+  DELETED: 'DELETED',
+} as const;
+
+export type MutationType = (typeof MutationType)[keyof typeof MutationType];
 
 export interface PubSubEvent {
   mutationType: MutationType;

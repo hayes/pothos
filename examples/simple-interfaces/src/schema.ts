@@ -1,5 +1,5 @@
-import { builder } from './builder';
-import { Comments, type IComment, type IPost, type IUser, Posts, Users } from './data';
+import { builder } from './builder.ts';
+import { Comments, type IComment, type IPost, type IUser, Posts, Users } from './data.ts';
 
 export const User = builder.objectRef<IUser>('User');
 export const Post = builder.objectRef<IPost>('Post');

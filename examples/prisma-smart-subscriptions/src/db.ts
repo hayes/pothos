@@ -1,6 +1,6 @@
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaClient } from '../prisma/client/client';
-import { pubsub } from './pubsub';
+import { PrismaClient } from '../prisma/client/client.ts';
+import { pubsub } from './pubsub.ts';
 
 const adapter = new PrismaBetterSqlite3({ url: 'file:./prisma/dev.db' });
 export const db = new PrismaClient({ adapter }).$extends({

@@ -4,7 +4,7 @@ import {
   offsetToCursor,
   resolveOffsetConnection,
 } from '@pothos/plugin-relay';
-import type { PageCursor, PageCursors } from './types';
+import type { PageCursor, PageCursors } from './types.ts';
 
 const DEFAULT_MAX_AROUND = 3;
 

@@ -1,10 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig.json",
   "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "strict": true,
     "skipLibCheck": true,
     "target": "es2019",
-    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true
   },
   "include": ["prisma/*.ts", "src/**/*"]

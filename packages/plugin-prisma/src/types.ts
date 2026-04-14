@@ -518,26 +518,35 @@ export type PrismaFieldOptions<
   ResolveShape,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
-> = FieldOptionsFromKind<
-  Types,
-  ParentShape,
-  Param,
-  Nullable,
-  Args,
-  Kind,
-  ResolveShape,
-  ResolveReturnShape
-> extends infer FieldOptions
-  ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
-      type: Type;
-      resolve: FieldOptions extends {
-        // biome-ignore lint/suspicious/noExplicitAny: this is fine
-        resolve?: (parent: infer Parent, ...args: any[]) => unknown;
+> =
+  FieldOptionsFromKind<
+    Types,
+    ParentShape,
+    Param,
+    Nullable,
+    Args,
+    Kind,
+    ResolveShape,
+    ResolveReturnShape
+  > extends infer FieldOptions
+    ? Omit<FieldOptions, InferredFieldOptionKeys | 'type'> & {
+        type: Type;
+        resolve: FieldOptions extends {
+          // biome-ignore lint/suspicious/noExplicitAny: this is fine
+          resolve?: (parent: infer Parent, ...args: any[]) => unknown;
+        }
+          ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
+          : PrismaFieldResolver<
+              Types,
+              Model,
+              ParentShape,
+              Param,
+              Args,
+              Nullable,
+              ResolveReturnShape
+            >;
       }
-        ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
-        : PrismaFieldResolver<Types, Model, ParentShape, Param, Args, Nullable, ResolveReturnShape>;
-    }
-  : never;
+    : never;
 
 export type PrismaFieldWithInputOptions<
   Types extends SchemaTypes,
@@ -798,28 +807,31 @@ export type PrismaConnectionShape<
   T,
   Parent,
   Args extends InputFieldMap,
-> = Merge<
-  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, T, false>> extends infer Shape
-    ? Shape & {
-        parent: Parent;
-        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments;
-      }
-    : never
-> extends infer C
-  ? [C] extends [
-      {
-        edges: infer Edges;
-      },
-    ]
-    ? Merge<
-        Omit<C, 'edges'> & {
-          edges: Edges extends Iterable<MaybePromise<infer Edge> | null | undefined>
-            ? Merge<Edge & { connection: C }>[]
-            : never;
+> =
+  Merge<
+    ShapeFromConnection<
+      PothosSchemaTypes.ConnectionShapeHelper<Types, T, false>
+    > extends infer Shape
+      ? Shape & {
+          parent: Parent;
+          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments;
         }
-      >
-    : C
-  : never;
+      : never
+  > extends infer C
+    ? [C] extends [
+        {
+          edges: infer Edges;
+        },
+      ]
+      ? Merge<
+          Omit<C, 'edges'> & {
+            edges: Edges extends Iterable<MaybePromise<infer Edge> | null | undefined>
+              ? Merge<Edge & { connection: C }>[]
+              : never;
+          }
+        >
+      : C
+    : never;
 
 export type UniqueFieldsExtendedWhereUnique<T> = NonNullable<
   T extends infer O

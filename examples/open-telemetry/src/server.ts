@@ -4,8 +4,8 @@ import SchemaBuilder from '@pothos/core';
 import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
 import { createOpenTelemetryWrapper } from '@pothos/tracing-opentelemetry';
 import { createYoga } from 'graphql-yoga';
-import { schema } from './schema';
-import { tracer, tracingPlugin } from './zipkinTracer';
+import { schema } from './schema.ts';
+import { tracer, tracingPlugin } from './zipkinTracer.ts';
 
 type TracingOptions = boolean | { attributes?: Record<string, AttributeValue> };
 

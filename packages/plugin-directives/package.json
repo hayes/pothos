@@ -50,9 +50,9 @@
     "graphql": "^16.10.0"
   },
   "devDependencies": {
-    "@envelop/core": "^5.4.0",
-    "@envelop/rate-limiter": "^9.0.0",
-    "@graphql-tools/utils": "^10.11.0",
+    "@envelop/core": "^5.5.1",
+    "@envelop/rate-limiter": "^10.0.1",
+    "@graphql-tools/utils": "^11.0.1",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql-rate-limit": "^3.3.0",

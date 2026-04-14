@@ -149,8 +149,10 @@ export function mergeSelection(
   }
 
   if (columns && !state.allColumns) {
-    for (const key of Object.keys(columns)) {
-      state.columns.add(key);
+    for (const [key, value] of Object.entries(columns)) {
+      if (value) {
+        state.columns.add(key);
+      }
     }
   } else {
     state.allColumns = true;

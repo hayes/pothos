@@ -1,7 +1,7 @@
-import { builder } from './builder';
-import { Comments, Posts, Users } from './data';
-import type { IComment, IPost, IUser, PageCursor, PageCursors } from './types';
-import { resolveWindowedConnection } from './util';
+import { builder } from './builder.ts';
+import { Comments, Posts, Users } from './data.ts';
+import type { IComment, IPost, IUser, PageCursor, PageCursors } from './types.ts';
+import { resolveWindowedConnection } from './util.ts';
 
 export const User = builder.objectRef<IUser>('User');
 export const Post = builder.objectRef<IPost>('Post');

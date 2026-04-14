@@ -1,6 +1,9 @@
 import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { printSchema } from 'graphql';
-import { schema } from '../src/schema';
+import { schema } from '../src/schema/index.ts';
 
-writeFileSync(resolve(module.filename, '../../schema.graphql'), printSchema(schema));
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+writeFileSync(resolve(__dirname, '../schema.graphql'), printSchema(schema));

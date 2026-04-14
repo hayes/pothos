@@ -35,12 +35,12 @@
     "provenance": true
   },
   "dependencies": {
-    "graphql": "^16.10.0",
-    "graphql-yoga": "^5.17.1",
-    "ts-morph": "^27.0.2",
+    "graphql": "^16.13.2",
+    "graphql-yoga": "^5.21.0",
+    "ts-morph": "^28.0.0",
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.1"
+    "@types/node": "^25.6.0"
   }
 }

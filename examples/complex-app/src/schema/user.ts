@@ -1,5 +1,5 @@
-import { builder } from '../builder';
-import { db } from '../db';
+import { builder } from '../builder.ts';
+import { db } from '../db.ts';
 
 const User = builder.prismaInterface('User', {
   include: {

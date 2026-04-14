@@ -27,9 +27,9 @@ import {
 } from './steps';
 import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
 
-export { RequestCache };
 export * from './errors';
 export * from './types';
+export { RequestCache };
 
 const pluginName = 'scopeAuth';
 

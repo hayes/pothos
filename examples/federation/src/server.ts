@@ -1,6 +1,6 @@
 import { startStandaloneServer } from '@apollo/server/standalone';
-import { createGateway } from './gateway';
-import { startServers } from './servers';
+import { createGateway } from './gateway.ts';
+import { startServers } from './servers.ts';
 
 startServers()
   .then(async (configs) => {

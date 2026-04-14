@@ -4,9 +4,12 @@
     "strict": true,
     "skipLibCheck": true,
     "target": "es2019",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "allowSyntheticDefaultImports": true,
-    "module": "ESNext"
+    "module": "ESNext",
+    "types": ["node"]
   },
   "include": ["prisma/*.ts", "src/**/*", "scripts/**/*"]
 }

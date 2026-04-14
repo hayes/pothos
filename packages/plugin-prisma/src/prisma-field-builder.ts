@@ -57,26 +57,21 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
-type ContextForAuth<
-  Types extends SchemaTypes,
-  Scopes extends {} = {},
-> = PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
-  Context: infer T;
-}
-  ? T extends object
-    ? T
-    : object
-  : object;
+type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
+  PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
+    Context: infer T;
+  }
+    ? T extends object
+      ? T
+      : object
+    : object;
 
-type FieldAuthScopes<
-  Types extends SchemaTypes,
-  Parent,
-  Args extends {} = {},
-> = PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
-  Scopes: infer T;
-}
-  ? T
-  : never;
+type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {} = {}> =
+  PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
+    Scopes: infer T;
+  }
+    ? T
+    : never;
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,

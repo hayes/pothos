@@ -2,9 +2,9 @@ import SchemaBuilder from '@pothos/core';
 import DirectivesPlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 import PrismaPlugin from '@pothos/plugin-prisma';
-import type PrismaTypes from '../../prisma/generated';
-import { getDatamodel } from '../../prisma/generated';
-import { db } from '../db';
+import type PrismaTypes from '../../prisma/generated.ts';
+import { getDatamodel } from '../../prisma/generated.ts';
+import { db } from '../db.ts';
 
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;

@@ -30,11 +30,12 @@ import type {
 export type AddVersionedDefaultsToBuilderOptions<
   Types extends SchemaTypes,
   Version extends keyof VersionedSchemaBuilderOptions<SchemaTypes>,
-> = PothosSchemaTypes.SchemaBuilderOptions<Types> extends infer Options
-  ? VersionedSchemaBuilderOptions<Types>[Version] extends infer Defaults
-    ? RemoveNeverKeys<Defaults & Omit<Options, keyof Defaults>>
-    : never
-  : never;
+> =
+  PothosSchemaTypes.SchemaBuilderOptions<Types> extends infer Options
+    ? VersionedSchemaBuilderOptions<Types>[Version] extends infer Defaults
+      ? RemoveNeverKeys<Defaults & Omit<Options, keyof Defaults>>
+      : never
+    : never;
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   PothosSchemaTypes.SchemaBuilderOptions<Types>
@@ -221,11 +222,12 @@ export type ValidateInterfaces<
   Shape,
   Types extends SchemaTypes,
   Interfaces extends InterfaceParam<Types>,
-> = Interfaces extends InterfaceParam<Types>
-  ? Shape extends GetParentShape<Types, Interfaces>
-    ? Interfaces
-    : 'Object shape must extend interface shape'
-  : never;
+> =
+  Interfaces extends InterfaceParam<Types>
+    ? Shape extends GetParentShape<Types, Interfaces>
+      ? Interfaces
+      : 'Object shape must extend interface shape'
+    : never;
 
 export type OneOfInputShapeFromFields<Fields extends InputFieldMap> =
   keyof Fields extends infer K extends keyof Fields
@@ -301,13 +303,14 @@ export type ExposeNullability<
   ParentShape,
   Name extends keyof ParentShape,
   Nullable extends FieldNullability<Type>,
-> = Awaited<ParentShape[Name]> extends ShapeFromTypeParam<Types, Type, Nullable>
-  ? {
-      nullable?: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
-    }
-  : {
-      nullable: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
-    };
+> =
+  Awaited<ParentShape[Name]> extends ShapeFromTypeParam<Types, Type, Nullable>
+    ? {
+        nullable?: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
+      }
+    : {
+        nullable: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
+      };
 
 export type ExposeNullableOption<
   Types extends SchemaTypes,

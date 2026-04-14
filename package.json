@@ -31,19 +31,19 @@
   ],
   "private": true,
   "devDependencies": {
-    "@biomejs/biome": "^2.3.8",
-    "@changesets/cli": "^2.29.8",
-    "@faker-js/faker": "^10.1.0",
+    "@biomejs/biome": "^2.4.11",
+    "@changesets/cli": "^2.30.0",
+    "@faker-js/faker": "^10.4.0",
     "@swc-node/register": "^1.11.1",
-    "@swc/cli": "^0.7.9",
-    "@swc/core": "^1.15.3",
-    "@types/node": "^25.0.1",
-    "graphql": "^16.10.0",
-    "pkg-pr-new": "^0.0.62",
+    "@swc/cli": "^0.8.1",
+    "@swc/core": "^1.15.24",
+    "@types/node": "^25.6.0",
+    "graphql": "^16.13.2",
+    "pkg-pr-new": "^0.0.66",
     "tsx": "^4.21.0",
-    "turbo": "^2.6.2",
-    "typescript": "5.9.3",
-    "vitest": "^4.0.15"
+    "turbo": "^2.9.6",
+    "typescript": "6.0.2",
+    "vitest": "^4.1.4"
   },
   "engines": {
     "pnpm": ">=9.0.0"
@@ -71,11 +71,12 @@
         "@types/node"
       ],
       "allowedVersions": {
-        "graphql": ">=16.6.0"
+        "graphql": ">=16.6.0",
+        "chokidar": "^4.0.3"
       }
     },
     "patchedDependencies": {
-      "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch"
+      "@changesets/assemble-release-plan@6.0.9": "patches/@changesets__assemble-release-plan@6.0.9.patch"
     },
     "onlyBuiltDependencies": [
       "@prisma/engines",

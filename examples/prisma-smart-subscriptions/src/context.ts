@@ -1,6 +1,6 @@
 import { PubSub } from 'graphql-subscriptions';
-import type { User } from '../prisma/client/client';
-import { db } from './db';
+import type { User } from '../prisma/client/client.ts';
+import { db } from './db.ts';
 
 interface SelectType {
   select?: Record<string, string>;

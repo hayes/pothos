@@ -330,9 +330,12 @@ export type ConnectionEdgesShape<
   T,
   NodeNullable extends boolean,
   EdgesNullable extends FieldNullability<[unknown]>,
-> = ArrayConnectionEdgesShape<Types, T, NodeNullable, EdgesNullable> extends infer Edges
-  ? Awaited<ListResolveValue<Edges, Edges extends readonly (infer Item)[] ? Item : never, unknown>>
-  : never;
+> =
+  ArrayConnectionEdgesShape<Types, T, NodeNullable, EdgesNullable> extends infer Edges
+    ? Awaited<
+        ListResolveValue<Edges, Edges extends readonly (infer Item)[] ? Item : never, unknown>
+      >
+    : never;
 
 export interface ConnectionResultShape<
   Types extends SchemaTypes,

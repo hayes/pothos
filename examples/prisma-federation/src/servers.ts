@@ -1,7 +1,7 @@
 import { startStandaloneServer } from '@apollo/server/standalone';
-import { server as commentsServer } from './comments';
-import { server as postsServer } from './posts';
-import { server as usersServer } from './users';
+import { server as commentsServer } from './comments/index.ts';
+import { server as postsServer } from './posts/index.ts';
+import { server as usersServer } from './users/index.ts';
 
 export const servers = [
   { name: 'users', server: usersServer },

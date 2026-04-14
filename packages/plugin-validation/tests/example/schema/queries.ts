@@ -204,9 +204,7 @@ builder.queryField('chainedArgTransforms', (t) =>
           zod.number().min(0.01, 'Price must be at least $0.01').max(999999.99, 'Price too high'),
         )
         .validate(
-          zod
-            .number()
-            .transform((price) => Math.round(price * 100)), // Convert to cents
+          zod.number().transform((price) => Math.round(price * 100)), // Convert to cents
         ),
 
       // Transform string to boolean with validation

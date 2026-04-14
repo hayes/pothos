@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { builder } from '../builder';
-import { db } from '../db';
-import { parseID } from '../utils';
+import { builder } from '../builder.ts';
+import { db } from '../db.ts';
+import { parseID } from '../utils.ts';
 
 builder.prismaNode('Player', {
   findUnique: (id) => ({ id: parseID(id) }),
