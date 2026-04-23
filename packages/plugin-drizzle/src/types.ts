@@ -392,7 +392,7 @@ export type RelatedFieldOptions<
 > & {
   description?: string | false;
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
-  type?: DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
+  type?: DrizzleRef<any, Table['relations'][Field]['targetTableName']>;
   query?: QueryForField<Types, Args, Table['relations'][Field]>;
 };
 
@@ -446,7 +446,7 @@ export type VariantFieldOptions<
 };
 
 export type RefForRelation<Types extends SchemaTypes, Rel extends Relation> = Rel extends {
-  $relationBrand: 'One';
+  relationType: 'one';
 }
   ? ObjectRef<Types, TypesForRelation<Types, Rel>>
   : [ObjectRef<Types, TypesForRelation<Types, Rel>>];
@@ -465,7 +465,7 @@ export type RelatedCountOptions<
 
 export type TypesForRelation<Types extends SchemaTypes, Rel extends Relation> = BuildQueryResult<
   Types['DrizzleRelations'],
-  Types['DrizzleRelations'][Rel['targetTable']['_']['name']],
+  Types['DrizzleRelations'][Rel['targetTableName']],
   true
 >;
 
@@ -475,13 +475,13 @@ export type QueryForField<
   Rel extends Relation,
 > = (
   Rel extends {
-    $relationBrand: 'One';
+    relationType: 'one';
   }
     ? Omit<
         DBQueryConfig<
           'one',
           Types['DrizzleRelations'],
-          Types['DrizzleRelations'][Rel['targetTable']['_']['name']]
+          Types['DrizzleRelations'][Rel['targetTableName']]
         >,
         'columns' | 'extra' | 'with'
       >
@@ -489,7 +489,7 @@ export type QueryForField<
         DBQueryConfig<
           'many',
           Types['DrizzleRelations'],
-          Types['DrizzleRelations'][Rel['targetTable']['_']['name']]
+          Types['DrizzleRelations'][Rel['targetTableName']]
         >,
         'columns' | 'extra' | 'with'
       >
@@ -626,7 +626,7 @@ export type RelatedConnectionOptions<
   Args extends InputFieldMap,
   Type = unknown,
   NodeTable extends
-    TableRelationalConfig = Types['DrizzleRelations'][Table['relations'][Field]['targetTable']['_']['name']],
+    TableRelationalConfig = Types['DrizzleRelations'][Table['relations'][Field]['targetTableName']],
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -669,7 +669,7 @@ export type RelatedConnectionOptions<
         >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
-        type?: Type & DrizzleRef<any, Table['relations'][Field]['targetTable']['_']['name']>;
+        type?: Type & DrizzleRef<any, Table['relations'][Field]['targetTableName']>;
 
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

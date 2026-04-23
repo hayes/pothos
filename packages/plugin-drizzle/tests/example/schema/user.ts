@@ -152,7 +152,7 @@ export const Viewer = builder.drizzleInterface('users', {
     drafts: t.relation('posts', {
       query: {
         where: {
-          published: false,
+          published: 0,
         },
         orderBy: {
           updatedAt: 'desc',
