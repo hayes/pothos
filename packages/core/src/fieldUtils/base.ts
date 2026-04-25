@@ -62,7 +62,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
         const { subscribe } = options as { subscribe?: (...argList: unknown[]) => unknown };
         return {
           kind: this.kind as never,
-          graphqlKind: typeConfig.graphqlKind as 'Interface' | 'Object',
+          graphqlKind: typeConfig.graphqlKind as 'Object',
           parentType: typeConfig.name,
           name,
           args,

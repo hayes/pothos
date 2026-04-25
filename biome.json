@@ -3,6 +3,7 @@
   "files": {
     "includes": [
       "**",
+      "!**/.claude/worktrees",
       "!**/.turbo",
       "!**/.source",
       "!**/examples/**/dist/**/*",

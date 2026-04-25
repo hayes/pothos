@@ -15,12 +15,12 @@
     }
   },
   "scripts": {
-    "type": "tsc --project tsconfig.type.json",
+    "type": "tsgo --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
-    "build:dts": "tsc",
+    "build:dts": "tsgo",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
     "test": "pnpm vitest --run"
   },
@@ -58,8 +58,8 @@
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "drizzle-graphql": "^0.8.5",
-    "drizzle-kit": "1.0.0-beta.10-42c284e",
-    "drizzle-orm": "1.0.0-beta.10-42c284e",
+    "drizzle-kit": "1.0.0-beta.23",
+    "drizzle-orm": "1.0.0-beta.23",
     "graphql-scalars": "^1.25.0",
     "graphql-tag": "^2.12.6",
     "postgres": "^3.4.9"
