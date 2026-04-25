@@ -28,12 +28,12 @@
   },
   "scripts": {
     "generate": "prisma generate && prisma generate --schema=./tests/prisma-types-from-client/schema.prisma",
-    "type": "tsc --project tsconfig.type.json",
+    "type": "tsgo --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
-    "build:dts": "tsc",
+    "build:dts": "tsgo",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
     "test": "pnpm vitest run"
   },
