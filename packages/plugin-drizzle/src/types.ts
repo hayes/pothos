@@ -236,8 +236,8 @@ export type DrizzleFieldOptions<
 > & {
   type: Param;
   resolve: (
-    query: <T extends QueryForDrizzleField<Types, Param, Table> = {}>(
-      selection?: T,
+    query: <T = {}>(
+      selection?: T & QueryForDrizzleField<Types, Param, Table>,
     ) => Omit<T, 'columns' | 'extra'> & {
       columns: T extends { columns: infer C extends {} } ? C : {};
       extras: {
