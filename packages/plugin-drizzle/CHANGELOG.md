@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.17.3
+
+### Patch Changes
+
+- 04650f5: Fix autocomplete dropping after first property in `query()` callback of `drizzleField` resolver
+
 ## 0.17.2
 
 ### Patch Changes
