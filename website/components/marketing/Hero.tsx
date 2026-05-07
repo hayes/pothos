@@ -4,8 +4,8 @@ import { BotanicalSpray } from './BotanicalSpray';
 export function Hero() {
   return (
     <section className="max-w-[1280px] mx-auto px-10 pt-[88px] pb-20 relative">
-      <div className="absolute top-10 right-10 hidden md:block pointer-events-none">
-        <BotanicalSpray size={140} color="var(--bm-accent)" />
+      <div className="absolute top-14 right-10 hidden md:block pointer-events-none text-bm-accent">
+        <BotanicalSpray color="currentColor" />
       </div>
       {/* Eyebrow */}
       <div className="inline-flex items-center gap-2 mb-5 text-[12px] uppercase tracking-[0.08em] text-bm-ink-muted">
