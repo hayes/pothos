@@ -36,24 +36,7 @@ export function FilesView({
 
   return (
     <div className="flex flex-col font-mono text-[12px]">
-      {/* Generated SDL — pinned, read-only */}
-      <button
-        type="button"
-        onClick={onSelectSdl}
-        title="Generated SDL · read-only"
-        className={`group/row flex items-center gap-2 px-4 py-1.5 italic border-l-2 transition-colors ${
-          sdlActive
-            ? 'border-bm-accent bg-bm-surface-alt text-bm-ink font-medium'
-            : 'border-transparent text-bm-ink-muted hover:text-bm-ink hover:bg-bm-surface-alt/50'
-        }`}
-      >
-        <LockIcon />
-        <span className="flex-1 text-left truncate">schema.graphql</span>
-      </button>
-
-      <div className="my-2 mx-4 border-t border-bm-line-soft" />
-
-      {/* User files */}
+      {/* User files first — these are what people edit */}
       <ul>
         {files.map((file, i) => {
           const isActive = !sdlActive && i === activeIndex;
@@ -93,7 +76,47 @@ export function FilesView({
       >
         + New file
       </button>
+
+      {/* Generated SDL — clearly labeled as a separate section. The
+          row reads as a file (not italic, regular weight) with a small
+          "view" caret on the right so it's obviously clickable. */}
+      <div className="mt-5 px-4 pb-1.5 text-[10px] uppercase tracking-[0.1em] text-bm-ink-muted">
+        Generated
+      </div>
+      <button
+        type="button"
+        onClick={onSelectSdl}
+        title="Generated SDL — read-only · click to view"
+        className={`group/row flex items-center gap-2 pr-3 border-l-2 transition-colors ${
+          sdlActive
+            ? 'border-bm-accent bg-bm-surface-alt text-bm-ink font-medium'
+            : 'border-transparent text-bm-ink-soft hover:bg-bm-surface-alt/50 hover:text-bm-ink'
+        }`}
+      >
+        <span className="flex-1 truncate text-left pl-4 py-1.5">schema.graphql</span>
+        <LockIcon />
+        <ChevronRight />
+      </button>
     </div>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="opacity-50 group-hover/row:opacity-100 transition-opacity"
+    >
+      <polyline points="3.5 2 6.5 5 3.5 8" />
+    </svg>
   );
 }
 
@@ -151,17 +174,23 @@ function FileRow({
   if (renaming) {
     return (
       <li>
-        <input
-          ref={inputRef}
-          value={renameDraft}
-          onChange={(e) => onChangeDraft(e.target.value)}
-          onBlur={() => onCommitRename(renameDraft)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') onCommitRename(renameDraft);
-            if (e.key === 'Escape') onCancelRename();
-          }}
-          className="w-full pl-4 pr-3 py-1.5 bg-transparent text-bm-ink outline-none border-l-2 border-bm-accent"
-        />
+        <div className="flex items-center pr-2 border-l-2 border-bm-accent bg-bm-accent-soft">
+          <input
+            ref={inputRef}
+            value={renameDraft}
+            onChange={(e) => onChangeDraft(e.target.value)}
+            onBlur={() => onCommitRename(renameDraft)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onCommitRename(renameDraft);
+              if (e.key === 'Escape') onCancelRename();
+            }}
+            className="flex-1 pl-4 pr-2 py-1 my-0.5 bg-bm-surface text-bm-ink rounded font-mono text-[12px] border border-bm-accent outline-none focus:ring-1 focus:ring-bm-accent shadow-sm"
+            placeholder="filename.ts"
+          />
+          <span className="ml-2 mr-1 text-[10px] text-bm-ink-muted bm-mono shrink-0">
+            ⏎
+          </span>
+        </div>
       </li>
     );
   }
