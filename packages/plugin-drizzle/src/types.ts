@@ -58,9 +58,6 @@ export interface PathInfo {
 
 export type DrizzleClient<TCountSource = Table | SQL | SQLWrapper> = {
   readonly _: {
-    readonly schema: unknown;
-    readonly fullSchema: Record<string, unknown>;
-    readonly tableNamesMap: Record<string, string>;
     readonly relations: AnyRelations;
   };
   query: {};
