@@ -1,18 +1,17 @@
 'use client';
 
 import type { GraphQLSchema } from 'graphql';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { type ExplorerSchema, introspectSchema } from '../SchemaExplorer/introspect';
 import { TypeRow } from '../SchemaExplorer/TypeRow';
 import type { PlaygroundFile } from '../types';
 import { FilesView } from './FilesView';
 
-type Tab = 'files' | 'explorer' | 'sdl';
+type Tab = 'files' | 'explorer';
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: 'files', label: 'Files' },
   { key: 'explorer', label: 'Explorer' },
-  { key: 'sdl', label: 'SDL' },
 ];
 
 interface Props {
@@ -37,9 +36,10 @@ interface Props {
 const EMPTY: ExplorerSchema = { types: [], fieldCount: 0 };
 
 /**
- * Left-column container for everything you "browse": files (input),
- * explorer (compiled types), and SDL (raw output) live behind a single
- * tab strip so they share a header, filter, and meta row.
+ * Left-column container with two tabs — Files (your input, including the
+ * read-only generated `schema.graphql`) and Explorer (the compiled schema's
+ * type tree). Both share a header, a filter input (when relevant), and a
+ * meta count.
  */
 export function SchemaSidebar({
   files,
@@ -51,19 +51,13 @@ export function SchemaSidebar({
   onRenameFile,
   onRemoveFile,
   schema,
-  schemaSDL,
+  schemaSDL: _schemaSDL,
   isCompiling,
   activeFieldKey,
   onTypeClick,
 }: Props) {
   const [tab, setTab] = useState<Tab>('files');
   const [filter, setFilter] = useState('');
-
-  // Picking the SDL tab also flips the editor pane to its read-only SDL
-  // view, so the two columns stay in sync.
-  useEffect(() => {
-    if (tab === 'sdl' && !sdlActive) onSelectSdl();
-  }, [tab, sdlActive, onSelectSdl]);
 
   const explorer = useMemo<ExplorerSchema>(
     () => (schema ? introspectSchema(schema) : EMPTY),
@@ -82,26 +76,17 @@ export function SchemaSidebar({
     });
   }, [explorer.types, filter]);
 
-  const filteredSdl = useMemo(() => {
-    if (!filter || !schemaSDL) return schemaSDL ?? '';
-    const q = filter.toLowerCase();
-    return schemaSDL
-      .split(/\n\n/)
-      .filter((block) => block.toLowerCase().includes(q))
-      .join('\n\n');
-  }, [schemaSDL, filter]);
-
   const meta =
     tab === 'files'
-      ? `${files.length} file${files.length === 1 ? '' : 's'}`
+      ? `${files.length + 1} file${files.length === 0 ? '' : 's'}`
       : `${explorer.types.length} type${explorer.types.length === 1 ? '' : 's'} · ${explorer.fieldCount} field${explorer.fieldCount === 1 ? '' : 's'}`;
 
-  const showFilter = tab !== 'files';
+  const showFilter = tab === 'explorer';
 
   return (
     <aside className="grid grid-rows-[auto_auto_1fr] min-h-0 bg-bm-bg border-r border-bm-line">
       <header className="flex items-center px-5 h-11 border-b border-bm-line">
-        <div className="flex gap-4 h-full">
+        <div className="flex gap-4 h-full items-center">
           {TABS.map((t) => (
             <button
               type="button"
@@ -134,13 +119,14 @@ export function SchemaSidebar({
         <div className="pt-2" />
       )}
 
-      <div className="min-h-0 overflow-auto pb-4 font-mono text-[12px]">
+      <div className="min-h-0 overflow-auto pb-4">
         {tab === 'files' && (
           <FilesView
             files={files}
             activeIndex={activeIndex}
             sdlActive={sdlActive}
             onSelectFile={onSelectFile}
+            onSelectSdl={onSelectSdl}
             onAddFile={onAddFile}
             onRenameFile={onRenameFile}
             onRemoveFile={onRemoveFile}
@@ -148,7 +134,7 @@ export function SchemaSidebar({
         )}
 
         {tab === 'explorer' && (
-          <div className="px-4">
+          <div className="px-4 font-mono text-[12px]">
             {isCompiling && filteredTypes.length === 0 && (
               <div className="text-bm-ink-muted italic py-2">Compiling…</div>
             )}
@@ -169,18 +155,7 @@ export function SchemaSidebar({
             ))}
           </div>
         )}
-
-        {tab === 'sdl' && (
-          <pre className="m-0 px-4 whitespace-pre-wrap text-bm-ink-soft leading-[1.7]">
-            {filteredSdl || (
-              <span className="text-bm-ink-muted italic">
-                {isCompiling ? 'Compiling…' : 'Schema is empty.'}
-              </span>
-            )}
-          </pre>
-        )}
       </div>
-
     </aside>
   );
 }

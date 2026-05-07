@@ -1,7 +1,7 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useTheme } from 'next-themes';
+import { useEditorTheme } from '../../../hooks/playground/useEditorTheme';
 
 interface Props {
   schemaSDL: string | null;
@@ -13,8 +13,7 @@ const HEADER = `# Generated from schema.ts — do not edit
 `;
 
 export function SdlPane({ schemaSDL }: Props) {
-  const { resolvedTheme } = useTheme();
-  const editorTheme = resolvedTheme === 'light' ? 'vs' : 'vs-dark';
+  const { theme: editorTheme, beforeMount: registerThemes } = useEditorTheme();
 
   if (!schemaSDL) {
     return (
@@ -30,6 +29,7 @@ export function SdlPane({ schemaSDL }: Props) {
       language="graphql"
       value={`${HEADER}${schemaSDL}`}
       theme={editorTheme}
+      beforeMount={registerThemes}
       options={{
         readOnly: true,
         minimap: { enabled: false },

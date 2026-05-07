@@ -1,7 +1,7 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useTheme } from 'next-themes';
+import { useEditorTheme } from '../../../hooks/playground/useEditorTheme';
 
 interface Props {
   value: string;
@@ -10,8 +10,7 @@ interface Props {
 }
 
 export function VariablesEditor({ value, onChange, onRun }: Props) {
-  const { resolvedTheme } = useTheme();
-  const theme = resolvedTheme === 'light' ? 'vs' : 'vs-dark';
+  const { theme, beforeMount: registerThemes } = useEditorTheme();
 
   return (
     <Editor
@@ -20,6 +19,7 @@ export function VariablesEditor({ value, onChange, onRun }: Props) {
       value={value || '{\n  \n}'}
       theme={theme}
       onChange={(v) => v !== undefined && onChange(v)}
+      beforeMount={registerThemes}
       onMount={(editor, monaco) => {
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => onRun());
       }}
