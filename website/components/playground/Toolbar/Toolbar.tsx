@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { HeartLeaf } from '../../marketing/HeartLeaf';
 import { ThemeToggle } from '../../marketing/ThemeToggle';
+import { Wordmark } from '../../marketing/Wordmark';
 import { Button } from '../shell/Button';
 import { type OverflowItem, OverflowMenu } from './OverflowMenu';
 import { RunButton } from './RunButton';
@@ -60,10 +60,10 @@ export function Toolbar({
       <Link
         href="/"
         title="Back to Pothos"
-        className="flex items-center gap-2 text-bm-ink hover:opacity-90 transition-opacity"
+        aria-label="Pothos"
+        className="flex items-center hover:opacity-90 transition-opacity"
       >
-        <HeartLeaf size={20} fill="var(--bm-accent)" stroke="none" veins />
-        <span className="font-serif text-[18px] tracking-[-0.01em]">Pothos</span>
+        <Wordmark width={104} height={24} />
       </Link>
       <span className="h-5 w-px bg-bm-line" aria-hidden="true" />
       <div className="flex items-baseline gap-2.5">
