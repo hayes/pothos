@@ -1,7 +1,7 @@
 'use client';
 
 import type { Monaco } from '@monaco-editor/react';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/components/Providers';
 import { useCallback, useEffect, useState } from 'react';
 import { PaletteEditor } from '../../components/theme-editor/PaletteEditor';
 import { MODE_PRESETS, type Mode } from '../../components/theme-editor/palettes';
