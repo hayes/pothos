@@ -1,28 +1,28 @@
 import type { Sponsor } from '../../lib/github';
+import { PersonCard } from './PersonCard';
 import { FALLBACK_SPONSOR_LOGINS } from './topSponsors';
-import { SponsorAvatar } from './SponsorAvatar';
 
 interface Props {
   sponsors: Sponsor[];
 }
 
 /**
- * Wall of avatars for the rest of the sponsors. When the GraphQL fetch
- * comes back empty (no token, or API failure) we render the curated
- * fallback list of GitHub handles instead, so the page never looks
- * empty.
+ * Grid of sponsor cards (avatar + name). When the GraphQL fetch comes
+ * back empty (no token, or API failure) we fall back to a curated list
+ * of GitHub handles so the page never looks empty.
  */
 export function SponsorsWall({ sponsors }: Props) {
   const list = sponsors.length > 0 ? sponsors : fallbackList();
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-x-5 gap-y-7">
       {list.map((s) => (
-        <SponsorAvatar
+        <PersonCard
           key={s.login}
           login={s.login}
+          name={s.name}
           avatarUrl={s.avatarUrl}
           htmlUrl={s.htmlUrl}
-          size={56}
+          size={64}
         />
       ))}
     </div>

@@ -49,26 +49,39 @@ function authHeaders(): HeadersInit {
  * per IP. With GITHUB_TOKEN set we get 5000/hr.
  */
 export async function fetchContributors(): Promise<Contributor[]> {
+  // GitHub's REST endpoint pages at 100 contributors. Walk a few pages
+  // until either we get back fewer than the per_page max (the last
+  // page) or we hit a sane upper bound — the project has hundreds of
+  // contributors and we want all of them visible on the page.
+  const MAX_PAGES = 5;
+  const PER_PAGE = 100;
+  const out: Contributor[] = [];
   try {
-    const res = await fetch(
-      `https://api.github.com/repos/${REPO}/contributors?per_page=100`,
-      {
-        headers: authHeaders(),
-        next: { revalidate: REVALIDATE_SECONDS, tags: ['github-contributors'] },
-      },
-    );
-    if (!res.ok) return [];
-    const data = (await res.json()) as GitHubContributor[];
-    return data
-      .filter((c) => c.type === 'User')
-      .map((c) => ({
-        login: c.login,
-        avatarUrl: c.avatar_url,
-        htmlUrl: c.html_url,
-        contributions: c.contributions,
-      }));
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const res = await fetch(
+        `https://api.github.com/repos/${REPO}/contributors?per_page=${PER_PAGE}&page=${page}`,
+        {
+          headers: authHeaders(),
+          next: { revalidate: REVALIDATE_SECONDS, tags: ['github-contributors'] },
+        },
+      );
+      if (!res.ok) break;
+      const data = (await res.json()) as GitHubContributor[];
+      for (const c of data) {
+        if (c.type === 'User') {
+          out.push({
+            login: c.login,
+            avatarUrl: c.avatar_url,
+            htmlUrl: c.html_url,
+            contributions: c.contributions,
+          });
+        }
+      }
+      if (data.length < PER_PAGE) break;
+    }
+    return out;
   } catch {
-    return [];
+    return out;
   }
 }
 
