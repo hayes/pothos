@@ -11,6 +11,13 @@ import { SketchName } from './SketchName';
 import { type SchemaStatus, StatusPill } from './StatusPill';
 
 interface Props {
+  /**
+   * Embedded mode (rendered inside an iframe in the docs). Hides the
+   * "Load example" picker and the editable sketch name, and keeps the
+   * Wordmark from navigating the iframe back to the home page.
+   */
+  embed?: boolean;
+
   sketchName: string;
   onSketchRename: (next: string) => void;
 
@@ -37,6 +44,7 @@ interface Props {
 }
 
 export function Toolbar({
+  embed = false,
   sketchName,
   onSketchRename,
   status,
@@ -55,39 +63,71 @@ export function Toolbar({
   onToggleOverflow,
   overflowItems,
 }: Props) {
+  // In the standalone /playground route, the Wordmark links home. In an
+  // embed iframe, that would navigate the iframe to the marketing page,
+  // which is jarring; we open in a new tab and break out of the frame
+  // instead so it behaves as "view in full app".
+  const wordmark = <Wordmark width={104} height={24} />;
+  const wordmarkSlot = embed ? (
+    <a
+      href="/playground"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Open Pothos Playground in a new tab"
+      aria-label="Pothos"
+      className="flex items-center hover:opacity-90 transition-opacity"
+    >
+      {wordmark}
+    </a>
+  ) : (
+    <Link
+      href="/"
+      title="Back to Pothos"
+      aria-label="Pothos"
+      className="flex items-center hover:opacity-90 transition-opacity"
+    >
+      {wordmark}
+    </Link>
+  );
+
   return (
     <div className="relative z-[5] flex items-center gap-3.5 px-6 py-3 bg-bm-bg border-b border-bm-line">
-      <Link
-        href="/"
-        title="Back to Pothos"
-        aria-label="Pothos"
-        className="flex items-center hover:opacity-90 transition-opacity"
-      >
-        <Wordmark width={104} height={24} />
-      </Link>
+      {wordmarkSlot}
       <span className="h-5 w-px bg-bm-line" aria-hidden="true" />
       <div className="flex items-baseline gap-2.5">
         <span className="font-serif text-[18px] font-normal tracking-[-0.01em] text-bm-ink">
           Playground
         </span>
-        <SketchName value={sketchName} onChange={onSketchRename} />
+        {/* In embed mode the sketch is read-only — show the loaded
+            example's title (or nothing if no example). In standalone
+            mode the user can rename, but skip the input when there's
+            no name yet so we don't render an empty button. */}
+        {embed
+          ? sketchName && (
+              <span className="font-serif text-[13px] italic text-bm-ink-muted">
+                {sketchName}
+              </span>
+            )
+          : sketchName && <SketchName value={sketchName} onChange={onSketchRename} />}
       </div>
 
-      <div className="relative">
-        <button
-          type="button"
-          onClick={onToggleExamples}
-          className={`inline-flex items-center gap-1.5 rounded text-[13px] cursor-pointer px-3.5 py-1.5 font-medium transition-colors ${
-            examplesOpen
-              ? 'bg-bm-accent text-bm-bg'
-              : 'bg-bm-accent-soft text-bm-accent-ink border border-bm-accent/40 hover:bg-bm-accent hover:text-bm-bg'
-          }`}
-        >
-          <span>＋ Load example</span>
-          <span className="text-[10px] opacity-70">▾</span>
-        </button>
-        {examplesPicker}
-      </div>
+      {!embed && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={onToggleExamples}
+            className={`inline-flex items-center gap-1.5 rounded text-[13px] cursor-pointer px-3.5 py-1.5 font-medium transition-colors ${
+              examplesOpen
+                ? 'bg-bm-accent text-bm-bg'
+                : 'bg-bm-accent-soft text-bm-accent-ink border border-bm-accent/40 hover:bg-bm-accent hover:text-bm-bg'
+            }`}
+          >
+            <span>＋ Load example</span>
+            <span className="text-[10px] opacity-70">▾</span>
+          </button>
+          {examplesPicker}
+        </div>
+      )}
 
       <div className="flex-1" />
 

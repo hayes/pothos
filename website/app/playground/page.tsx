@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from '@/components/Providers';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUrlInit, useUrlSync } from '../../hooks/playground/useUrlSync';
 import { ConsoleDrawer } from '../../components/playground/ConsoleDrawer/ConsoleDrawer';
 import { ExamplesPicker } from '../../components/playground/ExamplesPicker/ExamplesPicker';
@@ -24,6 +24,33 @@ import { copyToClipboard, createShareableURL } from '../../lib/playground/url-st
 import { usePlaygroundCompiler } from '../../lib/playground/use-playground-compiler';
 import { defaultFiles, defaultOperations } from './defaults';
 
+/**
+ * Read `?embed`, `?example`, `?query` from window.location once on
+ * mount. Doing this in an effect (not in component init) keeps SSR
+ * and the first client paint identical so React doesn't fault.
+ */
+function readSearchParamsOnce(): {
+  embed: boolean;
+  exampleId: string | null;
+  query: string | null;
+} {
+  if (typeof window === 'undefined') {
+    return { embed: false, exampleId: null, query: null };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const exampleId = params.get('example');
+  const queryRaw = params.get('query');
+  let query: string | null = null;
+  if (queryRaw) {
+    try {
+      query = atob(queryRaw);
+    } catch {
+      query = queryRaw;
+    }
+  }
+  return { embed: params.get('embed') === '1', exampleId, query };
+}
+
 export default function PlaygroundPage() {
   // Initial state is the deterministic defaults — both server and client
   // render the same content for the first paint. The hash-based state
@@ -34,6 +61,10 @@ export default function PlaygroundPage() {
   const runner = useQueryRunner();
   const console_ = useConsoleLogs();
   const { resolvedTheme, setTheme } = useTheme();
+
+  // Read URL search params (?embed, ?example, ?query) once after mount.
+  const [embed, setEmbed] = useState(false);
+  const searchInitRef = useRef(false);
 
   const { state: compilerState } = usePlaygroundCompiler({
     files: filesState.files,
@@ -46,7 +77,11 @@ export default function PlaygroundPage() {
     console_.replaceCompile(compilerState.consoleLogs, compilerState.error);
   }, [compilerState.consoleLogs, compilerState.error, console_.replaceCompile]);
 
-  // UI: drawers / popovers / sketch name
+  // UI: drawers / popovers / sketch name. The default `untitled sketch`
+  // is the placeholder for the rename input on the standalone page;
+  // in embed mode the search-params effect below clears it so we never
+  // show the placeholder inside the iframe (the example title that
+  // mirrors in via the loader is what users actually see).
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [examplesOpen, setExamplesOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -100,6 +135,35 @@ export default function PlaygroundPage() {
     },
     [exampleLoader, applyExampleResult],
   );
+
+  // One-shot reader for `?embed`, `?example`, and `?query` URL params.
+  // Runs in an effect (not useState init) so SSR and the first client
+  // paint stay identical — `useUrlInit` does the same for hash state.
+  useEffect(() => {
+    if (searchInitRef.current) return;
+    searchInitRef.current = true;
+    const search = readSearchParamsOnce();
+    if (search.embed) {
+      setEmbed(true);
+      // Clear the standalone-mode placeholder so the toolbar renders
+      // nothing until the example load below mirrors a real title in.
+      setSketchName('');
+    }
+    if (search.exampleId) {
+      exampleLoader
+        .load(search.exampleId)
+        .then((result) => {
+          if (!result) return;
+          applyExampleResult(result);
+          if (search.query) {
+            opsState.setQuery(search.query);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to auto-load example from URL:', err);
+        });
+    }
+  }, [exampleLoader, applyExampleResult, opsState]);
 
   const handleStep = useCallback(
     async (index: number) => {
@@ -168,7 +232,7 @@ export default function PlaygroundPage() {
           opsState.setActiveIndex(0);
           exampleLoader.exit();
           runner.reset();
-          setSketchName('untitled sketch');
+          setSketchName(embed ? '' : 'untitled sketch');
         },
       },
       {
@@ -189,12 +253,17 @@ export default function PlaygroundPage() {
         },
       },
     ],
-    [compilerState.schemaSDL, exampleLoader, filesState, opsState, resolvedTheme, runner, setTheme],
+    [compilerState.schemaSDL, embed, exampleLoader, filesState, opsState, resolvedTheme, runner, setTheme],
   );
 
   return (
-    <div className="playground-shell grid grid-rows-[auto_auto_1fr_auto] h-screen min-h-[820px] bg-bm-bg text-bm-ink relative">
+    <div
+      className={`playground-shell grid grid-rows-[auto_auto_1fr_auto] h-screen bg-bm-bg text-bm-ink relative ${
+        embed ? '' : 'min-h-[820px]'
+      }`}
+    >
       <Toolbar
+        embed={embed}
         sketchName={sketchName}
         onSketchRename={setSketchName}
         status={status}

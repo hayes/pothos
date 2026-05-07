@@ -42,11 +42,15 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
   query,
   onClose,
 }) => {
-  // Build playground URL - let the playground page handle example loading
+  // Build playground URL — `embed=1` puts the page in embedded mode
+  // (no link-out on the wordmark, no examples picker, no default
+  // "untitled sketch" placeholder). `example=` is read on mount and
+  // resolved to a real example load. `query=` is base64-encoded so it
+  // round-trips arbitrary GraphQL bodies.
   const playgroundURL = useMemo(() => {
-    // If exampleId is provided, use query parameter (playground will load it)
     if (exampleId) {
       const params = new URLSearchParams();
+      params.set('embed', '1');
       params.set('example', exampleId);
       if (query) {
         params.set('query', btoa(query));
@@ -54,23 +58,16 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
       return `/playground?${params.toString()}`;
     }
 
-    // If custom code is provided, use hash-based state
     if (code) {
       const state = encodePlaygroundState({
-        files: [
-          {
-            filename: 'schema.ts',
-            content: code,
-          },
-        ],
+        files: [{ filename: 'schema.ts', content: code }],
         query,
         viewMode: query ? 'graphql' : 'code',
       });
-      return `/playground#${state}`;
+      return `/playground?embed=1#${state}`;
     }
 
-    // Default to empty playground
-    return '/playground';
+    return '/playground?embed=1';
   }, [exampleId, code, query]);
 
   // Close on Escape key
