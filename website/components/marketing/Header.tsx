@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import { ThemedLogo } from './ThemedLogo';
 import { ThemeToggle } from './ThemeToggle';
 
 const NAV_LINKS = [
@@ -19,8 +19,9 @@ export function Header() {
           aria-label="Pothos GraphQL"
           className="flex items-center text-bm-ink hover:opacity-90 transition-opacity"
         >
-          <Image
-            src="/assets/logo-name-auto.svg"
+          <ThemedLogo
+            lightSrc="/assets/logo-name-light.svg"
+            darkSrc="/assets/logo-name-dark.svg"
             alt="Pothos"
             width={130}
             height={32}

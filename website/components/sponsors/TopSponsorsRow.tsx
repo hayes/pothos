@@ -1,3 +1,4 @@
+import { ThemedImage } from '../marketing/ThemedImage';
 import { TOP_SPONSORS } from './topSponsors';
 
 /**
@@ -17,10 +18,7 @@ export function TopSponsorsRow() {
           className="group flex flex-col px-6 py-7 border-r border-b border-bm-line hover:bg-bm-surface transition-colors"
         >
           <div className="h-10 flex items-center mb-4">
-            {/* biome-ignore lint/performance/noImgElement: external logos sit on
-                hayes/pothos-graphql.dev — Next/Image on a remote svg adds
-                nothing here */}
-            <img
+            <ThemedImage
               src={s.logo}
               alt={`${s.name} logo`}
               className="max-h-10 max-w-[140px] opacity-90 group-hover:opacity-100 transition-opacity"
