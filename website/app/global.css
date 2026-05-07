@@ -169,6 +169,18 @@ body {
   }
 }
 
+/* Tell fumadocs that the page chrome above its layout is 72px tall —
+   this is the height of our marketing Header. With fumadocs's own nav
+   disabled, --fd-nav-height defaults to 0 and the TOC pins to the very
+   top of the viewport, sliding under our sticky header. */
+#nd-docs-layout {
+  --fd-nav-height: 72px;
+  --fd-tocnav-height: 72px;
+}
+#nd-toc {
+  top: 72px;
+}
+
 /* Article headings — Fraunces serif per the design's article scale */
 /* Use html.* prefix to beat fumadocs's `:where()`-wrapped prose styles. */
 html article#nd-page h1,
