@@ -19,9 +19,6 @@
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
-    "@graphiql/plugin-doc-explorer": "^0.4.1",
-    "@graphiql/react": "^0.37.3",
-    "@graphiql/toolkit": "^0.11.2",
     "@monaco-editor/react": "^4.7.0",
     "@pothos/core": "workspace:^",
     "@pothos/plugin-directives": "workspace:^",
@@ -33,13 +30,11 @@
     "@pothos/plugin-with-input": "workspace:^",
     "@tailwindcss/postcss": "^4.2.2",
     "class-variance-authority": "^0.7.1",
-    "devicons-react": "^1.5.0",
     "esbuild-wasm": "^0.27.1",
     "fumadocs-core": "16.7.15",
     "fumadocs-docgen": "^3.0.10",
     "fumadocs-mdx": "14.2.14",
     "fumadocs-ui": "16.7.15",
-    "graphiql": "^5.2.2",
     "graphql": "^16.13.2",
     "lucide-react": "^1.8.0",
     "lz-string": "^1.5.0",
