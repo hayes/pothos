@@ -718,13 +718,13 @@ importers:
         version: link:../test-utils
       drizzle-graphql:
         specifier: ^0.8.5
-        version: 0.8.5(drizzle-orm@1.0.0-beta.23(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2)
+        version: 0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2)
       drizzle-kit:
-        specifier: 1.0.0-beta.23
-        version: 1.0.0-beta.23
+        specifier: 1.0.0-rc.2
+        version: 1.0.0-rc.2
       drizzle-orm:
-        specifier: 1.0.0-beta.23
-        version: 1.0.0-beta.23(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
+        specifier: 1.0.0-rc.2
+        version: 1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
       graphql-scalars:
         specifier: ^1.25.0
         version: 1.25.0(graphql@16.13.2)
@@ -6994,22 +6994,20 @@ packages:
       drizzle-orm: '>=0.30.9'
       graphql: ^16.10.0
 
-  drizzle-kit@1.0.0-beta.23:
-    resolution: {integrity: sha512-AXVAYTItegF3h1JQECt4s4z9RwipiBoK99A3IY/thGZ0xdSPlsXZr/SU9sh6JvQi5bq08ZYXmKcdIwJpNxITig==}
+  drizzle-kit@1.0.0-rc.2:
+    resolution: {integrity: sha512-TRxUmj1wDA2QCt3GvuhfamvIa66wJ7+MzSxBMKkpRtYScjHTumT9BE+x6daSzuEacSrPEuUH5/cW1uo5RkoPIg==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.23:
-    resolution: {integrity: sha512-LeXxZgOd6YPCBNEz7z7BrrvQqrkjFf4vrRDbW8xKCvvTWYBAadaIwrXNdLM/rHEky0vdtzX6SG0EpX0hsd4ZVg==}
+  drizzle-orm@1.0.0-rc.2:
+    resolution: {integrity: sha512-UXYDkbplF5wX0hwxll+80QhEwUvAJLBu+tAK/d4fna18kLE6VuliAzufF/ieDEIJeSnLRYgtmsXD6x1Xuy1kIg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
-      '@effect/sql': ^0.48.5
-      '@effect/sql-pg': ^0.49.7
+      '@effect/sql-pg': '>=4.0.0-beta.58 || >=4.0.0'
       '@electric-sql/pglite': '>=0.2.0'
       '@libsql/client': '>=0.10.0'
       '@libsql/client-wasm': '>=0.10.0'
       '@neondatabase/serverless': '>=0.10.0'
-      '@netlify/db': '>=0.4.0'
       '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1.13'
@@ -7029,8 +7027,8 @@ packages:
       arktype: '>=2.0.0'
       better-sqlite3: '>=9.3.0'
       bun-types: '*'
+      effect: '>=4.0.0-beta.58 || >=4.0.0'
       expo-sqlite: '>=14.0.0'
-      gel: '>=2'
       mssql: ^11.0.1
       mysql2: '>=2'
       pg: '>=8'
@@ -7045,8 +7043,6 @@ packages:
         optional: true
       '@cloudflare/workers-types':
         optional: true
-      '@effect/sql':
-        optional: true
       '@effect/sql-pg':
         optional: true
       '@electric-sql/pglite':
@@ -7056,8 +7052,6 @@ packages:
       '@libsql/client-wasm':
         optional: true
       '@neondatabase/serverless':
-        optional: true
-      '@netlify/db':
         optional: true
       '@op-engineering/op-sqlite':
         optional: true
@@ -7097,9 +7091,9 @@ packages:
         optional: true
       bun-types:
         optional: true
-      expo-sqlite:
+      effect:
         optional: true
-      gel:
+      expo-sqlite:
         optional: true
       mssql:
         optional: true
@@ -11551,6 +11545,7 @@ packages:
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@9.0.1:
@@ -18242,15 +18237,15 @@ snapshots:
       p-event: 2.3.1
       pify: 4.0.1
 
-  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-beta.23(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2):
+  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2):
     dependencies:
-      drizzle-orm: 1.0.0-beta.23(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
+      drizzle-orm: 1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
       graphql: 16.13.2
       graphql-parse-resolve-info: 4.14.1(graphql@16.13.2)
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-kit@1.0.0-beta.23:
+  drizzle-kit@1.0.0-rc.2:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
       '@js-temporal/polyfill': 0.5.1
@@ -18258,7 +18253,7 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.6.1
 
-  drizzle-orm@1.0.0-beta.23(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6):
+  drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6):
     optionalDependencies:
       '@electric-sql/pglite': 0.4.1
       '@libsql/client': 0.17.2(encoding@0.1.13)
