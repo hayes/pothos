@@ -4,82 +4,64 @@ import type { Monaco } from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useState } from 'react';
 import { PaletteEditor } from '../../components/theme-editor/PaletteEditor';
+import { MODE_PRESETS, type Mode } from '../../components/theme-editor/palettes';
 import { PreviewSample } from '../../components/theme-editor/PreviewSample';
 import { SAMPLES } from '../../components/theme-editor/samples';
 import {
-  CUTTING_PALETTE_PRESET,
   definePaletteTheme,
   type EditorBaseColors,
-  FOREST_PALETTE_PRESET,
   type PaletteSlots,
   registerPothosMonacoThemes,
 } from '../../lib/playground/monaco-theme';
 
 const PREVIEW_THEME = 'pothos-theme-editor-preview';
 
-const FOREST_BASE: EditorBaseColors = {
-  background: '#142019',
-  foreground: '#e8efe2',
-  lineNumber: '#3a4c40',
-  lineNumberActive: '#8aa890',
-  selection: '#284032',
-  cursor: '#e8c08a',
-};
-
-const CUTTING_BASE: EditorBaseColors = {
-  background: '#fbfaf5',
-  foreground: '#1a201b',
-  lineNumber: '#c8c4b8',
-  lineNumberActive: '#7a8076',
-  selection: '#e3e8d6',
-  cursor: '#3d6b3a',
-};
-
 export default function ThemeEditorPage() {
   const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme !== 'light';
-
-  const [palette, setPalette] = useState<PaletteSlots>(
-    isDark ? FOREST_PALETTE_PRESET : CUTTING_PALETTE_PRESET,
-  );
-  const [base, setBase] = useState<EditorBaseColors>(isDark ? FOREST_BASE : CUTTING_BASE);
+  const [mounted, setMounted] = useState(false);
+  const [mode, setMode] = useState<Mode>('dark');
+  const [palette, setPalette] = useState<PaletteSlots>(MODE_PRESETS.dark.palette);
+  const [base, setBase] = useState<EditorBaseColors>(MODE_PRESETS.dark.base);
   const [monaco, setMonaco] = useState<Monaco | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Re-define the preview theme on every palette/base change. Monaco
-  // accepts re-definition of the same theme name; existing editors using
-  // it pick up the new colors after a setTheme().
+  // After mount, sync the initial mode to the site's resolved theme.
+  // Doing this in an effect avoids a hydration mismatch — the server
+  // can't know what the client's next-themes resolved to.
+  useEffect(() => {
+    setMounted(true);
+    const initial: Mode = resolvedTheme === 'light' ? 'light' : 'dark';
+    setMode(initial);
+    setPalette(MODE_PRESETS[initial].palette);
+    setBase(MODE_PRESETS[initial].base);
+  }, [resolvedTheme]);
+
+  // Re-define the preview theme on every palette/base/mode change.
   useEffect(() => {
     if (!monaco) return;
-    definePaletteTheme(monaco, PREVIEW_THEME, palette, base, isDark ? 'vs-dark' : 'vs');
+    definePaletteTheme(monaco, PREVIEW_THEME, palette, base, MODE_PRESETS[mode].inheritFrom);
     monaco.editor.setTheme(PREVIEW_THEME);
-  }, [monaco, palette, base, isDark]);
+  }, [monaco, palette, base, mode]);
 
-  // First PreviewSample uses this to capture Monaco; subsequent samples
-  // share the same Monaco instance the loader returns.
   const handleBeforeMount = useCallback((m: Monaco) => {
     registerPothosMonacoThemes(m);
     setMonaco(m);
   }, []);
 
-  const loadPreset = (which: 'forest' | 'cutting') => {
-    if (which === 'forest') {
-      setPalette(FOREST_PALETTE_PRESET);
-      setBase(FOREST_BASE);
-    } else {
-      setPalette(CUTTING_PALETTE_PRESET);
-      setBase(CUTTING_BASE);
-    }
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setPalette(MODE_PRESETS[next].palette);
+    setBase(MODE_PRESETS[next].base);
   };
 
   const handleCopyJSON = async () => {
-    const out = { name: 'My Pothos Theme', base, palette };
+    const out = { name: 'My Pothos Theme', mode, base, palette };
     try {
       await navigator.clipboard.writeText(JSON.stringify(out, null, 2));
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      // fall back: do nothing — UI only flips on success
+      // ignore clipboard failures
     }
   };
 
@@ -88,6 +70,7 @@ export default function ThemeEditorPage() {
       <PaletteEditor
         palette={palette}
         base={base}
+        mode={mode}
         onPaletteChange={setPalette}
         onBaseChange={setBase}
       />
@@ -95,23 +78,38 @@ export default function ThemeEditorPage() {
       <main className="grid grid-rows-[auto_1fr] min-h-0">
         <header className="flex items-center px-6 h-12 border-b border-bm-line bg-bm-bg gap-3">
           <span className="font-serif text-[18px] tracking-[-0.01em]">Theme editor</span>
-          <span className="text-bm-ink-muted text-[12px]">
-            Live preview · {isDark ? 'dark' : 'light'} base
-          </span>
+          {mounted && (
+            <span className="text-bm-ink-muted text-[12px]">
+              Live preview · {mode} base
+            </span>
+          )}
+
+          <div className="ml-2 inline-flex rounded border border-bm-line overflow-hidden text-[12px]">
+            {(['light', 'dark'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => switchMode(m)}
+                className={`px-3 py-1.5 transition-colors ${
+                  mode === m
+                    ? 'bg-bm-ink text-bm-bg'
+                    : 'text-bm-ink-soft hover:bg-bm-surface-alt'
+                }`}
+              >
+                {m === 'light' ? 'Light' : 'Dark'}
+              </button>
+            ))}
+          </div>
+
           <div className="flex-1" />
+
           <button
             type="button"
-            onClick={() => loadPreset('cutting')}
+            onClick={() => switchMode(mode)}
+            title="Reset to preset"
             className="text-[12px] px-3 py-1.5 rounded border border-bm-line text-bm-ink-soft hover:bg-bm-surface-alt"
           >
-            Load Cutting
-          </button>
-          <button
-            type="button"
-            onClick={() => loadPreset('forest')}
-            className="text-[12px] px-3 py-1.5 rounded border border-bm-line text-bm-ink-soft hover:bg-bm-surface-alt"
-          >
-            Load Forest
+            Reset
           </button>
           <button
             type="button"

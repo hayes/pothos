@@ -2,10 +2,13 @@
 
 import type { EditorBaseColors, PaletteSlots } from '../../lib/playground/monaco-theme';
 import { ColorRow } from './ColorRow';
+import type { Mode } from './palettes';
+import { paletteGroupsFor } from './palettes';
 
 interface Props {
   palette: PaletteSlots;
   base: EditorBaseColors;
+  mode: Mode;
   onPaletteChange: (next: PaletteSlots) => void;
   onBaseChange: (next: EditorBaseColors) => void;
 }
@@ -42,7 +45,8 @@ const BASE_FIELDS: Array<{
   { key: 'cursor', label: 'Cursor' },
 ];
 
-export function PaletteEditor({ palette, base, onPaletteChange, onBaseChange }: Props) {
+export function PaletteEditor({ palette, base, mode, onPaletteChange, onBaseChange }: Props) {
+  const swatches = paletteGroupsFor(mode);
   return (
     <aside className="flex flex-col min-h-0 overflow-auto bg-bm-bg border-r border-bm-line w-[320px] py-3">
       <Section title="Editor surface">
@@ -53,6 +57,7 @@ export function PaletteEditor({ palette, base, onPaletteChange, onBaseChange }: 
             description={f.description}
             value={base[f.key]}
             onChange={(v) => onBaseChange({ ...base, [f.key]: v })}
+            swatches={swatches}
           />
         ))}
       </Section>
@@ -65,6 +70,7 @@ export function PaletteEditor({ palette, base, onPaletteChange, onBaseChange }: 
             description={f.description}
             value={palette[f.key]}
             onChange={(v) => onPaletteChange({ ...palette, [f.key]: v })}
+            swatches={swatches}
           />
         ))}
       </Section>
