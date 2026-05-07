@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Playground Theme Debug', () => {
   test('debug all Monaco editors and their themes', async ({ page }) => {
@@ -35,9 +35,9 @@ test.describe('Playground Theme Debug', () => {
 
     console.log('\n=== Initial State (Light Theme) ===');
     console.log('Found', editorInfo.length, 'Monaco editors');
-    editorInfo.forEach(info => {
+    editorInfo.forEach((info) => {
       console.log(`Editor ${info.index}:`, {
-        parent: info.parentClass.substring(0, 50) + '...',
+        parent: `${info.parentClass.substring(0, 50)}...`,
         textColor: info.textColor,
         bgColor: info.bgColor,
         hasViewLine: info.hasViewLine,
@@ -46,9 +46,11 @@ test.describe('Playground Theme Debug', () => {
 
     // Check window.monaco theme
     const initialMonacoState = await page.evaluate(() => {
-      // @ts-ignore
+      // @ts-expect-error
       const monaco = window.monaco;
-      if (!monaco) return { error: 'Monaco not available' };
+      if (!monaco) {
+        return { error: 'Monaco not available' };
+      }
 
       return {
         hasSetTheme: typeof monaco.editor.setTheme === 'function',
@@ -86,9 +88,9 @@ test.describe('Playground Theme Debug', () => {
     });
 
     console.log('\n=== After Toggle (Dark Theme) ===');
-    afterToggleInfo.forEach(info => {
+    afterToggleInfo.forEach((info) => {
       console.log(`Editor ${info.index}:`, {
-        parent: info.parentClass.substring(0, 50) + '...',
+        parent: `${info.parentClass.substring(0, 50)}...`,
         textColor: info.textColor,
         bgColor: info.bgColor,
         hasViewLine: info.hasViewLine,
@@ -99,13 +101,15 @@ test.describe('Playground Theme Debug', () => {
     console.log('\n=== Color Changes ===');
     for (let i = 0; i < Math.min(editorInfo.length, afterToggleInfo.length); i++) {
       const changed = editorInfo[i].textColor !== afterToggleInfo[i].textColor;
-      console.log(`Editor ${i}: ${changed ? 'CHANGED' : 'NO CHANGE'} (${editorInfo[i].textColor} → ${afterToggleInfo[i].textColor})`);
+      console.log(
+        `Editor ${i}: ${changed ? 'CHANGED' : 'NO CHANGE'} (${editorInfo[i].textColor} → ${afterToggleInfo[i].textColor})`,
+      );
     }
 
     // Manually try to set theme via window.monaco
     console.log('\n=== Manual Theme Setting Test ===');
     await page.evaluate(() => {
-      // @ts-ignore
+      // @ts-expect-error
       const monaco = window.monaco;
       if (monaco) {
         console.log('Manually setting theme to vs-dark via window.monaco');
@@ -125,7 +129,7 @@ test.describe('Playground Theme Debug', () => {
     });
 
     console.log('\n=== After Manual setTheme ===');
-    afterManualSet.forEach(info => {
+    afterManualSet.forEach((info) => {
       console.log(`Editor ${info.index}: ${info.textColor}`);
     });
 

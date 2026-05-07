@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Playground Theme', () => {
   test.beforeEach(async ({ page }) => {
@@ -20,7 +20,7 @@ test.describe('Playground Theme', () => {
 
     // Check Monaco theme
     const monacoTheme = await page.evaluate(() => {
-      // @ts-ignore
+      // @ts-expect-error
       return window.monaco?.editor?.getModels()?.[0]?._options?.theme || 'unknown';
     });
     console.log('Initial Monaco theme:', monacoTheme);
@@ -119,9 +119,11 @@ test.describe('Playground Theme', () => {
     await page.waitForTimeout(1000);
 
     const monacoDebugInfo = await page.evaluate(() => {
-      // @ts-ignore
+      // @ts-expect-error
       const monaco = window.monaco;
-      if (!monaco) return { error: 'Monaco not available' };
+      if (!monaco) {
+        return { error: 'Monaco not available' };
+      }
 
       // Try to access Monaco's internal theme state
       const editor = monaco.editor;
@@ -130,7 +132,7 @@ test.describe('Playground Theme', () => {
       return {
         monacoAvailable: true,
         modelsCount: models.length,
-        editorMethods: Object.keys(editor).filter(k => typeof (editor as any)[k] === 'function'),
+        editorMethods: Object.keys(editor).filter((k) => typeof (editor as any)[k] === 'function'),
         // Try to get theme
         canSetTheme: typeof editor.setTheme === 'function',
         // Check what themes are defined
@@ -142,7 +144,7 @@ test.describe('Playground Theme', () => {
 
     // Try to manually set theme and see if it works (check text color since backgrounds are transparent)
     await page.evaluate(() => {
-      // @ts-ignore
+      // @ts-expect-error
       const monaco = window.monaco;
       if (monaco) {
         console.log('Attempting to set theme to "vs"');
@@ -161,7 +163,7 @@ test.describe('Playground Theme', () => {
 
     // Set to dark
     await page.evaluate(() => {
-      // @ts-ignore
+      // @ts-expect-error
       const monaco = window.monaco;
       if (monaco) {
         console.log('Attempting to set theme to "vs-dark"');

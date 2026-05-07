@@ -406,7 +406,7 @@ async function main() {
   }> = [];
 
   for (const example of examples) {
-    if (!example || !example.title) {
+    if (!example?.title) {
       console.warn('Warning: Invalid example found:', example);
       continue;
     }
@@ -415,7 +415,7 @@ async function main() {
     const schemaFile = example.files?.find(
       (f: { filename: string; content: string }) => f.filename === 'schema.ts',
     );
-    if (!schemaFile || !schemaFile.content) {
+    if (!schemaFile?.content) {
       console.warn(`Warning: No schema.ts file found for ${example.title}`);
       continue;
     }
