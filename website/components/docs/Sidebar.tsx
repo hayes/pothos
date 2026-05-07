@@ -76,6 +76,22 @@ export function Sidebar({ tree }: Props) {
         } ${collapsed ? 'md:w-[56px]' : 'md:w-[260px]'}`}
         style={{ height: mobileOpen ? '100vh' : 'calc(100vh - 72px)' }}
       >
+        {/* When collapsed, show a single prominent expand button at the
+            top so the rail is obviously re-openable — putting it at the
+            top keeps it above floating UI like Next dev tools. */}
+        {collapsed && (
+          <div className="flex justify-center py-3 border-b border-bm-line">
+            <button
+              type="button"
+              onClick={() => setAndPersist(false)}
+              aria-label="Expand sidebar"
+              title="Expand"
+              className="inline-flex items-center justify-center size-8 rounded text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors"
+            >
+              <CollapseIcon collapsed />
+            </button>
+          </div>
+        )}
         {!collapsed && (
           <nav className="flex-1 min-h-0 overflow-y-auto py-6 px-4 flex flex-col gap-5">
             {tree.children.map((node, i) => (
@@ -151,15 +167,17 @@ function SidebarFooter({
           ×
         </button>
       )}
-      <button
-        type="button"
-        onClick={onToggleCollapsed}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        title={collapsed ? 'Expand' : 'Collapse'}
-        className="hidden md:inline-flex items-center justify-center size-8 rounded text-bm-ink-muted hover:text-bm-ink hover:bg-bm-surface-alt transition-colors"
-      >
-        <CollapseIcon collapsed={collapsed} />
-      </button>
+      {!collapsed && (
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label="Collapse sidebar"
+          title="Collapse"
+          className="hidden md:inline-flex items-center justify-center size-8 rounded text-bm-ink-muted hover:text-bm-ink hover:bg-bm-surface-alt transition-colors"
+        >
+          <CollapseIcon collapsed={false} />
+        </button>
+      )}
     </footer>
   );
 }
