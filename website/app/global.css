@@ -32,24 +32,23 @@
   --bm-syntax-lineno: #c8c4b8;
 }
 
-/* Dark — Pine outer chrome with Conservatory panels (the "moss-on-pine"
-   default the design preview describes). Outer page is the deeper Pine
-   surface (#0f1211); panels and the editor lift to Conservatory's
-   warm-charcoal (#181b1a) so the schema sidebar / editor / right column
-   sit visibly *on top of* the page rather than blending into it.
-   Syntax tokens come from Conservatory; moss is the one saturated note. */
+/* Dark — Conservatory: deep pine ground for chrome, with the warm-charcoal
+   Conservatory editor (from themes/pothos-conservatory-dark.json) inside.
+   Chrome palette comes from directionA.jsx > conservatory ("dark · deep
+   pine ground"); syntax token colors come from the matching VS Code
+   theme JSON. The bright moss (#a8d488) is the single saturated accent. */
 .dark {
-  --bm-bg: #0f1211;
-  --bm-surface: #181b1a;
-  --bm-surface-alt: #1e2220;
-  --bm-ink: #eeece4;
-  --bm-ink-soft: #8a9690;
-  --bm-ink-muted: #74766e;
-  --bm-line: #262b28;
-  --bm-line-soft: #1d201f;
-  --bm-accent: #7fc69b;
-  --bm-accent-soft: #1f2c25;
-  --bm-accent-ink: #a4d8b6;
+  --bm-bg: #142019;
+  --bm-surface: #1a2820;
+  --bm-surface-alt: #1f3026;
+  --bm-ink: #e8efe2;
+  --bm-ink-soft: #a8b8a8;
+  --bm-ink-muted: #7a8a7a;
+  --bm-line: #243228;
+  --bm-line-soft: #1c2820;
+  --bm-accent: #a8d488;
+  --bm-accent-soft: #1f3026;
+  --bm-accent-ink: #c8e8a8;
   --bm-danger: #dc6e5a;
   --bm-warn: #e8a87c;
 
