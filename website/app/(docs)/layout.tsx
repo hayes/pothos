@@ -1,31 +1,22 @@
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { ReactNode } from 'react';
 import { source } from '@/app/source';
 import { Sidebar } from '../../components/docs/Sidebar';
 import { Header } from '../../components/marketing/Header';
-import { docsOptions } from './layout.config';
 
 /**
- * Docs layout: marketing Header above, our custom Sidebar on the left,
- * fumadocs DocsLayout (with its own nav + sidebar disabled) on the
- * right hosting the article + TOC. Wrapping like this lets us replace
- * fumadocs's sidebar wholesale without losing the DocsPage / DocsBody
- * context that the per-page renderer relies on.
+ * Docs layout: marketing Header + custom Sidebar. Children render
+ * directly inside the right column — pages that need fumadocs's
+ * DocsPage scaffolding (the MDX catch-all) wrap themselves in
+ * DocsLayout; pages that don't (this overview, sponsors, etc.) get
+ * the full column width without fumadocs's article grid.
  */
 export default function DocsLayoutWrapper({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-bm-bg text-bm-ink">
       <Header />
-      <div className="flex-1 grid grid-cols-[260px_1fr] min-h-0">
+      <div className="flex-1 flex min-h-0">
         <Sidebar tree={source.pageTree} />
-        <DocsLayout
-          {...docsOptions}
-          nav={{ enabled: false }}
-          sidebar={{ enabled: false }}
-          links={docsOptions.links}
-        >
-          {children}
-        </DocsLayout>
+        <div className="flex-1 min-w-0 min-h-0 overflow-x-hidden">{children}</div>
       </div>
     </div>
   );
