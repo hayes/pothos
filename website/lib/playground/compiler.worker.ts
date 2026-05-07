@@ -12,9 +12,12 @@ async function initEsbuild(): Promise<void> {
     return;
   }
 
+  // Pull the matching wasm for the JS API actually installed — the
+  // wasm and JS must be the same esbuild release or transform() hangs
+  // silently after init.
   initPromise = esbuild
     .initialize({
-      wasmURL: 'https://unpkg.com/esbuild-wasm@0.27.1/esbuild.wasm',
+      wasmURL: `https://unpkg.com/esbuild-wasm@${esbuild.version}/esbuild.wasm`,
     })
     .then(() => {
       esbuildInitialized = true;
