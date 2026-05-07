@@ -8,7 +8,7 @@ import { exampleMetadata } from '../../components/playground/examples';
 import { OperationPane } from '../../components/playground/OperationPane/OperationPane';
 import { ResponsePane } from '../../components/playground/ResponsePane/ResponsePane';
 import { SchemaEditor } from '../../components/playground/SchemaEditor/SchemaEditor';
-import { SchemaExplorer } from '../../components/playground/SchemaExplorer/SchemaExplorer';
+import { SchemaSidebar } from '../../components/playground/SchemaSidebar/SchemaSidebar';
 import { StepperBar } from '../../components/playground/StepperBar/StepperBar';
 import type { OverflowItem } from '../../components/playground/Toolbar/OverflowMenu';
 import { Toolbar } from '../../components/playground/Toolbar/Toolbar';
@@ -232,8 +232,22 @@ export default function PlaygroundPage() {
         <div />
       )}
 
-      <div className="grid grid-cols-[260px_1fr_1fr] min-h-0">
-        <SchemaExplorer
+      <div className="grid grid-cols-[280px_1fr_1fr] min-h-0">
+        <SchemaSidebar
+          files={filesState.files}
+          activeIndex={filesState.activeIndex}
+          sdlActive={sdlActive}
+          onSelectFile={(i) => {
+            setSdlActive(false);
+            filesState.setActiveIndex(i);
+          }}
+          onSelectSdl={() => setSdlActive(true)}
+          onAddFile={() => {
+            setSdlActive(false);
+            filesState.addFile();
+          }}
+          onRenameFile={filesState.renameFile}
+          onRemoveFile={filesState.removeFile}
           schema={compilerState.schema}
           schemaSDL={compilerState.schemaSDL}
           isCompiling={compilerState.isCompiling}
@@ -244,18 +258,7 @@ export default function PlaygroundPage() {
           activeIndex={filesState.activeIndex}
           sdlActive={sdlActive}
           schemaSDL={compilerState.schemaSDL}
-          onSelectFile={(i) => {
-            setSdlActive(false);
-            filesState.setActiveIndex(i);
-          }}
-          onSelectSdl={() => setSdlActive(true)}
           onChange={(i, content) => filesState.updateAt(i, content)}
-          onAddFile={() => {
-            setSdlActive(false);
-            filesState.addFile();
-          }}
-          onRenameFile={filesState.renameFile}
-          onRemoveFile={filesState.removeFile}
         />
 
         <section className="grid grid-rows-[1fr_1fr] min-w-0 min-h-0">

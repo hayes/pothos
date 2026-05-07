@@ -51,7 +51,7 @@ export function SchemaExplorer({
   }, [explorer.types, filter]);
 
   return (
-    <aside className="flex flex-col min-h-0 bg-bm-bg border-r border-bm-line">
+    <section className="flex flex-col min-h-0">
       <header className="flex items-center justify-between px-5 h-11 border-b border-bm-line text-[11px] uppercase tracking-[0.08em] text-bm-ink-muted">
         <span>Schema</span>
         <span className="text-[10px] normal-case tracking-normal">
@@ -108,6 +108,6 @@ export function SchemaExplorer({
           </pre>
         )}
       </div>
-    </aside>
+    </section>
   );
 }
