@@ -13,8 +13,7 @@ import { type SchemaStatus, StatusPill } from './StatusPill';
 interface Props {
   /**
    * Embedded mode (rendered inside an iframe in the docs). Hides the
-   * "Load example" picker and the editable sketch name, and keeps the
-   * Wordmark from navigating the iframe back to the home page.
+   * "Load example" picker and the editable sketch name.
    */
   embed?: boolean;
 
@@ -63,22 +62,19 @@ export function Toolbar({
   onToggleOverflow,
   overflowItems,
 }: Props) {
-  // In the standalone /playground route, the Wordmark links home. In an
-  // embed iframe, that would navigate the iframe to the marketing page,
-  // which is jarring; we open in a new tab and break out of the frame
-  // instead so it behaves as "view in full app".
+  // Embed mode renders the Wordmark as a plain image — clicking it
+  // would otherwise either navigate the iframe (taking the user out
+  // of the docs) or pop a new tab, both of which are surprising
+  // inside an inline embed. Standalone mode keeps the link home.
   const wordmark = <Wordmark width={104} height={24} />;
   const wordmarkSlot = embed ? (
-    <a
-      href="/playground"
-      target="_blank"
-      rel="noopener noreferrer"
-      title="Open Pothos Playground in a new tab"
+    <span
+      role="img"
       aria-label="Pothos"
-      className="flex items-center hover:opacity-90 transition-opacity"
+      className="flex items-center select-none"
     >
       {wordmark}
-    </a>
+    </span>
   ) : (
     <Link
       href="/"
@@ -151,7 +147,7 @@ export function Toolbar({
 
       <RunButton running={running} onRun={onRun} />
 
-      <ThemeToggle className="size-7" />
+      {!embed && <ThemeToggle className="size-7" />}
 
       <div className="relative">
         <button
