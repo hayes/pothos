@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { HeartLeaf } from './HeartLeaf';
+import { ThemeToggle } from './ThemeToggle';
 
 const NAV_LINKS = [
   { label: 'Docs', href: '/docs' },
@@ -30,6 +31,8 @@ export function Header() {
         </nav>
 
         <div className="flex-1" />
+
+        <ThemeToggle />
 
         <a
           href="https://github.com/hayes/pothos"

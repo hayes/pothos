@@ -1,6 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { HeartLeaf } from '../../marketing/HeartLeaf';
+import { ThemeToggle } from '../../marketing/ThemeToggle';
 import { Button } from '../shell/Button';
 import { type OverflowItem, OverflowMenu } from './OverflowMenu';
 import { RunButton } from './RunButton';
@@ -54,8 +57,17 @@ export function Toolbar({
 }: Props) {
   return (
     <div className="relative z-[5] flex items-center gap-3.5 px-6 py-3 bg-bm-bg border-b border-bm-line">
+      <Link
+        href="/"
+        title="Back to Pothos"
+        className="flex items-center gap-2 text-bm-ink hover:opacity-90 transition-opacity"
+      >
+        <HeartLeaf size={20} fill="var(--bm-accent)" stroke="none" veins />
+        <span className="font-serif text-[18px] tracking-[-0.01em]">Pothos</span>
+      </Link>
+      <span className="h-5 w-px bg-bm-line" aria-hidden="true" />
       <div className="flex items-baseline gap-2.5">
-        <span className="font-serif text-[20px] font-normal tracking-[-0.01em] text-bm-ink">
+        <span className="font-serif text-[18px] font-normal tracking-[-0.01em] text-bm-ink">
           Playground
         </span>
         <SketchName value={sketchName} onChange={onSketchRename} />
@@ -90,6 +102,8 @@ export function Toolbar({
       </Button>
 
       <RunButton running={running} onRun={onRun} />
+
+      <ThemeToggle className="size-7" />
 
       <div className="relative">
         <button

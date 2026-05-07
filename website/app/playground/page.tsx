@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/components/Providers';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUrlInit, useUrlSync } from '../../hooks/playground/useUrlSync';
 import { ConsoleDrawer } from '../../components/playground/ConsoleDrawer/ConsoleDrawer';
