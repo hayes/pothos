@@ -32,19 +32,25 @@
   --bm-syntax-lineno: #c8c4b8;
 }
 
+/* Dark — Pine outer chrome with Conservatory panels (the "moss-on-pine"
+   default the design preview describes). Outer page is the deeper Pine
+   surface (#0f1211); panels and the editor lift to Conservatory's
+   warm-charcoal (#181b1a) so the schema sidebar / editor / right column
+   sit visibly *on top of* the page rather than blending into it.
+   Syntax tokens come from Conservatory; moss is the one saturated note. */
 .dark {
-  --bm-bg: #111312;
-  --bm-surface: #1a1d1c;
-  --bm-surface-alt: #222724;
+  --bm-bg: #0f1211;
+  --bm-surface: #181b1a;
+  --bm-surface-alt: #1e2220;
   --bm-ink: #eeece4;
-  --bm-ink-soft: #b5b3a8;
+  --bm-ink-soft: #8a9690;
   --bm-ink-muted: #74766e;
-  --bm-line: #262a28;
+  --bm-line: #262b28;
   --bm-line-soft: #1d201f;
   --bm-accent: #7fc69b;
   --bm-accent-soft: #1f2c25;
   --bm-accent-ink: #a4d8b6;
-  --bm-danger: #e07064;
+  --bm-danger: #dc6e5a;
   --bm-warn: #e8a87c;
 
   --bm-editor-bg: #181b1a;
