@@ -1,8 +1,8 @@
 'use client';
 
 import Editor, { useMonaco } from '@monaco-editor/react';
-import { useTheme } from 'next-themes';
 import { useEffect, useRef, useState } from 'react';
+import { useEditorTheme } from '../../../hooks/playground/useEditorTheme';
 import type { PlaygroundFile } from '../types';
 
 interface Props {
@@ -25,9 +25,7 @@ export function SourceEditor({ filename, source, allFiles, onChange }: Props) {
     Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null
   >(null);
   const filesKeyRef = useRef('');
-
-  const { resolvedTheme } = useTheme();
-  const editorTheme = resolvedTheme === 'light' ? 'vs' : 'vs-dark';
+  const { theme: editorTheme, beforeMount: registerThemes } = useEditorTheme();
 
   useEffect(() => {
     if (!monaco || typesLoaded) {
@@ -70,6 +68,7 @@ export function SourceEditor({ filename, source, allFiles, onChange }: Props) {
       value={source}
       theme={editorTheme}
       onChange={(value) => value !== undefined && onChange(value)}
+      beforeMount={registerThemes}
       onMount={(editor) => {
         editorRef.current = editor;
         if (typeof window !== 'undefined') {

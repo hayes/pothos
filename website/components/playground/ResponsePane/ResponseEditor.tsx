@@ -1,21 +1,21 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useTheme } from 'next-themes';
+import { useEditorTheme } from '../../../hooks/playground/useEditorTheme';
 
 interface Props {
   body: string;
 }
 
 export function ResponseEditor({ body }: Props) {
-  const { resolvedTheme } = useTheme();
-  const theme = resolvedTheme === 'light' ? 'vs' : 'vs-dark';
+  const { theme, beforeMount: registerThemes } = useEditorTheme();
   return (
     <Editor
       height="100%"
       language="json"
       value={body}
       theme={theme}
+      beforeMount={registerThemes}
       options={{
         readOnly: true,
         minimap: { enabled: false },

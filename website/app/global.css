@@ -23,11 +23,11 @@
   --bm-warn: #a05a2c;
 
   --bm-editor-bg: #fbfaf5;
-  --bm-syntax-text: #1a201b;
+  --bm-syntax-text: #3a3f38;
   --bm-syntax-comment: #9a9a8a;
   --bm-syntax-keyword: #7a3a2f;
   --bm-syntax-string: #3d6b3a;
-  --bm-syntax-type: #3a5a78;
+  --bm-syntax-type: #2d6e5a;
   --bm-syntax-method: #6a4a7a;
   --bm-syntax-lineno: #c8c4b8;
 }
@@ -52,14 +52,18 @@
   --bm-danger: #dc6e5a;
   --bm-warn: #e8a87c;
 
-  --bm-editor-bg: #181b1a;
-  --bm-syntax-text: #eeece4;
-  --bm-syntax-comment: #5e6862;
+  /* Editor — Pothos Forest (themes/pothos-forest-dark.json). Editor surface
+     matches the chrome's pine ground, so the editor reads as part of the
+     panel rather than a separate hue. Token colors carry Forest's
+     warm-orange / cool-teal accents. */
+  --bm-editor-bg: #142019;
+  --bm-syntax-text: #e8efe2;
+  --bm-syntax-comment: #5e7064;
   --bm-syntax-keyword: #e8a87c;
-  --bm-syntax-string: #7fc69b;
-  --bm-syntax-type: #7eb8d4;
-  --bm-syntax-method: #d6a8c8;
-  --bm-syntax-lineno: #3a3f3c;
+  --bm-syntax-string: #a8d488;
+  --bm-syntax-type: #88c0d0;
+  --bm-syntax-method: #d4a8c8;
+  --bm-syntax-lineno: #3a4c40;
 }
 
 /* Map fumadocs tokens onto BM equivalents so docs / popovers blend. */
