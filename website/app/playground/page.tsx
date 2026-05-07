@@ -188,10 +188,6 @@ export default function PlaygroundPage() {
           }
         },
       },
-      {
-        label: 'Toggle theme',
-        onSelect: () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark'),
-      },
     ],
     [compilerState.schemaSDL, exampleLoader, filesState, opsState, resolvedTheme, runner, setTheme],
   );

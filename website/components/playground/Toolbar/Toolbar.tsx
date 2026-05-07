@@ -74,10 +74,18 @@ export function Toolbar({
       </div>
 
       <div className="relative">
-        <Button variant="ghost" active={examplesOpen} onClick={onToggleExamples}>
-          <span>Load example</span>
-          <span className="text-[10px] text-bm-ink-muted">▾</span>
-        </Button>
+        <button
+          type="button"
+          onClick={onToggleExamples}
+          className={`inline-flex items-center gap-1.5 rounded text-[13px] cursor-pointer px-3.5 py-1.5 font-medium transition-colors ${
+            examplesOpen
+              ? 'bg-bm-accent text-bm-bg'
+              : 'bg-bm-accent-soft text-bm-accent-ink border border-bm-accent/40 hover:bg-bm-accent hover:text-bm-bg'
+          }`}
+        >
+          <span>＋ Load example</span>
+          <span className="text-[10px] opacity-70">▾</span>
+        </button>
         {examplesPicker}
       </div>
 

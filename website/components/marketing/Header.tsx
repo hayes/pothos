@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { ThemedLogo } from './ThemedLogo';
 import { ThemeToggle } from './ThemeToggle';
+import { Wordmark } from './Wordmark';
 
 const NAV_LINKS = [
   { label: 'Docs', href: '/docs' },
@@ -19,14 +19,7 @@ export function Header() {
           aria-label="Pothos GraphQL"
           className="flex items-center text-bm-ink hover:opacity-90 transition-opacity"
         >
-          <ThemedLogo
-            lightSrc="/assets/logo-name-light.svg"
-            darkSrc="/assets/logo-name-dark.svg"
-            alt="Pothos"
-            width={130}
-            height={32}
-            priority
-          />
+          <Wordmark width={130} height={32} />
         </Link>
 
         <nav className="flex items-center gap-7 ml-2">
