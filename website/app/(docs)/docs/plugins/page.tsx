@@ -1,11 +1,21 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import { PluginsPage } from '@/components/plugins/PluginsPage';
+
+export const metadata: Metadata = {
+  title: 'Plugins — Pothos',
+  description:
+    'First-party Pothos plugins for data, auth, schema patterns, live data, and developer experience.',
+};
 
 /**
- * Canonicalize the plugins overview at /plugins. The MDX-based index
- * at content/docs/plugins/index.mdx is still pulled into the docs
- * pageTree (so the sidebar lists individual plugins), but the URL
- * `/docs/plugins` itself sends visitors to the redesigned overview.
+ * /docs/plugins — keeps the docs Sidebar visible (you stay in the
+ * docs section) but skips fumadocs's article grid so the plugin
+ * overview can use its own wider layout.
  */
-export default function PluginsRedirect(): never {
-  redirect('/plugins');
+export default function Page() {
+  return (
+    <div className="max-w-[1200px] mx-auto px-8 py-12">
+      <PluginsPage variant="docs" />
+    </div>
+  );
 }
