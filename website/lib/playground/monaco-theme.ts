@@ -60,7 +60,7 @@ function vsCodeRules(json: VSCodeThemeJSON): ThemeRule[] {
   return out;
 }
 
-interface PaletteSlots {
+export interface PaletteSlots {
   comment: string;
   keyword: string;
   string: string;
@@ -73,6 +73,15 @@ interface PaletteSlots {
   decorator: string;
   attribute: string;
   tag: string;
+}
+
+export interface EditorBaseColors {
+  background: string;
+  foreground: string;
+  lineNumber: string;
+  lineNumberActive: string;
+  selection: string;
+  cursor: string;
 }
 
 /**
@@ -202,3 +211,34 @@ export function registerPothosMonacoThemes(monaco: Monaco): void {
 export function pothosThemeFor(resolvedTheme: string | undefined): string {
   return resolvedTheme === 'light' ? CUTTING_LIGHT_THEME : FOREST_DARK_THEME;
 }
+
+/**
+ * Define a Monaco theme from a palette + base editor colors. Re-defining
+ * a theme of the same name replaces it, so the editor preview can update
+ * live as the theme-editor sliders move.
+ */
+export function definePaletteTheme(
+  monaco: Monaco,
+  name: string,
+  palette: PaletteSlots,
+  base: EditorBaseColors,
+  inheritFrom: 'vs' | 'vs-dark',
+): void {
+  const colors: Record<string, string> = {
+    'editor.background': base.background,
+    'editor.foreground': base.foreground,
+    'editorLineNumber.foreground': base.lineNumber,
+    'editorLineNumber.activeForeground': base.lineNumberActive,
+    'editor.selectionBackground': base.selection,
+    'editorCursor.foreground': base.cursor,
+  };
+  monaco.editor.defineTheme(name, {
+    base: inheritFrom,
+    inherit: true,
+    rules: monacoRules(palette),
+    colors,
+  });
+}
+
+export const FOREST_PALETTE_PRESET = FOREST_PALETTE;
+export const CUTTING_PALETTE_PRESET = CUTTING_PALETTE;
