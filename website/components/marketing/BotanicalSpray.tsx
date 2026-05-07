@@ -29,13 +29,17 @@ export function BotanicalSpray({
   mode = 'light',
   className,
 }: Props) {
+  // Positions are the cubic-Bezier samples of the stem path at evenly
+  // spaced `t` values, so each leaf actually lands on the curve. The
+  // design's hand-picked positions are visually similar but don't quite
+  // sit on the line — these computed ones do.
   const leaves: LeafSpec[] = [
-    { x: 270, y: 30, r: -20, s: 0.7 },
-    { x: 240, y: 80, r: 30, s: 0.9 },
-    { x: 210, y: 130, r: -40, s: 0.8 },
-    { x: 180, y: 170, r: 50, s: 1.1 },
-    { x: 130, y: 210, r: -30, s: 0.85 },
-    { x: 90, y: 240, r: 60, s: 0.75 },
+    { x: 258, y: 36, r: -20, s: 0.7 },
+    { x: 230, y: 88, r: 30, s: 0.9 },
+    { x: 202, y: 134, r: -40, s: 0.8 },
+    { x: 168, y: 171, r: 50, s: 1.1 },
+    { x: 132, y: 201, r: -30, s: 0.85 },
+    { x: 96, y: 228, r: 60, s: 0.75 },
   ];
   const veinColor = mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
 
