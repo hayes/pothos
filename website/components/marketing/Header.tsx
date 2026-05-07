@@ -4,10 +4,10 @@ import { Wordmark } from './Wordmark';
 
 const NAV_LINKS = [
   { label: 'Docs', href: '/docs' },
-  { label: 'Plugins', href: '/docs/plugins' },
+  { label: 'Plugins', href: '/plugins' },
   { label: 'Playground', href: '/playground' },
+  { label: 'Resources', href: '/resources' },
   { label: 'Sponsors', href: '/sponsors' },
-  { label: 'Examples', href: 'https://github.com/hayes/pothos/tree/main/examples' },
 ];
 
 export function Header() {
@@ -41,16 +41,10 @@ export function Header() {
         <a
           href="https://github.com/hayes/pothos"
           className="hidden sm:inline-flex items-center gap-1.5 text-[12px] text-bm-ink-muted hover:text-bm-ink transition-colors px-3 py-1.5 border border-bm-line rounded font-mono"
+          title="Star Pothos on GitHub"
         >
           ★ 1.1k
         </a>
-
-        <Link
-          href="/docs"
-          className="inline-flex items-center gap-1.5 rounded text-[14px] font-medium tracking-[0.01em] px-4 py-2 bg-bm-ink text-bm-bg hover:opacity-90 transition-opacity"
-        >
-          Get started
-        </Link>
       </div>
     </header>
   );
