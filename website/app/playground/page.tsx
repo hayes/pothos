@@ -2,6 +2,7 @@
 
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useUrlInit, useUrlSync } from '../../hooks/playground/useUrlSync';
 import { ConsoleDrawer } from '../../components/playground/ConsoleDrawer/ConsoleDrawer';
 import { ExamplesPicker } from '../../components/playground/ExamplesPicker/ExamplesPicker';
 import { exampleMetadata } from '../../components/playground/examples';
@@ -19,24 +20,16 @@ import { useOperations } from '../../hooks/playground/useOperations';
 import { usePlaygroundFiles } from '../../hooks/playground/usePlaygroundFiles';
 import { useQueryRunner } from '../../hooks/playground/useQueryRunner';
 import { useSchemaStatus } from '../../hooks/playground/useSchemaStatus';
-import { readInitialFromURL, useUrlSync } from '../../hooks/playground/useUrlSync';
 import { copyToClipboard, createShareableURL } from '../../lib/playground/url-state';
 import { usePlaygroundCompiler } from '../../lib/playground/use-playground-compiler';
 import { defaultFiles, defaultOperations } from './defaults';
 
 export default function PlaygroundPage() {
-  const initial = useMemo(
-    () =>
-      readInitialFromURL({
-        files: defaultFiles(),
-        operations: defaultOperations(),
-        activeOperationIndex: 0,
-      }),
-    [],
-  );
-
-  const filesState = usePlaygroundFiles(initial.files);
-  const opsState = useOperations(initial.operations);
+  // Initial state is the deterministic defaults — both server and client
+  // render the same content for the first paint. The hash-based state
+  // gets applied client-side via useUrlInit below.
+  const filesState = usePlaygroundFiles(defaultFiles());
+  const opsState = useOperations(defaultOperations());
   const exampleLoader = useExampleLoader();
   const runner = useQueryRunner();
   const console_ = useConsoleLogs();
@@ -61,6 +54,21 @@ export default function PlaygroundPage() {
   const [shareLabel, setShareLabel] = useState('Share');
   const [responseSubTab, setResponseSubTab] = useState<'response' | 'trace'>('response');
   const [sdlActive, setSdlActive] = useState(false);
+
+  // Hydrate from `window.location.hash` once after mount. Doing this
+  // here (rather than in useState init) keeps the server's first paint
+  // matching the client's first paint, so React doesn't fault.
+  useUrlInit((initial) => {
+    if (initial.files.length > 0) {
+      filesState.setFiles(initial.files);
+      filesState.setActiveIndex(0);
+    }
+    if (initial.operations.length > 0) {
+      opsState.setOperations(initial.operations);
+      opsState.setActiveIndex(0);
+      opsState.markClean();
+    }
+  });
 
   useUrlSync({
     files: filesState.files,
