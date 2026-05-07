@@ -150,15 +150,137 @@ body {
   color: var(--bm-ink);
 }
 
-/* Fumadocs sidebar tweaks (carried over from prior design) */
+/* ──────────────────────────────────────────────────────────────────────
+   Docs site — fumadocs typography overrides to match Botanical Modern.
+   Layout selectors:
+     #nd-docs-layout · #nd-sidebar · #nd-page · #nd-toc · article
+   Fumadocs uses --color-fd-* for color tokens (already mapped to BM
+   above), so most chrome inherits the right palette. The overrides
+   below are for typography and a few accent hooks the design calls
+   out specifically.
+   ────────────────────────────────────────────────────────────────────── */
+
 @media (min-width: 768px) {
   [data-sidebar-placeholder] {
-    --fd-sidebar-width: 220px;
+    --fd-sidebar-width: 260px;
   }
-
   #nd-sidebar > * {
     width: 100%;
   }
+}
+
+/* Article headings — Fraunces serif per the design's article scale */
+/* Use html.* prefix to beat fumadocs's `:where()`-wrapped prose styles. */
+html article#nd-page h1,
+html article#nd-page h2,
+html article#nd-page h3 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 400;
+  color: var(--bm-ink);
+}
+html article#nd-page h1 {
+  font-size: 48px;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.4em;
+}
+html article#nd-page h2 {
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-top: 1.6em;
+  margin-bottom: 0.4em;
+}
+html article#nd-page h3 {
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin-top: 1.5em;
+}
+
+/* Article body — Inter Tight, comfortable line-height */
+article#nd-page p,
+article#nd-page ul li,
+article#nd-page ol li {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--bm-ink-soft);
+}
+
+/* The first paragraph after the H1 reads as the lede — slightly larger. */
+article#nd-page h1 + p {
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--bm-ink-soft);
+}
+
+/* Inline code in body — soft-cream chip */
+article#nd-page :not(pre) > code {
+  background: var(--bm-surface-alt);
+  color: var(--bm-syntax-keyword);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.875em;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* Code block surfaces — match the editor surface */
+article#nd-page pre {
+  background: var(--bm-editor-bg);
+  border: 1px solid var(--bm-line);
+  border-radius: 6px;
+}
+
+/* Sidebar — uppercase section heads, accent left rule on active items */
+#nd-sidebar {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+#nd-sidebar [data-radix-scroll-area-viewport] > div > div > p,
+#nd-sidebar h3,
+#nd-sidebar [data-section-heading] {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bm-ink-muted);
+}
+#nd-sidebar a {
+  font-size: 14px;
+  color: var(--bm-ink-soft);
+  border-left: 2px solid transparent;
+  padding-left: 12px;
+  transition: color 120ms ease;
+}
+#nd-sidebar a:hover {
+  color: var(--bm-ink);
+}
+#nd-sidebar a[data-active='true'],
+#nd-sidebar a[aria-current='page'] {
+  color: var(--bm-ink);
+  border-left-color: var(--bm-accent);
+  background: transparent;
+}
+
+/* TOC — design's "On this page" right rail */
+#nd-toc {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+#nd-toc h3,
+#nd-toc [data-toc-heading] {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bm-ink-muted);
+}
+#nd-toc a {
+  font-size: 13px;
+  color: var(--bm-ink-muted);
+  transition: color 120ms ease;
+}
+#nd-toc a:hover {
+  color: var(--bm-ink);
+}
+#nd-toc a[data-active='true'] {
+  color: var(--bm-ink);
 }
 
 /* ──────────────────────────────────────────────────────────────────────

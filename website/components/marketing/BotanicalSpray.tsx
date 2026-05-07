@@ -1,54 +1,74 @@
-import { HeartLeaf } from './HeartLeaf';
-
 interface Props {
-  /** Diameter in px of the largest leaf. Smaller leaves scale relative. */
-  size?: number;
-  /** CSS color for fills — typically var(--bm-accent). */
+  /** Width × height in px (the SVG draws inside this box). */
+  width?: number;
+  height?: number;
+  /** Stem + leaf color — typically var(--bm-accent). */
   color?: string;
+  /** Dark mode adjusts the vein color so it stays visible. */
+  mode?: 'light' | 'dark';
   className?: string;
 }
 
-interface Leaf {
-  size: number;
-  rotate: number;
-  /** Position offsets relative to the spray container. */
-  top: number;
-  left: number;
-  opacity: number;
+interface LeafSpec {
+  x: number;
+  y: number;
+  r: number;
+  s: number;
 }
 
 /**
- * Decorative leaf spray for the home hero — a small cluster of HeartLeaf
- * glyphs at varied sizes/rotations/opacities. Positioned absolutely by
- * the parent; pointer-events disabled.
+ * Decorative botanical spray — a curved stem with small leaves at
+ * varied angles. Pulled from directionA.jsx > BotanicalSpray. The
+ * leaves are simple ellipse-shaped paths (NOT the HeartLeaf brand
+ * glyph, which is reserved for the logo).
  */
-export function BotanicalSpray({ size = 96, color = 'currentColor', className }: Props) {
-  const leaves: Leaf[] = [
-    { size, rotate: -10, top: 0, left: 60, opacity: 0.55 },
-    { size: size * 0.7, rotate: 32, top: size * 0.3, left: 0, opacity: 0.4 },
-    { size: size * 0.55, rotate: -50, top: size * 0.65, left: size * 0.4, opacity: 0.35 },
-    { size: size * 0.45, rotate: 80, top: size * 0.15, left: size * 1.2, opacity: 0.3 },
+export function BotanicalSpray({
+  width = 320,
+  height = 280,
+  color = 'currentColor',
+  mode = 'light',
+  className,
+}: Props) {
+  const leaves: LeafSpec[] = [
+    { x: 270, y: 30, r: -20, s: 0.7 },
+    { x: 240, y: 80, r: 30, s: 0.9 },
+    { x: 210, y: 130, r: -40, s: 0.8 },
+    { x: 180, y: 170, r: 50, s: 1.1 },
+    { x: 130, y: 210, r: -30, s: 0.85 },
+    { x: 90, y: 240, r: 60, s: 0.75 },
   ];
+  const veinColor = mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+
   return (
-    <div
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 320 280"
       aria-hidden="true"
-      className={`pointer-events-none ${className ?? ''}`}
-      style={{ position: 'absolute', color, width: size * 2, height: size * 1.6 }}
+      className={className}
+      style={{ overflow: 'visible' }}
     >
+      <path
+        d="M 280 0 C 240 60, 220 120, 180 160 C 140 200, 100 220, 60 260"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        opacity={0.5}
+      />
       {leaves.map((leaf, i) => (
-        <span
+        <g
           // biome-ignore lint/suspicious/noArrayIndexKey: leaves are stable position-based
           key={i}
-          style={{
-            position: 'absolute',
-            top: leaf.top,
-            left: leaf.left,
-            opacity: leaf.opacity,
-          }}
+          transform={`translate(${leaf.x}, ${leaf.y}) rotate(${leaf.r}) scale(${leaf.s})`}
+          opacity={0.55}
         >
-          <HeartLeaf size={leaf.size} fill={color} stroke="none" rotate={leaf.rotate} veins={false} />
-        </span>
+          <path
+            d="M 0 0 C -14 -4, -22 -16, -22 -28 C -14 -32, -2 -28, 4 -20 C 10 -28, 18 -32, 22 -28 C 22 -16, 14 -4, 0 0 Z"
+            fill={color}
+          />
+          <path d="M 0 0 L 0 -28" stroke={veinColor} strokeWidth={0.5} />
+        </g>
       ))}
-    </div>
+    </svg>
   );
 }
