@@ -18,8 +18,12 @@ interface QueryShape {
 }
 
 export interface LoadedExample {
+  /** The base example metadata (without `-step-N` suffix). */
   metadata: ExampleMetadata;
+  /** Steps for the base example, used to drive the StepperBar. */
   steps: Step[];
+  /** ID of the base example, e.g. `errors-plugin`. Stable across step changes. */
+  baseId: string;
 }
 
 export interface ExampleLoaderResult {
@@ -33,8 +37,19 @@ export interface ExampleLoaderState {
   stepIndex: number;
   loading: boolean;
   load: (id: string) => Promise<ExampleLoaderResult | null>;
-  setStepIndex: (index: number) => void;
+  /** Move to a step within the currently loaded example. */
+  goToStep: (index: number) => Promise<ExampleLoaderResult | null>;
   exit: () => void;
+}
+
+const STEP_SUFFIX = /-step-\d+$/;
+
+function baseIdFor(id: string): string {
+  return id.replace(STEP_SUFFIX, '');
+}
+
+function findMetadataById(id: string): ExampleMetadata | undefined {
+  return exampleMetadata.find((m) => m.id === id);
 }
 
 function operationsFromExample(
@@ -53,6 +68,14 @@ function operationsFromExample(
   return [makeOperation({ query: defaultQuery, variables: '' })];
 }
 
+function stepIndexFromId(id: string, steps: Step[]): number {
+  const match = id.match(/-step-(\d+)$/);
+  if (!match) return 0;
+  const stepId = `step-${match[1]}`;
+  const idx = steps.findIndex((s) => s.id === stepId);
+  return idx >= 0 ? idx : 0;
+}
+
 export function useExampleLoader(): ExampleLoaderState {
   const [loaded, setLoaded] = useState<LoadedExample | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -62,23 +85,27 @@ export function useExampleLoader(): ExampleLoaderState {
     setLoading(true);
     try {
       const ex = await getExample(id);
-      if (!ex) {
-        return null;
-      }
+      if (!ex) return null;
+
+      // The id we're loading may be a step variant (e.g. `errors-plugin-step-1`).
+      // The "base" example metadata (with the steps array) lives under the id
+      // without the suffix, e.g. `errors-plugin`.
+      const base = baseIdFor(id);
+      const baseMeta = findMetadataById(base);
+      const steps = baseMeta?.steps ?? ex.steps ?? [];
 
       const meta =
-        exampleMetadata.find((m) => m.id === ex.id) ??
+        baseMeta ??
         ({
-          id: ex.id,
+          id: base,
           title: ex.title,
           description: ex.description,
           tags: ex.tags ?? [],
-          steps: ex.steps,
+          steps,
         } as ExampleMetadata);
 
-      const steps = meta.steps ?? [];
-      setLoaded({ metadata: meta, steps });
-      setStepIndex(0);
+      setLoaded({ metadata: meta, steps, baseId: base });
+      setStepIndex(stepIndexFromId(id, steps));
 
       const operations = operationsFromExample(ex.defaultQuery, ex.queries);
       return { files: ex.files, operations, defaultActive: 0 };
@@ -87,10 +114,23 @@ export function useExampleLoader(): ExampleLoaderState {
     }
   }, []);
 
+  const goToStep = useCallback(
+    async (index: number): Promise<ExampleLoaderResult | null> => {
+      const current = loaded;
+      if (!current) return null;
+      const step = current.steps[index];
+      if (!step) return null;
+      // Each step has its own bundle: `${baseId}-${step.id}`.
+      const stepId = `${current.baseId}-${step.id}`;
+      return load(stepId);
+    },
+    [loaded, load],
+  );
+
   const exit = useCallback(() => {
     setLoaded(null);
     setStepIndex(0);
   }, []);
 
-  return { loaded, stepIndex, loading, load, setStepIndex, exit };
+  return { loaded, stepIndex, loading, load, goToStep, exit };
 }
