@@ -69,14 +69,10 @@ export default function PlaygroundPage() {
     ready: !compilerState.isCompiling || compilerState.schema !== null,
   });
 
-  // Load example: wire metadata + reset state, then push files/ops into hooks.
-  const handlePickExample = useCallback(
-    async (id: string) => {
-      setExamplesOpen(false);
-      const result = await exampleLoader.load(id);
-      if (!result) {
-        return;
-      }
+  // Apply an ExampleLoaderResult — push files/ops into the hook state.
+  // Used for both initial example loads and step navigation.
+  const applyExampleResult = useCallback(
+    (result: { files: typeof filesState.files; operations: typeof opsState.operations }) => {
       filesState.setFiles(result.files);
       filesState.setActiveIndex(0);
       opsState.setOperations(result.operations);
@@ -84,13 +80,31 @@ export default function PlaygroundPage() {
       opsState.setSubTab('query');
       opsState.markClean();
       runner.reset();
-      const meta = exampleLoader.loaded?.metadata;
-      if (meta) {
-        setSketchName(meta.title);
-      }
     },
-    [exampleLoader, filesState, opsState, runner],
+    [filesState, opsState, runner],
   );
+
+  const handlePickExample = useCallback(
+    async (id: string) => {
+      setExamplesOpen(false);
+      const result = await exampleLoader.load(id);
+      if (result) applyExampleResult(result);
+    },
+    [exampleLoader, applyExampleResult],
+  );
+
+  const handleStep = useCallback(
+    async (index: number) => {
+      const result = await exampleLoader.goToStep(index);
+      if (result) applyExampleResult(result);
+    },
+    [exampleLoader, applyExampleResult],
+  );
+
+  // Mirror the loaded example's title into the sketch name whenever it changes.
+  useEffect(() => {
+    if (exampleLoader.loaded) setSketchName(exampleLoader.loaded.metadata.title);
+  }, [exampleLoader.loaded]);
 
   const status = useSchemaStatus({
     state: compilerState,
@@ -210,11 +224,7 @@ export default function PlaygroundPage() {
           steps={exampleLoader.loaded.steps}
           index={exampleLoader.stepIndex}
           onSelect={(i) => {
-            exampleLoader.setStepIndex(i);
-            const step = exampleLoader.loaded?.steps[i];
-            if (step) {
-              handlePickExample(`${exampleLoader.loaded?.metadata.id}-${step.id}`).catch(() => {});
-            }
+            handleStep(i).catch(() => {});
           }}
           onExit={exampleLoader.exit}
         />
@@ -240,6 +250,12 @@ export default function PlaygroundPage() {
           }}
           onSelectSdl={() => setSdlActive(true)}
           onChange={(i, content) => filesState.updateAt(i, content)}
+          onAddFile={() => {
+            setSdlActive(false);
+            filesState.addFile();
+          }}
+          onRenameFile={filesState.renameFile}
+          onRemoveFile={filesState.removeFile}
         />
 
         <section className="grid grid-rows-[1fr_1fr] min-w-0 min-h-0">
