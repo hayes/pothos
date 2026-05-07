@@ -13,14 +13,17 @@ interface Props {
 
 /**
  * Top row of the operation pane — one tab per parallel query, plus a `+`.
- * Active tab gets an accent top border + matches the editor surface.
+ * Uses the same flat typographic style as PaneHeader (text + accent
+ * underline) so the playground reads as a single tab system rather than
+ * two competing ones. The dirty dot and close button distinguish operation
+ * tabs from pane tabs.
  */
 export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAdd }: Props) {
   return (
     <div
       role="tablist"
       aria-label="Operations"
-      className="flex items-center px-3.5 h-9 border-b border-bm-line bg-bm-bg gap-0.5"
+      className="flex items-center px-6 h-11 border-b border-bm-line bg-bm-bg gap-[22px]"
     >
       {operations.map((op, i) => (
         <OperationTab
@@ -35,13 +38,13 @@ export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAd
       <button
         type="button"
         onClick={onAdd}
-        className="px-2 py-1 text-bm-ink-muted hover:text-bm-ink text-[14px]"
+        className="font-mono text-[13px] text-bm-ink-muted hover:text-bm-ink leading-none"
         title="New operation"
       >
         +
       </button>
       <div className="flex-1" />
-      <span className="text-bm-ink-muted text-[11px]">
+      <span className="text-[11px] uppercase tracking-[0.04em] text-bm-ink-muted">
         {operations.length} operation{operations.length === 1 ? '' : 's'}
       </span>
     </div>
@@ -74,15 +77,19 @@ function OperationTab({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={onKey}
-      className={`-mb-px flex items-center gap-1.5 px-3 py-1.5 rounded-t font-mono text-[12px] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bm-accent ${
+      className={`flex items-center gap-1.5 h-full -mb-px font-mono text-[13px] tracking-[-0.01em] cursor-pointer focus-visible:outline-none ${
         active
-          ? 'bg-bm-editor-bg border-t-2 border-x border-t-bm-accent border-x-bm-line text-bm-ink'
-          : 'border-t-2 border-t-transparent text-bm-ink-soft hover:bg-bm-surface-alt'
+          ? 'text-bm-ink font-medium border-b-[1.5px] border-bm-accent'
+          : 'text-bm-ink-muted border-b-[1.5px] border-transparent hover:text-bm-ink'
       }`}
     >
       <span>{operation.name}</span>
       {operation.dirty && (
-        <span className="size-[5px] rounded-full bg-bm-accent" aria-hidden="true" title="unsaved" />
+        <span
+          className="size-[5px] rounded-full bg-bm-accent"
+          aria-hidden="true"
+          title="unsaved"
+        />
       )}
       {closable && (
         <button
