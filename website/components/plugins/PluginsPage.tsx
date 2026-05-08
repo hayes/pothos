@@ -1,5 +1,5 @@
-import { PLUGIN_CATEGORIES, pluginsByCategory } from './plugins';
 import { PluginCard } from './PluginCard';
+import { PLUGIN_CATEGORIES, pluginsByCategory } from './plugins';
 
 interface Props {
   /** Tighten the layout when used inside the docs main column.
@@ -50,7 +50,9 @@ export function PluginsPage({ variant = 'marketing' }: Props) {
       <div className="flex flex-col gap-16">
         {grouped.map((group) => {
           const meta = PLUGIN_CATEGORIES[group.category];
-          if (group.items.length === 0) return null;
+          if (group.items.length === 0) {
+            return null;
+          }
           return (
             <section key={group.category}>
               <header className="mb-6 flex items-baseline gap-4 flex-wrap">

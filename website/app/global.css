@@ -30,6 +30,9 @@
   --bm-syntax-type: #2d6e5a;
   --bm-syntax-method: #6a4a7a;
   --bm-syntax-lineno: #c8c4b8;
+
+  /* Decorative vein color for botanical SVGs (BotanicalSpray, HeartLeaf). */
+  --bm-veins: rgba(0, 0, 0, 0.15);
 }
 
 /* Dark — Conservatory: deep pine ground for chrome, with the warm-charcoal
@@ -64,6 +67,8 @@
   --bm-syntax-type: #88c0d0;
   --bm-syntax-method: #d4a8c8;
   --bm-syntax-lineno: #3a4c40;
+
+  --bm-veins: rgba(255, 255, 255, 0.18);
 }
 
 /* Map fumadocs tokens onto BM equivalents so docs / popovers blend. */
@@ -171,22 +176,26 @@ body {
 
 /* Tell fumadocs that the page chrome above its layout is 72px tall —
    this is the height of our marketing Header. With fumadocs's own nav
-   disabled, --fd-nav-height defaults to 0 and the TOC pins to the very
-   top of the viewport, sliding under our sticky header.
+   disabled, the layout sets `--fd-header-height: 0px` inline, so the
+   TOC's sticky `top` (which is composed off that variable) ends up at
+   0 and the TOC slides under our sticky Header. We re-assert the
+   variable here, scoped to the docs grid (the `[grid-area:main]`
+   parent has the offending inline set), so the TOC sticks below the
+   Header instead.
 
-   The TOC needs to live in its own scroll container — without an
-   explicit max-height it grows with the article and the bottom items
-   slip under the header on scroll. */
-#nd-docs-layout {
-  --fd-nav-height: 72px;
-  --fd-tocnav-height: 72px;
+   The TOC element itself uses a tailwind class chain that resolves to
+   `position: sticky; top: var(--fd-docs-row-1); height: calc(var(--fd-docs-height) - var(--fd-docs-row-1));`,
+   so adjusting `--fd-header-height` propagates through fumadocs's own
+   formula without us needing to override `top` directly. */
+[class*="[--fd-header-height:0px]"] {
+  --fd-header-height: 72px;
 }
-#nd-toc {
-  position: sticky;
-  top: 72px;
-  align-self: start;
-  max-height: calc(100vh - 72px);
-  overflow-y: auto;
+/* The TOC column's intrinsic `pt-12` adds a visible gap before the
+   first item; the original layout had its own header context. With
+   our 72px Header providing the offset, drop the column padding-top
+   so the heading list starts flush with the article. */
+[class*="[grid-area:toc]"] {
+  padding-top: 0;
 }
 
 /* Article headings — Fraunces serif per the design's article scale */
@@ -273,33 +282,33 @@ article#nd-page pre {
 #nd-sidebar a:hover {
   color: var(--bm-ink);
 }
-#nd-sidebar a[data-active='true'],
-#nd-sidebar a[aria-current='page'] {
+#nd-sidebar a[data-active="true"],
+#nd-sidebar a[aria-current="page"] {
   color: var(--bm-ink);
   border-left-color: var(--bm-accent);
   background: transparent;
 }
 
 /* TOC — design's "On this page" right rail */
-#nd-toc {
+[class*="[grid-area:toc]"] {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
-#nd-toc h3,
-#nd-toc [data-toc-heading] {
+[class*="[grid-area:toc]"] h3,
+[class*="[grid-area:toc]"] [data-toc-heading] {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--bm-ink-muted);
 }
-#nd-toc a {
+[class*="[grid-area:toc]"] a {
   font-size: 13px;
   color: var(--bm-ink-muted);
   transition: color 120ms ease;
 }
-#nd-toc a:hover {
+[class*="[grid-area:toc]"] a:hover {
   color: var(--bm-ink);
 }
-#nd-toc a[data-active='true'] {
+[class*="[grid-area:toc]"] a[data-active="true"] {
   color: var(--bm-ink);
 }
 

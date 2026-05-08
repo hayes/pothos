@@ -1,7 +1,7 @@
 'use client';
 
 import { NextProvider } from 'fumadocs-core/framework/next';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -17,15 +17,21 @@ const STORAGE_KEY = 'pothos-theme';
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readSystemTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light';
+  if (typeof window === 'undefined') {
+    return 'light';
+  }
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function readSavedTheme(): ThemeMode {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') {
+    return 'system';
+  }
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+    if (saved === 'light' || saved === 'dark' || saved === 'system') {
+      return saved;
+    }
   } catch {}
   return 'system';
 }
@@ -38,11 +44,11 @@ function applyClass(resolved: 'light' | 'dark') {
 }
 
 /**
- * Site-wide theme provider — small enough that we don't need the
- * next-themes dep, and (importantly) doesn't inject a `<script>` inside
- * a React component, which Next.js 16 dev mode escalated into a hard
- * error. The matching pre-hydration script lives in `app/layout.tsx`'s
- * `<head>` so the right `dark`/`light` class is on `<html>` before paint.
+ * Site-wide theme provider. The matching pre-hydration script lives in
+ * `app/layout.tsx`'s `<head>` so the right `dark`/`light` class is on
+ * `<html>` before paint — both read from the same `pothos-theme`
+ * localStorage key and apply the same class names, so the
+ * server-rendered HTML matches what `applyClass` would set client-side.
  */
 export function Providers({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>('system');
@@ -59,7 +65,9 @@ export function Providers({ children }: { children: ReactNode }) {
 
   // React to system-preference changes when the user is on `system`.
   useEffect(() => {
-    if (theme !== 'system') return;
+    if (theme !== 'system') {
+      return;
+    }
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => {
       const next = mq.matches ? 'dark' : 'light';

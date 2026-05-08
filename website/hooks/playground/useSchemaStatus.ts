@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { SchemaStatus } from '../../components/playground/Toolbar/StatusPill';
-import type { CompilerState } from '../../lib/playground/use-playground-compiler';
+import type { SchemaStatus } from '@/components/playground/Toolbar/StatusPill';
+import type { CompilerState } from '@/hooks/playground/usePlaygroundCompiler';
 
 interface Args {
   state: CompilerState;

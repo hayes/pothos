@@ -2,7 +2,7 @@
 
 import Editor from '@monaco-editor/react';
 import { useRef } from 'react';
-import { useEditorTheme } from '../../../hooks/playground/useEditorTheme';
+import { useEditorTheme } from '@/hooks/playground/useEditorTheme';
 
 interface Props {
   value: string;
@@ -27,9 +27,7 @@ export function VariablesEditor({ value, onChange, onRun }: Props) {
       onChange={(v) => v !== undefined && onChange(v)}
       beforeMount={registerThemes}
       onMount={(editor, monaco) => {
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () =>
-          onRunRef.current(),
-        );
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => onRunRef.current());
       }}
       options={{
         minimap: { enabled: false },

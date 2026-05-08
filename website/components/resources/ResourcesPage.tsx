@@ -1,5 +1,5 @@
-import { CATEGORY_META, type ResourceCategory, resourcesByCategory } from './resources';
 import { ResourceCard } from './ResourceCard';
+import { CATEGORY_META, type ResourceCategory, resourcesByCategory } from './resources';
 
 const SECTION_ORDER: ResourceCategory[] = ['guide', 'tool', 'template', 'talk', 'paid'];
 
@@ -8,9 +8,7 @@ export function ResourcesPage() {
   return (
     <div className="max-w-[1080px] mx-auto px-10 py-16">
       <header className="mb-12">
-        <div className="text-[12px] uppercase tracking-[0.08em] text-bm-accent mb-3">
-          Resources
-        </div>
+        <div className="text-[12px] uppercase tracking-[0.08em] text-bm-accent mb-3">Resources</div>
         <h1
           className="font-serif font-normal m-0"
           style={{ fontSize: 48, letterSpacing: '-0.025em' }}
@@ -33,7 +31,9 @@ export function ResourcesPage() {
       <div className="flex flex-col gap-16">
         {SECTION_ORDER.map((cat) => {
           const items = grouped[cat];
-          if (items.length === 0) return null;
+          if (items.length === 0) {
+            return null;
+          }
           const meta = CATEGORY_META[cat];
           return (
             <section key={cat}>

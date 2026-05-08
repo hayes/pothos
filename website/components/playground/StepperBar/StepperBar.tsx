@@ -22,40 +22,44 @@ export function StepperBar({ exampleTitle, steps, index, onSelect, onExit }: Pro
   const next = () => onSelect(Math.min(total - 1, clamped + 1));
 
   return (
-    <div className="flex items-center gap-3.5 px-6 py-2.5 bg-bm-accent-soft/20 border-b border-bm-line">
-      <div className="flex items-baseline gap-2 font-serif">
+    <div className="flex items-center gap-3.5 px-6 py-2.5 bg-bm-accent-soft/20 border-b border-bm-line overflow-x-auto">
+      <div className="flex items-baseline gap-2 font-serif shrink-0">
         <span className="text-[11px] uppercase tracking-[0.08em] text-bm-ink-muted">Example</span>
         <span className="text-[14px] italic text-bm-ink">{exampleTitle}</span>
       </div>
 
-      <div className="flex-1 flex items-center ml-4">
-        {steps.map((step, i) => (
-          <Fragment key={step.id}>
-            <button
-              type="button"
-              onClick={() => onSelect(i)}
-              className="flex items-center gap-2 px-2 py-1 hover:opacity-90"
-              title={step.description}
-            >
-              <StepCircle state={i === clamped ? 'current' : i < clamped ? 'done' : 'upcoming'}>
-                {i < clamped ? '✓' : i + 1}
-              </StepCircle>
-              <span
-                className={`text-[12px] whitespace-nowrap ${
-                  i === clamped ? 'text-bm-ink font-medium' : 'text-bm-ink-muted'
-                }`}
+      <div className="flex-1 flex items-center ml-4 min-w-0">
+        {steps.map((step, i) => {
+          const isCurrent = i === clamped;
+          return (
+            <Fragment key={step.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(i)}
+                aria-current={isCurrent ? 'step' : undefined}
+                className="flex items-center gap-2 px-2 py-1 hover:opacity-90 shrink-0"
+                title={step.description}
               >
-                {step.title}
-              </span>
-            </button>
-            {i < total - 1 && (
-              <span className="flex-1 h-px bg-bm-line min-w-3 max-w-10" aria-hidden="true" />
-            )}
-          </Fragment>
-        ))}
+                <StepCircle state={isCurrent ? 'current' : i < clamped ? 'done' : 'upcoming'}>
+                  {i < clamped ? '✓' : i + 1}
+                </StepCircle>
+                <span
+                  className={`text-[12px] whitespace-nowrap ${
+                    isCurrent ? 'text-bm-ink font-medium' : 'text-bm-ink-muted'
+                  }`}
+                >
+                  {step.title}
+                </span>
+              </button>
+              {i < total - 1 && (
+                <span className="flex-1 h-px bg-bm-line min-w-3 max-w-10" aria-hidden="true" />
+              )}
+            </Fragment>
+          );
+        })}
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 shrink-0">
         <span className="font-mono text-[11px] text-bm-ink-muted mr-2">
           {clamped + 1} / {total}
         </span>
@@ -79,6 +83,7 @@ export function StepperBar({ exampleTitle, steps, index, onSelect, onExit }: Pro
           type="button"
           onClick={onExit}
           title="Exit example"
+          aria-label="Exit example"
           className="ml-1 px-2 py-1 text-[16px] text-bm-ink-muted hover:text-bm-ink"
         >
           ×

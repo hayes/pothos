@@ -6,24 +6,11 @@ export interface PlaygroundFile {
   highlights?: Array<{ start: number; end: number; label?: string }>;
 }
 
-export interface Step {
-  id: string;
-  title: string;
-  description: string;
-  order: number;
-}
+// `Step` and `CodeSnippet` are owned by the build-examples generator —
+// re-exporting here keeps a single canonical definition.
+import type { CodeSnippet, Step } from './examples/examples-index.generated';
 
-export interface CodeSnippet {
-  /** Label for this snippet (e.g., "Object Definition", "Field Resolver") */
-  label: string;
-  /** The file this snippet is from */
-  filename: string;
-  /** Line range to highlight (1-indexed) */
-  startLine: number;
-  endLine: number;
-  /** Optional description of what this snippet demonstrates */
-  description?: string;
-}
+export type { CodeSnippet, Step };
 
 export interface PlaygroundExample {
   id: string;

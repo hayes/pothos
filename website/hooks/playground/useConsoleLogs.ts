@@ -1,11 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type {
-  ConsoleLogEntry,
-  ConsoleLogKind,
-} from '../../components/playground/ConsoleDrawer/types';
-import type { ConsoleMessage } from '../../lib/playground/use-playground-compiler';
+import type { ConsoleLogEntry, ConsoleLogKind } from '@/components/playground/ConsoleDrawer/types';
+import type { ConsoleMessage } from '@/lib/playground/execution-engine';
 
 let logIdCounter = 0;
 const nextLogId = () => `log_${Date.now()}_${++logIdCounter}`;

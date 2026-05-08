@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextEditor } from './ContextEditor';
 import { HeadersEditor } from './HeadersEditor';
 import { OperationTabs } from './OperationTabs';
 import { QueryEditor } from './QueryEditor';
@@ -18,6 +19,7 @@ interface Props {
   onChangeQuery: (next: string) => void;
   onChangeVariables: (next: string) => void;
   onChangeHeaders: (next: HeaderEntry[]) => void;
+  onChangeContext: (next: string) => void;
   onRun: () => void;
 }
 
@@ -44,6 +46,7 @@ export function OperationPane({
   onChangeQuery,
   onChangeVariables,
   onChangeHeaders,
+  onChangeContext,
   onRun,
 }: Props) {
   const active = operations[activeIndex] ?? operations[0];
@@ -62,6 +65,7 @@ export function OperationPane({
         onSelect={onSelectSubTab}
         variableCount={variableCount(active.variables)}
         headerCount={active.headers.length}
+        contextSet={active.context.trim().length > 0}
       />
       <div className="min-h-0 overflow-hidden">
         {subTab === 'query' && (
@@ -72,6 +76,9 @@ export function OperationPane({
         )}
         {subTab === 'headers' && (
           <HeadersEditor headers={active.headers} onChange={onChangeHeaders} />
+        )}
+        {subTab === 'context' && (
+          <ContextEditor value={active.context} onChange={onChangeContext} onRun={onRun} />
         )}
       </div>
     </div>

@@ -5,10 +5,12 @@ import type {
   HeaderEntry,
   Operation,
   OperationSubTab,
-} from '../../components/playground/OperationPane/types';
+} from '@/components/playground/OperationPane/types';
 
-let opIdCounter = 0;
-const nextOpId = () => `op_${Date.now()}_${++opIdCounter}`;
+const nextOpId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? `op_${crypto.randomUUID()}`
+    : `op_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
 const OP_NAME_RE = /\b(query|mutation|subscription)\s+([A-Za-z_][A-Za-z0-9_]*)/;
 
@@ -25,6 +27,7 @@ export function makeOperation(input?: Partial<Operation>): Operation {
     query,
     variables: input?.variables ?? '',
     headers: input?.headers ?? [],
+    context: input?.context ?? '',
     dirty: input?.dirty ?? false,
   };
 }
@@ -42,6 +45,7 @@ export interface OperationsState {
   setQuery: (next: string) => void;
   setVariables: (next: string) => void;
   setHeaders: (next: HeaderEntry[]) => void;
+  setContext: (next: string) => void;
 
   addOperation: () => void;
   closeOperation: (index: number) => void;
@@ -80,6 +84,11 @@ export function useOperations(initial: Operation[]): OperationsState {
 
   const setHeaders = useCallback(
     (next: HeaderEntry[]) => replaceActive({ headers: next }),
+    [replaceActive],
+  );
+
+  const setContext = useCallback(
+    (next: string) => replaceActive({ context: next }),
     [replaceActive],
   );
 
@@ -122,6 +131,7 @@ export function useOperations(initial: Operation[]): OperationsState {
     setQuery,
     setVariables,
     setHeaders,
+    setContext,
     addOperation,
     closeOperation,
     markClean,

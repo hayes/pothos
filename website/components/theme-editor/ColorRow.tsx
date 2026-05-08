@@ -29,14 +29,18 @@ export function ColorRow({ label, value, onChange, description, swatches }: Prop
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!paletteOpen) return;
+    if (!paletteOpen) {
+      return;
+    }
     const onClick = (e: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setPaletteOpen(false);
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPaletteOpen(false);
+      if (e.key === 'Escape') {
+        setPaletteOpen(false);
+      }
     };
     window.addEventListener('mousedown', onClick);
     window.addEventListener('keydown', onKey);
@@ -48,8 +52,11 @@ export function ColorRow({ label, value, onChange, description, swatches }: Prop
 
   const handleHex = (raw: string) => {
     const cleaned = raw.replace(/^#/, '').toLowerCase();
-    if (HEX_RE.test(cleaned)) onChange(cleaned);
-    else if (cleaned.length <= 6) onChange(cleaned);
+    if (HEX_RE.test(cleaned)) {
+      onChange(cleaned);
+    } else if (cleaned.length <= 6) {
+      onChange(cleaned);
+    }
   };
 
   return (
@@ -63,9 +70,7 @@ export function ColorRow({ label, value, onChange, description, swatches }: Prop
       />
       <label htmlFor={id} className="flex-1 text-[12px] text-bm-ink-soft truncate">
         {label}
-        {description && (
-          <span className="block text-[10px] text-bm-ink-muted">{description}</span>
-        )}
+        {description && <span className="block text-[10px] text-bm-ink-muted">{description}</span>}
       </label>
       <span className="text-bm-ink-muted text-[12px] font-mono">#</span>
       <input

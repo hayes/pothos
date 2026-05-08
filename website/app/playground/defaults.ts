@@ -1,6 +1,6 @@
-import type { Operation } from '../../components/playground/OperationPane/types';
-import type { PlaygroundFile } from '../../components/playground/types';
-import { makeOperation } from '../../hooks/playground/useOperations';
+import type { Operation } from '@/components/playground/OperationPane/types';
+import type { PlaygroundFile } from '@/components/playground/types';
+import { makeOperation } from '@/hooks/playground/useOperations';
 
 export const DEFAULT_CODE = `import SchemaBuilder from '@pothos/core';
 

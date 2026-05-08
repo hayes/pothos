@@ -168,7 +168,9 @@ function FileRow({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (renaming) inputRef.current?.select();
+    if (renaming) {
+      inputRef.current?.select();
+    }
   }, [renaming]);
 
   if (renaming) {
@@ -181,15 +183,17 @@ function FileRow({
             onChange={(e) => onChangeDraft(e.target.value)}
             onBlur={() => onCommitRename(renameDraft)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onCommitRename(renameDraft);
-              if (e.key === 'Escape') onCancelRename();
+              if (e.key === 'Enter') {
+                onCommitRename(renameDraft);
+              }
+              if (e.key === 'Escape') {
+                onCancelRename();
+              }
             }}
             className="flex-1 pl-4 pr-2 py-1 my-0.5 bg-bm-surface text-bm-ink rounded font-mono text-[12px] border border-bm-accent outline-none focus:ring-1 focus:ring-bm-accent shadow-sm"
             placeholder="filename.ts"
           />
-          <span className="ml-2 mr-1 text-[10px] text-bm-ink-muted bm-mono shrink-0">
-            ⏎
-          </span>
+          <span className="ml-2 mr-1 text-[10px] text-bm-ink-muted bm-mono shrink-0">⏎</span>
         </div>
       </li>
     );
@@ -219,7 +223,7 @@ function FileRow({
           <button
             type="button"
             onClick={onRemove}
-            className="opacity-0 group-hover/row:opacity-100 text-bm-ink-muted hover:text-bm-danger px-1.5 text-[14px] leading-none transition-opacity"
+            className="opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 focus:opacity-100 text-bm-ink-muted hover:text-bm-danger px-1.5 text-[14px] leading-none transition-opacity"
             aria-label={`Delete ${filename}`}
             title="Delete"
           >

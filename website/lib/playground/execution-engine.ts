@@ -1,8 +1,9 @@
 import * as esbuild from 'esbuild-wasm';
 import { type GraphQLSchema, printSchema } from 'graphql';
+import { extractBareImports, fetchCdnModule } from './cdn-modules';
 import { compileTypeScriptInWorker } from './compiler-worker-client';
 import { captureConsole } from './console-capture';
-import { getDependencyModules } from './dependencies-bundle';
+import { compilerLogger } from './logger';
 import { getPluginModules } from './plugins-bundle';
 import { getCachedSchema, setCachedSchema } from './schema-cache';
 
@@ -71,7 +72,7 @@ export async function compileTypeScript(
   try {
     const cachedCode = await getCachedSchema(code);
     if (cachedCode) {
-      console.log('[Compiler] Using cached compilation');
+      compilerLogger.debug('Using cached compilation');
       return {
         success: true,
         code: cachedCode,
@@ -79,7 +80,7 @@ export async function compileTypeScript(
     }
   } catch (err) {
     // Cache errors are non-fatal, continue with compilation
-    console.warn('[Compiler] Cache read failed:', err);
+    compilerLogger.warn('Cache read failed:', err);
   }
 
   // Try worker-based compilation first
@@ -90,13 +91,13 @@ export async function compileTypeScript(
       // Cache successful compilation
       if (result.success && result.code) {
         setCachedSchema(code, result.code).catch((err) => {
-          console.warn('[Compiler] Failed to cache compilation:', err);
+          compilerLogger.warn('Failed to cache compilation:', err);
         });
       }
 
       return result;
     } catch (err) {
-      console.warn('[Compiler] Worker compilation failed, falling back to main thread:', err);
+      compilerLogger.warn('Worker compilation failed, falling back to main thread:', err);
       // Fall through to main thread compilation
     }
   }
@@ -114,7 +115,7 @@ export async function compileTypeScript(
 
     // Cache successful compilation
     setCachedSchema(code, result.code).catch((err) => {
-      console.warn('[Compiler] Failed to cache compilation:', err);
+      compilerLogger.warn('Failed to cache compilation:', err);
     });
 
     return {
@@ -130,86 +131,90 @@ export async function compileTypeScript(
   }
 }
 
-/**
- * Execute user code with timeout protection
- *
- * Note: This provides a basic timeout mechanism but cannot interrupt
- * truly synchronous infinite loops. The timeout will fire after the
- * specified time, but the loop will continue running until it completes
- * or the browser's execution limit is reached.
- *
- * @param fn - Function to execute
- * @param timeoutMs - Timeout in milliseconds (default: 5000ms)
- * @returns Execution result
- * @throws Error if execution takes longer than timeout
- */
-function executeWithTimeout<T>(fn: () => T, timeoutMs = 5000): T {
-  let completed = false;
-  let result: T | undefined;
-  let error: Error | null = null;
-
-  // Set up timeout - this will throw after timeoutMs
-  const timeoutId = setTimeout(() => {
-    if (!completed) {
-      error = new Error(
-        `Execution timeout after ${timeoutMs}ms. Check for infinite loops or very slow operations.`,
-      );
-    }
-  }, timeoutMs);
-
-  try {
-    // Execute the function synchronously
-    result = fn();
-    completed = true;
-    clearTimeout(timeoutId);
-
-    // If timeout already fired, throw the error
-    if (error) {
-      throw error;
-    }
-
-    return result;
-  } catch (err) {
-    clearTimeout(timeoutId);
-    // Re-throw timeout error or original error
-    throw error || err;
-  }
-}
+// User code runs via `new Function()` on the main thread (see comment
+// at the call site below). There is no real way to bound execution
+// time in this context: a `setTimeout`-based timeout cannot fire
+// during a synchronous user-code call because the event loop is
+// blocked. If we ever need a real budget for sync user code, the
+// schema build needs to move into a Worker so it can be terminated.
+// For now we rely on the browser's slow-script dialog as the backstop.
 
 export function executeAndBuildSchema(
   compiledCode: string,
   modules: PlaygroundModules,
   additionalModules: Record<string, unknown> = {},
 ): ExecutionResult {
+  // Logs accumulate into this array even if user code throws — both
+  // captureConsole (via `out`) and our catch below read from it, so a
+  // failed schema build still surfaces any preceding console output.
+  const logs: ConsoleMessage[] = [];
+
   try {
-    // Use safe console capture utility with timeout protection
-    const { result, logs } = captureConsole(() => {
-      return executeWithTimeout(() => {
-        const moduleMap: Record<string, unknown> = {
-          '@pothos/core': modules['@pothos/core'],
-          graphql: modules.graphql,
-          ...additionalModules,
+    const { result } = captureConsole(() => {
+      const moduleMap: Record<string, unknown> = {
+        '@pothos/core': modules['@pothos/core'],
+        graphql: modules.graphql,
+        ...additionalModules,
+      };
+
+      // __interop bridges the CJS/ESM gap that esm.sh leaves behind:
+      // when esm.sh serves a CJS package (lodash, etc.) it puts the
+      // original module on \`.default\` and synthesizes named exports
+      // as live bindings. Some of those bindings resolve to undefined
+      // even though the property exists on \`default\` — copying eagerly
+      // (via \`Object.assign\`) misses them entirely. We instead Proxy
+      // \`default\` and prefer named-export values when they're
+      // actually defined, falling back to \`default\`'s own property
+      // for everything else. Both \`x.add\` and \`{ add } = x\` resolve
+      // through the same get trap, so the two forms agree.
+      const wrappedCode = `
+        const __exports = {};
+        const __require = (name) => {
+          if (!__modules[name]) throw new Error('Module not found: ' + name);
+          return __modules[name];
+        };
+        const __interop = (m) => {
+          if (m == null || typeof m !== 'object') return m;
+          const def = m.default;
+          if (def == null || (typeof def !== 'object' && typeof def !== 'function')) {
+            return m;
+          }
+          return new Proxy(def, {
+            get(target, prop, receiver) {
+              if (typeof prop === 'string' && prop in m) {
+                const v = m[prop];
+                if (v !== undefined) return v;
+              }
+              return Reflect.get(target, prop, receiver);
+            },
+            has(target, prop) {
+              if (
+                typeof prop === 'string' &&
+                prop in m &&
+                m[prop] !== undefined
+              ) {
+                return true;
+              }
+              return Reflect.has(target, prop);
+            },
+          });
         };
 
-        const wrappedCode = `
-          const __exports = {};
-          const __require = (name) => {
-            if (!__modules[name]) throw new Error('Module not found: ' + name);
-            return __modules[name];
-          };
+        ${rewriteImports(compiledCode)}
 
-          ${rewriteImports(compiledCode)}
+        return __exports;
+      `;
 
-          return __exports;
-        `;
-
-        // Note: Using Function constructor for code execution
-        // This is intentional for the playground but has security implications
-        // User code is sandboxed with timeout and limited module access
-        const fn = new Function('__modules', wrappedCode);
-        return fn(moduleMap);
-      }, 5000);
-    });
+      // SECURITY: `new Function()` runs user code in the page origin
+      // with full access to window/document/fetch/cookies. URL-shared
+      // playground links carry executable code; clicking one runs JS
+      // under pothos.dev. Acceptable for first-party authoring; before
+      // accepting third-party shares without friction, consider moving
+      // execution into a sandboxed iframe or a separate origin and
+      // postMessage'ing the SDL back.
+      const fn = new Function('__modules', wrappedCode);
+      return fn(moduleMap);
+    }, logs);
 
     if (!result.schema) {
       return {
@@ -231,26 +236,30 @@ export function executeAndBuildSchema(
     };
   } catch (err) {
     const error = err as Error;
-
-    // Check if this was a timeout error
-    if (error.message.includes('timeout')) {
-      return {
-        success: false,
-        error: `⏱️  ${error.message}`,
-        consoleLogs: [],
-      };
-    }
-
     return {
       success: false,
       error: error.message,
-      consoleLogs: [],
+      consoleLogs: logs,
     };
   }
 }
 
+// Regex-based import rewriter — intentionally not a real parser. The playground
+// only executes trusted user code, and the supported import shapes are well-bounded.
 function rewriteImports(code: string): string {
   let rewritten = code;
+
+  // Handle re-exports first: `export { x } from 'mod'` and `export { x as y } from 'mod'`.
+  // Must run before the bare `export { x }` rewriter below, otherwise that
+  // rewriter would match the `{ x }` portion and emit refs to undeclared `x`.
+  const reExportRegex = /export\s*\{\s*([^}]+)\s*\}\s*from\s*['"]([^'"]+)['"]/g;
+  rewritten = rewritten.replace(reExportRegex, (_match, names: string, moduleName: string) => {
+    const parts = names.split(',').map((n: string) => {
+      const [name, alias] = n.trim().split(/\s+as\s+/);
+      return `__exports.${alias || name} = __require('${moduleName}').${name}`;
+    });
+    return parts.join(';\n');
+  });
 
   // Handle import statements - match more carefully
   const importRegex = /import\s+(.+?)\s+from\s*['"]([^'"]+)['"]/g;
@@ -258,22 +267,44 @@ function rewriteImports(code: string): string {
   rewritten = rewritten.replace(importRegex, (_match, imports, moduleName) => {
     const cleanImports = imports.trim();
 
-    // Named imports only: import { a, b } from 'module'
+    // Namespace import: `import * as Foo from 'module'`. esm.sh's
+    // CJS-namespace wrappers advertise named keys (so `Object.keys(x)`
+    // looks right) but the live-binding accessors don't actually
+    // surface values for callable-CJS modules like lodash — `x.add`
+    // ends up `undefined` while `Object.keys(x).includes('add')` is
+    // true. Routing through interop builds a flat namespace that
+    // matches what users expect from `* as`.
+    const nsMatch = cleanImports.match(/^\*\s+as\s+([A-Za-z_$][\w$]*)$/);
+    if (nsMatch) {
+      return `const ${nsMatch[1]} = __interop(__require('${moduleName}'))`;
+    }
+
+    // Mixed namespace: `import Foo, * as Bar from 'module'`
+    const mixedNsMatch = cleanImports.match(
+      /^([A-Za-z_$][\w$]*)\s*,\s*\*\s+as\s+([A-Za-z_$][\w$]*)$/,
+    );
+    if (mixedNsMatch) {
+      return `const ${mixedNsMatch[1]} = __require('${moduleName}').default ?? __require('${moduleName}');\nconst ${mixedNsMatch[2]} = __interop(__require('${moduleName}'))`;
+    }
+
+    // Named imports only: `import { a, b } from 'module'` — run
+    // through interop so CJS-wrapped packages (`{ add } from 'lodash'`)
+    // work without forcing the user to write `import lodash from …`.
     if (cleanImports.startsWith('{') && cleanImports.endsWith('}')) {
-      return `const ${cleanImports} = __require('${moduleName}')`;
+      return `const ${cleanImports} = __interop(__require('${moduleName}'))`;
     }
 
-    // Default import only: import Foo from 'module'
+    // Default import: `import Foo from 'module'`
     if (!cleanImports.includes('{') && !cleanImports.includes(',')) {
-      return `const ${cleanImports} = __require('${moduleName}').default || __require('${moduleName}')`;
+      return `const ${cleanImports} = __require('${moduleName}').default ?? __require('${moduleName}')`;
     }
 
-    // Mixed import: import Foo, { a, b } from 'module'
+    // Mixed: `import Foo, { a, b } from 'module'`
     const commaIndex = cleanImports.indexOf(',');
     if (commaIndex > 0) {
       const defaultImport = cleanImports.substring(0, commaIndex).trim();
       const namedImports = cleanImports.substring(commaIndex + 1).trim();
-      return `const ${defaultImport} = __require('${moduleName}').default || __require('${moduleName}');\nconst ${namedImports} = __require('${moduleName}')`;
+      return `const ${defaultImport} = __require('${moduleName}').default ?? __require('${moduleName}');\nconst ${namedImports} = __interop(__require('${moduleName}'))`;
     }
 
     // Fallback - shouldn't reach here
@@ -284,9 +315,15 @@ function rewriteImports(code: string): string {
   const exportDefaultSchemaRegex = /export\s+default\s+(\w+)/g;
   rewritten = rewritten.replace(exportDefaultSchemaRegex, '__exports.default = $1');
 
-  // Handle export const - need to track which consts were exported
+  // Handle export const - need to track which consts were exported.
+  // Only plain identifier forms (`export const foo = ...`) are tracked; for
+  // destructuring forms (`export const { a } = ...` or `export const [a] = ...`)
+  // we can't know which identifiers are bound without parsing, so we leave
+  // those alone — the `export const` -> `const` replacement below still strips
+  // the keyword so the destructure executes; the user just won't get the
+  // bindings re-exported on `__exports`. That's acceptable for the playground.
   const exportedConsts = new Set<string>();
-  const exportConstRegex = /export\s+const\s+(\w+)/g;
+  const exportConstRegex = /export\s+const\s+(\w+)\s*=/g;
   let match: RegExpExecArray | null = exportConstRegex.exec(code);
   while (match !== null) {
     exportedConsts.add(match[1]);
@@ -308,8 +345,9 @@ function rewriteImports(code: string): string {
     rewritten = `${rewritten}\n${constMatches.join('\n')}`;
   }
 
-  // Handle export { name }
-  const exportNamedRegex = /export\s+\{\s*([^}]+)\s*\}/g;
+  // Handle export { name } (without `from`) — re-export `from` form was
+  // already handled above and stripped.
+  const exportNamedRegex = /export\s+\{\s*([^}]+)\s*\}(?!\s*from)/g;
   rewritten = rewritten.replace(exportNamedRegex, (_match, names) => {
     const exports = names.split(',').map((n: string) => {
       const [name, alias] = n.trim().split(/\s+as\s+/);
@@ -391,9 +429,13 @@ async function bundleFiles(files: Array<{ filename: string; content: string }>):
     // Return the bundled code
     return new TextDecoder().decode(result.outputFiles[0].contents);
   } catch (err) {
-    // If esbuild fails, fall back to simple concatenation with a warning
-    console.warn('[Bundler] esbuild bundling failed, using fallback:', err);
-    return files.map((f) => f.content).join('\n\n');
+    // Don't fall back to a naïve concat — relative imports between
+    // user files would survive as `import './builder'` and the
+    // downstream `__require` rewriter would throw "Module not found"
+    // anyway, just with a less actionable error. Surface the real
+    // bundle failure to the caller.
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Bundle failed: ${message}`);
   }
 }
 
@@ -440,9 +482,11 @@ export async function compileAndExecute(
     }
   }
 
-  // Load any plugins and dependencies used in the code
+  // Pothos plugins are workspace packages — bundled locally so the
+  // playground always runs the same version that ships with the docs.
+  // Everything else (zod, lodash, anything the user types) goes through
+  // the esm.sh CDN at runtime; ATA fetches matching types at edit time.
   const pluginModules = getPluginModules(code);
-  const dependencyModules = getDependencyModules(code);
 
   const compilationResult = await compileTypeScript(code, filename);
 
@@ -453,8 +497,35 @@ export async function compileAndExecute(
     };
   }
 
+  const knownLocally = new Set<string>(['@pothos/core', 'graphql', ...Object.keys(pluginModules)]);
+  const cdnModules: Record<string, unknown> = {};
+  const remoteSpecifiers = [...extractBareImports(compilationResult.code!)].filter(
+    (name) => !knownLocally.has(name),
+  );
+  if (remoteSpecifiers.length > 0) {
+    const fetched = await Promise.allSettled(
+      remoteSpecifiers.map(async (name) => [name, await fetchCdnModule(name)] as const),
+    );
+    const failed: string[] = [];
+    for (let i = 0; i < fetched.length; i++) {
+      const settled = fetched[i];
+      if (settled.status === 'fulfilled') {
+        cdnModules[settled.value[0]] = settled.value[1];
+      } else {
+        failed.push(remoteSpecifiers[i]);
+        compilerLogger.warn(`Failed to load '${remoteSpecifiers[i]}' from esm.sh:`, settled.reason);
+      }
+    }
+    if (failed.length > 0) {
+      return {
+        success: false,
+        error: `Failed to load ${failed.length === 1 ? 'package' : 'packages'} from esm.sh: ${failed.join(', ')}`,
+      };
+    }
+  }
+
   return executeAndBuildSchema(compilationResult.code!, modules, {
     ...pluginModules,
-    ...dependencyModules,
+    ...cdnModules,
   });
 }

@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ThemeToggle } from '../../marketing/ThemeToggle';
-import { Wordmark } from '../../marketing/Wordmark';
+import { ThemeToggle } from '@/components/marketing/ThemeToggle';
+import { Wordmark } from '@/components/marketing/Wordmark';
 import { Button } from '../shell/Button';
 import { type OverflowItem, OverflowMenu } from './OverflowMenu';
 import { RunButton } from './RunButton';
@@ -68,11 +68,7 @@ export function Toolbar({
   // inside an inline embed. Standalone mode keeps the link home.
   const wordmark = <Wordmark width={104} height={24} />;
   const wordmarkSlot = embed ? (
-    <span
-      role="img"
-      aria-label="Pothos"
-      className="flex items-center select-none"
-    >
+    <span role="img" aria-label="Pothos" className="flex items-center select-none">
       {wordmark}
     </span>
   ) : (
@@ -89,20 +85,18 @@ export function Toolbar({
   return (
     <div className="relative z-[5] flex items-center gap-3.5 px-6 py-3 bg-bm-bg border-b border-bm-line">
       {wordmarkSlot}
-      <span className="h-5 w-px bg-bm-line" aria-hidden="true" />
+      {/* The wordmark is brand enough on its own — a separate
+          "Playground" label was redundant. Keep the divider only when
+          a sketch name renders to its right, otherwise drop it. */}
       <div className="flex items-baseline gap-2.5">
-        <span className="font-serif text-[18px] font-normal tracking-[-0.01em] text-bm-ink">
-          Playground
-        </span>
+        {sketchName && <span className="h-5 w-px bg-bm-line self-center" aria-hidden="true" />}
         {/* In embed mode the sketch is read-only — show the loaded
             example's title (or nothing if no example). In standalone
             mode the user can rename, but skip the input when there's
             no name yet so we don't render an empty button. */}
         {embed
           ? sketchName && (
-              <span className="font-serif text-[13px] italic text-bm-ink-muted">
-                {sketchName}
-              </span>
+              <span className="font-serif text-[13px] italic text-bm-ink-muted">{sketchName}</span>
             )
           : sketchName && <SketchName value={sketchName} onChange={onSketchRename} />}
       </div>

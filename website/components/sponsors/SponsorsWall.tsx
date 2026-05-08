@@ -1,4 +1,4 @@
-import type { Sponsor } from '../../lib/github';
+import type { Sponsor } from '@/lib/github';
 import { PersonCard } from './PersonCard';
 import { FALLBACK_SPONSOR_LOGINS } from './topSponsors';
 

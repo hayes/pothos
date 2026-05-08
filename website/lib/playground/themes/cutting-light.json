@@ -220,19 +220,12 @@
     },
     {
       "name": "GraphQL — type definitions (type, interface, enum, input)",
-      "scope": [
-        "keyword.type.graphql",
-        "storage.type.graphql"
-      ],
+      "scope": ["keyword.type.graphql", "storage.type.graphql"],
       "settings": { "foreground": "#7a3a2f" }
     },
     {
       "name": "GraphQL — type names",
-      "scope": [
-        "support.type.graphql",
-        "entity.name.type.graphql",
-        "meta.type.graphql"
-      ],
+      "scope": ["support.type.graphql", "entity.name.type.graphql", "meta.type.graphql"],
       "settings": { "foreground": "#3a5a78" }
     },
     {

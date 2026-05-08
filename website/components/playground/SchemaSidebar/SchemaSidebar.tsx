@@ -2,8 +2,8 @@
 
 import type { GraphQLSchema } from 'graphql';
 import { useMemo, useState } from 'react';
+import { ExplorerView } from '../SchemaExplorer/ExplorerView';
 import { type ExplorerSchema, introspectSchema } from '../SchemaExplorer/introspect';
-import { TypeRow } from '../SchemaExplorer/TypeRow';
 import type { PlaygroundFile } from '../types';
 import { FilesView } from './FilesView';
 
@@ -27,10 +27,7 @@ interface Props {
 
   // Schema
   schema: GraphQLSchema | null;
-  schemaSDL: string | null;
   isCompiling: boolean;
-  activeFieldKey?: string;
-  onTypeClick?: (typeName: string) => void;
 }
 
 const EMPTY: ExplorerSchema = { types: [], fieldCount: 0 };
@@ -51,10 +48,7 @@ export function SchemaSidebar({
   onRenameFile,
   onRemoveFile,
   schema,
-  schemaSDL: _schemaSDL,
   isCompiling,
-  activeFieldKey,
-  onTypeClick,
 }: Props) {
   const [tab, setTab] = useState<Tab>('files');
   const [filter, setFilter] = useState('');
@@ -66,10 +60,14 @@ export function SchemaSidebar({
   const knownTypes = useMemo(() => new Set(explorer.types.map((t) => t.name)), [explorer]);
 
   const filteredTypes = useMemo(() => {
-    if (!filter) return explorer.types;
+    if (!filter) {
+      return explorer.types;
+    }
     const q = filter.toLowerCase();
     return explorer.types.filter((t) => {
-      if (t.name.toLowerCase().includes(q)) return true;
+      if (t.name.toLowerCase().includes(q)) {
+        return true;
+      }
       return t.fields.some(
         (f) => f.name.toLowerCase().includes(q) || f.returns.toLowerCase().includes(q),
       );
@@ -112,6 +110,7 @@ export function SchemaSidebar({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter…"
+            aria-label="Filter types"
             className="w-full px-2.5 py-1.5 font-mono text-[12px] text-bm-ink bg-bm-surface-alt border border-bm-line rounded outline-none focus:border-bm-accent"
           />
         </div>
@@ -134,26 +133,13 @@ export function SchemaSidebar({
         )}
 
         {tab === 'explorer' && (
-          <div className="px-4 font-mono text-[12px]">
-            {isCompiling && filteredTypes.length === 0 && (
-              <div className="text-bm-ink-muted italic py-2">Compiling…</div>
-            )}
-            {!isCompiling && filteredTypes.length === 0 && filter && (
-              <div className="text-bm-ink-muted italic py-2">No types match "{filter}"</div>
-            )}
-            {!isCompiling && filteredTypes.length === 0 && !filter && (
-              <div className="text-bm-ink-muted italic py-2">Schema is empty.</div>
-            )}
-            {filteredTypes.map((t) => (
-              <TypeRow
-                key={t.name}
-                type={t}
-                knownTypes={knownTypes}
-                activeFieldKey={activeFieldKey}
-                onTypeClick={onTypeClick}
-              />
-            ))}
-          </div>
+          <ExplorerView
+            filter={filter}
+            onFilterChange={setFilter}
+            filteredTypes={filteredTypes}
+            knownTypes={knownTypes}
+            isCompiling={isCompiling}
+          />
         )}
       </div>
     </aside>

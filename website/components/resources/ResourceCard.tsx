@@ -28,20 +28,7 @@ export function ResourceCard({ resource }: Props) {
       {r.description && (
         <p className="text-bm-ink-muted text-[13px] leading-[1.5] m-0">{r.description}</p>
       )}
-      {r.author && (
-        <div className="text-bm-ink-soft text-[12px] mt-1 font-mono">
-          {r.authorUrl ? (
-            <span>
-              by{' '}
-              <span className="text-bm-ink-soft group-hover:text-bm-ink transition-colors">
-                {r.author}
-              </span>
-            </span>
-          ) : (
-            <span>by {r.author}</span>
-          )}
-        </div>
-      )}
+      {r.author && <div className="text-bm-ink-soft text-[12px] mt-1 font-mono">by {r.author}</div>}
     </a>
   );
 }

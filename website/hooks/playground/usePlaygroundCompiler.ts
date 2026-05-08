@@ -3,17 +3,14 @@
 import type { GraphQLSchema } from 'graphql';
 import * as graphql from 'graphql';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PlaygroundFile } from '../../components/playground/types';
+import type { PlaygroundFile } from '@/components/playground/types';
 import {
   type ConsoleMessage,
   compileAndExecute,
   type ExecutionResult,
   type PlaygroundModules,
-} from './execution-engine';
-import { pothosModule } from './pothos-bundle';
-
-// Re-export ConsoleMessage for external use
-export type { ConsoleMessage };
+} from '@/lib/playground/execution-engine';
+import { pothosModule } from '@/lib/playground/pothos-bundle';
 
 export interface CompilerState {
   isCompiling: boolean;
@@ -62,6 +59,10 @@ export function usePlaygroundCompiler({
   const prevFilesRef = useRef(files);
   // Track compilation version to ignore stale results
   const currentCompilationRef = useRef<number>(0);
+  // Tracks whether the host component is mounted; gates post-await state
+  // updates so an in-flight compile that resolves after unmount doesn't
+  // setState on a dead component.
+  const isMountedRef = useRef(true);
 
   const compile = useCallback(async () => {
     const mainFile = files.find((f) => f.filename === 'schema.ts') || files[0];
@@ -89,9 +90,9 @@ export function usePlaygroundCompiler({
             })
           : await compileAndExecute(mainFile.content, modules, mainFile.filename);
 
-      // Only update state if this is still the latest compilation
-      // This prevents race conditions where older compilations finish after newer ones
-      if (compilationId === currentCompilationRef.current) {
+      // Only update state if this is still the latest compilation AND
+      // the component is still mounted.
+      if (isMountedRef.current && compilationId === currentCompilationRef.current) {
         if (result.success && result.schema && result.schemaSDL) {
           setState({
             isCompiling: false,
@@ -110,10 +111,11 @@ export function usePlaygroundCompiler({
           }));
         }
       }
-      // If compilationId doesn't match, silently ignore stale results
+      // If compilationId doesn't match or unmounted, silently ignore.
     } catch (err) {
       // Only update error state if this is still the latest compilation
-      if (compilationId === currentCompilationRef.current) {
+      // and the component is still mounted.
+      if (isMountedRef.current && compilationId === currentCompilationRef.current) {
         const error = err as Error;
         setState((prev) => ({
           ...prev,
@@ -131,14 +133,29 @@ export function usePlaygroundCompiler({
       debounceTimerRef.current = null;
     }
 
+    // Bump the compilation generation so any in-flight compile that
+    // resolves after this reset can't clobber the cleared state.
+    currentCompilationRef.current++;
+
     setState({
-      isCompiling: true,
+      // No compile is in flight after a reset; nothing has been
+      // queued. Setting `isCompiling: true` here would leave the UI
+      // stuck on "Compiling…" until something else re-triggered the
+      // effect.
+      isCompiling: false,
       schema: null,
       schemaSDL: null,
       error: null,
       lastCompiledAt: null,
       consoleLogs: [],
     });
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {

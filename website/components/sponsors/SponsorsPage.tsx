@@ -1,4 +1,4 @@
-import { fetchContributors, fetchSponsors } from '../../lib/github';
+import { fetchContributors, fetchSponsors } from '@/lib/github';
 import { ContributorsWall } from './ContributorsWall';
 import { SponsorsWall } from './SponsorsWall';
 import { TopSponsorsRow } from './TopSponsorsRow';
@@ -26,8 +26,15 @@ export async function SponsorsPage() {
           The garden tenders.
         </h1>
         <p className="text-bm-ink-soft text-[19px] leading-[1.5] max-w-[640px] mt-5">
-          Pothos development is supported by these generous people and organizations. Want to
-          help? <a href="https://github.com/sponsors/hayes" className="text-bm-accent hover:underline">Become a sponsor</a> or <a href="https://github.com/hayes/pothos" className="text-bm-accent hover:underline">contribute on GitHub</a>.
+          Pothos development is supported by these generous people and organizations. Want to help?{' '}
+          <a href="https://github.com/sponsors/hayes" className="text-bm-accent hover:underline">
+            Become a sponsor
+          </a>{' '}
+          or{' '}
+          <a href="https://github.com/hayes/pothos" className="text-bm-accent hover:underline">
+            contribute on GitHub
+          </a>
+          .
         </p>
       </header>
 
@@ -38,12 +45,12 @@ export async function SponsorsPage() {
 
       <section className="mb-16">
         <SectionHead label="GitHub sponsors" />
-        <SponsorsWall sponsors={sponsors} />
+        <SponsorsWall sponsors={sponsors.data} />
       </section>
 
       <section>
         <SectionHead label="Contributors" />
-        <ContributorsWall contributors={contributors} />
+        <ContributorsWall contributors={contributors.data} />
       </section>
     </div>
   );
@@ -51,10 +58,7 @@ export async function SponsorsPage() {
 
 function SectionHead({ label }: { label: string }) {
   return (
-    <h2
-      className="font-serif font-normal mb-5"
-      style={{ fontSize: 24, letterSpacing: '-0.015em' }}
-    >
+    <h2 className="font-serif font-normal mb-5" style={{ fontSize: 24, letterSpacing: '-0.015em' }}>
       {label}
     </h2>
   );

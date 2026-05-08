@@ -32,10 +32,11 @@ export function StatusPill({ status }: Props) {
       type="button"
       onClick={onClick}
       disabled={!onClick}
+      aria-live="polite"
       className={`flex items-center gap-2 text-[12px] tracking-[0.02em] disabled:cursor-default ${textClass}`}
     >
-      <span className={`size-1.5 rounded-full ${dotClass}`} />
-      {status.text}
+      <span className={`size-1.5 rounded-full ${dotClass}`} aria-hidden="true" />
+      <span>{status.text}</span>
     </button>
   );
 }

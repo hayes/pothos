@@ -6,7 +6,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { docsOptions } from '@/app/(docs)/layout.config';
 import { source } from '@/app/source';
-import { LLMCopyButton, ViewOptions } from '@/components/ai/page-actions';
+import { LLMCopyButton } from '@/components/ai/LLMCopyButton';
+import { ViewOptions } from '@/components/ai/ViewOptions';
 import { useMDXComponents } from '@/mdx-components';
 
 interface MDXPageData {

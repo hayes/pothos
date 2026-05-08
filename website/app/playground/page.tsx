@@ -1,368 +1,109 @@
 'use client';
 
-import { useTheme } from '@/components/Providers';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useUrlInit, useUrlSync } from '../../hooks/playground/useUrlSync';
-import { ConsoleDrawer } from '../../components/playground/ConsoleDrawer/ConsoleDrawer';
-import { ExamplesPicker } from '../../components/playground/ExamplesPicker/ExamplesPicker';
-import { exampleMetadata } from '../../components/playground/examples';
-import { OperationPane } from '../../components/playground/OperationPane/OperationPane';
-import { ResponsePane } from '../../components/playground/ResponsePane/ResponsePane';
-import { SchemaEditor } from '../../components/playground/SchemaEditor/SchemaEditor';
-import { SchemaSidebar } from '../../components/playground/SchemaSidebar/SchemaSidebar';
-import { StepperBar } from '../../components/playground/StepperBar/StepperBar';
-import type { OverflowItem } from '../../components/playground/Toolbar/OverflowMenu';
-import { Toolbar } from '../../components/playground/Toolbar/Toolbar';
-import { useConsoleLogs } from '../../hooks/playground/useConsoleLogs';
-import { useExampleLoader } from '../../hooks/playground/useExampleLoader';
-import { useKeyboardShortcuts } from '../../hooks/playground/useKeyboardShortcuts';
-import { useOperations } from '../../hooks/playground/useOperations';
-import { usePlaygroundFiles } from '../../hooks/playground/usePlaygroundFiles';
-import { useQueryRunner } from '../../hooks/playground/useQueryRunner';
-import { useSchemaStatus } from '../../hooks/playground/useSchemaStatus';
-import { copyToClipboard, createShareableURL } from '../../lib/playground/url-state';
-import { usePlaygroundCompiler } from '../../lib/playground/use-playground-compiler';
-import { defaultFiles, defaultOperations } from './defaults';
-
-/**
- * Read `?embed`, `?example`, `?query` from window.location once on
- * mount. Doing this in an effect (not in component init) keeps SSR
- * and the first client paint identical so React doesn't fault.
- */
-function readSearchParamsOnce(): {
-  embed: boolean;
-  exampleId: string | null;
-  query: string | null;
-} {
-  if (typeof window === 'undefined') {
-    return { embed: false, exampleId: null, query: null };
-  }
-  const params = new URLSearchParams(window.location.search);
-  const exampleId = params.get('example');
-  const queryRaw = params.get('query');
-  let query: string | null = null;
-  if (queryRaw) {
-    try {
-      query = atob(queryRaw);
-    } catch {
-      query = queryRaw;
-    }
-  }
-  return { embed: params.get('embed') === '1', exampleId, query };
-}
+import { ConsoleDrawer } from '@/components/playground/ConsoleDrawer/ConsoleDrawer';
+import { OperationPane } from '@/components/playground/OperationPane/OperationPane';
+import { ResponsePane } from '@/components/playground/ResponsePane/ResponsePane';
+import { SchemaEditor } from '@/components/playground/SchemaEditor/SchemaEditor';
+import { SchemaSidebar } from '@/components/playground/SchemaSidebar/SchemaSidebar';
+import { StepperBar } from '@/components/playground/StepperBar/StepperBar';
+import { PlaygroundLayout } from '@/components/playground/shell/PlaygroundLayout';
+import { Toolbar } from '@/components/playground/Toolbar/Toolbar';
+import { usePlaygroundShellUI } from '@/hooks/playground/usePlaygroundShellUI';
 
 export default function PlaygroundPage() {
-  // Initial state is the deterministic defaults — both server and client
-  // render the same content for the first paint. The hash-based state
-  // gets applied client-side via useUrlInit below.
-  const filesState = usePlaygroundFiles(defaultFiles());
-  const opsState = useOperations(defaultOperations());
-  const exampleLoader = useExampleLoader();
-  const runner = useQueryRunner();
-  const console_ = useConsoleLogs();
-  const { resolvedTheme, setTheme } = useTheme();
-
-  // Read URL search params (?embed, ?example, ?query) once after mount.
-  const [embed, setEmbed] = useState(false);
-  const searchInitRef = useRef(false);
-
-  const { state: compilerState } = usePlaygroundCompiler({
-    files: filesState.files,
-    debounceMs: 500,
-    autoCompile: true,
-  });
-
-  // Mirror compile-time logs into the console drawer whenever they change.
-  useEffect(() => {
-    console_.replaceCompile(compilerState.consoleLogs, compilerState.error);
-  }, [compilerState.consoleLogs, compilerState.error, console_.replaceCompile]);
-
-  // UI: drawers / popovers / sketch name. The default `untitled sketch`
-  // is the placeholder for the rename input on the standalone page;
-  // in embed mode the search-params effect below clears it so we never
-  // show the placeholder inside the iframe (the example title that
-  // mirrors in via the loader is what users actually see).
-  const [consoleOpen, setConsoleOpen] = useState(false);
-  const [examplesOpen, setExamplesOpen] = useState(false);
-  const [overflowOpen, setOverflowOpen] = useState(false);
-  const [sketchName, setSketchName] = useState('untitled sketch');
-  const [shareLabel, setShareLabel] = useState('Share');
-  const [responseSubTab, setResponseSubTab] = useState<'response' | 'trace'>('response');
-  const [sdlActive, setSdlActive] = useState(false);
-
-  // Hydrate from `window.location.hash` once after mount. Doing this
-  // here (rather than in useState init) keeps the server's first paint
-  // matching the client's first paint, so React doesn't fault.
-  useUrlInit((initial) => {
-    if (initial.files.length > 0) {
-      filesState.setFiles(initial.files);
-      filesState.setActiveIndex(0);
-    }
-    if (initial.operations.length > 0) {
-      opsState.setOperations(initial.operations);
-      opsState.setActiveIndex(0);
-      opsState.markClean();
-    }
-  });
-
-  useUrlSync({
-    files: filesState.files,
-    operations: opsState.operations,
-    activeOperationIndex: opsState.activeIndex,
-    ready: !compilerState.isCompiling || compilerState.schema !== null,
-  });
-
-  // Apply an ExampleLoaderResult — push files/ops into the hook state.
-  // Used for both initial example loads and step navigation.
-  const applyExampleResult = useCallback(
-    (result: { files: typeof filesState.files; operations: typeof opsState.operations }) => {
-      filesState.setFiles(result.files);
-      filesState.setActiveIndex(0);
-      opsState.setOperations(result.operations);
-      opsState.setActiveIndex(0);
-      opsState.setSubTab('query');
-      opsState.markClean();
-      runner.reset();
-    },
-    [filesState, opsState, runner],
-  );
-
-  const handlePickExample = useCallback(
-    async (id: string) => {
-      setExamplesOpen(false);
-      const result = await exampleLoader.load(id);
-      if (result) applyExampleResult(result);
-    },
-    [exampleLoader, applyExampleResult],
-  );
-
-  // One-shot reader for `?embed`, `?example`, and `?query` URL params.
-  // Runs in an effect (not useState init) so SSR and the first client
-  // paint stay identical — `useUrlInit` does the same for hash state.
-  useEffect(() => {
-    if (searchInitRef.current) return;
-    searchInitRef.current = true;
-    const search = readSearchParamsOnce();
-    if (search.embed) {
-      setEmbed(true);
-      // Clear the standalone-mode placeholder so the toolbar renders
-      // nothing until the example load below mirrors a real title in.
-      setSketchName('');
-    }
-    if (search.exampleId) {
-      exampleLoader
-        .load(search.exampleId)
-        .then((result) => {
-          if (!result) return;
-          applyExampleResult(result);
-          if (search.query) {
-            opsState.setQuery(search.query);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to auto-load example from URL:', err);
-        });
-    }
-  }, [exampleLoader, applyExampleResult, opsState]);
-
-  const handleStep = useCallback(
-    async (index: number) => {
-      const result = await exampleLoader.goToStep(index);
-      if (result) applyExampleResult(result);
-    },
-    [exampleLoader, applyExampleResult],
-  );
-
-  // Mirror the loaded example's title into the sketch name whenever it changes.
-  useEffect(() => {
-    if (exampleLoader.loaded) setSketchName(exampleLoader.loaded.metadata.title);
-  }, [exampleLoader.loaded]);
-
-  const status = useSchemaStatus({
-    state: compilerState,
-    onErrorClick: () => setConsoleOpen(true),
-  });
-
-  const handleRun = useCallback(async () => {
-    const result = await runner.run({
-      schema: compilerState.schema,
-      query: opsState.active.query,
-      variables: opsState.active.variables,
-    });
-    if (result.logs.length > 0) {
-      console_.push(result.logs, 'query');
-    }
-    opsState.markClean();
-  }, [runner, compilerState.schema, opsState, console_]);
-
-  useKeyboardShortcuts({ onRun: handleRun });
-
-  const handleShare = useCallback(async () => {
-    try {
-      const url = createShareableURL({
-        files: filesState.files,
-        query: opsState.active.query,
-        variables: opsState.active.variables || undefined,
-        queries:
-          opsState.operations.length > 1
-            ? opsState.operations.map((op) => ({
-                title: op.name,
-                query: op.query,
-                variables: op.variables || undefined,
-              }))
-            : undefined,
-        viewMode: 'graphql',
-      });
-      const ok = await copyToClipboard(url);
-      setShareLabel(ok ? 'Copied!' : 'Copy failed');
-      window.setTimeout(() => setShareLabel('Share'), 1500);
-    } catch {
-      setShareLabel('Copy failed');
-      window.setTimeout(() => setShareLabel('Share'), 1500);
-    }
-  }, [filesState.files, opsState.active, opsState.operations]);
-
-  const overflowItems = useMemo<OverflowItem[]>(
-    () => [
-      {
-        label: 'Restore defaults',
-        onSelect: () => {
-          filesState.setFiles(defaultFiles());
-          opsState.setOperations(defaultOperations());
-          opsState.setActiveIndex(0);
-          exampleLoader.exit();
-          runner.reset();
-          setSketchName(embed ? '' : 'untitled sketch');
-        },
-      },
-      {
-        label: 'Format document',
-        shortcut: '⌥⇧F',
-        onSelect: () => {
-          const fmt = (window as Window & { __monacoFormatHandler?: () => void })
-            .__monacoFormatHandler;
-          fmt?.();
-        },
-      },
-      {
-        label: 'Copy generated SDL',
-        onSelect: () => {
-          if (compilerState.schemaSDL) {
-            copyToClipboard(compilerState.schemaSDL).catch(() => {});
-          }
-        },
-      },
-    ],
-    [compilerState.schemaSDL, embed, exampleLoader, filesState, opsState, resolvedTheme, runner, setTheme],
-  );
+  const ui = usePlaygroundShellUI();
 
   return (
     <div
       className={`playground-shell grid grid-rows-[auto_auto_1fr_auto] h-screen bg-bm-bg text-bm-ink relative ${
-        embed ? '' : 'min-h-[820px]'
+        ui.embed ? '' : 'min-h-[820px]'
       }`}
     >
       <Toolbar
-        embed={embed}
-        sketchName={sketchName}
-        onSketchRename={setSketchName}
-        status={status}
-        consoleCount={console_.logs.length}
-        consoleHasErrors={console_.errorCount > 0}
-        consoleOpen={consoleOpen}
-        onToggleConsole={() => setConsoleOpen((s) => !s)}
-        onShare={handleShare}
-        shareLabel={shareLabel}
-        running={runner.phase.kind === 'pending'}
-        onRun={handleRun}
-        examplesOpen={examplesOpen}
-        onToggleExamples={() => setExamplesOpen((s) => !s)}
-        examplesPicker={
-          examplesOpen ? (
-            <ExamplesPicker
-              examples={exampleMetadata}
-              onPick={handlePickExample}
-              onClose={() => setExamplesOpen(false)}
-            />
-          ) : null
-        }
-        overflowOpen={overflowOpen}
-        onToggleOverflow={() => setOverflowOpen((s) => !s)}
-        overflowItems={overflowItems}
+        embed={ui.embed}
+        sketchName={ui.sketchName}
+        onSketchRename={ui.setSketchName}
+        status={ui.status}
+        consoleCount={ui.consoleCount}
+        consoleHasErrors={ui.consoleHasErrors}
+        consoleOpen={ui.consoleOpen}
+        onToggleConsole={ui.toggleConsole}
+        onShare={ui.onShare}
+        shareLabel={ui.shareLabel}
+        running={ui.running}
+        onRun={ui.onRun}
+        examplesOpen={ui.examplesOpen}
+        onToggleExamples={ui.toggleExamples}
+        examplesPicker={ui.examplesPicker}
+        overflowOpen={ui.overflowOpen}
+        onToggleOverflow={ui.toggleOverflow}
+        overflowItems={ui.overflowItems}
       />
 
-      {exampleLoader.loaded && exampleLoader.loaded.steps.length > 1 ? (
+      {ui.loadedExample && ui.loadedExample.steps.length > 1 ? (
         <StepperBar
-          exampleTitle={exampleLoader.loaded.metadata.title}
-          steps={exampleLoader.loaded.steps}
-          index={exampleLoader.stepIndex}
-          onSelect={(i) => {
-            handleStep(i).catch(() => {});
-          }}
-          onExit={exampleLoader.exit}
+          exampleTitle={ui.loadedExample.metadata.title}
+          steps={ui.loadedExample.steps}
+          index={ui.stepIndex}
+          onSelect={ui.onStepSelect}
+          onExit={ui.exitExample}
         />
       ) : (
         <div />
       )}
 
-      <div className="grid grid-cols-[280px_1fr_1fr] min-h-0">
-        <SchemaSidebar
-          files={filesState.files}
-          activeIndex={filesState.activeIndex}
-          sdlActive={sdlActive}
-          onSelectFile={(i) => {
-            setSdlActive(false);
-            filesState.setActiveIndex(i);
-          }}
-          onSelectSdl={() => setSdlActive(true)}
-          onAddFile={() => {
-            setSdlActive(false);
-            filesState.addFile();
-          }}
-          onRenameFile={filesState.renameFile}
-          onRemoveFile={filesState.removeFile}
-          schema={compilerState.schema}
-          schemaSDL={compilerState.schemaSDL}
-          isCompiling={compilerState.isCompiling}
-        />
-
-        <SchemaEditor
-          files={filesState.files}
-          activeIndex={filesState.activeIndex}
-          sdlActive={sdlActive}
-          schemaSDL={compilerState.schemaSDL}
-          onChange={(i, content) => filesState.updateAt(i, content)}
-        />
-
-        <section className="grid grid-rows-[1fr_1fr] min-w-0 min-h-0">
+      <PlaygroundLayout
+        sidebar={
+          <SchemaSidebar
+            files={ui.files}
+            activeIndex={ui.activeFileIndex}
+            sdlActive={ui.sdlActive}
+            onSelectFile={ui.fileActions.selectFile}
+            onSelectSdl={ui.fileActions.selectSdl}
+            onAddFile={ui.fileActions.addFile}
+            onRenameFile={ui.fileActions.renameFile}
+            onRemoveFile={ui.fileActions.removeFile}
+            schema={ui.schema}
+            isCompiling={ui.isCompiling}
+          />
+        }
+        editor={
+          <SchemaEditor
+            files={ui.files}
+            activeIndex={ui.activeFileIndex}
+            sdlActive={ui.sdlActive}
+            schemaSDL={ui.schemaSDL}
+            onChange={ui.onChangeFileAt}
+          />
+        }
+        ops={
           <OperationPane
-            operations={opsState.operations}
-            activeIndex={opsState.activeIndex}
-            subTab={opsState.subTab}
-            onSelectOperation={opsState.setActiveIndex}
-            onCloseOperation={opsState.closeOperation}
-            onAddOperation={opsState.addOperation}
-            onSelectSubTab={opsState.setSubTab}
-            onChangeQuery={opsState.setQuery}
-            onChangeVariables={opsState.setVariables}
-            onChangeHeaders={opsState.setHeaders}
-            onRun={handleRun}
+            operations={ui.operations}
+            activeIndex={ui.activeOperationIndex}
+            subTab={ui.operationSubTab}
+            onSelectOperation={ui.operationActions.setActiveIndex}
+            onCloseOperation={ui.operationActions.closeOperation}
+            onAddOperation={ui.operationActions.addOperation}
+            onSelectSubTab={ui.operationActions.setSubTab}
+            onChangeQuery={ui.operationActions.setQuery}
+            onChangeVariables={ui.operationActions.setVariables}
+            onChangeHeaders={ui.operationActions.setHeaders}
+            onChangeContext={ui.operationActions.setContext}
+            onRun={ui.onRun}
           />
+        }
+        response={
           <ResponsePane
-            phase={runner.phase}
-            subTab={responseSubTab}
-            onSelectSubTab={setResponseSubTab}
-            trace={runner.trace}
+            phase={ui.runnerPhase}
+            subTab={ui.responseSubTab}
+            onSelectSubTab={ui.setResponseSubTab}
+            trace={ui.runnerTrace}
           />
-        </section>
-      </div>
+        }
+      />
 
-      {consoleOpen ? (
-        <ConsoleDrawer
-          logs={console_.logs}
-          onClear={console_.clear}
-          onClose={() => setConsoleOpen(false)}
-        />
+      {ui.consoleOpen ? (
+        <ConsoleDrawer logs={ui.consoleLogs} onClear={ui.clearConsole} onClose={ui.closeConsole} />
       ) : (
         <div />
       )}

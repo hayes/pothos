@@ -132,11 +132,15 @@ test.describe('Playground Theme', () => {
       return {
         monacoAvailable: true,
         modelsCount: models.length,
-        editorMethods: Object.keys(editor).filter((k) => typeof (editor as any)[k] === 'function'),
+        editorMethods: Object.keys(editor).filter(
+          (k) => typeof (editor as unknown as Record<string, unknown>)[k] === 'function',
+        ),
         // Try to get theme
         canSetTheme: typeof editor.setTheme === 'function',
         // Check what themes are defined
-        themes: (editor as any)._themeService ? 'themeService exists' : 'no themeService',
+        themes: (editor as unknown as { _themeService?: unknown })._themeService
+          ? 'themeService exists'
+          : 'no themeService',
       };
     });
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { source } from '@/app/source';
-import { Sidebar } from '../../components/docs/Sidebar';
-import { Header } from '../../components/marketing/Header';
+import { Sidebar } from '@/components/docs/Sidebar/Sidebar';
+import { Header } from '@/components/marketing/Header';
 
 /**
  * Docs layout: marketing Header + custom Sidebar. Children render

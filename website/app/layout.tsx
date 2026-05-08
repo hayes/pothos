@@ -24,18 +24,27 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
+// Pre-hydration theme bootstrap. Reads `pothos-theme` from localStorage
+// (matching the storage key used by `components/Providers.tsx`) and the
+// system color-scheme preference, then sets the right class on
+// `<html>` before paint so dark-mode users don't see a one-frame flash.
+// Mirrors the standard next-themes recipe but inlined for our custom
+// provider. Stays in sync with `applyClass` in Providers.tsx.
+const themeBootstrap = `(function(){try{var s=localStorage.getItem('pothos-theme');var r=(s==='dark'||s==='light')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');var d=document.documentElement;d.classList.toggle('dark',r==='dark');d.classList.toggle('light',r==='light');d.style.colorScheme=r;}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
-  // Note: Next.js 16's dev mode escalates "script inside a React
-  // component" into a blocking error overlay, which means we can't
-  // render a pre-hydration FOUC-prevention `<script>` from app/layout
-  // even via next/script. We accept a brief one-frame flash on first
-  // paint instead; Providers applies the right class via useEffect.
   return (
     <html
       lang="en"
       className={`${fraunces.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: pre-hydration FOUC-prevention IIFE
+          dangerouslySetInnerHTML={{ __html: themeBootstrap }}
+        />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -41,7 +41,8 @@ export const PLUGIN_CATEGORIES: Record<
   live: {
     label: 'Live data',
     eyebrow: 'Live',
-    description: 'Subscriptions and execution-plan plugins for real-time and large-graph workloads.',
+    description:
+      'Subscriptions and execution-plan plugins for real-time and large-graph workloads.',
   },
   devx: {
     label: 'Developer experience',

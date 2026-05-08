@@ -1,18 +1,18 @@
 'use client';
 
 import type { Monaco } from '@monaco-editor/react';
-import { useTheme } from '@/components/Providers';
 import { useCallback, useEffect, useState } from 'react';
-import { PaletteEditor } from '../../components/theme-editor/PaletteEditor';
-import { MODE_PRESETS, type Mode } from '../../components/theme-editor/palettes';
-import { PreviewSample } from '../../components/theme-editor/PreviewSample';
-import { SAMPLES } from '../../components/theme-editor/samples';
+import { useTheme } from '@/components/Providers';
+import { PaletteEditor } from '@/components/theme-editor/PaletteEditor';
+import { PreviewSample } from '@/components/theme-editor/PreviewSample';
+import { MODE_PRESETS, type Mode } from '@/components/theme-editor/palettes';
+import { SAMPLES } from '@/components/theme-editor/samples';
 import {
   definePaletteTheme,
   type EditorBaseColors,
   type PaletteSlots,
   registerPothosMonacoThemes,
-} from '../../lib/playground/monaco-theme';
+} from '@/lib/playground/monaco-theme';
 
 const PREVIEW_THEME = 'pothos-theme-editor-preview';
 
@@ -38,7 +38,9 @@ export default function ThemeEditorPage() {
 
   // Re-define the preview theme on every palette/base/mode change.
   useEffect(() => {
-    if (!monaco) return;
+    if (!monaco) {
+      return;
+    }
     definePaletteTheme(monaco, PREVIEW_THEME, palette, base, MODE_PRESETS[mode].inheritFrom);
     monaco.editor.setTheme(PREVIEW_THEME);
   }, [monaco, palette, base, mode]);
@@ -79,9 +81,7 @@ export default function ThemeEditorPage() {
         <header className="flex items-center px-6 h-12 border-b border-bm-line bg-bm-bg gap-3">
           <span className="font-serif text-[18px] tracking-[-0.01em]">Theme editor</span>
           {mounted && (
-            <span className="text-bm-ink-muted text-[12px]">
-              Live preview · {mode} base
-            </span>
+            <span className="text-bm-ink-muted text-[12px]">Live preview · {mode} base</span>
           )}
 
           <div className="ml-2 inline-flex rounded border border-bm-line overflow-hidden text-[12px]">
@@ -91,9 +91,7 @@ export default function ThemeEditorPage() {
                 type="button"
                 onClick={() => switchMode(m)}
                 className={`px-3 py-1.5 transition-colors ${
-                  mode === m
-                    ? 'bg-bm-ink text-bm-bg'
-                    : 'text-bm-ink-soft hover:bg-bm-surface-alt'
+                  mode === m ? 'bg-bm-ink text-bm-bg' : 'text-bm-ink-soft hover:bg-bm-surface-alt'
                 }`}
               >
                 {m === 'light' ? 'Light' : 'Dark'}

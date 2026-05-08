@@ -4,8 +4,6 @@ interface Props {
   height?: number;
   /** Stem + leaf color — typically var(--bm-accent). */
   color?: string;
-  /** Dark mode adjusts the vein color so it stays visible. */
-  mode?: 'light' | 'dark';
   className?: string;
 }
 
@@ -26,7 +24,6 @@ export function BotanicalSpray({
   width = 320,
   height = 280,
   color = 'currentColor',
-  mode = 'light',
   className,
 }: Props) {
   // Positions are the cubic-Bezier samples of the stem path at evenly
@@ -41,7 +38,8 @@ export function BotanicalSpray({
     { x: 132, y: 201, r: -30, s: 0.85 },
     { x: 96, y: 228, r: 60, s: 0.75 },
   ];
-  const veinColor = mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+  // Use a CSS variable so the color flips automatically with the theme.
+  const veinColor = 'var(--bm-veins)';
 
   return (
     <svg

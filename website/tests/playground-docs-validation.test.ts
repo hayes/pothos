@@ -98,26 +98,64 @@ function getAvailableExamples(): Set<string> {
 }
 
 /**
- * Read example schema file content
+ * Read example schema file content. Examples with step subdirectories
+ * (e.g. errors-plugin/step-1/schema.ts) don't carry a top-level
+ * schema.ts, so we fall back to scanning step-* directories in order.
  */
 function getExampleSchemaContent(exampleId: string): string {
   try {
     const schemaPath = join(EXAMPLES_DIR, exampleId, 'schema.ts');
     return readFileSync(schemaPath, 'utf-8');
   } catch {
-    return '';
+    // Stepped example: aggregate every step's schema.ts so a doc
+    // snippet that lives in any step still validates.
+    try {
+      const entries = readdirSync(join(EXAMPLES_DIR, exampleId), { withFileTypes: true });
+      const stepDirs = entries
+        .filter((e) => e.isDirectory() && e.name.startsWith('step-'))
+        .map((e) => e.name)
+        .sort((a, b) => a.localeCompare(b));
+      const parts: string[] = [];
+      for (const dir of stepDirs) {
+        try {
+          parts.push(readFileSync(join(EXAMPLES_DIR, exampleId, dir, 'schema.ts'), 'utf-8'));
+        } catch {
+          /* ignore */
+        }
+      }
+      return parts.join('\n');
+    } catch {
+      return '';
+    }
   }
 }
 
 /**
- * Read example query file content
+ * Read example query file content. Like the schema reader above, this
+ * falls back to step-* subdirectories for stepped examples.
  */
 function getExampleQueryContent(exampleId: string, queryFile: string): string {
   try {
     const queryPath = join(EXAMPLES_DIR, exampleId, `${queryFile}.graphql`);
     return readFileSync(queryPath, 'utf-8');
   } catch {
-    return '';
+    try {
+      const entries = readdirSync(join(EXAMPLES_DIR, exampleId), { withFileTypes: true });
+      const stepDirs = entries
+        .filter((e) => e.isDirectory() && e.name.startsWith('step-'))
+        .map((e) => e.name)
+        .sort((a, b) => a.localeCompare(b));
+      for (const dir of stepDirs) {
+        try {
+          return readFileSync(join(EXAMPLES_DIR, exampleId, dir, `${queryFile}.graphql`), 'utf-8');
+        } catch {
+          /* try next step */
+        }
+      }
+      return '';
+    } catch {
+      return '';
+    }
   }
 }
 
@@ -270,6 +308,99 @@ describe('Playground Documentation Validation', () => {
 
     if (failures.length > 0) {
       throw new Error(`Found ${failures.length} metadata issues:\n${failures.join('\n')}`);
+    }
+  });
+
+  it('should have all prerequisites pointing at real example IDs', () => {
+    const failures: string[] = [];
+
+    for (const exampleId of Array.from(availableExamples)) {
+      const metadataPath = join(EXAMPLES_DIR, exampleId, 'metadata.json');
+      let metadata: { prerequisites?: unknown };
+      try {
+        metadata = JSON.parse(readFileSync(metadataPath, 'utf-8'));
+      } catch {
+        continue; // covered by the metadata test above
+      }
+
+      const prereqs = metadata.prerequisites;
+      if (!Array.isArray(prereqs)) {
+        continue;
+      }
+
+      for (const prereq of prereqs) {
+        if (typeof prereq !== 'string') {
+          failures.push(`  - ${exampleId}: non-string prerequisite ${JSON.stringify(prereq)}`);
+          continue;
+        }
+        if (!availableExamples.has(prereq)) {
+          failures.push(
+            `  - ${exampleId}: prerequisite "${prereq}" does not exist in playground-examples/`,
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(
+        `Found ${failures.length} broken prerequisite reference(s):\n${failures.join('\n')}`,
+      );
+    }
+  });
+
+  it('should have all relatedDocs pointing at real doc files', () => {
+    const failures: string[] = [];
+
+    function docExists(docPath: string): boolean {
+      // Strip leading /docs/ so we resolve under content/docs/
+      const trimmed = docPath.replace(/^\/+/, '').replace(/^docs\//, '');
+      const base = join(DOCS_DIR, trimmed);
+      // Accept either a flat .mdx file or an index.mdx in a directory.
+      try {
+        readFileSync(`${base}.mdx`, 'utf-8');
+        return true;
+      } catch {
+        // fall through
+      }
+      try {
+        readFileSync(join(base, 'index.mdx'), 'utf-8');
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    for (const exampleId of Array.from(availableExamples)) {
+      const metadataPath = join(EXAMPLES_DIR, exampleId, 'metadata.json');
+      let metadata: { relatedDocs?: unknown };
+      try {
+        metadata = JSON.parse(readFileSync(metadataPath, 'utf-8'));
+      } catch {
+        continue;
+      }
+
+      const related = metadata.relatedDocs;
+      if (!Array.isArray(related)) {
+        continue;
+      }
+
+      for (const doc of related) {
+        if (typeof doc !== 'string') {
+          failures.push(`  - ${exampleId}: non-string relatedDocs entry ${JSON.stringify(doc)}`);
+          continue;
+        }
+        if (!docExists(doc)) {
+          failures.push(
+            `  - ${exampleId}: relatedDocs "${doc}" does not resolve under content/docs/`,
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(
+        `Found ${failures.length} broken relatedDocs reference(s):\n${failures.join('\n')}`,
+      );
     }
   });
 

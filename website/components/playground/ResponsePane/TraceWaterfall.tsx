@@ -6,6 +6,16 @@ interface Props {
   rows: TraceRow[];
 }
 
+function formatSelf(ms: number): string {
+  if (ms < 1) {
+    return '<1 ms';
+  }
+  if (ms < 1000) {
+    return `${ms.toFixed(1)} ms`;
+  }
+  return `${(ms / 1000).toFixed(2)} s`;
+}
+
 export function TraceWaterfall({ rows }: Props) {
   if (rows.length === 0) {
     return (
@@ -19,8 +29,8 @@ export function TraceWaterfall({ rows }: Props) {
     <div className="px-6 py-5 font-mono text-[12px]">
       <div className="grid grid-cols-[180px_1fr_80px_140px] gap-3 pb-1.5 border-b border-bm-line text-[10px] uppercase tracking-[0.06em] text-bm-ink-muted">
         <span>Path</span>
-        <span>Time</span>
-        <span>Total</span>
+        <span>Self</span>
+        <span>Self ms</span>
         <span>Resolver</span>
       </div>
       {rows.map((row, i) => (
@@ -36,7 +46,7 @@ export function TraceWaterfall({ rows }: Props) {
               style={{ width: `${Math.max(2, (row.selfMs / max) * 100)}%` }}
             />
           </span>
-          <span className="text-bm-ink-soft text-right">{row.totalLabel}</span>
+          <span className="text-bm-ink-soft text-right">{formatSelf(row.selfMs)}</span>
           <span className="text-bm-ink-muted truncate">{row.resolver}</span>
         </div>
       ))}

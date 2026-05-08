@@ -1,6 +1,6 @@
 'use client';
 
-import type { EditorBaseColors, PaletteSlots } from '../../lib/playground/monaco-theme';
+import type { EditorBaseColors, PaletteSlots } from '@/lib/playground/monaco-theme';
 import { ColorRow } from './ColorRow';
 import type { Mode } from './palettes';
 import { paletteGroupsFor } from './palettes';
@@ -20,7 +20,7 @@ const SYNTAX_FIELDS: Array<{
 }> = [
   { key: 'comment', label: 'Comment', description: '// ... and /* ... */' },
   { key: 'keyword', label: 'Keyword', description: 'import, const, function, type' },
-  { key: 'string', label: 'String', description: "'hello' / \"world\" / `tpl`" },
+  { key: 'string', label: 'String', description: '\'hello\' / "world" / `tpl`' },
   { key: 'number', label: 'Number', description: '42 / 0xFF / 3.14 / true·false·null' },
   { key: 'type', label: 'Type', description: 'User · Promise · interface · JSON keys' },
   { key: 'fn', label: 'Function', description: 'callable identifiers (currently unused)' },

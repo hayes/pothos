@@ -10,7 +10,15 @@ import { type GraphQLSchema, parse, validate } from 'graphql';
 import * as ts from 'typescript';
 import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playground/pothos-types';
 
-// Load examples from individual directories
+// Load examples from individual directories.
+//
+// Two layouts are supported, mirroring `scripts/build-playground-examples.ts`:
+//
+// - Flat: `<example>/schema.ts` + `<example>/query.graphql`. Single
+//   testable unit, ID is `metadata.id`.
+// - Stepped: `<example>/step-N/schema.ts` (+ optional query.graphql),
+//   one testable unit per step. IDs are `${metadata.id}-step-${N}` so
+//   failures point to the exact file path on disk.
 async function loadExamples() {
   const examplesDir = path.join(__dirname, '../playground-examples');
   const entries = await readdir(examplesDir, { withFileTypes: true });
@@ -25,36 +33,73 @@ async function loadExamples() {
     const metadataContent = await readFile(metadataPath, 'utf-8');
     const metadata = JSON.parse(metadataContent);
 
-    // Read schema.ts
-    const schemaPath = path.join(examplePath, 'schema.ts');
-    const schemaContent = await readFile(schemaPath, 'utf-8');
+    // Step-shaped example: each `step-N` subdir is its own testable unit.
+    const subEntries = await readdir(examplePath, { withFileTypes: true });
+    const stepDirs = subEntries
+      .filter((e) => e.isDirectory() && e.name.startsWith('step-'))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-    // Read query.graphql (optional)
-    let queryContent = '';
-    try {
-      const queryPath = path.join(examplePath, 'query.graphql');
-      queryContent = await readFile(queryPath, 'utf-8');
-    } catch {
-      // Query file is optional
+    if (stepDirs.length > 0) {
+      for (const stepDir of stepDirs) {
+        const stepPath = path.join(examplePath, stepDir.name);
+        const stepNumber = stepDir.name.replace('step-', '');
+        const stepMeta = metadata.steps?.find((s: { id: string }) => s.id === stepDir.name);
+        examples.push(
+          await loadExampleFiles(stepPath, {
+            id: `${metadata.id}-step-${stepNumber}`,
+            title: stepMeta?.title || `${metadata.title} - Step ${stepNumber}`,
+            description: stepMeta?.description || metadata.description,
+            tags: metadata.tags || [],
+          }),
+        );
+      }
+      continue;
     }
 
-    examples.push({
-      id: metadata.id,
-      title: metadata.title,
-      description: metadata.description,
-      tags: metadata.tags || [],
-      files: [
-        {
-          filename: 'schema.ts',
-          content: schemaContent,
-          language: 'typescript',
-        },
-      ],
-      defaultQuery: queryContent || '{\n  # Add your query here\n}',
-    });
+    // Flat example.
+    examples.push(
+      await loadExampleFiles(examplePath, {
+        id: metadata.id,
+        title: metadata.title,
+        description: metadata.description,
+        tags: metadata.tags || [],
+      }),
+    );
   }
 
   return examples.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+interface ExampleHeader {
+  id: string;
+  title: string;
+  description?: string;
+  tags: string[];
+}
+
+async function loadExampleFiles(dirPath: string, header: ExampleHeader) {
+  const schemaPath = path.join(dirPath, 'schema.ts');
+  const schemaContent = await readFile(schemaPath, 'utf-8');
+
+  let queryContent = '';
+  try {
+    const queryPath = path.join(dirPath, 'query.graphql');
+    queryContent = await readFile(queryPath, 'utf-8');
+  } catch {
+    // Query file is optional
+  }
+
+  return {
+    ...header,
+    files: [
+      {
+        filename: 'schema.ts',
+        content: schemaContent,
+        language: 'typescript' as const,
+      },
+    ],
+    defaultQuery: queryContent || '{\n  # Add your query here\n}',
+  };
 }
 
 interface TypeCheckResult {

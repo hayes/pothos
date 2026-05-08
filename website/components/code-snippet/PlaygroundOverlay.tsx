@@ -2,7 +2,7 @@
 
 import { X } from 'lucide-react';
 import { type FC, useEffect, useMemo } from 'react';
-import { encodePlaygroundState } from '../../lib/playground/url-state';
+import { encodePlaygroundState } from '@/lib/playground/url-state';
 
 export interface PlaygroundOverlayProps {
   /**

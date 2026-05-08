@@ -313,6 +313,8 @@ export function resourcesByCategory(): Record<ResourceCategory, Resource[]> {
     talk: [],
     paid: [],
   };
-  for (const r of RESOURCES) grouped[r.category].push(r);
+  for (const r of RESOURCES) {
+    grouped[r.category].push(r);
+  }
   return grouped;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ExampleMetadata } from '../examples';
 import { groupExamples, type PickerGroup } from './categoryMap';
 
@@ -40,6 +40,33 @@ export function ExamplesPicker({ examples, onPick, onClose }: Props) {
     [allGroups, q],
   );
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  // Focus the search input on open and remember where focus was so we
+  // can return it on close.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    }
+    inputRef.current?.focus();
+    return () => {
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, []);
+
+  // Escape closes the picker.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
     <>
       <div
@@ -49,16 +76,17 @@ export function ExamplesPicker({ examples, onPick, onClose }: Props) {
       />
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Load example"
         className="absolute left-0 top-full mt-1.5 z-20 w-[540px] max-h-[480px] grid grid-rows-[auto_1fr] bg-bm-bg border border-bm-line rounded-md overflow-hidden shadow-xl"
       >
         <div className="px-3.5 py-3 border-b border-bm-line">
           <input
-            // biome-ignore lint/a11y/noAutofocus: popover-style picker autofocus is the expected UX
-            autoFocus
+            ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder='Search examples (try "relay", "prisma", "auth")…'
+            aria-label="Search examples"
             className="w-full bg-transparent border-none outline-none text-[14px] text-bm-ink placeholder:text-bm-ink-muted"
           />
         </div>

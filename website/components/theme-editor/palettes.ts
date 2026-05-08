@@ -3,7 +3,7 @@ import {
   type EditorBaseColors,
   FOREST_PALETTE_PRESET,
   type PaletteSlots,
-} from '../../lib/playground/monaco-theme';
+} from '@/lib/playground/monaco-theme';
 
 /**
  * Editor base colors for the two known presets — match the values in

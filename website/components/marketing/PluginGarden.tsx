@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { PLUGINS, type PluginEntry } from './plugins';
+import type { PluginEntry } from '../plugins/plugins';
+import { HOMEPAGE_PLUGINS } from './plugins';
 
 export function PluginGarden() {
   return (
@@ -20,13 +21,13 @@ export function PluginGarden() {
           href="/docs/plugins"
           className="text-bm-ink-soft hover:text-bm-ink text-[14px] transition-colors"
         >
-          Browse all {PLUGINS.length}+ plugins →
+          Browse all {HOMEPAGE_PLUGINS.length}+ plugins →
         </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-l border-bm-line">
-        {PLUGINS.map((p) => (
-          <PluginCard key={p.name} plugin={p} />
+        {HOMEPAGE_PLUGINS.map((p) => (
+          <PluginCard key={p.slug} plugin={p} />
         ))}
       </div>
     </section>
@@ -34,20 +35,15 @@ export function PluginGarden() {
 }
 
 function PluginCard({ plugin }: { plugin: PluginEntry }) {
-  const inner = (
-    <div className="px-6 py-6 border-r border-b border-bm-line transition-colors hover:bg-bm-surface group h-full">
-      <div className="flex items-center justify-center size-8 rounded-lg bg-bm-accent-soft text-bm-accent text-[16px] mb-3.5">
-        {plugin.icon}
+  return (
+    <Link href={`/docs/plugins/${plugin.slug}`} className="block">
+      <div className="px-6 py-6 border-r border-b border-bm-line transition-colors hover:bg-bm-surface group h-full">
+        <div className="flex items-center justify-center size-8 rounded-lg bg-bm-accent-soft text-bm-accent text-[16px] mb-3.5">
+          {plugin.icon}
+        </div>
+        <div className="font-medium text-[15px] mb-1.5">{plugin.name}</div>
+        <p className="text-bm-ink-muted text-[13px] leading-[1.5] m-0">{plugin.description}</p>
       </div>
-      <div className="font-medium text-[15px] mb-1.5">{plugin.name}</div>
-      <p className="text-bm-ink-muted text-[13px] leading-[1.5] m-0">{plugin.desc}</p>
-    </div>
-  );
-  return plugin.href ? (
-    <Link href={plugin.href} className="block">
-      {inner}
     </Link>
-  ) : (
-    inner
   );
 }

@@ -25,9 +25,7 @@ export function TopSponsorsRow() {
             />
           </div>
           <div className="font-medium text-[15px] mb-1">{s.name}</div>
-          {s.blurb && (
-            <div className="text-bm-ink-muted text-[13px] leading-[1.5]">{s.blurb}</div>
-          )}
+          {s.blurb && <div className="text-bm-ink-muted text-[13px] leading-[1.5]">{s.blurb}</div>}
         </a>
       ))}
     </div>

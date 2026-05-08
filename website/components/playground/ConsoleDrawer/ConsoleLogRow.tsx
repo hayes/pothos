@@ -15,17 +15,24 @@ const KIND_CLASS: Record<ConsoleLogEntry['kind'], string> = {
 
 export function ConsoleLogRow({ entry }: Props) {
   const kindClass = KIND_CLASS[entry.kind];
+  // Top-aligned so multi-line messages (pretty-printed objects, error
+  // bodies) read down from the timestamp instead of crowding against
+  // the kind chip's center.
   return (
-    <div className="flex gap-3.5 text-bm-ink-soft">
-      <span className="text-bm-ink-muted w-14 shrink-0">{entry.timestamp}</span>
+    <div className="flex gap-3.5 text-bm-ink-soft items-start">
+      <span className="text-bm-ink-muted w-14 shrink-0 leading-5">{entry.timestamp}</span>
       <span
-        className={`w-12 shrink-0 self-center text-[10px] uppercase tracking-[0.06em] ${kindClass}`}
+        className={`w-12 shrink-0 text-[10px] uppercase tracking-[0.06em] leading-5 ${kindClass}`}
       >
         {entry.kind}
       </span>
-      <span className={entry.kind === 'error' ? 'text-bm-danger' : 'text-bm-ink'}>
+      <pre
+        className={`whitespace-pre-wrap break-words font-mono leading-5 m-0 ${
+          entry.kind === 'error' ? 'text-bm-danger' : 'text-bm-ink'
+        }`}
+      >
         {entry.message}
-      </span>
+      </pre>
     </div>
   );
 }

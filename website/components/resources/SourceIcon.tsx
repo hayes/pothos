@@ -33,7 +33,15 @@ export function SourceIcon({ source }: Props) {
       );
     case 'blog':
       return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-label="Article">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-label="Article"
+        >
           <title>Article</title>
           <rect x="4" y="4" width="16" height="16" rx="1.5" />
           <line x1="8" y1="9" x2="16" y2="9" />
@@ -41,9 +49,36 @@ export function SourceIcon({ source }: Props) {
           <line x1="8" y1="17" x2="13" y2="17" />
         </svg>
       );
+    case 'docs':
+      return (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-label="Docs"
+        >
+          <title>Docs</title>
+          <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z" />
+          <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z" />
+          <path d="M12 4v16" />
+        </svg>
+      );
     default:
       return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-label="Link">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-label="Link"
+        >
           <title>Link</title>
           <path d="M9 14l6-6M11 7h5a3 3 0 0 1 0 6h-2M13 17H8a3 3 0 0 1 0-6h2" />
         </svg>

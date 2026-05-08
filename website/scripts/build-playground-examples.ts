@@ -10,7 +10,7 @@
  * 4. Outputs to website/public/playground-examples.json
  */
 
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 interface ExampleFile {
@@ -34,7 +34,7 @@ interface PlaygroundExample {
   snippets?: CodeSnippet[];
   files: ExampleFile[];
   defaultQuery: string;
-  queries?: Array<{ title?: string; query: string; variables?: string }>;
+  queries?: Array<{ title?: string; query: string; variables?: string; context?: string }>;
 }
 
 interface Step {
@@ -98,6 +98,11 @@ async function buildFlatExample(
 ): Promise<PlaygroundExample> {
   const files: ExampleFile[] = [];
   const queryFileInfo: Array<{ filename: string; content: string }> = [];
+  // Optional `context.json` (or `context.js`) at the example root carries
+  // a default JS-literal context applied to every generated operation tab.
+  // Examples like `scope-auth-plugin` use this to ship a sample
+  // `{ user: { isEmployee: true } }`.
+  let defaultContext: string | undefined;
 
   const exampleFiles = await readdir(examplePath, { withFileTypes: true });
 
@@ -127,6 +132,8 @@ async function buildFlatExample(
     // Collect .graphql files as query files
     else if (filename.endsWith('.graphql')) {
       queryFileInfo.push({ filename, content });
+    } else if (filename === 'context.json' || filename === 'context.js') {
+      defaultContext = content;
     }
   }
 
@@ -148,6 +155,7 @@ async function buildFlatExample(
   const queries = queryFileInfo.map((fileInfo) => ({
     title: fileInfo.filename.replace(/\.(graphql|gql)$/, ''),
     query: fileInfo.content,
+    ...(defaultContext ? { context: defaultContext } : {}),
   }));
 
   return {
@@ -207,13 +215,18 @@ async function buildStepExamples(
 async function buildExamples() {
   console.log('[Build Examples] Starting...');
 
-  // Read all example directories
+  // Read all example directories. readdir order is filesystem-dependent,
+  // so sort to keep output deterministic across machines / CI.
   const entries = await readdir(EXAMPLES_SOURCE_DIR, { withFileTypes: true });
-  const exampleDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  const exampleDirs = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
 
   console.log(`[Build Examples] Found ${exampleDirs.length} examples:`, exampleDirs);
 
   const examples: PlaygroundExample[] = [];
+  const failures: Array<{ dirName: string; error: unknown }> = [];
 
   for (const dirName of exampleDirs) {
     try {
@@ -254,7 +267,7 @@ async function buildExamples() {
         );
       }
     } catch (err) {
-      console.error(`[Build Examples] ✗ Failed to build ${dirName}:`, err);
+      failures.push({ dirName, error: err });
     }
   }
 
@@ -383,10 +396,23 @@ export function getOrganizedExamples() {
 }
 `;
 
-  await writeFile(INDEX_FILE, indexContent, 'utf-8');
+  // Atomic write: write to a temp file then rename so a crash mid-write
+  // can't leave a half-generated index file on disk.
+  const tmpIndexFile = `${INDEX_FILE}.tmp`;
+  await writeFile(tmpIndexFile, indexContent, 'utf-8');
+  await rename(tmpIndexFile, INDEX_FILE);
 
   console.log(`[Build Examples] ✓ Built ${examples.length} examples`);
   console.log(`[Build Examples] ✓ Index: ${INDEX_FILE}`);
+
+  if (failures.length > 0) {
+    console.error(`\n[Build Examples] ${failures.length} example(s) failed to build:`);
+    for (const { dirName, error } of failures) {
+      console.error(`  ✗ ${dirName}:`, error);
+    }
+    process.exit(1);
+  }
+
   console.log('[Build Examples] Done!');
 }
 
