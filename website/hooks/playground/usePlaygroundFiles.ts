@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { PlaygroundFile } from '../../components/playground/types';
+import type { PlaygroundFile } from '@/components/playground/types';
 
 export interface PlaygroundFilesState {
   files: PlaygroundFile[];

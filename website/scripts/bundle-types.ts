@@ -32,6 +32,16 @@ const PLUGIN_PACKAGES: string[] = [
 function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[] {
   const dtsPath = path.join(packagePath, 'dts');
   if (!fs.existsSync(dtsPath)) {
+    // Core packages are required — failing silently here ships Monaco
+    // with no Pothos types and surfaces as confusing red squiggles in
+    // the playground. For optional plugin packages we still warn-and-
+    // skip below.
+    if (CORE_PACKAGES.includes(moduleName.replace(/^@pothos\//, ''))) {
+      throw new Error(
+        `Missing dts directory for ${moduleName} at ${dtsPath}.\n` +
+          "Run 'pnpm turbo run build' first to build packages/*/dts.",
+      );
+    }
     console.warn(`No dts directory found for ${moduleName}`);
     return [];
   }
@@ -63,6 +73,14 @@ function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[]
   }
 
   walkDir(dtsPath, moduleName);
+
+  if (definitions.length === 0 && CORE_PACKAGES.includes(moduleName.replace(/^@pothos\//, ''))) {
+    throw new Error(
+      `No .d.ts files found under ${dtsPath} for ${moduleName}.\n` +
+        "Run 'pnpm turbo run build' first to build packages/*/dts.",
+    );
+  }
+
   return definitions;
 }
 
@@ -176,98 +194,68 @@ function processTypeContent(
  * Instead of creating a custom stub, we bundle the real GraphQL .d.ts files.
  * We aggregate all the type definitions into a single 'graphql' module to avoid
  * needing to resolve internal GraphQL imports.
+ *
+ * The bundle walks a fixed set of subdirectories recursively so that new
+ * .d.ts files added in a graphql version bump get picked up automatically.
  */
 function readGraphQLTypes(): TypeDefinition[] {
   const graphqlPath = path.join(__dirname, '../../node_modules/graphql');
+  if (!fs.existsSync(graphqlPath)) {
+    throw new Error(`Missing graphql package at ${graphqlPath}.\nRun 'pnpm install' first.`);
+  }
+  // jsutils first because the other directories reference its types.
+  const SUBDIRS = ['jsutils', 'language', 'type', 'utilities', 'execution', 'error'];
   const allContent: string[] = [];
 
-  // Helper to read and process a file
-  function readFile(filePath: string): string | null {
-    if (!fs.existsSync(filePath)) {
-      return null;
-    }
-
+  function readAndStrip(filePath: string): string {
     let content = fs.readFileSync(filePath, 'utf-8');
-
     // Remove internal GraphQL imports since we're bundling everything together
     // Keep only the exported declarations
     content = content
       .replace(/^import\s+(?:type\s+)?{[^}]+}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
       .replace(/^export\s+(?:type\s+)?{[^}]+}\s+from\s+['"][^'"]+['"];?\s*$/gm, '');
-
     return content;
   }
 
-  // Read utility types first (they're used by other files)
-  const jsutilsPath = path.join(graphqlPath, 'jsutils');
-  const utilFiles = ['Maybe.d.ts', 'ObjMap.d.ts', 'Path.d.ts', 'PromiseOrValue.d.ts'];
+  function walk(dir: string): string[] {
+    if (!fs.existsSync(dir)) {
+      return [];
+    }
+    const out: string[] = [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    // Sort so order is deterministic across runs / filesystems.
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        out.push(...walk(full));
+      } else if (entry.name.endsWith('.d.ts') && !entry.name.endsWith('.d.ts.map')) {
+        // Skip index.d.ts files inside subdirs — they re-export from their
+        // siblings, which we already include directly. Keeping them in
+        // the bundle just adds redeclaration noise.
+        if (entry.name === 'index.d.ts') {
+          continue;
+        }
+        out.push(full);
+      }
+    }
+    return out;
+  }
 
-  for (const file of utilFiles) {
-    const content = readFile(path.join(jsutilsPath, file));
-    if (content) {
-      allContent.push(content);
+  let collectedFiles = 0;
+  for (const sub of SUBDIRS) {
+    const files = walk(path.join(graphqlPath, sub));
+    for (const file of files) {
+      allContent.push(readAndStrip(file));
+      collectedFiles++;
     }
   }
 
-  // Read language (AST) definitions
-  const languagePath = path.join(graphqlPath, 'language');
-  const languageFiles = [
-    'ast.d.ts',
-    'kinds.d.ts',
-    'location.d.ts',
-    'source.d.ts',
-    'tokenKind.d.ts',
-    'directiveLocation.d.ts',
-    'predicates.d.ts',
-    'printer.d.ts',
-    'visitor.d.ts',
-  ];
-
-  for (const file of languageFiles) {
-    const content = readFile(path.join(languagePath, file));
-    if (content) {
-      allContent.push(content);
-    }
-  }
-
-  // Read type definition files
-  const typePath = path.join(graphqlPath, 'type');
-  const typeFiles = [
-    'definition.d.ts',
-    'schema.d.ts',
-    'directives.d.ts',
-    'scalars.d.ts',
-    'introspection.d.ts',
-    'validate.d.ts',
-  ];
-
-  for (const file of typeFiles) {
-    const content = readFile(path.join(typePath, file));
-    if (content) {
-      allContent.push(content);
-    }
-  }
-
-  // Read execution types
-  const executionPath = path.join(graphqlPath, 'execution');
-  const executionFiles = ['execute.d.ts', 'values.d.ts'];
-
-  for (const file of executionFiles) {
-    const content = readFile(path.join(executionPath, file));
-    if (content) {
-      allContent.push(content);
-    }
-  }
-
-  // Read error types
-  const errorPath = path.join(graphqlPath, 'error');
-  const errorFiles = ['GraphQLError.d.ts'];
-
-  for (const file of errorFiles) {
-    const content = readFile(path.join(errorPath, file));
-    if (content) {
-      allContent.push(content);
-    }
+  if (collectedFiles === 0) {
+    throw new Error(
+      `No .d.ts files found under ${graphqlPath}/{${SUBDIRS.join(',')}}.\n` +
+        'The graphql package may be installed without type definitions.',
+    );
   }
 
   // Combine everything into a single graphql module declaration
@@ -288,6 +276,9 @@ function main() {
   // Add GraphQL types to core (bundled from node_modules)
   const graphqlTypes = readGraphQLTypes();
   coreDefinitions.push(...graphqlTypes);
+  // zod and any other arbitrary npm package the user imports get their
+  // types via Auto-Type Acquisition (`setup-monaco-ata.ts`) at runtime
+  // — fetched from jsdelivr on demand. Nothing else to bundle here.
 
   // Process core packages
   for (const pkg of CORE_PACKAGES) {

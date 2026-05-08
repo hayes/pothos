@@ -1,9 +1,9 @@
 'use client';
 
 import type { Monaco } from '@monaco-editor/react';
-import { useTheme } from '@/components/Providers';
 import { useCallback } from 'react';
-import { pothosThemeFor, registerPothosMonacoThemes } from '../../lib/playground/monaco-theme';
+import { useTheme } from '@/components/Providers';
+import { pothosThemeFor, registerPothosMonacoThemes } from '@/lib/playground/monaco-theme';
 
 interface EditorThemeBinding {
   /** Current Monaco theme name to pass to <Editor theme={...}> */

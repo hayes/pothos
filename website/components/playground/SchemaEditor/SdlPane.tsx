@@ -1,7 +1,7 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useEditorTheme } from '../../../hooks/playground/useEditorTheme';
+import { useEditorTheme } from '@/hooks/playground/useEditorTheme';
 
 interface Props {
   schemaSDL: string | null;

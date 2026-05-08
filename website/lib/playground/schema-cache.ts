@@ -1,5 +1,7 @@
 'use client';
 
+import { hashString } from './hash-utils';
+
 export interface CacheEntry {
   code: string;
   compiledCode: string;
@@ -18,7 +20,7 @@ function openDB(): Promise<IDBDatabase> {
     return dbPromise;
   }
 
-  dbPromise = new Promise((resolve, reject) => {
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
@@ -36,6 +38,11 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAME, { keyPath: 'code' });
       }
     };
+  }).catch((err) => {
+    // Reset so a transient failure (e.g. private mode prompt resolved
+    // by user, quota cleared) doesn't permanently poison the cache.
+    dbPromise = null;
+    throw err;
   });
 
   return dbPromise;
@@ -45,8 +52,8 @@ function openDB(): Promise<IDBDatabase> {
  * Generate a cache key from code content
  */
 function getCacheKey(code: string): string {
-  // Use the code itself as the key (IndexedDB can handle strings efficiently)
-  return code;
+  // Hash to keep IDB keys small even for large schemas.
+  return hashString(code);
 }
 
 /**
@@ -73,11 +80,16 @@ export async function getCachedSchema(code: string): Promise<string | null> {
         // Check if cache entry is stale
         const age = Date.now() - entry.timestamp;
         if (age > MAX_CACHE_AGE) {
-          // Cache is stale, remove it
-          deleteCachedSchema(code).catch(() => {
-            // Ignore deletion errors
-          });
           resolve(null);
+          // Defer the delete: opening a readwrite transaction inside the
+          // current readonly transaction's success callback can deadlock
+          // in Safari. Run after the current transaction has fully
+          // settled.
+          queueMicrotask(() => {
+            deleteCachedSchema(code).catch(() => {
+              // Ignore deletion errors
+            });
+          });
           return;
         }
 

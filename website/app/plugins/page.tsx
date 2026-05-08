@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { Header } from '../../components/marketing/Header';
-import { PluginsPage } from '../../components/plugins/PluginsPage';
+import { Header } from '@/components/marketing/Header';
+import { PluginsPage } from '@/components/plugins/PluginsPage';
 
 export const metadata: Metadata = {
   title: 'Plugins — Pothos',

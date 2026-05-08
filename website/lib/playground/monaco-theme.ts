@@ -47,13 +47,21 @@ function stripHash(hex: string): string {
 function vsCodeRules(json: VSCodeThemeJSON): ThemeRule[] {
   const out: ThemeRule[] = [];
   for (const tc of json.tokenColors) {
-    if (!tc.scope) continue;
+    if (!tc.scope) {
+      continue;
+    }
     const scopes = Array.isArray(tc.scope) ? tc.scope : [tc.scope];
     for (const scope of scopes) {
       const rule: ThemeRule = { token: scope };
-      if (tc.settings.foreground) rule.foreground = stripHash(tc.settings.foreground);
-      if (tc.settings.background) rule.background = stripHash(tc.settings.background);
-      if (tc.settings.fontStyle) rule.fontStyle = tc.settings.fontStyle;
+      if (tc.settings.foreground) {
+        rule.foreground = stripHash(tc.settings.foreground);
+      }
+      if (tc.settings.background) {
+        rule.background = stripHash(tc.settings.background);
+      }
+      if (tc.settings.fontStyle) {
+        rule.fontStyle = tc.settings.fontStyle;
+      }
       out.push(rule);
     }
   }
@@ -95,7 +103,9 @@ function monacoRules(p: PaletteSlots): ThemeRule[] {
 
   const add = (token: string, foreground: string, fontStyle?: string) => {
     const rule: ThemeRule = { token, foreground };
-    if (fontStyle) rule.fontStyle = fontStyle;
+    if (fontStyle) {
+      rule.fontStyle = fontStyle;
+    }
     rules.push(rule);
   };
 
@@ -196,7 +206,9 @@ function buildTheme(
 }
 
 export function registerPothosMonacoThemes(monaco: Monaco): void {
-  if (registered) return;
+  if (registered) {
+    return;
+  }
   monaco.editor.defineTheme(
     FOREST_DARK_THEME,
     buildTheme(forestDark as VSCodeThemeJSON, FOREST_PALETTE, 'vs-dark'),

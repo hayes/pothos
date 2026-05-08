@@ -30,8 +30,9 @@ export const pluginModules = {
 export function getPluginModules(code: string): Record<string, unknown> {
   const modules: Record<string, unknown> = {};
 
-  // Extract plugin imports from code
-  const importRegex = /import\s+.*?\s+from\s+['"](@pothos\/plugin-[^'"]+)['"]/g;
+  // Extract plugin imports from code. `[\s\S]*?` so multi-line imports
+  // (named bindings split across lines) match too.
+  const importRegex = /import\s+[\s\S]*?\s+from\s+['"](@pothos\/plugin-[^'"]+)['"]/g;
   let match: RegExpExecArray | null = importRegex.exec(code);
 
   while (match !== null) {

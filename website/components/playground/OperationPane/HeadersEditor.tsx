@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import type { HeaderEntry } from './types';
 
 interface Props {
@@ -7,16 +8,22 @@ interface Props {
   onChange: (headers: HeaderEntry[]) => void;
 }
 
-let headerIdCounter = 0;
-const nextHeaderId = () => `h_${Date.now()}_${++headerIdCounter}`;
-
 export function HeadersEditor({ headers, onChange }: Props) {
+  // Stable id prefix for newly-added rows. Combined with a per-row counter
+  // (length-based), this gives us deterministic ids without a module-scoped
+  // counter that gets shared across instances/HMR reloads.
+  const idPrefix = useId();
+
   const update = (id: string, patch: Partial<HeaderEntry>) =>
     onChange(headers.map((h) => (h.id === id ? { ...h, ...patch } : h)));
 
   const remove = (id: string) => onChange(headers.filter((h) => h.id !== id));
 
-  const add = () => onChange([...headers, { id: nextHeaderId(), name: '', value: '' }]);
+  const add = () =>
+    onChange([
+      ...headers,
+      { id: `${idPrefix}-h-${headers.length}-${Date.now()}`, name: '', value: '' },
+    ]);
 
   return (
     <div className="px-6 py-5 font-mono text-[12px]">
@@ -53,12 +60,14 @@ function HeaderRow({
         value={entry.name}
         onChange={(e) => onUpdate(entry.id, { name: e.target.value })}
         placeholder="Authorization"
+        aria-label="Header name"
         className="bg-transparent border-b border-bm-line py-1.5 text-bm-ink-muted outline-none focus:border-bm-accent"
       />
       <input
         value={entry.value}
         onChange={(e) => onUpdate(entry.id, { value: e.target.value })}
         placeholder="Bearer eyJhbGc…"
+        aria-label="Header value"
         className="bg-transparent border-b border-bm-line py-1.5 text-bm-ink outline-none focus:border-bm-accent"
       />
       <button

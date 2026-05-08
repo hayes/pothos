@@ -6,9 +6,9 @@ import {
   exampleMetadata,
   getExample,
   type Step,
-} from '../../components/playground/examples';
-import type { Operation } from '../../components/playground/OperationPane/types';
-import type { PlaygroundFile } from '../../components/playground/types';
+} from '@/components/playground/examples';
+import type { Operation } from '@/components/playground/OperationPane/types';
+import type { PlaygroundFile } from '@/components/playground/types';
 import { makeOperation } from './useOperations';
 
 interface QueryShape {
@@ -70,7 +70,9 @@ function operationsFromExample(
 
 function stepIndexFromId(id: string, steps: Step[]): number {
   const match = id.match(/-step-(\d+)$/);
-  if (!match) return 0;
+  if (!match) {
+    return 0;
+  }
   const stepId = `step-${match[1]}`;
   const idx = steps.findIndex((s) => s.id === stepId);
   return idx >= 0 ? idx : 0;
@@ -85,7 +87,9 @@ export function useExampleLoader(): ExampleLoaderState {
     setLoading(true);
     try {
       const ex = await getExample(id);
-      if (!ex) return null;
+      if (!ex) {
+        return null;
+      }
 
       // The id we're loading may be a step variant (e.g. `errors-plugin-step-1`).
       // The "base" example metadata (with the steps array) lives under the id
@@ -115,11 +119,15 @@ export function useExampleLoader(): ExampleLoaderState {
   }, []);
 
   const goToStep = useCallback(
-    async (index: number): Promise<ExampleLoaderResult | null> => {
+    (index: number): Promise<ExampleLoaderResult | null> => {
       const current = loaded;
-      if (!current) return null;
+      if (!current) {
+        return Promise.resolve(null);
+      }
       const step = current.steps[index];
-      if (!step) return null;
+      if (!step) {
+        return Promise.resolve(null);
+      }
       // Each step has its own bundle: `${baseId}-${step.id}`.
       const stepId = `${current.baseId}-${step.id}`;
       return load(stepId);

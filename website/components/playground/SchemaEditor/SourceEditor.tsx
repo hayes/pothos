@@ -2,8 +2,9 @@
 
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { useEffect, useRef, useState } from 'react';
-import { useEditorTheme } from '../../../hooks/playground/useEditorTheme';
+import { useEditorTheme } from '@/hooks/playground/useEditorTheme';
 import type { PlaygroundFile } from '../types';
+import { setFormatHandler } from './format-handler';
 
 interface Props {
   filename: string;
@@ -31,7 +32,7 @@ export function SourceEditor({ filename, source, allFiles, onChange }: Props) {
     if (!monaco || typesLoaded) {
       return;
     }
-    import('../../../lib/playground/setup-monaco').then(({ setupMonacoForPothos }) => {
+    import('@/lib/playground/setup-monaco').then(({ setupMonacoForPothos }) => {
       setupMonacoForPothos(monaco);
       setTypesLoaded(true);
     });
@@ -46,7 +47,7 @@ export function SourceEditor({ filename, source, allFiles, onChange }: Props) {
       return;
     }
     filesKeyRef.current = key;
-    import('../../../lib/playground/setup-monaco').then(({ registerPlaygroundFiles }) => {
+    import('@/lib/playground/setup-monaco').then(({ registerPlaygroundFiles }) => {
       registerPlaygroundFiles(allFiles);
     });
   }, [monaco, typesLoaded, allFiles]);
@@ -55,10 +56,30 @@ export function SourceEditor({ filename, source, allFiles, onChange }: Props) {
     if (!monaco || !typesLoaded || !source) {
       return;
     }
-    import('../../../lib/playground/setup-monaco').then(({ loadPluginTypes }) => {
+    import('@/lib/playground/setup-monaco').then(({ loadPluginTypes }) => {
       loadPluginTypes(source);
     });
+    // Auto-type-acquisition for arbitrary npm packages (zod, lodash,
+    // etc.). Lazy-loaded; failures are non-fatal. Runs in parallel with
+    // `loadPluginTypes` because they cover non-overlapping import
+    // sources (Pothos plugins are local-bundled; ATA skips those paths).
+    import('@/lib/playground/setup-monaco-ata')
+      .then(({ feedATA }) => feedATA(monaco, source))
+      .catch((err) => {
+        // ATA failures are non-fatal — the editor still works without
+        // external types. Log so the failure is visible in devtools but
+        // don't surface to the user (their code isn't what's wrong).
+        import('@/lib/playground/logger').then(({ monacoLogger }) => {
+          monacoLogger.warn('ATA load failed:', err);
+        });
+      });
   }, [monaco, typesLoaded, source]);
+
+  // Clear the format-handler registry when this editor unmounts so a
+  // stale handler doesn't fire after the user switches to the SDL pane.
+  useEffect(() => {
+    return () => setFormatHandler(null);
+  }, []);
 
   return (
     <Editor
@@ -71,9 +92,9 @@ export function SourceEditor({ filename, source, allFiles, onChange }: Props) {
       beforeMount={registerThemes}
       onMount={(editor) => {
         editorRef.current = editor;
-        if (typeof window !== 'undefined') {
-          (window as typeof window & { monacoEditor?: typeof editor }).monacoEditor = editor;
-        }
+        setFormatHandler(() => {
+          editor.getAction('editor.action.formatDocument')?.run();
+        });
       }}
       options={{
         minimap: { enabled: false },

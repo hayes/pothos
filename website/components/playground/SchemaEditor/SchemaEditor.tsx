@@ -13,13 +13,7 @@ interface Props {
   onChange: (index: number, content: string) => void;
 }
 
-export function SchemaEditor({
-  files,
-  activeIndex,
-  sdlActive,
-  schemaSDL,
-  onChange,
-}: Props) {
+export function SchemaEditor({ files, activeIndex, sdlActive, schemaSDL, onChange }: Props) {
   const activeFile = files[activeIndex];
   const lineCount = activeFile?.content.split('\n').length ?? 0;
   const meta = sdlActive

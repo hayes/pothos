@@ -12,9 +12,15 @@ interface Props {
   open: boolean;
   onClose: () => void;
   items: OverflowItem[];
+  /**
+   * The trigger element that toggles this menu — clicks on it are
+   * ignored by the outside-click listener so the trigger's own toggle
+   * handler runs (otherwise both fire and the menu re-opens).
+   */
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
-export function OverflowMenu({ open, onClose, items }: Props) {
+export function OverflowMenu({ open, onClose, items, triggerRef }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,9 +33,14 @@ export function OverflowMenu({ open, onClose, items }: Props) {
       }
     };
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) {
+        return;
       }
+      if (triggerRef?.current?.contains(target)) {
+        return;
+      }
+      onClose();
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener('mousedown', onClick);
@@ -37,7 +48,7 @@ export function OverflowMenu({ open, onClose, items }: Props) {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('mousedown', onClick);
     };
-  }, [open, onClose]);
+  }, [open, onClose, triggerRef]);
 
   if (!open) {
     return null;

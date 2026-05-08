@@ -14,15 +14,8 @@ interface Props {
  * and the contributors wall so they read as one consistent card type.
  * The whole card is a single link to the person's GitHub profile.
  */
-export function PersonCard({
-  login,
-  name,
-  avatarUrl,
-  htmlUrl,
-  detail,
-  size = 56,
-}: Props) {
-  const display = name && name.trim() ? name : login;
+export function PersonCard({ login, name, avatarUrl, htmlUrl, detail, size = 56 }: Props) {
+  const display = name?.trim() ? name : login;
   const subtitle = name ? `@${login}` : detail;
   const showDetailLine = name && detail; // both -> two lines
 

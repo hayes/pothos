@@ -1,6 +1,6 @@
 'use client';
 
-import type { KeyboardEvent } from 'react';
+import { type KeyboardEvent, useId, useRef } from 'react';
 import type { Operation } from './types';
 
 interface Props {
@@ -19,6 +19,34 @@ interface Props {
  * tabs from pane tabs.
  */
 export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAdd }: Props) {
+  const tabRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const tabsId = useId();
+
+  const focusTab = (index: number) => {
+    const wrapped = (index + operations.length) % operations.length;
+    tabRefs.current[wrapped]?.focus();
+    onSelect(wrapped);
+  };
+
+  const onTabKey = (e: KeyboardEvent<HTMLDivElement>, i: number) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      focusTab(i + 1);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      focusTab(i - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      focusTab(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      focusTab(operations.length - 1);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect(i);
+    }
+  };
+
   return (
     <div
       role="tablist"
@@ -29,17 +57,24 @@ export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAd
         <OperationTab
           key={op.id}
           operation={op}
+          tabId={`${tabsId}-tab-${i}`}
+          panelId={`${tabsId}-panel-${i}`}
           active={i === activeIndex}
           onSelect={() => onSelect(i)}
           onClose={() => onClose(i)}
+          onKey={(e) => onTabKey(e, i)}
           closable={operations.length > 1}
+          tabRef={(el) => {
+            tabRefs.current[i] = el;
+          }}
         />
       ))}
       <button
         type="button"
         onClick={onAdd}
-        className="font-mono text-[13px] text-bm-ink-muted hover:text-bm-ink leading-none"
+        className="font-mono text-[13px] text-bm-ink-muted hover:text-bm-ink leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bm-accent rounded"
         title="New operation"
+        aria-label="New operation"
       >
         +
       </button>
@@ -53,31 +88,36 @@ export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAd
 
 function OperationTab({
   operation,
+  tabId,
+  panelId,
   active,
   onSelect,
   onClose,
+  onKey,
   closable,
+  tabRef,
 }: {
   operation: Operation;
+  tabId: string;
+  panelId: string;
   active: boolean;
   onSelect: () => void;
   onClose: () => void;
+  onKey: (e: KeyboardEvent<HTMLDivElement>) => void;
   closable: boolean;
+  tabRef: (el: HTMLDivElement | null) => void;
 }) {
-  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onSelect();
-    }
-  };
   return (
     <div
       role="tab"
+      id={tabId}
+      aria-controls={panelId}
       aria-selected={active}
-      tabIndex={0}
+      tabIndex={active ? 0 : -1}
+      ref={tabRef}
       onClick={onSelect}
       onKeyDown={onKey}
-      className={`flex items-center gap-1.5 h-full -mb-px font-mono text-[13px] tracking-[-0.01em] cursor-pointer focus-visible:outline-none ${
+      className={`flex items-center gap-1.5 h-full -mb-px font-mono text-[13px] tracking-[-0.01em] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bm-accent ${
         active
           ? 'text-bm-ink font-medium border-b-[1.5px] border-bm-accent'
           : 'text-bm-ink-muted border-b-[1.5px] border-transparent hover:text-bm-ink'
@@ -85,11 +125,7 @@ function OperationTab({
     >
       <span>{operation.name}</span>
       {operation.dirty && (
-        <span
-          className="size-[5px] rounded-full bg-bm-accent"
-          aria-hidden="true"
-          title="unsaved"
-        />
+        <span className="size-[5px] rounded-full bg-bm-accent" aria-hidden="true" title="unsaved" />
       )}
       {closable && (
         <button

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { Header } from '../../components/marketing/Header';
-import { ResourcesPage } from '../../components/resources/ResourcesPage';
+import { Header } from '@/components/marketing/Header';
+import { ResourcesPage } from '@/components/resources/ResourcesPage';
 
 export const metadata: Metadata = {
   title: 'Resources — Pothos',

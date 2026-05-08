@@ -1,86 +1,34 @@
-export interface PluginEntry {
-  name: string;
-  desc: string;
-  icon: string;
-  href: string;
-}
+import { PLUGINS as ALL_PLUGINS, type PluginEntry } from '../plugins/plugins';
 
 /**
- * Curated list of headline plugins for the home page grid. Names match
- * the docs entries (`/docs/plugins/<slug>`) so the cards link to the
- * right page and read identically to the rest of the site.
+ * Curated subset of canonical plugin slugs (in display order) shown in
+ * the home page's plugin garden grid. The full catalog lives in
+ * `components/plugins/plugins.ts` — that's the single source of truth
+ * for plugin metadata. This file only picks which entries to surface.
  */
-export const PLUGINS: PluginEntry[] = [
-  {
-    name: 'Prisma',
-    desc: 'Efficient Prisma integration that solves N+1 and more.',
-    icon: '◆',
-    href: '/docs/plugins/prisma',
-  },
-  {
-    name: 'Drizzle',
-    desc: "Drizzle's relational query builder, type-safe.",
-    icon: '◇',
-    href: '/docs/plugins/drizzle',
-  },
-  {
-    name: 'Relay',
-    desc: 'Cursor-based connections & nodes, done right.',
-    icon: '↻',
-    href: '/docs/plugins/relay',
-  },
-  {
-    name: 'Scope Auth',
-    desc: 'Field- and type-level authorization checks.',
-    icon: '✦',
-    href: '/docs/plugins/scope-auth',
-  },
-  {
-    name: 'Dataloader',
-    desc: 'Inline data-loaders — solve N+1 without ceremony.',
-    icon: '≡',
-    href: '/docs/plugins/dataloader',
-  },
-  {
-    name: 'Errors',
-    desc: 'Strongly typed errors as union types.',
-    icon: '✕',
-    href: '/docs/plugins/errors',
-  },
-  {
-    name: 'Validation',
-    desc: 'Zod / Valibot / ArkType — built in.',
-    icon: '✓',
-    href: '/docs/plugins/validation',
-  },
-  {
-    name: 'Tracing',
-    desc: 'OpenTelemetry, New Relic, Sentry, custom adapters.',
-    icon: '◯',
-    href: '/docs/plugins/tracing',
-  },
-  {
-    name: 'Directives',
-    desc: 'Schema directives, type-safe.',
-    icon: '@',
-    href: '/docs/plugins/directives',
-  },
-  {
-    name: 'Smart Subscriptions',
-    desc: 'Subscribe to any part of your graph.',
-    icon: '~',
-    href: '/docs/plugins/smart-subscriptions',
-  },
-  {
-    name: 'Complexity',
-    desc: 'Define and limit query complexity.',
-    icon: '⚡',
-    href: '/docs/plugins/complexity',
-  },
-  {
-    name: 'Federation',
-    desc: 'Apollo Federation 2 schemas, the Pothos way.',
-    icon: '◈',
-    href: '/docs/plugins/federation',
-  },
+export const HOMEPAGE_SLUGS: string[] = [
+  'prisma',
+  'drizzle',
+  'relay',
+  'scope-auth',
+  'dataloader',
+  'errors',
+  'validation',
+  'tracing',
+  'directives',
+  'smart-subscriptions',
+  'complexity',
+  'federation',
 ];
+
+const bySlug = new Map(ALL_PLUGINS.map((p) => [p.slug, p]));
+
+export const HOMEPAGE_PLUGINS: PluginEntry[] = HOMEPAGE_SLUGS.map((slug) => {
+  const entry = bySlug.get(slug);
+  if (!entry) {
+    throw new Error(`HOMEPAGE_SLUGS references unknown plugin slug: ${slug}`);
+  }
+  return entry;
+});
+
+export type { PluginEntry } from '../plugins/plugins';

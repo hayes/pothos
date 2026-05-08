@@ -1,7 +1,7 @@
 'use client';
 
-import { useTheme } from '@/components/Providers';
 import { useEffect, useState } from 'react';
+import { useTheme } from '@/components/Providers';
 
 interface Props {
   className?: string;
@@ -30,6 +30,7 @@ export function ThemeToggle({ className = '' }: Props) {
       type="button"
       onClick={() => setTheme(next)}
       aria-label={label}
+      aria-pressed={isDark}
       title={label}
       className={`inline-flex items-center justify-center size-9 rounded text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors ${className}`}
     >
@@ -57,10 +58,7 @@ export function ThemeToggle({ className = '' }: Props) {
             transform: 'translateX(-100%)',
           }}
         >
-          <path
-            d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-            transform="translate(24 0)"
-          />
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" transform="translate(24 0)" />
         </g>
       </svg>
     </button>

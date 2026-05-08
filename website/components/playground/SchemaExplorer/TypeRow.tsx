@@ -1,6 +1,6 @@
 'use client';
 
-import type { ExplorerField, ExplorerType } from './introspect';
+import type { ExplorerType } from './introspect';
 
 interface Props {
   type: ExplorerType;
@@ -10,8 +10,6 @@ interface Props {
   activeFieldKey?: string;
   /** Click on a type ref → ask page to jump/open that type. */
   onTypeClick?: (typeName: string) => void;
-  /** Click on a field row. */
-  onFieldClick?: (field: ExplorerField) => void;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -22,7 +20,7 @@ const KIND_LABEL: Record<string, string> = {
   interface: 'interface',
 };
 
-export function TypeRow({ type, knownTypes, activeFieldKey, onTypeClick, onFieldClick }: Props) {
+export function TypeRow({ type, knownTypes, activeFieldKey, onTypeClick }: Props) {
   return (
     <div className="mb-4">
       <div className="flex items-baseline justify-between mb-1.5">
@@ -37,15 +35,11 @@ export function TypeRow({ type, knownTypes, activeFieldKey, onTypeClick, onField
         {type.fields.map((field) => {
           const key = `${type.name}.${field.name}`;
           const active = key === activeFieldKey;
+          const className = `flex w-full items-baseline text-left py-0.5 pl-2.5 -ml-2.5 transition-colors border-l-2 ${
+            active ? 'border-bm-accent bg-bm-surface-alt font-medium' : 'border-transparent'
+          }`;
           return (
-            <button
-              type="button"
-              key={field.name}
-              onClick={() => onFieldClick?.(field)}
-              className={`flex w-full items-baseline text-left py-0.5 pl-2.5 -ml-2.5 transition-colors border-l-2 ${
-                active ? 'border-bm-accent bg-bm-surface-alt font-medium' : 'border-transparent'
-              }`}
-            >
+            <div key={field.name} className={className}>
               <span className="text-bm-ink">{field.name}</span>
               {field.args && <span className="text-bm-ink-muted">{field.args}</span>}
               <span className="text-bm-ink-muted mx-1">:</span>
@@ -55,7 +49,7 @@ export function TypeRow({ type, knownTypes, activeFieldKey, onTypeClick, onField
                 knownTypes={knownTypes}
                 onTypeClick={onTypeClick}
               />
-            </button>
+            </div>
           );
         })}
       </div>
@@ -74,8 +68,8 @@ function FieldReturn({
   knownTypes: Set<string>;
   onTypeClick?: (typeName: string) => void;
 }) {
-  const clickableRef = refs.find((r) => knownTypes.has(r));
-  if (!clickableRef || !onTypeClick) {
+  const hasKnownRef = refs.some((r) => knownTypes.has(r));
+  if (!hasKnownRef || !onTypeClick) {
     return <span className="text-bm-ink-soft">{returns}</span>;
   }
   // Render as a styled span (not interactive on its own) — the parent row's

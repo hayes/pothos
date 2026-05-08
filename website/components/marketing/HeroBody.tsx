@@ -23,9 +23,7 @@ export function HeroBody() {
         <p className="text-bm-ink-soft text-[16px] leading-[1.6] mt-0 mb-7">
           Define a type once. Pothos walks your code and infers the shape of arguments, return
           types, and context across resolvers. No codegen step, no decorators, no{' '}
-          <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">
-            any
-          </code>{' '}
+          <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">any</code>{' '}
           escape hatches.
         </p>
         <StatsRow />

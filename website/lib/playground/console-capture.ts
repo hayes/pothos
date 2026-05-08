@@ -19,10 +19,16 @@ const originalConsole = {
 type ConsoleType = 'log' | 'warn' | 'error' | 'info';
 
 /**
- * Capture console output during a synchronous or asynchronous operation
+ * Capture console output during a synchronous operation. Pass an
+ * optional `out` array to read accumulated logs even when `fn` throws —
+ * the array is mutated in place, so the caller can inspect it from a
+ * surrounding catch.
  */
-export function captureConsole<T>(fn: () => T): { result: T; logs: ConsoleMessage[] } {
-  const logs: ConsoleMessage[] = [];
+export function captureConsole<T>(
+  fn: () => T,
+  out?: ConsoleMessage[],
+): { result: T; logs: ConsoleMessage[] } {
+  const logs = out ?? [];
 
   const capture = (type: ConsoleType) => {
     return (...args: unknown[]) => {
@@ -42,20 +48,35 @@ export function captureConsole<T>(fn: () => T): { result: T; logs: ConsoleMessag
   const prevError = console.error;
   const prevInfo = console.info;
 
-  console.log = capture('log');
-  console.warn = capture('warn');
-  console.error = capture('error');
-  console.info = capture('info');
+  const ourLog = capture('log');
+  const ourWarn = capture('warn');
+  const ourError = capture('error');
+  const ourInfo = capture('info');
+
+  console.log = ourLog;
+  console.warn = ourWarn;
+  console.error = ourError;
+  console.info = ourInfo;
 
   try {
     const result = fn();
     return { result, logs };
   } finally {
-    // Restore previous console methods
-    console.log = prevLog;
-    console.warn = prevWarn;
-    console.error = prevError;
-    console.info = prevInfo;
+    // Only restore if our wrapper is still installed; if a nested capture
+    // already restored to a previous wrapper, leave it alone — otherwise
+    // we'd reinstall a stale wrapper and leak it.
+    if (console.log === ourLog) {
+      console.log = prevLog;
+    }
+    if (console.warn === ourWarn) {
+      console.warn = prevWarn;
+    }
+    if (console.error === ourError) {
+      console.error = prevError;
+    }
+    if (console.info === ourInfo) {
+      console.info = prevInfo;
+    }
   }
 }
 
@@ -85,19 +106,32 @@ export async function captureConsoleAsync<T>(
   const prevError = console.error;
   const prevInfo = console.info;
 
-  console.log = capture('log');
-  console.warn = capture('warn');
-  console.error = capture('error');
-  console.info = capture('info');
+  const ourLog = capture('log');
+  const ourWarn = capture('warn');
+  const ourError = capture('error');
+  const ourInfo = capture('info');
+
+  console.log = ourLog;
+  console.warn = ourWarn;
+  console.error = ourError;
+  console.info = ourInfo;
 
   try {
     const result = await fn();
     return { result, logs };
   } finally {
-    // Restore previous console methods
-    console.log = prevLog;
-    console.warn = prevWarn;
-    console.error = prevError;
-    console.info = prevInfo;
+    // See sync version for rationale on the equality guard.
+    if (console.log === ourLog) {
+      console.log = prevLog;
+    }
+    if (console.warn === ourWarn) {
+      console.warn = prevWarn;
+    }
+    if (console.error === ourError) {
+      console.error = prevError;
+    }
+    if (console.info === ourInfo) {
+      console.info = prevInfo;
+    }
   }
 }

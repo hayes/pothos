@@ -1,12 +1,22 @@
-# This query will fail validation - name must be capitalized
-query HelloLowercase {
-  hello(name: "world") {
+# Try `id: "99"` to trigger NotFoundError, or `id: "abc"` for
+# ValidationError. The result union surfaces both error types alongside
+# the success type so clients can pattern-match on __typename.
+query LookupUser {
+  user(id: "1") {
     __typename
-    ... on Error {
-      message
+    ... on QueryUserSuccess {
+      data {
+        id
+        name
+      }
     }
-    ... on QueryHelloSuccess {
-      data
+    ... on NotFoundError {
+      message
+      id
+    }
+    ... on ValidationError {
+      message
+      field
     }
   }
 }

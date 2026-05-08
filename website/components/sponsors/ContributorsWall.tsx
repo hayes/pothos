@@ -1,4 +1,4 @@
-import type { Contributor } from '../../lib/github';
+import type { Contributor } from '@/lib/github';
 import { PersonCard } from './PersonCard';
 
 interface Props {

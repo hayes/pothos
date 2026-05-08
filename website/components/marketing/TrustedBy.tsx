@@ -8,10 +8,7 @@ export function TrustedBy() {
           Trusted in production by
         </span>
         {COMPANIES.map((name) => (
-          <span
-            key={name}
-            className="font-serif text-[22px] tracking-[-0.005em] text-bm-ink-soft"
-          >
+          <span key={name} className="font-serif text-[22px] tracking-[-0.005em] text-bm-ink-soft">
             {name}
           </span>
         ))}

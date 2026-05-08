@@ -1,7 +1,7 @@
 'use client';
 
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
-import type { PlaygroundFile } from '../../components/playground/types';
+import type { PlaygroundFile } from '@/components/playground/types';
 
 export type ViewMode = 'code' | 'graphql';
 
@@ -9,8 +9,14 @@ export interface PlaygroundURLState {
   files: PlaygroundFile[];
   query?: string;
   variables?: string;
+  /**
+   * JSON-or-JS-literal string passed as `contextValue` to graphql() at
+   * run time. Parsed on the runner side; stored verbatim here so the
+   * editor view round-trips through the hash.
+   */
+  context?: string;
   /** Multiple query tabs for GraphiQL */
-  queries?: Array<{ title?: string; query: string; variables?: string }>;
+  queries?: Array<{ title?: string; query: string; variables?: string; context?: string }>;
   activeTab?: string;
   activeFileIndex?: number;
   viewMode?: ViewMode;
@@ -72,6 +78,12 @@ export function encodePlaygroundState(state: PlaygroundURLState): string {
 
   if (state.variables) {
     params.set('vars', state.variables);
+  }
+
+  if (state.context) {
+    // Compressed because JS-literal context values may contain `&` / `=` /
+    // newlines that don't survive a raw URL param.
+    params.set('ctx', compressToEncodedURIComponent(state.context));
   }
 
   // Save multiple query tabs if present
@@ -199,6 +211,14 @@ function decodeV3State(params: URLSearchParams): PlaygroundURLState | null {
       state.variables = vars;
     }
 
+    const compressedCtx = params.get('ctx');
+    if (compressedCtx) {
+      const ctx = decompressFromEncodedURIComponent(compressedCtx);
+      if (ctx) {
+        state.context = ctx;
+      }
+    }
+
     // Decode multiple query tabs if present
     const compressedQueries = params.get('queries');
     if (compressedQueries) {
@@ -209,6 +229,7 @@ function decodeV3State(params: URLSearchParams): PlaygroundURLState | null {
             title?: string;
             query: string;
             variables?: string;
+            context?: string;
           }>;
         }
       } catch (err) {
@@ -321,58 +342,4 @@ export function createShareableURL(state: PlaygroundURLState, baseURL?: string):
   const encoded = encodePlaygroundState(state);
   const base = baseURL || (typeof window !== 'undefined' ? window.location.origin : '');
   return `${base}/playground#${encoded}`;
-}
-
-export interface ClipboardResult {
-  success: boolean;
-  error?: string;
-}
-
-/**
- * Copy text to clipboard with robust fallback handling
- *
- * Tries modern Clipboard API first, falls back to deprecated execCommand
- * if necessary (for older browsers or permission issues).
- *
- * @param text - Text to copy to clipboard
- * @returns Object with success status and optional error message
- */
-export async function copyToClipboard(text: string): Promise<ClipboardResult> {
-  // Try modern Clipboard API first
-  try {
-    await navigator.clipboard.writeText(text);
-    return { success: true };
-  } catch (err) {
-    console.warn('[Clipboard] Modern API failed, trying fallback:', err);
-
-    // Fallback to deprecated execCommand (still works in most browsers)
-    let textarea: HTMLTextAreaElement | null = null;
-    try {
-      textarea = document.createElement('textarea');
-      textarea.value = text;
-      // Position off-screen and make non-interactive
-      textarea.style.cssText = 'position: fixed; opacity: 0; pointer-events: none; left: -9999px;';
-      document.body.appendChild(textarea);
-
-      // Select the text
-      textarea.select();
-      textarea.setSelectionRange(0, text.length);
-
-      // Try to copy
-      const success = document.execCommand('copy');
-
-      return success ? { success: true } : { success: false, error: 'Copy command failed' };
-    } catch (fallbackErr) {
-      console.error('[Clipboard] Fallback failed:', fallbackErr);
-      return {
-        success: false,
-        error: 'Clipboard access denied. Please copy the URL manually.',
-      };
-    } finally {
-      // Ensure cleanup even if errors occur
-      if (textarea?.parentNode) {
-        document.body.removeChild(textarea);
-      }
-    }
-  }
 }

@@ -37,7 +37,7 @@ export function ResponseStatus({ phase }: Props) {
     return (
       <span className="inline-flex gap-3.5 items-center">
         <span className="text-bm-danger">
-          ● {phase.status} OK · {phase.errorCount} error{phase.errorCount === 1 ? '' : 's'}
+          ● {phase.status} · {phase.errorCount} error{phase.errorCount === 1 ? '' : 's'}
         </span>
         <span>{formatMs(phase.durationMs)}</span>
       </span>

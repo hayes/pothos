@@ -108,11 +108,9 @@ export function HeroCodeBlock() {
             {i + 1}
           </span>
           <span className="flex-1 whitespace-pre">
-            {tokens.length === 0 ? (
-              ' '
-            ) : (
-              <>
-                {tokens.map(([kind, text], j) => (
+            {tokens.length === 0
+              ? ' '
+              : tokens.map(([kind, text], j) => (
                   <span
                     // biome-ignore lint/suspicious/noArrayIndexKey: token indices are stable
                     key={j}
@@ -124,8 +122,6 @@ export function HeroCodeBlock() {
                     {text}
                   </span>
                 ))}
-              </>
-            )}
           </span>
         </div>
       ))}

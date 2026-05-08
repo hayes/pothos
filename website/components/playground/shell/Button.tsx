@@ -23,9 +23,13 @@ const variantClass: Record<Variant, string> = {
 
 export function Button({ variant = 'ghost', active, className = '', children, ...rest }: Props) {
   const activeClass = active ? 'bg-bm-surface-alt text-bm-ink' : '';
+  // Emit `aria-pressed` only when the caller opts into toggle semantics
+  // by passing `active`. Plain buttons (no `active` prop) stay clean.
+  const ariaPressed = active === undefined ? undefined : !!active;
   return (
     <button
       type="button"
+      aria-pressed={ariaPressed}
       {...rest}
       className={`${baseClass} ${variantClass[variant]} ${activeClass} ${className}`}
     >

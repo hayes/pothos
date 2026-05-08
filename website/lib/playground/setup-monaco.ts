@@ -1,9 +1,20 @@
 import type { Monaco } from '@monaco-editor/react';
+import { monacoLogger } from './logger';
 import { coreTypeDefinitions, getAllPluginNames, getPluginTypeDefinitions } from './pothos-types';
+
+interface MonacoDisposable {
+  dispose(): void;
+}
 
 let initialized = false;
 let monaco: Monaco | null = null;
-const loadedPlugins = new Set<string>();
+// Per-plugin disposables returned by `addExtraLib`. We track them so
+// removing a plugin import re-runs `loadPluginTypes` with that plugin
+// absent, and we can call `.dispose()` on every extra-lib it added —
+// otherwise its global type augmentations stay stuck in Monaco and the
+// user gets stale "missing required field" errors after switching
+// examples (e.g. scope-auth → validation).
+const pluginDisposables = new Map<string, MonacoDisposable[]>();
 
 // Cache getAllPluginNames result (static list)
 let cachedPluginNames: string[] | null = null;
@@ -11,12 +22,40 @@ let cachedPluginNames: string[] | null = null;
 // Debounce timer for plugin loading
 let loadPluginTypesTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Monaco's TypeScript worker rejects in-flight validation/diagnostic
+// requests with `{ msg: 'operation is manually canceled', type: 'cancelation' }`
+// whenever extra-libs change mid-cycle (which happens constantly while
+// ATA is feeding `.d.ts` files in). The promise sites are inside
+// monaco's worker plumbing, so we can't `.catch()` them at the source —
+// instead install a one-shot window listener that swallows that exact
+// shape. Anything else (real Errors, unrelated rejections) falls
+// through unchanged.
+let cancellationFilterInstalled = false;
+function installMonacoCancellationFilter(): void {
+  if (cancellationFilterInstalled || typeof window === 'undefined') {
+    return;
+  }
+  cancellationFilterInstalled = true;
+  window.addEventListener('unhandledrejection', (event) => {
+    const r = event.reason as { msg?: unknown; type?: unknown } | null;
+    if (
+      r &&
+      typeof r === 'object' &&
+      r.type === 'cancelation' &&
+      r.msg === 'operation is manually canceled'
+    ) {
+      event.preventDefault();
+    }
+  });
+}
+
 export function setupMonacoForPothos(monacoInstance: Monaco): void {
   if (initialized) {
     return;
   }
   initialized = true;
   monaco = monacoInstance;
+  installMonacoCancellationFilter();
 
   monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
     target: monaco.languages.typescript.ScriptTarget.ESNext,
@@ -42,14 +81,17 @@ export function setupMonacoForPothos(monacoInstance: Monaco): void {
   // Load core type definitions (GraphQL + @pothos/core)
   loadTypeDefinitions(coreTypeDefinitions);
 
-  console.log(`[Monaco] Loaded ${coreTypeDefinitions.length} core type definitions`);
+  monacoLogger.debug(`Loaded ${coreTypeDefinitions.length} core type definitions`);
 }
 
-function loadTypeDefinitions(typeDefs: Array<{ moduleName: string; content: string }>): void {
+function loadTypeDefinitions(
+  typeDefs: Array<{ moduleName: string; content: string }>,
+): MonacoDisposable[] {
   if (!monaco) {
-    return;
+    return [];
   }
 
+  const disposables: MonacoDisposable[] = [];
   for (const typeDef of typeDefs) {
     const moduleParts = typeDef.moduleName.split('/');
     const hasGlobalDeclaration = typeDef.content.includes('declare global');
@@ -73,8 +115,9 @@ function loadTypeDefinitions(typeDefs: Array<{ moduleName: string; content: stri
       content = `declare module '${typeDef.moduleName}' {\n${content}\n}`;
     }
 
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(content, filePath);
+    disposables.push(monaco.languages.typescript.typescriptDefaults.addExtraLib(content, filePath));
   }
+  return disposables;
 }
 
 /**
@@ -131,25 +174,37 @@ export function loadPluginTypes(code: string): void {
 
   // Debounce plugin loading to avoid excessive calls during typing
   loadPluginTypesTimer = setTimeout(() => {
-    // Extract plugin imports from code
     const pluginImports = extractPluginImports(code);
     const allPluginNames = getCachedPluginNames();
 
+    // Unload plugins that are no longer imported. Each plugin's
+    // `addExtraLib` calls returned a disposable; firing those removes
+    // the plugin's global type augmentation (otherwise Pothos's
+    // `RemoveNeverKeys<SchemaBuilderOptions<…>>` keeps demanding a
+    // `scopeAuth` field after the user removes the import).
+    for (const pluginName of Array.from(pluginDisposables.keys())) {
+      if (!pluginImports.has(pluginName)) {
+        const disposables = pluginDisposables.get(pluginName);
+        if (disposables) {
+          for (const d of disposables) {
+            d.dispose();
+          }
+        }
+        pluginDisposables.delete(pluginName);
+        monacoLogger.debug(`Unloaded type definitions for ${pluginName}`);
+      }
+    }
+
     // Load newly imported plugins
     for (const pluginName of Array.from(pluginImports)) {
-      if (!loadedPlugins.has(pluginName) && allPluginNames.includes(pluginName)) {
+      if (!pluginDisposables.has(pluginName) && allPluginNames.includes(pluginName)) {
         const pluginTypes = getPluginTypeDefinitions(pluginName);
-        loadTypeDefinitions(pluginTypes);
-        loadedPlugins.add(pluginName);
-        console.log(`[Monaco] Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
+        const disposables = loadTypeDefinitions(pluginTypes);
+        pluginDisposables.set(pluginName, disposables);
+        monacoLogger.debug(`Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
       }
     }
   }, 500); // 500ms debounce
-
-  // Note: We don't unload unused plugins because Monaco doesn't provide
-  // a clean way to remove specific type definitions. This is acceptable
-  // because the extra types don't interfere with validation - they just
-  // add optional capabilities that won't be used unless the plugin is imported.
 }
 
 function extractPluginImports(code: string): Set<string> {
@@ -169,7 +224,12 @@ function extractPluginImports(code: string): Set<string> {
 export function resetMonacoSetup(): void {
   initialized = false;
   monaco = null;
-  loadedPlugins.clear();
+  for (const disposables of pluginDisposables.values()) {
+    for (const d of disposables) {
+      d.dispose();
+    }
+  }
+  pluginDisposables.clear();
   cachedPluginNames = null;
 
   // Clear any pending debounce timer

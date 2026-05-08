@@ -35,7 +35,7 @@ export function HeartLeaf({
         strokeWidth={stroke === 'none' ? 0 : 1.5}
       />
       {veins && (
-        <g stroke="rgba(0,0,0,0.18)" strokeWidth="0.8" fill="none" strokeLinecap="round">
+        <g stroke="var(--bm-veins)" strokeWidth="0.8" fill="none" strokeLinecap="round">
           <path d="M32 56 L 32 18" />
           <path d="M32 38 C 24 36, 18 30, 14 22" />
           <path d="M32 38 C 40 36, 46 30, 50 22" />

@@ -1,5 +1,7 @@
 'use client';
 
+import { compilerLogger } from './logger';
+
 export interface CompilationResult {
   success: boolean;
   code?: string;
@@ -23,7 +25,7 @@ function getWorker(): Worker {
       const message = event.data;
 
       if (message.type === 'ready') {
-        console.log('[Compiler Worker] Ready');
+        compilerLogger.debug('Worker ready');
         return;
       }
 
@@ -50,6 +52,10 @@ function getWorker(): Worker {
 
     worker.addEventListener('error', (error) => {
       console.error('[Compiler Worker] Error:', error);
+      // Drop the worker entirely so the next request rebuilds it. If we
+      // kept the same Worker, all subsequent postMessages would silently
+      // hang (no handler would ever respond) since the worker errored.
+      worker = null;
       // Reject all pending requests
       pendingRequests.forEach((pending) => {
         pending.reject(new Error('Worker error'));
@@ -61,13 +67,39 @@ function getWorker(): Worker {
   return worker;
 }
 
+// Cap each compile at 15s. esbuild-wasm hangs silently on certain
+// version mismatches and other init failures (see compiler.worker.ts);
+// without a cap the UI sticks at "compiling" forever. 15s is far above
+// any normal compile (typically <500ms) so legitimate slow paths still
+// succeed.
+const COMPILE_TIMEOUT_MS = 15000;
+
 export function compileTypeScriptInWorker(
   code: string,
   filename = 'schema.ts',
 ): Promise<CompilationResult> {
   return new Promise((resolve, reject) => {
     const id = `compile-${++requestId}`;
-    pendingRequests.set(id, { resolve, reject });
+
+    const timeoutId = setTimeout(() => {
+      if (pendingRequests.delete(id)) {
+        // Worker is wedged — terminate it so the next request gets a
+        // fresh one rather than queuing behind a dead worker.
+        terminateWorker();
+        reject(new Error(`Compile timed out after ${COMPILE_TIMEOUT_MS}ms`));
+      }
+    }, COMPILE_TIMEOUT_MS);
+
+    pendingRequests.set(id, {
+      resolve: (result) => {
+        clearTimeout(timeoutId);
+        resolve(result);
+      },
+      reject: (err) => {
+        clearTimeout(timeoutId);
+        reject(err);
+      },
+    });
 
     try {
       const worker = getWorker();
@@ -78,6 +110,7 @@ export function compileTypeScriptInWorker(
         filename,
       });
     } catch (error) {
+      clearTimeout(timeoutId);
       pendingRequests.delete(id);
       reject(error);
     }
