@@ -1,0 +1,132 @@
+---
+title: Relay Node
+description: prismaNode and global IDs
+---
+
+```ts
+builder.prismaNode('Comment', {
+  id: { field: 'id' },
+  collection: (ctx) => ctx.db.orm.Comment,
+  fields: (t) => ({
+    body: t.exposeString('body'),
+    author: t.relation('author'), // nested relations preload via the mapper
+  }),
+});
+```
+
+Registers a contract model as a Relay Node. Delegates to plugin-relay's
+`nodeRef()` so all Node-interface plumbing (parse, encode, isTypeOf)
+works exactly as a hand-rolled `builder.node(...)`. The plugin owns the
+id predicate, the auto-include mapper, materialization, and per-request
+batching; you supply just the base collection accessor.
+
+## The `collection` option
+
+```ts
+collection: Collection<…> | ((ctx) => Collection<…>);
+```
+
+Two equivalent forms:
+
+```ts
+// Static — when no per-request scope is needed.
+collection: db.orm.Comment,
+
+// Callback — when you need request context for auth, tenancy, etc.
+collection: (ctx) => ctx.db.orm.Comment.where(hasAccess(ctx.user)),
+```
+
+Any `.where(...)` chained on composes with the plugin's id predicate
+(`id IN (...)` for single-column ids, `OR` of per-tuple `AND` for
+composite ids).
+
+### Path-based batching
+
+Calls at the same `pathKey(info.path)` — the GraphQL schema path with
+numeric segments stripped — share one chained collection:
+
+```graphql
+{
+  nodes(ids: ["a", "b", "c"]) { ... on Comment { body } }   # 1 SELECT, 3 ids
+  node(id: "x")                { ... on Comment { body } }   # 1 SELECT, 1 id
+  alias: node(id: "y")         { ... on Comment { body } }   # 1 SELECT, 1 id
+}
+```
+
+GraphQL aliases create distinct paths so they don't coalesce; same-path
+list elements (`nodes(ids:)`) batch because they share a selection set
+by GraphQL semantics. Different prismaNode types in the same path stay
+separate.
+
+The plugin fans returned rows back to per-id promises by matching the
+`id.field` column(s) on each row. Return order doesn't matter; ids that
+don't match a returned row resolve to `null`.
+
+A user-supplied `isTypeOf` is merged with the plugin's brand check —
+the user predicate runs first (handles polymorphic single-table
+inheritance discriminators); the brand check is the fallback. Async
+predicates are supported.
+
+## Non-string IDs
+
+```ts
+builder.prismaNode('Order', {
+  id: { field: 'id', parse: (id) => Number(id) },
+  collection: (ctx) => ctx.db.orm.Order,
+  fields: (t) => ({ /* … */ }),
+});
+```
+
+Ids are parsed before the plugin builds the predicate, so
+`.where((o) => o.id.in([1, 2]))` runs against numeric values. Without
+`parse`, the raw string global ID is used as-is — only safe if the
+column is also a string.
+
+## Composite IDs
+
+Pass a tuple of column names to `id.field`:
+
+```ts
+builder.prismaNode('Membership', {
+  id: { field: ['orgId', 'userId'] },
+  collection: (ctx) => ctx.db.orm.Membership,
+  fields: (t) => ({ /* … */ }),
+});
+```
+
+The global ID encodes a JSON array (e.g.
+`base64("Membership:[\"o1\",\"u1\"]")`); the plugin decodes the array
+and builds an `OR` of per-tuple `AND`-of-eq predicates. Malformed
+payloads, length mismatches, and non-array decodes throw
+`PothosValidationError` before any SQL runs.
+
+Supply your own `parse(id) => [a, b]` to control the decoding (e.g.
+dash-separated `"o1-u1"`):
+
+```ts
+builder.prismaNode('Membership', {
+  id: {
+    field: ['orgId', 'userId'],
+    parse: (id) => id.split('-') as [string, string],
+  },
+  collection: (ctx) => ctx.db.orm.Membership,
+  fields: (t) => ({ /* … */ }),
+});
+```
+
+## Variants on prismaNode
+
+`prismaNode('Post', { name: 'PostByComposite', … })` registers the node
+under a different GraphQL type name than the contract model — useful
+when you have two prismaNode definitions of the same model with
+different ID schemes, or when one is already registered as a plain
+`prismaObject`. Loaded rows are branded with the variant's type name,
+so `node(id: …)` routes correctly through plugin-relay's `resolveType`.
+
+## `field` vs `column`
+
+plugin-prisma's `id` option uses `column`; plugin-prisma-next uses
+`field`. prisma-next's API is field-oriented
+(`Collection.select('field', ...)` takes field names, not column names);
+the rename aligns the option with the runtime. On a flat model the two
+refer to the same thing.

@@ -1,0 +1,223 @@
+---
+title: Composing with other plugins
+description: with-input, scope-auth, errors, validate, complexity, directives
+---
+
+## prismaFieldWithInput — compose with plugin-with-input
+
+```ts
+import WithInputPlugin from '@pothos/plugin-with-input';
+
+const builder = new SchemaBuilder<...>({
+  plugins: [WithInputPlugin, prismaNextPlugin],
+  withInput: {},
+  prismaNext: { contract },
+});
+
+builder.queryType({
+  fields: (t) => ({
+    userByEmail: t.prismaFieldWithInput({
+      type: 'User',
+      nullable: true,
+      input: {
+        email: t.input.string({ required: true }),
+      },
+      resolve: (apply, _parent, args, ctx) =>
+        apply(ctx.db.orm.User.where((u) => u.email.eq(args.input.email))).first(),
+    }),
+  }),
+});
+```
+
+Generates the input object type from the declared `input:` field, then
+passes the `apply` wrapper + parent / args / ctx / info to the
+resolver. `args.input` is typed against the input fields.
+
+## withAuth — compose with scope-auth
+
+```ts
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+
+const builder = new SchemaBuilder<...>({
+  plugins: [ScopeAuthPlugin, prismaNextPlugin],
+  scopeAuth: { authScopes: async (ctx) => ({ admin: ctx.user?.isAdmin ?? false }) },
+  prismaNext: { contract },
+});
+
+builder.prismaObject('User', {
+  fields: (t) => {
+    const auth = t.withAuth({ admin: true });
+    return {
+      id: t.exposeID('id'),
+      email: auth.exposeString('email'),
+      secrets: auth.relation('secrets'),
+    };
+  },
+});
+```
+
+`t.withAuth(scopes)` returns a builder with the scopes attached to
+every field added through it. The returned builder's `Context` widens
+to whatever the scope requires (per scope-auth's
+`ScopeAuthContextForAuth`). Gated on `'scopeAuth' extends PluginName`
+at the type level.
+
+## Ecosystem-option passthrough
+
+The plugin owns `type` / `resolve` / `query` on its option types and
+spreads the rest into the field config. `errors`, `validate`,
+`authScopes`, `complexity`, `directives`, `subscribe`, `description`,
+`nullable`, `args`, `extensions`, etc. all flow through:
+
+```ts
+import ErrorsPlugin from '@pothos/plugin-errors';
+
+const ValidationError = builder.objectRef<{ message: string }>('ValidationError').implement({
+  fields: (t) => ({ message: t.exposeString('message') }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    posts: t.relation('posts', {
+      errors: { types: [ValidationError] },
+      authScopes: { admin: true },
+      complexity: 5,
+    }),
+  }),
+});
+```
+
+If you find an ecosystem option that doesn't flow through, file an
+issue — the plugin's intent is to be a pure passthrough for everything
+that isn't relation-specific.
+
+## Escape hatch: custom resolvers + the auto-include mapper
+
+Pick the right tool by what you're building:
+
+- **Root field returning a model** → `t.prismaField`. The plugin binds
+  `apply` to the resolve site and brands rows for you.
+- **Relay connection that doesn't fit `t.prismaConnection`** →
+  `prismaConnectionHelpers` (`objects.mdx#prismaconnectionhelpers--escape-hatch`).
+- **Anything else** (plain `t.field` that returns a row, custom merge
+  across multiple contracts, etc.) → `createApply` or
+  `applySelectionToCollection` below.
+
+```ts
+import { createApply } from '@pothos/plugin-prisma-next';
+
+builder.queryType({
+  fields: (t) => ({
+    // Plain t.field returning a User — no t.prismaField. The mapper
+    // still preloads relations declared on the User type.
+    me: t.field({
+      type: 'User',
+      nullable: true,
+      resolve: (_parent, _args, ctx, info) => {
+        const apply = createApply({
+          info,
+          contract: builder.options.prismaNext.contract,
+          context: ctx,
+        });
+        return apply(ctx.db.orm.User.where((u) => u.id.eq(ctx.userId))).first();
+      },
+    }),
+  }),
+});
+```
+
+`createApply` returns an `Apply` callable — the same identity-typed
+wrapper passed to `t.prismaField` / `t.prismaConnection` resolvers. It
+calls `applySelectionToCollection` internally, which third-party
+plugins composing on the selection tree before render can split into
+`mapSelectionFromInfo` (tree only) + `renderSelection` (tree →
+Collection).
+
+Available options on `createApply`:
+
+- `info` / `contract` / `context` — required.
+- `mapperOpts` — schema-wide pagination defaults + `skipDeferredFragments`.
+  Read from `builder.options.prismaNext` via `readPluginOptions(builder)`
+  for parity with the plugin's own field builders.
+- `typeName` — descend into a specific concrete type's inline fragment
+  (e.g. for a Relay `Node` info whose returnType is the interface).
+- `paths` — indirect-include descent (e.g. `[['edges', 'node'], ['nodes']]`
+  for connections).
+- `extraColumns` — force-include columns in the SELECT (cursor cols, etc.).
+
+### Reading the `PRISMA_NEXT_PREPARED` extension
+
+Third-party plugins that wrap fields built by `t.prismaField` /
+`t.prismaFieldWithInput` can read the prepared-field metadata off the
+GraphQL field config:
+
+```ts
+import {
+  PRISMA_NEXT_PREPARED,
+  brandResult,
+  type PreparedFieldExtension,
+} from '@pothos/plugin-prisma-next';
+
+// In a plugin's wrapResolve hook:
+override wrapResolve(resolver, fieldConfig) {
+  const ext = fieldConfig.extensions?.[PRISMA_NEXT_PREPARED] as
+    | PreparedFieldExtension
+    | undefined;
+  if (!ext) return resolver;
+  const { typeName } = ext;
+  return (parent, args, ctx, info) => {
+    const result = resolver(parent, args, ctx, info);
+    // Re-apply the brand after transforming the result. `brandResult`
+    // walks arrays / Promises / Iterables and tags each row with the
+    // GraphQL type name. Idempotent on already-branded rows.
+    return brandResult(result, typeName);
+  };
+}
+```
+
+`modelName` is the contract model key; `typeName` is the registered
+GraphQL type name (diverges from `modelName` for variant prismaObjects).
+Brand returned rows with `typeName` so plugin-relay's `resolveType`
+routes them correctly through Node / union positions.
+
+## Security posture
+
+The plugin defends user-controlled inputs against prototype pollution
+and JSON-allocation DoS at the cursor + composite-ID decoders, and
+rejects reserved object-property aliases in the mapper. The guarantees
+are always-on; no user-tunable knobs.
+
+- **Cursor + composite-ID size cap.** Both decoders length-check before
+  `JSON.parse`. A 2 KiB cap covers realistic compound cursors /
+  composite IDs with significant headroom and stops a `JSON.parse(huge)`
+  DoS. Over-limit payloads throw `PothosValidationError`.
+- **BigInt envelope safety.** A `$bigint` envelope containing a
+  non-numeric string would otherwise surface `BigInt('garbage')`'s raw
+  `SyntaxError`. The decoder wraps in try/catch and rethrows as
+  `PothosValidationError`.
+- **Prototype-pollution defense.** Decoded cursors are allocated with
+  `Object.create(null)`; `__proto__` / `constructor` / `prototype` keys
+  are explicitly skipped. The `$bigint` envelope check uses
+  `Object.hasOwn` so a polluted prototype can't redirect every revived
+  object through the BigInt branch. The combine-spec object the
+  renderer builds also uses `Object.create(null)`.
+- **Reserved aliases in GraphQL queries.** Fields aliased to
+  `__proto__` / `constructor` / `prototype` throw
+  `PothosValidationError` at mapping time. Introspection fields
+  (`__schema`, `__typename`) are unaffected — GraphQL.js's executor
+  handles those before the mapper walks.
+- **Fragment-cycle defense.** Both the mapper walk and
+  `selectionIncludesField` carry a visited-set so a self-referential
+  fragment that bypasses GraphQL.js's `NoFragmentCyclesRule` (persisted
+  queries / custom executors with validation disabled) can't drive an
+  infinite recursion.
+- **Error-message hygiene.** Cursor decode errors don't echo the
+  client-supplied cursor back into the message —
+  log-aggregation systems frequently capture `error.message` verbatim
+  and the payload is attacker-controlled.
+
+## Mutations
+
+`t.prismaField` + `apply` handle mutations directly — there's no
+`t.prismaMutation`. See [Mutations](./mutations) for the unified-resolve
+pattern.

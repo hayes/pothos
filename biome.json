@@ -16,6 +16,7 @@
       "!**/examples/**/prisma/**/*",
       "!**/packages/**/prisma/**/*",
       "!**/packages/**/client/**/*",
+      "!**/packages/plugin-prisma-next/tests/fixtures/**/*",
       "!**/packages/**/*/lib/**/*",
       "!**/packages/**/*/esm/**/*",
       "!**/packages/**/*/dts/**/*",

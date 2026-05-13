@@ -1,0 +1,4 @@
+{
+  "title": "Prisma Next",
+  "pages": ["index", "objects", "relay", "mutations", "composing"]
+}

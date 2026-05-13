@@ -1,0 +1,535 @@
+{
+  "schemaVersion": "1",
+  "targetFamily": "sql",
+  "target": "sqlite",
+  "profileHash": "sha256:213031a5ce861b455f22bc065769080ea0357fabcb999de0190524ecd32531f7",
+  "roots": {
+    "comment": "Comment",
+    "post": "Post",
+    "user": "User"
+  },
+  "models": {
+    "Comment": {
+      "fields": {
+        "authorId": {
+          "nullable": false,
+          "type": {
+            "codecId": "sql/char@1",
+            "kind": "scalar",
+            "typeParams": {
+              "length": 36
+            }
+          }
+        },
+        "body": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/text@1",
+            "kind": "scalar"
+          }
+        },
+        "createdAt": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/datetime@1",
+            "kind": "scalar"
+          }
+        },
+        "id": {
+          "nullable": false,
+          "type": {
+            "codecId": "sql/char@1",
+            "kind": "scalar",
+            "typeParams": {
+              "length": 36
+            }
+          }
+        },
+        "postId": {
+          "nullable": false,
+          "type": {
+            "codecId": "sql/char@1",
+            "kind": "scalar",
+            "typeParams": {
+              "length": 36
+            }
+          }
+        }
+      },
+      "relations": {
+        "author": {
+          "cardinality": "N:1",
+          "on": {
+            "localFields": [
+              "authorId"
+            ],
+            "targetFields": [
+              "id"
+            ]
+          },
+          "to": "User"
+        },
+        "post": {
+          "cardinality": "N:1",
+          "on": {
+            "localFields": [
+              "postId"
+            ],
+            "targetFields": [
+              "id"
+            ]
+          },
+          "to": "Post"
+        }
+      },
+      "storage": {
+        "fields": {
+          "authorId": {
+            "column": "authorId"
+          },
+          "body": {
+            "column": "body"
+          },
+          "createdAt": {
+            "column": "createdAt"
+          },
+          "id": {
+            "column": "id"
+          },
+          "postId": {
+            "column": "postId"
+          }
+        },
+        "table": "comment"
+      }
+    },
+    "Post": {
+      "fields": {
+        "authorId": {
+          "nullable": false,
+          "type": {
+            "codecId": "sql/char@1",
+            "kind": "scalar",
+            "typeParams": {
+              "length": 36
+            }
+          }
+        },
+        "content": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/text@1",
+            "kind": "scalar"
+          }
+        },
+        "createdAt": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/datetime@1",
+            "kind": "scalar"
+          }
+        },
+        "id": {
+          "nullable": false,
+          "type": {
+            "codecId": "sql/char@1",
+            "kind": "scalar",
+            "typeParams": {
+              "length": 36
+            }
+          }
+        },
+        "published": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/integer@1",
+            "kind": "scalar"
+          }
+        },
+        "title": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/text@1",
+            "kind": "scalar"
+          }
+        }
+      },
+      "relations": {
+        "author": {
+          "cardinality": "N:1",
+          "on": {
+            "localFields": [
+              "authorId"
+            ],
+            "targetFields": [
+              "id"
+            ]
+          },
+          "to": "User"
+        },
+        "comments": {
+          "cardinality": "1:N",
+          "on": {
+            "localFields": [
+              "id"
+            ],
+            "targetFields": [
+              "postId"
+            ]
+          },
+          "to": "Comment"
+        }
+      },
+      "storage": {
+        "fields": {
+          "authorId": {
+            "column": "authorId"
+          },
+          "content": {
+            "column": "content"
+          },
+          "createdAt": {
+            "column": "createdAt"
+          },
+          "id": {
+            "column": "id"
+          },
+          "published": {
+            "column": "published"
+          },
+          "title": {
+            "column": "title"
+          }
+        },
+        "table": "post"
+      }
+    },
+    "User": {
+      "fields": {
+        "email": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/text@1",
+            "kind": "scalar"
+          }
+        },
+        "firstName": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/text@1",
+            "kind": "scalar"
+          }
+        },
+        "id": {
+          "nullable": false,
+          "type": {
+            "codecId": "sql/char@1",
+            "kind": "scalar",
+            "typeParams": {
+              "length": 36
+            }
+          }
+        },
+        "lastName": {
+          "nullable": false,
+          "type": {
+            "codecId": "sqlite/text@1",
+            "kind": "scalar"
+          }
+        }
+      },
+      "relations": {
+        "comments": {
+          "cardinality": "1:N",
+          "on": {
+            "localFields": [
+              "id"
+            ],
+            "targetFields": [
+              "authorId"
+            ]
+          },
+          "to": "Comment"
+        },
+        "posts": {
+          "cardinality": "1:N",
+          "on": {
+            "localFields": [
+              "id"
+            ],
+            "targetFields": [
+              "authorId"
+            ]
+          },
+          "to": "Post"
+        }
+      },
+      "storage": {
+        "fields": {
+          "email": {
+            "column": "email"
+          },
+          "firstName": {
+            "column": "firstName"
+          },
+          "id": {
+            "column": "id"
+          },
+          "lastName": {
+            "column": "lastName"
+          }
+        },
+        "table": "user"
+      }
+    }
+  },
+  "storage": {
+    "storageHash": "sha256:26621165d69ac72f42a5e328fd9b567c2913617adcd0fa89c1336dffa27fc5f4",
+    "tables": {
+      "comment": {
+        "columns": {
+          "authorId": {
+            "codecId": "sql/char@1",
+            "nativeType": "character",
+            "nullable": false,
+            "typeParams": {
+              "length": 36
+            }
+          },
+          "body": {
+            "codecId": "sqlite/text@1",
+            "nativeType": "text",
+            "nullable": false
+          },
+          "createdAt": {
+            "codecId": "sqlite/datetime@1",
+            "default": {
+              "expression": "now()",
+              "kind": "function"
+            },
+            "nativeType": "text",
+            "nullable": false
+          },
+          "id": {
+            "codecId": "sql/char@1",
+            "nativeType": "character",
+            "nullable": false,
+            "typeParams": {
+              "length": 36
+            }
+          },
+          "postId": {
+            "codecId": "sql/char@1",
+            "nativeType": "character",
+            "nullable": false,
+            "typeParams": {
+              "length": 36
+            }
+          }
+        },
+        "foreignKeys": [
+          {
+            "columns": [
+              "authorId"
+            ],
+            "constraint": true,
+            "index": true,
+            "name": "comment_authorId_fkey",
+            "references": {
+              "columns": [
+                "id"
+              ],
+              "table": "user"
+            }
+          },
+          {
+            "columns": [
+              "postId"
+            ],
+            "constraint": true,
+            "index": true,
+            "name": "comment_postId_fkey",
+            "references": {
+              "columns": [
+                "id"
+              ],
+              "table": "post"
+            }
+          }
+        ],
+        "indexes": [],
+        "primaryKey": {
+          "columns": [
+            "id"
+          ]
+        },
+        "uniques": []
+      },
+      "post": {
+        "columns": {
+          "authorId": {
+            "codecId": "sql/char@1",
+            "nativeType": "character",
+            "nullable": false,
+            "typeParams": {
+              "length": 36
+            }
+          },
+          "content": {
+            "codecId": "sqlite/text@1",
+            "nativeType": "text",
+            "nullable": false
+          },
+          "createdAt": {
+            "codecId": "sqlite/datetime@1",
+            "default": {
+              "expression": "now()",
+              "kind": "function"
+            },
+            "nativeType": "text",
+            "nullable": false
+          },
+          "id": {
+            "codecId": "sql/char@1",
+            "nativeType": "character",
+            "nullable": false,
+            "typeParams": {
+              "length": 36
+            }
+          },
+          "published": {
+            "codecId": "sqlite/integer@1",
+            "default": {
+              "kind": "literal",
+              "value": 0
+            },
+            "nativeType": "integer",
+            "nullable": false
+          },
+          "title": {
+            "codecId": "sqlite/text@1",
+            "nativeType": "text",
+            "nullable": false
+          }
+        },
+        "foreignKeys": [
+          {
+            "columns": [
+              "authorId"
+            ],
+            "constraint": true,
+            "index": true,
+            "name": "post_authorId_fkey",
+            "references": {
+              "columns": [
+                "id"
+              ],
+              "table": "user"
+            }
+          }
+        ],
+        "indexes": [],
+        "primaryKey": {
+          "columns": [
+            "id"
+          ]
+        },
+        "uniques": []
+      },
+      "user": {
+        "columns": {
+          "email": {
+            "codecId": "sqlite/text@1",
+            "nativeType": "text",
+            "nullable": false
+          },
+          "firstName": {
+            "codecId": "sqlite/text@1",
+            "nativeType": "text",
+            "nullable": false
+          },
+          "id": {
+            "codecId": "sql/char@1",
+            "nativeType": "character",
+            "nullable": false,
+            "typeParams": {
+              "length": 36
+            }
+          },
+          "lastName": {
+            "codecId": "sqlite/text@1",
+            "nativeType": "text",
+            "nullable": false
+          }
+        },
+        "foreignKeys": [],
+        "indexes": [],
+        "primaryKey": {
+          "columns": [
+            "id"
+          ]
+        },
+        "uniques": [
+          {
+            "columns": [
+              "email"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "execution": {
+    "executionHash": "sha256:16de9504cc97e95ba09948e5cb78650ff8a4cb084d4aef50d68bf6593e778289",
+    "mutations": {
+      "defaults": [
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "table": "comment"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "table": "post"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "table": "user"
+          }
+        }
+      ]
+    }
+  },
+  "capabilities": {
+    "sql": {
+      "foreignKeys": true,
+      "jsonAgg": true,
+      "limit": true,
+      "orderBy": true,
+      "returning": true
+    }
+  },
+  "extensionPacks": {},
+  "meta": {},
+  "_generated": {
+    "warning": "⚠️  GENERATED FILE - DO NOT EDIT",
+    "message": "This file is automatically generated by \"prisma-next contract emit\".",
+    "regenerate": "To regenerate, run: prisma-next contract emit"
+  }
+}

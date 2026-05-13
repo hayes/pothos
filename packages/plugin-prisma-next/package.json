@@ -1,0 +1,84 @@
+{
+  "name": "@pothos/plugin-prisma-next",
+  "version": "0.1.0",
+  "private": true,
+  "_publishGate": "Stays private until prisma-next publishes its packages to npm. Once that ships: (1) replace devDeps `link:` paths with version ranges, (2) flip private to false, (3) remove from .changeset/config.json `ignore` list, (4) drop the `--filter='!@pothos/plugin-prisma-next'` exclusion from root scripts if any was added — the staged changeset at .changeset/initial-prisma-next.md will then bump 0.1.0. Until then, contributors need a sibling `prisma-next` clone at ../../../prisma-next/ for `pnpm install` to resolve the link: deps.",
+  "description": "A Pothos plugin for the new prisma-next client",
+  "main": "./lib/index.js",
+  "types": "./dts/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "type": "tsgo --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
+    "build:dts": "tsgo",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm vitest --run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-prisma-next"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "prisma",
+    "prisma-next",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@pothos/core": "*",
+    "@pothos/plugin-relay": "*",
+    "@pothos/plugin-with-input": "*",
+    "@prisma-next/contract": "*",
+    "@prisma-next/sql-contract": "*",
+    "@prisma-next/sql-orm-client": "*",
+    "graphql": "^16.10.0"
+  },
+  "peerDependenciesMeta": {
+    "@pothos/plugin-relay": {
+      "optional": true
+    },
+    "@pothos/plugin-with-input": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-errors": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-with-input": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "@prisma-next/adapter-sqlite": "link:../../../prisma-next/packages/3-targets/6-adapters/sqlite",
+    "@prisma-next/contract": "link:../../../prisma-next/packages/1-framework/0-foundation/contract",
+    "@prisma-next/driver-sqlite": "link:../../../prisma-next/packages/3-targets/7-drivers/sqlite",
+    "@prisma-next/framework-components": "link:../../../prisma-next/packages/1-framework/1-core/framework-components",
+    "@prisma-next/sql-builder": "link:../../../prisma-next/packages/2-sql/4-lanes/sql-builder",
+    "@prisma-next/sql-contract": "link:../../../prisma-next/packages/2-sql/1-core/contract",
+    "@prisma-next/sql-orm-client": "link:../../../prisma-next/packages/3-extensions/sql-orm-client",
+    "@prisma-next/sql-relational-core": "link:../../../prisma-next/packages/2-sql/4-lanes/relational-core",
+    "@prisma-next/sql-runtime": "link:../../../prisma-next/packages/2-sql/5-runtime",
+    "@prisma-next/sqlite": "link:../../../prisma-next/packages/3-extensions/sqlite",
+    "@prisma-next/target-sqlite": "link:../../../prisma-next/packages/3-targets/3-targets/sqlite"
+  }
+}

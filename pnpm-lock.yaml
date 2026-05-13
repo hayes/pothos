@@ -921,6 +921,61 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
 
+  packages/plugin-prisma-next:
+    dependencies:
+      graphql:
+        specifier: ^16.10.0
+        version: 16.13.2
+    devDependencies:
+      '@pothos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@pothos/plugin-errors':
+        specifier: workspace:*
+        version: link:../plugin-errors
+      '@pothos/plugin-relay':
+        specifier: workspace:*
+        version: link:../plugin-relay
+      '@pothos/plugin-with-input':
+        specifier: workspace:*
+        version: link:../plugin-with-input
+      '@pothos/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      '@prisma-next/adapter-sqlite':
+        specifier: link:../../../prisma-next/packages/3-targets/6-adapters/sqlite
+        version: link:../../../prisma-next/packages/3-targets/6-adapters/sqlite
+      '@prisma-next/contract':
+        specifier: link:../../../prisma-next/packages/1-framework/0-foundation/contract
+        version: link:../../../prisma-next/packages/1-framework/0-foundation/contract
+      '@prisma-next/driver-sqlite':
+        specifier: link:../../../prisma-next/packages/3-targets/7-drivers/sqlite
+        version: link:../../../prisma-next/packages/3-targets/7-drivers/sqlite
+      '@prisma-next/framework-components':
+        specifier: link:../../../prisma-next/packages/1-framework/1-core/framework-components
+        version: link:../../../prisma-next/packages/1-framework/1-core/framework-components
+      '@prisma-next/sql-builder':
+        specifier: link:../../../prisma-next/packages/2-sql/4-lanes/sql-builder
+        version: link:../../../prisma-next/packages/2-sql/4-lanes/sql-builder
+      '@prisma-next/sql-contract':
+        specifier: link:../../../prisma-next/packages/2-sql/1-core/contract
+        version: link:../../../prisma-next/packages/2-sql/1-core/contract
+      '@prisma-next/sql-orm-client':
+        specifier: link:../../../prisma-next/packages/3-extensions/sql-orm-client
+        version: link:../../../prisma-next/packages/3-extensions/sql-orm-client
+      '@prisma-next/sql-relational-core':
+        specifier: link:../../../prisma-next/packages/2-sql/4-lanes/relational-core
+        version: link:../../../prisma-next/packages/2-sql/4-lanes/relational-core
+      '@prisma-next/sql-runtime':
+        specifier: link:../../../prisma-next/packages/2-sql/5-runtime
+        version: link:../../../prisma-next/packages/2-sql/5-runtime
+      '@prisma-next/sqlite':
+        specifier: link:../../../prisma-next/packages/3-extensions/sqlite
+        version: link:../../../prisma-next/packages/3-extensions/sqlite
+      '@prisma-next/target-sqlite':
+        specifier: link:../../../prisma-next/packages/3-targets/3-targets/sqlite
+        version: link:../../../prisma-next/packages/3-targets/3-targets/sqlite
+
   packages/plugin-prisma-utils:
     dependencies:
       '@prisma/generator-helper':
