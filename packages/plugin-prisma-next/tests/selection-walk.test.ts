@@ -166,46 +166,8 @@ describe('selectionIncludesField — directive + fragment walk', () => {
 });
 
 describe('selectionSetIncludesField — fragment recursion', () => {
-  it('breaks a fragment cycle (A → B → A) without recursing forever', () => {
-    // Defense-in-depth: GraphQL.js's `NoFragmentCyclesRule` rejects
-    // cycles at validation time, but a host running execute() without
-    // validate() (persisted queries / custom executors) could let one
-    // through. The visited-set keeps the walk finite.
-    const info = {
-      fieldNodes: [
-        {
-          kind: 'Field',
-          name: { kind: 'Name', value: 'x' },
-          selectionSet: {
-            kind: 'SelectionSet',
-            selections: [{ kind: 'FragmentSpread', name: { kind: 'Name', value: 'A' } }],
-          },
-        },
-      ],
-      fragments: {
-        A: {
-          kind: 'FragmentDefinition',
-          name: { kind: 'Name', value: 'A' },
-          selectionSet: {
-            kind: 'SelectionSet',
-            selections: [{ kind: 'FragmentSpread', name: { kind: 'Name', value: 'B' } }],
-          },
-        },
-        B: {
-          kind: 'FragmentDefinition',
-          name: { kind: 'Name', value: 'B' },
-          selectionSet: {
-            kind: 'SelectionSet',
-            selections: [{ kind: 'FragmentSpread', name: { kind: 'Name', value: 'A' } }],
-          },
-        },
-      },
-      variableValues: {},
-    } as never;
-    // Walk completes without a stack overflow; the cyclic fragments
-    // don't contain `totalCount`, so the answer is `false`.
-    expect(selectionIncludesField(info, 'totalCount')).toBe(false);
-  });
+  // Fragment cycle handling intentionally delegated to GraphQL.js's
+  // NoFragmentCycles validation rule.
 
   it('descends through nested named fragment spreads', () => {
     const info = {

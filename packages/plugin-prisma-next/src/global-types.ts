@@ -16,6 +16,7 @@ import type { PrismaNextInterfaceRef } from './interface-ref';
 import type { ParamToModelName, ParamToTypeParam } from './internal-types';
 import type { PrismaNextNodeRef } from './node-ref';
 import type { PrismaNextObjectRef } from './object-ref';
+import type { ShapeFromObjectSelect } from './internal-types';
 import type {
   AnyContract,
   CursorSpec,
@@ -28,6 +29,20 @@ import type {
   PrismaNextRootFieldWithInputOptions,
   Row,
 } from './types';
+
+/**
+ * Shape inferred from a `prismaObject`'s `select` option:
+ *   - Object form: widens Row with declared relations/inner keys via
+ *     ShapeFromObjectSelect (same machinery as `t.field({ select })`,
+ *     but passes `M` explicitly since bare Row carries no model brand).
+ *   - Array form or undefined: defaults to the full Row (no narrowing
+ *     — preserves back-compat for existing array-form callers that
+ *     read columns outside the listed set).
+ */
+type ObjectLevelShape<Types extends SchemaTypes, M extends ModelName<Types>, Select> =
+  Select extends Record<string, unknown>
+    ? ShapeFromObjectSelect<Types, M, Row<Types, M>, Select>
+    : Row<Types, M>;
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -87,19 +102,25 @@ declare global {
       prismaObject: <
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelName<Types>,
-        Shape = Row<Types, M>,
+        const Select = unknown,
+        Shape = ObjectLevelShape<Types, M, Select>,
       >(
         modelName: M,
-        options: PrismaNextObjectOptions<Types, M, Shape, Interfaces>,
+        options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+          select?: Select;
+        },
       ) => PrismaNextObjectRef<Types, M, Shape>;
 
       prismaInterface: <
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelName<Types>,
-        Shape = Row<Types, M>,
+        const Select = unknown,
+        Shape = ObjectLevelShape<Types, M, Select>,
       >(
         modelName: M,
-        options: PrismaNextObjectOptions<Types, M, Shape, Interfaces>,
+        options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+          select?: Select;
+        },
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
       prismaObjectField: <M extends ModelName<Types>, Shape = Row<Types, M>>(

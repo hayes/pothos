@@ -43,8 +43,8 @@ describe('plugin interop', () => {
           input: {
             email: t.input.string({ required: true }),
           },
-          resolve: ((apply: <C>(c: C) => C, _parent: unknown, args: { input: { email: string } }) =>
-            apply(ctx.ormClient.User.where((u) => u.email.eq(args.input.email))).first()) as never,
+          resolve: ((_parent: unknown, args: { input: { email: string } }) =>
+            ctx.ormClient.User.where((u) => u.email.eq(args.input.email))) as never,
         }),
       }),
     });
@@ -103,7 +103,7 @@ describe('plugin interop', () => {
       fields: (t) => ({
         posts: t.prismaField({
           type: ['Post'],
-          resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.Post).all()) as never,
+          resolve: (() => ctx.ormClient.Post) as never,
         }),
       }),
     });

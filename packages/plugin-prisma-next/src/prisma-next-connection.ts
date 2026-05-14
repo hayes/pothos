@@ -12,7 +12,7 @@ import { createApply } from './utils/apply';
 import type { MapperCollection } from './utils/apply-selection';
 import { applyCursorPagination, buildConnectionPage, normalizeCursor } from './utils/cursors';
 import { mapperOptionsFromPluginOpts, readPluginOptions, resolveSizeOption } from './utils/options';
-import { assertNoVariantOnlyRegistration, getRefFromContractModel } from './utils/refs';
+import { getRefFromContractModel } from './utils/refs';
 import { buildTotalCountPromise, wrapConnectionOptionsWithTotalCount } from './utils/total-count';
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
@@ -73,9 +73,6 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     query?: unknown;
     [k: string]: unknown;
   };
-  if (typeof type === 'string') {
-    assertNoVariantOnlyRegistration(type, this.builder, 't.prismaConnection', 'object');
-  }
   const ref =
     type instanceof PrismaNextObjectRef
       ? type
@@ -116,7 +113,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (typeof resolve !== 'function') {
           throw new PothosSchemaError(
             't.prismaConnection requires a `resolve` callback. ' +
-              'Signature: resolve(apply, parent, args, ctx, info) => Collection.',
+              'Signature: resolve(parent, args, ctx, info) => Collection.',
           );
         }
         const relayArgs = args as import('@pothos/plugin-relay').DefaultConnectionArguments;
@@ -129,6 +126,19 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         // `extraColumns: cursorCols` forces cursor columns into the
         // SELECT even when the GraphQL query didn't ask for them; the
         // cursor encoder needs them on every row.
+        // User returns a Collection; the plugin applies selection
+        // (descending through edges.node / nodes) and pagination.
+        const userCollection = (await Promise.resolve(
+          (
+            resolve as unknown as (
+              p: unknown,
+              ar: unknown,
+              ctx: unknown,
+              i: GraphQLResolveInfo,
+            ) => unknown
+          )(parent, args, context, info),
+        )) as MapperCollection;
+
         const apply = createApply({
           info,
           contract,
@@ -137,20 +147,9 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           paths: [['edges', 'node'], ['nodes']],
           extraColumns: cursorCols,
         });
+        const applied = apply(userCollection) as MapperCollection;
 
-        const userCollection = (await Promise.resolve(
-          (
-            resolve as unknown as (
-              a: unknown,
-              p: unknown,
-              ar: unknown,
-              ctx: unknown,
-              i: GraphQLResolveInfo,
-            ) => unknown
-          )(apply, parent, args, context, info),
-        )) as MapperCollection;
-
-        const pagination = applyCursorPagination(userCollection, cursor as never, relayArgs, {
+        const pagination = applyCursorPagination(applied, cursor as never, relayArgs, {
           ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
           ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
         });

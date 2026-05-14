@@ -17,6 +17,11 @@ interface Recorded {
 
 interface RecordingCollection {
   calls: Recorded[];
+  // `all` is a function on the live mock; the test wires it to return
+  // the synthetic rows so the plugin's auto-materialize step lands the
+  // expected payload. Type as `() => Promise<unknown[]>` so the duck-
+  // type check in `isOrmCollection` passes.
+  all: () => Promise<unknown[]>;
   select(...names: string[]): RecordingCollection;
   include(
     name: string,
@@ -30,10 +35,13 @@ interface RecordingCollection {
   skip(n: number): RecordingCollection;
 }
 
-function createRecordingCollection(): RecordingCollection {
+function createRecordingCollection(
+  rows: () => unknown[] | Promise<unknown[]> = () => [],
+): RecordingCollection {
   const calls: Recorded[] = [];
   const c: RecordingCollection = {
     calls,
+    all: () => Promise.resolve(rows()),
     select(...names) {
       calls.push({ method: 'select', args: names });
       return c;
@@ -77,7 +85,9 @@ function createRecordingCollection(): RecordingCollection {
 function buildSchemaWith(
   resolverImpl: (collection: RecordingCollection) => unknown[] | Promise<unknown[]>,
 ) {
-  const userCollection = createRecordingCollection();
+  // eslint-disable-next-line prefer-const
+  let userCollection: RecordingCollection;
+  userCollection = createRecordingCollection(() => resolverImpl(userCollection));
 
   const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
     plugins: [prismaNextPlugin],
@@ -95,7 +105,14 @@ function buildSchemaWith(
       publishedPosts: t.relation('posts', {
         query: { where: { published: 1 } } as never,
       }),
-      postCount: t.relationCount('posts'),
+      // Function-form select replaces the (removed) t.relationCount sugar.
+      postCount: t.field({
+        type: 'Int',
+        select: {
+          posts: (sub: { count: () => unknown }) => ({ posts: sub.count() }),
+        },
+        resolve: ((parent: { posts: number }) => parent.posts) as never,
+      } as never),
     }),
   });
 
@@ -110,15 +127,12 @@ function buildSchemaWith(
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        // New API: the resolver receives `apply` (an identity-typed wrapper
-        // that runs the auto-include mapper). Pass our recording mock
-        // through `apply` so the mapper's `.select(...)` / `.include(...)`
-        // chain lands on the recording collection, then hand the synthetic
-        // rows back to GraphQL by invoking the test's resolverImpl.
-        resolve: ((apply: (c: RecordingCollection) => RecordingCollection) => {
-          apply(userCollection);
-          return resolverImpl(userCollection);
-        }) as never,
+        // New API: resolver returns the Collection directly. Plugin's
+        // wrapResolve auto-detects via duck-typed `.select`+`.all`,
+        // calls `applySelectionToCollection` (driving the mapper's
+        // recorded calls), then `.all()` (driving the test's
+        // resolverImpl to produce synthetic rows).
+        resolve: (() => userCollection) as never,
       }),
     }),
   });
@@ -147,18 +161,18 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('reshapes combine branches onto flat parent keys before relation resolvers run', async () => {
-    // Simulate orm-client output: combine result lives under `parent.posts`
-    // with named branches. The plugin's reshape lifts each branch onto a
-    // flat top-level key so `parent.drafts`, `parent.publishedPosts`, and
-    // `parent.postCount` are present when the per-field resolvers run.
+    // Simulate orm-client output: combine result lives under `parent.posts`.
+    // All sugar methods (`t.relation` / `t.relatedConnection` / etc.)
+    // and direct `t.field({ select })` compile to the unified `select`
+    // option, which namespaces combine slots as `<fieldAlias>:<specKey>`.
     const { schema } = buildSchemaWith(() => [
       {
         id: '1',
         firstName: 'Alice',
         posts: {
-          drafts: [{ id: 'd1', title: 'Draft 1' }],
-          publishedPosts: [{ id: 'p1', title: 'Published 1' }],
-          postCount: 7,
+          'drafts:posts': [{ id: 'd1', title: 'Draft 1' }],
+          'publishedPosts:posts': [{ id: 'p1', title: 'Published 1' }],
+          'postCount:posts': 7,
         },
       },
     ]);
@@ -291,5 +305,199 @@ describe('plugin · end-to-end execution', () => {
     const messages = (result.errors ?? []).map((e) => e.message).join('\n');
     expect(messages).toMatch(/t\.prismaField/);
     expect(messages).toMatch(/posts/);
+  });
+
+  it('throws a clear error when select names an unknown column on the parent model', async () => {
+    let userCollection: RecordingCollection;
+    userCollection = createRecordingCollection(() => [{ id: '1' }]);
+
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: sampleContract },
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id' as never, { nullable: true }),
+        // `firstNme` is a typo — must throw, not silently load nothing.
+        garbled: t.string({
+          select: { firstNme: true } as never,
+          resolve: () => 'x' as never,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: (() => userCollection) as never,
+        }),
+      }),
+    });
+
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ users { id garbled } }'),
+    });
+    expect(result.errors).toBeDefined();
+    const msg = (result.errors ?? []).map((e) => e.message).join('\n');
+    expect(msg).toMatch(/firstNme/);
+    expect(msg).toMatch(/not a column or relation/);
+  });
+
+  it('throws a clear error when a select entry has a malformed object shape', async () => {
+    let userCollection: RecordingCollection;
+    userCollection = createRecordingCollection(() => [{ id: '1' }]);
+
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: sampleContract },
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id' as never, { nullable: true }),
+        // `whre` is a typo for `where` — not declarative, not function;
+        // should throw rather than silently drop.
+        garbled: t.string({
+          select: { posts: { whre: { published: 1 } } } as never,
+          resolve: () => 'x' as never,
+        }),
+      }),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        id: t.exposeID('id' as never, { nullable: true }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: (() => userCollection) as never,
+        }),
+      }),
+    });
+
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ users { id garbled } }'),
+    });
+    expect(result.errors).toBeDefined();
+    const msg = (result.errors ?? []).map((e) => e.message).join('\n');
+    expect(msg).toMatch(/unrecognized value shape/);
+  });
+
+  it('injects .take(1) when prismaField returns a single (non-list) type', async () => {
+    // Regression test: a single-row prismaField returning a Collection
+    // must auto-inject `.take(1)` so we don't fetch the entire table
+    // just to read the first row.
+    let single: RecordingCollection;
+    single = createRecordingCollection(() => [{ id: 'u-1', firstName: 'Alice' }]);
+
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: sampleContract },
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id' as never, { nullable: true }),
+        firstName: t.exposeString('firstName' as never, { nullable: true }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        firstUser: t.prismaField({
+          type: 'User',
+          nullable: true,
+          resolve: (() => single) as never,
+        }),
+        // List variant should NOT inject take.
+        allUsers: t.prismaField({
+          type: ['User'],
+          resolve: (() => single) as never,
+        }),
+      }),
+    });
+
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ firstUser { id } }'),
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ firstUser: { id: 'u-1' } });
+    const takeCalls = single.calls.filter((c) => c.method === 'take');
+    expect(takeCalls).toHaveLength(1);
+    expect(takeCalls[0]?.args).toEqual([1]);
+
+    // Reset and re-run as a list — no .take this time.
+    single.calls.length = 0;
+    const result2 = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ allUsers { id } }'),
+    });
+    expect(result2.errors).toBeUndefined();
+    const listTakeCalls = single.calls.filter((c) => c.method === 'take');
+    expect(listTakeCalls).toHaveLength(0);
+  });
+
+  it('lifts combine slots through a variant-wrapped parent (overlay prototype walk)', async () => {
+    // Regression test: rebrandForVariant wraps via Object.create(parent),
+    // so row data sits on the prototype chain. The per-field overlay
+    // walk in wrapResolve must use `for...in` (prototype-walking) to
+    // find combine slots — using `Object.keys` would only see own
+    // properties of the wrapper (which has none besides the brand).
+    let userCollection: RecordingCollection;
+    userCollection = createRecordingCollection(() => [
+      {
+        id: '1',
+        firstName: 'Alice',
+        posts: { 'postCount:posts': 11 },
+      },
+    ]);
+
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: sampleContract },
+    });
+    const userBasicRef = builder.prismaObject('User', {
+      name: 'UserBasic',
+      fields: (t) => ({
+        id: t.exposeID('id' as never, { nullable: true }),
+        // Function-form select on the variant — the field's resolver
+        // reads `parent.posts` which is only correct if the overlay
+        // lifted `posts:postCount:posts` from the prototype-inherited
+        // combine slot.
+        postCount: t.field({
+          type: 'Int',
+          select: {
+            posts: (sub: { count: () => unknown }) => ({ posts: sub.count() }),
+          },
+          resolve: ((parent: { posts: number }) => parent.posts) as never,
+        } as never),
+      }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id' as never, { nullable: true }),
+        // Re-expose as UserBasic on the same row.
+        basicView: t.variant(userBasicRef),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: (() => userCollection) as never,
+        }),
+      }),
+    });
+
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ users { id basicView { id postCount } } }'),
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      users: [{ id: '1', basicView: { id: '1', postCount: 11 } }],
+    });
   });
 });

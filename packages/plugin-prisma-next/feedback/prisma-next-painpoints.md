@@ -23,20 +23,23 @@ type is the full `Collection<TContract, M, Row, WithWhereState<State>>`
 `(rel) => rel.where(...).take(50)` compiles cleanly even though it
 breaks both cursor pagination and totalCount.
 
-**Workaround location**: `src/utils/render-selection.ts` (`assertNoPaginationLeak` — invoked from both `renderBranch`'s non-paginated arm and `renderCount`).
+**Workaround location**: type-level `Omit<Collection, 'take' | 'skip' | 'orderBy'>` at the option entry only. No runtime guard exists today — earlier drafts of this doc claimed an `assertNoPaginationLeak` function in `render-selection.ts`; that was wishful thinking and never landed.
 
-**Workaround**: entry-level `Omit` plus a runtime guard in
-`renderSelection`'s count branch. After the user's `refine` runs we
-inspect the returned collection's `state.limit` / `state.offset` and
-throw `PothosValidationError` with a clear message before the count
-fires. Catches `(rel) => rel.take(N)` AND chained
-`(rel) => rel.where(x).take(N)`. The user gets a diagnostic at the
-relation-load callsite instead of a silently-wrong totalCount.
+**Workaround**: entry-level `Omit` on the option's surface type. In
+practice, every public refine entry is funneled through `compileWhere`
+(`src/utils/compile-query.ts`) or `compileDeclarativeRefine`
+(`src/utils/apply-selection.ts`, inline), both of which only invoke
+`.where(...)` / `.orderBy(...)` / `.take(...)` / `.skip(...)` against
+the refinement collection — pagination methods on the chain-typed
+return are unreachable from the current option shapes. The threat is
+currently structural-only; the missing runtime guard would only
+matter if a future API expansion exposes a raw-refine callback that
+returns a `Collection`.
 
 The orm-client's `Collection.aggregate()`-as-peer-branch alternative
 suggested by an audit *can't* work: `Collection.aggregate` is async
 and `Collection.include(rel, cb => …)` callbacks must be synchronous.
-The synchronous primitive `cb.count()` is what we use, plus the guard.
+The synchronous primitive `cb.count()` is what we use.
 
 **Desired upstream change**: a refinement-view variant of `Collection`
 that omits pagination operations at every chain step. Something like:
@@ -100,17 +103,84 @@ in a single query. Tracked as "Issue B" in the prisma-next handoff.
 
 **Where this hurt**: every `t.prismaField` with depth ≥ 2 relations.
 
-Query `{ users { posts { author { ... } } } }` should be one SQL
-statement. orm-client falls back to a per-row include plan above depth 1,
-so `captures.length >= 1` rather than exactly 1.
+### Empirical evidence (pinned in a runtime canary)
 
-**Workaround location**: `src/utils/map-query.ts` (`mapSelectionSet`'s FK augmentation walks every branch's `parentFkColumns` into the parent's `.select(...)`). Tests assert `>= 1` capture count.
+`tests/runtime.test.ts` runs the GraphQL query
+`{ users { id posts { id author { id firstName } } } }` against a
+real SQLite database and captures three SQL statements:
 
-**Workaround**: same as above — loose test expectation, document as
-known limitation.
+```
+SELECT "user"."id" FROM "user"
+SELECT "post"."id", "post"."authorId" FROM "post" WHERE "post"."authorId" IN (?, ?)
+SELECT "user"."id", "user"."firstName" FROM "user" WHERE "user"."id" IN (?, ?, ...)
+```
 
-**Desired upstream change**: SQL planner support for nested-include
-flattening. Tracked as "Issue A" in the prisma-next handoff.
+One round-trip per relation level. SQLite has `json_group_array` so
+the orm-client's `selectIncludeStrategy` resolves to `'correlated'` —
+which CAN do this in a single SELECT — but the dispatcher
+unconditionally skips that path the moment any include has nested
+includes.
+
+### The smoking gun
+
+`packages/3-extensions/sql-orm-client/src/collection-dispatch.ts:80-85`:
+
+```ts
+if (
+  hasNestedIncludes(options.state.includes) ||
+  hasComplexIncludeDescriptors(options.state.includes)
+) {
+  return dispatchWithMultiQueryIncludes<Row>(options);   // ← always wins for depth-2+
+}
+switch (strategy) {                                       // only reached for depth-1
+  case 'lateral':    return dispatchWithSingleQueryIncludes(...);
+  case 'correlated': return dispatchWithSingleQueryIncludes(...);
+  default:           return dispatchWithMultiQueryIncludes(...);
+}
+```
+
+```ts
+function hasNestedIncludes(includes: readonly IncludeExpr[]): boolean {
+  return includes.some((include) => include.nested.includes.length > 0);
+}
+```
+
+ANY include with `nested.includes.length > 0` short-circuits the
+strategy check. Capability flags (`lateral`, `jsonAgg`) are ignored
+the moment depth ≥ 2 enters the picture.
+
+### Workaround location
+
+`src/utils/apply-selection.ts:walkSelectionSet` runs FK augmentation
+after collecting selections so the parent's FK columns ride into the
+parent SELECT — required for the multi-query stitch to produce
+correct results at depth ≥ 2 even when the GraphQL query didn't ask
+for the FK. Per-relation `localFields` come from the precomputed
+`pothosPrismaNextRelations` type extension built by
+`buildRelationMeta` in `src/index.ts`.
+
+Test assertions across `tests/runtime.test.ts` and
+`tests/connection.test.ts` use `captures.length >= 1` (or
+`> 1` / `>= 3`) instead of `=== 1` for nested-include queries. One
+canary pins `> 1` at the smoking-gun site so we know when upstream
+fixes it.
+
+### Workaround
+
+Loose capture-count expectations + correct fallback stitching.
+Documented as a known limitation.
+
+### Desired upstream change
+
+SQL planner support for nested-include flattening. The single-query
+strategies (`lateral` and `correlated`) already exist and are
+exercised at depth 1 — they need to compose recursively so depth ≥ 2
+collapses to one SELECT instead of dispatching through
+`dispatchWithMultiQueryIncludes`. Tracked as "Issue A" in the
+prisma-next handoff. Also called out in prisma-next's own
+pothos-integration demo
+(`prisma-next/examples/pothos-integration/README.md`, "Every relation
+level is its own SQL statement").
 
 ---
 
@@ -158,29 +228,98 @@ public-named equivalent) from `@prisma-next/sql-orm-client`.
 
 ---
 
-## 7. `ContractRelation` lists 1:1 | 1:N | N:1, but orm-client's `RelationCardinalityTag` already has `M:N`
+## 7. Many-to-many is half-shipped in prisma-next
 
-**Where this hurt**: `t.relation` / `t.relatedConnection` cardinality
-detection.
+**Where this hurt**: any user authoring a many-to-many relation via
+`rel.manyToMany(...)` and expecting `t.relation` to work over it.
 
-`ContractRelation` in `@prisma-next/contract` is currently
-`1:1 | 1:N | N:1`. But orm-client's `RelationCardinalityTag` (and
-`IsToManyRelation`) already account for `M:N`. The contract layer is
-catching up.
+### Empirical evidence (the canary test pins this)
 
-**Workaround location**: `src/prisma-next-object-field-builder.ts` (`isToManyCardinality`) plus the M:N runtime assertion in `src/utils/map-query.ts` (`getRelationLocalFields`).
+Running `Collection.include('tags')` against a hand-crafted contract
+with `cardinality: 'N:M'` (what `rel.manyToMany` emits) produces this
+`IncludeExpr`:
 
-**Workaround**: runtime check is now
-`cardinality !== '1:1' && cardinality !== 'N:1'` (`isToManyCardinality`
-helper). Future-proof: when contract lands `M:N`, the runtime
-treats it as to-many automatically (matching `IsToManyRelation`),
-and `t.relatedConnection` / `t.relationCount` / `t.relationAggregate`
-unblock on M:N relations without further changes.
+```
+{
+  relationName: "tags",
+  relatedModelName: "Tag",
+  relatedTableName: "tag",
+  targetColumn: "userId",   // <-- column on the JUNCTION, doesn't exist on Tag
+  localColumn: "id",
+  nested: { filters: [], includes: [] }
+  // no `cardinality` — parseRelationCardinality dropped 'N:M'
+  // no `through` — junction metadata discarded
+}
+```
 
-**Desired upstream change**: contract should adopt
-`RelationCardinalityTag` directly, or at minimum add `'M:N'` to
-`ContractRelation`. Today the inconsistency means the contract type
-"forbids" something the orm-client already supports.
+The plumbing flattens an M:N relation into a single-column FK join
+that points at a junction column on the wrong table. The next SQL
+emission step would generate `SELECT ... FROM tag WHERE userId IN (...)`
+which is invalid (Tag has no `userId` column). Pinned in
+`tests/prisma-next-m-n-upstream-pin.test.ts` — the day prisma-next
+fixes this, the canary fails and we know to flip the plugin's
+rejection.
+
+### Upstream's own docs say this isn't supported
+
+From `prisma-next/packages/2-sql/2-authoring/contract-psl/README.md`:
+
+> Implicit Prisma ORM many-to-many remains unsupported (list
+> navigation on both sides without explicit join model). Represent
+> many-to-many with an explicit join model (two foreign keys).
+
+From `prisma-next/examples/pothos-integration/README.md` ("What's
+deliberately not implemented"):
+
+> Indirect / M:N relations through join tables.
+
+### The mechanical cause
+
+prisma-next's authoring DSL has `rel.manyToMany(target, { through, from, to })`
+(`packages/2-sql/2-authoring/contract-ts/src/contract-dsl.ts:1314`).
+The lowering writes `cardinality: 'N:M'` plus a
+`through: { table, parentCols, childCols }` block into the emitted
+contract (`build-contract.ts:336-352`). But:
+
+- The foundation contract type hasn't caught up:
+  `ContractReferenceRelation.cardinality` still says
+  `'1:1' | '1:N' | 'N:1'` (`foundation/contract/src/domain-types.ts:33`)
+  and the lowering openly casts past it ("cast is needed until the
+  contract type is extended").
+- orm-client's `RelationCardinalityTag` spells it `'M:N'` (note the
+  swap) — different from the `'N:M'` the emit produces. No
+  normalization in `parseRelationCardinality` (`collection-contract.ts:284`).
+- orm-client's runtime has no junction-table read path. The
+  `IncludeExpr` data structure carries single-column joins only.
+  `mutation-executor.ts:343-344` explicitly throws "M:N nested
+  mutations are not supported yet" — but the read path silently
+  generates invalid SQL instead of throwing.
+
+### Workaround location
+
+Schema-build rejection inside `buildRelationMeta` (`src/index.ts`),
+called from the plugin's `onTypeConfig` hook. Catches BOTH spellings
+(`'N:M'` and `'M:N'`) and points users at the explicit-junction-model
+workaround in the error message.
+
+### Workaround
+
+Model the junction as its own contract model and chain two `t.relation`
+calls (`User → UserTag → Tag`). Goes through the normal walker, no
+special handling needed. Documented in
+`website/content/docs/plugins/prisma-next/relations.mdx`. Matches the
+upstream PSL guidance verbatim.
+
+### Desired upstream changes (any one unblocks)
+
+1. orm-client implements junction-table reads — `IncludeExpr` needs a
+   `through` field and `stitchRowInclude` needs a two-hop join code
+   path. The junction column metadata already lands in the emitted
+   contract; only execution needs work.
+2. Normalize the spelling — pick `'N:M'` OR `'M:N'` and use one
+   consistently across contract emit, foundation type, and orm-client.
+3. Extend the foundation contract type to include the M:N cardinality
+   so the lowering doesn't need a cast.
 
 ---
 

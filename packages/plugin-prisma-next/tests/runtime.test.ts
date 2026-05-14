@@ -44,20 +44,46 @@ function buildSchema() {
         resolve: (user) => `${user.firstName} ${user.lastName}`,
       }),
       posts: t.relation('posts'),
-      postCount: t.relationCount('posts'),
+      // The old t.relationCount sugar is gone — function-form select
+      // on a plain t.field is the canonical pattern.
+      postCount: t.field({
+        type: 'Int',
+        select: {
+          posts: (sub: { count: () => unknown }) => ({ posts: sub.count() }),
+        },
+        resolve: ((parent: { posts: number }) => parent.posts) as never,
+      } as never),
       // Filtered count — only published posts. Exercises the mapper's
-      // `rel.where(...).count()` emission for relationCount.
-      publishedPostCount: t.relationCount('posts', {
-        where: { published: 1 },
-      }),
-      // Callback form for `where` — `(accessor, args, ctx) => predicate`.
-      // The mapper passes the model accessor + resolved field args + ctx
-      // so the predicate can depend on both per-request state and the
-      // typed column accessor (`accessor.published.eq(...)`).
-      postCountByPublishedFlag: t.relationCount('posts', {
+      // `rel.where(...).count()` emission via function-form select.
+      publishedPostCount: t.field({
+        type: 'Int',
+        select: {
+          posts: (sub: {
+            where: (w: unknown) => { count: () => unknown };
+          }) => ({ posts: sub.where({ published: 1 }).count() }),
+        },
+        resolve: ((parent: { posts: number }) => parent.posts) as never,
+      } as never),
+      // Callback-form where via function-form select. The select
+      // function receives (sub, args, ctx) — same plumbing the
+      // walker uses for every function-form select.
+      postCountByPublishedFlag: t.field({
+        type: 'Int',
         args: { flag: t.arg.int({ required: true }) },
-        where: (accessor, args) => accessor.published.eq(args.flag),
-      }),
+        select: {
+          posts: (
+            sub: { where: (w: unknown) => { count: () => unknown } },
+            args: { flag: number },
+          ) => ({
+            posts: sub
+              .where((p: { published: { eq: (v: number) => unknown } }) =>
+                p.published.eq(args.flag),
+              )
+              .count(),
+          }),
+        },
+        resolve: ((parent: { posts: number }) => parent.posts) as never,
+      } as never),
       // Callback form for select — varies columns by an arg.
       greeting: t.string({
         args: { formal: t.arg.boolean({ required: true }) },
@@ -67,32 +93,47 @@ function buildSchema() {
             ? `Greetings, ${(user as { lastName?: string }).lastName ?? ''}`
             : `Hi, ${(user as { firstName?: string }).firstName ?? ''}`,
       }),
-      // relatedField — preload the relation and compute a custom value.
-      // Generalizes relationCount; resolver gets the loaded rows.
-      firstPostTitle: t.relatedField('posts', {
+      // Direct t.field({ select: { posts: true }, resolve }) generalises
+      // the (removed) t.relatedField — preload the relation, compute a
+      // custom value from the rows.
+      firstPostTitle: t.field({
         type: 'String',
         nullable: true,
-        resolve: (rows) => rows[0]?.title ?? null,
-      }),
-      // t.relationAggregate — runs an IncludeScalar (sum/avg/min/max/
-      // count) inside the parent's combine spec. Newly added in round
-      // 3; this is the only end-to-end test for it.
-      publishedPostCountAgg: t.relationAggregate('posts', {
+        select: { posts: true },
+        resolve: ((parent: { posts: { title: string }[] }) =>
+          parent.posts[0]?.title ?? null) as never,
+      } as never),
+      // t.relationAggregate via function-form select: emit an
+      // IncludeScalar (sum/avg/min/max/count) inside the parent's
+      // combine spec.
+      publishedPostCountAgg: t.field({
         type: 'Int',
         nullable: true,
-        aggregate: (rel) => rel.where((p) => p.published.eq(1)).count(),
-      }),
-      // Same shape but exercises ecosystem-option passthrough: a
-      // `description` and a custom `extensions` key must survive the
-      // builder's destructure-and-spread. Regression coverage for A3 —
-      // the previous narrow option list dropped these.
-      firstPostTitleWithMeta: t.relatedField('posts', {
+        select: {
+          posts: (sub: {
+            where: (cb: unknown) => { count: () => unknown };
+          }) => ({
+            posts: sub
+              .where((p: { published: { eq: (v: number) => unknown } }) =>
+                p.published.eq(1),
+              )
+              .count(),
+          }),
+        },
+        resolve: ((parent: { posts: number | null }) => parent.posts) as never,
+      } as never),
+      // Same shape but exercises ecosystem-option passthrough:
+      // description + custom extensions must survive the builder's
+      // destructure-and-spread.
+      firstPostTitleWithMeta: t.field({
         type: 'String',
         nullable: true,
         description: 'first post title',
         extensions: { customMeta: 'rf-meta' },
-        resolve: (rows) => rows[0]?.title ?? null,
-      }),
+        select: { posts: true },
+        resolve: ((parent: { posts: { title: string }[] }) =>
+          parent.posts[0]?.title ?? null) as never,
+      } as never),
       comments: t.relation('comments'),
       // Sibling-aliased relations targeting the same `posts` relation
       // with different filters — exercises the mapper's combine grouping.
@@ -165,32 +206,30 @@ function buildSchema() {
 
   builder.queryType({
     fields: (t) => ({
-      // The plugin's `wrapResolve` injects `apply: <C>(c: C) => C` as the
-      // resolver's first arg. The source-level type still names it
-      // `collection: CollectionFor<...>` (carryover from the pre-apply
-      // shape), so we cast through `never` until that types.ts surface is
-      // updated to match the runtime contract.
+      // Standard Pothos resolver signature: (parent, args, ctx, info).
+      // The plugin auto-detects an orm-client Collection in the return
+      // value and applies selection + materializes via `.all()`.
       users: t.prismaField({
         type: ['User'],
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User).all()) as never,
+        resolve: (() => ctx.ormClient.User) as never,
       }),
       posts: t.prismaField({
         type: ['Post'],
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.Post).all()) as never,
+        resolve: (() => ctx.ormClient.Post) as never,
       }),
       userByEmail: t.prismaField({
         type: 'User',
         nullable: true,
         args: { email: t.arg.string({ required: true }) },
-        resolve: ((apply: <C>(c: C) => C, _parent: unknown, args: { email: string }) =>
-          apply(ctx.ormClient.User.where((u) => u.email.eq(args.email))).first()) as never,
+        resolve: ((_parent: unknown, args: { email: string }) =>
+          ctx.ormClient.User.where((u) => u.email.eq(args.email))) as never,
       }),
       // Same as `users`, but pass the ref returned by prismaObject as the
       // `type` instead of the model name string. Exercises the ref-resolution
       // path in prisma-next-field-builder.
       usersByRef: t.prismaField({
         type: [userRef],
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User).all()) as never,
+        resolve: (() => ctx.ormClient.User) as never,
       }),
     }),
   });
@@ -265,7 +304,40 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(captures).toHaveLength(1);
   });
 
-  it('exposes relationCount on the parent', async () => {
+  it('upstream pin (Issue A): depth-2+ nested includes fall back to multi-query', async () => {
+    // Empirical canary: `hasNestedIncludes` in
+    // `prisma-next/packages/3-extensions/sql-orm-client/src/collection-dispatch.ts:80-85`
+    // unconditionally routes any state with `include.nested.includes.length > 0`
+    // through `dispatchWithMultiQueryIncludes`, regardless of the SQL
+    // adapter's lateral/correlated capability flags. So depth-2
+    // (`users { posts { author … } }`) emits one SELECT for users,
+    // one for posts, one for authors — never a single nested-include
+    // statement. Pinned here so the day upstream fixes Issue A this
+    // test fails and we know to tighten the count to `=== 1`.
+    const { result, captures } = await runQuery(
+      '{ users { id posts { id author { id firstName } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const data = result.data as {
+      users: Array<{
+        id: string;
+        posts: Array<{ id: string; author: { id: string; firstName: string } | null }>;
+      }>;
+    };
+    const alice = data.users.find((u) => u.id === 'u-alice');
+    expect(alice?.posts[0]?.author?.firstName).toBeTruthy();
+
+    // Today this query emits exactly 3 SQL statements (one per relation
+    // level — users, posts, authors). If upstream collapses to one
+    // single-query lateral/correlated SELECT, this pin tightens.
+    // Until then it documents the N+1 fan-out:
+    //   SELECT "user"."id" FROM "user"
+    //   SELECT "post"."id", "post"."authorId" FROM "post" WHERE "post"."authorId" IN (...)
+    //   SELECT "user"."id", "user"."firstName" FROM "user" WHERE "user"."id" IN (...)
+    expect(captures.length).toBeGreaterThan(1);
+  });
+
+  it('exposes a function-form count() on the parent', async () => {
     const { result, captures } = await runQuery('{ users { id postCount } }');
     expect(result.errors).toBeUndefined();
     const data = result.data as { users: Array<{ id: string; postCount: number }> };
@@ -279,12 +351,11 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(captures.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('exposes t.relationAggregate scalar (filtered count)', async () => {
-    // `publishedPostCountAgg` uses `t.relationAggregate` with
-    // `rel.where(published.eq(1)).count()` — the same primitive
-    // `t.relationCount(name, { where })` uses internally, but routed
-    // through the general AggregateFieldOp so any orm-client scalar
-    // (`count` / `sum` / `avg` / `min` / `max`) flows through the same
+  it('exposes a function-form aggregate scalar (filtered count) via t.field+select', async () => {
+    // `publishedPostCountAgg` writes the aggregate inline via
+    // `sub.where(p => p.published.eq(1)).count()` inside a function-
+    // form `select` — same primitive used internally; any orm-client
+    // scalar (count / sum / avg / min / max) flows through the same
     // mapper → combine path.
     const { result } = await runQuery('{ users { id publishedPostCountAgg } }');
     expect(result.errors).toBeUndefined();
@@ -332,7 +403,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(captures).toHaveLength(1);
   });
 
-  it('t.relatedField passes through description + extensions to the field config (A3)', () => {
+  it('function-form t.field({ select }) passes through description + extensions to the field config (A3)', () => {
     const schema = buildSchema();
     const user = schema.getType('User') as import('graphql').GraphQLObjectType;
     const field = user.getFields().firstPostTitleWithMeta;
@@ -341,7 +412,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect((field.extensions as Record<string, unknown>).customMeta).toBe('rf-meta');
   });
 
-  it('t.relatedField preloads the relation and runs a custom resolver over the rows', async () => {
+  it('t.field({ select: { rel: true } }) preloads the relation and runs a custom resolver over the rows', async () => {
     const { result } = await runQuery('{ users { id firstPostTitle } }');
     expect(result.errors).toBeUndefined();
     const data = result.data as {
@@ -352,7 +423,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(titles['u-bob']).toBeTruthy();
   });
 
-  it('relationCount.where callback form receives accessor + args + ctx (A1)', async () => {
+  it('function-form select where callback receives accessor + args + ctx (A1)', async () => {
     // Two aliases of the same field with different args — the mapper must
     // pass each alias's resolved args into the callback for each branch.
     const { result } = await runQuery(`{
@@ -374,7 +445,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     });
   });
 
-  it('relationCount with where filter applies the predicate before counting', async () => {
+  it('function-form count() with where filter applies the predicate before counting', async () => {
     const { result } = await runQuery('{ users { id postCount publishedPostCount } }');
     expect(result.errors).toBeUndefined();
     const data = result.data as {

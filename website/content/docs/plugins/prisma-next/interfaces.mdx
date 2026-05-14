@@ -1,0 +1,71 @@
+---
+title: Interfaces
+description: GraphQL interfaces backed by contract models
+---
+
+`builder.prismaInterface` defines a GraphQL interface backed by a
+contract model. It mirrors `builder.prismaObject`: same options, but
+produces an `InterfaceRef` that other prismaObjects can implement.
+
+## Declaring an interface
+
+```ts
+const personIface = builder.prismaInterface('User', {
+  name: 'Person',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    firstName: t.exposeString('firstName'),
+    lastName: t.exposeString('lastName'),
+  }),
+});
+```
+
+A prismaObject can implement the interface as long as it's backed by
+the same contract model:
+
+```ts
+builder.prismaObject('User', {
+  interfaces: [personIface],
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+The plugin's `onTypeConfig` hook propagates the interface's contract
+model onto the implementing object — so even a plain `builder.objectType`
+that implements a `prismaInterface` benefits from auto-include. The
+schema build fails fast if a prismaObject claims a different model
+than the interface it implements.
+
+## Extending an interface
+
+`prismaInterfaceField` and `prismaInterfaceFields` extend an interface
+with fields that need column dependencies — analogous to
+`prismaObjectField(s)` on prismaObject:
+
+```ts
+builder.prismaInterfaceField(personIface, 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (person) => `${person.firstName} ${person.lastName}`,
+  }),
+);
+```
+
+If you pass the contract model name as a string, the plugin looks up
+the registered interface. If only an interface variant is registered
+(no default), pass the ref or the variant name explicitly — otherwise
+Pothos core throws an unresolved-ref error at schema build.
+
+## Variants on interfaces
+
+Just like `prismaObject`, `prismaInterface` accepts `variant: '...'` to
+register a second interface backed by the same contract model:
+
+```ts
+builder.prismaInterface('User', {
+  variant: 'PublicPerson',
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+```

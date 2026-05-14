@@ -34,10 +34,15 @@ import type {
   ShorthandWhereFilter,
 } from '@prisma-next/sql-orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { RelationRef, ShapeFromSelect, ValidateFieldSelect } from './internal-types';
+import type {
+  ExtractModel,
+  RelationRef,
+  SelectObjectSpec,
+  ShapeFromSelect,
+  ValidateFieldSelect,
+} from './internal-types';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref';
 import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder';
-import type { Apply } from './utils/apply';
 
 export type AnyContract = Contract<SqlStorage>;
 
@@ -199,67 +204,6 @@ export type PrismaNextRelationOptions<
   query?: RelationQuery<Types, ParentModel, RelName, Args>;
 };
 
-export type PrismaNextRelatedFieldOptions<
-  Types extends SchemaTypes,
-  ParentModel extends ModelName<Types>,
-  RelName extends RelationKeys<Types, ParentModel>,
-  Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Type>,
-  Args extends InputFieldMap,
-  ResolveReturnShape,
-> = Omit<
-  PothosSchemaTypes.ObjectFieldOptions<
-    Types,
-    Row<Types, ParentModel>,
-    Type,
-    Nullable,
-    Args,
-    ResolveReturnShape
-  >,
-  'type' | 'resolve' | InferredFieldOptionKeys
-> & {
-  type: Type;
-  args?: Args;
-  query?: RelationQuery<Types, ParentModel, RelName, Args>;
-  resolve: (
-    rows: RelationRowsFor<Types, ParentModel, RelName>,
-    args: InputShapeFromFields<Args>,
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-  ) => MaybePromise<ResolveReturnShape>;
-};
-
-export type RelationRowsFor<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  R extends RelationKeys<Types, M>,
-> =
-  IsToMany<Types, M, R> extends true
-    ? readonly Row<Types, RelatedModel<Types, M, R>>[]
-    : Row<Types, RelatedModel<Types, M, R>> | null;
-
-export type PrismaNextRelationCountOptions<
-  Types extends SchemaTypes,
-  ParentModel extends ModelName<Types>,
-  RelName extends ToManyRelationKeys<Types, ParentModel>,
-  Args extends InputFieldMap,
-> = Omit<
-  PothosSchemaTypes.ObjectFieldOptions<Types, Row<Types, ParentModel>, 'Int', false, Args, number>,
-  'type' | 'resolve' | InferredFieldOptionKeys
-> & {
-  description?: string | false;
-  where?:
-    | ShorthandWhereFilter<Types['PrismaNextContract'], RelatedModel<Types, ParentModel, RelName>>
-    | ((
-        accessor: ModelAccessor<
-          Types['PrismaNextContract'],
-          RelatedModel<Types, ParentModel, RelName>
-        >,
-        args: InputShapeFromFields<Args>,
-        context: Types['Context'],
-      ) => unknown);
-};
-
 export type PrismaNextObjectOptions<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -269,8 +213,23 @@ export type PrismaNextObjectOptions<
   name?: string;
   /** Synonym for `name` that communicates intent: multiple GraphQL types backed by the same contract model. Wins over `name` when both are set. */
   variant?: string;
-  /** Columns to always load when this type is selected, independent of GraphQL field selection. */
-  select?: readonly (keyof Row<Types, M> & string)[];
+  /**
+   * Columns and relations to always load when this type is selected,
+   * independent of GraphQL field selection. Accepts the legacy
+   * column-name array form or the object form (matching `t.field`'s
+   * select):
+   *
+   *   - Array: `select: ['firstName', 'email']` (columns only)
+   *   - Object: `select: { firstName: true, posts: true }` — columns
+   *     + relations; relations get auto-included on every row, visible
+   *     to any field's resolver via `parent[rel]`.
+   *
+   * Function values for relations work too: `select: { posts: (sub) => ({...}) }`
+   * — inner keys become flat properties on each row.
+   */
+  select?:
+    | readonly (keyof Row<Types, M> & string)[]
+    | SelectObjectSpec<Types, M>;
   fields?: (
     t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
   ) => FieldMap;
@@ -298,13 +257,25 @@ export type PrismaNextRootFieldOptions<
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   type: Param;
+  // Resolver returns either a `Collection` (the plugin auto-applies
+  // the selection mapper and materializes via `.all()`, picking
+  // single-row vs list based on the GraphQL return type) or the
+  // already-materialized row(s) for advanced cases.
   resolve: (
-    apply: Apply,
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
-  ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
+  ) => MaybePromise<
+    | ShapeFromTypeParam<Types, Type, Nullable>
+    | import('@prisma-next/sql-orm-client').Collection<
+        Types['PrismaNextContract'] & AnyContract,
+        // The walker is parametric in the model — keep the Collection
+        // generic loose so users can return any model's Collection from
+        // a t.prismaField (rare, but legal for proxy fields).
+        string
+      >
+  >;
 };
 
 export type PrismaNextRootFieldWithInputOptions<
@@ -347,14 +318,19 @@ export type PrismaNextRootFieldWithInputOptions<
     ArgRequired
   >;
   resolve: (
-    apply: Apply,
     parent: ParentShape,
     args: InputShapeFromFields<Args> & {
       [K in InputName]: InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null);
     },
     context: Types['Context'],
     info: GraphQLResolveInfo,
-  ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
+  ) => MaybePromise<
+    | ShapeFromTypeParam<Types, Type, Nullable>
+    | import('@prisma-next/sql-orm-client').Collection<
+        Types['PrismaNextContract'] & AnyContract,
+        string
+      >
+  >;
 };
 
 /** Single scalar column or a tuple for lexicographic compound cursors. */
@@ -424,7 +400,6 @@ export type PrismaNextConnectionFieldOptions<
           info: GraphQLResolveInfo,
         ) => MaybePromise<number>);
     resolve: (
-      apply: Apply,
       parent: ParentShape,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
@@ -504,9 +479,36 @@ export type PrismaNextRelatedConnectionOptions<
         ) => unknown);
   };
 
+/**
+ * Strongly-typed object-form select spec. Resolves `M` from
+ * `ParentShape`'s `[prismaModelKey]?: M` brand so keys auto-complete to
+ * the parent model's columns + relations, and `sub` in function-form
+ * entries is typed as the real prisma-next refinement collection for
+ * the relation.
+ *
+ *   - `true` for columns (load onto parent.col) or simple relation includes
+ *   - function `(sub) => { [userKey]: prismaNextValue }` for multi-variant
+ *     loads — each inner key surfaces as a parent property via the
+ *     per-field overlay wrap. Inner values can be refined Collections
+ *     (→ readonly Row[]) or `IncludeScalar` returns from `.count()` /
+ *     `.aggregate(…)` / future SQL primitives.
+ *
+ * The `sub` callback receives the real prisma-next refinement
+ * collection; the plugin doesn't intercept `.where`, `.count`, etc. —
+ * those pass through to the orm-client unchanged.
+ */
+export type PrismaNextSelectSpec<Types extends SchemaTypes, ParentShape> =
+  ExtractModel<Types, ParentShape> extends infer M
+    ? M extends ModelName<Types>
+      ? SelectObjectSpec<Types, M>
+      : never
+    : never;
+
 export type PrismaNextFieldSelect<Types extends SchemaTypes, ParentShape, Args> =
   | readonly (keyof ParentShape & string)[]
-  | ((args: Args, ctx: Types['Context']) => readonly (keyof ParentShape & string)[]);
+  | ((args: Args, ctx: Types['Context']) => readonly (keyof ParentShape & string)[])
+  | PrismaNextSelectSpec<Types, ParentShape>
+  | ((args: Args, ctx: Types['Context']) => PrismaNextSelectSpec<Types, ParentShape>);
 
 export type PrismaNextObjectFieldOptions<
   Types extends SchemaTypes,
@@ -516,7 +518,7 @@ export type PrismaNextObjectFieldOptions<
   Args extends InputFieldMap,
   Select,
   ResolveReturnShape,
-  ShapeWithSelection = ShapeFromSelect<ParentShape, Select>,
+  ShapeWithSelection = ShapeFromSelect<Types, ParentShape, Select>,
 > = PothosSchemaTypes.ObjectFieldOptions<
   Types,
   ShapeWithSelection,

@@ -1,13 +1,5 @@
-import SchemaBuilder, { typeBrandKey } from '@pothos/core';
-import {
-  execute,
-  GraphQLID,
-  GraphQLList,
-  GraphQLNonNull,
-  GraphQLObjectType,
-  parse,
-  printSchema,
-} from 'graphql';
+import SchemaBuilder from '@pothos/core';
+import { execute, GraphQLObjectType, parse, printSchema } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, {
   type AnyContract,
@@ -16,7 +8,6 @@ import prismaNextPlugin, {
   getRefFromContractModel,
 } from '../src';
 import { PRISMA_NEXT_MODEL, PRISMA_NEXT_PREPARED } from '../src/constants';
-import { mapSelectionFromInfo } from '../src/utils/map-query';
 import {
   buildTotalCountPromise,
   wrapConnectionOptionsWithTotalCount,
@@ -39,87 +30,117 @@ afterAll(async () => {
 
 // Cursor encode/decode tests moved to `tests/cursors.test.ts`.
 
-describe('mapper — M:N + duplicate-alias guards', () => {
-  it('throws for M:N relations until junction support lands', () => {
-    // `isToManyCardinality` accepts M:N (future-proof), but
-    // `getRelationLocalFields` doesn't know how to read junction
-    // columns yet — it throws a clear error rather than silently
-    // shipping broken FK augmentation.
+describe('schema-build — M:N + duplicate-alias guards', () => {
+  // prisma-next's authoring DSL has `rel.manyToMany(...)` which lowers
+  // to `cardinality: 'N:M'` in the emitted contract. The orm-client's
+  // RelationCardinalityTag uses the other spelling `'M:N'`. Neither
+  // spelling has a working junction-table read path in orm-client
+  // yet (see mutation-executor.ts which explicitly throws on M:N
+  // and the absence of any `through` handling in include-strategy /
+  // collection-dispatch). The plugin rejects BOTH spellings at
+  // schema build with a clear pointer to the workaround.
+
+  it.each([
+    ['N:M (contract emit spelling)', 'N:M'],
+    ['M:N (orm-client tag spelling)', 'M:N'],
+  ])('throws at schema build for %s', (_label, cardinality) => {
     const stubContract = {
       models: {
         Post: {
           relations: {
-            tags: { cardinality: 'M:N', to: 'Tag', on: { localFields: [] } },
+            tags: { cardinality, to: 'Tag', on: { localFields: [] } },
           },
+          fields: { id: { nullable: false } },
         },
         Tag: {
           relations: {},
+          fields: { id: { nullable: false } },
         },
       },
     } as unknown as AnyContract;
 
-    // Reach the M:N check via a synthetic info that triggers the
-    // include branch for `tags`.
-    expect(() =>
-      mapSelectionFromInfo({
-        config: { contract: stubContract, skipDeferredFragments: true },
-        context: {},
-        info: {
-          fieldNodes: [
-            {
-              kind: 'Field',
-              name: { kind: 'Name', value: 'post' },
-              selectionSet: {
-                kind: 'SelectionSet',
-                selections: [
-                  {
-                    kind: 'Field',
-                    name: { kind: 'Name', value: 'tags' },
-                    selectionSet: {
-                      kind: 'SelectionSet',
-                      selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-          returnType: buildSyntheticPostType(),
-          fragments: {},
-          variableValues: {},
-        } as never,
-      }),
-    ).toThrow(/M:N — junction-table relations aren't supported yet/);
+    const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: stubContract },
+    });
+    builder.prismaObject('Post' as never, {
+      fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
+    } as never);
+    builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
+    expect(() => builder.toSchema()).toThrow(/is many-to-many/);
+    // Workaround pointer in the error helps users.
+    expect(() => builder.toSchema()).toThrow(/junction as its own contract model/);
   });
-});
 
-// Synthetic GraphQL type just for the M:N test — has a `tags`
-// relation field carrying the include op.
-function buildSyntheticPostType(): GraphQLObjectType {
-  const Tag = new GraphQLObjectType({
-    name: 'Tag',
-    extensions: { pothosPrismaNextModel: 'Tag' },
-    fields: () => ({ id: { type: new GraphQLNonNull(GraphQLID) } }),
-  });
-  return new GraphQLObjectType({
-    name: 'Post',
-    extensions: { pothosPrismaNextModel: 'Post' },
-    fields: () => ({
-      id: { type: new GraphQLNonNull(GraphQLID) },
-      tags: {
-        type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Tag))),
-        extensions: {
-          pothosPrismaNextFieldOp: {
-            kind: 'include',
-            relationName: 'tags',
-            parentModel: 'Post',
-            isToMany: true,
+  it('the explicit-junction-model workaround pattern builds cleanly', () => {
+    // Pin the documented workaround: model the junction as its own
+    // contract model with two regular 1:N / N:1 hops. Must build
+    // without M:N errors.
+    const stubContract = {
+      models: {
+        Post: {
+          relations: {
+            postTags: {
+              cardinality: '1:N',
+              to: 'PostTag',
+              on: { localFields: ['id'], targetFields: ['postId'] },
+            },
           },
+          fields: { id: { nullable: false } },
+        },
+        Tag: {
+          relations: {
+            postTags: {
+              cardinality: '1:N',
+              to: 'PostTag',
+              on: { localFields: ['id'], targetFields: ['tagId'] },
+            },
+          },
+          fields: { id: { nullable: false }, label: { nullable: false } },
+        },
+        PostTag: {
+          relations: {
+            post: {
+              cardinality: 'N:1',
+              to: 'Post',
+              on: { localFields: ['postId'], targetFields: ['id'] },
+            },
+            tag: {
+              cardinality: 'N:1',
+              to: 'Tag',
+              on: { localFields: ['tagId'], targetFields: ['id'] },
+            },
+          },
+          fields: { postId: { nullable: false }, tagId: { nullable: false } },
         },
       },
-    }),
+    } as unknown as AnyContract;
+
+    const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: stubContract },
+    });
+    builder.prismaObject('Tag' as never, {
+      fields: (t: never) => ({
+        id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
+        label: (t as { exposeString: (n: string) => unknown }).exposeString('label'),
+      }),
+    } as never);
+    builder.prismaObject('PostTag' as never, {
+      fields: (t: never) => ({
+        tag: (t as { relation: (n: string) => unknown }).relation('tag'),
+      }),
+    } as never);
+    builder.prismaObject('Post' as never, {
+      fields: (t: never) => ({
+        id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
+        postTags: (t as { relation: (n: string) => unknown }).relation('postTags'),
+      }),
+    } as never);
+    builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
+    expect(() => builder.toSchema()).not.toThrow();
   });
-}
+});
 
 describe('prismaObject — variant + extension flow', () => {
   it('prismaObject({ variant }) registers under the variant type name', () => {
@@ -186,48 +207,9 @@ describe('t.variant — brand wrapping invariants', () => {
   });
 });
 
-describe('brandResult on t.prismaField rows', () => {
-  it('brands returned rows with the registered type name', async () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-    builder.prismaObject('User', {
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-
-    const captured: unknown[] = [];
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({
-          type: ['User'],
-          resolve: (async (apply: <C>(c: C) => C) => {
-            const rows = await apply(ctx.ormClient.User).all().toArray();
-            captured.push(...rows);
-            return rows;
-          }) as never,
-        }),
-      }),
-    });
-
-    const result = await execute({
-      schema: builder.toSchema(),
-      document: parse('{ users { id } }'),
-      contextValue: {},
-    });
-    expect(result.errors).toBeUndefined();
-    // Wait for the wrapResolve brand pass (it brands the Promise's
-    // awaited value). `captured` holds the raw rows before the brand
-    // — we want the post-brand check on the rows as GraphQL sees
-    // them. The resolver returns the same array; brandResult mutates
-    // each row's brand slot in place.
-    expect(captured.length).toBeGreaterThan(0);
-    for (const row of captured) {
-      const brand = (row as Record<symbol, unknown>)[typeBrandKey];
-      expect(brand).toBe('User');
-    }
-  });
-});
+// Auto-branding at the t.prismaField boundary has been removed.
+// Users who need brands in abstract positions call ref.addBrand(row)
+// explicitly. Matches plugin-prisma's pattern.
 
 describe('refs cache + connection-options short-circuit + plugin assorted', () => {
   it('wrapConnectionOptionsWithTotalCount short-circuits on ObjectRef input', () => {
@@ -301,49 +283,30 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
     expect(ref1).toBe(ref2);
   });
 
-  it('M:N runtime throw fires even when contract relation has no `on` field', () => {
+  it('M:N schema-build throw fires even when contract relation has no `on` field', () => {
     const stubContract = {
       models: {
         Post: {
           relations: {
-            // Real M:N shape per the orm-client's RelationCardinalityTag —
-            // junction relations don't carry `on.localFields`.
-            tags: { cardinality: 'M:N', to: 'Tag' },
+            // Hand-crafted relation with no `on` block at all — the
+            // M:N rejection must still fire (it checks cardinality
+            // first, before any `on` access).
+            tags: { cardinality: 'N:M', to: 'Tag' },
           },
+          fields: { id: { nullable: false } },
         },
-        Tag: { relations: {} },
+        Tag: { relations: {}, fields: { id: { nullable: false } } },
       },
     } as unknown as AnyContract;
-    expect(() =>
-      mapSelectionFromInfo({
-        config: { contract: stubContract, skipDeferredFragments: true },
-        context: {},
-        info: {
-          fieldNodes: [
-            {
-              kind: 'Field',
-              name: { kind: 'Name', value: 'post' },
-              selectionSet: {
-                kind: 'SelectionSet',
-                selections: [
-                  {
-                    kind: 'Field',
-                    name: { kind: 'Name', value: 'tags' },
-                    selectionSet: {
-                      kind: 'SelectionSet',
-                      selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-          returnType: buildSyntheticPostType(),
-          fragments: {},
-          variableValues: {},
-        } as never,
-      }),
-    ).toThrow(/M:N — junction-table relations aren't supported yet/);
+    const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: stubContract },
+    });
+    builder.prismaObject('Post' as never, {
+      fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
+    } as never);
+    builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
+    expect(() => builder.toSchema()).toThrow(/is many-to-many/);
   });
 
   it('applySelectionToCollection accepts a typeName override', () => {
@@ -453,8 +416,7 @@ describe('PreparedFieldExtension — round-trip shape', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: (async (apply: <C>(c: C) => C) =>
-            (await apply(ctx.ormClient.User).all().toArray()) as never) as never,
+          resolve: (() => ctx.ormClient.User) as never,
         }),
       }),
     });
@@ -482,8 +444,7 @@ describe('PreparedFieldExtension — round-trip shape', () => {
         admin: t.prismaField({
           type: adminRef,
           nullable: true,
-          resolve: (async (apply: <C>(c: C) => C) =>
-            (await apply(ctx.ormClient.User).first()) as never) as never,
+          resolve: (() => ctx.ormClient.User) as never,
         }),
       }),
     });
@@ -496,8 +457,13 @@ describe('PreparedFieldExtension — round-trip shape', () => {
   });
 });
 
-describe('variant-only registration — string-form field helpers throw', () => {
-  it('prismaObjectField string form rejects model name when only a variant is registered', () => {
+describe('variant-only registration — Pothos surfaces unresolved-ref', () => {
+  // Matches plugin-drizzle's pattern: variants get fresh refs; the
+  // default-named ref is only registered if the user passes no variant.
+  // If a string-form helper later references the model but only a
+  // variant was registered, Pothos core surfaces this as an unresolved
+  // ObjectRef error at schema-build time.
+  it('prismaObjectField string form surfaces unresolved ref when only a variant is registered', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
@@ -506,23 +472,9 @@ describe('variant-only registration — string-form field helpers throw', () => 
       name: 'AdminUser',
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    expect(() =>
-      builder.prismaObjectField('User', 'extra', (t) => t.exposeString('firstName')),
-    ).toThrow(/has no default prismaObject registration, only variant\(s\) 'AdminUser'/);
-  });
-
-  it('prismaInterfaceField string form rejects model name when only a variant is registered', () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-    builder.prismaInterface('User', {
-      variant: 'UserBase',
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    expect(() =>
-      builder.prismaInterfaceField('User', 'extra', (t) => t.exposeString('firstName')),
-    ).toThrow(/has no default prismaInterface registration, only variant\(s\) 'UserBase'/);
+    builder.prismaObjectField('User', 'extra', (t) => t.exposeString('firstName'));
+    builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
+    expect(() => builder.toSchema()).toThrow(/ObjectRef<User>/);
   });
 });
 
@@ -613,42 +565,12 @@ describe('prismaNode — user isTypeOf merged with brand check', () => {
   });
 });
 
-describe('variant-only registration — lazy (forward) order also throws', () => {
-  it('prismaObject({ name: variant }) called AFTER prismaObjectField string-form throws', () => {
-    // Forward-order guard companion to the reverse-order check above.
-    // Without this, `prismaObjectField('User', 'extra', ...)` then
-    // `prismaObject('User', { name: 'AdminUser' })` orphans the lazy
-    // 'User' ref — its `extra` field never surfaces.
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-    builder.prismaObjectField('User', 'extra', (t) => t.exposeString('firstName'));
-    expect(() =>
-      builder.prismaObject('User', {
-        name: 'AdminUser',
-        fields: (t) => ({ id: t.exposeID('id') }),
-      }),
-    ).toThrow(/lazy default-keyed ref that is never registered/);
-  });
-
-  it('prismaInterface variant after prismaInterfaceField string-form throws', () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-    builder.prismaInterfaceField('User', 'extra', (t) => t.exposeString('firstName'));
-    expect(() =>
-      builder.prismaInterface('User', {
-        variant: 'UserBase',
-        fields: (t) => ({ id: t.exposeID('id') }),
-      }),
-    ).toThrow(/lazy default-keyed ref that is never registered/);
-  });
-});
+// Forward-order ref-creation orphan: variant-only registration with a
+// prior string-form helper call previously had a custom error. Now
+// surfaces via Pothos's natural unresolved-ref error at toSchema().
 
 describe('t.variant — extensions preservation (drizzle parity)', () => {
-  it('user-passed extensions land on the field config alongside PRISMA_NEXT_FIELD_OP', () => {
+  it('user-passed extensions land on the field config alongside the plugin extension', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
@@ -805,8 +727,8 @@ describe('onTypeConfig — model inherited from prismaInterface onto plain objec
   });
 });
 
-describe('variant-only assertion — wired into string-form type: args', () => {
-  it('t.prismaField({ type: "User" }) throws when only a variant is registered', () => {
+describe('variant-only — string-form refs surface as unresolved-ref via Pothos core', () => {
+  it('t.prismaField({ type: "User" }) surfaces unresolved ref when only a variant is registered', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
@@ -815,40 +737,15 @@ describe('variant-only assertion — wired into string-form type: args', () => {
       name: 'AdminUser',
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    expect(() => {
-      builder.queryType({
-        fields: (t) => ({
-          users: t.prismaField({
-            type: ['User'],
-            resolve: (async (apply: <C>(c: C) => C) =>
-              (await apply(ctx.ormClient.User).all().toArray()) as never) as never,
-          }),
-        }),
-      });
-      builder.toSchema();
-    }).toThrow(/has no default prismaObject registration, only variant\(s\) 'AdminUser'/);
-  });
-
-  it('t.variant("User") throws when only a variant is registered', () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-    // Variant-only registration of User as AdminUser, with a field
-    // that points at the (orphaned) 'User' default key via the
-    // string-form `t.variant('User')`. The assertion in `t.variant`
-    // fires when its fields-thunk runs at toSchema time.
-    builder.prismaObject('User', {
-      name: 'AdminUser',
+    builder.queryType({
       fields: (t) => ({
-        id: t.exposeID('id'),
-        self: t.variant('User' as never),
+        users: t.prismaField({
+          type: ['User'],
+          resolve: (() => ctx.ormClient.User) as never,
+        }),
       }),
     });
-    builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
-    expect(() => builder.toSchema()).toThrow(
-      /has no default prismaObject registration, only variant\(s\) 'AdminUser'/,
-    );
+    expect(() => builder.toSchema()).toThrow(/ObjectRef<User>/);
   });
 });
 
@@ -921,15 +818,15 @@ describe('cursor accessor on connection edges', () => {
   });
 });
 
-describe('variant-only assertion fires from t.relation and t.relatedConnection', () => {
-  it('t.relation throws when the related model is registered only as a variant', () => {
+describe('variant-only related model — surfaces as unresolved-ref via Pothos core', () => {
+  it('t.relation surfaces unresolved-ref when the related model is registered only as a variant', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
     });
     // Register Post only as a variant; t.relation('posts') from User
-    // would otherwise auto-route through `getRefFromContractModel('Post', ...)`
-    // and create an orphaned default ref.
+    // routes through `getRefFromContractModel('Post', ...)` which
+    // returns the cached default ref that was never registered.
     builder.prismaObject('Post', {
       name: 'PostVariant',
       fields: (t) => ({ id: t.exposeID('id') }),
@@ -941,31 +838,7 @@ describe('variant-only assertion fires from t.relation and t.relatedConnection',
       }),
     });
     builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
-    expect(() => builder.toSchema()).toThrow(
-      /t\.relation\('posts'\).+model 'Post' has no default prismaObject registration, only variant\(s\) 'PostVariant'/,
-    );
-  });
-
-  it('t.relatedConnection throws when the related model is registered only as a variant', () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin, require('@pothos/plugin-relay').default],
-      relay: { clientMutationId: 'omit', cursorType: 'String' },
-      prismaNext: { contract: ctx.contract },
-    } as never);
-    builder.prismaObject('Post', {
-      name: 'PostVariant',
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        id: t.exposeID('id'),
-        postsConnection: t.relatedConnection('posts', { cursor: 'id' }),
-      }),
-    });
-    builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
-    expect(() => builder.toSchema()).toThrow(
-      /t\.relatedConnection\('posts'\).+only variant\(s\) 'PostVariant'/,
-    );
+    expect(() => builder.toSchema()).toThrow(/ObjectRef<Post>/);
   });
 });
 
@@ -985,8 +858,7 @@ describe('t.prismaConnection({ query }) sentinel — JS runtime strip', () => {
           cursor: 'id',
           // Untyped escape — what a JS caller bypassing TS would do.
           query: () => ({ where: { id: 1 } }),
-          resolve: (apply: (c: unknown) => { all: () => unknown }) =>
-            apply(ctx.ormClient.User) as never,
+          resolve: () => ctx.ormClient.User as never,
         } as never),
       }),
     });
@@ -996,139 +868,12 @@ describe('t.prismaConnection({ query }) sentinel — JS runtime strip', () => {
   });
 });
 
-describe('mapper rejects reserved aliases at walk time', () => {
-  it('throws PothosValidationError when a field is aliased to __proto__', async () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({
-          type: ['User'],
-          resolve: (async (apply: <C>(c: C) => C) =>
-            (await apply(ctx.ormClient.User).all().toArray()) as never) as never,
-        }),
-      }),
-    });
-    const schema = builder.toSchema();
-    const { execute, parse } = await import('graphql');
-    const result = await execute({
-      schema,
-      document: parse('{ users { __proto__: id } }'),
-      contextValue: {},
-    });
-    expect(result.errors?.[0]?.message ?? '').toMatch(/alias '__proto__' is reserved/);
-  });
-});
+// Combine-slot keys use `:` (GraphQL-forbidden) as the separator. User
+// aliases can't produce those keys structurally, so no runtime reserved-
+// alias check is needed.
 
-describe('compileQuery — direct unit', () => {
-  it('returns undefined for undefined input', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    expect(compileQuery(undefined)).toBeUndefined();
-  });
-
-  it('returns undefined for empty literal (no allocation)', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    expect(compileQuery({})).toBeUndefined();
-    expect(compileQuery({ where: undefined, orderBy: undefined })).toBeUndefined();
-  });
-
-  it('static where: object literal threads to rel.where(filter)', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    const refine = compileQuery({ where: { published: 1 } });
-    let captured: unknown;
-    const stubRel = {
-      where(w: unknown) {
-        captured = w;
-        return stubRel;
-      },
-    };
-    refine!(stubRel, {}, {});
-    expect(captured).toEqual({ published: 1 });
-  });
-
-  it('static where: callback threads to rel.where(cb)', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    const cb = () => 'predicate';
-    const refine = compileQuery({ where: cb });
-    let captured: unknown;
-    const stubRel = {
-      where(w: unknown) {
-        captured = w;
-        return stubRel;
-      },
-    };
-    refine!(stubRel, {}, {});
-    expect(captured).toBe(cb);
-  });
-
-  it('callback form: args + ctx are passed in; return literal applied', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    let seen: { a: unknown; c: unknown } | null = null;
-    const refine = compileQuery((args: unknown, ctx: unknown) => {
-      seen = { a: args, c: ctx };
-      return { take: 7 };
-    });
-    let captured = 0;
-    const stubRel = {
-      take(n: number) {
-        captured = n;
-        return stubRel;
-      },
-    };
-    refine!(stubRel, { arg: 1 }, { ctx: 2 });
-    expect(seen).toEqual({ a: { arg: 1 }, c: { ctx: 2 } });
-    expect(captured).toBe(7);
-  });
-
-  it('callback returning null/undefined is treated as no filter (no crash)', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    const refineNull = compileQuery(() => null as never);
-    const refineUndef = compileQuery(() => undefined as never);
-    const stubRel = { where: () => stubRel };
-    // Returns the original rel unchanged.
-    expect(refineNull!(stubRel, {}, {})).toBe(stubRel);
-    expect(refineUndef!(stubRel, {}, {})).toBe(stubRel);
-  });
-
-  it('callback that throws propagates synchronously', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    const refine = compileQuery(() => {
-      throw new Error('boom-from-query');
-    });
-    expect(() => refine!({} as never, {}, {})).toThrow(/boom-from-query/);
-  });
-
-  it('orderBy + take + skip chain in order', async () => {
-    const { compileQuery } = await import('../src/utils/compile-query');
-    const refine = compileQuery({
-      where: { x: 1 },
-      orderBy: () => 'asc-spec',
-      take: 5,
-      skip: 2,
-    });
-    const calls: string[] = [];
-    const stubRel = {
-      where(_: unknown) {
-        calls.push('where');
-        return stubRel;
-      },
-      orderBy(_: unknown) {
-        calls.push('orderBy');
-        return stubRel;
-      },
-      take(_: number) {
-        calls.push('take');
-        return stubRel;
-      },
-      skip(_: number) {
-        calls.push('skip');
-        return stubRel;
-      },
-    };
-    refine!(stubRel, {}, {});
-    expect(calls).toEqual(['where', 'orderBy', 'take', 'skip']);
-  });
-});
+// compileQuery has been removed. Declarative-refine compilation now
+// lives inline in `apply-selection.ts:compileDeclarativeRefine`, used
+// by the walker for `select: { rel: { where, take, skip, orderBy } }`.
+// `compileWhere` (the only public helper) is exercised end-to-end via
+// the connection runtime tests.

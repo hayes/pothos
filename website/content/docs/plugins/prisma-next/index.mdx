@@ -1,193 +1,122 @@
 ---
 title: Prisma Next plugin
-description: A Pothos plugin for the prisma-next ORM client
+description: A Pothos plugin for the new prisma-next ORM client
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 <Callout type="warn">
-  Experimental. Depends on `prisma-next`, which isn't published to npm yet.
-  Source lives on the `mh--plugin-prisma-next` branch and uses pnpm `link:`
-  against a sibling `prisma-next` clone.
+  Experimental. `prisma-next` isn't on npm yet. The plugin is `private: true`
+  in the Pothos workspace and tracks prisma-next from a sibling clone.
 </Callout>
 
-`@pothos/plugin-prisma-next` is a Pothos plugin for the new `prisma-next` ORM —
-a fluent, fully-typed collection API (`db.User.include('posts').all()`) with no
-codegen. The user owns the orm-client handle; the plugin hands you an `apply`
-callable at every resolve site that layers `.include(...)` / `.select(...)` onto
-your Collection from the GraphQL selection set.
+This plugin provides tighter integration with [prisma-next](https://github.com/prisma/prisma-next),
+the new fluent collection-based ORM client. It makes it easier to define
+GraphQL types backed by your contract, helps solve N+1 queries for relations,
+and ships Relay integrations for nodes and connections.
 
-This is a separate package from `@pothos/plugin-prisma` (which targets the
-existing Prisma client). The two are mutually exclusive.
+This is a separate package from `@pothos/plugin-prisma`, which targets the
+existing Prisma client. The two are mutually exclusive.
 
-## Setup
+## Features
 
-```ts
-import SchemaBuilder from '@pothos/core';
-import RelayPlugin from '@pothos/plugin-relay';
-import prismaNextPlugin from '@pothos/plugin-prisma-next';
-import sqlite from '@prisma-next/sqlite/runtime';
-import contractJson from './prisma/contract.json' with { type: 'json' };
-import type { Contract } from './prisma/contract';
+- 🎨 Quickly define GraphQL types based on your prisma-next contract
+- 🦺 Strong type-safety throughout the entire API
+- 🤝 Automatically resolve relationships defined in the contract
+- 🎣 Automatic query optimization — the plugin reads the GraphQL selection
+  set and applies `.select(...)` / `.include(...)` onto your collection
+  before it runs (solves common N+1 issues)
+- 💅 Types and fields in GraphQL aren't tied to the column names in your
+  database
+- 🔀 Relay integration for nodes and connections that can be efficiently
+  loaded
+- 📚 Supports multiple GraphQL types based on the same contract model
+  (variants)
 
-const client = sqlite<Contract>({
-  contractJson,
-  path: './app.db',
-});
-await client.connect();
-
-const builder = new SchemaBuilder<{
-  PrismaNextContract: Contract;
-  Context: { db: typeof client };
-}>({
-  plugins: [RelayPlugin, prismaNextPlugin],
-  relay: {},
-  prismaNext: {
-    contract: contractJson as Contract,
-  },
-});
-```
-
-`Types['PrismaNextContract']` carries the contract through every method —
-model names, relation names, column names, and row shapes are inferred from it.
-If you forget to set it, autocomplete points at a sentinel literal explaining
-what to configure.
-
-### Plugin options
-
-Set on `builder.options.prismaNext`:
+## Example
 
 ```ts
-prismaNext: {
-  contract,                       // required
-  defaultConnectionSize: 20,      // default `first:` for all connections
-  maxConnectionSize: 100,         // hard cap on connection page size
-  skipDeferredFragments: true,    // ignore `@defer` fragments in the preload (default true)
-}
-```
-
-`defaultConnectionSize` / `maxConnectionSize` flow through to both the
-resolver path (cursor pagination on rows) and the mapper (the `.take(N+1)`
-emitted inside an `.include(rel, cb)` chain), so SQL and GraphQL agree.
-
-## Your first query
-
-```ts
+// Define a GraphQL type backed by a contract model.
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    firstName: t.exposeString('firstName'),
-    posts: t.relation('posts'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      // Force-load the `profile` relation when this field is queried.
+      select: { profile: true },
+      resolve: (user) => user.profile?.bio ?? null,
+    }),
+    // Load `posts` as a list field — nested selections drive .select.
+    posts: t.relation('posts', {
+      args: { oldestFirst: t.arg.boolean() },
+      query: (args) => ({
+        orderBy: (p) => (args.oldestFirst ? p.createdAt.asc() : p.createdAt.desc()),
+      }),
+    }),
+    // Relay connection over `posts` with cursor pagination.
+    postsConnection: t.relatedConnection('posts', { cursor: 'id' }),
   }),
 });
 
-builder.prismaObject('Post', {
+// Create a Relay node backed by a contract model.
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  collection: (ctx) => ctx.db.orm.Post,
   fields: (t) => ({
-    id: t.exposeID('id'),
     title: t.exposeString('title'),
+    author: t.relation('author'),
   }),
 });
 
 builder.queryType({
   fields: (t) => ({
-    users: t.prismaField({
-      type: ['User'],
-      resolve: (apply, _parent, _args, ctx) => apply(ctx.db.orm.User).get(),
+    me: t.prismaField({
+      type: 'User',
+      // Return the orm-client Collection. The plugin auto-applies the
+      // selection from `info` and materializes via `.all()`.
+      resolve: (_root, _args, ctx) =>
+        ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
     }),
   }),
 });
 ```
 
-`{ users { id firstName posts { id title } } }` emits a single SQL query that
-selects User columns, includes Posts, and returns the nested shape. No N+1.
+Given this schema, a query like:
 
-## The `apply` callable
-
-Resolve-style hooks (`t.prismaField`, `t.prismaConnection`) receive
-`apply` as their first argument. `prismaNode` doesn't need an explicit
-`apply` — the plugin applies it internally to the user's `collection`
-accessor. The callable's shape:
-
-```ts
-type Apply = <C>(collection: C) => C;
+```graphql
+query {
+  me {
+    email
+    posts {
+      title
+      author {
+        id
+      }
+    }
+  }
+}
 ```
 
-It's bound to the resolve site's GraphQL `info` — the mapper has already
-walked the selection set and knows which columns + relations to load. Pipe
-your own Collection through it; chained methods (`.where`, `.first`,
-`.create`, `.aggregate`, …) on the result are typed against the original
-Collection.
+resolves with a single orm-client call. Nested relations stitch into the
+parent `.include(...)` chain automatically.
 
-```ts
-t.prismaField({
-  type: 'User',
-  args: { id: t.arg.string({ required: true }) },
-  resolve: (apply, _, args, ctx) =>
-    apply(ctx.db.orm.User.where((u) => u.id.eq(args.id))).first(),
-});
+A query with multiple aliases that need different filters:
+
+```graphql
+query {
+  me {
+    email
+    posts {
+      title
+    }
+    oldPosts: posts(oldestFirst: true) {
+      title
+    }
+  }
+}
 ```
 
-For third-party plugin authors who build their own resolvers, the
-`createApply` factory + `Apply` type are exported from the package
-root — see [Composing](./composing#escape-hatch-custom-resolvers--the-auto-include-mapper).
-
-## Re-exports
-
-To save you from dual-importing helpers from `@prisma-next/sql-orm-client`,
-the plugin re-exports the public filter constructors (`all`, `and`, `or`,
-`not`) and orm-client types (`Collection`, `ModelAccessor`,
-`IncludeRefinementCollection`, `ShorthandWhereFilter`, `AggregateBuilder`,
-`AggregateSpec`, `AggregateResult`, `CreateInput`, `GroupedCollection`,
-`IsToManyRelation`, `RelationFilterAccessor`, `RelationPredicate`,
-`UniqueConstraintCriterion`). Import them straight from
-`@pothos/plugin-prisma-next` for `query` callbacks or custom resolvers.
-
-The plugin also exports plugin-side helpers for third-party plugins and
-hand-rolled paginators:
-
-- `formatPrismaNextCursor` / `parsePrismaNextCursor` — same format
-  `t.prismaConnection` uses internally.
-- `getRefFromContractModel` / `getInterfaceRefFromContractModel` —
-  resolve a contract model name to its registered Pothos ref. Returns
-  the same instance `prismaObject` / `prismaInterface` registered.
-- `Apply` type + `createApply` — for plugin authors who build their own
-  resolvers and want the auto-include mapper applied.
-- `applySelectionToCollection` + `mapSelectionFromInfo` + `renderSelection`
-  — public entries to the auto-include mapper. See [Composing](./composing#escape-hatch-custom-resolvers--the-auto-include-mapper).
-- `PRISMA_NEXT_FIELD_OP` / `PRISMA_NEXT_PREPARED` / `PRISMA_NEXT_MODEL`
-  / `PRISMA_NEXT_SELECT` — extension keys, plus the `PreparedFieldExtension`
-  interface for typesafe reads.
-- `brandResult` / `rebrandForVariant` — re-apply the GraphQL type brand
-  on rows returned by a transformed resolver. Generic — input type is
-  preserved on the way out.
-- `PrismaConnectionHelpers<...>` — return type of `prismaConnectionHelpers(...)`,
-  exported so users storing the helper in a typed module binding don't
-  have to spell it out.
-
-## What's in this section
-
-- **[Objects, relations, connections](./objects)** — `prismaObject`,
-  `prismaInterface`, `exposeX`, `select`, variants, `t.relation`,
-  `t.relationCount`, `t.relationAggregate`, `t.relatedField`,
-  `t.prismaConnection`, `t.relatedConnection`, `prismaConnectionHelpers`.
-- **[Relay Node](./relay)** — `prismaNode` and global IDs.
-- **[Mutations](./mutations)** — `t.prismaField` for create/update/delete,
-  single-round-trip include patterns.
-- **[Composing with other plugins](./composing)** — `prismaFieldWithInput`,
-  `withAuth`, and how options forward to other plugins.
-
-## Known gaps
-
-- **Filter input generation** — the equivalent of plugin-prisma's
-  `prismaWhereInput` / drizzle's `drizzleGraphQL` isn't shipped. Out of
-  scope for v0.1.
-- **Lazy fallback when `t.relation` is reached without `t.prismaField`** —
-  today the plugin throws a `PothosValidationError` rather than fetching
-  individually. Future work: integrate `@pothos/plugin-dataloader`.
-- **Depth-2+ nested includes** — the mapper wires them; prisma-next's
-  orm-client doesn't yet collapse them to a single SQL statement, so they
-  fall back to multi-query. Same for `combine + count/sum/avg/min/max`.
-- **FK augmentation depth-2+** — the mapper works around it by collecting
-  every nested relation's `localFields` into the parent's `.select(...)`.
-  Once the orm-client fix lands, the workaround in `apply-selection.ts`
-  can drop.
+still resolves through one parent call, but the two `posts` consumers land
+in one `.include('posts', cb => cb.combine({...}))` — each alias gets its
+own combine slot so they don't collide. (orm-client currently falls back
+to a multi-query plan whenever `.combine` is used; tracked upstream.)

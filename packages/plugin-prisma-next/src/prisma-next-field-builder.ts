@@ -2,7 +2,7 @@ import { RootFieldBuilder, type SchemaTypes } from '@pothos/core';
 import { PRISMA_NEXT_PREPARED } from './constants';
 import type { PreparedFieldExtension } from './extensions';
 import { PrismaNextObjectRef } from './object-ref';
-import { assertNoVariantOnlyRegistration, getRefFromContractModel } from './utils/refs';
+import { getRefFromContractModel } from './utils/refs';
 
 type TypeParam =
   | string
@@ -21,21 +21,17 @@ interface PrismaFieldInternalOptions {
 function resolveModelAndRef(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   type: TypeParam,
-  callerLabel: string,
 ): { modelName: string; typeName: string; typeParam: unknown } {
   const isList = Array.isArray(type);
   const inner = (isList ? type[0] : type) as
     | string
     | PrismaNextObjectRef<SchemaTypes, never, never>;
-  if (typeof inner === 'string') {
-    assertNoVariantOnlyRegistration(inner, builder, callerLabel, 'object');
-  }
   const ref =
     inner instanceof PrismaNextObjectRef ? inner : getRefFromContractModel(inner as never, builder);
   const modelName = ref.modelName as string;
   // typeName diverges from modelName on variant prismaObjects. The
-  // plugin's wrapResolve brands rows with typeName so plugin-relay's
-  // resolveType routes them correctly in Node positions.
+  // plugin records both on PRISMA_NEXT_PREPARED so wrapResolve can
+  // descend into the right return-type config at request time.
   const typeName = (ref as { name?: string }).name ?? modelName;
   return { modelName, typeName, typeParam: isList ? [ref] : ref };
 }
@@ -52,11 +48,7 @@ rootFieldBuilderProto.prismaField = function prismaField(
   const { type, resolve, extensions, ...rest } = options as PrismaFieldInternalOptions & {
     extensions?: Record<string, unknown>;
   };
-  const { modelName, typeName, typeParam } = resolveModelAndRef(
-    this.builder,
-    type,
-    't.prismaField',
-  );
+  const { modelName, typeName, typeParam } = resolveModelAndRef(this.builder, type);
   return this.field({
     ...rest,
     type: typeParam,
@@ -78,11 +70,7 @@ rootFieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
   const { type, resolve, extensions, ...rest } = options as PrismaFieldInternalOptions & {
     extensions?: Record<string, unknown>;
   };
-  const { modelName, typeName, typeParam } = resolveModelAndRef(
-    this.builder,
-    type,
-    't.prismaFieldWithInput',
-  );
+  const { modelName, typeName, typeParam } = resolveModelAndRef(this.builder, type);
   return this.fieldWithInput({
     ...rest,
     type: typeParam,

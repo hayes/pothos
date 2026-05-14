@@ -24,7 +24,8 @@
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
     "build:dts": "tsgo",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm vitest --run"
+    "test": "pnpm vitest --run",
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "repository": {
     "type": "git",

@@ -32,5 +32,5 @@ export function createApply(opts: CreateApplyOptions): Apply {
       opts.contract,
       opts.context,
       applyOpts,
-    ).collection) as Apply;
+    )) as Apply;
 }

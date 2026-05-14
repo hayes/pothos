@@ -9,9 +9,8 @@ import SchemaBuilder, {
 import { and, or } from '@prisma-next/sql-orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from './constants';
-import type { PrismaNextInterfaceRef } from './interface-ref';
 import { PrismaNextNodeRef } from './node-ref';
-import type { PrismaNextObjectRef } from './object-ref';
+import { PrismaNextObjectRef } from './object-ref';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder';
 import type { ModelName, PrismaNextObjectOptions } from './types';
 import { createApply } from './utils/apply';
@@ -19,12 +18,11 @@ import { CURSOR_PAYLOAD_MAX_BYTES } from './utils/cursors';
 import { enqueueNodeLoad, pathKey } from './utils/node-batch';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options';
 import {
-  assertNoVariantOnlyRegistration,
-  findOrphanedDefaultRef,
+  assertSameKindRegistration,
   getInterfaceRefFromContractModel,
   getRefFromContractModel,
-  markRefRegistered,
 } from './utils/refs';
+import { PrismaNextInterfaceRef } from './interface-ref';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -41,29 +39,16 @@ schemaBuilderProto.prismaObject = function prismaObject<
   // type name).
   const variantName = (options as { variant?: string }).variant;
   const typeName = variantName ?? options.name ?? (modelName as string);
-  const isVariant =
-    variantName !== undefined ||
-    (options.name !== undefined && options.name !== (modelName as string));
-  if (isVariant) {
-    // Catch forward-order footgun: prismaObjectField('User', …) ran
-    // earlier and created an unregistered default-keyed ref; this
-    // variant registration would key elsewhere and silently drop those
-    // fields.
-    const orphaned = findOrphanedDefaultRef(modelName as string, this, 'object');
-    if (orphaned) {
-      throw new PothosSchemaError(
-        `builder.prismaObject('${modelName as string}', { name/variant: '${typeName}' }): ` +
-          `prismaObjectField('${orphaned}', …) was called earlier with the contract model name, ` +
-          'which created a lazy default-keyed ref that is never registered (you only register ' +
-          `the variant '${typeName}'). Either pass the variant name to the field helper, or ` +
-          'register the default object first via builder.prismaObject() without a variant.',
-      );
-    }
-  }
+  const isVariant = typeName !== (modelName as string);
+  // Variants get a fresh ref; default registration reuses the cached
+  // ref so sibling `t.relation` / string-form helpers resolve to the
+  // same instance.
   const ref = isVariant
-    ? getRefFromContractModel<Types, M>(modelName, this, typeName)
+    ? new PrismaNextObjectRef<Types, M>(typeName, modelName)
     : getRefFromContractModel<Types, M>(modelName, this);
-  markRefRegistered(this, 'object', typeName);
+  if (!isVariant) {
+    assertSameKindRegistration(this, modelName as string, 'object');
+  }
   const contract = readPluginOptions<Types['PrismaNextContract']>(this)?.contract;
 
   this.objectType(ref, {
@@ -105,27 +90,15 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
   const variantName = (options as { variant?: string }).variant;
   const typeName = variantName ?? options.name ?? (modelName as string);
   const isVariant = typeName !== (modelName as string);
-  if (isVariant) {
-    const orphaned = findOrphanedDefaultRef(modelName as string, this, 'interface');
-    if (orphaned) {
-      throw new PothosSchemaError(
-        `builder.prismaInterface('${modelName as string}', { name/variant: '${typeName}' }): ` +
-          `prismaInterfaceField('${orphaned}', …) was called earlier with the contract model name, ` +
-          'which created a lazy default-keyed ref that is never registered (you only register ' +
-          `the variant '${typeName}'). Either pass the variant name to the field helper, or ` +
-          'register the default interface first via builder.prismaInterface() without a variant.',
-      );
-    }
+  // Variants get a fresh ref; default registration reuses the cached
+  // ref so sibling string-form helpers merge fields into the same
+  // declaration.
+  const ref = isVariant
+    ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
+    : getInterfaceRefFromContractModel<Types, M>(modelName, this);
+  if (!isVariant) {
+    assertSameKindRegistration(this, modelName as string, 'interface');
   }
-  // Cache via `getInterfaceRefFromContractModel` so the string-form
-  // helpers resolve to the SAME ref instance — otherwise their
-  // `addFields` calls don't merge into this registration.
-  const ref = getInterfaceRefFromContractModel<Types, M>(
-    modelName,
-    this,
-    isVariant ? typeName : undefined,
-  );
-  markRefRegistered(this, 'interface', typeName);
   const contract = readPluginOptions<Types['PrismaNextContract']>(this)?.contract;
 
   this.interfaceType(
@@ -190,10 +163,8 @@ schemaBuilderProto.prismaObjectField = function prismaObjectField<
   ) => import('@pothos/core').FieldRef<Types, unknown>,
 ) {
   const modelName = resolveModelName(type as never) as M;
-  if (typeof type === 'string') {
-    assertNoVariantOnlyRegistration(modelName as string, this, 'prismaObjectField', 'object');
-  }
-  const ref = getRefFromContractModel<Types, M>(modelName, this);
+  const ref =
+    typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
   this.objectField(
     ref as never,
     fieldName,
@@ -210,10 +181,8 @@ schemaBuilderProto.prismaObjectFields = function prismaObjectFields<
   fields: (t: PrismaNextObjectFieldBuilder<Types, M>) => import('@pothos/core').FieldMap,
 ) {
   const modelName = resolveModelName(type as never) as M;
-  if (typeof type === 'string') {
-    assertNoVariantOnlyRegistration(modelName as string, this, 'prismaObjectFields', 'object');
-  }
-  const ref = getRefFromContractModel<Types, M>(modelName, this);
+  const ref =
+    typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
   this.objectFields(ref as never, () => fields(makeFieldBuilder(this, modelName)) as never);
 } as never;
 
@@ -229,9 +198,6 @@ schemaBuilderProto.prismaInterfaceField = function prismaInterfaceField<
   ) => import('@pothos/core').FieldRef<Types, unknown>,
 ) {
   const modelName = resolveModelName(type as never) as M;
-  if (typeof type === 'string') {
-    assertNoVariantOnlyRegistration(modelName as string, this, 'prismaInterfaceField', 'interface');
-  }
   const ref =
     typeof type === 'string' ? getInterfaceRefFromContractModel<Types, M>(type as M, this) : type;
   this.interfaceField(
@@ -250,14 +216,6 @@ schemaBuilderProto.prismaInterfaceFields = function prismaInterfaceFields<
   fields: (t: PrismaNextObjectFieldBuilder<Types, M>) => import('@pothos/core').FieldMap,
 ) {
   const modelName = resolveModelName(type as never) as M;
-  if (typeof type === 'string') {
-    assertNoVariantOnlyRegistration(
-      modelName as string,
-      this,
-      'prismaInterfaceFields',
-      'interface',
-    );
-  }
   const ref =
     typeof type === 'string' ? getInterfaceRefFromContractModel<Types, M>(type as M, this) : type;
   this.interfaceFields(ref as never, () => fields(makeFieldBuilder(this, modelName)) as never);

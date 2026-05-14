@@ -3,8 +3,9 @@
  *
  * Calls that share a `(typeName, pathKey(info.path))` originated from
  * the same schema location in the same operation and so share a
- * selection set by GraphQL semantics — coalesce into one user
- * `load(apply, ids, ctx)`. Different paths get separate batches.
+ * selection set by GraphQL semantics — coalesce into one orm-client
+ * query that uses `Collection.where(idIn).all()`. Different paths get
+ * separate batches.
  *
  * @internal
  */

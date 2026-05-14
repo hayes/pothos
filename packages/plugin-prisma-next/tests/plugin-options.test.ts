@@ -162,7 +162,7 @@ describe('plugin-options end-to-end', () => {
         users: t.prismaConnection({
           type: 'User',
           cursor: 'id',
-          resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User)) as never,
+          resolve: (() => ctx.ormClient.User) as never,
         }),
       }),
     });
@@ -199,7 +199,7 @@ describe('plugin-options end-to-end', () => {
         users: t.prismaConnection({
           type: 'User',
           cursor: 'id',
-          resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User)) as never,
+          resolve: (() => ctx.ormClient.User) as never,
         }),
       }),
     });
@@ -231,7 +231,7 @@ describe('plugin-options end-to-end', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User).all()) as never,
+          resolve: (() => ctx.ormClient.User) as never,
         }),
       }),
     });

@@ -152,7 +152,7 @@ export function prismaConnectionHelpers<
                 extraColumns: cursorCols,
                 ...mapperOpts,
               },
-            ).collection as unknown as CollectionFor<Types, M>)
+            ) as unknown as CollectionFor<Types, M>)
           : (pagination.collection as unknown as CollectionFor<Types, M>);
 
       // Auto-aggregate runs against `filteredBase` (post-where, pre-

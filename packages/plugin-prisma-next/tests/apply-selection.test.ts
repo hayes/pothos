@@ -18,7 +18,7 @@ import {
   type SelectionSetNode,
 } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { PRISMA_NEXT_FIELD_OP, PRISMA_NEXT_MODEL } from '../src/constants';
+import { PRISMA_NEXT_MODEL, PRISMA_NEXT_RELATIONS } from '../src/constants';
 import type { AnyContract } from '../src/types';
 import { applySelectionToCollection } from '../src/utils/apply-selection';
 
@@ -31,6 +31,33 @@ import { applySelectionToCollection } from '../src/utils/apply-selection';
  */
 function exposed(column: string): { pothosExposedField: string } {
   return { pothosExposedField: column };
+}
+
+/**
+ * Build the type-level extensions a real prismaObject would carry —
+ * `PRISMA_NEXT_MODEL` + `PRISMA_NEXT_RELATIONS` precomputed metadata.
+ * The walker reads relations from the type extension; ad-hoc fixture
+ * types must supply both keys.
+ */
+const FIXTURE_RELATIONS: Record<string, Record<string, { isToMany: boolean; localFields: readonly string[]; targetModel: string }>> = {
+  User: {
+    posts: { isToMany: true, localFields: ['id'], targetModel: 'Post' },
+    bestFriend: { isToMany: false, localFields: ['bestFriendId'], targetModel: 'User' },
+  },
+  Post: {
+    comments: { isToMany: true, localFields: ['id'], targetModel: 'Comment' },
+    author: { isToMany: false, localFields: ['authorId'], targetModel: 'User' },
+  },
+  Comment: {
+    author: { isToMany: false, localFields: ['authorId'], targetModel: 'User' },
+  },
+};
+
+function modelExt(model: string): Record<string, unknown> {
+  return {
+    [PRISMA_NEXT_MODEL]: model,
+    [PRISMA_NEXT_RELATIONS]: FIXTURE_RELATIONS[model] ?? {},
+  };
 }
 
 interface RecordedCall {
@@ -176,52 +203,35 @@ interface RelationExtSpec {
   relationName: string;
   parentModel: string;
   isToMany: boolean;
-  // The fluent refiner shape the mapper expects:
-  // `(rel, args, ctx) => rel.<chain>`. Tests pass a function that mimics
-  // calling `.where(...)` on the recording collection and returning it.
-  refine?: (rel: RecordingCollection, args: unknown, ctx: unknown) => RecordingCollection;
+  // Declarative refine: literal `where` (object or model-accessor
+  // callback). Mirrors what the user-facing `query` option compiles to.
+  where?: unknown | ((accessor: unknown) => unknown);
 }
 
 function relationExt(spec: RelationExtSpec): Record<string, unknown> {
-  return {
-    [PRISMA_NEXT_FIELD_OP]: {
-      kind: 'include',
-      relationName: spec.relationName,
-      parentModel: spec.parentModel,
-      isToMany: spec.isToMany,
-      ...(spec.refine ? { refine: spec.refine } : {}),
-    },
-  };
+  // Mirror what `t.relation(name, { query })` emits internally now:
+  //   - no refine: `{ [name]: true }` (simple include)
+  //   - with refine: `{ [name]: { where: literal } }` (declarative
+  //     refine — single-consumer fast path).
+  const selectSpec: Record<string, unknown> = spec.where
+    ? { [spec.relationName]: { where: spec.where } }
+    : { [spec.relationName]: true };
+  return { pothosOptions: { select: selectSpec } };
 }
 
-function relationCountExt(relationName: string, parentModel: string): Record<string, unknown> {
+function relationCountExt(relationName: string, _parentModel: string): Record<string, unknown> {
+  // Canonical function-form select shape: `t.field({ select: { [rel]:
+  // sub => ({ [rel]: sub.count() }) }, resolve: parent => parent[rel] })`.
+  // whose value is `sub.count()`. Inner key uses the relation name so
+  // the per-field overlay drops the count onto parent[relationName].
   return {
-    [PRISMA_NEXT_FIELD_OP]: {
-      kind: 'count',
-      relationName,
-      parentModel,
-    },
-  };
-}
-
-interface PaginatedRelationExtSpec {
-  relationName: string;
-  parentModel: string;
-  cursor: string | readonly string[];
-  refine?: (rel: RecordingCollection, args: unknown, ctx: unknown) => RecordingCollection;
-  totalCountAlias?: string;
-}
-
-function paginatedRelationExt(spec: PaginatedRelationExtSpec): Record<string, unknown> {
-  return {
-    [PRISMA_NEXT_FIELD_OP]: {
-      kind: 'paginatedInclude',
-      relationName: spec.relationName,
-      parentModel: spec.parentModel,
-      cursor: spec.cursor,
-      paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
-      ...(spec.refine ? { refine: spec.refine } : {}),
-      ...(spec.totalCountAlias ? { totalCountAlias: spec.totalCountAlias } : {}),
+    pothosOptions: {
+      select: {
+        [relationName]: (sub: unknown) => {
+          const s = sub as RecordingCollection;
+          return { [relationName]: s.count() };
+        },
+      },
     },
   };
 }
@@ -239,7 +249,7 @@ function buildFixtureSchema(): {
 } {
   const Comment: GraphQLObjectType = new ObjectType({
     name: 'Comment',
-    extensions: { [PRISMA_NEXT_MODEL]: 'Comment' },
+    extensions: modelExt('Comment'),
     fields: () => ({
       id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
       body: { type: new GraphQLNonNull(GraphQLString), extensions: exposed('body') },
@@ -256,7 +266,7 @@ function buildFixtureSchema(): {
 
   const Post: GraphQLObjectType = new ObjectType({
     name: 'Post',
-    extensions: { [PRISMA_NEXT_MODEL]: 'Post' },
+    extensions: modelExt('Post'),
     fields: () => ({
       id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
       title: { type: new GraphQLNonNull(GraphQLString), extensions: exposed('title') },
@@ -275,7 +285,7 @@ function buildFixtureSchema(): {
 
   const User: GraphQLObjectType = new ObjectType({
     name: 'User',
-    extensions: { [PRISMA_NEXT_MODEL]: 'User' },
+    extensions: modelExt('User'),
     fields: () => ({
       id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
       firstName: { type: new GraphQLNonNull(GraphQLString), extensions: exposed('firstName') },
@@ -296,9 +306,8 @@ function buildFixtureSchema(): {
         extensions: relationExt({
           relationName: 'posts',
           parentModel: 'User',
-
           isToMany: true,
-          refine: (rel) => rel.where({ published: 0 }),
+          where: { published: 0 },
         }),
       },
       publishedPosts: {
@@ -306,9 +315,8 @@ function buildFixtureSchema(): {
         extensions: relationExt({
           relationName: 'posts',
           parentModel: 'User',
-
           isToMany: true,
-          refine: (rel) => rel.where({ published: 1 }),
+          where: { published: 1 },
         }),
       },
       // Peer count.
@@ -356,19 +364,19 @@ function buildStubContract(): AnyContract {
     models: {
       User: {
         relations: {
-          posts: { on: { localFields: ['id'] } },
-          bestFriend: { on: { localFields: ['bestFriendId'] } },
+          posts: { cardinality: '1:N', on: { localFields: ['id'] } },
+          bestFriend: { cardinality: '1:1', on: { localFields: ['bestFriendId'] } },
         },
       },
       Post: {
         relations: {
-          comments: { on: { localFields: ['id'] } },
-          author: { on: { localFields: ['authorId'] } },
+          comments: { cardinality: '1:N', on: { localFields: ['id'] } },
+          author: { cardinality: 'N:1', on: { localFields: ['authorId'] } },
         },
       },
       Comment: {
         relations: {
-          author: { on: { localFields: ['authorId'] } },
+          author: { cardinality: 'N:1', on: { localFields: ['authorId'] } },
         },
       },
     },
@@ -396,6 +404,7 @@ function selectionSetFromQuery(query: string): SelectionSetNode {
 function buildResolveInfo(
   rootType: GraphQLObjectType,
   selectionSet: SelectionSetNode,
+  schema?: GraphQLSchema,
 ): GraphQLResolveInfo {
   const fakeFieldNode: FieldNode = {
     kind: Kind.FIELD,
@@ -407,7 +416,7 @@ function buildResolveInfo(
     fieldNodes: [fakeFieldNode],
     parentType: rootType,
     fieldName: 'users',
-    schema: undefined,
+    schema: schema as unknown,
     fragments: {},
     rootValue: undefined,
     operation: undefined,
@@ -480,13 +489,15 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     expect(includes[0]?.args).toEqual(['posts']);
     const combineCall = includes[0]?.inner?.find((c) => c.method === 'combine');
     expect(combineCall).toBeDefined();
+    // Combine slots are namespaced by `<fieldAlias>:<specKey>` so
+    // multiple consumers on the same relation never collide.
     expect([...((combineCall?.args[0] as string[]) ?? [])].sort()).toEqual([
-      'drafts',
-      'publishedPosts',
+      'drafts:posts',
+      'publishedPosts:posts',
     ]);
   });
 
-  it('puts t.relationCount as a count() branch in the same combine block as siblings', () => {
+  it('puts a function-form count() spec as a branch in the same combine block as siblings', () => {
     const { User } = buildFixtureSchema();
     const sel = selectionSetFromQuery('{ users { drafts { id } postCount } }');
     const info = buildResolveInfo(User, sel);
@@ -497,14 +508,19 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     const includes = base.calls.filter((c) => c.method === 'include');
     expect(includes).toHaveLength(1);
     const combineCall = includes[0]?.inner?.find((c) => c.method === 'combine');
-    expect([...((combineCall?.args[0] as string[]) ?? [])].sort()).toEqual(['drafts', 'postCount']);
+    // Namespaced `<fieldAlias>:<specKey>` — drafts uses a refined-
+    // branch (single-key path) and postCount uses function-form.
+    expect([...((combineCall?.args[0] as string[]) ?? [])].sort()).toEqual([
+      'drafts:posts',
+      'postCount:posts',
+    ]);
     // The `count()` should have been called on the relation collection
     // before being passed into combine.
     const countCall = includes[0]?.inner?.find((c) => c.method === 'count');
     expect(countCall).toBeDefined();
   });
 
-  it('emits combine when a relationCount is queried alone (no peer rows)', () => {
+  it('emits combine when a function-form count() spec is queried alone (no peer rows)', () => {
     const { User } = buildFixtureSchema();
     const sel = selectionSetFromQuery('{ users { postCount } }');
     const info = buildResolveInfo(User, sel);
@@ -516,7 +532,7 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     expect(includes).toHaveLength(1);
     const combineCall = includes[0]?.inner?.find((c) => c.method === 'combine');
     expect(combineCall).toBeDefined();
-    expect(combineCall?.args[0]).toEqual(['postCount']);
+    expect(combineCall?.args[0]).toEqual(['postCount:posts']);
   });
 
   it('invokes the fluent `refine` refiner against the relation collection', () => {
@@ -549,14 +565,14 @@ describe('applySelectionToCollection · mapper + renderer', () => {
 
     const Post = new ObjectType({
       name: 'Post',
-      extensions: { [PRISMA_NEXT_MODEL]: 'Post' },
+      extensions: modelExt('Post'),
       fields: () => ({
         id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
       }),
     });
     const User = new ObjectType({
       name: 'User',
-      extensions: { [PRISMA_NEXT_MODEL]: 'User' },
+      extensions: modelExt('User'),
       fields: () => ({
         id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
         posts: {
@@ -564,17 +580,18 @@ describe('applySelectionToCollection · mapper + renderer', () => {
           args: {
             onlyPublished: { type: GraphQLBoolean },
           },
-          extensions: relationExt({
-            relationName: 'posts',
-            parentModel: 'User',
-
-            isToMany: true,
-            refine: (rel, args, ctx) => {
-              captured.push({ args, ctx });
-              const a = args as { onlyPublished?: boolean };
-              return rel.where({ published: a.onlyPublished ? 1 : 0 });
+          // Outer-args select callback: args resolve once and the
+          // resulting declarative refine closes over them.
+          extensions: {
+            pothosOptions: {
+              select: (args: { onlyPublished?: boolean }, ctx: unknown) => {
+                captured.push({ args, ctx });
+                return {
+                  posts: { where: { published: args.onlyPublished ? 1 : 0 } },
+                };
+              },
             },
-          }),
+          },
         },
       }),
     });
@@ -602,7 +619,7 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     // (`isPublished` over column `published`) silently breaks the SQL.
     const Post = new ObjectType({
       name: 'Post',
-      extensions: { [PRISMA_NEXT_MODEL]: 'Post' },
+      extensions: modelExt('Post'),
       fields: () => ({
         // GraphQL field name `isPublished`, backing column `published`.
         isPublished: { type: GraphQLBoolean, extensions: exposed('published') },
@@ -626,7 +643,7 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     // that.
     const User = new ObjectType({
       name: 'User',
-      extensions: { [PRISMA_NEXT_MODEL]: 'User' },
+      extensions: modelExt('User'),
       fields: () => ({
         fullName: {
           type: new GraphQLNonNull(GraphQLString),
@@ -651,7 +668,7 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     // The mapper must not invent a SELECT for it.
     const User = new ObjectType({
       name: 'User',
-      extensions: { [PRISMA_NEXT_MODEL]: 'User' },
+      extensions: modelExt('User'),
       fields: () => ({
         id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
         // No exposed column, no select — pure compute.
@@ -701,121 +718,66 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     expect(includedCols).toContain('lastName');
   });
 
-  it('paginatedInclude falls back to schema-wide defaultConnectionSize (A5)', () => {
-    // No per-field `defaultSize` and no GraphQL `first`/`last` arg —
-    // the mapper must honor the schema-wide default threaded through
-    // `applySelectionToCollection`. Otherwise the SQL include limit
-    // diverges from the resolver's view (resolver reads the option
-    // directly; mapper would have used its own default).
-    const PostEdgeA: GraphQLObjectType = new ObjectType({
-      name: 'PostEdgeA',
-      fields: () => ({
-        cursor: { type: new GraphQLNonNull(GraphQLString) },
-        node: { type: new GraphQLNonNull(Post) },
-      }),
-    });
-    const PostsConnectionA: GraphQLObjectType = new ObjectType({
-      name: 'PostsConnectionA',
-      fields: () => ({
-        edges: { type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(PostEdgeA))) },
-      }),
-    });
-    const Post: GraphQLObjectType = new ObjectType({
+  // NOTE: Cursor-pagination unit tests (A5: defaultConnectionSize
+  // fallback, A2: refine-before-pagination ordering) used to live here
+  // when `t.relatedConnection` emitted a `PRISMA_NEXT_PAGINATED`
+  // extension that the walker dispatched on. After the unification
+  // pass, both extension and walker dispatch are gone — cursor
+  // pagination is applied inside the connection sugar's function-form
+  // `select` callback, not by the walker. End-to-end coverage of A5 /
+  // A2 lives in `tests/connection.test.ts`. The walker-level
+  // invariants we still pin below cover the *unification* contract:
+  // function-form `{ rows, count }` namespacing and field-level
+  // `pothosIndirectInclude` same-row descent (t.variant compile target).
+
+  it('function-form select returning { rows, count } namespaces under <alias>:', () => {
+    // `t.relatedConnection` compiles to a function-form `pothosOptions.select`
+    // that returns `{ rows, count }`. The walker must namespace each
+    // inner spec key as `<fieldAlias>:<innerKey>` so the per-field
+    // overlay can later lift `parent.rows` / `parent.count` cleanly.
+    const Post = new ObjectType({
       name: 'Post',
-      extensions: { [PRISMA_NEXT_MODEL]: 'Post' },
+      extensions: modelExt('Post'),
       fields: () => ({
         id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
       }),
     });
-    const User = new ObjectType({
-      name: 'User',
-      extensions: { [PRISMA_NEXT_MODEL]: 'User' },
-      fields: () => ({
-        id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
-        postsConnection: {
-          type: PostsConnectionA,
-          extensions: paginatedRelationExt({
-            relationName: 'posts',
-            parentModel: 'User',
-            cursor: 'id',
-          }),
-        },
-      }),
-    });
-    const sel = selectionSetFromQuery('{ users { id postsConnection { edges { node { id } } } } }');
-    const info = buildResolveInfo(User, sel);
-
-    const base = createRecordingCollection();
-    applySelectionToCollection(
-      base as never,
-      info,
-      buildStubContract(),
-      {},
-      {
-        defaultConnectionSize: 7,
-      },
-    );
-
-    const include = base.calls.find((c) => c.method === 'include' && c.args[0] === 'posts');
-    const inner = include?.inner ?? [];
-    const take = inner.find((c) => c.method === 'take');
-    expect(take).toBeDefined();
-    // `take(limit + 1)` over-fetches by one for hasNextPage detection.
-    expect(take?.args).toEqual([8]);
-  });
-
-  it('paginatedInclude applies refine BEFORE pagination (A2)', () => {
-    // The relation refine narrows the row set; cursor pagination
-    // (`take(N+1)`) must run on the FILTERED set so `first: N` returns
-    // up to N matching rows. Old order was `pagination → refine → inner`
-    // which would `take(N+1)` of the unfiltered set and then filter,
-    // potentially missing matches.
-    //
-    // The recorded call order on the inner refine collection should be:
-    //   .where(refine predicate) → .where(cursor predicate) (none here) →
-    //   .orderBy(cursor) → .take(limit)
-    //
-    // We assert: the first .where (refine) precedes .orderBy + .take.
-    const PostEdge: GraphQLObjectType = new ObjectType({
+    const PostEdge = new ObjectType({
       name: 'PostEdge',
       fields: () => ({
         cursor: { type: new GraphQLNonNull(GraphQLString) },
         node: { type: new GraphQLNonNull(Post) },
       }),
     });
-    const PostsConnection: GraphQLObjectType = new ObjectType({
+    const PostsConnection = new ObjectType({
       name: 'PostsConnection',
       fields: () => ({
         edges: { type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(PostEdge))) },
+        totalCount: { type: GraphQLInt },
       }),
     });
-    const Post: GraphQLObjectType = new ObjectType({
-      name: 'Post',
-      extensions: { [PRISMA_NEXT_MODEL]: 'Post' },
-      fields: () => ({
-        id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
-        published: { type: new GraphQLNonNull(GraphQLBoolean), extensions: exposed('published') },
-      }),
-    });
-    const refineMarker = { kind: 'refine-where' };
     const User = new ObjectType({
       name: 'User',
-      extensions: { [PRISMA_NEXT_MODEL]: 'User' },
+      extensions: modelExt('User'),
       fields: () => ({
         id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
         postsConnection: {
           type: PostsConnection,
-          extensions: paginatedRelationExt({
-            relationName: 'posts',
-            parentModel: 'User',
-            cursor: 'id',
-            refine: (rel) => rel.where(refineMarker),
-          }),
+          extensions: {
+            pothosOptions: {
+              select: () => ({
+                posts: (sub: unknown) => {
+                  const s = sub as RecordingCollection;
+                  return { rows: s, count: s.count() };
+                },
+              }),
+            },
+          },
         },
       }),
     });
     const sel = selectionSetFromQuery(
-      '{ users { id postsConnection { edges { node { id published } } } } }',
+      '{ users { id postsConnection { edges { node { id } } totalCount } } }',
     );
     const info = buildResolveInfo(User, sel);
 
@@ -825,19 +787,60 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     const include = base.calls.find((c) => c.method === 'include' && c.args[0] === 'posts');
     expect(include).toBeDefined();
     const inner = include?.inner ?? [];
-
-    const refineWhereIdx = inner.findIndex(
-      (c) => c.method === 'where' && c.args[0] === refineMarker,
+    const combine = inner.find((c) => c.method === 'combine');
+    expect(combine).toBeDefined();
+    // Inner spec keys should be namespaced: <alias>:rows and <alias>:count.
+    expect(combine?.args[0]).toEqual(
+      expect.arrayContaining(['postsConnection:rows', 'postsConnection:count']),
     );
-    const orderByIdx = inner.findIndex((c) => c.method === 'orderBy');
-    const takeIdx = inner.findIndex((c) => c.method === 'take');
+  });
 
-    expect(refineWhereIdx).toBeGreaterThanOrEqual(0);
-    expect(orderByIdx).toBeGreaterThanOrEqual(0);
-    expect(takeIdx).toBeGreaterThanOrEqual(0);
-    // Refine must come BEFORE pagination steps.
-    expect(refineWhereIdx).toBeLessThan(orderByIdx);
-    expect(refineWhereIdx).toBeLessThan(takeIdx);
+  it('field-level pothosIndirectInclude (no paths) descends into the named type — variant case', () => {
+    // `t.variant` compiles to a field-level `pothosIndirectInclude`
+    // with `getType` only (no paths). The walker should descend into
+    // the named type's selection set on the SAME row, picking up the
+    // variant's column reads as parent-level columns (no new
+    // .include). `pothosOptions.select: string[]` (variant's `select`
+    // option) forces extra columns onto the parent too.
+    const AdminUser = new ObjectType({
+      name: 'AdminUser',
+      extensions: modelExt('User'),
+      fields: () => ({
+        id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
+        secret: { type: new GraphQLNonNull(GraphQLString), extensions: exposed('secret') },
+      }),
+    });
+    const User = new ObjectType({
+      name: 'User',
+      extensions: modelExt('User'),
+      fields: () => ({
+        id: { type: new GraphQLNonNull(GraphQLID), extensions: exposed('id') },
+        asAdmin: {
+          type: AdminUser,
+          extensions: {
+            pothosIndirectInclude: { getType: () => 'AdminUser' },
+            pothosOptions: { select: ['role'] },
+          },
+        },
+      }),
+    });
+    const schema = new GraphQLSchema({
+      query: new ObjectType({
+        name: 'Query',
+        fields: { users: { type: new GraphQLList(User) } },
+      }),
+      types: [AdminUser],
+    });
+    const sel = selectionSetFromQuery('{ users { asAdmin { secret } } }');
+    const info = buildResolveInfo(User, sel, schema);
+
+    const base = createRecordingCollection();
+    applySelectionToCollection(base as never, info, buildStubContract(), {});
+
+    const selectCall = base.calls.find((c) => c.method === 'select');
+    // Variant descends same-row: AdminUser's `secret` lands on parent
+    // SELECT, plus forced `role` from the variant's select option.
+    expect([...(selectCall?.args ?? [])].sort()).toEqual(expect.arrayContaining(['role', 'secret']));
   });
 
   it('drops fields with @skip(if: true) from the SELECT', () => {

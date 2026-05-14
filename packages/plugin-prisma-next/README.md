@@ -1,19 +1,23 @@
 # @pothos/plugin-prisma-next
 
-Pothos plugin for the [prisma-next](https://github.com/prisma/prisma-next) ORM
-client. Auto-includes relations from the GraphQL selection set, Relay nodes
-and connections, cursor pagination, and the usual ecosystem-plugin passthrough
-(errors, scope-auth, with-input, complexity, directives).
+Pothos plugin for [`prisma-next`](https://github.com/prisma/prisma-next) — the
+new fluent collection-based ORM client. Provides tighter integration with
+prisma-next, makes it easier to define types backed by your contract, helps
+solve N+1 queries for relations, and ships Relay integrations for nodes and
+connections.
 
-> **Experimental.** prisma-next isn't on npm yet; this plugin tracks it from
-> the `mh--plugin-prisma-next` branch and is `private: true` in the workspace
-> until prisma-next publishes.
+> **Experimental.** `prisma-next` isn't on npm yet; this package is `private:
+> true` in the workspace until prisma-next publishes.
 
-## Install
+## Features
 
-```bash
-pnpm add @pothos/plugin-prisma-next
-```
+- 🎨 Quickly define GraphQL types backed by your prisma-next contract.
+- 🦺 Strong type-safety throughout the entire API.
+- 🤝 Automatically resolve relationships from the GraphQL selection set.
+- 🎣 Auto-include the columns/relations needed to resolve a query — no N+1s.
+- 💅 GraphQL field names are decoupled from contract column names.
+- 🔀 Relay integration for nodes and connections.
+- 📚 Multiple GraphQL types backed by the same contract model (variants).
 
 ## Quick example
 
@@ -48,7 +52,11 @@ builder.queryType({
   fields: (t) => ({
     users: t.prismaField({
       type: ['User'],
-      resolve: (apply, _p, _a, ctx) => apply(ctx.db.orm.User).get(),
+      // Return the orm-client Collection. The plugin auto-applies the
+      // selection from `info` (.select(...) / .include(...)) and
+      // materializes via .all() — single-row vs list inferred from the
+      // field type.
+      resolve: (_root, _args, ctx) => ctx.db.orm.User,
     }),
   }),
 });

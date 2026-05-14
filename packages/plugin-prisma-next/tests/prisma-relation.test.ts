@@ -23,7 +23,14 @@ function buildSchema() {
       id: t.exposeID('id' as never, { nullable: true }),
       firstName: t.exposeString('firstName' as never, { nullable: true }),
       posts: t.relation('posts'),
-      postCount: t.relationCount('posts'),
+      postCount: t.field({
+        type: 'Int',
+        nullable: false,
+        select: {
+          posts: (sub: { count: () => unknown }) => ({ posts: sub.count() }),
+        },
+        resolve: ((parent: { posts: number }) => parent.posts) as never,
+      } as never),
     }),
   });
 

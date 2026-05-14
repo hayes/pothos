@@ -1,550 +1,178 @@
 ---
-title: Objects, relations, connections
-description: prismaObject, t.exposeX, select, variants, t.relation, t.relatedField, t.prismaConnection
+title: Objects
+description: Defining GraphQL types backed by contract models
 ---
 
-## Defining a model-backed type
+## Creating types with `builder.prismaObject`
+
+`builder.prismaObject` takes 2 arguments:
+
+1. `model`: The name of the contract model the new type represents.
+2. `options`: options for the type being created — very similar to the
+   options for any other object type.
 
 ```ts
 builder.prismaObject('User', {
+  // Optional GraphQL type name, defaults to the contract model name.
+  name: 'PostAuthor',
   fields: (t) => ({
     id: t.exposeID('id'),
-    firstName: t.exposeString('firstName'),
-    fullName: t.string({
-      select: ['firstName', 'lastName'],
-      resolve: (user) => `${user.firstName} ${user.lastName}`,
-    }),
-    posts: t.relation('posts'),
-    postCount: t.relationCount('posts'),
+    email: t.exposeString('email'),
+  }),
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
   }),
 });
 ```
 
-`t.exposeID('id')` autocompletes to actual columns on the model.
-`t.relation('posts')` autocompletes to declared relations.
-`t.relationCount('posts')` only accepts to-many relations (TS error on
-to-one).
+These are regular object types — they work like any other type in Pothos.
+The advantage is that the plugin infers column types from the contract,
+so you don't need to write parent shapes by hand or import row types from
+the orm-client.
+
+## Adding prisma-next fields to other types
+
+`t.prismaField` defines fields that return contract-backed types. Resolvers
+return an orm-client `Collection`; the plugin auto-applies the GraphQL
+selection set and materializes the rows.
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    me: t.prismaField({
+      type: 'User',
+      resolve: (_root, _args, ctx) =>
+        ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
+    }),
+  }),
+});
+```
+
+`t.prismaField` differs from a plain `t.field` in two ways:
+
+1. `type` must name a registered prismaObject (or a list of one, e.g.
+   `['User']`).
+2. The resolver can return a `Collection` directly. The plugin layers
+   `.select(...)` / `.include(...)` onto it from the GraphQL selection
+   set, then calls `.all()` (with `.take(1)` injected for single-row
+   fields).
+
+If you need post-processing in the resolver, return the materialized
+rows yourself — the plugin's auto-detect only fires for actual orm-client
+collections.
+
+```ts
+me: t.prismaField({
+  type: 'User',
+  resolve: async (_root, _args, ctx) => {
+    const user = await ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)).first();
+    if (!user) throw new Error('Not found');
+    return user;
+  },
+}),
+```
+
+### With an input object — `t.prismaFieldWithInput`
+
+When `@pothos/plugin-with-input` is loaded, `t.prismaFieldWithInput`
+combines `t.prismaField`'s auto-include behavior with the
+with-input plugin's args-as-an-object pattern:
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    userByEmail: t.prismaFieldWithInput({
+      type: 'User',
+      nullable: true,
+      input: { email: t.input.string({ required: true }) },
+      resolve: (_root, args, ctx) =>
+        ctx.db.orm.User.where((u) => u.email.eq(args.input.email)),
+    }),
+  }),
+});
+```
 
 ## Always-loaded columns — `prismaObject({ select })`
 
-When a custom resolver inside `fields:` needs scratch columns the field
-selection wouldn't otherwise pull (a discriminator column for runtime
-dispatch, etc.), declare them at the type level:
+When a custom resolver inside `fields:` needs columns that the GraphQL
+field name doesn't expose, declare them on the type with `select`:
 
 ```ts
 builder.prismaObject('User', {
-  select: ['role', 'tenantId'],
+  // Always load these columns + relations when this type is selected.
+  select: {
+    firstName: true,
+    lastName: true,
+  },
   fields: (t) => ({
     id: t.exposeID('id'),
-    isAdmin: t.boolean({
-      resolve: (user) => user.role === 'admin',
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
   }),
 });
 ```
 
-The column list is typed against the row shape; typos are caught at the
-call site. Also available on `prismaInterface` and `prismaNode`.
+`select` accepts the same shape as `t.field({ select })`:
 
-## select — per-field column dependency
+- `{ col: true }` — column read.
+- `{ rel: true }` — simple include; the relation rows attach to the row.
+- `{ rel: { where, orderBy, take, skip } }` — declarative refine.
+- `{ rel: (sub) => ({...}) }` — function-form select for counts,
+  aggregates, or multiple variants. The inner keys land on the row as
+  flat properties (namespaced per type so variants don't collide).
+
+## Per-field selections — `t.field({ select })`
+
+Each field can declare its own columns and relations:
 
 ```ts
-// Static — typed against the row shape, typos rejected.
-fullName: t.string({
-  select: ['firstName', 'lastName'],
-  resolve: (user) => `${user.firstName} ${user.lastName}`,
-}),
-
-// Callback — varies columns by field args.
-greeting: t.string({
-  args: { formal: t.arg.boolean({ required: true }) },
-  select: (args) => (args.formal ? ['lastName'] : ['firstName']),
-  resolve: (user, args) =>
-    args.formal ? `Greetings, ${user.lastName}` : `Hi, ${user.firstName}`,
-}),
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    initials: t.string({
+      select: ['firstName', 'lastName'],
+      resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
+    }),
+    publishedPostCount: t.field({
+      type: 'Int',
+      select: {
+        // Function form: `sub` is the relation's refinement collection.
+        posts: (sub) => ({ posts: sub.where({ published: 1 }).count() }),
+      },
+      // The walker namespaces combine slots; the plugin's per-field
+      // overlay surfaces `parent.posts` here as the count value.
+      resolve: (parent) => (parent as { posts: number }).posts,
+    }),
+  }),
+});
 ```
 
-Static form narrows the resolver's parent shape to the picked columns;
-callback form widens to the full row shape (columns are dynamic).
+The walker collects every field's `select` declaration and emits one
+`.include('posts', cb => …)` per relation. Sibling consumers (a plain
+`posts` list, a `published` filter, and a count) land in one
+`cb.combine({...})` call with each consumer in its own namespaced slot.
 
-## Cross-file field helpers
+## Extending prisma objects
+
+The normal `builder.objectField(s)` methods can be used on prisma object
+refs, but they don't support `select`. To extend a prismaObject with
+fields that need column dependencies, use `prismaObjectField` or
+`prismaObjectFields`:
 
 ```ts
-import './user-types';
-
-builder.prismaObjectField('User', 'initials', (t) =>
+builder.prismaObjectField('User', 'displayName', (t) =>
   t.string({
     select: ['firstName', 'lastName'],
-    resolve: (u) => `${u.firstName[0]}${u.lastName[0]}`,
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
   }),
 );
-
-builder.prismaObjectFields('User', (t) => ({
-  greeting: t.string({ select: ['firstName'], resolve: (u) => `Hi ${u.firstName}` }),
-}));
-
-// Same pair for prismaInterface: prismaInterfaceField / prismaInterfaceFields.
 ```
 
-If you registered `'User'` only under a variant
-(`prismaObject('User', { name: 'AdminUser' })`) and then call
-`prismaObjectField('User', …)` with the contract model name, you get a
-`PothosSchemaError` pointing at the variant. Pass the variant name (or
-the ref returned by `prismaObject`) instead. The same guard applies in
-reverse — `prismaObjectField` before the variant registration throws
-when the variant lands.
-
-## prismaInterface
-
-```ts
-const Node = builder.prismaInterface('User', {
-  fields: (t) => ({ id: t.exposeID('id') }),
-});
-
-builder.prismaObject('User', {
-  name: 'AdminUser',
-  interfaces: [Node],
-  fields: (t) => ({ /* ... */ }),
-});
-```
-
-Pass `{ variant: 'AdminNode' }` (preferred) or `{ name: 'AdminNode' }`
-to register the interface under a different GraphQL type name than the
-contract model.
-
-Concrete implementations must point at the same contract model — a
-mismatch throws `PothosSchemaError` at schema build:
-`prismaObject('Admin', { interfaces: [prismaInterface('User', …)] })`
-errors with "PrismaObjects must share a contract model with the
-PrismaInterfaces they extend."
-
-## t.variant — same row, different GraphQL type
-
-```ts
-const userBasicRef = builder.prismaObject('User', {
-  name: 'UserBasic',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    firstName: t.exposeString('firstName'),
-    posts: t.relation('posts'),
-  }),
-});
-
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    basicView: t.variant(userBasicRef),
-    adminView: t.variant(userBasicRef, {
-      nullable: true,
-      select: ['role'],
-      isNull: (parent) => parent.role !== 'admin',
-    }),
-  }),
-});
-```
-
-Optional `isNull(parent, args, ctx, info) => boolean | Promise<boolean>`
-short-circuits to `null` (e.g. for tagged-union discrimination). When
-`isNull` reads columns not surfaced as GraphQL fields, list them in the
-variant's `select`.
-
-Setting `nullable: false` and `isNull` together is a registration error.
-
-Variant rows are wrapped via `Object.create(parentRow)` so each variant
-carries its own brand without disturbing the parent's brand (sibling
-variants would otherwise race on the non-configurable brand slot).
-
-Operations that **work correctly** on a variant row (walk the prototype
-chain): property access, `'key' in row`, `for...in`, array spread.
-
-Operations that **skip parent data** (only see own-properties):
-`Object.keys` / `Object.values` / `Object.entries`, `JSON.stringify`,
-object spread `{ ...row }`, `structuredClone`. The plugin's own row
-reads all use property access.
-
-## t.relation
-
-```ts
-builder.prismaObject('User', {
-  fields: (t) => ({
-    posts: t.relation('posts'),       // cardinality + nullability inferred from FK
-    bestFriend: t.relation('bestFriend'),
-  }),
-});
-```
-
-The relation name autocompletes from the contract. Cardinality reads
-from `ContractRelation.cardinality`; nullability reads from the local
-FK columns' `nullable` flag (a to-one is nullable iff any of its
-`localFields` is nullable).
-
-### query — shape the relation
-
-```ts
-// Static literal.
-drafts: t.relation('posts', {
-  query: { where: { published: 0 } },
-}),
-publishedPosts: t.relation('posts', {
-  query: { where: (p) => p.published.eq(1) },
-}),
-
-// Callback — args + context in scope.
-postsByAuthor: t.relation('posts', {
-  args: { authorId: t.arg.string({ required: true }) },
-  query: (args, ctx) => ({
-    where: (p) => p.authorId.eq(args.authorId),
-    orderBy: (p) => p.createdAt.desc(),
-    take: 10,
-  }),
-}),
-```
-
-`query` is either a static literal `{ where?, orderBy?, take?, skip? }`
-or a callback `(args, ctx) => same literal`. The literal's `where`
-accepts a `ShorthandWhereFilter` object (`{ published: 1 }`, multi-key
-AND) or a column callback `(p) => p.published.eq(1)`. Compose with
-`and` / `or` / `not` from the package root:
-
-```ts
-import { and, or, not } from '@pothos/plugin-prisma-next';
-
-query: (args) => ({
-  where: (p) => and(p.published.eq(1), or(p.authorId.eq(args.userId), p.public.eq(true))),
-}),
-```
-
-The plugin emits `rel.where(...).orderBy(...).take(N).skip(N)` internally.
-Multiple GraphQL fields backing the same relation collapse into one
-`.combine({...})` call so both arrays load in one query. GraphQL aliases
-of the same schema field with different args also collapse into one
-combine — the mapper keys branches by alias.
-
-### Null handling
-
-`t.relation` doesn't carry an `onNull` option. A missing relation almost
-always means the user forgot to call `apply(...)` in the parent's
-`resolve` — the runtime detects that and throws a clear `"reached from a
-parent not loaded by t.prismaField"` error rather than letting it surface
-as a generic null. Legitimate null relations (FK null in the DB) flow
-through GraphQL's nullability rules.
-
-For custom null behavior, wrap in `t.field`:
-
-```ts
-author: t.field({
-  type: 'User',
-  resolve: (parent) => {
-    if (!parent.author) throw new Error('expected author');
-    return parent.author;
-  },
-}),
-```
-
-## t.relationCount
-
-```ts
-postCount: t.relationCount('posts'),
-
-// Static filter:
-publishedPostCount: t.relationCount('posts', {
-  where: { published: 1 },
-}),
-
-// Callback filter — `(accessor, args, ctx) => predicate`:
-postCountByFlag: t.relationCount('posts', {
-  args: { flag: t.arg.int({ required: true }) },
-  where: (accessor, args) => accessor.published.eq(args.flag),
-}),
-```
-
-To-many only; calling on a to-one is a TS error. The mapper emits
-`rel.where(filter).count()` inside the parent's combine spec.
-
-The static-object form matches `ShorthandWhereFilter` (`{ column: value }`);
-the callback form unlocks the typed `ModelAccessor`. Use the callback when
-the filter depends on field args or needs operators beyond equality.
-
-## t.relationAggregate
-
-Generalizes `t.relationCount` to any orm-client scalar selector —
-`count` / `sum` / `avg` / `min` / `max`. The callback runs against the
-relation's include-refinement collection and returns an `IncludeScalar`:
-
-```ts
-totalRevenue: t.relationAggregate('orders', {
-  type: 'Float',
-  nullable: true,
-  aggregate: (rel) => rel.where((o) => o.status.eq('paid')).sum('amount'),
-}),
-
-publishedPostCount: t.relationAggregate('posts', {
-  type: 'Int',
-  nullable: true,
-  aggregate: (rel) => rel.where((p) => p.published.eq(1)).count(),
-}),
-```
-
-To-many only. The mapper emits the aggregate inside the parent's combine
-spec, so multiple aggregates on the same relation collapse into one
-`.include(rel, cb => cb.combine({...}))`.
-
-Optional `resolve(value, args, ctx, info)` runs after the value lands on
-the parent (useful for coercing nulls or formatting numbers).
-
-The `aggregate` callback's return type is narrowed to `IncludeScalar`
-(`{ readonly kind: 'includeScalar' }`). Returning a bare Collection —
-e.g. `(rel) => rel` or `(rel) => rel.where(...)` without a finisher — is
-a TypeScript error at the call site.
-
-## t.relatedField — preload + custom resolve
-
-Generalized relation-derived primitive. Preloads the relation via the
-mapper, then hands the loaded rows (or single row, for to-one relations)
-to a custom resolver. `t.relationCount` is a special case of this.
-
-```ts
-firstPostTitle: t.relatedField('posts', {
-  type: 'String',
-  nullable: true,
-  resolve: (rows) => rows[0]?.title ?? null,
-}),
-
-averageRating: t.relatedField('reviews', {
-  type: 'Float',
-  resolve: (rows) => rows.reduce((s, r) => s + r.score, 0) / rows.length,
-}),
-```
-
-Accepts the full field option surface (`description`, `extensions`,
-`errors`, `validate`, …) — they all flow through.
-
-## t.prismaConnection — root cursor connection
-
-Requires `@pothos/plugin-relay`.
-
-```ts
-builder.queryType({
-  fields: (t) => ({
-    users: t.prismaConnection({
-      type: 'User',
-      cursor: 'id',
-      defaultSize: 20,
-      maxSize: 100,
-      resolve: (apply, _parent, _args, ctx) => apply(ctx.db.orm.User),
-    }),
-
-    // Compound cursor (lexicographic) for stable ordering on non-unique columns.
-    postsByDate: t.prismaConnection({
-      type: 'Post',
-      cursor: ['createdAt', 'id'],
-      resolve: (apply, _p, _a, ctx) => apply(ctx.db.orm.Post),
-    }),
-  }),
-});
-```
-
-`resolve` returns a **Collection** — no terminator. The plugin layers
-cursor pagination on top, materializes, and builds the page. Anything
-you can chain on prisma-next's Collection (`.where`, `.orderBy`,
-predicates) works inside the resolver — pipe it through `apply(...)`
-so the mapper sees the same chain.
-
-```ts
-publishedUsers: t.prismaConnection({
-  type: 'User',
-  cursor: 'id',
-  resolve: (apply, _p, _a, ctx) =>
-    apply(ctx.db.orm.User.where((u) => u.active.eq(1))),
-}),
-```
-
-### totalCount
-
-```ts
-// Boolean — auto-aggregate against the user-returned (post-`apply`) collection.
-usersWithCount: t.prismaConnection({
-  type: 'User',
-  cursor: 'id',
-  totalCount: true,
-  resolve: (apply, _p, _a, ctx) => apply(ctx.db.orm.User),
-}),
-
-// Callable — supply the count yourself (skips the auto-aggregate).
-usersWithCustomCount: t.prismaConnection({
-  type: 'User',
-  cursor: 'id',
-  totalCount: (parent, args, ctx, info) => ctx.userCountCache.get(),
-  resolve: (apply, _p, _a, ctx) => apply(ctx.db.orm.User),
-}),
-```
-
-The auto-aggregate runs in parallel with the rows query and counts the
-same filtered set your resolver returned (pre-pagination), so chaining
-`.where(...)` inside `resolve` flows through to the count.
-
-Both forms are gated on the GraphQL selection set: if the client didn't
-ask for `totalCount`, the count promise is never built. No aggregate
-query for the boolean form, and the user callback isn't invoked for the
-callable form — a flaky cache-backed totalCount won't crash unrelated
-queries against the same connection.
-
-When totalCount IS selected, rows + count run in parallel and are
-awaited with `Promise.allSettled`. Rows win the tie if both fail.
-
-## t.relatedConnection — connection on a relation
-
-```ts
-builder.prismaObject('User', {
-  fields: (t) => ({
-    postsConnection: t.relatedConnection('posts', {
-      cursor: 'id',
-      defaultSize: 10,
-    }),
-
-    // With filter — same filter is reused for the totalCount branch.
-    publishedPostsConnection: t.relatedConnection('posts', {
-      cursor: 'id',
-      query: { where: (p) => p.published.eq(1) },
-      totalCount: true,
-    }),
-
-    // Callback `query` — args + ctx in scope.
-    myPostsConnection: t.relatedConnection('posts', {
-      cursor: 'id',
-      query: (_args, ctx) => ({ where: (p) => p.authorId.eq(ctx.userId) }),
-    }),
-  }),
-});
-```
-
-Hoists into the parent's `prismaField` collection via
-`.include(rel, cb => cb.where(...).orderBy(...).take(N+1))`. No
-per-parent fetch.
-
-`resolve` is rejected at the call site — `t.relatedConnection` installs
-its own resolver. For filtering use `query`; for full control drop down
-to `t.connection` + `prismaConnectionHelpers` below.
-
-`totalCount: true` adds a synthetic `count()` branch under the parent's
-combine spec — no separate query. The branch is gated on selection: if
-a query doesn't ask for `totalCount`, the count is omitted for that
-request.
-
-`query` on `t.relatedConnection` is filter-only (`Pick<RelationQueryLiteral, 'where'>`)
-— `orderBy` / `take` / `skip` are stripped at the type level because
-the cursor + Relay args + plugin `defaultSize`/`maxSize` own those. The
-same `where` filter is reused for the synthetic `totalCount` branch, so
-the displayed total matches the paged set.
-
-For per-request limits use `defaultSize` / `maxSize` on the field; both
-accept a static number or `(args, ctx) => number` callback for dynamic
-limits.
-
-## prismaConnectionHelpers — escape hatch
-
-For custom `t.connection` resolvers that need cursor pagination + mapper
-descent but don't fit `t.prismaConnection`:
-
-```ts
-import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
-
-const userSearch = prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
-  defaultSize: 10,
-  // Thunk or literal — extra args declared on the connection.
-  args: (t) => ({ q: t.string({ required: true }) }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    searchUsers: t.connection({
-      type: userSearch.ref,
-      args: userSearch.getArgs(),
-      resolve: async (_parent, args, ctx, info) => {
-        const { collection, wrap } = userSearch.applyPagination(
-          ctx.db.orm.User,
-          args,
-          info,
-          ctx,
-        );
-        const rows = await collection.where((u) => u.firstName.eq(args.q)).all();
-        return wrap(rows);
-      },
-    }),
-  }),
-});
-```
-
-Pass your own orm handle as the base collection; the helper applies
-pagination + mapper descent on top. `getArgs()` returns the typed arg
-map for `t.connection({ args })`.
-
-### Pre-pagination filter — `where`
-
-```ts
-const adminSearch = prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
-  where: (u, _args, ctx) => u.role.eq('admin'),
-  totalCount: true, // counts only the filtered set
-});
-```
-
-Applied before cursor pagination, so `first: N` returns up to N
-matching rows (not N of the unfiltered set). Cursor + Relay args own
-`orderBy` / `take` / `skip` — the helper doesn't accept those.
-
-### Edge-to-node transform — `resolveNode`
-
-When the rows you fetch carry edge metadata (a join-table row, a
-denormalized edge wrapper) and you want to expose the node side:
-
-```ts
-const membershipsConnection = prismaConnectionHelpers(builder, 'Membership', {
-  cursor: 'id',
-  resolveNode: (edge) => edge.user, // edge: Row<Membership> with `user` preloaded
-});
-```
-
-The cursor is encoded from the *original* row (before `resolveNode`
-runs) so page reads remain stable even when the node shape loses the
-cursor columns.
-
-### totalCount on the helper
-
-Pass `totalCount: true` or a callable to expose a `totalCount: Int!`
-field. The helper returns a `totalCountPromise` from `applyPagination`
-(run it in parallel with `collection.all()`), and
-`helper.connectionOptions(connOpts)` wraps the connection-options arg
-with the field declaration:
-
-```ts
-const usersWithCount = prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
-  totalCount: true, // or: (args, ctx, info) => myCount(...)
-});
-
-t.connection(
-  {
-    type: usersWithCount.ref,
-    args: usersWithCount.getArgs(),
-    resolve: async (_p, args, ctx, info) => {
-      const { collection, wrap, totalCountPromise } = usersWithCount.applyPagination(
-        ctx.db.orm.User,
-        args,
-        info,
-        ctx,
-      );
-      const [rows, total] = await Promise.all([
-        collection.all(),
-        totalCountPromise ?? Promise.resolve(undefined),
-      ]);
-      return wrap(rows, total);
-    },
-  },
-  usersWithCount.connectionOptions({}),
-);
-```
-
-If both promises reject, the rows error wins (matches
-`t.prismaConnection`'s `Promise.allSettled` behavior).
+The string form requires that `User` has already been registered as a
+prismaObject. If only a variant exists (see [Variants](./variants)),
+pass the variant's ref or variant name explicitly.

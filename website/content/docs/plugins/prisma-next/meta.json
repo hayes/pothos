@@ -1,4 +1,13 @@
 {
   "title": "Prisma Next",
-  "pages": ["index", "objects", "relay", "mutations", "composing"]
+  "pages": [
+    "index",
+    "setup",
+    "objects",
+    "relations",
+    "interfaces",
+    "relay",
+    "connections",
+    "variants"
+  ]
 }

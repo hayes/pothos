@@ -3,14 +3,25 @@ import { PrismaNextInterfaceRef } from '../interface-ref';
 import { PrismaNextObjectRef } from '../object-ref';
 import type { ModelName, Row } from '../types';
 
-const prismaRefMap = new WeakMap<
+// Per-builder ref cache. Keys are the *default* type name for a model
+// (which is the contract model name). Variants are NOT cached — they
+// always get a fresh ref keyed on the variant name.
+//
+// Consequence (matches plugin-drizzle): if only a variant is
+// registered for a model and another file references the model by
+// name (e.g. `t.relation('user')` from a sibling), the string-form
+// helper returns the cached default ref which never had a
+// registration. Pothos core surfaces this as an unresolved-ref error
+// at schema-build time.
+const objectRefMap = new WeakMap<
   object,
   Map<string, PrismaNextObjectRef<SchemaTypes, never, never>>
 >();
+const interfaceRefMap = new WeakMap<
+  object,
+  Map<string, PrismaNextInterfaceRef<SchemaTypes, never, never>>
+>();
 
-// Refs cached per builder so `prismaObject('User', …)` and a sibling
-// `t.relation('posts')` resolve to the same instance. Variant refs key
-// by `typeName` so the default-model ref stays canonical.
 export function getRefFromContractModel<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -18,35 +29,24 @@ export function getRefFromContractModel<
 >(
   modelName: M,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  typeName?: string,
 ): PrismaNextObjectRef<Types, M, Shape> {
-  if (!prismaRefMap.has(builder)) {
-    prismaRefMap.set(builder, new Map());
+  let cache = objectRefMap.get(builder);
+  if (!cache) {
+    cache = new Map();
+    objectRefMap.set(builder, cache);
   }
-  const cache = prismaRefMap.get(builder)!;
-  const cacheKey = typeName ?? modelName;
-
-  let ref = cache.get(cacheKey);
+  let ref = cache.get(modelName as string);
   if (!ref) {
-    ref = new PrismaNextObjectRef(cacheKey, modelName) as PrismaNextObjectRef<
+    ref = new PrismaNextObjectRef(modelName as string, modelName) as PrismaNextObjectRef<
       SchemaTypes,
       never,
       never
     >;
-    cache.set(cacheKey, ref);
+    cache.set(modelName as string, ref);
   }
-
   return ref as unknown as PrismaNextObjectRef<Types, M, Shape>;
 }
 
-const prismaInterfaceRefMap = new WeakMap<
-  object,
-  Map<string, PrismaNextInterfaceRef<SchemaTypes, never, never>>
->();
-
-// Interface counterpart of the object cache. `configStore.addFields`
-// keys by ref identity, so a fresh ref per call would break the
-// string-form helper merge with `prismaInterface('User', …)`.
 export function getInterfaceRefFromContractModel<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -54,114 +54,35 @@ export function getInterfaceRefFromContractModel<
 >(
   modelName: M,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  typeName?: string,
 ): PrismaNextInterfaceRef<Types, M, Shape> {
-  if (!prismaInterfaceRefMap.has(builder)) {
-    prismaInterfaceRefMap.set(builder, new Map());
+  let cache = interfaceRefMap.get(builder);
+  if (!cache) {
+    cache = new Map();
+    interfaceRefMap.set(builder, cache);
   }
-  const cache = prismaInterfaceRefMap.get(builder)!;
-  const cacheKey = typeName ?? modelName;
-
-  let ref = cache.get(cacheKey);
+  let ref = cache.get(modelName as string);
   if (!ref) {
-    ref = new PrismaNextInterfaceRef(cacheKey, modelName) as PrismaNextInterfaceRef<
+    ref = new PrismaNextInterfaceRef(modelName as string, modelName) as PrismaNextInterfaceRef<
       SchemaTypes,
       never,
       never
     >;
-    cache.set(cacheKey, ref);
+    cache.set(modelName as string, ref);
   }
   return ref as unknown as PrismaNextInterfaceRef<Types, M, Shape>;
 }
 
-// The string-form helpers (`prismaObjectField('User', …)`) lazily create
-// a default-keyed cache entry on first call. If the user only registers
-// `User` under a variant name, that lazy entry is orphaned and fields
-// added to it never surface. We detect both orderings:
-//   - variant registered BEFORE field-helper string-form call:
-//     `assertNoVariantOnlyRegistration` at field-helper time.
-//   - field-helper string-form BEFORE variant registration:
-//     `findOrphanedDefaultRef` at variant-registration time.
-// `markRefRegistered` distinguishes lazy ref-cache entries from real
-// `prismaObject` / `prismaInterface` registrations.
-
-type RefKind = 'object' | 'interface';
-
-function cacheFor(kind: RefKind, builder: object) {
-  return kind === 'object' ? prismaRefMap.get(builder) : prismaInterfaceRefMap.get(builder);
-}
-
-const registeredKeysMap = new WeakMap<object, { object: Set<string>; interface: Set<string> }>();
-
-function getRegisteredKeys(builder: object) {
-  let entry = registeredKeysMap.get(builder);
-  if (!entry) {
-    entry = { object: new Set(), interface: new Set() };
-    registeredKeysMap.set(builder, entry);
-  }
-  return entry;
-}
-
-/** @internal */
-export function markRefRegistered<Types extends SchemaTypes>(
+/** @internal — used by schema-builder to detect object/interface kind collision. */
+export function assertSameKindRegistration<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  kind: RefKind,
-  key: string,
-): void {
-  getRegisteredKeys(builder as object)[kind].add(key);
-}
-
-/** @internal */
-export function findVariantTypeNames<Types extends SchemaTypes>(
   modelName: string,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  kind: RefKind,
-): string[] {
-  const cache = cacheFor(kind, builder as object);
-  if (!cache || cache.has(modelName)) {
-    return [];
-  }
-  const variants: string[] = [];
-  for (const [key, ref] of cache) {
-    if ((ref.modelName as string) === modelName) {
-      variants.push(key);
-    }
-  }
-  return variants;
-}
-
-/** @internal */
-export function assertNoVariantOnlyRegistration<Types extends SchemaTypes>(
-  modelName: string,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  callerLabel: string,
-  kind: RefKind,
+  kind: 'object' | 'interface',
 ): void {
-  const variants = findVariantTypeNames(modelName, builder, kind);
-  if (variants.length > 0) {
-    const registerCall = kind === 'object' ? 'prismaObject' : 'prismaInterface';
+  const otherCache = kind === 'object' ? interfaceRefMap.get(builder) : objectRefMap.get(builder);
+  if (otherCache?.has(modelName)) {
     throw new PothosSchemaError(
-      `${callerLabel}('${modelName}', ...): model '${modelName}' has no default ` +
-        `${registerCall} registration, only variant(s) ${variants.map((v) => `'${v}'`).join(', ')}. ` +
-        'Pass the variant name as the first argument, or the ref returned by ' +
-        `builder.${registerCall} directly.`,
+      `Model '${modelName}' was registered as both a prismaObject and a prismaInterface. ` +
+        "Use 'variant' instead of the default name on one of the registrations.",
     );
   }
-}
-
-/** @internal */
-export function findOrphanedDefaultRef<Types extends SchemaTypes>(
-  modelName: string,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  kind: RefKind,
-): string | undefined {
-  const cache = cacheFor(kind, builder as object);
-  if (!cache?.has(modelName)) {
-    return undefined;
-  }
-  const registered = getRegisteredKeys(builder as object)[kind];
-  if (registered.has(modelName)) {
-    return undefined;
-  }
-  return modelName;
 }

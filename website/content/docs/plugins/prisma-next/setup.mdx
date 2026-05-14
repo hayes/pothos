@@ -1,0 +1,109 @@
+---
+title: Setup
+description: Setting up the Prisma Next plugin
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+```package-install
+npm install --save @pothos/plugin-prisma-next
+```
+
+## Setup
+
+The plugin needs your prisma-next contract at type-check time and at runtime.
+Both come from the same JSON file emitted by `prisma-next contract emit`.
+
+### Generate your contract
+
+Run prisma-next's contract emit step against your schema. The output is a JSON
+file plus a `.d.ts` carrying the contract type. Check the
+[prisma-next docs](https://github.com/prisma/prisma-next) for the up-to-date
+command — this plugin treats the contract as the source of truth for model
+names, relation names, column types, and FK metadata.
+
+```sh
+prisma-next contract emit
+```
+
+### Set up the builder
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
+import prismaNextPlugin from '@pothos/plugin-prisma-next';
+import sqlite from '@prisma-next/sqlite/runtime';
+
+import contractJson from './prisma/contract.json' with { type: 'json' };
+import type { Contract } from './prisma/contract';
+
+// Connect the orm-client.
+const client = sqlite<Contract>({
+  contractJson,
+  path: './app.db',
+});
+await client.connect();
+
+const builder = new SchemaBuilder<{
+  // Threads the contract through every plugin method — model names,
+  // relation names, column names, and row shapes are inferred from it.
+  PrismaNextContract: Contract;
+  Context: { db: typeof client };
+}>({
+  plugins: [RelayPlugin, prismaNextPlugin],
+  relay: {},
+  prismaNext: {
+    contract: contractJson as Contract,
+  },
+});
+```
+
+<Callout type="info">
+  If you forget to set `PrismaNextContract` on `SchemaTypes`, autocomplete
+  will point at a sentinel string explaining what to configure. The plugin's
+  helper types collapse without a contract.
+</Callout>
+
+### Plugin options
+
+Set on `builder.options.prismaNext`:
+
+```ts
+prismaNext: {
+  contract,                    // required
+  defaultConnectionSize: 20,   // default `first:` for all connections
+  maxConnectionSize: 100,      // hard cap on connection page size
+  skipDeferredFragments: true, // ignore `@defer` fragments in the
+                               // preload (default: true)
+}
+```
+
+`defaultConnectionSize` / `maxConnectionSize` flow through both
+`t.prismaConnection` and `t.relatedConnection`. They're overridden by
+per-field `defaultSize` / `maxSize` options when those are set.
+
+## Loading the orm-client per request
+
+The example above uses a single shared `client`. You can also keep the
+client in context if you need per-request isolation (e.g. one connection
+pool per tenant):
+
+```ts
+const builder = new SchemaBuilder<{
+  PrismaNextContract: Contract;
+  Context: { db: ReturnType<typeof sqlite<Contract>> };
+}>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { contract: contractJson as Contract },
+});
+
+// Resolvers reach the client via `ctx.db.orm.<Model>`:
+builder.queryType({
+  fields: (t) => ({
+    users: t.prismaField({
+      type: ['User'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.User,
+    }),
+  }),
+});
+```

@@ -129,25 +129,9 @@ describe('t.relatedConnection — type-level constraints', () => {
   });
 });
 
-describe('t.relationCount — type-level constraints', () => {
-  it('rejects to-one relations', () => {
-    builder.prismaObject('Post', {
-      fields: (t) => ({
-        // `author` is N:1 — relationCount only makes sense on to-many.
-        // @ts-expect-error — author is not a to-many relation
-        authorCount: t.relationCount('author'),
-      }),
-    });
-  });
-
-  it('accepts to-many relations', () => {
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        postCount: t.relationCount('posts'),
-      }),
-    });
-  });
-});
+// t.relationCount removed — function-form `t.field({ select })` is the
+// canonical pattern. Cardinality constraint (to-many vs to-one) is no
+// longer enforced at compile time for `.count()` aggregates.
 
 describe('missing PrismaNextContract augmentation (D7)', () => {
   it('narrows ModelName to a sentinel when no contract is augmented', () => {
@@ -231,14 +215,12 @@ describe('t.relatedConnection where option — filter-only at the type level', (
   });
 });
 
-describe('t.prismaField typing — first-arg shape', () => {
-  it('accepts an async resolver that returns rows of the model shape', () => {
-    // Type-level smoke: the resolver signature compiles with the
-    // model-row return shape. The first-arg name in the source type
-    // is `collection` (carryover from the pre-apply API). The runtime
-    // injects the identity-typed `apply: <C>(c: C) => C` wrapper, so
-    // tests use `as never` casts on the resolver body to bridge the
-    // source-typing gap. See `Apply` in `src/utils/apply.ts`.
+describe('t.prismaField typing — resolver shape', () => {
+  it('accepts a resolver returning rows of the model shape', () => {
+    // Standard Pothos resolver signature: (parent, args, ctx, info).
+    // Resolver may return rows directly OR an orm-client Collection —
+    // the plugin auto-detects via duck-typing and materializes via
+    // `.all()` (single-row vs list determined by the field type).
     builder.queryType({
       fields: (t) => ({
         users: t.prismaField({
@@ -250,42 +232,9 @@ describe('t.prismaField typing — first-arg shape', () => {
   });
 });
 
-describe('t.relationAggregate — IncludeScalar return narrow', () => {
-  it('accepts a count() / sum() / avg() / min() / max() return', () => {
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        postCount: t.relationAggregate('posts', {
-          type: 'Int',
-          aggregate: (rel) => rel.count(),
-        }),
-      }),
-    });
-  });
-
-  it('rejects a naked Collection return', () => {
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        broken: t.relationAggregate('posts', {
-          type: 'Int',
-          // @ts-expect-error — must return an IncludeScalar, not a Collection
-          aggregate: (rel) => rel,
-        }),
-      }),
-    });
-  });
-
-  it('rejects a Collection.where(...) return without an aggregate finisher', () => {
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        broken: t.relationAggregate('posts', {
-          type: 'Int',
-          // @ts-expect-error — `.where(...)` returns a Collection, not an IncludeScalar
-          aggregate: (rel) => rel.where((p) => p.published.eq(1)),
-        }),
-      }),
-    });
-  });
-});
+// t.relationAggregate removed — function-form `t.field({ select })` is
+// the canonical pattern; users write the aggregate primitive directly
+// inside the inner spec (`sub.count()`, `sub.avg(...)`, etc.).
 
 describe('prismaObject — variant typing', () => {
   it('accepts a string variant', () => {
@@ -365,18 +314,7 @@ describe('t.prismaConnection — `query` sentinel rejects plugin-prisma porting 
   });
 });
 
-describe('brandResult / rebrandForVariant — public exports preserve input type', () => {
-  it('brandResult is generic — passing a typed value returns the same type', async () => {
-    const { brandResult } = await import('../src');
-    type Row = { id: string; name: string };
-    const arr: readonly Row[] = [{ id: '1', name: 'a' }];
-    // Compile-time: branded shouldn't widen to unknown.
-    expectTypeOf(brandResult(arr, 'User')).toEqualTypeOf<readonly Row[]>();
-    // A Promise<T> passes through too.
-    const p: Promise<Row> = Promise.resolve({ id: '1', name: 'a' });
-    expectTypeOf(brandResult(p, 'User')).toEqualTypeOf<Promise<Row>>();
-  });
-
+describe('rebrandForVariant — public export preserves input type', () => {
   it('rebrandForVariant preserves the input shape', async () => {
     const { rebrandForVariant } = await import('../src');
     type Row = { id: string };

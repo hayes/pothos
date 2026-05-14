@@ -12,22 +12,13 @@ export function selectionIncludesField(info: GraphQLResolveInfo, fieldName: stri
   return selectionSetIncludesField(info.fieldNodes[0]?.selectionSet, fieldName, info);
 }
 
+// Assumes the operation has passed GraphQL.js validation. Cyclic
+// fragments are rejected by the `NoFragmentCycles` rule before
+// execution reaches this code.
 export function selectionSetIncludesField(
   selectionSet: SelectionSetNode | undefined,
   fieldName: string,
   info: GraphQLResolveInfo,
-): boolean {
-  // Visited set guards against fragment cycles for callers that bypass
-  // GraphQL.js's `NoFragmentCyclesRule` (persisted queries / custom
-  // executors that skip `validate`).
-  return walk(selectionSet, fieldName, info, new Set());
-}
-
-function walk(
-  selectionSet: SelectionSetNode | undefined,
-  fieldName: string,
-  info: GraphQLResolveInfo,
-  visited: Set<string>,
 ): boolean {
   if (!selectionSet) {
     return false;
@@ -43,24 +34,14 @@ function walk(
       continue;
     }
     if (sel.kind === Kind.INLINE_FRAGMENT) {
-      if (walk(sel.selectionSet, fieldName, info, visited)) {
+      if (selectionSetIncludesField(sel.selectionSet, fieldName, info)) {
         return true;
       }
       continue;
     }
     if (sel.kind === Kind.FRAGMENT_SPREAD) {
-      const name = sel.name.value;
-      if (visited.has(name)) {
-        continue;
-      }
-      const fragment = info.fragments[name];
-      if (!fragment) {
-        continue;
-      }
-      visited.add(name);
-      const hit = walk(fragment.selectionSet, fieldName, info, visited);
-      visited.delete(name);
-      if (hit) {
+      const fragment = info.fragments[sel.name.value];
+      if (fragment && selectionSetIncludesField(fragment.selectionSet, fieldName, info)) {
         return true;
       }
     }

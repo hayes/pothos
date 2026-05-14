@@ -277,14 +277,14 @@ function buildSchema() {
         cursor: 'id',
         defaultSize: 10,
         maxSize: 100,
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User)) as never,
+        resolve: (() => ctx.ormClient.User) as never,
       }),
       usersWithCount: t.prismaConnection({
         type: 'User',
         cursor: 'id',
         defaultSize: 10,
         totalCount: true,
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User)) as never,
+        resolve: (() => ctx.ormClient.User) as never,
       }),
       // Callable totalCount — skips the auto-aggregate and returns the
       // count directly. Use case: count comes from a cache or
@@ -295,7 +295,7 @@ function buildSchema() {
         cursor: 'id',
         defaultSize: 10,
         totalCount: () => 42,
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User)) as never,
+        resolve: (() => ctx.ormClient.User) as never,
       }),
       // Promise.allSettled races: rows succeed + count rejects → the
       // count error surfaces (rather than being silently swallowed).
@@ -304,7 +304,7 @@ function buildSchema() {
         cursor: 'id',
         defaultSize: 10,
         totalCount: () => Promise.reject(new Error('count-failed')),
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User)) as never,
+        resolve: (() => ctx.ormClient.User) as never,
       }),
       // Rows reject + count succeeds → the rows error wins the tie
       // (and the count promise rejection — if it were rejection — is
@@ -327,18 +327,18 @@ function buildSchema() {
         totalCount: (() => {
           throw new Error('sync-throw');
         }) as never,
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.User)) as never,
+        resolve: (() => ctx.ormClient.User) as never,
       }),
       posts: t.prismaConnection({
         type: 'Post',
         cursor: 'id',
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.Post)) as never,
+        resolve: (() => ctx.ormClient.Post) as never,
       }),
       // Compound cursor — sorted by createdAt then id (id breaks ties).
       postsByDate: t.prismaConnection({
         type: 'Post',
         cursor: ['createdAt', 'id'],
-        resolve: ((apply: <C>(c: C) => C) => apply(ctx.ormClient.Post)) as never,
+        resolve: (() => ctx.ormClient.Post) as never,
       }),
     }),
   });
