@@ -1,5 +1,11 @@
 # @pothos/plugin-validation
 
+## 4.3.0
+
+### Minor Changes
+
+- b494289: Propagate prototype of validation issues to preserve structured errors
+
 ## 4.2.0
 
 ### Minor Changes
