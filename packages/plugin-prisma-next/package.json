@@ -70,16 +70,16 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma-next/adapter-sqlite": "link:../../../prisma-next/packages/3-targets/6-adapters/sqlite",
-    "@prisma-next/contract": "link:../../../prisma-next/packages/1-framework/0-foundation/contract",
-    "@prisma-next/driver-sqlite": "link:../../../prisma-next/packages/3-targets/7-drivers/sqlite",
-    "@prisma-next/framework-components": "link:../../../prisma-next/packages/1-framework/1-core/framework-components",
-    "@prisma-next/sql-builder": "link:../../../prisma-next/packages/2-sql/4-lanes/sql-builder",
-    "@prisma-next/sql-contract": "link:../../../prisma-next/packages/2-sql/1-core/contract",
-    "@prisma-next/sql-orm-client": "link:../../../prisma-next/packages/3-extensions/sql-orm-client",
-    "@prisma-next/sql-relational-core": "link:../../../prisma-next/packages/2-sql/4-lanes/relational-core",
-    "@prisma-next/sql-runtime": "link:../../../prisma-next/packages/2-sql/5-runtime",
-    "@prisma-next/sqlite": "link:../../../prisma-next/packages/3-extensions/sqlite",
-    "@prisma-next/target-sqlite": "link:../../../prisma-next/packages/3-targets/3-targets/sqlite"
+    "@prisma-next/adapter-sqlite": "workspace:*",
+    "@prisma-next/contract": "workspace:*",
+    "@prisma-next/driver-sqlite": "workspace:*",
+    "@prisma-next/framework-components": "workspace:*",
+    "@prisma-next/sql-builder": "workspace:*",
+    "@prisma-next/sql-contract": "workspace:*",
+    "@prisma-next/sql-orm-client": "workspace:*",
+    "@prisma-next/sql-relational-core": "workspace:*",
+    "@prisma-next/sql-runtime": "workspace:*",
+    "@prisma-next/sqlite": "workspace:*",
+    "@prisma-next/target-sqlite": "workspace:*"
   }
 }

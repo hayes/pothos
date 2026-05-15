@@ -4,11 +4,24 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./runtime": "./src/runtime.mjs",
+    "./runtime": {
+      "browser": "./src/runtime.mjs",
+      "node": "./dist/runtime.mjs",
+      "default": "./dist/runtime.mjs"
+    },
     "./seed": "./src/seed.mjs",
+    "./control": "./dist/control.mjs",
     "./package.json": "./package.json"
   },
   "dependencies": {
+    "@prisma-next/contract": "workspace:*",
+    "@prisma-next/errors": "workspace:*",
+    "@prisma-next/framework-components": "workspace:*",
+    "@prisma-next/sql-contract": "workspace:*",
+    "@prisma-next/sql-errors": "workspace:*",
+    "@prisma-next/sql-operations": "workspace:*",
+    "@prisma-next/sql-relational-core": "workspace:*",
+    "@prisma-next/utils": "workspace:*",
     "sql.js": "1.14.1"
   }
 }
