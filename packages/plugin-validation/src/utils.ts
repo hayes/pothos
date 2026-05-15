@@ -141,10 +141,18 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
         issues.push(
           ...newIssues.map((issue) =>
             Object.create(issue, {
-              path: { value: [...path, ...(issue.path ?? [])], enumerable: true, configurable: true },
+              path: {
+                value: [...path, ...(issue.path ?? [])],
+                enumerable: true,
+                configurable: true,
+              },
               // NOTE: We inherit any getters that might be associated with the "message" property
-              message: Object.getOwnPropertyDescriptor(issue, "message") ?? { value: issue.message, enumerable: true, configurable: true }
-            })
+              message: Object.getOwnPropertyDescriptor(issue, 'message') ?? {
+                value: issue.message,
+                enumerable: true,
+                configurable: true,
+              },
+            }),
           ),
         );
       };
