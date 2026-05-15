@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import { execute, GraphQLObjectType, parse, printSchema } from 'graphql';
+import { type GraphQLObjectType, printSchema } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, {
   type AnyContract,
@@ -63,9 +63,12 @@ describe('schema-build — M:N + duplicate-alias guards', () => {
       plugins: [prismaNextPlugin],
       prismaNext: { contract: stubContract },
     });
-    builder.prismaObject('Post' as never, {
-      fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
-    } as never);
+    builder.prismaObject(
+      'Post' as never,
+      {
+        fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
+      } as never,
+    );
     builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
     expect(() => builder.toSchema()).toThrow(/is many-to-many/);
     // Workaround pointer in the error helps users.
@@ -120,23 +123,32 @@ describe('schema-build — M:N + duplicate-alias guards', () => {
       plugins: [prismaNextPlugin],
       prismaNext: { contract: stubContract },
     });
-    builder.prismaObject('Tag' as never, {
-      fields: (t: never) => ({
-        id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
-        label: (t as { exposeString: (n: string) => unknown }).exposeString('label'),
-      }),
-    } as never);
-    builder.prismaObject('PostTag' as never, {
-      fields: (t: never) => ({
-        tag: (t as { relation: (n: string) => unknown }).relation('tag'),
-      }),
-    } as never);
-    builder.prismaObject('Post' as never, {
-      fields: (t: never) => ({
-        id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
-        postTags: (t as { relation: (n: string) => unknown }).relation('postTags'),
-      }),
-    } as never);
+    builder.prismaObject(
+      'Tag' as never,
+      {
+        fields: (t: never) => ({
+          id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
+          label: (t as { exposeString: (n: string) => unknown }).exposeString('label'),
+        }),
+      } as never,
+    );
+    builder.prismaObject(
+      'PostTag' as never,
+      {
+        fields: (t: never) => ({
+          tag: (t as { relation: (n: string) => unknown }).relation('tag'),
+        }),
+      } as never,
+    );
+    builder.prismaObject(
+      'Post' as never,
+      {
+        fields: (t: never) => ({
+          id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
+          postTags: (t as { relation: (n: string) => unknown }).relation('postTags'),
+        }),
+      } as never,
+    );
     builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
     expect(() => builder.toSchema()).not.toThrow();
   });
@@ -302,9 +314,12 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
       plugins: [prismaNextPlugin],
       prismaNext: { contract: stubContract },
     });
-    builder.prismaObject('Post' as never, {
-      fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
-    } as never);
+    builder.prismaObject(
+      'Post' as never,
+      {
+        fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
+      } as never,
+    );
     builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
     expect(() => builder.toSchema()).toThrow(/is many-to-many/);
   });

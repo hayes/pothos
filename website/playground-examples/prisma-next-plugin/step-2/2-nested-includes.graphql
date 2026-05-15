@@ -1,0 +1,22 @@
+query NestedIncludes {
+  # Two `t.relation` hops in the selection — `posts` and `author` —
+  # produce one prisma-next query:
+  #   db.orm.User
+  #     .select('id')
+  #     .include('posts', posts =>
+  #        posts.select('id', 'title', 'authorId')
+  #             .include('author', author => author.select('id', 'firstName')))
+  #     .all()
+  # The plugin pulls FK columns into the parent SELECT so each include
+  # level can stitch its rows back. The SQL panel shows what prisma-next
+  # ultimately runs against the database.
+  users {
+    firstName
+    posts {
+      title
+      author {
+        firstName
+      }
+    }
+  }
+}

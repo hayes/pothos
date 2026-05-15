@@ -2,8 +2,9 @@
 
 import type { GraphQLSchema } from 'graphql';
 import type { ReactNode } from 'react';
-import { createElement, useCallback, useEffect, useMemo, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defaultFiles, defaultOperations } from '@/app/playground/defaults';
+import { useTheme } from '@/components/Providers';
 import type { ConsoleLogEntry } from '@/components/playground/ConsoleDrawer/types';
 import { ExamplesPicker } from '@/components/playground/ExamplesPicker/ExamplesPicker';
 import { exampleMetadata } from '@/components/playground/examples';
@@ -12,11 +13,12 @@ import type {
   Operation,
   OperationSubTab,
 } from '@/components/playground/OperationPane/types';
-import type { ResponsePhase, TraceRow } from '@/components/playground/ResponsePane/types';
+import type { ResponsePhase } from '@/components/playground/ResponsePane/types';
 import type { OverflowItem } from '@/components/playground/Toolbar/OverflowMenu';
 import type { SchemaStatus } from '@/components/playground/Toolbar/StatusPill';
 import type { PlaygroundFile } from '@/components/playground/types';
 import { copyToClipboard } from '@/lib/clipboard';
+import type { ExtensionPanel } from '@/lib/playground/playground-panels';
 import { createShareableURL } from '@/lib/playground/url-state';
 import { useConsoleLogs } from './useConsoleLogs';
 import type { LoadedExample } from './useExampleLoader';
@@ -28,7 +30,7 @@ import { usePlaygroundFiles } from './usePlaygroundFiles';
 import { useQueryRunner } from './useQueryRunner';
 import { useSchemaStatus } from './useSchemaStatus';
 import { useUrlBootstrap } from './useUrlBootstrap';
-import { useUrlSync } from './useUrlSync';
+import { useExampleBaseline, useUrlHashSync } from './useUrlSync';
 
 /**
  * File-related action setters consumed by the SchemaSidebar. Grouping
@@ -77,6 +79,10 @@ export interface PlaygroundShellUI {
   // Stepper inputs
   loadedExample: LoadedExample | null;
   stepIndex: number;
+  /** Step index whose bundle is currently fetching, if any. The
+   *  StepperBar shows a spinner on this row so a slow load isn't
+   *  invisible. `null` when nothing is in flight. */
+  pendingStepIndex: number | null;
   exitExample: () => void;
   /** Wraps `goToStep` and pipes any error into the console drawer. */
   onStepSelect: (index: number) => void;
@@ -101,9 +107,9 @@ export interface PlaygroundShellUI {
 
   // Response pane inputs
   runnerPhase: ResponsePhase;
-  runnerTrace: TraceRow[];
-  responseSubTab: 'response' | 'trace';
-  setResponseSubTab: (tab: 'response' | 'trace') => void;
+  runnerPanels: ExtensionPanel[];
+  responseSubTab: string;
+  setResponseSubTab: (tab: string) => void;
 
   // Console drawer inputs
   consoleLogs: ConsoleLogEntry[];
@@ -126,6 +132,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
   const opsState = useOperations(defaultOperations());
   const exampleLoader = useExampleLoader();
   const runner = useQueryRunner();
+  const { theme, setTheme } = useTheme();
   const console_ = useConsoleLogs();
 
   const { state: compilerState } = usePlaygroundCompiler({
@@ -179,18 +186,50 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [sketchName, setSketchName] = useState('untitled sketch');
   const [shareLabel, setShareLabel] = useState('Share');
-  const [responseSubTab, setResponseSubTab] = useState<'response' | 'trace'>('response');
+  const [responseSubTab, setResponseSubTab] = useState<string>('response');
   const [sdlActive, setSdlActive] = useState(false);
+
+  // Example "pristine content" baseline. Lives in React state so
+  // useUrlHashSync re-evaluates the moment it changes. The baseline is
+  // set ONLY by `applyExampleResult` (or cleared on exit) — no effect
+  // tries to derive it from state transitions, which is what
+  // previously made selecting a query tab read as an "edit" and write
+  // a stale hash.
+  const {
+    baseline,
+    captureFromExample,
+    resetToDefaults: resetBaseline,
+  } = useExampleBaseline(defaultFiles, defaultOperations);
 
   // Apply an ExampleLoaderResult — push files/ops into the hook state.
   // Used for both initial example loads and step navigation.
   // `queryOverride` (optional) replaces the first operation's `query`
   // before pushing — this is how `?example=…&query=…` URLs survive the
   // race with the example's own setOperations write.
+  //
+  // The baseline is captured from `result` (NOT from the override-
+  // adjusted state) so a `?example=…&query=…` URL counts the
+  // overridden query as an edit and writes a hash on first render.
   const applyExampleResult = useCallback(
-    (result: { files: PlaygroundFile[]; operations: Operation[] }, queryOverride?: string) => {
+    (
+      result: {
+        files: PlaygroundFile[];
+        operations: Operation[];
+        defaultActive?: number;
+      },
+      queryOverride?: string,
+    ) => {
       filesState.setFiles(result.files);
-      filesState.setActiveIndex(0);
+      // `defaultActive` lets multi-step examples open with the most
+      // relevant file focused (e.g. a "relations" step focuses
+      // models/user.ts). Falls back to the first file.
+      const activeIndex =
+        typeof result.defaultActive === 'number' &&
+        result.defaultActive >= 0 &&
+        result.defaultActive < result.files.length
+          ? result.defaultActive
+          : 0;
+      filesState.setActiveIndex(activeIndex);
       const operations =
         queryOverride !== undefined && result.operations.length > 0
           ? result.operations.map((op, i) => (i === 0 ? { ...op, query: queryOverride } : op))
@@ -200,8 +239,9 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
       opsState.setSubTab('query');
       opsState.markClean();
       runner.reset();
+      captureFromExample(result.files, result.operations);
     },
-    [filesState, opsState, runner],
+    [filesState, opsState, runner, captureFromExample],
   );
 
   const { embed } = useUrlBootstrap({
@@ -210,16 +250,95 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
     exampleLoader,
     applyExampleResult,
     setSketchName,
+    captureBaseline: captureFromExample,
   });
 
-  useUrlSync({
+  useUrlHashSync({
     files: filesState.files,
     operations: opsState.operations,
     activeOperationIndex: opsState.activeIndex,
     activeFileIndex: filesState.activeIndex,
     step: exampleLoader.stepIndex || undefined,
-    ready: !compilerState.isCompiling || compilerState.schema !== null,
+    baseline,
   });
+
+  // `?op=<n>` (1-indexed) tracks the active query tab in search
+  // params so refreshing or sharing a link restores the tab. Doesn't
+  // affect the hash — selecting a tab is a navigation action, not an
+  // edit. `op=1` is the implicit default and stays out of the URL.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (opsState.activeIndex > 0) {
+      url.searchParams.set('op', String(opsState.activeIndex + 1));
+    } else {
+      url.searchParams.delete('op');
+    }
+    window.history.replaceState(null, '', url.toString());
+  }, [opsState.activeIndex]);
+
+  // Theme in URL: `?theme=light` / `?theme=dark`. `system` is the
+  // default and stays implicit. Read once on mount (URL > localStorage
+  // > system); subsequent changes from the toolbar's theme switcher
+  // mirror back to the URL so a shared link reproduces the look.
+  const themeBootstrapRef = useRef(false);
+  useEffect(() => {
+    if (themeBootstrapRef.current) {
+      return;
+    }
+    themeBootstrapRef.current = true;
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const urlTheme = new URL(window.location.href).searchParams.get('theme');
+    if (urlTheme === 'light' || urlTheme === 'dark' || urlTheme === 'system') {
+      setTheme(urlTheme);
+    }
+  }, [setTheme]);
+  useEffect(() => {
+    if (!themeBootstrapRef.current) {
+      return; // wait for bootstrap so we don't echo localStorage
+    }
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (theme === 'light' || theme === 'dark') {
+      url.searchParams.set('theme', theme);
+    } else {
+      url.searchParams.delete('theme');
+    }
+    window.history.replaceState(null, '', url.toString());
+  }, [theme]);
+
+  // Sync the URL's `?example=<id>` (and optional `&step=<n>`) search
+  // params when the loaded example or step changes via the picker or
+  // stepper, and clear any stale hash. useUrlHashSync's baseline-tracking
+  // then keeps the URL hash-free until the user actually edits —
+  // so the URL stays at the short, shareable `?example=foo&step=2` form.
+  const setExampleInUrl = useCallback((id: string | null, stepIndex: number | null = null) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (id) {
+      const baseId = id.replace(/-step-\d+$/, '');
+      url.searchParams.set('example', baseId);
+    } else {
+      url.searchParams.delete('example');
+    }
+    if (stepIndex !== null && stepIndex > 0) {
+      // 1-indexed in the URL since the StepperBar labels are 1-based;
+      // 0 (the default first step) stays implicit.
+      url.searchParams.set('step', String(stepIndex + 1));
+    } else {
+      url.searchParams.delete('step');
+    }
+    url.hash = '';
+    window.history.replaceState(null, '', url.toString());
+  }, []);
 
   const handlePickExample = useCallback(
     async (id: string) => {
@@ -227,20 +346,67 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
       const result = await exampleLoader.load(id);
       if (result) {
         applyExampleResult(result);
+        // Picking from the menu always loads step 1 by default.
+        setExampleInUrl(id, 0);
       }
     },
-    [exampleLoader, applyExampleResult],
+    [exampleLoader, applyExampleResult, setExampleInUrl],
   );
+
+  // Tracks which step index the user JUST clicked. Stays set through:
+  //   1. the example-bundle fetch (`goToStep`),
+  //   2. the React commit that swaps files/operations in,
+  //   3. the schema recompile that the new files trigger.
+  // The StepperBar reads it to spin the pending row and disable
+  // clicks until everything settles, so a slow load doesn't look
+  // broken.
+  const [pendingStepIndex, setPendingStepIndex] = useState<number | null>(null);
+  // True after we've kicked off a step load and are waiting for the
+  // compiler to cycle (isCompiling true → false). Without this flag
+  // the next-tick effect couldn't distinguish "compile fired because
+  // of step click" from "compile fired because of unrelated edit".
+  const awaitingCompileRef = useRef(false);
 
   const handleStep = useCallback(
     async (index: number) => {
-      const result = await exampleLoader.goToStep(index);
-      if (result) {
-        applyExampleResult(result);
+      setPendingStepIndex(index);
+      awaitingCompileRef.current = true;
+      try {
+        const result = await exampleLoader.goToStep(index);
+        if (result && exampleLoader.loaded) {
+          applyExampleResult(result);
+          setExampleInUrl(exampleLoader.loaded.baseId, index);
+        }
+      } catch (err) {
+        // Bundle fetch failed — clear the spinner so the bar isn't
+        // stuck on a doomed pending state.
+        setPendingStepIndex(null);
+        awaitingCompileRef.current = false;
+        throw err;
       }
     },
-    [exampleLoader, applyExampleResult],
+    [exampleLoader, applyExampleResult, setExampleInUrl],
   );
+
+  // Clear `pendingStepIndex` once the compiler has actually cycled.
+  // `awaitingCompileRef` gates this so unrelated compile cycles
+  // (the user typing in the editor) don't prematurely clear a
+  // pending step that hasn't finished its own compile yet.
+  const sawCompilingRef = useRef(false);
+  useEffect(() => {
+    if (!awaitingCompileRef.current) {
+      return;
+    }
+    if (compilerState.isCompiling) {
+      sawCompilingRef.current = true;
+      return;
+    }
+    if (sawCompilingRef.current) {
+      sawCompilingRef.current = false;
+      awaitingCompileRef.current = false;
+      setPendingStepIndex(null);
+    }
+  }, [compilerState.isCompiling]);
 
   // Mirror the loaded example's title into the sketch name whenever it changes.
   useEffect(() => {
@@ -313,10 +479,11 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
           opsState.setOperations(defaultOperations());
           opsState.setActiveIndex(0);
           exampleLoader.exit();
+          resetBaseline();
           runner.reset();
           setSketchName(embed ? '' : 'untitled sketch');
-          // Drop the hash so `useUrlSync` doesn't immediately re-encode
-          // the freshly-restored defaults back into a long URL.
+          // Drop the hash so useUrlHashSync doesn't write the fresh
+          // defaults back into a long URL (no baseline → no writes).
           if (typeof window !== 'undefined') {
             window.history.replaceState(
               null,
@@ -344,7 +511,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
         },
       },
     ],
-    [compilerState.schemaSDL, embed, exampleLoader, filesState, opsState, runner],
+    [compilerState.schemaSDL, embed, exampleLoader, filesState, opsState, runner, resetBaseline],
   );
 
   // Stepper -> any error from goToStep gets surfaced to the console drawer.
@@ -419,7 +586,20 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
 
     loadedExample: exampleLoader.loaded,
     stepIndex: exampleLoader.stepIndex,
-    exitExample: exampleLoader.exit,
+    pendingStepIndex,
+    exitExample: () => {
+      exampleLoader.exit();
+      resetBaseline();
+      // Clear `?example=`/`&step=` so the URL stops claiming an
+      // example is active. Hash is untouched — the user keeps their
+      // current edits as a manual sketch.
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('example');
+        url.searchParams.delete('step');
+        window.history.replaceState(null, '', url.toString());
+      }
+    },
     onStepSelect,
 
     files: filesState.files,
@@ -438,7 +618,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
     operationActions,
 
     runnerPhase: runner.phase,
-    runnerTrace: runner.trace,
+    runnerPanels: runner.panels,
     responseSubTab,
     setResponseSubTab,
 

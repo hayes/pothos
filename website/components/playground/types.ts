@@ -4,6 +4,14 @@ export interface PlaygroundFile {
   language?: 'typescript' | 'graphql';
   /** Highlighted line ranges for documentation snippets */
   highlights?: Array<{ start: number; end: number; label?: string }>;
+  /**
+   * Files emitted by an external tool (`prisma-next contract emit`,
+   * migration generators, seed fixtures) get grouped under the
+   * Files-tab's "Generated" section next to `schema.graphql`. They
+   * still load into the editor and contribute to bundling — just not
+   * mixed in with the files the user is meant to author.
+   */
+  generated?: boolean;
 }
 
 // `Step` and `CodeSnippet` are owned by the build-examples generator —
@@ -30,6 +38,8 @@ export interface PlaygroundExample {
   queries?: Array<{ title?: string; query: string; variables?: string }>;
   /** Code snippets for documentation linking */
   snippets?: CodeSnippet[];
+  /** Index into `files` to focus when the example loads (per-step). */
+  defaultActiveFile?: number;
 }
 
 export type PlaygroundTab = 'code' | 'schema' | 'graphiql';

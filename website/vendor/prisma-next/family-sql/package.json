@@ -1,0 +1,30 @@
+{
+  "name": "@prisma-next/family-sql",
+  "version": "0.0.1",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./control": "./dist/control.mjs",
+    "./control-adapter": "./dist/control-adapter.mjs",
+    "./migration": "./dist/migration.mjs",
+    "./pack": "./dist/pack.mjs",
+    "./runtime": "./dist/runtime.mjs",
+    "./schema-verify": "./dist/schema-verify.mjs",
+    "./test-utils": "./dist/test-utils.mjs",
+    "./verify": "./dist/verify.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@prisma-next/contract": "workspace:*",
+    "@prisma-next/framework-components": "workspace:*",
+    "@prisma-next/operations": "workspace:*",
+    "@prisma-next/sql-contract": "workspace:*",
+    "@prisma-next/sql-contract-ts": "workspace:*",
+    "@prisma-next/sql-operations": "workspace:*",
+    "@prisma-next/sql-relational-core": "workspace:*",
+    "@prisma-next/sql-runtime": "workspace:*",
+    "@prisma-next/sql-schema-ir": "workspace:*",
+    "@prisma-next/utils": "workspace:*",
+    "arktype": "^2.0.0"
+  }
+}

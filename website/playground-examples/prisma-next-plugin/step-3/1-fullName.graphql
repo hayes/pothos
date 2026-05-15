@@ -1,0 +1,8 @@
+query FullName {
+  # `fullName` declares `select: ['firstName', 'lastName']`. Even though
+  # the GraphQL response only exposes `fullName`, the SQL `SELECT` pulls
+  # both columns — the walker honors per-field column dependencies.
+  users {
+    fullName
+  }
+}

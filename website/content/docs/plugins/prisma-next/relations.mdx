@@ -123,11 +123,13 @@ machinery, fewer methods to remember:
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    // Plain count.
+    // Plain count. The inner key (`posts`) names the combine slot
+    // and the plugin's type inference surfaces it as `parent.posts:
+    // number` — no cast needed in the resolver.
     postCount: t.field({
       type: 'Int',
       select: { posts: (sub) => ({ posts: sub.count() }) },
-      resolve: (parent) => (parent as { posts: number }).posts,
+      resolve: (parent) => parent.posts,
     }),
     // Filtered count.
     publishedPostCount: t.field({
@@ -137,17 +139,15 @@ builder.prismaObject('User', {
           posts: sub.where((p) => p.published.eq(1)).count(),
         }),
       },
-      resolve: (parent) => (parent as { posts: number }).posts,
+      resolve: (parent) => parent.posts,
     }),
-    // Custom mapping over loaded rows.
+    // Custom mapping over loaded rows. The `posts: true` form widens
+    // `parent.posts` to the loaded row array.
     firstPostTitle: t.field({
       type: 'String',
       nullable: true,
       select: { posts: true },
-      resolve: (parent) => {
-        const posts = (parent as { posts: { title: string }[] }).posts;
-        return posts[0]?.title ?? null;
-      },
+      resolve: (parent) => parent.posts[0]?.title ?? null,
     }),
   }),
 });
@@ -155,7 +155,9 @@ builder.prismaObject('User', {
 
 The function form's inner keys (`{ posts: sub.count() }` above) land on
 the row at namespaced slots; the plugin's per-field overlay surfaces them
-as flat keys on the resolver's parent.
+as flat keys on the resolver's parent, and `ShapeFromSelect` widens the
+inferred parent shape accordingly so resolvers stay type-safe without
+manual casts.
 
 ## Many-to-many
 

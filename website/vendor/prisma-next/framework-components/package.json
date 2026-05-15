@@ -1,0 +1,22 @@
+{
+  "name": "@prisma-next/framework-components",
+  "version": "0.0.1",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./authoring": "./dist/authoring.mjs",
+    "./codec": "./dist/codec.mjs",
+    "./components": "./dist/components.mjs",
+    "./control": "./dist/control.mjs",
+    "./emission": "./dist/emission.mjs",
+    "./execution": "./dist/execution.mjs",
+    "./psl-ast": "./dist/psl-ast.mjs",
+    "./runtime": "./dist/runtime.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@prisma-next/contract": "workspace:*",
+    "@prisma-next/operations": "workspace:*",
+    "@prisma-next/utils": "workspace:*"
+  }
+}

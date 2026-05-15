@@ -98,7 +98,23 @@ export interface EditorBaseColors {
  * (typescript / graphql / json / markdown).
  */
 function monacoRules(p: PaletteSlots): ThemeRule[] {
-  const langs = ['', '.ts', '.tsx', '.js', '.jsx', '.graphql', '.json', '.css', '.scss', '.html'];
+  const langs = [
+    '',
+    '.ts',
+    '.tsx',
+    '.js',
+    '.jsx',
+    '.graphql',
+    '.json',
+    '.css',
+    '.scss',
+    '.html',
+    // Monaco's built-in SQL tokenizer emits `keyword.sql`, `string.sql`,
+    // `number.sql`, `predefined.sql` (built-in functions like COUNT),
+    // `operator.sql`, etc. Including `.sql` here applies the same
+    // palette as the rest of the playground.
+    '.sql',
+  ];
   const rules: ThemeRule[] = [];
 
   const add = (token: string, foreground: string, fontStyle?: string) => {

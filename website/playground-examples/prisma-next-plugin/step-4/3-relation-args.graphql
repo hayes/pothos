@@ -1,0 +1,16 @@
+query RelationArgs {
+  # `User.posts` declares `args` + `query`. The args here flow into the
+  # `query: args => ({ where, orderBy })` callback in `user.ts`,
+  # producing a refined include:
+  #   .include('posts', sub =>
+  #      sub.where({ published: 1 }).orderBy(p => p.createdAt.asc()))
+  # Single consumer of `posts`, so the fast path applies — no
+  # `.combine(...)` wrap.
+  user(id: "u-alice") {
+    firstName
+    posts(onlyPublished: true, oldestFirst: true) {
+      title
+      createdAt
+    }
+  }
+}

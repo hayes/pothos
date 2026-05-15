@@ -46,7 +46,9 @@ const linkedPackages = [
 
 function isPackageBuilt(pkgRel) {
   const distDir = resolve(prismaNextDir, pkgRel, 'dist');
-  if (!existsSync(distDir)) return false;
+  if (!existsSync(distDir)) {
+    return false;
+  }
   try {
     return readdirSync(distDir).length > 0;
   } catch {

@@ -1,0 +1,32 @@
+{
+  "name": "@prisma-next/adapter-sqlite",
+  "version": "0.0.1",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./adapter": "./dist/adapter.mjs",
+    "./codec-types": "./dist/codec-types.mjs",
+    "./column-types": "./dist/column-types.mjs",
+    "./control": "./dist/control.mjs",
+    "./runtime": "./dist/runtime.mjs",
+    "./types": "./dist/types.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@prisma-next/contract": "workspace:*",
+    "@prisma-next/contract-authoring": "workspace:*",
+    "@prisma-next/framework-components": "workspace:*",
+    "@prisma-next/family-sql": "workspace:*",
+    "@prisma-next/ids": "workspace:*",
+    "@prisma-next/sql-contract": "workspace:*",
+    "@prisma-next/sql-contract-psl": "workspace:*",
+    "@prisma-next/sql-contract-ts": "workspace:*",
+    "@prisma-next/sql-operations": "workspace:*",
+    "@prisma-next/sql-relational-core": "workspace:*",
+    "@prisma-next/sql-runtime": "workspace:*",
+    "@prisma-next/sql-schema-ir": "workspace:*",
+    "@prisma-next/target-sqlite": "workspace:*",
+    "@prisma-next/utils": "workspace:*",
+    "arktype": "^2.0.0"
+  }
+}

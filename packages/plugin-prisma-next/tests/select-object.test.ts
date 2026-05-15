@@ -222,12 +222,14 @@ describe('object-form select on t.field', () => {
   });
 
   it('coexists with a sugar t.relation on the same relation without collision', async () => {
-    const { result } = await runQuery(
-      '{ users { id posts { id title } firstPostTitle } }',
-    );
+    const { result } = await runQuery('{ users { id posts { id title } firstPostTitle } }');
     expect(result.errors).toBeUndefined();
     const data = result.data as {
-      users: { id: string; posts: { id: string; title: string }[]; firstPostTitle: string | null }[];
+      users: {
+        id: string;
+        posts: { id: string; title: string }[];
+        firstPostTitle: string | null;
+      }[];
     };
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice?.posts.length).toBeGreaterThan(0);

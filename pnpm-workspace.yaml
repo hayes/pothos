@@ -2,6 +2,7 @@ packages:
   - packages/*
   - examples/*
   - website
+  - website/vendor/prisma-next/*
   - '!**/test/**'
 onlyBuiltDependencies:
   - sqlite3

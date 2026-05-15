@@ -9,7 +9,12 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getNullableType, type GraphQLFieldResolver, type GraphQLResolveInfo, isListType } from 'graphql';
+import {
+  type GraphQLFieldResolver,
+  type GraphQLResolveInfo,
+  getNullableType,
+  isListType,
+} from 'graphql';
 import {
   PRISMA_NEXT_COLUMNS,
   PRISMA_NEXT_MODEL,
@@ -87,7 +92,9 @@ export interface PrismaNextRelationMeta {
  * that coincidentally exposes those method names.
  */
 function isOrmCollection(value: unknown): boolean {
-  if (value == null || typeof value !== 'object') return false;
+  if (value == null || typeof value !== 'object') {
+    return false;
+  }
   const v = value as { select?: unknown; include?: unknown; where?: unknown; all?: unknown };
   return (
     typeof v.select === 'function' &&
@@ -157,7 +164,7 @@ function buildRelationMeta(
       throw new PothosSchemaError(
         `Relation '${typeName}.${name}' (model '${modelName}') is many-to-many. ` +
           "prisma-next's orm-client doesn't implement junction-table joins yet, " +
-          'so the plugin can\'t auto-include this relation. ' +
+          "so the plugin can't auto-include this relation. " +
           'Workaround: model the junction as its own contract model and chain two ' +
           '`t.relation` calls (User → UserTag → Tag).',
       );
@@ -181,14 +188,13 @@ function buildRelationMeta(
   return out;
 }
 
-function buildColumnSet(
-  modelName: string,
-  contract: AnyContract,
-): ReadonlySet<string> | undefined {
+function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<string> | undefined {
   const modelDef = (contract as { models: Record<string, unknown> }).models[modelName] as
     | { fields?: Record<string, unknown> }
     | undefined;
-  if (!modelDef?.fields) return undefined;
+  if (!modelDef?.fields) {
+    return undefined;
+  }
   return new Set(Object.keys(modelDef.fields));
 }
 
@@ -208,27 +214,39 @@ function normalizeRowsForType(
   typeConfig: PothosTypeConfig | undefined,
   contract: AnyContract | undefined,
 ): unknown {
-  if (!typeConfig || !contract) return value;
+  if (!typeConfig || !contract) {
+    return value;
+  }
   const ext = (typeConfig.extensions ?? {}) as Record<string, unknown>;
   const spec = ext[PRISMA_NEXT_SELECT];
-  if (!spec || Array.isArray(spec) || typeof spec !== 'object') return value;
+  if (!spec || Array.isArray(spec) || typeof spec !== 'object') {
+    return value;
+  }
   const modelName = ext[PRISMA_NEXT_MODEL] as string | undefined;
-  if (!modelName) return value;
+  if (!modelName) {
+    return value;
+  }
   const modelDef = (contract as { models: Record<string, { relations?: Record<string, unknown> }> })
     .models[modelName];
-  if (!modelDef?.relations) return value;
+  if (!modelDef?.relations) {
+    return value;
+  }
   const relations = modelDef.relations;
   const entries = Object.entries(spec as Record<string, unknown>).filter(
     ([k]) => relations[k] !== undefined,
   );
-  if (entries.length === 0) return value;
+  if (entries.length === 0) {
+    return value;
+  }
   // Per-type prefix: e.g. `:object:User:` for the User prismaObject.
   // `:` is GraphQL-forbidden so the prefix never collides with user
   // aliases.
   const prefix = `:object:${typeConfig.name}:`;
 
   const normalize = (row: unknown): unknown => {
-    if (row == null || typeof row !== 'object' || Array.isArray(row)) return row;
+    if (row == null || typeof row !== 'object' || Array.isArray(row)) {
+      return row;
+    }
     const r = row as Record<string, unknown>;
     for (const [rel] of entries) {
       const slot = r[rel];
@@ -244,7 +262,12 @@ function normalizeRowsForType(
     return r;
   };
 
-  if (value && typeof value === 'object' && 'then' in value && typeof (value as { then?: unknown }).then === 'function') {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'then' in value &&
+    typeof (value as { then?: unknown }).then === 'function'
+  ) {
     return (value as Promise<unknown>).then((v) => normalizeRowsForType(v, typeConfig, contract));
   }
   if (Array.isArray(value)) {
@@ -348,13 +371,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         // row normalizer.
         const materialized =
           result != null && !Array.isArray(result) && isOrmCollection(result)
-            ? await materializeCollection(
-                result,
-                info,
-                contract,
-                context,
-                mapperOpts,
-              )
+            ? await materializeCollection(result, info, contract, context, mapperOpts)
             : result;
 
         return normalizeRowsForType(materialized, returnTypeConfig, contract);
@@ -390,9 +407,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const buildCacheForCapture = this.buildCache;
     let returnTypeConfig: PothosTypeConfig | undefined;
     try {
-      const fieldType = (fieldConfig as unknown as { type: { kind?: string; type?: { ref?: string; name?: string }; ref?: string; name?: string } }).type;
+      const fieldType = (
+        fieldConfig as unknown as {
+          type: {
+            kind?: string;
+            type?: { ref?: string; name?: string };
+            ref?: string;
+            name?: string;
+          };
+        }
+      ).type;
       const inner = fieldType?.type ?? fieldType;
-      const refName = (inner as { ref?: string; name?: string })?.name ?? (inner as { ref?: string })?.ref;
+      const refName =
+        (inner as { ref?: string; name?: string })?.name ?? (inner as { ref?: string })?.ref;
       if (typeof refName === 'string') {
         returnTypeConfig = buildCacheForCapture.getTypeConfig(refName);
       }
@@ -422,7 +449,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // at multiple levels.
       const seen = new Set<string>();
       for (const key in p) {
-        if (seen.has(key)) continue;
+        if (seen.has(key)) {
+          continue;
+        }
         seen.add(key);
         const slot = p[key];
         if (slot && typeof slot === 'object' && !Array.isArray(slot)) {

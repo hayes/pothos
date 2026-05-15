@@ -2,7 +2,7 @@
   "name": "@pothos/plugin-prisma-next",
   "version": "0.1.0",
   "private": true,
-  "_publishGate": "Stays private until prisma-next publishes its packages to npm. Once that ships: (1) replace devDeps `link:` paths with version ranges, (2) flip private to false, (3) remove from .changeset/config.json `ignore` list, (4) drop the `--filter='!@pothos/plugin-prisma-next'` exclusion from root scripts if any was added — the staged changeset at .changeset/initial-prisma-next.md will then bump 0.1.0. Until then, contributors need a sibling `prisma-next` clone at ../../../prisma-next/ for `pnpm install` to resolve the link: deps.",
+  "_publishGate": "Stays private until prisma-next publishes its packages to npm. Once that ships: (1) replace devDeps `link:` paths with version ranges, (2) flip private to false, (3) remove from .changeset/config.json `ignore` list, (4) drop the `--filter='!@pothos/plugin-prisma-next'` exclusion from root scripts if any was added, (5) delete website/vendor/prisma-next/ (the snapshot the playground demo consumes — keep driver-sqlite/ there if the sql.js browser shim is still needed) and switch website/package.json's @prisma-next/* deps to real npm ranges. The staged changeset at .changeset/initial-prisma-next.md will then bump 0.1.0. Until then, contributors need a sibling `prisma-next` clone at ../../../prisma-next/ for `pnpm install` to resolve the link: deps; the playground demo consumes a vendored snapshot of the browser-safe packages so the docs site builds without that clone.",
   "description": "A Pothos plugin for the new prisma-next client",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

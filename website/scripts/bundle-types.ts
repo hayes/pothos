@@ -27,6 +27,7 @@ const PLUGIN_PACKAGES: string[] = [
   'plugin-errors',
   'plugin-validation',
   'plugin-directives',
+  'plugin-prisma-next',
 ];
 
 function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[] {
@@ -171,6 +172,15 @@ function processTypeContent(
     .replace(/(import\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
       replaceRelativePath(match, prefix, relativePath, ''),
     )
+    // import('./path') — dynamic import used in *type* positions, e.g.
+    // `ExposableShape = import('./types').Row<Types, M>`. Without this
+    // rewrite the relative specifier survives into a `declare module`
+    // block where TS silently resolves it to `any`, collapsing every
+    // downstream generic that depends on it (and producing
+    // permissive-string overloads for things like `exposeID`).
+    .replace(/(import\(\s*)['"](\.[^'"]+)['"](\s*\))/g, (match, prefix, relativePath, suffix) =>
+      replaceRelativePath(match, prefix, relativePath, suffix),
+    )
     // export ... from './path'
     .replace(/(export\s+\*\s+from\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
       replaceRelativePath(match, prefix, relativePath, ''),
@@ -269,9 +279,146 @@ function readGraphQLTypes(): TypeDefinition[] {
   ];
 }
 
+interface RawTypeFile {
+  filePath: string;
+  content: string;
+}
+
+/**
+ * Strip `.mjs` extensions from relative imports inside a .d.ts file
+ * so TS's classic resolver can pick up the renamed (.d.ts) target.
+ * Only touches `./` / `../` specifiers; bare imports flow through
+ * unchanged (those resolve via paths or node_modules).
+ */
+function rewriteRelativeImports(content: string): string {
+  return content
+    .replace(/(from\s+['"])(\.[^'"]+)\.mjs(['"])/g, '$1$2$3')
+    .replace(/(import\s+['"])(\.[^'"]+)\.mjs(['"])/g, '$1$2$3');
+}
+
+interface PrismaNextTypes {
+  files: RawTypeFile[];
+  /**
+   * Explicit `paths` map for each `@prisma-next/<pkg>/<subpath>` →
+   * `.d.mts` location. Monaco's TS in 0.52.x doesn't reliably honour
+   * `package.json#exports`, so generating paths here means resolution
+   * works regardless of moduleResolution kind.
+   */
+  paths: Record<string, string[]>;
+}
+
+/**
+ * Walk the vendored @prisma-next/* dist directories. For each
+ * package's `exports`, emit:
+ *  - the `.d.mts` file at its node_modules path
+ *  - any internal chunk files in the same dist directory
+ *  - the package.json (for future exports-aware resolvers)
+ *  - a `paths` entry mapping the subpath specifier to the .d.mts
+ *
+ * The `.mjs` files are already served by the workspace at runtime;
+ * this only feeds Monaco the type-side, which it can't see otherwise.
+ */
+function readPrismaNextTypes(): PrismaNextTypes {
+  const vendorRoot = path.join(__dirname, '../vendor/prisma-next');
+  if (!fs.existsSync(vendorRoot)) {
+    return { files: [], paths: {} };
+  }
+  const files: RawTypeFile[] = [];
+  const paths: Record<string, string[]> = {};
+  for (const pkgSlug of fs.readdirSync(vendorRoot)) {
+    const pkgDir = path.join(vendorRoot, pkgSlug);
+    if (!fs.statSync(pkgDir).isDirectory()) {
+      continue;
+    }
+    const pkgJsonPath = path.join(pkgDir, 'package.json');
+    if (!fs.existsSync(pkgJsonPath)) {
+      continue;
+    }
+    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+    const pkgName: string = pkgJson.name;
+    if (typeof pkgName !== 'string' || !pkgName.startsWith('@prisma-next/')) {
+      continue;
+    }
+
+    files.push({
+      filePath: `file:///node_modules/${pkgName}/package.json`,
+      content: fs.readFileSync(pkgJsonPath, 'utf8'),
+    });
+
+    // Emit each .d.mts file as .d.ts at the same path layout and strip
+    // `.mjs` extensions from relative imports inside. Monaco's TS
+    // classic resolver doesn't try `.d.mts` extensions when resolving
+    // a relative import like `./codecs-XYZ.mjs`, so files renamed to
+    // `.d.ts` with extension-less imports resolve through the same
+    // virtual filesystem on every TS resolution mode. Recurses into
+    // dist subdirectories (e.g. `dist/exports/`) — without that, paths
+    // entries point at files that aren't in extraLibs, so generic
+    // types like `CodecDefBuilder` silently resolve to `any`.
+    const distDir = path.join(pkgDir, 'dist');
+    if (fs.existsSync(distDir)) {
+      const walk = (dir: string, rel: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const fullPath = path.join(dir, entry.name);
+          const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+          if (entry.isDirectory()) {
+            walk(fullPath, relPath);
+            continue;
+          }
+          if (!entry.name.endsWith('.d.mts') || entry.name.endsWith('.d.mts.map')) {
+            continue;
+          }
+          const renamed = relPath.replace(/\.d\.mts$/, '.d.ts');
+          files.push({
+            filePath: `file:///node_modules/${pkgName}/dist/${renamed}`,
+            content: rewriteRelativeImports(fs.readFileSync(fullPath, 'utf8')),
+          });
+        }
+      };
+      walk(distDir, '');
+    }
+
+    // Generate paths entries from the package's exports field.
+    // `exports['./X']: './dist/X.mjs'` → paths[`@pkg/X`] → dist/X.d.ts.
+    const exportsField = pkgJson.exports as Record<string, unknown> | undefined;
+    if (exportsField) {
+      for (const [exportKey, target] of Object.entries(exportsField)) {
+        if (exportKey === './package.json') {
+          continue;
+        }
+        if (typeof target !== 'string') {
+          continue;
+        }
+        const dts = target.replace(/\.mjs$/, '.d.ts').replace(/^\.\//, '');
+        const subpath = exportKey.replace(/^\.\//, '');
+        const specifier = exportKey === '.' ? pkgName : `${pkgName}/${subpath}`;
+        paths[specifier] = [`file:///node_modules/${pkgName}/${dts}`];
+      }
+    }
+
+    // driver-sqlite is hand-written and ships .mjs (runtime) +
+    // .d.mts (types) in src/, no pre-built dist. Apply the same
+    // .d.mts → .d.ts rename + import-extension scrub to its src/.
+    const srcDir = path.join(pkgDir, 'src');
+    if (fs.existsSync(srcDir)) {
+      for (const file of fs.readdirSync(srcDir)) {
+        if (!file.endsWith('.d.mts') && !file.endsWith('.d.ts')) {
+          continue;
+        }
+        const renamed = file.replace(/\.d\.mts$/, '.d.ts');
+        files.push({
+          filePath: `file:///node_modules/${pkgName}/src/${renamed}`,
+          content: rewriteRelativeImports(fs.readFileSync(path.join(srcDir, file), 'utf8')),
+        });
+      }
+    }
+  }
+  return { files, paths };
+}
+
 function main() {
   const coreDefinitions: TypeDefinition[] = [];
   const pluginDefinitions: Record<string, TypeDefinition[]> = {};
+  const { files: prismaNextLibs, paths: prismaNextPaths } = readPrismaNextTypes();
 
   // Add GraphQL types to core (bundled from node_modules)
   const graphqlTypes = readGraphQLTypes();
@@ -308,9 +455,18 @@ function main() {
 //
 // Core types are loaded immediately
 // Plugin types are loaded dynamically based on imports
+// Prisma-next types are vendored .d.mts files, loaded on-demand when
+// any @prisma-next/* import is detected — registered at file paths
+// that mirror real node_modules so TS resolves subpaths via the
+// vendored package.json's exports field, not a declare-module wrapper.
 
 export interface TypeDefinition {
   moduleName: string;
+  content: string;
+}
+
+export interface RawTypeFile {
+  filePath: string;
   content: string;
 }
 
@@ -319,6 +475,18 @@ export const coreTypeDefinitions: TypeDefinition[] = ${JSON.stringify(orderedCor
 
 // Plugin types (loaded on-demand)
 export const pluginTypeDefinitions: Record<string, TypeDefinition[]> = ${JSON.stringify(pluginDefinitions, null, 2)};
+
+// Vendored @prisma-next/* type files (loaded on-demand on first
+// @prisma-next/* import). Each entry's filePath is a node_modules-shaped
+// URI that TS's module resolution can walk.
+export const prismaNextTypeFiles: RawTypeFile[] = ${JSON.stringify(prismaNextLibs, null, 2)};
+
+// Explicit \`paths\` entries the playground feeds to Monaco's TS
+// compiler options when @prisma-next/* imports are detected. Generated
+// from each vendored package's exports field so Monaco resolves
+// subpaths even when its TS version doesn't honour package.json
+// exports natively.
+export const prismaNextPaths: Record<string, string[]> = ${JSON.stringify(prismaNextPaths, null, 2)};
 
 export function getCoreTypeDefinitions(): TypeDefinition[] {
   return coreTypeDefinitions;
@@ -346,6 +514,7 @@ export function getAllPluginNames(): string[] {
   for (const [plugin, defs] of Object.entries(pluginDefinitions)) {
     console.log(`    - ${plugin}: ${defs.length} definitions`);
   }
+  console.log(`  - ${prismaNextLibs.length} @prisma-next/* type files`);
 }
 
 main();

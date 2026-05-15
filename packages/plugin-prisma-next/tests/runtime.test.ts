@@ -58,9 +58,9 @@ function buildSchema() {
       publishedPostCount: t.field({
         type: 'Int',
         select: {
-          posts: (sub: {
-            where: (w: unknown) => { count: () => unknown };
-          }) => ({ posts: sub.where({ published: 1 }).count() }),
+          posts: (sub: { where: (w: unknown) => { count: () => unknown } }) => ({
+            posts: sub.where({ published: 1 }).count(),
+          }),
         },
         resolve: ((parent: { posts: number }) => parent.posts) as never,
       } as never),
@@ -110,13 +110,9 @@ function buildSchema() {
         type: 'Int',
         nullable: true,
         select: {
-          posts: (sub: {
-            where: (cb: unknown) => { count: () => unknown };
-          }) => ({
+          posts: (sub: { where: (cb: unknown) => { count: () => unknown } }) => ({
             posts: sub
-              .where((p: { published: { eq: (v: number) => unknown } }) =>
-                p.published.eq(1),
-              )
+              .where((p: { published: { eq: (v: number) => unknown } }) => p.published.eq(1))
               .count(),
           }),
         },

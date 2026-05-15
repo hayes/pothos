@@ -724,13 +724,13 @@ importers:
         version: link:../test-utils
       drizzle-graphql:
         specifier: ^0.8.5
-        version: 0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2)
+        version: 0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(arktype@2.2.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2)
       drizzle-kit:
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
       drizzle-orm:
         specifier: 1.0.0-rc.2
-        version: 1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
+        version: 1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(arktype@2.2.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
       graphql-scalars:
         specifier: ^1.25.0
         version: 1.25.0(graphql@16.13.2)
@@ -1394,6 +1394,9 @@ importers:
       '@pothos/plugin-errors':
         specifier: workspace:^
         version: link:../packages/plugin-errors
+      '@pothos/plugin-prisma-next':
+        specifier: workspace:^
+        version: link:../packages/plugin-prisma-next
       '@pothos/plugin-relay':
         specifier: workspace:^
         version: link:../packages/plugin-relay
@@ -1409,6 +1412,27 @@ importers:
       '@pothos/plugin-with-input':
         specifier: workspace:^
         version: link:../packages/plugin-with-input
+      '@prisma-next/adapter-sqlite':
+        specifier: workspace:*
+        version: link:vendor/prisma-next/adapter-sqlite
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:vendor/prisma-next/contract
+      '@prisma-next/driver-sqlite':
+        specifier: workspace:*
+        version: link:vendor/prisma-next/driver-sqlite
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:vendor/prisma-next/sql-contract
+      '@prisma-next/sql-orm-client':
+        specifier: workspace:*
+        version: link:vendor/prisma-next/sql-orm-client
+      '@prisma-next/sql-runtime':
+        specifier: workspace:*
+        version: link:vendor/prisma-next/sql-runtime
+      '@prisma-next/sqlite':
+        specifier: workspace:*
+        version: link:vendor/prisma-next/sqlite
       '@tailwindcss/postcss':
         specifier: ^4.2.2
         version: 4.2.2
@@ -1509,6 +1533,382 @@ importers:
       vitest:
         specifier: ^4.1.4
         version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+
+  website/vendor/prisma-next/adapter-sqlite:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/contract-authoring':
+        specifier: workspace:*
+        version: link:../contract-authoring
+      '@prisma-next/family-sql':
+        specifier: workspace:*
+        version: link:../family-sql
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/ids':
+        specifier: workspace:*
+        version: link:../ids
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-contract-psl':
+        specifier: workspace:*
+        version: link:../sql-contract-psl
+      '@prisma-next/sql-contract-ts':
+        specifier: workspace:*
+        version: link:../sql-contract-ts
+      '@prisma-next/sql-operations':
+        specifier: workspace:*
+        version: link:../sql-operations
+      '@prisma-next/sql-relational-core':
+        specifier: workspace:*
+        version: link:../sql-relational-core
+      '@prisma-next/sql-runtime':
+        specifier: workspace:*
+        version: link:../sql-runtime
+      '@prisma-next/sql-schema-ir':
+        specifier: workspace:*
+        version: link:../sql-schema-ir
+      '@prisma-next/target-sqlite':
+        specifier: workspace:*
+        version: link:../target-sqlite
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+      arktype:
+        specifier: ^2.0.0
+        version: 2.2.0
+
+  website/vendor/prisma-next/contract:
+    dependencies:
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+      arktype:
+        specifier: ^2.1.29
+        version: 2.2.0
+
+  website/vendor/prisma-next/contract-authoring: {}
+
+  website/vendor/prisma-next/driver-sqlite:
+    dependencies:
+      sql.js:
+        specifier: 1.14.1
+        version: 1.14.1
+
+  website/vendor/prisma-next/errors:
+    dependencies:
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+
+  website/vendor/prisma-next/family-sql:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/operations':
+        specifier: workspace:*
+        version: link:../operations
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-contract-ts':
+        specifier: workspace:*
+        version: link:../sql-contract-ts
+      '@prisma-next/sql-operations':
+        specifier: workspace:*
+        version: link:../sql-operations
+      '@prisma-next/sql-relational-core':
+        specifier: workspace:*
+        version: link:../sql-relational-core
+      '@prisma-next/sql-runtime':
+        specifier: workspace:*
+        version: link:../sql-runtime
+      '@prisma-next/sql-schema-ir':
+        specifier: workspace:*
+        version: link:../sql-schema-ir
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+      arktype:
+        specifier: ^2.0.0
+        version: 2.2.0
+
+  website/vendor/prisma-next/framework-components:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/operations':
+        specifier: workspace:*
+        version: link:../operations
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+
+  website/vendor/prisma-next/ids:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/contract-authoring':
+        specifier: workspace:*
+        version: link:../contract-authoring
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+      uniku:
+        specifier: ^0.0.12
+        version: 0.0.12
+
+  website/vendor/prisma-next/operations: {}
+
+  website/vendor/prisma-next/sql-builder:
+    dependencies:
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/sql-operations':
+        specifier: workspace:*
+        version: link:../sql-operations
+      '@prisma-next/sql-relational-core':
+        specifier: workspace:*
+        version: link:../sql-relational-core
+
+  website/vendor/prisma-next/sql-contract:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      arktype:
+        specifier: ^2.1.25
+        version: 2.2.0
+
+  website/vendor/prisma-next/sql-contract-psl:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-contract-ts':
+        specifier: workspace:*
+        version: link:../sql-contract-ts
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+
+  website/vendor/prisma-next/sql-contract-ts:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/contract-authoring':
+        specifier: workspace:*
+        version: link:../contract-authoring
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+      arktype:
+        specifier: ^2.1.25
+        version: 2.2.0
+
+  website/vendor/prisma-next/sql-errors: {}
+
+  website/vendor/prisma-next/sql-operations:
+    dependencies:
+      '@prisma-next/operations':
+        specifier: workspace:*
+        version: link:../operations
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      arktype:
+        specifier: ^2.1.26
+        version: 2.2.0
+
+  website/vendor/prisma-next/sql-orm-client:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/operations':
+        specifier: workspace:*
+        version: link:../operations
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-operations':
+        specifier: workspace:*
+        version: link:../sql-operations
+      '@prisma-next/sql-relational-core':
+        specifier: workspace:*
+        version: link:../sql-relational-core
+      '@prisma-next/sql-runtime':
+        specifier: workspace:*
+        version: link:../sql-runtime
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+
+  website/vendor/prisma-next/sql-relational-core:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/operations':
+        specifier: workspace:*
+        version: link:../operations
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-operations':
+        specifier: workspace:*
+        version: link:../sql-operations
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+      arktype:
+        specifier: ^2.1.29
+        version: 2.2.0
+
+  website/vendor/prisma-next/sql-runtime:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/ids':
+        specifier: workspace:*
+        version: link:../ids
+      '@prisma-next/operations':
+        specifier: workspace:*
+        version: link:../operations
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-operations':
+        specifier: workspace:*
+        version: link:../sql-operations
+      '@prisma-next/sql-relational-core':
+        specifier: workspace:*
+        version: link:../sql-relational-core
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+      arktype:
+        specifier: ^2.1.26
+        version: 2.2.0
+
+  website/vendor/prisma-next/sql-schema-ir:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+
+  website/vendor/prisma-next/sqlite:
+    dependencies:
+      '@prisma-next/adapter-sqlite':
+        specifier: workspace:*
+        version: link:../adapter-sqlite
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/driver-sqlite':
+        specifier: workspace:*
+        version: link:../driver-sqlite
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/sql-builder':
+        specifier: workspace:*
+        version: link:../sql-builder
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-orm-client':
+        specifier: workspace:*
+        version: link:../sql-orm-client
+      '@prisma-next/sql-relational-core':
+        specifier: workspace:*
+        version: link:../sql-relational-core
+      '@prisma-next/sql-runtime':
+        specifier: workspace:*
+        version: link:../sql-runtime
+      '@prisma-next/target-sqlite':
+        specifier: workspace:*
+        version: link:../target-sqlite
+
+  website/vendor/prisma-next/target-sqlite:
+    dependencies:
+      '@prisma-next/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@prisma-next/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@prisma-next/family-sql':
+        specifier: workspace:*
+        version: link:../family-sql
+      '@prisma-next/framework-components':
+        specifier: workspace:*
+        version: link:../framework-components
+      '@prisma-next/sql-contract':
+        specifier: workspace:*
+        version: link:../sql-contract
+      '@prisma-next/sql-errors':
+        specifier: workspace:*
+        version: link:../sql-errors
+      '@prisma-next/sql-relational-core':
+        specifier: workspace:*
+        version: link:../sql-relational-core
+      '@prisma-next/sql-runtime':
+        specifier: workspace:*
+        version: link:../sql-runtime
+      '@prisma-next/sql-schema-ir':
+        specifier: workspace:*
+        version: link:../sql-schema-ir
+      '@prisma-next/ts-render':
+        specifier: workspace:*
+        version: link:../ts-render
+      '@prisma-next/utils':
+        specifier: workspace:*
+        version: link:../utils
+
+  website/vendor/prisma-next/ts-render: {}
+
+  website/vendor/prisma-next/utils: {}
 
 packages:
 
@@ -1745,6 +2145,12 @@ packages:
     resolution: {integrity: sha512-afG3YPwuSA0E5foouZusz5GlXKs74dObv4cuWyLyfKsYFj2r7oGRNB28v18HvwuLSQtQFCi+DpIe0TZkgQDYyg==}
     peerDependencies:
       graphql: ^16.10.0
+
+  '@ark/schema@0.56.0':
+    resolution: {integrity: sha512-ECg3hox/6Z/nLajxXqNhgPtNdHWC9zNsDyskwO28WinoFEnWow4IsERNz9AnXRhTZJnYIlAJ4uGn3nlLk65vZA==}
+
+  '@ark/util@0.56.0':
+    resolution: {integrity: sha512-BghfRC8b9pNs3vBoDJhcta0/c1J1rsoS1+HgVUreMFPdhz/CRAKReAu57YEllNaSy98rWAdY1gE+gFup7OXpgA==}
 
   '@as-integrations/express5@1.1.2':
     resolution: {integrity: sha512-BxfwtcWNf2CELDkuPQxi5Zl3WqY/dQVJYafeCBOGoFQjv5M0fjhxmAFZ9vKx/5YKKNeok4UY6PkFbHzmQrdxIA==}
@@ -3759,6 +4165,10 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
+
+  '@noble/hashes@2.2.0':
+    resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
+    engines: {node: '>= 20.19.0'}
 
   '@node-rs/helper@1.2.1':
     resolution: {integrity: sha512-R5wEmm8nbuQU0YGGmYVjEc0OHtYsuXdpRG+Ut/3wZ9XAvQWyThN08bTh2cBJgoZxHQUPtvRfeQuxcAgLuiBISg==}
@@ -6148,6 +6558,12 @@ packages:
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
+
+  arkregex@0.0.5:
+    resolution: {integrity: sha512-ncYjBdLlh5/QnVsAA8De16Tc9EqmYM7y/WU9j+236KcyYNUXogpz3sC4ATIZYzzLxwI+0sEOaQLEmLmRleaEXw==}
+
+  arktype@2.2.0:
+    resolution: {integrity: sha512-t54MZ7ti5BhOEvzEkgKnWvqj+UbDfWig+DHr5I34xatymPusKLS0lQpNJd8M6DzmIto2QGszHfNKoFIT8tMCZQ==}
 
   array-buffer-byte-length@1.0.2:
     resolution: {integrity: sha512-LHE+8BuR7RYGDKvnrmcuSq3tDcKv9OFEXQt/HpbZhY7V6h0zlUXutnAD82GiFx9rdieCMjkvtcsPqBwgUl1Iiw==}
@@ -10959,6 +11375,9 @@ packages:
   sprintf-js@1.1.3:
     resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
 
+  sql.js@1.14.1:
+    resolution: {integrity: sha512-gcj8zBWU5cFsi9WUP+4bFNXAyF1iRpA3LLyS/DP5xlrNzGmPIizUeBggKa8DbDwdqaKwUcTEnChtd2grWo/x/A==}
+
   sqlite3@6.0.1:
     resolution: {integrity: sha512-X0czUUMG2tmSqJpEQa3tCuZSHKIx8PwM53vLZzKp/o6Rpy25fiVfjdbnZ988M8+O3ZWR1ih0K255VumCb3MAnQ==}
     engines: {node: '>=20.17.0'}
@@ -11550,6 +11969,10 @@ packages:
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
+
+  uniku@0.0.12:
+    resolution: {integrity: sha512-wqt0D/ZcBTDprQxlFpxDm4jCHlQyHWQ62PMXPF0AfU7oxHm4g5++7EY7/+uwApCMOhfzRE8fTf4WATe6lH1vkg==}
+    engines: {node: '>=24.13.0'}
 
   unist-util-is@6.0.1:
     resolution: {integrity: sha512-LsiILbtBETkDz8I9p1dQ0uyRUWuaQzd/cuEeS1hoRSyW5E5XGmTzlwY1OrNzzakGowI9Dr/I8HVaw4hTtnxy8g==}
@@ -12490,6 +12913,12 @@ snapshots:
       graphql: 16.13.2
       immutable: 5.1.5
       invariant: 2.2.4
+
+  '@ark/schema@0.56.0':
+    dependencies:
+      '@ark/util': 0.56.0
+
+  '@ark/util@0.56.0': {}
 
   '@as-integrations/express5@1.1.2(@apollo/server@5.5.0(graphql@16.13.2))(express@5.2.1)':
     dependencies:
@@ -14721,6 +15150,8 @@ snapshots:
 
   '@next/swc-win32-x64-msvc@16.2.3':
     optional: true
+
+  '@noble/hashes@2.2.0': {}
 
   '@node-rs/helper@1.2.1':
     dependencies:
@@ -17269,6 +17700,16 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  arkregex@0.0.5:
+    dependencies:
+      '@ark/util': 0.56.0
+
+  arktype@2.2.0:
+    dependencies:
+      '@ark/schema': 0.56.0
+      '@ark/util': 0.56.0
+      arkregex: 0.0.5
+
   array-buffer-byte-length@1.0.2:
     dependencies:
       call-bound: 1.0.4
@@ -18390,9 +18831,9 @@ snapshots:
       p-event: 2.3.1
       pify: 4.0.1
 
-  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2):
+  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(arktype@2.2.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6))(graphql@16.13.2):
     dependencies:
-      drizzle-orm: 1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
+      drizzle-orm: 1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(arktype@2.2.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
       graphql: 16.13.2
       graphql-parse-resolve-info: 4.14.1(graphql@16.13.2)
     transitivePeerDependencies:
@@ -18406,18 +18847,20 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.6.1
 
-  drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6):
+  drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(arktype@2.2.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6):
     optionalDependencies:
       '@electric-sql/pglite': 0.4.1
       '@libsql/client': 0.17.2(encoding@0.1.13)
       '@opentelemetry/api': 1.9.1
       '@types/mssql': 9.1.8(@azure/core-client@1.10.1)
       '@types/pg': 8.20.0
+      arktype: 2.2.0
       better-sqlite3: 12.9.0
       mssql: 11.0.1(@azure/core-client@1.10.1)
       mysql2: 3.15.3
       pg: 8.20.0
       postgres: 3.4.9
+      sql.js: 1.14.1
       sqlite3: 6.0.1
       valibot: 1.2.0(typescript@6.0.2)
       zod: 4.3.6
@@ -22980,6 +23423,8 @@ snapshots:
   sprintf-js@1.1.3:
     optional: true
 
+  sql.js@1.14.1: {}
+
   sqlite3@6.0.1:
     dependencies:
       bindings: 1.5.0
@@ -23605,6 +24050,10 @@ snapshots:
       is-plain-obj: 4.1.0
       trough: 2.2.0
       vfile: 6.0.3
+
+  uniku@0.0.12:
+    dependencies:
+      '@noble/hashes': 2.2.0
 
   unist-util-is@6.0.1:
     dependencies:

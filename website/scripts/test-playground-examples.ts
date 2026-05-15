@@ -8,7 +8,12 @@ import { readdir, readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { type GraphQLSchema, parse, validate } from 'graphql';
 import * as ts from 'typescript';
-import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playground/pothos-types';
+import {
+  getCoreTypeDefinitions,
+  getPluginTypeDefinitions,
+  prismaNextPaths,
+  prismaNextTypeFiles,
+} from '../lib/playground/pothos-types';
 
 // Load examples from individual directories.
 //
@@ -81,6 +86,35 @@ async function loadExampleFiles(dirPath: string, header: ExampleHeader) {
   const schemaPath = path.join(dirPath, 'schema.ts');
   const schemaContent = await readFile(schemaPath, 'utf-8');
 
+  // Multi-file step bundles ship sibling source files (`builder.ts`,
+  // `user.ts`, `db.ts`, contract `.d.ts` / `.json`, seed `.sql`). The
+  // typechecker has to see them all or the imports in schema.ts
+  // resolve to nothing. Pick up every code/data file in the dir,
+  // EXCLUDING schema.ts (added separately as the entry point) and
+  // .graphql query files (handled below).
+  const entries = await readdir(dirPath, { withFileTypes: true });
+  const siblingFiles: Array<{ filename: string; content: string; language?: 'typescript' }> = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    const filename = entry.name;
+    if (filename === 'schema.ts') {
+      continue;
+    }
+    if (filename === 'metadata.json' || filename === 'README.md' || filename === 'schema.prisma') {
+      continue;
+    }
+    if (filename.endsWith('.ts') || filename.endsWith('.json') || filename.endsWith('.sql')) {
+      const content = await readFile(path.join(dirPath, filename), 'utf-8');
+      siblingFiles.push({
+        filename,
+        content,
+        ...(filename.endsWith('.ts') ? { language: 'typescript' as const } : {}),
+      });
+    }
+  }
+
   let queryContent = '';
   try {
     const queryPath = path.join(dirPath, 'query.graphql');
@@ -97,6 +131,7 @@ async function loadExampleFiles(dirPath: string, header: ExampleHeader) {
         content: schemaContent,
         language: 'typescript' as const,
       },
+      ...siblingFiles,
     ],
     defaultQuery: queryContent || '{\n  # Add your query here\n}',
   };
@@ -113,9 +148,18 @@ interface TypeCheckResult {
 }
 
 /**
- * Create a TypeScript program from type definitions and test code
+ * Create a TypeScript program from type definitions and test code.
+ *
+ * `siblingFiles` carries the other files in the example bundle
+ * (user.ts, builder.ts, db.ts, contract.json, seed.sql, …). They're
+ * registered under their original names so the entry `schema.ts`'s
+ * relative imports (`./user`, `./db`, …) resolve.
  */
-function typeCheckCode(code: string, pluginNames: string[]): TypeCheckResult {
+function typeCheckCode(
+  code: string,
+  pluginNames: string[],
+  siblingFiles: Array<{ filename: string; content: string }> = [],
+): TypeCheckResult {
   const errors: TypeCheckResult['errors'] = [];
 
   // Get all type definitions
@@ -126,8 +170,60 @@ function typeCheckCode(code: string, pluginNames: string[]): TypeCheckResult {
   // Create a map of file paths to content
   const fileMap = new Map<string, string>();
 
+  // Sibling files first — registered under `schema.ts`-relative paths
+  // so `./user` etc. resolve. Data files (`.json`, `.sql`) get a
+  // per-file `.d.ts` ambient sidecar so the bundler resolver can
+  // match them by their exact specifier.
+  for (const file of siblingFiles) {
+    if (file.filename.endsWith('.json')) {
+      fileMap.set(
+        `${file.filename}.d.ts`,
+        'declare const _default: unknown;\nexport default _default;\n',
+      );
+      continue;
+    }
+    if (file.filename.endsWith('.sql')) {
+      fileMap.set(
+        `${file.filename}.d.ts`,
+        'declare const _default: string;\nexport default _default;\n',
+      );
+      continue;
+    }
+    if (file.filename.endsWith('.d.ts') || file.filename.endsWith('.ts')) {
+      fileMap.set(file.filename, file.content);
+    }
+  }
+
   // Add the test code
   fileMap.set('test.ts', code);
+
+  // The prisma-next plugin demos import vendored @prisma-next/* runtime
+  // modules and the synthetic `@pothos/playground-capture` package.
+  // Bundle the same .d.mts payload Monaco uses in the playground so
+  // the typechecker resolves them just like the editor would.
+  const allBundleSource = [code, ...siblingFiles.map((f) => f.content)].join('\n');
+  const usesPrismaNext =
+    allBundleSource.includes("'@prisma-next/") || allBundleSource.includes('"@prisma-next/');
+  if (usesPrismaNext) {
+    for (const lib of prismaNextTypeFiles) {
+      // `lib.filePath` is a `file:///node_modules/...` URL; the TS
+      // host expects pathless module specifiers, so register under the
+      // `node_modules/...` suffix.
+      const stripped = lib.filePath.replace(/^file:\/\/\//, '');
+      fileMap.set(stripped, lib.content);
+    }
+  }
+  if (allBundleSource.includes("'@pothos/playground-capture'")) {
+    fileMap.set(
+      '__playground_capture.d.ts',
+      [
+        "declare module '@pothos/playground-capture' {",
+        "  import type { SqlMiddleware } from '@prisma-next/sql-runtime';",
+        '  export const capturePlaygroundSql: SqlMiddleware;',
+        '}',
+      ].join('\n'),
+    );
+  }
 
   // Add all type definitions
   for (const typeDef of allTypes) {
@@ -241,9 +337,74 @@ function typeCheckCode(code: string, pluginNames: string[]): TypeCheckResult {
     return originalReadFile(fileName);
   };
 
+  // POSIX-style path join with `..` resolution for the fileMap keys.
+  const posixJoin = (...parts: string[]): string => {
+    const segments: string[] = [];
+    for (const part of parts.join('/').split('/')) {
+      if (part === '' || part === '.') {
+        continue;
+      }
+      if (part === '..') {
+        segments.pop();
+        continue;
+      }
+      segments.push(part);
+    }
+    return segments.join('/');
+  };
+
   // Add module resolution support
   host.resolveModuleNames = (moduleNames, _containingFile) => {
     return moduleNames.map((moduleName) => {
+      // Relative imports — `./builder`, `./user.ts`, `./contract.json`,
+      // and (inside the vendored prisma-next .d.mts files) chunked
+      // sibling imports like `../codec-types-DJEaWT36`. Resolve
+      // against the containing file's directory so the import path
+      // lines up with how the bundle registered the chunk.
+      if (moduleName.startsWith('./') || moduleName.startsWith('../')) {
+        const containing = (_containingFile ?? '').replace(/\\/g, '/');
+        // The containing file's path comes through absolute. Normalise
+        // to the fileMap's key space: keys are either bare names
+        // (`builder.ts` — example-local siblings) or `node_modules/...`
+        // (vendored prisma-next chunks). Pick the right base to join
+        // against based on which case we're in.
+        let containingDir = '';
+        const nodeModulesIdx = containing.indexOf('/node_modules/');
+        if (nodeModulesIdx !== -1) {
+          const rel = containing.slice(nodeModulesIdx + 1); // strip leading `/`
+          containingDir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+        }
+        // Otherwise containingDir stays '' — local example files all
+        // sit at the fileMap root.
+        const joined = posixJoin(containingDir, moduleName);
+        const candidates = [
+          joined,
+          `${joined}.ts`,
+          `${joined}.d.ts`,
+          `${joined}/index.ts`,
+          `${joined}/index.d.ts`,
+        ];
+        for (const candidate of candidates) {
+          if (fileMap.has(candidate)) {
+            return { resolvedFileName: candidate, isExternalLibraryImport: false };
+          }
+        }
+      }
+
+      // Bare-specifier external imports — first try the prisma-next
+      // bundle's `paths` map (covers the per-subpath exports of every
+      // vendored @prisma-next package), then fall back to the
+      // node_modules-shaped lookups used by core/plugin types.
+      const prismaNextEntry = prismaNextPaths[moduleName];
+      if (prismaNextEntry?.length) {
+        // The paths map stores `file:///node_modules/...` URLs; the
+        // fileMap was registered with the URL prefix stripped.
+        const resolved = prismaNextEntry[0].replace(/^file:\/\/\//, '');
+        if (fileMap.has(resolved)) {
+          return { resolvedFileName: resolved, isExternalLibraryImport: true };
+        }
+      }
+
       // Try to resolve as a node_modules path
       const possiblePaths = [
         `node_modules/${moduleName}/index.d.ts`,
@@ -264,11 +425,33 @@ function typeCheckCode(code: string, pluginNames: string[]): TypeCheckResult {
     });
   };
 
-  // Create the program
-  const program = ts.createProgram(['test.ts'], compilerOptions, host);
+  // Create the program. Pass sibling source files as entry points too
+  // so the typechecker visits them, otherwise their own type errors
+  // (and any cross-file inferences they contribute) silently disappear.
+  // The synthetic `__playground_capture.d.ts` is also pulled in so its
+  // `declare module '@pothos/playground-capture'` ambient registers.
+  const entryFiles = ['test.ts'];
+  for (const filename of fileMap.keys()) {
+    if (filename === 'test.ts') {
+      continue;
+    }
+    if (filename === '__playground_capture.d.ts') {
+      entryFiles.push(filename);
+      continue;
+    }
+    if (filename.endsWith('.ts') && !filename.endsWith('.d.ts')) {
+      entryFiles.push(filename);
+    }
+  }
+  const program = ts.createProgram(entryFiles, compilerOptions, host);
 
   // Get diagnostics
   const diagnostics = ts.getPreEmitDiagnostics(program);
+
+  // User-authored example files (anything we explicitly added to the
+  // bundle). Errors inside these — not just `test.ts` — are surfaced
+  // so a typo in `user.ts` doesn't get swallowed.
+  const exampleFiles = new Set(entryFiles);
 
   // Process diagnostics
   for (const diagnostic of diagnostics) {
@@ -278,8 +461,7 @@ function typeCheckCode(code: string, pluginNames: string[]): TypeCheckResult {
       if (diagnostic.file && diagnostic.start !== undefined) {
         const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
 
-        // Only report errors from the test file, not from type definitions
-        if (diagnostic.file.fileName === 'test.ts') {
+        if (exampleFiles.has(diagnostic.file.fileName)) {
           errors.push({
             file: diagnostic.file.fileName,
             line: line + 1,
@@ -470,15 +652,28 @@ async function main() {
     console.log(`\n📝 Testing: ${example.title}`);
     console.log('─'.repeat(60));
 
-    // Extract plugin imports
-    const pluginImports = extractPluginImports(code);
+    // Extract plugin imports from EVERY file in the bundle — for
+    // multi-file step bundles the @pothos/plugin-* imports live in
+    // builder.ts, not schema.ts. Scanning only the entry would skip
+    // the plugin type augmentations and `builder.prismaObject` would
+    // come up undefined.
+    const allBundleSource = (example.files ?? [])
+      .map((f: { content: string }) => f.content)
+      .join('\n');
+    const pluginImports = extractPluginImports(allBundleSource);
 
     if (pluginImports.length > 0) {
       console.log(`   Plugins: ${pluginImports.join(', ')}`);
     }
 
+    // Multi-file step bundles also need sibling source files in the
+    // type-check program so `schema.ts`'s relative imports resolve.
+    const siblings = (example.files ?? []).filter(
+      (f: { filename: string }) => f.filename !== 'schema.ts',
+    );
+
     // Type check the code
-    const schemaResult = typeCheckCode(code, pluginImports);
+    const schemaResult = typeCheckCode(code, pluginImports, siblings);
     const hasSchemaErrors = !schemaResult.success;
 
     if (!schemaResult.success) {

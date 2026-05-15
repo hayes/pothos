@@ -39,7 +39,10 @@ function exposed(column: string): { pothosExposedField: string } {
  * The walker reads relations from the type extension; ad-hoc fixture
  * types must supply both keys.
  */
-const FIXTURE_RELATIONS: Record<string, Record<string, { isToMany: boolean; localFields: readonly string[]; targetModel: string }>> = {
+const FIXTURE_RELATIONS: Record<
+  string,
+  Record<string, { isToMany: boolean; localFields: readonly string[]; targetModel: string }>
+> = {
   User: {
     posts: { isToMany: true, localFields: ['id'], targetModel: 'Post' },
     bestFriend: { isToMany: false, localFields: ['bestFriendId'], targetModel: 'User' },
@@ -840,7 +843,9 @@ describe('applySelectionToCollection · mapper + renderer', () => {
     const selectCall = base.calls.find((c) => c.method === 'select');
     // Variant descends same-row: AdminUser's `secret` lands on parent
     // SELECT, plus forced `role` from the variant's select option.
-    expect([...(selectCall?.args ?? [])].sort()).toEqual(expect.arrayContaining(['role', 'secret']));
+    expect([...(selectCall?.args ?? [])].sort()).toEqual(
+      expect.arrayContaining(['role', 'secret']),
+    );
   });
 
   it('drops fields with @skip(if: true) from the SELECT', () => {

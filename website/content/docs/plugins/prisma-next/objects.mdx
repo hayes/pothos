@@ -145,8 +145,9 @@ builder.prismaObject('User', {
         posts: (sub) => ({ posts: sub.where({ published: 1 }).count() }),
       },
       // The walker namespaces combine slots; the plugin's per-field
-      // overlay surfaces `parent.posts` here as the count value.
-      resolve: (parent) => (parent as { posts: number }).posts,
+      // overlay surfaces `parent.posts` here as the count value, and
+      // the inferred parent type already carries `posts: number`.
+      resolve: (parent) => parent.posts,
     }),
   }),
 });

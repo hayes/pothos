@@ -227,11 +227,15 @@ export type PrismaNextObjectOptions<
    * Function values for relations work too: `select: { posts: (sub) => ({...}) }`
    * — inner keys become flat properties on each row.
    */
-  select?:
-    | readonly (keyof Row<Types, M> & string)[]
-    | SelectObjectSpec<Types, M>;
+  select?: readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>;
   fields?: (
-    t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
+    // ExposableShape passed explicitly as Row<Types, M> rather than
+    // relying on the class default. Monaco's TS doesn't aggressively
+    // expand the default `Row<Types, M>` when Types is a complex
+    // SchemaTypes, leaving ExposableShape opaque inside ExposeNullability
+    // — which then takes the strict branch and demands `nullable: true`
+    // on every column.
+    t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }, Row<Types, M>>,
   ) => FieldMap;
 };
 
@@ -504,9 +508,22 @@ export type PrismaNextSelectSpec<Types extends SchemaTypes, ParentShape> =
       : never
     : never;
 
+// Array-form column keys come from the model's full Row, NOT from the
+// parent shape. The parent shape is what's already been declared as a
+// dependency; the field-level `select` is what _adds_ new ones, so
+// constraining it to current-parent keys would block every valid
+// column on a freshly-typed prismaObject (parent starts as just the
+// brand sentinel).
+type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
+  ExtractModel<Types, ParentShape> extends infer M
+    ? M extends ModelName<Types>
+      ? readonly (keyof Row<Types, M> & string)[]
+      : readonly never[]
+    : readonly never[];
+
 export type PrismaNextFieldSelect<Types extends SchemaTypes, ParentShape, Args> =
-  | readonly (keyof ParentShape & string)[]
-  | ((args: Args, ctx: Types['Context']) => readonly (keyof ParentShape & string)[])
+  | FieldSelectArray<Types, ParentShape>
+  | ((args: Args, ctx: Types['Context']) => FieldSelectArray<Types, ParentShape>)
   | PrismaNextSelectSpec<Types, ParentShape>
   | ((args: Args, ctx: Types['Context']) => PrismaNextSelectSpec<Types, ParentShape>);
 
@@ -538,7 +555,7 @@ export type PrismaNextObjectFieldOptions<
   > & {
     select?: Select &
       PrismaNextFieldSelect<Types, ParentShape, InputShapeFromFields<Args>> &
-      ValidateFieldSelect<ParentShape, Select>;
+      ValidateFieldSelect<Types, ParentShape, Select>;
   };
 
 export type { Contract } from '@prisma-next/contract/types';

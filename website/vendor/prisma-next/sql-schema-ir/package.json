@@ -1,0 +1,18 @@
+{
+  "name": "@prisma-next/sql-schema-ir",
+  "version": "0.0.1",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./naming": "./dist/exports/naming.mjs",
+    "./types": "./dist/exports/types.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@prisma-next/contract": "workspace:*"
+  }
+}

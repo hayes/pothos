@@ -78,7 +78,9 @@ describe('prisma-next orm-client M:N (upstream canary)', () => {
     const ctx = { contract, runtime: fakeRuntime, scope: {} } as never;
 
     const users = new Collection({ runtime: fakeRuntime, context: ctx }, 'User' as never);
-    const withTags = users.include('tags' as never) as unknown as { state: { includes: unknown[] } };
+    const withTags = users.include('tags' as never) as unknown as {
+      state: { includes: unknown[] };
+    };
     const inc = withTags.state.includes[0] as Record<string, unknown>;
 
     // The pin: the IncludeExpr looks like a regular single-column FK

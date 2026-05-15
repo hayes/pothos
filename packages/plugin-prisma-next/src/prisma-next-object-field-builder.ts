@@ -16,11 +16,6 @@ import {
 } from '@pothos/core';
 import type { ContractRelation } from '@prisma-next/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
-import {
-  applySelectionToCollection,
-  type IndirectInclude,
-  type MapperCollection,
-} from './utils/apply-selection';
 import type { PrismaNextObjectRef } from './object-ref';
 import type {
   AnyContract,
@@ -31,15 +26,17 @@ import type {
   PrismaNextRelationOptions,
   RelatedModel,
   RelationKeys,
+  Row,
   ToManyRelationKeys,
 } from './types';
+import {
+  applySelectionToCollection,
+  type IndirectInclude,
+  type MapperCollection,
+} from './utils/apply-selection';
 import { rebrandForVariant } from './utils/branding';
 import { compileWhere } from './utils/compile-query';
-import {
-  applyCursorPagination,
-  buildConnectionPage,
-  buildPaginationParams,
-} from './utils/cursors';
+import { applyCursorPagination, buildConnectionPage, buildPaginationParams } from './utils/cursors';
 import { readPluginOptions, resolveSizeOption } from './utils/options';
 import { getRefFromContractModel } from './utils/refs';
 import { selectionIncludesField, selectionSetIncludesField } from './utils/selection-walk';
@@ -51,13 +48,12 @@ function isToManyCardinality(cardinality: string): boolean {
 
 /** No declarative refine fields present — the sugar's `query` was an empty literal. */
 function isEmptyDeclarative(v: unknown): boolean {
-  if (v == null || typeof v !== 'object') return true;
+  if (v == null || typeof v !== 'object') {
+    return true;
+  }
   const o = v as Record<string, unknown>;
   return (
-    o.where === undefined &&
-    o.orderBy === undefined &&
-    o.take === undefined &&
-    o.skip === undefined
+    o.where === undefined && o.orderBy === undefined && o.take === undefined && o.skip === undefined
   );
 }
 
@@ -115,7 +111,7 @@ export class PrismaNextObjectFieldBuilder<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Shape = unknown,
-  ExposableShape = import('./types').Row<Types, M>,
+  ExposableShape = Row<Types, M>,
 > extends RootBuilder<Types, Shape, 'PrismaNextObject'> {
   exposeBoolean = this.createExpose('Boolean');
   exposeFloat = this.createExpose('Float');
@@ -158,9 +154,13 @@ export class PrismaNextObjectFieldBuilder<
     ResolveReturnShape,
     Name extends CompatibleTypes<Types, ExposableShape, Type, Nullable>,
   >(
+    // `name` is a positional parameter (not folded into the trailing
+    // `...args` tuple) so TS can infer `Name extends CompatibleTypes<…>`
+    // from the call site — folding it in collapses the constraint and
+    // any string passes. Matches plugin-prisma / plugin-drizzle.
+    name: Name,
     ...args: NormalizeArgs<
       [
-        name: Name,
         options: ExposeNullability<Types, Type, ExposableShape, Name, Nullable> &
           Omit<
             PothosSchemaTypes.ObjectFieldOptions<
@@ -176,7 +176,7 @@ export class PrismaNextObjectFieldBuilder<
       ]
     >
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaNextObject'> {
-    const [name, options = {} as never] = args;
+    const [options = {} as never] = args;
     return (
       this as unknown as {
         exposeField: (name: never, options: never) => FieldRef<Types, unknown, 'PrismaNextObject'>;
@@ -199,9 +199,12 @@ export class PrismaNextObjectFieldBuilder<
         Type extends [unknown] ? { list: true; items: true } : true
       >,
     >(
+      // Positional `name` so the `Name extends CompatibleTypes<…>`
+      // constraint actually narrows at the call site — see comment on
+      // `expose` above.
+      name: Name,
       ...args: NormalizeArgs<
         [
-          name: Name,
           options: ExposeNullability<Types, Type, ExposableShape, Name, Nullable> &
             Omit<
               PothosSchemaTypes.ObjectFieldOptions<
@@ -219,7 +222,7 @@ export class PrismaNextObjectFieldBuilder<
         ]
       >
     ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaNextObject'> => {
-      const [name, options = {} as never] = args;
+      const [options = {} as never] = args;
       return this.expose(name as never, { ...options, type } as never) as never;
     };
   }
@@ -234,9 +237,9 @@ export class PrismaNextObjectFieldBuilder<
       description?: string;
       nullable?: Nullable;
       args?: Args;
-      select?: readonly (keyof import('./types').Row<Types, M> & string)[];
+      select?: readonly (keyof Row<Types, M> & string)[];
       isNull?: (
-        parent: import('./types').Row<Types, M>,
+        parent: Row<Types, M>,
         args: import('@pothos/core').InputShapeFromFields<Args>,
         ctx: Types['Context'],
         info: GraphQLResolveInfo,
@@ -279,7 +282,7 @@ export class PrismaNextObjectFieldBuilder<
       nullable: (nullable ?? !!isNull) as never,
       extensions: { ...userExtensions, pothosIndirectInclude },
       resolve: isNull
-        ? (async (
+        ? async (
             parent: unknown,
             args: unknown,
             ctx: Types['Context'],
@@ -287,7 +290,7 @@ export class PrismaNextObjectFieldBuilder<
           ) => {
             const result = await isNull(parent as never, args as never, ctx, info);
             return result ? null : rebrandForVariant(parent, variantTypeName);
-          })
+          }
         : (parent: unknown) => rebrandForVariant(parent, variantTypeName) as never,
     };
     if (variantSelect !== undefined && variantSelect.length > 0) {
@@ -303,7 +306,7 @@ export class PrismaNextObjectFieldBuilder<
     RelName extends RelationKeys<Types, M>,
     Nullable extends boolean = DefaultRelationNullable<Types, M, RelName>,
     Args extends InputFieldMap = {},
-    RelatedShape = import('./types').Row<Types, RelatedModel<Types, M, RelName>>,
+    RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
     name: RelName,
     options?: PrismaNextRelationOptions<Types, M, RelName, Nullable, Args, RelatedShape>,
@@ -500,10 +503,7 @@ export class PrismaNextObjectFieldBuilder<
     // walker simplifications.
     const pothosIndirectInclude: IndirectInclude = {
       getType: () => relatedTypeName,
-      paths: [
-        [{ name: 'edges' }, { name: 'node' }],
-        [{ name: 'nodes' }],
-      ],
+      paths: [[{ name: 'edges' }, { name: 'node' }], [{ name: 'nodes' }]],
     };
 
     // Function-form `select` returning `{ [relationName]: fn }`. The
@@ -526,17 +526,19 @@ export class PrismaNextObjectFieldBuilder<
       connectionReturnType: import('graphql').GraphQLNamedType,
     ) => {
       const wantsTotalCount =
-        totalCountFlag && selectionSetIncludesField(fieldSelection.selectionSet, 'totalCount', info);
+        totalCountFlag &&
+        selectionSetIncludesField(fieldSelection.selectionSet, 'totalCount', info);
       return {
         [relationName]: (sub: unknown, fnArgs: unknown, fnCtx: unknown) => {
           // 1) Apply user's `where` refine on the raw relation. The
           //    filter must come BEFORE cursor pagination so cursor
           //    over-fetch (`take(N+1)`) runs on the matching set.
           const filtered =
-            refine != null ? (refine(sub, fnArgs, fnCtx) as MapperCollection) : (sub as MapperCollection);
+            refine != null
+              ? (refine(sub, fnArgs, fnCtx) as MapperCollection)
+              : (sub as MapperCollection);
           // 2) Resolve size options once per call.
-          const resolvedDefault =
-            resolveSizeOption(defaultSize, fnArgs, fnCtx) ?? fallbackDefault;
+          const resolvedDefault = resolveSizeOption(defaultSize, fnArgs, fnCtx) ?? fallbackDefault;
           const resolvedMax = resolveSizeOption(maxSize, fnArgs, fnCtx) ?? fallbackMax;
           // 3) Apply cursor pagination.
           const pagination = applyCursorPagination(

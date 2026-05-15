@@ -17,15 +17,17 @@ const relayBuilder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
 });
 
 describe('prismaObject + select narrowing', () => {
-  it('narrows the resolver parent shape to the keys declared in `select`', () => {
+  it('exposes exactly the keys declared in `select` (additive on top of brand)', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id'),
         fullName: t.string({
           select: ['firstName', 'lastName'],
           resolve: (user) => {
-            // user is narrowed to { firstName, lastName } only.
-            expectTypeOf(user).toEqualTypeOf<{ firstName: string; lastName: string }>();
+            // Parent carries the selected columns plus the brand
+            // sentinel (so the field builder can still extract M).
+            expectTypeOf(user.firstName).toEqualTypeOf<string>();
+            expectTypeOf(user.lastName).toEqualTypeOf<string>();
             return `${user.firstName} ${user.lastName}`;
           },
         }),
@@ -45,14 +47,15 @@ describe('prismaObject + select narrowing', () => {
     });
   });
 
-  it('keeps the full row when no `select` is provided', () => {
+  it('rejects reading columns when no `select` is provided', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
+        // Without a `select`, the parent only carries the brand
+        // sentinel — accessing any column is a type error. Custom
+        // resolvers must declare what they depend on.
         anything: t.string({
-          resolve: (user) => {
-            // Without select, user is the full row — email is reachable.
-            return user.email;
-          },
+          // @ts-expect-error — no select means no columns on parent
+          resolve: (user) => user.email,
         }),
       }),
     });
@@ -64,7 +67,42 @@ describe('prismaObject + select narrowing', () => {
         typo: t.string({
           // @ts-expect-error — 'frstName' is not a column on User
           select: ['firstName', 'frstName'],
-          resolve: (user) => user.firstName,
+          // The typo makes the validated select array contain `never`,
+          // which knocks every column off the parent type; return a
+          // literal to keep the surrounding type-check focused on the
+          // intended error (the misspelled key, not a downstream
+          // cascading failure).
+          resolve: () => '',
+        }),
+      }),
+    });
+  });
+
+  it('merges object-level select into the field-level parent', () => {
+    // `prismaObject({ select: { email: true } })` declares `email`
+    // as always-loaded. Any field's resolver — even one without its
+    // own `select` — can read it. A field that adds `firstName` gets
+    // BOTH columns.
+    builder.prismaObject('User', {
+      variant: 'UserWithEmail',
+      select: { email: true },
+      fields: (t) => ({
+        domain: t.string({
+          resolve: (user) => {
+            // No field-level select — parent inherits the object-level.
+            expectTypeOf(user.email).toEqualTypeOf<string>();
+            return user.email.split('@')[1] ?? '';
+          },
+        }),
+        signature: t.string({
+          select: ['firstName'],
+          resolve: (user) => {
+            // Field-level select adds `firstName`; `email` stays from
+            // the type-level select.
+            expectTypeOf(user.email).toEqualTypeOf<string>();
+            expectTypeOf(user.firstName).toEqualTypeOf<string>();
+            return `${user.firstName} <${user.email}>`;
+          },
         }),
       }),
     });
@@ -235,6 +273,71 @@ describe('t.prismaField typing — resolver shape', () => {
 // t.relationAggregate removed — function-form `t.field({ select })` is
 // the canonical pattern; users write the aggregate primitive directly
 // inside the inner spec (`sub.count()`, `sub.avg(...)`, etc.).
+
+describe('function-form select — aggregate result narrowing', () => {
+  it('narrows count() to `number` (non-nullable)', () => {
+    builder.prismaObject('User', {
+      variant: 'CountUser',
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        postCount: t.field({
+          type: 'Int',
+          select: { posts: (sub) => ({ posts: sub.count() }) },
+          resolve: (parent) => {
+            expectTypeOf(parent.posts).toEqualTypeOf<number>();
+            return parent.posts;
+          },
+        }),
+      }),
+    });
+  });
+
+  it('narrows multiple count() slots in one combine', () => {
+    builder.prismaObject('User', {
+      variant: 'MultiCountUser',
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        // Two `sub.count()` invocations inside the same function-form
+        // select — both should narrow to `number`, not `number | null`.
+        postStats: t.field({
+          type: 'Int',
+          select: {
+            posts: (sub) => ({
+              total: sub.count(),
+              published: sub.where((p) => p.published.eq(1)).count(),
+            }),
+          },
+          resolve: (parent) => {
+            expectTypeOf(parent.total).toEqualTypeOf<number>();
+            expectTypeOf(parent.published).toEqualTypeOf<number>();
+            return parent.total;
+          },
+        }),
+      }),
+    });
+  });
+
+  it('narrows sum/avg/min/max(col) to `number | null`', () => {
+    builder.prismaObject('User', {
+      variant: 'AvgUser',
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        // sum/avg/min/max can be null when the relation has no rows —
+        // SQL aggregates over an empty set return NULL. The plugin
+        // surfaces that as `number | null`.
+        avgPost: t.field({
+          type: 'Float',
+          nullable: true,
+          select: { posts: (sub) => ({ avg: sub.avg('published') }) },
+          resolve: (parent) => {
+            expectTypeOf(parent.avg).toEqualTypeOf<number | null>();
+            return parent.avg;
+          },
+        }),
+      }),
+    });
+  });
+});
 
 describe('prismaObject — variant typing', () => {
   it('accepts a string variant', () => {

@@ -1,0 +1,24 @@
+query FirstPage {
+  # First page: `first: 2`, no `after` cursor. The SQL emits:
+  #   ORDER BY post.id ASC
+  #   LIMIT 3  -- (first + 1)
+  # The trailing row is consumed by `hasNextPage`, then dropped before
+  # the edges array is built. The remaining 2 rows become the page,
+  # each with a cursor encoded from the row's `id` column.
+  user(id: "u-alice") {
+    firstName
+    postsConnection(first: 2) {
+      edges {
+        cursor
+        node {
+          id
+          title
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}

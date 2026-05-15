@@ -112,7 +112,10 @@ export function useExampleLoader(): ExampleLoaderState {
       setStepIndex(stepIndexFromId(id, steps));
 
       const operations = operationsFromExample(ex.defaultQuery, ex.queries);
-      return { files: ex.files, operations, defaultActive: 0 };
+      // `defaultActiveFile` (set per-step via metadata) lets a step
+      // open with the most relevant file focused — e.g. a "relations"
+      // step focuses `models/user.ts`. Falls back to index 0.
+      return { files: ex.files, operations, defaultActive: ex.defaultActiveFile ?? 0 };
     } finally {
       setLoading(false);
     }

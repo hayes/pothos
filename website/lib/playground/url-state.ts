@@ -333,13 +333,31 @@ export function setPlaygroundStateToURL(state: PlaygroundURLState): void {
     return;
   }
 
+  // Preserve search params (`?example=foo&step=2`) — those are
+  // example/step identity, owned by `setExampleInUrl`. Rebuilding
+  // from `pathname + hash` would silently drop them, breaking
+  // shared links like `?example=foo&step=2#code=…`.
   const encoded = encodePlaygroundState(state);
-  const newURL = `${window.location.pathname}#${encoded}`;
-  window.history.replaceState(null, '', newURL);
+  const url = new URL(window.location.href);
+  url.hash = encoded;
+  window.history.replaceState(null, '', url.toString());
 }
 
 export function createShareableURL(state: PlaygroundURLState, baseURL?: string): string {
   const encoded = encodePlaygroundState(state);
-  const base = baseURL || (typeof window !== 'undefined' ? window.location.origin : '');
+  // Preserve `?example=foo&step=2` from the current URL so shared
+  // links reproduce the loaded example identity AND the user's edits
+  // (the hash payload). Falls back to the base URL when called from
+  // SSR.
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    if (baseURL) {
+      url.protocol = new URL(baseURL).protocol;
+      url.host = new URL(baseURL).host;
+    }
+    url.hash = encoded;
+    return url.toString();
+  }
+  const base = baseURL ?? '';
   return `${base}/playground#${encoded}`;
 }

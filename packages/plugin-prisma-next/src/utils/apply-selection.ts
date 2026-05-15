@@ -615,7 +615,7 @@ function collectField(
       } else {
         throw new PothosValidationError(
           `select: '${key}' is not a column or relation on ${type.name}. ` +
-            `Check for a typo, or register the field via the contract.`,
+            'Check for a typo, or register the field via the contract.',
         );
       }
     } else if (isDeclarativeRefineSpec(value)) {
@@ -673,8 +673,8 @@ function collectField(
       // this guard.
       throw new PothosValidationError(
         `select: '${key}' has an unrecognized value shape. Use \`true\`, ` +
-          `\`{ where?, orderBy?, take?, skip? }\`, or a function ` +
-          `\`(sub, args, ctx) => spec\`.`,
+          '`{ where?, orderBy?, take?, skip? }`, or a function ' +
+          '`(sub, args, ctx) => spec`.',
       );
     }
   }
@@ -695,15 +695,21 @@ interface DeclarativeRefineSpec {
 }
 
 function isDeclarativeRefineSpec(value: unknown): value is DeclarativeRefineSpec {
-  if (value === null || typeof value !== 'object') return false;
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
   const o = value as Record<string, unknown>;
   // At least one of the declarative keys must be present, and the
   // object can only contain declarative keys (so a function-returning
   // object that happens to have a `where` property isn't misread).
   const hasAny = 'where' in o || 'orderBy' in o || 'take' in o || 'skip' in o;
-  if (!hasAny) return false;
+  if (!hasAny) {
+    return false;
+  }
   for (const k of Object.keys(o)) {
-    if (k !== 'where' && k !== 'orderBy' && k !== 'take' && k !== 'skip') return false;
+    if (k !== 'where' && k !== 'orderBy' && k !== 'take' && k !== 'skip') {
+      return false;
+    }
   }
   return true;
 }
@@ -769,7 +775,7 @@ function applyObjectLevelSelect(
   spec: readonly string[] | Record<string, unknown>,
   type: GraphQLObjectType | GraphQLInterfaceType,
   info: GraphQLResolveInfo,
-  config: PothosPrismaNextConfig,
+  _config: PothosPrismaNextConfig,
   context: object,
   level: LevelAcc,
 ): void {
@@ -784,7 +790,9 @@ function applyObjectLevelSelect(
   const relationsMeta = getRelationsMetaForType(type);
   const columnsMeta = getColumnsForType(type);
   for (const [key, value] of Object.entries(spec as Record<string, unknown>)) {
-    if (value === false) continue;
+    if (value === false) {
+      continue;
+    }
     const relMeta = relationsMeta?.[key];
     const isKnownColumn = columnsMeta?.has(key) ?? true;
     if (value === true) {
@@ -808,7 +816,7 @@ function applyObjectLevelSelect(
       } else {
         throw new PothosValidationError(
           `prismaObject select: '${key}' is not a column or relation on ${type.name}. ` +
-            `Check for a typo, or register the field via the contract.`,
+            'Check for a typo, or register the field via the contract.',
         );
       }
     } else if (typeof value === 'function') {
@@ -839,15 +847,13 @@ function applyObjectLevelSelect(
       // shapes (typos in declarative keys).
       throw new PothosValidationError(
         `prismaObject select: '${key}' has an unrecognized value shape. ` +
-          `Use \`true\`, or a function \`(sub) => spec\`.`,
+          'Use `true`, or a function `(sub) => spec`.',
       );
     }
   }
-  // Defer reference to `info`/`context` so future contributors can
-  // plumb them without changing the signature when args-dependent
-  // object-level entries arrive.
-  void info;
-  void context;
+  // `info` and `context` are reserved in the signature for the
+  // future args-dependent object-level entries path; they're unused
+  // today but plumbed so adding that doesn't break callers.
 }
 
 // ---------------------------------------------------------------------
@@ -916,9 +922,7 @@ function emitRelation(
 ): MapperCollection {
   const useCombine =
     relation.isToMany &&
-    (relation.counts.size > 0 ||
-      relation.branches.size > 1 ||
-      relation.specFunctions.length > 0);
+    (relation.counts.size > 0 || relation.branches.size > 1 || relation.specFunctions.length > 0);
 
   if (!useCombine) {
     const next = relation.branches.entries().next();

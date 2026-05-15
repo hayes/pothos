@@ -1,0 +1,36 @@
+// Source schema for the blog demo. Regenerate `contract.json` from
+// this with `prisma-next contract emit` once prisma-next ships its CLI.
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String    @id
+  firstName String
+  lastName  String
+  email     String    @unique
+  posts     Post[]
+  comments  Comment[]
+}
+
+model Post {
+  id        String    @id
+  title     String
+  content   String
+  published Boolean   @default(false)
+  authorId  String
+  createdAt DateTime
+  author    User      @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+}
+
+model Comment {
+  id        String   @id
+  body      String
+  authorId  String
+  postId    String
+  createdAt DateTime
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+}

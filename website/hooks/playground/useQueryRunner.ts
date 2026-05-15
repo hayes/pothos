@@ -2,10 +2,12 @@
 
 import { type GraphQLError, type GraphQLSchema, graphql, parse } from 'graphql';
 import { useCallback, useState } from 'react';
-import type { ResponsePhase, TraceRow } from '@/components/playground/ResponsePane/types';
+import type { ResponsePhase } from '@/components/playground/ResponsePane/types';
 import { getQueryCursor } from '@/lib/playground/active-query-cursor';
 import { captureConsoleAsync } from '@/lib/playground/console-capture';
 import type { ConsoleMessage } from '@/lib/playground/execution-engine';
+import { type ExtensionPanel, isExtensionPanel } from '@/lib/playground/playground-panels';
+import { getCapturedPanels, resetCapture } from '@/lib/playground/prisma-next';
 
 interface RunArgs {
   schema: GraphQLSchema | null;
@@ -18,7 +20,7 @@ interface RunArgs {
 
 interface RunResult {
   phase: ResponsePhase;
-  trace: TraceRow[];
+  panels: ExtensionPanel[];
   logs: ConsoleMessage[];
 }
 
@@ -102,7 +104,7 @@ function countErrors(errors?: readonly GraphQLError[]): number {
 
 export interface QueryRunner {
   phase: ResponsePhase;
-  trace: TraceRow[];
+  panels: ExtensionPanel[];
   lastLogs: ConsoleMessage[];
   run: (args: RunArgs) => Promise<RunResult>;
   reset: () => void;
@@ -110,7 +112,7 @@ export interface QueryRunner {
 
 export function useQueryRunner(): QueryRunner {
   const [phase, setPhase] = useState<ResponsePhase>({ kind: 'idle' });
-  const [trace, setTrace] = useState<TraceRow[]>([]);
+  const [panels, setPanels] = useState<ExtensionPanel[]>([]);
   const [lastLogs, setLastLogs] = useState<ConsoleMessage[]>([]);
 
   const run = useCallback(
@@ -118,7 +120,7 @@ export function useQueryRunner(): QueryRunner {
       if (!schema) {
         const errPhase = errorPhase('Schema not ready');
         setPhase(errPhase);
-        return { phase: errPhase, trace: [], logs: [] };
+        return { phase: errPhase, panels: [], logs: [] };
       }
 
       setPhase({ kind: 'pending' });
@@ -129,7 +131,7 @@ export function useQueryRunner(): QueryRunner {
       } catch (err) {
         const errPhase = errorPhase((err as Error).message);
         setPhase(errPhase);
-        return { phase: errPhase, trace: [], logs: [] };
+        return { phase: errPhase, panels: [], logs: [] };
       }
 
       let contextValue: Record<string, unknown> = {};
@@ -141,10 +143,17 @@ export function useQueryRunner(): QueryRunner {
       } catch (err) {
         const errPhase = errorPhase((err as Error).message);
         setPhase(errPhase);
-        return { phase: errPhase, trace: [], logs: [] };
+        return { phase: errPhase, panels: [], logs: [] };
       }
 
       const operationName = pickOperationName(query, getQueryCursor());
+
+      // Reset the playground capture slot before every run. The
+      // prisma-next `capturePlaygroundSql` middleware (if user code wires
+      // it in their `db.ts`) pushes per-plan SQL + intent into this slot
+      // during resolver execution; we read it back below and merge it
+      // into `result.extensions.playgroundPanels`.
+      resetCapture();
 
       const start = performance.now();
       const { result, logs } = await captureConsoleAsync(async () =>
@@ -162,7 +171,58 @@ export function useQueryRunner(): QueryRunner {
       );
       const durationMs = performance.now() - start;
 
-      const body = JSON.stringify(result, null, 2);
+      // graphql-js wraps thrown resolver errors and `JSON.stringify`
+      // drops `originalError` (it's non-enumerable). Surface the
+      // underlying Error + stack in the Console drawer so users can see
+      // where their resolver actually blew up. Without this, the
+      // response panel shows "Cannot read property X of undefined" with
+      // no file/line and no way to find the source.
+      const errorLogs: ConsoleMessage[] = [];
+      for (const err of result.errors ?? []) {
+        const original = (err as { originalError?: Error }).originalError;
+        const path = err.path?.length ? ` at ${err.path.join('.')}` : '';
+        const stack = original?.stack ?? err.stack;
+        errorLogs.push({
+          type: 'error',
+          args: [`GraphQL error${path}: ${err.message}`, stack ?? ''],
+          timestamp: Date.now(),
+        });
+      }
+      const allLogs = [...(logs as ConsoleMessage[]), ...errorLogs];
+
+      // Pull in playground panels from two sources:
+      //   1. The prisma-next capture slot (SQL + ORM intent for this
+      //      run). User code opts in by adding `capturePlaygroundSql`
+      //      to their `sqlite({...})` middleware list.
+      //   2. Any `extensions.playgroundPanels` the executed schema
+      //      surfaced itself — leaves the door open for future plugins
+      //      (drizzle SQL, scope-auth decisions, ...) to use the same
+      //      contract without code changes here.
+      const capturedPanels = getCapturedPanels();
+      const userPanels = extractUserPanels(result.extensions);
+      const allPanels = [...capturedPanels, ...userPanels];
+
+      // The Response tab shows the GraphQL body without the
+      // `playgroundPanels` blob — that data is already surfaced via
+      // the SQL / ORM tabs, and inlining the (potentially large) SQL
+      // text into the JSON body would just bury the actual data the
+      // user came to see. Any *other* `extensions` fields the schema
+      // emits stay on the response.
+      const resultForBody: Record<string, unknown> = { ...result };
+      if (
+        result.extensions &&
+        typeof result.extensions === 'object' &&
+        'playgroundPanels' in result.extensions
+      ) {
+        const { playgroundPanels: _omit, ...keep } = result.extensions as Record<string, unknown>;
+        if (Object.keys(keep).length > 0) {
+          resultForBody.extensions = keep;
+        } else {
+          delete resultForBody.extensions;
+        }
+      }
+
+      const body = JSON.stringify(resultForBody, null, 2);
       const sizeBytes = new Blob([body]).size;
       const errorCount = countErrors(result.errors);
 
@@ -172,18 +232,29 @@ export function useQueryRunner(): QueryRunner {
           : { kind: 'success', status: 200, durationMs, sizeBytes, body };
 
       setPhase(next);
-      setTrace([]);
-      setLastLogs(logs as ConsoleMessage[]);
-      return { phase: next, trace: [], logs: logs as ConsoleMessage[] };
+      setPanels(allPanels);
+      setLastLogs(allLogs);
+      return { phase: next, panels: allPanels, logs: allLogs };
     },
     [],
   );
 
   const reset = useCallback(() => {
     setPhase({ kind: 'idle' });
-    setTrace([]);
+    setPanels([]);
     setLastLogs([]);
   }, []);
 
-  return { phase, trace, lastLogs, run, reset };
+  return { phase, panels, lastLogs, run, reset };
+}
+
+function extractUserPanels(extensions: unknown): ExtensionPanel[] {
+  if (!extensions || typeof extensions !== 'object') {
+    return [];
+  }
+  const raw = (extensions as Record<string, unknown>).playgroundPanels;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter(isExtensionPanel);
 }

@@ -17,7 +17,20 @@ interface ExampleFile {
   filename: string;
   content: string;
   language?: 'typescript' | 'graphql';
+  /**
+   * Files that come from an external generator (contract emitters,
+   * migration tools, seed dumps) get a `generated: true` flag so the
+   * playground's Files tab can group them with the read-only
+   * `schema.graphql` instead of mixing them in with user-authored
+   * source.
+   */
+  generated?: boolean;
 }
+
+// Filenames that always represent generator output across all current
+// examples. Match by full filename so e.g. an example with a
+// hand-written `contract.json` could opt out by renaming the file.
+const GENERATED_FILENAMES = new Set(['contract.json', 'contract.d.ts', 'seed.sql']);
 
 interface PlaygroundExample {
   id: string;
@@ -35,6 +48,8 @@ interface PlaygroundExample {
   files: ExampleFile[];
   defaultQuery: string;
   queries?: Array<{ title?: string; query: string; variables?: string; context?: string }>;
+  /** Index into `files` to focus when this example/step is loaded. */
+  defaultActiveFile?: number;
 }
 
 interface Step {
@@ -42,6 +57,9 @@ interface Step {
   title: string;
   description: string;
   order: number;
+  /** Filename to focus in the editor when this step opens (e.g.
+   * `models/user.ts`). Falls back to the first file in the bundle. */
+  defaultActiveFile?: string;
 }
 
 interface CodeSnippet {
@@ -61,6 +79,11 @@ interface ExampleMetadata {
   subcategory?: string;
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   order?: number;
+  /** Filename to focus on initial load (e.g. `models/user.ts`). For
+   * step bundles, this is taken from the matching step's
+   * `defaultActiveFile`; for flat examples, from the top-level
+   * metadata.json. */
+  defaultActiveFile?: string;
   relatedDocs?: string[];
   prerequisites?: string[];
   steps?: Step[];
@@ -104,7 +127,9 @@ async function buildFlatExample(
   // `{ user: { isEmployee: true } }`.
   let defaultContext: string | undefined;
 
-  const exampleFiles = await readdir(examplePath, { withFileTypes: true });
+  const exampleFiles = (await readdir(examplePath, { withFileTypes: true })).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
   for (const file of exampleFiles) {
     if (!file.isFile()) {
@@ -113,20 +138,28 @@ async function buildFlatExample(
 
     const filename = file.name;
 
-    // Skip metadata.json
-    if (filename === 'metadata.json') {
+    // Skip metadata.json + reference-only files (README.md,
+    // schema.prisma — kept as source-of-truth on disk but not bundled
+    // because the playground has no way to render them yet).
+    if (filename === 'metadata.json' || filename === 'README.md' || filename === 'schema.prisma') {
       continue;
     }
 
     const filePath = join(examplePath, filename);
     const content = await readFile(filePath, 'utf-8');
 
-    // Collect .ts files as code files
-    if (filename.endsWith('.ts')) {
+    // `.ts`, `.d.ts`, `.json`, and `.sql` all ship as inline files;
+    // the playground's bundler (execution-engine.ts:bundleFiles)
+    // dispatches to esbuild's `ts` / `json` / `text` loader based on
+    // extension. `.d.ts` is type-only — esbuild parses it for types
+    // but emits no runtime code, which is exactly what we want for
+    // contract sidecars.
+    if (filename.endsWith('.ts') || filename.endsWith('.json') || filename.endsWith('.sql')) {
       files.push({
         filename,
         content,
-        language: 'typescript',
+        language: filename.endsWith('.ts') ? 'typescript' : undefined,
+        ...(GENERATED_FILENAMES.has(filename) ? { generated: true } : {}),
       });
     }
     // Collect .graphql files as query files
@@ -137,13 +170,18 @@ async function buildFlatExample(
     }
   }
 
-  // Sort files to ensure schema.ts comes first if it exists
+  // Sort: schema.ts first, then other authored files alphabetically,
+  // then generated files at the end (so the editor's file list reads
+  // top-to-bottom from "what you edit" to "generator output").
   files.sort((a, b) => {
     if (a.filename === 'schema.ts') {
       return -1;
     }
     if (b.filename === 'schema.ts') {
       return 1;
+    }
+    if (!!a.generated !== !!b.generated) {
+      return a.generated ? 1 : -1;
     }
     return a.filename.localeCompare(b.filename);
   });
@@ -174,7 +212,24 @@ async function buildFlatExample(
     files,
     defaultQuery,
     queries: queries.length > 0 ? queries : undefined,
+    defaultActiveFile: resolveDefaultActiveFile(files, metadata.defaultActiveFile),
   };
+}
+
+/**
+ * Resolve a metadata `defaultActiveFile` filename to an index into the
+ * built `files` array. Returns 0 when the filename is missing or
+ * doesn't match any bundled file.
+ */
+function resolveDefaultActiveFile(
+  files: ExampleFile[],
+  filename: string | undefined,
+): number | undefined {
+  if (!filename) {
+    return undefined;
+  }
+  const idx = files.findIndex((f) => f.filename === filename);
+  return idx >= 0 ? idx : undefined;
 }
 
 /**
@@ -204,6 +259,7 @@ async function buildStepExamples(
       id: stepId,
       title: stepMeta?.title || `${metadata.title} - Step ${stepNumber}`,
       description: stepMeta?.description || metadata.description,
+      defaultActiveFile: stepMeta?.defaultActiveFile ?? metadata.defaultActiveFile,
     });
 
     examples.push(stepExample);
@@ -311,6 +367,9 @@ export interface Step {
   title: string;
   description: string;
   order: number;
+  /** Filename to focus in the editor when this step opens. Falls back
+   * to the first file in the bundle when unset. */
+  defaultActiveFile?: string;
 }
 
 export interface CodeSnippet {

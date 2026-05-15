@@ -9,6 +9,7 @@ import SchemaBuilder, {
 import { and, or } from '@prisma-next/sql-orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from './constants';
+import { PrismaNextInterfaceRef } from './interface-ref';
 import { PrismaNextNodeRef } from './node-ref';
 import { PrismaNextObjectRef } from './object-ref';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder';
@@ -22,7 +23,6 @@ import {
   getInterfaceRefFromContractModel,
   getRefFromContractModel,
 } from './utils/refs';
-import { PrismaNextInterfaceRef } from './interface-ref';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -163,8 +163,7 @@ schemaBuilderProto.prismaObjectField = function prismaObjectField<
   ) => import('@pothos/core').FieldRef<Types, unknown>,
 ) {
   const modelName = resolveModelName(type as never) as M;
-  const ref =
-    typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
+  const ref = typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
   this.objectField(
     ref as never,
     fieldName,
@@ -181,8 +180,7 @@ schemaBuilderProto.prismaObjectFields = function prismaObjectFields<
   fields: (t: PrismaNextObjectFieldBuilder<Types, M>) => import('@pothos/core').FieldMap,
 ) {
   const modelName = resolveModelName(type as never) as M;
-  const ref =
-    typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
+  const ref = typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
   this.objectFields(ref as never, () => fields(makeFieldBuilder(this, modelName)) as never);
 } as never;
 

@@ -13,10 +13,9 @@ import type {
 } from '@pothos/core';
 import type { PothosPrismaNextPlugin } from '.';
 import type { PrismaNextInterfaceRef } from './interface-ref';
-import type { ParamToModelName, ParamToTypeParam } from './internal-types';
+import type { ParamToModelName, ParamToTypeParam, ShapeFromObjectSelect } from './internal-types';
 import type { PrismaNextNodeRef } from './node-ref';
-import type { PrismaNextObjectRef } from './object-ref';
-import type { ShapeFromObjectSelect } from './internal-types';
+import type { PrismaNextObjectRef, prismaModelKey } from './object-ref';
 import type {
   AnyContract,
   CursorSpec,
@@ -31,18 +30,27 @@ import type {
 } from './types';
 
 /**
- * Shape inferred from a `prismaObject`'s `select` option:
- *   - Object form: widens Row with declared relations/inner keys via
- *     ShapeFromObjectSelect (same machinery as `t.field({ select })`,
- *     but passes `M` explicitly since bare Row carries no model brand).
- *   - Array form or undefined: defaults to the full Row (no narrowing
- *     — preserves back-compat for existing array-form callers that
- *     read columns outside the listed set).
+ * Shape inferred from a `prismaObject`'s `select` option.
+ *
+ * Carries only what the user has explicitly declared as a dependency,
+ * plus the `[prismaModelKey]?: M` brand the field builder uses to
+ * recognise prismaObject parents. Defaulting to the full `Row<M>`
+ * would lie about what's actually loaded at runtime — the plugin only
+ * pulls columns that some `select` or `t.expose*` named.
+ *
+ *   - undefined select → brand only.
+ *   - Array form `['col', ...]` → brand + picked columns.
+ *   - Object form `{ col: true, rel: true, … }` → brand + columns +
+ *     relations + function-form keys (counts, aggregates).
+ *
+ * Field-level `select` on individual `t.field` declarations layers
+ * additively on top of this via `ShapeFromSelect`.
  */
-type ObjectLevelShape<Types extends SchemaTypes, M extends ModelName<Types>, Select> =
-  Select extends Record<string, unknown>
-    ? ShapeFromObjectSelect<Types, M, Row<Types, M>, Select>
-    : Row<Types, M>;
+type ObjectLevelShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Select,
+> = ShapeFromObjectSelect<Types, M, never, Select>;
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -130,7 +138,7 @@ declare global {
           t: import('./prisma-next-object-field-builder').PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape
+            Shape & { [prismaModelKey]?: M }
           >,
         ) => FieldRef<Types, unknown>,
       ) => void;
@@ -141,7 +149,7 @@ declare global {
           t: import('./prisma-next-object-field-builder').PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape
+            Shape & { [prismaModelKey]?: M }
           >,
         ) => FieldMap,
       ) => void;
@@ -153,7 +161,7 @@ declare global {
           t: import('./prisma-next-object-field-builder').PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape
+            Shape & { [prismaModelKey]?: M }
           >,
         ) => FieldRef<Types, unknown>,
       ) => void;
@@ -164,7 +172,7 @@ declare global {
           t: import('./prisma-next-object-field-builder').PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape
+            Shape & { [prismaModelKey]?: M }
           >,
         ) => FieldMap,
       ) => void;

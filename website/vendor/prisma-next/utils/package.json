@@ -1,0 +1,16 @@
+{
+  "name": "@prisma-next/utils",
+  "version": "0.0.1",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./abortable": "./dist/abortable.mjs",
+    "./array-equal": "./dist/array-equal.mjs",
+    "./assertions": "./dist/assertions.mjs",
+    "./defined": "./dist/defined.mjs",
+    "./redact-db-url": "./dist/redact-db-url.mjs",
+    "./result": "./dist/result.mjs",
+    "./simplify-deep": "./dist/simplify-deep.mjs",
+    "./package.json": "./package.json"
+  }
+}

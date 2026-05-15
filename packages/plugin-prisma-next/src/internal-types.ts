@@ -13,17 +13,35 @@ import type {
 
 /**
  * prisma-next's `IncludeScalar<R>` is declared internally and not
- * exported. We structurally match `kind: 'includeScalar'` and surface
- * a result type of `number | null` — the widest of the scalar returns
- * (`count` → number; `sum`/`avg`/`min`/`max` → number | null). Precise
- * inference would need `RowType` from the orm-client.
- *
- * TODO: once prisma-next exports `IncludeScalar` (or its `RowType`
- * brand symbol), narrow `SpecValueResult` to the exact result type.
+ * exported. We structurally match `kind: 'includeScalar'` and recover
+ * the result generic by reading the value at the type's symbol-keyed
+ * brand (`RowSelection<T>` declares `[RowType]: T` where `RowType` is
+ * a unique symbol). The brand isn't exported either, but `Extract<keyof V,
+ * symbol>` finds it generically so the result type narrows correctly:
+ *   - `count()` → `IncludeScalar<number>` → `number`
+ *   - `sum/avg/min/max(col)` → `IncludeScalar<number | null>` → `number | null`
  */
 type AnyIncludeScalar = { readonly kind: 'includeScalar' };
+type SymbolKey<V> = Extract<keyof V, symbol>;
+type IncludeScalarResult<V> =
+  SymbolKey<V> extends never
+    ? number | null
+    : V extends { [K in SymbolKey<V>]: infer R }
+      ? R
+      : number | null;
 
-/** @internal */
+/**
+ * Maps a `t.prismaField`-style `type` parameter (string model name,
+ * `[ModelName]`, `PrismaNextObjectRef`, or `[PrismaNextObjectRef]`)
+ * back to the underlying contract model name.
+ *
+ * Must remain a public export. The build runs with `stripInternal:
+ * true`; if this carried an internal-strip annotation it would drop
+ * out of the dts, and `global-types.d.ts` references it from the
+ * publicly-augmented `prismaField` / `prismaFieldWithInput` /
+ * `prismaConnection` signatures — stripping it collapses the entire
+ * field-builder API to `never` for downstream consumers.
+ */
 export type ParamToModelName<Types extends SchemaTypes, Param> =
   Param extends ModelName<Types>
     ? Param
@@ -35,7 +53,11 @@ export type ParamToModelName<Types extends SchemaTypes, Param> =
           ? M
           : never;
 
-/** @internal */
+/**
+ * Resolves a `t.prismaField` `type` parameter to the corresponding
+ * type-param the field-builder hands to `this.field({...})`. Same
+ * load-bearing constraint as `ParamToModelName` above.
+ */
 export type ParamToTypeParam<Types extends SchemaTypes, Param, Shape> =
   Param extends PrismaNextObjectRef<Types, ModelName<Types>, unknown>
     ? Param
@@ -62,26 +84,26 @@ export type RelationRef<
  * the shape isn't prisma-next-branded (defensive — would fall back to
  * un-narrowed inference rather than failing compilation).
  */
-export type ExtractModel<Types extends SchemaTypes, ParentShape> =
-  ParentShape extends { [prismaModelKey]?: infer M }
-    ? M extends ModelName<Types>
-      ? M
-      : never
-    : never;
+export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
+  [prismaModelKey]?: infer M;
+}
+  ? M extends ModelName<Types>
+    ? M
+    : never
+  : never;
 
 /**
  * Map a prisma-next combine-spec value to its result type:
  *   - `Collection<…, Row, …>` → `readonly Row[]`
- *   - `IncludeScalar<R>` → `number | null` (widest scalar — count is
- *     narrower at number, but TS can't see the result generic
- *     structurally without RowType being exported)
+ *   - `IncludeScalar<R>` → R (`count` → `number`,
+ *     `sum`/`avg`/`min`/`max` → `number | null`)
  *
  * Falls back to `unknown` for anything else — the plugin doesn't
  * gatekeep, so future combine-spec value kinds added by prisma-next
  * just type as `unknown` until we add a mapping here.
  */
 export type SpecValueResult<V> = V extends AnyIncludeScalar
-  ? number | null
+  ? IncludeScalarResult<V>
   : V extends Collection<infer _C, infer _M, infer Row, infer _S>
     ? readonly Row[]
     : unknown;
@@ -105,10 +127,7 @@ export type SelectRelationDeclarative<
   R extends RelationKeys<Types, M>,
 > = {
   readonly where?:
-    | ShorthandWhereFilter<
-        Types['PrismaNextContract'] & AnyContract,
-        RelatedModel<Types, M, R>
-      >
+    | ShorthandWhereFilter<Types['PrismaNextContract'] & AnyContract, RelatedModel<Types, M, R>>
     | ((
         accessor: ModelAccessor<
           Types['PrismaNextContract'] & AnyContract,
@@ -116,10 +135,7 @@ export type SelectRelationDeclarative<
         >,
       ) => unknown);
   readonly orderBy?: (
-    accessor: ModelAccessor<
-      Types['PrismaNextContract'] & AnyContract,
-      RelatedModel<Types, M, R>
-    >,
+    accessor: ModelAccessor<Types['PrismaNextContract'] & AnyContract, RelatedModel<Types, M, R>>,
   ) => unknown;
   readonly take?: number;
   readonly skip?: number;
@@ -155,16 +171,19 @@ export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelName<Type
 };
 
 /** Inner keys contributed to parent by function-form entries in S. */
-type FunctionFormShape<Types extends SchemaTypes, M extends ModelName<Types>, S> =
-  UnionToIntersection<
-    {
-      [K in keyof S & RelationKeys<Types, M>]: S[K] extends (sub: never) => infer R
-        ? R extends Record<string, unknown>
-          ? { -readonly [InnerKey in keyof R]: SpecValueResult<R[InnerKey]> }
-          : {}
-        : {};
-    }[keyof S & RelationKeys<Types, M>]
-  >;
+type FunctionFormShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  S,
+> = UnionToIntersection<
+  {
+    [K in keyof S & RelationKeys<Types, M>]: S[K] extends (sub: never) => infer R
+      ? R extends Record<string, unknown>
+        ? { -readonly [InnerKey in keyof R]: SpecValueResult<R[InnerKey]> }
+        : {}
+      : {};
+  }[keyof S & RelationKeys<Types, M>]
+>;
 
 /** Top-level relation keys with `true` contribute `parent[rel]` directly. */
 type SimpleRelationShape<Types extends SchemaTypes, M extends ModelName<Types>, S> = {
@@ -175,12 +194,55 @@ type SimpleRelationShape<Types extends SchemaTypes, M extends ModelName<Types>, 
   >;
 };
 
-export type ValidateFieldSelect<ParentShape, Select> = Select extends readonly string[]
-  ? {
-      readonly [K in keyof Select]: Select[K] extends keyof ParentShape & string
-        ? Select[K]
-        : never;
-    }
+/**
+ * Column keys in an object-form select (those whose value is `true`).
+ * Pulls just those column values out of the model's row so the resolver
+ * parent contains exactly what was declared as a dependency — no more,
+ * no less.
+ */
+type SimpleColumnShape<Types extends SchemaTypes, M extends ModelName<Types>, S> = {
+  [K in keyof S & keyof Row<Types, M> as S[K] extends true ? K : never]: Row<Types, M>[K];
+};
+
+/**
+ * Default base shape for any prismaObject's parent. Carries the
+ * `[prismaModelKey]?` brand so the field builder can extract the
+ * model name from the parent type — and nothing else. Explicit
+ * `select` declarations (object-level and field-level) layer
+ * columns/relations on top.
+ *
+ * This matches the runtime: the plugin only loads columns the user
+ * has declared a dependency on. Defaulting the parent type to the
+ * full `Row<M>` would lie about what's actually present.
+ */
+export type ObjectBaseShape<Types extends SchemaTypes, M extends ModelName<Types>> = {
+  readonly [prismaModelKey]?: M;
+};
+
+/**
+ * Validates an array-form `select: ['firstName', ...]` so typos surface
+ * at the call site (each invalid column becomes `never`, which the
+ * caller's `Select` slot then rejects).
+ *
+ * Source of truth is `Row<Types, M>`, not `ParentShape` — the parent
+ * type only carries what's been declared so far, but the select itself
+ * is what _adds_ new column dependencies. Resolving against the parent
+ * would reject every valid column on a freshly-typed prismaObject.
+ */
+export type ValidateFieldSelect<
+  Types extends SchemaTypes,
+  ParentShape,
+  Select,
+> = Select extends readonly string[]
+  ? ExtractModel<Types, ParentShape> extends infer M
+    ? M extends ModelName<Types>
+      ? {
+          readonly [K in keyof Select]: Select[K] extends keyof Row<Types, M> & string
+            ? Select[K]
+            : never;
+        }
+      : Select
+    : Select
   : Select;
 
 type Normalize<T> = { [K in keyof T]: T[K] } & {};
@@ -190,56 +252,69 @@ type RelationShape<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
-> = IsToMany<Types, M, R> extends true
-  ? readonly Row<Types, RelatedModel<Types, M, R>>[]
-  : Row<Types, RelatedModel<Types, M, R>> | null;
+> =
+  IsToMany<Types, M, R> extends true
+    ? readonly Row<Types, RelatedModel<Types, M, R>>[]
+    : Row<Types, RelatedModel<Types, M, R>> | null;
 
 /**
- * Compute the resolver's `parent` shape from the parent shape + select.
+ * Compute a field's resolver `parent` shape from the existing parent
+ * shape (whatever the type-level select resolved to) plus the field's
+ * own `select` declaration.
  *
- *   - Legacy array form `select: ['firstName']` narrows the parent to
- *     just the picked columns (existing behavior — preserved).
- *   - Object form `select: { posts: true }` widens the parent with each
- *     declared relation: `parent.posts: readonly Row<Post>[]`.
- *   - Object form with function entries `select: { posts: (sub) => ({ cnt: sub.count() }) }`
- *     widens the parent with each inner key — `parent.cnt: number`.
- *   - Mixed columns + relations work naturally: column keys are
- *     already in ParentShape (no narrowing), relation keys are added.
+ * Always additive: the field-level `select` adds to the type-level
+ * select, never replaces it. So a resolver sees:
+ *   (object-level columns/relations) ∪ (field-level columns/relations)
+ *
+ * - Array form `select: ['firstName', 'lastName']` adds those columns.
+ * - Object form `select: { col: true }` adds the column.
+ * - Object form `select: { rel: true }` adds the relation rows.
+ * - Object form `select: { rel: (sub) => ({...}) }` adds the function-
+ *   form result keys (counts, aggregates, etc.).
  */
-export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> =
-  unknown extends Select
-    ? ParentShape
-    : Select extends readonly (infer K extends keyof ParentShape)[]
-      ? Normalize<Pick<ParentShape, K>>
-      : Select extends Record<string, unknown>
-        ? ExtractModel<Types, ParentShape> extends infer M
-          ? M extends ModelName<Types>
-            ? Normalize<
-                ParentShape &
-                  SimpleRelationShape<Types, M, Select> &
-                  FunctionFormShape<Types, M, Select>
-              >
-            : ParentShape
+export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = unknown extends Select
+  ? ParentShape
+  : ExtractModel<Types, ParentShape> extends infer M
+    ? M extends ModelName<Types>
+      ? Select extends readonly (infer K extends keyof Row<Types, M>)[]
+        ? Normalize<ParentShape & Pick<Row<Types, M>, K>>
+        : Select extends Record<string, unknown>
+          ? Normalize<
+              ParentShape &
+                SimpleColumnShape<Types, M, Select> &
+                SimpleRelationShape<Types, M, Select> &
+                FunctionFormShape<Types, M, Select>
+            >
           : ParentShape
-        : ParentShape;
+      : ParentShape
+    : ParentShape;
 
 /**
- * Variant of `ShapeFromSelect` that takes `M` explicitly instead of
- * recovering it from a `[prismaModelKey]` brand. Used at object level
- * (`prismaObject({ select })`) where the bare `Row<Types, M>` has no
- * brand to extract.
+ * Compute the type-level parent shape for a `prismaObject({ select })`.
+ *
+ * Starts from `ObjectBaseShape` (just the brand sentinel) and adds
+ * only what the type-level select explicitly declared. The `_ParentShape`
+ * parameter is retained so existing callers keep compiling — the new
+ * implementation derives everything from `M` and `Select`.
+ *
+ *   - undefined select → `ObjectBaseShape` (brand only).
+ *   - Array form → brand + picked columns.
+ *   - Object form → brand + simple columns + simple relations + function-form keys.
  */
 export type ShapeFromObjectSelect<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  ParentShape,
+  _ParentShape,
   Select,
 > = unknown extends Select
-  ? ParentShape
-  : Select extends readonly (infer _K)[]
-    ? ParentShape
+  ? ObjectBaseShape<Types, M>
+  : Select extends readonly (infer K extends keyof Row<Types, M>)[]
+    ? Normalize<ObjectBaseShape<Types, M> & Pick<Row<Types, M>, K>>
     : Select extends Record<string, unknown>
       ? Normalize<
-          ParentShape & SimpleRelationShape<Types, M, Select> & FunctionFormShape<Types, M, Select>
+          ObjectBaseShape<Types, M> &
+            SimpleColumnShape<Types, M, Select> &
+            SimpleRelationShape<Types, M, Select> &
+            FunctionFormShape<Types, M, Select>
         >
-      : ParentShape;
+      : ObjectBaseShape<Types, M>;

@@ -10,6 +10,7 @@
 
 import * as DirectivesModule from '@pothos/plugin-directives';
 import * as ErrorsModule from '@pothos/plugin-errors';
+import * as PrismaNextModule from '@pothos/plugin-prisma-next';
 import * as RelayModule from '@pothos/plugin-relay';
 import * as ScopeAuthModule from '@pothos/plugin-scope-auth';
 // Import the full plugin modules (includes default export and all named exports)
@@ -25,6 +26,7 @@ export const pluginModules = {
   '@pothos/plugin-errors': ErrorsModule,
   '@pothos/plugin-validation': ValidationModule,
   '@pothos/plugin-directives': DirectivesModule,
+  '@pothos/plugin-prisma-next': PrismaNextModule,
 };
 
 export function getPluginModules(code: string): Record<string, unknown> {

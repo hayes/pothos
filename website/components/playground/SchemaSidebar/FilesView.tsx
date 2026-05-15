@@ -17,9 +17,10 @@ interface Props {
 }
 
 /**
- * The Files-tab body — generated SDL pinned at the top (read-only),
- * then user files, then a "new" action. The sidebar owns the
- * surrounding chrome.
+ * The Files-tab body — authored files first, a "+ new" action, then a
+ * "Generated" section grouping the generator-emitted bundle files
+ * (`contract.json`, `seed.sql`, …) with the read-only `schema.graphql`.
+ * The sidebar owns the surrounding chrome.
  */
 export function FilesView({
   files,
@@ -34,13 +35,18 @@ export function FilesView({
   const [renameIndex, setRenameIndex] = useState<number | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
 
+  // Pair files with their original indices so the editor's
+  // `onSelectFile(index)` still resolves correctly after partitioning.
+  const indexed = files.map((file, originalIndex) => ({ file, originalIndex }));
+  const authored = indexed.filter(({ file }) => !file.generated);
+  const generated = indexed.filter(({ file }) => file.generated);
+
   return (
     <div className="flex flex-col font-mono text-[12px]">
-      {/* User files first — these are what people edit */}
       <ul>
-        {files.map((file, i) => {
-          const isActive = !sdlActive && i === activeIndex;
-          const isRenaming = renameIndex === i;
+        {authored.map(({ file, originalIndex }) => {
+          const isActive = !sdlActive && originalIndex === activeIndex;
+          const isRenaming = renameIndex === originalIndex;
           const canDelete = files.length > 1 && file.filename !== PROTECTED_FILENAME;
           return (
             <FileRow
@@ -50,20 +56,20 @@ export function FilesView({
               renaming={isRenaming}
               renameDraft={renameDraft}
               canDelete={canDelete}
-              onSelect={() => onSelectFile(i)}
+              onSelect={() => onSelectFile(originalIndex)}
               onStartRename={() => {
-                setRenameIndex(i);
+                setRenameIndex(originalIndex);
                 setRenameDraft(file.filename);
               }}
               onCommitRename={(next) => {
                 if (next !== file.filename && next.trim()) {
-                  onRenameFile(i, next.trim());
+                  onRenameFile(originalIndex, next.trim());
                 }
                 setRenameIndex(null);
               }}
               onCancelRename={() => setRenameIndex(null)}
               onChangeDraft={setRenameDraft}
-              onRemove={() => onRemoveFile(i)}
+              onRemove={() => onRemoveFile(originalIndex)}
             />
           );
         })}
@@ -77,27 +83,69 @@ export function FilesView({
         + New file
       </button>
 
-      {/* Generated SDL — clearly labeled as a separate section. The
-          row reads as a file (not italic, regular weight) with a small
-          "view" caret on the right so it's obviously clickable. */}
+      {/* Generated section — generator-emitted bundle files plus the
+          live SDL. Each row reads as a file (regular weight) with a
+          lock + chevron so it's clear they're read-only / external. */}
       <div className="mt-5 px-4 pb-1.5 text-[10px] uppercase tracking-[0.1em] text-bm-ink-muted">
         Generated
       </div>
+      <ul>
+        {generated.map(({ file, originalIndex }) => {
+          const isActive = !sdlActive && originalIndex === activeIndex;
+          return (
+            <GeneratedFileRow
+              key={file.filename}
+              filename={file.filename}
+              active={isActive}
+              onSelect={() => onSelectFile(originalIndex)}
+            />
+          );
+        })}
+        <li>
+          <button
+            type="button"
+            onClick={onSelectSdl}
+            title="Generated SDL — read-only · click to view"
+            className={`w-full group/row flex items-center gap-2 pr-3 border-l-2 transition-colors ${
+              sdlActive
+                ? 'border-bm-accent bg-bm-surface-alt text-bm-ink font-medium'
+                : 'border-transparent text-bm-ink-soft hover:bg-bm-surface-alt/50 hover:text-bm-ink'
+            }`}
+          >
+            <span className="flex-1 truncate text-left pl-4 py-1.5">schema.graphql</span>
+            <LockIcon />
+            <ChevronRight />
+          </button>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+interface GeneratedFileRowProps {
+  filename: string;
+  active: boolean;
+  onSelect: () => void;
+}
+
+function GeneratedFileRow({ filename, active, onSelect }: GeneratedFileRowProps) {
+  return (
+    <li>
       <button
         type="button"
-        onClick={onSelectSdl}
-        title="Generated SDL — read-only · click to view"
-        className={`group/row flex items-center gap-2 pr-3 border-l-2 transition-colors ${
-          sdlActive
+        onClick={onSelect}
+        title="Generator output — open to view"
+        className={`w-full group/row flex items-center gap-2 pr-3 border-l-2 transition-colors ${
+          active
             ? 'border-bm-accent bg-bm-surface-alt text-bm-ink font-medium'
             : 'border-transparent text-bm-ink-soft hover:bg-bm-surface-alt/50 hover:text-bm-ink'
         }`}
       >
-        <span className="flex-1 truncate text-left pl-4 py-1.5">schema.graphql</span>
+        <span className="flex-1 truncate text-left pl-4 py-1.5">{filename}</span>
         <LockIcon />
         <ChevronRight />
       </button>
-    </div>
+    </li>
   );
 }
 

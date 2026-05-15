@@ -1,0 +1,14 @@
+{
+  "name": "@prisma-next/driver-sqlite",
+  "version": "0.0.1",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./runtime": "./src/runtime.mjs",
+    "./seed": "./src/seed.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "sql.js": "1.14.1"
+  }
+}
