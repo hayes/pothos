@@ -4,13 +4,8 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./runtime": {
-      "browser": "./src/runtime.mjs",
-      "node": "./dist/runtime.mjs",
-      "default": "./dist/runtime.mjs"
-    },
+    "./runtime": "./src/runtime.mjs",
     "./seed": "./src/seed.mjs",
-    "./control": "./dist/control.mjs",
     "./package.json": "./package.json"
   },
   "dependencies": {

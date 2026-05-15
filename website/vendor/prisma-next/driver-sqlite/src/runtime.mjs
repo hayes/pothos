@@ -1,8 +1,14 @@
-// Browser-only sql.js-backed sqlite driver for prisma-next. Mirrors
+// Universal sql.js-backed sqlite driver for prisma-next. Mirrors
 // the surface of the upstream `@prisma-next/driver-sqlite` (which uses
-// `node:sqlite` and can't load in a browser). Only consumed inside the
-// Pothos playground demo; not exported from the npm-publishable
-// `@pothos/plugin-prisma-next` package.
+// `node:sqlite` — not available on Vercel's Node version, and never
+// available in the browser).
+//
+// Browser: loads the WASM from a CDN.
+// Node:    loads the WASM from the local `sql.js` install.
+//
+// This dual mode lets the same shim drive the website's playground
+// (browser) and the plugin's vitest suite (node) without conditional
+// exports or a node-builtin dependency.
 //
 // Binding contract: the `@prisma-next/sqlite` factory always normalises
 // to `{ kind: 'path', path: string }`. We carry the seed through that
@@ -11,6 +17,8 @@
 //   - `seed:<key>` → look up SQL from ./seed.mjs registry, exec, then
 //     run queries
 import { takeSeed } from './seed.mjs';
+
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
 
 let sqlJsInitPromise;
 
@@ -22,11 +30,30 @@ async function loadSqlJs() {
       // prisma-next demo actually runs.
       const mod = await import('sql.js');
       const initSqlJs = mod.default ?? mod;
-      // The WASM blob is content-addressed against the JS shim, so the
-      // version here must match the one resolved from node_modules.
-      // Keep in sync with package.json's `sql.js` pin.
+      if (isBrowser) {
+        // The WASM blob is content-addressed against the JS shim, so
+        // the version here must match the one resolved from
+        // node_modules. Keep in sync with package.json's `sql.js` pin.
+        return initSqlJs({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/${file}`,
+        });
+      }
+      // Node: read the WASM directly off disk so we don't depend on a
+      // network fetch (vitest, CI, server-side Next prerender). The
+      // bundled WASM lives next to sql.js's UMD entry; resolving the
+      // module itself gives us a stable anchor that survives pnpm's
+      // content-addressed install layout (where the package.json
+      // sometimes isn't in `exports`).
+      const { readFileSync } = await import('node:fs');
+      const { fileURLToPath } = await import('node:url');
+      const sqlJsEntryUrl = await import.meta.resolve('sql.js');
+      const distDir = new URL('./', sqlJsEntryUrl);
       return initSqlJs({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/${file}`,
+        locateFile: (file) => fileURLToPath(new URL(file, distDir)),
+        // sql.js sometimes ignores `locateFile` and looks for
+        // `sql-wasm.wasm` next to the bundle directly; feed the bytes
+        // through `wasmBinary` as a belt-and-suspenders fallback.
+        wasmBinary: readFileSync(fileURLToPath(new URL('sql-wasm.wasm', distDir))),
       });
     })();
   }
@@ -43,19 +70,44 @@ const NOT_CONNECTED = 'SQLite driver not connected. Call connect(binding) before
 const ALREADY_CONNECTED =
   'SQLite driver already connected. Call close() before reconnecting with a new binding.';
 
-function applyBinding(SQL, binding) {
-  const db = new SQL.Database();
-  db.run('PRAGMA foreign_keys = ON');
-  if (binding.path === ':memory:' || binding.path === '') return db;
+async function applyBinding(SQL, binding) {
+  if (binding.path === ':memory:' || binding.path === '') {
+    const db = new SQL.Database();
+    db.run('PRAGMA foreign_keys = ON');
+    return db;
+  }
   if (binding.path.startsWith('seed:')) {
+    const db = new SQL.Database();
+    db.run('PRAGMA foreign_keys = ON');
     const seed = takeSeed(binding.path.slice('seed:'.length));
     if (seed) db.exec(seed);
+    return db;
+  }
+  if (!isBrowser) {
+    // Node: load the file off disk into sql.js. The driver tracks the
+    // origin path so `.close()` can persist any writes back. Plugin
+    // tests use temp DBs created by `node:sqlite` and then drive
+    // prisma-next through this shim — this branch is what makes that
+    // round-trip work.
+    const { existsSync, readFileSync } = await import('node:fs');
+    const bytes = existsSync(binding.path) ? readFileSync(binding.path) : null;
+    const db = bytes ? new SQL.Database(bytes) : new SQL.Database();
+    db.run('PRAGMA foreign_keys = ON');
+    db.__filePath = binding.path;
     return db;
   }
   throw driverError(
     'DRIVER.UNSUPPORTED_BINDING',
     `Browser sqlite driver only supports ':memory:' or 'seed:<key>' paths, got ${binding.path}`,
   );
+}
+
+async function persistIfFileBacked(db) {
+  if (isBrowser) return;
+  const path = db.__filePath;
+  if (!path) return;
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(path, Buffer.from(db.export()));
 }
 
 function rowsFromExec(db, sql, params) {
@@ -139,7 +191,7 @@ class SqlJsDriver {
     if (this.#connectPromise) return this.#connectPromise;
     this.#connectPromise = (async () => {
       const SQL = await loadSqlJs();
-      const db = applyBinding(SQL, binding);
+      const db = await applyBinding(SQL, binding);
       this.#state = { kind: 'connected', db, conn: new SqlJsConnection(db) };
     })();
     try {
@@ -167,6 +219,7 @@ class SqlJsDriver {
 
   async close() {
     if (this.#state.kind !== 'connected') return;
+    await persistIfFileBacked(this.#state.db);
     this.#state.db.close();
     this.#state = { kind: 'closed' };
   }
