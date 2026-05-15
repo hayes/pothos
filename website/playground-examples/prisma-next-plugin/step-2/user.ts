@@ -1,8 +1,6 @@
 import { builder } from './builder';
 
 builder.prismaObject('User', {
-  // Type-level select: `id` is always on the resolver's `parent`.
-  // Field-level selects on individual fields add to this baseline.
   select: ['id'],
   fields: (t) => ({
     id: t.exposeID('id'),

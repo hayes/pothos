@@ -19,8 +19,6 @@ import { db } from './db';
 builder.prismaNode('Post', {
   id: { field: 'id' },
   collection: () => db.orm.Post,
-  // `id` is always on the resolver `parent` — needed at least for the
-  // node loader's id serialization and for `isTypeOf` below.
   select: ['id'],
   // Rows loaded through `node(id:)`'s batch loader are branded
   // automatically, but rows surfaced via `t.relatedConnection('posts')`

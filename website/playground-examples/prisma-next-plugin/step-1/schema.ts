@@ -23,8 +23,8 @@ import { db } from './db';
 //
 // `select: ['id']` is a type-level dependency: every field's resolver
 // sees `parent.id` regardless of what the GraphQL query asks for.
-// Most demos benefit from this baseline because the id is needed for
-// downstream lookups, links, or logging in custom resolvers.
+// Included here to show the syntax — the runtime always loads the
+// primary key anyway, so this only changes what TypeScript sees.
 builder.prismaObject('User', {
   select: ['id'],
   fields: (t) => ({
