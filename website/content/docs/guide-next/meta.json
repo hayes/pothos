@@ -1,0 +1,13 @@
+{
+  "title": "Guide (preview)",
+  "pages": [
+    "index",
+    "getting-started",
+    "fundamentals",
+    "patterns",
+    "playground",
+    "using-plugins",
+    "troubleshooting",
+    "..."
+  ]
+}

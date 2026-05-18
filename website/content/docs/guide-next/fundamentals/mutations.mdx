@@ -1,0 +1,44 @@
+---
+title: Mutations
+description: Guide for adding mutations to your schema
+---
+
+Mutations work just like queries, and you can use the `builder.mutationType()`,
+`builder.mutationField()`, and `builder.mutationFields()` methods to add mutations to your schema.
+
+```typescript playground example="02-queries-mutations"
+builder.mutationType({
+  fields: (t) => ({
+    // Add mutation that returns a simple boolean
+    post: t.boolean({
+      args: {
+        message: t.arg.string(),
+      },
+      resolve: async (_root, args) => {
+        // Do something with the message
+        const success = await messageClient.postMessage(args.message);
+
+        return success;
+      },
+    }),
+  }),
+});
+
+builder.mutationField('createGiraffe', (t) =>
+  t.field({
+    type: Giraffe,
+    args: {
+      name: t.arg.string(),
+    },
+    resolve: async (root, args) => {
+      const giraffe = {
+        name: args.name,
+      };
+
+      await db.giraffes.create(giraffe);
+
+      return giraffe;
+    },
+  }),
+);
+```

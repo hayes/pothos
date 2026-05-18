@@ -1,0 +1,15 @@
+{
+  "title": "Patterns",
+  "pages": [
+    "index",
+    "project-layout",
+    "handling-errors",
+    "default-nullability",
+    "circular-references",
+    "inferring-types",
+    "printing-schemas",
+    "generating-client-types",
+    "patterns",
+    "..."
+  ]
+}
