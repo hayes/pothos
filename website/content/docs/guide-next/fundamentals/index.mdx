@@ -1,10 +1,21 @@
 ---
 title: Fundamentals
-description: Reference pages for every core Pothos building block, in dependency order
+description: Per-concept reference for every core Pothos building block, in dependency order.
 ---
 
-The Fundamentals section covers each piece of the Pothos API in the order you'll naturally encounter it: the schema builder, then object types, fields, resolvers, context, arguments and inputs, the three root types, and finally interfaces, unions, enums, and scalars.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-You don't need to read these top-to-bottom — each page stands alone. But the order matches how concepts depend on each other, so reading sequentially won't leave you with forward references.
+This is the per-concept reference. Each page covers one piece of the Pothos API in enough depth to use it well, no further.
 
-This section is being rewritten. The placeholder pages mirror the current guide while new content lands.
+The pages sit in dependency order: each one only refers backward, not forward. If you read top-to-bottom you'll never hit a concept the docs haven't introduced yet. But every page also stands alone — drop in at whichever one you need.
+
+The reference splits naturally into three layers:
+
+- **Setup.** [SchemaBuilder](./schema-builder) — the generic argument and the constructor options that match it.
+- **Defining types and fields.** [Object types](./objects), [Fields](./fields), [Resolvers](./resolvers), [Context](./context), [Arguments](./args), [Input objects](./inputs).
+- **Root operations.** [Queries](./queries), [Mutations](./mutations), [Subscriptions](./subscriptions).
+- **Polymorphism and custom types.** [Interfaces](./interfaces), [Unions](./unions), [Enums](./enums), [Scalars](./scalars).
+
+<Callout type="info">
+  New to Pothos? Start with [Getting started](../getting-started) instead — it walks you from `npm install` to a running server before dropping you into the reference.
+</Callout>

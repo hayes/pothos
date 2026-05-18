@@ -7,9 +7,7 @@
     "default-nullability",
     "circular-references",
     "inferring-types",
-    "printing-schemas",
-    "generating-client-types",
-    "patterns",
-    "..."
+    "printing-and-codegen",
+    "reusable-fields"
   ]
 }

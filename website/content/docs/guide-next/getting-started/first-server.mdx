@@ -1,0 +1,108 @@
+---
+title: First server
+description: Wire the schema into graphql-yoga and serve a GraphQL endpoint.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+A `GraphQLSchema` on its own doesn't accept HTTP requests. You hand it to a server. This guide uses [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server) — the smallest path from schema to a running endpoint — but Apollo Server, Mercurius, and `graphql-http` all accept the same schema.
+
+## Install yoga
+
+```package-install
+npm install graphql-yoga
+```
+
+## The schema
+
+Start with a minimal Pothos schema. This is the same shape you'd build out for a real app:
+
+```typescript playground example="getting-started-first-server-step-1"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      args: { name: t.arg.string() },
+      resolve: (_root, { name }) => `Hello, ${name ?? 'friend'}.`,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+Save this as `schema.ts`. It exports `schema`, which is the only thing the server needs.
+
+## The server
+
+`createYoga` accepts the schema and returns a standard request handler:
+
+```typescript playground example="getting-started-first-server-step-2"
+import { createServer } from 'node:http';
+import { createYoga } from 'graphql-yoga';
+import { schema } from './schema';
+
+const yoga = createYoga({
+  schema,
+  context: () => ({}),
+});
+
+const server = createServer(yoga);
+
+server.listen(4000, () => {
+  console.log('Ready at http://localhost:4000/graphql');
+});
+```
+
+Run it with `tsx server.ts` (or compile and run with node). Visit `http://localhost:4000/graphql` and you'll get GraphiQL — yoga serves it automatically on the same endpoint.
+
+## Running a query
+
+In GraphiQL:
+
+```graphql
+query Greet {
+  hello(name: "Frodo")
+}
+```
+
+Expected response:
+
+```json
+{
+  "data": {
+    "hello": "Hello, Frodo."
+  }
+}
+```
+
+## The context factory
+
+The `context:` option on `createYoga` runs once per request. It's where you assemble the value resolvers see as their third argument:
+
+```typescript
+const yoga = createYoga({
+  schema,
+  context: async ({ request }) => ({
+    user: await decodeUserFromToken(request.headers.get('authorization')),
+    db,
+  }),
+});
+```
+
+Once you give the builder generic a matching `Context` shape, the type flows through to every resolver. See [Context](../fundamentals/context) for the full setup.
+
+## What's next
+
+You have a working Pothos server. The rest of the docs answer "how do I add X?":
+
+- [Fundamentals](../fundamentals) is the per-concept reference — every type, field, and root operation.
+- [Patterns](../patterns) covers the recurring shapes — project layout, error handling, codegen.
+- [Using plugins](../using-plugins) is the catalogue of optional add-ons.
+
+<Callout type="info">
+  See also: [Project layout](../patterns/project-layout) for splitting a growing schema across files.
+</Callout>

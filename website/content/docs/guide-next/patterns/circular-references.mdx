@@ -1,134 +1,79 @@
 ---
-title: Circular References
-description: Guide for how circular references and dependencies are managed in Pothos
+title: Circular references
+description: Two types that reference each other, untangled with objectRef declared up front and implemented later.
 ---
 
-Circular references and circular dependencies are a common problem that can appear in a number of
-ways, and cause a variety of different issues.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-Pothos has a number of built in mitigations to help avoid these issues, and tries to provide
-additional APIs to help with situations that can't be automatically avoided.
+Two types that point at each other — a `Character` that lists its `Faction`s, a `Faction` that lists its members — are the common case where TypeScript's "declare before use" trips you up. Pothos's `objectRef` pattern is the answer.
 
-This guide should provide some insight into how to resolve any issues you may run into, but will
-hopefully not be needed very often.
+```typescript playground example="patterns-circular-references"
+const Character = builder.objectRef<ICharacter>('Character');
+const Faction = builder.objectRef<IFaction>('Faction');
 
-## imports
+Character.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    factions: t.field({
+      type: [Faction],
+      resolve: (c) => c.factionIds.map((id) => Factions.get(id)!).filter(Boolean),
+    }),
+  }),
+});
 
-Circular imports are something that can cause issues in any javascript or typescript project, but
-can become more common in graphql because of its interconnected nature.
-
-When js/ts files either directly or indirectly import each other, the exports from one file will
-initially be undefined while executing the main body of the other. These issues often result in
-confusing and unrelated errors because the relevant values are often not used until much later.
-
-Pothos mitigates this by deferring a lot of the processing until the `builder.toSchema()` method is
-called. As long as the file that builds the schema (calls the `toSchema` method) is not imported by
-any other file that defines parts of the schema, this will ensure that all types are properly
-imported, and types are not unexpectedly undefined.
-
-As you can see in the example below, the references to `Post` and `User` when defining fields are
-wrapped inside the `fields` function. Because this function is not executed until the schema is
-loaded, these types of Circular imports should work without causing any issues.
-
-```ts
-// user.ts
-import { Post } from './post'
-
-export const User = builder.objectType('User', {
-    fields: t => ({ posts: t.expose('posts', { type: [Post]}) }),
-})
-
-// post.ts
-import { User } from './user'
-
-export const Post = builder.objectType('Post', {
-    fields: t => ({ author: t.expose('author', { type: User }) }),
-})
-
-// schema.js
-export const schema = builder.toSchema()
+Faction.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    members: t.field({
+      type: [Character],
+      resolve: (f) => f.memberIds.map((id) => Characters.get(id)!).filter(Boolean),
+    }),
+  }),
+});
 ```
 
-Another best practice is to avoid importing from `index.ts` files by importing from the file that
-defines the value directly. The easiest way to achieve this is by not exporting values from
-`index.ts` files.
+`objectRef` introduces a typed reference *before* the type is implemented. Both refs exist by the time the first `implement` runs, so each can reference the other freely.
 
-```ts
-// bad
-export * from './enums';
-export * from './objects';
-// better
-import './enums';
-import './objects';
-```
+## Why this works
 
-## Defining Circular or Recursive types
+Splitting `objectRef` from `implement` is a two-phase declaration. Phase one is "the type exists and these are its TypeScript and GraphQL names." Phase two is "and these are its fields." The two-way reference happens during phase two, when both phase-one declarations are already done.
 
-A large portion of the Pothos API is designed to work well with circular references, but there are a
-few cases where typescript is unable to resolve circular references correctly.
+You can use the same trick for any number of mutually-referential types. Declare all the `objectRef` calls first, then all the `implement` calls.
 
-What should work without any issues:
+## In a modular layout
 
-- Objects and interfaces referenced via a class
-- Objects and interfaces referenced via a string (by providing a type mapping when creating the
-  SchemaBuilder)
-- Objects defined by plugins like Prisma that derive type information from an external source
+Splitting `objectRef` and `implement` is also what lets a modular schema cross file boundaries without import cycles. Each domain module declares its `objectRef`, then implements it. Cross-domain references live in the file that pulls in the other type, not the other way around.
 
-Cases that may require some modification
+See [Project layout](./project-layout) for the file shape this enables.
 
-- Input objects with circular references
-- Object types defined with `builder.objectRef`
-- Objects defined by plugins like `dataloader` that infer the backing model type from options passed
-  to the type.
+## Other styles
 
-## Input objects
-
-Defining recursive input types is described in the [input Guide](./inputs#recursive-inputs)
-
-## Object refs
-
-Object refs may cause issues with circular references if the refs are implemented before they are
-assigned to a variable. This can easily be avoided by moving the call to `ref.implement` into its
-own statement.
+For very simple cases — two types in one file, no other types involved — you can also use thunks to defer resolution:
 
 ```typescript
-// May cause issues
-export const User = builder.objectRef<IUser>('User').implement({...});
-
-// Should be safe
-export const User = builder.objectRef<IUser>('User')
-
-User.implement({...});
-```
-
-Using object refs is often a great way to avoid issues with circular references because it allows
-you to define the reference before defining any fields for your type. Many of the builder methods in
-Pothos and its plugins can be passed a type ref instead of a name:
-
-```typescript playground example="12-circular-references"
-export const User = builder.objectRef<IUser>('User');
-
-builder.objectType(User, {
+const Character = builder.objectType('Character', {
   fields: (t) => ({
-    // Circular references here won't cause issues, because User is already defined above
+    factions: t.field({
+      type: () => [Faction], // Note the thunk
+      resolve: (c) => /* ... */,
+    }),
+  }),
+});
+
+const Faction = builder.objectType('Faction', {
+  fields: (t) => ({
+    members: t.field({
+      type: () => [Character],
+      resolve: (f) => /* ... */,
+    }),
   }),
 });
 ```
 
-## Defining fields separately
+The thunk approach works when both types are in the same module and the second declaration can rely on hoisting. Across module boundaries `objectRef` is the only thing that survives.
 
-Another easy work around is to define any fields that are causing issues separately
-
-```ts
-export const User = builder.objectRef<UserType>('User').implement({
-  fields: (t) => ({ posts: t.expose('posts', { type: [Post] }) }),
-});
-
-export const Post = builder.objectRef<PostType>('Post').implement({
-  fields: (t) => ({
-    // No more circular reference
-  }),
-});
-
-builder.objectField(Post, 'author', (t) => t.expose({ type: User }));
-```
+<Callout type="info">
+  See also: [Object types](../fundamentals/objects) for the basic `objectRef` pattern, or [Project layout](./project-layout) for the multi-file version.
+</Callout>
