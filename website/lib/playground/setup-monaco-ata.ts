@@ -37,6 +37,21 @@ const versionedAliases = new Map<string, Set<string>>();
 
 const SKIP_PATH = /^\/node_modules\/(?:@pothos\/|graphql(?:\/|$))/;
 
+// Imports we never want ATA to ask jsdelivr about: @pothos/* is
+// bundled into Monaco directly via setup-monaco, and `readline` is
+// a Node builtin for which `@types/readline` doesn't exist on the
+// registry. ATA's fetch still hits jsdelivr per import even when
+// receivedFile filters the result, so we strip them at the
+// source-rewrite stage.
+const ATA_SKIP_BARE = /^(?:@pothos\/[^/'"]+|readline)/;
+
+function stripBundledImportsForAta(source: string): string {
+  return source.replace(
+    /^[ \t]*import\s+(?:[^'"]*?\s+from\s+)?(['"])([^'"]+)\1[ \t]*;?[ \t]*$/gm,
+    (match, _q, spec: string) => (ATA_SKIP_BARE.test(spec) ? '' : match),
+  );
+}
+
 /**
  * Rewrite `import x from 'pkg@version'` (or scoped equivalents) so ATA
  * can recognize the package name and fetch matching types from
@@ -216,10 +231,13 @@ export async function feedATA(monaco: Monaco, source: string): Promise<void> {
   if (!run) {
     return;
   }
-  // Rewrite versioned specifiers before handing source to ATA. ATA
-  // doesn't recognize `pkg@version` natively — it'd treat the whole
-  // string as a package name and emit a malformed jsdelivr URL.
-  const rewritten = rewriteVersionedImportsForAta(source);
+  // Strip imports for packages we provide locally so ATA doesn't fan
+  // out failed jsdelivr fetches for them on every keystroke; then
+  // rewrite versioned specifiers (ATA doesn't recognize `pkg@version`
+  // natively — it'd treat the whole string as a package name and emit
+  // a malformed jsdelivr URL).
+  const filtered = stripBundledImportsForAta(source);
+  const rewritten = rewriteVersionedImportsForAta(filtered);
   // Replay aliasing against already-seen files in case the user just
   // added `@version` to an import whose package ATA had previously
   // fetched (without ATA re-delivering it).

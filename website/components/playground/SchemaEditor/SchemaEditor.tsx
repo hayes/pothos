@@ -16,9 +16,13 @@ interface Props {
 export function SchemaEditor({ files, activeIndex, sdlActive, schemaSDL, onChange }: Props) {
   const activeFile = files[activeIndex];
   const lineCount = activeFile?.content.split('\n').length ?? 0;
+  const generated = activeFile?.generated === true;
+  const language = languageLabelForFilename(activeFile?.filename ?? '');
   const meta = sdlActive
     ? 'Generated SDL · read-only'
-    : `TypeScript · ${lineCount} line${lineCount === 1 ? '' : 's'}`;
+    : generated
+      ? `${language} · generated · read-only`
+      : `${language} · ${lineCount} line${lineCount === 1 ? '' : 's'}`;
   const headerName = sdlActive ? 'schema.graphql' : (activeFile?.filename ?? '');
 
   return (
@@ -26,7 +30,7 @@ export function SchemaEditor({ files, activeIndex, sdlActive, schemaSDL, onChang
       <header className="flex items-center px-6 h-11 border-b border-bm-line bg-bm-bg">
         <span
           className={`font-mono text-[13px] tracking-[-0.01em] text-bm-ink ${
-            sdlActive ? 'italic' : ''
+            sdlActive || generated ? 'italic' : ''
           }`}
         >
           {headerName}
@@ -42,10 +46,24 @@ export function SchemaEditor({ files, activeIndex, sdlActive, schemaSDL, onChang
             filename={activeFile.filename}
             source={activeFile.content}
             allFiles={files}
+            readOnly={generated}
             onChange={(value) => onChange(activeIndex, value)}
           />
         ) : null}
       </div>
     </section>
   );
+}
+
+function languageLabelForFilename(filename: string): string {
+  if (filename.endsWith('.json')) {
+    return 'JSON';
+  }
+  if (filename.endsWith('.sql')) {
+    return 'SQL';
+  }
+  if (filename.endsWith('.graphql') || filename.endsWith('.gql')) {
+    return 'GraphQL';
+  }
+  return 'TypeScript';
 }

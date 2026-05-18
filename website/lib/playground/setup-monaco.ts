@@ -60,7 +60,17 @@ export function setupMonacoForPothos(monacoInstance: Monaco): void {
   monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
     target: monaco.languages.typescript.ScriptTarget.ESNext,
     module: monaco.languages.typescript.ModuleKind.ESNext,
-    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+    // Bundler (= TS's "bundler" resolution) honours `package.json#exports`
+    // and locates `.d.mts` alongside `.mjs` automatically — needed for
+    // vendored type packs whose subpath exports otherwise require
+    // fan-out `declare module` wrappers per subpath.
+    //
+    // Monaco's bundled TypeScript types still only enumerate the legacy
+    // resolution kinds (Classic / NodeJs). The hosted TS runtime
+    // supports `Bundler` (value 100); cast through `unknown` to set it.
+    moduleResolution:
+      (monaco.languages.typescript.ModuleResolutionKind as unknown as Record<string, number>)
+        .Bundler ?? 100,
     allowNonTsExtensions: true,
     strict: true,
     esModuleInterop: true,
@@ -80,6 +90,28 @@ export function setupMonacoForPothos(monacoInstance: Monaco): void {
 
   // Load core type definitions (GraphQL + @pothos/core)
   loadTypeDefinitions(coreTypeDefinitions);
+
+  // Ambient declarations for `*.json` and `*.sql` data-file imports.
+  // Monaco's TS worker treats files added via addExtraLib as TS source
+  // regardless of extension, so `resolveJsonModule` doesn't kick in
+  // even with a `.json` filename — TS would parse contract.json as TS
+  // and complain "is not a module". The ambient wildcard handles
+  // resolution at the import path; runtime types still come from the
+  // sibling `.d.ts` sidecar (e.g. contract.d.ts → typed Contract).
+  monaco.languages.typescript.typescriptDefaults.addExtraLib(
+    [
+      "declare module '*.json' {",
+      '  const value: unknown;',
+      '  export default value;',
+      '}',
+      "declare module '*.sql' {",
+      '  const content: string;',
+      '  export default content;',
+      '}',
+      '',
+    ].join('\n'),
+    'file:///playground/data-modules.d.ts',
+  );
 
   monacoLogger.debug(`Loaded ${coreTypeDefinitions.length} core type definitions`);
 }
@@ -143,9 +175,22 @@ export function registerPlaygroundFiles(files: Array<{ filename: string; content
     return;
   }
 
-  // Register each file as a model in Monaco's virtual file system
+  // Register each file as a model in Monaco's virtual file system.
+  // Language ID drives which Monaco service parses the file: typescript
+  // for .ts/.d.ts (the eager-model-sync path feeds these to the TS
+  // worker), json/plaintext for data files (handled by their own
+  // language services for editor highlighting). Data-file imports
+  // resolve via the wildcard `*.json` / `*.sql` ambient declarations
+  // registered in setupMonacoForPothos — adding them to the TS worker
+  // here is counter-productive because TS would parse the JSON as TS
+  // source and fail with "is not a module".
   for (const file of files) {
     const filePath = `file:///playground/${file.filename}`;
+    const lang = file.filename.endsWith('.json')
+      ? 'json'
+      : file.filename.endsWith('.sql')
+        ? 'plaintext'
+        : 'typescript';
 
     // Check if model already exists
     const existingModel = monaco.editor.getModel(monaco.Uri.parse(filePath));
@@ -156,8 +201,7 @@ export function registerPlaygroundFiles(files: Array<{ filename: string; content
         existingModel.setValue(file.content);
       }
     } else {
-      // Create new model
-      monaco.editor.createModel(file.content, 'typescript', monaco.Uri.parse(filePath));
+      monaco.editor.createModel(file.content, lang, monaco.Uri.parse(filePath));
     }
   }
 }

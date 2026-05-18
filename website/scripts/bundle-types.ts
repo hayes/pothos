@@ -171,6 +171,15 @@ function processTypeContent(
     .replace(/(import\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
       replaceRelativePath(match, prefix, relativePath, ''),
     )
+    // import('./path') — dynamic import used in *type* positions, e.g.
+    // `ExposableShape = import('./types').Row<Types, M>`. Without this
+    // rewrite the relative specifier survives into a `declare module`
+    // block where TS silently resolves it to `any`, collapsing every
+    // downstream generic that depends on it (and producing
+    // permissive-string overloads for things like `exposeID`).
+    .replace(/(import\(\s*)['"](\.[^'"]+)['"](\s*\))/g, (match, prefix, relativePath, suffix) =>
+      replaceRelativePath(match, prefix, relativePath, suffix),
+    )
     // export ... from './path'
     .replace(/(export\s+\*\s+from\s*)['"](\.[^'"]+)['"]/g, (match, prefix, relativePath) =>
       replaceRelativePath(match, prefix, relativePath, ''),

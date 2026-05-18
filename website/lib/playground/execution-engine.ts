@@ -4,6 +4,7 @@ import { extractBareImports, fetchCdnModule } from './cdn-modules';
 import { compileTypeScriptInWorker } from './compiler-worker-client';
 import { captureConsole } from './console-capture';
 import { compilerLogger } from './logger';
+import { getExampleStubModules } from './example-stubs';
 import { getPluginModules } from './plugins-bundle';
 import { getCachedSchema, setCachedSchema } from './schema-cache';
 
@@ -393,29 +394,51 @@ async function bundleFiles(files: Array<{ filename: string; content: string }>):
       format: 'esm',
       target: 'es2020',
       platform: 'neutral',
-      // Mark external packages that will be provided by the playground runtime
-      external: ['@pothos/*', 'graphql', 'zod'],
       plugins: [
         {
           name: 'virtual-files',
           setup(build) {
-            // Resolve relative imports to our virtual file system
+            // Resolve relative imports to our virtual file system.
+            // Known data-file extensions (`.json`, `.sql`) pass through
+            // unchanged so the loader below can pick the right
+            // esbuild loader; everything else gets the implicit `.ts`.
             build.onResolve({ filter: /^\./ }, (args) => {
-              // Remove leading './' and add file extension if missing
               let path = args.path.replace(/^\.\//, '');
-              if (!path.endsWith('.ts') && !path.endsWith('.tsx')) {
+              const isDataFile = path.endsWith('.json') || path.endsWith('.sql');
+              if (!isDataFile && !path.endsWith('.ts') && !path.endsWith('.tsx')) {
                 path += '.ts';
               }
               return { path: `/playground/${path}`, namespace: 'virtual' };
             });
 
-            // Load files from our virtual file system
+            // Bare specifiers (everything not starting with `.` or `/`)
+            // are runtime-resolved: pothos workspace plugins come from
+            // `plugins-bundle`, example-registered stubs come from
+            // `example-stubs`, and anything else is fetched from
+            // esm.sh by `compileAndExecute`. Marking them external
+            // here keeps esbuild from trying to walk node_modules
+            // (which doesn't exist in the WASM context).
+            build.onResolve({ filter: /^[^./]/ }, (args) => ({
+              path: args.path,
+              external: true,
+            }));
+
+            // Load files from our virtual file system. `.json` →
+            // esbuild's json loader (parses + emits a JS module with
+            // default-export object); `.sql` → text loader (emits the
+            // raw content as a default string). Everything else is
+            // TypeScript.
             build.onLoad({ filter: /.*/, namespace: 'virtual' }, (args) => {
               const contents = fileMap.get(args.path);
               if (contents === undefined) {
                 return { errors: [{ text: `File not found: ${args.path}` }] };
               }
-              return { contents, loader: 'ts' };
+              const loader: 'json' | 'text' | 'ts' = args.path.endsWith('.json')
+                ? 'json'
+                : args.path.endsWith('.sql')
+                  ? 'text'
+                  : 'ts';
+              return { contents, loader };
             });
           },
         },
@@ -484,9 +507,14 @@ export async function compileAndExecute(
 
   // Pothos plugins are workspace packages — bundled locally so the
   // playground always runs the same version that ships with the docs.
-  // Everything else (zod, lodash, anything the user types) goes through
-  // the esm.sh CDN at runtime; ATA fetches matching types at edit time.
+  // Examples can additionally register "stub" modules (synthetic
+  // specifiers mapped to in-tree implementations) via
+  // `registerExampleStubs`; those resolve from the registry instead of
+  // the CDN. Everything else (zod, lodash, anything the user types)
+  // goes through the esm.sh CDN at runtime; ATA fetches matching types
+  // at edit time.
   const pluginModules = getPluginModules(code);
+  const stubModules = getExampleStubModules(code);
 
   const compilationResult = await compileTypeScript(code, filename);
 
@@ -497,7 +525,12 @@ export async function compileAndExecute(
     };
   }
 
-  const knownLocally = new Set<string>(['@pothos/core', 'graphql', ...Object.keys(pluginModules)]);
+  const knownLocally = new Set<string>([
+    '@pothos/core',
+    'graphql',
+    ...Object.keys(pluginModules),
+    ...Object.keys(stubModules),
+  ]);
   const cdnModules: Record<string, unknown> = {};
   const remoteSpecifiers = [...extractBareImports(compilationResult.code!)].filter(
     (name) => !knownLocally.has(name),
@@ -526,6 +559,7 @@ export async function compileAndExecute(
 
   return executeAndBuildSchema(compilationResult.code!, modules, {
     ...pluginModules,
+    ...stubModules,
     ...cdnModules,
   });
 }

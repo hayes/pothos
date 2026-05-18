@@ -4,15 +4,9 @@ export type ResponsePhase =
   | { kind: 'success'; status: number; durationMs: number; sizeBytes: number; body: string }
   | { kind: 'error'; status: number; durationMs: number; errorCount: number; body: string };
 
-export interface TraceRow {
-  /** Path through the operation, e.g. `Query.user`, `User.posts`. */
-  path: string;
-  /** Self time in ms (used for the bar fill width). */
-  selfMs: number;
-  /** Display string like `8.1 ms` or `0.0 ms × 2`. */
-  totalLabel: string;
-  /** Resolver function name. */
-  resolver: string;
-}
-
-export type ResponseSubTab = 'response' | 'trace';
+/**
+ * Active sub-tab in the ResponsePane. `'response'` is the built-in body
+ * editor; any other string keys a panel surfaced via
+ * `extensions.playgroundPanels` (the panel's `name` becomes the key).
+ */
+export type ResponseSubTab = string;

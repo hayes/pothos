@@ -23,9 +23,11 @@ function readSearchParamsOnce(): {
   exampleId: string | null;
   query: string | null;
   step: number | null;
+  /** 1-indexed in the URL; converted to 0-indexed inside the hook. */
+  op: number | null;
 } {
   if (typeof window === 'undefined') {
-    return { embed: false, exampleId: null, query: null, step: null };
+    return { embed: false, exampleId: null, query: null, step: null, op: null };
   }
   const params = new URLSearchParams(window.location.search);
   const exampleId = params.get('example');
@@ -38,19 +40,41 @@ function readSearchParamsOnce(): {
       query = queryRaw;
     }
   }
+  // `step` may live in the URL hash (legacy) or as a `?step=N` search
+  // param (current — written by setExampleInUrl when the user navigates
+  // via the StepperBar). Search wins because that's where new links
+  // come from; the hash check stays for back-compat with older
+  // shared URLs.
   let step: number | null = null;
-  const hash = window.location.hash.slice(1);
-  if (hash) {
-    const hashParams = new URLSearchParams(hash);
-    const raw = hashParams.get('step');
-    if (raw) {
-      const parsed = Number.parseInt(raw, 10);
-      if (!Number.isNaN(parsed) && parsed > 0) {
-        step = parsed;
+  const searchStep = params.get('step');
+  if (searchStep) {
+    const parsed = Number.parseInt(searchStep, 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      step = parsed;
+    }
+  }
+  if (step === null) {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const hashParams = new URLSearchParams(hash);
+      const raw = hashParams.get('step');
+      if (raw) {
+        const parsed = Number.parseInt(raw, 10);
+        if (!Number.isNaN(parsed) && parsed > 0) {
+          step = parsed;
+        }
       }
     }
   }
-  return { embed: params.get('embed') === '1', exampleId, query, step };
+  let op: number | null = null;
+  const searchOp = params.get('op');
+  if (searchOp) {
+    const parsed = Number.parseInt(searchOp, 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      op = parsed;
+    }
+  }
+  return { embed: params.get('embed') === '1', exampleId, query, step, op };
 }
 
 interface ApplyExampleResultInput {
@@ -74,6 +98,14 @@ interface UseUrlBootstrapArgs {
    * sketch" inside an iframe before the example title mirrors in.
    */
   setSketchName: (next: string) => void;
+  /**
+   * Lock in a content baseline so subsequent edits can diff against
+   * "the state the user arrived at". Called from the hash-hydration
+   * path (so a shared `#code=…` link uses the hash content as
+   * baseline) — the example-load path inside `applyExampleResult`
+   * already does its own baseline capture.
+   */
+  captureBaseline: (files: PlaygroundFile[], operations: Operation[]) => void;
 }
 
 interface UseUrlBootstrapResult {
@@ -102,6 +134,7 @@ export function useUrlBootstrap({
   exampleLoader,
   applyExampleResult,
   setSketchName,
+  captureBaseline,
 }: UseUrlBootstrapArgs): UseUrlBootstrapResult {
   // Read URL search params (?embed, ?example, ?query) once after mount.
   const [embed, setEmbed] = useState(false);
@@ -117,6 +150,17 @@ export function useUrlBootstrap({
   // The returned `appliedRef` tells the search-params effect below
   // to skip auto-loading `?example=` when the hash already restored
   // user-edited state (hash wins over the example link).
+  // Pending hash-applied content. When `?example=foo` is ALSO present
+  // (shared link with both example + edits), the search-params effect
+  // below loads the example bundle just to extract its pristine
+  // baseline — without overwriting the user-facing state, which
+  // already has the edited hash content. Baseline = example pristine
+  // means subsequent renders correctly diff hash content against the
+  // example, keeping the URL hash present until the user reverts.
+  const pendingHashContentRef = useRef<{ files: PlaygroundFile[]; operations: Operation[] } | null>(
+    null,
+  );
+
   const { appliedRef: urlHashApplied } = useUrlInit((initial) => {
     if (initial.files.length > 0) {
       filesState.setFiles(initial.files);
@@ -130,6 +174,17 @@ export function useUrlBootstrap({
     if (typeof initial.step === 'number') {
       pendingStepRef.current = initial.step;
     }
+    // Don't touch the baseline here. The baseline already defaults
+    // to the playground's defaults snapshot; if the hash carries
+    // something different (the usual case for a shared link), the
+    // diff is real and `useUrlHashSync` keeps the hash present.
+    // The search-params effect below upgrades the baseline to the
+    // example's pristine content when `?example=` is also set, so a
+    // combined link diffs against the actual starting point.
+    pendingHashContentRef.current = {
+      files: initial.files,
+      operations: initial.operations,
+    };
   });
 
   // One-shot reader for `?embed`, `?example`, and `?query` URL params.
@@ -151,33 +206,69 @@ export function useUrlBootstrap({
       // nothing until the example load below mirrors a real title in.
       setSketchName('');
     }
-    if (search.exampleId && !urlHashApplied.current) {
+    // `?op=2` selects the second operation tab after loading. Applied
+    // after the example/hash bootstrap so it sticks (the example load
+    // resets the active index to 0 inside applyExampleResult).
+    const applyOpFromUrl = () => {
+      if (search.op !== null) {
+        opsState.setActiveIndex(search.op - 1);
+      }
+    };
+
+    if (search.exampleId) {
       // Prefer step from the URL hash (set by `readSearchParamsOnce`)
       // over `pendingStepRef`; both are equivalent in practice but the
       // ref path also covers cases where the hash had files+step set.
-      const step = search.step ?? pendingStepRef.current ?? null;
+      // `search.step` is 1-indexed (as written by setExampleInUrl);
+      // convert to the 0-indexed value `goToStep` expects.
+      const stepOneIndexed = search.step ?? pendingStepRef.current ?? null;
       pendingStepRef.current = null;
+      const targetStepIndex =
+        stepOneIndexed !== null && stepOneIndexed > 1 ? stepOneIndexed - 1 : 0;
+      const hashContent = pendingHashContentRef.current;
+      pendingHashContentRef.current = null;
+      const hashApplied = urlHashApplied.current;
       exampleLoader
         .load(search.exampleId)
-        .then((result) => {
+        .then(async (result) => {
           if (!result) {
             return;
           }
-          applyExampleResult(result, search.query ?? undefined);
-          if (step !== null && step > 0) {
-            return exampleLoader.goToStep(step).then((stepResult) => {
-              if (stepResult) {
-                applyExampleResult(stepResult, search.query ?? undefined);
-              }
-            });
+          // Resolve to the specific step's bundle first so the
+          // baseline matches the step the user actually arrived at.
+          let final = result;
+          if (targetStepIndex > 0) {
+            const stepResult = await exampleLoader.goToStep(targetStepIndex);
+            if (stepResult) {
+              final = stepResult;
+            }
           }
-          return undefined;
+          if (hashApplied && hashContent) {
+            // Both `?example=` AND `#code=` are present. State is
+            // already the edited hash content (applied by useUrlInit).
+            // We loaded the example bundle ONLY to swap the baseline
+            // from "hash content" over to "example pristine" — so the
+            // hash sync correctly detects an edit and keeps the
+            // `#code=…` in the URL on subsequent renders.
+            captureBaseline(final.files, final.operations);
+            applyOpFromUrl();
+            return;
+          }
+          // No hash, or hash didn't carry files — apply the example
+          // bundle normally. applyExampleResult does its own baseline
+          // capture, so the URL stays at the short form until edited.
+          applyExampleResult(final, search.query ?? undefined);
+          applyOpFromUrl();
         })
         .catch((err) => {
           console.error('Failed to auto-load example from URL:', err);
         });
+    } else if (search.op !== null) {
+      // No example to load, but URL has `?op=`. Apply it directly to
+      // whatever operations are loaded (defaults or hash-hydrated).
+      applyOpFromUrl();
     }
-  }, [exampleLoader, applyExampleResult, urlHashApplied, setSketchName]);
+  }, [exampleLoader, applyExampleResult, urlHashApplied, setSketchName, captureBaseline, opsState]);
 
   return { embed };
 }

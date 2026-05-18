@@ -19,6 +19,24 @@ export default function PlaygroundPage() {
         ui.embed ? '' : 'min-h-[820px]'
       }`}
     >
+      {/* Stepper goes ABOVE the toolbar so when a multi-step example
+          is loaded, the example title + progress is the first thing
+          you read on the page. The toolbar (run / share / console /
+          examples) sits below and stays focused on the active step's
+          tools. */}
+      {ui.loadedExample && ui.loadedExample.steps.length > 1 ? (
+        <StepperBar
+          exampleTitle={ui.loadedExample.metadata.title}
+          steps={ui.loadedExample.steps}
+          index={ui.stepIndex}
+          pendingIndex={ui.pendingStepIndex}
+          onSelect={ui.onStepSelect}
+          onExit={ui.exitExample}
+        />
+      ) : (
+        <div />
+      )}
+
       <Toolbar
         embed={ui.embed}
         sketchName={ui.sketchName}
@@ -39,18 +57,6 @@ export default function PlaygroundPage() {
         onToggleOverflow={ui.toggleOverflow}
         overflowItems={ui.overflowItems}
       />
-
-      {ui.loadedExample && ui.loadedExample.steps.length > 1 ? (
-        <StepperBar
-          exampleTitle={ui.loadedExample.metadata.title}
-          steps={ui.loadedExample.steps}
-          index={ui.stepIndex}
-          onSelect={ui.onStepSelect}
-          onExit={ui.exitExample}
-        />
-      ) : (
-        <div />
-      )}
 
       <PlaygroundLayout
         sidebar={
@@ -97,7 +103,7 @@ export default function PlaygroundPage() {
             phase={ui.runnerPhase}
             subTab={ui.responseSubTab}
             onSelectSubTab={ui.setResponseSubTab}
-            trace={ui.runnerTrace}
+            panels={ui.runnerPanels}
           />
         }
       />
