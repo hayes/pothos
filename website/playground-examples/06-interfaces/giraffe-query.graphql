@@ -1,7 +1,0 @@
-# Query Giraffe directly (includes interface fields)
-query GetGiraffe {
-  giraffe {
-    name
-    diet
-  }
-}

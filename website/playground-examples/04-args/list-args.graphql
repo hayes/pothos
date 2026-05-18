@@ -1,8 +1,0 @@
-# List argument patterns
-query ListArgs {
-  giraffeNameChecker(names: ["James", "Bob", "Gina"])
-}
-
-query NullableListArgs {
-  nullableArgs(required: "required value", requiredList: ["a", "b"], sparseList: ["x", null, "y"])
-}

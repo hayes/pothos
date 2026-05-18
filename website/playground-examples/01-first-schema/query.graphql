@@ -1,7 +1,0 @@
-query GetGiraffe {
-  giraffe {
-    name
-    height
-    age
-  }
-}

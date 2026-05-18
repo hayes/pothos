@@ -38,16 +38,16 @@ export const schema = builder.toSchema();
 
 Reference a pre-registered example by ID. The example's full configuration (multiple files, default query) will be loaded:
 
-```ts playground example="01-first-schema"
+```ts playground example="getting-started-first-schema"
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
 // This code is shown in the docs, but when opened in playground
-// it loads the full "01-first-schema" example with all its files
-const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
+// it loads the full "getting-started-first-schema" example with all its files.
+const Character = builder.objectRef<ICharacter>('Character');
 
-GiraffeRef.implement({
+Character.implement({
   fields: (t) => ({
     name: t.exposeString('name'),
   }),
@@ -78,8 +78,8 @@ export const schema = builder.toSchema();
 
 Combine an example with a custom query to guide users to specific functionality:
 
-```ts playground example="01-first-schema" query="{ giraffe { name height age } }"
-// Opens the 01-first-schema example with a pre-populated query
+```ts playground example="getting-started-first-schema" query="{ frodo { id name } }"
+// Opens the getting-started-first-schema example with a pre-populated query
 ```
 
 ## How It Works
