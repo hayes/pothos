@@ -12,6 +12,18 @@ export interface PlaygroundFile {
    * with the files the user is meant to author.
    */
   generated?: boolean;
+  /**
+   * Helper files that ship with an example (stub-module wiring,
+   * capture middleware, registration side-effect imports) but
+   * shouldn't show up in the Files tab. Still loaded into Monaco's
+   * virtual fs and the runtime bundle so relative imports resolve;
+   * just hidden from the file-picker UI.
+   *
+   * By convention, basenames starting with `_` are marked hidden by
+   * `build-playground-examples`; this flag is what consumers actually
+   * read, so a hand-authored example can opt in/out explicitly.
+   */
+  hidden?: boolean;
 }
 
 // `Step` and `CodeSnippet` are owned by the build-examples generator —

@@ -37,7 +37,13 @@ export function FilesView({
 
   // Pair files with their original indices so the editor's
   // `onSelectFile(index)` still resolves correctly after partitioning.
-  const indexed = files.map((file, originalIndex) => ({ file, originalIndex }));
+  // Hidden helper files (e.g. `_capture.ts`, stub-registration
+  // side-effect modules) are dropped from both lists — they're still
+  // loaded into the editor and the bundle, just invisible in the
+  // file-picker UI.
+  const indexed = files
+    .map((file, originalIndex) => ({ file, originalIndex }))
+    .filter(({ file }) => !file.hidden);
   const authored = indexed.filter(({ file }) => !file.generated);
   const generated = indexed.filter(({ file }) => file.generated);
 

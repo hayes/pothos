@@ -25,12 +25,27 @@ interface ExampleFile {
    * source.
    */
   generated?: boolean;
+  /**
+   * Helper files an example ships for its own wiring (stub-module
+   * registration, capture middleware, side-effect imports) that
+   * shouldn't appear in the Files tab. By convention, basenames
+   * starting with `_` are auto-marked hidden — they still load into
+   * Monaco and the runtime bundle, just not the file-picker UI.
+   */
+  hidden?: boolean;
 }
 
 // Filenames that always represent generator output across all current
 // examples. Match by full filename so e.g. an example with a
 // hand-written `contract.json` could opt out by renaming the file.
 const GENERATED_FILENAMES = new Set(['contract.json', 'contract.d.ts', 'seed.sql']);
+
+// A leading `_` on the basename marks an example helper that's bundled
+// but invisible in the Files tab.
+function isHiddenFilename(filename: string): boolean {
+  const basename = filename.includes('/') ? filename.slice(filename.lastIndexOf('/') + 1) : filename;
+  return basename.startsWith('_');
+}
 
 interface PlaygroundExample {
   id: string;
@@ -160,6 +175,7 @@ async function buildFlatExample(
         content,
         language: filename.endsWith('.ts') ? 'typescript' : undefined,
         ...(GENERATED_FILENAMES.has(filename) ? { generated: true } : {}),
+        ...(isHiddenFilename(filename) ? { hidden: true } : {}),
       });
     }
     // Collect .graphql files as query files
