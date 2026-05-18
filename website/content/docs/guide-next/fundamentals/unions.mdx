@@ -1,72 +1,84 @@
 ---
 title: Unions
-description: Guide for defining Union types in Pothos
+description: Combine unrelated object types behind one return type, dispatched by resolveType.
 ---
 
-Union types are defined with a list of object types:
+import { Callout } from 'fumadocs-ui/components/callout';
 
-```typescript playground example="07-unions"
-const builder = new SchemaBuilder<{
-  Objects: {
-    GiraffeStringFact: { factKind: 'string'; fact: string };
-    GiraffeNumericFact: { factKind: 'number'; fact: string; value: number };
-  };
-}>({});
+A union returns one of several object types that don't share fields. Where an [interface](./interfaces) demands every implementer carry common fields like `id` and `name`, a union groups types purely by the question they answer: "what is this thing?"
 
-builder.objectType('GiraffeStringFact', {
-  fields: (t) => ({
-    fact: t.exposeString('fact', {}),
-  }),
+```typescript playground example="fundamentals-unions"
+const SearchResult = builder.unionType('SearchResult', {
+  types: [Character, Location, Quote],
+  resolveType: (val) => val.kind,
 });
 
-const GiraffeNumericFact = builder.objectType('GiraffeNumericFact', {
+builder.queryType({
   fields: (t) => ({
-    fact: t.exposeString('fact', {}),
-    value: t.exposeFloat('value', {}),
+    search: t.field({
+      type: [SearchResult],
+      args: { term: t.arg.string({ required: true }) },
+      resolve: (_root, { term }) => searchEverything(term),
+    }),
   }),
 });
+```
 
-const GiraffeFact = builder.unionType('GiraffeFact', {
-  types: ['GiraffeStringFact', GiraffeNumericFact],
-  resolveType: (fact) => {
-    switch (fact.factKind) {
-      case 'number':
-        return GiraffeNumericFact;
-      case 'string':
-        return 'GiraffeStringFact';
+Each value the resolver returns has to be assignable to one of the `types` listed. `resolveType` picks which one.
+
+## When to reach for a union
+
+Unions fit a handful of recurring shapes:
+
+- **Search results.** A query returns a heterogeneous mix — characters, locations, items — that share no fields beyond an id.
+- **Activity feeds.** Each entry is one of `PostCreated`, `CommentAdded`, `UserJoined`, with different payloads.
+- **Mutation outcomes.** A result that's either the changed entity or one of several error types — the pattern [`plugin-errors`](../../plugins/errors) automates for you.
+
+If the types do share fields, prefer an interface; clients can then select common fields without the per-type fragment dance.
+
+## resolveType
+
+Same rules as interfaces: return the concrete type's name as a string. With a `kind` discriminator on the backing model this is a one-liner:
+
+```typescript
+resolveType: (val) => val.kind,
+```
+
+Without a discriminator, infer from the shape:
+
+```typescript
+resolveType: (val) => {
+  if ('terrain' in val) return 'Location';
+  if ('text' in val) return 'Quote';
+  return 'Character';
+},
+```
+
+## Querying
+
+Clients access every field through a per-type fragment, since the union itself has no fields:
+
+```graphql
+query Search {
+  search(term: "shire") {
+    __typename
+    ... on Character {
+      id
+      name
     }
-  },
-});
+    ... on Location {
+      name
+      terrain
+    }
+    ... on Quote {
+      text
+    }
+  }
+}
 ```
 
-The `types` array can either contain Object type names defined in SchemaTypes, or an Object `Ref`
-created by `builder.objectType`, `builder.objectRef` or other method, or a class that
-was used to implement an object type.
+`__typename` is always available on union fields — it's the discriminator clients use to render the right component.
 
-The `resolveType` function will be called with each item returned by a field that returns the
-unionType, and is used to determine which concrete type the value corresponds to. It is usually good to
-have a shared property you can use to differentiate your union members.
-
-## Using Union Types
-
-```typescript playground example="07-unions"
-builder.queryField('giraffeFacts', (t) =>
-  t.field({
-    type: [GiraffeFact],
-    resolve: () => {
-      const fact1 = {
-        factKind: 'string' as const,
-        fact: "A giraffe's spots are much like human fingerprints. No two individual giraffes have exactly the same pattern",
-      };
-
-      const fact2 = {
-        factKind: 'number' as const,
-        fact: 'Top speed (MPH)',
-        value: 35,
-      };
-
-      return [fact1, fact2];
-    },
-  }),
-);
-```
+<Callout type="info">
+  See also: [Interfaces](./interfaces) for shared-field polymorphism, or [`plugin-errors`](../../plugins/errors) for mutation-result unions.
+</Callout>

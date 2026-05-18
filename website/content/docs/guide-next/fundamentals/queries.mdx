@@ -1,82 +1,69 @@
 ---
 title: Queries
-description: Guide for adding queries to your schema
+description: Define the Query root with queryType, or add fields piecewise with queryField.
 ---
 
-There are a few different ways to add queries to your schema. The simplest way is to define a
-`Query` type with your query fields using the `builder.queryType()` method.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-```typescript playground example="02-queries-mutations"
+The Query root is the entry point for every read your clients perform. Pothos offers three ways to attach fields to it; you can mix freely within one schema.
+
+```typescript playground example="fundamentals-queries"
 builder.queryType({
   fields: (t) => ({
-    // Add query for a simple scalar type
-    hello: t.string({
-      resolve: () => 'hello, world!',
+    races: t.field({
+      type: [Race],
+      resolve: () => Races,
     }),
-    // Add a query for an object type
-    giraffe: t.field({
-      type: Giraffe,
-      resolve: () => ({
-        name: 'James',
-      }),
-    }),
-    // Add a query for a list of objects
-    giraffes: t.field({
-      type: [Giraffe],
-      resolve: () => [
-        {
-          name: 'James',
-        },
-      ],
-    }),
-  }),
-});
-
-const Giraffe = builder.objectRef<{ name: string }>('Giraffe');
-
-Giraffe.implement({
-  fields: (t) => ({
-    name: t.exposeString('name'),
   }),
 });
 ```
 
-You can only use `builder.queryType()` once in your schema, because it is responsible for defining
-the `Query` type itself. If you want to split up your queries and add query fields individually, you
-can use the `builder.queryField()` method to add individual query fields to the `Query` type.
+`queryType` runs exactly once per schema — it creates the `Query` type itself. Even if you plan to add fields piecewise later, call `queryType({})` once to bring `Query` into existence.
+
+## queryField for one at a time
+
+To keep query fields next to the type they return, use `queryField`:
 
 ```typescript
-// You will still need to define the `Query` type somewhere in your schema to add individual query fields
-builder.queryType({});
-
-builder.queryField('hello', (t) =>
-  t.string({
-    resolve: () => 'hello, world!',
-  }),
-);
-
-builder.queryField('giraffe', (t) =>
+// In schema/race.ts, alongside the Race type definition:
+builder.queryField('raceById', (t) =>
   t.field({
-    type: Giraffe,
-    resolve: () => ({
-      name: 'James',
-    }),
+    type: Race,
+    nullable: true,
+    args: { id: t.arg.id({ required: true }) },
+    resolve: (_root, { id }) => Races.find((r) => r.id === String(id)) ?? null,
   }),
 );
 ```
 
-If you want to add multiple query fields at once, you can use the `builder.queryFields()` method.
+This is the most useful pattern in a modular schema: each module owns its type *and* the query entrypoints that return it. See [Project layout](../patterns/project-layout) for the full setup.
+
+## queryFields for a handful in one place
+
+When several queries logically belong together, `queryFields` saves the repeated boilerplate:
 
 ```typescript
 builder.queryFields((t) => ({
-  hello: t.string({
-    resolve: () => 'hello, world!',
+  races: t.field({
+    type: [Race],
+    resolve: () => Races,
   }),
-  giraffe: t.field({
-    type: Giraffe,
-    resolve: () => ({
-      name: 'James',
-    }),
+  raceCount: t.int({
+    resolve: () => Races.length,
   }),
 }));
 ```
+
+The shape inside the function is the same `fields:` map you'd pass to `queryType`.
+
+## When to use which
+
+- **`queryType` once.** Always, to declare the Query root. Optionally pass an initial `fields:` map if your schema is small enough that one place is the right place.
+- **`queryField` per field.** When you want one query entry next to its type definition.
+- **`queryFields` per module.** When a module owns a handful of related queries and you'd rather group them than declare each individually.
+
+All three coexist in one schema. The choice is about file organisation, not behaviour.
+
+<Callout type="info">
+  See also: [Mutations](./mutations) for the analogous setup on the mutation root, or [Project layout](../patterns/project-layout) for module-scoped query files.
+</Callout>

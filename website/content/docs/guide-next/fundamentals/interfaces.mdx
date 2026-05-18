@@ -1,121 +1,104 @@
 ---
 title: Interfaces
-description: Guide for defining Interface types in Pothos
+description: Share fields across multiple object types with an interface, and dispatch with resolveType.
 ---
 
-## Defining Interface Types
+import { Callout } from 'fumadocs-ui/components/callout';
 
-Defining interfaces works exactly like [defining Objects](./objects), using `Interfaces` key in
-SchemaTypes object for the builder, and `interfaceRef` rather than `objectRef`.
+When several object types share a common set of fields — id, name, audit timestamps, anything else that recurs — promote those fields to an interface. Concrete types `implement` the interface and add their own fields on top.
 
-In this example we'll use an Animal class and a Giraffe class that extends it:
+```typescript playground example="fundamentals-interfaces"
+const Character = builder.interfaceRef<ICharacter>('Character');
 
-```typescript
-export class Animal {
-  diet: Diet;
+builder.interfaceType(Character, {
+  description: 'A named being of Middle-earth.',
+  resolveType: (val) => val.kind,
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
 
-  constructor(diet: Diet) {
-    this.diet = diet;
-  }
-}
+const Hobbit = builder.objectRef<IHobbit>('Hobbit');
+Hobbit.implement({
+  interfaces: [Character],
+  fields: (t) => ({
+    shireAddress: t.exposeString('shireAddress', { nullable: true }),
+  }),
+});
 
-export class Giraffe extends Animal {
-  name: string;
-  birthday: Date;
-  heightInMeters: number;
-
-  constructor(name: string, birthday: Date, heightInMeters: number) {
-    super(Diet.HERBIVOROUS);
-
-    this.name = name;
-    this.birthday = birthday;
-    this.heightInMeters = heightInMeters;
-  }
-}
-export enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVORIOUS,
-}
+const Elf = builder.objectRef<IElf>('Elf');
+Elf.implement({
+  interfaces: [Character],
+  fields: (t) => ({
+    departed: t.exposeBoolean('departed'),
+  }),
+});
 ```
 
-Again, using classes is completely optional. The only requirement for interfaces is that the
-type used for defining objects must be a superset of the types of any interfaces they implement.
+`Hobbit` and `Elf` automatically have `id` and `name` — they don't need to redeclare them. A client querying `character.name` works whether the runtime value is a hobbit or an elf.
 
-Now that we have our classes set up we can define the interface type and add an enum definition for
-our diet field:
+## resolveType
 
-```typescript playground example="06-interfaces"
-builder.interfaceType(Animal, {
-  name: 'Animal',
+Pothos needs to know which concrete type each value belongs to so it can format the response. The cleanest pattern is a discriminator on the backing model — here `val.kind` is `'Hobbit' | 'Elf' | 'Wizard' | ...` and `resolveType` returns it as-is:
+
+```typescript
+resolveType: (val) => val.kind,
+```
+
+The returned string must match the name of one of the implementing types. When your data already carries a kind discriminator, this is a one-liner; otherwise infer it from the shape:
+
+```typescript
+resolveType: (val) => {
+  if ('shireAddress' in val) return 'Hobbit';
+  if ('departed' in val) return 'Elf';
+  return 'Wizard';
+},
+```
+
+As a last resort, every implementing type can provide an `isTypeOf` predicate; Pothos calls each in turn until one returns true. This is slower than a discriminator-based `resolveType`, so prefer the latter.
+
+## Fields on the interface
+
+Interface fields are visible on every implementing type. They follow the same `t.expose…` and `t.field` shape as object fields, including computed values:
+
+```typescript
+builder.interfaceType(Character, {
+  resolveType: (val) => val.kind,
   fields: (t) => ({
-    diet: t.field({
-      type: Diet,
-      resolve: (parent) => parent.diet,
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    initials: t.string({
+      resolve: (parent) => parent.name.split(' ').map((p) => p[0]).join(''),
     }),
   }),
 });
-
-builder.enumType(Diet, {
-  name: 'Diet',
-});
 ```
 
-## implementing interfaces with object types
+The `parent` argument is typed as the interface's backing model — `ICharacter` here — so the resolver works for every implementing type.
 
-```typescript playground example="06-interfaces"
-builder.objectType(Giraffe, {
-  name: 'Giraffe',
-  interfaces: [Animal],
-  isTypeOf: (value) => value instanceof Giraffe,
-  fields: (t) => ({
-    name: t.exposeString('name', {}),
-  }),
-});
-```
+## Querying
 
-There are 2 new properties here: `interfaces` and `isTypeOf`.
-
-Interfaces is an array of interfaces that the object type implements, and `isTypeOf` is a function
-that is run whenever we have an object of the interface type and we want to see if it's actually an
-instance of our object type.
-
-## Using an Interface as a return type
-
-Using interfaces as return types for fields works just like objects:
-
-```typescript playground example="06-interfaces"
-builder.queryFields((t) => ({
-  animal: t.field({
-    type: Animal,
-    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
-  }),
-}));
-```
-
-## Querying interface fields
-
-We can query interface fields like diet on any field that returns a giraffe:
+Clients select common fields directly and concrete-type fields inside a fragment:
 
 ```graphql
-query {
-  giraffe {
+query Characters {
+  characters {
+    id
     name
-    diet
-  }
-}
-```
-
-or we can query a field that returns an interface and select different fields depending on the
-concrete type:
-
-```graphql
-query {
-  animal {
-    diet
-    ... on Giraffe {
-      name
+    ... on Hobbit {
+      shireAddress
+    }
+    ... on Wizard {
+      order
+      color
     }
   }
 }
 ```
+
+A field returning an interface (`characters: [Character]`) can resolve to any mix of implementing types — Pothos uses `resolveType` to dispatch on each one.
+
+<Callout type="info">
+  See also: [Unions](./unions) when types don't share fields but should sit under one return type, or [Object types](./objects) for the type-by-type definitions.
+</Callout>

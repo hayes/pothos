@@ -1,266 +1,99 @@
 ---
 title: Fields
-description: Guide for defining fields in Pothos
+description: Expose properties, return lists, mark fields nullable, and compute values from the backing object.
 ---
 
-Fields for [Object](./objects) and [Interface](./interfaces) types are defined using a shape
-function. This is a function that takes a [FieldBuilder](../api/field-builder) as an argument, and
-returns an object whose keys are field names, and whose values are fields created by the
-[FieldBuilder](../api/field-builder). These examples will mostly add fields to the `Query` type, but
-the topics covered in this guide should apply to any object or interface type.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-## Scalars
+Fields go inside the `fields:` function of any `implement` call. The argument `t` is a builder whose methods produce field definitions: `t.exposeString`, `t.int`, `t.field`, and so on.
 
-Scalar fields can be defined a couple of different ways:
-
-### Field method
-
-```typescript
-builder.queryType({
+```typescript playground example="fundamentals-fields"
+Character.implement({
   fields: (t) => ({
-    name: t.field({
-      description: 'Name field',
-      type: 'String',
-      resolve: () => 'Gina',
+    // exposeX maps directly to a property on the backing object.
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+
+    // Lists, nullable, and renamed exposes all live in the options arg.
+    titles: t.exposeStringList('titles'),
+    shireAddress: t.exposeString('shireAddress', { nullable: true }),
+
+    // Computed fields use the same t.<scalar>() shape but with a
+    // resolve function. parent is the backing object.
+    ageInYears: t.int({
+      resolve: (parent) => new Date().getFullYear() - parent.birthYear,
     }),
   }),
 });
 ```
 
-### Convenience methods
+## Exposing properties
 
-Convenience methods are just wrappers around the `field` method that omit the `type` option.
-
-```typescript playground example="10-fields"
-builder.queryType({
-  fields: (t) => ({
-    id: t.id({ resolve: () => '123' }),
-    int: t.int({ resolve: () => 123 }),
-    float: t.float({ resolve: () => 1.23 }),
-    boolean: t.boolean({ resolve: () => false }),
-    string: t.string({ resolve: () => 'abc' }),
-    idList: t.idList({ resolve: () => ['123'] }),
-    intList: t.intList({ resolve: () => [123] }),
-    floatList: t.floatList({ resolve: () => [1.23] }),
-    booleanList: t.booleanList({ resolve: () => [false] }),
-    stringList: t.stringList({ resolve: () => ['abc'] }),
-  }),
-});
-```
-
-## Other types
-
-Fields for non-scalar fields can also be created with the `field` method.
-
-Some types like [Objects](./objects) and [Interfaces](./interfaces) can be referenced by name if
-they have a backing model defined in the schema builder.
+`t.exposeID`, `t.exposeString`, `t.exposeInt`, `t.exposeFloat`, `t.exposeBoolean`, and their `…List` variants forward a property of the backing object to the schema with no resolver. They're the right choice whenever the field name on the type matches a property on the backing model.
 
 ```typescript
-const builder = new SchemaBuilder<{
-  Objects: { Giraffe: { name: string } };
-}>({});
+fields: (t) => ({
+  // Same name on both sides — straight expose.
+  name: t.exposeString('name'),
 
-builder.queryType({
-  fields: t => ({
-    giraffe: t.field({
-      description: 'A giraffe',
-      type: 'Giraffe',
-      resolve: () => ({ name: 'Gina' }),
-    }),
-  }),
-});
+  // Renaming: the GraphQL field is `height`, the property is heightInMeters.
+  height: t.exposeFloat('heightInMeters'),
+}),
 ```
 
-For types not described in the `SchemaTypes` type provided to the builder, including types that can
-not be added there like [Unions](./unions) and [Enums](./enums), you can use a `Ref` returned by the
-builder method that created them in the `type` parameter. For types created using a class
-\([Objects](./objects) or [Interfaces](./interfaces)\) or [Enums](./enums) created using a typescript
-enum, you can also use the `class` or `enum` that was used to define them.
+## Computed fields
+
+When the field doesn't map 1:1 onto the backing object, define it explicitly with `t.<scalar>` or `t.field`:
 
 ```typescript
-const LengthUnit = builder.enumType('LengthUnit', {
-  values: { Feet: {}, Meters: {} },
-});
-
-builder.objectType('Giraffe', {
-  fields: (t) => ({
-    preferredNeckLengthUnit: t.field({
-      type: LengthUnit,
-      resolve: () => 'Feet',
-    }),
+fields: (t) => ({
+  fullName: t.string({
+    resolve: (parent) => `${parent.firstName} ${parent.lastName}`,
   }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: 'Giraffe',
-      resolve: () => ({ name: 'Gina' }),
-    }),
+  isElderly: t.boolean({
+    resolve: (parent) => parent.age > 80,
   }),
-});
+}),
+```
+
+`t.field` is the same shape but takes a `type` option, which is required when the return type isn't a scalar:
+
+```typescript
+race: t.field({
+  type: Race,
+  resolve: (parent) => Races.get(parent.raceId)!,
+}),
 ```
 
 ## Lists
 
-To create a list field, you can wrap the type in an array
+Wrap the type in an array to return a list:
 
 ```typescript
-builder.queryType({
-  fields: t => ({
-    giraffes: t.field({
-      description: 'multiple giraffes'
-      type: ['Giraffe'],
-      resolve: () => [{ name: 'Gina' }, { name: 'James' }],
-    }),
-    giraffeNames: t.field({
-      type: ['String'],
-      resolve: () => ['Gina', 'James'],
-    })
-  }),
-});
+factions: t.field({
+  type: [Faction],
+  resolve: (parent) => loadFactionsFor(parent),
+}),
 ```
 
-## NonNullable fields
+The list type is always non-nullable by default. Mix in `nullable: true` if the whole list can be missing, or `nullable: { items: true, list: false }` if individual items may be null but the list itself isn't.
 
-Fields in Pothos are nullable by default, but fields can be made NonNullable by setting the
-`nullable` option to `false`. This default can also be changed in the SchemaBuilder constructor, see
-[Changing Default Nullability](./changing-default-nullability) for more details.
+## Splitting fields across files
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    nonNullableField: t.field({
-      type: 'String',
-      nullable: false,
-      resolve: () => null,
-    }),
-    nonNullableString: t.string({
-      nullable: false,
-      resolve: () => null,
-    }),
-    nonNullableList: t.field({
-      type: ['String'],
-      nullable: false,
-      resolve: () => null,
-    }),
-    sparseList: t.field({
-      type: ['String'],
-      nullable: {
-        list: false,
-        items: true,
-      },
-      resolve: () => [null],
-    }),
-  }),
-});
-```
-
-Note that by default even if a list field is nullable, the items in that list are not. The last
-example above shows how you can make list items nullable.
-
-## Exposing fields from the underlying data
-
-Some GraphQL implementations have a concept of "default resolvers" that can automatically resolve
-fields that have a property of the same name in the underlying data. In Pothos, these relationships
-need to be explicitly defined, but there are helper methods that make exposing fields easier.
-
-These helpers are not available for root types \(Query, Mutation and Subscription\), but will work
-on any other object type or interface.
+For types that grow past one screen, `builder.objectField` and `builder.objectFields` add fields to an existing type from anywhere else in your codebase:
 
 ```typescript
-const builder = new SchemaBuilder<{
-  Objects: { Giraffe: { name: string } };
-}>({});
-
-builder.objectType('Giraffe', {
-  fields: (t) => ({
-    name: t.exposeString('name', {}),
-  }),
-});
-```
-
-The available expose helpers are:
-
-- `exposeString`
-- `exposeInt`
-- `exposeFloat`
-- `exposeBoolean`
-- `exposeID`
-- `exposeStringList`
-- `exposeIntList`
-- `exposeFloatList`
-- `exposeBooleanList`
-- `exposeIDList`
-
-## Arguments
-
-Arguments for a field can be defined in the options for a field:
-
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    giraffeByName: t.field({
-      type: 'Giraffe',
-      args: {
-        name: t.arg.string({ required: true }),
-      },
-      resolve: (root, args) => {
-        if (args.name !== 'Gina') {
-          throw new NotFoundError(`Unknown Giraffe ${name}`);
-        }
-
-        return { name: 'Gina' };
-      },
-    }),
-  }),
-});
-```
-
-For more information see the [Arguments Guide](./args).
-
-## Adding fields to existing type
-
-In addition to being able to define fields when defining types, you can also add additional fields
-independently. This is useful for breaking up types with a lot of fields into multiple files, or
-co-locating fields with their type \(e.g., add all query/mutation fields for a type in the same file
-where the type is defined\).
-
-```typescript
-builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: Giraffe,
-    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
-  }),
-}));
-
-builder.objectField(Giraffe, 'ageInDogYears', (t) =>
-  t.int({
-    resolve: (parent) => parent.age * 7,
+// In a separate module:
+builder.objectField(Character, 'wieldedWeapons', (t) =>
+  t.field({
+    type: [Weapon],
+    resolve: (c) => loadWeaponsFor(c.id),
   }),
 );
 ```
 
-To see all the methods available for defining fields see the [SchemaBuilder API](./schema-builder)
+This is how you'd colocate, say, a Character's weapons next to the Weapon type rather than in the Character module. See [Project layout](../patterns/project-layout) for when that's worth doing.
 
-## Nested Lists
-
-You can use `t.listRef` to create a list of lists
-
-```typescript
-const Query = builder.queryType({
-  fields: (t) => ({
-    example: t.field({
-      type: t.listRef(
-        t.listRef('String'),
-        // items are non-nullable by default, this can be overridden
-        // by passing `nullable: true`
-        { nullable: true },
-      ),
-      resolve: (parent, args) => {
-        return [['a', 'b'], ['c', 'd'], null];
-      },
-    }),
-  }),
-});
-```
+<Callout type="info">
+  See also: [Resolvers](./resolvers) for the resolver signature and what you can return from one.
+</Callout>

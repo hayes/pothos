@@ -1,125 +1,111 @@
 ---
-title: Input Objects
-description: Guide for defining Input Object types in Pothos
+title: Input objects
+description: Group field arguments into a reusable input shape.
 ---
 
-## Creating Input objects
+import { Callout } from 'fumadocs-ui/components/callout';
 
-Input objects can be created using `builder.inputType`.
+Once a field's arguments grow past two or three values, or several fields take the same shape, group them into an input object. The most ergonomic way to declare one is inline, right where it's first used:
 
-```typescript playground example="03-input-objects"
-const GiraffeInput = builder.inputType('GiraffeInput', {
-  fields: (t) => ({
-    name: t.string({ required: true }),
-    birthdate: t.string({ required: true }),
-    height: t.float({ required: true }),
-  }),
-});
-
+```typescript playground example="fundamentals-inputs"
 builder.mutationType({
   fields: (t) => ({
-    createGiraffe: t.field({
-      type: Giraffe,
+    createPlayer: t.field({
+      type: Player,
       args: {
-        input: t.arg({ type: GiraffeInput, required: true }),
+        input: t.arg({
+          type: builder.inputType('CreatePlayerInput', {
+            fields: (t) => ({
+              name: t.string({ required: true }),
+              jersey: t.int({ required: true }),
+            }),
+          }),
+          required: true,
+        }),
       },
-      resolve: (root, args) =>
-        new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
+      resolve: (_root, { input }) => createPlayer(input.name, input.jersey),
     }),
   }),
 });
 ```
 
-## Recursive inputs
+`input` arrives in the resolver fully typed: `input.name` is `string`, `input.jersey` is `number`.
 
-Types for recursive inputs get slightly more complicated to implement because their types can't
-easily be inferred. Referencing other input types works without any additional logic, as long as
-there is no circular reference to the original type.
+## Naming the type
 
-To build input types with recursive references you can use `builder.inputRef` along with a type or
-interface that describes the fields of your input object. The builder will still ensure all the
-types are correct, but needs type definitions to help infer the correct values.
+The first argument to `builder.inputType` is the GraphQL type name. The convention is `<Operation><Subject>Input`:
+
+- `CreatePlayerInput`
+- `UpdateTeamInput`
+- `SearchCharactersFilter` (when "filter" reads better than "Input")
+
+Each input object can only be defined once across your whole schema — pick a name no other field will collide with.
+
+## Sharing an input across fields
+
+When two fields want the same shape, lift it to a top-level variable and reference it:
 
 ```typescript
-interface RecursiveGiraffeInputShape {
-  name: string;
-  birthdate: string;
-  height: number;
-  friends?: RecursiveGiraffeInputShape[];
+const TeamFilter = builder.inputType('TeamFilter', {
+  fields: (t) => ({
+    nameContains: t.string(),
+    minPlayers: t.int(),
+  }),
+});
+
+builder.queryFields((t) => ({
+  teams: t.field({
+    type: [Team],
+    args: { filter: t.arg({ type: TeamFilter }) },
+    resolve: (_root, { filter }) => findTeams(filter),
+  }),
+  teamCount: t.int({
+    args: { filter: t.arg({ type: TeamFilter }) },
+    resolve: (_root, { filter }) => countTeams(filter),
+  }),
+}));
+```
+
+Sharing is purely an authoring convenience — GraphQL doesn't see a difference between an inline and a shared input.
+
+## Field options inside an input
+
+The fields inside `inputType` use the same `required` and `defaultValue` options as field arguments:
+
+```typescript
+fields: (t) => ({
+  name: t.string({ required: true }),
+  alignment: t.string({ defaultValue: 'Neutral' }),
+  tags: t.stringList({ required: true, defaultValue: [] }),
+}),
+```
+
+Inputs can also nest: an input field's type can be another input type.
+
+## Other styles
+
+When an input needs to reference itself — a recursive filter, for example — define it with `builder.inputRef` first, then `implement` it:
+
+```typescript
+interface IFilter {
+  and?: IFilter[];
+  field?: string;
+  equals?: string;
 }
 
-const RecursiveGiraffeInput = builder
-  .inputRef<RecursiveGiraffeInputShape>('RecursiveGiraffeInput')
-  .implement({
-    fields: (t) => ({
-      name: t.string({ required: true }),
-      birthdate: t.string({ required: true }),
-      height: t.float({ required: true }),
-      friends: t.field({
-        type: [RecursiveGiraffeInput],
-      }),
-    }),
-  });
+const Filter = builder.inputRef<IFilter>('Filter');
 
-builder.mutationType({
+Filter.implement({
   fields: (t) => ({
-    createGiraffeWithFriends: t.field({
-      type: [Giraffe],
-      args: {
-        input: t.arg({ type: RecursiveGiraffeInput, required: true }),
-      },
-      resolve: (root, args) => {
-        const friends = (args.input.friends || []).map(
-          (friend) =>
-            new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
-        );
-
-        return [
-          new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
-          ...friends,
-        ];
-      },
-    }),
+    and: t.field({ type: [Filter] }),
+    field: t.string(),
+    equals: t.string(),
   }),
 });
 ```
 
-## Additional way to define Input types
+The split mirrors the `objectRef` pattern from [Object types](./objects): declare the reference up front so the type can refer to itself.
 
-If you're unable to use the builder ref directly by assigning it to a variable as depicted above,
-you can provide an `Inputs` type to the `SchemaBuilder`.
-
-This is useful in a scenario where you have multiple schema builders.
-
-```typescript
-const builder = new SchemaBuilder<{
-  Inputs: {
-    GiraffeInput: {
-      name: string;
-      birthdate: string;
-      height: number;
-    };
-  };
-}>({});
-
-builder.inputType('GiraffeInput', {
-  fields: (t) => ({
-    name: t.string({ required: true }),
-    birthdate: t.string({ required: true }),
-    height: t.float({ required: true }),
-  }),
-});
-
-builder.mutationType({
-  fields: (t) => ({
-    createGiraffe: t.field({
-      type: Giraffe,
-      args: {
-        input: t.arg({ type: 'GiraffeInput', required: true }),
-      },
-      resolve: (root, args) =>
-        new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
-    }),
-  }),
-});
-```
+<Callout type="info">
+  See also: [Arguments](./args) for non-input args, or [Mutations](./mutations) for an end-to-end CRUD example.
+</Callout>
