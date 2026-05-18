@@ -1,0 +1,11 @@
+query Network {
+  characters {
+    name
+    factions {
+      name
+      members {
+        name
+      }
+    }
+  }
+}

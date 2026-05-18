@@ -1,0 +1,9 @@
+query CharacterFields {
+  characters {
+    id
+    name
+    titles
+    shireAddress
+    ageInYears
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "patterns-inferring-types",
+  "title": "Inferring types",
+  "description": "Use $inferType and $inferInput to derive TypeScript types from Pothos refs.",
+  "category": "core",
+  "subcategory": "patterns",
+  "difficulty": "intermediate",
+  "order": 5,
+  "tags": ["types", "inference"],
+  "relatedDocs": ["/docs/guide-next/patterns/inferring-types"]
+}

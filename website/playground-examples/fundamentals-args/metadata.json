@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-args",
+  "title": "Arguments",
+  "description": "Required, optional, default-valued, and list arguments on a field.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 6,
+  "tags": ["args", "arguments"],
+  "relatedDocs": ["/docs/guide-next/fundamentals/args"]
+}

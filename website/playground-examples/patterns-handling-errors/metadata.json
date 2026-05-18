@@ -1,0 +1,26 @@
+{
+  "id": "patterns-handling-errors",
+  "title": "Handling errors",
+  "description": "Throw from resolvers, mask errors in production, and know when to graduate to plugin-errors.",
+  "category": "core",
+  "subcategory": "patterns",
+  "difficulty": "intermediate",
+  "order": 2,
+  "tags": ["errors", "masking", "yoga"],
+  "relatedDocs": ["/docs/guide-next/patterns/handling-errors"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Throw, with dev-mode errors",
+      "description": "A resolver throws Error and yoga returns the message verbatim — fine in development.",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "Mask in production",
+      "description": "Flip maskedErrors back on to hide internal details before deploying.",
+      "order": 2,
+      "defaultActiveFile": "server.ts"
+    }
+  ]
+}

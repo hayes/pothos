@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-objects",
+  "title": "Object types",
+  "description": "Define an object type with objectRef and implement to attach fields.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 2,
+  "tags": ["objects", "objectRef"],
+  "relatedDocs": ["/docs/guide-next/fundamentals/objects"]
+}

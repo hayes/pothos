@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-context",
+  "title": "Context",
+  "description": "Type the request context on the builder generic and thread auth + data sources through every resolver.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 5,
+  "tags": ["context", "auth"],
+  "relatedDocs": ["/docs/guide-next/fundamentals/context"]
+}

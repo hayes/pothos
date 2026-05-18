@@ -1,0 +1,11 @@
+{
+  "id": "patterns-circular-references",
+  "title": "Circular references",
+  "description": "Two types that reference each other, untangled with objectRef declared up front and implemented later.",
+  "category": "core",
+  "subcategory": "patterns",
+  "difficulty": "intermediate",
+  "order": 4,
+  "tags": ["circular-references", "objectRef"],
+  "relatedDocs": ["/docs/guide-next/patterns/circular-references"]
+}

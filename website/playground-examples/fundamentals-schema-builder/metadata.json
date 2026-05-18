@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-schema-builder",
+  "title": "SchemaBuilder",
+  "description": "Configure the SchemaBuilder generic with Context and default nullability.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 1,
+  "tags": ["builder", "context", "generics"],
+  "relatedDocs": ["/docs/guide-next/fundamentals/schema-builder"]
+}
