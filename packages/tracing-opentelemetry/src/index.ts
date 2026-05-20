@@ -60,7 +60,7 @@ export function createOpenTelemetryWrapper<T = unknown>(
       tracingOptions?.onSpan?.(span, fieldOptions, parent, args, context, info);
       options?.onSpan?.(span, fieldOptions, parent, args, context, info);
 
-      return runWithSpan(span, !!(tracingOptions?.ignoreError ?? options?.ignoreError), () =>
+      return runWithSpan(span, !(tracingOptions?.ignoreError ?? options?.ignoreError), () =>
         resolver(parent, args, context, info),
       );
     };
