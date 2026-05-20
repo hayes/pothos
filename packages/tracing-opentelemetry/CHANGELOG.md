@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 1.2.0
+
+### Minor Changes
+
+- 179afc3: ignoreErrors no longer inverted (`false` previously didn't record exceptions)
+
 ## 1.1.3
 
 ### Patch Changes
