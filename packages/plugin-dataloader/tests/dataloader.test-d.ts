@@ -66,7 +66,9 @@ describe('dataloader ref explicit generics (backwards compatibility)', () => {
     builder.loadableObjectRef<User, string>('ObjectRefExplicit', {
       load: (keys) => {
         expectTypeOf(keys).toEqualTypeOf<string[]>();
-        return Promise.resolve(keys.map((id) => ({ id: Number(id) })));
+        return Promise.resolve(
+          keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new GraphQLError('bad'))),
+        );
       },
       toKey: (value) => {
         expectTypeOf(value).toEqualTypeOf<User>();
@@ -79,7 +81,9 @@ describe('dataloader ref explicit generics (backwards compatibility)', () => {
     builder.loadableInterfaceRef<User, string>('InterfaceRefExplicit', {
       load: (keys) => {
         expectTypeOf(keys).toEqualTypeOf<string[]>();
-        return Promise.resolve(keys.map((id) => ({ id: Number(id) })));
+        return Promise.resolve(
+          keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new GraphQLError('bad'))),
+        );
       },
       toKey: (value) => {
         expectTypeOf(value).toEqualTypeOf<User>();
@@ -98,7 +102,9 @@ describe('dataloader ref explicit generics (backwards compatibility)', () => {
       },
       load: (keys) => {
         expectTypeOf(keys).toEqualTypeOf<string[]>();
-        return Promise.resolve(keys.map((id) => ({ id: Number(id) })));
+        return Promise.resolve(
+          keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new GraphQLError('bad'))),
+        );
       },
       toKey: (value) => {
         expectTypeOf(value).toEqualTypeOf<User>();

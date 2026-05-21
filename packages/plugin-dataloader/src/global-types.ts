@@ -83,77 +83,36 @@ declare global {
       ) => LoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableObjectRef: <
-        Shape,
+        LoadResult,
         Key extends bigint | number | string,
         CacheKey = Key,
-        // `LoadResult` is inferred from `options.load` and is not intended to be
-        // passed explicitly. It defaults to `Shape | Error` so that explicit
-        // generics keep working exactly as before (`loadableObjectRef<User, string>`),
-        // while inference excludes `Error` from the resolved shape (#951).
-        LoadResult = Shape | Error,
+        Shape = ShapeFromLoadResult<LoadResult>,
       >(
         name: string,
-        options: DataLoaderOptions<
-          Types,
-          LoadResult,
-          Key,
-          CacheKey,
-          ShapeFromLoadResult<LoadResult>
-        >,
-      ) => ImplementableLoadableObjectRef<
-        Types,
-        Key | ShapeFromLoadResult<LoadResult>,
-        ShapeFromLoadResult<LoadResult>,
-        Key,
-        CacheKey
-      >;
+        options: DataLoaderOptions<Types, LoadResult | Error, Key, CacheKey, Shape>,
+      ) => ImplementableLoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableInterfaceRef: <
-        Shape,
+        LoadResult,
         Key extends bigint | number | string,
         CacheKey = Key,
-        LoadResult = Shape | Error,
+        Shape = ShapeFromLoadResult<LoadResult>,
       >(
         name: string,
-        options: DataLoaderOptions<
-          Types,
-          LoadResult,
-          Key,
-          CacheKey,
-          ShapeFromLoadResult<LoadResult>
-        >,
-      ) => ImplementableLoadableInterfaceRef<
-        Types,
-        Key | ShapeFromLoadResult<LoadResult>,
-        ShapeFromLoadResult<LoadResult>,
-        Key,
-        CacheKey
-      >;
+        options: DataLoaderOptions<Types, LoadResult | Error, Key, CacheKey, Shape>,
+      ) => ImplementableLoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableNodeRef: <
-        Shape,
+        LoadResult,
         IDShape extends bigint | number | string = string,
         Key extends bigint | number | string = IDShape,
         CacheKey = Key,
-        LoadResult = Shape | Error,
+        Shape = ShapeFromLoadResult<LoadResult>,
       >(
         name: string,
-        options: DataLoaderOptions<
-          Types,
-          LoadResult,
-          Key,
-          CacheKey,
-          ShapeFromLoadResult<LoadResult>
-        > &
-          LoadableNodeId<Types, ShapeFromLoadResult<LoadResult>, IDShape>,
-      ) => ImplementableLoadableNodeRef<
-        Types,
-        Key | ShapeFromLoadResult<LoadResult>,
-        ShapeFromLoadResult<LoadResult>,
-        IDShape,
-        Key,
-        CacheKey
-      >;
+        options: DataLoaderOptions<Types, LoadResult | Error, Key, CacheKey, Shape> &
+          LoadableNodeId<Types, Shape, IDShape>,
+      ) => ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>;
 
       loadableUnion: <
         Key extends bigint | number | string,
