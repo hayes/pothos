@@ -56,3 +56,54 @@ describe('dataloader Shape inference (#951)', () => {
     });
   });
 });
+
+// The `builder.*Ref` methods are intended to keep working with explicit type
+// params. Passing `<Shape, Key>` (Shape first, Key second) must resolve
+// `Shape`/`Key` exactly as before the #951 fix, without requiring callers to
+// refactor explicit-generic call sites.
+describe('dataloader ref explicit generics (backwards compatibility)', () => {
+  it('loadableObjectRef<User, string> resolves Shape=User, Key=string', () => {
+    builder.loadableObjectRef<User, string>('ObjectRefExplicit', {
+      load: (keys) => {
+        expectTypeOf(keys).toEqualTypeOf<string[]>();
+        return Promise.resolve(keys.map((id) => ({ id: Number(id) })));
+      },
+      toKey: (value) => {
+        expectTypeOf(value).toEqualTypeOf<User>();
+        return String(value.id);
+      },
+    });
+  });
+
+  it('loadableInterfaceRef<User, string> resolves Shape=User, Key=string', () => {
+    builder.loadableInterfaceRef<User, string>('InterfaceRefExplicit', {
+      load: (keys) => {
+        expectTypeOf(keys).toEqualTypeOf<string[]>();
+        return Promise.resolve(keys.map((id) => ({ id: Number(id) })));
+      },
+      toKey: (value) => {
+        expectTypeOf(value).toEqualTypeOf<User>();
+        return String(value.id);
+      },
+    });
+  });
+
+  it('loadableNodeRef<User, string> resolves Shape=User, Key=string', () => {
+    builder.loadableNodeRef<User, string>('NodeRefExplicit', {
+      id: {
+        resolve: (value) => {
+          expectTypeOf(value).toEqualTypeOf<User>();
+          return value.id;
+        },
+      },
+      load: (keys) => {
+        expectTypeOf(keys).toEqualTypeOf<string[]>();
+        return Promise.resolve(keys.map((id) => ({ id: Number(id) })));
+      },
+      toKey: (value) => {
+        expectTypeOf(value).toEqualTypeOf<User>();
+        return String(value.id);
+      },
+    });
+  });
+});
