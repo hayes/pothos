@@ -6,7 +6,7 @@
     "generate": "tsx graphql/build-schema.ts && graphql-codegen",
     "dev": "concurrently \"yarn next dev\" \"yarn generate --watch './graphql/**/*.ts'\"",
     "prod-build": "next build",
-    "type": "tsc --noEmit",
+    "type": "tsgo --noEmit",
     "start": "next start"
   },
   "dependencies": {
