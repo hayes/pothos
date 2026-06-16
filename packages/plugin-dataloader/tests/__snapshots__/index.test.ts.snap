@@ -34,6 +34,10 @@ interface Error {
   message: String
 }
 
+type ExplicitShapeUser {
+  id: ID
+}
+
 type LoadableParseTest implements Node {
   id: ID!
   idNumber: Int
@@ -79,6 +83,7 @@ type Query {
   classThing: ClassLoadableThing
   classThingRef: ClassLoadableThing
   counts: [CallCount!]
+  explicitShapeUser(id: String): ExplicitShapeUser
   fromContext1: User
   fromContext2: User
   fromContext3: User
