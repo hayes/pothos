@@ -3,8 +3,8 @@
   "name": "@pothos-examples/nextjs",
   "version": "3.1.22",
   "scripts": {
-    "generate": "tsx graphql/build-schema.ts && graphql-codegen",
-    "dev": "concurrently \"yarn next dev\" \"yarn generate --watch './graphql/**/*.ts'\"",
+    "generate": "tsx graphql/build-schema.ts && echo | gql.tada generate-output",
+    "dev": "next dev",
     "prod-build": "next build",
     "type": "tsgo --noEmit",
     "start": "next start"
@@ -12,7 +12,6 @@
   "dependencies": {
     "@apollo/client": "^4.1.7",
     "@faker-js/faker": "^10.4.0",
-    "@graphql-typed-document-node/core": "^3.2.0",
     "@pothos/core": "workspace:*",
     "@tanstack/react-query": "^5.99.0",
     "graphql": "^16.13.2",
@@ -21,16 +20,16 @@
     "graphql-yoga": "5.21.0",
     "next": "16.2.3",
     "react": "19.2.5",
-    "react-dom": "19.2.5"
+    "react-dom": "19.2.5",
+    "gql.tada": "^1.11.1"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^6.3.0",
-    "@graphql-codegen/client-preset": "5.3.0",
     "@types/node": "25.6.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "concurrently": "^9.2.1",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "@0no-co/graphqlsp": "^1.17.2"
   },
   "engines": {
     "node": ">=12.0.0"
