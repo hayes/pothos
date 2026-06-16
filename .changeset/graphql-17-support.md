@@ -3,6 +3,7 @@
 '@pothos/plugin-complexity': minor
 '@pothos/plugin-sub-graph': minor
 '@pothos/converter': minor
+'@pothos/test-utils': minor
 ---
 
 Support graphql 17 alongside graphql 16. Peer dependency ranges now accept `^16.10.0 || ^17.0.0`,
@@ -11,3 +12,9 @@ Pothos touches: `GraphQLNonNull<T>` is now constrained to nullable types, `Graph
 became `{ sources, coerced }` (consumed by the complexity plugin via `getArgumentValues`), and
 `GraphQLArgument` is no longer assignable to `GraphQLField`. Each is handled in a version-agnostic
 way, with a runtime version branch only where the `variableValues` shape genuinely differs.
+
+graphql 17 also moved incremental delivery (`@defer`/`@stream`) out of the stable `execute`, which
+now throws on any schema that declares those directives. `@pothos/test-utils` gains a version-aware
+`execute` helper that routes through `experimentalExecuteIncrementally` on 17 and collapses the
+incremental payloads back into a single result, so defer/stream-aware query planning in the prisma
+and drizzle plugins is validated identically on both majors.
