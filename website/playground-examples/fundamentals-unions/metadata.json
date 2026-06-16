@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-unions",
+  "title": "Unions",
+  "description": "Combine unrelated object types behind one field type, dispatched by resolveType.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "intermediate",
+  "order": 12,
+  "tags": ["unions", "polymorphism"],
+  "relatedDocs": ["/docs/fundamentals/unions"]
+}

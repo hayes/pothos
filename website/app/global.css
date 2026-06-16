@@ -3,75 +3,358 @@
 @import "fumadocs-ui/css/preset.css";
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
 
-@theme {
-  --color-fd-background: hsl(0, 0%, 98%);
-  --color-fd-foreground: hsl(0, 0%, 3.9%);
-  --color-fd-muted: hsl(100, 90%, 96.1%);
-  --color-fd-muted-foreground: hsl(0, 0%, 45.1%);
-  --color-fd-popover: hsl(0, 0%, 98%);
-  --color-fd-popover-foreground: hsl(0, 0%, 15.1%);
-  --color-fd-card: hsl(100, 60%, 98%);
-  --color-fd-card-foreground: hsl(0, 0%, 3.9%);
-  --color-fd-border: hsl(100, 50%, 89.8%);
-  --color-fd-primary: hsl(0, 0%, 9%);
-  --color-fd-primary-foreground: hsl(0, 0%, 98%);
-  --color-fd-secondary: hsl(100, 60%, 90%);
-  --color-fd-secondary-foreground: hsl(0, 0%, 9%);
-  --color-fd-accent: hsl(100, 40%, 80%);
-  --color-fd-accent-foreground: hsl(0, 0%, 9%);
-  --color-fd-ring: hsl(100, 100%, 63.9%);
+/* ──────────────────────────────────────────────────────────────────────
+   Botanical Modern — runtime design tokens
+   ────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bm-bg: #f7f6f1;
+  --bm-surface: #ffffff;
+  --bm-surface-alt: #efece4;
+  --bm-ink: #1a201b;
+  --bm-ink-soft: #3b4239;
+  --bm-ink-muted: #6f7268;
+  --bm-line: #dcd8cc;
+  --bm-line-soft: #e8e4d8;
+  --bm-accent: #3d6b3a;
+  --bm-accent-soft: #dceadb;
+  --bm-accent-ink: #1f3d1d;
+  --bm-danger: #c14a3d;
+  --bm-warn: #a05a2c;
+
+  --bm-editor-bg: #fbfaf5;
+  --bm-syntax-text: #3a3f38;
+  --bm-syntax-comment: #9a9a8a;
+  --bm-syntax-keyword: #7a3a2f;
+  --bm-syntax-string: #3d6b3a;
+  --bm-syntax-type: #2d6e5a;
+  --bm-syntax-method: #6a4a7a;
+  --bm-syntax-lineno: #c8c4b8;
+
+  /* Decorative vein color for botanical SVGs (BotanicalSpray, HeartLeaf). */
+  --bm-veins: rgba(0, 0, 0, 0.15);
 }
 
+/* Dark — Conservatory: deep pine ground for chrome, with the warm-charcoal
+   Conservatory editor (from themes/pothos-conservatory-dark.json) inside.
+   Chrome palette comes from directionA.jsx > conservatory ("dark · deep
+   pine ground"); syntax token colors come from the matching VS Code
+   theme JSON. The bright moss (#a8d488) is the single saturated accent. */
 .dark {
-  --color-fd-background: hsl(165, 60%, 6%);
-  --color-fd-foreground: hsl(165, 60%, 94.5%);
-  --color-fd-muted: hsl(165, 50%, 10%);
-  --color-fd-muted-foreground: hsl(165, 30%, 65%);
-  --color-fd-popover: hsl(165, 50%, 10%);
-  --color-fd-popover-foreground: hsl(165, 30%, 65%);
-  --color-fd-card: hsl(165, 50%, 10%);
-  --color-fd-card-foreground: hsl(0, 0%, 98%);
-  --color-fd-border: hsl(0, 0%, 14%);
-  --color-fd-primary: hsl(0, 0%, 98%);
-  --color-fd-primary-foreground: hsl(165, 60%, 94.5%);
-  --color-fd-secondary: hsl(165, 50%, 20%);
-  --color-fd-secondary-foreground: hsl(165, 60%, 94.5%);
-  --color-fd-accent: hsl(165, 40%, 20%);
-  --color-fd-accent-foreground: hsl(165, 60%, 94.5%);
-  --color-fd-ring: hsl(165, 100%, 85%);
+  --bm-bg: #142019;
+  --bm-surface: #1a2820;
+  --bm-surface-alt: #1f3026;
+  --bm-ink: #e8efe2;
+  --bm-ink-soft: #a8b8a8;
+  --bm-ink-muted: #7a8a7a;
+  --bm-line: #243228;
+  --bm-line-soft: #1c2820;
+  --bm-accent: #a8d488;
+  --bm-accent-soft: #1f3026;
+  --bm-accent-ink: #c8e8a8;
+  --bm-danger: #dc6e5a;
+  --bm-warn: #e8a87c;
+
+  /* Editor — Pothos Forest (themes/pothos-forest-dark.json). Editor surface
+     matches the chrome's pine ground, so the editor reads as part of the
+     panel rather than a separate hue. Token colors carry Forest's
+     warm-orange / cool-teal accents. */
+  --bm-editor-bg: #142019;
+  --bm-syntax-text: #e8efe2;
+  --bm-syntax-comment: #5e7064;
+  --bm-syntax-keyword: #e8a87c;
+  --bm-syntax-string: #a8d488;
+  --bm-syntax-type: #88c0d0;
+  --bm-syntax-method: #d4a8c8;
+  --bm-syntax-lineno: #3a4c40;
+
+  --bm-veins: rgba(255, 255, 255, 0.18);
 }
+
+/* Map fumadocs tokens onto BM equivalents so docs / popovers blend. */
+:root {
+  --color-fd-background: var(--bm-bg);
+  --color-fd-foreground: var(--bm-ink);
+  --color-fd-muted: var(--bm-surface-alt);
+  --color-fd-muted-foreground: var(--bm-ink-muted);
+  --color-fd-popover: var(--bm-surface);
+  --color-fd-popover-foreground: var(--bm-ink);
+  --color-fd-card: var(--bm-surface);
+  --color-fd-card-foreground: var(--bm-ink);
+  --color-fd-border: var(--bm-line);
+  --color-fd-primary: var(--bm-ink);
+  --color-fd-primary-foreground: var(--bm-bg);
+  --color-fd-secondary: var(--bm-surface-alt);
+  --color-fd-secondary-foreground: var(--bm-ink);
+  --color-fd-accent: var(--bm-accent-soft);
+  --color-fd-accent-foreground: var(--bm-accent-ink);
+  --color-fd-ring: var(--bm-accent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Tailwind theme — exposes BM tokens as utilities (bg-bm-*, text-bm-*,
+   border-bm-*, font-serif, font-mono, animate-bm-*).
+   ────────────────────────────────────────────────────────────────────── */
+
+@theme inline {
+  --color-bm-bg: var(--bm-bg);
+  --color-bm-surface: var(--bm-surface);
+  --color-bm-surface-alt: var(--bm-surface-alt);
+  --color-bm-ink: var(--bm-ink);
+  --color-bm-ink-soft: var(--bm-ink-soft);
+  --color-bm-ink-muted: var(--bm-ink-muted);
+  --color-bm-line: var(--bm-line);
+  --color-bm-line-soft: var(--bm-line-soft);
+  --color-bm-accent: var(--bm-accent);
+  --color-bm-accent-soft: var(--bm-accent-soft);
+  --color-bm-accent-ink: var(--bm-accent-ink);
+  --color-bm-danger: var(--bm-danger);
+  --color-bm-warn: var(--bm-warn);
+  --color-bm-editor-bg: var(--bm-editor-bg);
+  --color-bm-syntax-text: var(--bm-syntax-text);
+  --color-bm-syntax-comment: var(--bm-syntax-comment);
+  --color-bm-syntax-keyword: var(--bm-syntax-keyword);
+  --color-bm-syntax-string: var(--bm-syntax-string);
+  --color-bm-syntax-type: var(--bm-syntax-type);
+  --color-bm-syntax-method: var(--bm-syntax-method);
+  --color-bm-syntax-lineno: var(--bm-syntax-lineno);
+
+  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-inter-tight);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --animate-bm-pulse: bm-pulse 1s ease-in-out infinite;
+  --animate-bm-spin: bm-spin 0.7s linear infinite;
+}
+
+@keyframes bm-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Body defaults
+   ────────────────────────────────────────────────────────────────────── */
+
+body {
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.005em;
+  background: var(--bm-bg);
+  color: var(--bm-ink);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Docs site — fumadocs typography overrides to match Botanical Modern.
+   Layout selectors:
+     #nd-docs-layout · #nd-sidebar · #nd-page · #nd-toc · article
+   Fumadocs uses --color-fd-* for color tokens (already mapped to BM
+   above), so most chrome inherits the right palette. The overrides
+   below are for typography and a few accent hooks the design calls
+   out specifically.
+   ────────────────────────────────────────────────────────────────────── */
 
 @media (min-width: 768px) {
   [data-sidebar-placeholder] {
-    --fd-sidebar-width: 220px;
+    --fd-sidebar-width: 260px;
   }
-
   #nd-sidebar > * {
     width: 100%;
   }
 }
 
-.dark #nd-sidebar {
-  --color-fd-muted: hsl(0, 0%, 16%);
-  --color-fd-secondary: hsl(0, 0%, 18%);
-  --color-fd-muted-foreground: hsl(0, 0%, 72%);
+/* Tell fumadocs that the page chrome above its layout is 72px tall —
+   this is the height of our marketing Header. With fumadocs's own nav
+   disabled, the layout sets `--fd-header-height: 0px` inline; we
+   re-assert the variable here so any sticky math (TOC, sidebar, etc.)
+   that derives off `--fd-header-height` gets the right value. */
+[class*="[--fd-header-height:0px]"] {
+  --fd-header-height: 72px;
+}
+/* Align the TOC column's top padding with the article body's so the
+   "On this page" heading sits at the same y as the page h1, instead
+   of clinging right against the marketing header below.
+   #nd-page uses `py-6 md:pt-8 xl:pt-14`; mirror that here. */
+[class*="[grid-area:toc]"] {
+  padding-top: 1.5rem; /* 24px, matches #nd-page py-6 */
+}
+@media (min-width: 768px) {
+  [class*="[grid-area:toc]"] {
+    padding-top: 2rem; /* 32px, matches md:pt-8 */
+  }
+}
+@media (min-width: 1280px) {
+  [class*="[grid-area:toc]"] {
+    padding-top: 3.5rem; /* 56px, matches xl:pt-14 */
+  }
 }
 
-.dark body {
-  background-image: linear-gradient(rgba(5, 255, 105, 0.05), transparent 20rem, transparent);
+/* Article headings — Fraunces serif per the design's article scale */
+/* Use html.* prefix to beat fumadocs's `:where()`-wrapped prose styles. */
+html article#nd-page h1,
+html article#nd-page h2,
+html article#nd-page h3 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 400;
+  color: var(--bm-ink);
+}
+html article#nd-page h1 {
+  font-size: 48px;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.4em;
+}
+html article#nd-page h2 {
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-top: 1.6em;
+  margin-bottom: 0.4em;
+}
+html article#nd-page h3 {
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin-top: 1.5em;
+}
 
-  main#nd-home-layout > main:last-child {
-    /* biome-ignore lint/complexity/noImportantStyles: todo */
-    min-width: 300px !important;
-    top: 56px;
-    height: calc(100dvh - 112px);
-  }
+/* Article body — Inter Tight, comfortable line-height */
+article#nd-page p,
+article#nd-page ul li,
+article#nd-page ol li {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--bm-ink-soft);
+}
 
-  nav.max-w-container {
-    max-width: 100%;
-  }
-  #nd-docs-layout .prose ul {
-    list-style-position: outside;
-    padding-left: 16px;
-  }
+/* The first paragraph after the H1 reads as the lede — slightly larger. */
+article#nd-page h1 + p {
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--bm-ink-soft);
+}
+
+/* Inline code in body — soft-cream chip */
+article#nd-page :not(pre) > code {
+  background: var(--bm-surface-alt);
+  color: var(--bm-syntax-keyword);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.875em;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* Code block surfaces — match the editor surface */
+article#nd-page pre {
+  background: var(--bm-editor-bg);
+  border: 1px solid var(--bm-line);
+  border-radius: 6px;
+}
+
+/* Sidebar — uppercase section heads, accent left rule on active items */
+#nd-sidebar {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+#nd-sidebar [data-radix-scroll-area-viewport] > div > div > p,
+#nd-sidebar h3,
+#nd-sidebar [data-section-heading] {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bm-ink-muted);
+}
+#nd-sidebar a {
+  font-size: 14px;
+  color: var(--bm-ink-soft);
+  border-left: 2px solid transparent;
+  padding-left: 12px;
+  transition: color 120ms ease;
+}
+#nd-sidebar a:hover {
+  color: var(--bm-ink);
+}
+#nd-sidebar a[data-active="true"],
+#nd-sidebar a[aria-current="page"] {
+  color: var(--bm-ink);
+  border-left-color: var(--bm-accent);
+  background: transparent;
+}
+
+/* TOC — design's "On this page" right rail */
+[class*="[grid-area:toc]"] {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+[class*="[grid-area:toc]"] h3,
+[class*="[grid-area:toc]"] [data-toc-heading] {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bm-ink-muted);
+}
+[class*="[grid-area:toc]"] a {
+  font-size: 13px;
+  color: var(--bm-ink-muted);
+  transition: color 120ms ease;
+}
+[class*="[grid-area:toc]"] a:hover {
+  color: var(--bm-ink);
+}
+[class*="[grid-area:toc]"] a[data-active="true"] {
+  color: var(--bm-ink);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Playground — chrome-only utilities (animations + Monaco transparency).
+   The token utilities live in @theme above and are usable site-wide.
+   ────────────────────────────────────────────────────────────────────── */
+
+.bm-error-squiggle {
+  text-decoration: underline wavy var(--bm-danger);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.bm-sketch-name {
+  border-bottom: 1px dashed transparent;
+  padding-bottom: 1px;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+.bm-sketch-name:hover,
+.bm-sketch-name:focus {
+  border-bottom-color: var(--bm-line);
+}
+
+/* Monaco — let our editor backgrounds show through */
+.playground-shell .monaco-editor,
+.playground-shell .monaco-editor .margin,
+.playground-shell .monaco-editor-background,
+.playground-shell .monaco-editor .inputarea.ime-input {
+  background-color: transparent;
+}
+
+.playground-shell *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.playground-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.playground-shell *::-webkit-scrollbar-thumb {
+  background: var(--bm-line);
+  border-radius: 4px;
+}
+.playground-shell *::-webkit-scrollbar-thumb:hover {
+  background: var(--bm-ink-muted);
 }

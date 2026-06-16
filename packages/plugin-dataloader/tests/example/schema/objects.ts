@@ -199,7 +199,32 @@ const NullableUser = builder
     }),
   });
 
+// Pins the `loadableObjectRef` generic ordering: the first type argument is the
+// loader result, and the object Shape is inferred from it (Error stripped) via
+// ShapeFromLoadResult. `toKey`'s `value` and `exposeID('id')` only type-check if
+// Shape resolved to `{ id: number }`.
+const ExplicitShapeUser = builder
+  .loadableObjectRef<{ id: number }, string>('ExplicitShapeUser', {
+    load: async (ids: string[]) =>
+      ids.map((id) => (Number(id) > 0 ? { id: Number(id) } : new GraphQLError('bad'))),
+    toKey: (value) => String(value.id),
+  })
+  .implement({
+    isTypeOf: () => true,
+    fields: (t) => ({
+      id: t.exposeID('id', {}),
+    }),
+  });
+
 builder.queryFields((t) => ({
+  explicitShapeUser: t.field({
+    type: ExplicitShapeUser,
+    nullable: true,
+    args: {
+      id: t.arg.string(),
+    },
+    resolve: (_root, args) => args.id ?? '-1',
+  }),
   user: t.field({
     type: User,
     nullable: true,

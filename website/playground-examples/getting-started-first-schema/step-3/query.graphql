@@ -1,0 +1,9 @@
+query Fellowship {
+  characters {
+    id
+    name
+  }
+  character(id: "aragorn") {
+    name
+  }
+}

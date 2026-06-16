@@ -1,0 +1,11 @@
+{
+  "id": "patterns-default-nullability",
+  "title": "Default nullability",
+  "description": "Flip the default from non-nullable to nullable when you want SDL to read that way.",
+  "category": "core",
+  "subcategory": "patterns",
+  "difficulty": "intermediate",
+  "order": 3,
+  "tags": ["nullability", "config"],
+  "relatedDocs": ["/docs/patterns/default-nullability"]
+}

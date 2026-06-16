@@ -1,0 +1,28 @@
+{
+  "id": "directives-plugin",
+  "title": "Directives Plugin",
+  "description": "Add schema directives to types and fields",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 14,
+  "tags": ["directives", "metadata", "schema"],
+  "relatedDocs": ["/docs/plugins/directives"],
+  "prerequisites": ["01-first-schema"],
+  "snippets": [
+    {
+      "label": "Setup Directives Plugin",
+      "filename": "schema.ts",
+      "startLine": 1,
+      "endLine": 8,
+      "description": "Import and configure the directives plugin"
+    },
+    {
+      "label": "Using Directives on Types",
+      "filename": "schema.ts",
+      "startLine": 10,
+      "endLine": 25,
+      "description": "Apply directives to object types and fields"
+    }
+  ]
+}

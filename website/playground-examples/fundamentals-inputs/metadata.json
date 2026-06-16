@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-inputs",
+  "title": "Input objects",
+  "description": "Define an input object inline next to the field that uses it.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 7,
+  "tags": ["inputs", "mutations"],
+  "relatedDocs": ["/docs/fundamentals/inputs"]
+}

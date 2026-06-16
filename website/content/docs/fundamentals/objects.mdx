@@ -1,0 +1,83 @@
+---
+title: Object types
+description: Define an object type with objectRef and attach fields via implement.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Object types are the bulk of any GraphQL schema. In Pothos, you declare them with `builder.objectRef` and fill in the fields with `implement`.
+
+```typescript playground example="fundamentals-objects"
+interface IRace {
+  id: string;
+  name: string;
+  lifespan: string;
+}
+
+const Race = builder.objectRef<IRace>('Race');
+
+Race.implement({
+  description: 'A people of Middle-earth.',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    lifespan: t.exposeString('lifespan'),
+  }),
+});
+```
+
+The generic argument to `objectRef` — `IRace` here — is the *backing model*. That's the TypeScript shape your resolvers will return and Pothos will hand back to you as `parent` on any field defined under this type.
+
+## Why objectRef
+
+Splitting the declaration (`objectRef`) from the definition (`implement`) means two types can reference each other without forward-declaration gymnastics:
+
+```typescript
+const Character = builder.objectRef<ICharacter>('Character');
+const Faction = builder.objectRef<IFaction>('Faction');
+
+Character.implement({
+  fields: (t) => ({
+    factions: t.field({ type: [Faction], resolve: (c) => c.factions }),
+  }),
+});
+
+Faction.implement({
+  fields: (t) => ({
+    members: t.field({ type: [Character], resolve: (f) => f.members }),
+  }),
+});
+```
+
+`objectRef` is also the only way to attach a backing model without registering it on the `SchemaTypes` generic. For most projects that's all you need.
+
+## Returning the type
+
+Once a `Race` reference exists you can use it as the type of any field, anywhere:
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    race: t.field({
+      type: Race,
+      args: { id: t.arg.id({ required: true }) },
+      resolve: (_root, { id }) => findRaceById(String(id)),
+    }),
+  }),
+});
+```
+
+The resolver must return something that satisfies `IRace`. If your data source already produces that shape (database row, ORM model, in-memory record) you usually return it untouched.
+
+## Other styles
+
+Pothos also supports two older styles. Reach for them only when you need the specific affordance:
+
+- **Class-backed types.** `builder.objectType(MyClass, { ... })` infers the backing model from a TypeScript class. Useful if you already keep domain classes around for behaviour.
+- **SchemaTypes-named types.** Register the type on the `Objects` generic, then refer to it by name as a string: `t.field({ type: 'Race', ... })`. The Prisma and Drizzle plugins lean on this so they can wire type names to ORM model names.
+
+Both interoperate with `objectRef` — pick whichever fits a given type and mix freely.
+
+<Callout type="info">
+  See also: [Fields](./fields) for the catalogue of things to put inside `implement`, or [Circular references](../patterns/circular-references) for the two-way reference pattern above.
+</Callout>

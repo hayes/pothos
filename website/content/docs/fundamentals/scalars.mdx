@@ -1,0 +1,91 @@
+---
+title: Scalars
+description: Use built-in scalars and register custom ones for types like DateTime.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+GraphQL ships with five built-in scalars — `ID`, `String`, `Int`, `Float`, `Boolean` — and Pothos exposes each through `t.exposeID`, `t.exposeString`, and friends, or as scalar field builders like `t.int({ ... })`. Most schemas need at least one more, usually `DateTime`.
+
+```typescript playground example="fundamentals-scalars"
+const builder = new SchemaBuilder<{
+  Scalars: {
+    DateTime: { Input: Date; Output: Date };
+  };
+}>({});
+
+builder.scalarType('DateTime', {
+  serialize: (value) => value.toISOString(),
+  parseValue: (value) => {
+    if (typeof value !== 'string') {
+      throw new Error('DateTime must be an ISO 8601 string');
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error('Invalid DateTime');
+    }
+    return date;
+  },
+});
+```
+
+`Scalars` on the builder generic declares the name and the Input/Output shapes that resolvers will see. `scalarType` provides the runtime implementation. Both have to agree.
+
+## Input vs Output
+
+Scalars can serialise and parse different shapes — useful when the wire format and the in-memory format differ. For `DateTime`:
+
+- **Output** (`Date`): your resolvers return `Date` objects.
+- **Input** (`Date`): your resolvers receive `Date` objects, after `parseValue` parses the incoming string.
+
+When the shapes match, declare them the same. When they don't — say, a custom `PositiveInt` that accepts a string and emits a number — split them:
+
+```typescript
+Scalars: {
+  PositiveInt: { Input: number; Output: number };
+}
+```
+
+## Using the scalar
+
+By name in the generic (`'DateTime'`), or by passing the value `scalarType` returns:
+
+```typescript
+const Game = builder.objectRef<IGame>('Game').implement({
+  fields: (t) => ({
+    createdAt: t.field({ type: 'DateTime', resolve: (g) => g.createdAt }),
+  }),
+});
+
+builder.queryField('upcomingGames', (t) =>
+  t.field({
+    type: [Game],
+    args: { after: t.arg({ type: 'DateTime' }) },
+    resolve: (_root, { after }) => Games.filter((g) => !after || g.createdAt >= after),
+  }),
+);
+```
+
+Inside the resolver, `after` is `Date | null | undefined` — Pothos has already parsed the ISO string the client sent.
+
+## graphql-scalars
+
+Writing `parseValue` and `serialize` by hand is fine for one or two cases. For the common ones — `DateTime`, `EmailAddress`, `URL`, `JSON`, `UUID`, dozens more — use the [`graphql-scalars`](https://github.com/Urigo/graphql-scalars) package and register its resolvers with `builder.addScalarType`:
+
+```typescript
+import { DateTimeResolver } from 'graphql-scalars';
+
+const builder = new SchemaBuilder<{
+  Scalars: {
+    DateTime: { Input: Date; Output: Date };
+  };
+}>({});
+
+builder.addScalarType('DateTime', DateTimeResolver);
+```
+
+Same generic, less code.
+
+<Callout type="info">
+  See also: [Fields](./fields) for the scalar `exposeX` helpers, or the [graphql-scalars](https://github.com/Urigo/graphql-scalars) catalogue for ready-made implementations.
+</Callout>

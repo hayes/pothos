@@ -1,0 +1,13 @@
+{
+  "title": "Patterns",
+  "defaultOpen": true,
+  "pages": [
+    "project-layout",
+    "handling-errors",
+    "default-nullability",
+    "circular-references",
+    "inferring-types",
+    "printing-and-codegen",
+    "reusable-fields"
+  ]
+}

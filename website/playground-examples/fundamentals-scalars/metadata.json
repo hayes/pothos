@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-scalars",
+  "title": "Scalars",
+  "description": "Register a custom scalar and use it as both an argument and a field type.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "intermediate",
+  "order": 14,
+  "tags": ["scalars", "datetime"],
+  "relatedDocs": ["/docs/fundamentals/scalars"]
+}

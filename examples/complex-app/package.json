@@ -14,7 +14,7 @@
     "schema": "node scripts/build-schema.ts",
     "seed": "prisma migrate reset -f",
     "start": "node src/server.ts",
-    "type": "tsc --noEmit",
+    "type": "tsgo --noEmit",
     "codegen": "graphql-codegen --config codegen.ts"
   },
   "prisma": {

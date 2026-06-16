@@ -1,0 +1,11 @@
+query TestQuery {
+  hello
+}
+
+mutation ReusableInputExample1 {
+  createWithInput1(input: { id: "123", reason: "testing" })
+}
+
+mutation ReusableInputExample2 {
+  createWithInput2(input: { id: "456" })
+}

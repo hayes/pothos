@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-fields",
+  "title": "Fields",
+  "description": "Expose properties, return lists, mark fields nullable, and compute values from the backing object.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 3,
+  "tags": ["fields", "expose", "computed", "lists"],
+  "relatedDocs": ["/docs/fundamentals/fields"]
+}

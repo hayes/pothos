@@ -1,0 +1,6 @@
+mutation RenameTeam {
+  renameTeam(input: { teamId: "1", name: "Comet Storm" }) {
+    id
+    name
+  }
+}

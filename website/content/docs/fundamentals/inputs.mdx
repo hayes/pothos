@@ -1,0 +1,111 @@
+---
+title: Input objects
+description: Group field arguments into a reusable input shape.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Once a field's arguments grow past two or three values, or several fields take the same shape, group them into an input object. The most ergonomic way to declare one is inline, right where it's first used:
+
+```typescript playground example="fundamentals-inputs"
+builder.mutationType({
+  fields: (t) => ({
+    createPlayer: t.field({
+      type: Player,
+      args: {
+        input: t.arg({
+          type: builder.inputType('CreatePlayerInput', {
+            fields: (t) => ({
+              name: t.string({ required: true }),
+              jersey: t.int({ required: true }),
+            }),
+          }),
+          required: true,
+        }),
+      },
+      resolve: (_root, { input }) => createPlayer(input.name, input.jersey),
+    }),
+  }),
+});
+```
+
+`input` arrives in the resolver fully typed: `input.name` is `string`, `input.jersey` is `number`.
+
+## Naming the type
+
+The first argument to `builder.inputType` is the GraphQL type name. The convention is `<Operation><Subject>Input`:
+
+- `CreatePlayerInput`
+- `UpdateTeamInput`
+- `SearchCharactersFilter` (when "filter" reads better than "Input")
+
+Each input object can only be defined once across your whole schema — pick a name no other field will collide with.
+
+## Sharing an input across fields
+
+When two fields want the same shape, lift it to a top-level variable and reference it:
+
+```typescript
+const TeamFilter = builder.inputType('TeamFilter', {
+  fields: (t) => ({
+    nameContains: t.string(),
+    minPlayers: t.int(),
+  }),
+});
+
+builder.queryFields((t) => ({
+  teams: t.field({
+    type: [Team],
+    args: { filter: t.arg({ type: TeamFilter }) },
+    resolve: (_root, { filter }) => findTeams(filter),
+  }),
+  teamCount: t.int({
+    args: { filter: t.arg({ type: TeamFilter }) },
+    resolve: (_root, { filter }) => countTeams(filter),
+  }),
+}));
+```
+
+Sharing is purely an authoring convenience — GraphQL doesn't see a difference between an inline and a shared input.
+
+## Field options inside an input
+
+The fields inside `inputType` use the same `required` and `defaultValue` options as field arguments:
+
+```typescript
+fields: (t) => ({
+  name: t.string({ required: true }),
+  alignment: t.string({ defaultValue: 'Neutral' }),
+  tags: t.stringList({ required: true, defaultValue: [] }),
+}),
+```
+
+Inputs can also nest: an input field's type can be another input type.
+
+## Other styles
+
+When an input needs to reference itself — a recursive filter, for example — define it with `builder.inputRef` first, then `implement` it:
+
+```typescript
+interface IFilter {
+  and?: IFilter[];
+  field?: string;
+  equals?: string;
+}
+
+const Filter = builder.inputRef<IFilter>('Filter');
+
+Filter.implement({
+  fields: (t) => ({
+    and: t.field({ type: [Filter] }),
+    field: t.string(),
+    equals: t.string(),
+  }),
+});
+```
+
+The split mirrors the `objectRef` pattern from [Object types](./objects): declare the reference up front so the type can refer to itself.
+
+<Callout type="info">
+  See also: [Arguments](./args) for non-input args, or [Mutations](./mutations) for an end-to-end CRUD example.
+</Callout>

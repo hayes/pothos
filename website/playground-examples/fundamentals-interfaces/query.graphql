@@ -1,0 +1,17 @@
+query Characters {
+  characters {
+    id
+    name
+    __typename
+    ... on Hobbit {
+      shireAddress
+    }
+    ... on Elf {
+      departed
+    }
+    ... on Wizard {
+      order
+      color
+    }
+  }
+}

@@ -1,0 +1,80 @@
+---
+title: Enums
+description: Define an enum with string-literal values and use it as a field type and argument.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The lightest way to declare an enum is the object form: an array of string literals marked `as const`, and Pothos handles the rest.
+
+```typescript playground example="fundamentals-enums"
+const Alignment = builder.enumType('Alignment', {
+  description: "A faction's moral leaning.",
+  values: ['Good', 'Neutral', 'Evil'] as const,
+});
+```
+
+The `as const` matters — without it Pothos infers `string[]` and you lose the literal-union type that makes the rest of the schema fit together.
+
+## Using the enum
+
+Reference the returned `Alignment` as a field type and as an argument:
+
+```typescript
+const Faction = builder.objectRef<IFaction>('Faction').implement({
+  fields: (t) => ({
+    alignment: t.field({ type: Alignment, resolve: (f) => f.alignment }),
+  }),
+});
+
+builder.queryField('factions', (t) =>
+  t.field({
+    type: [Faction],
+    args: { alignment: t.arg({ type: Alignment }) },
+    resolve: (_root, args) =>
+      args.alignment ? Factions.filter((f) => f.alignment === args.alignment) : Factions,
+  }),
+);
+```
+
+The argument's runtime type is `'Good' | 'Neutral' | 'Evil' | null | undefined` — a literal union, not a string.
+
+## Descriptions and deprecations
+
+Both the enum itself and individual values take descriptions and `deprecationReason`. When you need either, switch from the array form to the object form for values:
+
+```typescript
+const Alignment = builder.enumType('Alignment', {
+  description: "A faction's moral leaning.",
+  values: {
+    Good: { description: 'Helps the heroes.' },
+    Neutral: { description: 'Sits out the war.' },
+    Evil: { description: 'Serves Sauron.' },
+    Chaotic: { deprecationReason: 'Was never used; remove in v3.' },
+  } as const,
+});
+```
+
+The keys still drive both the GraphQL value names and the TypeScript literal union. Anything past `description` and `deprecationReason` is rarely worth using.
+
+## Backing with a TypeScript enum
+
+If you already have a TypeScript `enum`, you can pass it directly:
+
+```typescript
+enum Alignment {
+  Good = 'GOOD',
+  Neutral = 'NEUTRAL',
+  Evil = 'EVIL',
+}
+
+const AlignmentType = builder.enumType(Alignment, {
+  name: 'Alignment',
+});
+```
+
+The runtime values (`'GOOD'`, etc.) become the GraphQL enum values. This form is useful when an existing codebase uses TypeScript enums and you'd rather not maintain two parallel enums. For new code, the array form is shorter and reads better.
+
+<Callout type="info">
+  See also: [Scalars](./scalars) for custom types that aren't enums, or [Arguments](./args) for the enum-as-argument pattern.
+</Callout>

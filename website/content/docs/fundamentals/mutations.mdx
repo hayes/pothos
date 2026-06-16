@@ -1,0 +1,122 @@
+---
+title: Mutations
+description: Define the Mutation root and write a CRUD mutation with input, context, and explicit error handling.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Mutations are queries that change state. The API mirrors [Queries](./queries) — `mutationType`, `mutationField`, `mutationFields` — but the patterns inside change. A typical mutation takes an input object, checks the request context, performs the change, and returns the updated entity.
+
+```typescript playground example="fundamentals-mutations"
+builder.mutationType({
+  fields: (t) => ({
+    renameTeam: t.field({
+      type: Team,
+      args: {
+        input: t.arg({
+          type: builder.inputType('RenameTeamInput', {
+            fields: (t) => ({
+              teamId: t.id({ required: true }),
+              name: t.string({ required: true }),
+            }),
+          }),
+          required: true,
+        }),
+      },
+      resolve: (_root, { input }, ctx) => {
+        if (!ctx.user) {
+          throw new Error('Not signed in');
+        }
+        const team = Teams.get(Number(input.teamId));
+        if (!team) {
+          throw new Error(`No team with id ${input.teamId}`);
+        }
+        if (team.captainId !== ctx.user.id) {
+          throw new Error('Only the captain can rename the team');
+        }
+        team.name = input.name;
+        return team;
+      },
+    }),
+  }),
+});
+```
+
+Four things are doing real work here. The input groups the mutation's two values into one named type. The first auth check narrows `ctx.user` from `{ id: number } | undefined` to `{ id: number }`. The lookup throws if the target doesn't exist. The permission check throws if the user isn't allowed to change *this* particular row.
+
+## The mutation root
+
+Like `queryType`, `mutationType` runs exactly once per schema:
+
+```typescript
+builder.mutationType({});
+```
+
+Then add fields with `mutationField` or `mutationFields` from wherever they belong:
+
+```typescript
+builder.mutationField('createPlayer', (t) =>
+  t.field({
+    type: Player,
+    args: { input: t.arg({ type: CreatePlayerInput, required: true }) },
+    resolve: (_root, { input }, ctx) => createPlayer(input, ctx),
+  }),
+);
+```
+
+The choice between `mutationField` and `mutationFields` is the same call as for queries: per-field for module-local definitions, per-group for related batches.
+
+## Authorisation by hand
+
+The pattern above — `if (!ctx.user) throw` followed by a row-level permission check — is the core-only approach. It scales fine for a handful of mutations. Past that, the boilerplate adds up: the same auth check copy-pasted across every mutation, the same `findOrThrow` followed by the same permission gate.
+
+A few specific shapes are worth knowing:
+
+```typescript
+// Lift the auth check so the rest of the resolver sees a non-nullable user.
+resolve: (_root, args, ctx) => {
+  if (!ctx.user) {
+    throw new Error('Not signed in');
+  }
+  // ctx.user is narrowed from here down.
+  return doTheThing(args, ctx.user);
+},
+```
+
+```typescript
+// Treat "missing" and "not yours" as the same condition to avoid
+// leaking the existence of records.
+const team = Teams.get(Number(input.teamId));
+if (!team || team.captainId !== ctx.user.id) {
+  throw new Error('Team not found');
+}
+```
+
+## Returning what the client needs
+
+Return the entity the mutation changed, so the client can re-read fields in the same round trip:
+
+```graphql
+mutation Rename {
+  renameTeam(input: { teamId: "1", name: "Comet Storm" }) {
+    id
+    name
+  }
+}
+```
+
+For mutations that don't have a single natural return (a bulk delete, a payment confirmation), wrap the result in a small payload type and return that — `DeleteTeamPayload { success: Boolean!, deletedCount: Int! }` reads better than `Boolean!`.
+
+## When to graduate to plugins
+
+The three plugins worth knowing about for mutations:
+
+- [`plugin-scope-auth`](../plugins/auth) replaces the manual `if (!ctx.user)` and row-level checks with declarative `authScopes` on the field. Once two or three mutations share the same check, you save real LOC.
+- [`plugin-errors`](../plugins/errors) turns thrown errors into typed result unions — your `renameTeam` field's return type becomes `RenameTeamResult = Team | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
+- [`plugin-validation`](../plugins/validation) runs Zod schemas against your input before the resolver fires. Useful when the input has format constraints (`name` must be 1–80 chars, `email` must be a valid email).
+
+You don't need any of them on day one. Reach for them when the manual patterns start to repeat.
+
+<Callout type="info">
+  See also: [`plugin-scope-auth`](../plugins/auth) for declarative authz, [`plugin-errors`](../plugins/errors) for typed result unions, and [`plugin-validation`](../plugins/validation) for input validation.
+</Callout>

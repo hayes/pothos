@@ -1,0 +1,96 @@
+---
+title: Resolvers
+description: How resolvers receive parent, args, context, and info, and what they're allowed to return.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+A resolver is a function attached to a field. GraphQL calls it whenever the field appears in a query, hands it four arguments, and expects something back that matches the field's type.
+
+```typescript playground example="fundamentals-resolvers"
+builder.queryType({
+  fields: (t) => ({
+    bookCount: t.int({
+      resolve: () => Books.size,
+    }),
+  }),
+});
+```
+
+The full signature is `(parent, args, ctx, info)`:
+
+- `parent` — the value the resolver one level up returned. For root fields (`Query`, `Mutation`, `Subscription`) it's whatever you passed as `rootValue`, usually undefined.
+- `args` — the resolved argument object, fully type-checked against the `args:` declaration on the field.
+- `ctx` — the per-request [context](./context).
+- `info` — the GraphQL execution info. Rarely useful in application code; ORM plugins like Prisma and Drizzle use it to plan ahead.
+
+You almost always destructure the ones you need:
+
+```typescript
+resolve: (parent, { id }, ctx) => ctx.db.books.find(String(id) === parent.bookId),
+```
+
+## Sync, async, both
+
+Pothos awaits whatever you return. Sync resolvers just return the value; async resolvers return a promise. Both are equally idiomatic.
+
+```typescript
+// Sync
+hello: t.string({
+  resolve: () => 'hello, world',
+}),
+
+// Async — Pothos handles the awaiting
+randomBook: t.field({
+  type: Book,
+  resolve: async () => {
+    const list = [...Books.values()];
+    return list[Math.floor(Math.random() * list.length)];
+  },
+}),
+```
+
+The field type determines what's acceptable. A scalar field has to return that scalar (or null, if nullable). An object field has to return the backing model for that type. Pothos enforces this in TypeScript — if your return type doesn't fit, the file won't compile.
+
+## Returning the backing model
+
+For object fields, the resolver returns the *backing model*, not GraphQL's view of the object. Pothos handles the projection.
+
+```typescript
+const Character = builder.objectRef<ICharacter>('Character');
+
+builder.queryField('character', (t) =>
+  t.field({
+    type: Character,
+    args: { id: t.arg.id({ required: true }) },
+    // Returns ICharacter — the backing model — not a graphql-shaped object.
+    resolve: (_root, { id }) => Characters.get(String(id)) ?? null,
+  }),
+);
+```
+
+This split is why you can return database rows, ORM models, or plain objects from resolvers without massaging them first. Each field on `Character` decides how to surface its piece of the backing model when it's queried.
+
+## Throwing
+
+A resolver that throws produces a `null` value for that field and an entry in the response's `errors` array. The thrown message reaches the client unless your server masks it.
+
+```typescript
+bookById: t.field({
+  type: Book,
+  args: { id: t.arg.id({ required: true }) },
+  resolve: (_root, { id }) => {
+    const book = Books.get(String(id));
+    if (!book) {
+      throw new Error(`No book with id ${id}`);
+    }
+    return book;
+  },
+}),
+```
+
+For non-nullable fields, a thrown error propagates up: the closest nullable ancestor (or the operation root) becomes null and the error is recorded. That's GraphQL's default behaviour, not Pothos-specific. See [Handling errors](../patterns/handling-errors) for masking, logging, and when to graduate to `plugin-errors` for typed result unions.
+
+<Callout type="info">
+  See also: [Context](./context) for the third argument, or [Handling errors](../patterns/handling-errors) for everything throwing-related.
+</Callout>

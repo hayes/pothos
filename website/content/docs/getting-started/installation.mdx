@@ -1,0 +1,80 @@
+---
+title: Installation
+description: Install @pothos/core, configure TypeScript, and build your first schema in a few steps.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## Install the package
+
+```package-install
+npm install --save @pothos/core graphql
+```
+
+`@pothos/core` is the only Pothos package most projects need. Plugins live in their own packages (`@pothos/plugin-errors`, `@pothos/plugin-scope-auth`, …) and you add them as you need them. `graphql` is the peer dependency Pothos builds on.
+
+## TypeScript settings
+
+Pothos relies on `strict` mode for the inference that makes the rest of this guide work. If your `tsconfig.json` doesn't have it, turn it on:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+Without `strict`, types like `string | undefined` collapse to `string`, and Pothos's `required`/`nullable` machinery breaks down. The package won't refuse to compile, but the guarantees stop holding.
+
+## An empty builder
+
+The minimum that produces a valid schema is a builder and a Query root with at least one field:
+
+```typescript playground example="getting-started-first-schema-step-1"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
+  fields: (t) => ({
+    health: t.string({ resolve: () => 'ok' }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+`builder.toSchema()` returns a plain `GraphQLSchema` — anything that accepts one (every server, every codegen tool) will accept this.
+
+## Adding a real type
+
+Most schemas hit more than `health: String`. Declare a backing type, attach fields to it, and return it from a query:
+
+```typescript playground example="getting-started-first-schema-step-2"
+const builder = new SchemaBuilder({});
+
+const Character = builder.objectRef<{ id: string; name: string }>('Character');
+
+Character.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    frodo: t.field({
+      type: Character,
+      resolve: () => ({ id: 'frodo', name: 'Frodo Baggins' }),
+    }),
+  }),
+});
+```
+
+`objectRef<{ id: string; name: string }>('Character')` introduces a GraphQL `Character` type backed by that TypeScript shape. `Character.implement({...})` fills in the fields. Once both are done, anything in the schema that returns `Character` is checked to produce a matching object.
+
+<Callout type="info">
+  See also: [First server](./first-server) to wire this schema into `graphql-yoga` and run a query against it. The [Queries](../fundamentals/queries) page covers `queryField` and `queryFields` for splitting query entries across modules.
+</Callout>

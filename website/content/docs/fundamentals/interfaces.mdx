@@ -1,0 +1,104 @@
+---
+title: Interfaces
+description: Share fields across multiple object types with an interface, and dispatch with resolveType.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+When several object types share a common set of fields — id, name, audit timestamps, anything else that recurs — promote those fields to an interface. Concrete types `implement` the interface and add their own fields on top.
+
+```typescript playground example="fundamentals-interfaces"
+const Character = builder.interfaceRef<ICharacter>('Character');
+
+builder.interfaceType(Character, {
+  description: 'A named being of Middle-earth.',
+  resolveType: (val) => val.kind,
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+const Hobbit = builder.objectRef<IHobbit>('Hobbit');
+Hobbit.implement({
+  interfaces: [Character],
+  fields: (t) => ({
+    shireAddress: t.exposeString('shireAddress', { nullable: true }),
+  }),
+});
+
+const Elf = builder.objectRef<IElf>('Elf');
+Elf.implement({
+  interfaces: [Character],
+  fields: (t) => ({
+    departed: t.exposeBoolean('departed'),
+  }),
+});
+```
+
+`Hobbit` and `Elf` automatically have `id` and `name` — they don't need to redeclare them. A client querying `character.name` works whether the runtime value is a hobbit or an elf.
+
+## resolveType
+
+Pothos needs to know which concrete type each value belongs to so it can format the response. The cleanest pattern is a discriminator on the backing model — here `val.kind` is `'Hobbit' | 'Elf' | 'Wizard' | ...` and `resolveType` returns it as-is:
+
+```typescript
+resolveType: (val) => val.kind,
+```
+
+The returned string must match the name of one of the implementing types. When your data already carries a kind discriminator, this is a one-liner; otherwise infer it from the shape:
+
+```typescript
+resolveType: (val) => {
+  if ('shireAddress' in val) return 'Hobbit';
+  if ('departed' in val) return 'Elf';
+  return 'Wizard';
+},
+```
+
+As a last resort, every implementing type can provide an `isTypeOf` predicate; Pothos calls each in turn until one returns true. This is slower than a discriminator-based `resolveType`, so prefer the latter.
+
+## Fields on the interface
+
+Interface fields are visible on every implementing type. They follow the same `t.expose…` and `t.field` shape as object fields, including computed values:
+
+```typescript
+builder.interfaceType(Character, {
+  resolveType: (val) => val.kind,
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    initials: t.string({
+      resolve: (parent) => parent.name.split(' ').map((p) => p[0]).join(''),
+    }),
+  }),
+});
+```
+
+The `parent` argument is typed as the interface's backing model — `ICharacter` here — so the resolver works for every implementing type.
+
+## Querying
+
+Clients select common fields directly and concrete-type fields inside a fragment:
+
+```graphql
+query Characters {
+  characters {
+    id
+    name
+    ... on Hobbit {
+      shireAddress
+    }
+    ... on Wizard {
+      order
+      color
+    }
+  }
+}
+```
+
+A field returning an interface (`characters: [Character]`) can resolve to any mix of implementing types — Pothos uses `resolveType` to dispatch on each one.
+
+<Callout type="info">
+  See also: [Unions](./unions) when types don't share fields but should sit under one return type, or [Object types](./objects) for the type-by-type definitions.
+</Callout>

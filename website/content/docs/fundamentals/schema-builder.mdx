@@ -1,0 +1,105 @@
+---
+title: SchemaBuilder
+description: Configure the SchemaBuilder generic with Context, plugins, and default nullability.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+Every Pothos schema starts with a `SchemaBuilder`. The generic argument describes the shape of your request context, any plugins you've loaded, and a handful of project-wide defaults. The constructor argument carries the runtime config that has to match the generic.
+
+```typescript playground example="fundamentals-schema-builder"
+import SchemaBuilder from '@pothos/core';
+
+interface Context {
+  userId?: string;
+}
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+}>({});
+```
+
+Everything else in this guide — object types, fields, queries, mutations — hangs off this builder. You typically create exactly one per schema and export it from a shared module.
+
+## What goes in the generic
+
+The generic parameter is a single object that mixes type-only configuration with plugin slots:
+
+- `Context` — the shape your server attaches to each request. Resolvers see it as their third argument.
+- `DefaultFieldNullability` — flips Pothos's default from nullable to non-nullable. See [Default nullability](../patterns/default-nullability) when you reach for this.
+- `Scalars` — declares custom scalars and their Input/Output shapes. See [Scalars](./scalars).
+- `Objects`, `Interfaces` — register backing models for types referenced by name as a string. The `objectRef` pattern in [Object types](./objects) is the more common choice.
+- Plugin-specific slots like `DrizzleRelations`, `AuthScopes`, `PrismaTypes` — each plugin documents what it expects.
+
+The generic is type-only. The constructor's options bag is where any matching runtime configuration goes, and Pothos's types enforce that the two stay in sync.
+
+## With and without plugins
+
+<Tabs items={['Core only', 'With plugins']}>
+<Tab value="Core only">
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder<{
+  Context: { userId?: string };
+}>({});
+```
+
+</Tab>
+<Tab value="With plugins">
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+
+const builder = new SchemaBuilder<{
+  Context: { user?: { id: string } };
+  AuthScopes: { loggedIn: boolean };
+}>({
+  plugins: [ErrorsPlugin, ScopeAuthPlugin],
+  scopeAuth: {
+    authScopes: (ctx) => ({ loggedIn: !!ctx.user }),
+  },
+});
+```
+
+</Tab>
+</Tabs>
+
+Plugins plug into the same builder. Each adds its own generic slots (here `AuthScopes`) and its own option keys (`scopeAuth: {...}`). You don't need to add a plugin to use a feature it improves — Pothos's core handles everything until you opt in.
+
+## Backing models
+
+Every object and interface type in your schema has a *backing model*: the TypeScript shape Pothos hands you in `parent` and expects you to return from resolvers. The two main ways to attach one:
+
+```typescript
+// Pattern 1: objectRef carries the type in its generic. Preferred.
+interface ICharacter { id: string; name: string }
+const Character = builder.objectRef<ICharacter>('Character');
+
+// Pattern 2: Register on the SchemaTypes generic. Lets you reference
+// the type by name as a string. Useful when a plugin needs a name to
+// hang behaviour on (e.g. Prisma model names).
+const builder = new SchemaBuilder<{
+  Objects: { Character: ICharacter };
+}>({});
+```
+
+The two patterns coexist. Most pages in this guide use `objectRef` because it keeps the type and its definition side by side. The Prisma and Drizzle plugins lean on the SchemaTypes form so they can match GraphQL type names to ORM model names.
+
+## Finalising the schema
+
+`builder.toSchema()` produces a `GraphQLSchema` you hand to your server.
+
+```typescript
+export const schema = builder.toSchema();
+```
+
+You can call this once, at the bottom of the module that brings every type together. The result is plain `graphql-js` — anything that accepts a `GraphQLSchema` will accept it.
+
+<Callout type="info">
+  See also: [Object types](./objects) to start defining the first thing on your builder, or [Using plugins](../using-plugins) for the catalogue of available plugins.
+</Callout>

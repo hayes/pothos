@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-mutations",
+  "title": "Mutations",
+  "description": "CRUD mutation with an inline input, a context-aware auth check, and an inline error throw.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "intermediate",
+  "order": 9,
+  "tags": ["mutations", "inputs", "auth"],
+  "relatedDocs": ["/docs/fundamentals/mutations"]
+}

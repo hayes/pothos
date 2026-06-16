@@ -1,0 +1,31 @@
+{
+  "id": "getting-started-first-schema",
+  "title": "Your first schema",
+  "description": "Build a Pothos schema from scratch, one piece at a time.",
+  "category": "core",
+  "subcategory": "getting-started",
+  "difficulty": "beginner",
+  "order": 1,
+  "tags": ["getting-started", "basics"],
+  "relatedDocs": ["/docs/getting-started/introduction"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "An empty builder",
+      "description": "Install @pothos/core, instantiate a builder, and call toSchema.",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "First object and query",
+      "description": "Define an object type and a query field that returns it.",
+      "order": 2
+    },
+    {
+      "id": "step-3",
+      "title": "Add a second query",
+      "description": "Co-locate query fields with their type.",
+      "order": 3
+    }
+  ]
+}

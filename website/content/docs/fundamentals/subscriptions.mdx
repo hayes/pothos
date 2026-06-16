@@ -1,0 +1,89 @@
+---
+title: Subscriptions
+description: Define a subscription with subscribe + resolve, and an async iterable as the event source.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+A subscription field has two functions: `subscribe` returns an async iterable of events, and `resolve` projects each event into the value the client receives.
+
+```typescript playground example="fundamentals-subscriptions"
+builder.subscriptionType({
+  fields: (t) => ({
+    counter: t.int({
+      description: 'Emits an incrementing integer once a second.',
+      subscribe: () => tick(),
+      resolve: (value) => value,
+    }),
+  }),
+});
+```
+
+`subscribe` runs once when the subscription starts. Each value the iterable yields becomes one message to the client; `resolve` shapes it. For trivial cases the resolver is `(value) => value`, but it can be anything that takes the iterable's element type and returns the field's GraphQL type.
+
+<Callout type="warn">
+  Declare `subscribe` before `resolve` in the options object. Pothos infers `resolve`'s parent type from `subscribe`'s element type, and the inference only works when `subscribe` appears first.
+</Callout>
+
+## The pub/sub pattern
+
+Subscriptions usually pair with a mutation that publishes events:
+
+```typescript
+builder.mutationField('post', (t) =>
+  t.boolean({
+    args: { message: t.arg.string({ required: true }) },
+    resolve: (_root, { message }, ctx) => {
+      ctx.pubSub.publish('NEW_MESSAGE', { text: message });
+      return true;
+    },
+  }),
+);
+
+builder.subscriptionField('messages', (t) =>
+  t.field({
+    type: Message,
+    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('NEW_MESSAGE'),
+    resolve: (event) => event,
+  }),
+);
+```
+
+The pub/sub itself isn't part of Pothos — it lives on your context. `graphql-yoga` ships `createPubSub` for the in-memory case; Apollo Server has its own. For production deployments that span multiple processes, swap in a Redis-backed or other distributed implementation.
+
+## Filtering
+
+Subscribers often want only a slice of an event stream — messages in a specific room, updates for a specific record. Filter inside the resolver and return `null` for events that don't apply:
+
+```typescript
+builder.subscriptionField('roomMessages', (t) =>
+  t.field({
+    type: Message,
+    nullable: true,
+    args: { roomId: t.arg.id({ required: true }) },
+    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('NEW_MESSAGE'),
+    resolve: (event, { roomId }) => (event.roomId === String(roomId) ? event : null),
+  }),
+);
+```
+
+For high-fanout topics where most events are uninteresting, push the filter into the `subscribe` call so the iterable never emits them in the first place. The mechanism depends on your pub/sub.
+
+## Authorisation
+
+Authorise at `subscribe` — once when the connection opens — and trust the result for the lifetime of the stream:
+
+```typescript
+subscribe: (_root, _args, ctx) => {
+  if (!ctx.user) {
+    throw new Error('Sign in to subscribe');
+  }
+  return ctx.pubSub.subscribe('NEW_MESSAGE');
+},
+```
+
+A thrown error in `subscribe` rejects the subscription before any events are sent. Per-event checks belong in `resolve`, but they're rare; if every event needs a permission check the topic is probably too broad.
+
+<Callout type="info">
+  See also: [Mutations](./mutations) for the publisher side, or [Context](./context) for where the pub/sub handle lives.
+</Callout>

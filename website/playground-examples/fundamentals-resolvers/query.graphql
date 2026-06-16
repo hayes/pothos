@@ -1,0 +1,10 @@
+query Resolvers {
+  bookCount
+  randomBook {
+    id
+    title
+  }
+  bookById(id: "fotr") {
+    title
+  }
+}

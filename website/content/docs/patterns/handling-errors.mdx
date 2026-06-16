@@ -1,0 +1,109 @@
+---
+title: Handling errors
+description: Throw from resolvers, mask errors in production, and know when to graduate to plugin-errors.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Error handling in Pothos has three layers, each adding control over what the client sees. Most schemas stop at the first or second; the third is a typed-union approach for when error types are part of the API contract.
+
+## Layer 1: throw from the resolver
+
+A resolver that throws produces `null` for the field and one entry in the response's `errors` array. The thrown message reaches the client unless your server masks it.
+
+```typescript playground example="patterns-handling-errors-step-1"
+builder.queryType({
+  fields: (t) => ({
+    team: t.field({
+      type: Team,
+      args: { id: t.arg.id({ required: true }) },
+      resolve: (_root, { id }) => {
+        const team = Teams.get(Number(id));
+        if (!team) {
+          throw new Error(`No team with id ${id}`);
+        }
+        return team;
+      },
+    }),
+  }),
+});
+```
+
+For a non-nullable field, the error propagates upward until it hits a nullable ancestor — that ancestor becomes null and the error is logged once. This is GraphQL's standard behaviour, not anything Pothos-specific.
+
+## Layer 2: mask in production
+
+In development, the server returns the raw thrown message — useful for debugging. In production, you want generic messages so internal details don't leak.
+
+`graphql-yoga`'s `maskedErrors` option controls this:
+
+```typescript
+// In dev — see the actual message
+const yoga = createYoga({
+  schema,
+  maskedErrors: false,
+});
+```
+
+```typescript
+// In prod — replace with "Unexpected error" and log the original
+const yoga = createYoga({
+  schema,
+  maskedErrors: process.env.NODE_ENV !== 'production' ? false : true,
+});
+```
+
+<Callout type="warn">
+  Don't ship `maskedErrors: false` to production. Stack traces, internal IDs, and database error messages all flow through GraphQL errors when masking is off. Default-on with an env-flag escape hatch is the safe pattern.
+</Callout>
+
+For Apollo Server, the equivalent is the `includeStacktraceInErrorResponses` option (default off in production builds). Mercurius wraps errors via `errorFormatter`. Whatever server you're using, the layer-2 question is "what does the client see when a resolver throws?" — answer it explicitly.
+
+## Layer 3: typed result unions
+
+The first two layers treat errors as exceptions. For errors that are part of the API — "username already taken," "insufficient funds," "team not found" — clients are better served by a typed result union:
+
+```graphql
+type Mutation {
+  renameTeam(input: RenameTeamInput!): RenameTeamResult!
+}
+
+union RenameTeamResult = Team | NotFoundError | PermissionError
+```
+
+The client can `switch (result.__typename)` and render the right UI for each case. No string-matching error messages, no awkward optional-field handling.
+
+`@pothos/plugin-errors` turns thrown errors into exactly this shape. You declare the error types as Pothos object types, list them on the field's `errors:` option, and the plugin generates the union.
+
+```typescript
+const NotFoundError = builder.objectRef<{ message: string }>('NotFoundError').implement({
+  fields: (t) => ({ message: t.exposeString('message') }),
+});
+
+builder.mutationField('renameTeam', (t) =>
+  t.field({
+    type: Team,
+    errors: { types: [Error] },
+    args: { /* ... */ },
+    resolve: (_root, args, ctx) => {
+      // throw NotFoundError, throw PermissionError, etc.
+    },
+  }),
+);
+```
+
+When you reach for it, see [`plugin-errors`](../plugins/errors) for the full setup.
+
+## When to graduate
+
+The boundaries are usually clear:
+
+- **Layer 1 alone** is enough for prototypes and internal tools.
+- **Layer 1 + Layer 2** is the right baseline for production. Throw clear messages, mask them in prod, log the originals server-side.
+- **Layer 3** earns its keep when errors are part of the contract — a mutation has expected failure modes that clients render specifically.
+
+You don't have to pick one. Schemas usually mix: most resolvers throw plain `Error`s and rely on masking; a few mutations use typed unions where the failure modes are well-known.
+
+<Callout type="info">
+  See also: [`plugin-errors`](../plugins/errors) for typed result unions, or [Resolvers](../fundamentals/resolvers) for the throw-semantics reference.
+</Callout>

@@ -1,0 +1,85 @@
+---
+title: Context
+description: Type the request context on the builder generic and thread auth + data sources through every resolver.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The context is whatever your server attaches to each request. Every resolver receives it as the third argument. Pothos infers its shape from the `Context` slot of the builder generic, so the type travels through your entire schema for free.
+
+```typescript playground example="fundamentals-context"
+interface Context {
+  user?: { id: number };
+  db: {
+    users: { find: (id: number) => IUser | null };
+  };
+}
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+}>({});
+
+builder.queryType({
+  fields: (t) => ({
+    me: t.field({
+      type: User,
+      nullable: true,
+      resolve: (_root, _args, ctx) => (ctx.user ? ctx.db.users.find(ctx.user.id) : null),
+    }),
+  }),
+});
+```
+
+`ctx.user` is `{ id: number } | undefined` everywhere in the schema — no casts, no helpers, no per-resolver type imports.
+
+## What to put on it
+
+Context typically threads:
+
+- **The authenticated user (or absence thereof).** Whatever your auth middleware decoded from the request.
+- **Data-access handles.** A database client, ORM, or repository pattern. Resolvers shouldn't be reaching for module-level singletons when they can take them as a dependency.
+- **Per-request caches.** Dataloaders, computed permissions, anything that should be created fresh per request but reused across the resolvers in that one request.
+
+What *not* to put on it: request-derived state that only one or two fields need. Pass it down through `parent` or compute it in the resolver instead.
+
+## Building it per request
+
+The context factory runs once per request. With `graphql-yoga` or Apollo Server, you pass it on the server's options:
+
+```typescript
+const yoga = createYoga({
+  schema,
+  context: async ({ request }) => ({
+    user: await decodeUserFromToken(request.headers.get('authorization')),
+    db,
+  }),
+});
+```
+
+Anything async returns a promise; the server awaits it before resolvers run. Pothos doesn't care how the factory works — only that its return type matches what you declared on the builder generic.
+
+## Why ctx is per-request
+
+Each request gets its own context object. Resolvers within one request share that object; resolvers across requests see different ones. This is the invariant `initContextCache` relies on for plugins like dataloader: per-request caches live on `ctx` and are garbage-collected when the request ends.
+
+If you find yourself reaching for a global to share state across requests, that state probably wants to live outside Pothos entirely — a Redis client, a connection pool, a feature-flag service. Context is for per-request stuff.
+
+## Narrowing inside a resolver
+
+When a resolver requires an authenticated user, lift the check out of the body so the compiler narrows the type:
+
+```typescript
+resolve: (_root, args, ctx) => {
+  if (!ctx.user) {
+    throw new Error('Sign in to continue');
+  }
+  // ctx.user is { id: number } from here down.
+  return ctx.db.posts.findMany({ authorId: ctx.user.id });
+},
+```
+
+Doing this in every protected resolver gets repetitive. The [`plugin-scope-auth`](../plugins/auth) replaces it with declarative auth scopes; see also [Mutations](./mutations) for an end-to-end example of the manual pattern.
+
+<Callout type="info">
+  See also: [Mutations](./mutations) for context in action, or [`plugin-scope-auth`](../plugins/auth) when the manual checks start to repeat.
+</Callout>

@@ -1,0 +1,103 @@
+---
+title: Reusable fields
+description: Share field, argument, and input shapes across multiple Pothos types without using an interface.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+When several types share a common field or argument shape but you don't want to introduce a GraphQL interface to model it, write a helper that returns the shared definition. Pothos exposes the underlying builders so the helper stays type-safe.
+
+## Sharing fields across object types
+
+`builder.objectFields(ref, builderFn)` adds fields to an existing object type. Wrap a few of them in a function that takes a list of refs:
+
+```typescript
+import type { ObjectRef } from '@pothos/core';
+
+function addAuditFields<T extends { id: string; createdAt: Date }>(
+  refs: ObjectRef<T>[],
+) {
+  for (const ref of refs) {
+    builder.objectFields(ref, (t) => ({
+      id: t.exposeID('id'),
+      createdAt: t.field({ type: 'DateTime', resolve: (parent) => parent.createdAt }),
+    }));
+  }
+}
+
+const Team = builder.objectRef<ITeam>('Team').implement({ /* ... */ });
+const Player = builder.objectRef<IPlayer>('Player').implement({ /* ... */ });
+
+addAuditFields([Team, Player]);
+```
+
+Both types now expose `id` and `createdAt` without duplicating the field definitions. The generic constraint on the helper guarantees every passed ref has the backing-model fields the closures rely on.
+
+If a shared field needs to live on both objects and interfaces, accept the more general `Ref<T>` instead of `ObjectRef<T>`; `builder.objectFields` and `builder.interfaceFields` both work on it.
+
+## Sharing arguments across fields
+
+Arguments are inferred from the literal `args:` object Pothos sees, so you can't add them after the fact the way you can with `objectFields`. Instead, write a helper that returns the args map and spread it into each field:
+
+```typescript
+function pagination(t: { arg: typeof builder.arg }) {
+  return {
+    limit: t.arg.int({ required: true, defaultValue: 25 }),
+    offset: t.arg.int({ required: true, defaultValue: 0 }),
+  };
+}
+
+builder.queryFields((t) => ({
+  teams: t.field({
+    type: [Team],
+    args: { ...pagination(t) },
+    resolve: (_root, args) => listTeams(args),
+  }),
+  players: t.field({
+    type: [Player],
+    args: { ...pagination(t), teamId: t.arg.id() },
+    resolve: (_root, args) => listPlayers(args),
+  }),
+}));
+```
+
+The helper takes the `t` builder so the returned args carry their full type. Spreading the result preserves the inference Pothos relies on.
+
+## Sharing input fields
+
+Input fields work the same way:
+
+```typescript
+function timestampInputs(t: { field: typeof builder.field }) {
+  return {
+    createdAfter: t.field({ type: 'DateTime', required: false }),
+    createdBefore: t.field({ type: 'DateTime', required: false }),
+  };
+}
+
+builder.inputType('GameFilter', {
+  fields: (t) => ({
+    ...timestampInputs(t),
+    teamId: t.id(),
+  }),
+});
+
+builder.inputType('PlayerFilter', {
+  fields: (t) => ({
+    ...timestampInputs(t),
+    position: t.string(),
+  }),
+});
+```
+
+Each input type ends up with its own version of the timestamp fields plus whatever it adds on top.
+
+## When to reach for an interface instead
+
+If the shared fields represent a real abstraction your clients can query against — every entity has an `id`, every audit-logged record has `createdAt`/`updatedAt` — the cleaner answer is a GraphQL interface. Clients can fragment over the interface, codegen tools see the relationship, and the schema documents the polymorphism.
+
+Reach for the helper pattern when the shared fields are an *implementation detail*, not an abstraction worth exposing.
+
+<Callout type="info">
+  See also: [Interfaces](../fundamentals/interfaces) for the GraphQL-native version of "shared fields," or [Input objects](../fundamentals/inputs) for the input-side of the sharing problem.
+</Callout>

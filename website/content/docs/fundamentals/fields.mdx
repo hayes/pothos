@@ -1,0 +1,99 @@
+---
+title: Fields
+description: Expose properties, return lists, mark fields nullable, and compute values from the backing object.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Fields go inside the `fields:` function of any `implement` call. The argument `t` is a builder whose methods produce field definitions: `t.exposeString`, `t.int`, `t.field`, and so on.
+
+```typescript playground example="fundamentals-fields"
+Character.implement({
+  fields: (t) => ({
+    // exposeX maps directly to a property on the backing object.
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+
+    // Lists, nullable, and renamed exposes all live in the options arg.
+    titles: t.exposeStringList('titles'),
+    shireAddress: t.exposeString('shireAddress', { nullable: true }),
+
+    // Computed fields use the same t.<scalar>() shape but with a
+    // resolve function. parent is the backing object.
+    ageInYears: t.int({
+      resolve: (parent) => new Date().getFullYear() - parent.birthYear,
+    }),
+  }),
+});
+```
+
+## Exposing properties
+
+`t.exposeID`, `t.exposeString`, `t.exposeInt`, `t.exposeFloat`, `t.exposeBoolean`, and their `…List` variants forward a property of the backing object to the schema with no resolver. They're the right choice whenever the field name on the type matches a property on the backing model.
+
+```typescript
+fields: (t) => ({
+  // Same name on both sides — straight expose.
+  name: t.exposeString('name'),
+
+  // Renaming: the GraphQL field is `height`, the property is heightInMeters.
+  height: t.exposeFloat('heightInMeters'),
+}),
+```
+
+## Computed fields
+
+When the field doesn't map 1:1 onto the backing object, define it explicitly with `t.<scalar>` or `t.field`:
+
+```typescript
+fields: (t) => ({
+  fullName: t.string({
+    resolve: (parent) => `${parent.firstName} ${parent.lastName}`,
+  }),
+  isElderly: t.boolean({
+    resolve: (parent) => parent.age > 80,
+  }),
+}),
+```
+
+`t.field` is the same shape but takes a `type` option, which is required when the return type isn't a scalar:
+
+```typescript
+race: t.field({
+  type: Race,
+  resolve: (parent) => Races.get(parent.raceId)!,
+}),
+```
+
+## Lists
+
+Wrap the type in an array to return a list:
+
+```typescript
+factions: t.field({
+  type: [Faction],
+  resolve: (parent) => loadFactionsFor(parent),
+}),
+```
+
+The list type is always non-nullable by default. Mix in `nullable: true` if the whole list can be missing, or `nullable: { items: true, list: false }` if individual items may be null but the list itself isn't.
+
+## Splitting fields across files
+
+For types that grow past one screen, `builder.objectField` and `builder.objectFields` add fields to an existing type from anywhere else in your codebase:
+
+```typescript
+// In a separate module:
+builder.objectField(Character, 'wieldedWeapons', (t) =>
+  t.field({
+    type: [Weapon],
+    resolve: (c) => loadWeaponsFor(c.id),
+  }),
+);
+```
+
+This is how you'd colocate, say, a Character's weapons next to the Weapon type rather than in the Character module. See [Project layout](../patterns/project-layout) for when that's worth doing.
+
+<Callout type="info">
+  See also: [Resolvers](./resolvers) for the resolver signature and what you can return from one.
+</Callout>

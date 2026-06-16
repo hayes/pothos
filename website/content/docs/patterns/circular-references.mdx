@@ -1,0 +1,79 @@
+---
+title: Circular references
+description: Two types that reference each other, untangled with objectRef declared up front and implemented later.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Two types that point at each other — a `Character` that lists its `Faction`s, a `Faction` that lists its members — are the common case where TypeScript's "declare before use" trips you up. Pothos's `objectRef` pattern is the answer.
+
+```typescript playground example="patterns-circular-references"
+const Character = builder.objectRef<ICharacter>('Character');
+const Faction = builder.objectRef<IFaction>('Faction');
+
+Character.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    factions: t.field({
+      type: [Faction],
+      resolve: (c) => c.factionIds.map((id) => Factions.get(id)!).filter(Boolean),
+    }),
+  }),
+});
+
+Faction.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    members: t.field({
+      type: [Character],
+      resolve: (f) => f.memberIds.map((id) => Characters.get(id)!).filter(Boolean),
+    }),
+  }),
+});
+```
+
+`objectRef` introduces a typed reference *before* the type is implemented. Both refs exist by the time the first `implement` runs, so each can reference the other freely.
+
+## Why this works
+
+Splitting `objectRef` from `implement` is a two-phase declaration. Phase one is "the type exists and these are its TypeScript and GraphQL names." Phase two is "and these are its fields." The two-way reference happens during phase two, when both phase-one declarations are already done.
+
+You can use the same trick for any number of mutually-referential types. Declare all the `objectRef` calls first, then all the `implement` calls.
+
+## In a modular layout
+
+Splitting `objectRef` and `implement` is also what lets a modular schema cross file boundaries without import cycles. Each domain module declares its `objectRef`, then implements it. Cross-domain references live in the file that pulls in the other type, not the other way around.
+
+See [Project layout](./project-layout) for the file shape this enables.
+
+## Other styles
+
+For very simple cases — two types in one file, no other types involved — you can also use thunks to defer resolution:
+
+```typescript
+const Character = builder.objectType('Character', {
+  fields: (t) => ({
+    factions: t.field({
+      type: () => [Faction], // Note the thunk
+      resolve: (c) => /* ... */,
+    }),
+  }),
+});
+
+const Faction = builder.objectType('Faction', {
+  fields: (t) => ({
+    members: t.field({
+      type: () => [Character],
+      resolve: (f) => /* ... */,
+    }),
+  }),
+});
+```
+
+The thunk approach works when both types are in the same module and the second declaration can rely on hoisting. Across module boundaries `objectRef` is the only thing that survives.
+
+<Callout type="info">
+  See also: [Object types](../fundamentals/objects) for the basic `objectRef` pattern, or [Project layout](./project-layout) for the multi-file version.
+</Callout>

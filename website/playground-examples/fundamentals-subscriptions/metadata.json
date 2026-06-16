@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-subscriptions",
+  "title": "Subscriptions",
+  "description": "Define a subscription field with subscribe + resolve.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "intermediate",
+  "order": 10,
+  "tags": ["subscriptions"],
+  "relatedDocs": ["/docs/fundamentals/subscriptions"]
+}

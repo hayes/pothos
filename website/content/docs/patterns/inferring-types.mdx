@@ -1,0 +1,86 @@
+---
+title: Inferring types
+description: Pull TypeScript types back out of Pothos refs to write helpers, fixtures, and utility functions.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Pothos refs carry their backing model as a type parameter. `$inferType` and `$inferInput` are the escape hatches that let you pull that type back out for use in plain TypeScript code.
+
+```typescript playground example="patterns-inferring-types"
+const Race = builder.objectRef<IRace>('Race').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    lifespan: t.exposeString('lifespan'),
+  }),
+});
+
+const RaceFilter = builder.inputType('RaceFilter', {
+  fields: (t) => ({
+    nameContains: t.string(),
+    immortal: t.boolean(),
+  }),
+});
+
+type RaceShape = typeof Race.$inferType;
+type RaceFilterShape = typeof RaceFilter.$inferInput;
+```
+
+`RaceShape` is `IRace`. `RaceFilterShape` is `{ nameContains?: string | null; immortal?: boolean | null }`. The pattern matches Drizzle's `InferSelectModel` and `InferInsertModel`, which inspired it.
+
+## Where it's useful
+
+The most common cases:
+
+- **Resolver helpers.** A function that operates on `Race`-shaped values can take the inferred type instead of duplicating it.
+- **Test fixtures.** Generate mock data that's guaranteed to match the ref's backing model.
+- **Argument validators.** A Zod schema or other validator can take the input type as its starting point.
+
+```typescript
+function matches(race: typeof Race.$inferType, filter: typeof RaceFilter.$inferInput): boolean {
+  if (filter.nameContains && !race.name.toLowerCase().includes(filter.nameContains.toLowerCase())) {
+    return false;
+  }
+  if (filter.immortal != null && (race.lifespan === 'immortal') !== filter.immortal) {
+    return false;
+  }
+  return true;
+}
+```
+
+## Inferring SchemaTypes
+
+For helpers that work across types, `builder.$inferSchemaTypes` gives you the merged `SchemaTypes` of a builder. Use it when writing a function that takes any field-builder context:
+
+```typescript
+type BuilderTypes = typeof builder.$inferSchemaTypes;
+
+function createIdField(
+  fields: (t: PothosSchemaTypes.ObjectFieldBuilder<BuilderTypes, { id: string }>) => FieldMap,
+) {
+  // ...
+}
+```
+
+The `PothosSchemaTypes` namespace is a Pothos-internal way to refer to the builder's generic type machinery. You'll rarely reach for it, but it's there when you need a helper to be type-aware about the surrounding schema.
+
+## Not a substitute for the source types
+
+`$inferType` is most useful as an *escape hatch* — pulling a type out for one specific helper or fixture. If you find yourself inferring the same type in five places, you probably want the original interface to be exported and reused.
+
+```typescript
+// Better:
+export interface IRace { /* ... */ }
+const Race = builder.objectRef<IRace>('Race');
+
+// Worse:
+const Race = builder.objectRef<{ id: string; name: string; /* ... */ }>('Race');
+type IRace = typeof Race.$inferType; // Round trip through Pothos to get back to a plain TS type
+```
+
+The first form keeps `IRace` as the source of truth. The second uses Pothos's machinery as a glorified type alias.
+
+<Callout type="info">
+  See also: [Object types](../fundamentals/objects) and [Input objects](../fundamentals/inputs) for the refs `$inferType` and `$inferInput` extract from.
+</Callout>

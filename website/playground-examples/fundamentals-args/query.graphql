@@ -1,0 +1,6 @@
+query Hobbits {
+  characters(raceId: "hobbit", limit: 2) {
+    id
+    name
+  }
+}

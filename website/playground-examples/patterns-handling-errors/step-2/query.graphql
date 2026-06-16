@@ -1,0 +1,5 @@
+query MissingTeam {
+  team(id: "999") {
+    name
+  }
+}

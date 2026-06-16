@@ -1,0 +1,65 @@
+---
+title: Default nullability
+description: Flip Pothos's nullable-by-default to non-nullable when that matches your codebase better.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+By default, Pothos fields and arguments are nullable. To make a field non-nullable you pass `nullable: false`; to make an arg required you pass `required: true`. This matches GraphQL's wire-level default — everything is nullable unless marked `!`.
+
+For most projects the GraphQL default is the wrong choice. Application code is usually non-nullable, and most fields should be `Type!`. Flipping the default once on the builder is less work than passing `nullable: false` on every field.
+
+```typescript playground example="patterns-default-nullability"
+const builder = new SchemaBuilder<{
+  DefaultFieldNullability: false;
+}>({
+  defaultFieldNullability: false,
+});
+```
+
+`DefaultFieldNullability` on the generic and `defaultFieldNullability` in the constructor options have to agree — Pothos will refuse to compile if they don't. With both set to `false`, every field declared from this builder defaults to non-nullable.
+
+## Using the flipped default
+
+Once the default is non-nullable, you mark the genuinely-optional fields explicitly:
+
+```typescript
+Race.implement({
+  fields: (t) => ({
+    // Non-nullable now, so SDL reads `id: ID!`.
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+
+    // Opt back into nullable for genuinely optional fields.
+    motto: t.exposeString('motto', { nullable: true }),
+  }),
+});
+```
+
+The same applies to arguments. With non-nullable as the default, `required: true` is the implicit state; you only mark an arg `required: false` (or omit `required` entirely with the matching flag) for genuinely optional inputs.
+
+## Flipping argument defaults too
+
+A second slot, `DefaultInputFieldRequiredness`, controls whether input fields and arguments default to required:
+
+```typescript
+const builder = new SchemaBuilder<{
+  DefaultFieldNullability: false;
+  DefaultInputFieldRequiredness: true;
+}>({
+  defaultFieldNullability: false,
+  defaultInputFieldRequiredness: true,
+});
+```
+
+With both flipped, the codebase reads as if everything is non-nullable/required by default — closer to TypeScript's defaults than to GraphQL's.
+
+## When not to flip
+
+The default GraphQL nullable-by-default has one real virtue: a nullable field that throws produces a null and a logged error, while a non-nullable field that throws bubbles up to the closest nullable ancestor. Defaulting non-nullable means errors propagate further, which can collapse a chunk of the response when one field misbehaves.
+
+If your schema serves clients that can't gracefully handle partial responses (legacy mobile clients, brittle codegen), the nullable default may be the safer choice. For modern TypeScript clients with proper error UI, non-nullable defaults are the right baseline.
+
+<Callout type="info">
+  See also: [SchemaBuilder](../fundamentals/schema-builder) for the rest of the builder generic, or [Handling errors](./handling-errors) for the throw-and-propagate behaviour above.
+</Callout>

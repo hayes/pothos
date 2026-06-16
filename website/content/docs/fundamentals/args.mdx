@@ -1,0 +1,85 @@
+---
+title: Arguments
+description: Required, optional, default-valued, and list arguments on a field.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+A field's arguments are declared in `args:`. Each entry is built with one of the `t.arg.*` helpers, mirroring the field-builder API.
+
+```typescript playground example="fundamentals-args"
+builder.queryType({
+  fields: (t) => ({
+    characters: t.field({
+      type: [Character],
+      args: {
+        raceId: t.arg.string(),
+        limit: t.arg.int({ required: true, defaultValue: 25 }),
+        excludeIds: t.arg.idList({ required: true, defaultValue: [] }),
+      },
+      resolve: (_root, args) => searchCharacters(args),
+    }),
+  }),
+});
+```
+
+Inside the resolver, `args` is fully typed against this declaration: `args.raceId` is `string | null | undefined`, `args.limit` is `number`, `args.excludeIds` is `readonly string[]`.
+
+## The scalar helpers
+
+`t.arg.string`, `t.arg.int`, `t.arg.id`, `t.arg.boolean`, `t.arg.float` produce single-value arguments. Their `…List` siblings (`t.arg.stringList`, `t.arg.intList`, etc.) produce list arguments. There's a generic `t.arg({ type: ... })` for non-scalar types like input objects and enums.
+
+```typescript
+args: {
+  // Scalar
+  term: t.arg.string({ required: true }),
+
+  // List
+  tags: t.arg.stringList({ required: true }),
+
+  // Enum or input object
+  alignment: t.arg({ type: Alignment }),
+},
+```
+
+## Required, optional, default values
+
+GraphQL defaults arguments to nullable. Pothos follows that:
+
+- `t.arg.string()` — nullable. Resolver sees `string | null | undefined`.
+- `t.arg.string({ required: true })` — non-nullable. Resolver sees `string`.
+- `t.arg.string({ defaultValue: 'hello' })` — nullable, but if the client omits it, defaults to `'hello'`. Resolver still sees `string | null | undefined` (a client can pass `null` explicitly).
+- `t.arg.string({ required: true, defaultValue: 'hello' })` — non-nullable with a default. Resolver sees `string`. This is usually what you want for "optional with a sensible default".
+
+The `required: true, defaultValue: ...` combination is the most ergonomic for the resolver, because there's nothing left to narrow.
+
+## Validating inside the resolver
+
+For "this id has to exist," "this string has to match a pattern," and similar checks, validate in the resolver and throw:
+
+```typescript
+resolve: (_root, { id }, ctx) => {
+  if (!id.startsWith('char-')) {
+    throw new Error('Invalid character id');
+  }
+  return ctx.db.characters.find(id);
+},
+```
+
+For declarative cross-field validation, see [`plugin-validation`](../plugins/validation), which runs Zod schemas against your args before the resolver fires.
+
+## Inputs for anything larger than one or two args
+
+When a field grows past two or three arguments, or several fields share the same argument shape, lift the args into an input object:
+
+```typescript
+args: {
+  filter: t.arg({ type: CharacterFilter }),
+},
+```
+
+See [Input objects](./inputs) for the input pattern.
+
+<Callout type="info">
+  See also: [Input objects](./inputs) for grouped arg shapes, or [`plugin-validation`](../plugins/validation) for declarative argument validation.
+</Callout>

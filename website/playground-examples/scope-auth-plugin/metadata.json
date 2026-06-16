@@ -1,0 +1,28 @@
+{
+  "id": "scope-auth-plugin",
+  "title": "Scope Auth Plugin",
+  "description": "Learn to implement authorization with scopes",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 11,
+  "tags": ["authorization", "auth", "scopes"],
+  "relatedDocs": ["/docs/plugins/scope-auth"],
+  "prerequisites": ["01-first-schema"],
+  "snippets": [
+    {
+      "label": "Setup Auth Scopes",
+      "filename": "schema.ts",
+      "startLine": 8,
+      "endLine": 21,
+      "description": "Configure scope auth plugin with user permissions"
+    },
+    {
+      "label": "Protected Field",
+      "filename": "schema.ts",
+      "startLine": 36,
+      "endLine": 44,
+      "description": "Require authentication scope for field access"
+    }
+  ]
+}

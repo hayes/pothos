@@ -34,6 +34,7 @@
     "@biomejs/biome": "^2.4.11",
     "@changesets/cli": "^2.30.0",
     "@faker-js/faker": "^10.4.0",
+    "@playwright/test": "^1.57.0",
     "@swc-node/register": "^1.11.1",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.24",
@@ -42,6 +43,7 @@
     "typescript": "npm:@typescript/typescript6@^6.0.0",
     "graphql": "^16.13.2",
     "pkg-pr-new": "^0.0.66",
+    "playwright": "^1.57.0",
     "tsx": "^4.21.0",
     "turbo": "^2.9.6",
     "vitest": "^4.1.4"

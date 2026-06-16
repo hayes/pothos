@@ -20,6 +20,7 @@ logs/
 coverage/
 dist/
 lib/
+!website/lib/
 dts/
 node_modules/
 tmp/
@@ -41,4 +42,17 @@ tmp/
 # Local Netlify folder
 .netlify
 
+# Test artifacts
+playwright-report/
+test-results/
+*.png
+!website/public/**/*.png
+
 CLAUDE.md
+
+# review-docs skill: feedback collected via the docs-site overlay
+.claude/review-feedback.json
+
+# Claude Code local runtime artifacts
+.claude/scheduled_tasks.lock
+.claude/worktrees/
