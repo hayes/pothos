@@ -7,7 +7,7 @@
   "difficulty": "beginner",
   "order": 1,
   "tags": ["getting-started", "basics"],
-  "relatedDocs": ["/docs/guide-next/getting-started"],
+  "relatedDocs": ["/docs/getting-started/introduction"],
   "steps": [
     {
       "id": "step-1",

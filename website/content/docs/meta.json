@@ -3,14 +3,19 @@
   "root": true,
   "pages": [
     "index",
-    "sponsors",
-    "resources",
-    "guide",
+    "getting-started",
+    "fundamentals",
+    "patterns",
+    "using-plugins",
+    "playground",
+    "troubleshooting",
     "plugins",
     "migrations",
     "design",
     "api",
     "llms",
+    "sponsors",
+    "resources",
     "..."
   ]
 }

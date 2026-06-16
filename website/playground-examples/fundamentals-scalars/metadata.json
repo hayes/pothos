@@ -7,5 +7,5 @@
   "difficulty": "intermediate",
   "order": 14,
   "tags": ["scalars", "datetime"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/scalars"]
+  "relatedDocs": ["/docs/fundamentals/scalars"]
 }

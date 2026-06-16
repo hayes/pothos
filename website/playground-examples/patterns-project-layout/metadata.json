@@ -7,7 +7,7 @@
   "difficulty": "intermediate",
   "order": 1,
   "tags": ["layout", "modularisation"],
-  "relatedDocs": ["/docs/guide-next/patterns/project-layout"],
+  "relatedDocs": ["/docs/patterns/project-layout"],
   "steps": [
     {
       "id": "step-1",

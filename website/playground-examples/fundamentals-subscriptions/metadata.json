@@ -7,5 +7,5 @@
   "difficulty": "intermediate",
   "order": 10,
   "tags": ["subscriptions"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/subscriptions"]
+  "relatedDocs": ["/docs/fundamentals/subscriptions"]
 }

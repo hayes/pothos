@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 13,
   "tags": ["enums"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/enums"]
+  "relatedDocs": ["/docs/fundamentals/enums"]
 }

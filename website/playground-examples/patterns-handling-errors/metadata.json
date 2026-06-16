@@ -7,7 +7,7 @@
   "difficulty": "intermediate",
   "order": 2,
   "tags": ["errors", "masking", "yoga"],
-  "relatedDocs": ["/docs/guide-next/patterns/handling-errors"],
+  "relatedDocs": ["/docs/patterns/handling-errors"],
   "steps": [
     {
       "id": "step-1",

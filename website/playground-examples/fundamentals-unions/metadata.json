@@ -7,5 +7,5 @@
   "difficulty": "intermediate",
   "order": 12,
   "tags": ["unions", "polymorphism"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/unions"]
+  "relatedDocs": ["/docs/fundamentals/unions"]
 }

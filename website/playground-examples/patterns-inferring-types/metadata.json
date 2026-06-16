@@ -7,5 +7,5 @@
   "difficulty": "intermediate",
   "order": 5,
   "tags": ["types", "inference"],
-  "relatedDocs": ["/docs/guide-next/patterns/inferring-types"]
+  "relatedDocs": ["/docs/patterns/inferring-types"]
 }

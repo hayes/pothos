@@ -53,6 +53,23 @@ function ItemRow({ node, active, depth }: { node: PageTree.Item; active: boolean
   );
 }
 
+/**
+ * Finds the first `PageTree.Item` we can navigate to inside a folder, walking
+ * children depth-first. Used to give folder headers a sensible destination
+ * when they lack an explicit `index` page — clicking "Guide" should land you
+ * on the first guide page rather than doing nothing.
+ */
+function firstNavigableUrl(node: PageTree.Folder): string | undefined {
+  for (const child of node.children) {
+    if (child.type === 'page') return child.url;
+    if (child.type === 'folder') {
+      const inner = firstNavigableUrl(child);
+      if (inner) return inner;
+    }
+  }
+  return undefined;
+}
+
 function FolderRow({
   node,
   pathname,
@@ -62,7 +79,10 @@ function FolderRow({
   pathname: string;
   depth: number;
 }) {
-  const indexUrl = node.index?.url;
+  // Folders with no explicit index fall through to their first page so the
+  // section header is always clickable. Without this, a flat-section layout
+  // (separators inside a folder) leaves the section title as a dead label.
+  const indexUrl = node.index?.url ?? firstNavigableUrl(node);
   const containsActive = folderContainsPath(node, pathname);
   const [expanded, setExpanded] = useState(containsActive || depth === 0);
   const indentPx = depth * 12;
@@ -73,6 +93,13 @@ function FolderRow({
         {indexUrl ? (
           <Link
             href={indexUrl}
+            // Clicking a folder header both navigates and opens the section. The
+            // chevron button is for collapse-when-open, so we don't toggle here
+            // — open if closed, no-op if already open. Avoids the surprising
+            // behaviour where clicking "Prisma" snaps the section shut.
+            onClick={() => {
+              if (!expanded) setExpanded(true);
+            }}
             className={`flex-1 py-1 pl-3 text-[14px] border-l-2 transition-colors ${
               isActive(indexUrl, pathname)
                 ? 'text-bm-ink font-medium border-bm-accent'

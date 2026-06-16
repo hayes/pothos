@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 3,
   "tags": ["fields", "expose", "computed", "lists"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/fields"]
+  "relatedDocs": ["/docs/fundamentals/fields"]
 }

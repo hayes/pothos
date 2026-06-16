@@ -52,14 +52,9 @@ export const schema = builder.toSchema();
 Most schemas hit more than `health: String`. Declare a backing type, attach fields to it, and return it from a query:
 
 ```typescript playground example="getting-started-first-schema-step-2"
-interface ICharacter {
-  id: string;
-  name: string;
-}
-
 const builder = new SchemaBuilder({});
 
-const Character = builder.objectRef<ICharacter>('Character');
+const Character = builder.objectRef<{ id: string; name: string }>('Character');
 
 Character.implement({
   fields: (t) => ({
@@ -78,34 +73,8 @@ builder.queryType({
 });
 ```
 
-`objectRef<ICharacter>('Character')` introduces a GraphQL `Character` type backed by the `ICharacter` TypeScript shape. `Character.implement({...})` fills in the fields. Once both are done, anything in the schema that returns `Character` is checked to produce an `ICharacter`.
-
-## Co-locating queries with their type
-
-A real schema spreads across more than one file. The cleanest pattern keeps query entrypoints next to the type they return:
-
-```typescript playground example="getting-started-first-schema-step-3"
-builder.queryType({
-  fields: (t) => ({
-    // Single character by id.
-    character: t.field({
-      type: Character,
-      nullable: true,
-      args: { id: t.arg.id({ required: true }) },
-      resolve: (_root, { id }) => Characters.find((c) => c.id === String(id)) ?? null,
-    }),
-
-    // All characters.
-    characters: t.field({
-      type: [Character],
-      resolve: () => Characters,
-    }),
-  }),
-});
-```
-
-For a small schema the queries can stay in one file. As things grow, [`builder.queryField` and `queryFields`](../fundamentals/queries) let each module register its own query entries.
+`objectRef<{ id: string; name: string }>('Character')` introduces a GraphQL `Character` type backed by that TypeScript shape. `Character.implement({...})` fills in the fields. Once both are done, anything in the schema that returns `Character` is checked to produce a matching object.
 
 <Callout type="info">
-  See also: [First server](./first-server) to wire this schema into `graphql-yoga` and run a query against it.
+  See also: [First server](./first-server) to wire this schema into `graphql-yoga` and run a query against it. The [Queries](../fundamentals/queries) page covers `queryField` and `queryFields` for splitting query entries across modules.
 </Callout>

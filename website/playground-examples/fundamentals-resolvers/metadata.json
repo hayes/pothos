@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 4,
   "tags": ["resolvers", "async", "errors"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/resolvers"]
+  "relatedDocs": ["/docs/fundamentals/resolvers"]
 }

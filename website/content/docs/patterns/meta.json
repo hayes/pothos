@@ -1,7 +1,7 @@
 {
   "title": "Patterns",
+  "defaultOpen": true,
   "pages": [
-    "index",
     "project-layout",
     "handling-errors",
     "default-nullability",

@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 1,
   "tags": ["builder", "context", "generics"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/schema-builder"]
+  "relatedDocs": ["/docs/fundamentals/schema-builder"]
 }

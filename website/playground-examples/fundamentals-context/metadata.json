@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 5,
   "tags": ["context", "auth"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/context"]
+  "relatedDocs": ["/docs/fundamentals/context"]
 }

@@ -7,6 +7,6 @@
   "difficulty": "advanced",
   "order": 1,
   "tags": ["patterns", "objectref", "dry", "reusable"],
-  "relatedDocs": ["/docs/guide/patterns"],
+  "relatedDocs": ["/docs/patterns/reusable-fields"],
   "prerequisites": ["01-first-schema", "06-interfaces"]
 }

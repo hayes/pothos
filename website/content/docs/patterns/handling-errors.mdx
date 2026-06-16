@@ -92,7 +92,7 @@ builder.mutationField('renameTeam', (t) =>
 );
 ```
 
-When you reach for it, see [`plugin-errors`](../../plugins/errors) for the full setup.
+When you reach for it, see [`plugin-errors`](../plugins/errors) for the full setup.
 
 ## When to graduate
 
@@ -105,5 +105,5 @@ The boundaries are usually clear:
 You don't have to pick one. Schemas usually mix: most resolvers throw plain `Error`s and rely on masking; a few mutations use typed unions where the failure modes are well-known.
 
 <Callout type="info">
-  See also: [`plugin-errors`](../../plugins/errors) for typed result unions, or [Resolvers](../fundamentals/resolvers) for the throw-semantics reference.
+  See also: [`plugin-errors`](../plugins/errors) for typed result unions, or [Resolvers](../fundamentals/resolvers) for the throw-semantics reference.
 </Callout>

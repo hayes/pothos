@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 6,
   "tags": ["args", "arguments"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/args"]
+  "relatedDocs": ["/docs/fundamentals/args"]
 }

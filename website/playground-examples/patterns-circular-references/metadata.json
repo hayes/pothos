@@ -7,5 +7,5 @@
   "difficulty": "intermediate",
   "order": 4,
   "tags": ["circular-references", "objectRef"],
-  "relatedDocs": ["/docs/guide-next/patterns/circular-references"]
+  "relatedDocs": ["/docs/patterns/circular-references"]
 }

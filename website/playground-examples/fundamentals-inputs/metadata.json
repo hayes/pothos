@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 7,
   "tags": ["inputs", "mutations"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/inputs"]
+  "relatedDocs": ["/docs/fundamentals/inputs"]
 }

@@ -111,12 +111,12 @@ For mutations that don't have a single natural return (a bulk delete, a payment 
 
 The three plugins worth knowing about for mutations:
 
-- [`plugin-scope-auth`](../../plugins/auth) replaces the manual `if (!ctx.user)` and row-level checks with declarative `authScopes` on the field. Once two or three mutations share the same check, you save real LOC.
-- [`plugin-errors`](../../plugins/errors) turns thrown errors into typed result unions — your `renameTeam` field's return type becomes `RenameTeamResult = Team | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
-- [`plugin-validation`](../../plugins/validation) runs Zod schemas against your input before the resolver fires. Useful when the input has format constraints (`name` must be 1–80 chars, `email` must be a valid email).
+- [`plugin-scope-auth`](../plugins/auth) replaces the manual `if (!ctx.user)` and row-level checks with declarative `authScopes` on the field. Once two or three mutations share the same check, you save real LOC.
+- [`plugin-errors`](../plugins/errors) turns thrown errors into typed result unions — your `renameTeam` field's return type becomes `RenameTeamResult = Team | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
+- [`plugin-validation`](../plugins/validation) runs Zod schemas against your input before the resolver fires. Useful when the input has format constraints (`name` must be 1–80 chars, `email` must be a valid email).
 
 You don't need any of them on day one. Reach for them when the manual patterns start to repeat.
 
 <Callout type="info">
-  See also: [`plugin-scope-auth`](../../plugins/auth) for declarative authz, [`plugin-errors`](../../plugins/errors) for typed result unions, and [`plugin-validation`](../../plugins/validation) for input validation.
+  See also: [`plugin-scope-auth`](../plugins/auth) for declarative authz, [`plugin-errors`](../plugins/errors) for typed result unions, and [`plugin-validation`](../plugins/validation) for input validation.
 </Callout>

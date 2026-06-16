@@ -32,7 +32,7 @@ Unions fit a handful of recurring shapes:
 
 - **Search results.** A query returns a heterogeneous mix — characters, locations, items — that share no fields beyond an id.
 - **Activity feeds.** Each entry is one of `PostCreated`, `CommentAdded`, `UserJoined`, with different payloads.
-- **Mutation outcomes.** A result that's either the changed entity or one of several error types — the pattern [`plugin-errors`](../../plugins/errors) automates for you.
+- **Mutation outcomes.** A result that's either the changed entity or one of several error types — the pattern [`plugin-errors`](../plugins/errors) automates for you.
 
 If the types do share fields, prefer an interface; clients can then select common fields without the per-type fragment dance.
 
@@ -80,5 +80,5 @@ query Search {
 `__typename` is always available on union fields — it's the discriminator clients use to render the right component.
 
 <Callout type="info">
-  See also: [Interfaces](./interfaces) for shared-field polymorphism, or [`plugin-errors`](../../plugins/errors) for mutation-result unions.
+  See also: [Interfaces](./interfaces) for shared-field polymorphism, or [`plugin-errors`](../plugins/errors) for mutation-result unions.
 </Callout>

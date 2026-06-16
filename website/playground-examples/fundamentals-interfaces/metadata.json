@@ -7,5 +7,5 @@
   "difficulty": "intermediate",
   "order": 11,
   "tags": ["interfaces", "polymorphism"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/interfaces"]
+  "relatedDocs": ["/docs/fundamentals/interfaces"]
 }

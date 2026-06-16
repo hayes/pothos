@@ -7,5 +7,5 @@
   "difficulty": "beginner",
   "order": 2,
   "tags": ["objects", "objectRef"],
-  "relatedDocs": ["/docs/guide-next/fundamentals/objects"]
+  "relatedDocs": ["/docs/fundamentals/objects"]
 }

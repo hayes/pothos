@@ -7,6 +7,6 @@
   "difficulty": "advanced",
   "order": 2,
   "tags": ["patterns", "args", "dry", "type-safety"],
-  "relatedDocs": ["/docs/guide/patterns"],
+  "relatedDocs": ["/docs/patterns/reusable-fields"],
   "prerequisites": ["04-args", "02-queries-mutations"]
 }

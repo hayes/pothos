@@ -7,6 +7,6 @@
   "difficulty": "advanced",
   "order": 3,
   "tags": ["patterns", "input", "dry", "type-safety"],
-  "relatedDocs": ["/docs/guide/patterns"],
+  "relatedDocs": ["/docs/patterns/reusable-fields"],
   "prerequisites": ["03-input-objects", "02-queries-mutations"]
 }

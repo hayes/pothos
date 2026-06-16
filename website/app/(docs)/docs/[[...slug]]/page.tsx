@@ -1,6 +1,6 @@
 import type { TOCItemType } from 'fumadocs-core/toc';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { DocsBody, DocsPage } from 'fumadocs-ui/page';
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page';
 import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -39,15 +39,16 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
       links={docsOptions.links}
     >
       <DocsPage toc={data.toc} full={data.full}>
+        <DocsTitle>{data.title}</DocsTitle>
+        {data.description && <DocsDescription>{data.description}</DocsDescription>}
+        <div className="flex flex-row gap-2 items-center border-b pb-4 mb-6 mt-2">
+          <LLMCopyButton markdownUrl={`${page.url}.mdx`} />
+          <ViewOptions
+            markdownUrl={`${page.url}.mdx`}
+            githubUrl={`https://github.com/hayes/pothos/blob/main/website/content/docs/${page.path}`}
+          />
+        </div>
         <DocsBody>
-          <h1>{data.title}</h1>
-          <div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
-            <LLMCopyButton markdownUrl={`${page.url}.mdx`} />
-            <ViewOptions
-              markdownUrl={`${page.url}.mdx`}
-              githubUrl={`https://github.com/hayes/pothos/blob/main/website/content/docs/${page.path}`}
-            />
-          </div>
           <MDX components={useMDXComponents({})} />
         </DocsBody>
       </DocsPage>

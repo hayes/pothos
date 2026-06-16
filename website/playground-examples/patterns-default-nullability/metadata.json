@@ -7,5 +7,5 @@
   "difficulty": "intermediate",
   "order": 3,
   "tags": ["nullability", "config"],
-  "relatedDocs": ["/docs/guide-next/patterns/default-nullability"]
+  "relatedDocs": ["/docs/patterns/default-nullability"]
 }
