@@ -51,7 +51,7 @@
     "@opentelemetry/semantic-conventions": "*",
     "@pothos/core": "*",
     "@pothos/plugin-tracing": "*",
-    "graphql": "^16.10.0"
+    "graphql": "^16.10.0 || ^17.0.0"
   },
   "devDependencies": {
     "@envelop/core": "^5.5.1",

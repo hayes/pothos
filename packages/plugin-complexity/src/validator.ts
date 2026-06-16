@@ -1,6 +1,7 @@
 import { PothosValidationError } from '@pothos/core';
 import { type FragmentDefinitionNode, GraphQLError, Kind, type ValidationRule } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity';
+import { asVariableValues } from './variable-values';
 
 export function createComplexityRule({
   variableValues,
@@ -56,7 +57,7 @@ export function createComplexityRule({
             context,
             {
               fragments,
-              variableValues,
+              variableValues: asVariableValues(variableValues),
               schema,
             },
             node.selectionSet,

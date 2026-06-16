@@ -52,6 +52,19 @@ import {
 } from './types';
 import { assertNever, getTypeBrand, isThenable } from './utils';
 
+type NullableOutputType =
+  | GraphQLScalarType
+  | GraphQLObjectType
+  | GraphQLInterfaceType
+  | GraphQLUnionType
+  | GraphQLEnumType
+  | GraphQLList<GraphQLOutputType>;
+type NullableInputType =
+  | GraphQLScalarType
+  | GraphQLEnumType
+  | GraphQLInputObjectType
+  | GraphQLList<GraphQLInputType>;
+
 export class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();
 
@@ -446,7 +459,7 @@ export class BuildCache<Types extends SchemaTypes> {
     return type;
   }
 
-  private getOutputType(ref: OutputType<Types> | string): GraphQLOutputType {
+  private getOutputType(ref: OutputType<Types> | string): NullableOutputType {
     const type = this.getType(ref);
 
     if (type instanceof GraphQLInputObjectType) {
@@ -455,10 +468,10 @@ export class BuildCache<Types extends SchemaTypes> {
       );
     }
 
-    return type;
+    return type as NullableOutputType;
   }
 
-  private getInputType(ref: InputType<Types> | string): GraphQLInputType {
+  private getInputType(ref: InputType<Types> | string): NullableInputType {
     const type = this.getType(ref);
 
     if (!type) {
@@ -483,7 +496,7 @@ export class BuildCache<Types extends SchemaTypes> {
       );
     }
 
-    return type;
+    return type as NullableInputType;
   }
 
   private getTypeOfKind<T extends PothosTypeKind>(

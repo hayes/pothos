@@ -8,6 +8,7 @@ import {
   parse,
 } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity';
+import { asVariableValues } from './variable-values';
 
 export function complexityFromQuery(
   query: DocumentNode | string,
@@ -49,7 +50,7 @@ export function complexityFromQuery(
   const info = {
     schema: options.schema,
     fragments,
-    variableValues: options.variables ?? {},
+    variableValues: asVariableValues(options.variables ?? {}),
   };
 
   return complexityFromSelectionSet(options.ctx ?? {}, info, operation.selectionSet, rootType);

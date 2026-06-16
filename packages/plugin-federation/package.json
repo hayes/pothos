@@ -48,7 +48,7 @@
   "peerDependencies": {
     "@apollo/subgraph": "^2.0.0",
     "@pothos/core": "*",
-    "graphql": "^16.10.0"
+    "graphql": "^16.10.0 || ^17.0.0"
   },
   "devDependencies": {
     "@apollo/gateway": "^2.13.3",

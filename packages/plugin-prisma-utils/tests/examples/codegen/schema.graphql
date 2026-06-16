@@ -723,7 +723,7 @@ enum OrderBy {
 type Post {
   author: User
   categories: [Category!]
-  comments(filter: CommentFilter! = {}, orderBy: CommentOrderBy! = {id: Asc}): [Comment!]
+  comments(filter: CommentFilter! = {  }, orderBy: CommentOrderBy! = { id: Asc }): [Comment!]
   content: String
   id: ID
   published: Boolean
@@ -1192,7 +1192,7 @@ input ProfileUpdateWithoutUser {
 
 type Query {
   user(where: UserUniqueFilter!): User
-  users(filter: UserFilter! = {}, orderBy: UserOrderBy! = {id: Asc}): [User!]
+  users(filter: UserFilter! = {  }, orderBy: UserOrderBy! = { id: Asc }): [User!]
 }
 
 input StringFilter {
@@ -1253,7 +1253,7 @@ type User {
   email: String
   id: ID
   name: String
-  posts(filter: PostFilter! = {}, orderBy: PostOrderBy! = {id: Asc}): [Post!]
+  posts(filter: PostFilter! = {  }, orderBy: PostOrderBy! = { id: Asc }): [Post!]
   profile: Profile
 }
 
