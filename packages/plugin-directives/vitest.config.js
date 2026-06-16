@@ -25,6 +25,7 @@ export default defineConfig({
     ],
     typecheck: {
       enabled: true,
+      checker: 'tsgo',
       tsconfig: 'tsconfig.type.json',
     },
   },

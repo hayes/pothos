@@ -13,7 +13,7 @@
     "generate": "prisma generate",
     "seed": "prisma migrate reset -f",
     "start": "node src/server.ts",
-    "type": "tsc --noEmit"
+    "type": "tsgo --noEmit"
   },
   "prisma": {
     "seed": "node prisma/seed.ts"

@@ -38,12 +38,12 @@
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.24",
     "@types/node": "^25.6.0",
-    "@typescript/native-preview": "npm:@typescript/native-preview@beta",
-    "typescript": "npm:@typescript/typescript6@^6.0.0",
+    "@typescript/native-preview": "npm:@typescript/native-preview@7.0.0-dev.20260616.1",
     "graphql": "^17.0.1",
     "pkg-pr-new": "^0.0.66",
     "tsx": "^4.21.0",
     "turbo": "^2.9.6",
+    "typescript": "npm:@typescript/typescript6@^6.0.0",
     "vitest": "^4.1.4"
   },
   "engines": {
