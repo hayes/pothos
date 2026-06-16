@@ -49,3 +49,10 @@ test-results/
 !website/public/**/*.png
 
 CLAUDE.md
+
+# review-docs skill: feedback collected via the docs-site overlay
+.claude/review-feedback.json
+
+# Claude Code local runtime artifacts
+.claude/scheduled_tasks.lock
+.claude/worktrees/

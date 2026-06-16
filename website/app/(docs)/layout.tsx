@@ -9,6 +9,9 @@ import { Header } from '@/components/marketing/Header';
  * DocsPage scaffolding (the MDX catch-all) wrap themselves in
  * DocsLayout; pages that don't (this overview, sponsors, etc.) get
  * the full column width without fumadocs's article grid.
+ *
+ * The review overlay is mounted at the root layout so it covers every
+ * route — see `app/layout.tsx`.
  */
 export default function DocsLayoutWrapper({ children }: { children: ReactNode }) {
   return (

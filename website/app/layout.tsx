@@ -2,6 +2,7 @@ import './global.css';
 import { Fraunces, Inter_Tight, JetBrains_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Providers } from '../components/Providers';
+import { ReviewProviderDevOnly } from '@/review-plugin/src/client';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -47,6 +48,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <Providers>{children}</Providers>
+        {/* Mounted at the root so the overlay covers every route — docs,
+            playground, plugins, theme-editor — not just the docs column.
+            `contentSelector="body"` lets reviewers comment on sidebar items,
+            header chrome, playground panels, anything. The provider itself
+            excludes its own UI from capture via the `rp-*` class checks.
+            In production this resolves to a no-op component (see
+            review-plugin/src/client/index.ts). */}
+        <ReviewProviderDevOnly contentSelector="body" />
       </body>
     </html>
   );
