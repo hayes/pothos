@@ -1,9 +1,5 @@
-import {
-  type ExecutionArgs,
-  type ExecutionResult,
-  execute as stableExecute,
-  versionInfo,
-} from 'graphql';
+import type { ExecutionArgs, ExecutionResult } from 'graphql';
+import * as graphql from 'graphql';
 
 // graphql 17 split incremental delivery (`@defer`/`@stream`) out of the stable `execute`, which now
 // throws on any schema that *declares* those directives — even for operations that don't use them.
@@ -13,20 +9,21 @@ import {
 //
 // On 16 there is nothing to do: `execute` ignores `@defer`/`@stream` and returns a complete result.
 export async function execute(args: ExecutionArgs): Promise<ExecutionResult> {
-  if (versionInfo.major < 17) {
-    return stableExecute(args) as Promise<ExecutionResult>;
+  if (graphql.versionInfo.major < 17) {
+    return graphql.execute(args);
   }
 
-  // `experimentalExecuteIncrementally` only exists on graphql 17; load it off the namespace so the
-  // module still resolves on 16 (where the named export is absent), and cast through `unknown`
-  // since graphql 16's types don't declare it.
-  const graphql = (await import('graphql')) as unknown as {
+  // `experimentalExecuteIncrementally` only exists on graphql 17. Read it off the statically imported
+  // namespace (the same module instance the rest of the suite resolves — importing graphql
+  // dynamically risks loading a second instance in the CJS build and reintroducing cross-realm
+  // errors) and cast through `unknown` since graphql 16's types don't declare it.
+  const { experimentalExecuteIncrementally } = graphql as unknown as {
     experimentalExecuteIncrementally: (
       args: ExecutionArgs,
     ) => Promise<ExecutionResult | Incrementalish>;
   };
 
-  const result = await graphql.experimentalExecuteIncrementally(args);
+  const result = await experimentalExecuteIncrementally(args);
 
   if (!isIncremental(result)) {
     return result as ExecutionResult;
