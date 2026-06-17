@@ -18,3 +18,9 @@ now throws on any schema that declares those directives. `@pothos/test-utils` ga
 `execute` helper that routes through `experimentalExecuteIncrementally` on 17 and collapses the
 incremental payloads back into a single result, so defer/stream-aware query planning in the prisma
 and drizzle plugins is validated identically on both majors.
+
+`scalarType` now accepts graphql 17's modern coercion hooks — `coerceOutputValue`, `coerceInputValue`,
+`coerceInputLiteral`, and `valueToLiteral` — alongside the existing `serialize`/`parseValue`/`parseLiteral`.
+These are consulted only on graphql 17+ (graphql 16 continues to use `serialize`/`parseValue`/`parseLiteral`);
+per graphql's constructor, `coerceInputLiteral` must be paired with `coerceInputValue`. `serialize` is
+now optional when `coerceOutputValue` is provided instead (one of the two is required for output).

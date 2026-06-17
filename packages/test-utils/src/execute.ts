@@ -48,9 +48,15 @@ interface IncrementalPayload {
   errors?: readonly unknown[];
 }
 
+interface CompletedResult {
+  id: string;
+  errors?: readonly unknown[];
+}
+
 interface SubsequentResult {
   pending?: readonly PendingResult[];
   incremental?: readonly IncrementalPayload[];
+  completed?: readonly CompletedResult[];
   hasNext: boolean;
 }
 
@@ -66,8 +72,16 @@ function isIncremental(result: unknown): result is Incrementalish {
 // Reassemble graphql 17's incremental delivery stream into a single complete ExecutionResult.
 // Each `pending` entry maps an `id` to the path its later payloads attach to; defer payloads carry
 // `data` to deep-merge at that path, stream payloads carry `items` to append to the list there.
+// A deferred/streamed group whose resolver throws reports its error via `completed[].errors` (not
+// `incremental[].errors`), so those are collected too — otherwise a failing fragment would produce
+// a false-passing `{ data }` result instead of `{ data, errors }`.
 async function collectIncremental(result: Incrementalish): Promise<ExecutionResult> {
-  const data = (result.initialResult.data ?? {}) as Record<string, unknown>;
+  // Preserve a `null` root (a non-null field error propagating to the root) rather than coercing it
+  // to `{}`, so the collapsed result matches what graphql 16's `execute` returns.
+  const data = (result.initialResult.data === undefined ? {} : result.initialResult.data) as Record<
+    string,
+    unknown
+  > | null;
   const errors = [...((result.initialResult.errors ?? []) as unknown[])];
   const pathById = new Map<string, ReadonlyArray<string | number>>();
 
@@ -81,6 +95,12 @@ async function collectIncremental(result: Incrementalish): Promise<ExecutionResu
 
   for await (const chunk of result.subsequentResults) {
     registerPending(chunk.pending);
+
+    for (const entry of chunk.completed ?? []) {
+      if (entry.errors) {
+        errors.push(...entry.errors);
+      }
+    }
 
     for (const payload of chunk.incremental ?? []) {
       const basePath = pathById.get(payload.id) ?? [];
