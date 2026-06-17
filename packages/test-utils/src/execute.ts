@@ -45,17 +45,17 @@ interface IncrementalPayload {
   subPath?: ReadonlyArray<string | number>;
   data?: Record<string, unknown>;
   items?: unknown[];
-  errors?: ReadonlyArray<unknown>;
+  errors?: readonly unknown[];
 }
 
 interface SubsequentResult {
-  pending?: ReadonlyArray<PendingResult>;
-  incremental?: ReadonlyArray<IncrementalPayload>;
+  pending?: readonly PendingResult[];
+  incremental?: readonly IncrementalPayload[];
   hasNext: boolean;
 }
 
 interface Incrementalish {
-  initialResult: ExecutionResult & { pending?: ReadonlyArray<PendingResult> };
+  initialResult: ExecutionResult & { pending?: readonly PendingResult[] };
   subsequentResults: AsyncGenerator<SubsequentResult, void, void>;
 }
 
@@ -71,7 +71,7 @@ async function collectIncremental(result: Incrementalish): Promise<ExecutionResu
   const errors = [...((result.initialResult.errors ?? []) as unknown[])];
   const pathById = new Map<string, ReadonlyArray<string | number>>();
 
-  const registerPending = (pending?: ReadonlyArray<PendingResult>) => {
+  const registerPending = (pending?: readonly PendingResult[]) => {
     for (const entry of pending ?? []) {
       pathById.set(entry.id, entry.path);
     }
