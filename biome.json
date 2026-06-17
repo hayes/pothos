@@ -19,7 +19,8 @@
       "!**/.vscode/**/*",
       "!**/generated.ts",
       "!**/codegen/schema/prisma-inputs.ts",
-      "!**/schema.graphql"
+      "!**/schema.graphql",
+      "!**/graphql-env.d.ts"
     ]
   },
   "formatter": {
