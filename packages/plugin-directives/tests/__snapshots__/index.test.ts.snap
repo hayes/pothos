@@ -40,7 +40,7 @@ type Obj implements IF {
 type Query {
   cacheControlPrivate: String
   cacheControlPublic: String
-  test(arg1: String, myInput: MyInput, myOtherInput: MyOtherInput = {}): String
+  test(arg1: String, myInput: MyInput, myOtherInput: MyOtherInput = {  }): String
 }
 
 union UN = Obj"
@@ -90,7 +90,7 @@ type Obj implements IF @o(foo: 123) {
 type Query @o(foo: 123) {
   cacheControlPrivate: String @cacheControl(scope: "PRIVATE", maxAge: 100, inheritMaxAge: true)
   cacheControlPublic: String @cacheControl(scope: "PUBLIC", maxAge: 100, inheritMaxAge: true)
-  test(arg1: String @a(foo: 123), myInput: MyInput, myOtherInput: MyOtherInput = {}): String @f(foo: 123) @rateLimit(max: 1, window: "5s", message: "Too many requests, please try again in 5 seconds.")
+  test(arg1: String @a(foo: 123), myInput: MyInput, myOtherInput: MyOtherInput = {  }): String @f(foo: 123) @rateLimit(max: 1, window: "5s", message: "Too many requests, please try again in 5 seconds.")
 }
 
 union UN @u(foo: 123) = Obj"

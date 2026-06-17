@@ -1,6 +1,6 @@
 import { useQuery } from '@apollo/client/react';
+import { graphql } from '../graphql/tada';
 import styles from '../styles/Home.module.css';
-import { graphql } from './__generated__';
 
 export const postsQuery = graphql(`
   query loadPosts {

@@ -54,7 +54,7 @@
     "@pothos/core": "*",
     "@pothos/plugin-prisma": "*",
     "@prisma/client": "*",
-    "graphql": "^16.10.0"
+    "graphql": "^16.10.0 || ^17.0.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",

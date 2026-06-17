@@ -45,13 +45,13 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": "^16.10.0"
+    "graphql": "^16.10.0 || ^17.0.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@standard-schema/spec": "1.1.0",
-    "graphql": "^16.13.2",
+    "graphql": "^17.0.1",
     "graphql-tag": "^2.12.6",
     "zod": "^4.3.6"
   },

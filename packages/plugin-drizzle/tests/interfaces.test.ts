@@ -1,4 +1,4 @@
-import { execute } from 'graphql';
+import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
 import { createContext } from './example/context';
 import { clearDrizzleLogs, drizzleLogs } from './example/db';

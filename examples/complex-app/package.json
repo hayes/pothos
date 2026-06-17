@@ -14,8 +14,7 @@
     "schema": "node scripts/build-schema.ts",
     "seed": "prisma migrate reset -f",
     "start": "node src/server.ts",
-    "type": "tsc --noEmit",
-    "codegen": "graphql-codegen --config codegen.ts"
+    "type": "tsgo --noEmit"
   },
   "prisma": {
     "seed": "node prisma/seed.ts"
@@ -45,10 +44,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "6.3.0",
-    "@graphql-codegen/client-preset": "5.3.0",
-    "@graphql-codegen/introspection": "5.0.2",
-    "@graphql-codegen/schema-ast": "^5.0.2",
     "@types/node": "^25.6.0",
     "typescript": "^6.0.2"
   }
