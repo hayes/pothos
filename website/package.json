@@ -3,17 +3,18 @@
   "private": true,
   "scripts": {
     "dev": "pnpm run bundle-types && pnpm run build-examples && next dev",
-    "build": "pnpm run type",
+    "build": "tsc --noEmit",
     "next-build": "next build",
     "build-ci": "pnpm turbo run build && pnpm run bundle-types && pnpm run build-examples && pnpm run type && next build",
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
     "build-examples": "tsx scripts/build-playground-examples.ts",
-    "type": "pnpm run bundle-types && pnpm run build-examples && tsc --noEmit",
+    "type": "tsc --noEmit",
     "test": "pnpm run test:examples && pnpm run test:docs",
     "test:examples": "tsx scripts/test-playground-examples.ts",
     "test:docs": "vitest run tests/playground-docs-validation.test.ts",
-    "postinstall": "fumadocs-mdx"
+    "postinstall": "fumadocs-mdx",
+    "generate": "pnpm run bundle-types && pnpm run build-examples"
   },
   "engines": {
     "pnpm": ">=9.0.0"
