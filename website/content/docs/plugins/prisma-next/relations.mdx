@@ -114,33 +114,41 @@ one field touches the relation.
 
 ## Counts, aggregates, custom mappings
 
-Earlier versions of this plugin had `t.relationCount`, `t.relationAggregate`,
-and `t.relatedField` sugars. The current API is direct
-`t.field({ select, resolve })` with a function-form `select` — same
-machinery, fewer methods to remember:
+For the common cases — counting a relation or reducing it to a scalar —
+use the `t.relationCount` and `t.relationAggregate` sugars. Both compile
+to a function-form `select` (the lower-level primitive shown further
+down), so the SQL path and `where` refinement are identical; they just
+save you the boilerplate:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    // Plain count. The inner key (`posts`) names the combine slot
-    // and the plugin's type inference surfaces it as `parent.posts:
-    // number` — no cast needed in the resolver.
-    postCount: t.field({
-      type: 'Int',
-      select: { posts: (sub) => ({ posts: sub.count() }) },
-      resolve: (parent) => parent.posts,
+    // Plain count → non-nullable `Int`.
+    postCount: t.relationCount('posts'),
+    // Filtered count. `where` takes a literal…
+    publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
+    // …or an accessor callback with args in scope.
+    postCountByFlag: t.relationCount('posts', {
+      args: { flag: t.arg.int({ required: true }) },
+      where: (p, args) => p.published.eq(args.flag),
     }),
-    // Filtered count.
-    publishedPostCount: t.field({
-      type: 'Int',
-      select: {
-        posts: (sub) => ({
-          posts: sub.where((p) => p.published.eq(1)).count(),
-        }),
-      },
-      resolve: (parent) => parent.posts,
-    }),
+    // sum / avg / min / max take a numeric `field`. These reduce over an
+    // empty set to NULL, so they're exposed nullable by default; `count`
+    // stays non-nullable.
+    totalViews: t.relationAggregate('posts', { op: 'sum', field: 'views' }),
+    maxViews: t.relationAggregate('posts', { op: 'max', field: 'views' }),
+  }),
+});
+```
+
+When you need something the sugars don't cover — multiple aggregate
+slots in one combine, or a custom mapping over the loaded rows — drop to
+the function-form `select` directly:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
     // Custom mapping over loaded rows. The `posts: true` form widens
     // `parent.posts` to the loaded row array.
     firstPostTitle: t.field({
@@ -149,11 +157,19 @@ builder.prismaObject('User', {
       select: { posts: true },
       resolve: (parent) => parent.posts[0]?.title ?? null,
     }),
+    // Multiple reducers in one combine slot.
+    postStats: t.field({
+      type: 'String',
+      select: {
+        posts: (sub) => ({ total: sub.count(), views: sub.sum('views') }),
+      },
+      resolve: (parent) => `${parent.posts.total} posts / ${parent.posts.views} views`,
+    }),
   }),
 });
 ```
 
-The function form's inner keys (`{ posts: sub.count() }` above) land on
+The function form's inner keys (`{ total: sub.count() }` above) land on
 the row at namespaced slots; the plugin's per-field overlay surfaces them
 as flat keys on the resolver's parent, and `ShapeFromSelect` widens the
 inferred parent shape accordingly so resolvers stay type-safe without
@@ -161,43 +177,17 @@ manual casts.
 
 ## Many-to-many
 
-prisma-next's authoring DSL has `rel.manyToMany({ through, from, to })`
-and the contract serializer writes those relations into the emitted
-contract — but prisma-next's orm-client **doesn't yet implement
-junction-table reads**. Upstream PSL docs are explicit about this:
-
-> Implicit Prisma ORM many-to-many remains unsupported (list
-> navigation on both sides without explicit join model). Represent
-> many-to-many with an explicit join model (two foreign keys).
->
-> — `prisma-next/packages/2-sql/2-authoring/contract-psl/README.md`
-
-There's no read code path that honors the `through` block in the
-contract; `.include('tags')` on an M:N relation flattens to a
-single-column FK join that points at a column on the wrong table.
-(Mirror situation on writes: `mutation-executor.ts:343-344`
-explicitly throws on M:N nested mutations.) The plugin pins this
-empirically in `tests/prisma-next-m-n-upstream-pin.test.ts` — the
-day upstream fixes it, that canary fails and the plugin's M:N
-rejection can be replaced with a working implementation.
-
-The plugin rejects M:N relations at schema build with a pointer to
-this workaround:
+As of prisma-next 0.14.0, N:M relations authored with
+`rel.manyToMany({ through, from, to })` are **supported directly** —
+expose them with `t.relation` like any other relation:
 
 ```ts
-// Model the junction explicitly as a regular contract model with two
-// hops:  User --1:N--> UserTag <--N:1-- Tag
-
-builder.prismaObject('User', {
+builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    tagLinks: t.relation('userTags'),
-  }),
-});
-
-builder.prismaObject('UserTag', {
-  fields: (t) => ({
-    tag: t.relation('tag'),
+    // N:M relation. The contract carries a `through` junction block;
+    // prisma-next's orm-client resolves the junction join internally.
+    tags: t.relation('tags'),
   }),
 });
 
@@ -209,15 +199,24 @@ builder.prismaObject('Tag', {
 });
 ```
 
-A query like `{ users { tagLinks { tag { label } } } }` resolves
-through the normal `t.relation` machinery — no special M:N handling
-needed. (Depth-2 includes are subject to prisma-next's planner
-fallback noted above.)
+A query like `{ posts { tags { label } } }` resolves through the
+normal `t.relation` machinery — no special handling and no junction
+model in your schema. Under the hood, prisma-next emits the
+junction query from the contract's `through` block; the plugin just
+detects the junction (the relation meta carries a `through`
+descriptor) and lets `.include('tags')` flow through. This is pinned
+end-to-end against real SQLite in `tests/junction-runtime.test.ts`,
+with an upstream canary in `tests/prisma-next-m-n-upstream-pin.test.ts`
+that fails loudly if a future prisma-next changes the junction
+contract shape.
 
-When upstream orm-client lands junction-table reads, the plugin will
-flip M:N from "rejected" to "auto-include-through-junction" without
-changes to the user-facing API. Until then, the rejection error
-quotes the workaround.
+If you'd rather expose the join rows themselves (e.g. the junction
+carries its own columns like `addedAt`), model the junction as a
+regular contract model with two hops —
+`Post --1:N--> PostTag <--N:1-- Tag` — and walk it explicitly with
+`t.relation('postTags')` then `t.relation('tag')`. Both styles work;
+pick the implicit `tags` relation when you only need the far side,
+the explicit junction model when you need its attributes.
 
 ## Reaching a relation without a prismaField
 

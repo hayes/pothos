@@ -6,8 +6,11 @@ description: A Pothos plugin for the new prisma-next ORM client
 import { Callout } from 'fumadocs-ui/components/callout';
 
 <Callout type="warn">
-  Experimental. `prisma-next` isn't on npm yet. The plugin is `private: true`
-  in the Pothos workspace and tracks prisma-next from a sibling clone.
+  Experimental. This plugin tracks prisma-next `^0.14.0` (the
+  `@prisma-next/*` client packages, published on npm). Both prisma-next and
+  this plugin are pre-1.0 and their APIs may still change. Pending a stable
+  npm release, the plugin is available as a PR preview via
+  [pkg.pr.new](https://pkg.pr.new).
 </Callout>
 
 This plugin provides tighter integration with [prisma-next](https://github.com/prisma/prisma-next),

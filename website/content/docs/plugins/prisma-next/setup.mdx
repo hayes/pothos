@@ -9,6 +9,20 @@ import { Callout } from 'fumadocs-ui/components/callout';
 npm install --save @pothos/plugin-prisma-next
 ```
 
+The plugin lists the prisma-next client as a peer dependency, so install the
+`@prisma-next/*` packages too (and a runtime adapter for your database — e.g.
+`@prisma-next/sqlite`). Pin them to the same `^0.14.0` range the plugin
+targets:
+
+```package-install
+npm install --save @prisma-next/contract @prisma-next/sql-contract @prisma-next/sql-orm-client @prisma-next/sqlite
+```
+
+<Callout type="info">
+  `@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional peers —
+  install them only if you use Relay connections / `prismaFieldWithInput`.
+</Callout>
+
 ## Setup
 
 The plugin needs your prisma-next contract at type-check time and at runtime.

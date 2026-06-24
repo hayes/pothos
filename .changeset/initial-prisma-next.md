@@ -16,8 +16,14 @@ What ships:
 - `builder.prismaObject` / `prismaInterface` / `prismaNode` — register contract
   models as GraphQL types, with full inference from `Types['PrismaNextContract']`.
 - `t.exposeID/String/Int/Float/Boolean[List]` — typed against the model's row.
-- `t.relation` / `t.relationCount` — autocompleted relation names, cardinality-
-  aware nullability, typed `query` refinement callback.
+- `t.relation` — autocompleted relation names, cardinality-aware nullability,
+  typed `query` refinement callback. Resolves N:M (junction) relations
+  directly: prisma-next 0.14.0 emits the junction join internally from the
+  contract's `through` block, so no explicit join model is needed in the schema.
+- `t.relationCount` / `t.relationAggregate` — expose a relation's row count or a
+  `sum`/`avg`/`min`/`max` reducer as a numeric field, with an optional `where`
+  refine (literal or accessor callback with args in scope). Compile to the same
+  function-form `select` primitive (`sub.count()` / `sub.sum('field')` / …).
 - `t.prismaField` — entry-point root field; the resolver receives an `apply`
   callable bound to the resolve site (`<C>(c: C) => C`). Pipe your own
   Collection (`ctx.db.orm.User`, …) through `apply(...)` to get the
