@@ -176,25 +176,46 @@ export function applyToCollection<C extends MapperCollection>(
   params: CursorPaginationParams,
 ): C {
   const { cols, before, after, limit, inverted } = params;
-  let collection = baseCollection;
 
-  if (after) {
-    collection = collection.where(
-      buildLexicographicPredicate(cols, decodeCursor(after), 'gt'),
-    ) as C;
-  }
-  if (before) {
-    collection = collection.where(
-      buildLexicographicPredicate(cols, decodeCursor(before), 'lt'),
-    ) as C;
-  }
-
+  // orm-client's native `cursor()` seeks strictly past one boundary in
+  // the *active orderBy direction*: `>` in asc, `<` in desc. The plugin
+  // applies orderBy asc when forward and desc when `inverted`. So a
+  // single bound maps to native `cursor()` only when its required
+  // predicate direction matches the active order direction:
+  //   - `after` → `gt`  → matches asc  → use native when NOT inverted
+  //   - `before` → `lt` → matches desc → use native when inverted
+  // The mismatched single-bound cases (`after`+inverted from
+  // `last+after`, `before`+!inverted from `first+before`) and the
+  // dual-bound case (`before` AND `after`) keep the hand-rolled
+  // lexicographic predicate — native `cursor()` can't express them.
   const orderSelectors = cols.map(
     (col) => (c: Record<string, ComparableColumn>) => (inverted ? c[col]!.desc() : c[col]!.asc()),
   );
-  collection = collection.orderBy(
-    orderSelectors.length === 1 ? orderSelectors[0]! : orderSelectors,
-  ) as C;
+  const orderByArg = orderSelectors.length === 1 ? orderSelectors[0]! : orderSelectors;
+
+  const dualBound = !!before && !!after;
+  const nativeAfter = !!after && !before && !inverted;
+  const nativeBefore = !!before && !after && inverted;
+
+  if (!dualBound && (nativeAfter || nativeBefore)) {
+    // Native keyset path. orderBy MUST precede cursor() (the orm's
+    // `hasOrderBy` type gate). The decoded boundary is the same column→
+    // value map the hand-rolled predicate consumes; native builds the
+    // strict seek predicate internally.
+    const boundary = decodeCursor(nativeAfter ? after! : before!);
+    return baseCollection.orderBy(orderByArg).cursor(boundary).take(limit) as C;
+  }
+
+  // Hand-rolled lexicographic predicate path: dual bounds, or a single
+  // bound whose direction doesn't match the active order.
+  let collection: MapperCollection = baseCollection;
+  if (after) {
+    collection = collection.where(buildLexicographicPredicate(cols, decodeCursor(after), 'gt'));
+  }
+  if (before) {
+    collection = collection.where(buildLexicographicPredicate(cols, decodeCursor(before), 'lt'));
+  }
+  collection = collection.orderBy(orderByArg);
   return collection.take(limit) as C;
 }
 

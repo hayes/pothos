@@ -307,27 +307,148 @@ interface PrismaNextTypes {
   paths: Record<string, string[]>;
 }
 
+// The `@prisma-next/driver-sqlite` npm build targets Node's
+// `node:sqlite` and ships no `/seed` export, so at runtime the
+// playground swaps in the hand-written sql.js shim (aliased in
+// `next.config.mjs`). Feed Monaco the SHIM's `.d.mts` declarations for
+// driver-sqlite so the editor sees the same surface the runtime uses
+// (including `/seed`). This slug is read from `lib/playground/...`
+// rather than `node_modules`.
+const DRIVER_SQLITE_SHIM_DIR = path.join(__dirname, '../lib/playground/prisma-next/driver-sqlite');
+
+// Build-tooling / CLI packages that are node-only and never imported
+// by playground user code or the contract type chain. Skipped so the
+// Monaco bundle doesn't carry psl-parser / emitter / migration-tools
+// type trees (and the deps they pull in). Mirrors the old
+// `vendor-prisma-next.ts` SKIP set.
+const PRISMA_NEXT_TYPE_SKIP = new Set<string>([
+  '@prisma-next/cli',
+  '@prisma-next/cli-telemetry',
+  '@prisma-next/config',
+  '@prisma-next/emitter',
+  '@prisma-next/migration-tools',
+  '@prisma-next/psl-parser',
+  '@prisma-next/psl-printer',
+  '@prisma-next/sql-contract-emitter',
+  '@prisma-next/sql-contract-psl',
+  '@prisma-next/sql-contract-ts',
+  '@prisma-next/contract-authoring',
+]);
+
 /**
- * Walk the vendored @prisma-next/* dist directories. For each
- * package's `exports`, emit:
- *  - the `.d.mts` file at its node_modules path
- *  - any internal chunk files in the same dist directory
- *  - the package.json (for future exports-aware resolvers)
- *  - a `paths` entry mapping the subpath specifier to the .d.mts
+ * Resolve the on-disk directory for an installed `@prisma-next/<pkg>`
+ * package. Prefers the website's own `node_modules/@prisma-next/<pkg>`
+ * symlink, falls back to the monorepo root, then to the pnpm content-
+ * addressed store (where transitive deps live without a top-level link).
+ * Returns null if not installed.
+ */
+function resolvePrismaNextPackageDir(pkgName: string): string | null {
+  for (const base of [
+    path.join(__dirname, '../node_modules', pkgName),
+    path.join(__dirname, '../../node_modules', pkgName),
+  ]) {
+    if (fs.existsSync(path.join(base, 'package.json'))) {
+      return fs.realpathSync(base);
+    }
+  }
+  const slug = pkgName.replace('@prisma-next/', '');
+  const storeRoot = path.join(__dirname, '../../node_modules/.pnpm');
+  if (fs.existsSync(storeRoot)) {
+    for (const entry of fs.readdirSync(storeRoot)) {
+      if (!entry.startsWith(`@prisma-next+${slug}@`)) {
+        continue;
+      }
+      const candidate = path.join(storeRoot, entry, 'node_modules', pkgName);
+      if (fs.existsSync(path.join(candidate, 'package.json'))) {
+        return fs.realpathSync(candidate);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * List every installed `@prisma-next/*` package, scanning the website's
+ * own `node_modules/@prisma-next`, the monorepo root, AND the pnpm store
+ * (so transitive type-only deps like `utils`, `target-sqlite`, `ids`
+ * that aren't direct deps still get their `.d.mts` bundled — the
+ * contract/codec type chain reaches through them). Build-tooling
+ * packages in `PRISMA_NEXT_TYPE_SKIP` are excluded.
+ */
+function listInstalledPrismaNextPackages(): string[] {
+  const names = new Set<string>();
+  for (const base of [
+    path.join(__dirname, '../node_modules/@prisma-next'),
+    path.join(__dirname, '../../node_modules/@prisma-next'),
+  ]) {
+    if (!fs.existsSync(base)) {
+      continue;
+    }
+    for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+      if (entry.isDirectory() || entry.isSymbolicLink()) {
+        names.add(`@prisma-next/${entry.name}`);
+      }
+    }
+  }
+  const storeRoot = path.join(__dirname, '../../node_modules/.pnpm');
+  if (fs.existsSync(storeRoot)) {
+    for (const entry of fs.readdirSync(storeRoot)) {
+      const m = /^@prisma-next\+([a-z0-9-]+)@/.exec(entry);
+      if (m) {
+        names.add(`@prisma-next/${m[1]}`);
+      }
+    }
+  }
+  return [...names].filter((n) => !PRISMA_NEXT_TYPE_SKIP.has(n)).sort();
+}
+
+/**
+ * Read the @prisma-next/* type declarations from the installed npm
+ * packages (0.14.0). For each package's `exports`, emit:
+ *  - every `.d.mts` file under `dist/`, renamed to `.d.ts`
+ *  - the package.json (for exports-aware resolvers)
+ *  - a `paths` entry mapping each subpath specifier to its `.d.ts`
  *
- * The `.mjs` files are already served by the workspace at runtime;
- * this only feeds Monaco the type-side, which it can't see otherwise.
+ * The `.mjs` runtime is bundled by Next/Turbopack; this only feeds
+ * Monaco the type-side, which it can't see otherwise.
+ *
+ * `@prisma-next/driver-sqlite` is special-cased: its types come from
+ * the sql.js shim under `lib/playground/...`, not the npm package,
+ * because that shim is what the runtime actually executes.
  */
 function readPrismaNextTypes(): PrismaNextTypes {
-  const vendorRoot = path.join(__dirname, '../vendor/prisma-next');
-  if (!fs.existsSync(vendorRoot)) {
-    return { files: [], paths: {} };
-  }
   const files: RawTypeFile[] = [];
   const paths: Record<string, string[]> = {};
-  for (const pkgSlug of fs.readdirSync(vendorRoot)) {
-    const pkgDir = path.join(vendorRoot, pkgSlug);
-    if (!fs.statSync(pkgDir).isDirectory()) {
+
+  const emitDtsTree = (rootDir: string, pkgName: string, relBase: string) => {
+    const walk = (dir: string, rel: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) {
+          walk(fullPath, relPath);
+          continue;
+        }
+        if (!entry.name.endsWith('.d.mts') || entry.name.endsWith('.d.mts.map')) {
+          continue;
+        }
+        const renamed = relPath.replace(/\.d\.mts$/, '.d.ts');
+        files.push({
+          filePath: `file:///node_modules/${pkgName}/${relBase}/${renamed}`,
+          content: rewriteRelativeImports(fs.readFileSync(fullPath, 'utf8')),
+        });
+      }
+    };
+    walk(rootDir, '');
+  };
+
+  for (const pkgName of listInstalledPrismaNextPackages()) {
+    // driver-sqlite types come from the shim — handled below.
+    if (pkgName === '@prisma-next/driver-sqlite') {
+      continue;
+    }
+    const pkgDir = resolvePrismaNextPackageDir(pkgName);
+    if (!pkgDir) {
       continue;
     }
     const pkgJsonPath = path.join(pkgDir, 'package.json');
@@ -335,46 +456,23 @@ function readPrismaNextTypes(): PrismaNextTypes {
       continue;
     }
     const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
-    const pkgName: string = pkgJson.name;
-    if (typeof pkgName !== 'string' || !pkgName.startsWith('@prisma-next/')) {
-      continue;
-    }
 
     files.push({
       filePath: `file:///node_modules/${pkgName}/package.json`,
       content: fs.readFileSync(pkgJsonPath, 'utf8'),
     });
 
-    // Emit each .d.mts file as .d.ts at the same path layout and strip
+    // Emit each .d.mts file as .d.ts at the same dist layout and strip
     // `.mjs` extensions from relative imports inside. Monaco's TS
-    // classic resolver doesn't try `.d.mts` extensions when resolving
-    // a relative import like `./codecs-XYZ.mjs`, so files renamed to
-    // `.d.ts` with extension-less imports resolve through the same
-    // virtual filesystem on every TS resolution mode. Recurses into
-    // dist subdirectories (e.g. `dist/exports/`) — without that, paths
-    // entries point at files that aren't in extraLibs, so generic
-    // types like `CodecDefBuilder` silently resolve to `any`.
+    // classic resolver doesn't try `.d.mts` extensions for a relative
+    // import like `./codecs-XYZ.mjs`, so files renamed to `.d.ts` with
+    // extension-less imports resolve through the same virtual filesystem
+    // on every TS resolution mode. Recurses into dist subdirectories —
+    // without that, paths entries point at files not in extraLibs and
+    // generic types silently resolve to `any`.
     const distDir = path.join(pkgDir, 'dist');
     if (fs.existsSync(distDir)) {
-      const walk = (dir: string, rel: string) => {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-          const fullPath = path.join(dir, entry.name);
-          const relPath = rel ? `${rel}/${entry.name}` : entry.name;
-          if (entry.isDirectory()) {
-            walk(fullPath, relPath);
-            continue;
-          }
-          if (!entry.name.endsWith('.d.mts') || entry.name.endsWith('.d.mts.map')) {
-            continue;
-          }
-          const renamed = relPath.replace(/\.d\.mts$/, '.d.ts');
-          files.push({
-            filePath: `file:///node_modules/${pkgName}/dist/${renamed}`,
-            content: rewriteRelativeImports(fs.readFileSync(fullPath, 'utf8')),
-          });
-        }
-      };
-      walk(distDir, '');
+      emitDtsTree(distDir, pkgName, 'dist');
     }
 
     // Generate paths entries from the package's exports field.
@@ -385,33 +483,69 @@ function readPrismaNextTypes(): PrismaNextTypes {
         if (exportKey === './package.json') {
           continue;
         }
-        if (typeof target !== 'string') {
+        // Exports can be a string or a conditions object ({ types, import }).
+        let mjsTarget: string | undefined;
+        if (typeof target === 'string') {
+          mjsTarget = target;
+        } else if (target && typeof target === 'object') {
+          const cond = target as Record<string, unknown>;
+          const pick = cond.types ?? cond.import ?? cond.default;
+          if (typeof pick === 'string') {
+            mjsTarget = pick;
+          }
+        }
+        if (!mjsTarget) {
           continue;
         }
-        const dts = target.replace(/\.mjs$/, '.d.ts').replace(/^\.\//, '');
+        const dts = mjsTarget
+          .replace(/\.d\.mts$/, '.d.ts')
+          .replace(/\.mjs$/, '.d.ts')
+          .replace(/^\.\//, '');
         const subpath = exportKey.replace(/^\.\//, '');
         const specifier = exportKey === '.' ? pkgName : `${pkgName}/${subpath}`;
         paths[specifier] = [`file:///node_modules/${pkgName}/${dts}`];
       }
     }
-
-    // driver-sqlite is hand-written and ships .mjs (runtime) +
-    // .d.mts (types) in src/, no pre-built dist. Apply the same
-    // .d.mts → .d.ts rename + import-extension scrub to its src/.
-    const srcDir = path.join(pkgDir, 'src');
-    if (fs.existsSync(srcDir)) {
-      for (const file of fs.readdirSync(srcDir)) {
-        if (!file.endsWith('.d.mts') && !file.endsWith('.d.ts')) {
-          continue;
-        }
-        const renamed = file.replace(/\.d\.mts$/, '.d.ts');
-        files.push({
-          filePath: `file:///node_modules/${pkgName}/src/${renamed}`,
-          content: rewriteRelativeImports(fs.readFileSync(path.join(srcDir, file), 'utf8')),
-        });
-      }
-    }
   }
+
+  // driver-sqlite: hand-written sql.js shim. Ships `.mjs` (runtime) +
+  // `.d.mts` (types) flat in its directory, no `dist/`. Apply the same
+  // `.d.mts` → `.d.ts` rename + import-extension scrub, and synthesize
+  // package.json + exports-shaped paths so Monaco resolves
+  // `@prisma-next/driver-sqlite/runtime` and `/seed` to the shim.
+  if (fs.existsSync(DRIVER_SQLITE_SHIM_DIR)) {
+    const pkgName = '@prisma-next/driver-sqlite';
+    const shimPkgJson = {
+      name: pkgName,
+      version: '0.14.0',
+      type: 'module',
+      sideEffects: false,
+      exports: {
+        './runtime': './runtime.mjs',
+        './seed': './seed.mjs',
+        './package.json': './package.json',
+      },
+    };
+    files.push({
+      filePath: `file:///node_modules/${pkgName}/package.json`,
+      content: `${JSON.stringify(shimPkgJson, null, 2)}\n`,
+    });
+    for (const file of fs.readdirSync(DRIVER_SQLITE_SHIM_DIR)) {
+      if (!file.endsWith('.d.mts') && !file.endsWith('.d.ts')) {
+        continue;
+      }
+      const renamed = file.replace(/\.d\.mts$/, '.d.ts');
+      files.push({
+        filePath: `file:///node_modules/${pkgName}/${renamed}`,
+        content: rewriteRelativeImports(
+          fs.readFileSync(path.join(DRIVER_SQLITE_SHIM_DIR, file), 'utf8'),
+        ),
+      });
+    }
+    paths[`${pkgName}/runtime`] = [`file:///node_modules/${pkgName}/runtime.d.ts`];
+    paths[`${pkgName}/seed`] = [`file:///node_modules/${pkgName}/seed.d.ts`];
+  }
+
   return { files, paths };
 }
 

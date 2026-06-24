@@ -30,31 +30,57 @@ afterAll(async () => {
 
 // Cursor encode/decode tests moved to `tests/cursors.test.ts`.
 
-describe('schema-build — M:N + duplicate-alias guards', () => {
+describe('schema-build — N:M + duplicate-alias guards', () => {
   // prisma-next's authoring DSL has `rel.manyToMany(...)` which lowers
-  // to `cardinality: 'N:M'` in the emitted contract. The orm-client's
-  // RelationCardinalityTag uses the other spelling `'M:N'`. Neither
-  // spelling has a working junction-table read path in orm-client
-  // yet (see mutation-executor.ts which explicitly throws on M:N
-  // and the absence of any `through` handling in include-strategy /
-  // collection-dispatch). The plugin rejects BOTH spellings at
-  // schema build with a clear pointer to the workaround.
+  // to `cardinality: 'N:M'` in the emitted contract. `'N:M'` is the ONLY
+  // many-to-many spelling in prisma-next 0.14.0 — its
+  // `RelationCardinalityTag` union is `'1:1' | 'N:1' | '1:N' | 'N:M'`;
+  // there is no `'M:N'` tag anywhere in the contract or orm-client.
+  //
+  // As of 0.14.0 the orm-client implements junction reads (`through` /
+  // `IncludeThroughDescriptor`, see tests/prisma-next-m-n-upstream-pin
+  // canary), and the plugin now supports them: an N:M relation is treated
+  // as a to-many relation, its `through` descriptor is carried on the
+  // relation meta, and the walker emits `.include(rel)` like any other
+  // to-many relation (prisma-next resolves the junction join internally).
+  // The full junction flow — schema build, relation meta, and end-to-end
+  // resolution against real sqlite — is exercised in
+  // tests/junction-runtime.test.ts. Below we pin that schema build no
+  // longer rejects N:M.
 
   it.each([
     ['N:M (contract emit spelling)', 'N:M'],
-    ['M:N (orm-client tag spelling)', 'M:N'],
-  ])('throws at schema build for %s', (_label, cardinality) => {
+  ])('builds without throwing for %s', (_label, cardinality) => {
     const stubContract = {
-      models: {
-        Post: {
-          relations: {
-            tags: { cardinality, to: 'Tag', on: { localFields: [] } },
+      domain: {
+        namespaces: {
+          __unbound__: {
+            models: {
+              Post: {
+                relations: {
+                  tags: {
+                    cardinality,
+                    to: { namespace: '__unbound__', model: 'Tag' },
+                    on: { localFields: ['id'], targetFields: ['id'] },
+                    through: {
+                      table: 'post_tag',
+                      namespaceId: '__unbound__',
+                      parentColumns: ['postId'],
+                      childColumns: ['tagId'],
+                      targetColumns: ['id'],
+                    },
+                  },
+                },
+                fields: { id: { nullable: false } },
+                storage: { table: 'post' },
+              },
+              Tag: {
+                relations: {},
+                fields: { id: { nullable: false } },
+                storage: { table: 'tag' },
+              },
+            },
           },
-          fields: { id: { nullable: false } },
-        },
-        Tag: {
-          relations: {},
-          fields: { id: { nullable: false } },
         },
       },
     } as unknown as AnyContract;
@@ -64,57 +90,74 @@ describe('schema-build — M:N + duplicate-alias guards', () => {
       prismaNext: { contract: stubContract },
     });
     builder.prismaObject(
-      'Post' as never,
+      'Tag' as never,
       {
         fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
       } as never,
     );
+    builder.prismaObject(
+      'Post' as never,
+      {
+        fields: (t: never) => ({
+          id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
+          // The N:M relation is now a valid to-many relation.
+          tags: (t as { relation: (n: string) => unknown }).relation('tags'),
+        }),
+      } as never,
+    );
     builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
-    expect(() => builder.toSchema()).toThrow(/is many-to-many/);
-    // Workaround pointer in the error helps users.
-    expect(() => builder.toSchema()).toThrow(/junction as its own contract model/);
+    expect(() => builder.toSchema()).not.toThrow();
   });
 
-  it('the explicit-junction-model workaround pattern builds cleanly', () => {
-    // Pin the documented workaround: model the junction as its own
-    // contract model with two regular 1:N / N:1 hops. Must build
-    // without M:N errors.
+  it('the explicit-junction-model pattern (two 1:N / N:1 hops) still builds cleanly', () => {
+    // The junction-as-its-own-model pattern remains valid alongside
+    // native N:M support: model the junction with two regular 1:N / N:1
+    // hops. Must build without errors.
     const stubContract = {
-      models: {
-        Post: {
-          relations: {
-            postTags: {
-              cardinality: '1:N',
-              to: 'PostTag',
-              on: { localFields: ['id'], targetFields: ['postId'] },
+      domain: {
+        namespaces: {
+          __unbound__: {
+            models: {
+              Post: {
+                relations: {
+                  postTags: {
+                    cardinality: '1:N',
+                    to: { namespace: '__unbound__', model: 'PostTag' },
+                    on: { localFields: ['id'], targetFields: ['postId'] },
+                  },
+                },
+                fields: { id: { nullable: false } },
+                storage: { table: 'post' },
+              },
+              Tag: {
+                relations: {
+                  postTags: {
+                    cardinality: '1:N',
+                    to: { namespace: '__unbound__', model: 'PostTag' },
+                    on: { localFields: ['id'], targetFields: ['tagId'] },
+                  },
+                },
+                fields: { id: { nullable: false }, label: { nullable: false } },
+                storage: { table: 'tag' },
+              },
+              PostTag: {
+                relations: {
+                  post: {
+                    cardinality: 'N:1',
+                    to: { namespace: '__unbound__', model: 'Post' },
+                    on: { localFields: ['postId'], targetFields: ['id'] },
+                  },
+                  tag: {
+                    cardinality: 'N:1',
+                    to: { namespace: '__unbound__', model: 'Tag' },
+                    on: { localFields: ['tagId'], targetFields: ['id'] },
+                  },
+                },
+                fields: { postId: { nullable: false }, tagId: { nullable: false } },
+                storage: { table: 'post_tag' },
+              },
             },
           },
-          fields: { id: { nullable: false } },
-        },
-        Tag: {
-          relations: {
-            postTags: {
-              cardinality: '1:N',
-              to: 'PostTag',
-              on: { localFields: ['id'], targetFields: ['tagId'] },
-            },
-          },
-          fields: { id: { nullable: false }, label: { nullable: false } },
-        },
-        PostTag: {
-          relations: {
-            post: {
-              cardinality: 'N:1',
-              to: 'Post',
-              on: { localFields: ['postId'], targetFields: ['id'] },
-            },
-            tag: {
-              cardinality: 'N:1',
-              to: 'Tag',
-              on: { localFields: ['tagId'], targetFields: ['id'] },
-            },
-          },
-          fields: { postId: { nullable: false }, tagId: { nullable: false } },
         },
       },
     } as unknown as AnyContract;
@@ -295,19 +338,40 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
     expect(ref1).toBe(ref2);
   });
 
-  it('M:N schema-build throw fires even when contract relation has no `on` field', () => {
+  it('N:M relation with no `on` block builds (localFields falls back to empty)', () => {
     const stubContract = {
-      models: {
-        Post: {
-          relations: {
-            // Hand-crafted relation with no `on` block at all — the
-            // M:N rejection must still fire (it checks cardinality
-            // first, before any `on` access).
-            tags: { cardinality: 'N:M', to: 'Tag' },
+      domain: {
+        namespaces: {
+          __unbound__: {
+            models: {
+              Post: {
+                relations: {
+                  // Hand-crafted relation with no `on` block — N:M support
+                  // reads localFields via `'on' in rel`, so a missing `on`
+                  // degrades to empty FK columns rather than crashing.
+                  tags: {
+                    cardinality: 'N:M',
+                    to: { namespace: '__unbound__', model: 'Tag' },
+                    through: {
+                      table: 'post_tag',
+                      namespaceId: '__unbound__',
+                      parentColumns: ['postId'],
+                      childColumns: ['tagId'],
+                      targetColumns: ['id'],
+                    },
+                  },
+                },
+                fields: { id: { nullable: false } },
+                storage: { table: 'post' },
+              },
+              Tag: {
+                relations: {},
+                fields: { id: { nullable: false } },
+                storage: { table: 'tag' },
+              },
+            },
           },
-          fields: { id: { nullable: false } },
         },
-        Tag: { relations: {}, fields: { id: { nullable: false } } },
       },
     } as unknown as AnyContract;
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
@@ -315,13 +379,22 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
       prismaNext: { contract: stubContract },
     });
     builder.prismaObject(
-      'Post' as never,
+      'Tag' as never,
       {
         fields: (t: never) => ({ id: (t as { exposeID: (n: string) => unknown }).exposeID('id') }),
       } as never,
     );
+    builder.prismaObject(
+      'Post' as never,
+      {
+        fields: (t: never) => ({
+          id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
+          tags: (t as { relation: (n: string) => unknown }).relation('tags'),
+        }),
+      } as never,
+    );
     builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
-    expect(() => builder.toSchema()).toThrow(/is many-to-many/);
+    expect(() => builder.toSchema()).not.toThrow();
   });
 
   it('applySelectionToCollection accepts a typeName override', () => {

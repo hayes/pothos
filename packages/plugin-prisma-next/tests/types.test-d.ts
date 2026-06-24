@@ -167,9 +167,40 @@ describe('t.relatedConnection — type-level constraints', () => {
   });
 });
 
-// t.relationCount removed — function-form `t.field({ select })` is the
-// canonical pattern. Cardinality constraint (to-many vs to-one) is no
-// longer enforced at compile time for `.count()` aggregates.
+describe('t.relationCount field helper', () => {
+  it('produces a non-nullable number field', () => {
+    builder.prismaObject('User', {
+      variant: 'RelCountUser',
+      fields: (t) => {
+        const ref = t.relationCount('posts');
+        expectTypeOf(ref.$inferType).toEqualTypeOf<number>();
+        return { id: t.exposeID('id'), count: ref };
+      },
+    });
+  });
+
+  it('accepts a shorthand `where` filter and an accessor-callback `where`', () => {
+    builder.prismaObject('User', {
+      variant: 'RelCountWhereUser',
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        published: t.relationCount('posts', { where: { published: 1 } }),
+        byFlag: t.relationCount('posts', {
+          args: { flag: t.arg.int({ required: true }) },
+          where: (p, args) => p.published.eq(args.flag),
+        }),
+      }),
+    });
+  });
+
+  it('rejects an unknown relation name', () => {
+    builder.prismaObject('User', {
+      variant: 'RelCountBadRel',
+      // @ts-expect-error — `nope` is not a relation on User
+      fields: (t) => ({ x: t.relationCount('nope') }),
+    });
+  });
+});
 
 describe('missing PrismaNextContract augmentation (D7)', () => {
   it('narrows ModelName to a sentinel when no contract is augmented', () => {
@@ -270,9 +301,56 @@ describe('t.prismaField typing — resolver shape', () => {
   });
 });
 
-// t.relationAggregate removed — function-form `t.field({ select })` is
-// the canonical pattern; users write the aggregate primitive directly
-// inside the inner spec (`sub.count()`, `sub.avg(...)`, etc.).
+describe('t.relationAggregate field helper', () => {
+  it('narrows sum/avg/min/max to `number | null`', () => {
+    builder.prismaObject('User', {
+      variant: 'RelAggUser',
+      fields: (t) => {
+        const sum = t.relationAggregate('posts', { op: 'sum', field: 'published' });
+        const avg = t.relationAggregate('posts', { op: 'avg', field: 'published' });
+        expectTypeOf(sum.$inferType).toEqualTypeOf<number | null>();
+        expectTypeOf(avg.$inferType).toEqualTypeOf<number | null>();
+        return { id: t.exposeID('id'), sum, avg };
+      },
+    });
+  });
+
+  it('narrows count to non-nullable `number` and forbids `field`', () => {
+    builder.prismaObject('User', {
+      variant: 'RelAggCountUser',
+      fields: (t) => {
+        const count = t.relationAggregate('posts', { op: 'count' });
+        expectTypeOf(count.$inferType).toEqualTypeOf<number>();
+        return { id: t.exposeID('id'), count };
+      },
+    });
+  });
+
+  it('requires a numeric `field` for sum/avg/min/max', () => {
+    builder.prismaObject('User', {
+      variant: 'RelAggMissingField',
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        // @ts-expect-error — sum requires a `field`
+        broken: t.relationAggregate('posts', { op: 'sum' }),
+      }),
+    });
+  });
+
+  it('rejects a non-numeric column as the aggregate field', () => {
+    builder.prismaObject('User', {
+      variant: 'RelAggBadField',
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        broken: t.relationAggregate('posts', {
+          op: 'sum',
+          // @ts-expect-error — `title` is a text column, not numeric
+          field: 'title',
+        }),
+      }),
+    });
+  });
+});
 
 describe('function-form select — aggregate result narrowing', () => {
   it('narrows count() to `number` (non-nullable)', () => {

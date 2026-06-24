@@ -23,6 +23,8 @@ import type {
   DefaultRelationNullable,
   ModelName,
   PrismaNextRelatedConnectionOptions,
+  PrismaNextRelationAggregateOptions,
+  PrismaNextRelationCountOptions,
   PrismaNextRelationOptions,
   RelatedModel,
   RelationKeys,
@@ -36,6 +38,7 @@ import {
 } from './utils/apply-selection';
 import { rebrandForVariant } from './utils/branding';
 import { compileWhere } from './utils/compile-query';
+import { resolveContractModel } from './utils/contract';
 import { applyCursorPagination, buildConnectionPage, buildPaginationParams } from './utils/cursors';
 import { readPluginOptions, resolveSizeOption } from './utils/options';
 import { getRefFromContractModel } from './utils/refs';
@@ -321,7 +324,7 @@ export class PrismaNextObjectFieldBuilder<
     > & { extensions?: Record<string, unknown> };
     const meta = this.#getRelationMeta(name as string);
     const targetRef =
-      opts.type ?? (getRefFromContractModel(meta.to as never, this.builder) as never);
+      opts.type ?? (getRefFromContractModel(meta.to.model as never, this.builder) as never);
     const isToMany = isToManyCardinality(meta.cardinality);
     const defaultNullable = isToMany ? false : this.#isToOneRelationNullable(meta);
 
@@ -381,6 +384,104 @@ export class PrismaNextObjectFieldBuilder<
       },
     };
     return this.field(fieldOpts as never) as FieldRef<Types, unknown>;
+  }
+
+  /**
+   * Expose the row count of a to-many relation as an `Int` field.
+   * Ecosystem-parity sugar with `@pothos/plugin-prisma`'s
+   * `t.relationCount`. Compiles to a function-form `select` that emits
+   * `sub.count()` into the parent's combine spec — the same primitive
+   * `t.field({ select: { rel: (sub) => ({ k: sub.count() }) } })` uses,
+   * so the SQL path and the `where` refine are identical.
+   *
+   * Result is non-nullable `number` (a count over an empty set is 0).
+   */
+  relationCount<
+    RelName extends RelationKeys<Types, M>,
+    Nullable extends boolean = false,
+    Args extends InputFieldMap = {},
+  >(
+    name: RelName,
+    options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args>,
+  ): FieldRef<Types, number, 'PrismaNextObject'> {
+    // `#aggregateField`'s return is the widened `number | null` (it
+    // serves the aggregate ops too); a count is always non-null, so the
+    // public method narrows the ref type back to `number`.
+    return this.#aggregateField(name as string, 'count', undefined, options ?? {}, false) as never;
+  }
+
+  /**
+   * Expose an aggregate (`sum`/`avg`/`min`/`max`/`count`) of a to-many
+   * relation as a numeric field. Generalizes `t.relationCount`; the
+   * `op` option selects the reducer and `field` names the numeric
+   * column for `sum`/`avg`/`min`/`max` (omitted for `count`).
+   *
+   * Compiles to a function-form `select` emitting the matching
+   * orm-client scalar reducer (`sub.sum('views')`, …) into the parent
+   * combine spec. `count` resolves to `number`; the others resolve to
+   * `number | null` (SQL aggregates over an empty set return NULL), so
+   * those fields are exposed nullable by default.
+   */
+  relationAggregate<
+    RelName extends RelationKeys<Types, M>,
+    Op extends 'count' | 'sum' | 'avg' | 'min' | 'max',
+    Nullable extends boolean = Op extends 'count' ? false : true,
+    Args extends InputFieldMap = {},
+  >(
+    name: RelName,
+    options: PrismaNextRelationAggregateOptions<Types, M, RelName, Op, Nullable, Args>,
+  ): FieldRef<Types, Op extends 'count' ? number : number | null, 'PrismaNextObject'> {
+    const { op, field, ...rest } = options as typeof options & {
+      op: 'count' | 'sum' | 'avg' | 'min' | 'max';
+      field?: string;
+    };
+    return this.#aggregateField(name as string, op, field, rest, op !== 'count') as never;
+  }
+
+  /**
+   * Shared compiler for `relationCount` / `relationAggregate`. Builds a
+   * function-form `select` keyed on the relation that runs the user's
+   * `where` refine (literal or accessor-callback, args/ctx in scope)
+   * then the chosen scalar reducer, and a resolver that reads the
+   * lifted value off the parent. The combine key on the parent is the
+   * relation name (the walker namespaces it under the field alias), so
+   * the resolver reads `parent[name]`.
+   */
+  #aggregateField(
+    name: string,
+    op: 'count' | 'sum' | 'avg' | 'min' | 'max',
+    field: string | undefined,
+    options: Record<string, unknown>,
+    nullableDefault: boolean,
+  ): FieldRef<Types, number | null, 'PrismaNextObject'> {
+    const { where, nullable, ...rest } = options as {
+      where?: unknown;
+      nullable?: boolean;
+    } & Record<string, unknown>;
+    const reduce = (rel: MapperCollection): unknown =>
+      op === 'count' ? rel.count() : rel[op](field as string);
+    const select = (args: unknown, ctx: unknown) => ({
+      [name]: (sub: MapperCollection) => {
+        if (where === undefined) {
+          return { [name]: reduce(sub) };
+        }
+        const refined =
+          typeof where === 'function'
+            ? (sub.where((accessor: unknown) =>
+                (where as (a: unknown, args: unknown, c: unknown) => unknown)(accessor, args, ctx),
+              ) as MapperCollection)
+            : (sub.where(where) as MapperCollection);
+        return { [name]: reduce(refined) };
+      },
+    });
+    const fieldOpts = {
+      ...rest,
+      type: op === 'avg' ? 'Float' : 'Int',
+      nullable: nullable ?? nullableDefault,
+      select,
+      resolve: (parent: unknown) => (parent as Record<string, unknown>)[name],
+    };
+    return this.field(fieldOpts as never) as FieldRef<Types, number | null, 'PrismaNextObject'>;
   }
 
   relatedConnection: 'relay' extends PluginName
@@ -457,7 +558,7 @@ export class PrismaNextObjectFieldBuilder<
       );
     }
     const targetRef =
-      options.type ?? getRefFromContractModel(meta.to as never, this.builder as never);
+      options.type ?? getRefFromContractModel(meta.to.model as never, this.builder as never);
 
     const self = this as unknown as {
       connection: (cfg: object, c?: object, e?: object) => unknown;
@@ -491,7 +592,7 @@ export class PrismaNextObjectFieldBuilder<
     const fallbackMax = pluginOpts?.maxConnectionSize;
     const contract = this.contract as AnyContract;
     const cursorOpt = options.cursor;
-    const relatedTypeName = meta.to as string;
+    const relatedTypeName = meta.to.model;
 
     // Field-level pothosIndirectInclude — declares how the connection
     // wraps related rows so the plugin-errors interop sees the same
@@ -644,11 +745,9 @@ export class PrismaNextObjectFieldBuilder<
   } as never;
 
   #getRelationMeta(relationName: string): ContractRelation {
-    const model = (this.contract as AnyContract).models[this.modelName as string];
+    const model = resolveContractModel(this.contract as AnyContract, this.modelName as string);
     if (!model) {
-      throw new PothosSchemaError(
-        `Model '${this.modelName as string}' not found in contract.models.`,
-      );
+      throw new PothosSchemaError(`Model '${this.modelName as string}' not found in contract.`);
     }
     const rel = model.relations[relationName];
     if (!rel) {
@@ -668,7 +767,10 @@ export class PrismaNextObjectFieldBuilder<
     if (!local || local.length === 0) {
       return true;
     }
-    const fields = (this.contract as AnyContract).models[this.modelName as string]?.fields;
+    const fields = resolveContractModel(
+      this.contract as AnyContract,
+      this.modelName as string,
+    )?.fields;
     if (!fields) {
       return true;
     }

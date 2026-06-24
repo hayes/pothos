@@ -265,7 +265,9 @@ article#nd-page pre {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 #nd-sidebar [data-radix-scroll-area-viewport] > div > div > p,
-#nd-sidebar h3,
+/* biome-ignore lint/style/noDescendingSpecificity: intentional cascade ordering for sidebar/toc headings */
+  #nd-sidebar
+  h3,
 #nd-sidebar [data-section-heading] {
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -293,6 +295,7 @@ article#nd-page pre {
 [class*="[grid-area:toc]"] {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: intentional cascade ordering for sidebar/toc headings */
 [class*="[grid-area:toc]"] h3,
 [class*="[grid-area:toc]"] [data-toc-heading] {
   font-size: 11px;
@@ -300,14 +303,17 @@ article#nd-page pre {
   text-transform: uppercase;
   color: var(--bm-ink-muted);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: intentional cascade ordering for sidebar/toc headings */
 [class*="[grid-area:toc]"] a {
   font-size: 13px;
   color: var(--bm-ink-muted);
   transition: color 120ms ease;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: intentional cascade ordering for sidebar/toc headings */
 [class*="[grid-area:toc]"] a:hover {
   color: var(--bm-ink);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: intentional cascade ordering for sidebar/toc headings */
 [class*="[grid-area:toc]"] a[data-active="true"] {
   color: var(--bm-ink);
 }

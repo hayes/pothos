@@ -18,6 +18,7 @@ import type { PrismaNextNodeRef } from './node-ref';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref';
 import type {
   AnyContract,
+  CollectionFor,
   CursorSpec,
   ModelName,
   PrismaNextConnectionFieldOptions,
@@ -67,9 +68,18 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+      // `Extract<…, AnyContract>` drops the optional `undefined` (so this
+      // satisfies the `SchemaTypes` constraint that `PrismaNextContract` is an
+      // `AnyContract`) while resolving to exactly the user's contract — unlike
+      // `& object`, which produced a distinct `Contract & object` type that,
+      // because orm-client's `Collection` is invariant in its contract param,
+      // degraded the contract-derived method types. Cast-free resolvers that
+      // return `db.orm.<M>` are accepted via the model-scoped `ResolverCollection`
+      // in `./types` (which omits the mutation terminals — the only part of the
+      // surface the constrained contract copy computes differently).
       PrismaNextContract: undefined extends PartialTypes['PrismaNextContract']
         ? AnyContract
-        : PartialTypes['PrismaNextContract'] & object;
+        : Extract<PartialTypes['PrismaNextContract'], AnyContract>;
     }
 
     export interface PothosKindToGraphQLType {
@@ -196,16 +206,8 @@ declare global {
                 resolve?: (parent: Shape, ctx: Types['Context']) => string | number;
               };
               collection:
-                | import('@prisma-next/sql-orm-client').Collection<
-                    Types['PrismaNextContract'] & AnyContract,
-                    M
-                  >
-                | ((
-                    ctx: Types['Context'],
-                  ) => import('@prisma-next/sql-orm-client').Collection<
-                    Types['PrismaNextContract'] & AnyContract,
-                    M
-                  >);
+                | CollectionFor<Types, M>
+                | ((ctx: Types['Context']) => CollectionFor<Types, M>);
             },
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';

@@ -74,13 +74,10 @@ export function prismaConnectionHelpers<
           info: GraphQLResolveInfo | undefined,
         ) => MaybePromise<number>);
     where?:
-      | import('@prisma-next/sql-orm-client').ShorthandWhereFilter<
-          Types['PrismaNextContract'] & AnyContract,
-          M
-        >
+      | import('@prisma-next/sql-orm-client').ShorthandWhereFilter<Types['PrismaNextContract'], M>
       | ((
           accessor: import('@prisma-next/sql-orm-client').ModelAccessor<
-            Types['PrismaNextContract'] & AnyContract,
+            Types['PrismaNextContract'],
             M
           >,
           args: InputShapeFromFields<Args> &

@@ -10,19 +10,19 @@ import type {
 import type {
   Contract as ContractType,
   ExecutionHashBase,
+  NamespaceId,
   ProfileHashBase,
   StorageHashBase,
 } from '@prisma-next/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'sha256:26621165d69ac72f42a5e328fd9b567c2913617adcd0fa89c1336dffa27fc5f4'>;
+  StorageHashBase<'sha256:c73c51421b796456af77538adf9e75ab9de57b1c61def53bd64ce3f9cc701cea'>;
 export type ExecutionHash =
-  ExecutionHashBase<'sha256:16de9504cc97e95ba09948e5cb78650ff8a4cb084d4aef50d68bf6593e778289'>;
+  ExecutionHashBase<'sha256:747459643b12975edbfde553600ba765a3f9c1ede90226713e1804a5e22343dd'>;
 export type ProfileHash =
-  ProfileHashBase<'sha256:213031a5ce861b455f22bc065769080ea0357fabcb999de0190524ecd32531f7'>;
+  ProfileHashBase<'sha256:3cc333ecad9f3f4c7229370a9d2c37e908cdce0f8d2e9fb132d50605b024eff2'>;
 
 export type CodecTypes = SqliteTypes;
-export type OperationTypes = Record<string, never>;
 export type LaneCodecTypes = CodecTypes;
 export type QueryOperationTypes = Record<string, never>;
 type DefaultLiteralValue<CodecId extends string, _Encoded> = CodecId extends keyof CodecTypes
@@ -30,389 +30,434 @@ type DefaultLiteralValue<CodecId extends string, _Encoded> = CodecId extends key
   : _Encoded;
 
 export type FieldOutputTypes = {
-  readonly Comment: {
-    readonly id: CodecTypes['sql/char@1']['output'];
-    readonly body: CodecTypes['sqlite/text@1']['output'];
-    readonly authorId: CodecTypes['sql/char@1']['output'];
-    readonly postId: CodecTypes['sql/char@1']['output'];
-    readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
-  };
-  readonly Post: {
-    readonly id: CodecTypes['sql/char@1']['output'];
-    readonly title: CodecTypes['sqlite/text@1']['output'];
-    readonly content: CodecTypes['sqlite/text@1']['output'];
-    readonly published: CodecTypes['sqlite/integer@1']['output'];
-    readonly authorId: CodecTypes['sql/char@1']['output'];
-    readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
-  };
-  readonly User: {
-    readonly id: CodecTypes['sql/char@1']['output'];
-    readonly firstName: CodecTypes['sqlite/text@1']['output'];
-    readonly lastName: CodecTypes['sqlite/text@1']['output'];
-    readonly email: CodecTypes['sqlite/text@1']['output'];
+  readonly __unbound__: {
+    readonly Comment: {
+      readonly id: CodecTypes['sql/char@1']['output'];
+      readonly body: CodecTypes['sqlite/text@1']['output'];
+      readonly authorId: CodecTypes['sql/char@1']['output'];
+      readonly postId: CodecTypes['sql/char@1']['output'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
+    };
+    readonly Post: {
+      readonly id: CodecTypes['sql/char@1']['output'];
+      readonly title: CodecTypes['sqlite/text@1']['output'];
+      readonly content: CodecTypes['sqlite/text@1']['output'];
+      readonly published: CodecTypes['sqlite/integer@1']['output'];
+      readonly authorId: CodecTypes['sql/char@1']['output'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
+    };
+    readonly User: {
+      readonly id: CodecTypes['sql/char@1']['output'];
+      readonly email: CodecTypes['sqlite/text@1']['output'];
+      readonly firstName: CodecTypes['sqlite/text@1']['output'];
+      readonly lastName: CodecTypes['sqlite/text@1']['output'];
+    };
   };
 };
 export type FieldInputTypes = {
-  readonly Comment: {
-    readonly id: CodecTypes['sql/char@1']['input'];
-    readonly body: CodecTypes['sqlite/text@1']['input'];
-    readonly authorId: CodecTypes['sql/char@1']['input'];
-    readonly postId: CodecTypes['sql/char@1']['input'];
-    readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
-  };
-  readonly Post: {
-    readonly id: CodecTypes['sql/char@1']['input'];
-    readonly title: CodecTypes['sqlite/text@1']['input'];
-    readonly content: CodecTypes['sqlite/text@1']['input'];
-    readonly published: CodecTypes['sqlite/integer@1']['input'];
-    readonly authorId: CodecTypes['sql/char@1']['input'];
-    readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
-  };
-  readonly User: {
-    readonly id: CodecTypes['sql/char@1']['input'];
-    readonly firstName: CodecTypes['sqlite/text@1']['input'];
-    readonly lastName: CodecTypes['sqlite/text@1']['input'];
-    readonly email: CodecTypes['sqlite/text@1']['input'];
+  readonly __unbound__: {
+    readonly Comment: {
+      readonly id: CodecTypes['sql/char@1']['input'];
+      readonly body: CodecTypes['sqlite/text@1']['input'];
+      readonly authorId: CodecTypes['sql/char@1']['input'];
+      readonly postId: CodecTypes['sql/char@1']['input'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
+    };
+    readonly Post: {
+      readonly id: CodecTypes['sql/char@1']['input'];
+      readonly title: CodecTypes['sqlite/text@1']['input'];
+      readonly content: CodecTypes['sqlite/text@1']['input'];
+      readonly published: CodecTypes['sqlite/integer@1']['input'];
+      readonly authorId: CodecTypes['sql/char@1']['input'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
+    };
+    readonly User: {
+      readonly id: CodecTypes['sql/char@1']['input'];
+      readonly email: CodecTypes['sqlite/text@1']['input'];
+      readonly firstName: CodecTypes['sqlite/text@1']['input'];
+      readonly lastName: CodecTypes['sqlite/text@1']['input'];
+    };
   };
 };
 export type TypeMaps = TypeMapsType<
   CodecTypes,
-  OperationTypes,
   QueryOperationTypes,
   FieldOutputTypes,
   FieldInputTypes
 >;
 
-type ContractBase = ContractType<
-  {
-    readonly tables: {
-      readonly comment: {
-        columns: {
-          readonly id: {
-            readonly nativeType: 'character';
-            readonly codecId: 'sql/char@1';
-            readonly nullable: false;
-            readonly typeParams: { readonly length: 36 };
-          };
-          readonly body: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/text@1';
-            readonly nullable: false;
-          };
-          readonly authorId: {
-            readonly nativeType: 'character';
-            readonly codecId: 'sql/char@1';
-            readonly nullable: false;
-            readonly typeParams: { readonly length: 36 };
-          };
-          readonly postId: {
-            readonly nativeType: 'character';
-            readonly codecId: 'sql/char@1';
-            readonly nullable: false;
-            readonly typeParams: { readonly length: 36 };
-          };
-          readonly createdAt: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/datetime@1';
-            readonly nullable: false;
-            readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
-          };
-        };
-        primaryKey: { readonly columns: readonly ['id'] };
-        uniques: readonly [];
-        indexes: readonly [];
-        foreignKeys: readonly [
-          {
-            readonly columns: readonly ['authorId'];
-            readonly references: { readonly table: 'user'; readonly columns: readonly ['id'] };
-            readonly name: 'comment_authorId_fkey';
-            readonly constraint: true;
-            readonly index: true;
-          },
-          {
-            readonly columns: readonly ['postId'];
-            readonly references: { readonly table: 'post'; readonly columns: readonly ['id'] };
-            readonly name: 'comment_postId_fkey';
-            readonly constraint: true;
-            readonly index: true;
-          },
-        ];
-      };
-      readonly post: {
-        columns: {
-          readonly id: {
-            readonly nativeType: 'character';
-            readonly codecId: 'sql/char@1';
-            readonly nullable: false;
-            readonly typeParams: { readonly length: 36 };
-          };
-          readonly title: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/text@1';
-            readonly nullable: false;
-          };
-          readonly content: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/text@1';
-            readonly nullable: false;
-          };
-          readonly published: {
-            readonly nativeType: 'integer';
-            readonly codecId: 'sqlite/integer@1';
-            readonly nullable: false;
-            readonly default: {
-              readonly kind: 'literal';
-              readonly value: DefaultLiteralValue<'sqlite/integer@1', 0>;
+type ContractBase = Omit<
+  ContractType<{
+    readonly namespaces: {
+      readonly __unbound__: {
+        readonly id: '__unbound__';
+        readonly kind: 'sql-namespace';
+        readonly entries: {
+          readonly table: {
+            readonly comment: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'character';
+                  readonly codecId: 'sql/char@1';
+                  readonly nullable: false;
+                  readonly typeRef: 'Uuid';
+                };
+                readonly body: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                };
+                readonly authorId: {
+                  readonly nativeType: 'character';
+                  readonly codecId: 'sql/char@1';
+                  readonly nullable: false;
+                  readonly typeRef: 'Uuid';
+                };
+                readonly postId: {
+                  readonly nativeType: 'character';
+                  readonly codecId: 'sql/char@1';
+                  readonly nullable: false;
+                  readonly typeRef: 'Uuid';
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/datetime@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'comment';
+                    readonly columns: readonly ['authorId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'user';
+                    readonly columns: readonly ['id'];
+                  };
+                  readonly constraint: true;
+                  readonly index: true;
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'comment';
+                    readonly columns: readonly ['postId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'post';
+                    readonly columns: readonly ['id'];
+                  };
+                  readonly constraint: true;
+                  readonly index: true;
+                },
+              ];
+            };
+            readonly post: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'character';
+                  readonly codecId: 'sql/char@1';
+                  readonly nullable: false;
+                  readonly typeRef: 'Uuid';
+                };
+                readonly title: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                };
+                readonly content: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                };
+                readonly published: {
+                  readonly nativeType: 'integer';
+                  readonly codecId: 'sqlite/integer@1';
+                  readonly nullable: false;
+                };
+                readonly authorId: {
+                  readonly nativeType: 'character';
+                  readonly codecId: 'sql/char@1';
+                  readonly nullable: false;
+                  readonly typeRef: 'Uuid';
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/datetime@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'post';
+                    readonly columns: readonly ['authorId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'user';
+                    readonly columns: readonly ['id'];
+                  };
+                  readonly constraint: true;
+                  readonly index: true;
+                },
+              ];
+            };
+            readonly user: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'character';
+                  readonly codecId: 'sql/char@1';
+                  readonly nullable: false;
+                  readonly typeRef: 'Uuid';
+                };
+                readonly email: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                };
+                readonly firstName: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                };
+                readonly lastName: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [];
+              foreignKeys: readonly [];
             };
           };
-          readonly authorId: {
-            readonly nativeType: 'character';
-            readonly codecId: 'sql/char@1';
-            readonly nullable: false;
-            readonly typeParams: { readonly length: 36 };
-          };
-          readonly createdAt: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/datetime@1';
-            readonly nullable: false;
-            readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
-          };
         };
-        primaryKey: { readonly columns: readonly ['id'] };
-        uniques: readonly [];
-        indexes: readonly [];
-        foreignKeys: readonly [
-          {
-            readonly columns: readonly ['authorId'];
-            readonly references: { readonly table: 'user'; readonly columns: readonly ['id'] };
-            readonly name: 'post_authorId_fkey';
-            readonly constraint: true;
-            readonly index: true;
-          },
-        ];
-      };
-      readonly user: {
-        columns: {
-          readonly id: {
-            readonly nativeType: 'character';
-            readonly codecId: 'sql/char@1';
-            readonly nullable: false;
-            readonly typeParams: { readonly length: 36 };
-          };
-          readonly firstName: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/text@1';
-            readonly nullable: false;
-          };
-          readonly lastName: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/text@1';
-            readonly nullable: false;
-          };
-          readonly email: {
-            readonly nativeType: 'text';
-            readonly codecId: 'sqlite/text@1';
-            readonly nullable: false;
-          };
-        };
-        primaryKey: { readonly columns: readonly ['id'] };
-        uniques: readonly [{ readonly columns: readonly ['email'] }];
-        indexes: readonly [];
-        foreignKeys: readonly [];
       };
     };
-    readonly types: Record<string, never>;
+    readonly types: {
+      readonly Uuid: {
+        readonly kind: 'codec-instance';
+        readonly codecId: 'sql/char@1';
+        readonly nativeType: 'character';
+        readonly typeParams: { readonly length: 36 };
+      };
+    };
     readonly storageHash: StorageHash;
-  },
-  {
-    readonly Comment: {
-      readonly fields: {
-        readonly id: {
-          readonly nullable: false;
-          readonly type: {
-            readonly kind: 'scalar';
-            readonly codecId: 'sql/char@1';
-            readonly typeParams: { readonly length: 36 };
-          };
-        };
-        readonly body: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
-        };
-        readonly authorId: {
-          readonly nullable: false;
-          readonly type: {
-            readonly kind: 'scalar';
-            readonly codecId: 'sql/char@1';
-            readonly typeParams: { readonly length: 36 };
-          };
-        };
-        readonly postId: {
-          readonly nullable: false;
-          readonly type: {
-            readonly kind: 'scalar';
-            readonly codecId: 'sql/char@1';
-            readonly typeParams: { readonly length: 36 };
-          };
-        };
-        readonly createdAt: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/datetime@1' };
-        };
-      };
-      readonly relations: {
-        readonly author: {
-          readonly to: 'User';
-          readonly cardinality: 'N:1';
-          readonly on: {
-            readonly localFields: readonly ['authorId'];
-            readonly targetFields: readonly ['id'];
-          };
-        };
-        readonly post: {
-          readonly to: 'Post';
-          readonly cardinality: 'N:1';
-          readonly on: {
-            readonly localFields: readonly ['postId'];
-            readonly targetFields: readonly ['id'];
-          };
-        };
-      };
-      readonly storage: {
-        readonly table: 'comment';
-        readonly fields: {
-          readonly id: { readonly column: 'id' };
-          readonly body: { readonly column: 'body' };
-          readonly authorId: { readonly column: 'authorId' };
-          readonly postId: { readonly column: 'postId' };
-          readonly createdAt: { readonly column: 'createdAt' };
-        };
-      };
-    };
-    readonly Post: {
-      readonly fields: {
-        readonly id: {
-          readonly nullable: false;
-          readonly type: {
-            readonly kind: 'scalar';
-            readonly codecId: 'sql/char@1';
-            readonly typeParams: { readonly length: 36 };
-          };
-        };
-        readonly title: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
-        };
-        readonly content: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
-        };
-        readonly published: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/integer@1' };
-        };
-        readonly authorId: {
-          readonly nullable: false;
-          readonly type: {
-            readonly kind: 'scalar';
-            readonly codecId: 'sql/char@1';
-            readonly typeParams: { readonly length: 36 };
-          };
-        };
-        readonly createdAt: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/datetime@1' };
-        };
-      };
-      readonly relations: {
-        readonly author: {
-          readonly to: 'User';
-          readonly cardinality: 'N:1';
-          readonly on: {
-            readonly localFields: readonly ['authorId'];
-            readonly targetFields: readonly ['id'];
-          };
-        };
-        readonly comments: {
-          readonly to: 'Comment';
-          readonly cardinality: '1:N';
-          readonly on: {
-            readonly localFields: readonly ['id'];
-            readonly targetFields: readonly ['postId'];
-          };
-        };
-      };
-      readonly storage: {
-        readonly table: 'post';
-        readonly fields: {
-          readonly id: { readonly column: 'id' };
-          readonly title: { readonly column: 'title' };
-          readonly content: { readonly column: 'content' };
-          readonly published: { readonly column: 'published' };
-          readonly authorId: { readonly column: 'authorId' };
-          readonly createdAt: { readonly column: 'createdAt' };
-        };
-      };
-    };
-    readonly User: {
-      readonly fields: {
-        readonly id: {
-          readonly nullable: false;
-          readonly type: {
-            readonly kind: 'scalar';
-            readonly codecId: 'sql/char@1';
-            readonly typeParams: { readonly length: 36 };
-          };
-        };
-        readonly firstName: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
-        };
-        readonly lastName: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
-        };
-        readonly email: {
-          readonly nullable: false;
-          readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
-        };
-      };
-      readonly relations: {
-        readonly posts: {
-          readonly to: 'Post';
-          readonly cardinality: '1:N';
-          readonly on: {
-            readonly localFields: readonly ['id'];
-            readonly targetFields: readonly ['authorId'];
-          };
-        };
-        readonly comments: {
-          readonly to: 'Comment';
-          readonly cardinality: '1:N';
-          readonly on: {
-            readonly localFields: readonly ['id'];
-            readonly targetFields: readonly ['authorId'];
-          };
-        };
-      };
-      readonly storage: {
-        readonly table: 'user';
-        readonly fields: {
-          readonly id: { readonly column: 'id' };
-          readonly firstName: { readonly column: 'firstName' };
-          readonly lastName: { readonly column: 'lastName' };
-          readonly email: { readonly column: 'email' };
-        };
-      };
-    };
-  }
+  }>,
+  'roots' | 'domain'
 > & {
   readonly target: 'sqlite';
   readonly targetFamily: 'sql';
-  readonly roots: { readonly user: 'User'; readonly post: 'Post'; readonly comment: 'Comment' };
+  readonly roots: {
+    readonly user: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'User' };
+    readonly post: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Post' };
+    readonly comment: {
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'Comment';
+    };
+  };
+  readonly domain: {
+    readonly namespaces: {
+      readonly __unbound__: {
+        readonly models: {
+          readonly Comment: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sql/char@1' };
+              };
+              readonly body: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly authorId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sql/char@1' };
+              };
+              readonly postId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sql/char@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/datetime@1' };
+              };
+            };
+            readonly relations: {
+              readonly author: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
+                };
+                readonly cardinality: 'N:1';
+                readonly on: {
+                  readonly localFields: readonly ['authorId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly post: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Post';
+                };
+                readonly cardinality: 'N:1';
+                readonly on: {
+                  readonly localFields: readonly ['postId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'comment';
+              readonly namespaceId: '__unbound__';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly body: { readonly column: 'body' };
+                readonly authorId: { readonly column: 'authorId' };
+                readonly postId: { readonly column: 'postId' };
+                readonly createdAt: { readonly column: 'createdAt' };
+              };
+            };
+          };
+          readonly Post: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sql/char@1' };
+              };
+              readonly title: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly content: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly published: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/integer@1' };
+              };
+              readonly authorId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sql/char@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/datetime@1' };
+              };
+            };
+            readonly relations: {
+              readonly author: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
+                };
+                readonly cardinality: 'N:1';
+                readonly on: {
+                  readonly localFields: readonly ['authorId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly comments: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Comment';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['postId'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'post';
+              readonly namespaceId: '__unbound__';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly title: { readonly column: 'title' };
+                readonly content: { readonly column: 'content' };
+                readonly published: { readonly column: 'published' };
+                readonly authorId: { readonly column: 'authorId' };
+                readonly createdAt: { readonly column: 'createdAt' };
+              };
+            };
+          };
+          readonly User: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sql/char@1' };
+              };
+              readonly email: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly firstName: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly lastName: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly comments: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Comment';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['authorId'];
+                };
+              };
+              readonly posts: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Post';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['authorId'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'user';
+              readonly namespaceId: '__unbound__';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly email: { readonly column: 'email' };
+                readonly firstName: { readonly column: 'firstName' };
+                readonly lastName: { readonly column: 'lastName' };
+              };
+            };
+          };
+        };
+      };
+    };
+  };
   readonly capabilities: {
     readonly sql: {
-      readonly autoIndexesForeignKeys: false;
       readonly enums: false;
       readonly foreignKeys: true;
       readonly jsonAgg: true;
@@ -428,15 +473,27 @@ type ContractBase = ContractType<
     readonly mutations: {
       readonly defaults: readonly [
         {
-          readonly ref: { readonly table: 'comment'; readonly column: 'id' };
+          readonly ref: {
+            readonly namespace: '__unbound__';
+            readonly table: 'comment';
+            readonly column: 'id';
+          };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
-          readonly ref: { readonly table: 'post'; readonly column: 'id' };
+          readonly ref: {
+            readonly namespace: '__unbound__';
+            readonly table: 'post';
+            readonly column: 'id';
+          };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
-          readonly ref: { readonly table: 'user'; readonly column: 'id' };
+          readonly ref: {
+            readonly namespace: '__unbound__';
+            readonly table: 'user';
+            readonly column: 'id';
+          };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
       ];
@@ -449,5 +506,4 @@ type ContractBase = ContractType<
 
 export type Contract = ContractWithTypeMaps<ContractBase, TypeMaps>;
 
-export type Tables = Contract['storage']['tables'];
-export type Models = Contract['models'];
+export type Namespaces = Contract['storage']['namespaces'];

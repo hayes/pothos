@@ -75,9 +75,30 @@ export interface MapperCollection {
   select(...fields: string[]): MapperCollection;
   include(name: string, refine?: (rel: MapperCollection) => MapperCollection): MapperCollection;
   combine(spec: Record<string, unknown>): MapperCollection;
+  /**
+   * In-`include` scalar reducers. `count()` reduces a to-many relation
+   * to its row count; `sum`/`avg`/`min`/`max(field)` reduce it to the
+   * aggregate of a numeric column (`null` over an empty set). All four
+   * return prisma-next `IncludeScalar` brands that flow into a parent
+   * `combine({...})` spec, exactly like `count()`. The fully-typed
+   * orm-client `Collection` collapses these to `keyof never` when the
+   * model name isn't known at runtime — so they're declared loosely
+   * here, the same reason `select`/`count` are.
+   */
   count(): unknown;
+  sum(field: string): unknown;
+  avg(field: string): unknown;
+  min(field: string): unknown;
+  max(field: string): unknown;
   where(input: unknown): MapperCollection;
   orderBy(input: unknown): MapperCollection;
+  /**
+   * Native keyset seek. Requires a prior `orderBy(...)` (the real
+   * orm-client type-gates this on `hasOrderBy`); seeks strictly past
+   * the given column→value boundary in the active orderBy direction
+   * (`>` for asc, `<` for desc). Single boundary only.
+   */
+  cursor(cursorValues: Record<string, unknown>): MapperCollection;
   take(n: number): MapperCollection;
   skip(n: number): MapperCollection;
 }
@@ -774,9 +795,9 @@ export function objectLevelBranchAlias(typeName: string, specKey: string): strin
 function applyObjectLevelSelect(
   spec: readonly string[] | Record<string, unknown>,
   type: GraphQLObjectType | GraphQLInterfaceType,
-  info: GraphQLResolveInfo,
+  _info: GraphQLResolveInfo,
   _config: PothosPrismaNextConfig,
-  context: object,
+  _context: object,
   level: LevelAcc,
 ): void {
   if (Array.isArray(spec)) {

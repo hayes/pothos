@@ -98,9 +98,15 @@ export async function createTestRuntime(): Promise<TestRuntimeContext> {
  * fallback path, which still consults the table when present.
  */
 function createSchema(db: DatabaseSync, contract: SampleContract): void {
+  // Marker table shape mirrors prisma-next 0.14.0's sqlite control adapter
+  // (`_prisma_marker` defined in @prisma-next/adapter-sqlite). The adapter
+  // reads `WHERE space = 'app'` selecting core_hash/profile_hash/
+  // contract_json/canonical_version/updated_at/app_tag/meta/invariants, so
+  // the `space` column (and a row with space='app') is required — without it
+  // the init read fails with "Database error while reading contract marker".
   db.exec(`
     CREATE TABLE _prisma_marker (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
+      space TEXT PRIMARY KEY NOT NULL,
       core_hash TEXT NOT NULL,
       profile_hash TEXT NOT NULL,
       contract_json TEXT,
@@ -111,13 +117,14 @@ function createSchema(db: DatabaseSync, contract: SampleContract): void {
       invariants TEXT NOT NULL DEFAULT '[]'
     )
   `);
+  // `space` is the APP_SPACE_ID the runtime reads with (@prisma-next/
+  // framework-components exports APP_SPACE_ID = "app").
+  const APP_SPACE_ID = 'app';
   const storageHash = (contract as { storage?: { storageHash?: string } }).storage?.storageHash ?? '';
   const profileHash = (contract as { profileHash?: string }).profileHash ?? storageHash;
-  db.prepare('INSERT INTO _prisma_marker (id, core_hash, profile_hash) VALUES (?, ?, ?)').run(
-    1,
-    storageHash,
-    profileHash,
-  );
+  db.prepare(
+    'INSERT INTO _prisma_marker (space, core_hash, profile_hash) VALUES (?, ?, ?)',
+  ).run(APP_SPACE_ID, storageHash, profileHash);
 
   db.exec(`
     CREATE TABLE user (

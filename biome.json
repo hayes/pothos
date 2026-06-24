@@ -29,8 +29,9 @@
       "!**/lib/playground/pothos-types.ts",
       "!**/components/playground/examples/examples-index.generated.ts",
       "!**/public/playground-examples/*.json",
-      "!**/playground-examples/*.json",
-      "!**/website/vendor"
+      "!**/playground-examples/**/*.json",
+      "!**/website/vendor",
+      "!**/lib/playground/prisma-next/driver-sqlite/**/*"
     ]
   },
   "formatter": {

@@ -113,7 +113,9 @@ export function SourceEditor({ filename, source, allFiles, readOnly = false, onC
       value={source}
       theme={editorTheme}
       onChange={(value) => {
-        if (value === undefined) return;
+        if (value === undefined) {
+          return;
+        }
         // Drop change events whose underlying model isn't the active
         // file. `@monaco-editor/react` can fire `onChange` for the OLD
         // model during a path swap (when both `path` and `value`
@@ -121,7 +123,9 @@ export function SourceEditor({ filename, source, allFiles, readOnly = false, onC
         // generated file's content gets written back into the file
         // we just switched TO.
         const modelPath = editorRef.current?.getModel()?.uri.toString();
-        if (modelPath && modelPath !== expectedPath) return;
+        if (modelPath && modelPath !== expectedPath) {
+          return;
+        }
         onChange(value);
       }}
       beforeMount={registerThemes}

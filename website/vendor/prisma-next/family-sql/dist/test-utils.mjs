@@ -1,3 +1,0 @@
-import { extractCodecTypeImports, extractComponentIds, extractOperationTypeImports, extractQueryOperationTypeImports } from "@prisma-next/framework-components/control";
-
-export { extractCodecTypeImports, extractComponentIds, extractOperationTypeImports, extractQueryOperationTypeImports };

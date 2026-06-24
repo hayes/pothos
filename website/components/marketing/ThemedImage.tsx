@@ -21,9 +21,7 @@ export function ThemedImage({ src, alt, ...rest }: Props) {
   useEffect(() => setMounted(true), []);
   const themeKey = mounted ? resolvedTheme : 'initial';
   return (
-    // biome-ignore lint/performance/noImgElement: the source is an
-    // external SVG with embedded prefers-color-scheme styles — Next
-    // Image's optimizer would strip the inline <style> block.
+    // biome-ignore lint/performance/noImgElement: external SVG with embedded prefers-color-scheme styles — Next Image's optimizer would strip the inline <style> block.
     <img key={themeKey} src={src} alt={alt} {...rest} />
   );
 }

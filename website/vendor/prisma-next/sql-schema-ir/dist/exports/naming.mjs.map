@@ -1,1 +1,0 @@
-{"version":3,"file":"naming.mjs","names":[],"sources":["../../src/exports/naming.ts"],"sourcesContent":["export function defaultIndexName(tableName: string, columns: readonly string[]): string {\n  return `${tableName}_${columns.join('_')}_idx`;\n}\n"],"mappings":";AAAA,SAAgB,iBAAiB,WAAmB,SAAoC;AACtF,QAAO,GAAG,UAAU,GAAG,QAAQ,KAAK,IAAI,CAAC"}

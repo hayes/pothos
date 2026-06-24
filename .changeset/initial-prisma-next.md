@@ -5,11 +5,11 @@
 Initial release of `@pothos/plugin-prisma-next` — a Pothos plugin for the new
 `prisma-next` ORM client.
 
-**Note**: this changeset is staged but inert until the package is unmarked
-`private` in `package.json`. The package depends on `prisma-next`, which is
-itself unreleased; once prisma-next ships to npm, the `link:` deps will be
-swapped for real version ranges and the package will be published under this
-changeset.
+Built against `@prisma-next/* @ ^0.14.0` (the first published prisma-next line).
+Note that `IncludeRefinementResult` is no longer re-exported: prisma-next 0.14.0
+made it internal and it cannot be faithfully reconstructed (it is branded with a
+module-private symbol). `IncludeRefinementCollection` and `IsToManyRelation`
+remain available.
 
 What ships:
 

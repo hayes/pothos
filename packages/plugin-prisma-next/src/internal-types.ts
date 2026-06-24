@@ -2,7 +2,6 @@ import type { SchemaTypes } from '@pothos/core';
 import type { Collection, ModelAccessor, ShorthandWhereFilter } from '@prisma-next/sql-orm-client';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref';
 import type {
-  AnyContract,
   IsToMany,
   ModelName,
   RelatedModel,
@@ -127,15 +126,12 @@ export type SelectRelationDeclarative<
   R extends RelationKeys<Types, M>,
 > = {
   readonly where?:
-    | ShorthandWhereFilter<Types['PrismaNextContract'] & AnyContract, RelatedModel<Types, M, R>>
+    | ShorthandWhereFilter<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
     | ((
-        accessor: ModelAccessor<
-          Types['PrismaNextContract'] & AnyContract,
-          RelatedModel<Types, M, R>
-        >,
+        accessor: ModelAccessor<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
       ) => unknown);
   readonly orderBy?: (
-    accessor: ModelAccessor<Types['PrismaNextContract'] & AnyContract, RelatedModel<Types, M, R>>,
+    accessor: ModelAccessor<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
   ) => unknown;
   readonly take?: number;
   readonly skip?: number;

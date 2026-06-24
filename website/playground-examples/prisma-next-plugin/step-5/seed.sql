@@ -1,5 +1,10 @@
+-- Marker table shape mirrors prisma-next 0.14.0's sqlite control adapter
+-- (`_prisma_marker` defined in @prisma-next/adapter-sqlite). The adapter
+-- reads `WHERE space = 'app'` selecting core_hash/profile_hash/
+-- contract_json/canonical_version/updated_at/app_tag/meta/invariants, so
+-- the `space` column (and a row with space='app') is required.
 CREATE TABLE _prisma_marker (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
+  space TEXT PRIMARY KEY NOT NULL,
   core_hash TEXT NOT NULL,
   profile_hash TEXT NOT NULL,
   contract_json TEXT,
@@ -12,12 +17,13 @@ CREATE TABLE _prisma_marker (
 
 -- Marker hashes must match the contract; tests/fixtures/runtime.ts has
 -- the wiring: core_hash = contract.storage.storageHash, profile_hash =
--- contract.profileHash. Regenerate if contract.json changes.
-INSERT INTO _prisma_marker (id, core_hash, profile_hash)
+-- contract.profileHash. `space` is APP_SPACE_ID ("app") from
+-- @prisma-next/framework-components. Regenerate if contract.json changes.
+INSERT INTO _prisma_marker (space, core_hash, profile_hash)
 VALUES (
-  1,
-  'sha256:26621165d69ac72f42a5e328fd9b567c2913617adcd0fa89c1336dffa27fc5f4',
-  'sha256:213031a5ce861b455f22bc065769080ea0357fabcb999de0190524ecd32531f7'
+  'app',
+  'sha256:71c9bd0dd2593146612df8cebf0a9f6073d31d411b6ba29726e6f3a50ce58dc9',
+  'sha256:3cc333ecad9f3f4c7229370a9d2c37e908cdce0f8d2e9fb132d50605b024eff2'
 );
 
 CREATE TABLE user (

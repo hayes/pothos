@@ -1,9 +1,11 @@
 /**
  * Static bundle of @prisma-next/* runtime modules exposed to playground
- * user code. The packages are vendored under `website/vendor/prisma-next/`
- * (see `scripts/vendor-prisma-next.ts`); the sql.js-backed driver lives
- * at `website/vendor/prisma-next/driver-sqlite/` and replaces the
- * upstream Node-only one.
+ * user code. The packages come from the published npm `@prisma-next/*`
+ * (0.14.0) install. The one exception is `@prisma-next/driver-sqlite`,
+ * whose upstream build targets Node's `node:sqlite` (unavailable in the
+ * browser): `next.config.mjs` aliases `@prisma-next/driver-sqlite` to the
+ * hand-written sql.js-backed shim at `lib/playground/prisma-next/
+ * driver-sqlite/`, which also adds the `/seed` registry the demos use.
  *
  * User code imports these by their npm names; getPrismaNextModules()
  * scans for those import specifiers and returns the resolved modules so
@@ -18,7 +20,7 @@ import * as ContractTypes from '@prisma-next/contract/types';
 import * as DriverSqliteRuntime from '@prisma-next/driver-sqlite/runtime';
 import * as DriverSqliteSeed from '@prisma-next/driver-sqlite/seed';
 import * as SqlContractTypes from '@prisma-next/sql-contract/types';
-import * as SqlContractValidate from '@prisma-next/sql-contract/validate';
+import * as SqlContractValidate from '@prisma-next/sql-contract/validators';
 import * as SqlOrmClient from '@prisma-next/sql-orm-client';
 import * as SqliteRuntime from '@prisma-next/sqlite/runtime';
 import * as PlaygroundCapture from './prisma-next';
@@ -36,7 +38,7 @@ export const prismaNextModules: Record<string, unknown> = {
   '@prisma-next/sql-orm-client': SqlOrmClient,
   '@prisma-next/contract/types': ContractTypes,
   '@prisma-next/sql-contract/types': SqlContractTypes,
-  '@prisma-next/sql-contract/validate': SqlContractValidate,
+  '@prisma-next/sql-contract/validators': SqlContractValidate,
   '@prisma-next/adapter-sqlite/runtime': AdapterSqliteRuntime,
   '@prisma-next/adapter-sqlite/types': AdapterSqliteTypes,
   '@prisma-next/driver-sqlite/runtime': DriverSqliteRuntime,

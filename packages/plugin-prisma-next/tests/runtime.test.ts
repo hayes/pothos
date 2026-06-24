@@ -130,6 +130,41 @@ function buildSchema() {
         resolve: ((parent: { posts: { title: string }[] }) =>
           parent.posts[0]?.title ?? null) as never,
       } as never),
+      // Field-level relation-aggregate sugar (t.relationCount /
+      // t.relationAggregate) — thin wrappers over function-form select.
+      // relationCount → number; sum/avg/min/max → number | null.
+      relCount: t.relationCount('posts'),
+      relCountPublished: t.relationCount('posts', { where: { published: 1 } }),
+      relCountByFlag: t.relationCount('posts', {
+        args: { flag: t.arg.int({ required: true }) },
+        where: (p, args: { flag: number }) => p.published.eq(args.flag),
+      }),
+      relSumPublished: t.relationAggregate('posts', { op: 'sum', field: 'published' }),
+      relMaxPublished: t.relationAggregate('posts', { op: 'max', field: 'published' }),
+      relMinPublished: t.relationAggregate('posts', { op: 'min', field: 'published' }),
+      // Object-form select with multiple aggregate slots in one combine.
+      postStats: t.field({
+        type: 'String',
+        select: {
+          posts: (sub: {
+            count: () => unknown;
+            sum: (f: string) => unknown;
+            max: (f: string) => unknown;
+          }) => ({
+            total: sub.count(),
+            sumPublished: sub.sum('published'),
+            maxPublished: sub.max('published'),
+          }),
+        },
+        resolve: ((parent: {
+          total: number;
+          sumPublished: number | null;
+          maxPublished: number | null;
+        }) =>
+          `${parent.total}/${parent.sumPublished ?? 'null'}/${
+            parent.maxPublished ?? 'null'
+          }`) as never,
+      } as never),
       comments: t.relation('comments'),
       // Sibling-aliased relations targeting the same `posts` relation
       // with different filters — exercises the mapper's combine grouping.
@@ -300,16 +335,15 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(captures).toHaveLength(1);
   });
 
-  it('upstream pin (Issue A): depth-2+ nested includes fall back to multi-query', async () => {
-    // Empirical canary: `hasNestedIncludes` in
-    // `prisma-next/packages/3-extensions/sql-orm-client/src/collection-dispatch.ts:80-85`
-    // unconditionally routes any state with `include.nested.includes.length > 0`
-    // through `dispatchWithMultiQueryIncludes`, regardless of the SQL
-    // adapter's lateral/correlated capability flags. So depth-2
-    // (`users { posts { author … } }`) emits one SELECT for users,
-    // one for posts, one for authors — never a single nested-include
-    // statement. Pinned here so the day upstream fixes Issue A this
-    // test fails and we know to tighten the count to `=== 1`.
+  it('depth-2+ nested includes resolve in a single query (Issue A fixed upstream)', async () => {
+    // Previously (prisma-next ≤0.7) `hasNestedIncludes` in
+    // `collection-dispatch.ts` unconditionally routed any nested include
+    // through `dispatchWithMultiQueryIncludes`, so depth-2
+    // (`users { posts { author … } }`) emitted three SELECTs — one per
+    // relation level — the N+1 fan-out. As of prisma-next 0.14.0 this is
+    // fixed: the whole tree collapses into a single nested-include
+    // statement. The plugin gets this for free — it only builds the
+    // `.include()` tree; prisma-next picks the execution strategy.
     const { result, captures } = await runQuery(
       '{ users { id posts { id author { id firstName } } } }',
     );
@@ -323,14 +357,8 @@ describe('runtime: end-to-end against real sqlite', () => {
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice?.posts[0]?.author?.firstName).toBeTruthy();
 
-    // Today this query emits exactly 3 SQL statements (one per relation
-    // level — users, posts, authors). If upstream collapses to one
-    // single-query lateral/correlated SELECT, this pin tightens.
-    // Until then it documents the N+1 fan-out:
-    //   SELECT "user"."id" FROM "user"
-    //   SELECT "post"."id", "post"."authorId" FROM "post" WHERE "post"."authorId" IN (...)
-    //   SELECT "user"."id", "user"."firstName" FROM "user" WHERE "user"."id" IN (...)
-    expect(captures.length).toBeGreaterThan(1);
+    // Single statement now — the depth-2 tree resolves in one nested SELECT.
+    expect(captures.length).toBe(1);
   });
 
   it('exposes a function-form count() on the parent', async () => {
@@ -361,6 +389,75 @@ describe('runtime: end-to-end against real sqlite', () => {
     const byId = Object.fromEntries(data.users.map((u) => [u.id, u.publishedPostCountAgg]));
     // Alice: 1 published (p-hello), 1 draft (p-draft1). Bob: 1 of each.
     expect(byId).toEqual({ 'u-alice': 1, 'u-bob': 1 });
+  });
+
+  it('t.relationCount exposes a relation row count, optionally filtered', async () => {
+    const { result } = await runQuery(`{
+      users {
+        id
+        relCount
+        relCountPublished
+        zero: relCountByFlag(flag: 0)
+        one: relCountByFlag(flag: 1)
+      }
+    }`);
+    expect(result.errors).toBeUndefined();
+    const data = result.data as {
+      users: Array<{
+        id: string;
+        relCount: number;
+        relCountPublished: number;
+        zero: number;
+        one: number;
+      }>;
+    };
+    const byId = Object.fromEntries(
+      data.users.map((u) => [
+        u.id,
+        { all: u.relCount, pub: u.relCountPublished, zero: u.zero, one: u.one },
+      ]),
+    );
+    // Each user has 2 posts: 1 published (published=1), 1 draft (published=0).
+    expect(byId).toEqual({
+      'u-alice': { all: 2, pub: 1, zero: 1, one: 1 },
+      'u-bob': { all: 2, pub: 1, zero: 1, one: 1 },
+    });
+  });
+
+  it('t.relationAggregate exposes sum/min/max of a numeric relation column', async () => {
+    const { result } = await runQuery(
+      '{ users { id relSumPublished relMaxPublished relMinPublished } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const data = result.data as {
+      users: Array<{
+        id: string;
+        relSumPublished: number | null;
+        relMaxPublished: number | null;
+        relMinPublished: number | null;
+      }>;
+    };
+    const byId = Object.fromEntries(
+      data.users.map((u) => [
+        u.id,
+        { sum: u.relSumPublished, max: u.relMaxPublished, min: u.relMinPublished },
+      ]),
+    );
+    // published values across each user's 2 posts: {0, 1}. sum=1, max=1, min=0.
+    expect(byId).toEqual({
+      'u-alice': { sum: 1, max: 1, min: 0 },
+      'u-bob': { sum: 1, max: 1, min: 0 },
+    });
+  });
+
+  it('object-form select emits multiple aggregate slots in one combine', async () => {
+    const { result } = await runQuery('{ users { id postStats } }');
+    expect(result.errors).toBeUndefined();
+    const data = result.data as { users: Array<{ id: string; postStats: string }> };
+    const byId = Object.fromEntries(data.users.map((u) => [u.id, u.postStats]));
+    // total/sumPublished/maxPublished: each user has 2 posts, sum of
+    // published = 1, max published = 1.
+    expect(byId).toEqual({ 'u-alice': '2/1/1', 'u-bob': '2/1/1' });
   });
 
   it('select callback form picks columns based on field args', async () => {

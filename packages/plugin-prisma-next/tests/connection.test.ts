@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { execute, parse } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import prismaNextPlugin, { type ModelAccessor, prismaConnectionHelpers } from '../src';
 import {
   createTestRuntime,
   type SampleContract,
@@ -137,7 +137,7 @@ function buildSchema() {
   const aliceOnly = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
     defaultSize: 10,
-    where: (u) => u.firstName.eq('Alice'),
+    where: (u: ModelAccessor<SampleContract, 'User'>) => u.firstName.eq('Alice'),
     totalCount: true,
   });
 
@@ -171,7 +171,9 @@ function buildSchema() {
             info,
             _ctx,
           );
-          const rows = await collection.where((u) => u.firstName.eq(args.search)).all();
+          const rows = await collection
+            .where((u: ModelAccessor<SampleContract, 'User'>) => u.firstName.eq(args.search))
+            .all();
           return wrap(rows) as never;
         },
       }),
@@ -268,7 +270,9 @@ function buildSchema() {
             info,
             _ctx,
           );
-          const rows = await collection.where((u) => u.firstName.eq(args.q)).all();
+          const rows = await collection
+            .where((u: ModelAccessor<SampleContract, 'User'>) => u.firstName.eq(args.q))
+            .all();
           return wrap(rows) as never;
         },
       }),

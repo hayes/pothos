@@ -497,11 +497,13 @@ export async function compileAndExecute(
 
   // Pothos plugins are workspace packages — bundled locally so the
   // playground always runs the same version that ships with the docs.
-  // The @prisma-next/* runtime is similarly vendored under
-  // website/vendor/prisma-next/ with a sql.js-backed driver shim so the
-  // prisma-next demo can run fully in-browser. Everything else (zod,
-  // lodash, anything the user types) goes through the esm.sh CDN at
-  // runtime; ATA fetches matching types at edit time.
+  // The @prisma-next/* runtime comes from the published npm packages
+  // (0.14.0), except @prisma-next/driver-sqlite, which is aliased (see
+  // next.config.mjs) to a sql.js-backed shim under
+  // lib/playground/prisma-next/driver-sqlite/ so the prisma-next demo
+  // can run fully in-browser. Everything else (zod, lodash, anything the
+  // user types) goes through the esm.sh CDN at runtime; ATA fetches
+  // matching types at edit time.
   const pluginModules = getPluginModules(code);
   const prismaNextModules = getPrismaNextModules(code);
 

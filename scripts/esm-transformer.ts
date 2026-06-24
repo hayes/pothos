@@ -19,7 +19,14 @@ function resolveImport(mod: string, source: string) {
   }
 
   if (!mod.startsWith('.')) {
-    return `${mod}${require.resolve(mod, { paths: [process.cwd()] }).split(mod)[1]}`;
+    // Extensionless deep imports (e.g. `pkg/lib/foo`) need the resolved suffix
+    // appended (`.js`). But a subpath that resolves via the package's `exports`
+    // map (e.g. `@scope/pkg/subpath` → `dist/subpath.mjs`) yields a resolved
+    // path that doesn't contain the literal specifier, so `.split(mod)[1]` is
+    // `undefined` — in that case leave the bare specifier as-is and let the
+    // exports map resolve it at runtime.
+    const suffix = require.resolve(mod, { paths: [process.cwd()] }).split(mod)[1];
+    return suffix ? `${mod}${suffix}` : mod;
   }
 
   const potentialPaths = [

@@ -25,6 +25,7 @@ import {
 import type { PreparedFieldExtension } from './extensions';
 import type { AnyContract } from './types';
 import { createApply } from './utils/apply';
+import { resolveContractModel } from './utils/contract';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options';
 
 export type {
@@ -34,15 +35,16 @@ export type {
   Collection,
   CreateInput,
   GroupedCollection,
-  IncludeRefinementCollection,
-  IncludeRefinementResult,
-  IsToManyRelation,
   ModelAccessor,
   RelationFilterAccessor,
   RelationPredicate,
   ShorthandWhereFilter,
   UniqueConstraintCriterion,
 } from '@prisma-next/sql-orm-client';
+// `IncludeRefinementCollection` and `IsToManyRelation` are re-exported via
+// `export * from './types'` below — orm-client made them internal in 0.14.0,
+// so the plugin owns reconstructed copies. `IncludeRefinementResult` was
+// dropped (see the note in ./types).
 export { all, and, not, or } from '@prisma-next/sql-orm-client';
 export type { PrismaConnectionHelpers } from './connection-helpers';
 export { prismaConnectionHelpers } from './connection-helpers';
@@ -73,16 +75,48 @@ const pluginName = 'prismaNext';
 export default pluginName;
 
 /**
+ * Junction descriptor for an N:M relation, mirroring prisma-next's
+ * `ContractRelationThrough`. Present only on many-to-many relations; the
+ * walker uses its presence as the "this is a junction relation" flag and
+ * carries the columns for any future junction-aware stitching.
+ */
+export interface PrismaNextRelationThrough {
+  /** Junction table name. */
+  readonly table: string;
+  /** Namespace that owns the junction table. */
+  readonly namespaceId: string;
+  /** Junction FK columns → parent. */
+  readonly parentColumns: readonly string[];
+  /** Junction FK columns → target. */
+  readonly childColumns: readonly string[];
+  /** Target PK columns referenced by `childColumns`. */
+  readonly targetColumns: readonly string[];
+}
+
+/**
  * Per-relation metadata baked into the type's extension at schema
  * build. The walker consumes this instead of probing the contract per
- * request; M:N detection runs here once, fail-fast.
+ * request; cardinality detection runs here once, fail-fast.
  */
 export interface PrismaNextRelationMeta {
   readonly isToMany: boolean;
-  /** Parent-side FK columns; augmented into parent SELECT for depth-2+ stitching. */
+  /**
+   * Parent-side columns the join keys against; augmented into the parent
+   * SELECT for depth-2+ stitching. For a reference relation these are the
+   * parent FK columns (`on.localFields`); for an N:M relation they are the
+   * parent columns the junction references (also `on.localFields`, which
+   * prisma-next resolves into `through.parentLocalColumns`).
+   */
   readonly localFields: readonly string[];
   /** Target model name in the contract. */
   readonly targetModel: string;
+  /**
+   * Junction descriptor for N:M relations; `undefined` for reference and
+   * embed relations. Its presence marks the relation as a junction join
+   * (prisma-next emits the junction query internally from the contract's
+   * `through`, so the walker just needs to know it exists).
+   */
+  readonly through?: PrismaNextRelationThrough;
 }
 
 /**
@@ -135,67 +169,53 @@ function buildRelationMeta(
   contract: AnyContract,
   typeName: string,
 ): Record<string, PrismaNextRelationMeta> | undefined {
-  const modelDef = (contract as { models: Record<string, unknown> }).models[modelName] as
-    | {
-        relations?: Record<
-          string,
-          {
-            cardinality?: string;
-            to?: string;
-            on?: { localFields?: readonly string[] };
-          }
-        >;
-      }
-    | undefined;
-  const rels = modelDef?.relations;
+  const rels = resolveContractModel(contract, modelName)?.relations;
   if (!rels) {
     return undefined;
   }
   const out: Record<string, PrismaNextRelationMeta> = {};
   for (const [name, rel] of Object.entries(rels)) {
-    // M:N spelling drift: prisma-next's contract emit produces 'N:M'
-    // (contract-ts contract-lowering.ts), the orm-client's
-    // RelationCardinalityTag uses 'M:N'. Catch both. Either way,
-    // the orm-client's include API has no junction-table support
-    // (no read path handles `through`), so M:N relations can't be
-    // joined through `.include()` even though the DSL accepts
-    // `rel.manyToMany`. Reject at schema build with the real reason.
-    if (rel.cardinality === 'N:M' || rel.cardinality === 'M:N') {
-      throw new PothosSchemaError(
-        `Relation '${typeName}.${name}' (model '${modelName}') is many-to-many. ` +
-          "prisma-next's orm-client doesn't implement junction-table joins yet, " +
-          "so the plugin can't auto-include this relation. " +
-          'Workaround: model the junction as its own contract model and chain two ' +
-          '`t.relation` calls (User → UserTag → Tag).',
-      );
-    }
-    // Explicit allowlist: anything other than the known cardinalities
-    // surfaces as a schema error. Defends against silent mis-routing
-    // when the contract grows new cardinality tags.
-    const isToMany = rel.cardinality === '1:N';
+    // N:M is a to-many junction relation. As of prisma-next 0.14.0 the
+    // orm-client resolves the junction join internally from the
+    // relation's `through` block (see tests/prisma-next-m-n-upstream-pin),
+    // so `.include('<n:m rel>')` flattens the related rows in a single
+    // query. The plugin emits the include like any other to-many relation
+    // and carries the `through` descriptor as the junction marker. (The
+    // contract tags this 'N:M'; there is no 'M:N' spelling in either
+    // prisma-next package.)
+    const isToMany = rel.cardinality === '1:N' || rel.cardinality === 'N:M';
+    // Explicit allowlist: guards against new cardinality tags a future
+    // contract might grow. With today's union this leaves '1:1' / 'N:1'.
     if (!isToMany && rel.cardinality !== '1:1' && rel.cardinality !== 'N:1') {
       throw new PothosSchemaError(
         `Relation '${typeName}.${name}' (model '${modelName}') has unknown cardinality ` +
-          `'${String(rel.cardinality)}'. Expected '1:1' / 'N:1' / '1:N'.`,
+          `'${rel.cardinality}'. Expected '1:1' / 'N:1' / '1:N' / 'N:M'.`,
       );
     }
     out[name] = {
       isToMany,
-      localFields: rel.on?.localFields ?? [],
-      targetModel: rel.to ?? '',
+      // Embed relations carry no FK columns (`on`); reference and junction
+      // relations do. For N:M these are the parent columns the junction
+      // references (prisma-next resolves them into `through.parentLocalColumns`),
+      // so augmenting them into the parent SELECT is correct — the parent
+      // has no direct FK, but it does have the keyed columns the junction
+      // joins against.
+      localFields: 'on' in rel ? rel.on.localFields : [],
+      targetModel: rel.to.model,
+      // N:M relations carry a `through`; the union narrows to
+      // `ContractManyToManyRelation` on the cardinality check.
+      ...(rel.cardinality === 'N:M' ? { through: rel.through } : {}),
     };
   }
   return out;
 }
 
 function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<string> | undefined {
-  const modelDef = (contract as { models: Record<string, unknown> }).models[modelName] as
-    | { fields?: Record<string, unknown> }
-    | undefined;
-  if (!modelDef?.fields) {
+  const fields = resolveContractModel(contract, modelName)?.fields;
+  if (!fields) {
     return undefined;
   }
-  return new Set(Object.keys(modelDef.fields));
+  return new Set(Object.keys(fields));
 }
 
 /**
@@ -226,12 +246,10 @@ function normalizeRowsForType(
   if (!modelName) {
     return value;
   }
-  const modelDef = (contract as { models: Record<string, { relations?: Record<string, unknown> }> })
-    .models[modelName];
-  if (!modelDef?.relations) {
+  const relations = resolveContractModel(contract, modelName)?.relations;
+  if (!relations) {
     return value;
   }
-  const relations = modelDef.relations;
   const entries = Object.entries(spec as Record<string, unknown>).filter(
     ([k]) => relations[k] !== undefined,
   );
@@ -301,8 +319,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     // Precompute per-relation metadata + the model's column set at
     // schema-build time so the walker doesn't probe the contract per
-    // request. M:N + unknown-cardinality rejection also fires here
-    // (fail-fast), not on first request.
+    // request. Unknown-cardinality rejection also fires here (fail-fast),
+    // not on first request.
     const opts = readPluginOptions<AnyContract>(this.builder);
     const relations: Record<string, PrismaNextRelationMeta> | undefined = opts?.contract
       ? buildRelationMeta(model, opts.contract, typeConfig.name)
