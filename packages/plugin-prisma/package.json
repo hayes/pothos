@@ -73,7 +73,7 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "@prisma/client": "*",
-    "graphql": "^16.10.0",
+    "graphql": "^16.10.0 || ^17.0.0",
     "typescript": ">=4.7.2"
   },
   "devDependencies": {

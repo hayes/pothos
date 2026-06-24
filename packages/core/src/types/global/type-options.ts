@@ -1,4 +1,5 @@
 import type {
+  ConstValueNode,
   EnumTypeDefinitionNode,
   EnumValueDefinitionNode,
   GraphQLIsTypeOfFn,
@@ -130,12 +131,24 @@ declare global {
       ScalarInputShape = unknown,
       ScalarOutputShape = unknown,
     > extends BaseTypeOptions<Types> {
-      // Serializes an internal value to include in a response.
-      serialize: (outputValue: ScalarOutputShape) => unknown;
+      // Serializes an internal value to include in a response. Required unless the graphql 17+
+      // `coerceOutputValue` is provided instead — one of the two must be set for output to serialize.
+      serialize?: (outputValue: ScalarOutputShape) => unknown;
       // Parses an externally provided value to use as an input.
       parseValue?: GraphQLScalarValueParser<ScalarInputShape>;
       // Parses an externally provided literal value to use as an input.
       parseLiteral?: GraphQLScalarLiteralParser<ScalarInputShape>;
+      // graphql 17 coercion hooks. These are only consulted on graphql 17+ — on graphql 16 use
+      // `serialize`/`parseValue`/`parseLiteral` (which also keep working on 17). `coerceInputLiteral`
+      // receives a const value node with variables already replaced, and graphql requires it to be
+      // paired with `coerceInputValue` (it throws at schema build otherwise). When both `serialize`
+      // and `coerceOutputValue` are set, graphql uses `serialize`.
+      coerceOutputValue?: (outputValue: ScalarOutputShape) => unknown;
+      coerceInputValue?: GraphQLScalarValueParser<ScalarInputShape>;
+      coerceInputLiteral?: (valueNode: ConstValueNode) => ScalarInputShape | null | undefined;
+      // Converts an external value to a const literal. Used by graphql 17+ when printing default
+      // values for this scalar; without it custom-scalar defaults fall back to a generic conversion.
+      valueToLiteral?: (value: unknown) => ConstValueNode | undefined;
       astNode?: ScalarTypeDefinitionNode;
     }
 

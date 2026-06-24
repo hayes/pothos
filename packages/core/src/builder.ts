@@ -558,6 +558,18 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       parseLiteral: options.parseLiteral,
       parseValue: options.parseValue,
       serialize: options.serialize as GraphQLScalarSerializer<OutputShape<Types, Name>>,
+      // graphql 17 coercion hooks; spread so the keys don't trip graphql 16's narrower
+      // GraphQLScalarTypeConfig (which doesn't declare them). They are ignored on graphql 16.
+      ...(options.coerceOutputValue
+        ? {
+            coerceOutputValue: options.coerceOutputValue as GraphQLScalarSerializer<
+              OutputShape<Types, Name>
+            >,
+          }
+        : {}),
+      ...(options.coerceInputValue ? { coerceInputValue: options.coerceInputValue } : {}),
+      ...(options.coerceInputLiteral ? { coerceInputLiteral: options.coerceInputLiteral } : {}),
+      ...(options.valueToLiteral ? { valueToLiteral: options.valueToLiteral } : {}),
       pothosOptions: options as unknown as PothosSchemaTypes.ScalarTypeOptions,
       extensions: options.extensions,
       astNode: options.astNode,

@@ -23,15 +23,15 @@ import { dataloaderGetter } from './util';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.loadableObjectRef = function loadableObjectRef(name, options) {
-  return new ImplementableLoadableObjectRef(this, name, options);
+  return new ImplementableLoadableObjectRef(this, name, options as never);
 };
 
 schemaBuilderProto.loadableInterfaceRef = function loadableInterfaceRef(name, options) {
-  return new ImplementableLoadableInterfaceRef(this, name, options);
+  return new ImplementableLoadableInterfaceRef(this, name, options as never);
 };
 
 schemaBuilderProto.loadableNodeRef = function loadableNodeRef(name, options) {
-  return new ImplementableLoadableNodeRef(this, name, options);
+  return new ImplementableLoadableNodeRef(this, name, options as never);
 };
 
 schemaBuilderProto.loadableObject = function loadableObject<

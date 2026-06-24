@@ -31,7 +31,8 @@
       "!**/public/playground-examples/*.json",
       "!**/playground-examples/**/*.json",
       "!**/website/vendor",
-      "!**/lib/playground/prisma-next/driver-sqlite/**/*"
+      "!**/lib/playground/prisma-next/driver-sqlite/**/*",
+      "!**/graphql-env.d.ts"
     ]
   },
   "formatter": {

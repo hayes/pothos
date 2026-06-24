@@ -1,5 +1,11 @@
 import { PothosSchemaError } from '@pothos/core';
-import { GraphQLList, type GraphQLNamedType, GraphQLNonNull, type GraphQLType } from 'graphql';
+import {
+  GraphQLList,
+  type GraphQLNamedType,
+  GraphQLNonNull,
+  type GraphQLNullableType,
+  type GraphQLType,
+} from 'graphql';
 
 export function replaceType<T extends GraphQLType>(
   type: T,
@@ -9,7 +15,7 @@ export function replaceType<T extends GraphQLType>(
 ): T {
   if (type instanceof GraphQLNonNull) {
     return new GraphQLNonNull(
-      replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraphs),
+      replaceType(type.ofType as GraphQLNullableType, newTypes, referencedBy, subGraphs),
     ) as T;
   }
 

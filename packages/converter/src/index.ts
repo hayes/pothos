@@ -1,4 +1,5 @@
 import {
+  type GraphQLArgument,
   GraphQLEnumType,
   type GraphQLEnumValue,
   type GraphQLField,
@@ -496,7 +497,12 @@ export default class PothosConverter {
 
   writeDescription(
     writer: CodeBlockWriter,
-    type: GraphQLEnumValue | GraphQLField<unknown, unknown> | GraphQLInputField | GraphQLNamedType,
+    type:
+      | GraphQLArgument
+      | GraphQLEnumValue
+      | GraphQLField<unknown, unknown>
+      | GraphQLInputField
+      | GraphQLNamedType,
   ) {
     if (type.description) {
       writer.write('description:');

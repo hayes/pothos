@@ -1,7 +1,7 @@
 {
   "private": true,
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "3.1.38",
+  "version": "3.1.39",
   "name": "@pothos-examples/prisma",
   "type": "module",
   "engines": {
@@ -13,7 +13,7 @@
     "generate": "prisma generate",
     "seed": "prisma migrate reset -f",
     "start": "node src/server.ts",
-    "type": "tsc --noEmit"
+    "type": "tsgo --noEmit"
   },
   "prisma": {
     "seed": "node prisma/seed.ts"

@@ -1,6 +1,0 @@
-overwrite: true
-schema: schema.graphql
-documents: 'components/**/!(*.generated).tsx'
-generates:
-  components/__generated__/:
-    preset: 'client'

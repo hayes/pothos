@@ -1,4 +1,4 @@
-import { execute } from 'graphql';
+import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
 import { prisma, queries } from './example/builder';
 import schema from './example/schema';

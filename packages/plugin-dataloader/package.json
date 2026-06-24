@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-dataloader",
-  "version": "4.4.3",
+  "version": "4.4.4",
   "description": "A Pothos plugin for attaching dataloader to object types",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -45,7 +45,7 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "dataloader": "2",
-    "graphql": "^16.10.0"
+    "graphql": "^16.10.0 || ^17.0.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
