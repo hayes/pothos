@@ -1,0 +1,4 @@
+# Public query - works without authentication
+query PublicMessage {
+  message
+}

@@ -1,0 +1,12 @@
+query Counts {
+  # `postCount` runs `.count()` inside an `.include('posts', …)` on the
+  # parent collection. `publishedPostCount` is the same, with a
+  # `.where(p => p.published.eq(1))` ahead of the count. Both share the
+  # parent include — the walker namespaces their combine slots so the
+  # two counts come back as distinct values per row.
+  users {
+    firstName
+    postCount
+    publishedPostCount
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "simple-objects-plugin",
+  "title": "Simple Objects Plugin",
+  "description": "Define objects without explicit TypeScript types",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "beginner",
+  "order": 12,
+  "tags": ["objects", "types", "simple"],
+  "relatedDocs": ["/docs/plugins/simple-objects"],
+  "prerequisites": ["01-first-schema"],
+  "snippets": [
+    {
+      "label": "Simple Object",
+      "filename": "schema.ts",
+      "startLine": 10,
+      "endLine": 19,
+      "description": "Create objects with inferred TypeScript types"
+    },
+    {
+      "label": "Simple Interface",
+      "filename": "schema.ts",
+      "startLine": 21,
+      "endLine": 28,
+      "description": "Create interfaces without explicit types"
+    }
+  ]
+}

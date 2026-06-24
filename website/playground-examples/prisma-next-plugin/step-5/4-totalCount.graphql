@@ -1,0 +1,23 @@
+query TotalCount {
+  # `totalCount: true` on the connection field adds a `totalCount: Int!`
+  # field to the connection's GraphQL type AND runs an aggregate
+  # `count()` against the relation's refine collection BEFORE
+  # pagination kicks in. The count fires only when the client selects
+  # it — no work paid for unused.
+  #
+  # The aggregate goes through `.combine`, which today forces
+  # prisma-next's planner into a multi-statement plan (tracked
+  # upstream). Watch the SQL panel: you'll see the page query and the
+  # count query as separate statements.
+  user(id: "u-alice") {
+    postsConnection(first: 1) {
+      totalCount
+      edges {
+        node {
+          id
+          title
+        }
+      }
+    }
+  }
+}

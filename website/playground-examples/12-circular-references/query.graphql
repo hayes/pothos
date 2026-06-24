@@ -1,0 +1,55 @@
+# Query user with their posts
+query UserWithPosts {
+  user(id: "1") {
+    id
+    name
+    email
+    posts {
+      id
+      title
+      content
+    }
+  }
+}
+
+# Query post with its author
+query PostWithAuthor {
+  post(id: "1") {
+    id
+    title
+    content
+    author {
+      id
+      name
+      email
+    }
+  }
+}
+
+# Query with bidirectional traversal
+query BidirectionalQuery {
+  user(id: "1") {
+    id
+    name
+    posts {
+      id
+      title
+      author {
+        id
+        name
+      }
+    }
+  }
+}
+
+# Query all users with their posts
+query AllUsersAndPosts {
+  users {
+    id
+    name
+    posts {
+      id
+      title
+    }
+  }
+}

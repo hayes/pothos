@@ -1,0 +1,35 @@
+{
+  "id": "01-first-schema",
+  "title": "First Schema",
+  "description": "Learn to create your first Pothos schema with objects and queries",
+  "category": "core",
+  "subcategory": "getting-started",
+  "difficulty": "beginner",
+  "order": 1,
+  "tags": ["objects", "queries", "basics"],
+  "relatedDocs": ["/docs/guide/objects", "/docs/guide/queries-mutations-and-subscriptions"],
+  "prerequisites": [],
+  "snippets": [
+    {
+      "label": "Creating an ObjectRef",
+      "filename": "schema.ts",
+      "startLine": 11,
+      "endLine": 12,
+      "description": "Use objectRef to create a type-safe reference to your GraphQL object type"
+    },
+    {
+      "label": "Implementing the type",
+      "filename": "schema.ts",
+      "startLine": 14,
+      "endLine": 32,
+      "description": "Define the fields for your object type with expose methods and computed fields"
+    },
+    {
+      "label": "Adding a Query",
+      "filename": "schema.ts",
+      "startLine": 34,
+      "endLine": 46,
+      "description": "Create a query that returns your object type"
+    }
+  ]
+}

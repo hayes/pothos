@@ -7,7 +7,7 @@ description: Guide for defining Input Object types in Pothos
 
 Input objects can be created using `builder.inputType`.
 
-```typescript
+```typescript playground example="03-input-objects"
 const GiraffeInput = builder.inputType('GiraffeInput', {
   fields: (t) => ({
     name: t.string({ required: true }),

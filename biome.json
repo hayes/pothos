@@ -1,16 +1,22 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
   "files": {
+    "ignoreUnknown": true,
+    "maxSize": 5242880,
     "includes": [
       "**",
       "!**/.claude/worktrees",
+      "!**/node_modules",
+      "!**/.next",
       "!**/.turbo",
       "!**/.source",
+      "!**/playwright-report",
+      "!**/test-results",
       "!**/examples/**/dist/**/*",
       "!**/examples/**/prisma/**/*",
       "!**/packages/**/prisma/**/*",
-      "!**/packages/plugin-prisma/**/client/**/*",
-      "!**/packages/plugin-prisma-utils/**/client/**/*",
+      "!**/packages/**/client/**/*",
+      "!**/packages/plugin-prisma-next/tests/fixtures/**/*",
       "!**/packages/**/*/lib/**/*",
       "!**/packages/**/*/esm/**/*",
       "!**/packages/**/*/dts/**/*",
@@ -20,6 +26,12 @@
       "!**/generated.ts",
       "!**/codegen/schema/prisma-inputs.ts",
       "!**/schema.graphql",
+      "!**/lib/playground/pothos-types.ts",
+      "!**/components/playground/examples/examples-index.generated.ts",
+      "!**/public/playground-examples/*.json",
+      "!**/playground-examples/**/*.json",
+      "!**/website/vendor",
+      "!**/lib/playground/prisma-next/driver-sqlite/**/*",
       "!**/graphql-env.d.ts"
     ]
   },
@@ -307,6 +319,16 @@
         "rules": {
           "style": {
             "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.worker.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": "off"
           }
         }
       }

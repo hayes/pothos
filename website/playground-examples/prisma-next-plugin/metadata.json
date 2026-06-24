@@ -1,0 +1,49 @@
+{
+  "id": "prisma-next-plugin",
+  "title": "Prisma Next Plugin",
+  "description": "How Pothos field declarations map to prisma-next orm calls — runs in-browser via sql.js, with live SQL + ORM panels next to the response.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "advanced",
+  "order": 20,
+  "tags": ["prisma", "prisma-next", "orm", "sqlite", "relations", "relay"],
+  "relatedDocs": ["/docs/plugins/prisma-next"],
+  "prerequisites": ["01-first-schema", "relay-plugin"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Selection-driven SELECT",
+      "description": "Wire the client, register one prismaObject, expose a list query — and watch the SQL `SELECT` column list track the GraphQL fields you ask for.",
+      "order": 1,
+      "defaultActiveFile": "schema.ts"
+    },
+    {
+      "id": "step-2",
+      "title": "Relations and includes",
+      "description": "Add Post + Comment with `t.relation`. Nested selections compile to one `.include(...)` chain; depth-3 includes show the planner's multi-query fallback.",
+      "order": 2,
+      "defaultActiveFile": "user.ts"
+    },
+    {
+      "id": "step-3",
+      "title": "Per-field `select` + aggregates",
+      "description": "Computed fields (`fullName`) declare column deps via `select: [...]`. Aggregates use the function-form `select: { rel: sub => ({ key: sub.count() }) }` — same machinery as `t.relation`.",
+      "order": 3,
+      "defaultActiveFile": "user.ts"
+    },
+    {
+      "id": "step-4",
+      "title": "Args, filters, alias `.combine`",
+      "description": "Top-level `.where(...)` in resolvers; per-field `args` + `query` on `t.relation`. Aliased relations with different args force a `.combine` and the planner's multi-statement fallback.",
+      "order": 4,
+      "defaultActiveFile": "schema.ts"
+    },
+    {
+      "id": "step-5",
+      "title": "Relay nodes + cursor pagination",
+      "description": "`prismaNode` registers a batched `node(id:)` loader. `t.relatedConnection` lays cursor pagination over a to-many relation — single-column cursor, backward (`last:`), parallel `totalCount`, and lexicographic compound cursors over `[createdAt, id]`.",
+      "order": 5,
+      "defaultActiveFile": "user.ts"
+    }
+  ]
+}

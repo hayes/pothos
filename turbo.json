@@ -26,6 +26,10 @@
     "test": {
       "dependsOn": ["generate", "^build"],
       "outputs": []
+    },
+    "@pothos/website#generate": {
+      "dependsOn": ["^build"],
+      "cache": false
     }
   }
 }

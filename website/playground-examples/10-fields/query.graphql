@@ -1,0 +1,40 @@
+query FieldExamples {
+  # Simple scalar fields (convenience methods)
+  id
+  int
+  float
+  boolean
+  string
+  idList
+  intList
+  floatList
+  booleanList
+  stringList
+
+  # Object field with arguments
+  product(id: "1") {
+    id
+    name
+    price
+    inStock
+    tags
+    description
+    displayPrice
+    tagMatches(tag: "electronics")
+    relatedTags
+  }
+
+  # List field
+  products {
+    id
+    name
+    displayPrice
+  }
+
+  # List field with arguments
+  searchProducts(tag: "electronics") {
+    id
+    name
+    tags
+  }
+}

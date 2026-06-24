@@ -6,7 +6,7 @@ description: Guide for adding queries, mutations and subscriptions to your schem
 There are a few different ways to add queries to your schema. The simplest way is to define a
 `Query` type with your query fields using the `builder.queryType()` method.
 
-```typescript
+```typescript playground example="02-queries-mutations"
 builder.queryType({
   fields: (t) => ({
     // Add query for a simple scalar type
@@ -86,7 +86,7 @@ builder.queryFields((t) => ({
 Mutations work just like queries, and you can use the `builder.mutationType()`,
 `builder.mutationField()`, and `builder.mutationFields()` methods to add mutations to your schema.
 
-```typescript
+```typescript playground example="02-queries-mutations"
 builder.mutationType({
   fields: (t) => ({
     // Add mutation that returns a simple boolean
@@ -94,7 +94,7 @@ builder.mutationType({
       args: {
         message: t.arg.string(),
       },
-      resolve: async (root, args) => {
+      resolve: async (_root, args) => {
         // Do something with the message
         const success = await messageClient.postMessage(args.message);
 

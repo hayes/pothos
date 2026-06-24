@@ -1,0 +1,28 @@
+{
+  "id": "with-input-plugin",
+  "title": "With-Input Plugin",
+  "description": "Simplified input patterns for mutations",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "beginner",
+  "order": 13,
+  "tags": ["with-input", "mutations", "inputs"],
+  "relatedDocs": ["/docs/plugins/with-input"],
+  "prerequisites": ["03-input-objects"],
+  "snippets": [
+    {
+      "label": "Setup With-Input Plugin",
+      "filename": "schema.ts",
+      "startLine": 1,
+      "endLine": 6,
+      "description": "Import and configure the with-input plugin"
+    },
+    {
+      "label": "Using fieldWithInput",
+      "filename": "schema.ts",
+      "startLine": 15,
+      "endLine": 32,
+      "description": "Define mutation with auto-generated input type"
+    }
+  ]
+}

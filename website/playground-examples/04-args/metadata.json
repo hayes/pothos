@@ -1,0 +1,28 @@
+{
+  "id": "04-args",
+  "title": "Using Args",
+  "description": "Learn to define and use arguments for queries and fields",
+  "category": "core",
+  "subcategory": "getting-started",
+  "difficulty": "beginner",
+  "order": 4,
+  "tags": ["arguments", "fields", "scalars"],
+  "relatedDocs": ["/docs/guide/args"],
+  "prerequisites": ["01-first-schema", "02-queries-mutations"],
+  "snippets": [
+    {
+      "label": "Scalar Arguments",
+      "filename": "schema.ts",
+      "startLine": 6,
+      "endLine": 25,
+      "description": "Using t.arg convenience methods for scalar arguments"
+    },
+    {
+      "label": "Required Arguments",
+      "filename": "schema.ts",
+      "startLine": 27,
+      "endLine": 43,
+      "description": "Making arguments required with the required option"
+    }
+  ]
+}

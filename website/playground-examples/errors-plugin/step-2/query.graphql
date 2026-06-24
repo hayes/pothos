@@ -1,0 +1,22 @@
+# Try `id: "99"` to trigger NotFoundError, or `id: "abc"` for
+# ValidationError. The result union surfaces both error types alongside
+# the success type so clients can pattern-match on __typename.
+query LookupUser {
+  user(id: "1") {
+    __typename
+    ... on QueryUserSuccess {
+      data {
+        id
+        name
+      }
+    }
+    ... on NotFoundError {
+      message
+      id
+    }
+    ... on ValidationError {
+      message
+      field
+    }
+  }
+}

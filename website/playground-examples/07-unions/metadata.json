@@ -1,0 +1,28 @@
+{
+  "id": "07-unions",
+  "title": "Unions",
+  "description": "Learn to define union types for polymorphic return values",
+  "category": "core",
+  "subcategory": "type-system",
+  "difficulty": "intermediate",
+  "order": 7,
+  "tags": ["unions", "polymorphism"],
+  "relatedDocs": ["/docs/guide/unions"],
+  "prerequisites": ["01-first-schema"],
+  "snippets": [
+    {
+      "label": "Defining Union",
+      "filename": "schema.ts",
+      "startLine": 29,
+      "endLine": 40,
+      "description": "Create a union type with resolveType function"
+    },
+    {
+      "label": "Using Union",
+      "filename": "schema.ts",
+      "startLine": 42,
+      "endLine": 61,
+      "description": "Return union types from queries"
+    }
+  ]
+}

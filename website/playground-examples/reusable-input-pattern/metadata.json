@@ -1,0 +1,12 @@
+{
+  "id": "reusable-input-pattern",
+  "title": "Reusable Input Fields Pattern",
+  "description": "Create type-safe reusable input field builders for DRY input types",
+  "category": "patterns",
+  "subcategory": "advanced-patterns",
+  "difficulty": "advanced",
+  "order": 3,
+  "tags": ["patterns", "input", "dry", "type-safety"],
+  "relatedDocs": ["/docs/guide/patterns"],
+  "prerequisites": ["03-input-objects", "02-queries-mutations"]
+}

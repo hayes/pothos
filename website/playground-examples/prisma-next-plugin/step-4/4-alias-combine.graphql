@@ -1,0 +1,17 @@
+query AliasCombine {
+  # Two GraphQL aliases on the same `posts` relation, with different
+  # args. The walker can't merge them — each needs its own filter —
+  # so it wraps the include in `.combine({ recent: {...}, oldest: {...} })`.
+  # That hits a current prisma-next planner limit: any `.combine(...)`
+  # forces a multi-statement plan, which you'll see in the SQL panel.
+  # The GraphQL response stitches correctly either way.
+  user(id: "u-alice") {
+    firstName
+    recent: posts {
+      title
+    }
+    oldest: posts(oldestFirst: true) {
+      title
+    }
+  }
+}

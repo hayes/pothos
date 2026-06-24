@@ -1,0 +1,13 @@
+{
+  "title": "Prisma Next",
+  "pages": [
+    "index",
+    "setup",
+    "objects",
+    "relations",
+    "interfaces",
+    "relay",
+    "connections",
+    "variants"
+  ]
+}

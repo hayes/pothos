@@ -74,14 +74,14 @@ as many you need.
 
 ### Using a scope on a field
 
-```typescript
+```typescript playground example="scope-auth-plugin"
 builder.queryType({
   fields: (t) => ({
     message: t.string({
       authScopes: {
         public: true,
       },
-      resolve: () => 'hi',
+      resolve: () => 'Hello, world!',
     }),
   }),
 });

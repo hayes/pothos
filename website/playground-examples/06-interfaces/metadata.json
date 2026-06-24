@@ -1,0 +1,28 @@
+{
+  "id": "06-interfaces",
+  "title": "Interfaces",
+  "description": "Learn to define interface types and implement them with objects",
+  "category": "core",
+  "subcategory": "type-system",
+  "difficulty": "intermediate",
+  "order": 6,
+  "tags": ["interfaces", "polymorphism"],
+  "relatedDocs": ["/docs/guide/interfaces"],
+  "prerequisites": ["01-first-schema", "05-enums"],
+  "snippets": [
+    {
+      "label": "Defining Interface",
+      "filename": "schema.ts",
+      "startLine": 26,
+      "endLine": 35,
+      "description": "Create an interface type with shared fields"
+    },
+    {
+      "label": "Implementing Interface",
+      "filename": "schema.ts",
+      "startLine": 37,
+      "endLine": 46,
+      "description": "Implement interface with object type using isTypeOf"
+    }
+  ]
+}

@@ -31,7 +31,7 @@ const Query = builder.queryType({
 
 ### Using convenience methods
 
-```typescript
+```typescript playground example="04-args"
 const Query = builder.queryType({
   fields: (t) => ({
     withArgs: t.stringList({
@@ -47,7 +47,7 @@ const Query = builder.queryType({
         booleanList: t.arg.booleanList(),
         stringList: t.arg.stringList(),
       },
-      resolve: (root, args) => Object.keys(args),
+      resolve: (_root, args) => Object.keys(args),
     }),
   }),
 });
@@ -85,7 +85,7 @@ Arguments are optional by default, but can be made required by passing `required
 argument options. This default can be changed in the SchemaBuilder constructor, see
 [Changing Default Nullability](./changing-default-nullability).
 
-```typescript
+```typescript playground example="04-args"
 const Query = builder.queryType({
   fields: (t) => ({
     nullableArgs: t.stringList({
@@ -100,7 +100,7 @@ const Query = builder.queryType({
           },
         }),
       },
-      resolve: (parent, args) => Object.keys(args),
+      resolve: (_parent, args) => Object.keys(args),
     }),
   }),
 });
