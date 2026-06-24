@@ -51,7 +51,7 @@
     "@prisma-next/contract": "^0.14.0",
     "@prisma-next/sql-contract": "^0.14.0",
     "@prisma-next/sql-orm-client": "^0.14.0",
-    "graphql": "^16.10.0"
+    "graphql": "^16.10.0 || ^17.0.0"
   },
   "peerDependenciesMeta": {
     "@pothos/plugin-relay": {

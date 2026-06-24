@@ -17,7 +17,11 @@ function mkInfo(
       },
     ],
     fragments: overrides.fragments ?? {},
-    variableValues: overrides.variableValues ?? {},
+    // graphql 17 changed `info.variableValues` from a plain `{ name: value }`
+    // map to a structured `{ sources, coerced }` object (`getDirectiveValues`
+    // reads `.coerced`). The plugin passes `info.variableValues` through
+    // unchanged, so the mock must match the installed graphql's shape.
+    variableValues: { sources: {}, coerced: overrides.variableValues ?? {} },
   } as never;
 }
 
