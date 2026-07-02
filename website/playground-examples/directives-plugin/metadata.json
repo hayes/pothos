@@ -27,8 +27,8 @@
     {
       "label": "Apply directives to fields",
       "filename": "schema.ts",
-      "startLine": 47,
-      "endLine": 78,
+      "startLine": 45,
+      "endLine": 77,
       "description": "Field-level directives in object and array form"
     }
   ]

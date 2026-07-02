@@ -1,26 +1,20 @@
 ---
-title: LLM Integration
-description: AI-ready routes for LLMs to understand your documentation
+title: LLM integration
+description: Machine-readable routes that serve the docs as plain text for LLMs and AI tools.
 ---
 
-## Overview
+import { Callout } from 'fumadocs-ui/components/callout';
 
-This documentation site provides special routes designed for Large Language Models (LLMs) to better understand and interact with the Pothos documentation.
+This site serves machine-readable routes so LLMs and AI tools can read the Pothos documentation without scraping HTML. Point a model at these URLs to give it the full, up-to-date reference.
 
-## Available Routes
+## Full documentation
 
-### Full Documentation
+[`/llms-full.txt`](/llms-full.txt) concatenates every page into a single plain-text file, optimized for LLM consumption. Each entry carries the page title and URL, its description, and the full page content — enough for a model to answer questions across the whole corpus.
 
-#### [`/llms-full.txt`](/llms-full.txt)
+## Individual pages
 
-A plain text representation of the entire documentation, optimized for LLM consumption. This route concatenates all documentation content into a single, easily parseable text file that includes:
+Append `.mdx` to any docs path to fetch that one page as clean, parseable MDX — for example [`/docs/fundamentals/objects.mdx`](/docs/fundamentals/objects.mdx). Reach for this when you want to hand a model a single topic instead of the entire site.
 
-- Page titles and URLs
-- Page descriptions
-- Full content of each documentation page
-
-### Individual Pages
-
-#### `/docs/[path].mdx`
-
-Get the MDX content for any individual documentation page in an LLM-friendly format. Append `.mdx` to any docs path to retrieve that page's content in a clean, parseable format.
+<Callout type="info">
+  See also: [Introduction](./getting-started/introduction) for the mental model behind Pothos, or the [Playground](./playground) to run examples in the browser.
+</Callout>

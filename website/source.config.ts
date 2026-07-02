@@ -1,5 +1,12 @@
 import { remarkNpm } from 'fumadocs-core/mdx-plugins';
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
+// Shared Pothos syntax themes — the SAME token/palette definitions the
+// playground Monaco editor loads (lib/playground/monaco-theme.ts). Wiring
+// shiki to these exact files keeps docs code blocks and the editor on one
+// palette in both light and dark. They are valid VS Code / shiki themes;
+// shiki reads `colors` + `tokenColors` and ignores the Monaco-only extras.
+import cuttingLight from './lib/playground/themes/cutting-light.json';
+import forestDark from './lib/playground/themes/forest-dark.json';
 
 export const { docs, meta } = defineDocs({
   dir: 'content/docs',
@@ -15,8 +22,15 @@ export default defineConfig({
     remarkPlugins: [remarkNpm],
     rehypeCodeOptions: {
       themes: {
-        light: 'github-light',
-        dark: 'github-dark',
+        // These files are VS Code themes shared with the Monaco editor.
+        // Two shape reconciliations vs shiki's stricter TS types (both
+        // fields shiki ignores or re-narrows at runtime):
+        //  - `type` widens to `string` on JSON import → pin to a literal.
+        //  - `semanticTokenColors` has object-valued entries here, but
+        //    shiki types it as `Record<string, string>` and does not use
+        //    it → drop it.
+        light: { ...cuttingLight, type: 'light' as const, semanticTokenColors: undefined },
+        dark: { ...forestDark, type: 'dark' as const, semanticTokenColors: undefined },
       },
       // Add transformer to preserve custom meta attributes
       transformers: [

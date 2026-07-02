@@ -1,7 +1,7 @@
 {
   "name": "Pothos Forest (Dark)",
   "displayName": "Pothos Forest (Dark)",
-  "type": "#88c0d0",
+  "type": "dark",
   "semanticHighlighting": true,
   "colors": {
     "editor.background": "#142019",

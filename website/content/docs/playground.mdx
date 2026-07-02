@@ -1,32 +1,35 @@
 ---
-title: Interactive Playground
-description: Try Pothos examples in an interactive playground
+title: Playground
+description: Embed runnable Pothos schemas in the docs with the playground fence and its example, query, and tab attributes.
 ---
 
-# Interactive Playground
+import { Callout } from 'fumadocs-ui/components/callout';
 
-Explore Pothos GraphQL schema building with interactive examples. Each example shows the TypeScript code, generated GraphQL schema, and lets you run queries.
+Most code blocks in these docs are live. Add the `playground` marker to a TypeScript fence and it gains an "Open in Playground" button that boots the code in an in-browser sandbox — an editor, the generated SDL, and a GraphiQL tab, with nothing to install. Attributes on the fence decide what opens and what runs.
 
-## Usage Patterns
+## Inline code
 
-You can embed playground-enabled code blocks using different patterns:
-
-### 1. Inline Code with Playground
-
-Add the `playground` attribute to any code block to enable the "Open in Playground" button. The code from the block will be loaded when clicked:
+The `playground` marker on its own makes a fence runnable. Clicking loads the fence's exact code:
 
 ```ts playground
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
+const Character = builder.objectRef<{ id: string; name: string }>('Character');
+
+Character.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
-    hello: t.string({
-      args: {
-        name: t.arg.string({ required: false }),
-      },
-      resolve: (_, args) => `Hello, ${args.name ?? 'World'}!`,
+    frodo: t.field({
+      type: Character,
+      resolve: () => ({ id: 'frodo', name: 'Frodo Baggins' }),
     }),
   }),
 });
@@ -34,39 +37,52 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-### 2. With Pre-Registered Examples
+## Registered examples
 
-Reference a pre-registered example by ID. The example's full configuration (multiple files, default query) will be loaded:
+Point `example` at a bundle ID to open a full, multi-file example instead of the single fence. The docs still show a focused slice; clicking loads every file in the bundle along with its default query:
 
-```ts playground example="getting-started-first-schema"
+```ts playground example="getting-started-first-schema-step-2"
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
-// This code is shown in the docs, but when opened in playground
-// it loads the full "getting-started-first-schema" example with all its files.
-const Character = builder.objectRef<ICharacter>('Character');
+// Shown here in the docs; "Open in Playground" loads the full
+// getting-started-first-schema-step-2 bundle — every file, plus its default query.
+const Character = builder.objectRef<{ id: string; name: string }>('Character');
 
 Character.implement({
   fields: (t) => ({
+    id: t.exposeID('id'),
     name: t.exposeString('name'),
   }),
 });
 ```
 
-### 3. With GraphQL Query
+`example` values are kebab-case IDs that match a directory under `website/playground-examples/`. Every reference must resolve to a real bundle — `pnpm check-playground-refs` fails the build otherwise. Keep the fence a faithful subset of the bundle's `schema.ts` so opening it is not jarring.
 
-Provide a query to pre-populate the GraphiQL tab and automatically switch to it:
+## Pre-filled queries
 
-```ts playground query="{ hello }"
+Add `query` to open GraphiQL with an operation already typed in and focused:
+
+```ts playground query="{ frodo { id name } }"
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
+const Character = builder.objectRef<{ id: string; name: string }>('Character');
+
+Character.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
-    hello: t.string({
-      resolve: () => 'Hello, World!',
+    frodo: t.field({
+      type: Character,
+      resolve: () => ({ id: 'frodo', name: 'Frodo Baggins' }),
     }),
   }),
 });
@@ -74,17 +90,29 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-### 4. Example + Custom Query
+## Example plus query
 
-Combine an example with a custom query to guide users to specific functionality:
+Combine the two to open a full bundle with a specific operation ready to run — handy for pointing readers at one capability of a larger schema:
 
-```ts playground example="getting-started-first-schema" query="{ frodo { id name } }"
-// Opens the getting-started-first-schema example with a pre-populated query
+```ts playground example="getting-started-first-schema-step-2" query="{ frodo { id name } }"
+// Opens the getting-started-first-schema-step-2 bundle with the query pre-filled.
 ```
 
-### 5. Switchable Definition Styles
+The pre-filled query must be valid against the bundle it opens. Here `{ frodo { id name } }` matches the `frodo` field that step 2 defines.
 
-To show the same schema implemented several ways — e.g. object refs vs. classes vs. builder types — give each fence a `tab` label. Consecutive fences that share the `tab` attribute merge into a single block with a style-switcher, and "Open in Playground" opens whichever tab is selected:
+## Multi-step examples
+
+A bundle can ship a progression of steps, each a self-contained schema in its own `step-N/` directory with its own default query. Reference a step with the `-step-N` suffix; the number resolves to that subdirectory:
+
+```ts playground example="getting-started-first-schema-step-2"
+// Opens step 2 of the getting-started-first-schema bundle.
+```
+
+Steps suit a page that builds a schema up one change at a time — see [Installation](./getting-started/installation), which opens step 1 and then step 2 as it walks through a first schema.
+
+## Switchable definition styles
+
+To show one schema written several ways — object refs vs. classes vs. builder types — give each fence a `tab` label. Consecutive fences that share the `tab` attribute merge into a single block with a style switcher, and "Open in Playground" opens whichever tab is selected:
 
 ````mdx
 ```ts playground example="fundamentals-objects" tab="Object refs"
@@ -100,14 +128,18 @@ To show the same schema implemented several ways — e.g. object refs vs. classe
 ```
 ````
 
-The `tab` attribute drives the switcher (via fumadocs' built-in code-block tabs). Each fence's `example` is the exact bundle it opens: the base id for the default style, and `<base>-variant-<slug>` for the others. Author the alternatives as `variant-<slug>/` subdirectories of the base bundle (see the [playground examples README](https://github.com/hayes/pothos/blob/main/website/playground-examples/README.md)). A bundle uses steps **or** variants, never both.
+Each fence's `example` is the exact bundle it opens: the base ID for the default style, and `<base>-variant-<slug>` for the others. Author the alternatives as `variant-<slug>/` subdirectories of the base bundle (see the [playground examples README](https://github.com/hayes/pothos/blob/main/website/playground-examples/README.md)). A bundle uses steps **or** variants, never both.
 
-## How It Works
+## The playground interface
 
-Each playground has three tabs:
+Every playground opens with three tabs:
 
-1. **Code** - The TypeScript source code using Pothos
-2. **Schema** - The generated GraphQL SDL
-3. **GraphiQL** - An interactive query editor
+- **Code** — the TypeScript source, editable in place.
+- **Schema** — the generated GraphQL SDL, which updates as you edit.
+- **GraphiQL** — an interactive query editor wired to the schema.
 
-Try modifying the queries in the GraphiQL tab to explore the schema!
+Edit the code and the SDL and query results follow, so you can see exactly how a Pothos change reshapes the schema.
+
+<Callout type="info">
+  See also: [Objects](./fundamentals/objects) for a page built around a live embed, or [Installation](./getting-started/installation) for stepped examples in action.
+</Callout>

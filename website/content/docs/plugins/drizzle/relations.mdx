@@ -1,0 +1,151 @@
+---
+title: Relations
+description: Add relation fields with t.relation, shape them with query and args, and add relation counts and derived fields.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`t.relation` adds a field for a relation you declared with [`defineRelations`](./setup). The plugin reads the relation from your schema, gives the field the correct type automatically, and folds it into the `query` of whichever [`t.drizzleField`](./objects#resolving-to-a-drizzle-type) started the request — so a chain of relations resolves without a query per level.
+
+```typescript
+builder.drizzleObject('teams', {
+  name: 'Team',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    // A `many` relation becomes a list field.
+    players: t.relation('players'),
+  }),
+});
+
+builder.drizzleObject('players', {
+  name: 'Player',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    // A `one` relation becomes a single field.
+    team: t.relation('team'),
+  }),
+});
+```
+
+The plugin knows from your relations whether `players` is a `many` (a list field) or `team` is a `one` (a single field), and types the field accordingly. Nested relations fold into a single query: a request for a team, its players, and each player's stats reaches the database once.
+
+## Filtering, ordering, and arguments
+
+`t.drizzleField` takes arguments and you write its query yourself. `t.relation` is different — the planner writes the query — so you shape the relation with a `query` option. It's either a query object or a function of the field's arguments, the request context, and the query path:
+
+```typescript
+builder.drizzleObject('teams', {
+  name: 'Team',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // A relation with client-driven paging and a fixed order.
+    players: t.relation('players', {
+      args: {
+        limit: t.arg.int(),
+        offset: t.arg.int(),
+      },
+      query: (args) => ({
+        limit: args.limit ?? 10,
+        offset: args.offset ?? 0,
+        orderBy: { number: 'asc' },
+      }),
+    }),
+    // The same relation, shaped a second way.
+    captains: t.relation('players', {
+      query: {
+        where: { number: 1 },
+      },
+    }),
+  }),
+});
+```
+
+The object maps straight onto Drizzle's relational query builder, so it accepts the usual keys — `where`, `orderBy`, `limit`, `offset`. The callback receives the field arguments, the request context, and a `pathInfo` object carrying the GraphQL query `path` and `segments`. It does **not** receive the parent row: the relation is pre-loaded before the parent exists, which is exactly what keeps a list of parents from triggering a query each.
+
+<Callout type="info">
+  See the [relational query docs](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2) for the full set of `query` keys.
+</Callout>
+
+### Pointing a relation at a variant
+
+When a table backs [more than one GraphQL type](./variants), pass `type` to resolve a relation to a specific variant's ref instead of the table's default type:
+
+```typescript
+players: t.relation('players', {
+  type: Viewer,
+});
+```
+
+## Relation counts
+
+Counting related records is common enough to have a dedicated `t.relatedCount`. With no options it counts every related row; a `where` narrows it:
+
+```typescript
+import { gt } from 'drizzle-orm';
+
+builder.drizzleObject('players', {
+  name: 'Player',
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    // Count of every related stat line.
+    appearances: t.relatedCount('stats'),
+    // Count with a static filter.
+    scoringGames: t.relatedCount('stats', {
+      where: gt(playerStats.goals, 0),
+    }),
+  }),
+});
+```
+
+`where` accepts a static SQL filter or a function of the field's args and context, so the count can respond to input:
+
+```typescript
+import { and, eq, gt } from 'drizzle-orm';
+
+scoringGames: t.relatedCount('stats', {
+  args: {
+    inGame: t.arg.int(),
+  },
+  where: (args, _ctx) =>
+    args.inGame
+      ? and(gt(playerStats.goals, 0), eq(playerStats.gameId, args.inGame))
+      : gt(playerStats.goals, 0),
+});
+```
+
+Under the hood `t.relatedCount` issues a `db.$count` scoped to the related rows, run as a subquery within the main query.
+
+## Derived fields with relatedField
+
+`t.relatedCount` is a shorthand for the more general `t.relatedField`, which defines a field from a relation using a custom selection — useful for any aggregate or derived value you'd rather compute in SQL than by loading the full related rows. The `select` callback receives a `buildFilter` helper that produces the `WHERE` clause matching the relation, so you can scope a query to exactly the related records:
+
+```typescript
+import { sql } from 'drizzle-orm';
+
+builder.drizzleObject('players', {
+  name: 'Player',
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    // Total goals across every related stat line, computed in SQL.
+    totalGoals: t.relatedField('stats', {
+      type: 'Int',
+      select: (buildFilter) => ({
+        extras: {
+          // buildFilter(parent) is the WHERE that matches this player's stats.
+          totalGoals: (parent) =>
+            sql<number>`(select coalesce(sum(${playerStats.goals}), 0) from ${playerStats} where ${buildFilter(parent)})`,
+        },
+      }),
+      resolve: (player) => player.totalGoals,
+    }),
+  }),
+});
+```
+
+`select` also receives the field's `args`, the context, and a `nestedQuery` helper as later arguments. The value it computes lands on `parent` under the key you gave it in `extras`, and `resolve` reads it back. This is `t.field` under the hood — `buildFilter` just makes it easy to scope the query to the related records.
+
+<Callout type="info">
+  See also: [Selections](./selections) to control which columns and relations load, [Connections](./connections) for paginated relations, or [Indirect relations](./indirect-relations) for relations that cross a join table.
+</Callout>

@@ -1,0 +1,211 @@
+---
+title: Indirect relations
+description: Reach through join tables with through relations and the drizzleConnectionHelpers builder.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`t.relation` and `t.relatedConnection` cover direct edges. Some fields reach a table two hops away — through a join table — or paginate nodes that live a level deeper than the relation they hang off. Drizzle gives you two tools for this: a `.through()` relation that hides the join entirely, and `drizzleConnectionHelpers` for the cases a single relation can't express.
+
+This page assumes the [schema, relations, and builder](./setup) are already wired up. In the Ultimate League schema, `players` and `games` connect through the `playerStats` join table.
+
+## Many-to-many with a through relation
+
+Drizzle's [relational query builder](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2) can model a many-to-many directly. Point a relation's `from` and `to` at the join table with `.through()`, and the join disappears from the graph — `players.games` reads as a plain list of games:
+
+```typescript
+export const relations = defineRelations(schema, (r) => ({
+  players: {
+    stats: r.many.playerStats({ from: r.players.id, to: r.playerStats.playerId }),
+    // A many-to-many through the join table.
+    games: r.many.games({
+      from: r.players.id.through(r.playerStats.playerId),
+      to: r.games.id.through(r.playerStats.gameId),
+    }),
+  },
+  // ...games and playerStats relations as in the setup schema
+}));
+```
+
+A `through` relation behaves like any other, so `t.relation` and `t.relatedConnection` resolve it with no extra work:
+
+```typescript
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: { column: (player) => player.id },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    // The games this player featured in — the playerStats join is invisible.
+    games: t.relatedConnection('games'),
+  }),
+});
+```
+
+Reach for the helpers below only when the join row itself matters — when you need data from `playerStats` on the edge, or the node sits somewhere a single relation can't name.
+
+## Paginating through a join table
+
+`drizzleConnectionHelpers` builds a connection with the plain [`t.connection`](./connections) API instead of `t.relatedConnection`. The first argument after `builder` is the join **table** name; `select` pulls in the node, and `resolveNode` maps each join row to it. Here pagination runs over a player's `stats`, but each node resolves to the `game` nested one hop deeper:
+
+```typescript
+import { drizzleConnectionHelpers } from '@pothos/plugin-drizzle';
+
+const Game = builder.drizzleObject('games', {
+  name: 'Game',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    playedAt: t.exposeString('playedAt'),
+  }),
+});
+
+const statsConnection = drizzleConnectionHelpers(builder, 'playerStats', {
+  // Select the data needed for the nodes; nestedSelection builds the node's own selection.
+  select: (nestedSelection) => ({
+    with: {
+      game: nestedSelection(),
+    },
+  }),
+  // Resolve the node from each returned join row.
+  resolveNode: (stat) => stat.game,
+});
+
+builder.drizzleObjectField('players', 'gamesConnection', (t) =>
+  t.connection({
+    type: Game,
+    // Not t.relatedConnection, so include the selection manually.
+    select: (args, ctx, nestedSelection) => ({
+      with: {
+        stats: statsConnection.getQuery(args, ctx, nestedSelection),
+      },
+    }),
+    // Format the loaded join rows for the connection.
+    resolve: (player, args, ctx) =>
+      statsConnection.resolve(player.stats, args, ctx, player),
+  }),
+);
+```
+
+Pagination args apply to the relation to the join table (`stats`); the nodes are the `game` nested inside each `playerStats` row.
+
+When the edge and node are the *same* table — pagination happens directly on a relation to the node type — call the helper with no options and use its `ref` as the connection type:
+
+```typescript
+const statHelpers = drizzleConnectionHelpers(builder, 'playerStats');
+
+builder.drizzleObject('games', {
+  name: 'Game',
+  fields: (t) => ({
+    playedAt: t.exposeString('playedAt'),
+    stats: t.connection({
+      type: statHelpers.ref,
+      select: (args, ctx, nestedSelection) => ({
+        with: {
+          stats: statHelpers.getQuery(args, ctx, nestedSelection),
+        },
+      }),
+      resolve: (game, args, ctx) => statHelpers.resolve(game.stats, args, ctx),
+    }),
+  }),
+});
+```
+
+## Arguments, ordering, and filtering
+
+Define extra args, a default order, and a filter on the helper itself. Add the helper's args to the field with `getArgs`:
+
+```typescript
+const statsConnection = drizzleConnectionHelpers(builder, 'playerStats', {
+  args: (t) => ({
+    scoredOnly: t.boolean({ defaultValue: false }),
+  }),
+  query: (args) => ({
+    // Default order.
+    orderBy: { gameId: 'asc' },
+    // Default filter, driven by an arg.
+    where: args.scoredOnly ? { goals: { gt: 0 } } : {},
+  }),
+  select: (nestedSelection) => ({
+    with: {
+      game: nestedSelection(),
+    },
+  }),
+  resolveNode: (stat) => stat.game,
+});
+
+builder.drizzleObjectField('players', 'gamesConnection', (t) =>
+  t.connection({
+    type: Game,
+    // Pull the helper's args onto the field.
+    args: statsConnection.getArgs(),
+    select: (args, ctx, nestedSelection) => ({
+      with: {
+        stats: statsConnection.getQuery(args, ctx, nestedSelection),
+      },
+    }),
+    resolve: (player, args, ctx) =>
+      statsConnection.resolve(player.stats, args, ctx, player),
+  }),
+);
+```
+
+## Fields on the edge
+
+To expose data from the join row on the edge itself, pass edge options as the third argument to `t.connection`. The edge's parent is the join row, so a `playerStats` field like `goals` is available there:
+
+```typescript
+builder.drizzleObjectFields('players', (t) => ({
+  gamesConnection: t.connection(
+    {
+      type: Game,
+      select: (args, ctx, nestedSelection) => ({
+        with: {
+          stats: statsConnection.getQuery(args, ctx, nestedSelection),
+        },
+      }),
+      resolve: (player, args, ctx) =>
+        statsConnection.resolve(player.stats, args, ctx, player),
+    },
+    {},
+    // Options for the edge object.
+    {
+      fields: (edge) => ({
+        goals: edge.field({
+          type: 'Int',
+          resolve: (stat) => stat.goals,
+        }),
+      }),
+    },
+  ),
+}));
+```
+
+## Non-relation connections
+
+`drizzleConnectionHelpers` also builds connections where there's no direct relation to lean on — an entry-point connection that runs its own query. Merge the `where` clause the helper generates with any additional filter you apply, so the two don't clobber each other:
+
+```typescript
+builder.queryFields((t) => ({
+  gamesForPlayer: t.connection({
+    type: Game,
+    args: {
+      playerId: t.arg.int({ required: true }),
+    },
+    nodeNullable: true,
+    resolve: async (_, args, ctx, info) => {
+      const query = statsConnection.getQuery(args, ctx, info);
+      const stats = await db.query.playerStats.findMany({
+        ...query,
+        where: {
+          ...query.where,
+          playerId: args.playerId,
+        },
+      });
+      return statsConnection.resolve(stats, args, ctx);
+    },
+  }),
+}));
+```
+
+<Callout type="info">
+  See also: [Connections](./connections) for the `t.relatedConnection` and `t.drizzleConnection` this page falls back from, [Relations](./relations) for the direct `t.relation` case, or [Type variants](./variants) for exposing the same table as more than one GraphQL type.
+</Callout>

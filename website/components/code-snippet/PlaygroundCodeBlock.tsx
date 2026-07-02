@@ -72,21 +72,28 @@ export function PlaygroundCodeBlock({
     <>
       <CodeBlock
         {...props}
-        Actions={
-          playground
-            ? ({ className }) => (
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(true)}
-                  className={`hidden md:flex items-center gap-1.5 rounded-md border border-fd-border bg-fd-background/95 px-3 py-1.5 text-xs font-medium text-fd-muted-foreground backdrop-blur transition-colors hover:bg-fd-accent hover:text-fd-foreground ${className || ''}`}
-                  title="Open in Playground (desktop only)"
-                >
-                  <ExternalLink size={12} />
-                  Open in Playground
-                </button>
-              )
-            : undefined
-        }
+        Actions={({ className, children: copyButton }) => (
+          // Actions live together in the reserved toolbar band (global.css
+          // reserves top padding on untitled blocks) so they never overlay
+          // the first line of code. `className` carries fumadocs'
+          // positioning (absolute top-right, or the header slot on titled
+          // blocks); we add the flex row layout on top of it.
+          <div className={`flex items-center gap-1.5 ${className || ''}`}>
+            {playground && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded(true)}
+                className="flex items-center gap-1.5 rounded-md border border-fd-border bg-fd-card px-2.5 py-1 text-xs font-medium text-fd-muted-foreground shadow-sm transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+                title="Open in Playground"
+              >
+                <ExternalLink size={12} />
+                <span className="hidden sm:inline">Open in Playground</span>
+                <span className="sm:hidden">Playground</span>
+              </button>
+            )}
+            {copyButton}
+          </div>
+        )}
       >
         <Pre>{children}</Pre>
       </CodeBlock>

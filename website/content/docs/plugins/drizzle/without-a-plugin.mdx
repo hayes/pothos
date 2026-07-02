@@ -1,0 +1,132 @@
+---
+title: Drizzle without a plugin
+description: Back GraphQL objects with Drizzle rows using plain objectRef, and tame the resulting N+1 queries.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+You don't need the [Drizzle plugin](./setup) to put Drizzle rows behind a GraphQL schema. `builder.objectRef` takes any TypeScript shape as its backing model, and a Drizzle row is just a shape — `InferSelectModel` gives you the type of a `select` from a table. Point a ref at it and resolve relations with ordinary query-builder calls. You give up the plugin's automatic query-planning, but the code stays plain Pothos.
+
+```typescript
+import { InferSelectModel } from 'drizzle-orm';
+import { players, teams } from './db/schema';
+
+type TeamRow = InferSelectModel<typeof teams>;
+type PlayerRow = InferSelectModel<typeof players>;
+
+const TeamObject = builder.objectRef<TeamRow>('Team');
+const PlayerObject = builder.objectRef<PlayerRow>('Player');
+
+TeamObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    players: t.field({
+      type: [PlayerObject],
+      resolve: (team) => db.query.players.findMany({ where: { teamId: team.id } }),
+    }),
+  }),
+});
+
+PlayerObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    team: t.field({
+      type: TeamObject,
+      resolve: async (player) => {
+        const team = await db.query.teams.findFirst({ where: { id: player.teamId } });
+        if (!team) throw new Error(`Team ${player.teamId} not found`);
+        return team;
+      },
+    }),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    myTeam: t.field({
+      type: TeamObject,
+      resolve: async (_root, _args, ctx) => {
+        const team = await db.query.teams.findFirst({ where: { id: ctx.teamId } });
+        if (!team) throw new Error('Team not found');
+        return team;
+      },
+    }),
+  }),
+});
+```
+
+This defines `Team` and `Player` objects with a relation each, plus a `myTeam` query for the viewer's team. Three details make it work:
+
+- **Split the ref from `implement`.** Declaring `TeamObject`/`PlayerObject` up front and calling `implement` afterwards — rather than `builder.objectRef(...).implement(...)` in one expression — keeps TypeScript from choking on the circular reference between teams and players.
+- **Throw for non-null fields.** `team` and `myTeam` are non-nullable, so they must never resolve to `null`. Drizzle's `findFirst` returns `undefined` when nothing matches, so throw explicitly. Mark the field `nullable` instead if a missing row is a valid result.
+- **Ref names vs. type names.** The refs are `TeamObject`/`PlayerObject` because `TeamRow`/`PlayerRow` name the backing shapes. Give the refs the GraphQL type names directly if you'd rather.
+
+## Cutting down N+1 queries
+
+The schema above issues one query per relation edge. Fetch a team, then its players, then each player's team, and the round-trips multiply. You can shape the backing model to avoid the round-trip entirely.
+
+If you almost always load a player's team alongside the player, fold the team into the backing shape and have the parent resolver load it with `with`:
+
+```typescript
+const TeamObject = builder.objectRef<TeamRow>('Team');
+// Widen the backing model so a Player always carries its Team.
+const PlayerObject = builder.objectRef<PlayerRow & { team: TeamRow }>('Player');
+
+TeamObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    players: t.field({
+      type: [PlayerObject],
+      resolve: (team) =>
+        db.query.players.findMany({
+          // Load the team so the child resolver has it already.
+          with: { team: true },
+          where: { teamId: team.id },
+        }),
+    }),
+  }),
+});
+
+PlayerObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    team: t.field({
+      type: TeamObject,
+      // No query — the team came along with the player.
+      resolve: (player) => player.team,
+    }),
+  }),
+});
+```
+
+Requiring `team` on every `Player` is a strong claim — every resolver that produces a player now owes you the `with`. When only some paths can supply it, make the field optional and fall back to a query:
+
+```typescript
+const PlayerObject = builder.objectRef<PlayerRow & { team?: TeamRow }>('Player');
+
+PlayerObject.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    team: t.field({
+      type: TeamObject,
+      resolve: async (player) => {
+        if (player.team) return player.team;
+        const team = await db.query.teams.findFirst({ where: { id: player.teamId } });
+        if (!team) throw new Error(`Team ${player.teamId} not found`);
+        return team;
+      },
+    }),
+  }),
+});
+```
+
+Now a parent resolver *may* pre-load the team, and the field still resolves correctly when it doesn't.
+
+<Callout type="info">
+  A [dataloader](../dataloader) is the other lever for N+1 — batch the per-player team lookups into one query. Or let the [Drizzle plugin](./setup) plan these selections for you: `t.relation` and `t.drizzleField` read the GraphQL selection set and build a single nested query. See also [Object types](../../fundamentals/objects) for the `objectRef` this page builds on.
+</Callout>

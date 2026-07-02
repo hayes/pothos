@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import type { ResponsePhase } from '@/components/playground/ResponsePane/types';
 import { getQueryCursor } from '@/lib/playground/active-query-cursor';
 import { captureConsoleAsync } from '@/lib/playground/console-capture';
+import { errorMessage } from '@/lib/playground/error-message';
 import type { ConsoleMessage } from '@/lib/playground/execution-engine';
 import {
   getExtensionPanels,
@@ -56,7 +57,7 @@ function parseObjectLiteral(raw: string, what: string): Record<string, unknown> 
     }
     throw new Error(`${what} must be an object`);
   } catch (err) {
-    throw new Error(`${what} parse error: ${(err as Error).message}`);
+    throw new Error(`${what} parse error: ${errorMessage(err)}`);
   }
 }
 
@@ -132,7 +133,7 @@ export function useQueryRunner(): QueryRunner {
       try {
         parsedVars = parseVariables(variables);
       } catch (err) {
-        const errPhase = errorPhase((err as Error).message);
+        const errPhase = errorPhase(errorMessage(err));
         setPhase(errPhase);
         return { phase: errPhase, panels: [], logs: [] };
       }
@@ -144,7 +145,7 @@ export function useQueryRunner(): QueryRunner {
           contextValue = parsedContext;
         }
       } catch (err) {
-        const errPhase = errorPhase((err as Error).message);
+        const errPhase = errorPhase(errorMessage(err));
         setPhase(errPhase);
         return { phase: errPhase, panels: [], logs: [] };
       }

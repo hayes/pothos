@@ -3,6 +3,7 @@ import { type GraphQLSchema, printSchema } from 'graphql';
 import { extractBareImports, fetchCdnModule } from './cdn-modules';
 import { compileTypeScriptInWorker } from './compiler-worker-client';
 import { captureConsole } from './console-capture';
+import { errorMessage } from './error-message';
 import { compilerLogger } from './logger';
 import { getExampleStubModules } from './example-stubs';
 import { getPluginModules } from './plugins-bundle';
@@ -124,10 +125,9 @@ export async function compileTypeScript(
       code: result.code,
     };
   } catch (err) {
-    const error = err as Error;
     return {
       success: false,
-      error: error.message,
+      error: errorMessage(err),
     };
   }
 }
@@ -236,10 +236,9 @@ export function executeAndBuildSchema(
       consoleLogs: logs,
     };
   } catch (err) {
-    const error = err as Error;
     return {
       success: false,
-      error: error.message,
+      error: errorMessage(err),
       consoleLogs: logs,
     };
   }
@@ -457,8 +456,7 @@ async function bundleFiles(files: Array<{ filename: string; content: string }>):
     // downstream `__require` rewriter would throw "Module not found"
     // anyway, just with a less actionable error. Surface the real
     // bundle failure to the caller.
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Bundle failed: ${message}`);
+    throw new Error(`Bundle failed: ${errorMessage(err)}`);
   }
 }
 

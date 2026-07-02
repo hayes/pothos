@@ -27,7 +27,7 @@ The full signature is `(parent, args, ctx, info)`:
 You almost always destructure the ones you need:
 
 ```typescript
-resolve: (parent, { id }, ctx) => ctx.db.characters.find(String(id) === parent.characterId),
+resolve: (_parent, { id }, ctx) => ctx.db.characters.find((c) => c.id === String(id)),
 ```
 
 ## Sync, async, both
@@ -89,7 +89,7 @@ characterById: t.field({
 }),
 ```
 
-For non-nullable fields, a thrown error propagates up: the closest nullable ancestor (or the operation root) becomes null and the error is recorded. That's GraphQL's default behaviour, not Pothos-specific. See [Handling errors](../patterns/handling-errors) for masking, logging, and when to graduate to `plugin-errors` for typed result unions.
+For non-nullable fields, a thrown error propagates up: the closest nullable ancestor (or the operation root) becomes null and the error is recorded. That's GraphQL's default behavior, not Pothos-specific. See [Handling errors](../patterns/handling-errors) for masking, logging, and when to graduate to `plugin-errors` for typed result unions.
 
 <Callout type="info">
   See also: [Context](./context) for the third argument, or [Handling errors](../patterns/handling-errors) for everything throwing-related.

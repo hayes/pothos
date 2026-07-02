@@ -19,11 +19,50 @@ function stringifyArg(value: unknown): string {
   if (typeof value === 'string') {
     return value;
   }
-  try {
-    return JSON.stringify(value);
-  } catch {
+  if (value === null || typeof value !== 'object') {
+    // Primitives (number, boolean, bigint, symbol, function, undefined).
     return String(value);
   }
+  // Objects: JSON with a circular-safe replacer. A resolver logging a
+  // circular object — or `console.log` of a DOM/Event value — must never
+  // fall through to `String(value)` and surface as "[object Object]".
+  const seen = new WeakSet<object>();
+  try {
+    const json = JSON.stringify(value, (_key, val) => {
+      if (typeof val === 'object' && val !== null) {
+        if (seen.has(val)) {
+          return '[Circular]';
+        }
+        seen.add(val);
+      }
+      if (typeof val === 'bigint') {
+        return `${val}n`;
+      }
+      if (typeof val === 'function') {
+        return `[Function: ${(val as { name?: string }).name || 'anonymous'}]`;
+      }
+      return val;
+    });
+    // `undefined` (e.g. a lone symbol) or a bare `{}` from a non-plain
+    // object (Event, DOM node) → fall back to a readable label instead.
+    if (json === undefined || (json === '{}' && !isPlainRecord(value))) {
+      return describeObject(value);
+    }
+    return json;
+  } catch {
+    return describeObject(value);
+  }
+}
+
+function isPlainRecord(value: object): boolean {
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function describeObject(value: object): string {
+  const ctor = (value as { constructor?: { name?: string } }).constructor?.name;
+  const tag = Object.prototype.toString.call(value).slice(8, -1);
+  return `[${ctor && ctor !== 'Object' ? ctor : tag}]`;
 }
 
 function toEntry(msg: ConsoleMessage, source: 'compile' | 'query'): ConsoleLogEntry {

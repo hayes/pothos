@@ -15,7 +15,7 @@ The `4.0` release of Pothos is largely focused on updating 4 things:
 4. Updating internal types to support some previously challenging plugin patterns
 
 While the internals of Pothos have almost entirely been re-written, the public API surface should
-have a minimal changes for most users. The first 2 sets of changes will cover the majority of
+have minimal changes for most users. The first 2 sets of changes will cover the majority of
 changes relevant to the majority of applications. To make the upgrade as simple as
 possible, some options were added to maintain the defaults and option names from `3.x` which are
 described in the simple upgrade section below.
@@ -60,13 +60,13 @@ const builder = new SchemaBuilder({
 There are a number of new defaults and changes to options for various plugins. To fully upgrade to
 4.0 see the full list of breaking changes below:
 
-# Breaking API Changes:
+## Breaking API Changes:
 
 This section covers breaking API changes that can be automatically reverted by using the Simple
 Upgrade process described above.
 
 Changes to types and classes outside the main Pothos API are described in the next section. Those
-changes will primarily affect other plugins and tools written for pothos, but may be relevant to
+changes will primarily affect other plugins and tools written for Pothos, but may be relevant to
 some type helpers you have created.
 
 ## `@pothos/core`
@@ -92,7 +92,7 @@ Alternatively, fields can be updated to add `nullable: false` to the fields opti
 ### Default ID Scalar types
 
 The default types for the built in `ID` Scalar has been changed to more closely match the behavior
-of Javascript GraphQL server implementations:
+of JavaScript GraphQL server implementations:
 
 ```ts
 interface IDType {
@@ -138,7 +138,7 @@ options for other plugins.
 A number of the default values for relay options have changed:
 
 - `clientMutationId`: Now defaults to `"omit"` and was previously `"required"`
-  - `clientMutationId` was only required in early versions of the relay client, and is no-longer
+  - `clientMutationId` was only required in early versions of the relay client, and is no longer
     recommended.
 - `cursorType`: Now defaults to `"String"` and was previously `"ID"`
   - The previous defaults were inconsistent about the type of a cursor. Cursors generally should not
@@ -173,7 +173,7 @@ const builder = new SchemaBuilder<{
     },
     cursorType: 'ID',
     // the cursor fields on edges and pageInfo previously defaulted to `String`
-    // but will be overwritten by `cursorType` so you also need to explicity set them
+    // but will be overwritten by `cursorType` so you also need to explicitly set them
     edgeCursorType: 'String',
     pageInfoCursorType: 'String',
     // If you are using the new v4 nullability defaults, you may need to change the nullability of mutation fields
@@ -282,16 +282,16 @@ consistent with options for other plugins.
 The `@pothos/plugin-authz` plugin has been removed, because the underlying `@graphql-authz/core` is
 not actively maintained, and has left critical security vulnerabilities unaddressed.
 
-# Plugin API and Type changes
+## Plugin API and Type changes
 
 Unlike the defaults and config changes, the changes to the types and classes used throughout Pothos
 can't be easily made backwards compatibility with the 3.x releases. Below is a summary of the main
 changes made to the types and classes that may be used by plugins, helpers, or other libraries. Many
 of these types and classes are primarily intended for internal use, and should not affect most
-applications using pothos, but the changes are documented here to help upgrades for those of you
+applications using Pothos, but the changes are documented here to help upgrades for those of you
 building your own plugins, or using these types in your applications.
 
-The 4.0 release is intended to allow pothos to become more modular and extensible. This requires
+The 4.0 release is intended to allow Pothos to become more modular and extensible. This requires
 Refs and many associated type helpers to propagate the SchemaTypes from the builder that originated
 them, meaning most of the changes listed below are adding `Types extends SchemaTypes` as the first
 generic argument to the type.
@@ -350,7 +350,7 @@ generic argument to the type.
 
 ## Field options
 
-The global interfaces for FieldOptions no-longer include the `resolve` option, which has moved to
+The global interfaces for FieldOptions no longer include the `resolve` option, which has moved to
 the `InferredFieldOptions` interface to allow plugins to replace or change the resolve functions
 types globally.
 

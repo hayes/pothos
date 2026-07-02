@@ -89,6 +89,16 @@
   --color-fd-accent: var(--bm-accent-soft);
   --color-fd-accent-foreground: var(--bm-accent-ink);
   --color-fd-ring: var(--bm-accent);
+
+  /* Callout accents — fumadocs derives `--callout-color` from these per
+     variant (info / warning / error / success). Map them onto the
+     botanical palette so callouts drop the stock blue/amber/red and read
+     as part of the site. Because these reference --bm-* tokens, they
+     adapt to .dark automatically. */
+  --color-fd-info: var(--bm-accent);
+  --color-fd-warning: var(--bm-warn);
+  --color-fd-error: var(--bm-danger);
+  --color-fd-success: var(--bm-accent);
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -255,11 +265,43 @@ article#nd-page :not(pre) > code {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-/* Code block surfaces — match the editor surface */
-article#nd-page pre {
+/* ──────────────────────────────────────────────────────────────────────
+   Docs code blocks. Fumadocs owns the outer frame (border, radius, shadow
+   live on `figure.shiki`); we only theme the *surface* and the scroll
+   behavior. The inner `<pre>` carries no frame of its own — that is what
+   produced the box-in-box. Syntax colors come from the shared Pothos
+   shiki themes wired up in `source.config.ts`, so docs code matches the
+   playground editor in both light and dark.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* The figure is the single code surface — paint it the editor ground so
+   docs code and the playground editor read as one material. Applies to
+   standalone blocks (bg-fd-card) and tabbed blocks (bg-fd-secondary). */
+article#nd-page figure.shiki {
   background: var(--bm-editor-bg);
-  border: 1px solid var(--bm-line);
-  border-radius: 6px;
+}
+
+/* Inner <pre>: no second border, radius, or fill. The figure is the frame. */
+article#nd-page pre {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Vertical scrolling is the page's job, not each block's. Drop the 600px
+   cap so tall blocks grow to fit; horizontal auto-scroll still handles
+   wide code (the <pre> is `w-max`). */
+article#nd-page .fd-scroll-container {
+  max-height: none;
+}
+
+/* When a block has no title, fumadocs floats Copy / Open-in-Playground as
+   an absolute overlay in the top-right and marks the viewport with an
+   inline `--padding-right`. Reserve a toolbar band at the top so those
+   actions never sit on top of the first line of code. (A titled block
+   gets fumadocs' own header row instead and never sets --padding-right.) */
+article#nd-page .fd-scroll-container[style*="--padding-right"] {
+  padding-top: 2.75rem;
 }
 
 /* Sidebar — uppercase section heads, accent left rule on active items */
