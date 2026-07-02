@@ -10,9 +10,9 @@ A subscription field has two functions: `subscribe` returns an async iterable of
 ```typescript playground example="fundamentals-subscriptions"
 builder.subscriptionType({
   fields: (t) => ({
-    beaconLit: t.string({
-      description: 'Emits each beacon of Gondor as it is lit.',
-      subscribe: () => lightBeacons(),
+    characterAdded: t.string({
+      description: 'Emits each character entry as it is published.',
+      subscribe: () => publishEntries(),
       resolve: (name) => name,
     }),
   }),
@@ -30,20 +30,20 @@ builder.subscriptionType({
 Subscriptions usually pair with a mutation that publishes events:
 
 ```typescript
-builder.mutationField('lightBeacon', (t) =>
+builder.mutationField('addCharacter', (t) =>
   t.boolean({
     args: { name: t.arg.string({ required: true }) },
     resolve: (_root, { name }, ctx) => {
-      ctx.pubSub.publish('BEACON_LIT', { name });
+      ctx.pubSub.publish('CHARACTER_ADDED', { name });
       return true;
     },
   }),
 );
 
-builder.subscriptionField('beacons', (t) =>
+builder.subscriptionField('characterAdded', (t) =>
   t.field({
-    type: Beacon,
-    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('BEACON_LIT'),
+    type: Character,
+    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('CHARACTER_ADDED'),
     resolve: (event) => event,
   }),
 );
@@ -53,16 +53,16 @@ The pub/sub itself isn't part of Pothos — it lives on your context. `graphql-y
 
 ## Filtering
 
-Subscribers often want only a slice of an event stream — beacons that summon a specific realm, updates for a specific record. Filter inside the resolver and return `null` for events that don't apply:
+Subscribers often want only a slice of an event stream — edits to a specific entry, updates for a specific record. Filter inside the resolver and return `null` for events that don't apply:
 
 ```typescript
-builder.subscriptionField('realmBeacons', (t) =>
+builder.subscriptionField('characterEdits', (t) =>
   t.field({
-    type: Beacon,
+    type: Character,
     nullable: true,
-    args: { realm: t.arg.string({ required: true }) },
-    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('BEACON_LIT'),
-    resolve: (event, { realm }) => (event.realm === realm ? event : null),
+    args: { characterId: t.arg.string({ required: true }) },
+    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('CHARACTER_ADDED'),
+    resolve: (event, { characterId }) => (event.id === characterId ? event : null),
   }),
 );
 ```
@@ -76,9 +76,9 @@ Authorise at `subscribe` — once when the connection opens — and trust the re
 ```typescript
 subscribe: (_root, _args, ctx) => {
   if (!ctx.user) {
-    throw new Error('Only the wardens may watch the beacons');
+    throw new Error('Sign in to watch the moderation feed');
   }
-  return ctx.pubSub.subscribe('BEACON_LIT');
+  return ctx.pubSub.subscribe('CHARACTER_ADDED');
 },
 ```
 

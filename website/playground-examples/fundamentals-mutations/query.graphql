@@ -1,6 +1,6 @@
-mutation RenameFellowship {
-  renameFellowship(input: { fellowshipId: "1", name: "The Nine Walkers" }) {
+mutation UpdateCharacter {
+  updateCharacter(input: { characterId: "1", biography: "Bearer of the One Ring and hero of the War of the Ring." }) {
     id
-    name
+    biography
   }
 }

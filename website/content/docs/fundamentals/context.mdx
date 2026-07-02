@@ -74,7 +74,7 @@ resolve: (_root, args, ctx) => {
     throw new Error('Sign in to continue');
   }
   // ctx.viewer is { id: number } from here down.
-  return ctx.db.quests.findMany({ ownerId: ctx.viewer.id });
+  return ctx.db.drafts.findMany({ authorId: ctx.viewer.id });
 },
 ```
 

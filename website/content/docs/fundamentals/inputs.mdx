@@ -10,11 +10,11 @@ Once a field's arguments grow past two or three values, or several fields take t
 ```typescript playground example="fundamentals-inputs"
 builder.mutationType({
   fields: (t) => ({
-    recruitCharacter: t.field({
+    addCharacter: t.field({
       type: Character,
       args: {
         input: t.arg({
-          type: builder.inputType('RecruitCharacterInput', {
+          type: builder.inputType('AddCharacterInput', {
             fields: (t) => ({
               name: t.string({ required: true }),
               age: t.int({ required: true }),
@@ -23,7 +23,7 @@ builder.mutationType({
           required: true,
         }),
       },
-      resolve: (_root, { input }) => recruitCharacter(input.name, input.age),
+      resolve: (_root, { input }) => addCharacter(input.name, input.age),
     }),
   }),
 });
@@ -35,8 +35,8 @@ builder.mutationType({
 
 The first argument to `builder.inputType` is the GraphQL type name. The convention is `<Operation><Subject>Input`:
 
-- `RecruitCharacterInput`
-- `RenameFellowshipInput`
+- `AddCharacterInput`
+- `UpdateCharacterInput`
 - `SearchCharactersFilter` (when "filter" reads better than "Input")
 
 Each input object can only be defined once across your whole schema — pick a name no other field will collide with.
@@ -46,7 +46,7 @@ Each input object can only be defined once across your whole schema — pick a n
 When two fields want the same shape, lift it to a top-level variable and reference it:
 
 ```typescript
-const FellowshipFilter = builder.inputType('FellowshipFilter', {
+const FactionFilter = builder.inputType('FactionFilter', {
   fields: (t) => ({
     nameContains: t.string(),
     minMembers: t.int(),
@@ -54,14 +54,14 @@ const FellowshipFilter = builder.inputType('FellowshipFilter', {
 });
 
 builder.queryFields((t) => ({
-  fellowships: t.field({
-    type: [Fellowship],
-    args: { filter: t.arg({ type: FellowshipFilter }) },
-    resolve: (_root, { filter }) => findFellowships(filter),
+  factions: t.field({
+    type: [Faction],
+    args: { filter: t.arg({ type: FactionFilter }) },
+    resolve: (_root, { filter }) => findFactions(filter),
   }),
-  fellowshipCount: t.int({
-    args: { filter: t.arg({ type: FellowshipFilter }) },
-    resolve: (_root, { filter }) => countFellowships(filter),
+  factionCount: t.int({
+    args: { filter: t.arg({ type: FactionFilter }) },
+    resolve: (_root, { filter }) => countFactions(filter),
   }),
 }));
 ```

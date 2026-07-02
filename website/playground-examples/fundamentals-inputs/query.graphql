@@ -1,5 +1,5 @@
-mutation RecruitCharacter {
-  recruitCharacter(input: { name: "Frodo", age: 50 }) {
+mutation AddCharacter {
+  addCharacter(input: { name: "Frodo", age: 50 }) {
     id
     name
     age

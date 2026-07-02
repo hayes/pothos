@@ -9,7 +9,7 @@ interface ICharacter {
 const Characters = new Map<number, ICharacter>();
 let nextId = 1;
 
-function recruitCharacter(name: string, age: number): ICharacter {
+function addCharacter(name: string, age: number): ICharacter {
   const character: ICharacter = { id: nextId++, name, age };
   Characters.set(character.id, character);
   return character;
@@ -38,11 +38,11 @@ builder.queryType({
 
 builder.mutationType({
   fields: (t) => ({
-    recruitCharacter: t.field({
+    addCharacter: t.field({
       type: Character,
       args: {
         input: t.arg({
-          type: builder.inputType('RecruitCharacterInput', {
+          type: builder.inputType('AddCharacterInput', {
             fields: (t) => ({
               name: t.string({ required: true }),
               age: t.int({ required: true }),
@@ -51,7 +51,7 @@ builder.mutationType({
           required: true,
         }),
       },
-      resolve: (_root, { input }) => recruitCharacter(input.name, input.age),
+      resolve: (_root, { input }) => addCharacter(input.name, input.age),
     }),
   }),
 });

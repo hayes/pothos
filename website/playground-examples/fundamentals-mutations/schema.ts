@@ -1,13 +1,14 @@
 import SchemaBuilder from '@pothos/core';
 
-interface IFellowship {
+interface ICharacter {
   id: number;
   name: string;
-  leaderId: number;
+  biography: string;
+  editorId: number;
 }
 
-const Fellowships = new Map<number, IFellowship>([
-  [1, { id: 1, name: 'Fellowship of the Ring', leaderId: 1 }],
+const Characters = new Map<number, ICharacter>([
+  [1, { id: 1, name: 'Frodo Baggins', biography: 'Bearer of the One Ring.', editorId: 1 }],
 ]);
 
 interface Context {
@@ -18,34 +19,35 @@ const builder = new SchemaBuilder<{
   Context: Context;
 }>({});
 
-const Fellowship = builder.objectRef<IFellowship>('Fellowship');
+const Character = builder.objectRef<ICharacter>('Character');
 
-Fellowship.implement({
+Character.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
+    biography: t.exposeString('biography'),
   }),
 });
 
 builder.queryType({
   fields: (t) => ({
-    fellowships: t.field({
-      type: [Fellowship],
-      resolve: () => [...Fellowships.values()],
+    characters: t.field({
+      type: [Character],
+      resolve: () => [...Characters.values()],
     }),
   }),
 });
 
 builder.mutationType({
   fields: (t) => ({
-    renameFellowship: t.field({
-      type: Fellowship,
+    updateCharacter: t.field({
+      type: Character,
       args: {
         input: t.arg({
-          type: builder.inputType('RenameFellowshipInput', {
+          type: builder.inputType('UpdateCharacterInput', {
             fields: (t) => ({
-              fellowshipId: t.id({ required: true }),
-              name: t.string({ required: true }),
+              characterId: t.id({ required: true }),
+              biography: t.string({ required: true }),
             }),
           }),
           required: true,
@@ -55,15 +57,15 @@ builder.mutationType({
         if (!ctx.user) {
           throw new Error('Not signed in');
         }
-        const fellowship = Fellowships.get(Number(input.fellowshipId));
-        if (!fellowship) {
-          throw new Error(`No fellowship with id ${input.fellowshipId}`);
+        const entry = Characters.get(Number(input.characterId));
+        if (!entry) {
+          throw new Error(`No character with id ${input.characterId}`);
         }
-        if (fellowship.leaderId !== ctx.user.id) {
-          throw new Error('Only the leader can rename the fellowship');
+        if (entry.editorId !== ctx.user.id) {
+          throw new Error("Only the entry's editor can edit it");
         }
-        fellowship.name = input.name;
-        return fellowship;
+        entry.biography = input.biography;
+        return entry;
       },
     }),
   }),

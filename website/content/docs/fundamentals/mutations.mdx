@@ -10,14 +10,14 @@ Mutations are queries that change state. The API mirrors [Queries](./queries) �
 ```typescript playground example="fundamentals-mutations"
 builder.mutationType({
   fields: (t) => ({
-    renameFellowship: t.field({
-      type: Fellowship,
+    updateCharacter: t.field({
+      type: Character,
       args: {
         input: t.arg({
-          type: builder.inputType('RenameFellowshipInput', {
+          type: builder.inputType('UpdateCharacterInput', {
             fields: (t) => ({
-              fellowshipId: t.id({ required: true }),
-              name: t.string({ required: true }),
+              characterId: t.id({ required: true }),
+              biography: t.string({ required: true }),
             }),
           }),
           required: true,
@@ -27,15 +27,15 @@ builder.mutationType({
         if (!ctx.user) {
           throw new Error('Not signed in');
         }
-        const fellowship = Fellowships.get(Number(input.fellowshipId));
-        if (!fellowship) {
-          throw new Error(`No fellowship with id ${input.fellowshipId}`);
+        const entry = Characters.get(Number(input.characterId));
+        if (!entry) {
+          throw new Error(`No character with id ${input.characterId}`);
         }
-        if (fellowship.leaderId !== ctx.user.id) {
-          throw new Error('Only the leader can rename the fellowship');
+        if (entry.editorId !== ctx.user.id) {
+          throw new Error("Only the entry's editor can edit it");
         }
-        fellowship.name = input.name;
-        return fellowship;
+        entry.biography = input.biography;
+        return entry;
       },
     }),
   }),
@@ -55,11 +55,11 @@ builder.mutationType({});
 Then add fields with `mutationField` or `mutationFields` from wherever they belong:
 
 ```typescript
-builder.mutationField('recruitCharacter', (t) =>
+builder.mutationField('addCharacter', (t) =>
   t.field({
     type: Character,
-    args: { input: t.arg({ type: RecruitCharacterInput, required: true }) },
-    resolve: (_root, { input }, ctx) => recruitCharacter(input, ctx),
+    args: { input: t.arg({ type: AddCharacterInput, required: true }) },
+    resolve: (_root, { input }, ctx) => addCharacter(input, ctx),
   }),
 );
 ```
@@ -74,36 +74,36 @@ The row-level check is where mutations diverge from queries. A useful refinement
 
 ```typescript
 // Treat "missing" and "not yours" as the same condition, so the API
-// never leaks the existence of a fellowship the caller can't touch.
-const fellowship = Fellowships.get(Number(input.fellowshipId));
-if (!fellowship || fellowship.leaderId !== ctx.user.id) {
-  throw new Error('Fellowship not found');
+// never leaks the existence of an entry the caller can't touch.
+const entry = Characters.get(Number(input.characterId));
+if (!entry || entry.editorId !== ctx.user.id) {
+  throw new Error('Entry not found');
 }
 ```
 
-Split the two into distinct throws when you want distinct messages (`Not signed in` vs `Only the leader can rename the fellowship`); fold them when the existence of a record is itself privileged. Either way the shape repeats across every mutation — the same auth lift, the same lookup, the same permission gate — which is the cue to reach for a plugin.
+Split the two into distinct throws when you want distinct messages (`Not signed in` vs `Only the entry's editor can edit it`); fold them when the existence of a record is itself privileged. Either way the shape repeats across every mutation — the same auth lift, the same lookup, the same permission gate — which is the cue to reach for a plugin.
 
 ## Returning what the client needs
 
 Return the entity the mutation changed, so the client can re-read fields in the same round trip:
 
 ```graphql
-mutation Rename {
-  renameFellowship(input: { fellowshipId: "1", name: "The Nine Walkers" }) {
+mutation UpdateCharacter {
+  updateCharacter(input: { characterId: "1", biography: "Bearer of the One Ring." }) {
     id
-    name
+    biography
   }
 }
 ```
 
-For mutations that don't have a single natural return (a bulk delete, a payment confirmation), wrap the result in a small payload type and return that — `DisbandFellowshipPayload { success: Boolean!, deletedCount: Int! }` reads better than `Boolean!`.
+For mutations that don't have a single natural return (a bulk delete, a batch import), wrap the result in a small payload type and return that — `DeleteCharactersPayload { success: Boolean!, deletedCount: Int! }` reads better than `Boolean!`.
 
 ## When to graduate to plugins
 
 The three plugins worth knowing about for mutations:
 
 - [`plugin-scope-auth`](../plugins/scope-auth) replaces the manual `if (!ctx.user)` and row-level checks with declarative `authScopes` on the field. Once two or three mutations share the same check, you save real LOC.
-- [`plugin-errors`](../plugins/errors) turns thrown errors into typed result unions — your `renameFellowship` field's return type becomes `RenameFellowshipResult = Fellowship | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
+- [`plugin-errors`](../plugins/errors) turns thrown errors into typed result unions — your `updateCharacter` field's return type becomes `UpdateCharacterResult = Character | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
 - [`plugin-validation`](../plugins/validation) runs Zod schemas against your input before the resolver fires. Useful when the input has format constraints (`name` must be 1–80 chars, `email` must be a valid email).
 
 You don't need any of them on day one. Reach for them when the manual patterns start to repeat.

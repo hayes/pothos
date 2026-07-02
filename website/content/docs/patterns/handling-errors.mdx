@@ -61,7 +61,7 @@ For Apollo Server, the equivalent is the `includeStacktraceInErrorResponses` opt
 
 ## Layer 3: typed result unions
 
-The first two layers treat errors as exceptions. For errors that are part of the API — "username already taken," "insufficient funds," "team not found" — clients are better served by a typed result union:
+The first two layers treat errors as exceptions. For errors that are part of the API — "username already taken," "roster full," "team not found" — clients are better served by a typed result union:
 
 ```graphql
 type Mutation {
