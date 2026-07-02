@@ -1,10 +1,10 @@
 query Resolvers {
-  bookCount
-  randomBook {
+  characterCount
+  randomCharacter {
     id
-    title
+    name
   }
-  bookById(id: "fotr") {
-    title
+  characterById(id: "frodo") {
+    name
   }
 }

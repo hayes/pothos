@@ -35,7 +35,7 @@ builder.scalarType('DateTime', {
 
 Scalars can serialise and parse different shapes — useful when the wire format and the in-memory format differ. For `DateTime`:
 
-- **Output** (`Date`): your resolvers return `Date` objects.
+- **Output** (`Date`): your resolvers return `Date` objects — the day a battle was fought.
 - **Input** (`Date`): your resolvers receive `Date` objects, after `parseValue` parses the incoming string.
 
 When the shapes match, declare them the same. When they don't — say, a custom `PositiveInt` that accepts a string and emits a number — split them:
@@ -51,17 +51,17 @@ Scalars: {
 By name in the generic (`'DateTime'`), or by passing the value `scalarType` returns:
 
 ```typescript
-const Game = builder.objectRef<IGame>('Game').implement({
+const Battle = builder.objectRef<IBattle>('Battle').implement({
   fields: (t) => ({
-    createdAt: t.field({ type: 'DateTime', resolve: (g) => g.createdAt }),
+    foughtOn: t.field({ type: 'DateTime', resolve: (b) => b.foughtOn }),
   }),
 });
 
-builder.queryField('upcomingGames', (t) =>
+builder.queryField('battlesSince', (t) =>
   t.field({
-    type: [Game],
+    type: [Battle],
     args: { after: t.arg({ type: 'DateTime' }) },
-    resolve: (_root, { after }) => Games.filter((g) => !after || g.createdAt >= after),
+    resolve: (_root, { after }) => Battles.filter((b) => !after || b.foughtOn >= after),
   }),
 );
 ```

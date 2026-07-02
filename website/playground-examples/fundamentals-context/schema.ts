@@ -1,22 +1,22 @@
 import SchemaBuilder from '@pothos/core';
 
-interface IUser {
+interface ICharacter {
   id: number;
   name: string;
 }
 
-const Users = new Map<number, IUser>([
-  [1, { id: 1, name: 'Alex Lin' }],
-  [2, { id: 2, name: 'Sam Patel' }],
+const Characters = new Map<number, ICharacter>([
+  [1, { id: 1, name: 'Frodo Baggins' }],
+  [2, { id: 2, name: 'Samwise Gamgee' }],
 ]);
 
 // The Context shape is whatever your server attaches to every request.
-// A typical one threads the authenticated user (if any) and any data
+// A typical one threads the authenticated viewer (if any) and any data
 // sources the resolvers need.
 interface Context {
-  user?: { id: number };
+  viewer?: { id: number };
   db: {
-    users: { find: (id: number) => IUser | null };
+    characters: { find: (id: number) => ICharacter | null };
   };
 }
 
@@ -24,9 +24,9 @@ const builder = new SchemaBuilder<{
   Context: Context;
 }>({});
 
-const User = builder.objectRef<IUser>('User');
+const Character = builder.objectRef<ICharacter>('Character');
 
-User.implement({
+Character.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
@@ -36,9 +36,9 @@ User.implement({
 builder.queryType({
   fields: (t) => ({
     me: t.field({
-      type: User,
+      type: Character,
       nullable: true,
-      resolve: (_root, _args, ctx) => (ctx.user ? ctx.db.users.find(ctx.user.id) : null),
+      resolve: (_root, _args, ctx) => (ctx.viewer ? ctx.db.characters.find(ctx.viewer.id) : null),
     }),
   }),
 });

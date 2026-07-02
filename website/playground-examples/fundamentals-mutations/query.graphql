@@ -1,5 +1,5 @@
-mutation RenameTeam {
-  renameTeam(input: { teamId: "1", name: "Comet Storm" }) {
+mutation RenameFellowship {
+  renameFellowship(input: { fellowshipId: "1", name: "The Nine Walkers" }) {
     id
     name
   }

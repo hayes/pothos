@@ -1,15 +1,25 @@
 import SchemaBuilder from '@pothos/core';
 
-interface IGame {
+interface IBattle {
   id: number;
-  homeTeam: string;
-  awayTeam: string;
-  createdAt: Date;
+  name: string;
+  location: string;
+  foughtOn: Date;
 }
 
-const Games: IGame[] = [
-  { id: 1, homeTeam: 'Comet', awayTeam: 'Vortex', createdAt: new Date('2026-04-12T18:00:00Z') },
-  { id: 2, homeTeam: 'Mist', awayTeam: 'Halo', createdAt: new Date('2026-04-14T20:15:00Z') },
+const Battles: IBattle[] = [
+  {
+    id: 1,
+    name: 'Battle of the Hornburg',
+    location: "Helm's Deep",
+    foughtOn: new Date('3019-03-03T22:00:00Z'),
+  },
+  {
+    id: 2,
+    name: 'Battle of the Pelennor Fields',
+    location: 'Minas Tirith',
+    foughtOn: new Date('3019-03-15T06:00:00Z'),
+  },
 ];
 
 // Custom scalars are registered in the builder generic, then defined
@@ -35,22 +45,22 @@ builder.scalarType('DateTime', {
   },
 });
 
-const Game = builder.objectRef<IGame>('Game').implement({
+const Battle = builder.objectRef<IBattle>('Battle').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
-    homeTeam: t.exposeString('homeTeam'),
-    awayTeam: t.exposeString('awayTeam'),
-    createdAt: t.field({ type: 'DateTime', resolve: (g) => g.createdAt }),
+    name: t.exposeString('name'),
+    location: t.exposeString('location'),
+    foughtOn: t.field({ type: 'DateTime', resolve: (b) => b.foughtOn }),
   }),
 });
 
 builder.queryType({
   fields: (t) => ({
-    upcomingGames: t.field({
-      type: [Game],
+    battlesSince: t.field({
+      type: [Battle],
       args: { after: t.arg({ type: 'DateTime' }) },
       resolve: (_root, { after }) =>
-        Games.filter((g) => !after || g.createdAt >= after),
+        Battles.filter((b) => !after || b.foughtOn >= after),
     }),
   }),
 });

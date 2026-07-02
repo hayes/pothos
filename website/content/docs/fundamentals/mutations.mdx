@@ -10,13 +10,13 @@ Mutations are queries that change state. The API mirrors [Queries](./queries) �
 ```typescript playground example="fundamentals-mutations"
 builder.mutationType({
   fields: (t) => ({
-    renameTeam: t.field({
-      type: Team,
+    renameFellowship: t.field({
+      type: Fellowship,
       args: {
         input: t.arg({
-          type: builder.inputType('RenameTeamInput', {
+          type: builder.inputType('RenameFellowshipInput', {
             fields: (t) => ({
-              teamId: t.id({ required: true }),
+              fellowshipId: t.id({ required: true }),
               name: t.string({ required: true }),
             }),
           }),
@@ -27,15 +27,15 @@ builder.mutationType({
         if (!ctx.user) {
           throw new Error('Not signed in');
         }
-        const team = Teams.get(Number(input.teamId));
-        if (!team) {
-          throw new Error(`No team with id ${input.teamId}`);
+        const fellowship = Fellowships.get(Number(input.fellowshipId));
+        if (!fellowship) {
+          throw new Error(`No fellowship with id ${input.fellowshipId}`);
         }
-        if (team.captainId !== ctx.user.id) {
-          throw new Error('Only the captain can rename the team');
+        if (fellowship.leaderId !== ctx.user.id) {
+          throw new Error('Only the leader can rename the fellowship');
         }
-        team.name = input.name;
-        return team;
+        fellowship.name = input.name;
+        return fellowship;
       },
     }),
   }),
@@ -55,11 +55,11 @@ builder.mutationType({});
 Then add fields with `mutationField` or `mutationFields` from wherever they belong:
 
 ```typescript
-builder.mutationField('createPlayer', (t) =>
+builder.mutationField('recruitCharacter', (t) =>
   t.field({
-    type: Player,
-    args: { input: t.arg({ type: CreatePlayerInput, required: true }) },
-    resolve: (_root, { input }, ctx) => createPlayer(input, ctx),
+    type: Character,
+    args: { input: t.arg({ type: RecruitCharacterInput, required: true }) },
+    resolve: (_root, { input }, ctx) => recruitCharacter(input, ctx),
   }),
 );
 ```
@@ -68,29 +68,20 @@ The choice between `mutationField` and `mutationFields` is the same call as for 
 
 ## Authorisation by hand
 
-The pattern above — `if (!ctx.user) throw` followed by a row-level permission check — is the core-only approach. It scales fine for a handful of mutations. Past that, the boilerplate adds up: the same auth check copy-pasted across every mutation, the same `findOrThrow` followed by the same permission gate.
+The resolver above does two different jobs in sequence. The first is the `if (!ctx.user) throw` lift that narrows `ctx.user` to a non-nullable user — the same move the Context page covers in [Narrowing inside a resolver](./context#narrowing-inside-a-resolver). The second is the part unique to mutations: a *row-level* permission check that decides whether this particular user may change this particular record.
 
-A few specific shapes are worth knowing:
-
-```typescript
-// Lift the auth check so the rest of the resolver sees a non-nullable user.
-resolve: (_root, args, ctx) => {
-  if (!ctx.user) {
-    throw new Error('Not signed in');
-  }
-  // ctx.user is narrowed from here down.
-  return doTheThing(args, ctx.user);
-},
-```
+The row-level check is where mutations diverge from queries. A useful refinement is to fold the existence check and the ownership check together, so the API never reveals that a record exists to a caller who isn't allowed to touch it:
 
 ```typescript
-// Treat "missing" and "not yours" as the same condition to avoid
-// leaking the existence of records.
-const team = Teams.get(Number(input.teamId));
-if (!team || team.captainId !== ctx.user.id) {
-  throw new Error('Team not found');
+// Treat "missing" and "not yours" as the same condition, so the API
+// never leaks the existence of a fellowship the caller can't touch.
+const fellowship = Fellowships.get(Number(input.fellowshipId));
+if (!fellowship || fellowship.leaderId !== ctx.user.id) {
+  throw new Error('Fellowship not found');
 }
 ```
+
+Split the two into distinct throws when you want distinct messages (`Not signed in` vs `Only the leader can rename the fellowship`); fold them when the existence of a record is itself privileged. Either way the shape repeats across every mutation — the same auth lift, the same lookup, the same permission gate — which is the cue to reach for a plugin.
 
 ## Returning what the client needs
 
@@ -98,21 +89,21 @@ Return the entity the mutation changed, so the client can re-read fields in the 
 
 ```graphql
 mutation Rename {
-  renameTeam(input: { teamId: "1", name: "Comet Storm" }) {
+  renameFellowship(input: { fellowshipId: "1", name: "The Nine Walkers" }) {
     id
     name
   }
 }
 ```
 
-For mutations that don't have a single natural return (a bulk delete, a payment confirmation), wrap the result in a small payload type and return that — `DeleteTeamPayload { success: Boolean!, deletedCount: Int! }` reads better than `Boolean!`.
+For mutations that don't have a single natural return (a bulk delete, a payment confirmation), wrap the result in a small payload type and return that — `DisbandFellowshipPayload { success: Boolean!, deletedCount: Int! }` reads better than `Boolean!`.
 
 ## When to graduate to plugins
 
 The three plugins worth knowing about for mutations:
 
 - [`plugin-scope-auth`](../plugins/scope-auth) replaces the manual `if (!ctx.user)` and row-level checks with declarative `authScopes` on the field. Once two or three mutations share the same check, you save real LOC.
-- [`plugin-errors`](../plugins/errors) turns thrown errors into typed result unions — your `renameTeam` field's return type becomes `RenameTeamResult = Team | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
+- [`plugin-errors`](../plugins/errors) turns thrown errors into typed result unions — your `renameFellowship` field's return type becomes `RenameFellowshipResult = Fellowship | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
 - [`plugin-validation`](../plugins/validation) runs Zod schemas against your input before the resolver fires. Useful when the input has format constraints (`name` must be 1–80 chars, `email` must be a valid email).
 
 You don't need any of them on day one. Reach for them when the manual patterns start to repeat.

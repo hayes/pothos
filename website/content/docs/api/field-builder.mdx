@@ -1,13 +1,17 @@
 ---
 title: FieldBuilder
-description: API docs for Pothos FieldBuilder
+description: Reference for the field builder `t` — field, the scalar helpers, and the expose helpers.
 ---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The field builder is the `t` argument passed to every `fields` function. Its methods return field refs. For a guided introduction to defining fields and writing resolvers, see [Fields](../fundamentals/fields) and [Resolvers](../fundamentals/resolvers).
 
 ## `field(options)`
 
 - `options`: `FieldOptions`
 
-### FieldOptions
+### `FieldOptions`
 
 ```typescript
 type FieldOptions = {
@@ -16,63 +20,39 @@ type FieldOptions = {
   nullable?: boolean;
   description?: string;
   deprecationReason?: string;
-  resolve: (parent, args, context, info): ResolveValue;
+  extensions?: Record<string, unknown>;
+  resolve: (parent, args, context, info) => ResolveValue;
 };
 ```
 
 - `type`: [Type Parameter](./field-builder#type-parameter)
-- `args`: a map of arg name to arg values. Arg values can be created using an
-  [`InputFieldBuilder`](./input-field-builder)
-
-  \(`fieldBuilder.arg`\) or using `schemaBuilder.args`
-
-- `nullable`: boolean, defaults to `true`, unless overwritten in SchemaBuilder see
-  [Default nullability](../patterns/default-nullability).
-- `description`: string
-- `deprecationReason`: string
+- `args`: a map of arg name to arg definition. Create arg definitions with the [`InputFieldBuilder`](./input-field-builder) (`t.arg`) or with [`builder.args`](./schema-builder#argsfields).
+- `nullable`: whether this field can return `null`. Defaults to `true` unless you flip it in the builder — see [Default nullability](../patterns/default-nullability).
+- `description`: text description of the field, surfaced in tools like GraphiQL.
+- `deprecationReason`: marks the field deprecated with this reason.
+- `extensions`: arbitrary extension metadata, read by directives and server plugins.
 - `resolve`: [Resolver](./field-builder#resolver)
 
 ### Type Parameter
 
-A Type Parameter for a Field can be any `TypeRef` returned by one of the
-[`SchemaBuilder`](./schema-builder) methods for defining a type, a class used to create an object or
-interface type, a ts enum used to define a graphql enum type, or a string that corresponds to one of
-the keys of the `Objects`, `Interfaces`, or `Scalars` objects defined in `SchemaTypes`.
+A field's type can be any `TypeRef` returned by a [`SchemaBuilder`](./schema-builder) type-definition method, a class used to create an object or interface type, a TypeScript enum used to define a GraphQL enum, or a string matching a key of the `Objects`, `Interfaces`, or `Scalars` maps in `SchemaTypes`.
 
-For List fields, the Type Parameter should be one of the above wrapped in an array eg `['User']`.
+For list fields, wrap any of the above in an array — for example `['Character']`.
 
 ### Resolver
 
-A function to resolve the value of this field.
+A function that resolves the value of the field. It should return a value (or promise) matching the field's type. For `Scalars`, `Objects`, and `Interfaces` that is the corresponding shape from `SchemaTypes`. For unions, it may be any member's shape. For enums, the value depends on the enum's definition — see [Enums](../fundamentals/enums).
 
-#### Return type
+The resolver receives four arguments:
 
-Field resolvers should return a value \(or promise\) that matches the expected type for this field.
-For `Scalars`, `Objects`, and `Interfaces` this type is the corresponding type defined
-`SchemaTypes`. For Unions, the type may be any of the corresponding shapes of members of the union.
-For Enums, the value is dependent on the implementation of the enum. See `Enum` guide for more
-details.
+- `parent`: the backing model of the current type, as declared in `SchemaTypes`.
+- `args`: an object matching the field's `args` option.
+- `context`: the `Context` type from `SchemaTypes`.
+- `info`: a [`GraphQLResolveInfo`](https://graphql.org/graphql-js/type/#graphqlobjecttype) object describing how the field was queried.
 
-#### Args
+## Scalar helpers
 
-- `parent`: Parent will be a value of the backing model for the current type specified in
-
-  `SchemaTypes`.
-
-- `args`: an object matching the shape of the args option for the current field
-- `context`: The type `Context` type defined in `SchemaTypes`.
-- `info`: a GraphQLResolveInfo object see
-
-  [https://graphql.org/graphql-js/type/\#graphqlobjecttype](https://graphql.org/graphql-js/type/#graphqlobjecttype)
-
-  for more details.
-
-## helpers
-
-A set of helpers for creating scalar fields. This work the same as
-[`field`](./field-builder#fieldoptions), but omit the `type` field from options.
-
-### Scalars
+Shortcuts for defining scalar fields. Each works like [`field`](./field-builder#fieldoptions) but omits the `type` option:
 
 - `string(options)`
 - `id(options)`
@@ -86,11 +66,9 @@ A set of helpers for creating scalar fields. This work the same as
 - `floatList(options)`
 - `listRef(type, options)`
 
-### expose
+## Expose helpers
 
-A set of helpers to expose fields from the backing model. The `name` arg can be any field from the
-backing model that matches the type being exposed. Options are the same as
-[`field`](./field-builder#fieldoptions), but `type` and `resolve` are omitted.
+Shortcuts for exposing a property of the backing model directly, without a resolver. The `name` argument can be any property of the backing model whose type matches the field. Options are the same as [`field`](./field-builder#fieldoptions), with `type` and `resolve` omitted:
 
 - `exposeString(name, options)`
 - `exposeID(name, options)`
@@ -102,3 +80,9 @@ backing model that matches the type being exposed. Options are the same as
 - `exposeBooleanList(name, options)`
 - `exposeIntList(name, options)`
 - `exposeFloatList(name, options)`
+
+The expose helpers exist only on object and interface field builders, where a backing model is in scope. They are not available on `Query`, `Mutation`, or `Subscription`, whose root value carries no properties to expose.
+
+<Callout type="info">
+  See also: [Fields](../fundamentals/fields) for the concepts behind these methods, [ArgBuilder](./arg-builder) for defining a field's `args`, or [SchemaBuilder](./schema-builder) for the type-definition methods whose refs become the `type` parameter.
+</Callout>

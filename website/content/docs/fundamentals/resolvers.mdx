@@ -10,8 +10,8 @@ A resolver is a function attached to a field. GraphQL calls it whenever the fiel
 ```typescript playground example="fundamentals-resolvers"
 builder.queryType({
   fields: (t) => ({
-    bookCount: t.int({
-      resolve: () => Books.size,
+    characterCount: t.int({
+      resolve: () => Characters.size,
     }),
   }),
 });
@@ -27,7 +27,7 @@ The full signature is `(parent, args, ctx, info)`:
 You almost always destructure the ones you need:
 
 ```typescript
-resolve: (parent, { id }, ctx) => ctx.db.books.find(String(id) === parent.bookId),
+resolve: (parent, { id }, ctx) => ctx.db.characters.find(String(id) === parent.characterId),
 ```
 
 ## Sync, async, both
@@ -41,10 +41,10 @@ hello: t.string({
 }),
 
 // Async — Pothos handles the awaiting
-randomBook: t.field({
-  type: Book,
+randomCharacter: t.field({
+  type: Character,
   resolve: async () => {
-    const list = [...Books.values()];
+    const list = [...Characters.values()];
     return list[Math.floor(Math.random() * list.length)];
   },
 }),
@@ -76,15 +76,15 @@ This split is why you can return database rows, ORM models, or plain objects fro
 A resolver that throws produces a `null` value for that field and an entry in the response's `errors` array. The thrown message reaches the client unless your server masks it.
 
 ```typescript
-bookById: t.field({
-  type: Book,
+characterById: t.field({
+  type: Character,
   args: { id: t.arg.id({ required: true }) },
   resolve: (_root, { id }) => {
-    const book = Books.get(String(id));
-    if (!book) {
-      throw new Error(`No book with id ${id}`);
+    const character = Characters.get(String(id));
+    if (!character) {
+      throw new Error(`No character with id ${id}`);
     }
-    return book;
+    return character;
   },
 }),
 ```

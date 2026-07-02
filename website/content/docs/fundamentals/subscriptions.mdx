@@ -10,16 +10,16 @@ A subscription field has two functions: `subscribe` returns an async iterable of
 ```typescript playground example="fundamentals-subscriptions"
 builder.subscriptionType({
   fields: (t) => ({
-    counter: t.int({
-      description: 'Emits an incrementing integer once a second.',
-      subscribe: () => tick(),
-      resolve: (value) => value,
+    beaconLit: t.string({
+      description: 'Emits each beacon of Gondor as it is lit.',
+      subscribe: () => lightBeacons(),
+      resolve: (name) => name,
     }),
   }),
 });
 ```
 
-`subscribe` runs once when the subscription starts. Each value the iterable yields becomes one message to the client; `resolve` shapes it. For trivial cases the resolver is `(value) => value`, but it can be anything that takes the iterable's element type and returns the field's GraphQL type.
+`subscribe` runs once when the subscription starts. Each value the iterable yields becomes one message to the client; `resolve` shapes it. For trivial cases the resolver is `(name) => name`, but it can be anything that takes the iterable's element type and returns the field's GraphQL type.
 
 <Callout type="warn">
   Declare `subscribe` before `resolve` in the options object. Pothos infers `resolve`'s parent type from `subscribe`'s element type, and the inference only works when `subscribe` appears first.
@@ -30,20 +30,20 @@ builder.subscriptionType({
 Subscriptions usually pair with a mutation that publishes events:
 
 ```typescript
-builder.mutationField('post', (t) =>
+builder.mutationField('lightBeacon', (t) =>
   t.boolean({
-    args: { message: t.arg.string({ required: true }) },
-    resolve: (_root, { message }, ctx) => {
-      ctx.pubSub.publish('NEW_MESSAGE', { text: message });
+    args: { name: t.arg.string({ required: true }) },
+    resolve: (_root, { name }, ctx) => {
+      ctx.pubSub.publish('BEACON_LIT', { name });
       return true;
     },
   }),
 );
 
-builder.subscriptionField('messages', (t) =>
+builder.subscriptionField('beacons', (t) =>
   t.field({
-    type: Message,
-    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('NEW_MESSAGE'),
+    type: Beacon,
+    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('BEACON_LIT'),
     resolve: (event) => event,
   }),
 );
@@ -53,16 +53,16 @@ The pub/sub itself isn't part of Pothos — it lives on your context. `graphql-y
 
 ## Filtering
 
-Subscribers often want only a slice of an event stream — messages in a specific room, updates for a specific record. Filter inside the resolver and return `null` for events that don't apply:
+Subscribers often want only a slice of an event stream — beacons that summon a specific realm, updates for a specific record. Filter inside the resolver and return `null` for events that don't apply:
 
 ```typescript
-builder.subscriptionField('roomMessages', (t) =>
+builder.subscriptionField('realmBeacons', (t) =>
   t.field({
-    type: Message,
+    type: Beacon,
     nullable: true,
-    args: { roomId: t.arg.id({ required: true }) },
-    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('NEW_MESSAGE'),
-    resolve: (event, { roomId }) => (event.roomId === String(roomId) ? event : null),
+    args: { realm: t.arg.string({ required: true }) },
+    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('BEACON_LIT'),
+    resolve: (event, { realm }) => (event.realm === realm ? event : null),
   }),
 );
 ```
@@ -76,9 +76,9 @@ Authorise at `subscribe` — once when the connection opens — and trust the re
 ```typescript
 subscribe: (_root, _args, ctx) => {
   if (!ctx.user) {
-    throw new Error('Sign in to subscribe');
+    throw new Error('Only the wardens may watch the beacons');
   }
-  return ctx.pubSub.subscribe('NEW_MESSAGE');
+  return ctx.pubSub.subscribe('BEACON_LIT');
 },
 ```
 

@@ -10,33 +10,33 @@ Once a field's arguments grow past two or three values, or several fields take t
 ```typescript playground example="fundamentals-inputs"
 builder.mutationType({
   fields: (t) => ({
-    createPlayer: t.field({
-      type: Player,
+    recruitCharacter: t.field({
+      type: Character,
       args: {
         input: t.arg({
-          type: builder.inputType('CreatePlayerInput', {
+          type: builder.inputType('RecruitCharacterInput', {
             fields: (t) => ({
               name: t.string({ required: true }),
-              jersey: t.int({ required: true }),
+              age: t.int({ required: true }),
             }),
           }),
           required: true,
         }),
       },
-      resolve: (_root, { input }) => createPlayer(input.name, input.jersey),
+      resolve: (_root, { input }) => recruitCharacter(input.name, input.age),
     }),
   }),
 });
 ```
 
-`input` arrives in the resolver fully typed: `input.name` is `string`, `input.jersey` is `number`.
+`input` arrives in the resolver fully typed: `input.name` is `string`, `input.age` is `number`.
 
 ## Naming the type
 
 The first argument to `builder.inputType` is the GraphQL type name. The convention is `<Operation><Subject>Input`:
 
-- `CreatePlayerInput`
-- `UpdateTeamInput`
+- `RecruitCharacterInput`
+- `RenameFellowshipInput`
 - `SearchCharactersFilter` (when "filter" reads better than "Input")
 
 Each input object can only be defined once across your whole schema — pick a name no other field will collide with.
@@ -46,22 +46,22 @@ Each input object can only be defined once across your whole schema — pick a n
 When two fields want the same shape, lift it to a top-level variable and reference it:
 
 ```typescript
-const TeamFilter = builder.inputType('TeamFilter', {
+const FellowshipFilter = builder.inputType('FellowshipFilter', {
   fields: (t) => ({
     nameContains: t.string(),
-    minPlayers: t.int(),
+    minMembers: t.int(),
   }),
 });
 
 builder.queryFields((t) => ({
-  teams: t.field({
-    type: [Team],
-    args: { filter: t.arg({ type: TeamFilter }) },
-    resolve: (_root, { filter }) => findTeams(filter),
+  fellowships: t.field({
+    type: [Fellowship],
+    args: { filter: t.arg({ type: FellowshipFilter }) },
+    resolve: (_root, { filter }) => findFellowships(filter),
   }),
-  teamCount: t.int({
-    args: { filter: t.arg({ type: TeamFilter }) },
-    resolve: (_root, { filter }) => countTeams(filter),
+  fellowshipCount: t.int({
+    args: { filter: t.arg({ type: FellowshipFilter }) },
+    resolve: (_root, { filter }) => countFellowships(filter),
   }),
 }));
 ```

@@ -1,22 +1,51 @@
 ---
 title: Design
-description: Design overview for Pothos
+description: How Pothos carries type information — the SchemaTypes generic and Ref objects — and why that split keeps large schemas and plugins modular.
 ---
 
-## Type System
+import { Callout } from 'fumadocs-ui/components/callout';
 
-The type system that powers most of the Pothos type checking has 2 components. The first is the
-SchemaTypes type param passed into the SchemaBuilder. This allows a shared set of types to be reused
-throughout the schema, and is responsible for providing type information for shared types like the
-[Context](./fundamentals/context) object, and any Object, Interface, or Scalar types that you want to
-reference by name \(as a string\). Having all type information in a single object can be convenient
-at times, but with large schemas, can become unwieldy.
+Pothos gives you a fully typed schema with no code-generation step. To pull that off it has to carry the TypeScript shape of every type and field all the way through to the resolver that uses it. It does this two ways, and knowing which is which explains most of how Pothos behaves.
 
-To support a number of additional use cases, including Unions and Enums, large schemas, and plugins
-that use extract type information from other sources \(eg the Prisma, or the simple-objects
-plugin\), Pothos has another way of passing around type information. This system is based in `Ref`
-objects that contain the type information it represents. Every builder method for creating a type or
-a field returns a `Ref` object.
+## The SchemaTypes generic
 
-Using Ref objects allows us to separate the type information from the implementation, and allows for
-a more modular design.
+The first mechanism is the `SchemaTypes` parameter you pass to `SchemaBuilder`. It's a single object of type-only configuration, shared across the whole schema. It carries your [`Context`](./fundamentals/context) shape and any Object, Interface, or Scalar type you want to reference later by name as a string.
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: { currentUser: ICharacter };
+  Objects: { Race: IRace };
+}>({});
+
+// 'Race' is now usable by name anywhere a type is expected:
+t.field({ type: 'Race', resolve: () => findRace() });
+```
+
+Keeping every type in one place is convenient — there's a single object to look at, and a single name to spell. On a large schema it turns unwieldy: every type piles into one generic, and each addition widens a type the compiler has to re-check everywhere it's referenced.
+
+## Ref objects
+
+The second mechanism is the `Ref` object. Every builder method that creates a type or a field returns a `Ref` that carries the type information it represents:
+
+```typescript
+const Race = builder.objectRef<IRace>('Race');
+
+// Race is a Ref that already knows its backing model — pass it directly:
+t.field({ type: Race, resolve: () => findRace() });
+```
+
+Because a `Ref` holds its own type information, you never register it on `SchemaTypes` and never spell its name as a string. That's what makes the harder cases work:
+
+- **Unions and enums**, whose members are values rather than named entries in a generic.
+- **Large schemas**, where each type stays self-contained instead of swelling one central generic.
+- **Plugins that pull type information from another source** — the Prisma plugin from your Prisma client, the simple-objects plugin from the object you hand it. They can mint a `Ref` for a type the builder's generic has never heard of.
+
+## Why the split
+
+Separating the type information (the `Ref`) from the implementation (`implement`) is what keeps Pothos modular. A `Ref` exists before its fields do, so two types can reference each other without forward-declaration gymnastics. A plugin can hand you a `Ref` for a type it derived from somewhere else without ever touching the central generic. And each type carries its own shape, so nothing has to stay in sync with a schema-wide registry.
+
+This is why `objectRef` is the pattern the rest of the guide reaches for first — it keeps a type and everything the compiler knows about it in one place. The `SchemaTypes` generic is still there when you specifically want a name to hang behaviour on: string-referenced types, the `Context` shape, and the plugin slots that map GraphQL names to ORM models. The two interoperate freely; most schemas use `objectRef` for the bulk of their types and the generic for the handful that need a name.
+
+<Callout type="info">
+  See also: [SchemaBuilder](./fundamentals/schema-builder) for what goes in the `SchemaTypes` generic, or [Object types](./fundamentals/objects) for the `objectRef` pattern the Ref system enables.
+</Callout>

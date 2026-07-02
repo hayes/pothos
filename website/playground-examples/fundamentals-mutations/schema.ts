@@ -1,13 +1,13 @@
 import SchemaBuilder from '@pothos/core';
 
-interface ITeam {
+interface IFellowship {
   id: number;
   name: string;
-  captainId: number;
+  leaderId: number;
 }
 
-const Teams = new Map<number, ITeam>([
-  [1, { id: 1, name: 'Comet', captainId: 1 }],
+const Fellowships = new Map<number, IFellowship>([
+  [1, { id: 1, name: 'Fellowship of the Ring', leaderId: 1 }],
 ]);
 
 interface Context {
@@ -18,9 +18,9 @@ const builder = new SchemaBuilder<{
   Context: Context;
 }>({});
 
-const Team = builder.objectRef<ITeam>('Team');
+const Fellowship = builder.objectRef<IFellowship>('Fellowship');
 
-Team.implement({
+Fellowship.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
@@ -29,22 +29,22 @@ Team.implement({
 
 builder.queryType({
   fields: (t) => ({
-    teams: t.field({
-      type: [Team],
-      resolve: () => [...Teams.values()],
+    fellowships: t.field({
+      type: [Fellowship],
+      resolve: () => [...Fellowships.values()],
     }),
   }),
 });
 
 builder.mutationType({
   fields: (t) => ({
-    renameTeam: t.field({
-      type: Team,
+    renameFellowship: t.field({
+      type: Fellowship,
       args: {
         input: t.arg({
-          type: builder.inputType('RenameTeamInput', {
+          type: builder.inputType('RenameFellowshipInput', {
             fields: (t) => ({
-              teamId: t.id({ required: true }),
+              fellowshipId: t.id({ required: true }),
               name: t.string({ required: true }),
             }),
           }),
@@ -52,20 +52,18 @@ builder.mutationType({
         }),
       },
       resolve: (_root, { input }, ctx) => {
-        // Core-only auth check. Plugins like plugin-scope-auth replace
-        // this boilerplate with declarative scopes; see the link below.
         if (!ctx.user) {
           throw new Error('Not signed in');
         }
-        const team = Teams.get(Number(input.teamId));
-        if (!team) {
-          throw new Error(`No team with id ${input.teamId}`);
+        const fellowship = Fellowships.get(Number(input.fellowshipId));
+        if (!fellowship) {
+          throw new Error(`No fellowship with id ${input.fellowshipId}`);
         }
-        if (team.captainId !== ctx.user.id) {
-          throw new Error('Only the captain can rename the team');
+        if (fellowship.leaderId !== ctx.user.id) {
+          throw new Error('Only the leader can rename the fellowship');
         }
-        team.name = input.name;
-        return team;
+        fellowship.name = input.name;
+        return fellowship;
       },
     }),
   }),

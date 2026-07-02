@@ -1,7 +1,7 @@
-mutation AddPlayer {
-  createPlayer(input: { name: "Rio Park", jersey: 7 }) {
+mutation RecruitCharacter {
+  recruitCharacter(input: { name: "Frodo", age: 50 }) {
     id
     name
-    jersey
+    age
   }
 }

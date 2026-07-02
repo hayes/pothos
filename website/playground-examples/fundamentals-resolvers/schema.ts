@@ -1,53 +1,53 @@
 import SchemaBuilder from '@pothos/core';
 
-interface IBook {
+interface ICharacter {
   id: string;
-  title: string;
+  name: string;
 }
 
-const Books = new Map<string, IBook>([
-  ['fotr', { id: 'fotr', title: 'The Fellowship of the Ring' }],
-  ['ttt', { id: 'ttt', title: 'The Two Towers' }],
+const Characters = new Map<string, ICharacter>([
+  ['frodo', { id: 'frodo', name: 'Frodo Baggins' }],
+  ['gandalf', { id: 'gandalf', name: 'Gandalf' }],
 ]);
 
 const builder = new SchemaBuilder({});
 
-const Book = builder.objectRef<IBook>('Book');
+const Character = builder.objectRef<ICharacter>('Character');
 
-Book.implement({
+Character.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
-    title: t.exposeString('title'),
+    name: t.exposeString('name'),
   }),
 });
 
 builder.queryType({
   fields: (t) => ({
     // Sync resolver: just return the value.
-    bookCount: t.int({
-      resolve: () => Books.size,
+    characterCount: t.int({
+      resolve: () => Characters.size,
     }),
 
     // Async resolver: return a Promise. Pothos awaits it for you.
-    randomBook: t.field({
-      type: Book,
+    randomCharacter: t.field({
+      type: Character,
       resolve: async () => {
-        const list = [...Books.values()];
+        const list = [...Characters.values()];
         return list[Math.floor(Math.random() * list.length)];
       },
     }),
 
     // Throwing resolver: errors propagate as null for the field and
     // an entry in the response's `errors` array.
-    bookById: t.field({
-      type: Book,
+    characterById: t.field({
+      type: Character,
       args: { id: t.arg.id({ required: true }) },
       resolve: (_root, { id }) => {
-        const book = Books.get(String(id));
-        if (!book) {
-          throw new Error(`No book with id ${id}`);
+        const character = Characters.get(String(id));
+        if (!character) {
+          throw new Error(`No character with id ${id}`);
         }
-        return book;
+        return character;
       },
     }),
   }),

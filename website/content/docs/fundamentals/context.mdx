@@ -9,9 +9,9 @@ The context is whatever your server attaches to each request. Every resolver rec
 
 ```typescript playground example="fundamentals-context"
 interface Context {
-  user?: { id: number };
+  viewer?: { id: number };
   db: {
-    users: { find: (id: number) => IUser | null };
+    characters: { find: (id: number) => ICharacter | null };
   };
 }
 
@@ -22,21 +22,21 @@ const builder = new SchemaBuilder<{
 builder.queryType({
   fields: (t) => ({
     me: t.field({
-      type: User,
+      type: Character,
       nullable: true,
-      resolve: (_root, _args, ctx) => (ctx.user ? ctx.db.users.find(ctx.user.id) : null),
+      resolve: (_root, _args, ctx) => (ctx.viewer ? ctx.db.characters.find(ctx.viewer.id) : null),
     }),
   }),
 });
 ```
 
-`ctx.user` is `{ id: number } | undefined` everywhere in the schema — no casts, no helpers, no per-resolver type imports.
+`ctx.viewer` is `{ id: number } | undefined` everywhere in the schema — no casts, no helpers, no per-resolver type imports.
 
 ## What to put on it
 
 Context typically threads:
 
-- **The authenticated user (or absence thereof).** Whatever your auth middleware decoded from the request.
+- **The authenticated viewer (or absence thereof).** Whatever your auth middleware decoded from the request.
 - **Data-access handles.** A database client, ORM, or repository pattern. Resolvers shouldn't be reaching for module-level singletons when they can take them as a dependency.
 - **Per-request caches.** Dataloaders, computed permissions, anything that should be created fresh per request but reused across the resolvers in that one request.
 
@@ -50,7 +50,7 @@ The context factory runs once per request. With `graphql-yoga` or Apollo Server,
 const yoga = createYoga({
   schema,
   context: async ({ request }) => ({
-    user: await decodeUserFromToken(request.headers.get('authorization')),
+    viewer: await decodeViewerFromToken(request.headers.get('authorization')),
     db,
   }),
 });
@@ -66,15 +66,15 @@ If you find yourself reaching for a global to share state across requests, that 
 
 ## Narrowing inside a resolver
 
-When a resolver requires an authenticated user, lift the check out of the body so the compiler narrows the type:
+When a resolver requires an authenticated viewer, lift the check out of the body so the compiler narrows the type:
 
 ```typescript
 resolve: (_root, args, ctx) => {
-  if (!ctx.user) {
+  if (!ctx.viewer) {
     throw new Error('Sign in to continue');
   }
-  // ctx.user is { id: number } from here down.
-  return ctx.db.posts.findMany({ authorId: ctx.user.id });
+  // ctx.viewer is { id: number } from here down.
+  return ctx.db.quests.findMany({ ownerId: ctx.viewer.id });
 },
 ```
 

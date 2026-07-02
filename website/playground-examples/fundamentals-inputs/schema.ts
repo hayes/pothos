@@ -1,57 +1,57 @@
 import SchemaBuilder from '@pothos/core';
 
-interface IPlayer {
+interface ICharacter {
   id: number;
   name: string;
-  jersey: number;
+  age: number;
 }
 
-const Players = new Map<number, IPlayer>();
+const Characters = new Map<number, ICharacter>();
 let nextId = 1;
+
+function recruitCharacter(name: string, age: number): ICharacter {
+  const character: ICharacter = { id: nextId++, name, age };
+  Characters.set(character.id, character);
+  return character;
+}
 
 const builder = new SchemaBuilder({});
 
-const Player = builder.objectRef<IPlayer>('Player');
+const Character = builder.objectRef<ICharacter>('Character');
 
-Player.implement({
+Character.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
-    jersey: t.exposeInt('jersey'),
+    age: t.exposeInt('age'),
   }),
 });
 
 builder.queryType({
   fields: (t) => ({
-    players: t.field({
-      type: [Player],
-      resolve: () => [...Players.values()],
+    characters: t.field({
+      type: [Character],
+      resolve: () => [...Characters.values()],
     }),
   }),
 });
 
 builder.mutationType({
   fields: (t) => ({
-    createPlayer: t.field({
-      type: Player,
+    recruitCharacter: t.field({
+      type: Character,
       args: {
-        // Inline inputType: the input's fields are declared right where
-        // it's used. The shape is inferred — no separate inputRef needed.
         input: t.arg({
-          type: builder.inputType('CreatePlayerInput', {
+          type: builder.inputType('RecruitCharacterInput', {
             fields: (t) => ({
               name: t.string({ required: true }),
-              jersey: t.int({ required: true }),
+              age: t.int({ required: true }),
             }),
           }),
           required: true,
         }),
       },
-      resolve: (_root, { input }) => {
-        const player: IPlayer = { id: nextId++, name: input.name, jersey: input.jersey };
-        Players.set(player.id, player);
-        return player;
-      },
+      resolve: (_root, { input }) => recruitCharacter(input.name, input.age),
     }),
   }),
 });

@@ -1,8 +1,8 @@
-query UpcomingGames {
-  upcomingGames(after: "2026-04-13T00:00:00Z") {
+query BattlesSince {
+  battlesSince(after: "3019-03-10T00:00:00Z") {
     id
-    homeTeam
-    awayTeam
-    createdAt
+    name
+    location
+    foughtOn
   }
 }
