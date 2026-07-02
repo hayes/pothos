@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { PluginEntry } from '../plugins/plugins';
+import { PLUGINS, type PluginEntry } from '../plugins/plugins';
 import { HOMEPAGE_PLUGINS } from './plugins';
 
 export function PluginGarden() {
@@ -21,7 +21,7 @@ export function PluginGarden() {
           href="/docs/plugins"
           className="text-bm-ink-soft hover:text-bm-ink text-[14px] transition-colors"
         >
-          Browse all {HOMEPAGE_PLUGINS.length}+ plugins →
+          Browse all {PLUGINS.length} plugins →
         </Link>
       </div>
 

@@ -69,9 +69,9 @@ builder.subscriptionField('characterEdits', (t) =>
 
 For high-fanout topics where most events are uninteresting, push the filter into the `subscribe` call so the iterable never emits them in the first place. The mechanism depends on your pub/sub.
 
-## Authorisation
+## Authorization
 
-Authorise at `subscribe` — once when the connection opens — and trust the result for the lifetime of the stream:
+Authorize at `subscribe` — once when the connection opens — and trust the result for the lifetime of the stream:
 
 ```typescript
 subscribe: (_root, _args, ctx) => {

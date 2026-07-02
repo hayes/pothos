@@ -91,7 +91,12 @@ const config = {
     ];
   },
   redirects() {
-    return guideRedirects.map((r) => ({ ...r, permanent: true }));
+    return [
+      ...guideRedirects,
+      // The marketing /plugins route was consolidated into the canonical docs
+      // catalog at /docs/plugins (same component, one URL). Redirect the old URL.
+      { source: '/plugins', destination: '/docs/plugins' },
+    ].map((r) => ({ ...r, permanent: true }));
   },
 };
 

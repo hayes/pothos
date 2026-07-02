@@ -9,7 +9,7 @@ A Pothos schema is a TypeScript module, but two downstream consumers usually wan
 
 ## Printing to a file
 
-`printSchema` from `graphql` serialises a `GraphQLSchema` to SDL. `lexicographicSortSchema` sorts types and fields alphabetically — without it the output order changes whenever the source order changes, which makes diffs noisy.
+`printSchema` from `graphql` serializes a `GraphQLSchema` to SDL. `lexicographicSortSchema` sorts types and fields alphabetically — without it the output order changes whenever the source order changes, which makes diffs noisy.
 
 ```typescript
 import { writeFileSync } from 'node:fs';

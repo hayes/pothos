@@ -33,7 +33,7 @@ builder.scalarType('DateTime', {
 
 ## Input vs Output
 
-Scalars can serialise and parse different shapes — useful when the wire format and the in-memory format differ. For `DateTime`:
+Scalars can serialize and parse different shapes — useful when the wire format and the in-memory format differ. For `DateTime`:
 
 - **Output** (`Date`): your resolvers return `Date` objects — the day a battle was fought.
 - **Input** (`Date`): your resolvers receive `Date` objects, after `parseValue` parses the incoming string.
@@ -87,5 +87,5 @@ builder.addScalarType('DateTime', DateTimeResolver);
 Same generic, less code.
 
 <Callout type="info">
-  See also: [Fields](./fields) for the scalar `exposeX` helpers, or the [graphql-scalars](https://github.com/Urigo/graphql-scalars) catalogue for ready-made implementations.
+  See also: [Fields](./fields) for the scalar `exposeX` helpers, or the [graphql-scalars](https://github.com/Urigo/graphql-scalars) catalog for ready-made implementations.
 </Callout>

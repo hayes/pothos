@@ -41,7 +41,7 @@ Once registered, the plugin's methods appear on the builder as if they were core
 
 ## Plugin order matters
 
-Plugins are applied in reverse list order. The first plugin listed becomes the outermost wrapper at runtime — its hooks fire first on the way in, last on the way out. Put authorisation-style plugins (anything that should reject early) near the front:
+Plugins are applied in reverse list order. The first plugin listed becomes the outermost wrapper at runtime — its hooks fire first on the way in, last on the way out. Put authorization-style plugins (anything that should reject early) near the front:
 
 ```typescript
 plugins: [
@@ -52,9 +52,9 @@ plugins: [
 ],
 ```
 
-This ordering matters when one plugin's behaviour depends on another's effect already being in place. The docs for each plugin call out the cases where order is load-bearing.
+This ordering matters when one plugin's behavior depends on another's effect already being in place. The docs for each plugin call out the cases where order is load-bearing.
 
-## Plugin catalogue
+## Plugin catalog
 
 The full plugin index lives at [Plugins](./plugins). Some pointers:
 

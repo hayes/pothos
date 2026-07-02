@@ -66,7 +66,7 @@ builder.mutationField('addCharacter', (t) =>
 
 The choice between `mutationField` and `mutationFields` is the same call as for queries: per-field for module-local definitions, per-group for related batches.
 
-## Authorisation by hand
+## Authorization by hand
 
 The resolver above does two different jobs in sequence. The first is the `if (!ctx.user) throw` lift that narrows `ctx.user` to a non-nullable user — the same move the Context page covers in [Narrowing inside a resolver](./context#narrowing-inside-a-resolver). The second is the part unique to mutations: a *row-level* permission check that decides whether this particular user may change this particular record.
 

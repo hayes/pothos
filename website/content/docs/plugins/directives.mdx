@@ -7,7 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Schema directives are annotations on your types and fields — `@rateLimit`, `@auth`, `@deprecated` — that downstream tooling reads and acts on. Pothos is code-first, so it never executes a directive itself; the directives plugin records what you declare into each type's `extensions`, where a schema transformer like [graphql-tools](https://the-guild.dev/graphql/tools) can pick it up. You declare the directives you use on the `Directives` generic, then attach them with a `directives` option anywhere the schema allows.
 
-Directives predate code-first schemas and are really an SDL-first idea. Reach for this plugin when you want to keep using a directive-based tool — rate limiting, auth, caching — from a Pothos schema, not to invent new runtime behaviour.
+Directives predate code-first schemas and are really an SDL-first idea. Reach for this plugin when you want to keep using a directive-based tool — rate limiting, auth, caching — from a Pothos schema, not to invent new runtime behavior.
 
 ```package-install
 npm install --save @pothos/plugin-directives
@@ -143,12 +143,12 @@ export const schema = builder.toSchema({
 
 ## Output format
 
-The plugin doesn't enforce a directive — it writes the directive data onto the `extensions` of the underlying GraphQL type. A downstream transformer reads those extensions and does the real work. That split is the whole point: Pothos owns the schema shape, and a tool like graphql-tools owns the behaviour.
+The plugin doesn't enforce a directive — it writes the directive data onto the `extensions` of the underlying GraphQL type. A downstream transformer reads those extensions and does the real work. That split is the whole point: Pothos owns the schema shape, and a tool like graphql-tools owns the behavior.
 
 By default the plugin uses the extensions format Gatsby uses ([described here](https://github.com/graphql/graphql-js/issues/1343#issuecomment-479871020)), which [older versions of `graphql-tools` did not support](https://github.com/ardatan/graphql-tools/issues/2534). If your directive ships a schema visitor built against an older graphql-tools — the rate-limit directive below is one — set `useGraphQLToolsUnorderedDirectives` on the builder to emit the format those visitors expect.
 
 <Callout type="warn">
-  `useGraphQLToolsUnorderedDirectives` does not preserve the order directives were declared in. That's fine for most schemas, but if a directive's behaviour depends on ordering, leave it off and keep the default format.
+  `useGraphQLToolsUnorderedDirectives` does not preserve the order directives were declared in. That's fine for most schemas, but if a directive's behavior depends on ordering, leave it off and keep the default format.
 </Callout>
 
 ## Wiring a real directive

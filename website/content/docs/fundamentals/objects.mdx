@@ -114,11 +114,11 @@ The resolver must return something that satisfies `IRace`. If your data source a
 
 The **Classes** and **Builder types** tabs on the first example are the same `Race` schema in Pothos' two older styles. Reach for them only when you need the specific affordance:
 
-- **Class-backed types.** `builder.objectType(MyClass, { ... })` infers the backing model from a TypeScript class. Useful if you already keep domain classes around for behaviour.
+- **Class-backed types.** `builder.objectType(MyClass, { ... })` infers the backing model from a TypeScript class. Useful if you already keep domain classes around for behavior.
 - **SchemaTypes-named types.** Register the type on the `Objects` generic, then refer to it by name as a string: `t.field({ type: 'Race', ... })`. The Prisma and Drizzle plugins lean on this so they can wire type names to ORM model names.
 
 Both interoperate with `objectRef` — pick whichever fits a given type and mix freely.
 
 <Callout type="info">
-  See also: [Fields](./fields) for the catalogue of things to put inside `implement`, or [Circular references](../patterns/circular-references) for the two-way reference pattern above.
+  See also: [Fields](./fields) for the catalog of things to put inside `implement`, or [Circular references](../patterns/circular-references) for the two-way reference pattern above.
 </Callout>

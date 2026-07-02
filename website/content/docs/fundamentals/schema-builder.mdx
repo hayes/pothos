@@ -82,7 +82,7 @@ const Character = builder.objectRef<ICharacter>('Character');
 
 // Pattern 2: Register on the SchemaTypes generic. Lets you reference
 // the type by name as a string. Useful when a plugin needs a name to
-// hang behaviour on (e.g. Prisma model names).
+// hang behavior on (e.g. Prisma model names).
 const builder = new SchemaBuilder<{
   Objects: { Character: ICharacter };
 }>({});
@@ -90,7 +90,7 @@ const builder = new SchemaBuilder<{
 
 The two patterns coexist. Most pages in this guide use `objectRef` because it keeps the type and its definition side by side. The Prisma and Drizzle plugins lean on the SchemaTypes form so they can match GraphQL type names to ORM model names.
 
-## Finalising the schema
+## Finalizing the schema
 
 `builder.toSchema()` produces a `GraphQLSchema` you hand to your server.
 
@@ -101,5 +101,5 @@ export const schema = builder.toSchema();
 You can call this once, at the bottom of the module that brings every type together. The result is plain `graphql-js` — anything that accepts a `GraphQLSchema` will accept it.
 
 <Callout type="info">
-  See also: [Object types](./objects) to start defining the first thing on your builder, or [Using plugins](../using-plugins) for the catalogue of available plugins.
+  See also: [Object types](./objects) to start defining the first thing on your builder, or [Using plugins](../using-plugins) for the catalog of available plugins.
 </Callout>

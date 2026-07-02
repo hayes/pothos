@@ -274,14 +274,42 @@ article#nd-page :not(pre) > code {
    playground editor in both light and dark.
    ────────────────────────────────────────────────────────────────────── */
 
-/* The figure is the single code surface — paint it the editor ground so
-   docs code and the playground editor read as one material. Applies to
-   standalone blocks (bg-fd-card) and tabbed blocks (bg-fd-secondary). */
+/* STANDALONE block: the figure is the single frame. It carries fumadocs'
+   own border + radius (`my-4 bg-fd-card rounded-xl border`); we only repaint
+   the surface to the editor ground so docs code and the playground editor
+   read as one material. */
 article#nd-page figure.shiki {
   background: var(--bm-editor-bg);
 }
 
-/* Inner <pre>: no second border, radius, or fill. The figure is the frame. */
+/* TABBED block (CodeBlockTabs): fumadocs nests a code `figure.bg-fd-secondary`
+   inside a `div.bg-fd-card.rounded-xl.border` that also holds the tab row —
+   two frames (card + figure), each with its own border, radius and a
+   different fill. That is the "double box". Collapse to ONE surface: the
+   card owns the border/radius/background; the inner figure and its scroll
+   viewport go transparent, borderless and square. */
+article#nd-page div.bg-fd-card:has(> [role="tablist"]) {
+  background: var(--bm-editor-bg);
+}
+article#nd-page figure.shiki.bg-fd-secondary {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  /* Drop fumadocs' `shadow-sm`: on the now-square (radius 0) panel it cast a
+     square-cornered shadow that poked past the card's rounded corners — a
+     stray artifact visible in light mode. The card carries the frame. */
+  box-shadow: none;
+}
+/* Tab row sits on the same surface — separated by a single hairline, never a
+   background change + border + radius. (The active-tab underline draws over
+   this line via fumadocs' own indicator.) */
+article#nd-page div.bg-fd-card:has(> [role="tablist"]) > [role="tablist"] {
+  border-bottom: 1px solid var(--bm-line);
+}
+
+/* Inner <pre>: no second border, radius, or fill. The frame is the figure
+   (standalone) or the card (tabbed). */
 article#nd-page pre {
   background: transparent;
   border: 0;
@@ -295,13 +323,16 @@ article#nd-page .fd-scroll-container {
   max-height: none;
 }
 
-/* When a block has no title, fumadocs floats Copy / Open-in-Playground as
-   an absolute overlay in the top-right and marks the viewport with an
-   inline `--padding-right`. Reserve a toolbar band at the top so those
-   actions never sit on top of the first line of code. (A titled block
-   gets fumadocs' own header row instead and never sets --padding-right.) */
-article#nd-page .fd-scroll-container[style*="--padding-right"] {
-  padding-top: 2.75rem;
+/* Toolbar. For untitled blocks fumadocs floats the actions as an absolute
+   overlay in the top-right and reserves a horizontal gutter on each code line
+   (`--padding-right`, 2rem by default). The small icons tuck into that gutter
+   on the first line — NO vertical band is reserved, so the code starts on
+   line 1 and one-liners stay compact. Playground blocks carry a second icon
+   next to Copy, so widen the gutter just enough that neither icon ever sits
+   over code text. */
+article#nd-page figure.shiki.has-playground .fd-scroll-container[style*="--padding-right"] {
+  /* !important to beat fumadocs' inline `--padding-right` custom property. */
+  --padding-right: 3.75rem !important;
 }
 
 /* Sidebar — uppercase section heads, accent left rule on active items */

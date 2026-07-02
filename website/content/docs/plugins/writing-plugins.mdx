@@ -5,7 +5,7 @@ description: Build a Pothos plugin — extend the type system, add builder optio
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-A Pothos plugin is a class that hooks into schema construction. It can add options to the builder, add methods to the builder and field builders, wrap resolvers, and rewrite types and fields as the schema is built. Everything a plugin exposes to users lives in the same type system Pothos uses for its own API, so the work splits in two: extend the *types* so the new API is visible and checked, then implement the *behaviour* in a plugin class.
+A Pothos plugin is a class that hooks into schema construction. It can add options to the builder, add methods to the builder and field builders, wrap resolvers, and rewrite types and fields as the schema is built. Everything a plugin exposes to users lives in the same type system Pothos uses for its own API, so the work splits in two: extend the *types* so the new API is visible and checked, then implement the *behavior* in a plugin class.
 
 Much of this looks intimidating because Pothos' types are involved. You rarely need to understand all of them. Start from the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example) — it is a working skeleton of every pattern below — copy the pieces you need, and lean on the types to tell you what fits.
 
@@ -227,7 +227,7 @@ Use a `function` expression, not an arrow, so `this` resolves to the `SchemaBuil
 
 ### Wrapping resolvers
 
-Runtime behaviour goes in the wrap hooks — `wrapResolve`, `wrapSubscribe`, and `wrapResolveType`. Each receives the function it wraps plus the field or type config, and returns either the original function or a replacement with the same signature:
+Runtime behavior goes in the wrap hooks — `wrapResolve`, `wrapSubscribe`, and `wrapResolveType`. Each receives the function it wraps plus the field or type config, and returns either the original function or a replacement with the same signature:
 
 ```typescript
 override wrapResolve(

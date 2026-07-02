@@ -10,7 +10,7 @@ import { Wordmark } from './Wordmark';
 
 const NAV_LINKS = [
   { label: 'Docs', href: '/docs' },
-  { label: 'Plugins', href: '/plugins' },
+  { label: 'Plugins', href: '/docs/plugins' },
   { label: 'Playground', href: '/playground' },
   { label: 'Resources', href: '/resources' },
   { label: 'Sponsors', href: '/sponsors' },

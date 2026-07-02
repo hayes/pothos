@@ -72,23 +72,30 @@ export function PlaygroundCodeBlock({
     <>
       <CodeBlock
         {...props}
+        // Mark blocks that carry the wide "Open in Playground" chip so the
+        // toolbar band (which pushes code below the chip) is reserved ONLY for
+        // them. Copy-only blocks skip the band and stay compact (global.css).
+        className={[props.className, playground && 'has-playground']
+          .filter(Boolean)
+          .join(' ')}
         Actions={({ className, children: copyButton }) => (
-          // Actions live together in the reserved toolbar band (global.css
-          // reserves top padding on untitled blocks) so they never overlay
-          // the first line of code. `className` carries fumadocs'
-          // positioning (absolute top-right, or the header slot on titled
-          // blocks); we add the flex row layout on top of it.
-          <div className={`flex items-center gap-1.5 ${className || ''}`}>
+          // Both actions are icon-only and share the top-right overlay
+          // (`className` carries fumadocs' absolute positioning + backdrop, or
+          // the header slot on titled blocks). Keeping the playground trigger
+          // icon-sized — same weight as Copy — lets it tuck into the code's
+          // right gutter instead of reserving a toolbar band that pushes the
+          // code down. global.css widens that gutter on `has-playground`
+          // blocks so neither icon ever sits over code text.
+          <div className={`flex items-center gap-1 ${className || ''}`}>
             {playground && (
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="flex items-center gap-1.5 rounded-md border border-fd-border bg-fd-card px-2.5 py-1 text-xs font-medium text-fd-muted-foreground shadow-sm transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+                className="inline-flex size-6 items-center justify-center rounded-md text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
                 title="Open in Playground"
+                aria-label="Open in Playground"
               >
-                <ExternalLink size={12} />
-                <span className="hidden sm:inline">Open in Playground</span>
-                <span className="sm:hidden">Playground</span>
+                <ExternalLink size={14} />
               </button>
             )}
             {copyButton}

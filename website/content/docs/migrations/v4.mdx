@@ -26,7 +26,7 @@ described in the simple upgrade section below.
 - `graphql`: `16.6.0`
 - `node`: `18.0`
 
-## Simple Upgrade (restore 3.0 options and defaults)
+## Simple upgrade (restore 3.0 options and defaults)
 
 You can restore the 3.x defaults by adding the Defaults versions to both the SchemaTypes and the
 builder options:
@@ -60,7 +60,7 @@ const builder = new SchemaBuilder({
 There are a number of new defaults and changes to options for various plugins. To fully upgrade to
 4.0 see the full list of breaking changes below:
 
-## Breaking API Changes:
+## Breaking API changes
 
 This section covers breaking API changes that can be automatically reverted by using the Simple
 Upgrade process described above.
@@ -89,7 +89,7 @@ export const builder = new SchemaBuilder<{
 
 Alternatively, fields can be updated to add `nullable: false` to the fields options.
 
-### Default ID Scalar types
+### Default ID scalar types
 
 The default types for the built in `ID` Scalar has been changed to more closely match the behavior
 of JavaScript GraphQL server implementations:
@@ -282,10 +282,10 @@ consistent with options for other plugins.
 The `@pothos/plugin-authz` plugin has been removed, because the underlying `@graphql-authz/core` is
 not actively maintained, and has left critical security vulnerabilities unaddressed.
 
-## Plugin API and Type changes
+## Plugin API and type changes
 
 Unlike the defaults and config changes, the changes to the types and classes used throughout Pothos
-can't be easily made backwards compatibility with the 3.x releases. Below is a summary of the main
+can't easily be made backward-compatible with the 3.x releases. Below is a summary of the main
 changes made to the types and classes that may be used by plugins, helpers, or other libraries. Many
 of these types and classes are primarily intended for internal use, and should not affect most
 applications using Pothos, but the changes are documented here to help upgrades for those of you

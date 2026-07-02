@@ -33,7 +33,7 @@ The TypeScript shape of every field is the source of truth. The SDL is a derived
 
 - **Types your resolvers.** `parent`, `args`, and `ctx` arrive fully typed. You can't return a value that doesn't fit the field's GraphQL type — the file won't compile.
 - **Lets two types reference each other.** `objectRef` declares a type up front; you fill in its fields later, after dependent types exist.
-- **Keeps the type catalogue out of strings.** Object types, inputs, enums, and scalars are values you import, not names you have to spell correctly.
+- **Keeps the type catalog out of strings.** Object types, inputs, enums, and scalars are values you import, not names you have to spell correctly.
 - **Ships a plugin ecosystem.** Auth, validation, error unions, Relay, Prisma, Drizzle, federation — each plugin adds methods on the builder that compose with everything else.
 
 ## What Pothos doesn't do

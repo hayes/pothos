@@ -12,7 +12,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 <Callout type="warn">
-  This plugin does not work with most other Pothos plugins. Many plugins add runtime behaviour by wrapping resolvers, and a plan-based field has no resolver to wrap.
+  This plugin does not work with most other Pothos plugins. Many plugins add runtime behavior by wrapping resolvers, and a plan-based field has no resolver to wrap.
 </Callout>
 
 ## Install
@@ -50,7 +50,7 @@ const builder = new SchemaBuilder<{
 
 ## Adding plans to fields
 
-A field's `plan` receives step versions of its arguments — each prefixed with `$` — and returns a step. Combine steps with helpers like `lambda` to compute a value. See the [Grafast documentation](https://grafast.org/grafast/) for the full catalogue of steps.
+A field's `plan` receives step versions of its arguments — each prefixed with `$` — and returns a step. Combine steps with helpers like `lambda` to compute a value. See the [Grafast documentation](https://grafast.org/grafast/) for the full catalog of steps.
 
 ```typescript
 import { lambda } from 'grafast';
