@@ -43,7 +43,7 @@ input GlobalIDInput {
   circularWithoutGlobalIds: NoGlobalIDInput
   id: ID!
   idList: [ID]!
-  otherList: [OtherInput!] = [{someField: "abc"}]
+  otherList: [OtherInput!] = [{ someField: "abc" }]
 }
 
 type IDResult {

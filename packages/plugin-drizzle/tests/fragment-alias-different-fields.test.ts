@@ -1,4 +1,4 @@
-import { execute } from 'graphql';
+import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
 import { clearDrizzleLogs, drizzleLogs } from './example/db';
 import { schema } from './example/schema';

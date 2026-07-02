@@ -28,7 +28,8 @@
       "!**/lib/playground/pothos-types.ts",
       "!**/components/playground/examples/examples-index.generated.ts",
       "!**/public/playground-examples/*.json",
-      "!**/playground-examples/*.json"
+      "!**/playground-examples/*.json",
+      "!**/graphql-env.d.ts"
     ]
   },
   "formatter": {

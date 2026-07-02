@@ -46,7 +46,7 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "graphql": "^16.10.0",
+    "graphql": "^16.10.0 || ^17.0.0",
     "zod": "^4.*"
   },
   "devDependencies": {

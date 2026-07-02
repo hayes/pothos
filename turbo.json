@@ -10,7 +10,9 @@
         "tests/generated.d.ts",
         "test/client/**",
         "test/generated.d.ts",
-        "components/__generated__/**"
+        "components/__generated__/**",
+        "schema.graphql",
+        "graphql-env.d.ts"
       ]
     },
     "build": {
