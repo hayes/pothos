@@ -1,0 +1,9 @@
+# This runs against the Public sub-graph, where budget, roster, and the
+# Player type don't exist. Add `budget` to a team and the query fails to
+# validate — that field lives only in the Internal graph.
+query PublicStandings {
+  teams {
+    id
+    name
+  }
+}

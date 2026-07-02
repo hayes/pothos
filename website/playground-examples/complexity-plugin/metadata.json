@@ -1,0 +1,26 @@
+{
+  "id": "complexity-plugin",
+  "title": "Complexity plugin",
+  "description": "Score fields by cost and cap the complexity, depth, and breadth of incoming queries.",
+  "category": "plugins",
+  "subcategory": "advanced-plugins",
+  "difficulty": "intermediate",
+  "order": 20,
+  "tags": ["complexity", "plugins", "security", "limits"],
+  "relatedDocs": ["/docs/plugins/complexity"],
+  "prerequisites": ["fundamentals-objects"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Cap query cost",
+      "description": "Set a complexity, depth, and breadth limit and watch an oversized query get rejected before any resolver runs",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "Score individual fields",
+      "description": "Give expensive fields their own cost and multiplier, including a cost derived from arguments",
+      "order": 2
+    }
+  ]
+}

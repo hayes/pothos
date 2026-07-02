@@ -1,53 +1,50 @@
 ---
 title: Relations
-description: Adding relations to prisma objects
+description: Add relation fields with t.relation, shape them with query and args, and add relation counts.
 ---
 
-You can add fields for relations using the `t.relation` method:
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`t.relation` adds a field for a relation declared in your Prisma schema. The plugin pre-loads it through the `query` of whichever [`t.prismaField`](./objects#resolving-to-a-prisma-type) started the request, so a chain of relations resolves without a query per level.
 
 ```typescript
 builder.queryType({
   fields: (t) => ({
-    me: t.prismaField({
-      type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+    myTeam: t.prismaField({
+      type: 'Team',
+      resolve: async (query, _root, _args, ctx) =>
+        prisma.team.findUniqueOrThrow({
           ...query,
-          where: { id: ctx.userId },
+          where: { id: ctx.teamId },
         }),
     }),
   }),
 });
 
-builder.prismaObject('User', {
+builder.prismaObject('Team', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    email: t.exposeString('email'),
-    posts: t.relation('posts'),
+    name: t.exposeString('name'),
+    players: t.relation('players'),
   }),
 });
 
-builder.prismaObject('Post', {
+builder.prismaObject('Player', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    title: t.exposeString('title'),
-    author: t.relation('author'),
+    name: t.exposeString('name'),
+    team: t.relation('team'),
   }),
 });
 ```
 
-`t.relation` defines a field that can be pre-loaded by a parent resolver. This will create something
-like `{ include: { author: true }}` that will be passed as part of the `query` argument of a
-`prismaField` resolver. If the parent is another `relation` field, the includes will become nested,
-and the full relation chain will be passed to the `prismaField` that started the chain.
-
-For example the query:
+Each `t.relation` contributes an `include` — `{ include: { players: true } }` — to the `query` argument of the `prismaField` that resolves the parent. When a relation field's parent is itself a relation, the includes nest, and the whole chain flows back to the `prismaField` at the root. This query:
 
 ```graphql
 query {
-  me {
-    posts {
-      author {
+  myTeam {
+    players {
+      team {
         id
       }
     }
@@ -55,119 +52,81 @@ query {
 }
 ```
 
-the `me` `prismaField` would receive something like the following as its query parameter:
+hands the `myTeam` resolver a `query` shaped like:
 
 ```typescript
 {
   include: {
-    posts: {
+    players: {
       include: {
-        author: true;
-      }
-    }
-  }
+        team: true,
+      },
+    },
+  },
 }
 ```
 
-This will work perfectly for the majority of queries. There are a number of edge cases that make it
-impossible to resolve everything in a single query. When this happens Pothos will automatically
-construct an additional query to ensure that everything is still loaded correctly, and split into as
-few efficient queries as possible. This process is described in more detail below
+That single include resolves the whole tree. A few cases make one query impossible; when they arise, Pothos loads the missing pieces itself.
 
-### Fallback queries
+## Fallback queries
 
-There are some cases where data can not be pre-loaded by a prisma field. In these cases, pothos will
-issue a `findUnique` query for the parent of any fields that were not pre-loaded, and select the
-missing relations so those fields can be resolved with the correct data. These queries should be
-very efficient, are batched by pothos to combine requirements for multiple fields into one query,
-and batched by Prisma to combine multiple queries (in an n+1 situation) to a single sql query.
+When some data can't be pre-loaded, Pothos issues a `findUnique` for the parent of the un-loaded fields and selects just the missing relations. These queries are efficient: Pothos batches the requirements of several fields into one, and Prisma batches the resulting per-parent queries (the N+1 shape) down to a single SQL statement.
 
-The following are some edge cases that could cause an additional query to be necessary:
+A fallback query kicks in when:
 
-- The parent object was not loaded through a field defined with `t.prismaField`, or `t.relation`
-- The root `prismaField` did not correctly spread the `query` arguments in its prisma call.
-- The query selects multiple fields that use the same relation with different filters, sorting, or
-  limits
-- The query contains multiple aliases for the same relation field with different arguments in a way
-  that results in different query options for the relation.
-- A relation field has a query that is incompatible with the default includes of the parent object
+- The parent object wasn't loaded through a `t.prismaField` or `t.relation`.
+- The root `t.prismaField` didn't spread its `query` argument into the Prisma call.
+- The query selects the same relation more than once with different filters, sorting, or limits.
+- The query aliases the same relation field with different arguments that produce different relation query options.
+- A relation field's `query` is incompatible with the parent object's default includes.
 
-All of the above should be relatively uncommon in normal usage, but the plugin ensures that these
-types of edge cases are automatically handled when they do occur.
+These are uncommon in normal use, and the plugin handles them automatically when they occur.
 
-### Filters, Sorting, and arguments
+## Filters, sorting, and arguments
 
-So far we have been describing very simple queries without any arguments, filtering, or sorting. For
-`t.prismaField` definitions, you can add arguments to your field like normal, and pass them into
-your prisma query as needed. For `t.relation` the flow is slightly different because we are not
-making a prisma query directly. We do this by adding a `query` option to our field options. Query
-can either be a query object, or a method that returns a query object based on the field arguments.
+`t.prismaField` takes arguments like any field and you pass them into your own Prisma call. `t.relation` is different — you aren't writing the Prisma query, the planner is — so you shape the relation with a `query` option. It's either a query object or a function of the field's arguments and the request context:
 
 ```typescript
-builder.prismaObject('User', {
+builder.prismaObject('Team', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    posts: t.relation('posts', {
-      // We can define arguments like any other field
+    players: t.relation('players', {
+      // Arguments are declared like any other field.
       args: {
-        oldestFirst: t.arg.boolean(),
+        byNumber: t.arg.boolean(),
       },
-      // Then we can generate our query conditions based on the arguments
-      query: (args, context) => ({
-        orderBy: {
-          createdAt: args.oldestFirst ? 'asc' : 'desc',
-        },
+      // Build the relation query from those arguments.
+      query: (args, _context) => ({
+        orderBy: args.byNumber ? { number: 'asc' } : { name: 'asc' },
       }),
     }),
   }),
 });
 ```
 
-The returned query object will be added to the include section of the `query` argument that gets
-passed into the first argument of the parent `t.prismaField`, and can include things like `where`,
-`skip`, `take`, and `orderBy`. The `query` function will be passed the arguments for the field, and
-the context for the current request. Because it is used for pre-loading data, and solving n+1
-issues, it can not be passed the `parent` object because it may not be loaded yet.
+The object `query` returns is merged into the `include` for this relation, so it accepts the usual relation query keys — `where`, `skip`, `take`, `orderBy`. The function receives the field arguments and the request context. It does **not** receive the parent object: the relation is pre-loaded before the parent exists, which is exactly what avoids the N+1 query.
+
+## Relation counts
+
+Prisma can return [relation counts](https://www.prisma.io/docs/orm/prisma-client/queries/aggregation-grouping-summarizing#count-relations) alongside other includes. `t.relationCount` exposes one as an `Int` field:
 
 ```typescript
-builder.prismaObject('User', {
+builder.prismaObject('Team', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    email: t.exposeString('email'),
-    posts: t.relation('posts', {
-      // We can define arguments like any other field
-      args: {
-        oldestFirst: t.arg.boolean(),
-      },
-      // Then we can generate our query conditions based on the arguments
-      query: (args, context) => ({
-        orderBy: {
-          createdAt: args.oldestFirst ? 'asc' : 'desc',
-        },
-      }),
-    }),
-  }),
-});
-```
-
-### relationCount
-
-Prisma supports querying for
-[relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
-which allow including counts for relations along side other `includes`. Before prisma 4.2.0, this
-does not support any filters on the counts, but can give a total count for a relation. Starting from
-prisma 4.2.0, filters on relation count are available under the `filteredRelationCount` preview
-feature flag.
-
-```typescript
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    postCount: t.relationCount('posts', {
+    playerCount: t.relationCount('players', {
       where: {
-        published: true,
+        number: { gte: 1 },
       },
     }),
   }),
 });
 ```
+
+<Callout type="warn">
+  Filtering a relation count needs Prisma 4.2.0 or newer, under the `filteredRelationCount` preview feature. Before 4.2.0, `t.relationCount` still works but can only return a total — drop the `where` option.
+</Callout>
+
+<Callout type="info">
+  See also: [Selections](./selections) to control which columns and relations load, [Indirect relations](./indirect-relations) for relations that aren't a direct Prisma relation, or [Connections](./connections) for paginated relations.
+</Callout>

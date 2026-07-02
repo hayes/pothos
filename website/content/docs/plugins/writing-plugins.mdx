@@ -1,208 +1,114 @@
 ---
 title: Writing plugins
-description: Guide for writing plugins for Pothos
+description: Build a Pothos plugin — extend the type system, add builder options and methods, and hook the schema lifecycle.
 ---
 
-Writing plugins for Pothos may seem a little intimidating at first, because the types used by Pothos
-are fairly complex. Fortunately, for many types of plugins, the process is actually pretty easy,
-once you understand the core concepts of how Pothos's type system works. Don't worry if the
-descriptions don't make complete sense at first. Going through the examples in this guide will
-hopefully make things seem a lot easier. This guide aims to cover a lot of the most common use cases
-for creating plugins, but does not contain full API documentation. Exploring the types or source
-code to see what all is available is highly encouraged, but should not be required for most use
-cases.
+import { Callout } from 'fumadocs-ui/components/callout';
+
+A Pothos plugin is a class that hooks into schema construction. It can add options to the builder, add methods to the builder and field builders, wrap resolvers, and rewrite types and fields as the schema is built. Everything a plugin exposes to users lives in the same type system Pothos uses for its own API, so the work splits in two: extend the *types* so the new API is visible and checked, then implement the *behaviour* in a plugin class.
+
+Much of this looks intimidating because Pothos' types are involved. You rarely need to understand all of them. Start from the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example) — it is a working skeleton of every pattern below — copy the pieces you need, and lean on the types to tell you what fits.
 
 ## The type system
 
-Pothos has 2 main pieces to its type system:
+Two structures carry type information through Pothos, and plugins extend both.
 
-1. `PothosSchemaTypes`: A global namespace for shared types
-2. `SchemaTypes`: A collection of types passed around through Generics specific to each instance of
-   `SchemaBuilder`
+**`PothosSchemaTypes`** is a global namespace of interfaces for every options object in the API — object options, field options, builder options, and more. A plugin adds a new option by declaring the matching interface inside this namespace; TypeScript merges your declaration with the core one. Each interface receives the generics relevant to where it is used, so a field-options interface is handed the parent shape, the return type, and the arguments, and your new options can depend on them.
 
-### `PothosSchemaTypes`
+**`SchemaTypes`** is the per-builder bundle of types derived from the generic argument to `SchemaBuilder`, merged with Pothos' defaults. It carries the scalars, the backing models for string-referenced object and interface types, the context and root types, the default nullability setting, and any custom types plugins contribute. Almost every interface in `PothosSchemaTypes` receives it — look for `Types extends SchemaTypes` in the generics — which is how a plugin reaches user-provided types when building its options.
 
-The `PothosSchemaTypes` contains interfaces for all the various options objects used throughout the
-API, along with some other types that plugins may want to extend. Each of the interfaces can be
-extended by a plugin to add new options. Each interface takes a number of relevant generic
-parameters that can be used to make the options more useful. For example, the interface for field
-options will be passed the shape of the parent, the expected return type, and any arguments.
+## Plugin structure
 
-### `SchemaTypes`
+A plugin is three files, matching the example plugin:
 
-The `SchemaTypes` type is based on the Generic argument passed to the `SchemaBuilder`, and extended
-with reasonable defaults. Almost every interface in the `PothosSchemaTypes` will have access to it
-\(look for `Types extends SchemaTypes` in the generics of almost any interface\). This Type contains
-the types for Scalars, backing models for some object and interface types, and many custom
-properties from various plugins. If your plugin needs the user to provide some types that will be
-shared across the whole schema, this is how you will be able to access them when adding fields to
-the options objects defined in `PothosSchemaTypes`.
+- **`global-types.ts`** — additions to Pothos' built-in `PothosSchemaTypes` namespace.
+- **`index.ts`** — the plugin implementation.
+- **`types.ts`** — any types that do *not* belong in the global namespace, imported into `global-types.ts` as needed.
 
-## Getting Started
-
-The best place to start is by looking through the
-[example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example).
-
-The general structure of a plugin has 3 main parts:
-
-1. `index.ts` which contains a plugin's actual implementation
-2. `global-types.ts` which contains any additions to Pothos's built in types.
-3. `types.ts` which should contain any types that do NOT belong to the global `PothosSchemaTypes`
-   namespace.
-
-To get set up quickly, you can copy these files from the example plugin to suit your needs. The
-first few things to change are:
-
-1. The plugin name in `index.ts`
-2. The name of the Plugin class in `index.ts`
-3. The name key/name for the plugin in the `Plugins` interface in `global-types.ts`
-
-After setting up the basic layout of your plugin, I recommend starting by defining the types for
-your plugin first \(in `global-types.ts`\) and setting up a test schema that uses your plugin. This
-allows you to get the user facing API for your plugin working first, so you can see that any new
-options you add to the API are working as expected, and that any type constraints are enforced
-correctly. Once you are happy with your API, you can start building out the functionality in
-index.ts. Building the types first also make the implementation easier because the properties you
-will need to access in your extension may not exist on the config objects until you have defined
-your types.
+Build the types first. Declare your options in `global-types.ts` and write a test schema that uses them. That gets the user-facing API type-checking before any runtime code exists — you can confirm new options appear and constraints are enforced — and it means the config properties your implementation reads will already exist by the time you write `index.ts`.
 
 ### `global-types.ts`
 
-`global-types.ts` must contain the following:
+This file declares the `PothosSchemaTypes` namespace and registers the plugin on the `Plugins` interface, mapping the plugin's name to its class:
 
-1. A declaration of the `PothosSchemaTypes` namespace
+```typescript
+import type { SchemaTypes } from '@pothos/core';
+import type { PothosExamplePlugin } from '.';
 
-   ```typescript
-   declare global {
-     export namespace PothosSchemaTypes {}
-   }
-   ```
+declare global {
+  export namespace PothosSchemaTypes {
+    export interface Plugins<Types extends SchemaTypes> {
+      example: PothosExamplePlugin<Types>;
+    }
+  }
+}
+```
 
-2. An addition to the `Plugins` interface that maps the plugin name, to the plugin type \(this needs
-   to be inside the `PothosSchemaTypes` namespace\)
+Keep anything that is not part of `PothosSchemaTypes` out of this file — put those in `types.ts` and import them here.
 
-   ```typescript
-   export interface Plugins<Types extends SchemaTypes> {
-     example: PothosExamplePlugin<Types>;
-   }
-   ```
+To add properties to a config object, find the interface that defines it in `@pothos/core`. Four files hold the interfaces that make up the namespace:
 
-`global-types.ts` should NOT include definitions that do not belong to the `PothosSchemaTypes`
-namespace. Types for your plugin should be added to a separate `types.ts` file, and imported as
-needed into `global-types.ts`.
+- [`type-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/type-options.ts) — options for each type (Object, Interface, Enum, and so on).
+- [`field-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/field-options.ts) — options for creating fields.
+- [`schema-types.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/schema-types.ts) — `SchemaBuilder` options, `SchemaTypes`, `toSchema` options, and other utility interfaces.
+- [`classes.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/classes.ts) — the classes Pothos uses, including `SchemaBuilder` and the field builders.
 
-To add properties to the various config objects used by the `SchemaBuilder`, you should start by
-finding the interface that defines that config object in `@pothos/core`. Currently there are 4 main
-files that define the types that make up `PothosSchemaTypes` namespace.
+Copy the interface you want into your namespace, delete its existing properties, and keep every generic exactly as declared (importing the generic types from `@pothos/core`). Add your own properties — make them optional (`newProp?: TypeOfProp`) unless the plugin genuinely requires them.
 
-1. [`type-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/type-options.ts):
+### `index.ts`
 
-   Contains the interfaces that define the options objects for the various types \(Object,
-   Interface, Enum, etc\).
+The implementation file needs five things: a bare import of the global types, the plugin name typed as a string literal, a default export of that name, a class extending `BasePlugin`, and a registration call.
 
-2. [`field-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/field-options.ts):
+```typescript
+import './global-types';
+import SchemaBuilder, { BasePlugin, type SchemaTypes } from '@pothos/core';
 
-   Contains the interfaces that define the options objects for creating fields
+export * from './types';
 
-3. [`schema-types.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/schema-types.ts):
+const pluginName = 'example';
 
-   Contains the interfaces for SchemaBuilder options, SchemaTypes, options for `toSchema`, and other
-   utility interfaces that may be useful for plugins to extend that do not fall into one of the
-   other categories.
+export default pluginName;
 
-4. [`classes.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/classes.ts):
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
 
-   Contains interfaces that describe the classes used by Pothos, include `SchemaBuilder` and the
-   various field builder classes.
+SchemaBuilder.registerPlugin(pluginName, PothosExamplePlugin);
+```
 
-Once you have identified a type you wish to extend, copy it into the `PothosSchemaTypes` namespace
-in your `global-types.ts`, but remove all the existing properties. You will need to keep all the
-Generics used by the interface, and should import the types used in generics from `@pothos/core`.
-You can now add any new properties to the interface that your plugin needs. Making new properties
-optional \(`newProp?: TypeOfProp`\) is recommended for most use cases.
+`BasePlugin`, `SchemaTypes`, and `SchemaBuilder` all come from `@pothos/core`. To adapt the example plugin, change the name in these three places: `pluginName` here, the class name, and the `Plugins` key in `global-types.ts`.
 
-## `index.ts`
+### Lifecycle hooks
 
-`index.ts` must contain the following:
+`SchemaBuilder` instantiates every plugin fresh each time `toSchema` is called, then invokes each hook the plugin defines as the schema is built. Define only the ones you need:
 
-1. A bare import of the global types \(`import './global-types';`\)
-2. The plugins name, which should be typed as a string literal rather than as a generic string:
+| Hook | Called |
+| --- | --- |
+| `onTypeConfig` | Once per type, with the config used to build the underlying GraphQL type. |
+| `onOutputFieldConfig` | Once per Object or Interface field. |
+| `onInputFieldConfig` | Once per Input Object field or field argument. |
+| `onEnumValueConfig` | Once per enum value. |
+| `beforeBuild` | Before the schema is built — the last chance to add new types or fields. |
+| `afterBuild` | With the fully built `GraphQLSchema`. |
+| `wrapResolve` | When creating the resolver for each field. |
+| `wrapSubscribe` | For each field on the `Subscription` type. |
+| `wrapArgMappers` | Around resolve/subscribe, outside argument mapping, so argument-mapping errors can be handled. |
+| `wrapResolveType` | For each Union and Interface. |
+| `wrapIsTypeOf` | For each Object type's `isTypeOf`. |
 
-   `const pluginName = 'example'`
+Every hook except `beforeBuild` must return a value matching its first argument — a config object, or the resolve/subscribe/resolveType function. If the plugin does not modify the value, return it unchanged.
 
-3. A default export of the plugin name `export default pluginName`
-4. A class that extends BasePlugin:
-   `export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}`
+When you do change a config, return a *copy* with your changes rather than mutating the argument — spread it (`{ ...config, newProp: value }`) or use `Object.assign`. Each config carries the GraphQL properties needed to build the type or field (some, like `resolve`, are added later) plus Pothos-specific ones: `graphqlKind` for the underlying GraphQL type, and `pothosOptions` holding the options passed to the builder for that type or field.
 
-   `BasePlugin` and `SchemaTypes` can both be imported from `@pothos/core`
+<Callout type="warn">
+  Add new types or fields in `beforeBuild` — anything added later may not be wired up correctly. Because a new plugin instance is created per schema, guard additions so they run once per schema even across instances. The `runUnique` helper on `BasePlugin` does this: pass it a key and a callback and the callback runs at most once per schema for that key.
+</Callout>
 
-5. A call to register the plugin: `SchemaBuilder.registerPlugin(pluginName, PothosExamplePlugin);`
+## Extending the API
 
-   `SchemaBuilder` can also be imported from `@pothos/core`
+Below are the common ways a plugin extends Pothos, each a simplified sketch. Most plugins combine several. Whenever a step says "extend an interface," that interface goes in the `PothosSchemaTypes` namespace in `global-types.ts`.
 
-### Life cycle hooks
+### Options on the builder constructor
 
-The `SchemaBuilder` will instantiate plugins each time the `toSchema` method is called on the
-builder. As the schema is built, it will invoke the various life cycle methods on each plugin if
-they have been defined.
-
-To hook into each lifecycle event, simply define the corresponding function in your plugin class.
-For the exact function signature, see the `index.ts` of the example plugin.
-
-- `onTypeConfig`: Invoked for each type, with the config object that will be used to construct the
-  underlying GraphQL type.
-
-- `onOutputFieldConfig`: Invoked for each Object, or Interface field, with the config object
-  describing the field.
-
-- `onInputFieldConfig`: Invoked for each InputObject field, or field argument, with the config
-  object describing the field.
-
-- `onEnumValueConfig`: Invoked for each value in an enum
-- `beforeBuild`: Invoked before building schemas, last chance to add new types or fields.
-- `afterBuild`: Invoked with the fully built Schema.
-- `wrapResolve`: Invoked when creating the resolver for each field
-- `wrapSubscribe`: Invoked for each field in the `Subscriptions` object.
-- `wrapResolveType`: Invoked for each Union and Interface.
-
-Each of the lifecycle methods above \(except `beforeBuild`\) expect a return value that matches
-their first argument \(either a config object, or the resolve/subscribe/resolveType function\). If
-your plugin does not need to modify these values, it can simply return the value that was passed in.
-When your plugin does need to change one of the config values, you should return a copy of the
-config object with your modifications, rather than modifying the config object that was passed in.
-This can be done by either using `Object.assign`, or spreading the original config into a new object
-`{...originalConfig, newProp: newValue }`.
-
-Each config object will have the properties expected by the GraphQL for creating the types or fields
-\(although some properties like `resolve` will be added later\), but will also include a number of
-Pothos specific properties. These properties include `graphqlKind` to indicate what kind of GraphQL
-type the config object is for, `pothosOptions`, which contains all the options passed in to the
-schema builder when creating the type or field.
-
-If your plugin needs to add additional types or fields to the schema it should do this in the
-`beforeBuild` hook. Any types added to the schema after this, may not be included correctly. Plugins
-should also account for the fact that a new instance of the plugin will be created each time the
-schema is called, so any types or fields added to the schema should only be applied once \(per
-schema\), even if multiple instances of the plugin are created. To help with this, there is a
-`runUnique` helper on the base plugin class, which accepts a key, and a callback, and will only run
-a callback once per schema for the given key.
-
-## Use cases
-
-Below are a few of the most common use cases for how a plugin might extend the Pothos with very
-simplified examples. Most plugins will likely need a combination of these strategies, and some uses
-cases may not be well documented. If you are unsure about how to solve a specific problem, feel free
-to open a GitHub Issue for more help.
-
-In the examples below, when "extending an interface", the interface should be added to the
-`PothosSchemaTypes` namespace in `global-types.ts`.
-
-### Adding options to the SchemaBuilder constructor
-
-You may have noticed that plugins are not instantiated by the user, and therefore users can't pass
-options directly into your plugin when creating it. Instead, the recommended way to configure your
-plugin is by contributing new properties to the options object passed to the SchemaBuilder
-constructor. This can be done by extending the `SchemaBuilderOptions` interface.
+Users never construct a plugin directly, so they can't pass it options. Configure a plugin instead by adding properties to the `SchemaBuilder` options, extending `SchemaBuilderOptions`:
 
 ```typescript
 export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -211,27 +117,21 @@ export interface SchemaBuilderOptions<Types extends SchemaTypes> {
 }
 ```
 
-Extending this interface will allow the user to pass in these new options when creating an instance
-of `SchemaBuilder`.
-
-You can then access the options through `this.builder.options` in your plugin, with everything
-correctly typed:
+Read them, fully typed, through `this.builder.options`:
 
 ```typescript
 export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: PothosTypeConfig) {
-    console.log(this.builder.options.optionInRootOfConfig)
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
+    console.log(this.builder.options.nestedOptionsObject?.exampleOption);
 
     return typeConfig;
   }
+}
 ```
 
-### Adding options when building a schema \(`toSchema`\)
+### Options at build time
 
-In some cases, your plugin may be designed for schemas that be built in different modes. For example
-the mocks plugin allows the schema to be built repeatedly with different sets of mocks, or the
-subGraph allows building a schema multiple times to generate separate subgraphs. For these cases,
-you can extend the options passed to `toSchema` instead:
+Some plugins build the same builder in different modes — the [mocks plugin](./mocks) rebuilds with different mock sets, the [sub-graph plugin](./sub-graph) builds separate subgraphs. For those, extend the `toSchema` options via `BuildSchemaOptions`:
 
 ```typescript
 export interface BuildSchemaOptions<Types extends SchemaTypes> {
@@ -239,21 +139,19 @@ export interface BuildSchemaOptions<Types extends SchemaTypes> {
 }
 ```
 
-These options can be accessed through `this.options` in your plugin:
+These are available on `this.options`:
 
 ```typescript
-export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: PothosTypeConfig) {
-    console.log(this.options.customBuildTimeOptions)
+override onTypeConfig(typeConfig: PothosTypeConfig) {
+  console.log(this.options.customBuildTimeOptions);
 
-    return typeConfig;
-  }
+  return typeConfig;
+}
 ```
 
-### Adding options to types
+### Options on types
 
-Each GraphQL type has its own options interface which can be extended. For example, to extend the
-options for creating an Object type:
+Each GraphQL type has its own options interface. To add an option to object types, extend `ObjectTypeOptions`:
 
 ```typescript
 export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
@@ -261,30 +159,23 @@ export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
 }
 ```
 
-These options can then be accessed in your plugin when you receive the config for the type:
+Read it from the type config, narrowing on `kind` first so TypeScript knows the config is for an object:
 
 ```typescript
-export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: PothosTypeConfig) {
-    if (typeConfig.kind === 'Object') {
-      console.log(typeConfig.pothosOptions.optionOnObject);
-    }
-
-    return typeConfig;
+override onTypeConfig(typeConfig: PothosTypeConfig) {
+  if (typeConfig.kind === 'Object') {
+    console.log(typeConfig.pothosOptions.optionOnObject);
   }
+
+  return typeConfig;
+}
 ```
 
-In the example above, we need to check `typeConfig.kind` to ensure that the type config is for an
-object. Without this check, typescript will not know that the config object is for an object, and
-will not let us access the property. `typeConfig.kind` corresponds to how Pothos splits up Types for
-its config objects, meaning that it has separate `kind`s for `Query`, `Mutation`, and `Subscription`
-even though these are all `Objects` in GraphQL terminology. The `typeConfig.graphqlKind` can be used
-to get the actual GraphQL type instead.
+`typeConfig.kind` follows how Pothos splits its config objects — `Query`, `Mutation`, and `Subscription` each have their own `kind` even though GraphQL calls them all objects. Use `typeConfig.graphqlKind` when you want the underlying GraphQL kind instead.
 
-### Adding options to fields
+### Options on fields
 
-Similar to Types, fields also have a number of interfaces that can be extended to add options to
-various types of fields:
+Fields work the same way, across several interfaces for the different field types. To add an option to mutation fields, extend `MutationFieldOptions`:
 
 ```typescript
 export interface MutationFieldOptions<
@@ -298,43 +189,29 @@ export interface MutationFieldOptions<
 }
 ```
 
-Field interfaces have a few more generics than other interfaces we have looked at. These generics
-can be used to make the options you add more specific to the field currently being defined. It is
-important to copy all the generics of the interfaces as they are defined in `@pothos/core` even if
-you do not use the generics in your own properties. If the generics do not match, typescript won't
-be able to merge the definitions. You do NOT need to include the `extends` clause of the interface,
-if the interface extends another interface \(like `FieldOptions`\).
+Field interfaces carry more generics, which let your options depend on the exact field being defined. Copy every generic from `@pothos/core` even if you don't use them all — if the generics don't line up, TypeScript won't merge your declaration. You do *not* need the interface's `extends` clause when it extends another interface such as `FieldOptions`.
 
-Similar to Type options, Field options will be available in the fieldConfigs in your plugin, once
-you check that the fieldConfig is for the correct `kind` of field.
+Read the option after checking the field's `kind`:
 
 ```typescript
-export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
-    if (fieldConfig.kind === 'Mutation') {
-      console.log(fieldConfig.pothosOptions.customMutationFieldOption);
-    }
-
-    return fieldConfig;
+override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
+  if (fieldConfig.kind === 'Mutation') {
+    console.log(fieldConfig.pothosOptions.customMutationFieldOption);
   }
+
+  return fieldConfig;
 }
 ```
 
-### Adding new methods on builder classes
+### New builder methods
 
-Adding new methods to `SchemaBuilder` or one of the `FieldBuilder` classes is also done through
-extending interfaces. Extending these interfaces is how typescript is able to know these methods
-exist, even though they are not defined on the original classes.
+Adding a method to `SchemaBuilder` or a field builder is two steps: declare it on the interface so TypeScript knows it exists, then attach the implementation to the prototype.
 
 ```typescript
 export interface SchemaBuilder<Types extends SchemaTypes> {
   buildCustomObject: () => ObjectRef<{ custom: 'shape' }>;
 }
 ```
-
-The above is a simple example of defining a new `buildCustomObject` method that takes no arguments,
-and returns a reference to a new custom object type. Defining this type will not work on its own,
-and we still need to define the actual implementation of this method. This might look like:
 
 ```typescript
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -346,61 +223,128 @@ schemaBuilderProto.buildCustomObject = function buildCustomObject() {
 };
 ```
 
-Note that the above function does NOT use an arrow function, so that the function can access `this`
-as a reference to the SchemaBuilder instance.
+Use a `function` expression, not an arrow, so `this` resolves to the `SchemaBuilder` instance.
 
-### Wrapping resolvers to add runtime functionality
+### Wrapping resolvers
 
-Some plugins will need to add runtime behavior. There are a few lifecycle hooks for wrapping
-`resolve`, `subscribe`, and `resolveType`. These hooks will receive the function they are wrapping,
-along with a config object for the field or type they are associated with, and should return either
-the original function, or a wrapper function with the same API.
-
-It is important to remember that resolvers can resolve values in a number of ways \(normal values,
-promises, or even something as complicated `Promise<(Promise<T> | T)[]>`. So be careful when using a
-wrapper that introspected the return value of a resolve function. Plugins should only wrap resolvers
-when absolutely necessary.
+Runtime behaviour goes in the wrap hooks — `wrapResolve`, `wrapSubscribe`, and `wrapResolveType`. Each receives the function it wraps plus the field or type config, and returns either the original function or a replacement with the same signature:
 
 ```typescript
-export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  wrapResolve(
+override wrapResolve(
+  resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+  fieldConfig: PothosOutputFieldConfig<Types>,
+): GraphQLFieldResolver<unknown, Types['Context'], object> {
+  return (parent, args, context, info) => {
+    console.log(`Resolving ${info.parentType}.${info.fieldName}`);
+
+    return resolver(parent, args, context, info);
+  };
+}
+```
+
+Resolvers return values in many shapes — plain values, promises, even `Promise<(Promise<T> | T)[]>`. Be careful introspecting a return value, and wrap resolvers only when you truly need to; wrapping every field adds overhead to every request.
+
+### Wrapping arguments and inputs
+
+There is no dedicated hook for wrapping input fields. Instead, modify the `args` object inside `wrapResolve` or `wrapSubscribe` before passing it to the original function. Two utilities from `@pothos/core` make this efficient, especially for recursive inputs, by doing the analysis at build time so runtime work stays minimal:
+
+- `mapInputFields` — selects the affected input fields and extracts a per-field value.
+- `createInputValueMapper` — turns a `mapInputFields` result into a function that rewrites those inputs in an args object.
+
+A plugin can use them to decode `globalID` inputs — selecting the global-ID arguments once, then mapping them on each call. The sketch below wraps `wrapResolve` to make the utilities easy to follow; the [relay plugin](./relay) does the same work from `onOutputFieldConfig`, appending to the field's `argMappers` array so the mapping runs inside the `wrapArgMappers` hook:
+
+```typescript
+export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  // Optional cache so mappings can be reused across fields.
+  // Only provide one if your mappings are not specific to the current field.
+  private mappingCache = new Map<string, InputTypeFieldsMapping<Types, boolean>>();
+
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    return (parent, args, context, info) => {
-      console.log(`Resolving ${info.parentType}.${info.fieldName}`);
+    // Select the args that are globalIds.
+    const argMappings = mapInputFields(
+      fieldConfig.args,
+      this.buildCache,
+      (inputField) => (inputField.extensions?.isRelayGlobalID ? true : null),
+      this.mappingCache,
+    );
 
-      return resolver(parent, args, context, info);
-    };
+    // If nothing reachable through args needs mapping, don't wrap at all.
+    if (!argMappings) {
+      return resolver;
+    }
+
+    const argMapper = createInputValueMapper(argMappings, (globalID) =>
+      internalDecodeGlobalID(this.builder, String(globalID)),
+    );
+
+    return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
   }
 }
 ```
 
-### Transforming a schema
+Returning `null` from the mapper means that input field gets no mapping. `mapInputFields` returns a map keyed by field/argument name, with values of roughly this shape:
 
-For some plugins the other provided lifecycle hooks may not be sufficiently powerful to modify the schema
-in all the ways a plugin may want. For example removing types from the schema \(eg. the `SubGraph`
-plugin\). In these cases, the `afterBuild` hook can be used. It receives the built schema, and is
-expected to return either the schema it was passed, or a completely new schema. This allows plugins
-to use 3rd party libraries like `graphql-tools` to arbitrarily transform schemas if desired.
+```typescript
+interface InputFieldMapping<Types extends SchemaTypes, T> {
+  kind: 'Enum' | 'Scalar' | 'InputObject';
+  isList: boolean;
+  listDepth: number; // how many list wrappers surround the input
+  config: PothosInputFieldConfig<Types>;
+  value: T; // the mapper's return value, when not null
+}
+```
+
+The real type is a discriminated union on `kind`; only the `InputObject` variant carries a `value` that may be `null` and the nested `fields` property below. When `kind` is `InputObject`, the mapping also has a `fields` property describing nested mappings:
+
+```typescript
+interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
+  configs: Record<string, PothosInputFieldConfig<Types>>;
+  map: Map<string, InputFieldMapping<Types, T>> | null;
+}
+```
+
+Both the root map and each nested `fields.map` contain entries only for fields where the mapper returned non-null. If the mapper returned `null` for everything, `mapInputFields` returns `null` — the signal that no wrapping is needed. `createInputValueMapper` covers most cases; for the rest, write a custom mapping function over the same `mapInputFields` result.
+
+### Removing fields and enum values
+
+Return `null` from the matching `on*Config` hook to drop a field or enum value:
+
+```typescript
+override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
+  return fieldConfig.name === 'removeMe' ? null : fieldConfig;
+}
+
+override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
+  return fieldConfig.name === 'removeMe' ? null : fieldConfig;
+}
+
+override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
+  return valueConfig.value === 'removeMe' ? null : valueConfig;
+}
+```
+
+Removing a whole type is a schema transform — see below.
+
+### Transforming the whole schema
+
+When the config hooks aren't powerful enough — removing types, for instance, as the [sub-graph plugin](./sub-graph) does — use `afterBuild`. It receives the built schema and returns either that schema or a new one, so you can run it through libraries like `graphql-tools` to transform it however you need:
+
+```typescript
+override afterBuild(schema: GraphQLSchema): GraphQLSchema {
+  return transformSchema(schema);
+}
+```
+
+## Sharing types across the schema
 
 ### Using SchemaTypes
 
-You may have noticed that almost every interface and type in `@pothos/core` take a generic that
-looks like: `Types extends SchemaTypes`. This type is what allows Pothos and its plugins to share
-type information across the entire schema, and to incorporate user defined types into that system.
-These SchemaTypes are a combination of default types merged with the Types provided in the Generic
-parameter of the SchemaBuilder constructor, and includes a wide variety of useful types:
+The `Types extends SchemaTypes` generic on nearly every `@pothos/core` interface is what lets Pothos and its plugins share type information and fold in user-defined types. It combines Pothos' defaults with the generic passed to the `SchemaBuilder` constructor, and holds the scalars, the backing models used by string-referenced object and interface types, the context and root types, the default nullability setting, and any plugin-contributed types.
 
-- Types for all the scalars
-- Types for backing models used by objects and interfaces when referenced via strings
-- The type used for the context and root objects
-- Settings for default nullability of fields
-- Any user defined types specific to plugins \(more info below\)
-
-There are many ways these types can be used, but one of the most common is to access the type for
-the context object, so that you can correctly type a callback function for your plugin that accepts
-the context object.
+The most common use is reaching the context type so a plugin callback can be typed against it:
 
 ```typescript
 export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -408,14 +352,9 @@ export interface SchemaBuilderOptions<Types extends SchemaTypes> {
 }
 ```
 
-### Using user defined types
+### Contributing user-defined types
 
-As mentioned above, your plugin can also contribute its own user definable types to the SchemaTypes
-interface. You can see examples of this in the several of the plugins including the directives and
-`scope-auth` plugins. Adding your own types to SchemaTypes requires extending 2 interfaces: The
-`UserSchemaTypes` which describes the type the user will need to provide, and the
-`ExtendDefaultTypes` interface, which is used to set default values if the User does not provide
-their own types.
+A plugin can add its own user-definable entries to `SchemaTypes` — the [directives](./directives) and [scope-auth](./scope-auth) plugins both do. It takes two interfaces: `UserSchemaTypes`, describing what the user provides, and `ExtendDefaultTypes`, supplying a default when they don't:
 
 ```typescript
 export interface UserSchemaTypes {
@@ -427,22 +366,22 @@ export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes
 }
 ```
 
-The User provided type can then be accessed using `Types['NewExampleTypes']` in any interface or
-type that receives `SchemaTypes` as a generic argument.
+The value is then reachable as `Types['NewExampleTypes']` in any interface or type that receives `SchemaTypes`.
 
-### Request data
+### Per-request data
 
-Plugins that wrap resolvers may need to store some data that is unique to the current request. In these
-cases your plugin can define a `createRequestData` method, and use the `requestData` method to get
-the data for the current request.
+A plugin that wraps resolvers can store data scoped to the current request. Define `createRequestData` to build it and call `requestData` to read it back; the data shape is the second generic on `BasePlugin`:
 
 ```typescript
-export class PothosExamplePlugin<Types extends SchemaTypes, { resolveCount: number }> extends BasePlugin<Types> {
-  createRequestData(context: Types['Context']): T {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<
+  Types,
+  { resolveCount: number }
+> {
+  override createRequestData(): { resolveCount: number } {
     return { resolveCount: 0 };
   }
 
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
@@ -450,7 +389,6 @@ export class PothosExamplePlugin<Types extends SchemaTypes, { resolveCount: numb
       const requestData = this.requestData(context);
 
       requestData.resolveCount += 1;
-
       console.log(`request has resolved ${requestData.resolveCount} fields`);
 
       return resolver(parent, args, context, info);
@@ -459,134 +397,18 @@ export class PothosExamplePlugin<Types extends SchemaTypes, { resolveCount: numb
 }
 ```
 
-The shape of requestData can be defined via the second generic parameter of the `BasePlugin` class.
-The `requestData` method expects the context object as its only argument, which is used to uniquely
-identify the current request.
+`requestData` takes the context object as its only argument and uses it to identify the request, so the same data object comes back throughout one request.
 
-### Wrapping arguments and inputs
+## Useful methods
 
-The plugin API does not directly have a method for wrapping input fields, instead, the `wrapResolve`
-and `wrapSubscribe` methods can be used to modify the `args` object before passing it down to the
-original resolver.
+A few `@pothos/core` internals help when a hook needs a config that isn't available yet:
 
-Figuring out how to wrap inputs can be a little complex, especially when dealing with recursive
-inputs, and optimizing to wrap as little as possible. To help with this, Pothos has a couple of
-utility functions that can make this easier:
+- `builder.configStore.onTypeConfig` — takes a type ref and a callback, and invokes the callback with that type's config once it's available.
+- `fieldRef.onFirstUse` — takes a callback invoked once the field's config is available.
+- `buildCache.getTypeConfig` — returns a type's config after all plugin modifications have been applied.
 
-- `mapInputFields`: Used to select affected input fields and extract some configuration
-- `createInputValueMapper`: Creates a mapping function that uses the result of `mapInputFields` to
-  map inputs in an args object to new values.
+This guide covers the common cases, not the full API — exploring the types and the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example) source will surface the rest. If you get stuck, open a GitHub issue.
 
-The relay plugin uses these methods to decode `globalID` inputs:
-
-```typescript
-export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  // Optionally create a cache for input mappings so that mappings can be reused across multiple fields
-  // Be sure to only provide a mapping cache if your argument mappings are not specific to the current field
-  private mappingCache = new Map<string, InputTypeFieldsMapping<Types, boolean>>();
-
-  wrapResolve(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    // Given the args for the this field, select the fields that are globalIds
-    const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
-      if (inputField.extensions?.isRelayGlobalID) {
-        return true;
-      }
-
-      // returning null means no mapping will be created for this input field
-      return null;
-    }, this.mappingCache);
-
-    // If all fields reachable through args return null for their mapping, we don't need to wrap the resolver
-    if (!argMappings) {
-      return resolver;
-    }
-
-    // Calls the mapping function for each value with a mapping if the value is not null or undefined
-    const argMapper = createInputValueMapper(argMappings, (globalID, mapping) =>
-      internalDecodeGlobalID(this.builder, String(globalID)),
-    );
-
-    return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
-  }
-}
-```
-
-Using these utilities allows moving more logic to build time (figuring out which fields need
-mapping) so that the runtime overhead is as small as possible.
-
-`createInputValueMapper` may be useful for some use cases, for some plugins it may be better to
-create a custom mapping function, but still use the result of `mapInputFields`.
-
-`mapInputFields` returns a map whose keys are field/argument names, and whose values are objects
-with the following shape:
-
-```typescript
-interface InputFieldMapping<Types extends SchemaTypes, T> {
-  kind: 'Enum' | 'Scalar' | 'InputObject';
-  isList: boolean;
-  config: PothosInputFieldConfig<Types>;
-  value: T; // the value returned by the mapping function (if it was not null).
-  // The value may still be for `InputObject` mappings if there are nested fields with non-null mappings
-}
-```
-
-if the `kind` is `InputObject` then the mapping object will also have a fields property with an
-object of the following shape:
-
-```typescript
-interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
-  configs: Record<string, PothosInputFieldConfig<Types>>;
-  map: Map<string, InputFieldMapping<Types, T>> | null;
-}
-```
-
-Both the root level map, and the `fields.map` maps will only contain entries for fields where the
-mapping function did not return null. If the mapping function returned null for all fields, the
-`mapInputFields` will return null instead of returning a map to indicate no wrapping should occur
-
-### Removing fields and enum values
-
-Plugins can remove fields from objects, interfaces, and input objects, and remove specific values
-from enums. To do this, simply return null from the corresponding on\*Config plugin hook:
-
-```typescript
-onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
-  if (fieldConfig.name === 'removeMe') {
-    return null;
-  }
-
-  return fieldConfig;
-}
-
-onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
-  if (fieldConfig.name === 'removeMe') {
-    return null;
-  }
-
-  return fieldConfig;
-}
-
-onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
-  if (valueConfig.value === 'removeMe') {
-    return null;
-  }
-
-  return valueConfig;
-}
-```
-
-Removing whole types from the schema needs to be done by transforming the schema during the
-`afterBuild` hook. See the `sub-graph` plugin for a more complete example of removing types.
-
-## Useful methods:
-
-- `builder.configStore.onTypeConfig`: Takes a type ref and a callback, and will invoke the callback
-  with the config for the referenced type once available.
-
-- `fieldRef.onFirstUse` Takes a callback to invoke once the config for the field is available.
-
-- `buildCache.getTypeConfig` Gets the config for a given type after it has been passed through any
-  modifications applied by plugins.
+<Callout type="info">
+  See also: [SchemaBuilder](../fundamentals/schema-builder) for the `SchemaTypes` generic your plugin extends, the [errors plugin](./errors) for a plugin that adds field options and generated types, or the [relay plugin](./relay) for input wrapping in practice.
+</Callout>

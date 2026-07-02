@@ -1,114 +1,151 @@
 ---
 title: Setup
-description: Setting up the Prisma plugin
+description: Add the Pothos generator to your Prisma schema and wire PrismaTypes into the builder.
 ---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The Prisma plugin reads a small set of generated types to understand your schema. You add a generator to `schema.prisma`, run `prisma generate`, then hand the generated `PrismaTypes` and a datamodel to the builder. Everything else on these pages assumes this wiring is in place.
 
 ```package-install
 npm install --save @pothos/plugin-prisma
 ```
 
-## Setup
+<Callout type="info">
+  Earlier versions inferred every type from the Prisma client itself. That made editors slow on large schemas and left some advanced cases impossible to type. The generator exists so the plugin can read a compact, purpose-built set of types instead.
+</Callout>
 
-This plugin requires a little more setup than other plugins because it integrates with the prisma to
-generate some types that help the plugin better understand your prisma schema. Previous versions of
-this plugin used to infer all required types from the prisma client itself, but this resulted in a
-poor dev experience because the complex types slowed down editors, and some more advanced use cases
-could not be typed correctly.
+## Add the Pothos generator
 
-### Add the `pothos` generator to your prisma schema
+Add the `pothos` generator alongside your Prisma client generator. This example uses the Ultimate League schema that runs through every Prisma page:
 
 ```prisma
 generator pothos {
   provider = "prisma-pothos-types"
 }
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  players   Player[]
+  homeGames Game[]   @relation("HomeTeam")
+  awayGames Game[]   @relation("AwayTeam")
+}
+
+model Player {
+  id     Int          @id @default(autoincrement())
+  name   String
+  number Int
+  team   Team         @relation(fields: [teamId], references: [id])
+  teamId Int
+  stats  PlayerStat[]
+}
+
+model Game {
+  id         Int          @id @default(autoincrement())
+  playedAt   DateTime
+  homeTeam   Team         @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  homeTeamId Int
+  awayTeam   Team         @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  awayTeamId Int
+  stats      PlayerStat[]
+}
+
+model PlayerStat {
+  id       Int    @id @default(autoincrement())
+  goals    Int
+  assists  Int
+  player   Player @relation(fields: [playerId], references: [id])
+  playerId Int
+  game     Game   @relation(fields: [gameId], references: [id])
+  gameId   Int
+}
 ```
 
-Now the types Pothos uses will be generated whenever you re-generate your prisma client. Run the
-following command to re-generate the client and create the new types:
+Pothos types regenerate whenever you regenerate the client:
 
 ```sh
 npx prisma generate
 ```
 
-additional options:
+Two generator options control where the types land and what they import from:
 
-- `clientOutput`: Where the generated code will import the PrismaClient from. The default is the
-  full path of wherever the client is generated. If you are checking in the generated file,
-  you should specify a relative path for this import
-- `output`: Where to write the generated types
-
-Example with more options:
+- **`output`** — where to write the generated types file. Defaults next to the Prisma client.
+- **`clientOutput`** — the import path the generated file uses to reach `PrismaClient`. It defaults to the absolute path of wherever the client is generated. If you check the generated file into source control, set this to a relative path so the import survives on other machines.
 
 ```prisma
-
 generator client {
-  provider      = "prisma-client"
-  output        = "../lib/prisma"
+  provider = "prisma-client"
+  output   = "../lib/prisma"
 }
+
 generator pothos {
-  provider = "prisma-pothos-types"
-  clientOutput = "./prisma" // relative path from pothos output to prisma client
-  output = "../lib/pothos-prisma-types.ts"
+  provider     = "prisma-pothos-types"
+  clientOutput = "./prisma"                      // relative path from the pothos output to the client
+  output       = "../lib/pothos-prisma-types.ts"
 }
 ```
 
-If none of your auto-completions are working for prisma types and relations, make sure your generated types are importing from the correct location
+<Callout type="warn">
+  If auto-completion for Prisma types and relations is not working, check that the generated types file imports the client from the right location — a stale `clientOutput` is the usual cause.
+</Callout>
 
+## Wire up the builder
 
-### Set up the builder
+Register the plugin, give the builder your `PrismaTypes`, and pass a `prisma` config with the client and datamodel:
 
 ```typescript
 import SchemaBuilder from '@pothos/core';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin from '@pothos/plugin-prisma';
-
-import type PrismaTypes from '../lib/pothos-prisma-types'; // path to generated types, specified in your prisma.schema
-import { getDatamodel } from '../lib/pothos-prisma-types';
-
-const prisma = new PrismaClient({});
-
-const builder = new SchemaBuilder<{
-  PrismaTypes: PrismaTypes; // This gives the builder all the type information about your prisma schema
-}>({
-  plugins: [PrismaPlugin],
-  prisma: {
-    client: prisma,
-    // This give pothos information about your tables, relations, and indexes to help it generate optimal queries at runtime.
-    // This used to be attached to the prisma client, but has been removed in most runtimes/modes to reduce bundle size.
-    dmmf: getDatamodel(),
-    // defaults to false, uses /// comments from prisma schema as descriptions
-    // for object types, relations and exposed fields.
-    // descriptions can be omitted by setting description to false
-    exposeDescriptions: boolean | { models: boolean, fields: boolean },
-    // use where clause from prismaRelatedConnection for totalCount (defaults to true)
-    filterConnectionTotalCount: true,
-    // warn when not using a query parameter correctly
-    onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
-  },
-});
-```
-
-It is strongly recommended NOT to put your prisma client into `Context`. This will result in slower
-type-checking and a laggy developer experience in VSCode. See
-[this issue](https://github.com/microsoft/TypeScript/issues/45405) for more details.
-
-You can also load or create the prisma client dynamically for each request. This can be used to
-periodically re-create clients or create read-only clients for certain types of users.
-
-```typescript
-import SchemaBuilder from '@pothos/core';
-import { PrismaClient, Prisma } from '@prisma/client';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import type PrismaTypes from '../lib/pothos-prisma-types';
 import { getDatamodel } from '../lib/pothos-prisma-types';
 
 const prisma = new PrismaClient({});
 
+const builder = new SchemaBuilder<{
+  // Gives the builder full type information about your Prisma schema.
+  PrismaTypes: PrismaTypes;
+}>({
+  plugins: [PrismaPlugin],
+  prisma: {
+    client: prisma,
+    // Describes tables, relations, and indexes so Pothos can plan optimal queries at runtime.
+    dmmf: getDatamodel(),
+  },
+});
+```
+
+The rest of the Prisma pages assume this `builder` and this module-level `prisma` client already exist.
+
+<Callout type="info">
+  The datamodel used to ride along on the Prisma client, but most runtimes now strip it to shrink bundle size — so `dmmf: getDatamodel()` passes it explicitly. `getDatamodel` is exported from the generated types file.
+</Callout>
+
+### Prisma config options
+
+The `prisma` object accepts:
+
+| Option | Purpose |
+| --- | --- |
+| `client` | The `PrismaClient` instance, or a function `(ctx) => client` to pick a client per request. |
+| `dmmf` | The datamodel from `getDatamodel()`. Required so the plugin can plan queries. |
+| `exposeDescriptions` | Use `///` comments from the Prisma schema as descriptions for models, relations, and exposed fields. Defaults to `false`. Pass `{ models, fields }` to enable them selectively; set a field's `description` to `false` to opt one out. |
+| `filterConnectionTotalCount` | Apply a related connection's `where` clause to its `totalCount`. Defaults to `true`. |
+| `onUnusedQuery` | Warn or throw when a resolver forgets to use its `query` argument. See [below](#detecting-unused-query-arguments). |
+| `maxConnectionSize` / `defaultConnectionSize` | Bounds for [Relay connections](./connections). |
+| `skipDeferredFragments` | Skip `@defer` fragments when planning the Prisma query, so deferred fields aren't fetched eagerly. Defaults to `true`. |
+
+### A client per request
+
+Pass a function for `client` to choose a client based on context — useful for periodically recycled clients or read-only replicas for some users:
+
+```typescript
+const prisma = new PrismaClient({});
+
 const readOnlyPrisma = new PrismaClient({
   datasources: {
-    db: {
-      url: process.env.READ_ONLY_REPLICA_URL,
-    },
+    db: { url: process.env.READ_ONLY_REPLICA_URL },
   },
 });
 
@@ -124,20 +161,28 @@ const builder = new SchemaBuilder<{
 });
 ```
 
+<Callout type="warn">
+  Keep the Prisma client out of your `Context` type. The client's types are large, and threading them through `Context` slows type-checking and makes editors laggy — see [this TypeScript issue](https://github.com/microsoft/TypeScript/issues/45405). Reference a module-level `prisma` singleton instead, as above.
+</Callout>
+
 ## Detecting unused query arguments
 
-Forgetting to spread the `query` argument from `t.prismaField` or `t.prismaConnection` into your
-prisma query can result in inefficient queries, or even missing data. To help catch these issues,
-the plugin can warn you when you are not using the query argument correctly.
+`t.prismaField` and `t.prismaConnection` hand your resolver a `query` argument to spread into the Prisma call. Forgetting to spread it produces inefficient queries — or missing data. Set `onUnusedQuery` to catch the mistake:
 
-the `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
-`warn` it will log a warning to the console if Pothos detects that you have not properly used the
-query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
-You can also pass a function which will receive the `info` object which can be used to log or throw
-your own error.
+- `'warn'` logs a warning when the resolver returns without using `query`.
+- `'error'` throws instead.
+- A function receives the `info` object so you can log or throw your own error.
 
-This check is fairly naive and works by wrapping the properties on the query with a getter that sets
-a flag if the property is accessed. If no properties are accessed on the query object before the
-resolver returns, it will trigger the `onUnusedQuery` condition.
+```typescript
+prisma: {
+  client: prisma,
+  dmmf: getDatamodel(),
+  onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
+}
+```
 
-It's recommended to enable this check in development to more quickly find potential issues.
+The check is deliberately naive: it wraps the `query` object's properties in getters that flip a flag when read. If nothing on the object is accessed before the resolver returns, the `onUnusedQuery` condition fires. Enable it in development to surface these issues quickly.
+
+<Callout type="info">
+  See also: [Prisma objects](./objects) to define your first type, [Relations](./relations) to connect them, or the [Prisma plugin overview](../prisma) for the full picture.
+</Callout>

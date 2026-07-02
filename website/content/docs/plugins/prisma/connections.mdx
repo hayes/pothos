@@ -1,346 +1,313 @@
 ---
 title: Connections
-description: Creating relay connections with the Prisma plugin
+description: Build Relay connections over Prisma models with prismaConnection, relatedConnection, and connection helpers — cursor pagination, total counts, and shared connection objects.
 ---
 
-### `prismaConnection`
+import { Callout } from 'fumadocs-ui/components/callout';
 
-The `prismaConnection` method on a field builder can be used to create a relay `connection` field
-that also pre-loads all the data nested inside that connection.
+Relay connections give you cursor-based pagination over a list. The Prisma plugin implements them on top of Prisma's own cursor pagination, and pre-loads the data nested inside each page in the same optimized query as the rest of the request. Reach for `t.prismaConnection` on a root field, `t.relatedConnection` for a relation of a [node](./relay), and `prismaConnectionHelpers` when the list lives behind a join table.
+
+These examples assume the builder is set up with `PrismaPlugin` and `RelayPlugin` and a `prisma` client in scope — see [Setup](./setup).
+
+## A connection on a root field
+
+`t.prismaConnection` defines a Relay `connection` field and preloads everything the page needs. The resolver receives a `query` object as its first argument — spread it into your Prisma call and it carries the correct `take`, `skip`, and `cursor` derived from the connection arguments, plus the `include`/`select` for nested selections.
 
 ```typescript
 builder.queryType({
   fields: (t) => ({
-    posts: t.prismaConnection(
+    players: t.prismaConnection(
       {
-        type: 'Post',
+        type: 'Player',
         cursor: 'id',
-        resolve: (query, parent, args, context, info) => prisma.post.findMany({ ...query }),
+        resolve: (query, _parent, _args, _ctx, _info) =>
+          prisma.player.findMany({ ...query }),
       },
       {}, // optional options for the Connection type
-      {}, // optional options for the Edge type),
+      {}, // optional options for the Edge type
     ),
   }),
 });
 ```
 
-#### options
+The three arguments are the field options, then optional options for the generated Connection type, then optional options for the Edge type.
 
-- `type`: the name of the prisma model being connected to
-- `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
-  passed to prisma.
-- `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
-- `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
-- `resolve`: Like the resolver for `prismaField`, the first argument is a `query` object that should
-  be spread into your prisma query. The `resolve` function should return an array of nodes for the
-  connection. The `query` will contain the correct `take`, `skip`, and `cursor` options based on the
-  connection arguments (`before`, `after`, `first`, `last`), along with `include` options for nested
-  selections.
-- `totalCount`: A function for loading the total count for the connection. This will add a
-  `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
-  `args`, `context`, `info`) as arguments. Note that this will not work when using a shared
-  connection object (see details below)
+| Option | Purpose |
+| --- | --- |
+| `type` | Name of the Prisma model being connected to. |
+| `cursor` | A `@unique` column (or unique index) of that model, passed to Prisma as the `cursor`. |
+| `resolve` | Like the [`prismaField`](./objects) resolver: spread the first `query` argument into your Prisma query and return the array of nodes. |
+| `defaultSize` | Page size when neither `first` nor `last` is given. Default `20`. |
+| `maxSize` | Maximum number of nodes returned. Default `100`. |
+| `totalCount` | A function `(parent, args, context, info)` — where `parent` is the connection field's parent, like the [`prismaField`](./objects) resolver — that loads the total count, adding a `totalCount` field to the connection. Does not apply when using a shared connection object — see [Total count on shared objects](#total-count-on-shared-connection-objects). |
 
-The created connection queries currently support the following combinations of connection arguments:
+`defaultSize` and `maxSize` accept a plain number or a function of `(args, context)`. You can also set them for every connection at once with the `maxConnectionSize` and `defaultConnectionSize` options in the [`prisma` plugin options](./setup).
 
-- `first`, `last`, or `before`
-- `first` and `before`
-- `last` and `after`
+<Callout type="warn">
+  Prisma-backed connections support only the argument combinations that map to an efficient cursor query: `first`, `last`, or `before` on their own; `first` with `before`; and `last` with `after`. Other combinations would require loading every record between two cursors (or between a cursor and the end of the set), which is complex and inefficient, so they throw an error indicating the combination is unsupported.
+</Callout>
 
-Queries for other combinations are not as useful, and generally requiring loading all records
-between 2 cursors, or between a cursor and the end of the set. Generating query options for these
-cases is more complex and likely very inefficient, so they will currently throw an Error indicating
-the argument combinations are not supported.
+## A connection from a relation
 
-The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
-`defaultConnectionSize` options in the `prisma` plugin options.
-
-### `relatedConnection`
-
-The `relatedConnection` method can be used to create a relay `connection` field based on a relation
-of the current model.
+`t.relatedConnection` builds a connection from a relation of the current model — no resolver needed, since the relation names the data. It works on any Prisma object, and pairs naturally with a [node](./relay).
 
 ```typescript
-builder.prismaNode('User', {
+builder.prismaNode('Team', {
   id: { field: 'id' },
   fields: (t) => ({
-    // Connections can be very simple to define
-    simplePosts: t.relatedConnection('posts', {
+    name: t.exposeString('name'),
+    // The simplest form: just a cursor.
+    roster: t.relatedConnection('players', {
       cursor: 'id',
     }),
-    // Or they can include custom arguments, and other options
-    posts: t.relatedConnection(
-      'posts',
+    // Or add arguments and a custom query merged into the relation.
+    players: t.relatedConnection(
+      'players',
       {
         cursor: 'id',
         args: {
-          oldestFirst: t.arg.boolean(),
+          sortByNumber: t.arg.boolean(),
         },
-        query: (args, context) => ({
+        query: (args, _context) => ({
           orderBy: {
-            createdAt: args.oldestFirst ? 'asc' : 'desc',
+            number: args.sortByNumber ? 'asc' : 'desc',
           },
         }),
       },
       {}, // optional options for the Connection type
-      {}, // optional options for the Edge type),
+      {}, // optional options for the Edge type
     ),
   }),
 });
 ```
 
-#### options
+| Option | Purpose |
+| --- | --- |
+| `cursor` | A `@unique` column of the related model, passed to Prisma as the `cursor`. |
+| `defaultSize` | Page size when neither `first` nor `last` is given. Default `20`. |
+| `maxSize` | Maximum number of nodes returned. Default `100`. |
+| `query` | A function of `(args, context)` returning filtering and sorting merged into the query for the relation. |
+| `totalCount` | Set `true` to add a `totalCount` field to the connection, like [`relationCount`](./relations). Does not apply when using a shared connection object. |
 
-- `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
-  passed to prisma.
-- `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
-- `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
-- `query`: A method that accepts the `args` and `context` for the connection field, and returns
-  filtering and sorting logic that will be merged into the query for the relation.
-- `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
-  `relationCount` above for more details. Note that this will not work when using a shared
-  connection object (see details below)
+## Indirect relations as connections
 
-### Indirect relations as connections
+When the list you want to paginate lives behind a join table, `t.relatedConnection` doesn't fit — you paginate the join rows but return the nodes nested one level deeper. `prismaConnectionHelpers` handles this with a plain `t.connection` field.
 
-Creating connections from indirect relations is a little more involved, but can be achieved using
-`prismaConnectionHelpers` with a normal `t.connection` field.
+In the league schema, `PlayerStat` joins `Player` to `Game`: paginating a player's games means paginating that player's `stats` and resolving each edge to its `game`.
 
 ```typescript
-// Create a prisma object for the node type of your connection
-const Media = builder.prismaObject('Media', {
+// The node type of the connection.
+const Game = builder.prismaObject('Game', {
   select: {
     id: true,
   },
   fields: (t) => ({
-    url: t.exposeString('url'),
+    playedAt: t.expose('playedAt', { type: 'DateTime' }),
   }),
 });
 
-// Create connection helpers for the media type.  This will allow you
-// to use the normal t.connection with a prisma type
-const mediaConnectionHelpers = prismaConnectionHelpers(
+// Connection helpers for the join table let you use a plain t.connection.
+const gameConnectionHelpers = prismaConnectionHelpers(
   builder,
-  'PostMedia', // this should be the join table
+  'PlayerStat', // the join table
   {
     cursor: 'id',
     select: (nodeSelection) => ({
-      // select the relation to the media node using the nodeSelection function
-      media: nodeSelection({
-        // optionally specify fields to select by default for the node
+      // Select the relation to the node using nodeSelection.
+      game: nodeSelection({
+        // Fields to select by default for the node.
         select: {
           id: true,
-          posts: true,
         },
       }),
     }),
-    // resolve the node from the edge
-    resolveNode: (postMedia) => postMedia.media,
-    // additional/optional options
+    // Resolve the node from the edge (join) row.
+    resolveNode: (playerStat) => playerStat.game,
+    // Optional size limits, like the connection fields above.
     maxSize: 100,
     defaultSize: 20,
   },
 );
 
-builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+builder.prismaObjectField('Player', 'gamesConnection', (t) =>
   t.connection({
-    // The type for the Node
-    type: Media,
-    // since we are not using t.relatedConnection we need to manually
-    // include the selections for our connection
+    type: Game,
+    // Not using t.relatedConnection, so include the selection manually.
     select: (args, ctx, nestedSelection) => ({
-      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      stats: gameConnectionHelpers.getQuery(args, ctx, nestedSelection),
     }),
-    resolve: (post, args, ctx) =>
-      // This helper takes a list of nodes and formats them for the connection
-      mediaConnectionHelpers.resolve(
-        // map results to the list of edges
-        post.media,
-        args,
-        ctx,
-      ),
+    resolve: (player, args, ctx) =>
+      // Format the loaded join rows into the connection.
+      gameConnectionHelpers.resolve(player.stats, args, ctx),
   }),
 );
 ```
 
-The above example assumes that you are paginating a relation to a join table, where the pagination
-args are applied based on the relation to that join table, but the nodes themselves are nested
-deeper.
+The helper exposes `getQuery` (build the Prisma query for the relation), `resolve` (format a list of loaded rows into a connection), `ref` (the connection's node ref), and `getArgs` (below).
 
-`prismaConnectionHelpers` can also be used to manually create a connection where the edge and
-connections share the same model, and pagination happens directly on a relation to nodes type (even
-if that relation is nested).
+`prismaConnectionHelpers` also covers the case where the edge and connection share the same model and pagination happens directly on a relation to the nodes — even a nested one. Pass the helper's `ref` as the connection `type`:
 
-```ts
-const commentConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
+```typescript
+const playerConnectionHelpers = prismaConnectionHelpers(builder, 'Player', {
   cursor: 'id',
 });
 
-const SelectPost = builder.prismaObject('Post', {
+const SelectTeam = builder.prismaObject('Team', {
   fields: (t) => ({
-    title: t.exposeString('title'),
-    comments: t.connection({
-      type: commentConnectionHelpers.ref,
+    name: t.exposeString('name'),
+    players: t.connection({
+      type: playerConnectionHelpers.ref,
       select: (args, ctx, nestedSelection) => ({
-        comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        players: playerConnectionHelpers.getQuery(args, ctx, nestedSelection),
       }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+      resolve: (parent, args, ctx) =>
+        playerConnectionHelpers.resolve(parent.players, args, ctx),
     }),
   }),
 });
 ```
 
-To add arguments for a connection defined with a helper, it is often easiest to define the arguments
-on the connection field rather than the connection helper. This allows connection helpers to be
-shared between fields that may not share the same arguments:
+### Adding arguments
 
-```ts
-const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+To add arguments to a helper-based connection, the easiest place is the connection field itself. Defining them there lets one helper be shared across fields that don't share the same arguments:
+
+```typescript
+const gameConnectionHelpers = prismaConnectionHelpers(builder, 'PlayerStat', {
   cursor: 'id',
   select: (nodeSelection) => ({
-    media: nodeSelection({}),
+    game: nodeSelection({}),
   }),
-  resolveNode: (postMedia) => postMedia.media,
+  resolveNode: (playerStat) => playerStat.game,
 });
 
-builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+builder.prismaObjectField('Player', 'gamesConnection', (t) =>
   t.connection({
-    type: Media,
+    type: Game,
     args: {
-      inverted: t.arg.boolean(),
+      recentFirst: t.arg.boolean(),
     },
     select: (args, ctx, nestedSelection) => ({
-      media: {
-        ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      stats: {
+        ...gameConnectionHelpers.getQuery(args, ctx, nestedSelection),
         orderBy: {
-          post: {
-            createdAt: args.inverted ? 'desc' : 'asc',
+          game: {
+            playedAt: args.recentFirst ? 'desc' : 'asc',
           },
         },
       },
     }),
-    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+    resolve: (player, args, ctx) =>
+      gameConnectionHelpers.resolve(player.stats, args, ctx),
   }),
 );
 ```
 
-Arguments, ordering and filtering can also be defined on the helpers themselves:
-
-```ts
-const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
-  cursor: 'id',
-  // define arguments for the connection helper, these will be available as the second argument of `select`
-  args: (t) => ({
-    inverted: t.arg.boolean(),
-  }),
-  select: (nodeSelection, args) => ({
-    media: nodeSelection({}),
-  }),
-  query: (args) => ({
-    // Custom filtering with a where clause
-    where: {
-      post: {
-        published: true,
-      },
-    },
-    // custom ordering including use of args
-    orderBy: {
-      post: {
-        createdAt: args.inverted ? 'desc' : 'asc',
-      },
-    },
-  }),
-  resolveNode: (postMedia) => postMedia.media,
-});
-
-builder.prismaObjectField('Post', 'mediaConnection', (t) =>
-  t.connection({
-    type: Media,
-    // add the args from the connection helper to the field
-    args: mediaConnectionHelpers.getArgs(),
-    select: (args, ctx, nestedSelection) => ({
-      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
-    }),
-    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
-  }),
-);
-```
-
-### Sharing Connections objects
-
-You can create reusable connection objects by using `builder.connectionObject`.
-
-These connection objects can be used with `t.prismaConnection`, `t.relatedConnection`, or
-`t.connection`
-
-Shared edges can also be created using `t.edgeObject`
+Arguments, ordering, and filtering can also live on the helper itself. Args defined there are available as the second argument of `select`, and `getArgs()` adds them to the field:
 
 ```typescript
-const CommentConnection = builder.connectionObject({
-  type: Comment,
-  // or
-  type: commentConnectionHelpers.ref,
-  name: 'CommentConnection',
+const gameConnectionHelpers = prismaConnectionHelpers(builder, 'PlayerStat', {
+  cursor: 'id',
+  // Arguments for the helper, available as the second argument of `select`.
+  args: (t) => ({
+    recentFirst: t.arg.boolean(),
+  }),
+  select: (nodeSelection, _args) => ({
+    game: nodeSelection({}),
+  }),
+  query: (args) => ({
+    // Custom filtering with a where clause.
+    where: {
+      game: {
+        stats: { some: {} },
+      },
+    },
+    // Custom ordering using the args.
+    orderBy: {
+      game: {
+        playedAt: args.recentFirst ? 'desc' : 'asc',
+      },
+    },
+  }),
+  resolveNode: (playerStat) => playerStat.game,
 });
 
-builder.prismaObject('Post', {
+builder.prismaObjectField('Player', 'gamesConnection', (t) =>
+  t.connection({
+    type: Game,
+    // Pull the helper's args onto the field.
+    args: gameConnectionHelpers.getArgs(),
+    select: (args, ctx, nestedSelection) => ({
+      stats: gameConnectionHelpers.getQuery(args, ctx, nestedSelection),
+    }),
+    resolve: (player, args, ctx) =>
+      gameConnectionHelpers.resolve(player.stats, args, ctx),
+  }),
+);
+```
+
+## Sharing connection objects
+
+By default each connection field generates its own Connection and Edge types. To reuse one across fields, build it up front with `builder.connectionObject` and pass the resulting ref where a connection field would take its Connection options. It works with `t.prismaConnection`, `t.relatedConnection`, and `t.connection`. Shared edges follow the same pattern with `builder.edgeObject`.
+
+```typescript
+const PlayerConnection = builder.connectionObject({
+  // Either a prisma object ref…
+  type: Player,
+  // …or a connection helper's ref:
+  // type: playerConnectionHelpers.ref,
+  name: 'PlayerConnection',
+});
+
+builder.prismaNode('Team', {
+  id: { field: 'id' },
   fields: (t) => ({
-    id: t.exposeID('id'),
-    ...
-    commentsConnection: t.relatedConnection(
-      'comments',
+    name: t.exposeString('name'),
+    playersConnection: t.relatedConnection(
+      'players',
       { cursor: 'id' },
-      // The connection object ref can be passed in place of the connection object options
-      CommentConnection
+      // Pass the shared connection ref in place of the Connection options.
+      PlayerConnection,
     ),
   }),
 });
 ```
 
-### Extending connection edges
+## Extending connection edges
 
-In some cases you may want to expose some data from an indirect connection on the edge object.
+To expose data from a join table on the *edge* — not the node — select the extra join columns in the helper and define the edge fields in the third argument of `t.connection`. The parent shape for edge fields is inferred from the connection's `resolve`.
 
 ```typescript
-const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+const gameConnectionHelpers = prismaConnectionHelpers(builder, 'PlayerStat', {
   cursor: 'id',
   select: (nodeSelection) => ({
-    // select the relation to the media node using the nodeSelection function
-    media: nodeSelection({}),
-    // Select additional fields from the join table
-    createdAt: true,
+    game: nodeSelection({}),
+    // Extra fields from the join table, for the edge.
+    goals: true,
   }),
-  // resolve the node from the edge
-  resolveNode: (postMedia) => postMedia.media,
+  resolveNode: (playerStat) => playerStat.game,
 });
 
-builder.prismaObjectFields('Post', (t) => ({
-  manualMediaConnection: t.connection(
+builder.prismaObjectFields('Player', (t) => ({
+  gamesConnection: t.connection(
     {
-      type: Media,
+      type: Game,
       select: (args, ctx, nestedSelection) => ({
-        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        stats: gameConnectionHelpers.getQuery(args, ctx, nestedSelection),
         select: {
-          media: nestedSelection({}, ['edges', 'node']),
+          stats: nestedSelection({}, ['edges', 'node']),
         },
       }),
-
-      resolve: (post, args, ctx) =>
-        mediaConnectionHelpers.resolve(
-          post.media.map(({ media }) => media),
-          args,
-          ctx,
-        ),
+      resolve: (player, args, ctx) =>
+        gameConnectionHelpers.resolve(player.stats, args, ctx),
     },
     {},
-    // options for the edge object
+    // Options for the edge object.
     {
-      // define the additional fields on the edge object
       fields: (edge) => ({
-        createdAt: edge.field({
-          type: 'DateTime',
-          // the parent shape for edge fields is inferred from the connections resolve function
-          resolve: (media) => media.createdAt,
+        goals: edge.field({
+          type: 'Int',
+          // Edge parent is the join row, so goals is available here.
+          resolve: (stat) => stat.goals,
         }),
       }),
     },
@@ -348,17 +315,14 @@ builder.prismaObjectFields('Post', (t) => ({
 }));
 ```
 
-### Total count on shared connection objects
+## Total count on shared connection objects
 
-If you set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
-using a custom connection object, you will need to add the `totalCount` field to the
-connection object manually. The parent object on the connection will have a `totalCount` property
-that is either the totalCount, or a function that will return the totalCount.
+Setting `totalCount: true` on a `prismaConnection` or `relatedConnection` normally adds the `totalCount` field for you. With a *shared* connection object it can't, so add the field yourself. The connection's parent carries a `totalCount` property that is either the number or a function returning it (possibly async):
 
 ```typescript
-const CommentConnection = builder.connectionObject({
-  type: Comment,
-  name: 'CommentConnection',
+const PlayerConnection = builder.connectionObject({
+  type: Player,
+  name: 'PlayerConnection',
   fields: (t) => ({
     totalCount: t.int({
       resolve: (connection) => {
@@ -373,8 +337,7 @@ const CommentConnection = builder.connectionObject({
 });
 ```
 
-If you want to add a global `totalCount` field, you can do something similar using
-`builder.globalConnectionField`:
+To add `totalCount` to *every* connection, register the field globally with `builder.globalConnectionField` and declare the `Connection` shape on the builder so the parent is typed:
 
 ```typescript
 export const builder = new SchemaBuilder<{
@@ -386,7 +349,8 @@ export const builder = new SchemaBuilder<{
   plugins: [PrismaPlugin, RelayPlugin],
   relayOptions: {},
   prisma: {
-    client: db,
+    client: prisma,
+    dmmf: getDatamodel(),
   },
 });
 
@@ -399,11 +363,14 @@ builder.globalConnectionField('totalCount', (t) =>
 );
 ```
 
-### `parsePrismaCursor` and `formatPrismaCursor`
+## Parsing and formatting cursors
 
-These functions can be used to manually parse and format cursors that are compatible with prisma
-connections.
+`parsePrismaCursor` and `formatPrismaCursor` build and read cursors compatible with Prisma connections by hand. Parsing a cursor returns the value from the cursor column — often the `id`, or an array or object when a compound index backs the cursor. Formatting takes the column value(s) that make up the cursor and produces the opaque cursor string.
 
-Parsing a cursor will return the value from the column used for the cursor (often the `id`), this
-value may be an array or object when a compound index is used as the cursor. Similarly, to format a
-cursor, you must provide the column(s) that make up the cursor.
+```typescript
+import { parsePrismaCursor, formatPrismaCursor } from '@pothos/plugin-prisma';
+```
+
+<Callout type="info">
+  See also: [Relay nodes](./relay) for the `prismaNode` these connections hang off, [Relations](./relations) for `t.relation` and `relationCount`, or the [Relay plugin](../relay) for how connections, edges, and cursors work in general.
+</Callout>

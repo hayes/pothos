@@ -1,117 +1,152 @@
 ---
 title: SubGraph plugin
-description: SubGraph plugin docs for Pothos
+description: Tag types and fields into named sub-graphs, then build a public or internal view of one schema.
 ---
 
-A plugin for creating sub-selections of your graph. This allows you to use the same code/types for
-multiple variants of your API.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-One common use case for this is to share implementations between your public and internal APIs, by
-only exposing a subset of your graph publicly.
+One codebase, more than one API. The sub-graph plugin lets you tag types and fields with named sub-graphs, then ask the builder for just the slice you want — a trimmed public schema, a full internal one, everything in between. You write each type once; `builder.toSchema({ subGraph })` returns a filtered `GraphQLSchema` with the rest removed. The common use is a public API that exposes a subset of a richer internal graph.
 
-## Usage
-
-### Install
+## Install
 
 ```package-install
 npm install --save @pothos/plugin-sub-graph
 ```
 
-### Setup
+## Tagging and building a view
 
-```typescript
-import SubGraphPlugin from '@pothos/plugin-sub-graph';
+Register the plugin, declare your sub-graph names on the `SubGraphs` generic, then set defaults on the builder. `defaultForTypes` puts every type into those sub-graphs unless it says otherwise, and `fieldsInheritFromTypes` makes a field default to its parent type's membership. Individual fields and types opt out with their own `subGraphs` array.
+
+```typescript playground example="sub-graph-plugin"
 const builder = new SchemaBuilder<{
   SubGraphs: 'Public' | 'Internal';
 }>({
   plugins: [SubGraphPlugin],
   subGraphs: {
-    defaultForTypes: [],
+    // A type with no subGraphs of its own belongs to every sub-graph.
+    defaultForTypes: ['Public', 'Internal'],
+    // A field with no subGraphs inherits its parent type's membership.
     fieldsInheritFromTypes: true,
   },
 });
 
-//in another file:
-
-const schema = builder.toSchema();
-const publicSchema = builder.toSchema({ subGraph: 'Public' });
-const internalSchema = builder.toSchema({ subGraph: 'Internal' });
-
-// You can also build a graph containing multiple subgraphs:
-const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
-
-// Or create a graph of the intersection between multiple subgraphs:
-const allSchema = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
-```
-
-### Options on Types
-
-- `subGraphs`: An optional array of sub-graph the type should be included in.
-
-### Object and Interface types:
-
-- `defaultSubGraphsForFields`: Default sub-graph for fields of the type to be included in.
-
-## Options on Fields
-
-- `subGraphs`: An optional array of sub-graph the field to be included in. If not provided, will
-
-  fallback to:
-
-  - `defaultForFields` if set on type
-  - `subGraphs` of the type if `subGraphs.fieldsInheritFromTypes` was set in the builder
-  - an empty array
-
-### Options on Builder
-
-- `subGraphs.defaultForTypes`: Specifies what sub-graph a type is part of by default.
-- `subGraphs.fieldsInheritFromTypes`: defaults to `false`. When true, fields on a type will default
-  to being part of the same sub-graph as their parent type. Only applies when type does not have
-  `defaultForFields` set.
-
-### Usage
-
-```typescript
-builder.queryType({
-  // Query type will be available in default, Public, and Internal schemas
-  subGraphs: ['Public', 'Internal'],
-  // Fields on the Query object will now default to not being a part of any subgraph
-  defaultForFields: [];
+// The whole Player type lives only in the Internal graph.
+const Player = builder.objectRef<IPlayer>('Player').implement({
+  subGraphs: ['Internal'],
   fields: (t) => ({
-    someField: t.string({
-      // someField will be in the default schema and "Internal" sub graph, but
-      // not present in the Public sub graph
-      subGraphs: ['Internal']
-      resolve: () => {
-        throw new Error('Not implemented');
-      },
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    salary: t.exposeInt('salary'),
+  }),
+});
+
+const Team = builder.objectRef<ITeam>('Team').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    // A single field held back from the Public graph.
+    budget: t.exposeInt('budget', { subGraphs: ['Internal'] }),
+    // Returns an Internal-only type, so it can only live in Internal.
+    roster: t.field({
+      type: [Player],
+      subGraphs: ['Internal'],
+      resolve: (team) => team.roster,
     }),
   }),
 });
 ```
 
-### Missing types
+The schema above builds three ways from the same definitions. Call `toSchema` with no `subGraph` for the full graph, or name one to get its view:
 
-When creating a sub-graph, the plugin will only copy in types that are included in the sub-graph,
-either by explicitly setting it on the type, or because the sub-graph is included in the default
-list. Like types, output fields that are not included in a sub-graph will also be omitted. Arguments
-and fields on Input types can not be removed because that would break assumptions about argument
-types in resolvers.
+```typescript
+// Everything — the schema you develop against.
+const schema = builder.toSchema();
 
-If a type that is not included in the sub-graph is referenced by another part of the graph that is
-included in the graph, a runtime error will be thrown when the sub graph is constructed. This can
-happen in a number of cases including cases where a removed type is used in the interfaces of an
-object, a member of a union, or the type of a field argument.
+// Public: Team.id and Team.name only. budget, roster, and Player are gone.
+const publicSchema = builder.toSchema({ subGraph: 'Public' });
 
-### Explicitly including types
+// Internal: the whole graph, since every type is in Internal too.
+const internalSchema = builder.toSchema({ subGraph: 'Internal' });
+```
 
-You can use the `explicitlyIncludeType` option to explicitly include types in a sub-graph that are
-unreachable.  This isn't normally required, but there are some edge cases where this may be useful.
+The playground embed above builds the `Public` view, so introspection and the sample query only see `id` and `name` on a team. Add `budget` to the query and it fails to validate — that field exists only in the internal graph.
 
-For instance, when extending external references with the federation plugin, the externalRef may
-not be reachable directly through your schema, but you may still want to include it when building the
-schema.  To work around this, we can explicitly include any types that have a `key` directive:
+## Combining sub-graphs
 
+`toSchema` also takes a list of sub-graphs. An array is a **union** — a type is kept if it belongs to *any* of the named sub-graphs:
+
+```typescript
+// Every type/field tagged Internal OR Public.
+const combined = builder.toSchema({ subGraph: ['Internal', 'Public'] });
+```
+
+The `{ all: [...] }` form is the **intersection** — a type is kept only if it belongs to *every* named sub-graph:
+
+```typescript
+// Only what is shared by BOTH Internal AND Public.
+const shared = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
+```
+
+## Where membership comes from
+
+A field's sub-graphs are resolved in order, first match wins:
+
+1. The field's own `subGraphs` array.
+2. The parent type's `defaultSubGraphsForFields`.
+3. The parent type's own `subGraphs`, if the builder set `fieldsInheritFromTypes: true`.
+4. The builder's `subGraphs.defaultForFields`.
+5. Otherwise an empty array — the field is in no sub-graph.
+
+Set `defaultSubGraphsForFields` on a type to give its fields a starting point that differs from the type itself. A `Query` type can live in every sub-graph while its fields default to none, so each field has to opt in explicitly:
+
+```typescript
+builder.queryType({
+  // The Query type is reachable from every sub-graph...
+  subGraphs: ['Public', 'Internal'],
+  // ...but its fields join nothing unless they say so.
+  defaultSubGraphsForFields: [],
+  fields: (t) => ({
+    teams: t.field({
+      type: [Team],
+      // Present in the default and Internal schemas, absent from Public.
+      subGraphs: ['Internal'],
+      resolve: () => [...Teams.values()],
+    }),
+  }),
+});
+```
+
+### Type and field options
+
+| Where | Option | Purpose |
+| --- | --- | --- |
+| Any type | `subGraphs` | The sub-graphs this type belongs to. Falls back to the builder's `defaultForTypes`. |
+| Object / interface / root type | `defaultSubGraphsForFields` | Default membership for this type's fields, before `fieldsInheritFromTypes`. |
+| Field | `subGraphs` | The sub-graphs this field belongs to. Falls back through the chain above. |
+| Nullable arg / input field | `subGraphs` | The sub-graphs this argument or input field belongs to. Non-null args and input fields cannot be removed (see below). |
+
+### Builder options
+
+| Option | Purpose |
+| --- | --- |
+| `subGraphs.defaultForTypes` | Sub-graphs a type joins when it has no `subGraphs` of its own. |
+| `subGraphs.defaultForFields` | Sub-graphs a field joins when nothing earlier in the chain applies. |
+| `subGraphs.fieldsInheritFromTypes` | Defaults to `false`. When `true`, a field with no membership of its own inherits its parent type's sub-graphs — but only when the type has no `defaultSubGraphsForFields`. |
+| `subGraphs.explicitlyIncludeType` | A predicate to force otherwise-unreachable types into a sub-graph (see [Unreachable types](#unreachable-types)). |
+
+## Missing types
+
+Building a sub-graph copies in only the types and output fields that belong to it. Everything else is dropped. Input types are the exception: an argument or input field is only removable when it is nullable, because a resolver still expects its non-null arguments to be present. The plugin throws at build time if you try to strip a non-null argument or input field from a sub-graph that keeps its field.
+
+<Callout type="warn">
+  Output fields and structural references fail differently when they point at a dropped type. An output field whose return type was left out is pruned automatically, with no error — that's how `roster`, returning the Internal-only `Player`, vanishes from the Public view above. A runtime error is thrown only when a dropped type is reached as an interface implemented by another interface, a union member, or a non-null argument type; those references can't be rewritten around the missing type. Tag the referencing field or type out of that sub-graph too — fields drop on their own, but the structural references hard-fail.
+</Callout>
+
+## Unreachable types
+
+Filtering keeps a type only when something in the sub-graph reaches it. A type that nothing references is dropped even if it's tagged for the sub-graph. `explicitlyIncludeType` overrides that: return `true` for any type you want kept regardless of reachability.
+
+The case this exists for is federation. When you extend an external reference with the [federation plugin](./federation), the `externalRef` may not be reachable through your own schema, yet the built sub-graph still needs it. Keep every type that carries a resolvable `key` directive:
 
 ```typescript
 import FederationPlugin, { hasResolvableKey } from '@pothos/plugin-federation';
@@ -122,7 +157,11 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [SubGraphPlugin, FederationPlugin],
   subGraphs: {
-    explicitlyIncludeType: (type, subGraphs) => hasResolvableKey(type)
+    explicitlyIncludeType: (type, subGraphs) => hasResolvableKey(type),
   },
 });
 ```
+
+<Callout type="info">
+  See also: [Object types](../fundamentals/objects) for the `objectRef` your tagged types build on, [Printing and codegen](../patterns/printing-and-codegen) for writing each view to an SDL file, or the [federation plugin](./federation) for the `explicitlyIncludeType` use case above.
+</Callout>

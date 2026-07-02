@@ -1,0 +1,12 @@
+# Every id below resolves through one batched load call — watch the console.
+# Try id "99" on captain to see the per-item Error branch.
+query Roster {
+  roster(ids: ["1", "2", "3"]) {
+    id
+    name
+    number
+  }
+  captain: player(id: "1") {
+    name
+  }
+}

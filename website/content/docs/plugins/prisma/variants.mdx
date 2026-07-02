@@ -1,102 +1,121 @@
 ---
 title: Type variants
-description: How to define multiple GraphQL types based on the same prisma model
+description: Expose one Prisma model as several GraphQL types with the variant option.
 ---
 
-The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
-Additional types are called `variants`. You will always need to have a "Primary" variant (defined as
-described above). Additional variants can be defined by providing a `variant` option instead of a
-`name` option when creating the type:
+import { Callout } from 'fumadocs-ui/components/callout';
 
-```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-  });
-});
+One Prisma model often needs to appear in the schema as more than one GraphQL type — a public view and a private one, a full record and a lightweight card. Pothos calls these **variants**. Every model has one primary type (defined with a `name`, as on the [objects page](./objects)); each additional variant is defined with a `variant` option in its place.
+
+This page assumes the [generated types and builder](./setup) are already wired up. The examples add an optional `email` column to the base `Player` model so a private variant has something to guard:
+
+```prisma
+model Player {
+  id    Int     @id @default(autoincrement())
+  name  String
+  email String?
+  // ...number, team, and stats as in the base schema
+}
 ```
 
-You can define variant fields that reference one variant from another:
+## Defining a variant
+
+Give `variant` a type name instead of `name`. Here `PlayerPrivateInfo` is a second GraphQL type over the same `Player` model, exposing a field the public type shouldn't:
 
 ```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
+const PlayerPrivateInfo = builder.prismaObject('Player', {
+  variant: 'PlayerPrivateInfo',
   fields: (t) => ({
     id: t.exposeID('id'),
-    // Using the model name ('User') will reference the primary variant
-    user: t.variant('User'),
-  });
-});
-
-const User = builder.prismaNode('User', {
-  id: {
-    resolve: (user) => user.id,
-  },
-  fields: (t) => ({
-    // To reference another variant, use the returned object Ref instead of the model name:
-    viewer: t.variant(Viewer, {
-      // return null for viewer if the parent User is not the current user
-      isNull: (user, args, ctx) => user.id !== ctx.user.id,
-    }),
-    email: t.exposeString('email'),
+    email: t.exposeString('email', { nullable: true }),
   }),
 });
 ```
 
-You can also use variants when defining relations by providing a `type` option:
+## Linking variants together
+
+`t.variant` adds a field that returns another variant of the same row. Reference the **primary** variant by its model name as a string; reference any **other** variant by the object ref it returned. An `isNull` callback can hide the variant when it shouldn't be visible — here the private info resolves to `null` unless the parent player is the current viewer:
 
 ```typescript
-const PostDraft = builder.prismaNode('Post', {
-  variant: 'PostDraft'
-  // This sets what database field to use for the nodes id field
+const PlayerPrivateInfo = builder.prismaObject('Player', {
+  variant: 'PlayerPrivateInfo',
+  fields: (t) => ({
+    email: t.exposeString('email', { nullable: true }),
+    // The model name references the primary variant.
+    player: t.variant('Player'),
+  }),
+});
+
+const Player = builder.prismaNode('Player', {
+  id: { resolve: (player) => String(player.id) },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    // Reference another variant by its ref, not the model name.
+    privateInfo: t.variant(PlayerPrivateInfo, {
+      // Hide private info unless the parent player is the current viewer.
+      isNull: (player, args, ctx) => player.id !== ctx.currentPlayerId,
+    }),
+  }),
+});
+```
+
+<Callout type="info">
+  `builder.prismaNode` needs the [relay plugin](./relay) and takes an `id` option — either an `id: { resolve }` that computes the node id, or `id: { field: 'id' }` to point at a database column. A variant that doesn't need to be a Relay node can use `builder.prismaObject` instead.
+</Callout>
+
+## Variants on relations
+
+A relation field can return a variant rather than the related model's primary type. Pass the variant ref as the relation's `type`, and use `query` to scope which rows it loads. Here a team's `schedule` returns games through a `CompletedGame` variant, filtered to games already played:
+
+```typescript
+const CompletedGame = builder.prismaNode('Game', {
+  variant: 'CompletedGame',
+  // Which database column backs the node id.
   id: { field: 'id' },
-  // fields work just like they do for builder.prismaObject
   fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
+    playedAt: t.field({ type: 'DateTime', resolve: (game) => game.playedAt }),
+    homeTeam: t.relation('homeTeam'),
   }),
 });
 
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
+const Team = builder.prismaObject('Team', {
+  variant: 'TeamSchedule',
   fields: (t) => ({
     id: t.exposeID('id'),
-    drafts: t.relation('posts', {
-      // This will cause this relation to use the PostDraft variant rather than the default Post variant
-      type: PostDraft,
-      query: { where: { draft: true } },
+    schedule: t.relation('homeGames', {
+      // Use the CompletedGame variant for this relation instead of the default Game.
+      type: CompletedGame,
+      query: { where: { playedAt: { lt: new Date() } } },
     }),
-  });
+  }),
 });
 ```
 
-You may run into circular reference issues if you use 2 prisma object refs to reference each other.
-To avoid this, you can split out the field definition for one of the relationships using
-`builder.prismaObjectField`
+## Breaking circular references
+
+Two prisma object refs that reference each other in their `fields` functions can trip TypeScript into a circular-type error. Split one side out with `builder.prismaObjectField`, which attaches a single field after both refs exist. It takes the ref, the field name, and a field function:
 
 ```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
+const PlayerPrivateInfo = builder.prismaObject('Player', {
+  variant: 'PlayerPrivateInfo',
   fields: (t) => ({
-    id: t.exposeID('id'),
-    user: t.variant(User),
-  });
-});
-
-const User = builder.prismaNode('User', {
-  interfaces: [Named],
-  id: {
-    resolve: (user) => user.id,
-  },
-  fields: (t) => ({
-    email: t.exposeString('email'),
+    email: t.exposeString('email', { nullable: true }),
   }),
 });
 
-// Viewer references the `User` ref in its field definition,
-// referencing the `User` in fields would cause a circular type issue
-builder.prismaObjectField(Viewer, 'user', t.variant(User));
+const Player = builder.prismaNode('Player', {
+  id: { resolve: (player) => String(player.id) },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+
+// Attach the back-reference after both refs exist, breaking the cycle.
+builder.prismaObjectField(PlayerPrivateInfo, 'player', (t) => t.variant(Player));
 ```
 
-This same workaround applies when defining relations using variants.
+The same workaround applies to relations that use variants — move the offending relation field into a `prismaObjectField` call.
+
+<Callout type="info">
+  See also: [Interfaces](./interfaces) for sharing fields across variants of a model, [Relations](./relations) for the `query` and `type` options used above, or [Relay](./relay) for the `prismaNode` these examples build on.
+</Callout>

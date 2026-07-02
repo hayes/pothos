@@ -1,34 +1,31 @@
 ---
 title: Drizzle plugin
-description: A plugin to support efficient queries through drizzles relational query builder API
+description: Build GraphQL objects, relations, and Relay connections from your Drizzle schema with selection-aware, efficient queries.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-<Callout type="warn">
-  This package is new, and depends on drizzle [RQBV2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2#include-custom-fields). There are still some
-  missing features, and the API may still change. This package currently requires using the `beta` tag for drizzle.
+The Drizzle plugin builds GraphQL object types directly from your Drizzle tables. You declare a type with `builder.drizzleObject`, expose columns, and add relations with `t.relation` — the plugin reads your Drizzle relational schema and translates each GraphQL selection into a single, precisely-scoped query. Nothing is over-fetched: a field is only loaded when the client asks for it.
 
-  If you are upgrading from an older version of this plugin, please read the [drizzle migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2)
-  and refer to the changelog for this package for Pothos specific changes.
+The plugin is built on Drizzle's [relational query builder](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2), so it requires that you define and configure all the relevant relations in your Drizzle schema first.
+
+<Callout type="warn">
+  This package is new and depends on Drizzle's [RQB v2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2#include-custom-fields). Some features are still missing and the API may change. It currently requires the `beta` tag for `drizzle-orm`.
+
+  Upgrading from an older version of this plugin? Read the [Drizzle relations migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2) and check this package's changelog for Pothos-specific changes.
 </Callout>
 
-## Installing
+## Install
 
 ```package-install
 npm install --save @pothos/plugin-drizzle drizzle-orm@beta
 ```
 
-The drizzle plugin is built on top of drizzles relational query builder, and requires that you
-define and configure all the relevant relations in your drizzle schema. See
-https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2 for detailed documentation on the relations API.
-
-Once you have configured your drizzle schema, you can initialize your Pothos
-SchemaBuilder with the drizzle plugin:
+Once your Drizzle schema and relations are configured, register the plugin on the builder. Pass the Drizzle `client`, the dialect-specific `getTableConfig`, and your `relations`, and expose the relations type through `DrizzleRelations` so Pothos can infer table shapes:
 
 ```ts
 import { drizzle } from 'drizzle-orm/...';
-// Import the appropriate getTableConfig for your dialect
+// Import the getTableConfig for your dialect
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
@@ -36,26 +33,25 @@ import { relations } from './db/relations';
 
 const db = drizzle({ client, relations });
 
-type DrizzleRelations = typeof relations
-
 export interface PothosTypes {
-  DrizzleRelations: DrizzleRelations;
+  DrizzleRelations: typeof relations;
 }
 
 const builder = new SchemaBuilder<PothosTypes>({
   plugins: [DrizzlePlugin],
   drizzle: {
-    client: db, // or (ctx) => db if you want to create a request specific client
+    client: db, // or (ctx) => db to build a request-specific client
     getTableConfig,
     relations,
   },
 });
 ```
 
-### Integration with other plugins
+Pass `client` as a function of `ctx` when each request needs its own client — for per-request transactions or connection scoping.
 
-The drizzle plugin has integrations with several other plugins. While the `with-input` and `relay`
-plugins are not required, many examples will assume these plugins have been installed:
+### Working with Relay and With-Input
+
+The Drizzle plugin integrates with several other plugins. [Relay](./relay) and [with-input](./with-input) aren't required, but the Relay integration (nodes and connections) and many examples below assume they're installed:
 
 ```ts
 import { drizzle } from 'drizzle-orm/...';
@@ -82,14 +78,13 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
-## Defining Objects
+## Defining objects
 
-The `builder.drizzleObject` method can be used to define GraphQL Object types based on a drizzle
-table:
+`builder.drizzleObject` defines a GraphQL object type from a Drizzle table. The first argument is the table name from your relations; `name` sets the GraphQL type name:
 
 ```ts
-const UserRef = builder.drizzleObject('users', {
-  name: 'User',
+const PlayerRef = builder.drizzleObject('players', {
+  name: 'Player',
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
     lastName: t.exposeString('lastName'),
@@ -97,35 +92,30 @@ const UserRef = builder.drizzleObject('users', {
 });
 ```
 
-You will be able to "expose" any column in the table, and GraphQL fields do not need to match the
-names of the columns in your database. The returned `UserRef` can be used like any other `ObjectRef`
-in Pothos.
+You can expose any column, and GraphQL field names don't need to match column names. `drizzleObject` returns an `ObjectRef` — `PlayerRef` here — that behaves like any other [object ref](../fundamentals/objects): use it as a field `type`, pass it to `t.variant`, or hand it to `t.drizzleField`.
 
 ## Custom fields
 
-You will often want to define fields in your API that do not correspond to a specific database
-column. To do this, you can define fields with a resolver like any other Pothos object type:
+Fields often don't map to a single column. Add a resolver like you would on any Pothos object type — the row is the `parent`:
 
 ```ts
-const UserRef = builder.drizzleObject('users', {
-  name: 'User',
+const PlayerRef = builder.drizzleObject('players', {
+  name: 'Player',
   fields: (t) => ({
     fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+      resolve: (player) => `${player.firstName} ${player.lastName}`,
     }),
   }),
 });
 ```
 
-## Type selections
+## Selecting columns
 
-In the above example, you can see that by default we have access to all columns of our table. For
-tables with many columns, it can be more efficient to only select the needed columns. You can
-configure the selected columns, and relations by passing a `select` option when defining the type:
+By default every column of the table is available on `parent`. For wide tables it's more efficient to select only what you need. A `select` option on the type controls the default selection — `columns`, related tables via `with`, and computed SQL via `extras`:
 
 ```ts
-const UserRef = builder.drizzleObject('users', {
-  name: 'User',
+const PlayerRef = builder.drizzleObject('players', {
+  name: 'Player',
   select: {
     columns: {
       firstName: true,
@@ -135,56 +125,53 @@ const UserRef = builder.drizzleObject('users', {
       profile: true,
     },
     extras: {
-      lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
+      lowercaseName: (players, sql) => sql<string>`lower(${players.firstName})`,
     },
   },
   fields: (t) => ({
     fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+      resolve: (player) => `${player.firstName} ${player.lastName}`,
     }),
     bio: t.string({
-      resolve: (user) => user.profile.bio,
+      resolve: (player) => player.profile.bio,
     }),
     email: t.string({
-      resolve: (user) => `${user.lowercaseName}@example.com`,
+      resolve: (player) => `${player.lowercaseName}@ultimate.example`,
     }),
   }),
 });
 ```
 
-Any selections added to the type will be available to consume in all resolvers. Columns that are not
-selected can still be exposed as before.
+Anything selected on the type is available in every resolver on that type. Columns you don't select can still be exposed with `t.exposeString` and friends — the plugin adds them to the query when the field is requested.
 
-## Field selections
+### Per-field selections
 
-The previous example allows you to control what gets selected by default, but you often want to only
-select the columns that are required to fulfill a specific field. You can do this by adding the
-appropriate selections on each field:
+A type-level `select` loads its columns for every request. To load a column only when a specific field is queried, put `select` on the field instead. This keeps each field's cost tied to whether the client asks for it:
 
 ```ts
-const UserRef = builder.drizzleObject('users', {
-  name: 'User',
+const PlayerRef = builder.drizzleObject('players', {
+  name: 'Player',
   select: {},
   fields: (t) => ({
     fullName: t.string({
       select: {
         columns: { firstName: true, lastName: true },
       },
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+      resolve: (player) => `${player.firstName} ${player.lastName}`,
     }),
     bio: t.string({
       select: {
         with: { profile: true },
       },
-      resolve: (user) => user.profile.bio,
+      resolve: (player) => player.profile.bio,
     }),
     email: t.string({
       select: {
         extras: {
-          lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
+          lowercaseName: (players, sql) => sql<string>`lower(${players.firstName})`,
         },
       },
-      resolve: (user) => `${user.lowercaseName}@example.com`,
+      resolve: (player) => `${player.lowercaseName}@ultimate.example`,
     }),
   }),
 });
@@ -192,9 +179,7 @@ const UserRef = builder.drizzleObject('users', {
 
 ## Relations
 
-Drizzles relational query builder allows you to define the relationships between your tables. The
-`t.relation` method makes it easy to add fields to your GraphQL API that implement those
-relations:
+`t.relation` turns a Drizzle relation into a GraphQL field. The plugin reads the relation from your schema and gives the field the correct type automatically:
 
 ```ts
 builder.drizzleObject('profiles', {
@@ -204,44 +189,38 @@ builder.drizzleObject('profiles', {
   }),
 });
 
-builder.drizzleObject('posts', {
-  name: 'Post',
+builder.drizzleObject('reports', {
+  name: 'Report',
   fields: (t) => ({
     title: t.exposeString('title'),
     author: t.relation('author'),
   }),
 });
 
-builder.drizzleObject('users', {
-  name: 'User',
+builder.drizzleObject('players', {
+  name: 'Player',
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
     profile: t.relation('profile'),
-    posts: t.relation('posts'),
+    reports: t.relation('reports'),
   }),
 });
 ```
 
-The relation will automatically define GraphQL fields of the appropriate type based on the relation
-defined in your drizzle schema.
+### Filtering and ordering relations
 
-## Relation queries
-
-For some cases, exposing relations as fields without any customization works great, but in some
-cases you may want to apply some filtering or ordering to your relations. This can be done by
-specifying a `query` option on the relation:
+Pass a `query` option to filter, order, or paginate a relation — and add `args` to make it client-driven. `query` can be a static object or a callback that receives `(args, ctx, pathInfo)`, where `pathInfo` carries the GraphQL query path (`path` and `segments`):
 
 ```ts
-builder.drizzleObject('users', {
-  name: 'User',
+builder.drizzleObject('players', {
+  name: 'Player',
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
-    posts: t.relation('posts', {
+    reports: t.relation('reports', {
       args: {
         limit: t.arg.int(),
         offset: t.arg.int(),
       },
-      // query callback receives (args, ctx, pathInfo)
       query: (args) => ({
         limit: args.limit ?? 10,
         offset: args.offset ?? 0,
@@ -253,7 +232,8 @@ builder.drizzleObject('users', {
         },
       }),
     }),
-    drafts: t.relation('posts', {
+    // The same relation, filtered a second way
+    drafts: t.relation('reports', {
       query: {
         where: {
           published: false,
@@ -264,29 +244,22 @@ builder.drizzleObject('users', {
 });
 ```
 
-The query API enables you to define args and convert them into parameters that will be passed into
-the relational query builder. The `query` callback receives `(args, ctx, pathInfo)` where `pathInfo`
-contains the GraphQL query path information (`path` and `segments`). You can read more about the
-relation query builder api [here](https://orm.drizzle.team/docs/rqb#querying)
+The `query` options map straight onto the relational query builder — see the [relation query docs](https://orm.drizzle.team/docs/rqb#querying) for the full set.
 
-## Drizzle Fields
+## Entry points with drizzleField
 
-Drizzle objects and relations allow you to define parts of your schema backed by your drizzle
-schema, but don't provide a clear entry point into this Graph of data. To make your drizzle objects
-queryable, we will need to add fields that return our drizzle objects. This can be done using the
-`t.drizzleField` method. This can be used to define fields on the root `Query` type, or any other
-object type in your schema:
+Objects and relations describe the graph, but the client needs a way in. `t.drizzleField` defines a field that returns a Drizzle object — on `Query`, or on any other object type. Its resolver receives a `query` function that you **must** call and pass to a Drizzle `findFirst` or `findMany`. `query` merges the selection needed for the nested GraphQL fields with any options you pass it:
 
 ```ts
 builder.queryType({
   fields: (t) => ({
-    post: t.drizzleField({
-      type: 'posts',
+    report: t.drizzleField({
+      type: 'reports',
       args: {
         id: t.arg.id({ required: true }),
       },
       resolve: (query, root, args, ctx) =>
-        db.query.posts.findFirst(
+        db.query.reports.findFirst(
           query({
             where: {
               id: Number.parseInt(args.id, 10),
@@ -294,40 +267,36 @@ builder.queryType({
           }),
         ),
     }),
-    posts: t.drizzleField({
-      type: ['posts'],
-      resolve: (query, root, args, ctx) => db.query.posts.findMany(query()),
+    reports: t.drizzleField({
+      type: ['reports'],
+      resolve: (query, root, args, ctx) => db.query.reports.findMany(query()),
     }),
   }),
 });
 ```
 
-The `resolve` function of a `drizzleField` will be passed a `query` function that MUST be called and
-passed to a drizzle `findOne` or `findMany` query. The `query` function optionally accepts any
-arguments that are normally passed into the query, and will merge these options with the selection
-used to resolve data for the nested GraphQL selections.
+Use a single table name (`type: 'reports'`) for one record, or a list (`type: ['reports']`) for many.
 
 ## Variants
 
-It is often useful to be able to define multiple object types based on the same table. This can be
-done using a feature called `variants`. The `variants` API consists of 3 parts:
+Sometimes one table backs more than one GraphQL type — a public `Player` and a private `Viewer` view of the same row, say. That's what `variants` are for. A variant has three parts:
 
-- A `variant` option that can be passed instead of a name on `drizzleObjects`
-- The ability to pass an `ObjectRef` to the `type` option of `t.relation` and other similar fields
-- A `t.field` method that works similar to `t.relation`, but is used to define a GraphQL field that
-  references a variant of the same record.
+- Pass `variant` instead of `name` to `drizzleObject` (or `drizzleNode`).
+- Pass an `ObjectRef` to the `type` option of `t.relation` and similar fields.
+- Use `t.variant` to add a field that references another variant of the same record.
 
 ```ts
-// Viewer type representing the current user
-export const Viewer = builder.drizzleObject('users', {
+// A private view of the current player
+export const Viewer = builder.drizzleObject('players', {
   variant: 'Viewer',
   select: {},
   fields: (t) => ({
     id: t.exposeID('id'),
-    // A reference to the normal user type so normal user fields can be queried
-    user: t.variant('users'),
-    // Adding drafts to View allows a user to fetch their own drafts without exposing it for Other Users in the API
-    drafts: t.relation('posts', {
+    // A reference to the public Player type, so its fields can be queried here too
+    player: t.variant('players'),
+    // Exposing drafts on Viewer lets a player see their own unpublished
+    // reports without exposing them for other players in the API
+    drafts: t.relation('reports', {
       query: {
         where: {
           published: false,
@@ -343,10 +312,10 @@ export const Viewer = builder.drizzleObject('users', {
 builder.queryType({
   fields: (t) => ({
     me: t.drizzleField({
-      // We can use the ref returned by builder.drizzleObject to define our `drizzleField`
+      // The ref returned by drizzleObject can be the drizzleField type
       type: Viewer,
       resolve: (query, root, args, ctx) =>
-        db.query.users.findFirst(
+        db.query.players.findFirst(
           query({
             where: {
               id: ctx.user.id,
@@ -357,106 +326,92 @@ builder.queryType({
   }),
 });
 
-builder.drizzleNode('users', {
-  name: 'User',
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: { column: (player) => player.id },
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
-    // This field will resolve to the Viewer type, but be set to null if the user is not the current user
+    // Resolves to Viewer, or null when this row isn't the current player
     viewer: t.variant(Viewer, {
-      isNull: (user, args, ctx) => user.id !== ctx.user?.id,
+      isNull: (player, args, ctx) => player.id !== ctx.user?.id,
     }),
   }),
 });
 ```
 
-## Related field
+## Derived fields with relatedField
 
-The `t.relatedField` method allows you to define a field based on a relation that uses custom
-selections, including aggregations like counts. This is useful when you want to expose derived data
-from a relation without loading the full related records.
-
-### Count aggregations
-
-One common use case is adding a count field that efficiently counts related records:
+`t.relatedField` defines a field from a relation using a custom selection — useful for exposing derived data, like an aggregate, without loading the full related records. The `select` callback receives a `buildFilter` helper that produces the correct `WHERE` clause for the relation:
 
 ```ts
-import { count } from 'drizzle-orm';
-
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: { column: (player) => player.id },
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
-    // Add a count of related posts
-    postsCount: t.relatedField('posts', {
+    // A count of related reports, computed in SQL
+    reportsCount: t.relatedField('reports', {
       type: 'Int',
-      // buildFilter creates the correct WHERE clause for the relation
       select: (buildFilter) => ({
         extras: {
-          postsCount: (parent) => db.$count(posts, buildFilter(parent)),
+          reportsCount: (parent) => db.$count(reports, buildFilter(parent)),
         },
       }),
-      resolve: (user) => user.postsCount,
+      resolve: (player) => player.reportsCount,
     }),
   }),
 });
 ```
 
-The `buildFilter` function passed to `select` generates the appropriate SQL filter based on the
-relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
-it easier to filter for the related records.
+This is `t.field` under the hood; `buildFilter` just makes it easy to scope the query to the related records.
 
-## Related count
+### Related counts
 
-For the common case of counting related records, there's a simpler `t.relatedCount` method that handles
-all the boilerplate for you:
+Counting related records is common enough to have a dedicated `t.relatedCount` that handles the boilerplate:
 
 ```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: { column: (player) => player.id },
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
-    // Simple count of all related comments
+    // Count of all related comments
     commentsCount: t.relatedCount('comments'),
-    // Count with a where filter
-    publishedPostsCount: t.relatedCount('posts', {
-      where: eq(posts.published, true),
+    // Count with a static filter
+    publishedReportsCount: t.relatedCount('reports', {
+      where: eq(reports.published, true),
     }),
   }),
 });
 ```
 
-The `where` option accepts either a static SQL filter or a function that receives the field arguments
-and context:
+`where` accepts a static SQL filter or a function of the field's args and context:
 
 ```ts
-publishedPostsCount: t.relatedCount('posts', {
+publishedReportsCount: t.relatedCount('reports', {
   args: {
     category: t.arg.string(),
   },
-  where: (args, ctx) => args.category
-    ? and(eq(posts.published, true), eq(posts.category, args.category))
-    : eq(posts.published, true),
+  where: (args, ctx) =>
+    args.category
+      ? and(eq(reports.published, true), eq(reports.category, args.category))
+      : eq(reports.published, true),
 });
 ```
 
-## Relay integration
+## Relay nodes and connections
 
-Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it
-easy to comply with these best practices, the drizzle plugin has built in support for defining relay
-`nodes` and `connections`.
+With the [Relay plugin](./relay) installed, the Drizzle plugin can define Relay `nodes` and `connections` for you, so complying with the Relay spec takes almost no extra code.
 
-## Relay Nodes
+### Nodes
 
-Defining relay nodes works just like defining normal `drizzleObject`s, but requires specifying a
-column to use as the nodes `id` field.
+`builder.drizzleNode` works like `drizzleObject` but requires an `id` — the column to use for the node's global id:
 
 ```ts
-builder.drizzleNode('users', {
-  name: 'User',
+builder.drizzleNode('players', {
+  name: 'Player',
   id: {
-    column: (user) => user.id,
+    column: (player) => player.id,
     // other options for the ID field can be passed here
   },
   fields: (t) => ({
@@ -466,43 +421,30 @@ builder.drizzleNode('users', {
 });
 ```
 
-The id column can also be set to a list of columns for types with a composite primary key.
+For a composite primary key, set `column` to a list of columns.
 
-## Related connections
+### Related connections
 
-To implement a relation as a connection, you can use `t.relatedConnection` instead of `t.relation`:
+Use `t.relatedConnection` instead of `t.relation` to expose a relation as a connection. It defines the `Connection` and `Edge` types and their fields automatically. Extra arguments customize the connection and edge types, exactly like `t.connection` from the [Relay plugin](./relay):
 
 ```ts
-builder.drizzleNode('users', {
-  name: 'User',
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: { column: (player) => player.id },
   fields: (t) => ({
-    posts: t.relatedConnection('posts'),
+    reports: t.relatedConnection('reports'),
   }),
 });
 ```
 
-This will automatically define the `Connection`, and `Edge` types, and their respective fields. To
-customize the Connection and Edge types, options for these types can be passed as additional
-arguments to `t.relatedConnection`, just like `t.connection` from the relay plugin. See the
-[relay plugin docs](https://pothos-graphql.dev/docs/plugins/relay) for more details.
-
-You can also define a `query` like with `t.relation`. The only difference with `t.relatedConnection`
-is that the `orderBy` format is slightly changed.
-
-To comply with the relay spec and efficiently support backwards pagination, some queries need to be
-performed in reverse order, which requires inverting the orderBy clause. To do this automatically,
-the `t.relatedConnection` method accepts orderBy as an object like `{ asc: column }` or
-`{ desc: column }` rather than using the `asc(column)` and `desc(column)` helpers from drizzle.
-orderBy can still be returned as either a single column or array when ordering by multiple columns.
-
-Ordering defaults to using the table `primaryKey`, and the orderBy columns will also be used to
-derive the connections cursor.
+You can pass a `query` just like on `t.relation`, with one difference in the `orderBy` format. To support backwards pagination efficiently, some queries run in reverse, which means inverting the `orderBy`. So `t.relatedConnection` takes `orderBy` as an object — `{ asc: column }` or `{ desc: column }` — rather than Drizzle's `asc(column)` / `desc(column)` helpers. It can still be a single column or an array for multi-column ordering. Ordering defaults to the table's primary key, and the `orderBy` columns are also used to derive the cursor:
 
 ```ts
-builder.drizzleNode('users', {
-  name: 'User',
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: { column: (player) => player.id },
   fields: (t) => ({
-    posts: t.relatedConnection('posts', {
+    reports: t.relatedConnection('reports', {
       query: () => ({
         where: {
           published: true,
@@ -516,15 +458,14 @@ builder.drizzleNode('users', {
 });
 ```
 
-### Connection totalCount
-
-You can add a `totalCount` field to your connection by setting the `totalCount` option to `true`:
+Set `totalCount: true` to add a `totalCount` field to the connection:
 
 ```ts
-builder.drizzleNode('users', {
-  name: 'User',
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: { column: (player) => player.id },
   fields: (t) => ({
-    posts: t.relatedConnection('posts', {
+    reports: t.relatedConnection('reports', {
       totalCount: true,
       query: () => ({
         where: {
@@ -539,14 +480,12 @@ builder.drizzleNode('users', {
 });
 ```
 
-This will automatically add a `totalCount` field to the connection type. The count query is only
-executed when the `totalCount` field is actually requested in the GraphQL query, and it's included
-as a subquery in the main database query for efficiency.
+The count runs only when `totalCount` is actually requested, and it's issued as a subquery within the main query for efficiency:
 
 ```graphql
 query {
-  user(id: "...") {
-    posts(first: 10) {
+  player(id: "...") {
+    reports(first: 10) {
       totalCount
       edges {
         node {
@@ -559,18 +498,16 @@ query {
 }
 ```
 
-## Drizzle connections
+### Connections as entry points
 
-Similar to `t.drizzleField`, `t.drizzleConnection` allows you to define a connection field that acts
-as an entry point to your drizzle query. The `orderBy` in `t.drizzleConnection` works the same way
-as it does for `t.relatedConnection`
+Like `t.drizzleField`, `t.drizzleConnection` defines a connection field that's an entry point into your Drizzle data. Its `orderBy` behaves the same as `t.relatedConnection`:
 
 ```ts
 builder.queryFields((t) => ({
-  posts: t.drizzleConnection({
-    type: 'posts',
+  reports: t.drizzleConnection({
+    type: 'reports',
     resolve: (query, root, args, ctx) =>
-      db.query.posts.findMany(
+      db.query.reports.findMany(
         query({
           where: {
             published: true,
@@ -584,18 +521,15 @@ builder.queryFields((t) => ({
 }));
 ```
 
-### drizzleConnection totalCount
-
-You can add a `totalCount` field to a `drizzleConnection` by providing a `totalCount` callback function that returns the count:
+Add a `totalCount` callback to include a total count. It receives the standard resolver arguments (`parent`, `args`, `context`, `info`), so the count can depend on the query context — the example uses `db.$count()`, but any Drizzle count works:
 
 ```ts
 builder.queryFields((t) => ({
-  posts: t.drizzleConnection({
-    type: 'posts',
-    // Use db.$count() for a simple count query
-    totalCount: () => db.$count(posts, eq(posts.published, true)),
+  reports: t.drizzleConnection({
+    type: 'reports',
+    totalCount: () => db.$count(reports, eq(reports.published, true)),
     resolve: (query, root, args, ctx) =>
-      db.query.posts.findMany(
+      db.query.reports.findMany(
         query({
           where: {
             published: true,
@@ -609,73 +543,62 @@ builder.queryFields((t) => ({
 }));
 ```
 
-The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.
+When only `totalCount` is requested — without `edges` or `nodes` — the main query is skipped and only the count runs.
 
-When only the `totalCount` field is requested (without `edges` or `nodes`), the main query is skipped entirely and only the count query is executed for efficiency.
+## Connection helpers for indirect relations
 
-### Indirect relations as connections
+`t.relatedConnection` covers most many-to-many connections defined through Drizzle relations. When a connection doesn't map to a single relation — paginating through a join table, or paginating a relation whose nodes live a level deeper — reach for `drizzleConnectionHelpers`, which lets you build the connection with the plain `t.connection` API.
 
-In many cases, you can define many to many connections via drizzle relations, allowing the `relatedConnection` API to work across
-more complex relations. In some cases you may want to define a connection for a relation not expressed directly as a relation in
-your drizzle schema.  For these cases, you can use the `drizzleConnectionHelpers`, which allows you to define connection with the `t.connection` API.
+The example below paginates a `memberships` join table, but resolves each node to the `team` nested one level deeper:
 
 ```typescript
-// Create a drizzle object for the node type of your connection
-const Role = builder.drizzleObject('roles', {
-  name: 'Role',
+// The node type for the connection
+const Team = builder.drizzleObject('teams', {
+  name: 'Team',
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
   }),
 });
 
-
-
-// Create connection helpers for the media type.  This will allow you
-// to use the normal t.connection with a drizzle type
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+// Helpers that know how to select and resolve nodes for this connection
+const membershipsConnection = drizzleConnectionHelpers(builder, 'memberships', {
   // select the data needed for the nodes
   select: (nestedSelection) => ({
     with: {
-      // use nestedSelection to create the correct selection for the node
-      role: nestedSelection(),
+      // nestedSelection builds the correct selection for the node
+      team: nestedSelection(),
     },
   }),
-  // resolve the node from the returned list item
-  resolveNode: (userRole) => userRole.role,
+  // resolve the node from each returned list item
+  resolveNode: (membership) => membership.team,
 });
 
-builder.drizzleObjectField('User', 'rolesConnection', (t) =>
+builder.drizzleObjectField('Player', 'teamsConnection', (t) =>
   t.connection({
-    // The type for the Node
-    type: Role,
-    // since we are not using t.relatedConnection we need to manually
-    // include the selections for our connection
+    // The Node type
+    type: Team,
+    // Since this isn't t.relatedConnection, include the selection manually
     select: (args, ctx, nestedSelection) => ({
       with: {
-        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+        memberships: membershipsConnection.getQuery(args, ctx, nestedSelection),
       },
     }),
-    // This helper takes a list of nodes and formats them for the connection
-    resolve: (user, args, ctx) => {
-      return rolesConnection.resolve(user.userRoles, args, ctx, user);
-    },
+    // Format the loaded rows for the connection
+    resolve: (player, args, ctx) =>
+      membershipsConnection.resolve(player.memberships, args, ctx, player),
   }),
 );
 ```
 
-The above example assumes that you are paginating a relation to a join table, where the pagination
-args are applied based on the relation to that join table, but the nodes themselves are nested
-deeper.
+Pagination args apply to the relation to the join table (`memberships`); the nodes themselves are the `team` nested inside each membership.
 
-`drizzleConnectionHelpers` can also be used to manually create a connection where the edge and
-connections share the same model, and pagination happens directly on a relation to nodes type (even
-if that relation is nested).
+`drizzleConnectionHelpers` also handles the case where the edge and node are the same model, and pagination happens directly on a relation to the node type (even a nested one). With no options, the helper's `ref` is the node type:
 
 ```ts
-const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'Comment');
+const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'comments');
 
-const SelectPost = builder.drizzleObject('posts', {
+const SelectReport = builder.drizzleObject('reports', {
   fields: (t) => ({
     title: t.exposeString('title'),
     comments: t.connection({
@@ -685,95 +608,88 @@ const SelectPost = builder.drizzleObject('posts', {
           comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
         },
       }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+      resolve: (parent, args, ctx) =>
+        commentConnectionHelpers.resolve(parent.comments, args, ctx),
     }),
   }),
 });
 ```
 
-Arguments, ordering and filtering can also be defined in the helpers:
+### Arguments, ordering, and filtering
+
+Define additional args, a default order, and a filter directly in the helper. Add the helper's args to the field with `getArgs`:
 
 ```ts
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+const membershipsConnection = drizzleConnectionHelpers(builder, 'memberships', {
   // define additional arguments
   args: (t) => ({}),
   query: (args) => ({
-    // define an order
+    // default order
     orderBy: {
-      roleId: 'asc',
-    }
-    // define a filter
+      teamId: 'asc',
+    },
+    // default filter
     where: {
       accepted: true,
-    }
-  }),
-  // select the data needed for the nodes
-  select: (nestedSelection) => ({
-    with: {
-      // use nestedSelection to create the correct selection for the node
-      role: nestedSelection(),
     },
   }),
-  // resolve the node from the returned list item
-  resolveNode: (userRole) => userRole.role,
+  select: (nestedSelection) => ({
+    with: {
+      team: nestedSelection(),
+    },
+  }),
+  resolveNode: (membership) => membership.team,
 });
 
-
-builder.drizzleObjectField('User', 'rolesConnection', (t) =>
+builder.drizzleObjectField('Player', 'teamsConnection', (t) =>
   t.connection({
-    type: Role,
-    // add the args from the connection helper to the field
-    args: rolesConnection.getArgs(),
+    type: Team,
+    // pull the args from the helper onto the field
+    args: membershipsConnection.getArgs(),
     select: (args, ctx, nestedSelection) => ({
       with: {
-        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+        memberships: membershipsConnection.getQuery(args, ctx, nestedSelection),
       },
     }),
-    resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
+    resolve: (player, args, ctx) =>
+      membershipsConnection.resolve(player.memberships, args, ctx, player),
   }),
 );
 ```
 
-### Extending connection edges
+### Fields on the edge
 
-In some cases you may want to expose some data from an indirect connection on the edge object.
+To expose data from the join row on the edge itself, use `drizzleObjectFields` (or `drizzleObjectField`) and pass edge options as the third argument to `t.connection`. The edge's parent shape is inferred from the connection's `resolve`:
 
 ```typescript
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+const membershipsConnection = drizzleConnectionHelpers(builder, 'memberships', {
   select: (nestedSelection) => ({
     with: {
-      role: nestedSelection(),
+      team: nestedSelection(),
     },
   }),
-  resolveNode: (userRole) => userRole.role,
+  resolveNode: (membership) => membership.team,
 });
 
-builder.drizzleObjectFields('User', (t) => ({
-  rolesConnection: t.connection(
+builder.drizzleObjectFields('Player', (t) => ({
+  teamsConnection: t.connection(
     {
-      type: Role,
+      type: Team,
       select: (args, ctx, nestedSelection) => ({
         with: {
-          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+          memberships: membershipsConnection.getQuery(args, ctx, nestedSelection),
         },
       }),
-      resolve: (user, args, ctx) =>
-        rolesConnection.resolve(
-          user.userRoles,
-          args,
-          ctx,
-          user,
-        ),
+      resolve: (player, args, ctx) =>
+        membershipsConnection.resolve(player.memberships, args, ctx, player),
     },
     {},
     // options for the edge object
     {
-      // define the additional fields on the edge object
       fields: (edge) => ({
         createdAt: edge.field({
           type: 'DateTime',
-          // the parent shape for edge fields is inferred from the connections resolve function
-          resolve: (role) => role.createdAt,
+          resolve: (membership) => membership.createdAt,
         }),
       }),
     },
@@ -781,39 +697,42 @@ builder.drizzleObjectFields('User', (t) => ({
 }));
 ```
 
-### `drizzleConnectionHelpers` for non-relation connections
+### Non-relation connections
 
-You can also use `drizzleConnectionHelpers` for non-relation connections where you want a connection where your edges and nodes are not the same type.
-
-Note that when doing this, you need to be careful to properly merge the `where` clause generated by the connection helper with any additional `where` clause you need to apply to your query
+`drizzleConnectionHelpers` also builds connections where the edges and nodes come from different types and there's no direct relation to lean on. Merge the `where` clause the helper generates with any additional filter you apply, so the two don't clobber each other:
 
 ```typescript
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+const membershipsConnection = drizzleConnectionHelpers(builder, 'memberships', {
   select: (nestedSelection) => ({
     with: {
-      role: nestedSelection(),
+      team: nestedSelection(),
     },
   }),
-  resolveNode: (userRole) => userRole.role,
+  resolveNode: (membership) => membership.team,
 });
 
 builder.queryFields((t) => ({
-  roles: t.connection({
-    type: Role,
+  teams: t.connection({
+    type: Team,
     args: {
-      userId: t.arg.int({ required: true }),
+      playerId: t.arg.int({ required: true }),
     },
     nodeNullable: true,
     resolve: async (_, args, ctx, info) => {
-      const query = rolesConnection.getQuery(args, ctx, info);
-      const userRoles = await db.query.userRoles.findMany({
+      const query = membershipsConnection.getQuery(args, ctx, info);
+      const memberships = await db.query.memberships.findMany({
         ...query,
         where: {
           ...query.where,
-          userId: args.userId,
+          playerId: args.playerId,
         },
       });
-      return rolesConnection.resolve(userRoles, args, ctx);
+      return membershipsConnection.resolve(memberships, args, ctx);
     },
   }),
 }));
+```
+
+<Callout type="info">
+  See also: [Object types](../fundamentals/objects) for the `objectRef` a `drizzleObject` returns, the [Relay plugin](./relay) for the node and connection conventions this plugin builds on, or the [Prisma plugin](./prisma) for the same query-planning approach on a different ORM.
+</Callout>
