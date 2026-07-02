@@ -8,7 +8,7 @@
   "order": 14,
   "tags": ["directives", "metadata", "schema"],
   "relatedDocs": ["/docs/plugins/directives"],
-  "prerequisites": ["01-first-schema"],
+  "prerequisites": ["getting-started-first-schema"],
   "snippets": [
     {
       "label": "Setup Directives Plugin",

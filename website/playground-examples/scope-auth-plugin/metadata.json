@@ -8,7 +8,7 @@
   "order": 11,
   "tags": ["authorization", "auth", "scopes"],
   "relatedDocs": ["/docs/plugins/scope-auth"],
-  "prerequisites": ["01-first-schema"],
+  "prerequisites": ["getting-started-first-schema"],
   "snippets": [
     {
       "label": "Setup Auth Scopes",

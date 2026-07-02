@@ -31,6 +31,16 @@ Wire this into a script in `package.json`:
 
 Running `npm run schema` after a schema change refreshes the SDL file. Check it into source control — diffs in `schema.graphql` are easier to review than diffs in a hundred TypeScript files.
 
+The playground sandbox has no filesystem to write to, but the same two calls work standalone — swap the file write for a `console.log` and you can see exactly the SDL `printSchema` produces:
+
+```typescript playground example="patterns-printing-schema"
+export const schema = builder.toSchema();
+
+console.log(printSchema(lexicographicSortSchema(schema)));
+```
+
+Open the console panel after running it to see the sorted SDL.
+
 ## Setting up graphql-code-generator
 
 Clients usually want typed query documents. `graphql-code-generator` reads your operations and the schema, then emits typed hooks or query functions.

@@ -1,12 +1,12 @@
 {
   "id": "shared-fields-pattern",
   "title": "Shared Fields Pattern",
-  "description": "Learn to share common fields across multiple types using ObjectRef",
+  "description": "Share audit fields across Team and Player using a builder.objectFields helper",
   "category": "patterns",
   "subcategory": "advanced-patterns",
   "difficulty": "advanced",
   "order": 1,
-  "tags": ["patterns", "objectref", "dry", "reusable"],
+  "tags": ["patterns", "objectfields", "dry", "reusable"],
   "relatedDocs": ["/docs/patterns/reusable-fields"],
-  "prerequisites": ["01-first-schema", "06-interfaces"]
+  "prerequisites": ["getting-started-first-schema", "fundamentals-objects"]
 }

@@ -4,11 +4,6 @@
  *
  * SourceEditor calls `setFormatHandler` on mount and clears it on
  * unmount; whoever wants to format calls `runFormatHandler()`.
- *
- * TODO(state-agent): page.tsx still reads
- * `(window as ...).__monacoFormatHandler` for the "Format document"
- * overflow item. Replace that with a direct `runFormatHandler()` call
- * from this module — SourceEditor already wires the registry below.
  */
 
 type Handler = () => void;

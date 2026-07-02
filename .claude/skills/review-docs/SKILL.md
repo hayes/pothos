@@ -20,8 +20,8 @@ intent isn't clear — all without the user leaving the browser.
 - **Dev server**: `pnpm --filter @pothos/website dev` from the repo root.
   Listens on `http://localhost:3000`.
 - **Docs content**: lives under `website/content/docs/**/*.mdx`. The page URL
-  `/docs/guide-next/fundamentals/fields` maps to
-  `website/content/docs/guide-next/fundamentals/fields.mdx`.
+  `/docs/fundamentals/fields` maps to
+  `website/content/docs/fundamentals/fields.mdx`.
 - **Index page**: `http://localhost:3000/review` lists every comment with a
   link back to its source page.
 

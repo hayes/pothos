@@ -1,12 +1,12 @@
 {
   "id": "reusable-input-pattern",
   "title": "Reusable Input Fields Pattern",
-  "description": "Create type-safe reusable input field builders for DRY input types",
+  "description": "Share a timestampInputs() helper across the GameFilter and PlayerFilter input types",
   "category": "patterns",
   "subcategory": "advanced-patterns",
   "difficulty": "advanced",
   "order": 3,
   "tags": ["patterns", "input", "dry", "type-safety"],
   "relatedDocs": ["/docs/patterns/reusable-fields"],
-  "prerequisites": ["03-input-objects", "02-queries-mutations"]
+  "prerequisites": ["fundamentals-inputs", "fundamentals-queries"]
 }

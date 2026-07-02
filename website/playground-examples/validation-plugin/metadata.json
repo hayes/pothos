@@ -8,7 +8,7 @@
   "order": 10,
   "tags": ["validation", "zod", "arguments"],
   "relatedDocs": ["/docs/plugins/validation"],
-  "prerequisites": ["03-input-objects"],
+  "prerequisites": ["fundamentals-inputs"],
   "snippets": [
     {
       "label": "Argument Validation",

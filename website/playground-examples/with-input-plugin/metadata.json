@@ -8,7 +8,7 @@
   "order": 13,
   "tags": ["with-input", "mutations", "inputs"],
   "relatedDocs": ["/docs/plugins/with-input"],
-  "prerequisites": ["03-input-objects"],
+  "prerequisites": ["fundamentals-inputs"],
   "snippets": [
     {
       "label": "Setup With-Input Plugin",

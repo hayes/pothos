@@ -98,6 +98,40 @@ function getAvailableExamples(): Set<string> {
 }
 
 /**
+ * Resolve whether a referenced example ID has a real bundle backing it.
+ *
+ * Bundles are either flat (e.g. `playground-examples/01-first-schema/`)
+ * or multi-step (e.g. `playground-examples/errors-plugin/step-1/`). The
+ * build script (scripts/build-playground-examples.ts) emits a per-step
+ * JSON bundle at `<bundle-id>-step-<N>.json`, and the runtime loader
+ * (components/playground/examples/index.ts) fetches bundles by exactly
+ * that ID - so a doc reference to `<bundle-id>-step-<N>` is valid even
+ * though no top-level directory exists with that literal name; it
+ * resolves to the matching `step-<N>` subdirectory of the bundle. This
+ * mirrors the resolution logic in scripts/check-playground-references.ts.
+ */
+function exampleReferenceExists(id: string, availableExamples: Set<string>): boolean {
+  if (availableExamples.has(id)) {
+    return true;
+  }
+
+  const stepMatch = id.match(/^(.+)-step-(\d+)$/);
+  if (stepMatch) {
+    const [, base, stepNumber] = stepMatch;
+    if (availableExamples.has(base)) {
+      try {
+        const stat = readdirSync(join(EXAMPLES_DIR, base), { withFileTypes: true });
+        return stat.some((e) => e.isDirectory() && e.name === `step-${stepNumber}`);
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Read example schema file content. Examples with step subdirectories
  * (e.g. errors-plugin/step-1/schema.ts) don't carry a top-level
  * schema.ts, so we fall back to scanning step-* directories in order.
@@ -214,7 +248,9 @@ describe('Playground Documentation Validation', () => {
   });
 
   it('should have all referenced examples available', () => {
-    const missingExamples = references.filter((ref) => !availableExamples.has(ref.exampleId));
+    const missingExamples = references.filter(
+      (ref) => !exampleReferenceExists(ref.exampleId, availableExamples),
+    );
 
     if (missingExamples.length > 0) {
       const details = missingExamples.map(

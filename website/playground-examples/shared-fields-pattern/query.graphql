@@ -1,12 +1,15 @@
 query SharedFieldsExample {
-  # Both objects have the same common fields added via helper
-  object1 {
+  # Both Team and Player expose id/createdAt via the addAuditFields
+  # helper, not by redefining the fields on each type.
+  teams {
     id
-    idLength
+    createdAt
+    name
   }
 
-  object2 {
+  players {
     id
-    idLength
+    createdAt
+    name
   }
 }

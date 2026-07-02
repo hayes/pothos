@@ -1,11 +1,15 @@
-query TestQuery {
-  hello
-}
+query ReusableArgsExample {
+  # Both teams and players accept limit/offset from the shared
+  # pagination() helper.
+  teams(limit: 2, offset: 0) {
+    id
+    name
+    city
+  }
 
-mutation ReusableArgsExample1 {
-  mutation1(id: "123", reason: "testing")
-}
-
-mutation ReusableArgsExample2 {
-  mutation2(id: "456")
+  players(limit: 10, offset: 0, teamId: "comet") {
+    id
+    name
+    teamId
+  }
 }

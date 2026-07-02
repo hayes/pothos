@@ -14,6 +14,7 @@ import type {
   OperationSubTab,
 } from '@/components/playground/OperationPane/types';
 import type { ResponsePhase } from '@/components/playground/ResponsePane/types';
+import { runFormatHandler } from '@/components/playground/SchemaEditor/format-handler';
 import type { OverflowItem } from '@/components/playground/Toolbar/OverflowMenu';
 import type { SchemaStatus } from '@/components/playground/Toolbar/StatusPill';
 import type { PlaygroundFile } from '@/components/playground/types';
@@ -497,9 +498,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
         label: 'Format document',
         shortcut: '⌥⇧F',
         onSelect: () => {
-          const fmt = (window as Window & { __monacoFormatHandler?: () => void })
-            .__monacoFormatHandler;
-          fmt?.();
+          runFormatHandler();
         },
       },
       {
