@@ -78,6 +78,13 @@ export default defineConfig({
               node.properties['data-query'] = queryMatch[1];
             }
 
+            // NOTE: switchable definition styles use fumadocs' built-in
+            // code-block tabs — consecutive fences with a `tab="<Label>"`
+            // meta attribute are merged into one tabbed block by
+            // fumadocs itself, so nothing needs parsing here. Each tab's
+            // fence keeps its own `example=` (resolved above), so "Open
+            // in Playground" opens the selected variant's bundle.
+
             return node;
           },
         },

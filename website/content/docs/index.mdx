@@ -1,164 +1,117 @@
 ---
 title: Overview
-description: Pothos - A plugin based GraphQL schema builder for typescript
+description: Pothos is a plugin-based, code-first GraphQL schema builder for TypeScript — type-safe with no codegen and no decorators.
 ---
+
+import { Callout } from 'fumadocs-ui/components/callout';
 
 ![Pothos](/assets/logo-name-auto.svg)
 
-Pothos is a plugin based GraphQL schema builder for typescript.
+Pothos builds a GraphQL schema from TypeScript code. You define types, fields, and resolvers as values; Pothos infers the types and hands you a `GraphQLSchema` for any server. There are no schema files to parse, no decorators, and no code-generation step — the schema is a regular TypeScript module, so your editor's go-to-definition and refactors work across it.
 
-It makes building graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
-overhead at runtime, and has `graphql` as its only dependency.
+The core adds zero runtime overhead and depends only on `graphql`. Everything else — auth, errors, validation, Relay, Prisma, Drizzle — arrives as a plugin that adds methods on the builder and composes with the rest.
 
-Pothos is the most type-safe way to build GraphQL schemas in typescript, and by leveraging type
-inference and typescript's powerful type system Pothos requires very few manual type definitions and
-no code generation.
-
-Pothos has a unique and powerful plugin system that makes every plugin feel like its features are
-built into the core library. Plugins can extend almost any part of the API by adding new options or
-methods that can take full advantage of the Pothos type system.
-
-## Hello, World
-
-```typescript
-import { createYoga } from 'graphql-yoga';
-import { createServer } from 'node:http';
+```typescript playground example="getting-started-first-schema"
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
+// objectRef is the recommended way to declare an object type: it
+// returns a typed reference you implement separately. The generic
+// argument is the backing TypeScript shape — what every resolver
+// returning a Character must produce.
+const Character = builder.objectRef<{ id: string; name: string }>('Character');
+
+Character.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
-    hello: t.string({
-      args: {
-        name: t.arg.string(),
-      },
-      resolve: (parent, { name }) => `hello, ${name || 'World'}`,
+    frodo: t.field({
+      type: Character,
+      resolve: () => ({ id: 'frodo', name: 'Frodo Baggins' }),
     }),
   }),
 });
 
-const yoga = createYoga({
-  schema: builder.toSchema(),
-});
-
-const server = createServer(yoga);
-
-server.listen(3000, () => {
-  console.log('Visit http://localhost:3000/graphql');
-});
+export const schema = builder.toSchema();
 ```
+
+Open the example in the playground to run it, edit the resolver, and watch the SDL update. For the full narrative — how Pothos differs from schema-first tools, what it does and doesn't do, and when to reach for it — read the [Introduction](./getting-started/introduction).
 
 ## What sets Pothos apart
 
-- Pothos was built from the start to leverage typescript for best-in-class type-safety.
-- Pothos has a clear separation between the shape of your external GraphQL API, and the internal
-  representation of your data.
-- Pothos comes with a large plugin ecosystem that provides a wide variety of features while
-  maintaining great interoperability between plugins.
-- Pothos does not depend on code-generation or experimental decorators for type-safety.
-- Pothos has been designed to work at every scale from small prototypes to huge Enterprise
-  applications, and is in use at some of the largest tech companies including Airbnb and Netflix.
+- **Type-safe without codegen or decorators.** Type inference flows through every resolver; `parent`, `args`, and `ctx` arrive fully typed, and a field can't return a value that doesn't fit its GraphQL type.
+- **A clear split between API and data.** The GraphQL shape clients see stays separate from the backing model your resolvers return.
+- **A cohesive plugin ecosystem.** Plugins interoperate rather than collide — each feels like it was built into the core.
+- **Proven at scale.** Pothos runs from small prototypes to large production schemas, and is in use at companies including Airbnb and Netflix.
 
-## Plugins that make Pothos even better
+## Explore the docs
 
 <Cards>
   <Card
-    title="Add GraphQL"
-    href="/docs/plugins/add-graphql"
-    description={'Add existing GraphQL types to your schema'}
+    title="Getting started"
+    href="/docs/getting-started/introduction"
+    description="Install Pothos and go from an empty project to a running GraphQL endpoint."
   />
   <Card
-    title="Auth"
-    href="/docs/plugins/scope-auth"
-    description={'Add global, type level, or field level authorization checks to your schema'}
+    title="Fundamentals"
+    href="/docs/fundamentals/schema-builder"
+    description="The core building blocks — objects, fields, resolvers, inputs, interfaces, unions, and scalars."
   />
+  <Card
+    title="Patterns"
+    href="/docs/patterns/project-layout"
+    description="Real-world recipes for structuring a schema — project layout, error handling, and circular references."
+  />
+  <Card
+    title="Plugins"
+    href="/docs/plugins"
+    description="The full plugin catalogue — auth, errors, validation, Relay, dataloaders, ORMs, and more."
+  />
+  <Card
+    title="API reference"
+    href="/docs/api/schema-builder"
+    description="Method-by-method reference for the schema, field, arg, and input-field builders."
+  />
+  <Card
+    title="Migrations"
+    href="/docs/migrations/v4"
+    description="Upgrade guides between major versions, plus the move from GiraphQL to Pothos."
+  />
+</Cards>
 
+## Popular plugins
+
+Four of the most-reached-for plugins. See the [full list](/docs/plugins) for all 20+.
+
+<Cards>
   <Card
-    title="Complexity"
-    href="/docs/plugins/complexity"
-    description={'A plugin for defining and limiting complexity of queries'}
-  />
-  <Card
-    title="Dataloader"
-    href="/docs/plugins/dataloader"
-    description={'Quickly define data-loaders for your types and fields to avoid n+1 queries.'}
-  />
-  <Card
-    title="Directives"
-    href="/docs/plugins/directives"
-    description={'Integrate with existing schema graphql directives in a type-safe way.'}
+    title="Prisma"
+    href="/docs/plugins/prisma"
+    description="Efficient, type-safe integration with Prisma that resolves relations and avoids n+1 queries."
   />
   <Card
     title="Drizzle"
     href="/docs/plugins/drizzle"
-    description={
-      'A plugin to support efficient queries through drizzles relational query builder API'
-    }
-  />
-  <Card
-    title="Errors"
-    href="/docs/plugins/errors"
-    description={
-      'A plugin for easily including error types in your GraphQL schema and hooking up error types to resolvers.'
-    }
-  />
-  <Card
-    title="Grafast"
-    href="/docs/plugins/grafast"
-    description={'A plugin for using grafast plans instead of resolvers in your schema'}
-  />
-  <Card
-    title="Mocks"
-    href="/docs/plugins/mocks"
-    description={'Add mock resolvers for easier testing'}
-  />
-  <Card
-    title="Prisma"
-    href="/docs/plugins/prisma"
-    description={
-      'A plugin for more efficient integration with prisma that can help solve n+1 issues and more efficiently resolve queries'
-    }
+    description="Efficient queries through Drizzle's relational query builder API."
   />
   <Card
     title="Relay"
     href="/docs/plugins/relay"
-    description={
-      'Easy to use builder methods for defining relay style nodes and connections, and helpful utilities for cursor based pagination.'
-    }
+    description="Builder methods for Relay-style nodes and connections, with cursor-based pagination helpers."
   />
   <Card
-    title="Simple Objects"
-    href="/docs/plugins/simple-objects"
-    description={'Define simple object types without resolvers or manual type definitions.'}
-  />
-  <Card
-    title="Smart Subscriptions"
-    href="/docs/plugins/smart-subscriptions"
-    description={'Make any part of your graph subscribable to get live updates as your data changes.'}
-  />
-  <Card
-    title="Sub-Graph"
-    href="/docs/plugins/sub-graph"
-    description={
-      'Build multiple subsets of your graph to easily share code between internal and external APIs.'
-    }
-  />
-  <Card
-    title="Tracing"
-    href="/docs/plugins/tracing"
-    description={
-      'Add tracing for resolver execution, with support for opentelemetry, newrelic, sentry, logging, and custom tracers'
-    }
-  />
-  <Card
-    title="Validation"
-    href="/docs/plugins/validation"
-    description={'Validation using StandardSchemaV1 compatible libraries like Zod, Valibot, and ArkType'}
-  />
-  <Card
-    title="With-Input"
-    href="/docs/plugins/with-input"
-    description={'Define fields with inline input objects'}
+    title="Scope Auth"
+    href="/docs/plugins/scope-auth"
+    description="Global, type-level, and field-level authorization checks for your schema."
   />
 </Cards>
+
+<Callout type="info">
+  See also: [Introduction](./getting-started/introduction) for the mental model behind Pothos, or [Installation](./getting-started/installation) to start building.
+</Callout>

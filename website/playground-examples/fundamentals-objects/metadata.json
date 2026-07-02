@@ -1,11 +1,16 @@
 {
   "id": "fundamentals-objects",
   "title": "Object types",
-  "description": "Define an object type with objectRef and implement to attach fields.",
+  "description": "Define an object type with objectRef and attach fields via implement.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",
   "order": 2,
   "tags": ["objects", "objectRef"],
-  "relatedDocs": ["/docs/fundamentals/objects"]
+  "relatedDocs": ["/docs/fundamentals/objects"],
+  "variants": [
+    { "id": "object-refs", "title": "Object refs", "order": 1, "default": true },
+    { "id": "classes", "title": "Classes", "order": 2 },
+    { "id": "builder-types", "title": "Builder types", "order": 3 }
+  ]
 }

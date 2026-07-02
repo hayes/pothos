@@ -59,6 +59,7 @@ interface PlaygroundExample {
   relatedDocs?: string[];
   prerequisites?: string[];
   steps?: Step[];
+  variants?: Variant[];
   snippets?: CodeSnippet[];
   files: ExampleFile[];
   defaultQuery: string;
@@ -85,6 +86,24 @@ interface CodeSnippet {
   description?: string;
 }
 
+/**
+ * A definition-style variant of the same example. Variants implement
+ * the SAME schema a different way (e.g. objectRef vs class-backed vs
+ * SchemaTypes-generic) and are authored like steps: each non-default
+ * variant lives in a `variant-<id>/` subdirectory with its own
+ * `schema.ts` (and optional `query.graphql`, which falls back to the
+ * base example's query). Exactly one variant is marked `default`; it is
+ * built from the example's top-level directory and keeps the base id.
+ */
+interface Variant {
+  id: string;
+  title: string;
+  order?: number;
+  /** The default/primary variant. Built from the example root (no
+   * subdirectory) and published under the base example id. */
+  default?: boolean;
+}
+
 interface ExampleMetadata {
   id: string;
   title: string;
@@ -102,6 +121,7 @@ interface ExampleMetadata {
   relatedDocs?: string[];
   prerequisites?: string[];
   steps?: Step[];
+  variants?: Variant[];
   snippets?: CodeSnippet[];
 }
 
@@ -124,6 +144,20 @@ async function hasStepDirectories(examplePath: string): Promise<boolean> {
     return entries.some((entry) => entry.isDirectory() && entry.name.startsWith('step-'));
   } catch {
     return false;
+  }
+}
+
+/**
+ * List `variant-<id>/` subdirectories in an example directory.
+ */
+async function listVariantDirectories(examplePath: string): Promise<string[]> {
+  try {
+    const entries = await readdir(examplePath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory() && entry.name.startsWith('variant-'))
+      .map((entry) => entry.name);
+  } catch {
+    return [];
   }
 }
 
@@ -224,6 +258,7 @@ async function buildFlatExample(
     relatedDocs: metadata.relatedDocs,
     prerequisites: metadata.prerequisites,
     steps: metadata.steps,
+    variants: metadata.variants,
     snippets: metadata.snippets,
     files,
     defaultQuery,
@@ -284,6 +319,81 @@ async function buildStepExamples(
   return examples;
 }
 
+/**
+ * Build examples from definition-style variants.
+ *
+ * The default variant is built from the example's top-level directory
+ * and keeps the base id (e.g. `fundamentals-objects`). Every other
+ * variant lives in a `variant-<id>/` subdirectory and is published at
+ * `<base>-variant-<id>` (e.g. `fundamentals-objects-variant-classes`),
+ * mirroring how steps publish `<base>-step-<N>`. A variant that ships
+ * no `query.graphql` inherits the base example's query.
+ */
+async function buildVariantExamples(
+  examplePath: string,
+  metadata: ExampleMetadata,
+): Promise<PlaygroundExample[]> {
+  const variants = metadata.variants ?? [];
+  const defaults = variants.filter((v) => v.default);
+  if (defaults.length !== 1) {
+    throw new Error(
+      `exactly one variant must be marked "default" (found ${defaults.length}: [${variants
+        .map((v) => v.id)
+        .join(', ')}])`,
+    );
+  }
+
+  // Cross-check declared variants against on-disk directories so a
+  // rename on either side fails loudly instead of silently dropping a
+  // variant from the build.
+  const variantDirs = new Set(await listVariantDirectories(examplePath));
+  const expectedDirs = new Set(variants.filter((v) => !v.default).map((v) => `variant-${v.id}`));
+  for (const dir of variantDirs) {
+    if (!expectedDirs.has(dir)) {
+      throw new Error(`directory ${dir}/ has no matching entry in metadata.variants`);
+    }
+  }
+
+  const examples: PlaygroundExample[] = [];
+
+  // Base = default variant, built from the top-level directory. It
+  // carries the full `variants` list so the docs/UI can resolve labels.
+  const baseExample = await buildFlatExample(examplePath, metadata);
+  examples.push(baseExample);
+
+  for (const variant of variants) {
+    if (variant.default) {
+      continue;
+    }
+    const variantDirName = `variant-${variant.id}`;
+    const variantPath = join(examplePath, variantDirName);
+    if (!variantDirs.has(variantDirName)) {
+      throw new Error(`variant "${variant.id}" is missing its directory ${variantDirName}/`);
+    }
+
+    const variantExample = await buildFlatExample(variantPath, {
+      ...metadata,
+      id: `${metadata.id}-variant-${variant.id}`,
+      title: `${metadata.title} — ${variant.title}`,
+      description: metadata.description,
+      // Variant bundles don't re-advertise the sibling variants; the
+      // base example is the single source of the switcher list.
+      variants: undefined,
+    });
+
+    // A variant that ships no query of its own inherits the base query
+    // so "Open in Playground" opens with a runnable operation.
+    if (!variantExample.queries) {
+      variantExample.defaultQuery = baseExample.defaultQuery;
+      variantExample.queries = baseExample.queries;
+    }
+
+    examples.push(variantExample);
+  }
+
+  return examples;
+}
+
 async function buildExamples() {
   console.log('[Build Examples] Starting...');
 
@@ -311,8 +421,32 @@ async function buildExamples() {
 
       // Check if this example has step directories
       const hasSteps = await hasStepDirectories(examplePath);
+      const variantDirs = await listVariantDirectories(examplePath);
+      const hasVariants =
+        (Array.isArray(metadata.variants) && metadata.variants.length > 0) ||
+        variantDirs.length > 0;
 
-      if (hasSteps) {
+      // Steps and variants don't compose — a stepped variant would need
+      // an N×M bundle matrix we deliberately don't support.
+      if (hasSteps && hasVariants) {
+        throw new Error(
+          'example declares BOTH steps and variants; these cannot be combined. ' +
+            'Use step-<N>/ subdirectories OR variant-<id>/ subdirectories, not both.',
+        );
+      }
+
+      if (hasVariants) {
+        if (!Array.isArray(metadata.variants) || metadata.variants.length === 0) {
+          throw new Error(
+            `found variant-*/ directories but metadata.json has no "variants" array (dirs: ${variantDirs.join(', ')})`,
+          );
+        }
+        const variantExamples = await buildVariantExamples(examplePath, metadata);
+        examples.push(...variantExamples);
+        console.log(
+          `[Build Examples] ✓ Built ${metadata.id} (${variantExamples.length - 1} extra variant(s))`,
+        );
+      } else if (hasSteps) {
         // Build separate examples for each step
         const stepExamples = await buildStepExamples(examplePath, metadata);
         examples.push(...stepExamples);
@@ -369,6 +503,7 @@ async function buildExamples() {
     relatedDocs: e.relatedDocs,
     prerequisites: e.prerequisites,
     steps: e.steps,
+    variants: e.variants,
     snippets: e.snippets,
   }));
 
@@ -396,6 +531,14 @@ export interface CodeSnippet {
   description?: string;
 }
 
+export interface Variant {
+  id: string;
+  title: string;
+  order?: number;
+  /** The default/primary variant, published under the base example id. */
+  default?: boolean;
+}
+
 export interface ExampleMetadata {
   id: string;
   title: string;
@@ -408,6 +551,7 @@ export interface ExampleMetadata {
   relatedDocs?: string[];
   prerequisites?: string[];
   steps?: Step[];
+  variants?: Variant[];
   snippets?: CodeSnippet[];
 }
 

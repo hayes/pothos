@@ -82,6 +82,26 @@ Combine an example with a custom query to guide users to specific functionality:
 // Opens the getting-started-first-schema example with a pre-populated query
 ```
 
+### 5. Switchable Definition Styles
+
+To show the same schema implemented several ways — e.g. object refs vs. classes vs. builder types — give each fence a `tab` label. Consecutive fences that share the `tab` attribute merge into a single block with a style-switcher, and "Open in Playground" opens whichever tab is selected:
+
+````mdx
+```ts playground example="fundamentals-objects" tab="Object refs"
+// primary style — the default (first) tab
+```
+
+```ts playground example="fundamentals-objects-variant-classes" tab="Classes"
+// alternative style
+```
+
+```ts playground example="fundamentals-objects-variant-builder-types" tab="Builder types"
+// alternative style
+```
+````
+
+The `tab` attribute drives the switcher (via fumadocs' built-in code-block tabs). Each fence's `example` is the exact bundle it opens: the base id for the default style, and `<base>-variant-<slug>` for the others. Author the alternatives as `variant-<slug>/` subdirectories of the base bundle (see the [playground examples README](https://github.com/hayes/pothos/blob/main/website/playground-examples/README.md)). A bundle uses steps **or** variants, never both.
+
 ## How It Works
 
 Each playground has three tabs:

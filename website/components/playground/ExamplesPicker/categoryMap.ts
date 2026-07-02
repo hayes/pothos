@@ -27,11 +27,14 @@ export interface PickerGroup {
 }
 
 /**
- * Filter out generated step variants — only show base examples in the picker.
- * (Step pickers happen via the StepperBar once an example is loaded.)
+ * Filter out generated sub-bundles — only show base examples in the
+ * picker. Step bundles (`-step-N`) are reached via the StepperBar once
+ * an example is loaded; definition-style variants (`-variant-<slug>`)
+ * are reached via the docs style-switcher, so neither should appear as
+ * a standalone picker entry.
  */
 export function filterTopLevelExamples(all: readonly ExampleMetadata[]): ExampleMetadata[] {
-  return all.filter((ex) => !/-step-\d+$/.test(ex.id));
+  return all.filter((ex) => !/-step-\d+$/.test(ex.id) && !/-variant-[a-z0-9-]+$/.test(ex.id));
 }
 
 export function groupExamples(all: readonly ExampleMetadata[]): PickerGroup[] {

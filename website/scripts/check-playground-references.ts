@@ -4,12 +4,15 @@
  * CI guardrail: every MDX codefence with `playground example="<id>"`
  * must resolve to a bundle directory under `playground-examples/`.
  *
- * Bundles are flat (e.g. `playground-examples/01-first-schema/`) or
- * multi-step (e.g. `playground-examples/errors-plugin/step-1/`). A
- * reference to a `-step-N` suffix resolves to the matching step
- * subdirectory; an unsuffixed reference resolves to the bundle root,
- * which is valid whether the bundle is flat or multi-step (multi-step
- * bundles also publish an aggregate JSON at the bundle id).
+ * Bundles are flat (e.g. `playground-examples/01-first-schema/`),
+ * multi-step (e.g. `playground-examples/errors-plugin/step-1/`), or
+ * multi-variant (e.g. `playground-examples/fundamentals-objects/
+ * variant-classes/`). A reference to a `-step-N` suffix resolves to the
+ * matching step subdirectory; a `-variant-<slug>` suffix resolves to
+ * the matching variant subdirectory; an unsuffixed reference resolves
+ * to the bundle root, which is valid whether the bundle is flat,
+ * multi-step, or multi-variant (all publish an aggregate JSON at the
+ * bundle id, the latter being the default variant).
  */
 
 import { readdir, readFile, stat } from 'node:fs/promises';
@@ -78,6 +81,17 @@ async function bundleExists(id: string): Promise<boolean> {
     // Fall through: a bundle could legitimately be named `<base>-step-<N>`
     // as a flat bundle, though no current bundle does that.
   }
+
+  const variantMatch = id.match(/^(.+)-variant-([a-z0-9-]+)$/);
+  if (variantMatch) {
+    const base = variantMatch[1];
+    const variantDir = `variant-${variantMatch[2]}`;
+    if (await isDirectory(join(BUNDLES_DIR, base, variantDir))) {
+      return true;
+    }
+    // Fall through: same rationale as steps.
+  }
+
   return isDirectory(join(BUNDLES_DIR, id));
 }
 

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { globSync } from 'glob';
 import { describe, expect, it } from 'vitest';
@@ -128,6 +128,19 @@ function exampleReferenceExists(id: string, availableExamples: Set<string>): boo
     }
   }
 
+  const variantMatch = id.match(/^(.+)-variant-([a-z0-9-]+)$/);
+  if (variantMatch) {
+    const [, base, slug] = variantMatch;
+    if (availableExamples.has(base)) {
+      try {
+        const stat = readdirSync(join(EXAMPLES_DIR, base), { withFileTypes: true });
+        return stat.some((e) => e.isDirectory() && e.name === `variant-${slug}`);
+      } catch {
+        return false;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -137,6 +150,35 @@ function exampleReferenceExists(id: string, availableExamples: Set<string>): boo
  * schema.ts, so we fall back to scanning step-* directories in order.
  */
 function getExampleSchemaContent(exampleId: string): string {
+  // A literal top-level directory always wins, so a flat example whose id
+  // happens to end in `-variant-<slug>` or `-step-<N>` resolves to itself
+  // (mirrors exampleReferenceExists and check-playground-references.ts).
+  if (existsSync(join(EXAMPLES_DIR, exampleId, 'schema.ts'))) {
+    return readFileSync(join(EXAMPLES_DIR, exampleId, 'schema.ts'), 'utf-8');
+  }
+
+  // Variant fences validate against their own variant-<slug>/schema.ts.
+  const variantMatch = exampleId.match(/^(.+)-variant-([a-z0-9-]+)$/);
+  if (variantMatch) {
+    const [, base, slug] = variantMatch;
+    try {
+      return readFileSync(join(EXAMPLES_DIR, base, `variant-${slug}`, 'schema.ts'), 'utf-8');
+    } catch {
+      return '';
+    }
+  }
+
+  // Step fences validate against their own step-<N>/schema.ts.
+  const stepMatch = exampleId.match(/^(.+)-step-(\d+)$/);
+  if (stepMatch) {
+    const [, base, stepNumber] = stepMatch;
+    try {
+      return readFileSync(join(EXAMPLES_DIR, base, `step-${stepNumber}`, 'schema.ts'), 'utf-8');
+    } catch {
+      return '';
+    }
+  }
+
   try {
     const schemaPath = join(EXAMPLES_DIR, exampleId, 'schema.ts');
     return readFileSync(schemaPath, 'utf-8');
@@ -266,8 +308,20 @@ describe('Playground Documentation Validation', () => {
     const failures: string[] = [];
 
     for (const ref of references) {
-      if (!availableExamples.has(ref.exampleId)) {
+      // Base examples and definition-style variants are containment
+      // checked against their resolved schema.ts. Step fences are only
+      // existence-checked (a step's doc section often shows a curated
+      // fragment that spans siblings), matching prior behaviour.
+      const isVariantRef = /-variant-[a-z0-9-]+$/.test(ref.exampleId);
+      const isStepRef = /-step-\d+$/.test(ref.exampleId);
+      if (isStepRef) {
+        continue;
+      }
+      if (!isVariantRef && !availableExamples.has(ref.exampleId)) {
         continue; // Skip if example doesn't exist (covered by previous test)
+      }
+      if (isVariantRef && !exampleReferenceExists(ref.exampleId, availableExamples)) {
+        continue;
       }
 
       // Determine if this is a GraphQL or TypeScript code block

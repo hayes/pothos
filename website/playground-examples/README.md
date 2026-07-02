@@ -68,6 +68,47 @@ pnpm build-examples
 
 Link from docs: `/playground?example=example-id&snippet=0`
 
+## Multi-step tutorials
+
+An example that walks a progression puts each step in a `step-N/` subdirectory, each a self-contained unit with its own `schema.ts` (+ optional `query.graphql`). Steps are declared in `metadata.json` under `steps` and are published as `<id>-step-<N>` bundles. Reference a step from docs with the `-step-N` suffix: `example="patterns-handling-errors-step-1"`.
+
+## Definition-style variants
+
+An example that shows the **same** schema implemented several ways (e.g. object refs vs. classes vs. a `SchemaTypes`-generic builder) uses variants. Variants are authored like steps:
+
+- The **default** variant is the example's top-level `schema.ts` and keeps the base id (`fundamentals-objects`).
+- Every **other** variant lives in a `variant-<slug>/` subdirectory with its own `schema.ts` (+ optional `query.graphql`, which falls back to the base example's query). It is published as `<id>-variant-<slug>` (`fundamentals-objects-variant-classes`).
+
+Declare the variants in `metadata.json`, marking exactly one `default`:
+
+```json
+{
+  "id": "fundamentals-objects",
+  "title": "Object types",
+  "variants": [
+    { "id": "object-refs", "title": "Object refs", "order": 1, "default": true },
+    { "id": "classes", "title": "Classes", "order": 2 },
+    { "id": "builder-types", "title": "Builder types", "order": 3 }
+  ]
+}
+```
+
+Directory layout:
+
+```
+fundamentals-objects/
+  metadata.json
+  schema.ts            # default variant — its id (object-refs) is informational;
+                       # reference it by the base id, never `-variant-object-refs`
+  query.graphql        # shared default query
+  variant-classes/
+    schema.ts
+  variant-builder-types/
+    schema.ts
+```
+
+In docs, each variant is its own fence with a `tab="<Label>"` attribute; consecutive tabbed fences merge into a single switchable code block via fumadocs' built-in code-block tabs (see [`content/docs/playground.mdx`](../content/docs/playground.mdx)). Each fence's `example` is the exact bundle it opens (`<base>` for the default, `<base>-variant-<slug>` for the rest). Variant bundles do **not** appear as separate entries in the ExamplesPicker — only the base example does. A bundle may use steps **or** variants, never both.
+
 ## Categories
 
 - **core** - Core Pothos concepts

@@ -12,13 +12,16 @@ import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playgro
 
 // Load examples from individual directories.
 //
-// Two layouts are supported, mirroring `scripts/build-playground-examples.ts`:
+// Three layouts are supported, mirroring `scripts/build-playground-examples.ts`:
 //
 // - Flat: `<example>/schema.ts` + `<example>/query.graphql`. Single
 //   testable unit, ID is `metadata.id`.
 // - Stepped: `<example>/step-N/schema.ts` (+ optional query.graphql),
 //   one testable unit per step. IDs are `${metadata.id}-step-${N}` so
 //   failures point to the exact file path on disk.
+// - Variant: `<example>/schema.ts` (the default variant) plus
+//   `<example>/variant-<slug>/schema.ts` for each alternative style.
+//   IDs are `${metadata.id}` (default) and `${metadata.id}-variant-<slug>`.
 async function loadExamples() {
   const examplesDir = path.join(__dirname, '../playground-examples');
   const entries = await readdir(examplesDir, { withFileTypes: true });
@@ -49,6 +52,40 @@ async function loadExamples() {
             id: `${metadata.id}-step-${stepNumber}`,
             title: stepMeta?.title || `${metadata.title} - Step ${stepNumber}`,
             description: stepMeta?.description || metadata.description,
+            tags: metadata.tags || [],
+          }),
+        );
+      }
+      continue;
+    }
+
+    // Variant-shaped example: the top-level dir is the default variant,
+    // and each `variant-<slug>` subdir is its own testable unit.
+    const variantDirs = subEntries
+      .filter((e) => e.isDirectory() && e.name.startsWith('variant-'))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (variantDirs.length > 0) {
+      // Default variant lives at the example root.
+      examples.push(
+        await loadExampleFiles(examplePath, {
+          id: metadata.id,
+          title: metadata.title,
+          description: metadata.description,
+          tags: metadata.tags || [],
+        }),
+      );
+      for (const variantDir of variantDirs) {
+        const variantPath = path.join(examplePath, variantDir.name);
+        const slug = variantDir.name.replace('variant-', '');
+        const variantMeta = metadata.variants?.find((v: { id: string }) => v.id === slug);
+        examples.push(
+          await loadExampleFiles(variantPath, {
+            id: `${metadata.id}-variant-${slug}`,
+            title: variantMeta?.title
+              ? `${metadata.title} — ${variantMeta.title}`
+              : `${metadata.title} - ${slug}`,
+            description: metadata.description,
             tags: metadata.tags || [],
           }),
         );
