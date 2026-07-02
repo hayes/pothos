@@ -21,7 +21,8 @@ export function Hero() {
 
   return (
     <section className="max-w-[1280px] mx-auto px-10 pt-[88px] pb-20 relative">
-      <div className="absolute top-14 right-10 hidden md:block pointer-events-none text-bm-accent">
+      {/* Trailing pothos vines hanging from the header line */}
+      <div className="absolute top-0 right-10 hidden md:block pointer-events-none text-bm-accent">
         <BotanicalSpray color="currentColor" />
       </div>
       {/* Eyebrow */}
