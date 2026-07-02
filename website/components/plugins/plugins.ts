@@ -210,6 +210,16 @@ export const PLUGINS: PluginEntry[] = [
   },
 ];
 
+/** Canonical docs URL for a plugin's page. */
+export function pluginDocsHref(slug: string): string {
+  return `/docs/plugins/${slug}`;
+}
+
+/** Canonical npm package name for a plugin. */
+export function pluginPackage(slug: string): string {
+  return `@pothos/plugin-${slug}`;
+}
+
 const CATEGORY_ORDER: PluginCategory[] = ['data', 'schema', 'auth', 'live', 'devx'];
 
 export function pluginsByCategory(): Array<{ category: PluginCategory; items: PluginEntry[] }> {

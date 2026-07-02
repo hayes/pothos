@@ -1,14 +1,15 @@
-# Simple query to demonstrate directives
-query Hello {
-  hello
+# Rate-limited list query
+query Teams {
+  teams {
+    id
+    name
+  }
 }
 
-# Introspection to see directives on Query type
-query IntrospectDirectives {
-  __type(name: "Query") {
+# Auth-guarded mutation
+mutation RenameTeam {
+  renameTeam(id: "1", name: "Meteor") {
+    id
     name
-    fields {
-      name
-    }
   }
 }

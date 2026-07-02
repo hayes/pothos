@@ -1364,12 +1364,24 @@ importers:
       '@pothos/core':
         specifier: workspace:^
         version: link:../packages/core
+      '@pothos/plugin-add-graphql':
+        specifier: workspace:^
+        version: link:../packages/plugin-add-graphql
+      '@pothos/plugin-complexity':
+        specifier: workspace:^
+        version: link:../packages/plugin-complexity
+      '@pothos/plugin-dataloader':
+        specifier: workspace:^
+        version: link:../packages/plugin-dataloader
       '@pothos/plugin-directives':
         specifier: workspace:^
         version: link:../packages/plugin-directives
       '@pothos/plugin-errors':
         specifier: workspace:^
         version: link:../packages/plugin-errors
+      '@pothos/plugin-mocks':
+        specifier: workspace:^
+        version: link:../packages/plugin-mocks
       '@pothos/plugin-relay':
         specifier: workspace:^
         version: link:../packages/plugin-relay
@@ -1379,6 +1391,9 @@ importers:
       '@pothos/plugin-simple-objects':
         specifier: workspace:^
         version: link:../packages/plugin-simple-objects
+      '@pothos/plugin-sub-graph':
+        specifier: workspace:^
+        version: link:../packages/plugin-sub-graph
       '@pothos/plugin-validation':
         specifier: workspace:^
         version: link:../packages/plugin-validation
@@ -1394,6 +1409,9 @@ importers:
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
+      dataloader:
+        specifier: ^2.2.3
+        version: 2.2.3
       esbuild-wasm:
         specifier: ^0.27.1
         version: 0.27.7

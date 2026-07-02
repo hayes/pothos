@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { PluginEntry } from './plugins';
+import { type PluginEntry, pluginDocsHref, pluginPackage } from './plugins';
 
 interface Props {
   plugin: PluginEntry;
@@ -11,10 +11,10 @@ interface Props {
  * subtle mono chip. Whole card is the link to the docs page.
  */
 export function PluginCard({ plugin }: Props) {
-  const pkg = `@pothos/plugin-${plugin.slug}`;
+  const pkg = pluginPackage(plugin.slug);
   return (
     <Link
-      href={`/docs/plugins/${plugin.slug}`}
+      href={pluginDocsHref(plugin.slug)}
       className="group flex flex-col px-6 py-6 border-r border-b border-bm-line hover:bg-bm-surface transition-colors min-h-[180px]"
     >
       <div className="flex items-center justify-center size-9 rounded-lg bg-bm-accent-soft text-bm-accent text-[18px] mb-4">

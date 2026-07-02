@@ -1,7 +1,7 @@
 {
   "id": "directives-plugin",
   "title": "Directives Plugin",
-  "description": "Add schema directives to types and fields",
+  "description": "Attach schema directives to Pothos types and fields for downstream tools like graphql-tools to consume.",
   "category": "plugins",
   "subcategory": "essential-plugins",
   "difficulty": "intermediate",
@@ -11,18 +11,25 @@
   "prerequisites": ["getting-started-first-schema"],
   "snippets": [
     {
-      "label": "Setup Directives Plugin",
+      "label": "Declare directives and configure the plugin",
       "filename": "schema.ts",
-      "startLine": 1,
-      "endLine": 8,
-      "description": "Import and configure the directives plugin"
+      "startLine": 14,
+      "endLine": 30,
+      "description": "Type the Directives generic and register the plugin"
     },
     {
-      "label": "Using Directives on Types",
+      "label": "Apply directives to a type",
       "filename": "schema.ts",
-      "startLine": 10,
-      "endLine": 25,
-      "description": "Apply directives to object types and fields"
+      "startLine": 34,
+      "endLine": 43,
+      "description": "Object-form directives on an object type"
+    },
+    {
+      "label": "Apply directives to fields",
+      "filename": "schema.ts",
+      "startLine": 47,
+      "endLine": 78,
+      "description": "Field-level directives in object and array form"
     }
   ]
 }

@@ -1,50 +1,70 @@
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 
+interface ITeam {
+  id: string;
+  name: string;
+  wins: number;
+  scoutingReport: string;
+}
+
+const Teams = new Map<string, ITeam>([
+  ['comet', { id: 'comet', name: 'Comet', wins: 12, scoutingReport: 'Fast handlers, soft deep defense.' }],
+  ['gulls', { id: 'gulls', name: 'Gulls', wins: 9, scoutingReport: 'Zone-heavy, tires in the fourth.' }],
+]);
+
 const builder = new SchemaBuilder<{
   Context: {
-    user?: { id: string; isEmployee: boolean };
+    viewer?: { id: string; role: 'member' | 'staff' };
   };
-  // Types used for scope parameters
+  // Each scope name maps to the type of the parameter its loader takes.
   AuthScopes: {
     public: boolean;
-    employee: boolean;
-    authenticated: boolean;
+    member: boolean;
+    staff: boolean;
   };
 }>({
   plugins: [ScopeAuthPlugin],
   scopeAuth: {
-    // scope initializer, create the scopes for each request
+    // The scope initializer runs once per request and builds that request's scopes.
     authScopes: async (context) => ({
       public: true,
-      authenticated: !!context.user,
-      employee: context.user?.isEmployee ?? false,
+      member: !!context.viewer,
+      staff: context.viewer?.role === 'staff',
     }),
   },
 });
 
+const Team = builder.objectRef<ITeam>('Team');
+
+Team.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    // Only signed-in members see the standings.
+    wins: t.exposeInt('wins', {
+      authScopes: {
+        member: true,
+      },
+    }),
+    // Scouting reports are staff-only.
+    scoutingReport: t.exposeString('scoutingReport', {
+      authScopes: {
+        staff: true,
+      },
+    }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
-    // Public field - anyone can access
-    message: t.string({
+    // Anyone can list the teams.
+    teams: t.field({
+      type: [Team],
       authScopes: {
         public: true,
       },
-      resolve: () => 'Hello, world!',
-    }),
-    // Protected field - requires authentication
-    secretMessage: t.string({
-      authScopes: {
-        authenticated: true,
-      },
-      resolve: () => 'This is a secret message!',
-    }),
-    // Employee-only field
-    employeeInfo: t.string({
-      authScopes: {
-        employee: true,
-      },
-      resolve: () => 'Employee-only information',
+      resolve: () => [...Teams.values()],
     }),
   }),
 });

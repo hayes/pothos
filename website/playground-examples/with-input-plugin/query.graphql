@@ -1,4 +1,12 @@
-# Query using fieldWithInput
-query Example {
-  example(input: { id: "123" })
+# fieldWithInput wraps each field's arguments in a generated input object.
+query Teams {
+  comet: team(input: { id: "1" }) {
+    id
+    name
+    wins
+  }
+  contenders: searchTeams(input: { namePrefix: "R" }) {
+    id
+    name
+  }
 }

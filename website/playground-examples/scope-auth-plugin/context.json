@@ -1,6 +1,6 @@
 {
-  "user": {
+  "viewer": {
     "id": "1",
-    "isEmployee": true
+    "role": "staff"
   }
 }

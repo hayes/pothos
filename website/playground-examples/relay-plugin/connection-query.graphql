@@ -1,11 +1,14 @@
-# Query users connection with pagination
-query GetUsers {
-  users {
+# Page through every player in the league.
+query AllPlayers {
+  players {
     edges {
       cursor
       node {
         id
         name
+        team {
+          name
+        }
       }
     }
     pageInfo {
@@ -17,9 +20,9 @@ query GetUsers {
   }
 }
 
-# Query with first/after pagination
-query GetUsersWithPagination {
-  users(first: 2, after: "0") {
+# Forward pagination: the first two, then the page after a cursor.
+query FirstPlayers {
+  players(first: 2) {
     edges {
       cursor
       node {
@@ -29,17 +32,7 @@ query GetUsersWithPagination {
     }
     pageInfo {
       hasNextPage
-      hasPreviousPage
-      startCursor
       endCursor
     }
-  }
-}
-
-# Create user mutation
-mutation CreateUser {
-  createUser(name: "Frank", email: "frank@example.com") {
-    id
-    name
   }
 }

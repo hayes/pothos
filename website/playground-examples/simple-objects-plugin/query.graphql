@@ -1,12 +1,12 @@
-query GetUser {
-  user(id: "1") {
+query Standings {
+  standing(id: "comet") {
     id
-    firstName
-    lastName
-    fullName
-    contactInfo {
-      email
-      phoneNumber
+    team
+    record
+    stats {
+      wins
+      losses
+      pointDiff
     }
   }
 }

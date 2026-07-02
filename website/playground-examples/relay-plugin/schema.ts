@@ -1,95 +1,89 @@
 import SchemaBuilder from '@pothos/core';
-import RelayPlugin from '@pothos/plugin-relay';
+import RelayPlugin, { resolveArrayConnection } from '@pothos/plugin-relay';
 
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relay: {},
 });
 
-// Or using a class
-class User {
+interface ITeam {
   id: string;
   name: string;
-
-  constructor(id: string, name: string) {
-    this.id = id;
-    this.name = name;
-  }
+  city: string;
 }
 
-const users = [
-  { id: '1', name: 'Alice' },
-  { id: '2', name: 'Bob' },
-  { id: '3', name: 'Charlie' },
-];
+interface IPlayer {
+  id: string;
+  name: string;
+  teamId: string;
+}
 
-const loadUserByID = (id: string) => users.find((user) => user.id === id) ?? null;
-const loadUsers = (ids: string[]) => ids.map((id) => loadUserByID(id)).filter(Boolean);
+const Teams = new Map<string, ITeam>([
+  ['1', { id: '1', name: 'Comet', city: 'Seattle' }],
+  ['2', { id: '2', name: 'Riptide', city: 'San Diego' }],
+]);
 
-builder.node(User, {
-  // define an id field
+const Players = new Map<string, IPlayer>([
+  ['1', { id: '1', name: 'Ana Cruz', teamId: '1' }],
+  ['2', { id: '2', name: 'Ben Ito', teamId: '1' }],
+  ['3', { id: '3', name: 'Cara Lee', teamId: '2' }],
+  ['4', { id: '4', name: 'Dan Ortiz', teamId: '2' }],
+]);
+
+const Team = builder.objectRef<ITeam>('Team');
+const Player = builder.objectRef<IPlayer>('Player');
+
+// A node is any object reachable by a single global ID.
+builder.node(Team, {
   id: {
-    resolve: (user) => user.id,
-    // other options for id field can be added here
+    resolve: (team) => team.id,
   },
-
-  // Define only one of the following methods for loading nodes by id
-  loadOne: (id) => loadUserByID(id),
-  loadMany: (ids) => loadUsers(ids),
-  loadWithoutCache: (id) => loadUserByID(id),
-  loadManyWithoutCache: (ids) => loadUsers(ids),
-
-  // if using a class instaed of a ref, you will need to provide a name
-  name: 'User',
+  // loadOne / loadMany hydrate a node from the id decoded out of a global ID.
+  loadOne: (id) => Teams.get(id) ?? null,
+  loadMany: (ids) => ids.map((id) => Teams.get(id) ?? null),
   fields: (t) => ({
     name: t.exposeString('name'),
+    city: t.exposeString('city'),
+    // A connection paginates a list under one field.
+    players: t.connection({
+      type: Player,
+      resolve: (team, args) =>
+        resolveArrayConnection(
+          { args },
+          [...Players.values()].filter((player) => player.teamId === team.id),
+        ),
+    }),
+  }),
+});
+
+builder.node(Player, {
+  id: {
+    resolve: (player) => player.id,
+  },
+  loadOne: (id) => Players.get(id) ?? null,
+  loadMany: (ids) => ids.map((id) => Players.get(id) ?? null),
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    team: t.field({
+      type: Team,
+      resolve: (player) => Teams.get(player.teamId) ?? null,
+    }),
   }),
 });
 
 builder.queryType({
   fields: (t) => ({
-    user: t.field({
-      type: User,
+    team: t.field({
+      type: Team,
       nullable: true,
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (_parent, args) => loadUserByID(args.id),
+      resolve: (_parent, { id }) => Teams.get(String(id)) ?? null,
     }),
-    users: t.connection({
-      type: User,
-      resolve: () => {
-        // Simple array-based connection resolver
-        return {
-          edges: users.map((user, index) => ({
-            cursor: String(index),
-            node: user,
-          })),
-          pageInfo: {
-            hasNextPage: false,
-            hasPreviousPage: false,
-            startCursor: '0',
-            endCursor: String(users.length - 1),
-          },
-        };
-      },
-    }),
-  }),
-});
-
-builder.mutationType({
-  fields: (t) => ({
-    createUser: t.field({
-      type: User,
-      args: {
-        name: t.arg.string({ required: true }),
-        email: t.arg.string({ required: true }),
-      },
-      resolve: (_parent, args) => {
-        const newUser = { id: String(users.length + 1), name: args.name };
-        users.push(newUser);
-        return newUser;
-      },
+    players: t.connection({
+      type: Player,
+      resolve: (_parent, args) => resolveArrayConnection({ args }, [...Players.values()]),
     }),
   }),
 });

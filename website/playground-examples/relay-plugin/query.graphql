@@ -1,17 +1,31 @@
-# Query a node by global ID
-query GetNode {
-  node(id: "VXNlcjox") {
+# Fetch a team, then page through its roster.
+query TeamRoster {
+  team(id: "1") {
     id
-    ... on User {
-      name
+    name
+    city
+    players(first: 2) {
+      edges {
+        cursor
+        node {
+          id
+          name
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
     }
   }
 }
 
-# Query user by regular ID
-query GetUser {
-  user(id: "1") {
+# Refetch any object by its global id via the node field.
+query Refetch {
+  node(id: "VGVhbTox") {
     id
-    name
+    ... on Team {
+      name
+    }
   }
 }

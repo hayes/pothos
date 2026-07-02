@@ -1,25 +1,25 @@
 {
   "id": "errors-plugin",
-  "title": "Error Handling",
-  "description": "Handle errors elegantly with the Errors plugin using union types",
+  "title": "Errors plugin",
+  "description": "Turn thrown and returned errors into typed result unions, with per-field, per-item, and custom union handling.",
   "category": "plugins",
   "subcategory": "essential-plugins",
   "difficulty": "intermediate",
   "order": 1,
   "tags": ["errors", "plugins", "unions"],
-  "relatedDocs": ["/docs/plugins/errors"],
+  "relatedDocs": ["/docs/plugins/errors", "/docs/patterns/handling-errors"],
   "prerequisites": ["fundamentals-queries"],
   "steps": [
     {
       "id": "step-1",
-      "title": "Basic Error Handling",
-      "description": "Configure the Errors plugin and define error types in your schema",
+      "title": "Result unions",
+      "description": "Add an errors option to a field and let the plugin generate the result union",
       "order": 1
     },
     {
       "id": "step-2",
-      "title": "Error Case Example",
-      "description": "See how errors are returned when validation fails",
+      "title": "A shared Error interface",
+      "description": "Give every error a common interface and a default type so clients can always query message",
       "order": 2
     }
   ]

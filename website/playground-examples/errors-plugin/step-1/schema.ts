@@ -9,6 +9,24 @@ const builder = new SchemaBuilder({
   },
 });
 
+interface ITeam {
+  id: number;
+  name: string;
+}
+
+const Teams = new Map<number, ITeam>([
+  [1, { id: 1, name: 'Comet' }],
+  [2, { id: 2, name: 'Aurora' }],
+  [3, { id: 3, name: 'Vertex' }],
+]);
+
+const Team = builder.objectRef<ITeam>('Team').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
 builder.objectType(Error, {
   name: 'Error',
   fields: (t) => ({
@@ -18,19 +36,20 @@ builder.objectType(Error, {
 
 builder.queryType({
   fields: (t) => ({
-    hello: t.string({
+    team: t.field({
+      type: Team,
       errors: {
         types: [Error],
       },
       args: {
-        name: t.arg.string({ required: false }),
+        id: t.arg.id({ required: true }),
       },
-      resolve: (_parent, { name }) => {
-        if (name && name.slice(0, 1) !== name.slice(0, 1).toUpperCase()) {
-          throw new Error('name must be capitalized');
+      resolve: (_parent, { id }) => {
+        const team = Teams.get(Number(id));
+        if (!team) {
+          throw new Error(`No team with id ${id}`);
         }
-
-        return `hello, ${name || 'World'}`;
+        return team;
       },
     }),
   }),

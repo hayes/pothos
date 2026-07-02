@@ -1,65 +1,54 @@
 import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 
-// Step 2: Custom error classes + multiple error types in a union.
-//
-// Step 1 used a single Error type. Here we add two domain-specific
-// classes (NotFoundError and ValidationError) and expose both on the
-// same field. The errors plugin generates a union
-// (`QueryUserResult = User | NotFoundError | ValidationError`) so
-// clients can pattern-match on `__typename`.
+const builder = new SchemaBuilder({
+  plugins: [ErrorsPlugin],
+  errors: {
+    // BaseError is merged into every field that opts into error handling.
+    defaultTypes: [Error],
+  },
+});
+
+interface ITeam {
+  id: number;
+  name: string;
+}
+
+const Teams = new Map<number, ITeam>([
+  [1, { id: 1, name: 'Comet' }],
+  [2, { id: 2, name: 'Aurora' }],
+]);
+
+// One interface every error type implements. Clients can always fall back
+// to `... on Error { message }` and add narrower fragments when they care.
+const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
+  fields: (t) => ({
+    message: t.exposeString('message'),
+  }),
+});
+
+// The catch-all error, registered in defaultTypes above.
+builder.objectType(Error, {
+  name: 'BaseError',
+  interfaces: [ErrorInterface],
+});
 
 class NotFoundError extends Error {
   constructor(public readonly id: string) {
-    super(`No user found with id "${id}"`);
+    super(`No team with id ${id}`);
     this.name = 'NotFoundError';
   }
 }
 
-class ValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly field: string,
-  ) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
-const builder = new SchemaBuilder({
-  plugins: [ErrorsPlugin],
-  errors: {
-    defaultTypes: [],
-  },
-});
-
 builder.objectType(NotFoundError, {
   name: 'NotFoundError',
+  interfaces: [ErrorInterface],
   fields: (t) => ({
-    message: t.exposeString('message'),
     id: t.exposeString('id'),
   }),
 });
 
-builder.objectType(ValidationError, {
-  name: 'ValidationError',
-  fields: (t) => ({
-    message: t.exposeString('message'),
-    field: t.exposeString('field'),
-  }),
-});
-
-interface User {
-  id: string;
-  name: string;
-}
-
-const USERS: User[] = [
-  { id: '1', name: 'Ada Lovelace' },
-  { id: '2', name: 'Grace Hopper' },
-];
-
-const UserRef = builder.objectRef<User>('User').implement({
+const Team = builder.objectRef<ITeam>('Team').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
@@ -68,23 +57,33 @@ const UserRef = builder.objectRef<User>('User').implement({
 
 builder.queryType({
   fields: (t) => ({
-    user: t.field({
-      type: UserRef,
+    // Only the default BaseError is handled here.
+    firstTeam: t.field({
+      type: Team,
+      errors: {},
+      resolve: () => {
+        const team = Teams.get(1);
+        if (!team) {
+          throw new Error('roster is empty');
+        }
+        return team;
+      },
+    }),
+    // Adds NotFoundError on top of the default BaseError.
+    team: t.field({
+      type: Team,
       errors: {
-        types: [NotFoundError, ValidationError],
+        types: [NotFoundError],
       },
       args: {
-        id: t.arg.string({ required: true }),
+        id: t.arg.id({ required: true }),
       },
       resolve: (_parent, { id }) => {
-        if (!/^\d+$/.test(id)) {
-          throw new ValidationError('id must be numeric', 'id');
+        const team = Teams.get(Number(id));
+        if (!team) {
+          throw new NotFoundError(String(id));
         }
-        const user = USERS.find((u) => u.id === id);
-        if (!user) {
-          throw new NotFoundError(id);
-        }
-        return user;
+        return team;
       },
     }),
   }),

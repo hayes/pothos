@@ -27,6 +27,11 @@ const PLUGIN_PACKAGES: string[] = [
   'plugin-errors',
   'plugin-validation',
   'plugin-directives',
+  'plugin-dataloader',
+  'plugin-complexity',
+  'plugin-mocks',
+  'plugin-sub-graph',
+  'plugin-add-graphql',
 ];
 
 function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[] {
@@ -278,6 +283,41 @@ function readGraphQLTypes(): TypeDefinition[] {
   ];
 }
 
+/**
+ * Bundle the `dataloader` npm package's own .d.ts.
+ *
+ * `@pothos/plugin-dataloader`'s type defs reference `DataLoader` via
+ * `import ... from 'dataloader'`. Without a `declare module 'dataloader'`
+ * in the Monaco/type-check world those imports resolve to `any` and the
+ * plugin's loadable-field signatures (loaderOptions, the DataLoader
+ * handle) collapse. We wrap dataloader's shipped `index.d.ts` — which
+ * uses `export = DataLoader` with a merged namespace — in a module
+ * declaration so it resolves by its bare specifier. This is types-only;
+ * at runtime the `dataloader` code is bundled INTO the statically
+ * imported plugin module (see lib/playground/plugins-bundle.ts), so it
+ * never round-trips through esm.sh and there is a single @pothos/core
+ * instance.
+ */
+function readDataloaderTypes(): TypeDefinition[] {
+  const dataloaderDts = path.join(__dirname, '../node_modules/dataloader/index.d.ts');
+  if (!fs.existsSync(dataloaderDts)) {
+    console.warn(`No dataloader types found at ${dataloaderDts}; skipping.`);
+    return [];
+  }
+  const raw = fs
+    .readFileSync(dataloaderDts, 'utf-8')
+    .replace(/^\/\/\/\s*<reference.*$/gm, '')
+    .replace(/\/\/# sourceMappingURL=.*$/gm, '')
+    .trim();
+
+  return [
+    {
+      moduleName: 'dataloader',
+      content: `declare module 'dataloader' {\n${raw}\n}`,
+    },
+  ];
+}
+
 function main() {
   const coreDefinitions: TypeDefinition[] = [];
   const pluginDefinitions: Record<string, TypeDefinition[]> = {};
@@ -305,6 +345,13 @@ function main() {
       const definitions = readDtsFiles(packagePath, moduleName);
       pluginDefinitions[moduleName] = definitions;
     }
+  }
+
+  // plugin-dataloader's type defs import from the `dataloader` package.
+  // Ship dataloader's own types alongside it so those imports resolve
+  // (loaded on-demand only when the example imports plugin-dataloader).
+  if (pluginDefinitions['@pothos/plugin-dataloader']) {
+    pluginDefinitions['@pothos/plugin-dataloader'].push(...readDataloaderTypes());
   }
 
   // Separate core global declarations from module declarations

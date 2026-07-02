@@ -5,63 +5,54 @@ const builder = new SchemaBuilder({
   plugins: [SimpleObjectsPlugin],
 });
 
-// Simple object - types are automatically inferred
-const ContactInfo = builder.simpleObject('ContactInfo', {
+// A simple object infers its backing model from the fields you declare.
+const TeamStats = builder.simpleObject('TeamStats', {
   fields: (t) => ({
-    email: t.string({
-      nullable: false,
-    }),
-    phoneNumber: t.string({
-      nullable: true,
-    }),
+    wins: t.int({ nullable: false }),
+    losses: t.int({ nullable: false }),
+    pointDiff: t.int({ nullable: true }),
   }),
 });
 
-// Simple interface - no explicit type needed
+// A simple interface needs no separate backing type either.
 const Node = builder.simpleInterface('Node', {
   fields: (t) => ({
-    id: t.id({
-      nullable: false,
-    }),
+    id: t.id({ nullable: false }),
   }),
 });
 
-// Simple object with interface and computed fields
-const UserType = builder.simpleObject(
-  'User',
+// A simple object that implements an interface and adds a computed field.
+const Standing = builder.simpleObject(
+  'Standing',
   {
     interfaces: [Node],
     fields: (t) => ({
-      firstName: t.string(),
-      lastName: t.string(),
-      contactInfo: t.field({
-        type: ContactInfo,
-        nullable: false,
-      }),
+      team: t.string(),
+      stats: t.field({ type: TeamStats, nullable: false }),
     }),
   },
-  // Third argument: fields with custom resolvers
+  // Third argument: fields backed by resolvers, with the full inferred parent.
   (t) => ({
-    fullName: t.string({
-      resolve: (user) => `${user.firstName} ${user.lastName}`,
+    record: t.string({
+      resolve: (standing) => `${standing.stats.wins}-${standing.stats.losses}`,
     }),
   }),
 );
 
 builder.queryType({
   fields: (t) => ({
-    user: t.field({
-      type: UserType,
+    standing: t.field({
+      type: Standing,
       args: {
         id: t.arg.id({ required: true }),
       },
       resolve: () => ({
-        id: '1',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        contactInfo: {
-          email: 'jane@example.com',
-          phoneNumber: '+1-555-0123',
+        id: 'comet',
+        team: 'Comet',
+        stats: {
+          wins: 11,
+          losses: 3,
+          pointDiff: 84,
         },
       }),
     }),

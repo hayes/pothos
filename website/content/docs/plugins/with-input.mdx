@@ -1,100 +1,167 @@
 ---
 title: With-Input plugin
-description: With-Input plugin docs for Pothos
+description: Define fields whose arguments live in a single generated input object with t.fieldWithInput.
 ---
 
-A plugin for creating fields with a single input object. This plugin adds a new `t.fieldWithInput`
-method that allows you to more easily define fields with a single input type without having to
-define it separately.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-## Usage
-
-### Install
+GraphQL convention is to give a mutation one argument — an `input` object — rather than a loose list of scalars. Writing that out by hand means declaring a separate input type for every field. The with-input plugin collapses the two steps: `t.fieldWithInput` takes the input fields inline, generates the input object type for you, and wires it up as the field's argument.
 
 ```package-install
 npm install --save @pothos/plugin-with-input
 ```
 
-### Setup
+Add the plugin, then define input fields with the `t.input` builder. Pothos names and registers the input type on first use.
 
 ```typescript playground example="with-input-plugin"
+import SchemaBuilder from '@pothos/core';
 import WithInputPlugin from '@pothos/plugin-with-input';
+
 const builder = new SchemaBuilder({
   plugins: [WithInputPlugin],
-  // optional
+});
+
+const Team = builder.objectRef<ITeam>('Team').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    wins: t.exposeInt('wins'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    team: t.fieldWithInput({
+      type: Team,
+      nullable: true,
+      input: {
+        id: t.input.id({ required: true }),
+      },
+      resolve: (_root, args) => Teams.get(Number(args.input.id)) ?? null,
+    }),
+  }),
+});
+```
+
+The `input` object maps field names to `t.input.*` definitions — the same scalar builders as `t.arg`, scoped to the generated input type. The resolver reads them off `args.input`. The generated schema:
+
+```graphql
+type Query {
+  team(input: QueryTeamInput!): Team
+}
+
+input QueryTeamInput {
+  id: ID!
+}
+```
+
+## Why a generated input
+
+A single input argument is the standard shape for anything that mutates or takes structured arguments: it versions cleanly (add a field without touching the call site), it reads well on the client, and it keeps large argument lists from sprawling across the field signature. Declaring the input type separately is boilerplate that always tracks one field. `t.fieldWithInput` keeps the definition next to the field it serves and derives the type name from the field, so the two never drift apart.
+
+## Multiple input fields
+
+Every entry under `input` becomes a field on the generated type. This is where the plugin earns its keep — a mutation with several arguments needs exactly one type declaration:
+
+```typescript playground example="with-input-plugin"
+builder.mutationType({
+  fields: (t) => ({
+    renameTeam: t.fieldWithInput({
+      type: Team,
+      nullable: true,
+      input: {
+        id: t.input.id({ required: true }),
+        name: t.input.string({ required: true }),
+      },
+      resolve: (_root, args) => {
+        const team = Teams.get(Number(args.input.id));
+        if (!team) {
+          return null;
+        }
+        team.name = args.input.name;
+        return team;
+      },
+    }),
+  }),
+});
+```
+
+This generates `input MutationRenameTeamInput { id: ID!, name: String! }`. You can still declare ordinary arguments alongside the input by passing an `args` option — they sit next to `input` on the field rather than inside the generated type.
+
+## Naming the input type and argument
+
+By default the input type name is `${ParentType}${FieldName}Input` — `QueryTeamInput`, `MutationRenameTeamInput` — and the argument is called `input`. Override either per field with `typeOptions.name` and `argOptions.name`. Renaming the argument also renames the key you read in the resolver:
+
+```typescript playground example="with-input-plugin"
+builder.mutationType({
+  fields: (t) => ({
+    createTeam: t.fieldWithInput({
+      type: Team,
+      typeOptions: { name: 'NewTeamInput' },
+      argOptions: { name: 'team' },
+      input: {
+        name: t.input.string({ required: true }),
+      },
+      resolve: (_root, args) => {
+        const team: ITeam = { id: nextId++, name: args.team.name, wins: 0 };
+        Teams.set(team.id, team);
+        return team;
+      },
+    }),
+  }),
+});
+```
+
+Both option bags forward the rest of their keys to the underlying type and argument, so `typeOptions` accepts a `description`, `argOptions` accepts `deprecationReason`, and so on.
+
+To change the default naming scheme for the whole schema instead of one field, pass a `name` callback in `withInput.typeOptions`. It receives the parent type and field name and returns the input type name:
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [WithInputPlugin],
   withInput: {
     typeOptions: {
-      // default options for Input object types created by this plugin
-    },
-    argOptions: {
-      // set required: false to override default behavior
+      name: ({ parentTypeName, fieldName }) => {
+        const capitalized = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}`;
+        // Drop the Query/Mutation prefix from root fields.
+        if (parentTypeName === 'Query' || parentTypeName === 'Mutation') {
+          return `${capitalized}Input`;
+        }
+        return `${parentTypeName}${capitalized}Input`;
+      },
     },
   },
 });
 ```
 
-### Defining fields with inputs
+## Optional inputs
+
+The input argument is required by default. Set `argOptions.required: false` to make the whole argument optional — useful for a search or filter field that runs with no input at all:
 
 ```typescript playground example="with-input-plugin"
 builder.queryType({
   fields: (t) => ({
-    example: t.fieldWithInput({
+    searchTeams: t.fieldWithInput({
+      type: [Team],
+      argOptions: { required: false },
       input: {
-        // Note that this uses a new t.input field builder for defining input fields
-        id: t.input.id({ required: true }),
+        namePrefix: t.input.string({ required: true }),
       },
-      type: 'ID',
-      resolve: (root, args) => args.input.id,
+      resolve: (_root, args) => {
+        const prefix = args.input?.namePrefix;
+        const teams = [...Teams.values()];
+        return prefix ? teams.filter((team) => team.name.startsWith(prefix)) : teams;
+      },
     }),
   }),
 });
 ```
 
-This will produce a schema like:
+<Callout type="warn">
+  When the argument is optional, `args.input` is nullable — reach for it with optional chaining (`args.input?.namePrefix`). The individual `t.input.*` fields keep their own `required` flags independently of the argument.
+</Callout>
 
-```graphql
-type Query {
-  example(input: QueryExampleInput!): ID!
-}
-
-input QueryExampleInput {
-  id: ID!
-}
-```
-
-The input name will default to `${ParentType.name}${Field.name}Input`.
-
-### Customizing your input object
-
-You can customize the name of your Input object, and the name of the input argument:
-
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    example: t.fieldWithInput({
-      typeOptions: {
-        name: 'CustomInputTypeName',
-        // Additional options for the input type can be added here
-      },
-      argOptions: {
-        name: 'customArgName',
-        // Additional options for the input argument can be added here
-      },
-      input: {
-        id: t.input.id({ required: true }),
-      },
-      type: 'ID',
-      // inputs are now under `customArgName`
-      resolve: (root, args) => args.customArgName.id,
-    }),
-  }),
-});
-```
-
-### Changing the nullability of the input arg
-
-You can configure the global default for input args when creating the builder by providing
-`WithInputArgRequired` in the builder's `SchemaTypes`, and setting `withInput.argOptions.required`.
+To flip the default for the whole schema, set `withInput.argOptions.required` on the builder and declare the matching `WithInputArgRequired` in your `SchemaTypes` so the resolver argument types line up:
 
 ```typescript
 const builder = new SchemaBuilder<{ WithInputArgRequired: false }>({
@@ -107,70 +174,64 @@ const builder = new SchemaBuilder<{ WithInputArgRequired: false }>({
 });
 ```
 
-arg requiredness can also be set on a per field basis by setting `argOptions.required`
+## Schema-wide defaults
+
+`withInput.typeOptions` and `withInput.argOptions` on the builder set defaults for every generated input type and argument. Per-field `typeOptions`/`argOptions` merge over them. This is the place for cross-cutting choices — a default description on generated inputs, or the `required` default above:
 
 ```typescript
-builder.queryType({
-  fields: (t) => ({
-    example: t.fieldWithInput({
-      type: 'Boolean',
-      argOptions: {
-        required: false,
-      },
-      input: {
-        someInput: t.input.boolean({}),
-      },
-      resolve: (root, args) => {
-        return args.input?.someInput;
-      },
-    }),
+const builder = new SchemaBuilder({
+  plugins: [WithInputPlugin],
+  withInput: {
+    typeOptions: {
+      // Applied to every input type this plugin generates.
+    },
+    argOptions: {
+      // Applied to every generated input argument.
+    },
+  },
 });
 ```
 
-### Prisma plugin integration
+## Prisma integration
 
-If you are using the prisma plugin you can use `t.prismaFieldWithInput` to add prisma fields with
-input objects:
+With the [Prisma plugin](./prisma) installed, `t.prismaFieldWithInput` combines the generated input with a Prisma-backed field, so the resolver receives the `query` selection alongside `args`:
 
 ```typescript
 builder.queryField('user', (t) =>
   t.prismaFieldWithInput({
     type: 'User',
+    nullable: true,
     input: {
       id: t.input.id({ required: true }),
     },
-    resolve: (query, _, args) =>
+    resolve: (query, _root, args) =>
       prisma.user.findUnique({
-        where: {
-          id: Number.parseInt(args.input.id, 10),
-        },
+        where: { id: Number.parseInt(args.input.id, 10) },
         ...query,
       }),
   }),
 );
 ```
 
-### Customizing the default naming conventions
+## Options reference
 
-If you want to customize how the default input type names are generated you can provide a name
-callback in `withInput.typeOptions`:
+`t.fieldWithInput` takes every option a normal field takes, plus:
 
-```typescript
-import WithInputPlugin from '@pothos/plugin-with-input';
-const builder = new SchemaBuilder({
-  plugins: [WithInputPlugin],
-  withInput: {
-    typeOptions: {
-      name: ({ parentTypeName, fieldName }) => {
-        const capitalizedFieldName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}`;
-        // This will remove the default Query/Mutation prefix from the input type name
-        if (parentTypeName === 'Query' || parentTypeName === 'Mutation') {
-          return `${capitalizedFieldName}Input`;
-        }
+| Option | Purpose |
+| --- | --- |
+| `input` | Map of field names to `t.input.*` definitions. Becomes the generated input type. |
+| `typeOptions` | Options for the generated input type. `name` overrides the type name; other keys (`description`, …) forward to the input object. |
+| `argOptions` | Options for the input argument. `name` renames the argument (and the resolver key); `required` toggles nullability. |
+| `args` | Ordinary arguments declared alongside `input`, outside the generated type. |
 
-        return `${parentTypeName}${capitalizedFieldName}Input`;
-      },
-    },
-  },
-});
-```
+Builder-level `withInput`:
+
+| Option | Purpose |
+| --- | --- |
+| `withInput.typeOptions` | Defaults for every generated input type. `name` accepts a `({ parentTypeName, fieldName }) => string` callback to customize the naming scheme. |
+| `withInput.argOptions` | Defaults for every generated input argument, including `required`. |
+| `WithInputArgRequired` | `SchemaTypes` flag that sets whether input arguments are required by default. Pair it with `withInput.argOptions.required`. |
+
+<Callout type="info">
+  See also: [Input objects](../fundamentals/inputs) for the `t.input` builder and input field options, or [Mutations](../fundamentals/mutations) for the input-argument convention this plugin automates.
+</Callout>
