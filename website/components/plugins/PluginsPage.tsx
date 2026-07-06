@@ -25,8 +25,9 @@ export function PluginsPage() {
         </h1>
         <p className="text-bm-ink-soft leading-[1.5] mt-5 text-[17px] max-w-[640px]">
           {totalPlugins} first-party plugins to wire Pothos into your data layer, your auth model,
-          your tracing stack, and the schema patterns your spec calls for. Every plugin ships with
-          full TypeScript inference and zero runtime overhead beyond what you wire up.
+          your tracing stack, and the schema patterns your spec calls for. Each one extends the
+          builder with new methods and types that stay fully inferred and compose with everything
+          else.
         </p>
       </header>
 

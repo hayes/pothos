@@ -24,10 +24,12 @@ export function HeroBody() {
           Inference, all the way down.
         </h2>
         <p className="text-bm-ink-soft text-[16px] leading-[1.6] mt-0 mb-7">
-          Define a type once. Pothos walks your code and infers the shape of arguments, return
-          types, and context across resolvers. No codegen step, no decorators, no{' '}
+          The types are TypeScript&apos;s own. The builder carries your context, backing models, and
+          scalars through its generics, so every resolver&apos;s arguments, parent, and return type
+          arrive already inferred — checked by the compiler. Nothing scans or reflects over your
+          code; there&apos;s no codegen step and no{' '}
           <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">any</code>{' '}
-          escape hatches.
+          escape hatch.
         </p>
         <StatsRow />
       </div>

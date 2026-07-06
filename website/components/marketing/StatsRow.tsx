@@ -6,11 +6,14 @@ interface Stat {
 }
 
 const STATS: Stat[] = [
-  { value: '0kb', label: 'runtime overhead' },
+  // Every figure here is checkable against the repo, not a performance
+  // claim dressed up as a number.
+  { value: '0', label: 'codegen steps' },
+  // Core's only peer dependency is `graphql` (packages/core/package.json).
+  { value: '1', label: 'peer dependency (graphql)' },
   // Derived from the single source of truth so the stat never drifts from
   // the plugin catalog (/plugins) or the garden's "Browse all N plugins".
   { value: String(PLUGINS.length), label: 'first-party plugins' },
-  { value: '100%', label: 'TS inference, no codegen' },
 ];
 
 /**

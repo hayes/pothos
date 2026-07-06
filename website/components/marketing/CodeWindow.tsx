@@ -25,7 +25,9 @@ export function CodeWindow({ filename, language = 'TypeScript', children }: Prop
           {language}
         </span>
       </div>
-      <div className="px-6 py-5">{children}</div>
+      {/* Long lines (e.g. the objectRef backing-model generic) scroll within
+          the window rather than clipping under its rounded right edge. */}
+      <div className="px-6 py-5 overflow-x-auto">{children}</div>
     </div>
   );
 }

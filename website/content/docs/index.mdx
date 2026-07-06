@@ -1,26 +1,29 @@
 ---
 title: Overview
-description: Pothos is a plugin-based, code-first GraphQL schema builder for TypeScript — type-safe with no codegen and no decorators.
+description: Pothos is a library for building GraphQL schemas in TypeScript, where types flow from your data into every resolver.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 ![Pothos](/assets/logo-name-auto.svg)
 
-Pothos builds a GraphQL schema from TypeScript code. You define types, fields, and resolvers as values; Pothos infers the types and hands you a `GraphQLSchema` for any server. There are no schema files to parse, no decorators, and no code-generation step — the schema is a regular TypeScript module, so your editor's go-to-definition and refactors work across it.
+Pothos is a library for building GraphQL schemas in TypeScript. You define your types, fields, and resolvers with a builder, and the types flow from your data through that builder into every resolver — `parent`, `args`, and `ctx` arrive typed because the builder's generics carry them, not because anything scans your code. You describe the schema once, in TypeScript: no SDL to keep in sync, no decorators, no code-generation step.
 
-The core adds zero runtime overhead and depends only on `graphql`. Everything else — auth, errors, validation, Relay, Prisma, Drizzle — arrives as a plugin that adds methods on the builder and composes with the rest.
+`builder.toSchema()` hands you a standard graphql-js `GraphQLSchema` at startup, so any server — [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server), Apollo — can run it, and your resolvers stay ordinary functions. The heavy lifting happens in the type system and at schema-build time; at request time there's nothing between the client and your resolver. Core depends only on `graphql`. Everything past it — Relay, scope-auth, errors, validation, dataloaders, Prisma, Drizzle, federation — is a plugin that extends the same builder.
 
 <include cwd lang="typescript" meta='playground example="getting-started-first-schema-step-2"'>playground-examples/getting-started-first-schema/step-2/schema.ts#schema</include>
 
-Open the example in the playground to run it, edit the resolver, and watch the SDL update. For the full narrative — how Pothos differs from schema-first tools, what it does and doesn't do, and when to reach for it — read the [Introduction](./getting-started/introduction).
+Open the example in the playground to run it, edit the resolver, and watch the SDL update. For the full narrative — how Pothos compares to schema-first tools, the mental model the rest of the guide assumes, and when to reach for it — read the [Introduction](./getting-started/introduction).
 
-## What sets Pothos apart
+## How it fits together
 
-- **Type-safe without codegen or decorators.** Type inference flows through every resolver; `parent`, `args`, and `ctx` arrive fully typed, and a field can't return a value that doesn't fit its GraphQL type.
-- **A clear split between API and data.** The GraphQL shape clients see stays separate from the backing model your resolvers return.
-- **A cohesive plugin ecosystem.** Plugins interoperate rather than collide — each feels like it was built into the core.
-- **Proven at scale.** Pothos runs from small prototypes to large production schemas, and is in use at companies including Airbnb and Netflix.
+The example above is the whole pipeline in miniature:
+
+- **Your data leads.** The backing model — `{ id: string; name: string }` — is the shape your data already has. `builder.objectRef<T>()` types a GraphQL object by that model, so the schema follows your data instead of the other way around.
+- **Resolvers are typed from it.** `frodo` has to return that shape; return the wrong thing and the file doesn't compile. There's no second type definition to keep in step.
+- **The output is a plain schema.** `builder.toSchema()` produces an ordinary graphql-js `GraphQLSchema`. From there it's just GraphQL — hand it to any server and run it.
+
+Add a plugin and the same builder grows new methods — `t.connection`, `authScopes` on any field, `t.prismaField` — that sit next to the ones you already use and share the same inference. That's the entire model: data → builder → typed resolvers → a standard schema → your server. It runs at scale, too; Pothos is in production at companies including Airbnb and Netflix.
 
 ## Explore the docs
 
