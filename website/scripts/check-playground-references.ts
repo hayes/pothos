@@ -50,7 +50,13 @@ async function extractReferences(file: string): Promise<Reference[]> {
     if (!line.includes('playground')) {
       continue;
     }
-    if (!line.trimStart().startsWith('```')) {
+    // Two forms carry a `playground example="<id>"` reference: a literal
+    // code fence (```ts playground example="…") and a single-sourced
+    // fumadocs `<include>` / `<includeregions>` element whose `meta`
+    // repeats it. Guard both so migrating a fence to an include never
+    // drops it from this CI check.
+    const trimmed = line.trimStart();
+    if (!trimmed.startsWith('```') && !trimmed.startsWith('<include')) {
       continue;
     }
     const match = line.match(/example=["']([^"']+)["']/);

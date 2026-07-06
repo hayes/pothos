@@ -7,65 +7,11 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Object types are the bulk of any GraphQL schema. In Pothos, you declare them with `builder.objectRef` and fill in the fields with `implement`. The same type can be defined a few ways — switch between them below; `objectRef` is the one to reach for first.
 
-```typescript playground example="fundamentals-objects" tab="Object refs"
-interface IRace {
-  id: string;
-  name: string;
-  lifespan: string;
-}
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects" tab="Object refs"'>playground-examples/fundamentals-objects/schema.ts#race-model,race-ref,race-implement</includeregions>
 
-const Race = builder.objectRef<IRace>('Race');
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects-variant-classes" tab="Classes"'>playground-examples/fundamentals-objects/variant-classes/schema.ts#race-class,object-type</includeregions>
 
-Race.implement({
-  description: 'A people of Middle-earth.',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    lifespan: t.exposeString('lifespan'),
-  }),
-});
-```
-
-```typescript playground example="fundamentals-objects-variant-classes" tab="Classes"
-class Race {
-  constructor(
-    public id: string,
-    public name: string,
-    public lifespan: string,
-  ) {}
-}
-
-builder.objectType(Race, {
-  name: 'Race',
-  description: 'A people of Middle-earth.',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    lifespan: t.exposeString('lifespan'),
-  }),
-});
-```
-
-```typescript playground example="fundamentals-objects-variant-builder-types" tab="Builder types"
-interface IRace {
-  id: string;
-  name: string;
-  lifespan: string;
-}
-
-const builder = new SchemaBuilder<{
-  Objects: { Race: IRace };
-}>({});
-
-builder.objectType('Race', {
-  description: 'A people of Middle-earth.',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    lifespan: t.exposeString('lifespan'),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects-variant-builder-types" tab="Builder types"'>playground-examples/fundamentals-objects/variant-builder-types/schema.ts#race-model,builder-init,object-type</includeregions>
 
 The generic argument to `objectRef` — `IRace` here — is the *backing model*. That's the TypeScript shape your resolvers will return and Pothos will hand back to you as `parent` on any field defined under this type. The rest of this page uses the `objectRef` style.
 

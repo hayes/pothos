@@ -47,6 +47,23 @@ function isHiddenFilename(filename: string): boolean {
   return basename.startsWith('_');
 }
 
+// Source files carry VS Code `// #region <name>` / `// #endregion <name>`
+// markers so the docs can single-source fence bodies from them (fumadocs
+// `<include>` + the local remark-multi-region plugin extract named
+// regions at MDX compile time). Those marker comments are a docs concern
+// only — strip them from the bundled file contents so they never surface
+// in the playground editor or the emitted JSON bundles. Removing a whole
+// marker line (never a partial edit) leaves the surrounding code byte-for-
+// byte identical to the pre-marker source. Matches the `//`-comment marker
+// forms fumadocs' extractCodeRegion recognizes (`// #region`, `//#region`,
+// `// region`, and the `endregion` variants).
+function stripRegionMarkers(content: string): string {
+  return content
+    .split('\n')
+    .filter((line) => !/^\s*\/\/\s*#?(?:end)?region\b/.test(line))
+    .join('\n');
+}
+
 interface PlaygroundExample {
   id: string;
   title: string;
@@ -195,7 +212,9 @@ async function buildFlatExample(
     }
 
     const filePath = join(examplePath, filename);
-    const content = await readFile(filePath, 'utf-8');
+    // Strip docs-only `// #region` markers so bundled contents match the
+    // pre-marker source (see stripRegionMarkers).
+    const content = stripRegionMarkers(await readFile(filePath, 'utf-8'));
 
     // `.ts`, `.d.ts`, `.json`, and `.sql` all ship as inline files;
     // the playground's bundler (execution-engine.ts:bundleFiles)

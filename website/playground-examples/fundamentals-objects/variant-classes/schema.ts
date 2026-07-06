@@ -2,6 +2,7 @@ import SchemaBuilder from '@pothos/core';
 
 // A domain class you already keep around for behaviour. Pothos infers
 // the backing model straight from the class — no separate interface.
+// #region race-class
 class Race {
   constructor(
     public id: string,
@@ -9,6 +10,7 @@ class Race {
     public lifespan: string,
   ) {}
 }
+// #endregion race-class
 
 const Races = new Map<string, Race>([
   ['hobbit', new Race('hobbit', 'Hobbit', '~100 years')],
@@ -20,6 +22,7 @@ const builder = new SchemaBuilder({});
 
 // objectType takes the class as its first argument; the class name
 // becomes the GraphQL type name unless you override it with `name`.
+// #region object-type
 builder.objectType(Race, {
   name: 'Race',
   description: 'A people of Middle-earth.',
@@ -29,6 +32,7 @@ builder.objectType(Race, {
     lifespan: t.exposeString('lifespan'),
   }),
 });
+// #endregion object-type
 
 builder.queryType({
   fields: (t) => ({

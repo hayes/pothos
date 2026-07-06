@@ -7,16 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 The Query root is the entry point for every read your clients perform. Pothos offers three ways to attach fields to it; you can mix freely within one schema.
 
-```typescript playground example="fundamentals-queries"
-builder.queryType({
-  fields: (t) => ({
-    races: t.field({
-      type: [Race],
-      resolve: () => Races,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-queries"'>playground-examples/fundamentals-queries/schema.ts#query-type</include>
 
 `queryType` runs exactly once per schema — it creates the `Query` type itself. Even if you plan to add fields piecewise later, call `queryType({})` once to bring `Query` into existence.
 
@@ -24,17 +15,7 @@ builder.queryType({
 
 To keep query fields next to the type they return, use `queryField`:
 
-```typescript
-// In schema/race.ts, alongside the Race type definition:
-builder.queryField('raceById', (t) =>
-  t.field({
-    type: Race,
-    nullable: true,
-    args: { id: t.arg.id({ required: true }) },
-    resolve: (_root, { id }) => Races.find((r) => r.id === String(id)) ?? null,
-  }),
-);
-```
+<include cwd lang="typescript">playground-examples/fundamentals-queries/schema.ts#query-field</include>
 
 This is the most useful pattern in a modular schema: each module owns its type *and* the query entrypoints that return it. See [Project layout](../patterns/project-layout) for the full setup.
 

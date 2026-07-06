@@ -24,6 +24,7 @@ Race.implement({
 
 // queryType defines the Query root and any number of fields on it.
 // Call it exactly once per schema.
+// #region query-type
 builder.queryType({
   fields: (t) => ({
     races: t.field({
@@ -32,10 +33,12 @@ builder.queryType({
     }),
   }),
 });
+// #endregion query-type
 
 // queryField adds a single field to the Query root from anywhere else
 // in your codebase. Use this when you want to colocate query entry
 // points with the type they return.
+// #region query-field
 builder.queryField('raceById', (t) =>
   t.field({
     type: Race,
@@ -44,6 +47,7 @@ builder.queryField('raceById', (t) =>
     resolve: (_root, { id }) => Races.find((r) => r.id === String(id)) ?? null,
   }),
 );
+// #endregion query-field
 
 // queryFields adds several fields in one call. Pick whichever fits the
 // shape of the surrounding module.

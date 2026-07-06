@@ -1,4 +1,3 @@
-import { remarkNpm } from 'fumadocs-core/mdx-plugins';
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 // Shared Pothos syntax themes — the SAME token/palette definitions the
 // playground Monaco editor loads (lib/playground/monaco-theme.ts). Wiring
@@ -7,6 +6,7 @@ import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 // shiki reads `colors` + `tokenColors` and ignores the Monaco-only extras.
 import cuttingLight from './lib/playground/themes/cutting-light.json';
 import forestDark from './lib/playground/themes/forest-dark.json';
+import { remarkMultiRegion } from './lib/remark-multi-region';
 
 export const { docs, meta } = defineDocs({
   dir: 'content/docs',
@@ -19,7 +19,20 @@ export const { docs, meta } = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: [remarkNpm],
+    // Function form so remarkMultiRegion is prepended ahead of the WHOLE
+    // fumadocs preset — critically before `remarkCodeTab`, which merges
+    // consecutive `tab=` code fences. `remarkMultiRegion` must have already
+    // turned `<includeregions>` elements into `code` nodes by the time
+    // `remarkCodeTab` runs, or the object-types variant tabs won't merge.
+    // `v` is the resolved preset plugin list (it still includes remarkNpm),
+    // so npm code blocks keep working without an explicit entry here.
+    // `v` is contextually typed as fumadocs' Pluggable[] by the
+    // ResolvePlugins function-form signature. remarkMultiRegion is a
+    // standard remark plugin factory (returns an mdast transformer), typed
+    // against local mdast shapes in its own module to stay dependency-free
+    // (the `unified` types are not resolvable from the project root), so
+    // bridge it to Pluggable via `v`'s element type at this one boundary.
+    remarkPlugins: (v) => [remarkMultiRegion as unknown as (typeof v)[number], ...v],
     rehypeCodeOptions: {
       themes: {
         // These files are VS Code themes shared with the Monaco editor.

@@ -17,6 +17,16 @@ interface PlaygroundReference {
   codeSnippet: string;
   language?: string;
   queryFile?: string;
+  /**
+   * True when this reference came from a fumadocs `<include>` /
+   * `<includeregions>` element rather than a literal code fence. For these
+   * the displayed body is single-sourced from `schema.ts` at MDX compile
+   * time (see lib/remark-multi-region.ts + the `#region` markers), so there
+   * is no hand-copied snippet to containment-check — the marker extraction
+   * itself is the integrity guarantee. Existence of the referenced example
+   * is still validated below.
+   */
+  isInclude?: boolean;
 }
 
 /**
@@ -78,6 +88,34 @@ function extractPlaygroundReferences(): PlaygroundReference[] {
       // Collect code snippet lines
       if (inCodeBlock) {
         codeSnippet.push(line);
+        continue;
+      }
+
+      // Single-sourced fences: a fumadocs `<include>` / `<includeregions>`
+      // element carrying `playground example="<id>"` in its `meta`. These
+      // replace a literal fence entirely; the body is injected from
+      // schema.ts at compile time, so there is no in-MDX snippet to
+      // containment-check. Capture the reference (so example existence is
+      // still validated) and flag it so the snippet check skips it.
+      //
+      // TODO(single-source migration): once all fences are migrated, drop
+      // the literal-fence snippet extraction above and replace this file's
+      // containment test with a marker-integrity test that resolves every
+      // `<include*>` region against its target file (the deterministic
+      // check the design doc calls for).
+      if (line.includes('<include') && line.includes('playground')) {
+        const exampleMatch = line.match(/example=["']([^"']+)["']/);
+        if (exampleMatch) {
+          const langMatch = line.match(/lang=["']([^"']+)["']/);
+          references.push({
+            file,
+            line: i + 1,
+            exampleId: exampleMatch[1],
+            codeSnippet: '',
+            language: langMatch?.[1],
+            isInclude: true,
+          });
+        }
       }
     }
   }
@@ -312,6 +350,17 @@ describe('Playground Documentation Validation', () => {
       // checked against their resolved schema.ts. Step fences are only
       // existence-checked (a step's doc section often shows a curated
       // fragment that spans siblings), matching prior behaviour.
+      // Single-sourced `<include>` fences have no hand-copied body to
+      // check — the region markers in schema.ts are the source of truth.
+      // Existence of `ref.exampleId` is still enforced by the
+      // "referenced examples available" test above.
+      // TODO(single-source migration): replace this whole containment test
+      // with a marker-integrity test (resolve every included region against
+      // its target file) once the full fence migration lands.
+      if (ref.isInclude) {
+        continue;
+      }
+
       const isVariantRef = /-variant-[a-z0-9-]+$/.test(ref.exampleId);
       const isStepRef = /-step-\d+$/.test(ref.exampleId);
       if (isStepRef) {
