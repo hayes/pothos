@@ -5,7 +5,7 @@ description: Define an object type with objectRef and attach fields via implemen
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Object types are the bulk of any GraphQL schema. In Pothos, you declare them with `builder.objectRef` and fill in the fields with `implement`. The same type can be defined a few ways — switch between them below; `objectRef` is the one to reach for first.
+Object types are the bulk of any GraphQL schema. In Pothos, you declare them with `builder.objectRef` and fill in the fields with `implement`. The same type can be defined a few ways — switch between them below. This guide uses `objectRef`.
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-objects" tab="Object refs"'>playground-examples/fundamentals-objects/schema.ts#race-model,race-ref,race-implement</includeregions>
 
@@ -36,7 +36,7 @@ Faction.implement({
 });
 ```
 
-`objectRef` is also the only way to attach a backing model without registering it on the `SchemaTypes` generic. For most projects that's all you need.
+The ref carries the backing model with it — any field, on any type, can reference `Character` directly without registering anything on the `SchemaTypes` generic. For most projects that's all you need.
 
 ## Returning the type
 
@@ -58,10 +58,10 @@ The resolver must return something that satisfies `IRace`. If your data source a
 
 ## Other styles
 
-The **Classes** and **Builder types** tabs on the first example are the same `Race` schema in Pothos' two older styles. Reach for them only when you need the specific affordance:
+The **Classes** and **Builder types** tabs on the first example define the same `Race` schema two other ways. All three are fully supported — pick whichever fits a given type:
 
-- **Class-backed types.** `builder.objectType(MyClass, { ... })` infers the backing model from a TypeScript class. Useful if you already keep domain classes around for behavior.
-- **SchemaTypes-named types.** Register the type on the `Objects` generic, then refer to it by name as a string: `t.field({ type: 'Race', ... })`. The Prisma and Drizzle plugins lean on this so they can wire type names to ORM model names.
+- **Class-backed types.** `builder.objectType(MyClass, { ... })` infers the backing model from a TypeScript class. A great fit when you already have classes representing your data. The class also doubles as a runtime value, so you can `instanceof`-check it — that makes it a natural way to resolve interfaces and unions, where an `isTypeOf: (value) => value instanceof MyClass` tells Pothos which member a value is.
+- **SchemaTypes-named types.** Register the type on the `Objects` generic, then refer to it by name as a string: `t.field({ type: 'Race', ... })`. This centralizes your type definitions so any field can reference them by name.
 
 Both interoperate with `objectRef` — pick whichever fits a given type and mix freely.
 

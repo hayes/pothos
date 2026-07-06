@@ -1,11 +1,11 @@
 ---
 title: Fields
-description: Expose properties, return lists, mark fields nullable, and compute values from the backing object.
+description: How to add fields to an object type and control what each one returns.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Fields go inside the `fields:` function of any `implement` call. The argument `t` is a builder whose methods produce field definitions: `t.exposeString`, `t.int`, `t.field`, and so on.
+`implement` takes an object type's options — `fields` among them — while the type's name and backing model are set when you create the ref. So a type's fields live in the `fields` function you pass to `implement`. The argument `t` is a builder whose methods produce field definitions: `t.exposeString`, `t.int`, `t.field`, and so on.
 
 <include cwd lang="typescript" meta='playground example="fundamentals-fields"'>playground-examples/fundamentals-fields/schema.ts#character-fields</include>
 

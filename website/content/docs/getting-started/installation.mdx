@@ -13,7 +13,7 @@ Pothos ships as a small core package plus optional plugins. Install the core, en
 npm install --save @pothos/core graphql
 ```
 
-`@pothos/core` is the only Pothos package most projects need. Plugins live in their own packages (`@pothos/plugin-errors`, `@pothos/plugin-scope-auth`, …) and you add them as you need them. `graphql` is the peer dependency Pothos builds on.
+`@pothos/core` is the only Pothos package most projects need. Plugins live in their own packages (`@pothos/plugin-errors`, `@pothos/plugin-scope-auth`, …) and you add them as you need them. Pothos has a single peer dependency: `graphql`.
 
 ## TypeScript settings
 
@@ -27,7 +27,7 @@ Pothos relies on `strict` mode for the inference that makes the rest of this gui
 }
 ```
 
-Without `strict`, types like `string | undefined` collapse to `string`, and Pothos's `required`/`nullable` machinery breaks down. The package won't refuse to compile, but the guarantees stop holding.
+Without `strict`, types like `string | undefined` collapse to `string`, and Pothos's `required`/`nullable` machinery breaks down. Nullable fields and optional arguments then look identical to required ones, so those checks quietly pass on code that would fail at runtime. Pothos flags this directly — its builder options require a `notStrict` acknowledgement when strict mode is off.
 
 ## An empty builder
 

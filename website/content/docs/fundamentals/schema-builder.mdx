@@ -6,7 +6,7 @@ description: Configure the SchemaBuilder generic with Context, plugins, and defa
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
-Every Pothos schema starts with a `SchemaBuilder`. The generic argument describes the shape of your request context, any plugins you've loaded, and a handful of project-wide defaults. The constructor argument carries the runtime config that has to match the generic.
+Every Pothos schema starts with a `SchemaBuilder`. The generic argument describes the shape of your request context, any plugins you've loaded, and a handful of project-wide defaults. The constructor argument carries the runtime options — the plugins you load and any settings those features need.
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-schema-builder"'>playground-examples/fundamentals-schema-builder/schema.ts#imports,context-type,builder-init</includeregions>
 
@@ -22,7 +22,7 @@ The generic parameter is a single object that mixes type-only configuration with
 - `Objects`, `Interfaces` — register backing models for types referenced by name as a string. The `objectRef` pattern in [Object types](./objects) is the more common choice.
 - Plugin-specific slots like `DrizzleRelations`, `AuthScopes`, `PrismaTypes` — each plugin documents what it expects.
 
-The generic is type-only. The constructor's options bag is where any matching runtime configuration goes, and Pothos's types enforce that the two stay in sync.
+The generic is type-only. The constructor's options bag holds the runtime configuration — mostly `plugins`, plus the option keys individual plugins and features add. Where a generic entry has a runtime counterpart (like `DefaultFieldNullability`), Pothos's types make you set both consistently; most entries, such as `Context` or `Objects`, are purely type-level and need nothing in the constructor.
 
 ## With and without plugins
 
@@ -71,14 +71,13 @@ interface ICharacter { id: string; name: string }
 const Character = builder.objectRef<ICharacter>('Character');
 
 // Pattern 2: Register on the SchemaTypes generic. Lets you reference
-// the type by name as a string. Useful when a plugin needs a name to
-// hang behavior on (e.g. Prisma model names).
+// the type by name as a string, keeping your type definitions in one place.
 const builder = new SchemaBuilder<{
   Objects: { Character: ICharacter };
 }>({});
 ```
 
-The two patterns coexist. Most pages in this guide use `objectRef` because it keeps the type and its definition side by side. The Prisma and Drizzle plugins lean on the SchemaTypes form so they can match GraphQL type names to ORM model names.
+The two patterns coexist. Most pages in this guide use `objectRef` because it keeps the type and its definition side by side. Registering on the generic instead centralizes your type definitions so any field can refer to them by name.
 
 ## Finalizing the schema
 
