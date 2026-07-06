@@ -29,6 +29,7 @@ builder.queryType({
   }),
 });
 
+// #region character-added-subscription
 builder.subscriptionType({
   fields: (t) => ({
     characterAdded: t.string({
@@ -38,5 +39,6 @@ builder.subscriptionType({
     }),
   }),
 });
+// #endregion character-added-subscription
 
 export const schema = builder.toSchema();

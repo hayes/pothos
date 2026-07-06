@@ -51,10 +51,14 @@ builder.queryType({
   }),
 });
 
+// #region print-schema-export
 export const schema = builder.toSchema();
+// #endregion print-schema-export
 
 // The playground sandbox has no filesystem, but `printSchema` and
 // `lexicographicSortSchema` are the same two calls the "Printing to a
 // file" doc wires into a package.json script — only the destination
 // changes. Open the console panel to see the sorted SDL.
+// #region print-schema-log
 console.log(printSchema(lexicographicSortSchema(schema)));
+// #endregion print-schema-log

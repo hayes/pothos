@@ -7,25 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Fields go inside the `fields:` function of any `implement` call. The argument `t` is a builder whose methods produce field definitions: `t.exposeString`, `t.int`, `t.field`, and so on.
 
-```typescript playground example="fundamentals-fields"
-Character.implement({
-  fields: (t) => ({
-    // exposeX maps directly to a property on the backing object.
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-
-    // Lists, nullable, and renamed exposes all live in the options arg.
-    titles: t.exposeStringList('titles'),
-    shireAddress: t.exposeString('shireAddress', { nullable: true }),
-
-    // Computed fields use the same t.<scalar>() shape but with a
-    // resolve function. parent is the backing object.
-    ageInYears: t.int({
-      resolve: (parent) => new Date().getFullYear() - parent.birthYear,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-fields"'>playground-examples/fundamentals-fields/schema.ts#character-fields</include>
 
 ## Exposing properties
 

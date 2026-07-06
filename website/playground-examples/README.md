@@ -1,6 +1,6 @@
 # Playground Examples
 
-Interactive examples for the Pothos Playground, organized by category with support for code snippets and multi-step tutorials.
+Interactive examples for the Pothos Playground, organized by category with support for single-sourced doc snippets and multi-step tutorials.
 
 ## Quick Start
 
@@ -38,35 +38,38 @@ pnpm build-examples
 ## Features
 
 - **📂 Multi-file examples** - Multiple TypeScript files become tabs
-- **🔍 Code snippets** - Link to specific line ranges from docs
+- **🔍 Single-sourced docs** - `// #region` markers let docs embed exact, always-in-sync slices of a bundle's source
 - **📚 Categories** - Organized learning paths
 - **🎯 Difficulty levels** - Beginner, intermediate, advanced
 - **📝 Multi-step tutorials** - Progressive examples
 - **🔗 Documentation links** - Connect examples to guides
 
-## Example with Snippets
+## Single-sourcing docs from a bundle
 
-```json
-{
-  "id": "example-id",
-  "title": "Example Title",
-  "category": "core",
-  "subcategory": "getting-started",
-  "difficulty": "beginner",
-  "order": 1,
-  "snippets": [
-    {
-      "label": "Creating ObjectRef",
-      "filename": "schema.ts",
-      "startLine": 11,
-      "endLine": 12,
-      "description": "Type-safe reference to GraphQL type"
-    }
-  ]
-}
+Docs no longer hand-copy code out of a bundle. Instead, a bundle's source
+file marks named slices with VS Code `// #region <name>` … `// #endregion
+<name>` comments, and the docs pull them in at MDX compile time. The build
+strips these marker comments from the emitted bundle, so they never show up
+in the playground editor.
+
+```ts
+// schema.ts
+// #region race-ref
+const Race = builder.objectRef<IRace>('Race');
+// #endregion race-ref
 ```
 
-Link from docs: `/playground?example=example-id&snippet=0`
+Embed one contiguous region with fumadocs `<include>`, or stitch several
+non-adjacent regions with the local `<includeregions>` element:
+
+```mdx
+<include cwd lang="typescript" meta='playground example="fundamentals-objects"'>playground-examples/fundamentals-objects/schema.ts#race-ref</include>
+
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects"'>playground-examples/fundamentals-objects/schema.ts#race-model,race-ref,race-implement</includeregions>
+```
+
+The `tests/playground-docs-validation.test.ts` suite resolves every region
+against its target file, so a renamed or deleted marker fails CI.
 
 ## Multi-step tutorials
 

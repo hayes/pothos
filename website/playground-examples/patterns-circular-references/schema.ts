@@ -27,6 +27,7 @@ const builder = new SchemaBuilder({});
 // objectRef declares the type up front; implement comes later. This
 // lets Character.field reference Faction and vice versa without TS
 // or Pothos tripping over a circular import.
+// #region circular-refs
 const Character = builder.objectRef<ICharacter>('Character');
 const Faction = builder.objectRef<IFaction>('Faction');
 
@@ -51,6 +52,7 @@ Faction.implement({
     }),
   }),
 });
+// #endregion circular-refs
 
 builder.queryType({
   fields: (t) => ({

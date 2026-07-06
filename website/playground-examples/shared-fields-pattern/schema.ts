@@ -49,6 +49,7 @@ builder.scalarType('DateTime', {
 // a helper can add the same fields to any ref whose backing model
 // satisfies the constraint. Team and Player never redeclare `id` or
 // `createdAt` themselves.
+// #region add-audit-fields
 function addAuditFields<
   Refs extends readonly ObjectRef<TypesWithDefaults, { id: string; createdAt: Date }>[],
 >(refs: Refs) {
@@ -73,6 +74,7 @@ const Player = builder.objectRef<IPlayer>('Player').implement({
 });
 
 addAuditFields([Team, Player]);
+// #endregion add-audit-fields
 
 builder.queryType({
   fields: (t) => ({

@@ -27,29 +27,7 @@ const builder = new SchemaBuilder({
 
 Pass `add` when constructing the builder to fold existing types into the schema at build time. `add.schema` imports every type in a `GraphQLSchema`; `add.types` imports a specific list. Either way, any type reachable through a field, interface, or union member is imported recursively — you don't have to enumerate dependencies.
 
-```typescript playground example="add-graphql-plugin"
-const legacySchema = new GraphQLSchema({ types: [LegacyTeam] });
-
-// Registering Team on the Objects generic lets you reference it by name.
-const builder = new SchemaBuilder<{
-  Objects: { Team: ITeam };
-}>({
-  plugins: [AddGraphQLPlugin],
-  add: {
-    // Import every type in the schema; dependencies come along recursively.
-    schema: legacySchema,
-  },
-});
-
-builder.queryType({
-  fields: (t) => ({
-    teams: t.field({
-      type: ['Team'],
-      resolve: () => [...Teams.values()],
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="add-graphql-plugin"'>playground-examples/add-graphql-plugin/step-1/schema.ts#schema-import</include>
 
 `add.types` accepts an array of `GraphQLNamedType` — objects, interfaces, unions, enums, scalars, and input objects all qualify — or a name-keyed record of the same:
 
@@ -76,34 +54,7 @@ Imported types have to be *referenced* to be useful. Register them on the builde
 
 The `addGraphQL` methods import one type and return a ref — an `ObjectRef`, `InterfaceRef`, and so on — that behaves exactly like a ref you built from scratch. Use it as a field's `type`, and customize the imported type on the way in. Passing a generic `Shape` is recommended: it types the ref's backing model so resolvers stay checked.
 
-```typescript playground example="add-graphql-plugin-step-2"
-// addGraphQLInput returns an InputObjectRef you can hang on any arg.
-const PlayerFilter = builder.addGraphQLInput<{ position?: 'HANDLER' | 'CUTTER' }>(LegacyPlayerFilter);
-
-// addGraphQLObject returns an ObjectRef. Customize fields as you import:
-// null drops a field, and new entries are merged in alongside the rest.
-const Player = builder.addGraphQLObject<IPlayer>(LegacyPlayer, {
-  fields: (t) => ({
-    fullName: null,
-    displayName: t.exposeString('fullName'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    players: t.field({
-      type: [Player],
-      args: {
-        filter: t.arg({ type: PlayerFilter }),
-      },
-      resolve: (_parent, { filter }) =>
-        [...Players.values()].filter(
-          (player) => !filter?.position || player.position === filter.position,
-        ),
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="add-graphql-plugin-step-2"'>playground-examples/add-graphql-plugin/step-2/schema.ts#refs</include>
 
 The `fields` shape works like a patch over the imported type: return `null` for a field to drop it, return a field ref to add or replace one, and every field you don't mention is imported unchanged. Everything else Pothos can carry over — description, deprecation reasons, `isTypeOf`/`resolveType`, extensions, default values, and `isOneOf` on inputs — comes across automatically from the source type.
 

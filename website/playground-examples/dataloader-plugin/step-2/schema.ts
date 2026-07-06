@@ -34,6 +34,7 @@ const Player = builder.objectRef<IPlayer>('Player').implement({
   }),
 });
 
+// #region team
 const Team = builder.loadableObject('Team', {
   load: async (ids: string[]) => {
     console.log('loading teams', ids);
@@ -55,6 +56,7 @@ const Team = builder.loadableObject('Team', {
     }),
   }),
 });
+// #endregion team
 
 builder.queryType({
   fields: (t) => ({

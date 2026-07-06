@@ -6,6 +6,7 @@ const builder = new SchemaBuilder({
 });
 
 // A simple object infers its backing model from the fields you declare.
+// #region team-stats
 const TeamStats = builder.simpleObject('TeamStats', {
   fields: (t) => ({
     wins: t.int({ nullable: false }),
@@ -13,15 +14,19 @@ const TeamStats = builder.simpleObject('TeamStats', {
     pointDiff: t.int({ nullable: true }),
   }),
 });
+// #endregion team-stats
 
 // A simple interface needs no separate backing type either.
+// #region node
 const Node = builder.simpleInterface('Node', {
   fields: (t) => ({
     id: t.id({ nullable: false }),
   }),
 });
+// #endregion node
 
 // A simple object that implements an interface and adds a computed field.
+// #region standing
 const Standing = builder.simpleObject(
   'Standing',
   {
@@ -38,6 +43,7 @@ const Standing = builder.simpleObject(
     }),
   }),
 );
+// #endregion standing
 
 builder.queryType({
   fields: (t) => ({

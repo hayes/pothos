@@ -14,11 +14,13 @@ const Races: IRace[] = [
 // Pothos defaults fields to nullable. To flip them all to non-nullable
 // you set the generic AND the matching runtime option — both have to
 // agree so the SDL and TypeScript inference stay in sync.
+// #region default-nullability-builder
 const builder = new SchemaBuilder<{
   DefaultFieldNullability: false;
 }>({
   defaultFieldNullability: false,
 });
+// #endregion default-nullability-builder
 
 const Race = builder.objectRef<IRace>('Race').implement({
   fields: (t) => ({

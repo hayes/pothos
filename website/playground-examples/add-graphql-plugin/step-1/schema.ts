@@ -40,6 +40,7 @@ const LegacyTeam = new GraphQLObjectType<ITeam>({
   }),
 });
 
+// #region schema-import
 const legacySchema = new GraphQLSchema({ types: [LegacyTeam] });
 
 // Registering Team on the Objects generic lets you reference it by name.
@@ -61,5 +62,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion schema-import
 
 export const schema = builder.toSchema();

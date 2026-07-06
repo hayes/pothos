@@ -21,6 +21,7 @@ const Characters: ICharacter[] = [
   { id: 'legolas', name: 'Legolas', raceId: 'elf' },
 ];
 
+// #region single-file
 const builder = new SchemaBuilder({});
 
 const Race = builder.objectRef<IRace>('Race').implement({
@@ -43,3 +44,4 @@ builder.queryType({
 });
 
 export const schema = builder.toSchema();
+// #endregion single-file

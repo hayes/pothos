@@ -7,27 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 GraphQL ships with five built-in scalars — `ID`, `String`, `Int`, `Float`, `Boolean` — and Pothos exposes each through `t.exposeID`, `t.exposeString`, and friends, or as scalar field builders like `t.int({ ... })`. Most schemas need at least one more, usually `DateTime`.
 
-```typescript playground example="fundamentals-scalars"
-const builder = new SchemaBuilder<{
-  Scalars: {
-    DateTime: { Input: Date; Output: Date };
-  };
-}>({});
-
-builder.scalarType('DateTime', {
-  serialize: (value) => value.toISOString(),
-  parseValue: (value) => {
-    if (typeof value !== 'string') {
-      throw new Error('DateTime must be an ISO 8601 string');
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      throw new Error('Invalid DateTime');
-    }
-    return date;
-  },
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-scalars"'>playground-examples/fundamentals-scalars/schema.ts#datetime-scalar</include>
 
 `Scalars` on the builder generic declares the name and the Input/Output shapes that resolvers will see. `scalarType` provides the runtime implementation. Both have to agree.
 

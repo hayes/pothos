@@ -11,23 +11,7 @@ Error handling in Pothos has three layers, each adding control over what the cli
 
 A resolver that throws produces `null` for the field and one entry in the response's `errors` array. The thrown message reaches the client unless your server masks it.
 
-```typescript playground example="patterns-handling-errors-step-1"
-builder.queryType({
-  fields: (t) => ({
-    team: t.field({
-      type: Team,
-      args: { id: t.arg.id({ required: true }) },
-      resolve: (_root, { id }) => {
-        const team = Teams.get(Number(id));
-        if (!team) {
-          throw new Error(`No team with id ${id}`);
-        }
-        return team;
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="patterns-handling-errors-step-1"'>playground-examples/patterns-handling-errors/step-1/schema.ts#throw-from-resolver</include>
 
 For a non-nullable field, the error propagates upward until it hits a nullable ancestor — that ancestor becomes null and the error is logged once. This is GraphQL's standard behavior, not anything Pothos-specific.
 

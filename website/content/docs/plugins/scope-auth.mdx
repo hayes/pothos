@@ -9,26 +9,7 @@ Authorization in Pothos lives on the schema, not scattered through resolvers. Th
 
 You define the scopes once on the builder, then require them wherever they matter:
 
-```typescript playground example="scope-auth-plugin"
-Team.implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    // Only signed-in members see the standings.
-    wins: t.exposeInt('wins', {
-      authScopes: {
-        member: true,
-      },
-    }),
-    // Scouting reports are staff-only.
-    scoutingReport: t.exposeString('scoutingReport', {
-      authScopes: {
-        staff: true,
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="scope-auth-plugin"'>playground-examples/scope-auth-plugin/schema.ts#team-implement</include>
 
 Open the example and empty the **Context** tab: `wins` and `scoutingReport` now fail while `id` and `name` still resolve. The plugin is general-purpose — nothing here assumes a particular auth philosophy, so the same machinery drives role-based, permission-based, or ownership-based schemes.
 

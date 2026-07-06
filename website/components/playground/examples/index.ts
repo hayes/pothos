@@ -11,7 +11,7 @@
 import type { PlaygroundExample } from '../types';
 import { exampleIds as generatedExampleIds } from './examples-index.generated';
 
-export type { CodeSnippet, ExampleMetadata, Step, Variant } from './examples-index.generated';
+export type { ExampleMetadata, Step, Variant } from './examples-index.generated';
 // Re-export auto-generated example IDs and metadata
 export {
   exampleIds,

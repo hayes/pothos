@@ -1,3 +1,4 @@
+// #region builder-and-team
 import SchemaBuilder from '@pothos/core';
 import DirectivePlugin from '@pothos/plugin-directives';
 
@@ -41,7 +42,9 @@ Team.implement({
     name: t.exposeString('name'),
   }),
 });
+// #endregion builder-and-team
 
+// #region root-types
 builder.queryType({
   fields: (t) => ({
     teams: t.field({
@@ -75,5 +78,6 @@ builder.mutationType({
     }),
   }),
 });
+// #endregion root-types
 
 export const schema = builder.toSchema();

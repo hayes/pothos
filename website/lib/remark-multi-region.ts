@@ -110,7 +110,7 @@ function dedent(lines: string[]): string {
     : lines.map((l) => l.slice(minIndent)).join('\n');
 }
 
-function extractCodeRegion(content: string, regionName: string): string {
+export function extractCodeRegion(content: string, regionName: string): string {
   const lines = content.split('\n');
   for (let i = 0; i < lines.length; i++) {
     for (const re of REGION_MARKERS) {
@@ -145,6 +145,31 @@ function extractCodeRegion(content: string, regionName: string): string {
     }
   }
   throw new Error(`Region "${regionName}" not found`);
+}
+
+/**
+ * Split an include specifier (`path/to/file.ts#a,b,c`) into its file path
+ * and its (possibly empty) list of region names. A specifier with no `#`
+ * resolves to the whole file (no regions). Shared with the docs-validation
+ * test so the two stay in lock-step with what the remark plugin actually
+ * resolves at MDX compile time.
+ */
+export function parseRegionSpecifier(specifier: string): {
+  relativePath: string;
+  regionNames: string[];
+} {
+  const trimmed = specifier.trim();
+  const hashIdx = trimmed.lastIndexOf('#');
+  const relativePath = hashIdx === -1 ? trimmed : trimmed.slice(0, hashIdx);
+  const regionNames =
+    hashIdx === -1
+      ? []
+      : trimmed
+          .slice(hashIdx + 1)
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean);
+  return { relativePath, regionNames };
 }
 
 // ---------------------------------------------------------------------------
@@ -254,16 +279,7 @@ export function remarkMultiRegion() {
         }
         const attrs = parseAttributes(element);
 
-        const hashIdx = specifier.lastIndexOf('#');
-        const relativePath = hashIdx === -1 ? specifier : specifier.slice(0, hashIdx);
-        const regionNames =
-          hashIdx === -1
-            ? []
-            : specifier
-                .slice(hashIdx + 1)
-                .split(',')
-                .map((name) => name.trim())
-                .filter(Boolean);
+        const { relativePath, regionNames } = parseRegionSpecifier(specifier);
 
         // `cwd` attribute resolves the path from the collection root
         // (file.cwd = website/), matching remark-include's convention.

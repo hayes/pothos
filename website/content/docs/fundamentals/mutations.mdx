@@ -7,40 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Mutations are queries that change state. The API mirrors [Queries](./queries) — `mutationType`, `mutationField`, `mutationFields` — but the patterns inside change. A typical mutation takes an input object, checks the request context, performs the change, and returns the updated entity.
 
-```typescript playground example="fundamentals-mutations"
-builder.mutationType({
-  fields: (t) => ({
-    updateCharacter: t.field({
-      type: Character,
-      args: {
-        input: t.arg({
-          type: builder.inputType('UpdateCharacterInput', {
-            fields: (t) => ({
-              characterId: t.id({ required: true }),
-              biography: t.string({ required: true }),
-            }),
-          }),
-          required: true,
-        }),
-      },
-      resolve: (_root, { input }, ctx) => {
-        if (!ctx.user) {
-          throw new Error('Not signed in');
-        }
-        const entry = Characters.get(Number(input.characterId));
-        if (!entry) {
-          throw new Error(`No character with id ${input.characterId}`);
-        }
-        if (entry.editorId !== ctx.user.id) {
-          throw new Error("Only the entry's editor can edit it");
-        }
-        entry.biography = input.biography;
-        return entry;
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-mutations"'>playground-examples/fundamentals-mutations/schema.ts#update-character-mutation</include>
 
 Four things are doing real work here. The input groups the mutation's two values into one named type. The first auth check narrows `ctx.user` from `{ id: number } | undefined` to `{ id: number }`. The lookup throws if the target doesn't exist. The permission check throws if the user isn't allowed to change *this* particular row.
 

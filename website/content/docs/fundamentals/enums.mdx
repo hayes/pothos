@@ -7,12 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 The lightest way to declare an enum is the array form: an array of string literals marked `as const`, and Pothos handles the rest.
 
-```typescript playground example="fundamentals-enums"
-const Alignment = builder.enumType('Alignment', {
-  description: "A faction's moral leaning.",
-  values: ['Good', 'Neutral', 'Evil'] as const,
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-enums"'>playground-examples/fundamentals-enums/schema.ts#alignment-enum</include>
 
 The `as const` matters — without it Pothos infers `string[]` and you lose the literal-union type that makes the rest of the schema fit together.
 

@@ -47,6 +47,7 @@ const builder = new SchemaBuilder({
   plugins: [AddGraphQLPlugin],
 });
 
+// #region refs
 // addGraphQLInput returns an InputObjectRef you can hang on any arg.
 const PlayerFilter = builder.addGraphQLInput<{ position?: 'HANDLER' | 'CUTTER' }>(LegacyPlayerFilter);
 
@@ -73,5 +74,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion refs
 
 export const schema = builder.toSchema();

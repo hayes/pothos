@@ -18,6 +18,7 @@ const Team = builder.objectRef<ITeam>('Team').implement({
   }),
 });
 
+// #region throw-from-resolver
 builder.queryType({
   fields: (t) => ({
     team: t.field({
@@ -34,5 +35,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion throw-from-resolver
 
 export const schema = builder.toSchema();

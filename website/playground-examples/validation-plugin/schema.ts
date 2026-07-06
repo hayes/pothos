@@ -24,6 +24,7 @@ const Player = builder.objectRef<IPlayer>('Player').implement({
   }),
 });
 
+// #region register-mutation
 builder.mutationType({
   fields: (t) => ({
     registerPlayer: t.field({
@@ -57,7 +58,9 @@ builder.mutationType({
     }),
   }),
 });
+// #endregion register-mutation
 
+// #region signup-input
 const signUpRules = z
   .object({ email: z.string(), jersey: z.number(), backupJersey: z.number() })
   .refine((input: { jersey: number; backupJersey: number }) => input.jersey !== input.backupJersey, {
@@ -75,6 +78,7 @@ const SignUp = builder.inputType('SignUp', {
   }),
   validate: signUpRules,
 });
+// #endregion signup-input
 
 builder.queryType({
   fields: (t) => ({

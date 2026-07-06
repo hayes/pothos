@@ -1,6 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 
+// #region builder-setup
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
   errors: {
@@ -8,6 +9,7 @@ const builder = new SchemaBuilder({
     // onResolvedError: (error) => console.error('Handled error:', error),
   },
 });
+// #endregion builder-setup
 
 interface ITeam {
   id: number;
@@ -20,6 +22,7 @@ const Teams = new Map<number, ITeam>([
   [3, { id: 3, name: 'Vertex' }],
 ]);
 
+// #region error-body
 const Team = builder.objectRef<ITeam>('Team').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -54,5 +57,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion error-body
 
 export const schema = builder.toSchema();

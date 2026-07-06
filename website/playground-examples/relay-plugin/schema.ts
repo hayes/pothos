@@ -1,3 +1,4 @@
+// #region relay-setup
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin, { resolveArrayConnection } from '@pothos/plugin-relay';
 
@@ -5,6 +6,7 @@ const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relay: {},
 });
+// #endregion relay-setup
 
 interface ITeam {
   id: string;
@@ -45,6 +47,7 @@ builder.node(Team, {
     name: t.exposeString('name'),
     city: t.exposeString('city'),
     // A connection paginates a list under one field.
+    // #region players-connection
     players: t.connection({
       type: Player,
       resolve: (team, args) =>
@@ -53,6 +56,7 @@ builder.node(Team, {
           [...Players.values()].filter((player) => player.teamId === team.id),
         ),
     }),
+    // #endregion players-connection
   }),
 });
 

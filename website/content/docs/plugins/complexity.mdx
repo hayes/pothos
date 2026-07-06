@@ -17,20 +17,7 @@ npm install --save @pothos/plugin-complexity
 
 Register the plugin and pass a `complexity` option to the builder. `limit` sets the three ceilings a query must stay under; `defaultComplexity` and `defaultListMultiplier` set the baseline cost every field starts from.
 
-```typescript playground example="complexity-plugin-step-1"
-const builder = new SchemaBuilder({
-  plugins: [ComplexityPlugin],
-  complexity: {
-    defaultComplexity: 1,
-    defaultListMultiplier: 10,
-    limit: {
-      complexity: 100,
-      depth: 5,
-      breadth: 30,
-    },
-  },
-});
-```
+<include cwd lang="typescript" meta='playground example="complexity-plugin-step-1"'>playground-examples/complexity-plugin/step-1/schema.ts#builder</include>
 
 The three limits guard against different shapes of abuse:
 
@@ -93,41 +80,15 @@ That's over the `complexity` limit of 100, so the plugin throws before resolving
 
 The defaults treat every field the same, but real fields have real costs. Set a `complexity` option on any field to override its baseline. It takes three forms:
 
-```typescript playground example="complexity-plugin-step-2"
-// A flat base cost for an expensive aggregate; its list sub-selections
-// still use the default multiplier of 10.
-leaderboard: t.field({
-  type: [Player],
-  complexity: 20,
-  resolve: () => [...Players.values()],
-}),
-```
+<include cwd lang="typescript" meta='playground example="complexity-plugin-step-2"'>playground-examples/complexity-plugin/step-2/schema.ts#leaderboard</include>
 
 A plain number sets the field's own cost. To override the multiplier applied to its sub-selections as well, pass an object with `field` and `multiplier`:
 
-```typescript
-// A roster is cheap to load once the team is in memory: override both the
-// field cost and the default list multiplier of 10 with hand-tuned values.
-roster: t.field({
-  type: [Player],
-  complexity: { field: 2, multiplier: 5 },
-  resolve: (team) => [...Players.values()].filter((p) => p.teamId === team.id),
-}),
-```
+<include cwd lang="typescript">playground-examples/complexity-plugin/step-2/schema.ts#roster</include>
 
 `complexity` can also be a function of the field's arguments and the context, so a field that returns more rows costs more:
 
-```typescript
-// Cost scales with how many rows the caller asks for.
-players: t.field({
-  type: [Player],
-  args: {
-    first: t.arg.int(),
-  },
-  complexity: (args) => ({ field: 5, multiplier: args.first ?? 5 }),
-  resolve: (_parent, { first }) => [...Players.values()].slice(0, first ?? undefined),
-}),
-```
+<include cwd lang="typescript">playground-examples/complexity-plugin/step-2/schema.ts#players</include>
 
 To change the baseline for *every* field at once, set `fieldComplexity` on the builder — a function `(args, ctx, field) => number | { field, multiplier }` that runs for any field without its own `complexity` option. When it's set, `defaultComplexity` and `defaultListMultiplier` are ignored.
 

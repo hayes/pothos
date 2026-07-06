@@ -1,152 +1,190 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { globSync } from 'glob';
 import { describe, expect, it } from 'vitest';
+import { extractCodeRegion, parseRegionSpecifier } from '../lib/remark-multi-region';
 
-const DOCS_DIR = join(__dirname, '../content/docs');
-const EXAMPLES_DIR = join(__dirname, '../playground-examples');
+const WEBSITE_ROOT = join(__dirname, '..');
+const DOCS_DIR = join(WEBSITE_ROOT, 'content/docs');
+const EXAMPLES_DIR = join(WEBSITE_ROOT, 'playground-examples');
 const EXAMPLES_INDEX = join(
-  __dirname,
-  '../components/playground/examples/examples-index.generated.ts',
+  WEBSITE_ROOT,
+  'components/playground/examples/examples-index.generated.ts',
 );
 
-interface PlaygroundReference {
+// ---------------------------------------------------------------------------
+// The single-source migration replaced most literal `playground` code fences
+// with fumadocs `<include>` / local `<includeregions>` elements that pull the
+// displayed body straight out of a bundle's `schema.ts` at MDX compile time
+// (see lib/remark-multi-region.ts + the `// #region` markers). This test is
+// the deterministic guardrail the design doc called for: it resolves EVERY
+// include's target file + named regions with the exact same extraction logic
+// the remark plugins use, so a typo'd region name or a marker deleted from a
+// bundle fails here instead of only at `next build`.
+//
+// A small, enumerated set of fences is deliberately kept literal — each one
+// recomposes code that cannot exist as a single contiguous region in the
+// bundle (a curated subset, a multi-file project layout, or a bundle whose
+// schema.ts carries no region markers). Those keep the legacy containment
+// check (the schema must still contain the shown code) and are pinned by an
+// allowlist below so no NEW un-migrated literal fence can slip in unnoticed.
+// ---------------------------------------------------------------------------
+
+interface LiteralFence {
   file: string;
   line: number;
   exampleId: string;
   codeSnippet: string;
   language?: string;
   queryFile?: string;
-  /**
-   * True when this reference came from a fumadocs `<include>` /
-   * `<includeregions>` element rather than a literal code fence. For these
-   * the displayed body is single-sourced from `schema.ts` at MDX compile
-   * time (see lib/remark-multi-region.ts + the `#region` markers), so there
-   * is no hand-copied snippet to containment-check — the marker extraction
-   * itself is the integrity guarantee. Existence of the referenced example
-   * is still validated below.
-   */
-  isInclude?: boolean;
+}
+
+interface IncludeReference {
+  file: string;
+  line: number;
+  /** `include` (single region) or `includeregions` (comma-separated). */
+  tag: 'include' | 'includeregions';
+  /** Absolute path of the referenced target file. */
+  targetPath: string;
+  /** Region names to extract (empty = whole-file include). */
+  regionNames: string[];
+  /** exampleId parsed from the element's `meta`, if present. */
+  exampleId?: string;
+  /** Raw specifier text, for diagnostics. */
+  specifier: string;
 }
 
 /**
- * Extract all playground references from MDX files
+ * Extract literal ```lang playground example="…"``` code fences.
+ *
+ * Line-based on purpose: it must NOT descend into `<include>` bodies (those
+ * carry no literal fence) and must tolerate the doc-of-the-feature fences in
+ * playground.mdx. Fences without an `example=` (bare syntax demos) are
+ * skipped — there is nothing to existence- or containment-check.
  */
-function extractPlaygroundReferences(): PlaygroundReference[] {
+function extractLiteralFences(): LiteralFence[] {
   const mdxFiles = globSync('**/*.mdx', { cwd: DOCS_DIR });
-  const references: PlaygroundReference[] = [];
+  const fences: LiteralFence[] = [];
 
   for (const file of mdxFiles) {
-    const fullPath = join(DOCS_DIR, file);
-    const content = readFileSync(fullPath, 'utf-8');
+    const content = readFileSync(join(DOCS_DIR, file), 'utf-8');
     const lines = content.split('\n');
 
     let inCodeBlock = false;
-    let currentExampleId: string | null = null;
-    let currentLanguage: string | undefined;
-    let currentQueryFile: string | undefined;
+    let exampleId: string | null = null;
+    let language: string | undefined;
+    let queryFile: string | undefined;
     let codeBlockStart = -1;
-    let codeSnippet: string[] = [];
+    let snippet: string[] = [];
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Check for code block with playground example
-      const codeBlockMatch = line.match(
+      const open = line.match(
         /^```(\w+)?\s+playground\s+example="([^"]+)"(?:\s+queryFile="([^"]+)")?/,
       );
-      if (codeBlockMatch) {
+      if (open) {
         inCodeBlock = true;
-        currentLanguage = codeBlockMatch[1];
-        currentExampleId = codeBlockMatch[2];
-        currentQueryFile = codeBlockMatch[3];
+        language = open[1];
+        exampleId = open[2];
+        queryFile = open[3];
         codeBlockStart = i + 1;
-        codeSnippet = [];
+        snippet = [];
         continue;
       }
 
-      // Check for end of code block
       if (inCodeBlock && line.trim() === '```') {
-        if (currentExampleId) {
-          references.push({
+        if (exampleId) {
+          fences.push({
             file,
             line: codeBlockStart,
-            exampleId: currentExampleId,
-            codeSnippet: codeSnippet.join('\n').trim(),
-            language: currentLanguage,
-            queryFile: currentQueryFile,
+            exampleId,
+            codeSnippet: snippet.join('\n').trim(),
+            language,
+            queryFile,
           });
         }
         inCodeBlock = false;
-        currentExampleId = null;
-        currentLanguage = undefined;
-        currentQueryFile = undefined;
-        codeSnippet = [];
+        exampleId = null;
+        language = undefined;
+        queryFile = undefined;
+        snippet = [];
         continue;
       }
 
-      // Collect code snippet lines
       if (inCodeBlock) {
-        codeSnippet.push(line);
-        continue;
-      }
-
-      // Single-sourced fences: a fumadocs `<include>` / `<includeregions>`
-      // element carrying `playground example="<id>"` in its `meta`. These
-      // replace a literal fence entirely; the body is injected from
-      // schema.ts at compile time, so there is no in-MDX snippet to
-      // containment-check. Capture the reference (so example existence is
-      // still validated) and flag it so the snippet check skips it.
-      //
-      // TODO(single-source migration): once all fences are migrated, drop
-      // the literal-fence snippet extraction above and replace this file's
-      // containment test with a marker-integrity test that resolves every
-      // `<include*>` region against its target file (the deterministic
-      // check the design doc calls for).
-      if (line.includes('<include') && line.includes('playground')) {
-        const exampleMatch = line.match(/example=["']([^"']+)["']/);
-        if (exampleMatch) {
-          const langMatch = line.match(/lang=["']([^"']+)["']/);
-          references.push({
-            file,
-            line: i + 1,
-            exampleId: exampleMatch[1],
-            codeSnippet: '',
-            language: langMatch?.[1],
-            isInclude: true,
-          });
-        }
+        snippet.push(line);
       }
     }
   }
 
-  return references;
+  return fences;
 }
 
 /**
- * Get all available example IDs from the examples directory
+ * Extract every `<include>` / `<includeregions>` element from the docs and
+ * resolve its target path + region list exactly as the remark plugins do:
+ *   - `cwd` attribute -> path is relative to the website/ collection root
+ *     (fumadocs' `file.cwd`); otherwise relative to the MDX file's directory
+ *     (fumadocs' `file.dirname`).
+ *   - `path#a,b,c` splits into a file path and region names via the shared
+ *     `parseRegionSpecifier` helper.
+ * A DOTALL regex is used so multi-line include forms are matched too.
  */
+function extractIncludeReferences(): IncludeReference[] {
+  const mdxFiles = globSync('**/*.mdx', { cwd: DOCS_DIR });
+  const refs: IncludeReference[] = [];
+  // <include …>spec</include> and <includeregions …>spec</includeregions>.
+  // The `\1` backreference keeps the two tag names from cross-matching, and
+  // `[\s\S]*?` spans newlines for multi-line authoring.
+  const tagRe = /<(include|includeregions)\b([^>]*)>([\s\S]*?)<\/\1>/g;
+
+  for (const file of mdxFiles) {
+    const fullPath = join(DOCS_DIR, file);
+    const content = readFileSync(fullPath, 'utf-8');
+
+    for (const match of content.matchAll(tagRe)) {
+      const [full, tag, attrs, body] = match;
+      const specifier = body.trim();
+      if (!specifier) {
+        continue;
+      }
+      const line = content.slice(0, match.index ?? 0).split('\n').length;
+      const hasCwd = /(^|\s)cwd(\s|=|$)/.test(attrs);
+      const base = hasCwd ? WEBSITE_ROOT : dirname(fullPath);
+      const { relativePath, regionNames } = parseRegionSpecifier(specifier);
+      const exampleMatch = attrs.match(/example=["']([^"']+)["']/);
+
+      refs.push({
+        file,
+        line,
+        tag: tag as 'include' | 'includeregions',
+        targetPath: resolve(base, relativePath),
+        regionNames,
+        exampleId: exampleMatch?.[1],
+        specifier,
+      });
+      void full;
+    }
+  }
+
+  return refs;
+}
+
 function getAvailableExamples(): Set<string> {
   try {
     const dirs = readdirSync(EXAMPLES_DIR, { withFileTypes: true });
     return new Set(dirs.filter((d) => d.isDirectory()).map((d) => d.name));
-  } catch (_error) {
+  } catch {
     return new Set();
   }
 }
 
 /**
  * Resolve whether a referenced example ID has a real bundle backing it.
- *
- * Bundles are either flat (e.g. `playground-examples/01-first-schema/`)
- * or multi-step (e.g. `playground-examples/errors-plugin/step-1/`). The
- * build script (scripts/build-playground-examples.ts) emits a per-step
- * JSON bundle at `<bundle-id>-step-<N>.json`, and the runtime loader
- * (components/playground/examples/index.ts) fetches bundles by exactly
- * that ID - so a doc reference to `<bundle-id>-step-<N>` is valid even
- * though no top-level directory exists with that literal name; it
- * resolves to the matching `step-<N>` subdirectory of the bundle. This
- * mirrors the resolution logic in scripts/check-playground-references.ts.
+ * A `-step-N` suffix resolves to that step subdirectory, a `-variant-<slug>`
+ * suffix to that variant subdirectory; otherwise it must be a top-level
+ * directory. Mirrors scripts/check-playground-references.ts.
  */
 function exampleReferenceExists(id: string, availableExamples: Set<string>): boolean {
   if (availableExamples.has(id)) {
@@ -183,19 +221,15 @@ function exampleReferenceExists(id: string, availableExamples: Set<string>): boo
 }
 
 /**
- * Read example schema file content. Examples with step subdirectories
- * (e.g. errors-plugin/step-1/schema.ts) don't carry a top-level
- * schema.ts, so we fall back to scanning step-* directories in order.
+ * Read example schema file content for a literal-fence containment check.
+ * Variant/step ids resolve to their own subdirectory; a flat id reads its
+ * top-level schema.ts.
  */
 function getExampleSchemaContent(exampleId: string): string {
-  // A literal top-level directory always wins, so a flat example whose id
-  // happens to end in `-variant-<slug>` or `-step-<N>` resolves to itself
-  // (mirrors exampleReferenceExists and check-playground-references.ts).
   if (existsSync(join(EXAMPLES_DIR, exampleId, 'schema.ts'))) {
     return readFileSync(join(EXAMPLES_DIR, exampleId, 'schema.ts'), 'utf-8');
   }
 
-  // Variant fences validate against their own variant-<slug>/schema.ts.
   const variantMatch = exampleId.match(/^(.+)-variant-([a-z0-9-]+)$/);
   if (variantMatch) {
     const [, base, slug] = variantMatch;
@@ -206,7 +240,6 @@ function getExampleSchemaContent(exampleId: string): string {
     }
   }
 
-  // Step fences validate against their own step-<N>/schema.ts.
   const stepMatch = exampleId.match(/^(.+)-step-(\d+)$/);
   if (stepMatch) {
     const [, base, stepNumber] = stepMatch;
@@ -217,41 +250,12 @@ function getExampleSchemaContent(exampleId: string): string {
     }
   }
 
-  try {
-    const schemaPath = join(EXAMPLES_DIR, exampleId, 'schema.ts');
-    return readFileSync(schemaPath, 'utf-8');
-  } catch {
-    // Stepped example: aggregate every step's schema.ts so a doc
-    // snippet that lives in any step still validates.
-    try {
-      const entries = readdirSync(join(EXAMPLES_DIR, exampleId), { withFileTypes: true });
-      const stepDirs = entries
-        .filter((e) => e.isDirectory() && e.name.startsWith('step-'))
-        .map((e) => e.name)
-        .sort((a, b) => a.localeCompare(b));
-      const parts: string[] = [];
-      for (const dir of stepDirs) {
-        try {
-          parts.push(readFileSync(join(EXAMPLES_DIR, exampleId, dir, 'schema.ts'), 'utf-8'));
-        } catch {
-          /* ignore */
-        }
-      }
-      return parts.join('\n');
-    } catch {
-      return '';
-    }
-  }
+  return '';
 }
 
-/**
- * Read example query file content. Like the schema reader above, this
- * falls back to step-* subdirectories for stepped examples.
- */
 function getExampleQueryContent(exampleId: string, queryFile: string): string {
   try {
-    const queryPath = join(EXAMPLES_DIR, exampleId, `${queryFile}.graphql`);
-    return readFileSync(queryPath, 'utf-8');
+    return readFileSync(join(EXAMPLES_DIR, exampleId, `${queryFile}.graphql`), 'utf-8');
   } catch {
     try {
       const entries = readdirSync(join(EXAMPLES_DIR, exampleId), { withFileTypes: true });
@@ -273,111 +277,206 @@ function getExampleQueryContent(exampleId: string, queryFile: string): string {
   }
 }
 
-/**
- * Normalize code for comparison (remove extra whitespace, comments)
- */
 function normalizeCode(code: string): string {
-  return (
-    code
-      // Remove single-line comments
-      .replace(/\/\/.*$/gm, '')
-      // Remove multi-line comments
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      // Normalize whitespace
-      .replace(/\s+/g, ' ')
-      .trim()
-  );
+  return code
+    .replace(/\/\/.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-/**
- * Check if the example schema contains the code snippet
- */
 function schemaContainsSnippet(schemaContent: string, snippet: string): boolean {
   const normalizedSchema = normalizeCode(schemaContent);
   const normalizedSnippet = normalizeCode(snippet);
 
-  // For very short snippets (< 20 chars), require exact match
   if (normalizedSnippet.length < 20) {
     return normalizedSchema.includes(normalizedSnippet);
   }
 
-  // For longer snippets, check if major code structures are present
-  // Split into statements and check if most are present
   const snippetStatements = normalizedSnippet
     .split(/[;{}]/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 10); // Ignore very short statements
+    .filter((s) => s.length > 10);
 
   if (snippetStatements.length === 0) {
     return normalizedSchema.includes(normalizedSnippet);
   }
 
-  // Check if at least 80% of statements are present
-  const matchingStatements = snippetStatements.filter((stmt) => normalizedSchema.includes(stmt));
-
-  return matchingStatements.length >= snippetStatements.length * 0.8;
+  const matching = snippetStatements.filter((stmt) => normalizedSchema.includes(stmt));
+  return matching.length >= snippetStatements.length * 0.8;
 }
 
+// ---------------------------------------------------------------------------
+// Deliberately-literal fences. Keyed by docs-relative MDX path -> the multiset
+// of exampleIds still authored as literal `playground` fences on that page.
+// Every entry recomposes code that cannot be single-sourced as one contiguous
+// region from the bundle. The test asserts the ACTUAL literal fences are a
+// SUBSET of this allowlist (so migrating one away — fewer literals — stays
+// green under concurrent edits, but adding an un-migrated fence fails).
+//
+// playground.mdx is exempt entirely: it is the page that documents the fence
+// syntax itself, so its literal fences are illustrative, not real embeds.
+// ---------------------------------------------------------------------------
+const META_DOC = 'playground.mdx';
+
+const LITERAL_FENCE_ALLOWLIST: Record<string, string[]> = {
+  // Minimal `queryType` shown with a single `characterCount` field; the real
+  // bundle's Query root carries several more fields, so no single region
+  // reproduces this curated teaching subset.
+  'fundamentals/resolvers.mdx': ['fundamentals-resolvers'],
+  // The `timestampInputs` helper is shown with an explicit
+  // `InputFieldBuilder<…>` annotation for teaching; the runnable bundle omits
+  // it, so the shown form is a recomposition, not a slice.
+  'patterns/reusable-fields.mdx': ['reusable-input-pattern'],
+  // Four curated `fieldWithInput` excerpts that each drop the interface/Map
+  // boilerplate between the shown statements. The bundle's schema.ts carries
+  // no region markers; single-sourcing would require re-cutting the page.
+  'plugins/with-input.mdx': [
+    'with-input-plugin',
+    'with-input-plugin',
+    'with-input-plugin',
+    'with-input-plugin',
+  ],
+  // A `players`/`nodes` connection excerpt authored between two migrated
+  // includes; the shown block interleaves helper code not contiguous in the
+  // bundle.
+  'plugins/relay.mdx': ['relay-plugin'],
+  // A multi-FILE project layout (builder.ts + race.ts + …) shown as adjacent
+  // fences. It cannot be one region of one schema.ts by construction.
+  'patterns/project-layout.mdx': ['patterns-project-layout-step-2'],
+  // The server.ts wiring for step 2; server.ts ships no region markers and the
+  // fence shows essentially the whole file, kept literal by the section.
+  'getting-started/first-server.mdx': ['getting-started-first-server-step-2'],
+};
+
 describe('Playground Documentation Validation', () => {
-  const references = extractPlaygroundReferences();
+  const literalFences = extractLiteralFences();
+  const includeRefs = extractIncludeReferences();
   const availableExamples = getAvailableExamples();
 
   it('should find playground references in documentation', () => {
-    expect(references.length).toBeGreaterThan(0);
-    console.log(`Found ${references.length} playground references in documentation`);
+    const total = literalFences.length + includeRefs.length;
+    expect(total).toBeGreaterThan(0);
+    console.log(
+      `Found ${literalFences.length} literal playground fence(s) and ${includeRefs.length} include element(s) in documentation`,
+    );
   });
 
   it('should have all referenced examples available', () => {
-    const missingExamples = references.filter(
-      (ref) => !exampleReferenceExists(ref.exampleId, availableExamples),
-    );
+    const withExample = [
+      ...literalFences.map((f) => ({ file: f.file, line: f.line, id: f.exampleId })),
+      ...includeRefs
+        .filter((r) => r.exampleId)
+        .map((r) => ({ file: r.file, line: r.line, id: r.exampleId as string })),
+    ];
 
-    if (missingExamples.length > 0) {
-      const details = missingExamples.map(
-        (ref) => `  - ${ref.file}:${ref.line} references missing example "${ref.exampleId}"`,
+    const missing = withExample.filter((ref) => !exampleReferenceExists(ref.id, availableExamples));
+
+    if (missing.length > 0) {
+      const details = missing.map(
+        (ref) => `  - ${ref.file}:${ref.line} references missing example "${ref.id}"`,
       );
       throw new Error(
-        `Found ${missingExamples.length} references to missing examples:\n${details.join('\n')}`,
+        `Found ${missing.length} references to missing examples:\n${details.join('\n')}`,
       );
     }
   });
 
-  it('should have example schemas that contain the referenced code snippets', () => {
+  it('should resolve every <include>/<includeregions> target file and named region', () => {
+    expect(includeRefs.length).toBeGreaterThan(0);
+
     const failures: string[] = [];
 
-    for (const ref of references) {
-      // Base examples and definition-style variants are containment
-      // checked against their resolved schema.ts. Step fences are only
-      // existence-checked (a step's doc section often shows a curated
-      // fragment that spans siblings), matching prior behaviour.
-      // Single-sourced `<include>` fences have no hand-copied body to
-      // check — the region markers in schema.ts are the source of truth.
-      // Existence of `ref.exampleId` is still enforced by the
-      // "referenced examples available" test above.
-      // TODO(single-source migration): replace this whole containment test
-      // with a marker-integrity test (resolve every included region against
-      // its target file) once the full fence migration lands.
-      if (ref.isInclude) {
+    for (const ref of includeRefs) {
+      if (!existsSync(ref.targetPath)) {
+        failures.push(
+          `  - ${ref.file}:${ref.line} <${ref.tag}> target file not found: ${ref.specifier}`,
+        );
         continue;
       }
 
+      const content = readFileSync(ref.targetPath, 'utf-8');
+      for (const region of ref.regionNames) {
+        try {
+          extractCodeRegion(content, region);
+        } catch {
+          failures.push(
+            `  - ${ref.file}:${ref.line} <${ref.tag}> region "${region}" does not resolve in ${ref.specifier}`,
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(
+        `Found ${failures.length} unresolved include reference(s):\n${failures.join('\n')}`,
+      );
+    }
+  });
+
+  it('should keep every remaining literal playground fence inside the deliberate allowlist', () => {
+    // Any literal `playground example="…"` fence outside playground.mdx must be
+    // accounted for in LITERAL_FENCE_ALLOWLIST. Compare as multisets so a
+    // second literal fence for the same example on a page is caught too.
+    const allowedCounts = new Map<string, number>();
+    for (const [file, ids] of Object.entries(LITERAL_FENCE_ALLOWLIST)) {
+      for (const id of ids) {
+        const key = `${file}::${id}`;
+        allowedCounts.set(key, (allowedCounts.get(key) ?? 0) + 1);
+      }
+    }
+
+    const actualCounts = new Map<string, { count: number; line: number }>();
+    for (const fence of literalFences) {
+      if (fence.file === META_DOC) {
+        continue;
+      }
+      const key = `${fence.file}::${fence.exampleId}`;
+      const prev = actualCounts.get(key);
+      actualCounts.set(key, { count: (prev?.count ?? 0) + 1, line: prev?.line ?? fence.line });
+    }
+
+    const violations: string[] = [];
+    for (const [key, { count, line }] of actualCounts) {
+      const allowed = allowedCounts.get(key) ?? 0;
+      if (count > allowed) {
+        const [file, id] = key.split('::');
+        violations.push(
+          `  - ${file}:${line} has ${count} literal fence(s) for "${id}" but only ${allowed} allowlisted. ` +
+            'Migrate it to <include>/<includeregions> or add it to LITERAL_FENCE_ALLOWLIST with a reason.',
+        );
+      }
+    }
+
+    if (violations.length > 0) {
+      throw new Error(
+        `Found ${violations.length} un-allowlisted literal playground fence(s):\n${violations.join('\n')}`,
+      );
+    }
+  });
+
+  it('should have example schemas that contain the referenced literal snippets', () => {
+    const failures: string[] = [];
+
+    for (const ref of literalFences) {
+      // Step fences show curated fragments that can span sibling steps, so
+      // (matching prior behaviour) they are existence-checked only, not
+      // containment-checked.
       const isVariantRef = /-variant-[a-z0-9-]+$/.test(ref.exampleId);
       const isStepRef = /-step-\d+$/.test(ref.exampleId);
       if (isStepRef) {
         continue;
       }
       if (!isVariantRef && !availableExamples.has(ref.exampleId)) {
-        continue; // Skip if example doesn't exist (covered by previous test)
+        continue; // existence covered above
       }
       if (isVariantRef && !exampleReferenceExists(ref.exampleId, availableExamples)) {
         continue;
       }
 
-      // Determine if this is a GraphQL or TypeScript code block
       const isGraphQL = ref.language === 'graphql' || ref.language === 'gql';
 
       if (isGraphQL && ref.queryFile) {
-        // Validate GraphQL code against query file
         const queryContent = getExampleQueryContent(ref.exampleId, ref.queryFile);
         if (!queryContent) {
           failures.push(
@@ -385,14 +484,12 @@ describe('Playground Documentation Validation', () => {
           );
           continue;
         }
-
         if (!schemaContainsSnippet(queryContent, ref.codeSnippet)) {
           failures.push(
-            `  - ${ref.file}:${ref.line} example "${ref.exampleId}" query file "${ref.queryFile}.graphql" doesn't contain the referenced code snippet`,
+            `  - ${ref.file}:${ref.line} example "${ref.exampleId}" query file "${ref.queryFile}.graphql" doesn't contain the referenced snippet`,
           );
         }
       } else {
-        // Validate TypeScript code against schema.ts
         const schemaContent = getExampleSchemaContent(ref.exampleId);
         if (!schemaContent) {
           failures.push(
@@ -400,10 +497,9 @@ describe('Playground Documentation Validation', () => {
           );
           continue;
         }
-
         if (!schemaContainsSnippet(schemaContent, ref.codeSnippet)) {
           failures.push(
-            `  - ${ref.file}:${ref.line} example "${ref.exampleId}" schema doesn't contain the referenced code snippet`,
+            `  - ${ref.file}:${ref.line} example "${ref.exampleId}" schema doesn't contain the referenced snippet`,
           );
         }
       }
@@ -422,7 +518,6 @@ describe('Playground Documentation Validation', () => {
       try {
         const metadata = JSON.parse(readFileSync(metadataPath, 'utf-8'));
 
-        // Check required fields
         if (!metadata.id) {
           failures.push(`  - ${exampleId}/metadata.json: missing "id" field`);
         }
@@ -491,15 +586,13 @@ describe('Playground Documentation Validation', () => {
     const failures: string[] = [];
 
     function docExists(docPath: string): boolean {
-      // Strip leading /docs/ so we resolve under content/docs/
       const trimmed = docPath.replace(/^\/+/, '').replace(/^docs\//, '');
       const base = join(DOCS_DIR, trimmed);
-      // Accept either a flat .mdx file or an index.mdx in a directory.
       try {
         readFileSync(`${base}.mdx`, 'utf-8');
         return true;
       } catch {
-        // fall through
+        /* fall through */
       }
       try {
         readFileSync(join(base, 'index.mdx'), 'utf-8');
@@ -552,7 +645,6 @@ describe('Playground Documentation Validation', () => {
   });
 
   it('should list all examples by category and order', () => {
-    // This test documents the current example structure
     const examplesByCategory: Record<string, string[]> = {};
 
     for (const exampleId of Array.from(availableExamples)) {
@@ -560,17 +652,12 @@ describe('Playground Documentation Validation', () => {
       try {
         const metadata = JSON.parse(readFileSync(metadataPath, 'utf-8'));
         const category = metadata.category || 'uncategorized';
-
-        if (!examplesByCategory[category]) {
-          examplesByCategory[category] = [];
-        }
-        examplesByCategory[category].push(exampleId);
+        (examplesByCategory[category] ??= []).push(exampleId);
       } catch {
         // Skip invalid metadata
       }
     }
 
-    // Sort by order within each category
     for (const category in examplesByCategory) {
       examplesByCategory[category].sort((a, b) => {
         try {
@@ -595,16 +682,14 @@ describe('Playground Documentation Validation', () => {
       }
     }
 
-    // Verify we have core examples
     expect(examplesByCategory.core).toBeDefined();
     expect(examplesByCategory.core.length).toBeGreaterThan(0);
   });
 
   it.skip('should have valid GraphQL queries that work against their schemas', () => {
-    // TODO: This test requires compiling TypeScript schemas in Node.js environment
-    // The playground compiler uses esbuild-wasm which is browser-only
-    // Schema compilation and type checking is already covered by other tests
-    // Query validation happens at runtime in the playground
+    // Requires compiling TypeScript schemas in Node; the playground compiler
+    // uses esbuild-wasm which is browser-only. Query validation happens at
+    // runtime in the playground.
     expect(true).toBe(true);
   });
 });

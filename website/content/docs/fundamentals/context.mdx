@@ -7,28 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 The context is whatever your server attaches to each request. Every resolver receives it as the third argument. Pothos infers its shape from the `Context` slot of the builder generic, so the type travels through your entire schema for free.
 
-```typescript playground example="fundamentals-context"
-interface Context {
-  viewer?: { id: number };
-  db: {
-    characters: { find: (id: number) => ICharacter | null };
-  };
-}
-
-const builder = new SchemaBuilder<{
-  Context: Context;
-}>({});
-
-builder.queryType({
-  fields: (t) => ({
-    me: t.field({
-      type: Character,
-      nullable: true,
-      resolve: (_root, _args, ctx) => (ctx.viewer ? ctx.db.characters.find(ctx.viewer.id) : null),
-    }),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-context"'>playground-examples/fundamentals-context/schema.ts#context-type,builder-init,me-query</includeregions>
 
 `ctx.viewer` is `{ id: number } | undefined` everywhere in the schema — no casts, no helpers, no per-resolver type imports.
 

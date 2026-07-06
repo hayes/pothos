@@ -75,19 +75,7 @@ This split is why you can return database rows, ORM models, or plain objects fro
 
 A resolver that throws produces a `null` value for that field and an entry in the response's `errors` array. The thrown message reaches the client unless your server masks it.
 
-```typescript
-characterById: t.field({
-  type: Character,
-  args: { id: t.arg.id({ required: true }) },
-  resolve: (_root, { id }) => {
-    const character = Characters.get(String(id));
-    if (!character) {
-      throw new Error(`No character with id ${id}`);
-    }
-    return character;
-  },
-}),
-```
+<include cwd lang="typescript">playground-examples/fundamentals-resolvers/schema.ts#character-by-id-field</include>
 
 For non-nullable fields, a thrown error propagates up: the closest nullable ancestor (or the operation root) becomes null and the error is recorded. That's GraphQL's default behavior, not Pothos-specific. See [Handling errors](../patterns/handling-errors) for masking, logging, and when to graduate to `plugin-errors` for typed result unions.
 

@@ -28,6 +28,7 @@ const builder = new SchemaBuilder({});
 
 const Character = builder.objectRef<ICharacter>('Character');
 
+// #region character-fields
 Character.implement({
   fields: (t) => ({
     // exposeX maps directly to a property on the backing object.
@@ -46,6 +47,7 @@ Character.implement({
     }),
   }),
 });
+// #endregion character-fields
 
 builder.queryType({
   fields: (t) => ({

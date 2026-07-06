@@ -8,17 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 Every Pothos schema starts with a `SchemaBuilder`. The generic argument describes the shape of your request context, any plugins you've loaded, and a handful of project-wide defaults. The constructor argument carries the runtime config that has to match the generic.
 
-```typescript playground example="fundamentals-schema-builder"
-import SchemaBuilder from '@pothos/core';
-
-interface Context {
-  userId?: string;
-}
-
-const builder = new SchemaBuilder<{
-  Context: Context;
-}>({});
-```
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-schema-builder"'>playground-examples/fundamentals-schema-builder/schema.ts#imports,context-type,builder-init</includeregions>
 
 Everything else in this guide — object types, fields, queries, mutations — hangs off this builder. You typically create exactly one per schema and export it from a shared module.
 

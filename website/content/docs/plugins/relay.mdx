@@ -17,15 +17,7 @@ npm install --save @pothos/plugin-relay
 
 Register the plugin and pass a `relay` options object — empty is fine to start.
 
-```typescript playground example="relay-plugin"
-import SchemaBuilder from '@pothos/core';
-import RelayPlugin, { resolveArrayConnection } from '@pothos/plugin-relay';
-
-const builder = new SchemaBuilder({
-  plugins: [RelayPlugin],
-  relay: {},
-});
-```
+<include cwd lang="typescript" meta='playground example="relay-plugin"'>playground-examples/relay-plugin/schema.ts#relay-setup</include>
 
 <Callout type="info">
   The builder key is `relay`. Older versions used `relayOptions`; that name is only accepted in v3-compatibility mode — new code should use `relay`.
@@ -211,16 +203,7 @@ builder.queryFields((t) => ({
 
 `t.connection` defines a cursor-paginated field. It creates the `Connection` and `Edge` object types, adds the `before`, `after`, `first`, and `last` arguments, and creates `PageInfo` the first time it's used. Here a team exposes its roster:
 
-```typescript playground example="relay-plugin"
-players: t.connection({
-  type: Player,
-  resolve: (team, args) =>
-    resolveArrayConnection(
-      { args },
-      [...Players.values()].filter((player) => player.teamId === team.id),
-    ),
-}),
-```
+<include cwd lang="typescript" meta='playground example="relay-plugin"'>playground-examples/relay-plugin/schema.ts#players-connection</include>
 
 The full form takes two extra option objects — one for the `Connection` type, one for the `Edge` type — for naming and adding fields:
 

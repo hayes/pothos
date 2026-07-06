@@ -19,44 +19,7 @@ npm install --save dataloader @pothos/plugin-dataloader
 
 `builder.loadableObject` defines an object type whose backing rows are fetched through a dataloader. `load` receives the ids collected across the whole query; fields resolving to that type return an id and the plugin does the fetching.
 
-```typescript playground example="dataloader-plugin"
-import DataloaderPlugin from '@pothos/plugin-dataloader';
-
-const builder = new SchemaBuilder({
-  plugins: [DataloaderPlugin],
-});
-
-const Player = builder.loadableObject('Player', {
-  // Called once per request with every id the query touched. Return one result
-  // per id, in the same order — an Error in a slot fails just that player.
-  load: async (ids: string[]) => {
-    console.log('loading players', ids);
-    return ids.map((id) => players.get(id) ?? new Error(`No player ${id}`));
-  },
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    number: t.exposeInt('number'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    // Return the id; the loader turns it into a Player.
-    player: t.field({
-      type: Player,
-      args: { id: t.arg.string({ required: true }) },
-      resolve: (_root, args) => args.id,
-    }),
-    // A list of ids batches into a single load call.
-    roster: t.field({
-      type: [Player],
-      args: { ids: t.arg.stringList({ required: true }) },
-      resolve: (_root, args) => args.ids,
-    }),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="dataloader-plugin"'>playground-examples/dataloader-plugin/step-1/schema.ts#setup,player,query</includeregions>
 
 Annotate the `ids` parameter (and `context`, if you use it) — Pothos reads the load function's types to constrain what resolvers for this type may return. A resolver can return a `string`, `number`, or `bigint` key, and the loader fetches it. Return the full object instead and Pothos detects that it isn't a key and skips the loader — useful when you already have the record in hand. Lists may mix the two: `[...ids, alreadyLoadedPlayer]` resolves the keys through the loader and passes the object straight through.
 
@@ -68,29 +31,7 @@ Annotate the `ids` parameter (and `context`, if you use it) — Pothos reads the
 
 The N+1 payoff comes from relations. A one-to-many like a team's roster is a `loadableGroup` field: `load` runs once with every parent id in the query and returns a flat list, and `group` sorts each row back to the parent it belongs to.
 
-```typescript playground example="dataloader-plugin-step-2"
-const Team = builder.loadableObject('Team', {
-  load: async (ids: string[]) => {
-    console.log('loading teams', ids);
-    return ids.map((id) => teams.get(id) ?? new Error(`No team ${id}`));
-  },
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    // One load call fetches the roster for every team in the query at once.
-    // `load` returns a flat list; `group` sorts each player back to its team.
-    players: t.loadableGroup({
-      type: Player,
-      load: async (teamIds: string[]) => {
-        console.log('loading rosters', teamIds);
-        return players.filter((player) => teamIds.includes(player.teamId));
-      },
-      group: (player: IPlayer) => player.teamId,
-      resolve: (team: ITeam) => team.id,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="dataloader-plugin-step-2"'>playground-examples/dataloader-plugin/step-2/schema.ts#team</include>
 
 `loadableGroup` is the one to reach for when your query returns a flat list — group-by is cheaper than nesting. If your data source already returns a list *per* parent (a `Player[][]`, one array per id, in id order), use `loadableList` instead:
 

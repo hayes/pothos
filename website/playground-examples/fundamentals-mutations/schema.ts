@@ -38,6 +38,7 @@ builder.queryType({
   }),
 });
 
+// #region update-character-mutation
 builder.mutationType({
   fields: (t) => ({
     updateCharacter: t.field({
@@ -70,5 +71,6 @@ builder.mutationType({
     }),
   }),
 });
+// #endregion update-character-mutation
 
 export const schema = builder.toSchema();

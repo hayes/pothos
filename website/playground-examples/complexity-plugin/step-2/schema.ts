@@ -49,6 +49,7 @@ const Team = builder.objectRef<ITeam>('Team').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
+    // #region roster
     // A roster is cheap to load once the team is in memory: override both the
     // field cost and the default list multiplier of 10 with hand-tuned values.
     roster: t.field({
@@ -56,6 +57,7 @@ const Team = builder.objectRef<ITeam>('Team').implement({
       complexity: { field: 2, multiplier: 5 },
       resolve: (team) => [...Players.values()].filter((p) => p.teamId === team.id),
     }),
+    // #endregion roster
   }),
 });
 
@@ -65,6 +67,7 @@ builder.queryType({
       type: [Team],
       resolve: () => [...Teams.values()],
     }),
+    // #region leaderboard
     // A flat base cost for an expensive aggregate; its list sub-selections
     // still use the default multiplier of 10.
     leaderboard: t.field({
@@ -72,6 +75,8 @@ builder.queryType({
       complexity: 20,
       resolve: () => [...Players.values()],
     }),
+    // #endregion leaderboard
+    // #region players
     // Cost scales with how many rows the caller asks for.
     players: t.field({
       type: [Player],
@@ -81,6 +86,7 @@ builder.queryType({
       complexity: (args) => ({ field: 5, multiplier: args.first ?? 5 }),
       resolve: (_parent, { first }) => [...Players.values()].slice(0, first ?? undefined),
     }),
+    // #endregion players
   }),
 });
 

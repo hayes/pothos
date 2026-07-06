@@ -39,6 +39,7 @@ builder.queryType({
 
     // Throwing resolver: errors propagate as null for the field and
     // an entry in the response's `errors` array.
+    // #region character-by-id-field
     characterById: t.field({
       type: Character,
       args: { id: t.arg.id({ required: true }) },
@@ -50,6 +51,7 @@ builder.queryType({
         return character;
       },
     }),
+    // #endregion character-by-id-field
   }),
 });
 

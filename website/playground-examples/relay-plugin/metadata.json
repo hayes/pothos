@@ -8,28 +8,5 @@
   "order": 15,
   "tags": ["relay", "connections", "pagination", "global-ids", "node"],
   "relatedDocs": ["/docs/plugins/relay"],
-  "prerequisites": ["getting-started-first-schema", "fundamentals-interfaces"],
-  "snippets": [
-    {
-      "label": "Setup",
-      "filename": "schema.ts",
-      "startLine": 1,
-      "endLine": 7,
-      "description": "Register the relay plugin on the builder"
-    },
-    {
-      "label": "Node",
-      "filename": "schema.ts",
-      "startLine": 37,
-      "endLine": 57,
-      "description": "Turn Team into a Node with a global id and loaders"
-    },
-    {
-      "label": "Connection",
-      "filename": "schema.ts",
-      "startLine": 48,
-      "endLine": 55,
-      "description": "Paginate a team's roster with t.connection"
-    }
-  ]
+  "prerequisites": ["getting-started-first-schema", "fundamentals-interfaces"]
 }

@@ -17,44 +17,7 @@ npm install --save @pothos/plugin-sub-graph
 
 Register the plugin, declare your sub-graph names on the `SubGraphs` generic, then set defaults on the builder. `defaultForTypes` puts every type into those sub-graphs unless it says otherwise, and `fieldsInheritFromTypes` makes a field default to its parent type's membership. Individual fields and types opt out with their own `subGraphs` array.
 
-```typescript playground example="sub-graph-plugin"
-const builder = new SchemaBuilder<{
-  SubGraphs: 'Public' | 'Internal';
-}>({
-  plugins: [SubGraphPlugin],
-  subGraphs: {
-    // A type with no subGraphs of its own belongs to every sub-graph.
-    defaultForTypes: ['Public', 'Internal'],
-    // A field with no subGraphs inherits its parent type's membership.
-    fieldsInheritFromTypes: true,
-  },
-});
-
-// The whole Player type lives only in the Internal graph.
-const Player = builder.objectRef<IPlayer>('Player').implement({
-  subGraphs: ['Internal'],
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    salary: t.exposeInt('salary'),
-  }),
-});
-
-const Team = builder.objectRef<ITeam>('Team').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    // A single field held back from the Public graph.
-    budget: t.exposeInt('budget', { subGraphs: ['Internal'] }),
-    // Returns an Internal-only type, so it can only live in Internal.
-    roster: t.field({
-      type: [Player],
-      subGraphs: ['Internal'],
-      resolve: (team) => team.roster,
-    }),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="sub-graph-plugin"'>playground-examples/sub-graph-plugin/schema.ts#builder,types</includeregions>
 
 The schema above builds three ways from the same definitions. Call `toSchema` with no `subGraph` for the full graph, or name one to get its view:
 

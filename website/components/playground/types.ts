@@ -26,11 +26,11 @@ export interface PlaygroundFile {
   hidden?: boolean;
 }
 
-// `Step` and `CodeSnippet` are owned by the build-examples generator —
-// re-exporting here keeps a single canonical definition.
-import type { CodeSnippet, Step } from './examples/examples-index.generated';
+// `Step` is owned by the build-examples generator — re-exporting here keeps
+// a single canonical definition.
+import type { Step } from './examples/examples-index.generated';
 
-export type { CodeSnippet, Step };
+export type { Step };
 
 export interface PlaygroundExample {
   id: string;
@@ -48,8 +48,6 @@ export interface PlaygroundExample {
   defaultQuery: string;
   /** Multiple queries to load as separate tabs */
   queries?: Array<{ title?: string; query: string; variables?: string }>;
-  /** Code snippets for documentation linking */
-  snippets?: CodeSnippet[];
   /** Index into `files` to focus when the example loads (per-step). */
   defaultActiveFile?: number;
 }

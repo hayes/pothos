@@ -8,6 +8,7 @@ interface IRace {
   lifespan: string;
 }
 
+// #region infer-refs
 const Race = builder.objectRef<IRace>('Race').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -22,13 +23,16 @@ const RaceFilter = builder.inputType('RaceFilter', {
     immortal: t.boolean(),
   }),
 });
+// #endregion infer-refs
 
 // $inferType gives you the TypeScript type of a Pothos ref's output.
 // $inferInput does the same for input objects. Useful when building
 // utility functions, fixtures, or anything that needs the same shape
 // the resolver sees.
+// #region infer-types
 type RaceShape = typeof Race.$inferType;
 type RaceFilterShape = typeof RaceFilter.$inferInput;
+// #endregion infer-types
 
 function matches(race: RaceShape, filter: RaceFilterShape): boolean {
   if (filter.nameContains && !race.name.toLowerCase().includes(filter.nameContains.toLowerCase())) {

@@ -47,11 +47,14 @@ const Quote = builder.objectRef<IQuote>('Quote').implement({
 
 // A union groups unrelated object types behind a single field type.
 // resolveType returns the concrete typename for any given value.
+// #region search-result-union
 const SearchResult = builder.unionType('SearchResult', {
   types: [Character, Location, Quote],
   resolveType: (val) => val.kind,
 });
+// #endregion search-result-union
 
+// #region search-query
 builder.queryType({
   fields: (t) => ({
     search: t.field({
@@ -67,5 +70,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion search-query
 
 export const schema = builder.toSchema();

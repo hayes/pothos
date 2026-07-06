@@ -24,6 +24,7 @@ Character.implement({
   }),
 });
 
+// #region characters-args
 builder.queryType({
   fields: (t) => ({
     characters: t.field({
@@ -51,5 +52,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion characters-args
 
 export const schema = builder.toSchema();

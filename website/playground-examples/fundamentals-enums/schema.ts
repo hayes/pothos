@@ -4,10 +4,12 @@ const builder = new SchemaBuilder({});
 
 // Object-form enum: values are defined inline. The `as const` lets
 // Pothos infer the literal union for use as a TypeScript type.
+// #region alignment-enum
 const Alignment = builder.enumType('Alignment', {
   description: "A faction's moral leaning.",
   values: ['Good', 'Neutral', 'Evil'] as const,
 });
+// #endregion alignment-enum
 
 interface IFaction {
   id: string;

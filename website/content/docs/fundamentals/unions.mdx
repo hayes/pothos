@@ -7,22 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 A union returns one of several object types that don't share fields. Where an [interface](./interfaces) demands every implementer carry common fields like `id` and `name`, a union groups types purely by the question they answer: "what is this thing?"
 
-```typescript playground example="fundamentals-unions"
-const SearchResult = builder.unionType('SearchResult', {
-  types: [Character, Location, Quote],
-  resolveType: (val) => val.kind,
-});
-
-builder.queryType({
-  fields: (t) => ({
-    search: t.field({
-      type: [SearchResult],
-      args: { term: t.arg.string({ required: true }) },
-      resolve: (_root, { term }) => searchEverything(term),
-    }),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-unions"'>playground-examples/fundamentals-unions/schema.ts#search-result-union,search-query</includeregions>
 
 Each value the resolver returns has to be assignable to one of the `types` listed. `resolveType` picks which one.
 

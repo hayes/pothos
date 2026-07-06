@@ -77,7 +77,6 @@ interface PlaygroundExample {
   prerequisites?: string[];
   steps?: Step[];
   variants?: Variant[];
-  snippets?: CodeSnippet[];
   files: ExampleFile[];
   defaultQuery: string;
   queries?: Array<{ title?: string; query: string; variables?: string; context?: string }>;
@@ -93,14 +92,6 @@ interface Step {
   /** Filename to focus in the editor when this step opens (e.g.
    * `models/user.ts`). Falls back to the first file in the bundle. */
   defaultActiveFile?: string;
-}
-
-interface CodeSnippet {
-  label: string;
-  filename: string;
-  startLine: number;
-  endLine: number;
-  description?: string;
 }
 
 /**
@@ -139,7 +130,6 @@ interface ExampleMetadata {
   prerequisites?: string[];
   steps?: Step[];
   variants?: Variant[];
-  snippets?: CodeSnippet[];
 }
 
 const EXAMPLES_SOURCE_DIR = join(process.cwd(), 'playground-examples');
@@ -278,7 +268,6 @@ async function buildFlatExample(
     prerequisites: metadata.prerequisites,
     steps: metadata.steps,
     variants: metadata.variants,
-    snippets: metadata.snippets,
     files,
     defaultQuery,
     queries: queries.length > 0 ? queries : undefined,
@@ -523,7 +512,6 @@ async function buildExamples() {
     prerequisites: e.prerequisites,
     steps: e.steps,
     variants: e.variants,
-    snippets: e.snippets,
   }));
 
   const indexContent = `/**
@@ -540,14 +528,6 @@ export interface Step {
   /** Filename to focus in the editor when this step opens. Falls back
    * to the first file in the bundle when unset. */
   defaultActiveFile?: string;
-}
-
-export interface CodeSnippet {
-  label: string;
-  filename: string;
-  startLine: number;
-  endLine: number;
-  description?: string;
 }
 
 export interface Variant {
@@ -571,7 +551,6 @@ export interface ExampleMetadata {
   prerequisites?: string[];
   steps?: Step[];
   variants?: Variant[];
-  snippets?: CodeSnippet[];
 }
 
 /**

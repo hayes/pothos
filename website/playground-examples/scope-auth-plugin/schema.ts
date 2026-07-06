@@ -37,6 +37,7 @@ const builder = new SchemaBuilder<{
 
 const Team = builder.objectRef<ITeam>('Team');
 
+// #region team-implement
 Team.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -55,6 +56,7 @@ Team.implement({
     }),
   }),
 });
+// #endregion team-implement
 
 builder.queryType({
   fields: (t) => ({

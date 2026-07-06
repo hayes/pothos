@@ -7,30 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 A Pothos schema doesn't impose a file layout. The smallest project lives in one `schema.ts`; larger ones spread across many files. The transition between those two states is the topic of this page.
 
-```typescript playground example="patterns-project-layout-step-1"
-const builder = new SchemaBuilder({});
-
-const Race = builder.objectRef<IRace>('Race').implement({
-  fields: (t) => ({ id: t.exposeID('id'), name: t.exposeString('name') }),
-});
-
-const Character = builder.objectRef<ICharacter>('Character').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    race: t.field({ type: Race, resolve: (c) => Races.get(c.raceId)! }),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    characters: t.field({ type: [Character], resolve: () => Characters }),
-    races: t.field({ type: [Race], resolve: () => [...Races.values()] }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="patterns-project-layout-step-1"'>playground-examples/patterns-project-layout/step-1/schema.ts#single-file</include>
 
 A single-file schema is great until it isn't. Once you're scrolling past a hundred-line `Character` definition to find the `Race` type, the layout is fighting you.
 

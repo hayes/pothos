@@ -7,17 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 A subscription field has two functions: `subscribe` returns an async iterable of events, and `resolve` projects each event into the value the client receives.
 
-```typescript playground example="fundamentals-subscriptions"
-builder.subscriptionType({
-  fields: (t) => ({
-    characterAdded: t.string({
-      description: 'Emits each character entry as it is published.',
-      subscribe: () => publishEntries(),
-      resolve: (name) => name,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-subscriptions"'>playground-examples/fundamentals-subscriptions/schema.ts#character-added-subscription</include>
 
 `subscribe` runs once when the subscription starts. Each value the iterable yields becomes one message to the client; `resolve` shapes it. For trivial cases the resolver is `(name) => name`, but it can be anything that takes the iterable's element type and returns the field's GraphQL type.
 

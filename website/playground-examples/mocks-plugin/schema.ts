@@ -11,6 +11,7 @@ interface ITeam {
   wins: number;
 }
 
+// #region types
 const Team = builder.objectRef<ITeam>('Team').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -36,10 +37,12 @@ builder.queryType({
     }),
   }),
 });
+// #endregion types
 
 // Mocks are keyed by type name, then field name. Unmocked fields keep their
 // real resolver; here every mocked field's resolver throws, so the query only
 // works because the mocks stand in for it.
+// #region mock-schema
 export const schema = builder.toSchema({
   mocks: {
     Query: {
@@ -54,3 +57,4 @@ export const schema = builder.toSchema({
     },
   },
 });
+// #endregion mock-schema

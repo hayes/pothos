@@ -25,6 +25,7 @@ const Battles: IBattle[] = [
 // Custom scalars are registered in the builder generic, then defined
 // with builder.scalarType. The Input/Output split lets you accept and
 // emit different shapes (e.g. parse a string into a Date).
+// #region datetime-scalar
 const builder = new SchemaBuilder<{
   Scalars: {
     DateTime: { Input: Date; Output: Date };
@@ -44,6 +45,7 @@ builder.scalarType('DateTime', {
     return date;
   },
 });
+// #endregion datetime-scalar
 
 const Battle = builder.objectRef<IBattle>('Battle').implement({
   fields: (t) => ({

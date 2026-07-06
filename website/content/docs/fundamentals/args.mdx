@@ -7,21 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 A field's arguments are declared in `args:`. Each entry is built with one of the `t.arg.*` helpers, mirroring the field-builder API.
 
-```typescript playground example="fundamentals-args"
-builder.queryType({
-  fields: (t) => ({
-    characters: t.field({
-      type: [Character],
-      args: {
-        raceId: t.arg.string(),
-        limit: t.arg.int({ required: true, defaultValue: 25 }),
-        excludeIds: t.arg.idList({ required: true, defaultValue: [] }),
-      },
-      resolve: (_root, args) => searchCharacters(args),
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-args"'>playground-examples/fundamentals-args/schema.ts#characters-args</include>
 
 Inside the resolver, `args` is fully typed against this declaration: `args.raceId` is `string | null | undefined`, `args.limit` is `number`, `args.excludeIds` is `readonly string[]`.
 

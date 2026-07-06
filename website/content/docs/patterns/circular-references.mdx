@@ -7,32 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Two types that point at each other — a `Character` that lists its `Faction`s, a `Faction` that lists its members — are the common case where TypeScript's "declare before use" trips you up. Pothos's `objectRef` pattern is the answer.
 
-```typescript playground example="patterns-circular-references"
-const Character = builder.objectRef<ICharacter>('Character');
-const Faction = builder.objectRef<IFaction>('Faction');
-
-Character.implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    factions: t.field({
-      type: [Faction],
-      resolve: (c) => c.factionIds.map((id) => Factions.get(id)!).filter(Boolean),
-    }),
-  }),
-});
-
-Faction.implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    members: t.field({
-      type: [Character],
-      resolve: (f) => f.memberIds.map((id) => Characters.get(id)!).filter(Boolean),
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="patterns-circular-references"'>playground-examples/patterns-circular-references/schema.ts#circular-refs</include>
 
 `objectRef` introduces a typed reference *before* the type is implemented. Both refs exist by the time the first `implement` runs, so each can reference the other freely.
 

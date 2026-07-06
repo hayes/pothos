@@ -41,22 +41,26 @@ async function walkMdx(dir: string, out: string[] = []): Promise<string[]> {
   return out;
 }
 
+// The `example` attribute inside an opening `<include …>` /
+// `<includeregions …>` tag. `[^>]*` spans newlines (it only excludes `>`,
+// which never appears inside the quoted `meta`), so multi-line include tags
+// are matched as well as single-line ones. `includeregions` is covered by
+// the shared `include(?:regions)?` alternation.
+const INCLUDE_TAG_RE = /<include(?:regions)?\b[^>]*\bexample=["']([^"']+)["'][^>]*>/g;
+
 async function extractReferences(file: string): Promise<Reference[]> {
   const content = await readFile(file, 'utf-8');
   const lines = content.split('\n');
   const refs: Reference[] = [];
+
+  // 1) Literal code fences: ```ts playground example="…". These are always a
+  // single line, so line-scanning is exact and cheap.
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line.includes('playground')) {
       continue;
     }
-    // Two forms carry a `playground example="<id>"` reference: a literal
-    // code fence (```ts playground example="…") and a single-sourced
-    // fumadocs `<include>` / `<includeregions>` element whose `meta`
-    // repeats it. Guard both so migrating a fence to an include never
-    // drops it from this CI check.
-    const trimmed = line.trimStart();
-    if (!trimmed.startsWith('```') && !trimmed.startsWith('<include')) {
+    if (!line.trimStart().startsWith('```')) {
       continue;
     }
     const match = line.match(/example=["']([^"']+)["']/);
@@ -64,6 +68,16 @@ async function extractReferences(file: string): Promise<Reference[]> {
       refs.push({ file, line: i + 1, id: match[1] });
     }
   }
+
+  // 2) Single-sourced fumadocs `<include>` / `<includeregions>` elements
+  // whose `meta` repeats `playground example="<id>"`. Matched over the whole
+  // file so a multi-line-authored include tag is still caught; migrating a
+  // fence to an include must never drop it from this CI check.
+  for (const match of content.matchAll(INCLUDE_TAG_RE)) {
+    const line = content.slice(0, match.index ?? 0).split('\n').length;
+    refs.push({ file, line, id: match[1] });
+  }
+
   return refs;
 }
 

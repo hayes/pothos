@@ -1,9 +1,11 @@
 import SchemaBuilder from '@pothos/core';
+// #region setup
 import DataloaderPlugin from '@pothos/plugin-dataloader';
 
 const builder = new SchemaBuilder({
   plugins: [DataloaderPlugin],
 });
+// #endregion setup
 
 interface IPlayer {
   id: string;
@@ -18,6 +20,7 @@ const players = new Map<string, IPlayer>([
   ['3', { id: '3', name: 'Kit Nakamura', number: 4 }],
 ]);
 
+// #region player
 const Player = builder.loadableObject('Player', {
   // Called once per request with every id the query touched. Return one result
   // per id, in the same order — an Error in a slot fails just that player.
@@ -31,7 +34,9 @@ const Player = builder.loadableObject('Player', {
     number: t.exposeInt('number'),
   }),
 });
+// #endregion player
 
+// #region query
 builder.queryType({
   fields: (t) => ({
     // Return the id; the loader turns it into a Player.
@@ -48,5 +53,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion query
 
 export const schema = builder.toSchema();

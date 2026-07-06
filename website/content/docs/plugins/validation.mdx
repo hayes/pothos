@@ -30,41 +30,7 @@ const builder = new SchemaBuilder({
 
 Pass a schema as the `validate` option on any argument. If the value fails, the resolver never runs and the client gets an error. Here a roster mutation guards the player's name length, email format, and jersey range:
 
-```typescript playground example="validation-plugin"
-builder.mutationType({
-  fields: (t) => ({
-    registerPlayer: t.field({
-      type: Player,
-      args: {
-        name: t.arg.string({
-          required: true,
-          validate: z.string().min(2).max(50),
-        }),
-        email: t.arg.string({
-          required: true,
-          validate: z.email(),
-        }),
-        jersey: t.arg.int({
-          required: true,
-          validate: z.number().int().min(0).max(99),
-        }),
-      },
-      resolve: (_root, args) => {
-        const player: IPlayer = {
-          id: String(roster.size + 1),
-          name: args.name,
-          email: args.email,
-          jersey: args.jersey,
-        };
-
-        roster.set(player.id, player);
-
-        return player;
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="validation-plugin"'>playground-examples/validation-plugin/schema.ts#register-mutation</include>
 
 Every point that accepts `validate:` also has a chained `.validate()` equivalent. The two are interchangeable for plain checks — reach for chaining when you want to **transform** the value.
 
@@ -126,25 +92,7 @@ builder.queryField('findPlayer', (t) =>
 
 Input types take `validate` in both places an argument does — on each field, and on the type as a whole:
 
-```typescript playground example="validation-plugin"
-const signUpRules = z
-  .object({ email: z.string(), jersey: z.number(), backupJersey: z.number() })
-  .refine((input: { jersey: number; backupJersey: number }) => input.jersey !== input.backupJersey, {
-    message: 'Primary and backup jersey numbers must differ',
-  });
-
-const SignUp = builder.inputType('SignUp', {
-  fields: (t) => ({
-    email: t.string({
-      required: true,
-      validate: z.email(),
-    }),
-    jersey: t.int({ required: true }),
-    backupJersey: t.int({ required: true }),
-  }),
-  validate: signUpRules,
-});
-```
+<include cwd lang="typescript" meta='playground example="validation-plugin"'>playground-examples/validation-plugin/schema.ts#signup-input</include>
 
 The field-level `z.email()` runs per field; the type-level `signUpRules` sees every field at once, which is where cross-field rules like "primary and backup jersey numbers must differ" belong.
 

@@ -33,11 +33,7 @@ Running `npm run schema` after a schema change refreshes the SDL file. Check it 
 
 The playground sandbox has no filesystem to write to, but the same two calls work standalone — swap the file write for a `console.log` and you can see exactly the SDL `printSchema` produces:
 
-```typescript playground example="patterns-printing-schema"
-export const schema = builder.toSchema();
-
-console.log(printSchema(lexicographicSortSchema(schema)));
-```
+<includeregions cwd lang="typescript" meta='playground example="patterns-printing-schema"'>playground-examples/patterns-printing-schema/schema.ts#print-schema-export,print-schema-log</includeregions>
 
 Open the console panel after running it to see the sorted SDL.
 

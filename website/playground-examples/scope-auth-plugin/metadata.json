@@ -8,21 +8,5 @@
   "order": 11,
   "tags": ["authorization", "auth", "scopes", "permissions"],
   "relatedDocs": ["/docs/plugins/scope-auth"],
-  "prerequisites": ["getting-started-first-schema"],
-  "snippets": [
-    {
-      "label": "Scope initializer",
-      "filename": "schema.ts",
-      "startLine": 28,
-      "endLine": 35,
-      "description": "Build each request's scopes from context"
-    },
-    {
-      "label": "Field scopes",
-      "filename": "schema.ts",
-      "startLine": 45,
-      "endLine": 57,
-      "description": "Require member and staff scopes on fields"
-    }
-  ]
+  "prerequisites": ["getting-started-first-schema"]
 }

@@ -17,22 +17,7 @@ npm install graphql-yoga
 
 Start with a minimal Pothos schema. This is the same shape you'd build out for a real app:
 
-```typescript playground example="getting-started-first-server-step-1"
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder({});
-
-builder.queryType({
-  fields: (t) => ({
-    hello: t.string({
-      args: { name: t.arg.string() },
-      resolve: (_root, { name }) => `Hello, ${name ?? 'friend'}.`,
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="getting-started-first-server-step-1"'>playground-examples/getting-started-first-server/step-1/schema.ts#schema</include>
 
 Save this as `schema.ts`. It exports `schema`, which is the only thing the server needs.
 

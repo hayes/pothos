@@ -7,27 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Once a field's arguments grow past two or three values, or several fields take the same shape, group them into an input object. The most ergonomic way to declare one is inline, right where it's first used:
 
-```typescript playground example="fundamentals-inputs"
-builder.mutationType({
-  fields: (t) => ({
-    addCharacter: t.field({
-      type: Character,
-      args: {
-        input: t.arg({
-          type: builder.inputType('AddCharacterInput', {
-            fields: (t) => ({
-              name: t.string({ required: true }),
-              age: t.int({ required: true }),
-            }),
-          }),
-          required: true,
-        }),
-      },
-      resolve: (_root, { input }) => addCharacter(input.name, input.age),
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-inputs"'>playground-examples/fundamentals-inputs/schema.ts#add-character-mutation</include>
 
 `input` arrives in the resolver fully typed: `input.name` is `string`, `input.age` is `number`.
 

@@ -77,6 +77,7 @@ builder.queryType({});
 // Arguments are inferred from the literal `args:` object Pothos sees,
 // so this helper takes the field builder's `arg` property and returns
 // the args map to spread into each field.
+// #region pagination-args
 function pagination(t: { arg: ArgBuilder<TypesWithDefaults> }) {
   return {
     limit: t.arg.int({ required: true, defaultValue: 25 }),
@@ -96,5 +97,6 @@ builder.queryFields((t) => ({
     resolve: (_root, args) => listPlayers(args),
   }),
 }));
+// #endregion pagination-args
 
 export const schema = builder.toSchema();

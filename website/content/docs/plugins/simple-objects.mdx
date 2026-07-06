@@ -23,38 +23,7 @@ const builder = new SchemaBuilder({
 
 Then define types straight from their fields. Here a league standing is assembled from a `TeamStats` block and a `Node` interface, with no `interface` declarations anywhere:
 
-```typescript playground example="simple-objects-plugin"
-const TeamStats = builder.simpleObject('TeamStats', {
-  fields: (t) => ({
-    wins: t.int({ nullable: false }),
-    losses: t.int({ nullable: false }),
-    pointDiff: t.int({ nullable: true }),
-  }),
-});
-
-const Node = builder.simpleInterface('Node', {
-  fields: (t) => ({
-    id: t.id({ nullable: false }),
-  }),
-});
-
-const Standing = builder.simpleObject(
-  'Standing',
-  {
-    interfaces: [Node],
-    fields: (t) => ({
-      team: t.string(),
-      stats: t.field({ type: TeamStats, nullable: false }),
-    }),
-  },
-  // Third argument: fields backed by resolvers, with the full inferred parent.
-  (t) => ({
-    record: t.string({
-      resolve: (standing) => `${standing.stats.wins}-${standing.stats.losses}`,
-    }),
-  }),
-);
-```
+<includeregions cwd lang="typescript" meta='playground example="simple-objects-plugin"'>playground-examples/simple-objects-plugin/schema.ts#team-stats,node,standing</includeregions>
 
 The resolver on the `standing` query just returns a plain object — `{ id, team, stats: { wins, losses, pointDiff } }` — and TypeScript checks it against the shape Pothos inferred. Get a field name or type wrong and it fails to compile.
 

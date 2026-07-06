@@ -7,34 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 When several object types share a common set of fields — id, name, audit timestamps, anything else that recurs — promote those fields to an interface. Concrete types `implement` the interface and add their own fields on top.
 
-```typescript playground example="fundamentals-interfaces"
-const Character = builder.interfaceRef<ICharacter>('Character');
-
-builder.interfaceType(Character, {
-  description: 'A named being of Middle-earth.',
-  resolveType: (val) => val.kind,
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
-
-const Hobbit = builder.objectRef<IHobbit>('Hobbit');
-Hobbit.implement({
-  interfaces: [Character],
-  fields: (t) => ({
-    shireAddress: t.exposeString('shireAddress', { nullable: true }),
-  }),
-});
-
-const Elf = builder.objectRef<IElf>('Elf');
-Elf.implement({
-  interfaces: [Character],
-  fields: (t) => ({
-    departed: t.exposeBoolean('departed'),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="fundamentals-interfaces"'>playground-examples/fundamentals-interfaces/schema.ts#character-interface</include>
 
 `Hobbit` and `Elf` automatically have `id` and `name` — they don't need to redeclare them. A client querying `character.name` works whether the runtime value is a hobbit or an elf.
 

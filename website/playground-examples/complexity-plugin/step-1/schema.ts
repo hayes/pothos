@@ -1,6 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import ComplexityPlugin from '@pothos/plugin-complexity';
 
+// #region builder
 const builder = new SchemaBuilder({
   plugins: [ComplexityPlugin],
   complexity: {
@@ -13,6 +14,7 @@ const builder = new SchemaBuilder({
     },
   },
 });
+// #endregion builder
 
 interface ITeam {
   id: number;

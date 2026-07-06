@@ -11,35 +11,7 @@ Pothos builds a GraphQL schema from TypeScript code. You define types, fields, a
 
 The core adds zero runtime overhead and depends only on `graphql`. Everything else — auth, errors, validation, Relay, Prisma, Drizzle — arrives as a plugin that adds methods on the builder and composes with the rest.
 
-```typescript playground example="getting-started-first-schema-step-2"
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder({});
-
-// objectRef is the recommended way to declare an object type: it
-// returns a typed reference you implement separately. The generic
-// argument is the backing TypeScript shape — what every resolver
-// returning a Character must produce.
-const Character = builder.objectRef<{ id: string; name: string }>('Character');
-
-Character.implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    frodo: t.field({
-      type: Character,
-      resolve: () => ({ id: 'frodo', name: 'Frodo Baggins' }),
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="getting-started-first-schema-step-2"'>playground-examples/getting-started-first-schema/step-2/schema.ts#schema</include>
 
 Open the example in the playground to run it, edit the resolver, and watch the SDL update. For the full narrative — how Pothos differs from schema-first tools, what it does and doesn't do, and when to reach for it — read the [Introduction](./getting-started/introduction).
 

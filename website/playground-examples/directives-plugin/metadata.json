@@ -8,28 +8,5 @@
   "order": 14,
   "tags": ["directives", "metadata", "schema"],
   "relatedDocs": ["/docs/plugins/directives"],
-  "prerequisites": ["getting-started-first-schema"],
-  "snippets": [
-    {
-      "label": "Declare directives and configure the plugin",
-      "filename": "schema.ts",
-      "startLine": 14,
-      "endLine": 30,
-      "description": "Type the Directives generic and register the plugin"
-    },
-    {
-      "label": "Apply directives to a type",
-      "filename": "schema.ts",
-      "startLine": 34,
-      "endLine": 43,
-      "description": "Object-form directives on an object type"
-    },
-    {
-      "label": "Apply directives to fields",
-      "filename": "schema.ts",
-      "startLine": 45,
-      "endLine": 77,
-      "description": "Field-level directives in object and array form"
-    }
-  ]
+  "prerequisites": ["getting-started-first-schema"]
 }

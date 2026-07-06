@@ -31,6 +31,7 @@ const Characters: ICharacter[] = [
 
 const builder = new SchemaBuilder({});
 
+// #region character-interface
 const Character = builder.interfaceRef<ICharacter>('Character');
 
 builder.interfaceType(Character, {
@@ -59,6 +60,7 @@ Elf.implement({
     departed: t.exposeBoolean('departed'),
   }),
 });
+// #endregion character-interface
 
 const Wizard = builder.objectRef<IWizard>('Wizard');
 Wizard.implement({

@@ -11,32 +11,7 @@ When several types share a common field or argument shape but you don't want to 
 
 `builder.objectFields(ref, builderFn)` adds fields to an existing object type. Wrap a few of them in a function that takes a list of refs:
 
-```typescript playground example="shared-fields-pattern"
-function addAuditFields<
-  Refs extends readonly ObjectRef<TypesWithDefaults, { id: string; createdAt: Date }>[],
->(refs: Refs) {
-  for (const ref of refs) {
-    builder.objectFields(ref, (t) => ({
-      id: t.field({ type: 'ID', resolve: (parent) => parent.id }),
-      createdAt: t.field({ type: 'DateTime', resolve: (parent) => parent.createdAt }),
-    }));
-  }
-}
-
-const Team = builder.objectRef<ITeam>('Team').implement({
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-
-const Player = builder.objectRef<IPlayer>('Player').implement({
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-
-addAuditFields([Team, Player]);
-```
+<include cwd lang="typescript" meta='playground example="shared-fields-pattern"'>playground-examples/shared-fields-pattern/schema.ts#add-audit-fields</include>
 
 Both types now expose `id` and `createdAt` without duplicating the field definitions. The generic constraint on the helper guarantees every passed ref has the backing-model fields the closures rely on. `TypesWithDefaults` is `PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>` — the fully-extended types object every builder method actually operates on.
 
@@ -46,27 +21,7 @@ If a shared field needs to live on both objects and interfaces, accept the more 
 
 Arguments are inferred from the literal `args:` object Pothos sees, so you can't add them after the fact the way you can with `objectFields`. Instead, write a helper that returns the args map and spread it into each field:
 
-```typescript playground example="reusable-args-pattern"
-function pagination(t: { arg: ArgBuilder<TypesWithDefaults> }) {
-  return {
-    limit: t.arg.int({ required: true, defaultValue: 25 }),
-    offset: t.arg.int({ required: true, defaultValue: 0 }),
-  };
-}
-
-builder.queryFields((t) => ({
-  teams: t.field({
-    type: [Team],
-    args: { ...pagination(t) },
-    resolve: (_root, args) => listTeams(args),
-  }),
-  players: t.field({
-    type: [Player],
-    args: { ...pagination(t), teamId: t.arg.id() },
-    resolve: (_root, args) => listPlayers(args),
-  }),
-}));
-```
+<include cwd lang="typescript" meta='playground example="reusable-args-pattern"'>playground-examples/reusable-args-pattern/schema.ts#pagination-args</include>
 
 The helper takes an object shaped like the field builder's `arg` property (`t.arg`), so the returned args carry their full type. Spreading the result preserves the inference Pothos relies on.
 

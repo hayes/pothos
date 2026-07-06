@@ -1,6 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 
+// #region builder-setup
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
   errors: {
@@ -8,6 +9,7 @@ const builder = new SchemaBuilder({
     defaultTypes: [Error],
   },
 });
+// #endregion builder-setup
 
 interface ITeam {
   id: number;
@@ -19,6 +21,7 @@ const Teams = new Map<number, ITeam>([
   [2, { id: 2, name: 'Aurora' }],
 ]);
 
+// #region error-types
 // One interface every error type implements. Clients can always fall back
 // to `... on Error { message }` and add narrower fragments when they care.
 const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
@@ -47,6 +50,7 @@ builder.objectType(NotFoundError, {
     id: t.exposeString('id'),
   }),
 });
+// #endregion error-types
 
 const Team = builder.objectRef<ITeam>('Team').implement({
   fields: (t) => ({

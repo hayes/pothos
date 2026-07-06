@@ -8,21 +8,5 @@
   "order": 12,
   "tags": ["objects", "interfaces", "simple", "types"],
   "relatedDocs": ["/docs/plugins/simple-objects"],
-  "prerequisites": ["getting-started-first-schema"],
-  "snippets": [
-    {
-      "label": "Simple Object",
-      "filename": "schema.ts",
-      "startLine": 9,
-      "endLine": 15,
-      "description": "Infer a backing model from the fields you declare"
-    },
-    {
-      "label": "Simple Interface",
-      "filename": "schema.ts",
-      "startLine": 18,
-      "endLine": 22,
-      "description": "Declare an interface without a separate type"
-    }
-  ]
+  "prerequisites": ["getting-started-first-schema"]
 }

@@ -23,50 +23,7 @@ npm install --save @pothos/plugin-errors
 
 Add `errors: { types: [...] }` to any field. The resolver throws as usual; the plugin catches instances of the listed classes and resolves them to their object type.
 
-```typescript playground example="errors-plugin"
-const builder = new SchemaBuilder({
-  plugins: [ErrorsPlugin],
-  errors: {
-    defaultTypes: [],
-    // onResolvedError: (error) => console.error('Handled error:', error),
-  },
-});
-
-const Team = builder.objectRef<ITeam>('Team').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
-
-builder.objectType(Error, {
-  name: 'Error',
-  fields: (t) => ({
-    message: t.exposeString('message'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    team: t.field({
-      type: Team,
-      errors: {
-        types: [Error],
-      },
-      args: {
-        id: t.arg.id({ required: true }),
-      },
-      resolve: (_parent, { id }) => {
-        const team = Teams.get(Number(id));
-        if (!team) {
-          throw new Error(`No team with id ${id}`);
-        }
-        return team;
-      },
-    }),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="errors-plugin"'>playground-examples/errors-plugin/step-1/schema.ts#builder-setup,error-body</includeregions>
 
 The `team` field no longer returns `Team` directly. The plugin replaces its type with a generated union:
 
@@ -116,43 +73,7 @@ Throwing is the type-safe path: a thrown value is untyped, so the resolver's ret
 
 Listing raw `Error` on every field works, but it forces clients to know each concrete type. The durable pattern is an `Error` interface that every error implements, plus a base type in `defaultTypes` so it is merged into every field automatically. Clients can then always fall back to `... on Error { message }` and add narrower fragments only for the errors they render specifically — which keeps adding new error types from breaking existing queries.
 
-```typescript playground example="errors-plugin-step-2"
-const builder = new SchemaBuilder({
-  plugins: [ErrorsPlugin],
-  errors: {
-    // BaseError is merged into every field that opts into error handling.
-    defaultTypes: [Error],
-  },
-});
-
-// One interface every error type implements.
-const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
-  fields: (t) => ({
-    message: t.exposeString('message'),
-  }),
-});
-
-// The catch-all error, registered in defaultTypes above.
-builder.objectType(Error, {
-  name: 'BaseError',
-  interfaces: [ErrorInterface],
-});
-
-class NotFoundError extends Error {
-  constructor(public readonly id: string) {
-    super(`No team with id ${id}`);
-    this.name = 'NotFoundError';
-  }
-}
-
-builder.objectType(NotFoundError, {
-  name: 'NotFoundError',
-  interfaces: [ErrorInterface],
-  fields: (t) => ({
-    id: t.exposeString('id'),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="errors-plugin-step-2"'>playground-examples/errors-plugin/step-2/schema.ts#builder-setup,error-types</includeregions>
 
 A field opts into just the defaults with `errors: {}`, or adds its own on top — `errors: { types: [NotFoundError] }` handles both `NotFoundError` and the default `BaseError`. Because both implement the `Error` interface, one `... on Error { message }` fragment covers every branch.
 

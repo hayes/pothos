@@ -8,21 +8,5 @@
   "order": 13,
   "tags": ["with-input", "mutations", "inputs"],
   "relatedDocs": ["/docs/plugins/with-input"],
-  "prerequisites": ["fundamentals-inputs"],
-  "snippets": [
-    {
-      "label": "Setup With-Input Plugin",
-      "filename": "schema.ts",
-      "startLine": 1,
-      "endLine": 19,
-      "description": "Import and configure the with-input plugin"
-    },
-    {
-      "label": "Using fieldWithInput",
-      "filename": "schema.ts",
-      "startLine": 29,
-      "endLine": 39,
-      "description": "Define a field with an auto-generated input type"
-    }
-  ]
+  "prerequisites": ["fundamentals-inputs"]
 }
