@@ -15,7 +15,7 @@ export default function PlaygroundPage() {
 
   return (
     <div
-      className={`playground-shell grid grid-rows-[auto_auto_1fr_auto] h-screen bg-bm-bg text-bm-ink relative ${
+      className={`playground-shell grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr_auto] h-screen w-full min-w-0 overflow-x-clip bg-bm-bg text-bm-ink relative ${
         ui.embed ? '' : 'min-h-[820px]'
       }`}
     >

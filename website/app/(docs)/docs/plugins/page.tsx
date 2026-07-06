@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { PluginsPage } from '@/components/plugins/PluginsPage';
 
 export const metadata: Metadata = {
-  title: 'Plugins — Pothos',
+  title: 'Plugins',
   description:
     'First-party Pothos plugins for data, auth, schema patterns, live data, and developer experience.',
 };

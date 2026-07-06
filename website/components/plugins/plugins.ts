@@ -168,7 +168,7 @@ export const PLUGINS: PluginEntry[] = [
     slug: 'complexity',
     name: 'Complexity',
     description: 'Per-field complexity scoring + query-level limits to protect resolvers.',
-    icon: '⚡',
+    icon: '↯',
     category: 'auth',
     order: 4,
   },

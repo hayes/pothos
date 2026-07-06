@@ -27,7 +27,7 @@ export function ConsoleLogRow({ entry }: Props) {
         {entry.kind}
       </span>
       <pre
-        className={`whitespace-pre-wrap break-words font-mono leading-5 m-0 ${
+        className={`min-w-0 flex-1 whitespace-pre-wrap break-all font-mono leading-5 m-0 ${
           entry.kind === 'error' ? 'text-bm-danger' : 'text-bm-ink'
         }`}
       >

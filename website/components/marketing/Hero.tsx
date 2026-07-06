@@ -21,8 +21,12 @@ export function Hero() {
 
   return (
     <section className="max-w-[1280px] mx-auto px-10 pt-[88px] pb-20 relative">
-      {/* Trailing pothos vines hanging from the header line */}
-      <div className="absolute top-0 right-10 hidden md:block pointer-events-none text-bm-accent">
+      {/* Trailing pothos vines hanging from the header line. Shown at xl (not
+          md): from 768 up to ~1279 the headline reflows to "…grow with your /
+          code." and runs under the right-anchored vine, so the leaves crowd
+          the word "your". Only at xl (1280+) does the text column leave clear
+          space to the vine's left; below that the decorative vine is hidden. */}
+      <div className="absolute top-0 right-10 hidden xl:block pointer-events-none text-bm-accent">
         <BotanicalSpray color="currentColor" />
       </div>
       {/* Eyebrow */}
@@ -42,7 +46,14 @@ export function Hero() {
         }}
       >
         Schemas that{' '}
-        <em className="italic text-bm-accent" style={{ fontVariationSettings: '"opsz" 144' }}>
+        <em
+          className="italic text-bm-accent"
+          // The Fraunces italic 'w' at opsz 144 overshoots its advance box on
+          // the right; combined with the h1's -0.035em tracking it swallowed
+          // the word-space so "grow" and "with" touched. A small right margin
+          // restores a clear gap without adding literal whitespace.
+          style={{ fontVariationSettings: '"opsz" 144', marginRight: '0.12em' }}
+        >
           grow
         </em>{' '}
         with your code.

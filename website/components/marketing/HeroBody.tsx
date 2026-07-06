@@ -14,12 +14,15 @@ export function HeroBody() {
       </CodeWindow>
 
       <div>
-        <h3
+        {/* h2 (not h3) so the landing page heading order is H1 → H2 → H2 with
+            no skipped level (WCAG 1.3.1). Visual size stays 28px via inline
+            style — the docs `article#nd-page h2` override doesn't apply here. */}
+        <h2
           className="font-serif font-normal mt-0 mb-4"
           style={{ fontSize: 28, letterSpacing: '-0.02em' }}
         >
           Inference, all the way down.
-        </h3>
+        </h2>
         <p className="text-bm-ink-soft text-[16px] leading-[1.6] mt-0 mb-7">
           Define a type once. Pothos walks your code and infers the shape of arguments, return
           types, and context across resolvers. No codegen step, no decorators, no{' '}

@@ -1,3 +1,5 @@
+import { PLUGINS } from '../plugins/plugins';
+
 interface Stat {
   value: string;
   label: string;
@@ -5,7 +7,9 @@ interface Stat {
 
 const STATS: Stat[] = [
   { value: '0kb', label: 'runtime overhead' },
-  { value: '16+', label: 'first-party plugins' },
+  // Derived from the single source of truth so the stat never drifts from
+  // the plugin catalog (/plugins) or the garden's "Browse all N plugins".
+  { value: String(PLUGINS.length), label: 'first-party plugins' },
   { value: '100%', label: 'TS inference, no codegen' },
 ];
 

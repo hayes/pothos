@@ -22,7 +22,14 @@
   --bm-danger: #c14a3d;
   --bm-warn: #a05a2c;
 
-  --bm-editor-bg: #fbfaf5;
+  /* Code / editor ground. Sits a touch warmer + darker than the page bg
+     (#f7f6f1) so code wells read as a distinct recessed surface instead of
+     blending into the page (the old #fbfaf5 was ~1.5% *lighter* than the page
+     — no perceptible surface). Shared by docs code blocks, the hero
+     CodeWindow, and the playground editor (Monaco paints transparent over
+     this var) so all three stay in sync. Kept light enough that the shiki
+     token palette stays legible. */
+  --bm-editor-bg: #f2efe6;
   --bm-syntax-text: #3a3f38;
   --bm-syntax-comment: #9a9a8a;
   --bm-syntax-keyword: #7a3a2f;
@@ -153,6 +160,18 @@
   }
 }
 
+/* Honor prefers-reduced-motion. The infinite opacity pulse (used on the
+   playground "compiling…" status pill) is decorative and continuous, so
+   freeze it fully visible for users who opt out of motion. Loading spinners
+   are left running — an active spinner is a functional busy indicator and is
+   generally exempt. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bm-pulse {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* ──────────────────────────────────────────────────────────────────────
    Body defaults
    ────────────────────────────────────────────────────────────────────── */
@@ -246,6 +265,19 @@ article#nd-page ol li {
   font-size: 16px;
   line-height: 1.7;
   color: var(--bm-ink-soft);
+}
+
+/* Cap the prose measure. On wide viewports (~1440) the content column let
+   body text run ~105 characters per line — well past a comfortable read.
+   72ch holds paragraphs, lists, and blockquotes in the ~70-78 range while
+   code blocks, tables, and figures keep the full column width. Because ch
+   scales with font-size, the larger serif headings are effectively
+   unconstrained (they're short) — this only reins in body copy. */
+article#nd-page p,
+article#nd-page ul,
+article#nd-page ol,
+article#nd-page blockquote {
+  max-width: 72ch;
 }
 
 /* The first paragraph after the H1 reads as the lede — slightly larger. */

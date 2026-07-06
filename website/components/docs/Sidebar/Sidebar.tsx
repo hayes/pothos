@@ -35,6 +35,7 @@ export function Sidebar({ tree }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const openButtonRef = useRef<HTMLButtonElement | null>(null);
   const asideRef = useRef<HTMLElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
 
   // Persist collapsed state per-device.
   useEffect(() => {
@@ -44,6 +45,37 @@ export function Sidebar({ tree }: Props) {
         setCollapsed(true);
       }
     } catch {}
+  }, []);
+
+  // Close the mobile drawer whenever the route changes. Without this the
+  // drawer + backdrop stay mounted over the freshly-loaded page after a
+  // sidebar link tap, and the `overflow: hidden` body scroll-lock (set by
+  // the drawer effect below) never releases — leaving the page unreadable
+  // until the user manually dismisses the drawer. Resetting `mobileOpen`
+  // here triggers that effect's cleanup, which restores body scroll.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally keyed on pathname to close on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // On hard load / direct navigation, scroll the active item into view
+  // inside the sidebar's own scroll container. Client-side navigation
+  // already preserves scroll position, but a fresh load (shared link,
+  // refresh, arrival from search) leaves the container pinned to the top
+  // with the current page off-screen. We center the active row within the
+  // nav rather than calling `scrollIntoView` so only the sidebar scrolls,
+  // never the page. Runs once on mount — the tree is rendered synchronously.
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !active) {
+      return;
+    }
+
+    const navRect = nav.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    const offset = activeRect.top - navRect.top - nav.clientHeight / 2 + activeRect.height / 2;
+    nav.scrollTop += offset;
   }, []);
 
   // Mobile drawer side-effects: Escape to close, body scroll lock, and
@@ -132,7 +164,10 @@ export function Sidebar({ tree }: Props) {
           </div>
         )}
         {!collapsed && (
-          <nav className="flex-1 min-h-0 overflow-y-auto py-6 px-4 flex flex-col gap-5">
+          <nav
+            ref={navRef}
+            className="flex-1 min-h-0 overflow-y-auto py-6 px-4 flex flex-col gap-5"
+          >
             {tree.children.map((node, i) => (
               <NodeRenderer key={nodeKey(node, i)} node={node} pathname={pathname} depth={0} />
             ))}

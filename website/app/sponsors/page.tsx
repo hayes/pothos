@@ -3,7 +3,7 @@ import { Header } from '@/components/marketing/Header';
 import { SponsorsPage } from '@/components/sponsors/SponsorsPage';
 
 export const metadata: Metadata = {
-  title: 'Sponsors & Contributors — Pothos',
+  title: 'Sponsors & Contributors',
   description: 'The generous people and organizations supporting Pothos GraphQL development.',
 };
 

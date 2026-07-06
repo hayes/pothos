@@ -6,7 +6,9 @@ import { PluginGarden } from '../components/marketing/PluginGarden';
 import { TrustedBy } from '../components/marketing/TrustedBy';
 
 export const metadata: Metadata = {
-  title: 'Pothos GraphQL — Schemas that grow with your code',
+  // `absolute` opts out of the root `%s — Pothos` template — this title
+  // already leads with "Pothos GraphQL" and shouldn't gain a suffix.
+  title: { absolute: 'Pothos GraphQL — Schemas that grow with your code' },
   description:
     'A plugin-based GraphQL schema builder for TypeScript. Zero runtime overhead, no codegen, end-to-end inference.',
 };

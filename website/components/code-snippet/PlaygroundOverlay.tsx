@@ -1,8 +1,9 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { type FC, useEffect, useMemo } from 'react';
+import { type FC, useMemo, useRef } from 'react';
 import { encodePlaygroundState } from '@/lib/playground/url-state';
+import { useModalFocusTrap } from './useModalFocusTrap';
 
 export interface PlaygroundOverlayProps {
   /**
@@ -70,17 +71,9 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
     return '/playground?embed=1';
   }, [exampleId, code, query]);
 
-  // Close on Escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  // Focus into the dialog on open, restore focus on close, close on Escape.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const { focusFirst, focusLast } = useModalFocusTrap(dialogRef, onClose);
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: Escape key handler is in useEffect
@@ -92,11 +85,21 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
       {/* Modal container */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: onClick is only to stop propagation */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-label="Pothos Playground"
         className="relative h-full w-full md:h-[90vh] md:w-[90vw] md:rounded-lg bg-fd-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Focus-trap sentinel: Shift+Tab off the first control lands here and
+            wraps to the last focusable, keeping focus inside the dialog. This
+            is the standard focus-guard pattern (empty, hidden from AT, only
+            reachable via Tab to redirect focus back into the dialog). */}
+        {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: intentional focus-trap sentinel — hidden from AT, exists only to catch Tab and redirect */}
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: intentional focus-trap sentinel — must be Tab-reachable to wrap focus */}
+        <span data-focus-guard tabIndex={0} aria-hidden="true" onFocus={focusLast} />
+
         {/* Close button */}
         <button
           type="button"
@@ -114,6 +117,12 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
           title="Pothos Playground"
           allow="clipboard-write"
         />
+
+        {/* Focus-trap sentinel: Tab off the last control lands here and wraps
+            back to the first focusable. */}
+        {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: intentional focus-trap sentinel — hidden from AT, exists only to catch Tab and redirect */}
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: intentional focus-trap sentinel — must be Tab-reachable to wrap focus */}
+        <span data-focus-guard tabIndex={0} aria-hidden="true" onFocus={focusFirst} />
       </div>
     </div>
   );

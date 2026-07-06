@@ -38,7 +38,17 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
       sidebar={{ enabled: false }}
       links={docsOptions.links}
     >
-      <DocsPage toc={data.toc} full={data.full}>
+      <DocsPage
+        toc={data.toc}
+        full={data.full}
+        // Below xl the sticky mobile TOC pill (grid-area:toc-popover) has a
+        // collapsed row (`--fd-toc-popover-height` resolves to 0 in this
+        // custom layout), so it overlaps and hides the breadcrumb at
+        // scroll-top instead of sitting above it. The pill renders ~40px
+        // tall; push the breadcrumb down far enough to clear it (with a
+        // small gap) on those viewports. xl+ shows no pill and no margin.
+        breadcrumb={{ className: 'max-xl:mt-14' }}
+      >
         <DocsTitle>{data.title}</DocsTitle>
         {data.description && <DocsDescription>{data.description}</DocsDescription>}
         <div className="flex flex-row gap-2 items-center border-b pb-4 mb-6 mt-2">
@@ -74,8 +84,12 @@ export async function generateMetadata({
     notFound();
   }
 
+  // OpenGraph/Twitter titles and descriptions are auto-filled per page by
+  // Next from these fields (see the root layout's shared og/twitter
+  // defaults), so a shared docs link renders a correct preview card.
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: { canonical: page.url },
   };
 }

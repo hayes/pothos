@@ -28,7 +28,7 @@ export const TOP_SPONSORS: TopSponsor[] = [
   {
     name: 'GitHub',
     logo: 'https://pothos-graphql.dev/assets/github-logo.svg',
-    href: 'https://github.com/',
+    href: 'https://github.com/hayes/pothos',
     blurb: 'Where the code lives',
   },
   {

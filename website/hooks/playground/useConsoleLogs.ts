@@ -12,15 +12,34 @@ function formatTime(ts: number): string {
   return d.toTimeString().slice(0, 8);
 }
 
+// Cap each logged argument so a `console.log` of a huge value (e.g. a
+// 10,000-element array serializes to ~50k chars) can't render as one
+// enormous DOM node that blows out the console width and janks the page.
+// The full value is still streamed to the real devtools console by the
+// capture layer; this only bounds what the in-page drawer renders.
+const MAX_ARG_LENGTH = 8_000;
+
+function truncate(str: string): string {
+  if (str.length <= MAX_ARG_LENGTH) {
+    return str;
+  }
+  return `${str.slice(0, MAX_ARG_LENGTH)}… [truncated — ${str.length.toLocaleString()} chars total]`;
+}
+
 function stringifyArg(value: unknown): string {
   if (value instanceof Error) {
     return value.message;
   }
   if (typeof value === 'string') {
-    return value;
+    return truncate(value);
+  }
+  if (typeof value === 'bigint') {
+    // Preserve the BigInt marker — top-level `console.log(42n)` would
+    // otherwise stringify to "42" and read as a plain Number.
+    return `${value}n`;
   }
   if (value === null || typeof value !== 'object') {
-    // Primitives (number, boolean, bigint, symbol, function, undefined).
+    // Remaining primitives (number, boolean, symbol, function, undefined).
     return String(value);
   }
   // Objects: JSON with a circular-safe replacer. A resolver logging a
@@ -48,7 +67,7 @@ function stringifyArg(value: unknown): string {
     if (json === undefined || (json === '{}' && !isPlainRecord(value))) {
       return describeObject(value);
     }
-    return json;
+    return truncate(json);
   } catch {
     return describeObject(value);
   }

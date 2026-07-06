@@ -20,6 +20,14 @@ interface RunArgs {
   /** JSON object string supplied as graphql-js's `contextValue`. */
   context?: string;
   headers?: [string, string][];
+  /**
+   * The current compile error, if the editor's code failed to compile.
+   * When set, the run is refused: executing the query against the
+   * last-good schema (which `schema` still holds) and reporting a green
+   * "200 OK" would falsely tell the user their broken code works. We
+   * surface the compile error instead so the Run result is honest.
+   */
+  compileError?: string | null;
 }
 
 interface RunResult {
@@ -120,7 +128,17 @@ export function useQueryRunner(): QueryRunner {
   const [lastLogs, setLastLogs] = useState<ConsoleMessage[]>([]);
 
   const run = useCallback(
-    async ({ schema, query, variables, context }: RunArgs): Promise<RunResult> => {
+    async ({ schema, query, variables, context, compileError }: RunArgs): Promise<RunResult> => {
+      // Refuse to run against a stale schema when the current code
+      // doesn't compile. `schema` may still hold the last successfully
+      // compiled schema; running it would report a misleading success.
+      if (compileError) {
+        const errPhase = errorPhase(
+          `Schema failed to compile — not run. Fix the errors in your schema first:\n\n${compileError}`,
+        );
+        setPhase(errPhase);
+        return { phase: errPhase, panels: [], logs: [] };
+      }
       if (!schema) {
         const errPhase = errorPhase('Schema not ready');
         setPhase(errPhase);

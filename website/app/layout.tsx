@@ -1,8 +1,47 @@
 import './global.css';
+import type { Metadata } from 'next';
 import { Fraunces, Inter_Tight, JetBrains_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
-import { Providers } from '../components/Providers';
 import { ReviewProviderDevOnly } from '@/review-plugin/src/client';
+import { Providers } from '../components/Providers';
+
+// Canonical origin for absolute URLs in metadata (OpenGraph, canonical
+// links, sitemap, robots). Overridable per-environment so preview
+// deployments can advertise their own origin.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pothos-graphql.dev';
+
+const SITE_NAME = 'Pothos';
+const DEFAULT_TITLE = 'Pothos GraphQL — Schemas that grow with your code';
+const DEFAULT_DESCRIPTION =
+  'A plugin-based GraphQL schema builder for TypeScript. Zero runtime overhead, no codegen, end-to-end inference.';
+
+// Site-wide metadata defaults. Every route inherits these unless it
+// overrides a field:
+//   - `title.template` gives docs/marketing pages a consistent
+//     "<Page> — Pothos" suffix; `title.default` covers routes that set
+//     no title of their own (e.g. /playground).
+//   - `openGraph`/`twitter` are declared here WITHOUT a title or
+//     description so Next auto-fills them per-page from each route's own
+//     resolved title/description — while keeping the shared siteName,
+//     type, and locale. This gives every shared link a preview card.
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: DEFAULT_TITLE,
+    template: '%s — Pothos',
+  },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary',
+  },
+};
 
 const fraunces = Fraunces({
   subsets: ['latin'],

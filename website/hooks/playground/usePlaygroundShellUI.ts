@@ -424,6 +424,10 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
   const handleRun = useCallback(async () => {
     const result = await runner.run({
       schema: compilerState.schema,
+      // Guard against running the last-good schema when the current
+      // editor code failed to compile — the runner surfaces the compile
+      // error instead of a misleading green success.
+      compileError: compilerState.error,
       query: opsState.active.query,
       variables: opsState.active.variables,
       context: opsState.active.context,
@@ -432,7 +436,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
       console_.push(result.logs, 'query');
     }
     opsState.markClean();
-  }, [runner, compilerState.schema, opsState, console_]);
+  }, [runner, compilerState.schema, compilerState.error, opsState, console_]);
 
   useKeyboardShortcuts({ onRun: handleRun });
 

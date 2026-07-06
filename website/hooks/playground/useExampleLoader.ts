@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   type ExampleMetadata,
   exampleMetadata,
@@ -82,6 +82,13 @@ export function useExampleLoader(): ExampleLoaderState {
   const [loaded, setLoaded] = useState<LoadedExample | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  // Mirror of `loaded` that updates synchronously inside `load`. During
+  // the URL bootstrap, `load(id)` and `goToStep(n)` run in the same tick:
+  // the `setLoaded` state write hasn't flushed yet, so a closure over
+  // `loaded` would still read `null` and the requested step would never
+  // load (opening `?example=…&step=2` cold always landed on step 1).
+  // Reading the ref lets `goToStep` see the just-loaded example.
+  const loadedRef = useRef<LoadedExample | null>(null);
 
   const load = useCallback(async (id: string): Promise<ExampleLoaderResult | null> => {
     setLoading(true);
@@ -108,7 +115,9 @@ export function useExampleLoader(): ExampleLoaderState {
           steps,
         } as ExampleMetadata);
 
-      setLoaded({ metadata: meta, steps, baseId: base });
+      const nextLoaded: LoadedExample = { metadata: meta, steps, baseId: base };
+      loadedRef.current = nextLoaded;
+      setLoaded(nextLoaded);
       setStepIndex(stepIndexFromId(id, steps));
 
       const operations = operationsFromExample(ex.defaultQuery, ex.queries);
@@ -123,7 +132,9 @@ export function useExampleLoader(): ExampleLoaderState {
 
   const goToStep = useCallback(
     (index: number): Promise<ExampleLoaderResult | null> => {
-      const current = loaded;
+      // Read from the ref (not the `loaded` state) so this works even
+      // when called in the same tick as `load` during URL bootstrap.
+      const current = loadedRef.current;
       if (!current) {
         return Promise.resolve(null);
       }
@@ -135,10 +146,11 @@ export function useExampleLoader(): ExampleLoaderState {
       const stepId = `${current.baseId}-${step.id}`;
       return load(stepId);
     },
-    [loaded, load],
+    [load],
   );
 
   const exit = useCallback(() => {
+    loadedRef.current = null;
     setLoaded(null);
     setStepIndex(0);
   }, []);

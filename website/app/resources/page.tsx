@@ -3,7 +3,7 @@ import { Header } from '@/components/marketing/Header';
 import { ResourcesPage } from '@/components/resources/ResourcesPage';
 
 export const metadata: Metadata = {
-  title: 'Resources — Pothos',
+  title: 'Resources',
   description:
     'Community articles, libraries, templates, and talks for building with Pothos GraphQL.',
 };
