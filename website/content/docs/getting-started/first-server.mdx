@@ -1,11 +1,11 @@
 ---
 title: First server
-description: Wire the schema into graphql-yoga and serve a GraphQL endpoint.
+description: Serve a Pothos schema over HTTP with graphql-yoga and run a query against it.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-A `GraphQLSchema` on its own doesn't accept HTTP requests. You hand it to a server. This guide uses [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server) — the smallest path from schema to a running endpoint — but Apollo Server, Mercurius, and `graphql-http` all accept the same schema.
+With a schema built, the next step is to put it behind an HTTP endpoint. These guides use [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server); since `toSchema()` returns a standard graphql-js `GraphQLSchema`, other GraphQL servers can run the same schema.
 
 ## Install yoga
 
@@ -15,38 +15,23 @@ npm install graphql-yoga
 
 ## The schema
 
-Start with a minimal Pothos schema. This is the same shape you'd build out for a real app:
+Here's a small schema with a single `hello` field:
 
 <include cwd lang="typescript" meta='playground example="getting-started-first-server-step-1"'>playground-examples/getting-started-first-server/step-1/schema.ts#schema</include>
 
-Save this as `schema.ts`. It exports `schema`, which is the only thing the server needs.
+Save it as `schema.ts`; it exports `schema`, which is all the server imports. The `hello` field takes a `name` argument declared with `t.arg.string()` (the [Arguments](../fundamentals/args) guide covers arguments in full). A string argument is nullable unless you mark it required, so the resolver falls back to `'friend'` when `name` isn't passed.
 
 ## The server
 
-`createYoga` accepts the schema and returns a standard request handler:
+`createYoga` takes the schema and returns a request handler you can pass straight to Node's built-in HTTP server:
 
-```typescript playground example="getting-started-first-server-step-2"
-import { createServer } from 'node:http';
-import { createYoga } from 'graphql-yoga';
-import { schema } from './schema';
+<includeregions cwd lang="typescript" meta='playground example="getting-started-first-server-step-2"'>playground-examples/getting-started-first-server/step-2/server.ts#server</includeregions>
 
-const yoga = createYoga({
-  schema,
-  context: () => ({}),
-});
-
-const server = createServer(yoga);
-
-server.listen(4000, () => {
-  console.log('Ready at http://localhost:4000/graphql');
-});
-```
-
-Run it with `tsx server.ts` (or compile and run with node). Visit `http://localhost:4000/graphql` and you'll get GraphiQL — yoga serves it automatically on the same endpoint.
+Run it with `npx tsx server.ts` (or compile with `tsc` and run the output). yoga serves the API at `/graphql`, and by default it also serves the GraphiQL explorer at that same URL — open `http://localhost:4000/graphql` in a browser to load it. The port is whatever you pass to `server.listen`.
 
 ## Running a query
 
-In GraphiQL:
+In GraphiQL, run:
 
 ```graphql
 query Greet {
@@ -54,7 +39,7 @@ query Greet {
 }
 ```
 
-Expected response:
+yoga responds with:
 
 ```json
 {
@@ -66,28 +51,20 @@ Expected response:
 
 ## The context factory
 
-The `context:` option on `createYoga` runs once per request. It's where you assemble the value resolvers see as their third argument:
+The `context` option is a function that runs while yoga handles a request; whatever it returns becomes the `ctx` value every resolver can read. The server above returns `{}`, so `ctx` is empty. In a real app the factory reads the incoming request and returns what resolvers need — the signed-in user, a database client:
 
 ```typescript
 const yoga = createYoga({
   schema,
   context: async ({ request }) => ({
-    user: await decodeUserFromToken(request.headers.get('authorization')),
+    user: await getUser(request.headers.get('authorization')),
     db,
   }),
 });
 ```
 
-Once you give the builder generic a matching `Context` shape, the type flows through to every resolver. See [Context](../fundamentals/context) for the full setup.
-
-## What's next
-
-You have a working Pothos server. The rest of the docs answer "how do I add X?":
-
-- The **Fundamentals** pages — starting with [SchemaBuilder](../fundamentals/schema-builder) — are the per-concept reference for every type, field, and root operation.
-- The **Patterns** pages — starting with [Project layout](../patterns/project-layout) — cover the recurring shapes: error handling, codegen, reusable fields.
-- [Using plugins](../using-plugins) is the catalog of optional add-ons.
+Declaring a matching `Context` type on the builder makes `ctx` fully typed in every resolver. The [Context](../fundamentals/context) guide covers what belongs on context and how to wire the types.
 
 <Callout type="info">
-  See also: [Project layout](../patterns/project-layout) for splitting a growing schema across files.
+  Next: the Fundamentals pages start at [SchemaBuilder](../fundamentals/schema-builder) and work through each type, field, and root operation. [Project layout](../patterns/project-layout) covers splitting a growing schema across files.
 </Callout>

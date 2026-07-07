@@ -1,60 +1,48 @@
+// #region imports
 import SchemaBuilder from '@pothos/core';
+// #endregion imports
 
-interface IRace {
-  id: string;
-  name: string;
-}
-
-const Races: IRace[] = [
-  { id: 'hobbit', name: 'Hobbit' },
-  { id: 'elf', name: 'Elf' },
-  { id: 'man', name: 'Man' },
-];
-
+// #region builder
 const builder = new SchemaBuilder({});
+// #endregion builder
 
-const Race = builder.objectRef<IRace>('Race');
+// A few records the compendium already has loaded.
+// #region data
+const characters = ['Frodo', 'Samwise', 'Gandalf', 'Aragorn'];
+// #endregion data
 
-Race.implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
-
-// queryType defines the Query root and any number of fields on it.
-// Call it exactly once per schema.
 // #region query-type
 builder.queryType({
   fields: (t) => ({
-    races: t.field({
-      type: [Race],
-      resolve: () => Races,
+    hello: t.string({
+      resolve: () => 'Welcome to the compendium',
+    }),
+    characterCount: t.int({
+      resolve: () => characters.length,
     }),
   }),
 });
 // #endregion query-type
 
-// queryField adds a single field to the Query root from anywhere else
-// in your codebase. Use this when you want to colocate query entry
-// points with the type they return.
 // #region query-field
-builder.queryField('raceById', (t) =>
-  t.field({
-    type: Race,
-    nullable: true,
-    args: { id: t.arg.id({ required: true }) },
-    resolve: (_root, { id }) => Races.find((r) => r.id === String(id)) ?? null,
+builder.queryField('newestEntry', (t) =>
+  t.string({
+    resolve: () => 'The Battle of the Pelennor Fields',
   }),
 );
 // #endregion query-field
 
-// queryFields adds several fields in one call. Pick whichever fits the
-// shape of the surrounding module.
+// #region query-fields
 builder.queryFields((t) => ({
-  raceCount: t.int({
-    resolve: () => Races.length,
+  editorCount: t.int({
+    resolve: () => 3,
+  }),
+  compendiumTitle: t.string({
+    resolve: () => 'A Compendium of Middle-earth',
   }),
 }));
+// #endregion query-fields
 
+// #region export
 export const schema = builder.toSchema();
+// #endregion export

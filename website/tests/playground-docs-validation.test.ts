@@ -344,9 +344,6 @@ const LITERAL_FENCE_ALLOWLIST: Record<string, string[]> = {
   // A multi-FILE project layout (builder.ts + race.ts + …) shown as adjacent
   // fences. It cannot be one region of one schema.ts by construction.
   'patterns/project-layout.mdx': ['patterns-project-layout-step-2'],
-  // The server.ts wiring for step 2; server.ts ships no region markers and the
-  // fence shows essentially the whole file, kept literal by the section.
-  'getting-started/first-server.mdx': ['getting-started-first-server-step-2'],
 };
 
 describe('Playground Documentation Validation', () => {

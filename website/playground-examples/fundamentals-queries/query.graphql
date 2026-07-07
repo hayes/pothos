@@ -1,10 +1,7 @@
-query Races {
-  races {
-    id
-    name
-  }
-  raceById(id: "hobbit") {
-    name
-  }
-  raceCount
+query Compendium {
+  hello
+  characterCount
+  newestEntry
+  editorCount
+  compendiumTitle
 }

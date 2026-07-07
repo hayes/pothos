@@ -1,94 +1,61 @@
 ---
 title: SchemaBuilder
-description: Configure the SchemaBuilder generic with Context, plugins, and default nullability.
+description: Create a SchemaBuilder, fill in the SchemaTypes generic, and build a GraphQLSchema with toSchema.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
-Every Pothos schema starts with a `SchemaBuilder`. The generic argument describes the shape of your request context, any plugins you've loaded, and a handful of project-wide defaults. The constructor argument carries the runtime options — the plugins you load and any settings those features need.
+Every Pothos schema starts with a `SchemaBuilder`, and every type in the schema is defined through it. This page covers creating and configuring one, and turning it into a finished `GraphQLSchema`.
+
+## Creating a builder
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-schema-builder"'>playground-examples/fundamentals-schema-builder/schema.ts#imports,context-type,builder-init</includeregions>
 
-Everything else in this guide — object types, fields, queries, mutations — hangs off this builder. You typically create exactly one per schema and export it from a shared module.
+The generic parameter is an object Pothos calls `SchemaTypes`. This one fills in two of its entries: `Context` declares the type of the context object resolvers receive as their third argument (the [Context](./context) guide covers where that object comes from), and `Scalars` declares the TypeScript types for a custom `DateTime` scalar (the [Scalars](./scalars) guide covers implementing it). The constructor takes an options object, covered below; with no plugins involved it stays empty.
 
-## What goes in the generic
+You typically create one builder per schema and export it from a shared module, so every file that defines part of the schema imports the same builder. The [Project layout](../patterns/project-layout) pattern shows one way to organize this.
 
-The generic parameter is a single object that mixes type-only configuration with plugin slots:
+## The SchemaTypes generic
 
-- `Context` — the shape your server attaches to each request. Resolvers see it as their third argument.
-- `DefaultFieldNullability` — flips Pothos's default from nullable to non-nullable. See [Default nullability](../patterns/default-nullability) when you reach for this.
-- `Scalars` — declares custom scalars and their Input/Output shapes. See [Scalars](./scalars).
-- `Objects`, `Interfaces` — register backing models for types referenced by name as a string. The `objectRef` pattern in [Object types](./objects) is the more common choice.
-- Plugin-specific slots like `DrizzleRelations`, `AuthScopes`, `PrismaTypes` — each plugin documents what it expects.
+The generic is type-level configuration: it changes what TypeScript accepts and infers, and nothing you write in it is passed to the constructor. You only supply the entries you care about, and Pothos fills in defaults for the rest. Each entry is covered in depth on its own page:
 
-The generic is type-only. The constructor's options bag holds the runtime configuration — mostly `plugins`, plus the option keys individual plugins and features add. Where a generic entry has a runtime counterpart (like `DefaultFieldNullability`), Pothos's types make you set both consistently; most entries, such as `Context` or `Objects`, are purely type-level and need nothing in the constructor.
+- `Context` — the shape of the per-request context object. Covered in [Context](./context).
+- `Scalars` — the Input/Output TypeScript types for each named scalar. The runtime implementation is registered later with `builder.scalarType`, covered in [Scalars](./scalars).
+- `DefaultFieldNullability` and `DefaultInputFieldRequiredness` — schema-wide defaults for whether output fields are nullable and input fields are required. Covered in [Default nullability](../patterns/default-nullability).
+- `Objects`, `Interfaces`, and `Inputs` — maps from type name to backing model (the TypeScript shape behind a type), which let you reference types by name as strings and keep your type definitions in one place. [Object types](./objects) covers this style alongside the others.
+- Plugin entries — each installed plugin can add its own entries (`AuthScopes` from scope-auth, `PrismaTypes` from prisma, and so on), documented on that plugin's page.
 
-## With and without plugins
+Three entries also have a constructor counterpart: `Defaults`, `DefaultFieldNullability`, and `DefaultInputFieldRequiredness`. Setting one of these to a non-default value makes the matching constructor option (`defaults`, `defaultFieldNullability`, `defaultInputFieldRequiredness`) required, and its value has to match. None of the other core entries corresponds to a constructor option — the context value is created by your server for each request, and scalar implementations and named types are registered through builder methods.
 
-<Tabs items={['Core only', 'With plugins']}>
-<Tab value="Core only">
+`Defaults: 'v3'` exists for schemas keeping the defaults from Pothos v3; the [v4 migration guide](../migrations/v4) covers what it changes.
 
-```typescript
-import SchemaBuilder from '@pothos/core';
+## Constructor options
 
-const builder = new SchemaBuilder<{
-  Context: { userId?: string };
-}>({});
-```
-
-</Tab>
-<Tab value="With plugins">
+The options object holds the runtime configuration. In core, the main option is `plugins`, the list of plugins the builder should use:
 
 ```typescript
 import SchemaBuilder from '@pothos/core';
-import ErrorsPlugin from '@pothos/plugin-errors';
-import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+import RelayPlugin from '@pothos/plugin-relay';
 
 const builder = new SchemaBuilder<{
-  Context: { user?: { id: string } };
-  AuthScopes: { loggedIn: boolean };
+  Context: Context;
 }>({
-  plugins: [ErrorsPlugin, ScopeAuthPlugin],
-  scopeAuth: {
-    authScopes: (ctx) => ({ loggedIn: !!ctx.user }),
-  },
+  plugins: [RelayPlugin],
 });
 ```
 
-</Tab>
-</Tabs>
+Each installed plugin can also add its own keys to the options object. Some are optional (`relay`), and some become required as soon as the plugin package is imported (`prisma` from `@pothos/plugin-prisma`). The [Using plugins](../using-plugins) guide covers installing and configuring plugins.
 
-Plugins plug into the same builder. Each adds its own generic slots (here `AuthScopes`) and its own option keys (`scopeAuth: {...}`). You don't need to add a plugin to use a feature it improves — Pothos's core handles everything until you opt in.
+One more option comes up without plugins: if your project doesn't have `strict` mode enabled (see [TypeScript settings](../getting-started/installation#typescript-settings)), the types make a `notStrict` option required, and its only accepted value is a warning string acknowledging that Pothos may not work correctly without strict mode.
 
-## Backing models
+## Building the schema
 
-Every object and interface type in your schema has a *backing model*: the TypeScript shape Pothos hands you in `parent` and expects you to return from resolvers. The two main ways to attach one:
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-schema-builder"'>playground-examples/fundamentals-schema-builder/schema.ts#export</includeregions>
 
-```typescript
-// Pattern 1: objectRef carries the type in its generic. Preferred.
-interface ICharacter { id: string; name: string }
-const Character = builder.objectRef<ICharacter>('Character');
+`toSchema` resolves every type registered on the builder and returns a standard graphql-js `GraphQLSchema`, so anything that accepts a `GraphQLSchema` can serve it. Call it after all of your types have been defined — usually at the bottom of the module that imports every type definition.
 
-// Pattern 2: Register on the SchemaTypes generic. Lets you reference
-// the type by name as a string, keeping your type definitions in one place.
-const builder = new SchemaBuilder<{
-  Objects: { Character: ICharacter };
-}>({});
-```
-
-The two patterns coexist. Most pages in this guide use `objectRef` because it keeps the type and its definition side by side. Registering on the generic instead centralizes your type definitions so any field can refer to them by name.
-
-## Finalizing the schema
-
-`builder.toSchema()` produces a `GraphQLSchema` you hand to your server.
-
-```typescript
-export const schema = builder.toSchema();
-```
-
-You can call this once, at the bottom of the module that brings every type together. The result is plain `graphql-js` — anything that accepts a `GraphQLSchema` will accept it.
+By default the returned schema is sorted lexicographically; pass `toSchema({ sortSchema: false })` to keep definition order instead. `toSchema` accepts a few other options (`directives`, `extensions`), and some plugins add their own build-time options here.
 
 <Callout type="info">
-  See also: [Object types](./objects) to start defining the first thing on your builder, or [Using plugins](../using-plugins) for the catalog of available plugins.
+  Next: [Queries](./queries) defines the schema's root `Query` type and its fields.
 </Callout>
