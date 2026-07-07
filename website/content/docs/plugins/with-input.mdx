@@ -61,7 +61,7 @@ A single input argument is the standard shape for anything that mutates or takes
 
 ## Multiple input fields
 
-Every entry under `input` becomes a field on the generated type. This is where the plugin earns its keep — a mutation with several arguments needs exactly one type declaration:
+Every entry under `input` becomes a field on the generated type, so a mutation with several arguments still needs exactly one type declaration:
 
 ```typescript playground example="with-input-plugin"
 builder.mutationType({
@@ -231,7 +231,3 @@ Builder-level `withInput`:
 | `withInput.typeOptions` | Defaults for every generated input type. `name` accepts a `({ parentTypeName, fieldName }) => string` callback to customize the naming scheme. |
 | `withInput.argOptions` | Defaults for every generated input argument, including `required`. |
 | `WithInputArgRequired` | `SchemaTypes` flag that sets whether input arguments are required by default. Pair it with `withInput.argOptions.required`. |
-
-<Callout type="info">
-  See also: [Input objects](../fundamentals/inputs) for the `t.input` builder and input field options, or [Mutations](../fundamentals/mutations) for the input-argument convention this plugin automates.
-</Callout>

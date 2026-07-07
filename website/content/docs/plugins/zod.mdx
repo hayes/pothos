@@ -288,7 +288,3 @@ const validator = createZodSchema(jerseyNumberOptions);
 validator.parse(23); // pass
 validator.parse(100); // throws
 ```
-
-<Callout type="info">
-  See also: the [validation plugin](./validation) for the recommended, library-agnostic successor, [Fields](../fundamentals/fields) for the arguments these validators guard, or [Handling errors](../patterns/handling-errors) for turning a failed validation into a typed result.
-</Callout>

@@ -747,7 +747,3 @@ const tracingPlugin: Plugin = {
 const yoga = createYoga({ schema, plugins: [tracingPlugin] });
 const server = createServer(yoga);
 ```
-
-<Callout type="info">
-  See also: [SchemaBuilder](../fundamentals/schema-builder) for the builder options every plugin extends, [Fields](../fundamentals/fields) for the field options `tracing` sits alongside, or [First server](../getting-started/first-server) for the graphql-yoga wiring the execution-phase examples hook into.
-</Callout>

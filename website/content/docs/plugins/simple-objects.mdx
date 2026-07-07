@@ -5,7 +5,7 @@ description: Define objects and interfaces from their fields alone with simpleOb
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Most object types need a backing model — the TypeScript shape your resolvers return. Usually you write that shape as an `interface` and hand it to `builder.objectRef`. The simple objects plugin skips that step: `builder.simpleObject` reads the fields you declare and infers the backing model from them, so a type and its shape are defined in one call. It's the right tool for response shapes that only exist to be returned — stats blocks, computed summaries, DTOs — where writing a separate interface is pure ceremony.
+Most object types need a backing model — the TypeScript shape your resolvers return. Usually you write that shape as an `interface` and hand it to `builder.objectRef`. The simple objects plugin skips that step: `builder.simpleObject` reads the fields you declare and infers the backing model from them, so a type and its shape are defined in one call. It fits response shapes that only exist to be returned — stats blocks, computed summaries, DTOs — where a hand-written interface would only repeat what the fields already declare.
 
 ```package-install
 npm install --save @pothos/plugin-simple-objects
@@ -69,8 +69,4 @@ Use whichever reads better: the third argument keeps a type's computed fields ne
 
 <Callout type="warn">
   Fields declared in the second argument see the parent as `unknown`. That only surfaces when another plugin inspects the parent — a `plugin-scope-auth` `authScopes` callback on a simple-object field, for instance, gets `unknown` rather than the inferred shape. Move such fields to the third argument, where the parent is fully typed.
-</Callout>
-
-<Callout type="info">
-  See also: [Object types](../fundamentals/objects) for the `objectRef` style `simpleObject` builds on, or [Interfaces](../fundamentals/interfaces) for `resolveType` and the interface fundamentals `simpleInterface` shares.
 </Callout>

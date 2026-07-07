@@ -5,7 +5,7 @@ description: Tag types and fields into named sub-graphs, then build a public or 
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-One codebase, more than one API. The sub-graph plugin lets you tag types and fields with named sub-graphs, then ask the builder for just the slice you want — a trimmed public schema, a full internal one, everything in between. You write each type once; `builder.toSchema({ subGraph })` returns a filtered `GraphQLSchema` with the rest removed. The common use is a public API that exposes a subset of a richer internal graph.
+The sub-graph plugin lets you tag types and fields with named sub-graphs, then ask the builder for just the slice you want. You write each type once; `builder.toSchema({ subGraph })` returns a filtered `GraphQLSchema` with everything outside the named sub-graph removed. The common use is a public API that exposes a subset of a richer internal graph.
 
 ## Install
 
@@ -124,7 +124,3 @@ const builder = new SchemaBuilder<{
   },
 });
 ```
-
-<Callout type="info">
-  See also: [Object types](../fundamentals/objects) for the `objectRef` your tagged types build on, [Printing and codegen](../patterns/printing-and-codegen) for writing each view to an SDL file, or the [federation plugin](./federation) for the `explicitlyIncludeType` use case above.
-</Callout>

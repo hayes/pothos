@@ -78,7 +78,7 @@ That's over the `complexity` limit of 100, so the plugin throws before resolving
 
 ## Scoring individual fields
 
-The defaults treat every field the same, but real fields have real costs. Set a `complexity` option on any field to override its baseline. It takes three forms:
+The defaults treat every field the same, but some fields are more expensive to resolve than others. Set a `complexity` option on any field to override its baseline. It takes three forms:
 
 <include cwd lang="typescript" meta='playground example="complexity-plugin-step-2"'>playground-examples/complexity-plugin/step-2/schema.ts#leaderboard</include>
 
@@ -140,7 +140,3 @@ Every option lives under the builder's `complexity` object (or the one passed to
 | `disabled` | Set `true` to skip the complexity check entirely. Unlike the other options, this is read only from the builder's `complexity` option — passing it to `toSchema`/`buildSchema` has no effect. |
 
 The per-field `complexity` option accepts a `number`, an object `{ field?, multiplier? }`, or a function `(args, ctx, field) => number | { field?, multiplier? }`.
-
-<Callout type="info">
-  See also: [Fields](../fundamentals/fields) for the field options `complexity` sits beside, [Object types](../fundamentals/objects) for the `objectRef` the `Team` and `Player` types build on, or the [dataloader plugin](./dataloader) for taming the n+1 fan-out that list multipliers stand in for.
-</Callout>

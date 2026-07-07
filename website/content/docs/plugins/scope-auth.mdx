@@ -5,13 +5,13 @@ description: Guard fields and types with authorization scopes, scope loaders, an
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Authorization in Pothos lives on the schema, not scattered through resolvers. The scope-auth plugin lets you name the checks your app cares about — "is this a member," "is this staff," "can this user manage that team" — and attach them to any field or type with an `authScopes` option. Checks run before the resolver, are cached per request, and compose with `$any`/`$all`.
+The scope-auth plugin lets you name the checks your app cares about — "is this a member," "is this staff," "can this user manage that team" — and attach them to any field or type with an `authScopes` option, so your authorization rules live on the schema itself. Checks run before the resolver, and their results are cached per request.
 
 You define the scopes once on the builder, then require them wherever they matter:
 
 <include cwd lang="typescript" meta='playground example="scope-auth-plugin"'>playground-examples/scope-auth-plugin/schema.ts#team-implement</include>
 
-Open the example and empty the **Context** tab: `wins` and `scoutingReport` now fail while `id` and `name` still resolve. The plugin is general-purpose — nothing here assumes a particular auth philosophy, so the same machinery drives role-based, permission-based, or ownership-based schemes.
+Open the example and empty the **Context** tab: `wins` and `scoutingReport` now fail while `id` and `name` still resolve. The plugin doesn't assume a particular auth model, so the same setup supports role-based, permission-based, or ownership-based schemes.
 
 ## Setup
 
@@ -523,7 +523,3 @@ When another plugin already supplies `authScopes`, pass the remaining options th
 | `unauthorizedResolver` | resolver arguments plus a `ForbiddenError`, returns a fallback value |
 
 A **`ScopeMap`** is scope names to parameters, plus the special `$any`, `$all`, and `$granted` keys. The `t.authField` and `t.withAuth` field-builder methods apply scopes while refining context.
-
-<Callout type="info">
-  See also: [Handling errors](../patterns/handling-errors) for how thrown and masked errors reach the client, or [Objects](../fundamentals/objects) for the `objectRef` the guarded types are built from.
-</Callout>

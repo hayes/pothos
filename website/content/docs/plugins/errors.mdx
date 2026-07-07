@@ -5,7 +5,7 @@ description: Turn thrown and returned errors into typed result unions, with per-
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Some failures are part of your API — "team not found," "name already taken," "insufficient funds." The errors plugin turns those into typed result unions instead of entries in the GraphQL `errors` array, so clients can `switch` on `__typename` and render each case. You declare the error types as Pothos object types, list them on a field's `errors` option, and the plugin wraps the field in a union of a success type plus one member per error.
+Some failures are part of your API — "team not found," "name already taken," "insufficient funds." The errors plugin turns those into typed result unions instead of entries in the GraphQL `errors` array, so clients can `switch` on `__typename` and render each case. You register each error class as a Pothos object type, list those classes on a field's `errors` option, and the plugin wraps the field in a union of a success type plus one member per error.
 
 This is the third layer described in [Handling errors](../patterns/handling-errors) — reach for it when a field's failure modes are worth spelling out in the schema.
 
@@ -367,7 +367,3 @@ List fields are the exception: errors while loading objects from a list of ids a
 List the errors plugin **before** the [Prisma plugin](./prisma) so `errors` works with every Prisma field-builder method.
 
 You can put `errors` on any field, but an error while pre-loading a relation always surfaces on the field that ran the query. Some relations fall back to their own query, so those fields may still error if the relation wasn't pre-loaded — and nested-relation detection keeps working when those relations use the errors plugin themselves.
-
-<Callout type="info">
-  See also: [Handling errors](../patterns/handling-errors) for the three-layer overview, [Object types](../fundamentals/objects) for the `objectRef` your error and success types build on, or the [validation plugin](./validation) for turning input validation into typed results.
-</Callout>

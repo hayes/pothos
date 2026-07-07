@@ -5,7 +5,7 @@ description: Build a Relay-compliant schema with the Node interface, global IDs,
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Relay is a set of GraphQL conventions — a `Node` interface every object can be refetched through, opaque global IDs, and cursor-paginated connections. The relay plugin adds the builder methods that generate all of it for you, so a single `builder.node` call gives you a globally-addressable type and a single `t.connection` gives you a fully-typed `Connection`/`Edge`/`PageInfo` set.
+Relay is a set of GraphQL conventions — a `Node` interface every object can be refetched through, opaque global IDs, and cursor-paginated connections. The relay plugin adds the builder methods that generate these: `builder.node` turns a type into a node addressable by a global ID, and `t.connection` defines a cursor-paginated field along with its `Connection`, `Edge`, and `PageInfo` types.
 
 The examples below model an Ultimate League: `Team` and `Player` nodes, with each team's roster exposed as a connection.
 
@@ -186,7 +186,7 @@ const builder = new SchemaBuilder({
 
 ### Exposing extra node fields
 
-`t.node` and `t.nodes` add standalone node fields anywhere. Their `id`/`ids` return values match `t.globalID` — a global ID string or an `{ id, type }` object. Loading goes through the same per-request cache, so a node used in several places loads once.
+`t.node` and `t.nodeList` add standalone node fields anywhere. Their `id`/`ids` return values match `t.globalID` — a global ID string or an `{ id, type }` object. Loading goes through the same per-request cache, so a node used in several places loads once.
 
 ```typescript
 builder.queryFields((t) => ({
@@ -313,7 +313,7 @@ const PlayersConnection = builder.connectionObject(
 
 ### Fields on every connection
 
-`t.globalConnectionField` and `t.globalConnectionFields` add a field to *every* `Connection` type — useful for a `totalCount`:
+`builder.globalConnectionField` and `builder.globalConnectionFields` add a field to *every* `Connection` type — useful for a `totalCount`:
 
 ```typescript
 builder.globalConnectionField('totalCount', (t) =>
@@ -499,7 +499,3 @@ Every option on the `relay` object, grouped by what it configures:
 | `nodesOnConnection` | Add a flattened `nodes` field to every `Connection`. |
 | `brandLoadedObjects` | Tag loaded nodes so the default `resolveType` can identify them. Defaults to `true`. |
 | `encodeGlobalID` / `decodeGlobalID` | Override the global ID encoding scheme. |
-
-<Callout type="info">
-  See also: [Interfaces](../fundamentals/interfaces) for how the `Node` interface and `resolveType` work, or [`plugin-dataloader`](./dataloader) for batching the loaders behind your nodes.
-</Callout>

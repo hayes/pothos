@@ -3,8 +3,6 @@ title: Mocks plugin
 description: Replace field resolvers with inline mocks at schema-build time for tests and frontend development.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 A field's resolver isn't always ready when you need to query it — the data feed isn't wired up yet, or a test needs a deterministic value instead of a live one. The mocks plugin swaps a resolver out at schema-build time. You pass a `mocks` map to `builder.toSchema`, keyed by type name then field name, and the plugin replaces the matching field's resolver with your function wherever it runs.
 
 ## Install
@@ -101,7 +99,3 @@ Each entry under `mocks[typeName][fieldName]` is one of:
 | --- | --- |
 | A function `(parent, args, context, info) => value` | The field's `resolve`. |
 | `{ resolve, subscribe }` | The field's `resolve` and `subscribe` — the object form takes both keys, for subscription fields whose event source you want to mock. |
-
-<Callout type="info">
-  See also: [Object types](../fundamentals/objects) for the `objectRef` these mocked fields hang off, [Subscriptions](../fundamentals/subscriptions) for the `subscribe`/`resolve` pair the object form replaces, or [Resolvers](../fundamentals/resolvers) for what a mock stands in for.
-</Callout>

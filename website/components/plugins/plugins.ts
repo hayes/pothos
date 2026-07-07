@@ -57,7 +57,7 @@ export const PLUGINS: PluginEntry[] = [
     slug: 'prisma',
     name: 'Prisma',
     description:
-      'Efficient Prisma integration that solves N+1 queries and resolves nested fields the smart way.',
+      'Define types from your Prisma models, with relations resolved in a single query.',
     icon: '◆',
     category: 'data',
     order: 1,
@@ -65,7 +65,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'drizzle',
     name: 'Drizzle',
-    description: "Drizzle's relational query builder, type-safe and N+1-free out of the box.",
+    description: "Define types from your Drizzle schema, resolved through its relational query builder.",
     icon: '◇',
     category: 'data',
     order: 2,
@@ -73,7 +73,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'dataloader',
     name: 'Dataloader',
-    description: 'Inline data-loaders on your types and fields — no per-app setup ceremony.',
+    description: 'Batch and cache loads with dataloaders declared on types and fields.',
     icon: '≡',
     category: 'data',
     order: 3,
@@ -92,7 +92,7 @@ export const PLUGINS: PluginEntry[] = [
     slug: 'relay',
     name: 'Relay',
     description:
-      'Cursor-based connections, Node interfaces, and helpers for the Relay spec — done right.',
+      'Connections, Node interfaces, and global IDs following the Relay spec.',
     icon: '↻',
     category: 'schema',
     order: 1,
@@ -100,7 +100,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'federation',
     name: 'Federation',
-    description: 'Apollo Federation 2 schemas, the Pothos way.',
+    description: 'Build Apollo Federation 2 subgraphs from a Pothos schema.',
     icon: '◈',
     category: 'schema',
     order: 2,
@@ -167,7 +167,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'complexity',
     name: 'Complexity',
-    description: 'Per-field complexity scoring + query-level limits to protect resolvers.',
+    description: 'Per-field complexity scoring with query-level limits.',
     icon: '↯',
     category: 'auth',
     order: 4,
@@ -177,7 +177,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'smart-subscriptions',
     name: 'Smart Subscriptions',
-    description: 'Subscribe to any part of your graph — Pothos figures out what to invalidate.',
+    description: 'Subscriptions that re-run queries when the data they read changes.',
     icon: '~',
     category: 'live',
     order: 1,
@@ -185,7 +185,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'grafast',
     name: 'Grafast',
-    description: 'Use Grafast execution plans instead of resolver functions for huge speedups.',
+    description: 'Execute with Grafast plans in place of resolver functions.',
     icon: '☉',
     category: 'live',
     order: 2,

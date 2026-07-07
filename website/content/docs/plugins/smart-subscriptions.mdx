@@ -13,7 +13,7 @@ The flow has three steps:
 2. As the query resolves, register any subscriptions declared on the fields and object types it used.
 3. When a registered event fires, re-run the query and push the updated data.
 
-The payoff is that you never decide up front which parts of the schema are subscribable — any type or field can register an event, so a live view of a game, its scores, or a single score line all come from the same query. Refetch options (below) narrow a refresh to just the sub-tree that changed, so a single score update doesn't re-run the whole query.
+You never decide up front which parts of the schema are subscribable. Any type or field can register an event, so the same query can drive a live view of a whole game or of a single score line. Refetch options (below) narrow a refresh to just the sub-tree that changed, so a single score update doesn't re-run the whole query.
 
 ## Install
 
@@ -185,8 +185,4 @@ const Game = builder.objectRef<IGame>('Game').implement({
 
 <Callout type="warn">
   The value passed to `filter` and `invalidateCache` is typed as `unknown`, so you'll narrow or cast it yourself. Smart subscriptions also don't work with list fields backed by async generators (the pattern behind `@stream` queries).
-</Callout>
-
-<Callout type="info">
-  See also: [Object types](../fundamentals/objects) for the `objectRef` these subscriptions hang off, or [Fields](../fundamentals/fields) for the field options that sit alongside `subscribe` and `canRefetch`.
 </Callout>

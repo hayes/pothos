@@ -3,11 +3,9 @@ title: Validation plugin
 description: Validate arguments, input fields, and input objects with Zod or any Standard Schema library.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 GraphQL's type system checks shapes, not rules. It will accept `jersey: 250` or `email: "nope"` as long as the types line up. The validation plugin closes that gap: attach a [Standard Schema](https://standardschema.dev) — a [Zod](https://zod.dev), [Valibot](https://valibot.dev), or [ArkType](https://arktype.io) schema — to any argument, input field, or input type, and Pothos runs it before your resolver ever sees the value.
 
-Every attachment point takes the same `validate` option, so the API is one idea applied in four places.
+Every attachment point — an argument, an input field, an input type, or a whole field's args — takes the same `validate` option.
 
 ## Setup
 
@@ -152,7 +150,3 @@ When a field carries validation at several levels, Pothos runs them from the ins
 4. **Field-level** `validate` / `t.validate` runs last, over the fully validated args.
 
 Schemas stacked on the *same* field or type run in sequence — transforms chain. Schemas on *separate* fields or arguments run in parallel, and their failures merge into a single set of issues, so one response reports every problem at once rather than only the first.
-
-<Callout type="info">
-  See also: [Inputs](../fundamentals/inputs) for defining the arguments and input types you validate, or [Handling errors](../patterns/handling-errors) for what the client sees when validation fails.
-</Callout>

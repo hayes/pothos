@@ -5,7 +5,7 @@ description: Batch object and relation loads through a dataloader to kill N+1 qu
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-A GraphQL query that walks a list and then a field on each item fans out into one database round-trip per item — the N+1 problem. The dataloader plugin folds those calls into one. You define a type with `builder.loadableObject`, resolvers return *ids* instead of objects, and the plugin collects every id touched in a tick and hands them to a single `load` call.
+A GraphQL query that walks a list and then a field on each item fans out into one database round-trip per item — the N+1 problem. The dataloader plugin folds those calls into one. You define a type with `builder.loadableObject`, resolvers return *ids* instead of objects, and the plugin routes each id into a DataLoader, which coalesces every id loaded in a tick into a single `load` call.
 
 ## Install
 
@@ -259,7 +259,3 @@ import { clearAllDataLoaders } from '@pothos/plugin-dataloader';
 
 clearAllDataLoaders(context);
 ```
-
-<Callout type="info">
-  See also: [Object types](../fundamentals/objects) for the `objectRef` and backing models these loadable types build on, the [Relay plugin](./relay) for `loadableNode` and connections, or the [Errors plugin](./errors) for pairing `errors` with a loaded field.
-</Callout>
