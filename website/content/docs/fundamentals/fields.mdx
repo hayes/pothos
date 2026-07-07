@@ -1,33 +1,41 @@
 ---
 title: Fields
-description: Add fields to an object type and control what each one returns.
+description: Define an object type's fields with t.field and its scalar and expose shorthands.
 ---
 
-A type's fields are defined by the `fields` function you pass when you implement it. That function receives a field builder — conventionally named `t` — whose methods each return one field definition. The surrounding object definition (the ref, its backing model, and `implement`) is covered in [Object types](./objects).
+A type's fields are defined by the `fields` function you pass when you implement it. That function receives a field builder — conventionally named `t` — and returns a map whose values each come from one method call on `t`. The surrounding object definition (the ref, its backing model, and `implement`) is covered in [Object types](./objects).
+
+## Defining a field
+
+Every field is created by a method on `t`, and the general form is `t.field`. It takes the field's `type` and a `resolve` function that produces the value:
+
+<include cwd lang="typescript" meta='playground example="fundamentals-fields"'>playground-examples/fundamentals-fields/schema.ts#field</include>
+
+`race` returns another object type, so its `type` is the `Race` ref and the resolver looks the race up by id. The `resolve` function's first argument is always the backing object; the [Resolvers](./resolvers) guide covers the rest of its signature and what a resolver may return. Every other field method on `t` is `t.field` with some of these options filled in for you.
+
+## Scalar fields
+
+The scalar builders — `t.string`, `t.int`, `t.float`, `t.boolean`, and `t.id` — are `t.field` with the `type` already set to the matching scalar, so you supply only the `resolve`:
+
+<include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#scalar</include>
+
+`age` computes an `Int` from the character's `birthYear`, so `t.int({ resolve })` produces the same field as `t.field({ type: 'Int', resolve })` would. The other scalar builders work the same way for their types.
 
 ## Exposing properties
 
-When a field returns a property of the backing object unchanged, `t.expose*` forwards it for you, without a resolver:
+When a field just returns a property already on the backing object, `t.expose*` writes that resolver for you: each helper is the matching scalar builder with a resolver that returns the named property, so you pass the property name instead of a `resolve`:
 
-<include cwd lang="typescript" meta='playground example="fundamentals-fields"'>playground-examples/fundamentals-fields/schema.ts#expose</include>
+<include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#expose</include>
 
-`t.exposeID`, `t.exposeString`, `t.exposeInt`, `t.exposeFloat`, and `t.exposeBoolean` each take the name of a property to read and produce a field of the matching scalar type; `id`, `name`, and `biography` here read straight from the `Character` object. Each also has a `…List` form (`t.exposeStringList` and so on) for properties that hold arrays. The field itself is named by the key you assign it to, so `bio: t.exposeString('biography')` would expose the same property under a shorter name.
-
-## Computed fields
-
-When a field's value isn't a property already sitting on the backing object, you give it a resolver. The scalar builders — `t.string`, `t.int`, `t.float`, `t.boolean`, and `t.id` — take a `resolve` function whose first argument is the backing object:
-
-<include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#computed</include>
-
-`age` computes an `Int` from the character's `birthYear`. `race` returns another object type rather than a scalar, so it uses `t.field`, which takes an explicit `type`; the scalar builders are shorthands for `t.field` with the type already set. The resolver's first argument is always the backing object — the [Resolvers](./resolvers) guide covers the rest of its signature and what you can return.
+`t.exposeID`, `t.exposeString`, `t.exposeInt`, `t.exposeFloat`, and `t.exposeBoolean` each take the name of a property to read and produce a field of the matching scalar type. `id` and `name` read the properties of the same name from the `Character` object; `bio` reads the `biography` property, since the property name and the field name don't have to match. Each helper also has a `…List` form (`t.exposeStringList` and so on) for a property that holds an array.
 
 ## Lists
 
-A field returns a list when its type is wrapped in an array. For a property that already holds an array, the `…List` expose helpers forward it:
+A field's type can be a list by wrapping it in an array. In a resolver you return an array of the matching shape — the [`factions`](#splitting-fields-across-files) field below does this with `t.field({ type: [Faction] })`. When the backing property already holds an array, the `…List` expose helpers forward it without a resolver:
 
 <include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#list</include>
 
-`titles` exposes the `string[]` property as a `[String]` field. To build a list in a resolver, wrap the type the same way: `t.field({ type: [Faction] })` returns a list of `Faction`, and the resolver returns an array of the matching shape.
+`titles` exposes the `string[]` property as a `[String]` field, the list counterpart of `t.exposeString`.
 
 ## Nullability
 

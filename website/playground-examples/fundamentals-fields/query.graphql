@@ -2,7 +2,7 @@ query Characters {
   characters {
     id
     name
-    biography
+    bio
     age
     titles
     race {

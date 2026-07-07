@@ -16,16 +16,16 @@ interface IRace {
   lifespan: string;
 }
 
-const characters = new Map<string, ICharacter>([
-  ['1', { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968', editorId: '1' }],
-  ['2', { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980', editorId: '1' }],
-  ['3', { id: '3', name: 'Gandalf', editorId: '2' }],
-]);
+const characters: ICharacter[] = [
+  { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968', editorId: '1' },
+  { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980', editorId: '1' },
+  { id: '3', name: 'Gandalf', editorId: '2' },
+];
 
-const races = new Map<string, IRace>([
-  ['1', { id: '1', name: 'Hobbit', lifespan: 'About 100 years' }],
-  ['2', { id: '2', name: 'Wizard', lifespan: 'Immortal' }],
-]);
+const races: IRace[] = [
+  { id: '1', name: 'Hobbit', lifespan: 'About 100 years' },
+  { id: '2', name: 'Wizard', lifespan: 'Immortal' },
+];
 
 const builder = new SchemaBuilder({});
 
@@ -57,14 +57,17 @@ builder.queryType({
   fields: (t) => ({
     characters: t.field({
       type: [Character],
-      resolve: () => [...characters.values()],
-    }),
-    races: t.field({
-      type: [Race],
-      resolve: () => [...races.values()],
+      resolve: () => characters,
     }),
   }),
 });
 // #endregion query
+
+builder.queryField('races', (t) =>
+  t.field({
+    type: [Race],
+    resolve: () => races,
+  }),
+);
 
 export const schema = builder.toSchema();

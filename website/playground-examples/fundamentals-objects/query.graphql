@@ -3,9 +3,4 @@ query Compendium {
     id
     name
   }
-  races {
-    id
-    name
-    lifespan
-  }
 }

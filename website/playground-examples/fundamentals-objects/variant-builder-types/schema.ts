@@ -10,11 +10,11 @@ interface ICharacter {
 }
 // #endregion character-model
 
-const characters = new Map<string, ICharacter>([
-  ['1', { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968', editorId: '1' }],
-  ['2', { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980', editorId: '1' }],
-  ['3', { id: '3', name: 'Gandalf', editorId: '2' }],
-]);
+const characters: ICharacter[] = [
+  { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968', editorId: '1' },
+  { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980', editorId: '1' },
+  { id: '3', name: 'Gandalf', editorId: '2' },
+];
 
 // #region builder-init
 const builder = new SchemaBuilder<{
@@ -35,7 +35,7 @@ builder.queryType({
   fields: (t) => ({
     characters: t.field({
       type: ['Character'],
-      resolve: () => [...characters.values()],
+      resolve: () => characters,
     }),
   }),
 });

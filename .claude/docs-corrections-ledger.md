@@ -117,6 +117,41 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
   argument or mention it here." Teach the usual form; skip alternates unless
   the page is their home.
 
+## Round 5 (2026-07-06, batch-2 review — objects/fields)
+
+- **S19 — Teach type references generically before creation methods.** "A ref
+  is basically just a way to reference a type, it can be returned by methods
+  like objectRef or objectType, it can be a class, etc." Don't present refs as
+  an objectRef-specific concept. Similarly `objectType` takes "class, object
+  ref, or named object type" — separate WHAT an API accepts from WHEN each
+  form is useful (the latter broken out below).
+- **S20 — The backing model is carried by the type reference**, whatever form
+  it takes (ref generic, class instance type, string name registered on the
+  generic) — not "the generic on objectRef". And be clear the backing model
+  and the GraphQL shape are ENTIRELY separate: the backing model can be a
+  string id, a plain object, a class instance; you can define any fields you
+  want without changing the backing model as long as you can write a resolver
+  for the data. "Exposing" is just the easy special case.
+- **S21 — Keep example data plain.** Maps (`characters.values()`) made the
+  examples "all more complex" for no benefit; use arrays/objects. Don't add
+  incidental complexity (e.g. a query returning lists of two types) without a
+  pedagogical reason.
+- **S22 — Don't universalize one style's mechanics.** "An object type is
+  defined in two steps: create a reference, then implement its fields" is
+  only true of objectRef while the tabs show three styles. Frame mechanics as
+  belonging to the style being shown.
+- **S23 — Fields teaching order is sugar-order.** Start with `t.field`;
+  `t.int` is sugar for `t.field` with `type: Int`; `t.exposeInt` is sugar for
+  `t.int` with a resolver returning the named property. The expose-first
+  order was backwards.
+- **S24 — Prose examples must be visible in the shown snippet.** Referencing
+  `biography` in prose when the snippet doesn't show it is "not a great
+  example. Maybe we should expand the snippet?" Either show it or don't cite it.
+- **S25 — No lone orphan sentence between the page description and the first
+  heading** ("creates a weird one sentence… probably need some restructuring").
+  Either the intro earns a real paragraph or the page starts at its first
+  heading.
+
 ## UI notes (separate track)
 
 - **U1** — Docs page header is inefficient: section + title + description +
@@ -130,6 +165,8 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
 - **U4 — Runnable-looking static fences should link to the playground** —
   self-contained example fences (e.g. on the introduction) should carry the
   playground affordance via the inline mechanism even without a bundle.
+- **U6 — Playground button renders differently across variant tabs (round 5,
+  objects page)** — investigate and unify.
 - **U5 — No "Next: [page]" callouts, no ad-hoc "See also" callouts (round 4).**
   Every doc page already has next/previous buttons with titles + descriptions;
   a callout duplicating the next page immediately above them is a defect.

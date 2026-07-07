@@ -1,7 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 
-// The year the Fellowship set out from Rivendell (Third Age), used to
-// count a character's age from their birth year.
+// Third Age year the War of the Ring began, used to age characters.
 const REFERENCE_YEAR = 3018;
 
 interface CharacterModel {
@@ -11,7 +10,6 @@ interface CharacterModel {
   biography?: string;
   titles: string[];
   raceId: string;
-  editorId: string;
 }
 
 interface RaceModel {
@@ -24,14 +22,14 @@ interface FactionModel {
   name: string;
 }
 
-const races = new Map<string, RaceModel>([
-  ['1', { id: '1', name: 'Hobbit' }],
-  ['2', { id: '2', name: 'Dúnedain' }],
-]);
+const races: Record<string, RaceModel> = {
+  '1': { id: '1', name: 'Hobbit' },
+  '2': { id: '2', name: 'Dúnedain' },
+};
 
-const factions = new Map<string, FactionModel>([
-  ['1', { id: '1', name: 'Fellowship of the Ring' }],
-]);
+const factions: Record<string, FactionModel> = {
+  '1': { id: '1', name: 'Fellowship of the Ring' },
+};
 
 const factionsByCharacter: Record<string, string[]> = {
   '1': ['1'],
@@ -46,7 +44,6 @@ const characters: CharacterModel[] = [
     biography: 'Bearer of the One Ring on the quest to destroy it.',
     titles: ['Ring-bearer'],
     raceId: '1',
-    editorId: '7',
   },
   {
     id: '2',
@@ -54,7 +51,6 @@ const characters: CharacterModel[] = [
     birthYear: 2931,
     titles: ['Strider', 'Elessar', 'King of Gondor'],
     raceId: '2',
-    editorId: '7',
   },
 ];
 
@@ -78,22 +74,24 @@ const Character = builder.objectRef<CharacterModel>('Character');
 
 Character.implement({
   fields: (t) => ({
+    // #region field
+    race: t.field({
+      type: Race,
+      resolve: (character) => races[character.raceId],
+    }),
+    // #endregion field
+
+    // #region scalar
+    age: t.int({
+      resolve: (character) => REFERENCE_YEAR - character.birthYear,
+    }),
+    // #endregion scalar
+
     // #region expose
     id: t.exposeID('id'),
     name: t.exposeString('name'),
-    biography: t.exposeString('biography'),
+    bio: t.exposeString('biography'),
     // #endregion expose
-
-    // #region computed
-    age: t.int({
-      description: 'Years old at the start of the War of the Ring.',
-      resolve: (character) => REFERENCE_YEAR - character.birthYear,
-    }),
-    race: t.field({
-      type: Race,
-      resolve: (character) => races.get(character.raceId)!,
-    }),
-    // #endregion computed
 
     // #region list
     titles: t.exposeStringList('titles'),
@@ -106,7 +104,7 @@ builder.objectField(Character, 'factions', (t) =>
   t.field({
     type: [Faction],
     resolve: (character) =>
-      (factionsByCharacter[character.id] ?? []).map((id) => factions.get(id)!),
+      (factionsByCharacter[character.id] ?? []).map((id) => factions[id]),
   }),
 );
 // #endregion split

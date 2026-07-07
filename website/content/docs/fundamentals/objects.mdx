@@ -3,11 +3,7 @@ title: Object types
 description: Define object types with objectRef and implement, the backing model behind each type, and the class-backed and builder-types styles.
 ---
 
-Most of the types in a GraphQL schema are object types. This page covers defining them, and the backing model that connects each type to the data your resolvers return.
-
 ## Defining an object type
-
-An object type is defined in two steps: create a reference to it, then implement its fields. The same type can be written a few other ways, shown in the tabs below; the rest of this page uses `objectRef`.
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-objects" tab="Object refs"'>playground-examples/fundamentals-objects/schema.ts#character-model,character-ref,character-implement</includeregions>
 
@@ -15,36 +11,44 @@ An object type is defined in two steps: create a reference to it, then implement
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-objects-variant-builder-types" tab="Builder types"'>playground-examples/fundamentals-objects/variant-builder-types/schema.ts#character-model,builder-init,object-type</includeregions>
 
-`builder.objectRef` creates a reference to a new `Character` type. The generic parameter — `ICharacter` here — is the TypeScript shape of the data behind the type (Pothos calls this the backing model). `implement` then defines the type's fields: `t.exposeID('id')` and `t.exposeString('name')` return those properties straight from the backing object. The [Fields](./fields) guide covers the field builder in detail.
+The tabs above each define the same `Character` object type. The rest of this page uses `objectRef`, shown first: `builder.objectRef<ICharacter>('Character')` names the type and states the TypeScript shape of the data behind it (Pothos calls this the backing model), and `.implement` supplies the type's fields. `t.exposeID('id')` and `t.exposeString('name')` return those properties straight from that data; the [Fields](./fields) guide covers the field builder in detail. The **Classes** and **Builder types** tabs define the same type from a class and from a registered name, [covered below](#definition-styles).
+
+## Type references
+
+`builder.objectRef` returns a type reference: a value that stands in for the `Character` type wherever the schema needs to name it. A reference is not particular to `objectRef` — `builder.objectType` returns one too, a class used to define a type acts as its own reference, and a type name registered on the builder (the **Builder types** tab) references the type by string. Any of these can be used as a field's `type`, which is how a field on one type returns another type.
+
+`builder.objectType` takes a reference in each of these forms as its first argument: a class, an existing object ref, or a string name registered on the builder's `Objects` generic. `implement` is the object-ref shorthand: calling `.implement(options)` on a ref is the same as passing that ref and the options to `builder.objectType`. The three forms are all first-class; [Definition styles](#definition-styles) covers when each one fits.
 
 ## The backing model
 
-The backing model is the TypeScript type a resolver returns for an object type, and the type Pothos hands back as `parent` to every field defined on it. You state it once, as the generic on `objectRef`, and Pothos checks the rest of the type against it: `t.exposeString('name')` only compiles when `name` is a string on `ICharacter`, and any field that returns a `Character` must resolve to a value matching `ICharacter`. When your data source already produces that shape (a database row, an ORM model, an in-memory record), you usually return it untouched.
+The generic on `objectRef<ICharacter>` — or the class's instance type, or the shape registered under a name — is the type's backing model: the value your resolvers return for the type, and the `parent` Pothos hands to every field defined on it. Whatever form the reference takes, it carries this shape, and Pothos checks the type's fields against it. `t.exposeString('name')` compiles only when `name` is a string on `ICharacter`, and any field that returns `Character` has to resolve to a value matching it.
 
-The GraphQL type does not have to expose everything in the backing model. `ICharacter` carries `editorId` and `biography`, but the type above exposes only `id` and `name`; the extra properties stay available to resolvers without appearing in the schema.
+The backing model and the GraphQL type are separate things. The backing model is whatever your resolvers work with — a database row, a plain object, a class instance, or even just a string id — while the GraphQL type is the set of fields a client can select. Exposing a property with `t.expose*` is the direct case, where a field reads a value straight off the backing model. Every other field is defined by writing a resolver, and as long as you can compute a field's value from the backing model (and the context), you can add it to the type without changing the backing model. A type backed by nothing but an id can still present a full set of fields, each resolver loading what it needs. The [Fields](./fields) guide covers computed fields and the field builder.
 
 ## Object type options
 
-`objectRef` takes only the type's name. Every other option for the type is passed to `implement`: the type's `fields`, a `description`, the [interfaces](./interfaces) it implements, and an `isTypeOf` function for [resolving abstract types](./interfaces). `fields` is the one you pass most often, but it works like any other option on `implement`.
+`builder.objectRef` takes only the type's name. Everything else about the type is passed to `implement`: the `fields` callback, a `description`, the [interfaces](./interfaces) the type implements, and an `isTypeOf` function for [resolving abstract types](./interfaces). `fields` is the option you pass most often, but it works like any other option on `implement`.
 
-When a type doesn't need to be referenced before it's implemented, you can chain the two calls into one expression:
+When a type doesn't need to be referenced before it's implemented, the two calls chain into a single expression:
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-objects"'>playground-examples/fundamentals-objects/schema.ts#race</includeregions>
 
-`builder.objectRef<IRace>('Race').implement({ ... })` creates the reference and implements it in the same statement. Keeping them apart — as `Character` does above — is what lets two types reference each other, since the reference exists before either type's fields are defined. The [Circular references](../patterns/circular-references) pattern covers that case.
+`builder.objectRef<IRace>('Race').implement({ ... })` creates the reference and implements it in one statement. Keeping the two calls apart, as `Character` does above, is what lets two types reference each other: the reference exists before either type's fields are defined, so each can name the other. The [Circular references](../patterns/circular-references) pattern covers that case.
 
 ## Returning an object type
 
-A reference can be used as the `type` of any field, on any type in the schema. Here the root `Query` type returns lists of `Character` and `Race`:
+A type reference can be the `type` of any field, on any type in the schema. Here the root `Query` type returns a list of `Character`:
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-objects"'>playground-examples/fundamentals-objects/schema.ts#query</includeregions>
 
-`type: [Character]` makes the field a list of the `Character` type; a bare `type: Character` returns a single one. Because the field returns `Character`, its resolver has to return values matching `ICharacter`, and TypeScript reports an error if it doesn't. The [Queries](./queries) guide covers the `Query` root itself.
+Wrapping the reference in an array — `type: [Character]` — makes the field a list; a bare `type: Character` returns a single one. Because the field returns `Character`, its resolver has to return values matching the backing model, and TypeScript reports an error if it doesn't. The [Queries](./queries) guide covers the `Query` root itself.
 
-## Classes and builder types
+## Definition styles
 
-The **Classes** and **Builder types** tabs above define the same `Character` type two other ways. All three are fully supported, and a schema can mix them freely.
+The three tabs at the top of the page define the same `Character` type in the three reference forms. All are fully supported, and a single schema can mix them freely.
 
-**Classes.** `builder.objectType(Character, { ... })` takes a class and uses its instance type as the backing model, so `parent` in every resolver is an instance of the class, methods and getters included. This fits well when your app already keeps classes for its data. A class is also a value at runtime, so you can write `isTypeOf: (value) => value instanceof Character` — an `instanceof` check that tells Pothos which member a value is when it resolves an [interface or union](./interfaces).
+**Object refs.** `builder.objectRef<ICharacter>('Character')` states the backing model as a generic and hands back a reference to pass around. This is the form the rest of these guides build on.
 
-**Builder types.** Registering a type on the `Objects` generic maps a type name to its backing model, which lets you refer to the type by its string name — `t.field({ type: 'Character' })` — anywhere in the schema. This keeps your type definitions in one place instead of importing a reference into every file that uses them.
+**Classes.** `builder.objectType(Character, { ... })` defines the type from a class and uses the class's instance type as the backing model, so `parent` in every resolver is an instance of the class, methods and getters included. This fits well when your app already keeps classes for its data. Because a class is also a value at runtime, you can write `isTypeOf: (value) => value instanceof Character` — an `instanceof` check that tells Pothos which type a value is when it resolves an [interface or union](./interfaces).
+
+**Builder types.** Registering a type on the builder's `Objects` generic maps a name to its backing model, so you can refer to the type by that string name — `t.field({ type: 'Character' })` — anywhere in the schema. This keeps your type definitions in one place instead of importing a reference into every file that uses them. Registering the name only tells TypeScript about the type; you still create it at runtime with `builder.objectType('Character', { ... })`.

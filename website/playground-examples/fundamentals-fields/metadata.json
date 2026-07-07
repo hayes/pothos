@@ -1,7 +1,7 @@
 {
   "id": "fundamentals-fields",
   "title": "Fields",
-  "description": "Add fields to an object type with expose helpers, t.field, and computed resolvers.",
+  "description": "Define an object type's fields with t.field and its scalar and expose shorthands.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",
