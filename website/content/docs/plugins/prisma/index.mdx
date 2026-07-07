@@ -3,8 +3,6 @@ title: Prisma plugin
 description: Define GraphQL types from Prisma models and resolve relations with automatically optimized queries.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 The Prisma plugin builds GraphQL object types straight from your Prisma models and resolves their relations with queries it plans for you. You call `builder.prismaObject` with a model name, expose the columns you want, and add relation fields with `t.relation` — the plugin turns a nested GraphQL selection into as few Prisma queries as it can, which is where the classic N+1 problem usually creeps in.
 
 The plugin is not required to use Prisma with Pothos, but it removes a lot of manual wiring and query planning. If you would rather keep Prisma at arm's length, see [Using Prisma without a plugin](./without-a-plugin).
@@ -21,7 +19,7 @@ The plugin is not required to use Prisma with Pothos, but it removes a lot of ma
 
 ## An example
 
-Here is a slice of an Ultimate League schema. It defines a `Team`, exposes columns, computes a field from a related table, loads relations, and adds a Relay connection — all against the [canonical Prisma schema](./setup#add-the-pothos-generator):
+Here is a slice of an Ultimate League schema, built against the [canonical Prisma schema](./setup#add-the-pothos-generator). It defines a `Team`, exposes columns, computes a field from a related table, loads relations, and adds a Relay connection:
 
 ```typescript
 // A GraphQL type backed by the Team model — no object ref, no client imports.
@@ -112,8 +110,4 @@ query {
 }
 ```
 
-This runs **two** Prisma queries: one for everything except `byNumber`, and a second for the aliased relation. Prisma can resolve a given relation only once per query, so a second copy of `players` with different arguments needs its own query. The plugin detects this and splits the work into the fewest queries possible — [Relations](./relations#fallback-queries) covers the edge cases that trigger a split.
-
-<Callout type="info">
-  See also: [Setup](./setup) to install the generator and wire the builder, [Prisma objects](./objects) for `prismaObject` and `prismaField` in depth, or [Relations](./relations) for `t.relation` and the query planner.
-</Callout>
+This runs **two** Prisma queries: one for everything except `byNumber`, and a second for the aliased relation. Prisma can resolve a given relation only once per query, so a second copy of `players` with different arguments needs its own query. The plugin detects this and splits the work into the fewest queries possible. [Relations](./relations#fallback-queries) covers the edge cases that trigger a split.

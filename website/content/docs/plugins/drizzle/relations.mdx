@@ -144,8 +144,4 @@ builder.drizzleObject('players', {
 });
 ```
 
-`select` also receives the field's `args`, the context, and a `nestedQuery` helper as later arguments. The value it computes lands on `parent` under the key you gave it in `extras`, and `resolve` reads it back. This is `t.field` under the hood — `buildFilter` just makes it easy to scope the query to the related records.
-
-<Callout type="info">
-  See also: [Selections](./selections) to control which columns and relations load, [Connections](./connections) for paginated relations, or [Indirect relations](./indirect-relations) for relations that cross a join table.
-</Callout>
+`select` also receives the field's `args`, the context, and a `nestedQuery` helper as later arguments. The value it computes lands on `parent` under the key you gave it in `extras`, and `resolve` reads it back. This is `t.field` under the hood; `buildFilter` just makes it easy to scope the query to the related records.

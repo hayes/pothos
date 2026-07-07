@@ -3,8 +3,6 @@ title: Prisma objects
 description: Define GraphQL object types from Prisma models with prismaObject and resolve to them with prismaField.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 `builder.prismaObject` defines a GraphQL object type backed by a Prisma model. You pass the model name and a set of options that mirror any other object type — the difference is that Pothos already knows the shape from your [generated `PrismaTypes`](./setup), so exposing columns and adding relations is fully typed without object refs or imports from the client.
 
 ```typescript
@@ -24,7 +22,7 @@ builder.prismaObject('Player', {
 });
 ```
 
-These behave like any Pothos object type. `prismaObject` returns an object ref you can use anywhere a ref is expected — the payoff over a plain `objectRef` is that the type information comes from your schema, and relation fields on it can be query-planned.
+These behave like any Pothos object type. `prismaObject` returns an object ref you can use anywhere a ref is expected. Unlike a plain `objectRef`, the type information comes from your schema, and relation fields on it can be query-planned.
 
 ## Naming the type
 
@@ -76,7 +74,3 @@ builder.prismaObjectField('Team', 'playerCount', (t) =>
   t.relationCount('players'),
 );
 ```
-
-<Callout type="info">
-  See also: [Relations](./relations) to connect Prisma objects to each other, [Selections](./selections) for `include`, `select`, and computed fields, or [Prisma objects and Relay](./relay) for `prismaNode`.
-</Callout>

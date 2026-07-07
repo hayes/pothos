@@ -182,7 +182,3 @@ prisma: {
 ```
 
 The check is deliberately naive: it wraps the `query` object's properties in getters that flip a flag when read. If nothing on the object is accessed before the resolver returns, the `onUnusedQuery` condition fires. Enable it in development to surface these issues quickly.
-
-<Callout type="info">
-  See also: [Prisma objects](./objects) to define your first type, [Relations](./relations) to connect them, or the [Prisma plugin overview](../prisma) for the full picture.
-</Callout>

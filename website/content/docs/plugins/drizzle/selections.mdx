@@ -3,8 +3,6 @@ title: Selections
 description: Control which columns, relations, and SQL expressions Drizzle loads with select and field-level selections.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 By default a `drizzleObject` loads every column of its table and pre-loads only the relations a query touches. A `select` option tunes that — narrow a wide table to the columns you expose, pre-load a relation every time, or add a raw SQL expression to the row. `select` has three parts: `columns`, related tables via `with`, and computed SQL via `extras`.
 
 ```typescript
@@ -114,7 +112,3 @@ builder.drizzleObject('players', {
   }),
 });
 ```
-
-<Callout type="info">
-  See also: [Relations](./relations) for `t.relation` and relation counts, [Drizzle objects](./objects) for `drizzleObject` and `drizzleField`, or [Indirect relations](./indirect-relations) for loading data across a join.
-</Callout>

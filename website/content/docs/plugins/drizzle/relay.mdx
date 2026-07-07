@@ -72,8 +72,4 @@ builder.drizzleNode('players', {
 
 ## Variants carry over
 
-Every `drizzleObject` option works on `drizzleNode`, including `name` and `variant` for exposing [multiple GraphQL types from one table](./variants). A node can be the private `Viewer` view of a row just as easily as the public one — set `variant` in place of `name`.
-
-<Callout type="info">
-  See also: [Connections](./connections) for paginating a relation off a node, [Drizzle objects](./objects) for the non-node `drizzleObject` these build on, or the [Relay plugin](../relay) for how nodes and global IDs work in general.
-</Callout>
+Every `drizzleObject` option works on `drizzleNode`, including `name` and `variant` for exposing [multiple GraphQL types from one table](./variants). A node can be the private `Viewer` view of a row just as easily as the public one; set `variant` in place of `name`.

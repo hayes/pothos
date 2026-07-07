@@ -128,5 +128,5 @@ PlayerObject.implement({
 Now a parent resolver *may* pre-load the team, and the field still resolves correctly when it doesn't.
 
 <Callout type="info">
-  A [dataloader](../dataloader) is the other lever for N+1 — batch the per-player team lookups into one query. Or let the [Drizzle plugin](./setup) plan these selections for you: `t.relation` and `t.drizzleField` read the GraphQL selection set and build a single nested query. See also [Object types](../../fundamentals/objects) for the `objectRef` this page builds on.
+  A [dataloader](../dataloader) is another lever for N+1, batching the per-player team lookups into one query. The [Drizzle plugin](./setup) is a third option: `t.relation` and `t.drizzleField` read the GraphQL selection set and build a single nested query, so you don't shape the backing model by hand.
 </Callout>

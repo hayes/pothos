@@ -3,8 +3,6 @@ title: Indirect relations
 description: Reach through join tables with through relations and the drizzleConnectionHelpers builder.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 `t.relation` and `t.relatedConnection` cover direct edges. Some fields reach a table two hops away — through a join table — or paginate nodes that live a level deeper than the relation they hang off. Drizzle gives you two tools for this: a `.through()` relation that hides the join entirely, and `drizzleConnectionHelpers` for the cases a single relation can't express.
 
 This page assumes the [schema, relations, and builder](./setup) are already wired up. In the Ultimate League schema, `players` and `games` connect through the `playerStats` join table.
@@ -205,7 +203,3 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
-
-<Callout type="info">
-  See also: [Connections](./connections) for the `t.relatedConnection` and `t.drizzleConnection` this page falls back from, [Relations](./relations) for the direct `t.relation` case, or [Type variants](./variants) for exposing the same table as more than one GraphQL type.
-</Callout>

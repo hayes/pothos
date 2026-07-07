@@ -3,8 +3,6 @@ title: Selections
 description: Control which columns and relations Prisma loads with include, select, and field-level selections.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 By default the plugin loads a model's full row and pre-loads only the relations a query touches. `include` and `select` on a `prismaObject` let you tune that — pre-load a relation every time, or narrow a wide table down to the columns you actually expose.
 
 ## Always include a relation
@@ -154,7 +152,3 @@ builder.mutationField('signPlayer', (t) =>
 ```
 
 `path` points `queryFromInfo` at where in the selection the Prisma object appears (here the `player` field of the result). `select` (or `include`) seeds an initial selection — useful when the field at `path` may not be selected at all, leaving the selection set empty.
-
-<Callout type="info">
-  See also: [Relations](./relations) for `t.relation` and relation counts, [Prisma objects](./objects) for `prismaObject` and `prismaField`, or [Indirect relations](./indirect-relations) for loading data across a join.
-</Callout>

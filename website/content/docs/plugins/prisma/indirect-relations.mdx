@@ -3,8 +3,6 @@ title: Indirect relations
 description: Pre-load data through wrapper types and join tables with the nestedSelection helper.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 `t.relation` pre-loads a direct relation, but some fields don't map to one edge. A field might wrap a Prisma object in a non-Prisma type, or reach a model through a join table two hops away. For those, the `select` function on a field gives you `nestedSelection` — a helper that reads the GraphQL selection set at a path you choose and returns the matching Prisma `select`, so you can still load everything in one query.
 
 This page assumes the [generated types and builder](./setup) are already wired up.
@@ -128,7 +126,3 @@ const Player = builder.prismaObject('Player', {
 ```
 
 The `resolve` maps the join rows back to their `Player`, so clients see `game.players` with no sign of `PlayerStat` — while the query still loads a requested `team` relation in the same round-trip.
-
-<Callout type="info">
-  See also: [Selections](./selections) for the `select` mode these examples use, [Relations](./relations) for the direct `t.relation` case, or [Type variants](./variants) for exposing the same model as more than one GraphQL type.
-</Callout>

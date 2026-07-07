@@ -119,8 +119,4 @@ const Player = builder.drizzleNode('players', {
 builder.drizzleObjectField(PlayerPrivateInfo, 'player', (t) => t.variant(Player));
 ```
 
-The same workaround applies to relations that use variants — move the offending relation field into a `drizzleObjectField` call.
-
-<Callout type="info">
-  See also: [Interfaces](./interfaces) for sharing fields across variants of a table, [Relations](./relations) for the `query` and `type` options used above, or [Relay](./relay) for the `drizzleNode` these examples build on.
-</Callout>
+The same workaround applies to relations that use variants: move the offending relation field into a `drizzleObjectField` call.

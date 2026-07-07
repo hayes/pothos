@@ -158,8 +158,4 @@ builder.queryFields((t) => ({
 }));
 ```
 
-When only `totalCount` is requested — without `edges` or `nodes` — the plugin skips the main query and runs only the count.
-
-<Callout type="info">
-  See also: [Indirect relations](./indirect-relations) for paginating through a join table with `drizzleConnectionHelpers`, [Relay nodes](./relay) for the `drizzleNode` these connections hang off, or the [Relay plugin](../relay) for how connections, edges, and cursors work in general.
-</Callout>
+When only `totalCount` is requested, without `edges` or `nodes`, the plugin skips the main query and runs only the count.

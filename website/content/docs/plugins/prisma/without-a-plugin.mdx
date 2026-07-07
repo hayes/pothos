@@ -3,8 +3,6 @@ title: Prisma without a plugin
 description: Back GraphQL objects with Prisma models using plain objectRef, and tame the resulting N+1 queries.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 You don't need the [Prisma plugin](./setup) to put Prisma models behind a GraphQL schema. `builder.objectRef` takes any TypeScript shape as its backing model, and a Prisma row is just a shape — so you can point a ref at `Team` or `Player` from `@prisma/client` and resolve relations with ordinary client calls. You give up the plugin's automatic query-planning, but the code stays plain Pothos.
 
 ```typescript
@@ -113,6 +111,4 @@ PlayerObject.implement({
 
 Now a parent resolver *may* pre-load the team, and the field still resolves correctly when it doesn't.
 
-<Callout type="info">
-  A [dataloader](../dataloader) is the other lever for N+1 — batch the per-player team lookups into one query. Or let the [Prisma plugin](./setup) plan these selections for you: `t.relation` and `t.prismaField` read the GraphQL selection set and build a single nested query. See also [Object types](../../fundamentals/objects) for the `objectRef` this page builds on.
-</Callout>
+A [dataloader](../dataloader) is the other lever for N+1 — batch the per-player team lookups into one query. Or let the [Prisma plugin](./setup) plan these selections for you: `t.relation` and `t.prismaField` read the GraphQL selection set and build a single nested query.

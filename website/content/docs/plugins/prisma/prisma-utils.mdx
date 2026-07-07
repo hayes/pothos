@@ -273,7 +273,3 @@ Hand-writing every input type for a large schema is exactly the repetition these
 
 - **Static generation** writes the input types to a TypeScript file you import into your schema. See the [example static generator](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/generator.ts), the [file it produces](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/prisma-inputs.ts), and [how it's consumed](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/index.ts).
 - **Dynamic generation** creates the input types at runtime through helpers imported into your app. See the [example dynamic generator](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/generator.ts) and [how it's used](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20).
-
-<Callout type="info">
-  See also: [Setup](./setup) for the base Prisma plugin these helpers extend, [Relations](./relations) for exposing the models you're filtering, or [Objects](./objects) for defining the Prisma object types themselves.
-</Callout>

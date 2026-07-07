@@ -3,8 +3,6 @@ title: Relay nodes
 description: Turn a Prisma model into a Relay node with prismaNode — global IDs, efficient node(id) lookups, and relation fields.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 The Prisma plugin wires into the [Relay plugin](../relay) so a Prisma model becomes a Relay node with a global ID and an efficient `node(id: ID!)` lookup. Where you'd reach for `builder.prismaObject`, reach for `builder.prismaNode` instead: it defines the same object type and, on top of it, implements the `Node` interface and the `id` field for you.
 
 These examples assume the builder is set up with both `PrismaPlugin` and `RelayPlugin` and a `prisma` client in scope — see [Setup](./setup) for the generator, `PrismaTypes`, and builder wiring.
@@ -30,7 +28,7 @@ With `id.field` set, the `node(id:)` query loads the record with a `prisma.playe
 
 ## Customizing the id
 
-To format the global ID yourself, replace `id.field` with an `id.resolve` function that returns a string from a node instance. Pair it with `findUnique`, whose return value is passed as the `where` of a `prisma.player.findUnique` to load the node back from that formatted ID. You rarely need this — reach for it only when the raw column value isn't the shape you want to expose.
+To format the global ID yourself, replace `id.field` with an `id.resolve` function that returns a string from a node instance. Pair it with `findUnique`, whose return value is passed as the `where` of a `prisma.player.findUnique` to load the node back from that formatted ID. This is for cases where the raw column value isn't the shape you want to expose.
 
 ```typescript
 builder.prismaNode('Player', {
@@ -62,7 +60,3 @@ builder.prismaNode('Player', {
 ```
 
 Every other `prismaObject` option carries over unchanged — including `name` and `variant` for exposing [multiple GraphQL types from one model](./variants).
-
-<Callout type="info">
-  See also: [Connections](./connections) for paginating relations off a node, [Prisma objects](./objects) for the non-node `prismaObject` these build on, or the [Relay plugin](../relay) for how nodes and global IDs work in general.
-</Callout>

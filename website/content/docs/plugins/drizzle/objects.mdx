@@ -110,7 +110,3 @@ builder.drizzleObjectField(TeamRef, 'playerCount', (t) =>
 ```
 
 The first argument is the object ref (or the table name); the field builder `t` is the same one `drizzleObject`'s `fields` function receives, so [`t.relation`](./relations), [`t.relatedCount`](./relations#relation-counts), and field-level [`select`](./selections) are all available.
-
-<Callout type="info">
-  See also: [Relations](./relations) to connect Drizzle objects to each other, [Selections](./selections) for `columns`, `with`, `extras`, and computed fields, or [Drizzle objects and Relay](./relay) for `drizzleNode`.
-</Callout>

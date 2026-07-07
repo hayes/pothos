@@ -5,9 +5,9 @@ description: Define GraphQL types from Drizzle tables and resolve relations with
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-The Drizzle plugin builds GraphQL object types straight from your Drizzle tables and resolves their relations with queries it plans for you. You call `builder.drizzleObject` with a table name, expose the columns you want, and add relation fields with `t.relation` — the plugin turns each nested GraphQL selection into a single, precisely-scoped query. Nothing is over-fetched: a column loads only when a client asks for it.
+The Drizzle plugin builds GraphQL object types straight from your Drizzle tables and resolves their relations with queries it plans for you. You call `builder.drizzleObject` with a table name, expose the columns you want, and add relation fields with `t.relation`, and the plugin reads each nested GraphQL selection to build a single query scoped to it, so a column loads only when a client asks for it.
 
-The plugin builds on Drizzle's [relational query builder](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2), so you define your tables and relations in Drizzle first, then hand them to Pothos. It is not required to use Drizzle with Pothos, but it removes a lot of manual wiring and query planning — see [Using Drizzle without a plugin](./without-a-plugin) if you would rather keep the ORM at arm's length.
+The plugin builds on Drizzle's [relational query builder](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2), so you define your tables and relations in Drizzle first, then hand them to Pothos. You don't have to use the plugin to use Drizzle with Pothos, but it handles a lot of the wiring and query planning for you; see [Using Drizzle without a plugin](./without-a-plugin) for the manual approach.
 
 <Callout type="warn">
   This package is new and depends on Drizzle's [RQB v2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2). Some features are still missing and the API may change. It currently requires the `beta` tag for `drizzle-orm`. Upgrading from an older version? Read the [Drizzle relations migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2) and check this package's changelog for Pothos-specific changes.
@@ -94,8 +94,4 @@ query {
 }
 ```
 
-The `myTeam` resolver receives a `query` carrying the selection needed to load `players` and their `stats` in one go. The plugin reads the GraphQL selection, folds it into the relational query, and never loads a column or relation the client did not ask for. Fields that can't fold into the parent query — a second copy of a relation with different arguments, a derived field computed in SQL — get their own scoped query, and the plugin plans that for you too.
-
-<Callout type="info">
-  See also: [Setup](./setup) to install the plugin and wire the builder, [Drizzle objects](./objects) for `drizzleObject` and `drizzleField` in depth, or [Relations](./relations) for `t.relation` and the query planner.
-</Callout>
+The `myTeam` resolver receives a `query` carrying the selection needed to load `players` and their `stats` in one go. The plugin reads the GraphQL selection, folds it into the relational query, and never loads a column or relation the client did not ask for. Fields that can't fold into the parent query, such as a second copy of a relation with different arguments or a derived field computed in SQL, get their own scoped query, and the plugin plans that for you too.
