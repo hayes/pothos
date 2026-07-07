@@ -7,7 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Pothos is a library for building GraphQL schemas in TypeScript. You describe your schema with a builder — objects, fields, resolvers, inputs — as ordinary values, and `builder.toSchema()` turns them into a standard graphql-js `GraphQLSchema` your server runs.
 
-What makes that pay off is where the types come from. You start from data you already have — a database row, an API response, a domain type — and build the GraphQL object on top of it. The builder carries that type through everything built from it, so the whole schema is type-safe without you writing types twice: no SDL to sync, no codegen in the loop.
+The types in your schema come from your own data. You start from a type you already have (a database row, an API response, a domain type) and build the GraphQL type on top of it. The builder keeps track of these types wherever they are used, so the schema stays type-safe without a separate SDL file or a code-generation step.
 
 ## Building from your data
 
@@ -45,13 +45,13 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-Because `Character` is built from `ICharacter`, every resolver on it knows the shape of `parent` without a cast. Return something that isn't an `ICharacter` from `frodo` and the file won't compile. The GraphQL object and its backing model stay separate — the object is the API clients see, the model is the data you return — but the builder keeps them tied together, so the schema tracks your data as it changes.
+Because `Character` was created with the `ICharacter` type, resolvers defined on it receive an `ICharacter` as `parent`, and the `frodo` resolver needs to return one. The `Character` type describes what clients can query, while `ICharacter` describes the data used to resolve it, and Pothos keeps the two in sync as your code changes.
 
 This objectRef style is what the rest of the guide uses. Pothos also supports class-backed types and types registered by name on the builder's generics — [Object types](../fundamentals/objects) covers all three.
 
 ## How it compares to schema-first
 
-Schema-first tools — GraphQL Tools, Mercurius, raw `graphql-js` — start from an SDL string and ask you to write resolvers that match it, with codegen bridging the SDL back to TypeScript types. Pothos runs the other direction: your TypeScript is the source of truth, and the SDL is a derived artifact of `toSchema()`. There's one description of the schema, so the types can't drift from it.
+Schema-first tools (GraphQL Tools, Mercurius, raw `graphql-js`) start from an SDL string, and use code generation to produce TypeScript types for the resolvers that implement it. With Pothos the schema is defined in TypeScript, and the SDL is generated from it by `toSchema()`. Because there is only one definition of the schema, the types and the SDL can't drift apart.
 
 ## Where plugins fit
 
@@ -65,7 +65,7 @@ Core gives you objects, fields, inputs, interfaces, unions, enums, and scalars �
 - **[Prisma](../plugins/prisma) / [Drizzle](../plugins/drizzle)** — define objects straight from your ORM models.
 - **[Federation](../plugins/federation)** — build subgraphs for a federated gateway.
 
-A plugin isn't a separate framework bolted on. It's more methods on `t` and the builder, typed the same way, so `t.prismaObject` and `t.connection` sit next to `t.field` and share the same inference. You add plugins as the schema needs them, and they compose with each other.
+Each plugin adds methods to the builder and to `t`, with the same type safety as the built-in methods. Plugins are designed to work together, and can be added to a schema as they are needed.
 
 ## What's next
 

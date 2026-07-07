@@ -7,9 +7,9 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ![Pothos](/assets/logo-name-auto.svg)
 
-Pothos is a library for building GraphQL schemas in TypeScript. You define your types, fields, and resolvers with a builder, and the whole schema is fully type-safe without writing your types twice — the builder's generics carry your data's types everywhere they're used, so there's no SDL to keep in sync, no decorators, and no code-generation step.
+Pothos is a library for building GraphQL schemas in TypeScript. You define your types, fields, and resolvers with a builder, and the whole schema is fully type-safe without writing your types twice. The builder keeps track of your data's types wherever they are used, so there is no SDL to keep in sync and no code-generation step.
 
-`builder.toSchema()` hands you a standard graphql-js `GraphQLSchema` at startup, so any server — [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server), Apollo — can run it, and your resolvers stay ordinary functions. The heavy lifting happens in the type system and at schema-build time; at request time there's nothing between the client and your resolver. Core depends only on `graphql`. Everything past it — Relay, scope-auth, errors, validation, dataloaders, Prisma, Drizzle, federation — is a plugin that extends the same builder.
+`builder.toSchema()` hands you a standard graphql-js `GraphQLSchema` at startup, so any server — [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server), Apollo — can run it, and your resolvers stay ordinary functions. Pothos does its work in the type system and while the schema is being built; resolvers themselves run as plain functions. Core depends only on `graphql`. Everything past it — Relay, scope-auth, errors, validation, dataloaders, Prisma, Drizzle, federation — is a plugin that extends the same builder.
 
 <include cwd lang="typescript" meta='playground example="getting-started-first-schema-step-2"'>playground-examples/getting-started-first-schema/step-2/schema.ts#schema</include>
 
@@ -19,11 +19,11 @@ Open the example in the playground to run it, edit the resolver, and watch the S
 
 The example above is the whole pipeline in miniature:
 
-- **Your data leads.** The backing model — `{ id: string; name: string }` — is the shape your data already has. `builder.objectRef<T>()` types a GraphQL object by that model, so the schema follows your data instead of the other way around.
-- **Resolvers are typed from it.** `frodo` has to return that shape; return the wrong thing and the file doesn't compile. There's no second type definition to keep in step.
-- **The output is a plain schema.** `builder.toSchema()` produces an ordinary graphql-js `GraphQLSchema`. From there it's just GraphQL — hand it to any server and run it.
+- The backing model (`{ id: string; name: string }`) is a plain TypeScript type describing the data. `builder.objectRef<T>()` creates a GraphQL type based on it.
+- The `frodo` resolver needs to return that shape, and TypeScript will report an error if it doesn't.
+- `builder.toSchema()` produces a normal graphql-js `GraphQLSchema` that works with any GraphQL server.
 
-Plugins extend that same builder with new methods — `t.connection`, `authScopes`, `t.prismaField` — typed the same way as everything built in. Everything else in these docs builds on this loop: your data shapes the builder, the builder types your schema, and the result runs on any GraphQL server.
+Plugins add methods to the same builder (`t.connection`, `authScopes`, `t.prismaField`) with the same type safety as the built-in ones.
 
 ## Explore the docs
 

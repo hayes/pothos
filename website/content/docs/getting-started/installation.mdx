@@ -1,9 +1,11 @@
 ---
 title: Installation
-description: Install Pothos and build your first schema.
+description: Install Pothos and create a small schema you can run.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
+
+This page walks through installing Pothos and creating a small schema you can run.
 
 ## Install
 
@@ -11,7 +13,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 npm install --save @pothos/core graphql
 ```
 
-Plugins are published as separate packages (`@pothos/plugin-relay`, `@pothos/plugin-scope-auth`, …). `graphql` is a peer dependency, shared between Pothos and your server.
+Plugins are published as separate packages (`@pothos/plugin-relay`, `@pothos/plugin-scope-auth`, etc.). `graphql` is a peer dependency, shared between Pothos and your GraphQL server.
 
 ## TypeScript settings
 
@@ -27,22 +29,22 @@ Pothos is built around type safety, and turning off strict null checks breaks so
 
 ## Hello world
 
-A builder and a `Query` type with one field is a complete, runnable schema:
+A builder and a `Query` type with one field is enough to create a working schema:
 
 <includeregions cwd lang="typescript" meta='playground example="getting-started-first-schema-step-1"'>playground-examples/getting-started-first-schema/step-1/schema.ts#imports,builder,query,export</includeregions>
 
-`new SchemaBuilder({})` creates the builder everything else hangs off — the options object is where plugins go later. `builder.queryType()` declares the root `Query` type ([Queries](../fundamentals/queries) covers the root types in depth), and `builder.toSchema()` produces a plain graphql-js `GraphQLSchema` that any server or tool can use.
+`new SchemaBuilder({})` creates the builder used to define the rest of the schema. The options object is where plugins and their settings will go later. `builder.queryType()` defines the schema's root `Query` type (the root types are covered in more detail in the [Queries](../fundamentals/queries) guide), and `builder.toSchema()` builds a standard graphql-js `GraphQLSchema` that can be passed to any GraphQL server.
 
 ## Adding an object type
 
-Real schemas return objects, not just strings:
+Next, we can add an object type based on some data:
 
 <includeregions cwd lang="typescript" meta='playground example="getting-started-first-schema-step-2"'>playground-examples/getting-started-first-schema/step-2/schema.ts#builder,character-and-query</includeregions>
 
-`builder.objectRef<{ id: string; name: string }>('Character')` declares a GraphQL type named `Character` backed by that TypeScript shape — its backing model. `implement` defines the fields; `t.exposeID('id')` and `t.exposeString('name')` read properties straight off the backing object ([Fields](../fundamentals/fields) covers the field builder).
+`objectRef` creates a reference to a new `Character` type. The generic parameter tells Pothos what TypeScript shape the data behind this type will have (Pothos calls this the backing model). `implement` defines the type's fields; `t.exposeID('id')` and `t.exposeString('name')` return properties directly from the backing object. The [Fields](../fundamentals/fields) guide covers the field builder in more detail.
 
-Because `frodo` is typed as `Character`, its resolver has to return `{ id: string; name: string }` — return the wrong shape and the file doesn't compile. Every Pothos feature builds on that same check.
+Because the `frodo` field returns a `Character`, its resolver needs to return an object matching that shape, and TypeScript will report an error if it doesn't.
 
 <Callout type="info">
-  Next: [First server](./first-server) runs this schema behind `graphql-yoga`. If GraphQL itself is new to you, [graphql.org/learn](https://graphql.org/learn/) covers the query language and type system that these docs assume.
+  Next: [First server](./first-server) runs this schema with `graphql-yoga`. If you're new to GraphQL itself, [graphql.org/learn](https://graphql.org/learn/) covers the query language and type system these docs assume.
 </Callout>

@@ -110,3 +110,34 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
 - **U4 — Runnable-looking static fences should link to the playground** —
   self-contained example fences (e.g. on the introduction) should carry the
   playground affordance via the inline mechanism even without a bundle.
+
+## Voice model (2026-07-06 round 3 — the binding style reference)
+
+Maintainer: "Everything still feels super repetitive and AI style… a lot of
+'its not x its Y!' with a voice of someone selling snake oil, i really hate it."
+
+**The voice to write in is the maintainer's own original docs** (git history,
+pre-rewrite guide pages — e.g. `git show 6cd0a85c:.../guide/objects.mdx`).
+Its characteristics:
+- A patient walkthrough addressed to the reader: "you'll need to…",
+  "Next, we can…", "This will create…". Second person; "we" for the shared task.
+- Sentences explain what the code does and what comes next. They may be long
+  and relaxed. They just end — no punch clause.
+- Asides go in parentheses ("(optional)"). Forward links are stated plainly
+  ("will be covered in more detail in the fields guide").
+- Nothing is sold. The reader already chose Pothos; the docs' job is to
+  explain, not persuade.
+
+**Banned constructions (additions to the anti-slop rubric):**
+- **A8 — "It's not X. It's Y." in all forms** ("X isn't Y — it's Z",
+  "not just X", "instead of X, Y"). Contrast is allowed only when the
+  misconception is real and the contrast is the actual content (e.g. the
+  schema-first comparison section), at most once, without the rhetorical snap.
+- **A9 — Mic-drop endings.** "That's the whole loop." "That's the entire
+  model." "The payoff is…" Paragraphs may simply end.
+- **A10 — The selling register.** Any sentence whose function is to make the
+  reader feel something about Pothos rather than know something.
+- **A11 — Rhetorical parallelism** ("the object is the API clients see, the
+  model is the data you return") unless the parallel is itself the content.
+- **A12 — Em-dash chains and appositive pile-ups as the default sentence
+  shape.** Use ordinary subordinate clauses; save dashes for real asides.
