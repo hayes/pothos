@@ -38,8 +38,21 @@ All paths are repo-relative to the worktree root. Line numbers are from the stat
   ``throw new PothosSchemaError(`${this.describeRef(ref)} has not been implemented`);`` (also
   `config-store.ts:267,297,337` and `build-cache.ts:478` `Missing implementation of for type ...`).
   Docs recommendation: a ref is a valid type reference immediately (usable in `t.field({ type: ref })`),
-  but it must be given a config by `.implement(...)`, `builder.objectType(ref, ...)`, or
-  `builder.objectFields(ref, ...)` before `toSchema`, or the build errors.
+  but it must be **implemented** — given a registered *type* config — before `toSchema`, or the build
+  errors. The ONLY two calls that register a type config (i.e. that call `ref.updateConfig(...)`) are
+  `.implement(...)` (which forwards to `objectType`, §2) and `builder.objectType(ref, ...)` directly
+  (`builder.ts:168` `ref.updateConfig({ kind: 'Object', ... })`).
+- **`builder.objectFields(ref, ...)` does NOT implement a ref** — corrected from an earlier draft that
+  listed it as a config-giving path. `objectFields` (`builder.ts:205-213`) calls
+  `configStore.addFields(param, ...)` (`builder.ts:210`), which calls `onTypeConfig`
+  (`config-store.ts:48-64`). For a ref whose type config is not yet registered, `onTypeConfig` only
+  pushes a callback into `pendingTypeConfigResolutions` (`config-store.ts:110-113`) — it NEVER calls
+  `updateConfig`. So a ref that has had only `objectFields`/`objectField` called on it is still
+  un-implemented: at build, `prepareForBuild` finds the ref still in `pendingTypeConfigResolutions`
+  and throws ``Missing implementations for some references (...)`` (`config-store.ts:335-343`).
+  Runtime-vs-order fact: `objectFields`/`objectField` *add fields to a type that is (or will be)
+  implemented elsewhere*; they do not themselves supply the type config. Docs must not list
+  `objectFields` as a way to implement a ref.
 
 ---
 
@@ -252,8 +265,14 @@ later lookups resolve (`builder.ts:184-186`, `associateParamWithRef`).
   instance. Canonical example in-repo, `packages/core/tests/examples/giraffes/objects.ts:9` —
   `isTypeOf: (value) => value instanceof Giraffe`.
 - How that resolves abstract types: an interface's `resolveType` falls back to graphql's
-  `defaultTypeResolver` when no `resolveType` is given (`packages/core/src/build-cache.ts:588`,
-  `:626`), and `defaultTypeResolver` picks the member type whose `isTypeOf` returns true. So writing
+  `defaultTypeResolver` when no `resolveType` is given — this is the **interface** path only,
+  `packages/core/src/build-cache.ts:588` (`const resolver = config.resolveType ?? defaultTypeResolver`).
+  (Citation correction from an earlier draft: `:626` is NOT the interface path — it is inside
+  `buildUnion` (`build-cache.ts:625-626`, `if (!config.resolveType) return defaultTypeResolver(...)`),
+  i.e. the *union* resolver. Unions share the same fallback but it is a separate code path; do not cite
+  `:626` for the interface clause.) `defaultTypeResolver` picks the member type whose `isTypeOf` returns
+  true, so both interfaces (`:588`) and unions (`:626`) discriminate members via `isTypeOf` when no
+  explicit `resolveType` is supplied. So writing
   `isTypeOf: v => v instanceof X` on each class-backed object is exactly what lets an interface/union
   discriminate members. This is the F4 affordance surfaced at the `isTypeOf` option; the deeper
   class-backed-types treatment (backing-model inference, `resolveType` brands) belongs to the
@@ -323,8 +342,24 @@ later lookups resolve (`builder.ts:184-186`, `associateParamWithRef`).
     one-of union at the type level (`OneOfInputShapeFromFields`), `builder.ts:625-634, 651`.
   - **No `interfaces`, no `isTypeOf`, no `resolveType`** — inputs have none of these.
 - `builder.inputType(param, options)` name resolution is simpler than objects: `name = param string ? param : param.name` (`builder.ts:636`) — there is no `options.name` fallback for inputs.
-  The exported name conditional still requires `name` for a class-like param but inputs are almost
-  always string-or-`inputRef`.
+- **Inputs have no name-conditional wrapper and no class param** (corrected from an earlier draft that
+  claimed "the exported name conditional still requires `name` for a class-like param"). Three
+  independent source facts:
+  1. There is NO exported `InputObjectTypeOptions` wrapper in `builder-options.ts` — `grep -n
+     InputObjectTypeOptions packages/core/src/types/builder-options.ts` returns nothing. `inputType`
+     uses the global `PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>` directly
+     (`builder.ts:628`, `options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields> & { isOneOf?: IsOneOf }`).
+     Objects/interfaces DO have exported name-conditional wrappers (`builder-options.ts:170-198`); inputs
+     do not.
+  2. `inputType` does not accept a class-like param. Its param is typed
+     `Param extends InputObjectRef<Types, unknown> | string` (`builder.ts:619`) — no
+     `new (...args) => any` member, unlike `ObjectParam` (§7, `type-params.ts:118-125`). So there is no
+     class form for which a `name` could be "required."
+  3. The input option interface `InputObjectTypeOptions<Types, Fields>` (`type-options.ts:84-91`) has no
+     `name` key at all (`description?`/`extensions?`/`astNode?` from base, plus `isOneOf?` and required
+     `fields`). Nothing in the input path "requires `name`."
+  Net: for inputs, `name` always comes from the string param or the ref's `.name`
+  (`builder.ts:636`); there is no options-level `name`, no class param, and no name conditional.
 
 ---
 

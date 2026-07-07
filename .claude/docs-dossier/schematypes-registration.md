@@ -174,11 +174,23 @@ All paths are relative to repo root. Line numbers are from the worktree at audit
   for the compiler; the runtime `objectType`/`interfaceType`/`objectRef` call makes the *type*
   exist. Neither implies the other.
 
-- Nuance worth a doc footnote, not the main text: because `outputShapes` merges
-  `Scalars` then `Objects` then `Interfaces` (`schema-types.ts:94-102`, intersection order),
-  an `Objects` entry can shadow a scalar's output shape under the same key. The starwars example
-  literally does `Objects: { … String: string }` (`starwars/builder.ts:6`). Docs need not teach
-  this, but should not claim keys are disjoint.
+- Nuance worth a doc footnote, not the main text: `outputShapes` is built as a three-way
+  **intersection** — `{…Scalars} & {…Objects} & {…Interfaces}`
+  (`packages/core/src/types/global/schema-types.ts:94-102`, note the two `&` joining the three
+  mapped types). Same-key members therefore combine by TypeScript intersection, **not** override
+  or shadow: an `Objects` entry keyed the same as a scalar produces
+  `ScalarOutput & ObjectsShape`, retaining both halves, never replacing the scalar shape.
+  - The starwars example literally does `Objects: { … String: string }`
+    (`packages/core/tests/examples/starwars/builder.ts:6`). Here it is harmless because the
+    scalar output shape for `String` is already `string`, so the merge is `string & string = string`.
+  - A *differing* shape would surface the intersection. Emulating `Scalars & { String: { foo: number } }`,
+    `outputShapes['String']` becomes `string & { foo: number }`: a plain `string`-typed value is
+    **not** assignable to it (TS2322), while both `.foo` (number) and string `.length` resolve —
+    proving both members are retained, i.e. intersection, not shadowing.
+  - Actionable point for docs (correct): the `Scalars` and `Objects` key spaces are **not** disjoint —
+    a same-key entry merges rather than errors, and the result may be a non-obvious intersection.
+    Docs need not teach this, but should not claim the keys are disjoint namespaces, and should
+    not describe it as "shadowing."
 
 ---
 
@@ -344,8 +356,10 @@ generic — never off `Objects`.
 - Do not imply registering a name creates the type. It does not (§3). Always show the paired
   runtime `objectType`/`interfaceType`/`objectRef(...).implement(...)` call.
 - Do not imply the generic has runtime effect. It is erased (§2 last bullet).
-- Do not claim `Objects` and `Scalars` keys are disjoint namespaces — an `Objects` key can shadow
-  a scalar's output shape (§3 nuance).
+- Do not claim `Objects` and `Scalars` keys are disjoint namespaces — a same-key `Objects` entry
+  **intersects** with (does not shadow/replace) the scalar's output shape, because `outputShapes`
+  is an intersection of the scalar, object, and interface tables
+  (`packages/core/src/types/global/schema-types.ts:94-102`, §3 nuance).
 - When choosing a first example, pick a natural object type (ledger S3). The existing starwars
   `Human`/`Droid`/`Character` set is a good, honest example of the registration+creation pairing.
 

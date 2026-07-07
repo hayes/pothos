@@ -3,7 +3,7 @@ query Fellowship {
     id
     name
   }
-  character(id: "aragorn") {
+  character(id: "3") {
     name
   }
 }

@@ -6,9 +6,9 @@ interface ICharacter {
 }
 
 const Characters: ICharacter[] = [
-  { id: 'frodo', name: 'Frodo Baggins' },
-  { id: 'sam', name: 'Samwise Gamgee' },
-  { id: 'aragorn', name: 'Aragorn' },
+  { id: '1', name: 'Frodo Baggins' },
+  { id: '2', name: 'Samwise Gamgee' },
+  { id: '3', name: 'Aragorn' },
 ];
 
 const builder = new SchemaBuilder({});

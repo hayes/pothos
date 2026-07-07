@@ -1,23 +1,21 @@
 ---
 title: Installation
-description: Install @pothos/core, configure TypeScript, and build your first schema in a few steps.
+description: Install Pothos and build your first schema.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Pothos ships as a small core package plus optional plugins. Install the core, enable TypeScript's `strict` mode, and a builder gives you a runnable schema — this page walks through each step.
-
-## Install the package
+## Install
 
 ```package-install
 npm install --save @pothos/core graphql
 ```
 
-`@pothos/core` is the only Pothos package most projects need. Plugins live in their own packages (`@pothos/plugin-errors`, `@pothos/plugin-scope-auth`, …) and you add them as you need them. Pothos has a single peer dependency: `graphql`.
+Plugins are published as separate packages (`@pothos/plugin-relay`, `@pothos/plugin-scope-auth`, …). `graphql` is a peer dependency, shared between Pothos and your server.
 
 ## TypeScript settings
 
-Pothos relies on `strict` mode for the inference that makes the rest of this guide work. If your `tsconfig.json` doesn't have it, turn it on:
+Pothos is built around type safety, and turning off strict null checks breaks some of its inference. Make sure `strict` mode is enabled in your `tsconfig.json`:
 
 ```json
 {
@@ -27,24 +25,24 @@ Pothos relies on `strict` mode for the inference that makes the rest of this gui
 }
 ```
 
-Without `strict`, types like `string | undefined` collapse to `string`, and Pothos's `required`/`nullable` machinery breaks down. Nullable fields and optional arguments then look identical to required ones, so those checks quietly pass on code that would fail at runtime. Pothos flags this directly — its builder options require a `notStrict` acknowledgement when strict mode is off.
+## Hello world
 
-## An empty builder
-
-The minimum that produces a valid schema is a builder and a Query root with at least one field:
+A builder and a `Query` type with one field is a complete, runnable schema:
 
 <includeregions cwd lang="typescript" meta='playground example="getting-started-first-schema-step-1"'>playground-examples/getting-started-first-schema/step-1/schema.ts#imports,builder,query,export</includeregions>
 
-`builder.toSchema()` returns a plain `GraphQLSchema` — anything that accepts one (every server, every codegen tool) will accept this.
+`new SchemaBuilder({})` creates the builder everything else hangs off — the options object is where plugins go later. `builder.queryType()` declares the root `Query` type ([Queries](../fundamentals/queries) covers the root types in depth), and `builder.toSchema()` produces a plain graphql-js `GraphQLSchema` that any server or tool can use.
 
-## Adding a real type
+## Adding an object type
 
-Most schemas hit more than `health: String`. Declare a backing type, attach fields to it, and return it from a query:
+Real schemas return objects, not just strings:
 
 <includeregions cwd lang="typescript" meta='playground example="getting-started-first-schema-step-2"'>playground-examples/getting-started-first-schema/step-2/schema.ts#builder,character-and-query</includeregions>
 
-`objectRef<{ id: string; name: string }>('Character')` introduces a GraphQL `Character` type backed by that TypeScript shape. `Character.implement({...})` fills in the fields. Once both are done, anything in the schema that returns `Character` is checked to produce a matching object.
+`builder.objectRef<{ id: string; name: string }>('Character')` declares a GraphQL type named `Character` backed by that TypeScript shape — its backing model. `implement` defines the fields; `t.exposeID('id')` and `t.exposeString('name')` read properties straight off the backing object ([Fields](../fundamentals/fields) covers the field builder).
+
+Because `frodo` is typed as `Character`, its resolver has to return `{ id: string; name: string }` — return the wrong shape and the file doesn't compile. Every Pothos feature builds on that same check.
 
 <Callout type="info">
-  See also: [First server](./first-server) to wire this schema into `graphql-yoga` and run a query against it. The [Queries](../fundamentals/queries) page covers `queryField` and `queryFields` for splitting query entries across modules.
+  Next: [First server](./first-server) runs this schema behind `graphql-yoga`. If GraphQL itself is new to you, [graphql.org/learn](https://graphql.org/learn/) covers the query language and type system that these docs assume.
 </Callout>

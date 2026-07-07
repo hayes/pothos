@@ -364,7 +364,7 @@ article#nd-page .fd-scroll-container {
    over code text. */
 article#nd-page figure.shiki.has-playground .fd-scroll-container[style*="--padding-right"] {
   /* !important to beat fumadocs' inline `--padding-right` custom property. */
-  --padding-right: 3.75rem !important;
+  --padding-right: 8.5rem !important;
 }
 
 /* Sidebar — uppercase section heads, accent left rule on active items */

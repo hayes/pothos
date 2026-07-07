@@ -120,15 +120,15 @@ option to the TS type the resolver must return.
 - **Root types** (`Query`/`Mutation`) use `Types['Root']` as the parent shape,
   not an object shape: `field-options.ts:96-126` (`QueryFieldOptions` /
   `MutationFieldOptions` fix both slots to `Types['Root']`). `Root` defaults to
-  `object`: `types/schema-types.ts:31`, `types/global/schema-types.ts:64`.
+  `object`: `types/schema-types.ts:31` (`Root: object;`), `types/global/schema-types.ts:65` (`Root: object;` — note line 64 is `Interfaces: {};`).
 - **Subscription** splits parent (`Types['Root']`) from the `ResolveShape` the
   `subscribe` iterator yields: `field-options.ts:145-174`.
 
 ## 5. `Context` flow
 
 - `Context` is a single entry on `SchemaTypes`, defaulting to `object`:
-  `types/schema-types.ts:32` (`Context: object`), and in the user-facing
-  registration surface `types/global/schema-types.ts:65` (`Context: object`).
+  `types/schema-types.ts:32` (`Context: object;`), and in the user-facing
+  registration surface `types/global/schema-types.ts:66` (`Context: object;` — note line 65 is `Root: object;`).
 - User `Context` is merged in via `ExtendDefaultTypes`:
   `types/global/schema-types.ts:80` — `Context: PartialTypes['Context'] & {}`.
   (Whatever you put on the builder's `Context` generic is the context type,

@@ -30,12 +30,27 @@ behavior. Where a fact is both, both halves are stated.
   and it is run through `ExtendDefaultTypes<Types>` to fill defaults BEFORE it
   becomes the builder's `SchemaTypes`.** `index.ts:55-59`. So `new SchemaBuilder<{ Context: Ctx }>({})`
   is legal — you supply only the keys you care about; core fills the rest.
-- The runtime class constructor is `builder.ts:104-128`. It stores `this.options = options`
-  (after normalizer merge, see §5), and eagerly derives exactly two runtime fields
-  from options: `this.defaultFieldNullability` (`builder.ts:115-120`) and
-  `this.defaultInputFieldRequiredness` (`builder.ts:122-127`). **No other option is
-  read in the constructor**; every other option is read later, lazily, by
-  `toSchema()`/plugins/field builders.
+- The runtime class constructor is `builder.ts:104-128`. It stores `this.options`
+  (the normalizer-merged options, see §5) and eagerly derives exactly two stored
+  runtime fields: `this.defaultFieldNullability` (`builder.ts:115-120`) and
+  `this.defaultInputFieldRequiredness` (`builder.ts:122-127`). **The constructor
+  reads three distinct options, not two.** Corrected count and reads:
+  - `defaults` — read at `builder.ts:106` (normalizer selection: the reduce checks
+    `options.defaults` and, if a matching normalizer exists, `Object.assign`s its
+    output) AND again at `builder.ts:120` (`?? options.defaults !== 'v3'`, the
+    fallback that sets field nullability when `defaultFieldNullability` is omitted).
+    `defaults` is *read* but not stored as its own field — it lives inside
+    `this.options`.
+  - `defaultFieldNullability` — read at `builder.ts:120`, stored as
+    `this.defaultFieldNullability`.
+  - `defaultInputFieldRequiredness` — read at `builder.ts:127`, stored as
+    `this.defaultInputFieldRequiredness`.
+  So the precise statement is: **two stored fields are derived, three options are
+  consumed (`defaults`, `defaultFieldNullability`, `defaultInputFieldRequiredness`).**
+  The earlier phrasing "no other option is read in the constructor" was false for
+  `defaults` and was internally inconsistent with §4.A/§5, which correctly cite 106
+  and 120 as constructor reads. Every OTHER option (`plugins`, `notStrict`, and all
+  plugin option objects) is read later, lazily, by `toSchema()`/plugins/field builders.
 
 **F1 headline (the real contract):** There is no blanket "constructor argument
 carries the runtime config that has to match the generic." What actually exists is
@@ -89,8 +104,12 @@ core defines; plugins add more (§3). Each key, what it does, and its default af
   required runtime counterpart in the constructor** — see §4.C. Feeds `inputShapes`/
   `outputShapes` (`global/schema-types.ts:94-108`).
 - **`Objects`** — `{}`. [type-level] A map of GraphQL type name → backing (parent)
-  shape. `ExtendDefaultTypes` line 76-77 merges into `outputShapes`
-  (`global/schema-types.ts:100-102`). Effect: a name registered here becomes usable
+  shape. `ExtendDefaultTypes` line 76 (`Objects: PartialTypes['Objects'] & {}`)
+  merges into `outputShapes` at `global/schema-types.ts:101` (`[K in keyof
+  PartialTypes['Objects']]: PartialTypes['Objects'][K]`); `Interfaces` (line 78)
+  merges into `outputShapes` at line 102. (Line 77 is `Inputs`, which feeds
+  `inputShapes` at line 110, NOT `outputShapes` — do not group 76-77 as one
+  outputShapes merge.) Effect: a name registered here becomes usable
   as a string `ObjectParam` (`type-params.ts:118-119`
   `Extract<OutputType<Types>, keyof Types['Objects']>`) and its parent shape is
   looked up by name. **F2 (binding):** registering on `Objects` is for centralizing
@@ -422,9 +441,12 @@ constructor):
   sub-graph.
 - **`customBuildTimeOptions?`** — plugin-example (demo only, `global-types.ts:16-18`).
 
-Naming note for docs: the method is `toSchema()`. (Older Pothos/GraphQL-Pothos docs
-and some plugins historically referenced `toSchema`; there is no `build()` method on
-`SchemaBuilder` in this source — verified: only `toSchema` exists, `builder.ts:693`.)
+Naming note for docs: the method is `toSchema()`. There is no `build()` method on
+`SchemaBuilder` in this source — verified: `builder.ts:693` is the sole definition
+(`toSchema(...args: ...)`), and grep for `build(` in `builder.ts` returns no method
+declaration. If migrating readers expect a `build()` call, the correct name is
+`toSchema()`. (The previous wording said old docs "historically referenced
+`toSchema`," which was a tautology; the intended contrast was `build` → `toSchema`.)
 
 ---
 

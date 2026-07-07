@@ -213,11 +213,20 @@ per-kind options:
   `.resolve` undefined → graphql default).
 - Plugins can *replace* the resolver contract by adding a new key to
   `InferredFieldOptions` and setting `InferredFieldOptionsKind` to it. Example:
-  `plugin-grafast` adds a `Grafast` key whose member is
-  `{ resolve?: never; plan: (step, args) => Step<...> }`
-  (`plugin-grafast/src/global-types.ts:51-68`) — under that kind, `resolve` is
-  forbidden and a `plan` is required instead. This is the sanctioned mechanism
-  for swapping what "the resolver option" means globally.
+  `plugin-grafast` adds a `Grafast` key (`plugin-grafast/src/global-types.ts:51-85`).
+  **CORRECTION (prior draft was wrong):** the `Grafast` member is a **discriminated
+  union of two arms**, not a plan-only shape — `resolve` is NOT forbidden, it is a
+  permitted alternative to `plan`:
+  ```ts
+  Grafast:
+    | { resolve?: never; plan: (step, args) => Step<ShapeFromTypeParam<...>> }   // :59-68
+    | { plan?: never;    resolve: GrafastResolver<ResolveShape, ..., ResolveReturnShape> }  // :69-84
+  ```
+  So under the `Grafast` kind you supply **either** a `plan` (grafast step) **or**
+  a plain grafast `resolve` — the `?: never` on each arm makes the two mutually
+  exclusive, but neither is mandatory across the union. This is the sanctioned
+  mechanism for swapping what "the resolver option" means globally: the kind can
+  offer a new primary option (`plan`) while still admitting a resolver fallback.
 
 ### 3c. `Resolver` return typing (runtime-relevant type math)
 
@@ -252,17 +261,35 @@ Defined on `FieldBuilder` — `core/src/fieldUtils/builder.ts`. Members:
 ### 4a. Signature shape
 
 Each typed helper is `exposeX(name, options?)`:
-- `name` is constrained to `CompatibleTypes<Types, ParentShape, Type, Nullable>`
+- `name` is constrained to `CompatibleTypes<Types, ParentShape, Type, Nullable_>`
   — the set of parent keys whose (awaited) value is assignable to the field's
   shape (`core/src/types/builder-options.ts:284-298`):
   ```ts
   { [K in keyof ParentShape]-?:
-      Awaited<ParentShape[K]> extends ShapeFromTypeParam<Types,Type,Nullable> ? K : never
+      Awaited<ParentShape[K]> extends ShapeFromTypeParam<Types,Type,Nullable_> ? K : never
   }[keyof ParentShape] & string
   ```
-  → Load-bearing: `t.exposeString('x')` only type-checks if `ParentShape['x']`
-  is a `string` (per the field's nullability). Promise-valued properties are
-  allowed (`Awaited<...>`).
+- **CORRECTION (prior draft was imprecise):** the 4th (`Nullable`) argument passed
+  into `CompatibleTypes` is **NOT the field's own `Nullable` generic** — every
+  typed helper **hardcodes it to maximal nullability**:
+  `CompatibleTypes<Types, ParentShape, 'Boolean', true>` for scalars
+  (`fieldUtils/builder.ts:25`, and `:60,:95,:130,:165` for float/id/int/string),
+  `{ list: true; items: true }` for list forms (`:200,:235,:270,:305,:340`), and
+  `Type extends [unknown] ? { list: true; items: true } : true` for the generic
+  `expose` (`:378-383`). So the **name-eligibility check runs at maximal
+  nullability**, decoupled from the field's actual `nullable` setting: a property
+  typed `string | null` still satisfies `CompatibleTypes<...,'String', true>`
+  because the target shape is `string | null | undefined`, so the property name is
+  always eligible. Soundness (forcing you to declare the field nullable when the
+  property can be null) is enforced **separately** by `ExposeNullability`
+  (`builder-options.ts:300-313`, see §4b), not by the name constraint.
+  → Corrected reading: `t.exposeString('x')` type-checks whenever `ParentShape['x']`
+  is `string` **or** `string | null | undefined` (any awaited-string-compatible
+  shape), independent of the field's nullability. Promise-valued properties are
+  allowed (`Awaited<...>`). Demonstration (v3 defaults, field default non-null):
+  `t.exposeString('name', { nullable: true })` on a `string | null` property
+  compiles — even though under a literal `Nullable`-driven check the default v3
+  non-null shape would exclude `name`.
 - `options` is `NormalizeArgs<[ExposeNullability<...> & Omit<FieldOptions…,
   'nullable'|'type'|InferredFieldOptionKeys>]>`
   (`builder.ts:30-47` for boolean; same shape for each).
@@ -325,11 +352,27 @@ runtime path all output-field methods reach. It returns a lazy `FieldRef` whose
   fast path: `if (options.extensions?.pothosExposedField === name) resolve =
   defaultFieldResolver` (`base.ts:59-61`). → Load-bearing subtlety: for an
   exposed field, if the **graphql field name equals the property name**, Pothos
-  swaps the `(parent)=>parent[name]` closure for graphql's `defaultFieldResolver`
+  swaps the `(parent) => parent[name]` closure (installed by `exposeField`,
+  `base.ts:110`) for graphql's `defaultFieldResolver`
   (`import { defaultFieldResolver } from 'graphql'`, `base.ts:1`). If field name
-  ≠ property name, the property-reading closure from `exposeField` is kept. Both
-  are pure property reads; the swap is an equivalence optimization, not a
-  behavior change.
+  ≠ property name, the property-reading closure is kept.
+- **CORRECTION (prior draft overclaimed):** the swap is NOT a pure equivalence in
+  every case. graphql's `defaultFieldResolver` **invokes function-valued
+  properties**: `if (typeof property === 'function') return source[fieldName](args,
+  ctx, info)`. The `exposeField` closure `(parent) => parent[name]` returns the
+  value **without calling it**. So when the exposed property holds a **function**:
+  - field name **==** property name → `defaultFieldResolver` **calls** the function
+    and returns its result.
+  - field name **≠** property name → the closure returns the **function itself**.
+  This is a genuine behavioral divergence at the function-valued-property edge, not
+  an equivalence optimization. For non-function property values (the overwhelmingly
+  common case) the two paths return the same value. (graphql source:
+  `graphql/execution/execute.js` `defaultFieldResolver` — `if (typeof property ===
+  'function') return source[info.fieldName](args, contextValue, info); return
+  property;`.)
+- `RECOMMEND`: if docs describe this fast path, frame it as "reuse graphql's
+  default resolver when the names match," and note the function-property edge —
+  do not assert the two resolvers are behaviorally identical.
 - Extensions: config `.extensions` = `{ pothosOriginalResolve: resolve,
   pothosOriginalSubscribe: subscribe, ...options.extensions }`
   (`base.ts:76-80`). Plugins read `pothosOriginalResolve` to wrap resolvers.
@@ -504,18 +547,48 @@ Per `FieldOptionsByKind` (`core/src/types/global/field-options.ts:176-251`), the
   set `false`) and `false` in v3 (unless set `true`)
   (`core/src/types/global/schema-types.ts:84-90`);
   `DefaultInputFieldRequiredness` is `false` unless set `true` (`:91-93`).
-- The per-field `Nullable` generic defaults to `Types['DefaultFieldNullability']`
-  on the scalar/`field` helpers (e.g. `Nullable extends FieldNullability<'Boolean'>
-  = Types['DefaultFieldNullability']`, `core/src/fieldUtils/root.ts:31`).
-  Exceptions where the default generic is a bare `FieldNullability<...>` with no
-  default (so it is inferred, effectively non-null unless `nullable` is passed):
-  `t.float`, `t.id`, `t.int`, `t.idList` (`root.ts:65`,`:101`,`:137`,`:281`) —
-  `t.boolean`, `t.string`, and the other list helpers do default to
-  `Types['DefaultFieldNullability']`. `RECOMMEND`: verify each helper's default
-  generic before documenting per-type nullability; they are not uniform.
-  (Both `t.field` and the runtime resolve `options.nullable ??
-  builder.defaultFieldNullability`, so the runtime default is uniform even where
-  the type generic differs.)
+- **The `Nullable` generic's *declaration* differs by helper, but the observable
+  nullability default does NOT.** Two spellings exist in `root.ts`:
+  - **With an explicit default**: `Nullable extends FieldNullability<'Boolean'> =
+    Types['DefaultFieldNullability']` — `t.boolean` (`root.ts:31`), `t.string`
+    (`:175`), `t.booleanList` (`:211`), `t.floatList` (`:247`), `t.intList`
+    (`:319`), `t.stringList` (`:355`), and `t.field` (`:392`).
+  - **Bare (no default)**: `Nullable extends FieldNullability<'Float'>` —
+    `t.float` (`:65`), `t.id` (`:101`), `t.int` (`:137`), `t.idList` (`:281`).
+    (This asymmetry is a stylistic artifact of the generic ordering, not a
+    behavior contract — these four also happen to list `Nullable` *before*
+    `ResolveShape`/`ResolveReturnShape`.)
+- **CORRECTION (prior draft was wrong):** the bare spelling does NOT make those
+  fields "effectively non-null." When no `nullable` option and no explicit type
+  argument are supplied, `Nullable` is not inferable (it appears only inside the
+  conditional return type of `resolve`, a non-inferrable position), so it falls
+  back to its **constraint** `FieldNullability<'Float'>`, which is `boolean`
+  (`core/src/types/type-params.ts:198-207`). `ShapeFromTypeParam`
+  (`type-params.ts:162-168`) then routes the bare-`boolean` case through
+  `FieldNullability<Param> extends Nullable` (i.e. `boolean extends boolean` →
+  **true**) → `Types['DefaultFieldNullability'] extends true` → in v4 → `OutputShape
+  | null | undefined` (**nullable**). This is the *same* branch `t.boolean`/
+  `t.string` reach. So at the **type level**, float/int/id/idList are
+  nullable-by-default in v4 and non-null-by-default in v3 — uniform with every
+  other scalar helper.
+- **Compile-verified (fresh, 2026-07-06)** against `packages/core/src` with a
+  default (`{}`) v4 builder and tsc `--strict`:
+  `t.float({ resolve: () => null })`, `t.int({ resolve: () => null })`, and
+  `t.id({ resolve: () => null })` all compile with **no error** — identical to
+  `t.boolean`/`t.string`. A `@ts-expect-error` placed over such a `resolve`
+  reports **`TS2578: Unused '@ts-expect-error' directive`**, confirming null is
+  accepted. Sanity control: `t.float({ nullable: false, resolve: () => null })`
+  correctly errors (`nullable: false` narrows `Nullable` to `false` →
+  `boolean extends false` → false → `Nullable extends true` → false → non-null),
+  proving the harness detects rejection.
+- **Runtime** is likewise uniform: `createField` resolves `options.nullable ??
+  builder.defaultFieldNullability` for every helper (`core/src/fieldUtils/base.ts:70-74`).
+- `RECOMMEND` (corrected): document scalar nullability as **uniform** — all
+  scalar/list helpers are nullable-by-default in v4 and non-null-by-default in v3,
+  at both the type and runtime levels. Do NOT claim float/int/id behave
+  differently from boolean/string on nullability; the only difference is the
+  cosmetic generic-declaration order, which has no observable effect on default
+  nullability.
 
 ---
 

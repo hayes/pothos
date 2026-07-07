@@ -91,11 +91,12 @@ export function PlaygroundCodeBlock({
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="inline-flex size-6 items-center justify-center rounded-md text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+                className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
                 title="Open in Playground"
                 aria-label="Open in Playground"
               >
                 <ExternalLink size={14} />
+                <span>Playground</span>
               </button>
             )}
             {copyButton}

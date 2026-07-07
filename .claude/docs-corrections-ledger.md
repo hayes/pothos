@@ -64,6 +64,39 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
   rhythm page after page), aphorisms (A1), inverted constructions (A2),
   verb-list summaries (A3), and confident claims not traceable to source.
 
+- **S5 — Brevity over mechanism (2026-07-06 round 2).** One true sentence beats
+  a paragraph of why. The strict-mode fix overcorrected into mechanism-dumping;
+  the maintainer wants: "pothos is built around type safety and turning off
+  strict checks breaks some of its inference capabilities" — that register.
+  Explain mechanisms at the concept's home page, not en route.
+- **S6 — No inventory/cutesy openers, no stilted phrasing.** "Getting to a
+  working schema takes an install, one TypeScript setting, and about ten lines
+  of code" — still bad. "@pothos/core has the builder and everything else this
+  guide covers" — "who talks like that?". Write the way a person talks.
+- **S7 — Don't over-advise.** "so don't install any until you want the feature"
+  — over-explaining, over-opinionated, often wrong. State facts; trust readers.
+- **S8 — Example semantic coherence is non-negotiable.** `initials: t.string`
+  returning `parent.name[0]` fails twice: off-theme concept AND plural name for
+  a single value. Names must agree with type, cardinality, and theme. The
+  maintainer "should not still have to point out basic issues like this."
+- **S9 — Realistic data values.** `id: 'frodo'` reads wrong; ids look like ids
+  ('1', numeric, opaque). Human-readable slugs as ids are cutesy.
+- **S10 — Prefer familiar names.** "Hello world" beat "The smallest schema".
+- **S11 — Compact forms for simple examples.** For simple cases, chain
+  `builder.objectRef<T>('X').implement({...})` instead of two statements.
+- **S12 — Cut throat-clearing sections.** "What Pothos leaves to you" and
+  "Who it's for" don't belong in the introduction. Also: no Airbnb/Netflix
+  name-dropping in docs prose (home-page logos suffice); don't enumerate
+  "what happens in resolvers" caveats where plugins (prisma/drizzle hybrids)
+  make them wrong.
+- **S13 — Definition, round 3.** "types flow from your data into every
+  resolver" is close but not it; the essence is full type safety everywhere
+  with minimal manual type-writing (find better words than that, too).
+- **S14 — Big comments don't belong in first examples.** The docs' first code
+  block must be clean; teaching happens in prose, not 4-line comments.
+- **Curriculum note:** link out to GraphQL-itself learning material somewhere
+  sensible — our docs don't teach GraphQL basics and shouldn't pretend to.
+
 ## UI notes (separate track)
 
 - **U1** — Docs page header is inefficient: section + title + description +
@@ -71,3 +104,9 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
 - **U2** — "Open in LLM" button has no practical use; "Copy Markdown" nearly
   useless. Remove from the header; consider a sidebar utility group alongside
   an "Edit on GitHub" link.
+- **U3 — Open-in-Playground affordance got too subtle (2026-07-06 round 2).**
+  The icon-only button lost discoverability; the maintainer liked calling out
+  the playground with text. Restore a text label ("Playground" or similar).
+- **U4 — Runnable-looking static fences should link to the playground** —
+  self-contained example fences (e.g. on the introduction) should carry the
+  playground affordance via the inline mechanism even without a bundle.
