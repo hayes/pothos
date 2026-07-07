@@ -1,9 +1,15 @@
-query CharacterFields {
+query Characters {
   characters {
     id
     name
+    biography
+    age
     titles
-    shireAddress
-    ageInYears
+    race {
+      name
+    }
+    factions {
+      name
+    }
   }
 }

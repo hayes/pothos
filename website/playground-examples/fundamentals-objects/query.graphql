@@ -1,4 +1,8 @@
-query AllRaces {
+query Compendium {
+  characters {
+    id
+    name
+  }
   races {
     id
     name

@@ -1,44 +1,40 @@
 import SchemaBuilder from '@pothos/core';
 
-// A domain class you already keep around for behaviour. Pothos infers
-// the backing model straight from the class — no separate interface.
-// #region race-class
-class Race {
+// #region character-class
+class Character {
   constructor(
     public id: string,
     public name: string,
-    public lifespan: string,
+    public editorId: string,
+    public birthYear?: string,
+    public biography?: string,
   ) {}
 }
-// #endregion race-class
+// #endregion character-class
 
-const Races = new Map<string, Race>([
-  ['hobbit', new Race('hobbit', 'Hobbit', '~100 years')],
-  ['elf', new Race('elf', 'Elf', 'immortal')],
-  ['dwarf', new Race('dwarf', 'Dwarf', '~250 years')],
-]);
+const characters = [
+  new Character('1', 'Frodo Baggins', '1', 'TA 2968'),
+  new Character('2', 'Samwise Gamgee', '1', 'TA 2980'),
+  new Character('3', 'Gandalf', '2'),
+];
 
 const builder = new SchemaBuilder({});
 
-// objectType takes the class as its first argument; the class name
-// becomes the GraphQL type name unless you override it with `name`.
 // #region object-type
-builder.objectType(Race, {
-  name: 'Race',
-  description: 'A people of Middle-earth.',
+builder.objectType(Character, {
+  name: 'Character',
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
-    lifespan: t.exposeString('lifespan'),
   }),
 });
 // #endregion object-type
 
 builder.queryType({
   fields: (t) => ({
-    races: t.field({
-      type: [Race],
-      resolve: () => [...Races.values()],
+    characters: t.field({
+      type: [Character],
+      resolve: () => characters,
     }),
   }),
 });

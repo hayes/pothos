@@ -1,7 +1,7 @@
 {
   "id": "fundamentals-objects",
   "title": "Object types",
-  "description": "Define an object type with objectRef and attach fields via implement.",
+  "description": "Define object types with objectRef and implement, and switch between the objectRef, class-backed, and builder-types styles.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",

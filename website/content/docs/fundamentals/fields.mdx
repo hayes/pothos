@@ -1,81 +1,54 @@
 ---
 title: Fields
-description: How to add fields to an object type and control what each one returns.
+description: Add fields to an object type and control what each one returns.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
-`implement` takes an object type's options — `fields` among them — while the type's name and backing model are set when you create the ref. So a type's fields live in the `fields` function you pass to `implement`. The argument `t` is a builder whose methods produce field definitions: `t.exposeString`, `t.int`, `t.field`, and so on.
-
-<include cwd lang="typescript" meta='playground example="fundamentals-fields"'>playground-examples/fundamentals-fields/schema.ts#character-fields</include>
+A type's fields are defined by the `fields` function you pass when you implement it. That function receives a field builder — conventionally named `t` — whose methods each return one field definition. The surrounding object definition (the ref, its backing model, and `implement`) is covered in [Object types](./objects).
 
 ## Exposing properties
 
-`t.exposeID`, `t.exposeString`, `t.exposeInt`, `t.exposeFloat`, `t.exposeBoolean`, and their `…List` variants forward a property of the backing object to the schema with no resolver. They're the right choice whenever the field name on the type matches a property on the backing model.
+When a field returns a property of the backing object unchanged, `t.expose*` forwards it for you, without a resolver:
 
-```typescript
-fields: (t) => ({
-  // Same name on both sides — straight expose.
-  name: t.exposeString('name'),
+<include cwd lang="typescript" meta='playground example="fundamentals-fields"'>playground-examples/fundamentals-fields/schema.ts#expose</include>
 
-  // Renaming: the GraphQL field is `height`, the property is heightInMeters.
-  height: t.exposeFloat('heightInMeters'),
-}),
-```
+`t.exposeID`, `t.exposeString`, `t.exposeInt`, `t.exposeFloat`, and `t.exposeBoolean` each take the name of a property to read and produce a field of the matching scalar type; `id`, `name`, and `biography` here read straight from the `Character` object. Each also has a `…List` form (`t.exposeStringList` and so on) for properties that hold arrays. The field itself is named by the key you assign it to, so `bio: t.exposeString('biography')` would expose the same property under a shorter name.
 
 ## Computed fields
 
-When the field doesn't map 1:1 onto the backing object, define it explicitly with `t.<scalar>` or `t.field`:
+When a field's value isn't a property already sitting on the backing object, you give it a resolver. The scalar builders — `t.string`, `t.int`, `t.float`, `t.boolean`, and `t.id` — take a `resolve` function whose first argument is the backing object:
 
-```typescript
-fields: (t) => ({
-  fullName: t.string({
-    resolve: (parent) => `${parent.firstName} ${parent.lastName}`,
-  }),
-  isElderly: t.boolean({
-    resolve: (parent) => parent.age > 80,
-  }),
-}),
-```
+<include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#computed</include>
 
-`t.field` is the same shape but takes a `type` option, which is required when the return type isn't a scalar:
-
-```typescript
-race: t.field({
-  type: Race,
-  resolve: (parent) => Races.get(parent.raceId)!,
-}),
-```
+`age` computes an `Int` from the character's `birthYear`. `race` returns another object type rather than a scalar, so it uses `t.field`, which takes an explicit `type`; the scalar builders are shorthands for `t.field` with the type already set. The resolver's first argument is always the backing object — the [Resolvers](./resolvers) guide covers the rest of its signature and what you can return.
 
 ## Lists
 
-Wrap the type in an array to return a list:
+A field returns a list when its type is wrapped in an array. For a property that already holds an array, the `…List` expose helpers forward it:
+
+<include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#list</include>
+
+`titles` exposes the `string[]` property as a `[String]` field. To build a list in a resolver, wrap the type the same way: `t.field({ type: [Faction] })` returns a list of `Faction`, and the resolver returns an array of the matching shape.
+
+## Nullability
+
+Every field defined so far is nullable. Pothos output fields are nullable by default, so `t.exposeID('id')` produces `id: ID` and any resolver may return `null`. Pass `nullable: false` to require a value:
 
 ```typescript
-factions: t.field({
-  type: [Faction],
-  resolve: (parent) => loadFactionsFor(parent),
-}),
+id: t.exposeID('id', { nullable: false }),
 ```
 
-The list type is always non-nullable by default. Mix in `nullable: true` if the whole list can be missing, or `nullable: { items: true, list: false }` if individual items may be null but the list itself isn't.
+That makes the field `id: ID!`. A list field has two positions that can be null — the list itself and each of its items — so `nullable` also accepts a `{ list, items }` object to set them independently:
+
+```typescript
+titles: t.exposeStringList('titles', { nullable: { list: false, items: true } }),
+```
+
+The default can also be flipped for the whole schema, so fields are non-nullable unless marked; [Default nullability](../patterns/default-nullability) covers how.
 
 ## Splitting fields across files
 
-For types that grow past one screen, `builder.objectField` and `builder.objectFields` add fields to an existing type from anywhere else in your codebase:
+A type doesn't have to define all of its fields in one place. `builder.objectField` adds a single field to a type that's already been referenced, from anywhere in your codebase:
 
-```typescript
-// In a separate module:
-builder.objectField(Character, 'wieldedWeapons', (t) =>
-  t.field({
-    type: [Weapon],
-    resolve: (c) => loadWeaponsFor(c.id),
-  }),
-);
-```
+<include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#split</include>
 
-This is how you'd colocate, say, a Character's weapons next to the Weapon type rather than in the Character module. See [Project layout](../patterns/project-layout) for when that's worth doing.
-
-<Callout type="info">
-  See also: [Resolvers](./resolvers) for the resolver signature and what you can return from one.
-</Callout>
+This defines `Character.factions` in whatever module owns factions instead of in the `Character` module. `builder.objectFields` adds several fields at once. These calls can run before or after the type is implemented; Pothos collects the definitions and merges them when the schema builds, and defining the same field name twice is a build-time error. [Project layout](../patterns/project-layout) covers organizing a schema this way.

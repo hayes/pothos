@@ -1,7 +1,7 @@
 {
   "id": "fundamentals-fields",
   "title": "Fields",
-  "description": "Expose properties, return lists, mark fields nullable, and compute values from the backing object.",
+  "description": "Add fields to an object type with expose helpers, t.field, and computed resolvers.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",

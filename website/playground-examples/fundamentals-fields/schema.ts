@@ -1,59 +1,121 @@
 import SchemaBuilder from '@pothos/core';
 
-interface ICharacter {
+// The year the Fellowship set out from Rivendell (Third Age), used to
+// count a character's age from their birth year.
+const REFERENCE_YEAR = 3018;
+
+interface CharacterModel {
   id: string;
   name: string;
   birthYear: number;
+  biography?: string;
   titles: string[];
-  shireAddress?: string;
+  raceId: string;
+  editorId: string;
 }
 
-const Characters: ICharacter[] = [
+interface RaceModel {
+  id: string;
+  name: string;
+}
+
+interface FactionModel {
+  id: string;
+  name: string;
+}
+
+const races = new Map<string, RaceModel>([
+  ['1', { id: '1', name: 'Hobbit' }],
+  ['2', { id: '2', name: 'Dúnedain' }],
+]);
+
+const factions = new Map<string, FactionModel>([
+  ['1', { id: '1', name: 'Fellowship of the Ring' }],
+]);
+
+const factionsByCharacter: Record<string, string[]> = {
+  '1': ['1'],
+  '2': ['1'],
+};
+
+const characters: CharacterModel[] = [
   {
-    id: 'frodo',
+    id: '1',
     name: 'Frodo Baggins',
     birthYear: 2968,
+    biography: 'Bearer of the One Ring on the quest to destroy it.',
     titles: ['Ring-bearer'],
-    shireAddress: 'Bag End',
+    raceId: '1',
+    editorId: '7',
   },
   {
-    id: 'aragorn',
+    id: '2',
     name: 'Aragorn',
     birthYear: 2931,
     titles: ['Strider', 'Elessar', 'King of Gondor'],
+    raceId: '2',
+    editorId: '7',
   },
 ];
 
 const builder = new SchemaBuilder({});
 
-const Character = builder.objectRef<ICharacter>('Character');
-
-// #region character-fields
-Character.implement({
+const Race = builder.objectRef<RaceModel>('Race').implement({
   fields: (t) => ({
-    // exposeX maps directly to a property on the backing object.
     id: t.exposeID('id'),
     name: t.exposeString('name'),
-
-    // Lists, nullable, and renamed exposes all live in the options arg.
-    titles: t.exposeStringList('titles'),
-    shireAddress: t.exposeString('shireAddress', { nullable: true }),
-
-    // Computed fields use the same t.<scalar>() shape but with a
-    // resolve function. parent is the backing object.
-    ageInYears: t.int({
-      description: 'Years since birth, counted from the present.',
-      resolve: (parent) => new Date().getFullYear() - parent.birthYear,
-    }),
   }),
 });
-// #endregion character-fields
+
+const Faction = builder.objectRef<FactionModel>('Faction').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+const Character = builder.objectRef<CharacterModel>('Character');
+
+Character.implement({
+  fields: (t) => ({
+    // #region expose
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    biography: t.exposeString('biography'),
+    // #endregion expose
+
+    // #region computed
+    age: t.int({
+      description: 'Years old at the start of the War of the Ring.',
+      resolve: (character) => REFERENCE_YEAR - character.birthYear,
+    }),
+    race: t.field({
+      type: Race,
+      resolve: (character) => races.get(character.raceId)!,
+    }),
+    // #endregion computed
+
+    // #region list
+    titles: t.exposeStringList('titles'),
+    // #endregion list
+  }),
+});
+
+// #region split
+builder.objectField(Character, 'factions', (t) =>
+  t.field({
+    type: [Faction],
+    resolve: (character) =>
+      (factionsByCharacter[character.id] ?? []).map((id) => factions.get(id)!),
+  }),
+);
+// #endregion split
 
 builder.queryType({
   fields: (t) => ({
     characters: t.field({
       type: [Character],
-      resolve: () => Characters,
+      resolve: () => characters,
     }),
   }),
 });

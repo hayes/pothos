@@ -1,43 +1,41 @@
 import SchemaBuilder from '@pothos/core';
 
-// #region race-model
-interface IRace {
+// #region character-model
+interface ICharacter {
   id: string;
   name: string;
-  lifespan: string;
+  birthYear?: string;
+  biography?: string;
+  editorId: string;
 }
-// #endregion race-model
+// #endregion character-model
 
-const Races = new Map<string, IRace>([
-  ['hobbit', { id: 'hobbit', name: 'Hobbit', lifespan: '~100 years' }],
-  ['elf', { id: 'elf', name: 'Elf', lifespan: 'immortal' }],
-  ['dwarf', { id: 'dwarf', name: 'Dwarf', lifespan: '~250 years' }],
+const characters = new Map<string, ICharacter>([
+  ['1', { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968', editorId: '1' }],
+  ['2', { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980', editorId: '1' }],
+  ['3', { id: '3', name: 'Gandalf', editorId: '2' }],
 ]);
 
-// Register backing models on the `Objects` generic at builder
-// initialization. Every type is then referred to by name as a string.
 // #region builder-init
 const builder = new SchemaBuilder<{
-  Objects: { Race: IRace };
+  Objects: { Character: ICharacter };
 }>({});
 // #endregion builder-init
 
 // #region object-type
-builder.objectType('Race', {
-  description: 'A people of Middle-earth.',
+builder.objectType('Character', {
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
-    lifespan: t.exposeString('lifespan'),
   }),
 });
 // #endregion object-type
 
 builder.queryType({
   fields: (t) => ({
-    races: t.field({
-      type: ['Race'],
-      resolve: () => [...Races.values()],
+    characters: t.field({
+      type: ['Character'],
+      resolve: () => [...characters.values()],
     }),
   }),
 });

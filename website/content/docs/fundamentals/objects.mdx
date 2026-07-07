@@ -1,70 +1,50 @@
 ---
 title: Object types
-description: Define an object type with objectRef and attach fields via implement.
+description: Define object types with objectRef and implement, the backing model behind each type, and the class-backed and builder-types styles.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+Most of the types in a GraphQL schema are object types. This page covers defining them, and the backing model that connects each type to the data your resolvers return.
 
-Object types are the bulk of any GraphQL schema. In Pothos, you declare them with `builder.objectRef` and fill in the fields with `implement`. The same type can be defined a few ways — switch between them below. This guide uses `objectRef`.
+## Defining an object type
 
-<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects" tab="Object refs"'>playground-examples/fundamentals-objects/schema.ts#race-model,race-ref,race-implement</includeregions>
+An object type is defined in two steps: create a reference to it, then implement its fields. The same type can be written a few other ways, shown in the tabs below; the rest of this page uses `objectRef`.
 
-<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects-variant-classes" tab="Classes"'>playground-examples/fundamentals-objects/variant-classes/schema.ts#race-class,object-type</includeregions>
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects" tab="Object refs"'>playground-examples/fundamentals-objects/schema.ts#character-model,character-ref,character-implement</includeregions>
 
-<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects-variant-builder-types" tab="Builder types"'>playground-examples/fundamentals-objects/variant-builder-types/schema.ts#race-model,builder-init,object-type</includeregions>
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects-variant-classes" tab="Classes"'>playground-examples/fundamentals-objects/variant-classes/schema.ts#character-class,object-type</includeregions>
 
-The generic argument to `objectRef` — `IRace` here — is the *backing model*. That's the TypeScript shape your resolvers will return and Pothos will hand back to you as `parent` on any field defined under this type. The rest of this page uses the `objectRef` style.
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects-variant-builder-types" tab="Builder types"'>playground-examples/fundamentals-objects/variant-builder-types/schema.ts#character-model,builder-init,object-type</includeregions>
 
-## Why objectRef
+`builder.objectRef` creates a reference to a new `Character` type. The generic parameter — `ICharacter` here — is the TypeScript shape of the data behind the type (Pothos calls this the backing model). `implement` then defines the type's fields: `t.exposeID('id')` and `t.exposeString('name')` return those properties straight from the backing object. The [Fields](./fields) guide covers the field builder in detail.
 
-Splitting the declaration (`objectRef`) from the definition (`implement`) means two types can reference each other without forward-declaration gymnastics:
+## The backing model
 
-```typescript
-const Character = builder.objectRef<ICharacter>('Character');
-const Faction = builder.objectRef<IFaction>('Faction');
+The backing model is the TypeScript type a resolver returns for an object type, and the type Pothos hands back as `parent` to every field defined on it. You state it once, as the generic on `objectRef`, and Pothos checks the rest of the type against it: `t.exposeString('name')` only compiles when `name` is a string on `ICharacter`, and any field that returns a `Character` must resolve to a value matching `ICharacter`. When your data source already produces that shape (a database row, an ORM model, an in-memory record), you usually return it untouched.
 
-Character.implement({
-  fields: (t) => ({
-    factions: t.field({ type: [Faction], resolve: (c) => c.factions }),
-  }),
-});
+The GraphQL type does not have to expose everything in the backing model. `ICharacter` carries `editorId` and `biography`, but the type above exposes only `id` and `name`; the extra properties stay available to resolvers without appearing in the schema.
 
-Faction.implement({
-  fields: (t) => ({
-    members: t.field({ type: [Character], resolve: (f) => f.members }),
-  }),
-});
-```
+## Object type options
 
-The ref carries the backing model with it — any field, on any type, can reference `Character` directly without registering anything on the `SchemaTypes` generic. For most projects that's all you need.
+`objectRef` takes only the type's name. Every other option for the type is passed to `implement`: the type's `fields`, a `description`, the [interfaces](./interfaces) it implements, and an `isTypeOf` function for [resolving abstract types](./interfaces). `fields` is the one you pass most often, but it works like any other option on `implement`.
 
-## Returning the type
+When a type doesn't need to be referenced before it's implemented, you can chain the two calls into one expression:
 
-Once a `Race` reference exists you can use it as the type of any field, anywhere:
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects"'>playground-examples/fundamentals-objects/schema.ts#race</includeregions>
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    race: t.field({
-      type: Race,
-      args: { id: t.arg.id({ required: true }) },
-      resolve: (_root, { id }) => findRaceById(String(id)),
-    }),
-  }),
-});
-```
+`builder.objectRef<IRace>('Race').implement({ ... })` creates the reference and implements it in the same statement. Keeping them apart — as `Character` does above — is what lets two types reference each other, since the reference exists before either type's fields are defined. The [Circular references](../patterns/circular-references) pattern covers that case.
 
-The resolver must return something that satisfies `IRace`. If your data source already produces that shape (database row, ORM model, in-memory record) you usually return it untouched.
+## Returning an object type
 
-## Other styles
+A reference can be used as the `type` of any field, on any type in the schema. Here the root `Query` type returns lists of `Character` and `Race`:
 
-The **Classes** and **Builder types** tabs on the first example define the same `Race` schema two other ways. All three are fully supported — pick whichever fits a given type:
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-objects"'>playground-examples/fundamentals-objects/schema.ts#query</includeregions>
 
-- **Class-backed types.** `builder.objectType(MyClass, { ... })` infers the backing model from a TypeScript class. A great fit when you already have classes representing your data. The class also doubles as a runtime value, so you can `instanceof`-check it — that makes it a natural way to resolve interfaces and unions, where an `isTypeOf: (value) => value instanceof MyClass` tells Pothos which member a value is.
-- **SchemaTypes-named types.** Register the type on the `Objects` generic, then refer to it by name as a string: `t.field({ type: 'Race', ... })`. This centralizes your type definitions so any field can reference them by name.
+`type: [Character]` makes the field a list of the `Character` type; a bare `type: Character` returns a single one. Because the field returns `Character`, its resolver has to return values matching `ICharacter`, and TypeScript reports an error if it doesn't. The [Queries](./queries) guide covers the `Query` root itself.
 
-Both interoperate with `objectRef` — pick whichever fits a given type and mix freely.
+## Classes and builder types
 
-<Callout type="info">
-  See also: [Fields](./fields) for the catalog of things to put inside `implement`, or [Circular references](../patterns/circular-references) for the two-way reference pattern above.
-</Callout>
+The **Classes** and **Builder types** tabs above define the same `Character` type two other ways. All three are fully supported, and a schema can mix them freely.
+
+**Classes.** `builder.objectType(Character, { ... })` takes a class and uses its instance type as the backing model, so `parent` in every resolver is an instance of the class, methods and getters included. This fits well when your app already keeps classes for its data. A class is also a value at runtime, so you can write `isTypeOf: (value) => value instanceof Character` — an `instanceof` check that tells Pothos which member a value is when it resolves an [interface or union](./interfaces).
+
+**Builder types.** Registering a type on the `Objects` generic maps a type name to its backing model, which lets you refer to the type by its string name — `t.field({ type: 'Character' })` — anywhere in the schema. This keeps your type definitions in one place instead of importing a reference into every file that uses them.
