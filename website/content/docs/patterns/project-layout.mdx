@@ -3,17 +3,15 @@ title: Project layout
 description: Grow a single-file schema into a modular layout once it stops fitting in one file.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
-A Pothos schema doesn't impose a file layout. The smallest project lives in one `schema.ts`; larger ones spread across many files. The transition between those two states is the topic of this page.
+You can spread a Pothos schema across as many files as you like. The smallest project lives in one `schema.ts`; larger ones split across many. This page walks through moving from one file to several.
 
 <include cwd lang="typescript" meta='playground example="patterns-project-layout-step-1"'>playground-examples/patterns-project-layout/step-1/schema.ts#single-file</include>
 
-A single-file schema is great until it isn't. Once you're scrolling past a hundred-line `Character` definition to find the `Race` type, the layout is fighting you.
+A single file works well for a small schema. As it grows, splitting it across files keeps each type easy to find, rather than scrolling past a hundred-line `Character` definition to reach the `Race` type.
 
 ## A modular layout
 
-The split that works for most projects: one shared `builder`, one file per domain entity, and a top-level `schema.ts` that imports everything for side effects.
+Most projects settle on the same shape: a shared `builder` module, one file per domain entity, and a `schema.ts` that imports each module before building the schema.
 
 ```typescript playground example="patterns-project-layout-step-2"
 // builder.ts — the one place the SchemaBuilder is constructed.
@@ -95,7 +93,7 @@ const _types = [Race, Character]; // ensures both modules are loaded
 export const schema = builder.toSchema();
 ```
 
-The result is the same. Pick whichever fits your team's conventions.
+Both produce the same schema; use whichever your team prefers.
 
 ## When to split further
 
@@ -120,8 +118,4 @@ For larger schemas, the repo's `examples/` directory has two trees worth reading
 - [`examples/lord-of-the-rings`](https://github.com/hayes/pothos/tree/main/examples/lord-of-the-rings) — core-only Pothos, no plugins. Demonstrates the layout above with rich interfaces, unions, and cross-domain references.
 - [`examples/ultimate-league`](https://github.com/hayes/pothos/tree/main/examples/ultimate-league) — Drizzle + scope-auth + validation. Shows how plugin configuration sits alongside the same layout.
 
-Both are working projects; both run.
-
-<Callout type="info">
-  See also: [SchemaBuilder](../fundamentals/schema-builder) for what goes in `builder.ts`, or [Queries](../fundamentals/queries) for the `queryField`/`queryFields` patterns used above.
-</Callout>
+Both are complete, runnable projects.

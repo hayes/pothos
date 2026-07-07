@@ -3,8 +3,6 @@ title: Reusable fields
 description: Share field, argument, and input shapes across multiple Pothos types without using an interface.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 When several types share a common field or argument shape but you don't want to introduce a GraphQL interface to model it, write a helper that returns the shared definition. Pothos exposes the underlying builders so the helper stays type-safe.
 
 ## Sharing fields across object types
@@ -15,7 +13,7 @@ When several types share a common field or argument shape but you don't want to 
 
 Both types now expose `id` and `createdAt` without duplicating the field definitions. The generic constraint on the helper guarantees every passed ref has the backing-model fields the closures rely on. `TypesWithDefaults` is `PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>` — the fully-extended types object every builder method actually operates on.
 
-If a shared field needs to live on both objects and interfaces, accept the more general `Ref<Types, T>` instead of `ObjectRef<Types, T>`; `builder.objectFields` and `builder.interfaceFields` both work on it.
+The same approach works for interfaces: `builder.interfaceFields(ref, builderFn)` adds fields to an interface type, so a helper that needs to cover both can call whichever builder matches the ref it's given.
 
 ## Sharing arguments across fields
 
@@ -59,7 +57,3 @@ Each input type ends up with its own version of the timestamp fields plus whatev
 If the shared fields represent a real abstraction your clients can query against — every entity has an `id`, every audit-logged record has `createdAt`/`updatedAt` — the cleaner answer is a GraphQL interface. Clients can fragment over the interface, codegen tools see the relationship, and the schema documents the polymorphism.
 
 Reach for the helper pattern when the shared fields are an *implementation detail*, not an abstraction worth exposing.
-
-<Callout type="info">
-  See also: [Interfaces](../fundamentals/interfaces) for the GraphQL-native version of "shared fields," or [Input objects](../fundamentals/inputs) for the input-side of the sharing problem.
-</Callout>

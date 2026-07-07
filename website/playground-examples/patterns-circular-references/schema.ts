@@ -12,21 +12,18 @@ interface IFaction {
   memberIds: string[];
 }
 
-const Characters = new Map<string, ICharacter>([
-  ['frodo', { id: 'frodo', name: 'Frodo', factionIds: ['fellowship'] }],
-  ['aragorn', { id: 'aragorn', name: 'Aragorn', factionIds: ['fellowship', 'rangers'] }],
-]);
+const characters: ICharacter[] = [
+  { id: '1', name: 'Frodo Baggins', factionIds: ['1'] },
+  { id: '2', name: 'Aragorn', factionIds: ['1', '2'] },
+];
 
-const Factions = new Map<string, IFaction>([
-  ['fellowship', { id: 'fellowship', name: 'Fellowship', memberIds: ['frodo', 'aragorn'] }],
-  ['rangers', { id: 'rangers', name: 'Rangers of the North', memberIds: ['aragorn'] }],
-]);
+const factions: IFaction[] = [
+  { id: '1', name: 'Fellowship of the Ring', memberIds: ['1', '2'] },
+  { id: '2', name: 'Rangers of the North', memberIds: ['2'] },
+];
 
 const builder = new SchemaBuilder({});
 
-// objectRef declares the type up front; implement comes later. This
-// lets Character.field reference Faction and vice versa without TS
-// or Pothos tripping over a circular import.
 // #region circular-refs
 const Character = builder.objectRef<ICharacter>('Character');
 const Faction = builder.objectRef<IFaction>('Faction');
@@ -37,7 +34,7 @@ Character.implement({
     name: t.exposeString('name'),
     factions: t.field({
       type: [Faction],
-      resolve: (c) => c.factionIds.map((id) => Factions.get(id)!).filter(Boolean),
+      resolve: (c) => factions.filter((faction) => c.factionIds.includes(faction.id)),
     }),
   }),
 });
@@ -48,7 +45,7 @@ Faction.implement({
     name: t.exposeString('name'),
     members: t.field({
       type: [Character],
-      resolve: (f) => f.memberIds.map((id) => Characters.get(id)!).filter(Boolean),
+      resolve: (f) => characters.filter((character) => f.memberIds.includes(character.id)),
     }),
   }),
 });
@@ -56,7 +53,7 @@ Faction.implement({
 
 builder.queryType({
   fields: (t) => ({
-    characters: t.field({ type: [Character], resolve: () => [...Characters.values()] }),
+    characters: t.field({ type: [Character], resolve: () => characters }),
   }),
 });
 

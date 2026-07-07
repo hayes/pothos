@@ -3,11 +3,9 @@ title: Default nullability
 description: Flip Pothos's nullable-by-default to non-nullable when that matches your codebase better.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 By default, Pothos fields and arguments are nullable. To make a field non-nullable you pass `nullable: false`; to make an arg required you pass `required: true`. This matches GraphQL's wire-level default — everything is nullable unless marked `!`.
 
-For most projects the GraphQL default is the wrong choice. Application code is usually non-nullable, and most fields should be `Type!`. Flipping the default once on the builder is less work than passing `nullable: false` on every field.
+In many codebases most values are non-nullable, so most fields end up as `Type!`. Flipping the default once on the builder saves passing `nullable: false` on every field.
 
 <include cwd lang="typescript" meta='playground example="patterns-default-nullability"'>playground-examples/patterns-default-nullability/schema.ts#default-nullability-builder</include>
 
@@ -30,11 +28,9 @@ Race.implement({
 });
 ```
 
-The same applies to arguments. With non-nullable as the default, `required: true` is the implicit state; you only mark an arg `required: false` (or omit `required` entirely with the matching flag) for genuinely optional inputs.
-
 ## Flipping argument defaults too
 
-A second slot, `DefaultInputFieldRequiredness`, controls whether input fields and arguments default to required:
+`DefaultFieldNullability` only affects output fields. Argument and input-field requiredness has its own slot, `DefaultInputFieldRequiredness`, which controls whether input fields and arguments default to required:
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -50,10 +46,6 @@ With both flipped, the codebase reads as if everything is non-nullable/required 
 
 ## When not to flip
 
-The default GraphQL nullable-by-default has one real virtue: a nullable field that throws produces a null and a logged error, while a non-nullable field that throws bubbles up to the closest nullable ancestor. Defaulting non-nullable means errors propagate further, which can collapse a chunk of the response when one field misbehaves.
+Nullable-by-default has one real virtue: a nullable field that throws resolves to null and adds an entry to the response's `errors`, while a non-nullable field that throws propagates up to the closest nullable ancestor. Defaulting non-nullable means an error propagates further, which can collapse a chunk of the response when one field misbehaves. The [Handling errors](./handling-errors) guide covers this propagation.
 
-If your schema serves clients that can't gracefully handle partial responses (legacy mobile clients, brittle codegen), the nullable default may be the safer choice. For modern TypeScript clients with proper error UI, non-nullable defaults are the right baseline.
-
-<Callout type="info">
-  See also: [SchemaBuilder](../fundamentals/schema-builder) for the rest of the builder generic, or [Handling errors](./handling-errors) for the throw-and-propagate behavior above.
-</Callout>
+If your schema serves clients that can't gracefully handle partial responses (legacy mobile clients, brittle codegen), the nullable default may be the safer choice. When clients handle partial responses well, the non-nullable default keeps the schema aligned with your TypeScript types.

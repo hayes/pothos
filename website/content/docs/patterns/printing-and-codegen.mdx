@@ -3,8 +3,6 @@ title: Printing and codegen
 description: Emit an SDL file from a Pothos schema and generate client types with graphql-code-generator.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 A Pothos schema is a TypeScript module, but two downstream consumers usually want an SDL string: schema-aware tooling (linters, diff viewers, federation gateways) and `graphql-code-generator`, which produces client types from the schema. Both can read the SDL directly from disk.
 
 ## Printing to a file
@@ -111,9 +109,3 @@ The same printed SDL feeds:
 - Schema-diff CI checks (does this PR break a published schema?).
 - Linters like `graphql-eslint`.
 - IDE integrations that pre-validate queries.
-
-All of them want SDL. Print once, consume everywhere.
-
-<Callout type="info">
-  See also: [Inferring types](./inferring-types) for type extraction on the *server* side.
-</Callout>

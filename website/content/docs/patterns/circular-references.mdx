@@ -3,9 +3,7 @@ title: Circular references
 description: Two types that reference each other, untangled with objectRef declared up front and implemented later.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
-Two types that point at each other — a `Character` that lists its `Faction`s, a `Faction` that lists its members — are the common case where TypeScript's "declare before use" trips you up. Pothos's `objectRef` pattern is the answer.
+Two types that point at each other — a `Character` that lists its `Faction`s, a `Faction` that lists its members — are the common case where TypeScript's "declare before use" gets in the way. Splitting `objectRef` from `implement` gives each type a reference to use before either one's fields are defined.
 
 <include cwd lang="typescript" meta='playground example="patterns-circular-references"'>playground-examples/patterns-circular-references/schema.ts#circular-refs</include>
 
@@ -23,32 +21,32 @@ Splitting `objectRef` and `implement` is also what lets a modular schema cross f
 
 See [Project layout](./project-layout) for the file shape this enables.
 
-## Other styles
+## Referencing types by name
 
-For very simple cases — two types in one file, no other types involved — you can also use thunks to defer resolution:
+If you'd rather not pass references around, you can register both type names on the builder's `Objects` generic and refer to each by its string name:
 
 ```typescript
-const Character = builder.objectType('Character', {
+const builder = new SchemaBuilder<{
+  Objects: { Character: ICharacter; Faction: IFaction };
+}>({});
+
+builder.objectType('Character', {
   fields: (t) => ({
     factions: t.field({
-      type: () => [Faction], // Note the thunk
-      resolve: (c) => /* ... */,
+      type: ['Faction'],
+      resolve: (character) => findFactions(character.id),
     }),
   }),
 });
 
-const Faction = builder.objectType('Faction', {
+builder.objectType('Faction', {
   fields: (t) => ({
     members: t.field({
-      type: () => [Character],
-      resolve: (f) => /* ... */,
+      type: ['Character'],
+      resolve: (faction) => findMembers(faction.id),
     }),
   }),
 });
 ```
 
-The thunk approach works when both types are in the same module and the second declaration can rely on hoisting. Across module boundaries `objectRef` is the only thing that survives.
-
-<Callout type="info">
-  See also: [Object types](../fundamentals/objects) for the basic `objectRef` pattern, or [Project layout](./project-layout) for the multi-file version.
-</Callout>
+A string name like `'Faction'` is resolved when the schema builds, so neither definition needs a value from the other in scope, whether they sit in one file or across many. The [Builder types](../fundamentals/objects#definition-styles) style covers registering names this way.

@@ -5,7 +5,7 @@ description: Throw from resolvers, mask errors in production, and know when to g
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Error handling in Pothos has three layers, each adding control over what the client sees. Most schemas stop at the first or second; the third is a typed-union approach for when error types are part of the API contract.
+Error handling has three layers, each adding control over what the client sees. Most schemas stop at the first or second; the third is a typed-union approach for when error types are part of the API contract.
 
 ## Layer 1: throw from the resolver
 
@@ -13,7 +13,7 @@ A resolver that throws produces `null` for the field and one entry in the respon
 
 <include cwd lang="typescript" meta='playground example="patterns-handling-errors-step-1"'>playground-examples/patterns-handling-errors/step-1/schema.ts#throw-from-resolver</include>
 
-For a non-nullable field, the error propagates upward until it hits a nullable ancestor — that ancestor becomes null and the error is logged once. This is GraphQL's standard behavior, not anything Pothos-specific.
+When the field is non-nullable, the executor can't write `null` into it, so the error propagates up to the nearest nullable ancestor, which becomes `null` instead; if there is none, the whole response's `data` is `null`. This is graphql-js's behavior, the same for every GraphQL server.
 
 ## Layer 2: mask in production
 
@@ -41,7 +41,7 @@ const yoga = createYoga({
   Don't ship `maskedErrors: false` to production. Stack traces, internal IDs, and database error messages all flow through GraphQL errors when masking is off. Default-on with an env-flag escape hatch is the safe pattern.
 </Callout>
 
-For Apollo Server, the equivalent is the `includeStacktraceInErrorResponses` option (default off in production builds). Mercurius wraps errors via `errorFormatter`. Whatever server you're using, the layer-2 question is "what does the client see when a resolver throws?" — answer it explicitly.
+For Apollo Server, the equivalent is the `includeStacktraceInErrorResponses` option (default off in production builds); Mercurius wraps errors via `errorFormatter`. Whichever server you use, layer 2 is about what the client sees when a resolver throws.
 
 ## Layer 3: typed result unions
 
@@ -55,22 +55,21 @@ type Mutation {
 union RenameTeamResult = Team | NotFoundError | PermissionError
 ```
 
-The client can `switch (result.__typename)` and render the right UI for each case. No string-matching error messages, no awkward optional-field handling.
+The client can `switch (result.__typename)` and render the right UI for each case.
 
-`@pothos/plugin-errors` turns thrown errors into exactly this shape. You declare the error types as Pothos object types, list them on the field's `errors:` option, and the plugin generates the union.
+`@pothos/plugin-errors` produces a union like this from thrown errors. You list the error classes on the field's `errors` option, and the plugin generates a union of the success type plus one member per error.
 
 ```typescript
-const NotFoundError = builder.objectRef<{ message: string }>('NotFoundError').implement({
-  fields: (t) => ({ message: t.exposeString('message') }),
-});
+class NotFoundError extends Error {}
+class PermissionError extends Error {}
 
 builder.mutationField('renameTeam', (t) =>
   t.field({
     type: Team,
-    errors: { types: [Error] },
+    errors: { types: [NotFoundError, PermissionError] },
     args: { /* ... */ },
     resolve: (_root, args, ctx) => {
-      // throw NotFoundError, throw PermissionError, etc.
+      // throw new NotFoundError() or new PermissionError() for expected failures
     },
   }),
 );
@@ -87,7 +86,3 @@ The boundaries are usually clear:
 - **Layer 3** earns its keep when errors are part of the contract — a mutation has expected failure modes that clients render specifically.
 
 You don't have to pick one. Schemas usually mix: most resolvers throw plain `Error`s and rely on masking; a few mutations use typed unions where the failure modes are well-known.
-
-<Callout type="info">
-  See also: [`plugin-errors`](../plugins/errors) for typed result unions, or [Resolvers](../fundamentals/resolvers) for the throw-semantics reference.
-</Callout>

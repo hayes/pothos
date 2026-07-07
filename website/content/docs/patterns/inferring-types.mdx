@@ -3,13 +3,11 @@ title: Inferring types
 description: Pull TypeScript types back out of Pothos refs to write helpers, fixtures, and utility functions.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 Pothos refs carry their backing model as a type parameter. `$inferType` and `$inferInput` are the escape hatches that let you pull that type back out for use in plain TypeScript code.
 
 <includeregions cwd lang="typescript" meta='playground example="patterns-inferring-types"'>playground-examples/patterns-inferring-types/schema.ts#infer-refs,infer-types</includeregions>
 
-`RaceShape` is `IRace`. `RaceFilterShape` is `{ nameContains?: string | null; immortal?: boolean | null }`. The pattern matches Drizzle's `InferSelectModel` and `InferInsertModel`, which inspired it.
+`RaceShape` is `IRace`. `RaceFilterShape` is `{ nameContains?: string | null; immortal?: boolean | null }`. The pattern is similar to Drizzle's `InferSelectModel` and `InferInsertModel`.
 
 ## Where it's useful
 
@@ -62,7 +60,3 @@ type IRace = typeof Race.$inferType; // Round trip through Pothos to get back to
 ```
 
 The first form keeps `IRace` as the source of truth. The second uses Pothos's machinery as a glorified type alias.
-
-<Callout type="info">
-  See also: [Object types](../fundamentals/objects) and [Input objects](../fundamentals/inputs) for the refs `$inferType` and `$inferInput` extract from.
-</Callout>
