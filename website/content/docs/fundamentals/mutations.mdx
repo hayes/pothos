@@ -1,80 +1,50 @@
 ---
 title: Mutations
-description: Define the Mutation root and write a CRUD mutation with input, context, and explicit error handling.
+description: Define the Mutation root with mutationType, and write a mutation that takes an input, checks the request, and returns the changed entity.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
-Mutations are queries that change state. The API mirrors [Queries](./queries) — `mutationType`, `mutationField`, `mutationFields` — but the patterns inside change. A typical mutation takes an input object, checks the request context, performs the change, and returns the updated entity.
+Mutations are the schema's entry points for writing data — the fields a client calls to create, update, or delete records. Their API mirrors [Queries](./queries): `mutationType` defines the root, and `mutationField`/`mutationFields` add fields to it from anywhere in a schema. What changes is inside the resolver — a write usually reads an input, checks who is making the request, changes the data, and returns the record it affected. Here is a mutation that updates a character's biography:
 
 <include cwd lang="typescript" meta='playground example="fundamentals-mutations"'>playground-examples/fundamentals-mutations/schema.ts#update-character-mutation</include>
 
-Four things are doing real work here. The input groups the mutation's two values into one named type. The first auth check narrows `ctx.user` from `{ id: number } | undefined` to `{ id: number }`. The lookup throws if the target doesn't exist. The permission check throws if the user isn't allowed to change *this* particular row.
+The field takes a single `input` argument, an [input object](./inputs) that groups the mutation's values (`characterId` and `biography`) into one named type. The resolver then works through the write in order. `if (!ctx.user)` narrows `ctx.user` from a possibly-absent user to a defined one, an ordinary TypeScript guard (covered in [Context](./context#requiring-a-signed-in-user)). The lookup throws when no character has that id. The check that follows — `entry.editorId !== ctx.user.id` — is the part specific to writes: it decides whether this particular user may change this particular record, a stronger question than whether someone is signed in. With both checks passed, the resolver updates the record and returns it. This shape repeats across writes, so once a few mutations share the same signed-in-and-owns-the-row check, [`plugin-scope-auth`](../plugins/scope-auth) moves it onto the field as declarative auth scopes.
 
-## The mutation root
+## The Mutation root
 
-Like `queryType`, `mutationType` runs exactly once per schema:
+`mutationType` defines the root, the way `queryType` defines the query root. Call it once, from the file that assembles your schema:
 
 ```typescript
 builder.mutationType({});
 ```
 
-Then add fields with `mutationField` or `mutationFields` from wherever they belong:
+In a schema split across modules, `mutationField` adds a single field to the root and `mutationFields` adds several, with the same across-module merge [Queries](./queries#adding-fields-from-elsewhere) describes for `queryField` and `queryFields`:
 
 ```typescript
-builder.mutationField('addCharacter', (t) =>
+// characters.ts — registers its write on the shared root
+builder.mutationField('updateCharacter', (t) =>
   t.field({
     type: Character,
-    args: { input: t.arg({ type: AddCharacterInput, required: true }) },
-    resolve: (_root, { input }, ctx) => addCharacter(input, ctx),
+    args: { input: t.arg({ type: UpdateCharacterInput, required: true }) },
+    resolve: (_root, { input }, ctx) => updateCharacter(input, ctx),
   }),
 );
 ```
 
-The choice between `mutationField` and `mutationFields` is the same call as for queries: per-field for module-local definitions, per-group for related batches.
+The root is named `Mutation` by default; pass `name` to `mutationType` to call it something else. A schema without writes can skip the mutation root entirely; of the three root types, only the query root is required by GraphQL's schema validation.
 
-## Authorization by hand
+When a client sends several mutation fields in one operation, the graphql-js executor runs them one at a time in the order written, each finishing before the next starts. (Query root fields resolve in parallel.)
 
-The resolver above does two different jobs in sequence. The first is the `if (!ctx.user) throw` lift that narrows `ctx.user` to a non-nullable user — the same move the Context page covers in [Narrowing inside a resolver](./context#narrowing-inside-a-resolver). The second is the part unique to mutations: a *row-level* permission check that decides whether this particular user may change this particular record.
+## Returning what changed
 
-The row-level check is where mutations diverge from queries. A useful refinement is to fold the existence check and the ownership check together, so the API never reveals that a record exists to a caller who isn't allowed to touch it:
-
-```typescript
-// Treat "missing" and "not yours" as the same condition, so the API
-// never leaks the existence of an entry the caller can't touch.
-const entry = Characters.get(Number(input.characterId));
-if (!entry || entry.editorId !== ctx.user.id) {
-  throw new Error('Entry not found');
-}
-```
-
-Split the two into distinct throws when you want distinct messages (`Not signed in` vs `Only the entry's editor can edit it`); fold them when the existence of a record is itself privileged. Either way the shape repeats across every mutation — the same auth lift, the same lookup, the same permission gate — which is the cue to reach for a plugin.
-
-## Returning what the client needs
-
-Return the entity the mutation changed, so the client can re-read fields in the same round trip:
+Return the entity the mutation changed. Because the field's type is the object type, the client selects fields on the result and reads the new state in the same round trip:
 
 ```graphql
 mutation UpdateCharacter {
-  updateCharacter(input: { characterId: "1", biography: "Bearer of the One Ring." }) {
+  updateCharacter(input: { characterId: "1", biography: "Bearer of the One Ring and hero of the War of the Ring." }) {
     id
     biography
   }
 }
 ```
 
-For mutations that don't have a single natural return (a bulk delete, a batch import), wrap the result in a small payload type and return that — `DeleteCharactersPayload { success: Boolean!, deletedCount: Int! }` reads better than `Boolean!`.
-
-## When to graduate to plugins
-
-The three plugins worth knowing about for mutations:
-
-- [`plugin-scope-auth`](../plugins/scope-auth) replaces the manual `if (!ctx.user)` and row-level checks with declarative `authScopes` on the field. Once two or three mutations share the same check, you save real LOC.
-- [`plugin-errors`](../plugins/errors) turns thrown errors into typed result unions — your `updateCharacter` field's return type becomes `UpdateCharacterResult = Character | NotFoundError | PermissionError`, which clients can discriminate without parsing error messages.
-- [`plugin-validation`](../plugins/validation) runs Zod schemas against your input before the resolver fires. Useful when the input has format constraints (`name` must be 1–80 chars, `email` must be a valid email).
-
-You don't need any of them on day one. Reach for them when the manual patterns start to repeat.
-
-<Callout type="info">
-  See also: [`plugin-scope-auth`](../plugins/scope-auth) for declarative authz, [`plugin-errors`](../plugins/errors) for typed result unions, and [`plugin-validation`](../plugins/validation) for input validation.
-</Callout>
+When a mutation has no single record to hand back, such as a bulk delete or a batch import, return a small payload type carrying whatever the client needs to know, like a count of the rows affected: `DeleteCharactersPayload { deletedCount: Int! }`.

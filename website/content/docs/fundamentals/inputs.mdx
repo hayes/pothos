@@ -1,91 +1,64 @@
 ---
 title: Input objects
-description: Group field arguments into a reusable input shape.
+description: Define reusable input types with builder.inputType and use them as argument and field types.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+An input object is a named type whose fields become the shape of an argument, so a field can take one structured value in place of several separate arguments. You define one with `builder.inputType` and use it anywhere an argument, or another input field, needs a type.
 
-Once a field's arguments grow past two or three values, or several fields take the same shape, group them into an input object. The most ergonomic way to declare one is inline, right where it's first used:
+## Defining an input object
+
+An input object is defined with `builder.inputType`, named the way object types are, and the reference it returns is what you pass as an argument's `type`. Declared inline, the type sits right next to the argument that uses it:
 
 <include cwd lang="typescript" meta='playground example="fundamentals-inputs"'>playground-examples/fundamentals-inputs/schema.ts#add-character-mutation</include>
 
-`input` arrives in the resolver fully typed: `input.name` is `string`, `input.age` is `number`.
+`AddCharacterInput` has two fields, `name` and `birthYear`, and `builder.inputType` returns a reference used as the `input` argument's `type`. Inside the resolver `input` arrives fully typed: `input.name` is a `string` and `input.birthYear` is `number | null | undefined`, following the `required` option on each field. (`addCharacter` is defined on the mutation root, which the [Mutations](./mutations) guide covers.)
 
-## Naming the type
+The convention for the name is `<Operation><Subject>Input`, such as `AddCharacterInput` or `UpdateCharacterInput`. Each input object is defined once in a schema; registering a second type under the same name is a build-time error.
 
-The first argument to `builder.inputType` is the GraphQL type name. The convention is `<Operation><Subject>Input`:
+## Input fields
 
-- `AddCharacterInput`
-- `UpdateCharacterInput`
-- `SearchCharactersFilter` (when "filter" reads better than "Input")
-
-Each input object can only be defined once across your whole schema — pick a name no other field will collide with.
-
-## Sharing an input across fields
-
-When two fields want the same shape, lift it to a top-level variable and reference it:
-
-```typescript
-const FactionFilter = builder.inputType('FactionFilter', {
-  fields: (t) => ({
-    nameContains: t.string(),
-    minMembers: t.int(),
-  }),
-});
-
-builder.queryFields((t) => ({
-  factions: t.field({
-    type: [Faction],
-    args: { filter: t.arg({ type: FactionFilter }) },
-    resolve: (_root, { filter }) => findFactions(filter),
-  }),
-  factionCount: t.int({
-    args: { filter: t.arg({ type: FactionFilter }) },
-    resolve: (_root, { filter }) => countFactions(filter),
-  }),
-}));
-```
-
-Sharing is purely an authoring convenience — GraphQL doesn't see a difference between an inline and a shared input.
-
-## Field options inside an input
-
-The fields inside `inputType` use the same `required` and `defaultValue` options as field arguments:
+An input field is declared with `t.field({ type })`, or with a scalar shorthand — `t.string`, `t.int`, `t.id`, `t.boolean`, `t.float`, and their `…List` forms for the built-in scalars. These take the same core options as arguments, including `required` and `defaultValue`, which [Arguments](./args) covers:
 
 ```typescript
 fields: (t) => ({
   name: t.string({ required: true }),
   alignment: t.string({ defaultValue: 'Neutral' }),
-  tags: t.stringList({ required: true, defaultValue: [] }),
 }),
 ```
 
-Inputs can also nest: an input field's type can be another input type.
+One difference from arguments: there is no `t.arg`-style callable here. Inside an `inputType`'s `fields` function, a field comes from `t.field` or one of the scalar shorthands.
 
-## Other styles
+## Sharing an input across fields
 
-When an input needs to reference itself — a recursive filter, for example — define it with `builder.inputRef` first, then `implement` it:
+A named input object is a reference like any other, so two fields can share one by declaring it as a variable and passing it to each:
+
+<include cwd lang="typescript">playground-examples/fundamentals-inputs/schema.ts#shared</include>
+
+`FactionFilter` is defined once and used as the `filter` argument on both `factions` and `factionCount`. Sharing a type this way is only an authoring convenience; the schema is identical whether an input is declared inline or lifted to a variable.
+
+## Nested inputs
+
+An input field's type can be another input object, so inputs nest:
+
+<include cwd lang="typescript">playground-examples/fundamentals-inputs/schema.ts#nested</include>
+
+`CharacterFilter` has a `faction` field whose type is the `FactionFilter` from above, declared with `t.field({ type: FactionFilter })` since only the built-in scalars have shorthands. The type can also be a list of an input object, wrapped in an array the same way a list argument is.
+
+## Recursive inputs
+
+An input that refers to itself can't be created with a single `inputType` call: its fields would reference the variable that call is still producing, and TypeScript can't infer a type that contains itself. `builder.inputRef` splits the two steps — it creates the reference first, with the TypeScript shape supplied as a type argument, then `implement` adds the fields:
+
+<include cwd lang="typescript">playground-examples/fundamentals-inputs/schema.ts#recursive</include>
+
+`builder.inputRef<CharacterQueryInput>` creates the reference for `CharacterQuery`, and `implement` fills in its fields afterward. The `and` field lists `CharacterQuery` itself, which resolves because the reference already exists by the time the `fields` function runs, and giving the shape up front is what lets TypeScript type a field that points at its own type. This mirrors `builder.objectRef(...).implement(...)` from [Object types](./objects).
+
+## One-of inputs
+
+Setting `isOneOf: true` marks an input where the client provides exactly one of the fields, mapping to the `@oneOf` directive from the GraphQL specification. Pothos types the value as a discriminated union, so a resolver sees one field set and the rest as `never`:
 
 ```typescript
-interface IFilter {
-  and?: IFilter[];
-  field?: string;
-  equals?: string;
-}
-
-const Filter = builder.inputRef<IFilter>('Filter');
-
-Filter.implement({
-  fields: (t) => ({
-    and: t.field({ type: [Filter] }),
-    field: t.string(),
-    equals: t.string(),
-  }),
+builder.inputType('NameOrId', {
+  isOneOf: true,
+  fields: (t) => ({ name: t.string(), id: t.id() }),
 });
 ```
-
-The split mirrors the `objectRef` pattern from [Object types](./objects): declare the reference up front so the type can refer to itself.
-
-<Callout type="info">
-  See also: [Arguments](./args) for non-input args, or [Mutations](./mutations) for an end-to-end CRUD example.
-</Callout>

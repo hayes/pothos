@@ -1,7 +1,7 @@
 {
   "id": "fundamentals-subscriptions",
   "title": "Subscriptions",
-  "description": "Define a subscription field with subscribe + resolve.",
+  "description": "A subscribe + resolve field fed by a mutation that publishes to a context pub/sub.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "intermediate",
