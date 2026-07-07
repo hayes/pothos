@@ -3,58 +3,43 @@ title: Enums
 description: Define an enum with string-literal values and use it as a field type and argument.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+## Defining an enum
 
-The lightest way to declare an enum is the array form: an array of string literals marked `as const`, and Pothos handles the rest.
+An enum is a type whose values are a fixed set of named constants — here, the moral alignments a faction can hold. The lightest way to declare one is the array form: an array of string literals.
 
 <include cwd lang="typescript" meta='playground example="fundamentals-enums"'>playground-examples/fundamentals-enums/schema.ts#alignment-enum</include>
 
-The `as const` matters — without it Pothos infers `string[]` and you lose the literal-union type that makes the rest of the schema fit together.
+`builder.enumType` takes the type's name and an options object. The `values` array lists the enum's value names, and Pothos infers them as the literal union `'Good' | 'Neutral' | 'Evil'` (no `as const` needed — `enumType` uses a `const` type parameter); that union is the TypeScript type Pothos threads through every field and argument built from the enum. The call returns a reference, `Alignment`, that works as both a field type and an argument type.
 
 ## Using the enum
 
-Reference the returned `Alignment` as a field type and as an argument:
+An enum reference is used as a field's `type` and as an argument's `type` like any other type:
 
-```typescript
-const Faction = builder.objectRef<IFaction>('Faction').implement({
-  fields: (t) => ({
-    alignment: t.field({ type: Alignment, resolve: (f) => f.alignment }),
-  }),
-});
+<include cwd lang="typescript">playground-examples/fundamentals-enums/schema.ts#using-alignment</include>
 
-builder.queryField('factions', (t) =>
-  t.field({
-    type: [Faction],
-    args: { alignment: t.arg({ type: Alignment }) },
-    resolve: (_root, args) =>
-      args.alignment ? Factions.filter((f) => f.alignment === args.alignment) : Factions,
-  }),
-);
-```
-
-The argument's runtime type is `'Good' | 'Neutral' | 'Evil' | null | undefined` — a literal union, not a string.
+`Faction.alignment` returns the enum from the backing object, and the `factions` query takes an `alignment` argument to filter by. Because `Alignment` was built from the array form, that argument's type is the literal union `'Good' | 'Neutral' | 'Evil'` (nullable, since the argument is optional), so the resolver compares `f.alignment === args.alignment` against real union members rather than a bare string. The [Arguments](./args) guide covers arguments in more detail.
 
 ## Descriptions and deprecations
 
-Both the enum itself and individual values take descriptions and `deprecationReason`. When you need either, switch from the array form to the object form for values:
+The enum itself takes a `description` in either form — the array-form enum above carries one. To describe or deprecate individual values, switch from the array to the object form, where each key maps to a config object:
 
 ```typescript
 const Alignment = builder.enumType('Alignment', {
   description: "A faction's moral leaning.",
   values: {
-    Good: { description: 'Helps the heroes.' },
-    Neutral: { description: 'Sits out the war.' },
+    Good: { description: 'Sides with the free peoples.' },
+    Neutral: { description: 'Stays out of the war.' },
     Evil: { description: 'Serves Sauron.' },
-    Chaotic: { deprecationReason: 'Was never used; remove in v3.' },
-  } as const,
+    Chaotic: { deprecationReason: 'Never used in the compendium; removed in v3.' },
+  },
 });
 ```
 
-The keys still drive both the GraphQL value names and the TypeScript literal union. Anything past `description` and `deprecationReason` is rarely worth using.
+Each key still drives both the GraphQL value name and the TypeScript union, so switching forms changes nothing about how the enum is used. `description` appears in introspection and tooling, and `deprecationReason` marks a value deprecated (here `Chaotic`) while leaving it usable. A value config can also set a `value`, the internal value your resolver works with, which the next section covers.
 
 ## Backing with a TypeScript enum
 
-If you already have a TypeScript `enum`, you can pass it directly:
+The value name a client sees and the value your resolver works with have been the same string so far, but they don't have to be. A GraphQL enum value has a name — the token in the schema, which clients send and receive — and an internal value, which is what a resolver returns and what an argument is parsed to before it reaches your code. When you already have a TypeScript `enum`, you can hand it to `builder.enumType` directly, and its keys and values fill those two roles:
 
 ```typescript
 enum Alignment {
@@ -68,8 +53,6 @@ const AlignmentType = builder.enumType(Alignment, {
 });
 ```
 
-The runtime values (`'GOOD'`, etc.) become the GraphQL enum values. This form is useful when an existing codebase uses TypeScript enums and you'd rather not maintain two parallel enums. For new code, the array form is shorter and reads better.
+Passing the enum object in place of a name switches Pothos to this form, and `name` becomes required because the enum object carries no name of its own. The keys `Good`, `Neutral`, and `Evil` are the GraphQL enum values that appear in the schema and that clients use. The enum's runtime values `'GOOD'`, `'NEUTRAL'`, and `'EVIL'` are the backing values: a resolver for an `Alignment` field returns `Alignment.Evil`, graphql-js serializes it back to the name `Evil` in the response, and an incoming `Evil` argument reaches your resolver as `'EVIL'`. Clients never see the `'GOOD'`-style strings. The object form's per-value `value` option does the same thing for one value at a time.
 
-<Callout type="info">
-  See also: [Scalars](./scalars) for custom types that aren't enums, or [Arguments](./args) for the enum-as-argument pattern.
-</Callout>
+This form is useful when a codebase already has TypeScript enums you'd rather not maintain twice. For new code the array form is shorter and avoids the name-versus-value split, since there the name and the backing value are a single string.

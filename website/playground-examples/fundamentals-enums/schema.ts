@@ -2,12 +2,10 @@ import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
-// Object-form enum: values are defined inline. The `as const` lets
-// Pothos infer the literal union for use as a TypeScript type.
 // #region alignment-enum
 const Alignment = builder.enumType('Alignment', {
   description: "A faction's moral leaning.",
-  values: ['Good', 'Neutral', 'Evil'] as const,
+  values: ['Good', 'Neutral', 'Evil'],
 });
 // #endregion alignment-enum
 
@@ -18,11 +16,12 @@ interface IFaction {
 }
 
 const Factions: IFaction[] = [
-  { id: 'fellowship', name: 'Fellowship of the Ring', alignment: 'Good' },
-  { id: 'rohirrim', name: 'Riders of Rohan', alignment: 'Good' },
-  { id: 'uruk-hai', name: 'Uruk-hai', alignment: 'Evil' },
+  { id: '1', name: 'Fellowship of the Ring', alignment: 'Good' },
+  { id: '2', name: 'Riders of Rohan', alignment: 'Good' },
+  { id: '3', name: 'Uruk-hai', alignment: 'Evil' },
 ];
 
+// #region using-alignment
 const Faction = builder.objectRef<IFaction>('Faction').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -41,5 +40,6 @@ builder.queryType({
     }),
   }),
 });
+// #endregion using-alignment
 
 export const schema = builder.toSchema();
