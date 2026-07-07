@@ -13,7 +13,7 @@
     "type": "tsc --noEmit",
     "test": "pnpm run build-examples && pnpm run test:examples && pnpm run test:docs",
     "test:examples": "tsx scripts/test-playground-examples.ts",
-    "test:docs": "vitest run tests/playground-docs-validation.test.ts",
+    "test:docs": "vitest run tests/",
     "postinstall": "fumadocs-mdx"
   },
   "engines": {

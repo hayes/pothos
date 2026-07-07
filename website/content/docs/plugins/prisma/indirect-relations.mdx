@@ -3,13 +3,13 @@ title: Indirect relations
 description: Pre-load data through wrapper types and join tables with the nestedSelection helper.
 ---
 
-`t.relation` pre-loads a direct relation, but some fields don't map to one edge. A field might wrap a Prisma object in a non-Prisma type, or reach a model through a join table two hops away. For those, the `select` function on a field gives you `nestedSelection` — a helper that reads the GraphQL selection set at a path you choose and returns the matching Prisma `select`, so you can still load everything in one query.
+`t.relation` pre-loads a direct relation, but some fields don't map to one edge. A field might wrap a Prisma object in a non-Prisma type, or reach a model through a join table two hops away. For those, the `select` function on a field gives you `nestedSelection`, a helper that reads the GraphQL selection set at a path you choose and returns the matching Prisma `select`, so you can still load everything in one query.
 
 This page assumes the [generated types and builder](./setup) are already wired up.
 
 ## Selecting through a wrapper type
 
-By default `nestedSelection` returns selections for the current field's own type. Pass it a path and it looks *deeper* — into a field nested inside the returned type. That's what you need when a field returns a plain `objectRef` whose inner field is the actual `prismaObject`.
+By default `nestedSelection` returns selections for the current field's own type. Pass it a path and it looks *deeper*, into a field nested inside the returned type. That's what you need when a field returns a plain `objectRef` whose inner field is the actual `prismaObject`.
 
 Here a `Player` exposes `statCards`, a list of a plain wrapper type. Each `StatCard` carries a computed `summary` plus the full `PlayerStat` behind its `stat` field. `nestedSelection` reaches into `statCards.stat` to figure out what to load:
 
@@ -58,7 +58,7 @@ builder.prismaObject('Player', {
 });
 ```
 
-The third argument is only needed when the nested field returns a union or interface — pass the object type name whose selections you want. For a plain object type it can be omitted.
+The third argument is only needed when the nested field returns a union or interface; pass the object type name whose selections you want. For a plain object type it can be omitted.
 
 ## Reaching through a join table
 
@@ -88,7 +88,7 @@ model PlayerStat {
 }
 ```
 
-To expose the `Player`s who featured in a `Game` as a flat list — hiding the `PlayerStat` join entirely — nest `nestedSelection` inside the join relation's `select`. It reads what the query asks of `Player` and pre-loads exactly those columns and relations:
+To expose the `Player`s who featured in a `Game` as a flat list, hiding the `PlayerStat` join entirely, nest `nestedSelection` inside the join relation's `select`. It reads what the query asks of `Player` and pre-loads exactly those columns and relations:
 
 ```typescript
 const Game = builder.prismaObject('Game', {
@@ -125,4 +125,4 @@ const Player = builder.prismaObject('Player', {
 });
 ```
 
-The `resolve` maps the join rows back to their `Player`, so clients see `game.players` with no sign of `PlayerStat` — while the query still loads a requested `team` relation in the same round-trip.
+The `resolve` maps the join rows back to their `Player`, so clients see `game.players` with no sign of `PlayerStat`, while the query still loads a requested `team` relation in the same round-trip.

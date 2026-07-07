@@ -1,21 +1,21 @@
 ---
 title: Fields
-description: Define an object type's fields with t.field and its scalar and expose shorthands.
+description: Defining the fields that make up an object type, and where each field's value comes from.
 ---
 
-A type's fields are defined by the `fields` function you pass when you implement it. That function receives a field builder — conventionally named `t` — and returns a map whose values each come from one method call on `t`. The surrounding object definition (the ref, its backing model, and `implement`) is covered in [Object types](./objects).
+A type's fields are defined by the `fields` function you pass when you implement it. That function receives a field builder (conventionally named `t`) and returns a map whose values each come from one method call on `t`.
 
 ## Defining a field
 
-Every field is created by a method on `t`, and the general form is `t.field`. It takes the field's `type` and a `resolve` function that produces the value:
+Every field is created by a method on `t`. `t.field` is the base method the others are built on. It takes an options object; this example passes the field's `type` and a `resolve` function that produces the value:
 
 <include cwd lang="typescript" meta='playground example="fundamentals-fields"'>playground-examples/fundamentals-fields/schema.ts#field</include>
 
-`race` returns another object type, so its `type` is the `Race` ref and the resolver looks the race up by id. The `resolve` function's first argument is always the backing object; the [Resolvers](./resolvers) guide covers the rest of its signature and what a resolver may return. Every other field method on `t` is `t.field` with some of these options filled in for you.
+`faction` returns another object type, so its `type` is the `Faction` ref and the resolver looks the faction up by id. The `resolve` function's first argument is always the backing object; the [Resolvers](./resolvers) guide covers the rest of its signature and what a resolver may return. Every other field method on `t` is `t.field` with some of these options filled in for you.
 
 ## Scalar fields
 
-The scalar builders — `t.string`, `t.int`, `t.float`, `t.boolean`, and `t.id` — are `t.field` with the `type` already set to the matching scalar, so you supply only the `resolve`:
+The scalar builders (`t.string`, `t.int`, `t.float`, `t.boolean`, and `t.id`) are `t.field` with the `type` already set to the matching scalar, so you supply only the `resolve`:
 
 <include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#scalar</include>
 
@@ -31,7 +31,7 @@ When a field just returns a property already on the backing object, `t.expose*` 
 
 ## Lists
 
-A field's type can be a list by wrapping it in an array. In a resolver you return an array of the matching shape — the [`factions`](#splitting-fields-across-files) field below does this with `t.field({ type: [Faction] })`. When the backing property already holds an array, the `…List` expose helpers forward it without a resolver:
+A field's type can be a list by wrapping it in an array. In a resolver you return an array of the matching shape, the way the [`members`](#splitting-fields-across-files) field below returns a list of `Character` with `t.field({ type: [Character] })`. When the backing property already holds an array, the `…List` expose helpers forward it without a resolver:
 
 <include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#list</include>
 
@@ -45,7 +45,7 @@ Every field defined so far is nullable. Pothos output fields are nullable by def
 id: t.exposeID('id', { nullable: false }),
 ```
 
-That makes the field `id: ID!`. A list field has two positions that can be null — the list itself and each of its items — so `nullable` also accepts a `{ list, items }` object to set them independently:
+That makes the field `id: ID!`. A list field has two positions that can be null, the list itself and each of its items, so `nullable` also accepts a `{ list, items }` object to set them independently:
 
 ```typescript
 titles: t.exposeStringList('titles', { nullable: { list: false, items: true } }),
@@ -59,4 +59,4 @@ A type doesn't have to define all of its fields in one place. `builder.objectFie
 
 <include cwd lang="typescript">playground-examples/fundamentals-fields/schema.ts#split</include>
 
-This defines `Character.factions` in whatever module owns factions instead of in the `Character` module. `builder.objectFields` adds several fields at once. These calls can run before or after the type is implemented; Pothos collects the definitions and merges them when the schema builds, and defining the same field name twice is a build-time error. [Project layout](../patterns/project-layout) covers organizing a schema this way.
+This defines `Faction.members` in the module that owns characters, instead of alongside the rest of `Faction`. `builder.objectFields` adds several fields at once. The same pairing exists elsewhere: `interfaceField` and `interfaceFields` for interfaces, and `queryField`, `mutationField`, and their plural forms for the root types. These calls can run before or after the type is implemented, and Pothos merges the definitions when the schema builds. [Project layout](../patterns/project-layout) covers organizing a schema this way.

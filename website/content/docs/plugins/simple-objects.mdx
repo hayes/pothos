@@ -5,7 +5,7 @@ description: Define objects and interfaces from their fields alone with simpleOb
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Most object types need a backing model — the TypeScript shape your resolvers return. Usually you write that shape as an `interface` and hand it to `builder.objectRef`. The simple objects plugin skips that step: `builder.simpleObject` reads the fields you declare and infers the backing model from them, so a type and its shape are defined in one call. It fits response shapes that only exist to be returned — stats blocks, computed summaries, DTOs — where a hand-written interface would only repeat what the fields already declare.
+Most object types need a backing model, the TypeScript shape your resolvers return. Usually you write that shape as an `interface` and hand it to `builder.objectRef`. The simple objects plugin skips that step: `builder.simpleObject` reads the fields you declare and infers the backing model from them, so a type and its shape are defined in one call. It fits response shapes that only exist to be returned (stats blocks, computed summaries, DTOs) where a hand-written interface would only repeat what the fields already declare.
 
 ```package-install
 npm install --save @pothos/plugin-simple-objects
@@ -25,17 +25,17 @@ Then define types straight from their fields. Here a league standing is assemble
 
 <includeregions cwd lang="typescript" meta='playground example="simple-objects-plugin"'>playground-examples/simple-objects-plugin/schema.ts#team-stats,node,standing</includeregions>
 
-The resolver on the `standing` query just returns a plain object — `{ id, team, stats: { wins, losses, pointDiff } }` — and TypeScript checks it against the shape Pothos inferred. Get a field name or type wrong and it fails to compile.
+The resolver on the `standing` query just returns a plain object (`{ id, team, stats: { wins, losses, pointDiff } }`) and TypeScript checks it against the shape Pothos inferred. Get a field name or type wrong and it fails to compile.
 
 ## Why simpleObject
 
-`builder.simpleObject` returns an [`ObjectRef`](../fundamentals/objects) — the same reference you'd get from `builder.objectRef<T>()`. The difference is where the backing model comes from. With `objectRef` you write the type yourself and Pothos trusts it. With `simpleObject` the fields *are* the type: declare `wins: t.int()` and the backing model gains a required `number`; declare `pointDiff: t.int({ nullable: true })` and it gains an optional `number | null`.
+`builder.simpleObject` returns an [`ObjectRef`](../fundamentals/objects), the same reference you'd get from `builder.objectRef<T>()`. The difference is where the backing model comes from. With `objectRef` you write the type yourself and Pothos trusts it. With `simpleObject` the fields *are* the type: declare `wins: t.int()` and the backing model gains a required `number`; declare `pointDiff: t.int({ nullable: true })` and it gains an optional `number | null`.
 
-That trade is worth it when the type has no life outside the schema. A `TeamStats` block returned by one query doesn't need a hand-written interface — the fields already say everything. Reach for a plain `objectRef` when the backing model is a real domain entity you load, mutate, and pass around, where a named `interface` earns its keep.
+That trade is worth it when the type has no life outside the schema. A `TeamStats` block returned by one query doesn't need a hand-written interface; the fields already say everything. Use a plain `objectRef` when the backing model is a real domain entity you load, mutate, and pass around, where a named `interface` is worth defining.
 
 ## Interfaces
 
-`builder.simpleInterface` is the interface counterpart, and simple objects implement interfaces through the same `interfaces` option a regular object uses. An implementing type inherits the interface's inferred fields — `Standing` gets `id` from `Node` without redeclaring it, and the inferred backing model is the intersection of both.
+`builder.simpleInterface` is the interface counterpart, and simple objects implement interfaces through the same `interfaces` option a regular object uses. An implementing type inherits the interface's inferred fields; `Standing` gets `id` from `Node` without redeclaring it, and the inferred backing model is the intersection of both.
 
 Interfaces can also be a thunk, which defers evaluation so two types can reference each other:
 
@@ -52,7 +52,7 @@ Like `simpleObject`, `simpleInterface` takes an optional third argument for reso
 
 ## Computed fields
 
-The `fields` inside the second argument map one-to-one onto the inferred backing model — Pothos resolves each by reading the property of the same name off the parent. When a value isn't just passed down — it's derived, takes arguments, or hits another source — put it in the **third argument** instead. Those fields run through normal resolvers and receive the fully inferred parent, so `record` above can read `standing.stats.wins`.
+The `fields` inside the second argument map one-to-one onto the inferred backing model; Pothos resolves each by reading the property of the same name off the parent. When a value is derived, takes arguments, or hits another source rather than being passed straight through, put it in the **third argument** instead. Those fields run through normal resolvers and receive the fully inferred parent, so `record` above can read `standing.stats.wins`.
 
 You can add the same kind of field after the fact. Because `simpleObject` hands back an `ObjectRef`, any builder method that extends a ref works on it:
 
@@ -68,5 +68,5 @@ builder.objectType(Standing, (t) => ({
 Use whichever reads better: the third argument keeps a type's computed fields next to its declaration; a separate `builder.objectType` call is handy when the extra fields live in another module.
 
 <Callout type="warn">
-  Fields declared in the second argument see the parent as `unknown`. That only surfaces when another plugin inspects the parent — a `plugin-scope-auth` `authScopes` callback on a simple-object field, for instance, gets `unknown` rather than the inferred shape. Move such fields to the third argument, where the parent is fully typed.
+  Fields declared in the second argument see the parent as `unknown`. That only surfaces when another plugin inspects the parent; a `plugin-scope-auth` `authScopes` callback on a simple-object field, for instance, gets `unknown` rather than the inferred shape. Move such fields to the third argument, where the parent is fully typed.
 </Callout>

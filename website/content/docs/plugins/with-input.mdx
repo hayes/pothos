@@ -5,7 +5,7 @@ description: Define fields whose arguments live in a single generated input obje
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-GraphQL convention is to give a mutation one argument — an `input` object — rather than a loose list of scalars. Writing that out by hand means declaring a separate input type for every field. The with-input plugin collapses the two steps: `t.fieldWithInput` takes the input fields inline, generates the input object type for you, and wires it up as the field's argument.
+GraphQL convention is to give a mutation one argument (an `input` object) rather than a loose list of scalars. Writing that out by hand means declaring a separate input type for every field. The with-input plugin collapses the two steps: `t.fieldWithInput` takes the input fields inline, generates the input object type for you, and wires it up as the field's argument.
 
 ```package-install
 npm install --save @pothos/plugin-with-input
@@ -43,7 +43,7 @@ builder.queryType({
 });
 ```
 
-The `input` object maps field names to `t.input.*` definitions — the same scalar builders as `t.arg`, scoped to the generated input type. The resolver reads them off `args.input`. The generated schema:
+The `input` object maps field names to `t.input.*` definitions, the same scalar builders as `t.arg`, scoped to the generated input type. The resolver reads them off `args.input`. The generated schema:
 
 ```graphql
 type Query {
@@ -86,11 +86,11 @@ builder.mutationType({
 });
 ```
 
-This generates `input MutationRenameTeamInput { id: ID!, name: String! }`. You can still declare ordinary arguments alongside the input by passing an `args` option — they sit next to `input` on the field rather than inside the generated type.
+This generates `input MutationRenameTeamInput { id: ID!, name: String! }`. You can still declare ordinary arguments alongside the input by passing an `args` option; they sit next to `input` on the field rather than inside the generated type.
 
 ## Naming the input type and argument
 
-By default the input type name is `${ParentType}${FieldName}Input` — `QueryTeamInput`, `MutationRenameTeamInput` — and the argument is called `input`. Override either per field with `typeOptions.name` and `argOptions.name`. Renaming the argument also renames the key you read in the resolver:
+By default the input type name is `${ParentType}${FieldName}Input` (`QueryTeamInput`, `MutationRenameTeamInput`) and the argument is called `input`. Override either per field with `typeOptions.name` and `argOptions.name`. Renaming the argument also renames the key you read in the resolver:
 
 ```typescript playground example="with-input-plugin"
 builder.mutationType({
@@ -136,7 +136,7 @@ const builder = new SchemaBuilder({
 
 ## Optional inputs
 
-The input argument is required by default. Set `argOptions.required: false` to make the whole argument optional — useful for a search or filter field that runs with no input at all:
+The input argument is required by default. Set `argOptions.required: false` to make the whole argument optional, which suits a search or filter field that runs with no input at all:
 
 ```typescript playground example="with-input-plugin"
 builder.queryType({
@@ -158,7 +158,7 @@ builder.queryType({
 ```
 
 <Callout type="warn">
-  When the argument is optional, `args.input` is nullable — reach for it with optional chaining (`args.input?.namePrefix`). The individual `t.input.*` fields keep their own `required` flags independently of the argument.
+  When the argument is optional, `args.input` is nullable; read it with optional chaining (`args.input?.namePrefix`). The individual `t.input.*` fields keep their own `required` flags independently of the argument.
 </Callout>
 
 To flip the default for the whole schema, set `withInput.argOptions.required` on the builder and declare the matching `WithInputArgRequired` in your `SchemaTypes` so the resolver argument types line up:
@@ -176,7 +176,7 @@ const builder = new SchemaBuilder<{ WithInputArgRequired: false }>({
 
 ## Schema-wide defaults
 
-`withInput.typeOptions` and `withInput.argOptions` on the builder set defaults for every generated input type and argument. Per-field `typeOptions`/`argOptions` merge over them. This is the place for cross-cutting choices — a default description on generated inputs, or the `required` default above:
+`withInput.typeOptions` and `withInput.argOptions` on the builder set defaults for every generated input type and argument. Per-field `typeOptions`/`argOptions` merge over them. This is the place for cross-cutting choices: a default description on generated inputs, or the `required` default above:
 
 ```typescript
 const builder = new SchemaBuilder({

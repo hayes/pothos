@@ -3,7 +3,7 @@ title: Playground
 description: Embed runnable Pothos schemas in the docs with the playground fence and its example, query, and tab attributes.
 ---
 
-Most code blocks in these docs are live. Add the `playground` marker to a TypeScript fence and it gains an "Open in Playground" button that boots the code in an in-browser sandbox — an editor, the generated SDL, and a GraphiQL tab, with nothing to install. Attributes on the fence decide what opens and what runs.
+Most code blocks in these docs are live. Add the `playground` marker to a TypeScript fence and it gains an "Open in Playground" button that boots the code in an in-browser sandbox: an editor, the generated SDL, and a GraphiQL tab, with nothing to install. Attributes on the fence decide what opens and what runs.
 
 ## Inline code
 
@@ -56,7 +56,7 @@ Character.implement({
 });
 ```
 
-`example` values are kebab-case IDs that match a directory under `website/playground-examples/`. Every reference must resolve to a real bundle — `pnpm check-playground-refs` fails the build otherwise. Keep the fence a faithful subset of the bundle's `schema.ts` so opening it is not jarring.
+`example` values are kebab-case IDs that match a directory under `website/playground-examples/`. Every reference must resolve to a real bundle, or `pnpm check-playground-refs` fails the build. Keep the fence a faithful subset of the bundle's `schema.ts` so opening it is not jarring.
 
 ## Pre-filled queries
 
@@ -90,7 +90,7 @@ export const schema = builder.toSchema();
 
 ## Example plus query
 
-Combine the two to open a full bundle with a specific operation ready to run — handy for pointing readers at one capability of a larger schema:
+Combine the two to open a full bundle with a specific operation ready to run, handy for pointing readers at one capability of a larger schema:
 
 ```ts playground example="getting-started-first-schema-step-2" query="{ frodo { id name } }"
 // Opens the getting-started-first-schema-step-2 bundle with the query pre-filled.
@@ -110,7 +110,7 @@ Steps suit a page that builds a schema up one change at a time — see [Installa
 
 ## Switchable definition styles
 
-To show one schema written several ways — object refs vs. classes vs. builder types — give each fence a `tab` label. Consecutive fences that share the `tab` attribute merge into a single block with a style switcher, and "Open in Playground" opens whichever tab is selected:
+To show one schema written several ways (object refs, classes, or builder types), give each fence a `tab` label. Consecutive fences that share the `tab` attribute merge into a single block with a style switcher, and "Open in Playground" opens whichever tab is selected:
 
 ````mdx
 ```ts playground example="fundamentals-objects" tab="Object refs"
@@ -132,8 +132,8 @@ Each fence's `example` is the exact bundle it opens: the base ID for the default
 
 Every playground opens with three tabs:
 
-- **Code** — the TypeScript source, editable in place.
-- **Schema** — the generated GraphQL SDL, which updates as you edit.
-- **GraphiQL** — an interactive query editor wired to the schema.
+- **Code**: the TypeScript source, editable in place.
+- **Schema**: the generated GraphQL SDL, which updates as you edit.
+- **GraphiQL**: an interactive query editor wired to the schema.
 
 Edit the code and the SDL and query results follow, so you can see exactly how a Pothos change reshapes the schema.

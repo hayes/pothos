@@ -5,7 +5,7 @@ description: Build Prisma-compatible filter, order-by, create, and update input 
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Writing input types for filtering, ordering, and mutating Prisma models by hand is repetitive and easy to get out of sync with your schema. The prisma-utils plugin adds builder helpers that produce input types shaped to match Prisma's own `where`, `orderBy`, `create`, and `update` arguments — so a filter you define type-checks against the query you'll pass it to. It layers on top of the [Prisma plugin](./setup) but is otherwise independent; you can adopt it a few input types at a time.
+Writing input types for filtering, ordering, and mutating Prisma models by hand is repetitive and easy to get out of sync with your schema. The prisma-utils plugin adds builder helpers that produce input types shaped to match Prisma's own `where`, `orderBy`, `create`, and `update` arguments, so a filter you define type-checks against the query you'll pass it to. It layers on top of the [Prisma plugin](./setup) but is otherwise independent; you can adopt it a few input types at a time.
 
 <Callout type="warn">
   This package is highly experimental and not recommended for production use. The helpers are building blocks that may change with breaking releases as they mature.
@@ -57,7 +57,7 @@ export default new SchemaBuilder<{
 
 ## What the plugin is for
 
-The goal is not to generate every input type automatically — there are too many design trade-offs in filtering and mutation inputs for one scheme to fit every schema. Instead the plugin gives you composable building blocks, so writing your own helpers or a [code generator](#generators) becomes far easier. Each helper below produces one Prisma-compatible input type you assemble into `where`, `orderBy`, `create`, and `update` arguments.
+The goal is not to generate every input type automatically; there are too many design trade-offs in filtering and mutation inputs for one scheme to fit every schema. Instead the plugin gives you composable building blocks, so writing your own helpers or a [code generator](#generators) becomes far easier. Each helper below produces one Prisma-compatible input type you assemble into `where`, `orderBy`, `create`, and `update` arguments.
 
 ## Filters
 
@@ -269,7 +269,7 @@ export const PlayerStatUpdate = builder.prismaUpdate('PlayerStat', {
 
 ## Generators
 
-Hand-writing every input type for a large schema is exactly the repetition these helpers exist to remove. Pothos does not ship an official generator, but two example generators show how to wire the building blocks into one. They're deliberately limited and not built for reuse — they'll change with breaking updates — so copy and adapt them rather than importing them.
+Hand-writing every input type for a large schema is exactly the repetition these helpers exist to remove. Pothos does not ship an official generator, but two example generators show how to wire the building blocks into one. They're deliberately limited and not built for reuse, and they'll change with breaking updates, so copy and adapt them rather than importing them.
 
 - **Static generation** writes the input types to a TypeScript file you import into your schema. See the [example static generator](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/generator.ts), the [file it produces](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/prisma-inputs.ts), and [how it's consumed](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/index.ts).
 - **Dynamic generation** creates the input types at runtime through helpers imported into your app. See the [example dynamic generator](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/generator.ts) and [how it's used](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20).

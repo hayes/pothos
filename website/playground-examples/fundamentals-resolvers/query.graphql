@@ -7,7 +7,4 @@ query Resolvers {
   featuredCharacter {
     name
   }
-  characterById(id: "1") {
-    name
-  }
 }

@@ -81,7 +81,7 @@ The shape:
 
 ## Why side-effect imports
 
-The domain modules call `builder.objectRef(...).implement(...)` and `builder.queryFields(...)` at the top level. These are side effects: they register the type and its fields on the shared builder. `schema.ts` just needs each module loaded before `toSchema()` — it doesn't use any of their exports.
+The domain modules call `builder.objectRef(...).implement(...)` and `builder.queryFields(...)` at the top level. These are side effects: they register the type and its fields on the shared builder. `schema.ts` only needs each module loaded before `toSchema()`; it doesn't use any of their exports.
 
 If you'd rather avoid side-effect imports, every module can export its types and `schema.ts` can list them explicitly:
 
@@ -109,7 +109,7 @@ builder.objectField(Character, 'wieldedWeapons', (t) =>
 );
 ```
 
-This is most useful for cross-domain attachments — the `character × item` field naturally belongs in neither the character module nor the item module.
+This is most useful for cross-domain attachments: a `character × item` field belongs naturally in neither the character module nor the item module.
 
 ## Two reference layouts
 

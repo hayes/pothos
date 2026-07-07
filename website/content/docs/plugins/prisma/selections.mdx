@@ -3,7 +3,7 @@ title: Selections
 description: Control which columns and relations Prisma loads with include, select, and field-level selections.
 ---
 
-By default the plugin loads a model's full row and pre-loads only the relations a query touches. `include` and `select` on a `prismaObject` let you tune that — pre-load a relation every time, or narrow a wide table down to the columns you actually expose.
+By default the plugin loads a model's full row and pre-loads only the relations a query touches. `include` and `select` on a `prismaObject` let you tune that: pre-load a relation every time, or narrow a wide table down to the columns you actually expose.
 
 ## Always include a relation
 
@@ -42,7 +42,7 @@ builder.prismaObject('Player', {
 });
 ```
 
-In select mode, `t.expose*` and `t.relation` automatically add their columns and relations to the selection **when the field is queried** — so only the requested columns leave the database. Other fields can add their own selections with a `select` option:
+In select mode, `t.expose*` and `t.relation` automatically add their columns and relations to the selection **when the field is queried**, so only the requested columns leave the database. Other fields can add their own selections with a `select` option:
 
 ```typescript
 builder.prismaObject('Player', {
@@ -92,7 +92,7 @@ builder.prismaObject('Player', {
 
 ## Optimized queries without `t.prismaField`
 
-Sometimes you need the plugin's computed query for a field that can't be a `t.prismaField` — because it combines with another plugin, or the field doesn't return a Prisma object directly. `queryFromInfo` builds that query from the resolver's `info`. A common case is a mutation that wraps a Prisma object in a result type:
+Sometimes you need the plugin's computed query for a field that can't be a `t.prismaField`, because it combines with another plugin, or the field doesn't return a Prisma object directly. `queryFromInfo` builds that query from the resolver's `info`. A common case is a mutation that wraps a Prisma object in a result type:
 
 ```typescript
 import type { Player } from '@prisma/client';
@@ -151,4 +151,4 @@ builder.mutationField('signPlayer', (t) =>
 );
 ```
 
-`path` points `queryFromInfo` at where in the selection the Prisma object appears (here the `player` field of the result). `select` (or `include`) seeds an initial selection — useful when the field at `path` may not be selected at all, leaving the selection set empty.
+`path` points `queryFromInfo` at where in the selection the Prisma object appears (here the `player` field of the result). `select` (or `include`) seeds an initial selection, useful when the field at `path` may not be selected at all, leaving the selection set empty.

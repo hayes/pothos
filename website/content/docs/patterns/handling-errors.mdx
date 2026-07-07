@@ -41,11 +41,11 @@ const yoga = createYoga({
   Don't ship `maskedErrors: false` to production. Stack traces, internal IDs, and database error messages all flow through GraphQL errors when masking is off. Default-on with an env-flag escape hatch is the safe pattern.
 </Callout>
 
-For Apollo Server, the equivalent is the `includeStacktraceInErrorResponses` option (default off in production builds); Mercurius wraps errors via `errorFormatter`. Whichever server you use, layer 2 is about what the client sees when a resolver throws.
+For Apollo Server, the equivalent is the `includeStacktraceInErrorResponses` option (default off in production builds); Mercurius wraps errors via `errorFormatter`.
 
 ## Layer 3: typed result unions
 
-The first two layers treat errors as exceptions. For errors that are part of the API — "username already taken," "roster full," "team not found" — clients are better served by a typed result union:
+The first two layers treat errors as exceptions. For errors that are part of the API (a username already taken, a full roster, a missing team), clients are better served by a typed result union:
 
 ```graphql
 type Mutation {
@@ -75,7 +75,7 @@ builder.mutationField('renameTeam', (t) =>
 );
 ```
 
-When you reach for it, see [`plugin-errors`](../plugins/errors) for the full setup.
+See [`plugin-errors`](../plugins/errors) for the full setup.
 
 ## When to graduate
 
@@ -83,6 +83,6 @@ The boundaries are usually clear:
 
 - **Layer 1 alone** is enough for prototypes and internal tools.
 - **Layer 1 + Layer 2** is the right baseline for production. Throw clear messages, mask them in prod, log the originals server-side.
-- **Layer 3** earns its keep when errors are part of the contract — a mutation has expected failure modes that clients render specifically.
+- **Layer 3** fits when errors are part of the contract: a mutation has expected failure modes that clients render specifically.
 
 You don't have to pick one. Schemas usually mix: most resolvers throw plain `Error`s and rely on masking; a few mutations use typed unions where the failure modes are well-known.

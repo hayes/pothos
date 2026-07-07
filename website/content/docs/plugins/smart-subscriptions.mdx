@@ -23,7 +23,7 @@ npm install --save @pothos/plugin-smart-subscriptions
 
 ## Setup
 
-Register the plugin and supply a `smartSubscriptions` object. Its `subscribe` and `unsubscribe` functions are how the plugin attaches to your event source — a pub/sub bus, a Redis channel, anything that can call back when an event with a given name fires.
+Register the plugin and supply a `smartSubscriptions` object. Its `subscribe` and `unsubscribe` functions are how the plugin attaches to your event source: a pub/sub bus, a Redis channel, anything that can call back when an event with a given name fires.
 
 ```typescript
 import SchemaBuilder from '@pothos/core';
@@ -85,7 +85,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Clients subscribe to it like any other subscription — the selection set is a normal query:
+Clients subscribe to it like any other subscription; the selection set is a normal query:
 
 ```graphql
 subscription {
@@ -141,11 +141,11 @@ const Game = builder.objectRef<IGame>('Game').implement({
 | --- | --- |
 | `filter` | Called with the event value; the refresh only happens when it returns `true`. |
 | `invalidateCache` | Called before refetching so you can clear stale cache entries, so the reload sees fresh data. |
-| `refetch` | Refetch just this object. When provided, an event for this object (or any of its children) refreshes only this sub-tree — parts of the query that don't depend on it are left untouched. |
+| `refetch` | Refetch just this object. When provided, an event for this object (or any of its children) refreshes only this sub-tree; parts of the query that don't depend on it are left untouched. |
 
 ## Subscriptions on fields
 
-A single field can register its own events through the same `subscribe` callback in the field options — useful when one field has a narrower refresh trigger than its parent type:
+A single field can register its own events through the same `subscribe` callback in the field options, which helps when one field has a narrower refresh trigger than its parent type:
 
 ```typescript
 const Game = builder.objectRef<IGame>('Game').implement({
@@ -161,7 +161,7 @@ const Game = builder.objectRef<IGame>('Game').implement({
 });
 ```
 
-Fields accept the same `filter` and `invalidateCache` options on `register`. In place of a `refetch` function, set `canRefetch: true` in the field options: the plugin re-runs this field's own resolver — and its children — instead of the rest of the query.
+Fields accept the same `filter` and `invalidateCache` options on `register`. In place of a `refetch` function, set `canRefetch: true` in the field options: the plugin re-runs this field's own resolver (and its children) instead of the rest of the query.
 
 ```typescript
 const Game = builder.objectRef<IGame>('Game').implement({

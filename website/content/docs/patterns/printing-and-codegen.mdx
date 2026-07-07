@@ -7,7 +7,7 @@ A Pothos schema is a TypeScript module, but two downstream consumers usually wan
 
 ## Printing to a file
 
-`printSchema` from `graphql` serializes a `GraphQLSchema` to SDL. `lexicographicSortSchema` sorts types and fields alphabetically — without it the output order changes whenever the source order changes, which makes diffs noisy.
+`printSchema` from `graphql` serializes a `GraphQLSchema` to SDL. `lexicographicSortSchema` sorts types and fields alphabetically. Without it the output order tracks source order, so unrelated edits produce noisy diffs.
 
 ```typescript
 import { writeFileSync } from 'node:fs';
@@ -27,9 +27,9 @@ Wire this into a script in `package.json`:
 }
 ```
 
-Running `npm run schema` after a schema change refreshes the SDL file. Check it into source control — diffs in `schema.graphql` are easier to review than diffs in a hundred TypeScript files.
+Running `npm run schema` after a schema change refreshes the SDL file. Check it into source control; diffs in `schema.graphql` are easier to review than diffs across a hundred TypeScript files.
 
-The playground sandbox has no filesystem to write to, but the same two calls work standalone — swap the file write for a `console.log` and you can see exactly the SDL `printSchema` produces:
+The playground sandbox has no filesystem to write to, but the same two calls work standalone: swap the file write for a `console.log` and you can see exactly the SDL `printSchema` produces:
 
 <includeregions cwd lang="typescript" meta='playground example="patterns-printing-schema"'>playground-examples/patterns-printing-schema/schema.ts#print-schema-export,print-schema-log</includeregions>
 
@@ -80,7 +80,7 @@ const config: CodegenConfig = {
 };
 ```
 
-The trade-off is that `codegen.ts` now depends on every transitive import of `schema.ts` — typically including your database client. Checking the SDL file into source control decouples the two and makes the schema visible in PR diffs. Most projects do both: print to file as part of the schema-update flow, and have codegen read from the file.
+The trade-off is that `codegen.ts` now depends on every transitive import of `schema.ts`, typically including your database client. Checking the SDL file into source control decouples the two and makes the schema visible in PR diffs. Most projects do both: print to file as part of the schema-update flow, and have codegen read from the file.
 
 ## Custom scalars
 

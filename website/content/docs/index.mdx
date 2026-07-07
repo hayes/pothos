@@ -8,11 +8,11 @@ description: Build fully type-safe GraphQL schemas in TypeScript, without writin
 
 Pothos is a library for building GraphQL schemas in TypeScript. You define your types, fields, and resolvers with a builder, and the whole schema is fully type-safe without writing your types twice. The builder keeps track of your data's types wherever they are used, so there is no SDL to keep in sync and no code-generation step.
 
-`builder.toSchema()` hands you a standard graphql-js `GraphQLSchema` at startup, so any server — [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server), Apollo — can run it, and your resolvers stay ordinary functions. Pothos does its work in the type system and while the schema is being built; resolvers themselves run as plain functions. Core depends only on `graphql`. Everything past it — Relay, scope-auth, errors, validation, dataloaders, Prisma, Drizzle, federation — is a plugin that extends the same builder.
+`builder.toSchema()` hands you a standard graphql-js `GraphQLSchema` at startup, so any server can run it, whether that's [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server), Apollo, or another implementation. Pothos does its work in the type system and while the schema builds; your resolvers stay ordinary functions. Core depends only on `graphql`, and everything past it (Relay, scope-auth, errors, validation, dataloaders, Prisma, Drizzle, federation) is a plugin that extends the same builder.
 
 <include cwd lang="typescript" meta='playground example="getting-started-first-schema-step-2"'>playground-examples/getting-started-first-schema/step-2/schema.ts#schema</include>
 
-Open the example in the playground to run it, edit the resolver, and watch the SDL update. For the full narrative — how Pothos compares to schema-first tools, the mental model the rest of the guide assumes, and when to reach for it — read the [Introduction](./getting-started/introduction).
+Open the example in the playground to run it, edit the resolver, and watch the SDL update. The [Introduction](./getting-started/introduction) has the full narrative: how Pothos compares to schema-first tools and the mental model the guide builds on.
 
 ## How it fits together
 
@@ -35,17 +35,17 @@ Plugins add methods to the same builder (`t.connection`, `authScopes`, `t.prisma
   <Card
     title="Fundamentals"
     href="/docs/fundamentals/schema-builder"
-    description="The core building blocks — objects, fields, resolvers, inputs, interfaces, unions, and scalars."
+    description="The core building blocks: objects, fields, resolvers, inputs, interfaces, unions, and scalars."
   />
   <Card
     title="Patterns"
     href="/docs/patterns/project-layout"
-    description="Real-world recipes for structuring a schema — project layout, error handling, and circular references."
+    description="Real-world recipes for structuring a schema: project layout, error handling, and circular references."
   />
   <Card
     title="Plugins"
     href="/docs/plugins"
-    description="The full plugin catalog — auth, errors, validation, Relay, dataloaders, ORMs, and more."
+    description="The full plugin catalog: auth, errors, validation, Relay, dataloaders, ORMs, and more."
   />
   <Card
     title="API reference"

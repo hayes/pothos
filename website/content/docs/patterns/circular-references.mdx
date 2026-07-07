@@ -3,7 +3,7 @@ title: Circular references
 description: Two types that reference each other, untangled with objectRef declared up front and implemented later.
 ---
 
-Two types that point at each other — a `Character` that lists its `Faction`s, a `Faction` that lists its members — are the common case where TypeScript's "declare before use" gets in the way. Splitting `objectRef` from `implement` gives each type a reference to use before either one's fields are defined.
+A `Character` that lists its `Faction`s and a `Faction` that lists its members reference each other, which runs into TypeScript's need to declare a value before using it. Splitting `objectRef` from `implement` gives each type a reference to use before either one's fields exist.
 
 <include cwd lang="typescript" meta='playground example="patterns-circular-references"'>playground-examples/patterns-circular-references/schema.ts#circular-refs</include>
 
@@ -11,15 +11,11 @@ Two types that point at each other — a `Character` that lists its `Faction`s, 
 
 ## Why this works
 
-Splitting `objectRef` from `implement` is a two-phase declaration. Phase one is "the type exists and these are its TypeScript and GraphQL names." Phase two is "and these are its fields." The two-way reference happens during phase two, when both phase-one declarations are already done.
-
-You can use the same trick for any number of mutually-referential types. Declare all the `objectRef` calls first, then all the `implement` calls.
+The two-way reference happens at `implement` time. By then both `objectRef` calls have run, so each type already has a reference to the other. This scales to any number of mutually-referential types: declare all the `objectRef` calls first, then all the `implement` calls.
 
 ## In a modular layout
 
-Splitting `objectRef` and `implement` is also what lets a modular schema cross file boundaries without import cycles. Each domain module declares its `objectRef`, then implements it. Cross-domain references live in the file that pulls in the other type, not the other way around.
-
-See [Project layout](./project-layout) for the file shape this enables.
+Splitting `objectRef` and `implement` is also what lets a modular schema cross file boundaries without import cycles: each module declares its `objectRef`, then implements it once the referenced types are in scope. See [Project layout](./project-layout) for the file shape this enables.
 
 ## Referencing types by name
 

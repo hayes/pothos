@@ -5,7 +5,7 @@ description: Expose one Drizzle table as several GraphQL types with the variant 
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-One Drizzle table often needs to appear in the schema as more than one GraphQL type — a public view and a private one, a full record and a lightweight card. Pothos calls these **variants**. Every table has one primary type (defined with a `name`, as on the [objects page](./objects)); each additional variant is defined with a `variant` option in its place.
+One Drizzle table often needs to appear in the schema as more than one GraphQL type: a public view and a private one, a full record and a lightweight card. Pothos calls these **variants**. Every table has one primary type (defined with a `name`, as on the [objects page](./objects)); each additional variant is defined with a `variant` option in its place.
 
 This page assumes the [schema, relations, and builder](./setup) are already wired up. The examples add an optional `email` column to the `players` table so a private variant has something to guard:
 
@@ -36,7 +36,7 @@ const PlayerPrivateInfo = builder.drizzleObject('players', {
 
 ## Linking variants together
 
-`t.variant` adds a field that returns another variant of the same row. Reference the **primary** variant by its table name as a string; reference any **other** variant by the object ref it returned. An `isNull` callback can hide the variant when it shouldn't be visible — here the private info resolves to `null` unless the parent player is the current viewer:
+`t.variant` adds a field that returns another variant of the same row. Reference the **primary** variant by its table name as a string; reference any **other** variant by the object ref it returned. An `isNull` callback can hide the variant when it shouldn't be visible. Here the private info resolves to `null` unless the parent player is the current viewer:
 
 ```typescript
 const PlayerPrivateInfo = builder.drizzleObject('players', {
@@ -64,7 +64,7 @@ const Player = builder.drizzleNode('players', {
 ```
 
 <Callout type="info">
-  `builder.drizzleNode` needs the [relay plugin](./relay) and takes an `id` option — the column (or columns) that back the node's global id. A variant that doesn't need to be a Relay node can use `builder.drizzleObject` instead.
+  `builder.drizzleNode` needs the [relay plugin](./relay) and takes an `id` option: the column (or columns) that back the node's global id. A variant that doesn't need to be a Relay node can use `builder.drizzleObject` instead.
 </Callout>
 
 ## Variants on relations

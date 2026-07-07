@@ -26,11 +26,11 @@ builder.drizzleObject('players', {
 });
 ```
 
-`drizzleObject` returns an object ref — `TeamRef` here — that behaves like any other [object ref](../../fundamentals/objects): use it as a field `type`, pass it to `t.variant`, or hand it to `t.drizzleField`. GraphQL field names are independent of column names; `t.exposeString('name')` maps a column to a field, and you can call the field whatever you like.
+`drizzleObject` returns an object ref (`TeamRef` here) that behaves like any other [object ref](../../fundamentals/objects): use it as a field `type`, pass it to `t.variant`, or hand it to `t.drizzleField`. GraphQL field names are independent of column names; `t.exposeString('name')` maps a column to a field, and you can call the field whatever you like.
 
 ## Naming the type
 
-`name` sets the GraphQL type name. Pass `variant` instead of `name` when one table backs [more than one GraphQL type](./variants) — a public `Player` and a private `Viewer`, say:
+`name` sets the GraphQL type name. Pass `variant` instead of `name` when one table backs [more than one GraphQL type](./variants), a public `Player` and a private `Viewer`, say:
 
 ```typescript
 builder.drizzleObject('players', {
@@ -44,7 +44,7 @@ builder.drizzleObject('players', {
 
 ## Computed fields
 
-Fields often don't map to a single column. Add a resolver like you would on any Pothos object type — the row is the `parent`:
+Fields often don't map to a single column. Add a resolver like you would on any Pothos object type; the row is the `parent`:
 
 ```typescript
 builder.drizzleObject('players', {
@@ -59,11 +59,11 @@ builder.drizzleObject('players', {
 });
 ```
 
-By default every column of the table is available on `parent`. To load only the columns a field needs — or to reach into a related table or a raw SQL expression — see [Selections](./selections).
+By default every column of the table is available on `parent`. To load only the columns a field needs, or to reach into a related table or a raw SQL expression, see [Selections](./selections).
 
 ## Resolving to a Drizzle type
 
-`t.drizzleField` adds a field whose type is a Drizzle table — most often on `Query` or `Mutation`. Its resolver receives a `query` function that you **must** call and pass to a Drizzle `findFirst` or `findMany`:
+`t.drizzleField` adds a field whose type is a Drizzle table, most often on `Query` or `Mutation`. Its resolver receives a `query` function that you **must** call and pass to a Drizzle `findFirst` or `findMany`:
 
 ```typescript
 builder.queryType({
@@ -90,18 +90,18 @@ builder.queryType({
 
 `t.drizzleField` differs from `t.field` in two ways:
 
-1. **`type`** is a table name — `'teams'` for one record, `['teams']` for a list — or an object ref returned by `drizzleObject`.
+1. **`type`** is a table name (`'teams'` for one record, `['teams']` for a list) or an object ref returned by `drizzleObject`.
 2. **`resolve`** gets an extra first argument, `query`. Call it (optionally with your own `where`, `orderBy`, `limit`) and pass the result to the Drizzle query. It carries the selection the plugin computed for the nested part of the request, so relations and columns load in the same round-trip.
 
 <Callout type="warn">
-  Unlike the Prisma plugin's `query`, which you spread, Drizzle's `query` is a function. Call `query(options)` and hand the result to `findFirst`/`findMany` — spreading it, or forgetting to call it, drops the nested selection and under-fetches.
+  Unlike the Prisma plugin's `query`, which you spread, Drizzle's `query` is a function. Call `query(options)` and hand the result to `findFirst`/`findMany`; spreading it, or forgetting to call it, drops the nested selection and under-fetches.
 </Callout>
 
-You are not required to use `t.drizzleField` — a `drizzleObject` ref works with a plain `t.field` too — but only `t.drizzleField` (and `t.drizzleConnection`) gives you the `query` function that folds the nested selection into one query.
+You are not required to use `t.drizzleField` (a `drizzleObject` ref works with a plain `t.field` too), but only `t.drizzleField` (and `t.drizzleConnection`) gives you the `query` function that folds the nested selection into one query.
 
 ## Extending a Drizzle object
 
-The usual `builder.objectField` and `builder.objectFields` work on Drizzle objects, but they can't use [selections](./selections) or reach columns outside the default selection. To add a field that pulls in extra columns, a relation, or a connection, use `builder.drizzleObjectField` or `builder.drizzleObjectFields` — they hand you the selection-aware field builder:
+The usual `builder.objectField` and `builder.objectFields` work on Drizzle objects, but they can't use [selections](./selections) or reach columns outside the default selection. To add a field that pulls in extra columns, a relation, or a connection, use `builder.drizzleObjectField` or `builder.drizzleObjectFields`, which hand you the selection-aware field builder:
 
 ```typescript
 builder.drizzleObjectField(TeamRef, 'playerCount', (t) =>

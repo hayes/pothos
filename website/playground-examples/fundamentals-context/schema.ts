@@ -12,7 +12,7 @@ interface ICharacter {
 interface Context {
   user?: { id: number };
   db: {
-    charactersByEditor: (editorId: number) => ICharacter[];
+    charactersCreatedBy: (userId: number) => ICharacter[];
   };
 }
 // #endregion context-type
@@ -39,7 +39,7 @@ builder.queryType({
       type: [Character],
       nullable: true,
       resolve: (_root, _args, ctx) =>
-        ctx.user ? ctx.db.charactersByEditor(ctx.user.id) : null,
+        ctx.user ? ctx.db.charactersCreatedBy(ctx.user.id) : null,
     }),
   }),
 });

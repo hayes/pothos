@@ -12,7 +12,7 @@ npm install --save @pothos/plugin-drizzle drizzle-orm@beta
 ```
 
 <Callout type="warn">
-  The plugin depends on Drizzle's [RQB v2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2), which currently ships under the `beta` tag for `drizzle-orm`. If you are moving from an earlier version, the relations format changed — read the [relations v1 to v2 migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2) before wiring up the builder.
+  The plugin depends on Drizzle's [RQB v2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2), which currently ships under the `beta` tag for `drizzle-orm`. If you are moving from an earlier version, the relations format changed, so read the [relations v1 to v2 migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2) before wiring up the builder.
 </Callout>
 
 ## Define the schema
@@ -63,7 +63,7 @@ export const playerStats = sqliteTable('player_stats', {
 
 ## Describe the relations
 
-The plugin resolves `t.relation` fields from relations you declare with `defineRelations` — there is no code generation step. Each relation names its `from` and `to` columns. A `.through()` clause turns the `player_stats` join table into a direct many-to-many between players and games, which the [indirect relations](./indirect-relations) page builds on:
+The plugin resolves `t.relation` fields from relations you declare with `defineRelations`; there is no code generation step. Each relation names its `from` and `to` columns. A `.through()` clause turns the `player_stats` join table into a direct many-to-many between players and games, which the [indirect relations](./indirect-relations) page builds on:
 
 ```typescript
 // db/relations.ts
@@ -143,7 +143,7 @@ The `drizzle` object accepts:
 
 ### A client per request
 
-Pass a function for `client` to choose a client from context — useful for per-request transactions, connection scoping, or a read-only replica for some users:
+Pass a function for `client` to choose a client from context, useful for per-request transactions, connection scoping, or a read-only replica for some users:
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -159,11 +159,11 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-When `client` is a function, `relations` is required in the config — the plugin can no longer read it off a fixed client.
+When `client` is a function, `relations` is required in the config, since the plugin can no longer read it off a fixed client.
 
 ## Working with Relay and With-Input
 
-The Drizzle plugin composes with other Pothos plugins. [Relay](./relay) is required for [nodes](./relay) and [connections](./connections) — `builder.drizzleNode`, `t.relatedConnection`, and `t.drizzleConnection` throw without it. [With-input](../with-input) is required for `t.drizzleFieldWithInput`. Register them before the Drizzle plugin:
+The Drizzle plugin composes with other Pothos plugins. [Relay](./relay) is required for [nodes](./relay) and [connections](./connections): `builder.drizzleNode`, `t.relatedConnection`, and `t.drizzleConnection` throw without it. [With-input](../with-input) is required for `t.drizzleFieldWithInput`. Register them before the Drizzle plugin:
 
 ```typescript
 import RelayPlugin from '@pothos/plugin-relay';

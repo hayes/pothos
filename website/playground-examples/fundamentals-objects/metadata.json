@@ -1,7 +1,7 @@
 {
   "id": "fundamentals-objects",
   "title": "Object types",
-  "description": "Define object types with objectRef and implement, and switch between the objectRef, class-backed, and builder-types styles.",
+  "description": "Object types, the backing model behind each one, and the different ways to define them.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",

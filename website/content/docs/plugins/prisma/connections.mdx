@@ -1,17 +1,17 @@
 ---
 title: Connections
-description: Build Relay connections over Prisma models with prismaConnection, relatedConnection, and connection helpers — cursor pagination, total counts, and shared connection objects.
+description: Build Relay connections over Prisma models with cursor pagination, total counts, and shared connection objects.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Relay connections give you cursor-based pagination over a list. The Prisma plugin implements them on top of Prisma's own cursor pagination, and pre-loads the data nested inside each page in the same optimized query as the rest of the request. Reach for `t.prismaConnection` on a root field, `t.relatedConnection` for a relation of a [node](./relay), and `prismaConnectionHelpers` when the list lives behind a join table.
+Relay connections give you cursor-based pagination over a list. The Prisma plugin implements them on top of Prisma's own cursor pagination, and pre-loads the data nested inside each page in the same optimized query as the rest of the request. Use `t.prismaConnection` on a root field, `t.relatedConnection` for a relation of a [node](./relay), and `prismaConnectionHelpers` when the list lives behind a join table.
 
-These examples assume the builder is set up with `PrismaPlugin` and `RelayPlugin` and a `prisma` client in scope — see [Setup](./setup).
+These examples assume the builder is set up with `PrismaPlugin` and `RelayPlugin` and a `prisma` client in scope (see [Setup](./setup)).
 
 ## A connection on a root field
 
-`t.prismaConnection` defines a Relay `connection` field and preloads everything the page needs. The resolver receives a `query` object as its first argument — spread it into your Prisma call and it carries the correct `take`, `skip`, and `cursor` derived from the connection arguments, plus the `include`/`select` for nested selections.
+`t.prismaConnection` defines a Relay `connection` field and preloads everything the page needs. The resolver receives a `query` object as its first argument. Spread it into your Prisma call; it carries the correct `take`, `skip`, and `cursor` derived from the connection arguments, plus the `include`/`select` for nested selections.
 
 ```typescript
 builder.queryType({
@@ -39,7 +39,7 @@ The three arguments are the field options, then optional options for the generat
 | `resolve` | Like the [`prismaField`](./objects) resolver: spread the first `query` argument into your Prisma query and return the array of nodes. |
 | `defaultSize` | Page size when neither `first` nor `last` is given. Default `20`. |
 | `maxSize` | Maximum number of nodes returned. Default `100`. |
-| `totalCount` | A function `(parent, args, context, info)` — where `parent` is the connection field's parent, like the [`prismaField`](./objects) resolver — that loads the total count, adding a `totalCount` field to the connection. Does not apply when using a shared connection object — see [Total count on shared objects](#total-count-on-shared-connection-objects). |
+| `totalCount` | A function `(parent, args, context, info)` that loads the total count and adds a `totalCount` field to the connection. Its `parent` is the connection field's parent, like the [`prismaField`](./objects) resolver. Does not apply with a shared connection object (see [Total count on shared objects](#total-count-on-shared-connection-objects)). |
 
 `defaultSize` and `maxSize` accept a plain number or a function of `(args, context)`. You can also set them for every connection at once with the `maxConnectionSize` and `defaultConnectionSize` options in the [`prisma` plugin options](./setup).
 
@@ -49,7 +49,7 @@ The three arguments are the field options, then optional options for the generat
 
 ## A connection from a relation
 
-`t.relatedConnection` builds a connection from a relation of the current model — no resolver needed, since the relation names the data. It works on any Prisma object, and pairs naturally with a [node](./relay).
+`t.relatedConnection` builds a connection from a relation of the current model, with no resolver needed since the relation names the data. It works on any Prisma object, and pairs naturally with a [node](./relay).
 
 ```typescript
 builder.prismaNode('Team', {
@@ -91,7 +91,7 @@ builder.prismaNode('Team', {
 
 ## Indirect relations as connections
 
-When the list you want to paginate lives behind a join table, `t.relatedConnection` doesn't fit — you paginate the join rows but return the nodes nested one level deeper. `prismaConnectionHelpers` handles this with a plain `t.connection` field.
+When the list you want to paginate lives behind a join table, `t.relatedConnection` doesn't fit, because you paginate the join rows but return the nodes nested one level deeper. `prismaConnectionHelpers` handles this with a plain `t.connection` field.
 
 In the league schema, `PlayerStat` joins `Player` to `Game`: paginating a player's games means paginating that player's `stats` and resolving each edge to its `game`.
 
@@ -145,7 +145,7 @@ builder.prismaObjectField('Player', 'gamesConnection', (t) =>
 
 The helper exposes `getQuery` (build the Prisma query for the relation), `resolve` (format a list of loaded rows into a connection), `ref` (the connection's node ref), and `getArgs` (below).
 
-`prismaConnectionHelpers` also covers the case where the edge and connection share the same model and pagination happens directly on a relation to the nodes — even a nested one. Pass the helper's `ref` as the connection `type`:
+`prismaConnectionHelpers` also covers the case where the edge and connection share the same model and pagination happens directly on a relation to the nodes (even a nested one). Pass the helper's `ref` as the connection `type`:
 
 ```typescript
 const playerConnectionHelpers = prismaConnectionHelpers(builder, 'Player', {
@@ -274,7 +274,7 @@ builder.prismaNode('Team', {
 
 ## Extending connection edges
 
-To expose data from a join table on the *edge* — not the node — select the extra join columns in the helper and define the edge fields in the third argument of `t.connection`. The parent shape for edge fields is inferred from the connection's `resolve`.
+To expose data from a join table on the *edge* rather than the node, select the extra join columns in the helper and define the edge fields in the third argument of `t.connection`. The parent shape for edge fields is inferred from the connection's `resolve`.
 
 ```typescript
 const gameConnectionHelpers = prismaConnectionHelpers(builder, 'PlayerStat', {
@@ -365,7 +365,7 @@ builder.globalConnectionField('totalCount', (t) =>
 
 ## Parsing and formatting cursors
 
-`parsePrismaCursor` and `formatPrismaCursor` build and read cursors compatible with Prisma connections by hand. Parsing a cursor returns the value from the cursor column — often the `id`, or an array or object when a compound index backs the cursor. Formatting takes the column value(s) that make up the cursor and produces the opaque cursor string.
+`parsePrismaCursor` and `formatPrismaCursor` build and read cursors compatible with Prisma connections by hand. Parsing a cursor returns the value from the cursor column, often the `id`, or an array or object when a compound index backs the cursor. Formatting takes the column value(s) that make up the cursor and produces the opaque cursor string.
 
 ```typescript
 import { parsePrismaCursor, formatPrismaCursor } from '@pothos/plugin-prisma';

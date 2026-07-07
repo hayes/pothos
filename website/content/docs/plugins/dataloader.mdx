@@ -5,7 +5,7 @@ description: Batch object and relation loads through a dataloader to kill N+1 qu
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-A GraphQL query that walks a list and then a field on each item fans out into one database round-trip per item — the N+1 problem. The dataloader plugin folds those calls into one. You define a type with `builder.loadableObject`, resolvers return *ids* instead of objects, and the plugin routes each id into a DataLoader, which coalesces every id loaded in a tick into a single `load` call.
+A GraphQL query that walks a list and then a field on each item fans out into one database round-trip per item, the N+1 problem. The dataloader plugin folds those calls into one. You define a type with `builder.loadableObject`, resolvers return *ids* instead of objects, and the plugin routes each id into a DataLoader, which coalesces every id loaded in a tick into a single `load` call.
 
 ## Install
 
@@ -21,19 +21,19 @@ npm install --save dataloader @pothos/plugin-dataloader
 
 <includeregions cwd lang="typescript" meta='playground example="dataloader-plugin"'>playground-examples/dataloader-plugin/step-1/schema.ts#setup,player,query</includeregions>
 
-Annotate the `ids` parameter (and `context`, if you use it) — Pothos reads the load function's types to constrain what resolvers for this type may return. A resolver can return a `string`, `number`, or `bigint` key, and the loader fetches it. Return the full object instead and Pothos detects that it isn't a key and skips the loader — useful when you already have the record in hand. Lists may mix the two: `[...ids, alreadyLoadedPlayer]` resolves the keys through the loader and passes the object straight through.
+Annotate the `ids` parameter (and `context`, if you use it). Pothos reads the load function's types to constrain what resolvers for this type may return. A resolver can return a `string`, `number`, or `bigint` key, and the loader fetches it. Return the full object instead and Pothos detects that it isn't a key and skips the loader, which is useful when you already have the record in hand. Lists may mix the two: `[...ids, alreadyLoadedPlayer]` resolves the keys through the loader and passes the object straight through.
 
 <Callout type="warn">
-  `load` must return results in the **same order** as the ids it was given — the plugin maps results back to ids positionally, so a shuffled result array hands clients the wrong records. Fetching from a database rarely preserves order; the [`sort` option](#sorting-load-results) below does the reordering for you. See the [dataloader batch-function docs](https://github.com/graphql/dataloader#batch-function) for the contract in full.
+  `load` must return results in the **same order** as the ids it was given, because the plugin maps results back to ids positionally, so a shuffled result array hands clients the wrong records. Fetching from a database rarely preserves order; the [`sort` option](#sorting-load-results) below does the reordering for you. See the [dataloader batch-function docs](https://github.com/graphql/dataloader#batch-function) for the contract in full.
 </Callout>
 
 ## Batching relations
 
-The N+1 payoff comes from relations. A one-to-many like a team's roster is a `loadableGroup` field: `load` runs once with every parent id in the query and returns a flat list, and `group` sorts each row back to the parent it belongs to.
+Relations are where batching pays off. A one-to-many like a team's roster is a `loadableGroup` field: `load` runs once with every parent id in the query and returns a flat list, and `group` sorts each row back to the parent it belongs to.
 
 <include cwd lang="typescript" meta='playground example="dataloader-plugin-step-2"'>playground-examples/dataloader-plugin/step-2/schema.ts#team</include>
 
-`loadableGroup` is the one to reach for when your query returns a flat list — group-by is cheaper than nesting. If your data source already returns a list *per* parent (a `Player[][]`, one array per id, in id order), use `loadableList` instead:
+Use `loadableGroup` when your query returns a flat list, since group-by is cheaper than nesting. If your data source already returns a list *per* parent (a `Player[][]`, one array per id, in id order), use `loadableList` instead:
 
 ```typescript
 builder.objectField(Team, 'players', (t) =>
@@ -64,7 +64,7 @@ builder.objectField(Player, 'team', (t) =>
 
 ## Field arguments
 
-A field's `load` normally has no access to its arguments — the dataloader aggregates calls across selections and aliases that may not share arguments. Pass `byPath: true` to aggregate only calls at the same query path, which do share arguments, and `load` gains a third `args` parameter:
+A field's `load` normally has no access to its arguments, because the dataloader aggregates calls across selections and aliases that may not share arguments. Pass `byPath: true` to aggregate only calls at the same query path, which do share arguments, and `load` gains a third `args` parameter:
 
 ```typescript
 builder.objectField(Team, 'topScorers', (t) =>
@@ -80,7 +80,7 @@ builder.objectField(Team, 'topScorers', (t) =>
 
 ## Dataloader options
 
-Pass options straight through to the underlying dataloader with `loaderOptions` — on a loadable type or any loadable field. See the [dataloader API](https://github.com/graphql/dataloader#api) for the full set.
+Pass options straight through to the underlying dataloader with `loaderOptions`, on a loadable type or any loadable field. See the [dataloader API](https://github.com/graphql/dataloader#api) for the full set.
 
 ```typescript
 const Player = builder.loadableObject('Player', {
@@ -103,12 +103,12 @@ const Player = builder.loadableObject('Player', {
 ```
 
 <Callout type="warn">
-  `sort` throws if a result is an `Error`, because an error has no key to sort by. Don't use `sort` on a loader whose results may include per-item errors — return them in id order yourself instead.
+  `sort` throws if a result is an `Error`, because an error has no key to sort by. Don't use `sort` on a loader whose results may include per-item errors; return them in id order yourself instead.
 </Callout>
 
 ## Caching resolved values
 
-When a resolver returns a full object it skips the loader, so that object never enters the loader's cache and a later selection re-fetches it. `cacheResolved` primes the cache with anything a resolver returns — pass a function that maps the object to its key:
+When a resolver returns a full object it skips the loader, so that object never enters the loader's cache and a later selection re-fetches it. `cacheResolved` primes the cache with anything a resolver returns; pass a function that maps the object to its key:
 
 ```typescript
 const Player = builder.loadableObject('Player', {
@@ -132,7 +132,7 @@ const Player = builder.loadableObject('Player', {
 
 ## Using the loader directly
 
-Every loadable type exposes its dataloader through `getDataloader(context)`. Loaders live on the context, so they aren't shared across requests — pass the current context to get the right one:
+Every loadable type exposes its dataloader through `getDataloader(context)`. Loaders live on the context, so they aren't shared across requests, so pass the current context to get the right one:
 
 ```typescript
 builder.queryField('player', (t) =>
@@ -143,7 +143,7 @@ builder.queryField('player', (t) =>
 );
 ```
 
-`loadMany` resolves to `(Player | Error)[]` — GraphQL has no special handling for `Error` objects in a list, so wrap the call in `rejectErrors` to turn each error into a rejected promise the normal resolver flow can surface:
+`loadMany` resolves to `(Player | Error)[]`. GraphQL has no special handling for `Error` objects in a list, so wrap the call in `rejectErrors` to turn each error into a rejected promise the normal resolver flow can surface:
 
 ```typescript
 import { rejectErrors } from '@pothos/plugin-dataloader';
@@ -198,7 +198,7 @@ export const createContext = (req, res): ContextType => ({
 });
 ```
 
-Resolvers then load from the context directly — `context.playerLoader.load('1')`, `context.getLoader(Player).load('2')`, `context.load(Player, '3')`, or `context.loadMany(Player, ['1', '2'])`.
+Resolvers then load from the context directly: `context.playerLoader.load('1')`, `context.getLoader(Player).load('2')`, `context.load(Player, '3')`, or `context.loadMany(Player, ['1', '2'])`.
 
 ## Relay nodes
 
@@ -236,7 +236,7 @@ builder.objectFields(Player, (t) => ({
 
 ## Splitting refs
 
-Two loadable objects that reference each other in their definitions can trip circular-type errors. As with `builder.objectRef`, you can split the declaration from the implementation — `loadableObjectRef` (and `loadableNodeRef` for Relay) take the plugin options up front so the ref can be implemented later:
+Two loadable objects that reference each other in their definitions can trip circular-type errors. As with `builder.objectRef`, you can split the declaration from the implementation. `loadableObjectRef` (and `loadableNodeRef` for Relay) take the plugin options up front so the ref can be implemented later:
 
 ```typescript
 const Player = builder.loadableObjectRef('Player', {
@@ -248,7 +248,7 @@ Player.implement({
 });
 ```
 
-Because the ref carries the load behavior, it also works with `builder.objectType(Player, { ... })` and any other method that implements a ref — letting you layer additional behavior on the same loadable type. See [Circular references](../patterns/circular-references) for the broader pattern.
+Because the ref carries the load behavior, it also works with `builder.objectType(Player, { ... })` and any other method that implements a ref, letting you layer additional behavior on the same loadable type. See [Circular references](../patterns/circular-references) for the broader pattern.
 
 ## Subscriptions
 

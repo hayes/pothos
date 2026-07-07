@@ -32,18 +32,18 @@ const publicSchema = builder.toSchema({ subGraph: 'Public' });
 const internalSchema = builder.toSchema({ subGraph: 'Internal' });
 ```
 
-The playground embed above builds the `Public` view, so introspection and the sample query only see `id` and `name` on a team. Add `budget` to the query and it fails to validate — that field exists only in the internal graph.
+The playground embed above builds the `Public` view, so introspection and the sample query only see `id` and `name` on a team. Add `budget` to the query and it fails to validate; that field exists only in the internal graph.
 
 ## Combining sub-graphs
 
-`toSchema` also takes a list of sub-graphs. An array is a **union** — a type is kept if it belongs to *any* of the named sub-graphs:
+`toSchema` also takes a list of sub-graphs. An array is a **union**: a type is kept if it belongs to *any* of the named sub-graphs:
 
 ```typescript
 // Every type/field tagged Internal OR Public.
 const combined = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 ```
 
-The `{ all: [...] }` form is the **intersection** — a type is kept only if it belongs to *every* named sub-graph:
+The `{ all: [...] }` form is the **intersection**: a type is kept only if it belongs to *every* named sub-graph:
 
 ```typescript
 // Only what is shared by BOTH Internal AND Public.
@@ -58,7 +58,7 @@ A field's sub-graphs are resolved in order, first match wins:
 2. The parent type's `defaultSubGraphsForFields`.
 3. The parent type's own `subGraphs`, if the builder set `fieldsInheritFromTypes: true`.
 4. The builder's `subGraphs.defaultForFields`.
-5. Otherwise an empty array — the field is in no sub-graph.
+5. Otherwise an empty array; the field is in no sub-graph.
 
 Set `defaultSubGraphsForFields` on a type to give its fields a starting point that differs from the type itself. A `Query` type can live in every sub-graph while its fields default to none, so each field has to opt in explicitly:
 
@@ -94,7 +94,7 @@ builder.queryType({
 | --- | --- |
 | `subGraphs.defaultForTypes` | Sub-graphs a type joins when it has no `subGraphs` of its own. |
 | `subGraphs.defaultForFields` | Sub-graphs a field joins when nothing earlier in the chain applies. |
-| `subGraphs.fieldsInheritFromTypes` | Defaults to `false`. When `true`, a field with no membership of its own inherits its parent type's sub-graphs — but only when the type has no `defaultSubGraphsForFields`. |
+| `subGraphs.fieldsInheritFromTypes` | Defaults to `false`. When `true`, a field with no membership of its own inherits its parent type's sub-graphs, but only when the type has no `defaultSubGraphsForFields`. |
 | `subGraphs.explicitlyIncludeType` | A predicate to force otherwise-unreachable types into a sub-graph (see [Unreachable types](#unreachable-types)). |
 
 ## Missing types
@@ -102,7 +102,7 @@ builder.queryType({
 Building a sub-graph copies in only the types and output fields that belong to it. Everything else is dropped. Input types are the exception: an argument or input field is only removable when it is nullable, because a resolver still expects its non-null arguments to be present. The plugin throws at build time if you try to strip a non-null argument or input field from a sub-graph that keeps its field.
 
 <Callout type="warn">
-  Output fields and structural references fail differently when they point at a dropped type. An output field whose return type was left out is pruned automatically, with no error — that's how `roster`, returning the Internal-only `Player`, vanishes from the Public view above. A runtime error is thrown only when a dropped type is reached as an interface implemented by another interface, a union member, or a non-null argument type; those references can't be rewritten around the missing type. Tag the referencing field or type out of that sub-graph too — fields drop on their own, but the structural references hard-fail.
+  Output fields and structural references fail differently when they point at a dropped type. An output field whose return type was left out is pruned automatically, with no error; that's how `roster`, returning the Internal-only `Player`, vanishes from the Public view above. A runtime error is thrown only when a dropped type is reached as an interface implemented by another interface, a union member, or a non-null argument type; those references can't be rewritten around the missing type. Tag the referencing field or type out of that sub-graph too; fields drop on their own, but the structural references hard-fail.
 </Callout>
 
 ## Unreachable types

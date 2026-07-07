@@ -5,11 +5,11 @@ description: Define an enum with string-literal values and use it as a field typ
 
 ## Defining an enum
 
-An enum is a type whose values are a fixed set of named constants — here, the moral alignments a faction can hold. The lightest way to declare one is the array form: an array of string literals.
+An enum is a type whose values are a fixed set of named constants, here the moral alignments a faction can hold. The lightest way to declare one is the array form: an array of string literals.
 
 <include cwd lang="typescript" meta='playground example="fundamentals-enums"'>playground-examples/fundamentals-enums/schema.ts#alignment-enum</include>
 
-`builder.enumType` takes the type's name and an options object. The `values` array lists the enum's value names, and Pothos infers them as the literal union `'Good' | 'Neutral' | 'Evil'` (no `as const` needed — `enumType` uses a `const` type parameter); that union is the TypeScript type Pothos threads through every field and argument built from the enum. The call returns a reference, `Alignment`, that works as both a field type and an argument type.
+`builder.enumType` takes the type's name and an options object. The `values` array lists the enum's value names, and Pothos infers them as the literal union `'Good' | 'Neutral' | 'Evil'` (no `as const` needed, since `enumType` uses a `const` type parameter). That union is the TypeScript type Pothos threads through every field and argument built from the enum. The call returns a reference, `Alignment`, that works as both a field type and an argument type.
 
 ## Using the enum
 
@@ -21,7 +21,7 @@ An enum reference is used as a field's `type` and as an argument's `type` like a
 
 ## Descriptions and deprecations
 
-The enum itself takes a `description` in either form — the array-form enum above carries one. To describe or deprecate individual values, switch from the array to the object form, where each key maps to a config object:
+The enum itself takes a `description` in either form; the array-form enum above carries one. To describe or deprecate individual values, switch from the array to the object form, where each key maps to a config object:
 
 ```typescript
 const Alignment = builder.enumType('Alignment', {
@@ -35,11 +35,11 @@ const Alignment = builder.enumType('Alignment', {
 });
 ```
 
-Each key still drives both the GraphQL value name and the TypeScript union, so switching forms changes nothing about how the enum is used. `description` appears in introspection and tooling, and `deprecationReason` marks a value deprecated (here `Chaotic`) while leaving it usable. A value config can also set a `value`, the internal value your resolver works with, which the next section covers.
+Each key still drives both the GraphQL value name and the TypeScript union, so switching forms changes nothing about how the enum is used. `description` appears in introspection and tooling, and `deprecationReason` marks a value deprecated (here `Chaotic`) while leaving it usable. A value config can also set a `value`, the internal value your resolver works with.
 
 ## Backing with a TypeScript enum
 
-The value name a client sees and the value your resolver works with have been the same string so far, but they don't have to be. A GraphQL enum value has a name — the token in the schema, which clients send and receive — and an internal value, which is what a resolver returns and what an argument is parsed to before it reaches your code. When you already have a TypeScript `enum`, you can hand it to `builder.enumType` directly, and its keys and values fill those two roles:
+The value name a client sees and the value your resolver works with have been the same string so far, but they don't have to be. A GraphQL enum value has a name (the token in the schema, which clients send and receive) and an internal value (what a resolver returns and what an argument is parsed to before it reaches your code). When you already have a TypeScript `enum`, you can hand it to `builder.enumType` directly, and its keys and values fill those two roles:
 
 ```typescript
 enum Alignment {

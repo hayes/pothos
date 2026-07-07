@@ -1,9 +1,7 @@
 ---
 title: Queries
-description: Define the schema's Query root and add fields to it with queryType, queryField, and queryFields.
+description: The schema's Query root type and the fields that serve as a client's read entry points.
 ---
-
-This page walks through defining the schema's Query root and adding fields to it.
 
 ## Defining the Query root
 
@@ -23,7 +21,7 @@ Query fields can also be defined outside the `queryType` call, so each part of a
 
 <include cwd lang="typescript">playground-examples/fundamentals-queries/schema.ts#query-fields</include>
 
-`queryField` is called with a field name and a callback that returns one field; `queryFields` gets a callback that returns a map of several. Both add their fields to the same `Query` root as `queryType`, and the fields from every call are merged together. The one constraint is that a field name can only be defined once — if two calls both define `characterCount`, the schema throws when it builds.
+`queryField` is called with a field name and a callback that returns one field; `queryFields` gets a callback that returns a map of several. Both add their fields to the same `Query` root as `queryType`, and the fields from every call are merged together. The one constraint is that each field name can only be defined once; if two calls both define `characterCount`, the schema throws when it builds.
 
 These calls can run before or after `queryType`. When they run first, the fields wait until `queryType` defines the root and then attach to it. That is what lets a larger schema register its query fields across several modules and call `queryType` once from the file that assembles them:
 

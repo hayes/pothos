@@ -159,8 +159,76 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
   Either the intro earns a real paragraph or the page starts at its first
   heading.
 
+## Round 6 (2026-07-07, full-corpus review round 1 — the trust-the-reader round)
+
+- **S26 — Trust the reader; cut over-explanation of the obvious.** "there is no
+  separate name option, so renaming an argument means renaming its key" way
+  over-explains an obvious concept; "a common pattern that keeps appearing."
+  If a competent reader would infer it from the code or from plain knowledge
+  of the language, don't say it.
+- **S27 — No docs-about-the-docs meta-commentary.** "This is the form the rest
+  of these guides build on" — "You will see this by reading the docs." "The
+  three forms are all first-class" — "too robotic and over-explains obvious
+  things... we don't need to say that." Don't reference a section a couple of
+  paragraphs down "like it's some hidden extra doc"; don't restate what prior
+  pages covered ("The surrounding object definition ... is covered in Object
+  types" — assume users read previous guide pages).
+- **S28 — Don't re-explain GraphQL basics at each use.** throw→null+errors was
+  explained on resolvers AND context: "we don't need to explain these kinds of
+  basic graphql concepts every time we use them." One home, then just use it.
+- **S29 — One idea per sentence; no info-dump enumerations.** "We are packing
+  too many things together into one sentence, why are we starting by info
+  dumping like this?" Also no trailing bolted-on clauses ("...and defining the
+  same field name twice is a build-time error" made a run-on "covering too
+  many separate things").
+- **S30 — Examples and exposition over bland narrative.** The args "Arguments
+  in the resolver" section was "redundant... I would much rather all our docs
+  focus on examples and exposition over this kind of bland narrative that
+  over-explains things that would be obvious from a good example."
+- **S31 — Frontmatter descriptions describe the concept, not the example.**
+  "A lot of the descriptions are specific to an example and don't really
+  align with the broader context we want a guide page to cover." The
+  signature-recap style ("How a resolver receives parent, args...") is "a
+  bad description."
+- **S32 — No naming-convention opinions** ("<Operation><Subject>Input" — "Lets
+  not be opinionated about naming conventions or mention them in the docs").
+- **S33 — Inputs are declared like object refs, not inline.** Inline
+  `inputType` inside args "technically works, but makes it less obvious what
+  happens, and leads to collisions and reduces chance it will be reused."
+- **S34 — initContextCache goes in every context-creation example** ("its the
+  best practice").
+- **S35 — Recommend the real tool plainly.** For auth: keep the simple guard
+  example but "recommend the plugin [scope-auth] for real auth checks"
+  directly, not as a when-things-repeat aside.
+- **S36 — Omit throwing semantics for now** on resolver-adjacent pages: "This
+  gets weird with semantic nullability and I don't want our docs to become
+  out of date, we can omit throwing for now."
+- **S37 — Most snippets should be playground examples and type-checked**
+  ("lets make this a playground example (most snippets should be) and
+  type-check it"). Illustrative inline fences are the exception, not the rule.
+- **S38 — AUTOMATED SLOP LINT.** "lets also add checks for all the common ai
+  patterns like emdashes (there are many more patterns we should be
+  eliminating)" — maintain a lint (in test:docs) scanning docs prose for the
+  banned patterns; extend it whenever a new pattern is named.
+- **Terminology:** "object field" is ambiguous (field on an object vs field
+  returning an object) — say "a field returning an object type."
+  "Destructure" is wrong for positional parameters.
+- **Args facts:** `defaultValue` does not affect nullability (don't imply it
+  does); phrase `{ list, items }` from the argument's side ("list arguments
+  accept..."); "any input type" is spelled out as Scalar, Enum, or Input
+  Object when inputs haven't been taught yet.
+- **Resolver returns:** the valid-return story is wider than value/promise/
+  null (arrays, undefined, iterables/async iterables in some positions) —
+  needs one honest home or an external link; don't teach a narrowed version
+  as complete.
+
 ## UI notes (separate track)
 
+- **U7 — Objects page: text/paragraphs render no longer full width (round 6)**
+  — layout regression to investigate.
+- **U8 — Section/header/description design**: the frontmatter description
+  "looks too much like the main text, and seems closer to the body than the
+  header" — design the title/description/body hierarchy properly.
 - **U1** — Docs page header is inefficient: section + title + description +
   action buttons push content ~2/3 down the viewport. Tighten.
 - **U2** — "Open in LLM" button has no practical use; "Copy Markdown" nearly

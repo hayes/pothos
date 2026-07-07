@@ -5,9 +5,9 @@ description: Attach schema directives to Pothos types and fields for downstream 
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Schema directives are annotations on your types and fields — `@rateLimit`, `@auth`, `@deprecated` — that downstream tooling reads and acts on. Pothos is code-first, so it never executes a directive itself; the directives plugin records what you declare into each type's `extensions`, where a schema transformer like [graphql-tools](https://the-guild.dev/graphql/tools) can pick it up. You declare the directives you use on the `Directives` generic, then attach them with a `directives` option anywhere the schema allows.
+Schema directives are annotations on your types and fields (`@rateLimit`, `@auth`, `@deprecated`) that downstream tooling reads and acts on. Pothos is code-first, so it never executes a directive itself; the directives plugin records what you declare into each type's `extensions`, where a schema transformer like [graphql-tools](https://the-guild.dev/graphql/tools) can pick it up. You declare the directives you use on the `Directives` generic, then attach them with a `directives` option anywhere the schema allows.
 
-Directives predate code-first schemas and are really an SDL-first idea. Reach for this plugin when you want to keep using a directive-based tool — rate limiting, auth, caching — from a Pothos schema.
+Directives predate code-first schemas and are really an SDL-first idea. Use this plugin to keep a directive-based tool (rate limiting, auth, caching) working against a Pothos schema.
 
 ```package-install
 npm install --save @pothos/plugin-directives
@@ -17,7 +17,7 @@ npm install --save @pothos/plugin-directives
 
 ## Declaring directives
 
-Each entry in the `Directives` generic names a directive and describes two things: the `locations` where it may appear, and the `args` it accepts. Pothos uses this to type-check every place you apply the directive — attach `rateLimit` somewhere its `locations` don't allow, or omit an arg, and you get a compile error.
+Each entry in the `Directives` generic names a directive and describes two things: the `locations` where it may appear, and the `args` it accepts. Pothos uses this to type-check every place you apply the directive: attach `rateLimit` somewhere its `locations` don't allow, or omit an arg, and you get a compile error.
 
 The valid locations are the standard GraphQL directive locations:
 
@@ -33,7 +33,7 @@ The valid locations are the standard GraphQL directive locations:
 - `SCHEMA`
 - `UNION`
 
-Every builder method that defines one of those locations gains a `directives` option — object types, interfaces, unions, enums and their values, input objects and their fields, scalars, fields, and args. `SCHEMA` is the one exception; it lives on `toSchema` (see [Schema directives](#schema-directives) below).
+Every builder method that defines one of those locations gains a `directives` option: object types, interfaces, unions, enums and their values, input objects and their fields, scalars, fields, and args. `SCHEMA` is the one exception; it lives on `toSchema` (see [Schema directives](#schema-directives) below).
 
 ## Applying directives
 
@@ -49,13 +49,13 @@ directives: {
 directives: [{ name: 'rateLimit', args: { limit: 5, duration: 60 } }]
 ```
 
-Prefer the array form when order matters or a directive repeats on the same location — it preserves both. The object form is more concise and reads well when each directive appears once. The playground schema mixes them: object form on the `Team` type and its `teams` field, array form for the `auth` directive on `renameTeam`.
+Prefer the array form when order matters or a directive repeats on the same location, since it preserves both. The object form is more concise and reads well when each directive appears once. The playground schema mixes them: object form on the `Team` type and its `teams` field, array form for the `auth` directive on `renameTeam`.
 
 <include cwd lang="typescript" meta='playground example="directives-plugin"'>playground-examples/directives-plugin/schema.ts#root-types</include>
 
 ## Schema directives
 
-`SCHEMA`-location directives attach to the schema itself, so they go on `toSchema` under `schemaDirectives` — not `directives`, which is reserved for the plugin's own options:
+`SCHEMA`-location directives attach to the schema itself, so they go on `toSchema` under `schemaDirectives`, not `directives`, which is reserved for the plugin's own options:
 
 ```typescript
 export const schema = builder.toSchema({
@@ -69,7 +69,7 @@ export const schema = builder.toSchema({
 
 The plugin writes the directive data onto the `extensions` of the underlying GraphQL type; it doesn't enforce the directive itself. A downstream transformer reads those extensions and does the real work.
 
-By default the plugin uses the extensions format Gatsby uses ([described here](https://github.com/graphql/graphql-js/issues/1343#issuecomment-479871020)), which [older versions of `graphql-tools` did not support](https://github.com/ardatan/graphql-tools/issues/2534). If your directive ships a schema visitor built against an older graphql-tools — the rate-limit directive below is one — set `useGraphQLToolsUnorderedDirectives` on the builder to emit the format those visitors expect.
+By default the plugin uses the extensions format Gatsby uses ([described here](https://github.com/graphql/graphql-js/issues/1343#issuecomment-479871020)), which [older versions of `graphql-tools` did not support](https://github.com/ardatan/graphql-tools/issues/2534). If your directive ships a schema visitor built against an older graphql-tools (the rate-limit directive below is one), set `useGraphQLToolsUnorderedDirectives` on the builder to emit the format those visitors expect.
 
 <Callout type="warn">
   `useGraphQLToolsUnorderedDirectives` does not preserve the order directives were declared in. That's fine for most schemas, but if a directive's behavior depends on ordering, leave it off and keep the default format.
@@ -89,4 +89,4 @@ const { rateLimitDirectiveTransformer } = rateLimitDirective();
 export const schema = rateLimitDirectiveTransformer(builder.toSchema());
 ```
 
-The transformer and directive package live outside Pothos, so this step can't run in the playground sandbox — but the schema half above does. Any graphql-tools-based directive plugs in the same way.
+The transformer and directive package live outside Pothos, so this step can't run in the playground sandbox, though the schema half above does. Any graphql-tools-based directive plugs in the same way.

@@ -3,7 +3,7 @@ title: Mocks plugin
 description: Replace field resolvers with inline mocks at schema-build time for tests and frontend development.
 ---
 
-A field's resolver isn't always ready when you need to query it — the data feed isn't wired up yet, or a test needs a deterministic value instead of a live one. The mocks plugin swaps a resolver out at schema-build time. You pass a `mocks` map to `builder.toSchema`, keyed by type name then field name, and the plugin replaces the matching field's resolver with your function wherever it runs.
+A field's resolver isn't always ready when you need to query it: the data feed isn't wired up yet, or a test needs a deterministic value instead of a live one. The mocks plugin swaps a resolver out at schema-build time. You pass a `mocks` map to `builder.toSchema`, keyed by type name then field name, and the plugin replaces the matching field's resolver with your function wherever it runs.
 
 ## Install
 
@@ -11,7 +11,7 @@ A field's resolver isn't always ready when you need to query it — the data fee
 npm install --save @pothos/plugin-mocks
 ```
 
-Add the plugin to the builder. It contributes no field-builder methods — the whole surface is the `mocks` option on `builder.toSchema`.
+Add the plugin to the builder. It contributes no field-builder methods; the whole surface is the `mocks` option on `builder.toSchema`.
 
 ```typescript
 import MocksPlugin from '@pothos/plugin-mocks';
@@ -23,11 +23,11 @@ const builder = new SchemaBuilder({
 
 ## Mocking a field
 
-Define your schema as usual. Any field whose resolver isn't ready can throw — the mock will stand in for it. Here the `standings` query and the `Team.form` field both throw in their real resolvers, and the schema is only queryable because the `mocks` map replaces them.
+Define your schema as usual. Any field whose resolver isn't ready can throw, and the mock will stand in for it. Here the `standings` query and the `Team.form` field both throw in their real resolvers, and the schema is only queryable because the `mocks` map replaces them.
 
 <includeregions cwd lang="typescript" meta='playground example="mocks-plugin"'>playground-examples/mocks-plugin/schema.ts#types,mock-schema</includeregions>
 
-The key path is `mocks[typeName][fieldName]`. `Query.standings` mocks a root field; `Team.form` mocks a field on an object type, exactly the same way — mocks aren't limited to the root types. A mock receives the standard resolver arguments, so it can read `parent`, `args`, `context`, and `info`. The plugin types `parent` as `unknown`, so cast it to the field's backing model before reading properties:
+The key path is `mocks[typeName][fieldName]`. `Query.standings` mocks a root field; `Team.form` mocks a field on an object type, exactly the same way; mocks aren't limited to the root types. A mock receives the standard resolver arguments, so it can read `parent`, `args`, `context`, and `info`. The plugin types `parent` as `unknown`, so cast it to the field's backing model before reading properties:
 
 ```typescript
 mocks: {
@@ -41,7 +41,7 @@ Fields you don't list keep their real resolver, so you can mock a single not-yet
 
 ## Rebuilding with different mocks
 
-Mocks live in the `toSchema` call, not the field definition, so the same builder produces different schemas depending on what you pass. Build once with mocks for a test, once without for production — or build a fresh schema per test case with the exact values that case needs:
+Mocks live in the `toSchema` call, not the field definition, so the same builder produces different schemas depending on what you pass. Build once with mocks for a test, once without for production, or build a fresh schema per test case with the exact values that case needs:
 
 ```typescript
 // Production: real resolvers run.
@@ -61,7 +61,7 @@ This is the plugin's main use: a deterministic schema for tests and frontend dev
 
 ## Mocking subscribe
 
-A mock can be a plain function — which replaces `resolve` — or an object with both `resolve` and `subscribe` keys, for mocking a subscription field's event source. The types expect both keys (the runtime tolerates a missing one, but supply both to match the types). Nest them to feed a subscription a canned async iterator:
+A mock can be a plain function (which replaces `resolve`) or an object with both `resolve` and `subscribe` keys, for mocking a subscription field's event source. The types expect both keys (the runtime tolerates a missing one, but supply both to match the types). Nest them to feed a subscription a canned async iterator:
 
 ```typescript
 builder.subscriptionType({
@@ -98,4 +98,4 @@ Each entry under `mocks[typeName][fieldName]` is one of:
 | Value | Replaces |
 | --- | --- |
 | A function `(parent, args, context, info) => value` | The field's `resolve`. |
-| `{ resolve, subscribe }` | The field's `resolve` and `subscribe` — the object form takes both keys, for subscription fields whose event source you want to mock. |
+| `{ resolve, subscribe }` | The field's `resolve` and `subscribe`; the object form takes both keys, for subscription fields whose event source you want to mock. |

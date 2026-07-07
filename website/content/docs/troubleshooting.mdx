@@ -35,12 +35,12 @@ const builder = new SchemaBuilder<PothosTypes>({});
 
 Pothos's types are deliberately rich. Two things make them disproportionately slow:
 
-- **Complex `Context` types.** Avoid putting whole ORM models on the context type. Reference handles (`db`, `pubSub`) — not types like `Prisma.UserGetPayload<{...}>` whose definitions are large. See [microsoft/TypeScript#45405](https://github.com/microsoft/TypeScript/issues/45405) for background.
+- **Complex `Context` types.** Avoid putting whole ORM models on the context type. Reference handles (`db`, `pubSub`), not types like `Prisma.UserGetPayload<{...}>` whose definitions are large. See [microsoft/TypeScript#45405](https://github.com/microsoft/TypeScript/issues/45405) for background.
 - **Inferring through many `objectRef`s in one expression.** If a single field's resolve function references a dozen other refs, TypeScript has to chase each one. Splitting field declarations across separate `objectField` calls usually fixes it.
 
 ## "Plugin methods are not defined"
 
-Pothos plugins extend the builder's prototype at import time. If two copies of `@pothos/core` exist in your `node_modules` — usually because of pnpm hoisting or a mismatched workspace version — the plugin patches one copy and your app uses the other.
+Pothos plugins extend the builder's prototype at import time. If two copies of `@pothos/core` exist in your `node_modules` (usually from pnpm hoisting or a mismatched workspace version), the plugin patches one copy while your app uses the other.
 
 Check for duplicates:
 

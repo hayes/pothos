@@ -49,7 +49,7 @@ type SchemaTypes = {
 type SchemaBuilderOptions = {};
 ```
 
-The core builder takes no options. Plugins contribute their own — for example, `plugins: [...]` and each plugin's config block. See the individual plugin pages for what each adds.
+The core builder takes no options. Plugins contribute their own, such as `plugins: [...]` and each plugin's config block. See the individual plugin pages for what each adds.
 
 ## `queryType(options, fields?)`
 
@@ -149,7 +149,7 @@ Adds a single field to the `Subscription` type.
 
 ## `objectType(param, options, fields?)`
 
-Defines an object type. `param` can be a class, an `ObjectRef`, or a `SchemaTypes`-registered name — see [Object types](../fundamentals/objects) for how the three forms differ.
+Defines an object type. `param` can be a class, an `ObjectRef`, or a `SchemaTypes`-registered name; see [Object types](../fundamentals/objects) for how the three forms differ.
 
 - `param`: a key of the `Objects` property in `SchemaTypes`, a class, or an `ObjectRef` created by `builder.objectRef`.
 - `options`: `ObjectTypeOptions`
@@ -171,7 +171,7 @@ type ObjectTypeOptions = {
 - `description`: a description of the type.
 - `fields`: a function that receives a [`FieldBuilder`](./field-builder) and returns a map of field names to field refs.
 - `isTypeOf`: recommended when implementing interfaces. Called during execution to decide whether a value of an implemented interface is of this type.
-- `interfaces`: an array of interfaces this type implements. Each item is an interface param — see the `param` argument of `interfaceType`.
+- `interfaces`: an array of interfaces this type implements. Each item is an interface param (see the `param` argument of `interfaceType`).
 - `name`: name of the GraphQL type. Required when `param` is a class.
 - `extensions`: arbitrary extension metadata, read by directives and server plugins.
 
@@ -195,7 +195,7 @@ Adds a single field to an object type.
 Creates a reference to an object type before it is implemented. Use it to break circular references, to build modular schemas without registering every type on `SchemaTypes`, or when writing plugins.
 
 - `name`: name of the type this ref represents. Can be overwritten when the ref is implemented.
-- `T`: the backing model — the shape your resolvers return and Pothos hands back as `parent`.
+- `T`: the backing model, the shape your resolvers return and Pothos hands back as `parent`.
 
 The returned ref carries an `implement` method, so you can define fields directly: `builder.objectRef<IRace>('Race').implement({ fields: ... })`.
 
@@ -222,7 +222,7 @@ type InterfaceTypeOptions = {
 
 - `description`: a description of the type.
 - `fields`: a function that receives a [`FieldBuilder`](./field-builder) and returns a map of field names to field refs.
-- `interfaces`: an array of interfaces this interface extends. Each item is an interface param — see the `param` argument of `interfaceType`.
+- `interfaces`: an array of interfaces this interface extends. Each item is an interface param (see the `param` argument of `interfaceType`).
 - `resolveType`: returns the name of the concrete type for a given value. An alternative to setting `isTypeOf` on each implementing object type.
 - `name`: name of the GraphQL type. Required when `param` is a class.
 - `extensions`: arbitrary extension metadata, read by directives and server plugins.
@@ -247,7 +247,7 @@ Adds a single field to an interface type.
 Creates a reference to an interface type before it is implemented. Use it to break circular references, to build modular schemas, or when writing plugins.
 
 - `name`: name of the type this ref represents. Can be overwritten when the ref is implemented.
-- `T`: the backing model — the shape shared by every implementing type.
+- `T`: the backing model, the shape shared by every implementing type.
 
 ## `unionType(name, options)`
 
@@ -268,7 +268,7 @@ type UnionTypeOptions = {
 ```
 
 - `description`: a description of the type.
-- `types`: the object types included in the union — an array, or a thunk returning one so members can be referenced before they are defined. Each item is an object param — see the `param` argument of `objectType`.
+- `types`: the object types included in the union: an array, or a thunk returning one so members can be referenced before they are defined. Each item is an object param (see the `param` argument of `objectType`).
 - `resolveType`: called when resolving the type of a union value. `parent` is a union of the backing models of the member types. Return the name of the matching member type. Optional if each member type sets `isTypeOf`, but supplying it here is the usual approach.
 - `extensions`: arbitrary extension metadata, read by directives and server plugins.
 
@@ -318,7 +318,7 @@ type ScalarTypeOptions = {
 ```
 
 <Callout type="info">
-  On graphql-js 17 the newer coercion hooks — `coerceOutputValue`, `coerceInputValue`, `coerceInputLiteral`, and `valueToLiteral` — are also accepted and forwarded to the underlying scalar config. This is why `serialize` is optional: supply either `serialize` or `coerceOutputValue`. The hooks are ignored on graphql-js 16, so `serialize`/`parseValue`/`parseLiteral` remain the portable choice.
+  On graphql-js 17 the newer coercion hooks (`coerceOutputValue`, `coerceInputValue`, `coerceInputLiteral`, and `valueToLiteral`) are also accepted and forwarded to the underlying scalar config. This is why `serialize` is optional: supply either `serialize` or `coerceOutputValue`. The hooks are ignored on graphql-js 16, so `serialize`/`parseValue`/`parseLiteral` remain the portable choice.
 </Callout>
 
 ## `addScalarType(name, scalar, options?)`
@@ -349,7 +349,7 @@ type InputTypeOptions = {
 
 - `description`: a description of the type.
 - `fields`: a function that receives an [`InputFieldBuilder`](./input-field-builder) and returns a map of field names to field definitions. When `param` is a key of the `Inputs` property in `SchemaTypes`, the shape is type-checked against the registered backing model.
-- `isOneOf`: marks the type as a `@oneOf` input — exactly one field may be provided. All fields must be nullable.
+- `isOneOf`: marks the type as a `@oneOf` input, where exactly one field may be provided. All fields must be nullable.
 - `extensions`: arbitrary extension metadata, read by directives and server plugins.
 
 ## `inputRef<T>(name)`
@@ -369,7 +369,7 @@ Creates a standalone arguments object you can reuse as the `args` option on a fi
 
 Builds and returns a [`GraphQLSchema`](https://graphql.org/graphql-js/type/#graphqlschema) from every type registered on the builder.
 
-- `options?`: `BuildSchemaOptions` — carries build-time options such as `directives` and `extensions`. Plugins add their own keys here.
+- `options?`: `BuildSchemaOptions`, carrying build-time options such as `directives` and `extensions`. Plugins add their own keys here.
 
 <Callout type="warn">
   Earlier docs described `toSchema` as taking an array of types. It does not — types register themselves on the builder as you define them, and `toSchema` takes only an optional options object.

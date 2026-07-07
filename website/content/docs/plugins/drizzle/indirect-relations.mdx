@@ -3,13 +3,13 @@ title: Indirect relations
 description: Reach through join tables with through relations and the drizzleConnectionHelpers builder.
 ---
 
-`t.relation` and `t.relatedConnection` cover direct edges. Some fields reach a table two hops away — through a join table — or paginate nodes that live a level deeper than the relation they hang off. Drizzle gives you two tools for this: a `.through()` relation that hides the join entirely, and `drizzleConnectionHelpers` for the cases a single relation can't express.
+`t.relation` and `t.relatedConnection` cover direct edges. Some fields reach a table two hops away through a join table, or paginate nodes that live a level deeper than the relation they hang off. Drizzle gives you two tools for this: a `.through()` relation that hides the join entirely, and `drizzleConnectionHelpers` for the cases a single relation can't express.
 
 This page assumes the [schema, relations, and builder](./setup) are already wired up. In the Ultimate League schema, `players` and `games` connect through the `playerStats` join table.
 
 ## Many-to-many with a through relation
 
-Drizzle's [relational query builder](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2) can model a many-to-many directly. Point a relation's `from` and `to` at the join table with `.through()`, and the join disappears from the graph — `players.games` reads as a plain list of games:
+Drizzle's [relational query builder](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2) can model a many-to-many directly. Point a relation's `from` and `to` at the join table with `.through()`, and the join disappears from the graph, so `players.games` reads as a plain list of games:
 
 ```typescript
 export const relations = defineRelations(schema, (r) => ({
@@ -39,7 +39,7 @@ builder.drizzleNode('players', {
 });
 ```
 
-Reach for the helpers below only when the join row itself matters — when you need data from `playerStats` on the edge, or the node sits somewhere a single relation can't name.
+Use the helpers below only when the join row itself matters: when you need data from `playerStats` on the edge, or the node sits somewhere a single relation can't name.
 
 ## Paginating through a join table
 
@@ -85,7 +85,7 @@ builder.drizzleObjectField('players', 'gamesConnection', (t) =>
 
 Pagination args apply to the relation to the join table (`stats`); the nodes are the `game` nested inside each `playerStats` row.
 
-When the edge and node are the *same* table — pagination happens directly on a relation to the node type — call the helper with no options and use its `ref` as the connection type:
+When the edge and node are the *same* table, with pagination happening directly on a relation to the node type, call the helper with no options and use its `ref` as the connection type:
 
 ```typescript
 const statHelpers = drizzleConnectionHelpers(builder, 'playerStats');
@@ -179,7 +179,7 @@ builder.drizzleObjectFields('players', (t) => ({
 
 ## Non-relation connections
 
-`drizzleConnectionHelpers` also builds connections where there's no direct relation to lean on — an entry-point connection that runs its own query. Merge the `where` clause the helper generates with any additional filter you apply, so the two don't clobber each other:
+`drizzleConnectionHelpers` also builds connections where there's no direct relation to lean on, such as an entry-point connection that runs its own query. Merge the `where` clause the helper generates with any additional filter you apply, so the two don't clobber each other:
 
 ```typescript
 builder.queryFields((t) => ({

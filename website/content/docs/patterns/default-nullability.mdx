@@ -9,7 +9,7 @@ In many codebases most values are non-nullable, so most fields end up as `Type!`
 
 <include cwd lang="typescript" meta='playground example="patterns-default-nullability"'>playground-examples/patterns-default-nullability/schema.ts#default-nullability-builder</include>
 
-`DefaultFieldNullability` on the generic and `defaultFieldNullability` in the constructor options have to agree — Pothos will refuse to compile if they don't. With both set to `false`, every field declared from this builder defaults to non-nullable.
+`DefaultFieldNullability` on the generic and `defaultFieldNullability` in the constructor options have to agree; Pothos refuses to compile if they don't. With both set to `false`, every field declared from this builder defaults to non-nullable.
 
 ## Using the flipped default
 
@@ -42,10 +42,10 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-With both flipped, the codebase reads as if everything is non-nullable/required by default — closer to TypeScript's defaults than to GraphQL's.
+With both flipped, the codebase reads as if everything is non-nullable and required by default, closer to TypeScript's defaults than to GraphQL's.
 
 ## When not to flip
 
-Nullable-by-default has one real virtue: a nullable field that throws resolves to null and adds an entry to the response's `errors`, while a non-nullable field that throws propagates up to the closest nullable ancestor. Defaulting non-nullable means an error propagates further, which can collapse a chunk of the response when one field misbehaves. The [Handling errors](./handling-errors) guide covers this propagation.
+Nullability affects how a thrown error propagates: a nullable field can become `null` in place, while a non-nullable field pushes the error up to its nearest nullable ancestor. Defaulting to non-nullable means a single failing resolver can blank out a larger part of the response. The [Handling errors](./handling-errors) guide covers this in full.
 
 If your schema serves clients that can't gracefully handle partial responses (legacy mobile clients, brittle codegen), the nullable default may be the safer choice. When clients handle partial responses well, the non-nullable default keeps the schema aligned with your TypeScript types.

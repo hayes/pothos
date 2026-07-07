@@ -5,7 +5,7 @@ description: Add relation fields with t.relation, shape them with query and args
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-`t.relation` adds a field for a relation you declared with [`defineRelations`](./setup). The plugin reads the relation from your schema, gives the field the correct type automatically, and folds it into the `query` of whichever [`t.drizzleField`](./objects#resolving-to-a-drizzle-type) started the request — so a chain of relations resolves without a query per level.
+`t.relation` adds a field for a relation you declared with [`defineRelations`](./setup). The plugin reads the relation from your schema, gives the field the correct type automatically, and folds it into the `query` of whichever [`t.drizzleField`](./objects#resolving-to-a-drizzle-type) started the request, so a chain of relations resolves without a query per level.
 
 ```typescript
 builder.drizzleObject('teams', {
@@ -33,7 +33,7 @@ The plugin knows from your relations whether `players` is a `many` (a list field
 
 ## Filtering, ordering, and arguments
 
-`t.drizzleField` takes arguments and you write its query yourself. `t.relation` is different — the planner writes the query — so you shape the relation with a `query` option. It's either a query object or a function of the field's arguments, the request context, and the query path:
+`t.drizzleField` takes arguments and you write its query yourself. `t.relation` is different: the planner writes the query, so you shape the relation with a `query` option. It's either a query object or a function of the field's arguments, the request context, and the query path:
 
 ```typescript
 builder.drizzleObject('teams', {
@@ -62,7 +62,7 @@ builder.drizzleObject('teams', {
 });
 ```
 
-The object maps straight onto Drizzle's relational query builder, so it accepts the usual keys — `where`, `orderBy`, `limit`, `offset`. The callback receives the field arguments, the request context, and a `pathInfo` object carrying the GraphQL query `path` and `segments`. It does **not** receive the parent row: the relation is pre-loaded before the parent exists, which is exactly what keeps a list of parents from triggering a query each.
+The object maps straight onto Drizzle's relational query builder, so it accepts the usual keys: `where`, `orderBy`, `limit`, `offset`. The callback receives the field arguments, the request context, and a `pathInfo` object carrying the GraphQL query `path` and `segments`. It does **not** receive the parent row: the relation is pre-loaded before the parent exists, which is exactly what keeps a list of parents from triggering a query each.
 
 <Callout type="info">
   See the [relational query docs](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2) for the full set of `query` keys.
@@ -119,7 +119,7 @@ Under the hood `t.relatedCount` issues a `db.$count` scoped to the related rows,
 
 ## Derived fields with relatedField
 
-`t.relatedCount` is a shorthand for the more general `t.relatedField`, which defines a field from a relation using a custom selection — useful for any aggregate or derived value you'd rather compute in SQL than by loading the full related rows. The `select` callback receives a `buildFilter` helper that produces the `WHERE` clause matching the relation, so you can scope a query to exactly the related records:
+`t.relatedCount` is a shorthand for the more general `t.relatedField`, which defines a field from a relation using a custom selection, useful for any aggregate or derived value you'd rather compute in SQL than by loading the full related rows. The `select` callback receives a `buildFilter` helper that produces the `WHERE` clause matching the relation, so you can scope a query to exactly the related records:
 
 ```typescript
 import { sql } from 'drizzle-orm';

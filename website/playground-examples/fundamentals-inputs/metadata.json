@@ -1,7 +1,7 @@
 {
   "id": "fundamentals-inputs",
   "title": "Input objects",
-  "description": "Define an input object inline next to the field that uses it.",
+  "description": "Define reusable input objects and use them as argument and field types.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",

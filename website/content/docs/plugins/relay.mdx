@@ -5,7 +5,7 @@ description: Build a Relay-compliant schema with the Node interface, global IDs,
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Relay is a set of GraphQL conventions — a `Node` interface every object can be refetched through, opaque global IDs, and cursor-paginated connections. The relay plugin adds the builder methods that generate these: `builder.node` turns a type into a node addressable by a global ID, and `t.connection` defines a cursor-paginated field along with its `Connection`, `Edge`, and `PageInfo` types.
+Relay is a set of GraphQL conventions: a `Node` interface every object can be refetched through, opaque global IDs, and cursor-paginated connections. The relay plugin adds the builder methods that generate these: `builder.node` turns a type into a node addressable by a global ID, and `t.connection` defines a cursor-paginated field along with its `Connection`, `Edge`, and `PageInfo` types.
 
 The examples below model an Ultimate League: `Team` and `Player` nodes, with each team's roster exposed as a connection.
 
@@ -15,17 +15,17 @@ The examples below model an Ultimate League: `Team` and `Player` nodes, with eac
 npm install --save @pothos/plugin-relay
 ```
 
-Register the plugin and pass a `relay` options object — empty is fine to start.
+Register the plugin and pass a `relay` options object; empty is fine to start.
 
 <include cwd lang="typescript" meta='playground example="relay-plugin"'>playground-examples/relay-plugin/schema.ts#relay-setup</include>
 
 <Callout type="info">
-  The builder key is `relay`. Older versions used `relayOptions`; that name is only accepted in v3-compatibility mode — new code should use `relay`.
+  The builder key is `relay`. Older versions used `relayOptions`; that name is only accepted in v3-compatibility mode, and new code should use `relay`.
 </Callout>
 
 ## Nodes
 
-A node is any object reachable by a single opaque global ID. Call `builder.node` to turn a type into one — you point at an `objectRef` (or a class), define how to read its `id`, and supply a loader that hydrates a node from that id.
+A node is any object reachable by a single opaque global ID. Call `builder.node` to turn a type into one: you point at an `objectRef` (or a class), define how to read its `id`, and supply a loader that hydrates a node from that id.
 
 ```typescript playground example="relay-plugin"
 const Team = builder.objectRef<ITeam>('Team');
@@ -43,12 +43,12 @@ builder.node(Team, {
 });
 ```
 
-`builder.node` creates an object type that implements the `Node` interface, and creates the `Node` interface itself the first time it's used. The `id.resolve` function returns a string or number, which the plugin encodes into a global ID. It also wires up two query fields — `node(id:)` and `nodes(ids:)` — that refetch any node directly from its global ID by calling your loader.
+`builder.node` creates an object type that implements the `Node` interface, and creates the `Node` interface itself the first time it's used. The `id.resolve` function returns a string or number, which the plugin encodes into a global ID. It also wires up two query fields (`node(id:)` and `nodes(ids:)`) that refetch any node directly from its global ID by calling your loader.
 
 Define exactly **one** of the loader methods:
 
-- `loadOne` / `loadMany` — load a node (or list of nodes) by id, with a per-request cache so the same id is only loaded once.
-- `loadWithoutCache` / `loadManyWithoutCache` — skip the cache. Reach for these if caching is undesirable or you already load through a dataloader.
+- `loadOne` / `loadMany` load a node (or list of nodes) by id, with a per-request cache so the same id is only loaded once.
+- `loadWithoutCache` / `loadManyWithoutCache` skip the cache. Use these if caching is undesirable or you already load through a dataloader.
 
 When you back a node with a **class** rather than an `objectRef`, pass a `name` so the type has a GraphQL name:
 
@@ -68,7 +68,7 @@ builder.node(Player, {
 
 ### Resolving the node type
 
-The `node` field returns the `Node` interface, so Pothos needs to map a loaded object back to its concrete type. By default (`brandLoadedObjects: true`) any object returned from a `load*` method is tagged with a hidden symbol that the default `resolveType` reads — so most schemas never write an `isTypeOf` check.
+The `node` field returns the `Node` interface, so Pothos needs to map a loaded object back to its concrete type. By default (`brandLoadedObjects: true`) any object returned from a `load*` method is tagged with a hidden symbol that the default `resolveType` reads, so most schemas never write an `isTypeOf` check.
 
 You still need `isTypeOf` for `union` and `interface` fields that return manually-loaded node objects where no custom `resolveType` knows the type. A node may also define its own `isTypeOf`:
 
@@ -79,7 +79,7 @@ builder.node(Player, {
 });
 ```
 
-When the type parameter is a class, `isTypeOf` defaults to an `instanceof` check (falling back to the prototype's constructor), so class-backed nodes often need nothing here — but declaring it explicitly is clearer.
+When the type parameter is a class, `isTypeOf` defaults to an `instanceof` check (falling back to the prototype's constructor), so class-backed nodes often need nothing here, though declaring it explicitly is clearer.
 
 <Callout type="warn">
   Turning off `brandLoadedObjects` means the default `resolveType` can no longer identify loaded nodes. Only disable it if every node defines its own `isTypeOf`.
@@ -87,7 +87,7 @@ When the type parameter is a class, `isTypeOf` defaults to an `instanceof` check
 
 ### Parsing node ids
 
-Node ids arrive as strings. Supply a `parse` function on the `id` field to convert them — say, to a number — before they reach your loader:
+Node ids arrive as strings. Supply a `parse` function on the `id` field to convert them (say, to a number) before they reach your loader:
 
 ```typescript
 builder.node(Player, {
@@ -138,7 +138,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Restrict which node types an argument accepts with `for` — a single ref or an array:
+Restrict which node types an argument accepts with `for`, either a single ref or an array:
 
 ```typescript
 teamId: t.arg.globalID({
@@ -186,7 +186,7 @@ const builder = new SchemaBuilder({
 
 ### Exposing extra node fields
 
-`t.node` and `t.nodeList` add standalone node fields anywhere. Their `id`/`ids` return values match `t.globalID` — a global ID string or an `{ id, type }` object. Loading goes through the same per-request cache, so a node used in several places loads once.
+`t.node` and `t.nodeList` add standalone node fields anywhere. Their `id`/`ids` return values match `t.globalID`: a global ID string or an `{ id, type }` object. Loading goes through the same per-request cache, so a node used in several places loads once.
 
 ```typescript
 builder.queryFields((t) => ({
@@ -205,7 +205,7 @@ builder.queryFields((t) => ({
 
 <include cwd lang="typescript" meta='playground example="relay-plugin"'>playground-examples/relay-plugin/schema.ts#players-connection</include>
 
-The full form takes two extra option objects — one for the `Connection` type, one for the `Edge` type — for naming and adding fields:
+The full form takes two extra option objects (one for the `Connection` type, one for the `Edge` type) for naming and adding fields:
 
 ```typescript
 t.connection(
@@ -313,7 +313,7 @@ const PlayersConnection = builder.connectionObject(
 
 ### Fields on every connection
 
-`builder.globalConnectionField` and `builder.globalConnectionFields` add a field to *every* `Connection` type — useful for a `totalCount`:
+`builder.globalConnectionField` and `builder.globalConnectionFields` add a field to *every* `Connection` type, which is useful for a `totalCount`:
 
 ```typescript
 builder.globalConnectionField('totalCount', (t) =>
@@ -338,7 +338,7 @@ const builder = new SchemaBuilder<{
 
 ### Nullability of edges and nodes
 
-Set the nullability of the `edges` field and the `node` field globally through the `relay` options — the `DefaultEdgesNullability` and `DefaultNodeNullability` generics must match the option values:
+Set the nullability of the `edges` field and the `node` field globally through the `relay` options; the `DefaultEdgesNullability` and `DefaultNodeNullability` generics must match the option values:
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -413,7 +413,7 @@ type Mutation {
 }
 ```
 
-The method takes four arguments: the field `name`, then `inputOptions`, `fieldOptions`, and `payloadOptions`. `inputOptions` accepts a ref to an existing input object or two extra keys — `name` to name the generated input, and `argName` to rename the default `input` argument. `payloadOptions` accepts a `name` for the payload object.
+The method takes four arguments: the field `name`, then `inputOptions`, `fieldOptions`, and `payloadOptions`. `inputOptions` accepts a ref to an existing input object or two extra keys: `name` to name the generated input, and `argName` to rename the default `input` argument. `payloadOptions` accepts a `name` for the payload object.
 
 Whether a `clientMutationId` field is generated (and whether it's required) is controlled by the `clientMutationId` option: `omit` (default), `required`, or `optional`.
 
@@ -428,7 +428,7 @@ const { inputType: SignPlayerInput, payloadType: SignPlayerPayload } =
 
 ### Renaming Node and PageInfo
 
-If `Node` or `PageInfo` collide with existing types, rename them with `nodeTypeOptions` and `pageInfoTypeOptions` — both take the standard type options (`name`, `description`, `extensions`):
+If `Node` or `PageInfo` collide with existing types, rename them with `nodeTypeOptions` and `pageInfoTypeOptions`; both take the standard type options (`name`, `description`, `extensions`):
 
 ```typescript
 const builder = new SchemaBuilder({
@@ -480,8 +480,8 @@ Every option on the `relay` object, grouped by what it configures:
 | --- | --- |
 | `idFieldName` | Name of the global id field on nodes. Defaults to `id`. |
 | `idFieldOptions` | Options passed to the generated id field. |
-| `cursorType` | `String` (default) or `ID` — the type used for cursor fields. |
-| `clientMutationId` | `omit` (default), `required`, or `optional` — controls `clientMutationId` on Relay mutations. |
+| `cursorType` | `String` (default) or `ID`; the type used for cursor fields. |
+| `clientMutationId` | `omit` (default), `required`, or `optional`; controls `clientMutationId` on Relay mutations. |
 | `relayMutationFieldOptions` | Default options for `relayMutationField`. |
 | `nodeQueryOptions` / `nodesQueryOptions` | Options (or `false` to omit) for the `node` / `nodes` query fields. |
 | `nodeTypeOptions` / `pageInfoTypeOptions` | Options for the `Node` interface / `PageInfo` type, including `name`. |

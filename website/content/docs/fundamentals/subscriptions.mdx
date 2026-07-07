@@ -1,15 +1,15 @@
 ---
 title: Subscriptions
-description: Define the Subscription root with subscriptionType, and write a field whose subscribe opens an event stream and whose resolve shapes each event.
+description: The Subscription root type, and fields that push a stream of values to clients over a long-lived connection.
 ---
 
-A subscription delivers a stream of values over a long-lived connection, where a query delivers a single response. `builder.subscriptionType` defines the schema's third root type to hold these fields, and `subscriptionField`/`subscriptionFields` register them from other modules (field registration works the same way on every root; [Queries](./queries#adding-fields-from-elsewhere) covers it). A subscription field is built from two functions: a `subscribe` that opens a stream of events, and a `resolve` that turns each event into the value the client receives. Here is a field that pushes a `Character` every time one is added:
+A subscription delivers a stream of values over a long-lived connection, where a query delivers a single response. `builder.subscriptionType` defines the schema's third root type to hold these fields, and `subscriptionField`/`subscriptionFields` register them from other modules. A subscription field is built from two functions: a `subscribe` that opens a stream of events, and a `resolve` that turns each event into the value the client receives. Here is a field that pushes a `Character` every time one is added:
 
 <include cwd lang="typescript" meta='playground example="fundamentals-subscriptions"'>playground-examples/fundamentals-subscriptions/schema.ts#character-added-subscription</include>
 
-`subscribe` receives the root value, the field's arguments, and context (subscription fields sit on the root, so the first argument is the root value, not a parent entity), and it returns an async iterable of events — here `ctx.pubSub.subscribe('CHARACTER_ADDED')`, the stream of characters published to that topic. When the subscription starts, your GraphQL server drives the iteration: graphql-js opens the stream and runs `resolve` once for each value it yields, so `resolve`'s first argument is a single emitted event, typed as whatever `subscribe`'s iterable produces. Here that event is already a `Character`, so `resolve: (character) => character` passes it straight through; it could instead project the event into any shape the field's type allows.
+`subscribe` receives the root value, the field's arguments, and context, and returns an async iterable of events. Here that is `ctx.pubSub.subscribe('CHARACTER_ADDED')`, the stream of characters published to that topic. When the subscription starts, graphql-js drives the iteration, running `resolve` once for each value the stream yields. So `resolve`'s first argument is a single emitted event, typed as whatever `subscribe`'s iterable produces: here already a `Character`, so `resolve: (character) => character` passes it through. It could instead project the event into any shape the field's type allows.
 
-Opening this in the playground builds the schema and checks the operation, but a browser runs one operation rather than holding an event stream, so it won't emit — serve the schema with a GraphQL server (see [First server](../getting-started/first-server)) to watch `characterAdded` push each new entry.
+Opening this in the playground builds the schema and checks the operation, but a browser runs a single operation rather than holding an event stream, so nothing streams there. Serve the schema with a GraphQL server (see [First server](../getting-started/first-server)) to watch `characterAdded` push each new entry.
 
 ## Publishing events
 
@@ -17,7 +17,7 @@ The events a subscription streams come from somewhere, usually a mutation that p
 
 <include cwd lang="typescript">playground-examples/fundamentals-subscriptions/schema.ts#add-character-mutation</include>
 
-`addCharacter` creates the record, publishes it to the `CHARACTER_ADDED` topic with `ctx.pubSub.publish`, and returns the created `Character` — the same return-the-changed-entity shape [Mutations](./mutations#returning-what-changed) uses. Every open `characterAdded` subscription then receives that character as its next event.
+`addCharacter` creates the record, publishes it to the `CHARACTER_ADDED` topic with `ctx.pubSub.publish`, and returns the created `Character`. Every open `characterAdded` subscription then receives that character as its next event.
 
 ## Wiring the pub/sub
 
@@ -34,11 +34,11 @@ const yoga = createYoga({
 });
 ```
 
-Declaring `pubSub` on the builder's `Context` type is what makes `ctx.pubSub` typed in every resolver, the same wiring [Context](./context) covers for the rest of context.
+Declaring `pubSub` on the builder's `Context` type is what makes `ctx.pubSub` typed in every resolver, like the rest of [context](./context).
 
 ## Filtering
 
-A subscriber often wants only part of a stream. Since the field is nullable, `resolve` can return `null` for events that don't apply — this field streams additions but surfaces only the ones made by a given editor:
+A subscriber often wants only part of a stream. Since the field is nullable, `resolve` can return `null` for events that don't apply. This field streams additions but surfaces only the ones made by a given editor:
 
 ```typescript
 builder.subscriptionField('characterAddedByEditor', (t) =>
@@ -68,6 +68,6 @@ subscribe: (_root, _args, ctx) => {
 },
 ```
 
-A throw in `subscribe` rejects the subscription before any event is sent (the `ctx.user` guard is covered in [Context](./context#requiring-a-signed-in-user)). Checks that depend on the individual event go in `resolve`.
+The `ctx.user` guard is covered in [Context](./context#requiring-a-signed-in-user). Checks that depend on the individual event go in `resolve` instead.
 
 [`plugin-smart-subscriptions`](../plugins/smart-subscriptions) offers a different model, where fields register subscriptions that re-run a query as the underlying data changes.

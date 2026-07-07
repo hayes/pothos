@@ -5,7 +5,7 @@ description: Score fields by cost and cap the complexity, depth, and breadth of 
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-A single GraphQL request can ask for an unbounded amount of work — deep nesting, wide selection sets, list fields that fan out into more list fields. The complexity plugin scores every field in a query and rejects requests that cost too much, before any resolver runs. You set the ceilings once on the builder (or per-request in `toSchema`), and tune the cost of individual fields with a `complexity` option where the defaults are wrong.
+A single GraphQL request can ask for an unbounded amount of work: deep nesting, wide selection sets, list fields that fan out into more list fields. The complexity plugin scores every field in a query and rejects requests that cost too much, before any resolver runs. You set the ceilings once on the builder (or per-request in `toSchema`), and tune the cost of individual fields with a `complexity` option where the defaults are wrong.
 
 ## Install
 
@@ -21,11 +21,11 @@ Register the plugin and pass a `complexity` option to the builder. `limit` sets 
 
 The three limits guard against different shapes of abuse:
 
-- **`complexity`** — the maximum total cost, summed across every selected field.
-- **`depth`** — the maximum nesting depth of the selection set.
-- **`breadth`** — the total number of fields selected across the entire query.
+- **`complexity`** is the maximum total cost, summed across every selected field.
+- **`depth`** is the maximum nesting depth of the selection set.
+- **`breadth`** is the total number of fields selected across the entire query.
 
-`limit` can also be a function that receives the context, so you can raise or lower the ceilings per request — a higher budget for an authenticated internal service, a tighter one for anonymous traffic:
+`limit` can also be a function that receives the context, so you can raise or lower the ceilings per request (a higher budget for an authenticated internal service, a tighter one for anonymous traffic):
 
 ```typescript
 complexity: {
@@ -52,14 +52,14 @@ const schema = builder.toSchema({
 ```
 
 <Callout type="warn">
-  A query with no `complexity` limit set is never rejected, no matter how expensive — the plugin only enforces the ceilings you provide. Set at least a `complexity` limit before shipping a public endpoint.
+  A query with no `complexity` limit set is never rejected, no matter how expensive; the plugin only enforces the ceilings you provide. Set at least a `complexity` limit before shipping a public endpoint.
 </Callout>
 
 ## How complexity is calculated
 
-Complexity is computed before any root-level field (query, mutation, or subscription) resolves, from the shape of the query alone — no resolver runs during scoring.
+Complexity is computed before any root-level field (query, mutation, or subscription) resolves, from the shape of the query alone; no resolver runs during scoring.
 
-The cost of a query is the sum of the cost of each selected field. When a field has sub-selections, the cost of those sub-selections is multiplied by the field's multiplier, then added to the field's own cost. The default multiplier is `1` for scalar fields and `defaultListMultiplier` (10 above) for list fields — a rough stand-in for the n+1 fan-out a list implies.
+The cost of a query is the sum of the cost of each selected field. When a field has sub-selections, the cost of those sub-selections is multiplied by the field's multiplier, then added to the field's own cost. The default multiplier is `1` for scalar fields and `defaultListMultiplier` (10 above) for list fields, a rough stand-in for the n+1 fan-out a list implies.
 
 The default query costs `121`, with a depth of `3` and a breadth of `4`:
 
@@ -90,11 +90,11 @@ A plain number sets the field's own cost. To override the multiplier applied to 
 
 <include cwd lang="typescript">playground-examples/complexity-plugin/step-2/schema.ts#players</include>
 
-To change the baseline for *every* field at once, set `fieldComplexity` on the builder — a function `(args, ctx, field) => number | { field, multiplier }` that runs for any field without its own `complexity` option. When it's set, `defaultComplexity` and `defaultListMultiplier` are ignored.
+To change the baseline for *every* field at once, set `fieldComplexity` on the builder, a function `(args, ctx, field) => number | { field, multiplier }` that runs for any field without its own `complexity` option. When it's set, `defaultComplexity` and `defaultListMultiplier` are ignored.
 
 ## Customizing the limit error
 
-By default the plugin throws a `PothosValidationError` naming the ceiling that was exceeded — `Query exceeds maximum complexity (complexity: 121, max: 100)`. Provide `complexityError` on the builder to return your own error or message:
+By default the plugin throws a `PothosValidationError` naming the ceiling that was exceeded: `Query exceeds maximum complexity (complexity: 121, max: 100)`. Provide `complexityError` on the builder to return your own error or message:
 
 ```typescript
 complexity: {
@@ -107,11 +107,11 @@ complexity: {
 
 The function receives the error kind, a `result` carrying the query's `complexity`, `depth`, and `breadth` alongside the `maxComplexity`, `maxDepth`, and `maxBreadth` limits it was checked against, and the GraphQL `info` object. Return (or throw) an `Error`, or return a string to have the plugin throw it for you.
 
-Set `disabled: true` on the builder's `complexity` option to skip the check entirely — handy for turning limits off in a trusted environment without pulling the plugin out of the build.
+Set `disabled: true` on the builder's `complexity` option to skip the check entirely, which turns limits off in a trusted environment without pulling the plugin out of the build.
 
 ## Measuring a query yourself
 
-`complexityFromQuery` scores a query outside of execution — useful for logging costs, rejecting requests at the edge, or asserting on complexity in tests.
+`complexityFromQuery` scores a query outside of execution, which is useful for logging costs, rejecting requests at the edge, or asserting on complexity in tests.
 
 ```typescript
 import { complexityFromQuery } from '@pothos/plugin-complexity';
@@ -135,8 +135,8 @@ Every option lives under the builder's `complexity` object (or the one passed to
 | `limit` | The `{ complexity, depth, breadth }` ceilings a query must stay under. Either an object or a function that receives the context. Fields you omit are not enforced. |
 | `defaultComplexity` | Baseline cost for every field without its own `complexity` option. Defaults to `1`. |
 | `defaultListMultiplier` | Baseline multiplier applied to a list field's sub-selections. Defaults to `10`. |
-| `fieldComplexity` | `(args, ctx, field) => number \| { field, multiplier }` — a default cost calculation for all fields. Overrides `defaultComplexity` and `defaultListMultiplier` when set. |
-| `complexityError` | `(kind, result, info) => Error \| string` — the error to throw when a limit is exceeded. Defaults to a `PothosValidationError`. |
-| `disabled` | Set `true` to skip the complexity check entirely. Unlike the other options, this is read only from the builder's `complexity` option — passing it to `toSchema`/`buildSchema` has no effect. |
+| `fieldComplexity` | `(args, ctx, field) => number \| { field, multiplier }`, a default cost calculation for all fields. Overrides `defaultComplexity` and `defaultListMultiplier` when set. |
+| `complexityError` | `(kind, result, info) => Error \| string`, the error to throw when a limit is exceeded. Defaults to a `PothosValidationError`. |
+| `disabled` | Set `true` to skip the complexity check entirely. Unlike the other options, this is read only from the builder's `complexity` option; passing it to `toSchema`/`buildSchema` has no effect. |
 
 The per-field `complexity` option accepts a `number`, an object `{ field?, multiplier? }`, or a function `(args, ctx, field) => number | { field?, multiplier? }`.

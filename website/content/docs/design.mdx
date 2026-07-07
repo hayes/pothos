@@ -19,7 +19,7 @@ const builder = new SchemaBuilder<{
 t.field({ type: 'Race', resolve: () => findRace() });
 ```
 
-Keeping every type in one place is convenient — there's a single object to look at, and a single name to spell. On a large schema it turns unwieldy: every type piles into one generic, and each addition widens a type the compiler has to re-check everywhere it's referenced.
+Keeping every type in one place is convenient: there's a single object to look at and a single name to spell. On a large schema it turns unwieldy, since every type piles into one generic and each addition widens a type the compiler re-checks everywhere it's referenced.
 
 ## Ref objects
 
@@ -36,10 +36,10 @@ Because a `Ref` holds its own type information, you never register it on `Schema
 
 - **Unions and enums**, whose members are values rather than named entries in a generic.
 - **Large schemas**, where each type stays self-contained instead of swelling one central generic.
-- **Plugins that pull type information from another source** — the Prisma plugin from your Prisma client, the simple-objects plugin from the object you hand it. They can mint a `Ref` for a type the builder's generic has never heard of.
+- **Plugins that pull type information from another source**, like the Prisma plugin from your Prisma client or the simple-objects plugin from the object you hand it. They can mint a `Ref` for a type the builder's generic has never heard of.
 
 ## Why the split
 
 Separating the type information (the `Ref`) from the implementation (`implement`) is what keeps Pothos modular. A `Ref` exists before its fields do, so two types can reference each other without forward-declaration gymnastics. A plugin can hand you a `Ref` for a type it derived from somewhere else without ever touching the central generic. And each type carries its own shape, so nothing has to stay in sync with a schema-wide registry.
 
-This is why `objectRef` is the pattern the rest of the guide reaches for first — it keeps a type and everything the compiler knows about it in one place. The `SchemaTypes` generic is still there when you specifically want a name to hang behavior on: string-referenced types, the `Context` shape, and the plugin slots that carry an ORM's generated type information (`PrismaTypes`, `DrizzleRelations`). The two interoperate freely; most schemas use `objectRef` for the bulk of their types and the generic for the handful that need a name.
+This is why `objectRef` is the pattern the guide uses first: it keeps a type and everything the compiler knows about it in one place. The `SchemaTypes` generic is still there when you specifically want a name to hang behavior on: string-referenced types, the `Context` shape, and the plugin slots that carry an ORM's generated type information (`PrismaTypes`, `DrizzleRelations`). The two interoperate freely; most schemas use `objectRef` for the bulk of their types and the generic for the handful that need a name.

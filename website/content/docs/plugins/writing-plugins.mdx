@@ -1,31 +1,31 @@
 ---
 title: Writing plugins
-description: Build a Pothos plugin — extend the type system, add builder options and methods, and hook the schema lifecycle.
+description: Build a Pothos plugin that extends the type system, adds builder options and methods, and hooks into the schema lifecycle.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 A Pothos plugin is a class that hooks into schema construction. It can add options to the builder, add methods to the builder and field builders, wrap resolvers, and rewrite types and fields as the schema is built. Everything a plugin exposes to users lives in the same type system Pothos uses for its own API, so the work splits in two: extend the *types* so the new API is visible and checked, then implement the *behavior* in a plugin class.
 
-Much of this looks intimidating because Pothos' types are involved. You rarely need to understand all of them. Start from the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example) — it is a working skeleton of every pattern below — copy the pieces you need, and lean on the types to tell you what fits.
+Much of this looks intimidating because Pothos' types are involved. You rarely need to understand all of them. Start from the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example), a working skeleton of every pattern below. Copy the pieces you need, and lean on the types to tell you what fits.
 
 ## The type system
 
 Two structures carry type information through Pothos, and plugins extend both.
 
-**`PothosSchemaTypes`** is a global namespace of interfaces for every options object in the API — object options, field options, builder options, and more. A plugin adds a new option by declaring the matching interface inside this namespace; TypeScript merges your declaration with the core one. Each interface receives the generics relevant to where it is used, so a field-options interface is handed the parent shape, the return type, and the arguments, and your new options can depend on them.
+**`PothosSchemaTypes`** is a global namespace of interfaces for every options object in the API: object options, field options, builder options, and more. A plugin adds a new option by declaring the matching interface inside this namespace; TypeScript merges your declaration with the core one. Each interface receives the generics relevant to where it is used, so a field-options interface is handed the parent shape, the return type, and the arguments, and your new options can depend on them.
 
-**`SchemaTypes`** is the per-builder bundle of types derived from the generic argument to `SchemaBuilder`, merged with Pothos' defaults. It carries the scalars, the backing models for string-referenced object and interface types, the context and root types, the default nullability setting, and any custom types plugins contribute. Almost every interface in `PothosSchemaTypes` receives it — look for `Types extends SchemaTypes` in the generics — which is how a plugin reaches user-provided types when building its options.
+**`SchemaTypes`** is the per-builder bundle of types derived from the generic argument to `SchemaBuilder`, merged with Pothos' defaults. It carries the scalars, the backing models for string-referenced object and interface types, the context and root types, the default nullability setting, and any custom types plugins contribute. Almost every interface in `PothosSchemaTypes` receives it (look for `Types extends SchemaTypes` in the generics), which is how a plugin reaches user-provided types when building its options.
 
 ## Plugin structure
 
 A plugin is three files, matching the example plugin:
 
-- **`global-types.ts`** — additions to Pothos' built-in `PothosSchemaTypes` namespace.
-- **`index.ts`** — the plugin implementation.
-- **`types.ts`** — any types that do *not* belong in the global namespace, imported into `global-types.ts` as needed.
+- **`global-types.ts`**: additions to Pothos' built-in `PothosSchemaTypes` namespace.
+- **`index.ts`**: the plugin implementation.
+- **`types.ts`**: any types that do *not* belong in the global namespace, imported into `global-types.ts` as needed.
 
-Build the types first. Declare your options in `global-types.ts` and write a test schema that uses them. That gets the user-facing API type-checking before any runtime code exists — you can confirm new options appear and constraints are enforced — and it means the config properties your implementation reads will already exist by the time you write `index.ts`.
+Build the types first. Declare your options in `global-types.ts` and write a test schema that uses them. That gets the user-facing API type-checking before any runtime code exists (you can confirm new options appear and constraints are enforced), and it means the config properties your implementation reads will already exist by the time you write `index.ts`.
 
 ### `global-types.ts`
 
@@ -44,16 +44,16 @@ declare global {
 }
 ```
 
-Keep anything that is not part of `PothosSchemaTypes` out of this file — put those in `types.ts` and import them here.
+Keep anything that is not part of `PothosSchemaTypes` out of this file; put those in `types.ts` and import them here.
 
 To add properties to a config object, find the interface that defines it in `@pothos/core`. Four files hold the interfaces that make up the namespace:
 
-- [`type-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/type-options.ts) — options for each type (Object, Interface, Enum, and so on).
-- [`field-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/field-options.ts) — options for creating fields.
-- [`schema-types.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/schema-types.ts) — `SchemaBuilder` options, `SchemaTypes`, `toSchema` options, and other utility interfaces.
-- [`classes.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/classes.ts) — the classes Pothos uses, including `SchemaBuilder` and the field builders.
+- [`type-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/type-options.ts): options for each type (Object, Interface, Enum, and so on).
+- [`field-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/field-options.ts): options for creating fields.
+- [`schema-types.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/schema-types.ts): `SchemaBuilder` options, `SchemaTypes`, `toSchema` options, and other utility interfaces.
+- [`classes.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/classes.ts): the classes Pothos uses, including `SchemaBuilder` and the field builders.
 
-Copy the interface you want into your namespace, delete its existing properties, and keep every generic exactly as declared (importing the generic types from `@pothos/core`). Add your own properties — make them optional (`newProp?: TypeOfProp`) unless the plugin genuinely requires them.
+Copy the interface you want into your namespace, delete its existing properties, and keep every generic exactly as declared (importing the generic types from `@pothos/core`). Add your own properties, making them optional (`newProp?: TypeOfProp`) unless the plugin genuinely requires them.
 
 ### `index.ts`
 
@@ -86,7 +86,7 @@ SchemaBuilder.registerPlugin(pluginName, PothosExamplePlugin);
 | `onOutputFieldConfig` | Once per Object or Interface field. |
 | `onInputFieldConfig` | Once per Input Object field or field argument. |
 | `onEnumValueConfig` | Once per enum value. |
-| `beforeBuild` | Before the schema is built — the last chance to add new types or fields. |
+| `beforeBuild` | Before the schema is built; the last chance to add new types or fields. |
 | `afterBuild` | With the fully built `GraphQLSchema`. |
 | `wrapResolve` | When creating the resolver for each field. |
 | `wrapSubscribe` | For each field on the `Subscription` type. |
@@ -94,12 +94,12 @@ SchemaBuilder.registerPlugin(pluginName, PothosExamplePlugin);
 | `wrapResolveType` | For each Union and Interface. |
 | `wrapIsTypeOf` | For each Object type's `isTypeOf`. |
 
-Every hook except `beforeBuild` must return a value matching its first argument — a config object, or the resolve/subscribe/resolveType function. If the plugin does not modify the value, return it unchanged.
+Every hook except `beforeBuild` must return a value matching its first argument: a config object, or the resolve/subscribe/resolveType function. If the plugin does not modify the value, return it unchanged.
 
-When you do change a config, return a *copy* with your changes rather than mutating the argument — spread it (`{ ...config, newProp: value }`) or use `Object.assign`. Each config carries the GraphQL properties needed to build the type or field (some, like `resolve`, are added later) plus Pothos-specific ones: `graphqlKind` for the underlying GraphQL type, and `pothosOptions` holding the options passed to the builder for that type or field.
+When you do change a config, return a *copy* with your changes rather than mutating the argument: spread it (`{ ...config, newProp: value }`) or use `Object.assign`. Each config carries the GraphQL properties needed to build the type or field (some, like `resolve`, are added later) plus Pothos-specific ones: `graphqlKind` for the underlying GraphQL type, and `pothosOptions` holding the options passed to the builder for that type or field.
 
 <Callout type="warn">
-  Add new types or fields in `beforeBuild` — anything added later may not be wired up correctly. Because a new plugin instance is created per schema, guard additions so they run once per schema even across instances. The `runUnique` helper on `BasePlugin` does this: pass it a key and a callback and the callback runs at most once per schema for that key.
+  Add new types or fields in `beforeBuild`; anything added later may not be wired up correctly. Because a new plugin instance is created per schema, guard additions so they run once per schema even across instances. The `runUnique` helper on `BasePlugin` does this: pass it a key and a callback and the callback runs at most once per schema for that key.
 </Callout>
 
 ## Extending the API
@@ -131,7 +131,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
 ### Options at build time
 
-Some plugins build the same builder in different modes — the [mocks plugin](./mocks) rebuilds with different mock sets, the [sub-graph plugin](./sub-graph) builds separate subgraphs. For those, extend the `toSchema` options via `BuildSchemaOptions`:
+Some plugins build the same builder in different modes: the [mocks plugin](./mocks) rebuilds with different mock sets, the [sub-graph plugin](./sub-graph) builds separate subgraphs. For those, extend the `toSchema` options via `BuildSchemaOptions`:
 
 ```typescript
 export interface BuildSchemaOptions<Types extends SchemaTypes> {
@@ -171,7 +171,7 @@ override onTypeConfig(typeConfig: PothosTypeConfig) {
 }
 ```
 
-`typeConfig.kind` follows how Pothos splits its config objects — `Query`, `Mutation`, and `Subscription` each have their own `kind` even though GraphQL calls them all objects. Use `typeConfig.graphqlKind` when you want the underlying GraphQL kind instead.
+`typeConfig.kind` follows how Pothos splits its config objects: `Query`, `Mutation`, and `Subscription` each have their own `kind` even though GraphQL calls them all objects. Use `typeConfig.graphqlKind` when you want the underlying GraphQL kind instead.
 
 ### Options on fields
 
@@ -189,7 +189,7 @@ export interface MutationFieldOptions<
 }
 ```
 
-Field interfaces carry more generics, which let your options depend on the exact field being defined. Copy every generic from `@pothos/core` even if you don't use them all — if the generics don't line up, TypeScript won't merge your declaration. You do *not* need the interface's `extends` clause when it extends another interface such as `FieldOptions`.
+Field interfaces carry more generics, which let your options depend on the exact field being defined. Copy every generic from `@pothos/core` even if you don't use them all; if the generics don't line up, TypeScript won't merge your declaration. You do *not* need the interface's `extends` clause when it extends another interface such as `FieldOptions`.
 
 Read the option after checking the field's `kind`:
 
@@ -227,7 +227,7 @@ Use a `function` expression, not an arrow, so `this` resolves to the `SchemaBuil
 
 ### Wrapping resolvers
 
-Runtime behavior goes in the wrap hooks — `wrapResolve`, `wrapSubscribe`, and `wrapResolveType`. Each receives the function it wraps plus the field or type config, and returns either the original function or a replacement with the same signature:
+Runtime behavior goes in the wrap hooks: `wrapResolve`, `wrapSubscribe`, and `wrapResolveType`. Each receives the function it wraps plus the field or type config, and returns either the original function or a replacement with the same signature:
 
 ```typescript
 override wrapResolve(
@@ -242,16 +242,16 @@ override wrapResolve(
 }
 ```
 
-Resolvers return values in many shapes — plain values, promises, even `Promise<(Promise<T> | T)[]>`. Be careful introspecting a return value, and wrap resolvers only when you truly need to; wrapping every field adds overhead to every request.
+Resolvers return values in many shapes: plain values, promises, even `Promise<(Promise<T> | T)[]>`. Be careful introspecting a return value, and wrap resolvers only when you truly need to; wrapping every field adds overhead to every request.
 
 ### Wrapping arguments and inputs
 
 There is no dedicated hook for wrapping input fields. Instead, modify the `args` object inside `wrapResolve` or `wrapSubscribe` before passing it to the original function. Two utilities from `@pothos/core` make this efficient, especially for recursive inputs, by doing the analysis at build time so runtime work stays minimal:
 
-- `mapInputFields` — selects the affected input fields and extracts a per-field value.
-- `createInputValueMapper` — turns a `mapInputFields` result into a function that rewrites those inputs in an args object.
+- `mapInputFields`: selects the affected input fields and extracts a per-field value.
+- `createInputValueMapper`: turns a `mapInputFields` result into a function that rewrites those inputs in an args object.
 
-A plugin can use them to decode `globalID` inputs — selecting the global-ID arguments once, then mapping them on each call. The sketch below wraps `wrapResolve` to make the utilities easy to follow; the [relay plugin](./relay) does the same work from `onOutputFieldConfig`, appending to the field's `argMappers` array so the mapping runs inside the `wrapArgMappers` hook:
+A plugin can use them to decode `globalID` inputs, selecting the global-ID arguments once, then mapping them on each call. The sketch below wraps `wrapResolve` to make the utilities easy to follow; the [relay plugin](./relay) does the same work from `onOutputFieldConfig`, appending to the field's `argMappers` array so the mapping runs inside the `wrapArgMappers` hook:
 
 ```typescript
 export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -306,7 +306,7 @@ interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
 }
 ```
 
-Both the root map and each nested `fields.map` contain entries only for fields where the mapper returned non-null. If the mapper returned `null` for everything, `mapInputFields` returns `null` — the signal that no wrapping is needed. `createInputValueMapper` covers most cases; for the rest, write a custom mapping function over the same `mapInputFields` result.
+Both the root map and each nested `fields.map` contain entries only for fields where the mapper returned non-null. If the mapper returned `null` for everything, `mapInputFields` returns `null`, the signal that no wrapping is needed. `createInputValueMapper` covers most cases; for the rest, write a custom mapping function over the same `mapInputFields` result.
 
 ### Removing fields and enum values
 
@@ -326,11 +326,11 @@ override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
 }
 ```
 
-Removing a whole type is a schema transform — see below.
+Removing a whole type is a schema transform; see below.
 
 ### Transforming the whole schema
 
-When the config hooks aren't powerful enough — removing types, for instance, as the [sub-graph plugin](./sub-graph) does — use `afterBuild`. It receives the built schema and returns either that schema or a new one, so you can run it through libraries like `graphql-tools` to transform it however you need:
+When the config hooks aren't powerful enough (removing types, for instance, as the [sub-graph plugin](./sub-graph) does), use `afterBuild`. It receives the built schema and returns either that schema or a new one, so you can run it through libraries like `graphql-tools` to transform it however you need:
 
 ```typescript
 override afterBuild(schema: GraphQLSchema): GraphQLSchema {
@@ -354,7 +354,7 @@ export interface SchemaBuilderOptions<Types extends SchemaTypes> {
 
 ### Contributing user-defined types
 
-A plugin can add its own user-definable entries to `SchemaTypes` — the [directives](./directives) and [scope-auth](./scope-auth) plugins both do. It takes two interfaces: `UserSchemaTypes`, describing what the user provides, and `ExtendDefaultTypes`, supplying a default when they don't:
+A plugin can add its own user-definable entries to `SchemaTypes`; the [directives](./directives) and [scope-auth](./scope-auth) plugins both do. It takes two interfaces: `UserSchemaTypes`, describing what the user provides, and `ExtendDefaultTypes`, supplying a default when they don't:
 
 ```typescript
 export interface UserSchemaTypes {
@@ -403,8 +403,8 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<
 
 A few `@pothos/core` internals help when a hook needs a config that isn't available yet:
 
-- `builder.configStore.onTypeConfig` — takes a type ref and a callback, and invokes the callback with that type's config once it's available.
-- `fieldRef.onFirstUse` — takes a callback invoked once the field's config is available.
-- `buildCache.getTypeConfig` — returns a type's config after all plugin modifications have been applied.
+- `builder.configStore.onTypeConfig`: takes a type ref and a callback, and invokes the callback with that type's config once it's available.
+- `fieldRef.onFirstUse`: takes a callback invoked once the field's config is available.
+- `buildCache.getTypeConfig`: returns a type's config after all plugin modifications have been applied.
 
-This guide covers the common cases, not the full API — exploring the types and the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example) source will surface the rest. If you get stuck, open a GitHub issue.
+This guide covers the common cases, not the full API; exploring the types and the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example) source will surface the rest. If you get stuck, open a GitHub issue.

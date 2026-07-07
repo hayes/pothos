@@ -39,7 +39,7 @@ For list fields, wrap any of the above in an array — for example `['Character'
 
 ### Resolver
 
-A function that resolves the value of the field. It should return a value (or promise) matching the field's type. For `Scalars`, `Objects`, and `Interfaces` that is the corresponding shape from `SchemaTypes`. For unions, it may be any member's shape. For enums, the value depends on the enum's definition — see [Enums](../fundamentals/enums).
+A function that resolves the value of the field. It should return a value (or promise) matching the field's type. For `Scalars`, `Objects`, and `Interfaces` that is the corresponding shape from `SchemaTypes`. For unions, it may be any member's shape. For enums, the value depends on the enum's definition; see [Enums](../fundamentals/enums).
 
 The resolver receives four arguments:
 

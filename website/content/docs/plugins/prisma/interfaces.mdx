@@ -5,9 +5,9 @@ description: Define GraphQL interfaces for a Prisma model and share them across 
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-`builder.prismaInterface` works exactly like [`builder.prismaObject`](./objects), but produces a GraphQL interface instead of an object type. Like `prismaObject`, it can define either a model's primary type (with `name`) or a [variant](./variants) (with `variant` in place of `name`). Use it to give several variants of one Prisma model a shared set of fields — the interface holds what they have in common, and each variant implements it and adds its own.
+`builder.prismaInterface` works exactly like [`builder.prismaObject`](./objects), but produces a GraphQL interface instead of an object type. Like `prismaObject`, it can define either a model's primary type (with `name`) or a [variant](./variants) (with `variant` in place of `name`). Use it to give several variants of one Prisma model a shared set of fields: the interface holds what they have in common, and each variant implements it and adds its own.
 
-This page assumes the [generated types and builder](./setup) are already wired up. The examples add two columns to the base `Player` model — a `isCaptain` discriminator and an optional `bio`:
+This page assumes the [generated types and builder](./setup) are already wired up. The examples add two columns to the base `Player` model, an `isCaptain` discriminator and an optional `bio`:
 
 ```prisma
 model Player {
@@ -22,7 +22,7 @@ model Player {
 
 ## An interface with two variants
 
-The interface defines the fields every player shares. A `resolveType` picks the concrete variant for a given row. Return the type name as a **string** rather than an object ref — that avoids circular-reference problems between the interface and the variants that implement it.
+The interface defines the fields every player shares. A `resolveType` picks the concrete variant for a given row. Return the type name as a **string** rather than an object ref, which avoids circular-reference problems between the interface and the variants that implement it.
 
 ```typescript
 const Player = builder.prismaInterface('Player', {
@@ -54,7 +54,7 @@ builder.prismaObject('Player', {
 Both `Captain` and `SquadPlayer` are variants of the same `Player` model, so they inherit its backing shape. Each adds the fields specific to it on top of the interface's `id` and `name`.
 
 <Callout type="warn">
-  Selections are **not** inherited. Under [`select` mode](./selections), add the columns you need to both the interface *and* every implementing object type — otherwise the object falls back to the default selection of all scalar columns, which may not be what you want.
+  Selections are **not** inherited. Under [`select` mode](./selections), add the columns you need to both the interface *and* every implementing object type. Otherwise the object falls back to the default selection of all scalar columns, which may not be what you want.
 </Callout>
 
 An interface only spans one model. Trying to have an object for a *different* Prisma model implement it fails at build time:

@@ -9,9 +9,9 @@ A union is a single type that stands for one of several object types. A search f
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-unions"'>playground-examples/fundamentals-unions/schema.ts#search-result-union</includeregions>
 
-`unionType` takes the union's name and an options object. `types` lists the members — here `Character`, `Location`, and `Quote`. Every member has to be an object type; interfaces, scalars, and other unions can't be listed. (`types` can also be a function returning the array, for members defined later in the file.) A union has no fields of its own, so there is no `fields` callback.
+`unionType` takes the union's name and an options object. `types` lists the members, here `Character`, `Location`, and `Quote`. Every member has to be an object type; interfaces, scalars, and other unions can't be listed. (`types` can also be a function returning the array, for members defined later in the file.) A union has no fields of its own, so there is no `fields` callback.
 
-`resolveType` tells the server which member a given value is. Each value in this schema carries a `kind` discriminator, so `resolveType` returns it directly. This is the same contract [interfaces](./interfaces) use, and that guide covers `resolveType` in full; the union-specific point is that the name you return has to be one of the types in the union's `types` list.
+`resolveType` tells the server which member a given value is. Each value in this schema carries a `kind` discriminator, so `resolveType` returns it directly, the same contract [interfaces](./interfaces) use. The union-specific point is that the name you return has to be one of the types in the union's `types` list.
 
 If you leave `resolveType` off, graphql-js falls back to each member type's `isTypeOf` function; when neither is defined, it has no way to tell the members apart and raises an error while executing the field.
 
@@ -50,4 +50,4 @@ query Search {
 }
 ```
 
-`__typename` is a GraphQL meta-field available on any union field; it returns the resolved member's name, which clients use to tell the members apart. The inline fragments (`... on Character`) are GraphQL syntax for selecting fields per type. The [Interfaces](./interfaces) guide covers these polymorphic selections in more detail.
+`__typename` returns the resolved member's name, which clients use to tell the members apart. The [Interfaces](./interfaces) guide covers these polymorphic selections (inline fragments and `__typename`) in more detail.

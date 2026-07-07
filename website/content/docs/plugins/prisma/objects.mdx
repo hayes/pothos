@@ -3,7 +3,7 @@ title: Prisma objects
 description: Define GraphQL object types from Prisma models with prismaObject and resolve to them with prismaField.
 ---
 
-`builder.prismaObject` defines a GraphQL object type backed by a Prisma model. You pass the model name and a set of options that mirror any other object type — the difference is that Pothos already knows the shape from your [generated `PrismaTypes`](./setup), so exposing columns and adding relations is fully typed without object refs or imports from the client.
+`builder.prismaObject` defines a GraphQL object type backed by a Prisma model. You pass the model name and a set of options that mirror any other object type. The difference is that Pothos already knows the shape from your [generated `PrismaTypes`](./setup), so exposing columns and adding relations is fully typed without object refs or imports from the client.
 
 ```typescript
 builder.prismaObject('Team', {
@@ -26,7 +26,7 @@ These behave like any Pothos object type. `prismaObject` returns an object ref y
 
 ## Naming the type
 
-The GraphQL type takes the model's name by default. Pass `name` to call it something else — handy when one model backs [more than one GraphQL type](./variants):
+The GraphQL type takes the model's name by default. Pass `name` to call it something else, which is handy when one model backs [more than one GraphQL type](./variants):
 
 ```typescript
 builder.prismaObject('Team', {
@@ -41,7 +41,7 @@ builder.prismaObject('Team', {
 
 ## Resolving to a Prisma type
 
-Use `t.prismaField` to add a field whose type is a Prisma model — most often on `Query` or `Mutation`:
+Use `t.prismaField` to add a field whose type is a Prisma model, most often on `Query` or `Mutation`:
 
 ```typescript
 builder.queryType({
@@ -60,10 +60,10 @@ builder.queryType({
 
 `t.prismaField` works like `t.field` with two differences:
 
-1. **`type`** is a Prisma model name — `'Team'`, or `['Team']` for a list field.
+1. **`type`** is a Prisma model name: `'Team'`, or `['Team']` for a list field.
 2. **`resolve`** gets an extra first argument, `query`. Spread it into your Prisma call. It carries the `include`/`select` the plugin computed for the nested part of the request, so relations and selected columns load in the same query. Which fields end up in it depends on what the client selected and how you defined the fields and types involved.
 
-You are not required to use `t.prismaField` — a `prismaObject` ref works with a plain `t.field` too — but only `t.prismaField` (and `t.prismaConnection`) gives you the `query` argument that makes the loading efficient.
+You are not required to use `t.prismaField` (a `prismaObject` ref works with a plain `t.field` too), but only `t.prismaField` (and `t.prismaConnection`) gives you the `query` argument that makes the loading efficient.
 
 ## Extending a Prisma object
 

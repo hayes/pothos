@@ -11,7 +11,7 @@ When several types share a common field or argument shape but you don't want to 
 
 <include cwd lang="typescript" meta='playground example="shared-fields-pattern"'>playground-examples/shared-fields-pattern/schema.ts#add-audit-fields</include>
 
-Both types now expose `id` and `createdAt` without duplicating the field definitions. The generic constraint on the helper guarantees every passed ref has the backing-model fields the closures rely on. `TypesWithDefaults` is `PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>` — the fully-extended types object every builder method actually operates on.
+Both types now expose `id` and `createdAt` without duplicating the field definitions. The generic constraint on the helper guarantees every passed ref has the backing-model fields the closures rely on. `TypesWithDefaults` is `PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>`, the fully-extended types object every builder method operates on.
 
 The same approach works for interfaces: `builder.interfaceFields(ref, builderFn)` adds fields to an interface type, so a helper that needs to cover both can call whichever builder matches the ref it's given.
 
@@ -52,8 +52,8 @@ builder.inputType('PlayerFilter', {
 
 Each input type ends up with its own version of the timestamp fields plus whatever it adds on top.
 
-## When to reach for an interface instead
+## When an interface fits better
 
-If the shared fields represent a real abstraction your clients can query against — every entity has an `id`, every audit-logged record has `createdAt`/`updatedAt` — the cleaner answer is a GraphQL interface. Clients can fragment over the interface, codegen tools see the relationship, and the schema documents the polymorphism.
+If the shared fields represent a real abstraction your clients can query against (every entity has an `id`, every audit-logged record has `createdAt`/`updatedAt`), the cleaner answer is a GraphQL interface. Clients can fragment over the interface, codegen tools see the relationship, and the schema documents the polymorphism.
 
-Reach for the helper pattern when the shared fields are an *implementation detail*, not an abstraction worth exposing.
+The helper pattern fits when the shared fields are an implementation detail rather than an abstraction worth exposing.

@@ -1,13 +1,13 @@
 ---
 title: Federation plugin
-description: Build Apollo Federation 2 subgraphs — define entities, extend external types, and print a composable subgraph schema.
+description: Turn a Pothos schema into an Apollo Federation 2 subgraph, with entities, external-type extensions, and composable subgraph output.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 Federation lets you split one graph across services. The federation plugin turns a Pothos schema into an Apollo Federation 2 subgraph: you mark object types as *entities*, describe how each is loaded by reference, and emit a subgraph schema the gateway can compose. This page covers the Pothos API; for what the federation terms mean, see the [Apollo docs](https://www.apollographql.com/docs/federation/v2/).
 
-Examples use an Ultimate League graph split across subgraphs — a `teams` service that owns `Team`, a `roster` service that extends `Player`, and a `ratings` service that references both.
+Examples use an Ultimate League graph split across subgraphs: a `teams` service that owns `Team`, a `roster` service that extends `Player`, and a `ratings` service that references both.
 
 ## Install
 
@@ -17,7 +17,7 @@ The plugin needs the [directives plugin](./directives) and `@apollo/subgraph` al
 npm install --save @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
 ```
 
-Add `@apollo/server` too if you serve the subgraph with Apollo — it is not required if you run a different server:
+Add `@apollo/server` too if you serve the subgraph with Apollo; it is not required if you run a different server:
 
 ```package-install
 npm install --save @apollo/server
@@ -56,7 +56,7 @@ builder.asEntity(TeamType, {
 });
 ```
 
-Keys are built with `builder.selection`, which **must** be called with a generic argument spelling out the types of every field in the key. `key` also accepts an array when an entity has more than one key. `resolveReference` receives an object of the key's shape and returns the backing model — the gateway calls it whenever another service references this `Team` by key.
+Keys are built with `builder.selection`, which **must** be called with a generic argument spelling out the types of every field in the key. `key` also accepts an array when an entity has more than one key. `resolveReference` receives an object of the key's shape and returns the backing model; the gateway calls it whenever another service references this `Team` by key.
 
 <Callout type="warn">
   Type the key with the scalar shapes your server *produces*, not the shapes your resolvers return. Apollo Server serializes every `ID` to a `string`, so a key over an `id` field is `selection<{ id: string }>('id')` even if your data holds `id` as a number.
@@ -64,7 +64,7 @@ Keys are built with `builder.selection`, which **must** be called with a generic
 
 ## Extending external entities
 
-To add fields to an entity owned by *another* service, call `builder.externalRef` and then `implement` the returned ref. `externalRef` takes the entity name, a key selection, and a resolver that loads the local data for a given key. The resolver's return type becomes the backing model — the `parent` your added fields resolve against — and the key describes which fields the gateway selects from the owning service to build that `parent`.
+To add fields to an entity owned by *another* service, call `builder.externalRef` and then `implement` the returned ref. `externalRef` takes the entity name, a key selection, and a resolver that loads the local data for a given key. The resolver's return type becomes the backing model (the `parent` your added fields resolve against), and the key describes which fields the gateway selects from the owning service to build that `parent`.
 
 ```typescript
 const PlayerRef = builder.externalRef(
@@ -97,7 +97,7 @@ PlayerRef.implement({
 });
 ```
 
-Fields listed under `externalFields` are declared as `@external` — they exist on the entity elsewhere and are only referenced here, by `requires` (above) or `provides` (below). A field's `requires` selection then makes those values available as the first resolver argument.
+Fields listed under `externalFields` are declared as `@external`; they exist on the entity elsewhere and are only referenced here, by `requires` (above) or `provides` (below). A field's `requires` selection then makes those values available as the first resolver argument.
 
 To mark a key's external field as non-resolvable (`resolvable: false`), wrap the selection with `builder.keyDirective`:
 
@@ -141,7 +141,7 @@ RatingType.implement({
 });
 ```
 
-The provided field must be one of the external ref's `externalFields` — you can only provide what the entity declares.
+The provided field must be one of the external ref's `externalFields`; you can only provide what the entity declares.
 
 ## Field and type directives
 
@@ -162,12 +162,12 @@ t.field({
 | `shareable` | `@shareable` | fields, object types |
 | `tag` | `@tag` | fields, object types, input fields |
 | `inaccessible` | `@inaccessible` | fields, types, input fields, enum values |
-| `override` | `@override` — `{ from, label? }` names the service being overridden | fields |
+| `override` | `@override`; `{ from, label? }` names the service being overridden | fields |
 | `authenticated` | `@authenticated` | fields, object/interface/scalar/enum types |
 | `requiresScopes` | `@requiresScopes` | same as `authenticated` |
 | `policy` | `@policy` | same as `authenticated` |
 | `cost` | `@cost` | fields, object/scalar/enum types, input fields, enum values |
-| `listSize` | `@listSize` — `{ assumedSize?, slicingArguments?, sizedFields?, requireOneSlicingArgument? }` | fields |
+| `listSize` | `@listSize` with `{ assumedSize?, slicingArguments?, sizedFields?, requireOneSlicingArgument? }` | fields |
 
 `requiresScopes` and `policy` take a nested array (`string[][]`) of scopes/policies. Type them by setting the `FederationScopes` and `FederationPolicies` generics on the builder. See the official Federation docs for each directive's semantics.
 
@@ -208,7 +208,7 @@ builder.asEntity(Media, {
 
 ## Building the subgraph schema
 
-Call `builder.toSubGraphSchema` instead of `toSchema` — it adds the federation-specific `_entities`/`_service` queries and the `@link` directive. `linkUrl` defaults to `https://specs.apollo.dev/federation/v2.6`; `federationDirectives` defaults to the set of directives your schema actually uses.
+Call `builder.toSubGraphSchema` instead of `toSchema`; it adds the federation-specific `_entities`/`_service` queries and the `@link` directive. `linkUrl` defaults to `https://specs.apollo.dev/federation/v2.6`; `federationDirectives` defaults to the set of directives your schema actually uses.
 
 ```typescript
 import { ApolloServer } from '@apollo/server';
@@ -235,7 +235,7 @@ startStandaloneServer(server, { listen: { port: 4000 } })
 For a runnable example that composes several Pothos subgraphs into one supergraph, see [the federation test example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example).
 
 <Callout type="warn">
-  If you print the schema to a string — for Managed Federation or manual composition with `rover` — use `printSubgraphSchema` from `@apollo/subgraph`. The default graphql-js printer drops the directives federation relies on, so a plainly-printed schema will not compose.
+  If you print the schema to a string (for Managed Federation or manual composition with `rover`), use `printSubgraphSchema` from `@apollo/subgraph`. The default graphql-js printer drops the directives federation relies on, so a plainly-printed schema will not compose.
 </Callout>
 
 ## composeDirective

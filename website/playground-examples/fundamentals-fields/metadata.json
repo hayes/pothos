@@ -1,7 +1,7 @@
 {
   "id": "fundamentals-fields",
   "title": "Fields",
-  "description": "Define an object type's fields with t.field and its scalar and expose shorthands.",
+  "description": "Defining the fields that make up an object type, and where each field's value comes from.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",

@@ -70,20 +70,19 @@ builder.queryType({
 });
 
 // #region add-character-mutation
+const AddCharacterInput = builder.inputType('AddCharacterInput', {
+  fields: (t) => ({
+    name: t.string({ required: true }),
+    birthYear: t.int(),
+  }),
+});
+
 builder.mutationType({
   fields: (t) => ({
     addCharacter: t.field({
       type: Character,
       args: {
-        input: t.arg({
-          type: builder.inputType('AddCharacterInput', {
-            fields: (t) => ({
-              name: t.string({ required: true }),
-              birthYear: t.int(),
-            }),
-          }),
-          required: true,
-        }),
+        input: t.arg({ type: AddCharacterInput, required: true }),
       },
       resolve: (_root, { input }) => addCharacter(input),
     }),

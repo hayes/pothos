@@ -5,11 +5,11 @@ query Characters {
     bio
     age
     titles
-    race {
+    faction {
       name
-    }
-    factions {
-      name
+      members {
+        name
+      }
     }
   }
 }

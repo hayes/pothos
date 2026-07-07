@@ -5,7 +5,7 @@ description: Guard fields and types with authorization scopes, scope loaders, an
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-The scope-auth plugin lets you name the checks your app cares about — "is this a member," "is this staff," "can this user manage that team" — and attach them to any field or type with an `authScopes` option, so your authorization rules live on the schema itself. Checks run before the resolver, and their results are cached per request.
+The scope-auth plugin lets you name the checks your app cares about ("is this a member," "is this staff," "can this user manage that team") and attach them to any field or type with an `authScopes` option, so your authorization rules live on the schema itself. Checks run before the resolver, and their results are cached per request.
 
 You define the scopes once on the builder, then require them wherever they matter:
 
@@ -47,7 +47,7 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-The scope names are yours — `public`, `member`, `staff` are arbitrary labels, not plugin keywords. Add as many as you need.
+The scope names are yours; `public`, `member`, `staff` are arbitrary labels, not plugin keywords. Add as many as you need.
 
 <Callout type="warn">
   The [relay plugin](./relay) is the notable exception to the "scope-auth first" rule. List relay *before* scope-auth so `authScopes` functions receive already-parsed `globalID`s rather than raw strings.
@@ -57,15 +57,15 @@ The scope names are yours — `public`, `member`, `staff` are arbitrary labels, 
 
 A few terms recur below:
 
-- **Scope** — one unit of authorization you can require on a field or type.
-- **Scope map** — the object you pass to `authScopes`: scope names to parameters.
-- **Scope loader** — a function that resolves a scope from a parameter, ideal for permission services.
-- **Scope parameter** — the value passed to a loader (the values in a scope map).
-- **Scope initializer** — the `authScopes` function on the builder that creates a request's scopes.
+- **Scope**: one unit of authorization you can require on a field or type.
+- **Scope map**: the object you pass to `authScopes`, scope names to parameters.
+- **Scope loader**: a function that resolves a scope from a parameter, ideal for permission services.
+- **Scope parameter**: the value passed to a loader (the values in a scope map).
+- **Scope initializer**: the `authScopes` function on the builder that creates a request's scopes.
 
 ## Booleans vs scope loaders
 
-A scope in the initializer is either a **boolean** (the request has it or not) or a **loader** — a function that takes a parameter and returns `MaybePromise<boolean>`. Booleans decide request-wide facts up front; loaders answer parameterized questions on demand.
+A scope in the initializer is either a **boolean** (the request has it or not) or a **loader**, a function that takes a parameter and returns `MaybePromise<boolean>`. Booleans decide request-wide facts up front; loaders answer parameterized questions on demand.
 
 ```typescript
 authScopes: async (context) => ({
@@ -92,7 +92,7 @@ You can also defer a plain boolean by wrapping it in a function (`() => context.
 
 ## Requiring a scope
 
-`authScopes` attaches to root fields, object fields, and interface fields alike. Listing several scopes checks them together — by default the request passes if it has **any** of them.
+`authScopes` attaches to root fields, object fields, and interface fields alike. Listing several scopes checks them together; by default the request passes if it has **any** of them.
 
 ```typescript
 builder.mutationType({
@@ -123,7 +123,7 @@ Type-level scopes and field-level scopes both run before a field resolves. When 
 
 ### Overriding the type default
 
-Add scopes on a field to require *more* than the type default. To *drop* the type default for one field, set `skipTypeScopes` — optionally alongside a field `authScopes` to replace it wholesale:
+Add scopes on a field to require *more* than the type default. To *drop* the type default for one field, set `skipTypeScopes`, optionally alongside a field `authScopes` to replace it wholesale:
 
 ```typescript
 Team.implement({
@@ -142,7 +142,7 @@ Team.implement({
 
 ## Combining scopes with $any and $all
 
-A scope map is an OR by default. Use the built-in `$any` and `$all` keys to build precise boolean logic — they take scope maps and nest freely:
+A scope map is an OR by default. Use the built-in `$any` and `$all` keys to build precise boolean logic; they take scope maps and nest freely:
 
 ```typescript
 Team.implement({
@@ -182,7 +182,7 @@ const builder = new SchemaBuilder<{
 
 ### Field-specific parameters
 
-When you can't enumerate every scope ahead of time — a permission service, a per-resource check — pass a parameter to a loader. The map value is the argument:
+When you can't enumerate every scope ahead of time (a permission service, a per-resource check), pass a parameter to a loader. The map value is the argument:
 
 ```typescript
 builder.mutationField('renameTeam', (t) =>
@@ -217,7 +217,7 @@ Team.implement({
 });
 ```
 
-A field `authScopes` function runs every time the field resolves — including once per alias — because it depends on the resolver arguments.
+A field `authScopes` function runs every time the field resolves (including once per alias) because it depends on the resolver arguments.
 
 A type can take a function too. It receives `(parent, context)` and returns a scope map, evaluated lazily on the first field of each instance:
 
@@ -231,12 +231,12 @@ Team.implement({
 ```
 
 <Callout type="warn">
-  Setting scopes based on a field's *return* value isn't supported directly — the check runs before the resolver. Move the check onto the returned type instead, and reach for [`runScopesOnType`](#running-scopes-on-the-type) so it fires once per object.
+  Setting scopes based on a field's *return* value isn't supported directly; the check runs before the resolver. Move the check onto the returned type instead, and use [`runScopesOnType`](#running-scopes-on-the-type) so it fires once per object.
 </Callout>
 
 ## Granting access with $granted
 
-Sometimes a field should be reachable *because of how it was reached*. `$granted` scopes are one-off grants passed down from a parent field or type — separate from your normal scopes, never inherited by nested children.
+Sometimes a field should be reachable *because of how it was reached*. `$granted` scopes are one-off grants passed down from a parent field or type, separate from your normal scopes, never inherited by nested children.
 
 A field grants scopes with `grantScopes`; the child type requires them with `$granted`:
 
@@ -286,7 +286,7 @@ Team.implement({
 
 ## Running scopes on the type
 
-By default every scope — type-level included — is tested at the field level, so a failed type scope surfaces an error on each field. Set `runScopesOnType` to check the type once, on the object itself, either per type or globally in `scopeAuth`:
+By default every scope, type-level included, is tested at the field level, so a failed type scope surfaces an error on each field. Set `runScopesOnType` to check the type once, on the object itself, either per type or globally in `scopeAuth`:
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -316,11 +316,11 @@ Team.implement({
 
 ## Interfaces
 
-Interfaces declare `authScopes` on their fields exactly like objects. A field runs the checks for *each* interface its type implements, separately — the request must satisfy every one. An object type can set `skipInterfaceScopes: true` to opt out of its interfaces' checks.
+Interfaces declare `authScopes` on their fields exactly like objects. A field runs the checks for *each* interface its type implements, separately; the request must satisfy every one. An object type can set `skipInterfaceScopes: true` to opt out of its interfaces' checks.
 
 ## Typed context per scope
 
-A scope often narrows what you know about the context — once `member` passes, `user` is non-null. Declare that refinement with the `AuthContexts` type and read it through `t.authField`:
+A scope often narrows what you know about the context; once `member` passes, `user` is non-null. Declare that refinement with the `AuthContexts` type and read it through `t.authField`:
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -373,7 +373,7 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-The callback receives the field's `parent`, `context`, and `info`, plus a `result` argument carrying the default message and a `failure` describing what went wrong. Return an `Error` (or subclass) or a `string` — a string becomes a `ForbiddenError`. The field-level `unauthorizedError` takes the resolver's arguments plus `result`:
+The callback receives the field's `parent`, `context`, and `info`, plus a `result` argument carrying the default message and a `failure` describing what went wrong. Return an `Error` (or subclass) or a `string`; a string becomes a `ForbiddenError`. The field-level `unauthorizedError` takes the resolver's arguments plus `result`:
 
 ```typescript
 builder.queryField('roster', (t) =>
@@ -389,7 +389,7 @@ builder.queryField('roster', (t) =>
 
 ### Surfacing errors thrown inside checks
 
-By default, an error thrown inside an `authScopes` function is *not* caught — it behaves as if thrown from the resolver, bypassing `unauthorizedError` and failing even a passing `$any`. Set `treatErrorsAsUnauthorized` to catch those errors and treat them as a failed scope; the caught error is then attached to the `result` so you can inspect or re-throw it. The `AuthFailure` and `AuthScopeFailureType` exports let you walk the failure tree:
+By default, an error thrown inside an `authScopes` function is *not* caught; it behaves as if thrown from the resolver, bypassing `unauthorizedError` and failing even a passing `$any`. Set `treatErrorsAsUnauthorized` to catch those errors and treat them as a failed scope; the caught error is then attached to the `result` so you can inspect or re-throw it. The `AuthFailure` and `AuthScopeFailureType` exports let you walk the failure tree:
 
 ```typescript
 import ScopeAuthPlugin, { AuthFailure, AuthScopeFailureType } from '@pothos/plugin-scope-auth';
@@ -440,12 +440,12 @@ builder.queryField('teams', (t) =>
 
 Auth results are cached per request so shared scopes cost nothing after the first check:
 
-- **Scope initializer** — runs once, the first time any protected field resolves; the result is cached for the request.
-- **`authScopes` function on a field** — runs on every resolve of that field, since it depends on the resolver arguments.
-- **`authScopes` function on a type** — runs once per instance in the response, lazily on the first field, then cached for that instance.
-- **Scope loaders** — run per unique parameter, cached by scope name and parameter.
-- **`grantScopes` on a field** — runs after the field resolves; not cached.
-- **`grantScopes` on a type** — runs on the first field of each instance, then cached for that instance.
+- **Scope initializer**: runs once, the first time any protected field resolves; the result is cached for the request.
+- **`authScopes` function on a field**: runs on every resolve of that field, since it depends on the resolver arguments.
+- **`authScopes` function on a type**: runs once per instance in the response, lazily on the first field, then cached for that instance.
+- **Scope loaders**: run per unique parameter, cached by scope name and parameter.
+- **`grantScopes` on a field**: runs after the field resolves; not cached.
+- **`grantScopes` on a type**: runs on the first field of each instance, then cached for that instance.
 
 Scopes cache on the *identity* of their parameter. Primitive parameters cache perfectly; if a loader takes an object built inside a scope function you'll miss the cache. Provide a `cacheKey` to derive a stable key:
 
@@ -459,7 +459,7 @@ const builder = new SchemaBuilder<{ Context: Context; AuthScopes: { member: bool
 });
 ```
 
-`JSON.stringify` handles most objects; for circular references or key-order stability, reach for something like `faster-stable-stringify`.
+`JSON.stringify` handles most objects; for circular references or key-order stability, use something like `faster-stable-stringify`.
 
 ## Subscriptions
 
@@ -474,7 +474,7 @@ scopeAuth: {
 
 ## Testing
 
-Pass `disableScopeAuth` to `toSchema` to build the schema with every check turned off — handy for tests that shouldn't thread auth context through every query:
+Pass `disableScopeAuth` to `toSchema` to build the schema with every check turned off, which helps in tests that shouldn't thread auth context through every query:
 
 ```typescript
 const schema = builder.toSchema({ disableScopeAuth: true });
@@ -498,9 +498,9 @@ When another plugin already supplies `authScopes`, pass the remaining options th
 
 ### Builder types
 
-- **`AuthScopes`** — each key names a scope; its value is the type of that scope's parameter.
-- **`AuthContexts`** — per-scope context refinements read via `t.authField`.
-- **`DefaultAuthStrategy`** — `'any'` (default) or `'all'`.
+- **`AuthScopes`**: each key names a scope; its value is the type of that scope's parameter.
+- **`AuthContexts`**: per-scope context refinements read via `t.authField`.
+- **`DefaultAuthStrategy`**: `'any'` (default) or `'all'`.
 
 ### Type and interface options
 

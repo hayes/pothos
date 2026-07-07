@@ -1,11 +1,11 @@
 ---
 title: Relay nodes
-description: Turn a Prisma model into a Relay node with prismaNode — global IDs, efficient node(id) lookups, and relation fields.
+description: Turn a Prisma model into a Relay node with global IDs and efficient node(id) lookups.
 ---
 
-The Prisma plugin wires into the [Relay plugin](../relay) so a Prisma model becomes a Relay node with a global ID and an efficient `node(id: ID!)` lookup. Where you'd reach for `builder.prismaObject`, reach for `builder.prismaNode` instead: it defines the same object type and, on top of it, implements the `Node` interface and the `id` field for you.
+The Prisma plugin wires into the [Relay plugin](../relay) so a Prisma model becomes a Relay node with a global ID and an efficient `node(id: ID!)` lookup. `builder.prismaNode` takes the place of `builder.prismaObject`: it defines the same object type and, on top of it, implements the `Node` interface and the `id` field for you.
 
-These examples assume the builder is set up with both `PrismaPlugin` and `RelayPlugin` and a `prisma` client in scope — see [Setup](./setup) for the generator, `PrismaTypes`, and builder wiring.
+These examples assume the builder is set up with both `PrismaPlugin` and `RelayPlugin` and a `prisma` client in scope (see [Setup](./setup) for the generator, `PrismaTypes`, and builder wiring).
 
 ## Defining a node
 
@@ -24,7 +24,7 @@ builder.prismaNode('Player', {
 });
 ```
 
-With `id.field` set, the `node(id:)` query loads the record with a `prisma.player.findUnique` keyed on that column — no resolver to write.
+With `id.field` set, the `node(id:)` query loads the record with a `prisma.player.findUnique` keyed on that column, with no resolver to write.
 
 ## Customizing the id
 
@@ -59,4 +59,4 @@ builder.prismaNode('Player', {
 });
 ```
 
-Every other `prismaObject` option carries over unchanged — including `name` and `variant` for exposing [multiple GraphQL types from one model](./variants).
+Every other `prismaObject` option carries over unchanged, including `name` and `variant` for exposing [multiple GraphQL types from one model](./variants).

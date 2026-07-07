@@ -9,12 +9,7 @@ interface CharacterModel {
   birthYear: number;
   biography?: string;
   titles: string[];
-  raceId: string;
-}
-
-interface RaceModel {
-  id: string;
-  name: string;
+  factionId: string;
 }
 
 interface FactionModel {
@@ -22,18 +17,8 @@ interface FactionModel {
   name: string;
 }
 
-const races: Record<string, RaceModel> = {
-  '1': { id: '1', name: 'Hobbit' },
-  '2': { id: '2', name: 'Dúnedain' },
-};
-
 const factions: Record<string, FactionModel> = {
   '1': { id: '1', name: 'Fellowship of the Ring' },
-};
-
-const factionsByCharacter: Record<string, string[]> = {
-  '1': ['1'],
-  '2': ['1'],
 };
 
 const characters: CharacterModel[] = [
@@ -43,25 +28,18 @@ const characters: CharacterModel[] = [
     birthYear: 2968,
     biography: 'Bearer of the One Ring on the quest to destroy it.',
     titles: ['Ring-bearer'],
-    raceId: '1',
+    factionId: '1',
   },
   {
     id: '2',
     name: 'Aragorn',
     birthYear: 2931,
     titles: ['Strider', 'Elessar', 'King of Gondor'],
-    raceId: '2',
+    factionId: '1',
   },
 ];
 
 const builder = new SchemaBuilder({});
-
-const Race = builder.objectRef<RaceModel>('Race').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
 
 const Faction = builder.objectRef<FactionModel>('Faction').implement({
   fields: (t) => ({
@@ -75,9 +53,9 @@ const Character = builder.objectRef<CharacterModel>('Character');
 Character.implement({
   fields: (t) => ({
     // #region field
-    race: t.field({
-      type: Race,
-      resolve: (character) => races[character.raceId],
+    faction: t.field({
+      type: Faction,
+      resolve: (character) => factions[character.factionId],
     }),
     // #endregion field
 
@@ -100,11 +78,11 @@ Character.implement({
 });
 
 // #region split
-builder.objectField(Character, 'factions', (t) =>
+builder.objectField(Faction, 'members', (t) =>
   t.field({
-    type: [Faction],
-    resolve: (character) =>
-      (factionsByCharacter[character.id] ?? []).map((id) => factions[id]),
+    type: [Character],
+    resolve: (faction) =>
+      characters.filter((character) => character.factionId === faction.id),
   }),
 );
 // #endregion split

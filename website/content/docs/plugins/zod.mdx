@@ -8,10 +8,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
 <Callout type="warn">
   The [validation plugin](./validation) is now the recommended way to validate a
   schema. It supports zod alongside several other validation libraries. The zod
-  plugin keeps working — reach for it only on schemas already built around it.
+  plugin keeps working; use it only on schemas already built around it.
 </Callout>
 
-The zod plugin validates field arguments and input fields with [zod](https://github.com/colinhacks/zod). You attach a `validate` option wherever you accept input — a single argument, a whole field's args, an input object, or one of its fields — and the plugin builds a zod validator that runs before your resolver. It does not re-export zod; instead `validate` takes a small options object whose keys map onto the zod methods you already know (`min`, `max`, `email`, `regex`, and so on), or an actual zod schema when you want the full API.
+The zod plugin validates field arguments and input fields with [zod](https://github.com/colinhacks/zod). You attach a `validate` option wherever you accept input (a single argument, a whole field's args, an input object, or one of its fields) and the plugin builds a zod validator that runs before your resolver. It does not re-export zod; instead `validate` takes a small options object whose keys map onto the zod methods you already know (`min`, `max`, `email`, `regex`, and so on), or an actual zod schema when you want the full API.
 
 ## Install
 
@@ -41,7 +41,7 @@ const builder = new SchemaBuilder<{ Context: { userId: string } }>({
 
 ## Validating a single argument
 
-Add `validate` to any argument. The keys you pass are constraints for that argument's type — here an email string capped at 254 characters.
+Add `validate` to any argument. The keys you pass are constraints for that argument's type; here an email string capped at 254 characters.
 
 ```typescript
 builder.queryType({
@@ -63,7 +63,7 @@ builder.queryType({
 
 ## Validating all arguments together
 
-Cross-field rules — "at least one of these," "start before end" — belong on the field's own `validate`, which receives the whole args object. It can be a function, or a `[function, options]` pair when you want a message.
+Cross-field rules ("at least one of these," "start before end") belong on the field's own `validate`, which receives the whole args object. It can be a function, or a `[function, options]` pair when you want a message.
 
 ```typescript
 builder.mutationType({
@@ -143,7 +143,7 @@ const RegisterTeamInput = builder.inputType('RegisterTeamInput', {
 
 ## Bring your own zod schema
 
-When the built-in constraints run out — unions, branded types, `transform`, anything zod can express — pass a real schema with the `schema` key instead. It works on a single argument:
+When the built-in constraints run out (unions, branded types, `transform`, anything zod can express), pass a real schema with the `schema` key instead. It works on a single argument:
 
 ```typescript
 import { z } from 'zod';
@@ -177,7 +177,7 @@ builder.queryType({
 });
 ```
 
-You can combine `schema` with the constraint keys. The plugin pipes your schema into the generated validator, so both run. Validation runs as an async check just before your resolver — refinements may return a `Promise<boolean>`, and the parsed value (including anything a `transform` rewrites) becomes the args your resolver receives.
+You can combine `schema` with the constraint keys. The plugin pipes your schema into the generated validator, so both run. Validation runs as an async check just before your resolver; refinements may return a `Promise<boolean>`, and the parsed value (including anything a `transform` rewrites) becomes the args your resolver receives.
 
 ## Constraint reference
 
@@ -189,7 +189,7 @@ You can combine `schema` with the constraint keys. The plugin pipes your schema 
 | `refine` | function or `[function, { message?, path? }]`, or an array of either | A predicate handed to zod's `refine`. Receives the validated value; returns `boolean` or `Promise<boolean>`. |
 | `schema` | `ZodType` | A zod schema piped into the generated validator. |
 
-The remaining keys depend on the field's type. Each value is a `Constraint` — a bare value, or `[value, { message }]`:
+The remaining keys depend on the field's type. Each value is a `Constraint`, either a bare value or `[value, { message }]`:
 
 | Type | Additional keys |
 | --- | --- |
@@ -222,12 +222,12 @@ Three cases sidestep the union entirely:
 
 - **Input object** args and fields always validate with `z.looseObject(...)`.
 - **List** args and fields always validate with `.array()`.
-- **Refinement-only** validators — a bare function, or an options object with just `refine` and/or `schema` — validate against `z.unknown()`, since no constraint narrows the type.
+- **Refinement-only** validators (a bare function, or an options object with just `refine` and/or `schema`) validate against `z.unknown()`, since no constraint narrows the type.
 
 A `schema` is piped into whatever the plugin generates (`yourSchema.pipe(generated)`), so your schema and the constraints both run.
 
 <Callout type="info">
-  Older releases wrapped optional validators as `z.union([z.null(), z.undefined(), …])` and merged `schema` with `z.intersection`. On zod 4 the plugin uses `.optional().nullable()` and `.pipe()` instead — the shapes above reflect current behavior.
+  Older releases wrapped optional validators as `z.union([z.null(), z.undefined(), …])` and merged `schema` with `z.intersection`. On zod 4 the plugin uses `.optional().nullable()` and `.pipe()` instead; the shapes above reflect current behavior.
 </Callout>
 
 ## Sharing schemas with client code

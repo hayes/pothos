@@ -5,9 +5,9 @@ description: Turn thrown and returned errors into typed result unions, with per-
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Some failures are part of your API — "team not found," "name already taken," "insufficient funds." The errors plugin turns those into typed result unions instead of entries in the GraphQL `errors` array, so clients can `switch` on `__typename` and render each case. You register each error class as a Pothos object type, list those classes on a field's `errors` option, and the plugin wraps the field in a union of a success type plus one member per error.
+Some failures are part of your API: "team not found," "name already taken," "insufficient funds." The errors plugin turns those into typed result unions instead of entries in the GraphQL `errors` array, so clients can `switch` on `__typename` and render each case. You register each error class as a Pothos object type, list those classes on a field's `errors` option, and the plugin wraps the field in a union of a success type plus one member per error.
 
-This is the third layer described in [Handling errors](../patterns/handling-errors) — reach for it when a field's failure modes are worth spelling out in the schema.
+This is the third layer described in [Handling errors](../patterns/handling-errors). Use it when a field's failure modes are worth spelling out in the schema.
 
 ## Install
 
@@ -67,15 +67,15 @@ query {
 }
 ```
 
-Throwing is the type-safe path: a thrown value is untyped, so the resolver's return type stays `Team`. The plugin also unwraps errors you *return* rather than throw, but returning an `Error` widens the resolver's return type — prefer `throw` for fields, and use the return form with [`errorUnion`](#manual-error-unions) and [`errorUnionField`](#custom-error-unions) below, which type the errors into the signature.
+Throwing is the type-safe path: a thrown value is untyped, so the resolver's return type stays `Team`. The plugin also unwraps errors you *return* rather than throw, but returning an `Error` widens the resolver's return type, so prefer `throw` for fields, and use the return form with [`errorUnion`](#manual-error-unions) and [`errorUnionField`](#custom-error-unions) below, which type the errors into the signature.
 
 ## A shared Error interface
 
-Listing raw `Error` on every field works, but it forces clients to know each concrete type. The durable pattern is an `Error` interface that every error implements, plus a base type in `defaultTypes` so it is merged into every field automatically. Clients can then always fall back to `... on Error { message }` and add narrower fragments only for the errors they render specifically — which keeps adding new error types from breaking existing queries.
+Listing raw `Error` on every field works, but it forces clients to know each concrete type. The durable pattern is an `Error` interface that every error implements, plus a base type in `defaultTypes` so it is merged into every field automatically. Clients can then always fall back to `... on Error { message }` and add narrower fragments only for the errors they render specifically, which keeps adding new error types from breaking existing queries.
 
 <includeregions cwd lang="typescript" meta='playground example="errors-plugin-step-2"'>playground-examples/errors-plugin/step-2/schema.ts#builder-setup,error-types</includeregions>
 
-A field opts into just the defaults with `errors: {}`, or adds its own on top — `errors: { types: [NotFoundError] }` handles both `NotFoundError` and the default `BaseError`. Because both implement the `Error` interface, one `... on Error { message }` fragment covers every branch.
+A field opts into just the defaults with `errors: {}`, or adds its own on top; `errors: { types: [NotFoundError] }` handles both `NotFoundError` and the default `BaseError`. Because both implement the `Error` interface, one `... on Error { message }` fragment covers every branch.
 
 ## Field options
 
@@ -99,12 +99,12 @@ Pass an `errors` object when constructing the builder to set defaults for every 
 | --- | --- |
 | `defaultTypes` | Error classes included on every field that uses `errors` or `itemErrors`. |
 | `directResult` | Default for the field-level `directResult` option (non-list fields only). |
-| `onResolvedError` | Called with each error the plugin handles — the hook for logging or metrics. It never fires for errors the plugin doesn't catch. |
+| `onResolvedError` | Called with each error the plugin handles; the hook for logging or metrics. It never fires for errors the plugin doesn't catch. |
 | `defaultResultOptions` | Defaults for every generated success type, including a `name` function to control naming. |
 | `defaultUnionOptions` | Defaults for every generated union type, including a `name` function. |
 | `defaultItemResultOptions` | Like `defaultResultOptions`, but for the per-item success types created by [`itemErrors`](#per-item-list-errors). |
 | `defaultItemUnionOptions` | Like `defaultUnionOptions`, but for the per-item union types created by `itemErrors`. |
-| `unsafelyHandleInputErrors` | Lets the plugin catch errors thrown during argument validation. See [Validation errors](#validation-errors) — it has security implications. |
+| `unsafelyHandleInputErrors` | Lets the plugin catch errors thrown during argument validation. See [Validation errors](#validation-errors); it has security implications. |
 
 The `name` functions receive `{ parentTypeName, fieldName }` and return the generated type name, so you can rename every result and union type in one place:
 
@@ -125,7 +125,7 @@ const builder = new SchemaBuilder({
 
 ## Per-item list errors
 
-For a list field, a single failure normally nulls or errors the whole list. Use `itemErrors` instead of `errors` to wrap *each item* in its own union, so one bad row surfaces in place while the rest resolve. The options are identical to `errors`; they apply per item. Return an `Error` (or a listed subclass) in the array to mark that slot as failed. That return works at runtime, but `itemErrors` reuses the plain field-option types, so the resolver's return type stays `ITeam[]` — strict TypeScript may need a cast or a widened return annotation, the same throw-vs-return tension called out for field-level [`errors`](#a-field-with-errors) above.
+For a list field, a single failure normally nulls or errors the whole list. Use `itemErrors` instead of `errors` to wrap *each item* in its own union, so one bad row surfaces in place while the rest resolve. The options are identical to `errors`; they apply per item. Return an `Error` (or a listed subclass) in the array to mark that slot as failed. That return works at runtime, but `itemErrors` reuses the plain field-option types, so the resolver's return type stays `ITeam[]`, and strict TypeScript may need a cast or a widened return annotation, the same throw-vs-return tension called out for field-level [`errors`](#a-field-with-errors) above.
 
 ```typescript
 builder.queryType({
@@ -155,7 +155,7 @@ type QueryStandingsItemSuccess {
 }
 ```
 
-`itemErrors` also works with sync and async iterators — useful with `graphql@>=17` or any executor that supports the `@stream` directive. A yielded error becomes an error item; if the generator itself throws, that error is added as the final item and no further results are produced for the field:
+`itemErrors` also works with sync and async iterators, which is useful with `graphql@>=17` or any executor that supports the `@stream` directive. A yielded error becomes an error item; if the generator itself throws, that error is added as the final item and no further results are produced for the field:
 
 ```typescript
 builder.queryType({
@@ -255,7 +255,7 @@ builder.mutationType({
 
 Union members are resolved with standard Pothos type resolution, so you have three ways to tell the members apart:
 
-- **Class-based types** resolve automatically via `instanceof`. Most error types fall here — `builder.objectType(ValidationError, …)` needs no `isTypeOf`.
+- **Class-based types** resolve automatically via `instanceof`. Most error types fall here; `builder.objectType(ValidationError, …)` needs no `isTypeOf`.
 - **`isTypeOf`** discriminates plain object types, as `CreateResult` and `UpdateResult` do above.
 - **A custom `resolveType`** on the `union` option handles anything more involved. It runs after the plugin's internal error lookup:
 
@@ -277,7 +277,7 @@ t.errorUnionField({
 
 ## Manual error unions
 
-`builder.errorUnion` builds a reusable union type up front. Any field that returns it automatically handles both returned and thrown errors — handy when several fields share the same success-or-error shape.
+`builder.errorUnion` builds a reusable union type up front. Any field that returns it automatically handles both returned and thrown errors, which helps when several fields share the same success-or-error shape.
 
 ```typescript
 const TeamResult = builder.errorUnion('TeamResult', {
@@ -301,9 +301,9 @@ builder.queryField('team', (t) =>
 
 `errorUnion` accepts:
 
-- `types` — the member types (object refs, error classes, and so on).
-- `omitDefaultTypes` — set `true` to exclude the builder's `defaultTypes` from this union (default `false`).
-- `resolveType` — an optional custom resolver, called after the plugin's internal error-map check.
+- `types`: the member types (object refs, error classes, and so on).
+- `omitDefaultTypes`: set `true` to exclude the builder's `defaultTypes` from this union (default `false`).
+- `resolveType`: an optional custom resolver, called after the plugin's internal error-map check.
 - Every other standard union type option.
 
 ## Working with other plugins
@@ -313,7 +313,7 @@ builder.queryField('team', (t) =>
 The [validation plugin](./validation) throws before your resolver runs, so those errors bypass `errors` by default. Enabling `unsafelyHandleInputErrors` lets the plugin catch them and return structured results for validation failures.
 
 <Callout type="warn">
-  `unsafelyHandleInputErrors` wraps errors at a higher level than field resolution, which means it runs *before* field auth checks — a request that fails validation returns a typed error without those auth checks running. Enable it only when you understand that trade-off.
+  `unsafelyHandleInputErrors` wraps errors at a higher level than field resolution, which means it runs *before* field auth checks, so a request that fails validation returns a typed error without those auth checks running. Enable it only when you understand that trade-off.
 </Callout>
 
 With it enabled, define a type for your validation error the same way you would any other, then list it on the field:
@@ -366,4 +366,4 @@ List fields are the exception: errors while loading objects from a list of ids a
 
 List the errors plugin **before** the [Prisma plugin](./prisma) so `errors` works with every Prisma field-builder method.
 
-You can put `errors` on any field, but an error while pre-loading a relation always surfaces on the field that ran the query. Some relations fall back to their own query, so those fields may still error if the relation wasn't pre-loaded — and nested-relation detection keeps working when those relations use the errors plugin themselves.
+You can put `errors` on any field, but an error while pre-loading a relation always surfaces on the field that ran the query. Some relations fall back to their own query, so those fields may still error if the relation wasn't pre-loaded. Nested-relation detection keeps working when those relations use the errors plugin themselves.

@@ -3,9 +3,9 @@ title: Validation plugin
 description: Validate arguments, input fields, and input objects with Zod or any Standard Schema library.
 ---
 
-GraphQL's type system checks shapes, not rules. It will accept `jersey: 250` or `email: "nope"` as long as the types line up. The validation plugin closes that gap: attach a [Standard Schema](https://standardschema.dev) — a [Zod](https://zod.dev), [Valibot](https://valibot.dev), or [ArkType](https://arktype.io) schema — to any argument, input field, or input type, and Pothos runs it before your resolver ever sees the value.
+GraphQL's type system checks shapes, not rules. It will accept `jersey: 250` or `email: "nope"` as long as the types line up. The validation plugin closes that gap: attach a [Standard Schema](https://standardschema.dev) (a [Zod](https://zod.dev), [Valibot](https://valibot.dev), or [ArkType](https://arktype.io) schema) to any argument, input field, or input type, and Pothos runs it before your resolver ever sees the value.
 
-Every attachment point — an argument, an input field, an input type, or a whole field's args — takes the same `validate` option.
+Every attachment point (an argument, an input field, an input type, or a whole field's args) takes the same `validate` option.
 
 ## Setup
 
@@ -13,7 +13,7 @@ Every attachment point — an argument, an input field, an input type, or a whol
 npm install --save @pothos/plugin-validation zod
 ```
 
-Swap `zod` for `valibot` or `arktype` — the plugin only cares that the library implements Standard Schema. Register the plugin like any other:
+Swap `zod` for `valibot` or `arktype`; the plugin only cares that the library implements Standard Schema. Register the plugin like any other:
 
 ```typescript
 import ValidationPlugin from '@pothos/plugin-validation';
@@ -30,7 +30,7 @@ Pass a schema as the `validate` option on any argument. If the value fails, the 
 
 <include cwd lang="typescript" meta='playground example="validation-plugin"'>playground-examples/validation-plugin/schema.ts#register-mutation</include>
 
-Every point that accepts `validate:` also has a chained `.validate()` equivalent. The two are interchangeable for plain checks — reach for chaining when you want to **transform** the value.
+Every point that accepts `validate:` also has a chained `.validate()` equivalent. The two are interchangeable for plain checks; use chaining when you want to **transform** the value.
 
 ## Transforming as you validate
 
@@ -47,7 +47,7 @@ Chaining `.validate()` more than once runs the schemas in order, so each transfo
 
 ## Validating across arguments
 
-Per-argument schemas can't express "at least one of these." For cross-argument rules, put a `validate` schema on the field itself — it receives the whole args object:
+Per-argument schemas can't express "at least one of these." For cross-argument rules, put a `validate` schema on the field itself; it receives the whole args object:
 
 ```typescript
 builder.queryField('findPlayer', (t) =>
@@ -67,7 +67,7 @@ builder.queryField('findPlayer', (t) =>
 );
 ```
 
-To **transform** all arguments together, the field-level `validate` option can't help — it can't retype the args. Use `t.validate(args, schema)` instead, which wraps the args map and threads the transformed shape through to the resolver:
+To **transform** all arguments together, the field-level `validate` option can't help; it can't retype the args. Use `t.validate(args, schema)` instead, which wraps the args map and threads the transformed shape through to the resolver:
 
 ```typescript
 builder.queryField('findPlayer', (t) =>
@@ -88,13 +88,13 @@ builder.queryField('findPlayer', (t) =>
 
 ## Validating input types
 
-Input types take `validate` in both places an argument does — on each field, and on the type as a whole:
+Input types take `validate` in both places an argument does: on each field, and on the type as a whole:
 
 <include cwd lang="typescript" meta='playground example="validation-plugin"'>playground-examples/validation-plugin/schema.ts#signup-input</include>
 
 The field-level `z.email()` runs per field; the type-level `signUpRules` sees every field at once, which is where cross-field rules like "primary and backup jersey numbers must differ" belong.
 
-Both levels transform, too. A type-level `.validate(z.object().transform(...))` can reshape the whole input — parsing a raw form into a normalized record — and a chained input-field `.validate()` can convert a value, such as an ISO date string into a `Date`:
+Both levels transform, too. A type-level `.validate(z.object().transform(...))` can reshape the whole input (parsing a raw form into a normalized record), and a chained input-field `.validate()` can convert a value, such as an ISO date string into a `Date`:
 
 ```typescript
 const RawSignUp = builder.inputType('RawSignUp', {
@@ -108,17 +108,17 @@ const RawSignUp = builder.inputType('RawSignUp', {
 
 ## Choosing a validation library
 
-Any Standard Schema library works — pick on ergonomics and bundle size, not compatibility:
+Any Standard Schema library works; pick on ergonomics and bundle size, not compatibility:
 
-- **[Zod](https://zod.dev)** — TypeScript-first, the most feature-complete option.
-- **[Valibot](https://valibot.dev)** — modular and tree-shakeable, for bundle-size-sensitive builds.
-- **[ArkType](https://arktype.io)** — 1:1 TypeScript syntax, optimized editor-to-runtime.
+- **[Zod](https://zod.dev)**: TypeScript-first, the most feature-complete option.
+- **[Valibot](https://valibot.dev)**: modular and tree-shakeable, for bundle-size-sensitive builds.
+- **[ArkType](https://arktype.io)**: 1:1 TypeScript syntax, optimized editor-to-runtime.
 
 Because the plugin targets the Standard Schema interface rather than any one library, you can mix libraries in a single schema, or swap later without touching Pothos.
 
 ## Customizing validation errors
 
-By default a failed validation throws an `InputValidationError` — a `PothosValidationError` whose message lists each failing path and reason. Override the `validationError` option to reshape that into whatever your API and monitoring expect:
+By default a failed validation throws an `InputValidationError`, a `PothosValidationError` whose message lists each failing path and reason. Override the `validationError` option to reshape that into whatever your API and monitoring expect:
 
 ```typescript
 const builder = new SchemaBuilder({
@@ -132,13 +132,13 @@ const builder = new SchemaBuilder({
 });
 ```
 
-The handler runs with the raw failure `result`, the field's `args`, and the request `context` — enough to log, tag, or branch on the operation. It can:
+The handler runs with the raw failure `result`, the field's `args`, and the request `context`, enough to log, tag, or branch on the operation. It can:
 
-- **return an `Error`** — thrown as-is,
-- **return a `string`** — wrapped in a `PothosValidationError`, or
+- **return an `Error`**, thrown as-is,
+- **return a `string`**, wrapped in a `PothosValidationError`, or
 - **throw** its own error directly.
 
-Whatever it returns follows [normal error handling](../patterns/handling-errors) from there — mask it in production, or surface it as a typed result with [`plugin-errors`](./errors).
+Whatever it returns follows [normal error handling](../patterns/handling-errors) from there: mask it in production, or surface it as a typed result with [`plugin-errors`](./errors).
 
 ## Execution order
 
@@ -149,4 +149,4 @@ When a field carries validation at several levels, Pothos runs them from the ins
 3. **Arguments** validate next.
 4. **Field-level** `validate` / `t.validate` runs last, over the fully validated args.
 
-Schemas stacked on the *same* field or type run in sequence — transforms chain. Schemas on *separate* fields or arguments run in parallel, and their failures merge into a single set of issues, so one response reports every problem at once rather than only the first.
+Schemas stacked on the *same* field or type run in sequence, so transforms chain. Schemas on *separate* fields or arguments run in parallel, and their failures merge into a single set of issues, so one response reports every problem at once rather than only the first.

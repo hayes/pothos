@@ -70,8 +70,8 @@ npx prisma generate
 
 Two generator options control where the types land and what they import from:
 
-- **`output`** — where to write the generated types file. Defaults next to the Prisma client.
-- **`clientOutput`** — the import path the generated file uses to reach `PrismaClient`. It defaults to the absolute path of wherever the client is generated. If you check the generated file into source control, set this to a relative path so the import survives on other machines.
+- **`output`**: where to write the generated types file. Defaults next to the Prisma client.
+- **`clientOutput`**: the import path the generated file uses to reach `PrismaClient`. It defaults to the absolute path of wherever the client is generated. If you check the generated file into source control, set this to a relative path so the import survives on other machines.
 
 ```prisma
 generator client {
@@ -87,7 +87,7 @@ generator pothos {
 ```
 
 <Callout type="warn">
-  If auto-completion for Prisma types and relations is not working, check that the generated types file imports the client from the right location — a stale `clientOutput` is the usual cause.
+  If auto-completion for Prisma types and relations is not working, check that the generated types file imports the client from the right location; a stale `clientOutput` is the usual cause.
 </Callout>
 
 ## Wire up the builder
@@ -119,7 +119,7 @@ const builder = new SchemaBuilder<{
 The rest of the Prisma pages assume this `builder` and this module-level `prisma` client already exist.
 
 <Callout type="info">
-  The datamodel used to ride along on the Prisma client, but most runtimes now strip it to shrink bundle size — so `dmmf: getDatamodel()` passes it explicitly. `getDatamodel` is exported from the generated types file.
+  The datamodel used to ride along on the Prisma client, but most runtimes now strip it to shrink bundle size, so `dmmf: getDatamodel()` passes it explicitly. `getDatamodel` is exported from the generated types file.
 </Callout>
 
 ### Prisma config options
@@ -138,7 +138,7 @@ The `prisma` object accepts:
 
 ### A client per request
 
-Pass a function for `client` to choose a client based on context — useful for periodically recycled clients or read-only replicas for some users:
+Pass a function for `client` to choose a client based on context, useful for periodically recycled clients or read-only replicas for some users:
 
 ```typescript
 const prisma = new PrismaClient({});
@@ -162,12 +162,12 @@ const builder = new SchemaBuilder<{
 ```
 
 <Callout type="warn">
-  Keep the Prisma client out of your `Context` type. The client's types are large, and threading them through `Context` slows type-checking and makes editors laggy — see [this TypeScript issue](https://github.com/microsoft/TypeScript/issues/45405). Reference a module-level `prisma` singleton instead, as above.
+  Keep the Prisma client out of your `Context` type. The client's types are large, and threading them through `Context` slows type-checking and makes editors laggy (see [this TypeScript issue](https://github.com/microsoft/TypeScript/issues/45405)). Reference a module-level `prisma` singleton instead, as above.
 </Callout>
 
 ## Detecting unused query arguments
 
-`t.prismaField` and `t.prismaConnection` hand your resolver a `query` argument to spread into the Prisma call. Forgetting to spread it produces inefficient queries — or missing data. Set `onUnusedQuery` to catch the mistake:
+`t.prismaField` and `t.prismaConnection` hand your resolver a `query` argument to spread into the Prisma call. Forgetting to spread it produces inefficient queries, or missing data. Set `onUnusedQuery` to catch the mistake:
 
 - `'warn'` logs a warning when the resolver returns without using `query`.
 - `'error'` throws instead.

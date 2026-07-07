@@ -3,7 +3,7 @@ title: Using plugins
 description: Install a Pothos plugin, register it on the builder, and understand the rules that apply to every plugin.
 ---
 
-Plugins extend Pothos with features that feel like they're part of the core API — auth scopes, validation, error unions, ORM integrations, Relay connections. Each plugin documents its own setup, but they all follow the same shape.
+Plugins extend Pothos with features that feel like they're part of the core API: auth scopes, validation, error unions, ORM integrations, Relay connections. Each plugin documents its own setup, but they all follow the same shape.
 
 ## Installing one
 
@@ -32,8 +32,8 @@ const builder = new SchemaBuilder<{
 
 Two slots are always involved:
 
-- **The generic** carries any types the plugin needs to know — `AuthScopes` for scope-auth, `DrizzleRelations` for drizzle, `PrismaTypes` for prisma.
-- **The constructor options** carry any runtime config — `scopeAuth: { authScopes: ... }`, `drizzle: { client, ... }`. The plugin's own docs spell out which keys.
+- **The generic** carries any types the plugin needs to know: `AuthScopes` for scope-auth, `DrizzleRelations` for drizzle, `PrismaTypes` for prisma.
+- **The constructor options** carry any runtime config: `scopeAuth: { authScopes: ... }`, `drizzle: { client, ... }`. The plugin's own docs spell out which keys.
 
 Once registered, the plugin's methods appear on the builder as if they were core methods. `t.withAuth({...})` only exists when scope-auth is loaded; `t.prismaField` only exists when the prisma plugin is loaded.
 

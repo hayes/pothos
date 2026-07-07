@@ -38,7 +38,7 @@ builder.prismaObject('Player', {
 });
 ```
 
-Each `t.relation` contributes an `include` — `{ include: { players: true } }` — to the `query` argument of the `prismaField` that resolves the parent. When a relation field's parent is itself a relation, the includes nest, and the whole chain flows back to the `prismaField` at the root. This query:
+Each `t.relation` contributes an `include` (`{ include: { players: true } }`) to the `query` argument of the `prismaField` that resolves the parent. When a relation field's parent is itself a relation, the includes nest, and the whole chain flows back to the `prismaField` at the root. This query:
 
 ```graphql
 query {
@@ -84,7 +84,7 @@ These are uncommon in normal use, and the plugin handles them automatically when
 
 ## Filters, sorting, and arguments
 
-`t.prismaField` takes arguments like any field and you pass them into your own Prisma call. `t.relation` is different — you aren't writing the Prisma query, the planner is — so you shape the relation with a `query` option. It's either a query object or a function of the field's arguments and the request context:
+`t.prismaField` takes arguments like any field and you pass them into your own Prisma call. `t.relation` is different. You aren't writing the Prisma query, the planner is, so you shape the relation with a `query` option. It's either a query object or a function of the field's arguments and the request context:
 
 ```typescript
 builder.prismaObject('Team', {
@@ -104,7 +104,7 @@ builder.prismaObject('Team', {
 });
 ```
 
-The object `query` returns is merged into the `include` for this relation, so it accepts the usual relation query keys — `where`, `skip`, `take`, `orderBy`. The function receives the field arguments and the request context. It does **not** receive the parent object: the relation is pre-loaded before the parent exists, which is exactly what avoids the N+1 query.
+The object `query` returns is merged into the `include` for this relation, so it accepts the usual relation query keys: `where`, `skip`, `take`, `orderBy`. The function receives the field arguments and the request context. It does **not** receive the parent object: the relation is pre-loaded before the parent exists, which is exactly what avoids the N+1 query.
 
 ## Relation counts
 
@@ -124,5 +124,5 @@ builder.prismaObject('Team', {
 ```
 
 <Callout type="warn">
-  Filtering a relation count needs Prisma 4.2.0 or newer, under the `filteredRelationCount` preview feature. Before 4.2.0, `t.relationCount` still works but can only return a total — drop the `where` option.
+  Filtering a relation count needs Prisma 4.2.0 or newer, under the `filteredRelationCount` preview feature. Before 4.2.0, `t.relationCount` still works but can only return a total, so drop the `where` option.
 </Callout>

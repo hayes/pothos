@@ -4,14 +4,12 @@ interface ICharacter {
   id: string;
   name: string;
   birthYear?: string;
-  biography?: string;
-  editorId: string;
 }
 
 const characters: ICharacter[] = [
-  { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968', editorId: '1' },
-  { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980', editorId: '1' },
-  { id: '3', name: 'Gandalf', editorId: '2' },
+  { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968' },
+  { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980' },
+  { id: '3', name: 'Gandalf' },
 ];
 
 // Stands in for a real data source such as a database
@@ -56,20 +54,6 @@ builder.queryType({
       },
     }),
     // #endregion async
-
-    // #region throw
-    characterById: t.field({
-      type: Character,
-      args: { id: t.arg.id({ required: true }) },
-      resolve: (_parent, args) => {
-        const character = characters.find((c) => c.id === args.id);
-        if (!character) {
-          throw new Error(`No character with id ${args.id}`);
-        }
-        return character;
-      },
-    }),
-    // #endregion throw
   }),
 });
 

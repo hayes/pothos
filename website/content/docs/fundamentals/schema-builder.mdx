@@ -1,29 +1,29 @@
 ---
 title: SchemaBuilder
-description: Create a SchemaBuilder, fill in the SchemaTypes generic, and build a GraphQLSchema with toSchema.
+description: The central builder every Pothos type is defined on, configured through its SchemaTypes generic and constructor options.
 ---
 
-Every Pothos schema starts with a `SchemaBuilder`, and every type in the schema is defined through it. This page covers creating and configuring one, and turning it into a finished `GraphQLSchema`.
+Every Pothos schema starts with a `SchemaBuilder`, and every type in the schema is defined through it. The builder holds two kinds of configuration: a `SchemaTypes` generic that shapes what TypeScript infers, and a constructor options object that carries runtime settings like the list of plugins.
 
 ## Creating a builder
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-schema-builder"'>playground-examples/fundamentals-schema-builder/schema.ts#imports,context-type,builder-init</includeregions>
 
-The generic parameter is an object Pothos calls `SchemaTypes`. This one fills in two of its entries: `Context` declares the type of the context object resolvers receive as their third argument (the [Context](./context) guide covers where that object comes from), and `Scalars` declares the TypeScript types for a custom `DateTime` scalar (the [Scalars](./scalars) guide covers implementing it). The constructor takes an options object, covered below; with no plugins involved it stays empty.
+The generic parameter is an object Pothos calls `SchemaTypes`. This one fills in two of its entries: `Context` declares the type of the context object resolvers receive as their third argument (the [Context](./context) guide covers where that object comes from), and `Scalars` declares the TypeScript types for a custom `DateTime` scalar (the [Scalars](./scalars) guide covers implementing it). The constructor takes an options object; with no plugins here it stays empty.
 
 You typically create one builder per schema and export it from a shared module, so every file that defines part of the schema imports the same builder. The [Project layout](../patterns/project-layout) pattern shows one way to organize this.
 
 ## The SchemaTypes generic
 
-The generic is type-level configuration: it changes what TypeScript accepts and infers, and nothing you write in it is passed to the constructor. Every entry is optional — you supply the ones you care about, and Pothos fills in defaults for the rest. Each entry is covered in depth on its own page:
+The generic is type-level configuration: it changes what TypeScript accepts and infers, and nothing you write in it is passed to the constructor. Every entry is optional; you supply the ones you care about, and Pothos fills in defaults for the rest. Each entry is covered in depth on its own page:
 
-- `Context` — the shape of the per-request context object. Covered in [Context](./context).
-- `Scalars` — the Input/Output TypeScript types for each named scalar. The runtime implementation is registered later with `builder.scalarType`, covered in [Scalars](./scalars).
-- `DefaultFieldNullability` and `DefaultInputFieldRequiredness` — schema-wide defaults for whether output fields are nullable and input fields are required. Covered in [Default nullability](../patterns/default-nullability).
-- `Objects`, `Interfaces`, and `Inputs` — maps from type name to backing model (the TypeScript shape behind a type), which let you reference types by name as strings and keep your type definitions in one place. [Object types](./objects) covers this style alongside the others.
-- Plugin entries — each installed plugin can add its own entries (`AuthScopes` from scope-auth, `PrismaTypes` from prisma, and so on), documented on that plugin's page.
+- `Context`: the shape of the per-request context object. Covered in [Context](./context).
+- `Scalars`: the Input/Output TypeScript types for each named scalar. The runtime implementation is registered later with `builder.scalarType`, covered in [Scalars](./scalars).
+- `DefaultFieldNullability` and `DefaultInputFieldRequiredness`: schema-wide defaults for whether output fields are nullable and input fields are required. Covered in [Default nullability](../patterns/default-nullability).
+- `Objects`, `Interfaces`, and `Inputs`: maps from type name to backing model (the TypeScript shape behind a type), which let you reference types by name as strings and keep your type definitions in one place. [Object types](./objects) covers this style alongside the others.
+- Plugin entries: each installed plugin can add its own entries (`AuthScopes` from scope-auth, `PrismaTypes` from prisma, and so on), documented on that plugin's page.
 
-Three entries also have a constructor counterpart: `Defaults` (covered in the [v4 migration guide](../migrations/v4)), `DefaultFieldNullability`, and `DefaultInputFieldRequiredness`. Setting one of these to a non-default value makes the matching constructor option (`defaults`, `defaultFieldNullability`, `defaultInputFieldRequiredness`) required, and its value has to match. None of the other core entries corresponds to a constructor option — the context value is created by your server for each request, and scalar implementations and named types are registered through builder methods.
+Three entries also have a constructor counterpart: `Defaults` (covered in the [v4 migration guide](../migrations/v4)), `DefaultFieldNullability`, and `DefaultInputFieldRequiredness`. Setting one of these to a non-default value makes the matching constructor option (`defaults`, `defaultFieldNullability`, `defaultInputFieldRequiredness`) required, and its value has to match. None of the other core entries corresponds to a constructor option. The context value is created by your server for each request, and scalar implementations and named types are registered through builder methods.
 
 ## Constructor options
 
@@ -46,6 +46,6 @@ Each installed plugin can also add its own keys to the options object. Some are 
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-schema-builder"'>playground-examples/fundamentals-schema-builder/schema.ts#export</includeregions>
 
-`toSchema` resolves every type registered on the builder and returns a standard graphql-js `GraphQLSchema`, so anything that accepts a `GraphQLSchema` can serve it. Call it after all of your types have been defined — usually at the bottom of the module that imports every type definition.
+`toSchema` resolves every type registered on the builder and returns a standard graphql-js `GraphQLSchema`, so anything that accepts a `GraphQLSchema` can serve it. Call it after all of your types have been defined, usually at the bottom of the module that imports every type definition.
 
 By default the returned schema is sorted lexicographically; pass `toSchema({ sortSchema: false })` to keep definition order instead. `toSchema` accepts a few other options (`directives`, `extensions`), and some plugins add their own build-time options here.

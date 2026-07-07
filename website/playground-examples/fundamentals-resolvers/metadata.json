@@ -1,11 +1,11 @@
 {
   "id": "fundamentals-resolvers",
   "title": "Resolvers",
-  "description": "Sync, async, and throwing resolver patterns.",
+  "description": "Sync and async resolver patterns.",
   "category": "core",
   "subcategory": "fundamentals",
   "difficulty": "beginner",
   "order": 4,
-  "tags": ["resolvers", "async", "errors"],
+  "tags": ["resolvers", "async"],
   "relatedDocs": ["/docs/fundamentals/resolvers"]
 }

@@ -1,11 +1,11 @@
 ---
 title: Relay nodes
-description: Turn a Drizzle table into a Relay node with drizzleNode — global IDs from any column, composite keys, and efficient node(id) lookups.
+description: Turn a Drizzle table into a Relay node with global IDs, composite keys, and efficient node(id) lookups.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-The Drizzle plugin wires into the [Relay plugin](../relay) so a Drizzle table becomes a Relay node with a global ID and an efficient `node(id: ID!)` lookup. Where you'd reach for `builder.drizzleObject`, reach for `builder.drizzleNode` instead: it defines the same object type and, on top of it, implements the `Node` interface and the `id` field for you.
+The Drizzle plugin wires into the [Relay plugin](../relay) so a Drizzle table becomes a Relay node with a global ID and an efficient `node(id: ID!)` lookup. `builder.drizzleNode` takes the place of `builder.drizzleObject`: it defines the same object type and, on top of it, implements the `Node` interface and the `id` field for you.
 
 These examples assume the builder is set up with both `DrizzlePlugin` and `RelayPlugin`, a `db` client in scope, and the league schema and relations from [Setup](./setup).
 
@@ -33,11 +33,11 @@ builder.drizzleNode('players', {
 });
 ```
 
-With the `id` set, the `node(id:)` query loads the record keyed on that column through the plugin's selection-aware loader — no resolver to write, and the load joins into the same query as the rest of the request.
+With the `id` set, the `node(id:)` query loads the record keyed on that column through the plugin's selection-aware loader, with no resolver to write, and the load joins into the same query as the rest of the request.
 
 ## Composite primary keys
 
-When a table's primary key spans more than one column — common for join tables keyed on the two rows they connect — pass an array of columns. Pothos packs all of them into the global ID and unpacks them on lookup:
+When a table's primary key spans more than one column, common for join tables keyed on the two rows they connect, pass an array of columns. Pothos packs all of them into the global ID and unpacks them on lookup:
 
 ```typescript
 builder.drizzleNode('playerStats', {
@@ -55,7 +55,7 @@ builder.drizzleNode('playerStats', {
 
 ## Customizing the id field
 
-The rest of the `id` option is passed straight to the generated global-ID field, so you can set anything a normal field takes — a `description`, for instance. The plugin fixes `column`, `type`, `nullable`, and the field's `args`, so those aren't yours to override:
+The rest of the `id` option is passed straight to the generated global-ID field, so you can set anything a normal field takes, such as a `description`. The plugin fixes `column`, `type`, `nullable`, and the field's `args`, so those aren't yours to override:
 
 ```typescript
 builder.drizzleNode('players', {

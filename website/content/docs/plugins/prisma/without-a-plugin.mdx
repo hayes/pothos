@@ -3,7 +3,7 @@ title: Prisma without a plugin
 description: Back GraphQL objects with Prisma models using plain objectRef, and tame the resulting N+1 queries.
 ---
 
-You don't need the [Prisma plugin](./setup) to put Prisma models behind a GraphQL schema. `builder.objectRef` takes any TypeScript shape as its backing model, and a Prisma row is just a shape — so you can point a ref at `Team` or `Player` from `@prisma/client` and resolve relations with ordinary client calls. You give up the plugin's automatic query-planning, but the code stays plain Pothos.
+You don't need the [Prisma plugin](./setup) to put Prisma models behind a GraphQL schema. `builder.objectRef` takes any TypeScript shape as its backing model, and a Prisma row is just a shape, so you can point a ref at `Team` or `Player` from `@prisma/client` and resolve relations with ordinary client calls. You give up the plugin's automatic query-planning, but the code stays plain Pothos.
 
 ```typescript
 import { Player, PrismaClient, Team } from '@prisma/client';
@@ -47,8 +47,8 @@ builder.queryType({
 
 This defines `Team` and `Player` objects with a relation each, plus a `myTeam` query for the viewer's team. Three details make it work:
 
-- **Split the ref from `implement`.** Declaring `TeamObject`/`PlayerObject` up front and calling `implement` afterwards — rather than `builder.objectRef(...).implement(...)` in one expression — keeps TypeScript from choking on the circular reference between teams and players.
-- **`findUniqueOrThrow` for non-null fields.** `team` and `myTeam` are non-nullable, so they must never resolve to `null`. `findUnique` returns `null` when nothing matches; `findUniqueOrThrow` throws instead. Reach for `findUnique` only when the field is marked `nullable`.
+- **Split the ref from `implement`.** Declaring `TeamObject`/`PlayerObject` up front and calling `implement` afterwards, rather than `builder.objectRef(...).implement(...)` in one expression, keeps TypeScript from choking on the circular reference between teams and players.
+- **`findUniqueOrThrow` for non-null fields.** `team` and `myTeam` are non-nullable, so they must never resolve to `null`. `findUnique` returns `null` when nothing matches; `findUniqueOrThrow` throws instead. Use `findUnique` only when the field is marked `nullable`.
 - **Ref names vs. type names.** The refs are `TeamObject`/`PlayerObject` because `Team` and `Player` are already taken by the imports from `@prisma/client`. Alias the imports instead (`import { Team as TeamModel }`) if you'd rather name the refs after the GraphQL types.
 
 ## Cutting down N+1 queries
@@ -91,7 +91,7 @@ PlayerObject.implement({
 });
 ```
 
-Requiring `team` on every `Player` is a strong claim — every resolver that produces a player now owes you the include. When only some paths can supply it, make the field optional and fall back to a query:
+Requiring `team` on every `Player` is a strong claim: every resolver that produces a player now owes you the include. When only some paths can supply it, make the field optional and fall back to a query:
 
 ```typescript
 const PlayerObject = builder.objectRef<Player & { team?: Team }>('Player');
@@ -111,4 +111,4 @@ PlayerObject.implement({
 
 Now a parent resolver *may* pre-load the team, and the field still resolves correctly when it doesn't.
 
-A [dataloader](../dataloader) is the other lever for N+1 — batch the per-player team lookups into one query. Or let the [Prisma plugin](./setup) plan these selections for you: `t.relation` and `t.prismaField` read the GraphQL selection set and build a single nested query.
+A [dataloader](../dataloader) is the other lever for N+1: batch the per-player team lookups into one query. Or let the [Prisma plugin](./setup) plan these selections for you: `t.relation` and `t.prismaField` read the GraphQL selection set and build a single nested query.

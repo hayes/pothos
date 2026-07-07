@@ -5,7 +5,7 @@ description: Build fields with Grafast plans instead of resolvers, and resolve i
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-[Grafast](https://grafast.org/grafast/) is a planning-based GraphQL executor: instead of a resolver per field, you write a *plan* that Grafast optimizes across the whole operation before running it. This plugin swaps the Pothos field builder from `resolve` to `plan`, so every field you define expects a plan. You still define objects, interfaces, and unions the same way — with `builder.objectRef` and friends — only the field bodies change.
+[Grafast](https://grafast.org/grafast/) is a planning-based GraphQL executor: instead of a resolver per field, you write a *plan* that Grafast optimizes across the whole operation before running it. This plugin swaps the Pothos field builder from `resolve` to `plan`, so every field you define expects a plan. You still define objects, interfaces, and unions the same way, with `builder.objectRef` and friends; only the field bodies change.
 
 <Callout type="warn" title="Experimental package">
   This package is experimental and will have breaking changes in the near future.
@@ -50,7 +50,7 @@ const builder = new SchemaBuilder<{
 
 ## Adding plans to fields
 
-A field's `plan` receives step versions of its arguments — each prefixed with `$` — and returns a step. Combine steps with helpers like `lambda` to compute a value. See the [Grafast documentation](https://grafast.org/grafast/) for the full catalog of steps.
+A field's `plan` receives step versions of its arguments (each prefixed with `$`) and returns a step. Combine steps with helpers like `lambda` to compute a value. See the [Grafast documentation](https://grafast.org/grafast/) for the full catalog of steps.
 
 ```typescript
 import { lambda } from 'grafast';
@@ -71,7 +71,7 @@ builder.queryType({
 
 ## Using resolvers
 
-You can still write a plain `resolve`, but the plan-based executor does not pass the fourth `GraphQLResolveInfo` argument — a resolver here sees only `parent`, `args`, and `context`.
+You can still write a plain `resolve`, but the plan-based executor does not pass the fourth `GraphQLResolveInfo` argument, so a resolver here sees only `parent`, `args`, and `context`.
 
 ```typescript
 builder.queryType({
@@ -87,7 +87,7 @@ builder.queryType({
 });
 ```
 
-Don't use a resolver to load data — that defeats the point of planning. Reach for it only when it reads more clearly than a field that would otherwise be a one-line `lambda` plan.
+Don't use a resolver to load data; that defeats the point of planning. Use one only when it reads more clearly than a field that would otherwise be a one-line `lambda` plan.
 
 ## Abstract types
 
@@ -152,7 +152,7 @@ builder.queryFields((t) => ({
 
 ### Unions
 
-A union works the same way — build it with `builder.unionType`, then attach the resolving plan with `.withPlan`:
+A union works the same way: build it with `builder.unionType`, then attach the resolving plan with `.withPlan`:
 
 ```typescript
 interface SponsorData {
@@ -182,7 +182,7 @@ export const Entity = builder
 If the field that returns an abstract type has only an id to work with, let the type's plan do the loading. Give `planType` an explicit specifier step, load the record inside the plan, and return a `planForType` that hands each concrete type its data. Fields returning the type then only need to produce the id.
 
 <Callout type="warn">
-  `planForType` is not fully type-safe — it will accept plans that resolve to data for the wrong type. This API is likely to change.
+  `planForType` is not fully type-safe; it will accept plans that resolve to data for the wrong type. This API is likely to change.
 </Callout>
 
 ```typescript
@@ -235,8 +235,8 @@ builder.queryFields((t) => ({
 
 | Key | Where | Purpose |
 | --- | --- | --- |
-| `planType` | interface / union / object | Returns the plan for the type. On abstract types it returns `{ $__typename }`, plus `planForType` — optional when the plan's specifier is the full record type, but required when `planType` takes a narrowed specifier (an id, as in the `planForType` example above); on object types it returns the step Pothos hands to the type's fields. |
+| `planType` | interface / union / object | Returns the plan for the type. On abstract types it returns `{ $__typename }`, plus `planForType`, which is optional when the plan's specifier is the full record type but required when `planType` takes a narrowed specifier (an id, as in the `planForType` example above); on object types it returns the step Pothos hands to the type's fields. |
 | `$__typename` | returned from abstract `planType` | Step resolving to the concrete member's type name. |
 | `planForType` | returned from abstract `planType` | Loads the record for the resolved concrete type, so fields returning the abstract type can return only a specifier. |
 | `toSpecifier` | interface / union | Transforms the source step into the specifier step passed to `planType`. |
-| `assertStep` | object | Asserts the step passed to the object's `planType` — a Step subclass or an assertion function. |
+| `assertStep` | object | Asserts the step passed to the object's `planType`, either a Step subclass or an assertion function. |

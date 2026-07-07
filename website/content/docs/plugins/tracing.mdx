@@ -5,7 +5,7 @@ description: Wrap resolvers with tracing and logging, and export spans to OpenTe
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Tracing measures how long each resolver takes and reports it to your observability backend. In Pothos, you add a `tracing` option to the builder and to individual fields, and the plugin wraps the matching resolvers in a tracer you supply. The plugin ships deliberately thin — it decides *which* fields to trace and hands each resolver to your `wrap` function; the actual span or log is yours to produce, either by hand or through one of the provider packages below.
+Tracing measures how long each resolver takes and reports it to your observability backend. In Pothos, you add a `tracing` option to the builder and to individual fields, and the plugin wraps the matching resolvers in a tracer you supply. The plugin ships deliberately thin. It decides *which* fields to trace and hands each resolver to your `wrap` function; the actual span or log is yours to produce, either by hand or through one of the provider packages below.
 
 The interface has three parts:
 
@@ -41,7 +41,7 @@ const builder = new SchemaBuilder({
 });
 ```
 
-Tracing every resolver adds real overhead for little payoff — leaf fields that read a property finish in microseconds. Keep `default` narrow and let expensive fields opt in.
+Tracing every resolver adds real overhead for little benefit; leaf fields that read a property finish in microseconds. Keep `default` narrow and let expensive fields opt in.
 
 ## Enabling tracing on a field
 
@@ -131,13 +131,13 @@ tracing: {
 
 `tracing.wrap` turns the tracing decision into behavior. It runs with three arguments and returns the resolver the schema will actually call:
 
-1. `resolver` — the field's original resolver.
-2. `options` — the tracing options for the field, whether set on the field or returned by `default`.
-3. `fieldConfig` — the config object describing the field being wrapped.
+1. `resolver` is the field's original resolver.
+2. `options` is the tracing options for the field, whether set on the field or returned by `default`.
+3. `fieldConfig` is the config object describing the field being wrapped.
 
 Resolvers can throw or return a promise, and timing both paths correctly is fiddly, so the plugin ships two helpers that handle it for you.
 
-`wrapResolver(resolver, onEnd)` returns a wrapped resolver and calls `onEnd(error, duration)` when it settles — `error` is `null` on success, and `duration` is the elapsed milliseconds:
+`wrapResolver(resolver, onEnd)` returns a wrapped resolver and calls `onEnd(error, duration)` when it settles, where `error` is `null` on success and `duration` is the elapsed milliseconds:
 
 ```typescript
 export const builder = new SchemaBuilder<{
@@ -159,7 +159,7 @@ export const builder = new SchemaBuilder<{
 });
 ```
 
-`runFunction(fn, onEnd)` is the same timing logic, but it runs a zero-argument function immediately instead of wrapping a resolver. Reach for it when you need the resolver arguments, or want to do work before the resolver starts:
+`runFunction(fn, onEnd)` is the same timing logic, but it runs a zero-argument function immediately instead of wrapping a resolver. Use it when you need the resolver arguments, or want to do work before the resolver starts:
 
 ```typescript
 import TracingPlugin, { isEnumField, isRootField, isScalarField, runFunction } from '@pothos/plugin-tracing';
@@ -184,7 +184,7 @@ export const builder = new SchemaBuilder({
 
 ## Using resolver arguments in tracers
 
-Sometimes the tracing options depend on the resolver's arguments — attaching a team id to a span, say. Both the field-level `tracing` option and `tracing.default` accept a function `(parent, args, context, info) => options` for exactly this:
+Sometimes the tracing options depend on the resolver's arguments, attaching a team id to a span, say. Both the field-level `tracing` option and `tracing.default` accept a function `(parent, args, context, info) => options` for exactly this:
 
 ```typescript
 // A tracer that opens a span and attaches custom attributes when they're provided.
@@ -250,7 +250,7 @@ tracing: {
   Returning a function changes when `wrap` runs. Normally `wrap` is called once per field at build time. When the tracing option is a function, its result depends on the resolver arguments, so `wrap` runs on every execution of that field instead. It's usually cheap, but as a rule of thumb, tracing options that don't depend on the resolver arguments are faster.
 </Callout>
 
-The example above can be reshaped to keep `wrap` at build time — decide *whether* to include args with a static flag, and read the args inside the wrapper where they're free:
+The example above can be reshaped to keep `wrap` at build time: decide *whether* to include args with a static flag, and read the args inside the wrapper where they're free:
 
 ```typescript
 export const builder = new SchemaBuilder<{
@@ -280,7 +280,7 @@ export const builder = new SchemaBuilder<{
 
 ## Integrations
 
-The plugin ships provider packages that build `wrap` for you. Each exposes a factory that returns a wrapper, plus `AttributeNames`/`SpanNames` enums for instrumenting the execution phase. They all trace *resolvers only* — to time the surrounding GraphQL execution phase you add a server plugin, shown per provider below. The [first-server](../getting-started/first-server) examples all use [graphql-yoga](https://the-guild.dev/graphql/yoga-server), whose envelop plugins the wiring below hooks into; other servers expose an equivalent hook that will look slightly different.
+The plugin ships provider packages that build `wrap` for you. Each exposes a factory that returns a wrapper, plus `AttributeNames`/`SpanNames` enums for instrumenting the execution phase. They all trace *resolvers only*; to time the surrounding GraphQL execution phase you add a server plugin, shown per provider below. The [first-server](../getting-started/first-server) examples all use [graphql-yoga](https://the-guild.dev/graphql/yoga-server), whose envelop plugins the wiring below hooks into; other servers expose an equivalent hook that will look slightly different.
 
 ### OpenTelemetry
 
@@ -316,7 +316,7 @@ The wrapper accepts:
 | `includeArgs` | `false` | Record the resolver arguments on the span. |
 | `includeSource` | `false` | Record the field's source location on the span. |
 | `ignoreError` | `false` | Don't mark the span as errored when the resolver throws. |
-| `onSpan` | — | `(span, tracingOptions, parent, args, context, info) => void`, called after the span opens so you can add your own attributes. |
+| `onSpan` | none | `(span, tracingOptions, parent, args, context, info) => void`, called after the span opens so you can add your own attributes. |
 
 Use `onSpan` together with a custom `Tracing` generic to attach per-field attributes:
 
@@ -560,7 +560,7 @@ const yoga = createYoga({ schema, plugins: [tracingPlugin] });
 const server = createServer(yoga);
 ```
 
-Envelop's [`@envelop/newrelic`](https://the-guild.dev/graphql/envelop/plugins/use-newrelic) plugin can run alongside the tracing plugin. Disable its resolver tracking so it doesn't duplicate the resolver segments — if you want *all* resolvers tracked, you can use the envelop plugin on its own instead of the Pothos tracing plugin:
+Envelop's [`@envelop/newrelic`](https://the-guild.dev/graphql/envelop/plugins/use-newrelic) plugin can run alongside the tracing plugin. Disable its resolver tracking so it doesn't duplicate the resolver segments. If you want *all* resolvers tracked, you can use the envelop plugin on its own instead of the Pothos tracing plugin:
 
 ```typescript
 import { useNewRelic } from '@envelop/newrelic';
@@ -613,7 +613,7 @@ export const builder = new SchemaBuilder({
 | `includeArgs` | `false` | Record the resolver arguments on the span. |
 | `includeSource` | `false` | Record the field's source location on the span. |
 | `ignoreError` | `false` | Don't mark the span as errored when the resolver throws. |
-| `onSpan` | — | `(span, tracingOptions, parent, args, context, info) => void`, called after the span opens so you can add your own attributes. |
+| `onSpan` | none | `(span, tracingOptions, parent, args, context, info) => void`, called after the span opens so you can add your own attributes. |
 
 #### Instrumenting the execution phase
 
@@ -702,7 +702,7 @@ export const builder = new SchemaBuilder({
 | --- | --- | --- |
 | `includeArgs` | `false` | Record the resolver arguments on the subsegment. |
 | `includeSource` | `false` | Record the field's source location on the subsegment. |
-| `onSegment` | — | `(segment, tracingOptions, parent, args, context, info) => void`, called after the subsegment opens so you can add your own annotations. |
+| `onSegment` | none | `(segment, tracingOptions, parent, args, context, info) => void`, called after the subsegment opens so you can add your own annotations. |
 
 #### Instrumenting the execution phase
 

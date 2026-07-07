@@ -1,20 +1,20 @@
 ---
 title: Context
-description: Declare the request context on the builder generic and read the signed-in user and data sources it carries from every resolver.
+description: The per-request context object, how to type it on the builder, and how resolvers read it.
 ---
 
 The context is the per-request value your server builds for each incoming request and hands to every resolver. It carries the values a resolver needs about the current request, like the signed-in user and the data sources to read from. You declare its type once on the builder's `Context` generic, and Pothos threads that type into every resolver as the third argument:
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-context"'>playground-examples/fundamentals-context/schema.ts#context-type,builder-init,query</includeregions>
 
-The `Context` interface describes what each request carries: an optional `user` (whatever your auth layer decoded from the request) and a `db` handle the resolvers query. Passing it as the `Context` entry of the builder generic makes it the static type of `ctx` in every resolver, so `myCharacters` reads `ctx.user` and `ctx.db` with full types and no casts. The field returns a list of the [`Character`](./objects) object type, resolving to the characters the signed-in editor curates, or `null` when nobody is signed in.
+The `Context` interface describes what each request carries: an optional `user` (whatever your auth layer decoded from the request) and a `db` handle the resolvers query. Passing it as the `Context` entry of the builder generic makes it the static type of `ctx` in every resolver, so `myCharacters` reads `ctx.user` and `ctx.db` with full types and no casts. The field returns a list of the [`Character`](./objects) object type, resolving to the characters the signed-in user created, or `null` when nobody is signed in.
 
 ## What to put on context
 
 Context holds the values that differ from one request to the next:
 
 - **The signed-in user.** Whatever your authentication layer decoded from the request, or its absence when the request is anonymous.
-- **Data sources.** A database client, an ORM, or a repository the resolvers read through, passed in rather than imported so each resolver takes it as a dependency.
+- **Request-scoped data sources.** A database or API client that varies per request, such as one authenticated as the current user. A client that's the same for every request doesn't need to go here; it can live in module scope (see below).
 - **Per-request caches.** Dataloaders and other values that should be created once per request and shared by the resolvers handling it.
 
 Values that are the same for every request, such as a connection pool, can live in module scope where the factory and resolvers already reach them.
@@ -24,16 +24,19 @@ Values that are the same for every request, such as a connection pool, can live 
 Pothos types the context, but building it is the server's job. With [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server) you pass a `context` function on the server options, and yoga calls it for each request it handles, passing whatever it returns to the resolvers as `ctx`:
 
 ```typescript
+import { initContextCache } from '@pothos/core';
+
 const yoga = createYoga({
   schema,
   context: async ({ request }): Promise<Context> => ({
+    ...initContextCache(),
     user: await getUser(request.headers.get('authorization')),
     db,
   }),
 });
 ```
 
-The factory reads the incoming `request` — here decoding the `authorization` header into a `user` — and returns the object that becomes `ctx`. Because it's `async`, the server awaits it before running any resolver. Its return type has to match the `Context` you declared on the builder; the `Promise<Context>` annotation is what keeps the two in agreement, since Pothos never sees the factory itself. The [First server](../getting-started/first-server) guide sets up the surrounding yoga server.
+The factory reads the incoming `request` (decoding the `authorization` header into a `user`) and returns the object that becomes `ctx`. Because it's `async`, the server awaits it before running any resolver. Its return type has to match the `Context` you declared on the builder; the `Promise<Context>` annotation is what keeps the two in agreement, since Pothos never sees the factory itself. The `...initContextCache()` spread is explained under [Per-request caches](#per-request-caches). The [First server](../getting-started/first-server) guide sets up the surrounding yoga server.
 
 ## Requiring a signed-in user
 
@@ -43,11 +46,11 @@ The `myCharacters` field above returns `null` when no one is signed in. A field 
 resolve: (_root, _args, ctx) => {
   if (!ctx.user) throw new Error('Sign in to continue');
   // ctx.user is { id: number } from here down.
-  return ctx.db.charactersByEditor(ctx.user.id);
+  return ctx.db.charactersCreatedBy(ctx.user.id);
 },
 ```
 
-graphql-js turns the thrown error into a `null` for that field and an entry in the response's `errors` (the [Resolvers](./resolvers) guide covers throwing). When these checks start repeating across resolvers, [`plugin-scope-auth`](../plugins/scope-auth) replaces them with declarative auth scopes.
+A hand-written guard like this works for a single field. For real authorization, use [`plugin-scope-auth`](../plugins/scope-auth), which turns them into declarative auth scopes you attach to fields.
 
 ## Per-request caches
 

@@ -1,13 +1,13 @@
 ---
 title: Mutations
-description: Define the Mutation root with mutationType, and write a mutation that takes an input, checks the request, and returns the changed entity.
+description: The Mutation root type, and fields that create, update, or delete data.
 ---
 
-Mutations are the schema's entry points for writing data — the fields a client calls to create, update, or delete records. Their API mirrors [Queries](./queries): `mutationType` defines the root, and `mutationField`/`mutationFields` add fields to it from anywhere in a schema. What changes is inside the resolver — a write usually reads an input, checks who is making the request, changes the data, and returns the record it affected. Here is a mutation that updates a character's biography:
+Mutations are the schema's entry points for writing data: the fields a client calls to create, update, or delete records. `mutationType` defines the Mutation root, and `mutationField`/`mutationFields` add fields to it from anywhere in a schema. Here is a mutation that updates a character's biography:
 
 <include cwd lang="typescript" meta='playground example="fundamentals-mutations"'>playground-examples/fundamentals-mutations/schema.ts#update-character-mutation</include>
 
-The field takes a single `input` argument, an [input object](./inputs) that groups the mutation's values (`characterId` and `biography`) into one named type. The resolver then works through the write in order. `if (!ctx.user)` narrows `ctx.user` from a possibly-absent user to a defined one, an ordinary TypeScript guard (covered in [Context](./context#requiring-a-signed-in-user)). The lookup throws when no character has that id. The check that follows — `entry.editorId !== ctx.user.id` — is the part specific to writes: it decides whether this particular user may change this particular record, a stronger question than whether someone is signed in. With both checks passed, the resolver updates the record and returns it. This shape repeats across writes, so once a few mutations share the same signed-in-and-owns-the-row check, [`plugin-scope-auth`](../plugins/scope-auth) moves it onto the field as declarative auth scopes.
+The field takes a single `input` argument, an [input object](./inputs) that groups the mutation's values (`characterId` and `biography`) into one named type. Inside the resolver, `if (!ctx.user)` guards on a signed-in user (see [Context](./context#requiring-a-signed-in-user)). The check specific to a write comes next: `entry.editorId !== ctx.user.id` decides whether this particular signed-in user may change this particular record. With both checks passed, the resolver updates the record and returns it. For real authorization, [`plugin-scope-auth`](../plugins/scope-auth) moves checks like these onto the field as declarative auth scopes.
 
 ## The Mutation root
 
@@ -17,7 +17,7 @@ The field takes a single `input` argument, an [input object](./inputs) that grou
 builder.mutationType({});
 ```
 
-In a schema split across modules, `mutationField` adds a single field to the root and `mutationFields` adds several, with the same across-module merge [Queries](./queries#adding-fields-from-elsewhere) describes for `queryField` and `queryFields`:
+In a schema split across modules, `mutationField` adds a single field to the root and `mutationFields` adds several, the same [cross-module merge](./queries#adding-fields-from-elsewhere) the query root allows:
 
 ```typescript
 // characters.ts — registers its write on the shared root

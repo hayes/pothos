@@ -49,16 +49,19 @@ yoga responds with:
 
 ## The context factory
 
-The `context` option is a function that runs while yoga handles a request; whatever it returns becomes the `ctx` value every resolver can read. The server above returns `{}`, so `ctx` is empty. In a real app the factory reads the incoming request and returns what resolvers need — the signed-in user, a database client:
+The `context` option is a function that runs while yoga handles a request; whatever it returns becomes the `ctx` value every resolver can read. The server above returns `{}`, so `ctx` is empty. In a real app the factory reads the incoming request and returns what resolvers need, such as the signed-in user and a database client:
 
 ```typescript
+import { initContextCache } from '@pothos/core';
+
 const yoga = createYoga({
   schema,
   context: async ({ request }) => ({
+    ...initContextCache(),
     user: await getUser(request.headers.get('authorization')),
     db,
   }),
 });
 ```
 
-Declaring a matching `Context` type on the builder makes `ctx` fully typed in every resolver. The [Context](../fundamentals/context) guide covers what belongs on context and how to wire the types.
+Spreading `initContextCache()` into the returned object sets up the per-request cache some plugins rely on; including it in every context factory keeps those plugins working. Declaring a matching `Context` type on the builder makes `ctx` fully typed in every resolver. The [Context](../fundamentals/context) guide covers what belongs on context and how to wire the types.

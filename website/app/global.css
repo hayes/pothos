@@ -267,24 +267,23 @@ article#nd-page ol li {
   color: var(--bm-ink-soft);
 }
 
-/* Cap the prose measure. On wide viewports (~1440) the content column let
-   body text run ~105 characters per line — well past a comfortable read.
-   72ch holds paragraphs, lists, and blockquotes in the ~70-78 range while
-   code blocks, tables, and figures keep the full column width. Because ch
-   scales with font-size, the larger serif headings are effectively
-   unconstrained (they're short) — this only reins in body copy. */
-article#nd-page p,
-article#nd-page ul,
-article#nd-page ol,
-article#nd-page blockquote {
-  max-width: 72ch;
-}
+/* Body copy fills the full content column, matching the code blocks,
+   tables, and figures beside it. (An earlier 72ch cap left paragraphs
+   visibly narrower than the code blocks — the column width is the measure.) */
 
-/* The first paragraph after the H1 reads as the lede — slightly larger. */
+/* Page description — the frontmatter subtitle rendered by DocsDescription,
+   the immediate sibling right after the H1. Styled as a subtitle bound to
+   the title: muted (distinct from body ink-soft), pulled tight under the
+   H1, and given clear separation from the first body paragraph. The
+   `h1 + p` selector only ever matches this element — body copy lives inside
+   the `.prose` wrapper and is never an adjacent sibling of the H1. */
 article#nd-page h1 + p {
-  font-size: 19px;
+  font-size: 1.125rem;
   line-height: 1.5;
-  color: var(--bm-ink-soft);
+  color: var(--bm-ink-muted);
+  max-width: 58ch;
+  margin-top: -0.75rem;
+  margin-bottom: 1.75rem;
 }
 
 /* Inline code in body — soft-cream chip */

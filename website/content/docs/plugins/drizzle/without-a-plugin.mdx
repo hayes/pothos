@@ -5,7 +5,7 @@ description: Back GraphQL objects with Drizzle rows using plain objectRef, and t
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-You don't need the [Drizzle plugin](./setup) to put Drizzle rows behind a GraphQL schema. `builder.objectRef` takes any TypeScript shape as its backing model, and a Drizzle row is just a shape — `InferSelectModel` gives you the type of a `select` from a table. Point a ref at it and resolve relations with ordinary query-builder calls. You give up the plugin's automatic query-planning, but the code stays plain Pothos.
+You don't need the [Drizzle plugin](./setup) to put Drizzle rows behind a GraphQL schema. `builder.objectRef` takes any TypeScript shape as its backing model, and a Drizzle row is just a shape; `InferSelectModel` gives you the type of a `select` from a table. Point a ref at it and resolve relations with ordinary query-builder calls. You give up the plugin's automatic query-planning, but the code stays plain Pothos.
 
 ```typescript
 import { InferSelectModel } from 'drizzle-orm';
@@ -59,7 +59,7 @@ builder.queryType({
 
 This defines `Team` and `Player` objects with a relation each, plus a `myTeam` query for the viewer's team. Three details make it work:
 
-- **Split the ref from `implement`.** Declaring `TeamObject`/`PlayerObject` up front and calling `implement` afterwards — rather than `builder.objectRef(...).implement(...)` in one expression — keeps TypeScript from choking on the circular reference between teams and players.
+- **Split the ref from `implement`.** Declaring `TeamObject`/`PlayerObject` up front and calling `implement` afterwards, rather than `builder.objectRef(...).implement(...)` in one expression, keeps TypeScript from choking on the circular reference between teams and players.
 - **Throw for non-null fields.** `team` and `myTeam` are non-nullable, so they must never resolve to `null`. Drizzle's `findFirst` returns `undefined` when nothing matches, so throw explicitly. Mark the field `nullable` instead if a missing row is a valid result.
 - **Ref names vs. type names.** The refs are `TeamObject`/`PlayerObject` because `TeamRow`/`PlayerRow` name the backing shapes. Give the refs the GraphQL type names directly if you'd rather.
 
@@ -103,7 +103,7 @@ PlayerObject.implement({
 });
 ```
 
-Requiring `team` on every `Player` is a strong claim — every resolver that produces a player now owes you the `with`. When only some paths can supply it, make the field optional and fall back to a query:
+Requiring `team` on every `Player` is a strong claim: every resolver that produces a player now owes you the `with`. When only some paths can supply it, make the field optional and fall back to a query:
 
 ```typescript
 const PlayerObject = builder.objectRef<PlayerRow & { team?: TeamRow }>('Player');
