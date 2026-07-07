@@ -3,9 +3,7 @@ title: First server
 description: Serve a Pothos schema over HTTP with graphql-yoga and run a query against it.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
-With a schema built, the next step is to put it behind an HTTP endpoint. These guides use [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server); since `toSchema()` returns a standard graphql-js `GraphQLSchema`, other GraphQL servers can run the same schema.
+With a schema built, the next step is to put it behind an HTTP endpoint. These guides use [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server), but the `GraphQLSchema` returned by `toSchema()` should be compatible with any other GraphQL server implementation.
 
 ## Install yoga
 
@@ -19,7 +17,7 @@ Here's a small schema with a single `hello` field:
 
 <include cwd lang="typescript" meta='playground example="getting-started-first-server-step-1"'>playground-examples/getting-started-first-server/step-1/schema.ts#schema</include>
 
-Save it as `schema.ts`; it exports `schema`, which is all the server imports. The `hello` field takes a `name` argument declared with `t.arg.string()` (the [Arguments](../fundamentals/args) guide covers arguments in full). A string argument is nullable unless you mark it required, so the resolver falls back to `'friend'` when `name` isn't passed.
+Save it as `schema.ts`; it exports `schema`, which is all the server imports. The `hello` field takes an optional `name` argument declared with `t.arg.string()` (the [Arguments](../fundamentals/args) guide covers arguments).
 
 ## The server
 
@@ -64,7 +62,3 @@ const yoga = createYoga({
 ```
 
 Declaring a matching `Context` type on the builder makes `ctx` fully typed in every resolver. The [Context](../fundamentals/context) guide covers what belongs on context and how to wire the types.
-
-<Callout type="info">
-  Next: the Fundamentals pages start at [SchemaBuilder](../fundamentals/schema-builder) and work through each type, field, and root operation. [Project layout](../patterns/project-layout) covers splitting a growing schema across files.
-</Callout>

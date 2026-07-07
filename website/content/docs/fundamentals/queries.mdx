@@ -3,8 +3,6 @@ title: Queries
 description: Define the schema's Query root and add fields to it with queryType, queryField, and queryFields.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 This page walks through defining the schema's Query root and adding fields to it.
 
 ## Defining the Query root
@@ -13,7 +11,7 @@ The Query root is the object type whose fields are the entry points for every re
 
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-queries"'>playground-examples/fundamentals-queries/schema.ts#imports,builder,data,query-type,export</includeregions>
 
-`queryType` takes two optional arguments: an options object and a `fields` callback. The example passes `fields` inside the options object, which is the usual form; each entry becomes a field on the root, and `hello` and `characterCount` here return a `String` and an `Int` from their resolvers. The type is named `Query` by default (pass `name` in the options to call it something else). `builder.toSchema()` then builds the standard graphql-js schema.
+`queryType` takes an options object whose `fields` callback defines the root's fields; each entry becomes a field on the root, and `hello` and `characterCount` here return a `String` and an `Int` from their resolvers. The type is named `Query` by default (pass `name` in the options to call it something else). `builder.toSchema()` then builds the standard graphql-js schema.
 
 A GraphQL schema has to have a query type. If `queryType` is never called, the schema is built without a query root, and graphql-js rejects it when the schema is validated or executed.
 
@@ -51,7 +49,3 @@ export const schema = builder.toSchema();
 `builder.queryType()` with no arguments defines the root without adding any fields of its own. See [Project layout](../patterns/project-layout) for the full multi-module setup.
 
 The mutation and subscription roots work the same way, through `mutationType`/`mutationField`/`mutationFields` and `subscriptionType`/`subscriptionField`/`subscriptionFields`. See [Mutations](./mutations) and [Subscriptions](./subscriptions) for those.
-
-<Callout type="info">
-  Next: [Object types](./objects) covers defining the types your query fields return.
-</Callout>

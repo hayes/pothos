@@ -47,8 +47,12 @@ Follow the exemplar's shape, not a template:
 2. Sections in teaching order. Each code block is followed by a prose
    walkthrough naming the constructs it introduced and linking each to its
    home page on first use (one-line gloss + link — the home page owns depth).
-3. End with a short `<Callout type="info">` pointing at the next page and any
-   external prerequisite material. No concluding summary section.
+3. Pages simply end after the last teaching section. NO "Next: [page]"
+   callouts and no ad-hoc "See also" link callouts — every page already has
+   next/previous buttons with titles and descriptions (ledger U5; related-docs
+   links, if ever wanted, get a designed component, not callouts). A callout
+   is allowed only for external prerequisite material (e.g. graphql.org/learn
+   on installation). No concluding summary section.
 
 Headings are plain and descriptive ("Install", "Adding an object type",
 "Hello world" — familiar names beat clever ones, ledger S10). Never restate
@@ -74,7 +78,11 @@ the heading as the section's first sentence.
 - Over-advising ("so don't install any until you want the feature") (S7).
 - Negation-first definitions; define by what things are and do (S2).
 - Mechanism-dumping en route: one true sentence in passing, full mechanism
-  only at the concept's home page (S5).
+  only at the concept's home page (S5). Round 4 tightened this further:
+  don't explain adjacent concepts AT ALL on a task page — name the thing and
+  link (S15); don't cover edge-case/escape-hatch options on mainline pages
+  (S16); don't enumerate API surface the page doesn't need (S18); state
+  optionality explicitly where config could look required (S17).
 
 ## Code examples
 

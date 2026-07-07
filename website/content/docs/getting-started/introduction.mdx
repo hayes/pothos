@@ -3,8 +3,6 @@ title: Introduction
 description: Build type-safe GraphQL schemas in plain TypeScript.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 Pothos is a library for building GraphQL schemas in TypeScript. You describe your schema with a builder — objects, fields, resolvers, inputs — as ordinary values, and `builder.toSchema()` turns them into a standard graphql-js `GraphQLSchema` your server runs.
 
 The types in your schema come from your own data. You start from a type you already have (a database row, an API response, a domain type) and build the GraphQL type on top of it. The builder keeps track of these types wherever they are used, so the schema stays type-safe without a separate SDL file or a code-generation step.
@@ -70,7 +68,3 @@ Each plugin adds methods to the builder and to `t`, with the same type safety as
 ## What's next
 
 [Installation](./installation) and [First server](./first-server) walk from an empty project to a running endpoint. After that, the per-concept reference starts at [SchemaBuilder](../fundamentals/schema-builder), and the larger-scale recipes start at [Project layout](../patterns/project-layout).
-
-<Callout type="info">
-  See also: [Installation](./installation) to start building, or [SchemaBuilder](../fundamentals/schema-builder) if you already have Pothos installed and want to skip ahead.
-</Callout>

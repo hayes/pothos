@@ -97,6 +97,26 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
 - **Curriculum note:** link out to GraphQL-itself learning material somewhere
   sensible — our docs don't teach GraphQL basics and shouldn't pretend to.
 
+## Round 4 (2026-07-06, batch-1 review — "overall seems like we are on a better track")
+
+- **S15 — Stay on the page's concept.** Don't explain adjacent mechanics the
+  code happens to show, even briefly. first-server explaining arg nullability
+  ("A string argument is nullable unless you mark it required…") was "focusing
+  on the wrong concepts… over explaining things that are not relevant. This
+  guide is about setting up a server." A link to the concept's home is enough;
+  at most name the thing ("an optional `name` argument") without teaching it.
+- **S16 — Edge-case/escape-hatch options don't belong on mainline pages.**
+  `notStrict` and `Defaults: 'v3'` were both cut from schema-builder ("We
+  don't really need to cover this"). Their homes are the settings/migration
+  pages; mainline pages may at most link.
+- **S17 — State optionality explicitly where a reader could think config is
+  required.** The SchemaTypes generic entries list needed "We should be clear
+  that all of this is optional."
+- **S18 — Don't enumerate API surface the page doesn't need.** `queryType`'s
+  second positional argument: "We probably don't need to cover the second
+  argument or mention it here." Teach the usual form; skip alternates unless
+  the page is their home.
+
 ## UI notes (separate track)
 
 - **U1** — Docs page header is inefficient: section + title + description +
@@ -110,6 +130,12 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
 - **U4 — Runnable-looking static fences should link to the playground** —
   self-contained example fences (e.g. on the introduction) should carry the
   playground affordance via the inline mechanism even without a bundle.
+- **U5 — No "Next: [page]" callouts, no ad-hoc "See also" callouts (round 4).**
+  Every doc page already has next/previous buttons with titles + descriptions;
+  a callout duplicating the next page immediately above them is a defect.
+  If related-docs links are wanted, design a proper component for it — do not
+  reintroduce callout link lists page by page. External prerequisite pointers
+  (e.g. graphql.org/learn on installation) are still fine in a callout.
 
 ## Voice model (2026-07-06 round 3 — the binding style reference)
 
