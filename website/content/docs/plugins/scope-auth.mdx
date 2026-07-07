@@ -28,7 +28,7 @@ import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 
 const builder = new SchemaBuilder<{
-  Context: { viewer?: { id: string; role: 'member' | 'staff' } };
+  Context: { user?: { id: string; role: 'member' | 'staff' } };
   // Each scope name maps to the type of the parameter its loader takes.
   AuthScopes: {
     public: boolean;
@@ -40,8 +40,8 @@ const builder = new SchemaBuilder<{
   scopeAuth: {
     authScopes: async (context) => ({
       public: true,
-      member: !!context.viewer,
-      staff: context.viewer?.role === 'staff',
+      member: !!context.user,
+      staff: context.user?.role === 'staff',
     }),
   },
 });
@@ -70,10 +70,10 @@ A scope in the initializer is either a **boolean** (the request has it or not) o
 ```typescript
 authScopes: async (context) => ({
   // Eagerly evaluated once per request.
-  member: !!context.viewer,
+  member: !!context.user,
   // A loader: called with the parameter each field supplies.
   canManageTeam: (teamId: string) =>
-    context.permissions.canManage(context.viewer, teamId),
+    context.permissions.canManage(context.user, teamId),
 });
 ```
 
@@ -82,13 +82,13 @@ A loader runs only when a field requires it, and its result is cached per reques
 ```typescript
 authScopes: async (context) => ({
   // Bots never have permissions — don't even build the loader for them.
-  canManageTeam: context.viewer
-    ? (teamId: string) => context.permissions.canManage(context.viewer!, teamId)
+  canManageTeam: context.user
+    ? (teamId: string) => context.permissions.canManage(context.user!, teamId)
     : false,
 });
 ```
 
-You can also defer a plain boolean by wrapping it in a function (`() => context.viewer.isStaff()`) so it's evaluated on first use rather than during initialization.
+You can also defer a plain boolean by wrapping it in a function (`() => context.user.isStaff()`) so it's evaluated on first use rather than during initialization.
 
 ## Requiring a scope
 
@@ -171,8 +171,8 @@ const builder = new SchemaBuilder<{
   scopeAuth: {
     defaultStrategy: 'all',
     authScopes: async (context) => ({
-      member: !!context.viewer,
-      staff: context.viewer?.role === 'staff',
+      member: !!context.user,
+      staff: context.user?.role === 'staff',
     }),
   },
 });
@@ -206,7 +206,7 @@ Team.implement({
     scoutingReport: t.exposeString('scoutingReport', {
       authScopes: (team, _args, context) => {
         // The team's own coach always has access.
-        if (context.viewer?.id === team.coachId) {
+        if (context.user?.id === team.coachId) {
           return true;
         }
         // Everyone else needs staff.
@@ -269,7 +269,7 @@ A type can grant scopes to its own fields, which is a clean way to share one con
 ```typescript
 Team.implement({
   grantScopes: (team, context) => {
-    if (context.viewer?.id === team.coachId) {
+    if (context.user?.id === team.coachId) {
       return ['coach', 'readTeam'];
     }
     return team.isDraft ? [] : ['readTeam'];
@@ -297,7 +297,7 @@ const builder = new SchemaBuilder<{
   scopeAuth: {
     // Applies to all object types except Query, Mutation, and Subscription.
     runScopesOnType: true,
-    authScopes: async (context) => ({ member: !!context.viewer }),
+    authScopes: async (context) => ({ member: !!context.user }),
   },
 });
 
@@ -320,26 +320,26 @@ Interfaces declare `authScopes` on their fields exactly like objects. A field ru
 
 ## Typed context per scope
 
-A scope often narrows what you know about the context — once `member` passes, `viewer` is non-null. Declare that refinement with the `AuthContexts` type and read it through `t.authField`:
+A scope often narrows what you know about the context — once `member` passes, `user` is non-null. Declare that refinement with the `AuthContexts` type and read it through `t.authField`:
 
 ```typescript
 const builder = new SchemaBuilder<{
-  Context: { viewer?: { id: string } };
+  Context: { user?: { id: string } };
   AuthScopes: { member: boolean };
-  AuthContexts: { member: { viewer: { id: string } } };
+  AuthContexts: { member: { user: { id: string } } };
 }>({
   plugins: [ScopeAuthPlugin],
   scopeAuth: {
-    authScopes: async (context) => ({ member: !!context.viewer }),
+    authScopes: async (context) => ({ member: !!context.user }),
   },
 });
 
-builder.queryField('viewerId', (t) =>
+builder.queryField('currentUserId', (t) =>
   t.authField({
     type: 'ID',
     authScopes: { member: true },
-    // context.viewer is non-null here.
-    resolve: (_parent, _args, context) => context.viewer.id,
+    // context.user is non-null here.
+    resolve: (_parent, _args, context) => context.user.id,
   }),
 );
 ```
@@ -351,7 +351,7 @@ builder.queryField('me', (t) =>
   t.withAuth({ member: true }).prismaField({
     type: 'User',
     resolve: (query, _root, _args, context) =>
-      prisma.user.findUniqueOrThrow({ ...query, where: { id: context.viewer.id } }),
+      prisma.user.findUniqueOrThrow({ ...query, where: { id: context.user.id } }),
   }),
 );
 ```
@@ -368,7 +368,7 @@ const builder = new SchemaBuilder<{
   plugins: [ScopeAuthPlugin],
   scopeAuth: {
     unauthorizedError: (_parent, _context, _info, _result) => new Error('Not authorized'),
-    authScopes: async (context) => ({ member: !!context.viewer }),
+    authScopes: async (context) => ({ member: !!context.user }),
   },
 });
 ```
@@ -416,7 +416,7 @@ const builder = new SchemaBuilder<{ Context: Context; AuthScopes: { member: bool
       throwFirstError(result.failure);
       return new Error('Not authorized');
     },
-    authScopes: async (context) => ({ member: !!context.viewer }),
+    authScopes: async (context) => ({ member: !!context.user }),
   },
 });
 ```
@@ -454,7 +454,7 @@ const builder = new SchemaBuilder<{ Context: Context; AuthScopes: { member: bool
   plugins: [ScopeAuthPlugin],
   scopeAuth: {
     cacheKey: (value) => JSON.stringify(value),
-    authScopes: async (context) => ({ member: !!context.viewer }),
+    authScopes: async (context) => ({ member: !!context.user }),
   },
 });
 ```
@@ -468,7 +468,7 @@ When authorizing subscriptions, set `authorizeOnSubscribe` so checks run when th
 ```typescript
 scopeAuth: {
   authorizeOnSubscribe: true,
-  authScopes: async (context) => ({ member: !!context.viewer }),
+  authScopes: async (context) => ({ member: !!context.user }),
 }
 ```
 
