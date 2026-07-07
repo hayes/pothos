@@ -28,6 +28,13 @@ entry is a review-blocking defect. Entries accrete — never delete, only add.
   SchemaTypes generic.** Class-backed types (`builder.objectType(MyClass, ...)`)
   also attach a backing model without registering anything on the generic.
   (Found during the F1-F4 correction pass, 2026-07-06.)
+- **F6 — Attribute executor behavior to graphql-js, not Pothos.** Pothos
+  builds the schema; graphql-js executes it. Awaiting returned promises,
+  throw→null+errors, non-null propagation, default resolvers, context
+  forwarding, and "runs per request" cadence are executor/server behavior —
+  never write "Pothos awaits/handles/runs" for these. (Found during the
+  resolvers/context dossier pass, 2026-07-06; both old pages over-credited
+  Pothos.)
 
 ## Editorial stances (binding)
 

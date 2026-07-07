@@ -5,19 +5,14 @@ interface ICharacter {
   name: string;
 }
 
-const Characters = new Map<number, ICharacter>([
-  [1, { id: 1, name: 'Frodo Baggins' }],
-  [2, { id: 2, name: 'Samwise Gamgee' }],
-]);
-
 // The Context shape is whatever your server attaches to every request.
-// A typical one threads the authenticated viewer (if any) and any data
-// sources the resolvers need.
+// A typical one carries the signed-in user (if any) and the data sources
+// the resolvers read through.
 // #region context-type
 interface Context {
-  viewer?: { id: number };
+  user?: { id: number };
   db: {
-    characters: { find: (id: number) => ICharacter | null };
+    charactersByEditor: (editorId: number) => ICharacter[];
   };
 }
 // #endregion context-type
@@ -37,16 +32,17 @@ Character.implement({
   }),
 });
 
-// #region me-query
+// #region query
 builder.queryType({
   fields: (t) => ({
-    me: t.field({
-      type: Character,
+    myCharacters: t.field({
+      type: [Character],
       nullable: true,
-      resolve: (_root, _args, ctx) => (ctx.viewer ? ctx.db.characters.find(ctx.viewer.id) : null),
+      resolve: (_root, _args, ctx) =>
+        ctx.user ? ctx.db.charactersByEditor(ctx.user.id) : null,
     }),
   }),
 });
-// #endregion me-query
+// #endregion query
 
 export const schema = builder.toSchema();

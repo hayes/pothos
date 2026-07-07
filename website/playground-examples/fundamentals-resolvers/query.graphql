@@ -1,10 +1,13 @@
 query Resolvers {
   characterCount
-  randomCharacter {
+  character(id: "1") {
     id
     name
   }
-  characterById(id: "frodo") {
+  featuredCharacter {
+    name
+  }
+  characterById(id: "1") {
     name
   }
 }

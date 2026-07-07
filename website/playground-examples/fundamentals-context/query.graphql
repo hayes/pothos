@@ -1,5 +1,5 @@
-query Me {
-  me {
+query MyCharacters {
+  myCharacters {
     id
     name
   }

@@ -1,5 +1,5 @@
 query Hobbits {
-  characters(raceId: "hobbit", limit: 2) {
+  characters(raceId: "1", limit: 2) {
     id
     name
   }

@@ -1,64 +1,54 @@
 ---
 title: Context
-description: Type the request context on the builder generic and thread auth + data sources through every resolver.
+description: Declare the request context on the builder generic and read the signed-in user and data sources it carries from every resolver.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+The context is the per-request value your server builds for each incoming request and hands to every resolver. It carries the values a resolver needs about the current request, like the signed-in user and the data sources to read from. You declare its type once on the builder's `Context` generic, and Pothos threads that type into every resolver as the third argument:
 
-The context is whatever your server attaches to each request. Every resolver receives it as the third argument. Pothos infers its shape from the `Context` slot of the builder generic, so the type travels through your entire schema for free.
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-context"'>playground-examples/fundamentals-context/schema.ts#context-type,builder-init,query</includeregions>
 
-<includeregions cwd lang="typescript" meta='playground example="fundamentals-context"'>playground-examples/fundamentals-context/schema.ts#context-type,builder-init,me-query</includeregions>
+The `Context` interface describes what each request carries: an optional `user` (whatever your auth layer decoded from the request) and a `db` handle the resolvers query. Passing it as the `Context` entry of the builder generic makes it the static type of `ctx` in every resolver, so `myCharacters` reads `ctx.user` and `ctx.db` with full types and no casts. The field returns a list of the [`Character`](./objects) object type, resolving to the characters the signed-in editor curates, or `null` when nobody is signed in.
 
-`ctx.viewer` is `{ id: number } | undefined` everywhere in the schema — no casts, no helpers, no per-resolver type imports.
+## What to put on context
 
-## What to put on it
+Context holds the values that differ from one request to the next:
 
-Context typically threads:
+- **The signed-in user.** Whatever your authentication layer decoded from the request, or its absence when the request is anonymous.
+- **Data sources.** A database client, an ORM, or a repository the resolvers read through, passed in rather than imported so each resolver takes it as a dependency.
+- **Per-request caches.** Dataloaders and other values that should be created once per request and shared by the resolvers handling it.
 
-- **The authenticated viewer (or absence thereof).** Whatever your auth middleware decoded from the request.
-- **Data-access handles.** A database client, ORM, or repository pattern. Resolvers shouldn't be reaching for module-level singletons when they can take them as a dependency.
-- **Per-request caches.** Dataloaders, computed permissions, anything that should be created fresh per request but reused across the resolvers in that one request.
+Values that are the same for every request, such as a connection pool, can live in module scope where the factory and resolvers already reach them.
 
-What *not* to put on it: request-derived state that only one or two fields need. Pass it down through `parent` or compute it in the resolver instead.
+## Creating the context per request
 
-## Building it per request
-
-The context factory runs once per request. With `graphql-yoga` or Apollo Server, you pass it on the server's options:
+Pothos types the context, but building it is the server's job. With [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server) you pass a `context` function on the server options, and yoga calls it for each request it handles, passing whatever it returns to the resolvers as `ctx`:
 
 ```typescript
 const yoga = createYoga({
   schema,
-  context: async ({ request }) => ({
-    viewer: await decodeViewerFromToken(request.headers.get('authorization')),
+  context: async ({ request }): Promise<Context> => ({
+    user: await getUser(request.headers.get('authorization')),
     db,
   }),
 });
 ```
 
-Anything async returns a promise; the server awaits it before resolvers run. Pothos doesn't care how the factory works — only that its return type matches what you declared on the builder generic.
+The factory reads the incoming `request` — here decoding the `authorization` header into a `user` — and returns the object that becomes `ctx`. Because it's `async`, the server awaits it before running any resolver. Its return type has to match the `Context` you declared on the builder; the `Promise<Context>` annotation is what keeps the two in agreement, since Pothos never sees the factory itself. The [First server](../getting-started/first-server) guide sets up the surrounding yoga server.
 
-## Why ctx is per-request
+## Requiring a signed-in user
 
-Each request gets its own context object. Resolvers within one request share that object; resolvers across requests see different ones. This is the invariant `initContextCache` relies on for plugins like dataloader: per-request caches live on `ctx` and are garbage-collected when the request ends.
-
-If you find yourself reaching for a global to share state across requests, that state probably wants to live outside Pothos entirely — a Redis client, a connection pool, a feature-flag service. Context is for per-request stuff.
-
-## Narrowing inside a resolver
-
-When a resolver requires an authenticated viewer, lift the check out of the body so the compiler narrows the type:
+The `myCharacters` field above returns `null` when no one is signed in. A field that instead requires a signed-in user can check `ctx.user` at the top of the resolver and throw when it's missing. The check is an ordinary TypeScript guard, so the compiler narrows `ctx.user` to a defined value for the rest of the body, and the code below the guard reads `ctx.user.id` without a cast:
 
 ```typescript
-resolve: (_root, args, ctx) => {
-  if (!ctx.viewer) {
-    throw new Error('Sign in to continue');
-  }
-  // ctx.viewer is { id: number } from here down.
-  return ctx.db.drafts.findMany({ authorId: ctx.viewer.id });
+resolve: (_root, _args, ctx) => {
+  if (!ctx.user) throw new Error('Sign in to continue');
+  // ctx.user is { id: number } from here down.
+  return ctx.db.charactersByEditor(ctx.user.id);
 },
 ```
 
-Doing this in every protected resolver gets repetitive. The [`plugin-scope-auth`](../plugins/scope-auth) replaces it with declarative auth scopes; see also [Mutations](./mutations) for an end-to-end example of the manual pattern.
+graphql-js turns the thrown error into a `null` for that field and an entry in the response's `errors` (the [Resolvers](./resolvers) guide covers throwing). When these checks start repeating across resolvers, [`plugin-scope-auth`](../plugins/scope-auth) replaces them with declarative auth scopes.
 
-<Callout type="info">
-  See also: [Mutations](./mutations) for context in action, or [`plugin-scope-auth`](../plugins/scope-auth) when the manual checks start to repeat.
-</Callout>
+## Per-request caches
+
+Context is also where request-scoped caches live. Pothos plugins that memoize per-request values, such as the loaders from [`plugin-dataloader`](../plugins/dataloader), store them in a `WeakMap` keyed on your context object. Spreading `...initContextCache()` into the object your factory returns adds a stable shared key, so those caches keep working even if your server copies or extends the context between creating it and running resolvers.

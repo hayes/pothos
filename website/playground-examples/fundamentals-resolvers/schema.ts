@@ -3,18 +3,25 @@ import SchemaBuilder from '@pothos/core';
 interface ICharacter {
   id: string;
   name: string;
+  birthYear?: string;
+  biography?: string;
+  editorId: string;
 }
 
-const Characters = new Map<string, ICharacter>([
-  ['frodo', { id: 'frodo', name: 'Frodo Baggins' }],
-  ['gandalf', { id: 'gandalf', name: 'Gandalf' }],
-]);
+const characters: ICharacter[] = [
+  { id: '1', name: 'Frodo Baggins', birthYear: 'TA 2968', editorId: '1' },
+  { id: '2', name: 'Samwise Gamgee', birthYear: 'TA 2980', editorId: '1' },
+  { id: '3', name: 'Gandalf', editorId: '2' },
+];
+
+// Stands in for a real data source such as a database
+async function loadCharacter(id: string): Promise<ICharacter | undefined> {
+  return characters.find((character) => character.id === id);
+}
 
 const builder = new SchemaBuilder({});
 
-const Character = builder.objectRef<ICharacter>('Character');
-
-Character.implement({
+const Character = builder.objectRef<ICharacter>('Character').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
@@ -23,35 +30,46 @@ Character.implement({
 
 builder.queryType({
   fields: (t) => ({
-    // Sync resolver: just return the value.
+    // #region count
     characterCount: t.int({
-      resolve: () => Characters.size,
+      resolve: () => characters.length,
     }),
+    // #endregion count
 
-    // Async resolver: return a Promise. Pothos awaits it for you.
-    randomCharacter: t.field({
+    // #region signature
+    character: t.field({
       type: Character,
+      nullable: true,
+      args: { id: t.arg.id({ required: true }) },
+      resolve: (parent, args) =>
+        characters.find((character) => character.id === args.id) ?? null,
+    }),
+    // #endregion signature
+
+    // #region async
+    featuredCharacter: t.field({
+      type: Character,
+      nullable: true,
       resolve: async () => {
-        const list = [...Characters.values()];
-        return list[Math.floor(Math.random() * list.length)];
+        const character = await loadCharacter('1');
+        return character ?? null;
       },
     }),
+    // #endregion async
 
-    // Throwing resolver: errors propagate as null for the field and
-    // an entry in the response's `errors` array.
-    // #region character-by-id-field
+    // #region throw
     characterById: t.field({
       type: Character,
       args: { id: t.arg.id({ required: true }) },
-      resolve: (_root, { id }) => {
-        const character = Characters.get(String(id));
+      resolve: (_parent, args) => {
+        const character = characters.find((c) => c.id === args.id);
         if (!character) {
-          throw new Error(`No character with id ${id}`);
+          throw new Error(`No character with id ${args.id}`);
         }
         return character;
       },
     }),
-    // #endregion character-by-id-field
+    // #endregion throw
   }),
 });
 
