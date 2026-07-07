@@ -239,10 +239,10 @@ html article#nd-page h3 {
   color: var(--bm-ink);
 }
 html article#nd-page h1 {
-  font-size: 48px;
-  line-height: 1.1;
-  letter-spacing: -0.025em;
-  margin-bottom: 0.4em;
+  font-size: 42px;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin-bottom: 0;
 }
 html article#nd-page h2 {
   font-size: 32px;
@@ -277,13 +277,58 @@ article#nd-page ol li {
    H1, and given clear separation from the first body paragraph. The
    `h1 + p` selector only ever matches this element — body copy lives inside
    the `.prose` wrapper and is never an adjacent sibling of the H1. */
+/* ──────────────────────────────────────────────────────────────────────
+   PAGE HEADER — section eyebrow / title / description, bounded from body.
+   Hierarchy is carried by ROLE signals, not size alone:
+     · section  → uppercase, tracked, accent-green eyebrow (a "kicker")
+     · title    → serif, weight + tracking (size reduced from 48→42px)
+     · desc     → muted ink + constrained measure
+     · a hairline rule bounds the header from the article body
+   The article is a flex column (gap-3 from the page template); child
+   margins are zeroed so the gap owns the vertical rhythm.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* Section eyebrow — the fumadocs breadcrumb div is the article's first
+   child on every doc page (the /docs overview has no breadcrumb, so its
+   h1 stays untouched). One segment: the top-level section name. */
+article#nd-page > div:first-child {
+  /* margin-bottom only — the mobile top margin (`max-xl:mt-14`, which
+     clears the sticky mobile TOC pill at scroll-top) must be preserved,
+     so never use the `margin` shorthand here. */
+  margin-bottom: 0.125rem;
+}
+article#nd-page > div:first-child > span,
+article#nd-page > div:first-child > a {
+  color: var(--bm-accent);
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Page description — muted subtitle, tight to the title, constrained
+   measure. `h1 + p` only ever matches this element (body copy lives inside
+   `.prose` and is never an adjacent sibling of the H1). */
 article#nd-page h1 + p {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   line-height: 1.5;
   color: var(--bm-ink-muted);
-  max-width: 58ch;
-  margin-top: -0.75rem;
-  margin-bottom: 1.75rem;
+  max-width: 60ch;
+  margin: 0;
+}
+
+/* Bound the header from the body with a hairline rule + breathing room,
+   and cancel the first body block's top margin so content sits at a
+   controlled distance below the rule (an unmanaged h2 margin-top left a
+   large floaty gap here before). */
+article#nd-page > .prose {
+  border-top: 1px solid var(--bm-line-soft);
+  padding-top: 1.75rem;
+  margin-top: 0.5rem;
+}
+article#nd-page > .prose > :first-child {
+  margin-top: 0;
 }
 
 /* Inline code in body — soft-cream chip */
