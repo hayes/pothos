@@ -3,8 +3,6 @@ title: InputFieldBuilder
 description: Reference for the input field builder — the field method and its scalar helpers.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 The input field builder is the `t` argument passed to the `fields` function of [`builder.inputType`](./schema-builder#inputtypeparam-options). Its methods define the fields of an input object. For a guided introduction, see [Input objects](../fundamentals/inputs). The same builder backs a field's arguments through [`t.arg`](./arg-builder).
 
 ## `field(options)`
@@ -52,7 +50,3 @@ Shortcuts for defining scalar input fields. Each works like [`field`](./input-fi
 - `intList(options)`
 - `floatList(options)`
 - `listRef(type, options)`
-
-<Callout type="info">
-  See also: [Input objects](../fundamentals/inputs) for the concepts behind these methods, [ArgBuilder](./arg-builder) for the same builder used to define field arguments, or [SchemaBuilder](./schema-builder#inputtypeparam-options) for `builder.inputType`.
-</Callout>

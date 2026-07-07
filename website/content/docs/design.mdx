@@ -3,8 +3,6 @@ title: Design
 description: How Pothos carries type information — the SchemaTypes generic and Ref objects — and why that split keeps large schemas and plugins modular.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 Pothos gives you a fully typed schema with no code-generation step. To pull that off it has to carry the TypeScript shape of every type and field all the way through to the resolver that uses it. It does this two ways, and knowing which is which explains most of how Pothos behaves.
 
 ## The SchemaTypes generic
@@ -44,8 +42,4 @@ Because a `Ref` holds its own type information, you never register it on `Schema
 
 Separating the type information (the `Ref`) from the implementation (`implement`) is what keeps Pothos modular. A `Ref` exists before its fields do, so two types can reference each other without forward-declaration gymnastics. A plugin can hand you a `Ref` for a type it derived from somewhere else without ever touching the central generic. And each type carries its own shape, so nothing has to stay in sync with a schema-wide registry.
 
-This is why `objectRef` is the pattern the rest of the guide reaches for first — it keeps a type and everything the compiler knows about it in one place. The `SchemaTypes` generic is still there when you specifically want a name to hang behavior on: string-referenced types, the `Context` shape, and the plugin slots that map GraphQL names to ORM models. The two interoperate freely; most schemas use `objectRef` for the bulk of their types and the generic for the handful that need a name.
-
-<Callout type="info">
-  See also: [SchemaBuilder](./fundamentals/schema-builder) for what goes in the `SchemaTypes` generic, or [Object types](./fundamentals/objects) for the `objectRef` pattern the Ref system enables.
-</Callout>
+This is why `objectRef` is the pattern the rest of the guide reaches for first — it keeps a type and everything the compiler knows about it in one place. The `SchemaTypes` generic is still there when you specifically want a name to hang behavior on: string-referenced types, the `Context` shape, and the plugin slots that carry an ORM's generated type information (`PrismaTypes`, `DrizzleRelations`). The two interoperate freely; most schemas use `objectRef` for the bulk of their types and the generic for the handful that need a name.

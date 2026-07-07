@@ -64,7 +64,7 @@ import SchemaBuilder from '@pothos/core';
 SchemaBuilder.allowPluginReRegistration = true;
 ```
 
-Set it before any plugin imports. Leave it off in production builds — the protection it provides is real, and the HMR-only escape hatch shouldn't survive into production.
+Set it before any plugin imports, and leave it off in production builds.
 
 ## "Cannot read property X of undefined" at startup
 

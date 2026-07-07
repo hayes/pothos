@@ -149,7 +149,7 @@ Adds a single field to the `Subscription` type.
 
 ## `objectType(param, options, fields?)`
 
-Defines an object type. `objectRef` is the pattern to reach for first — see [Object types](../fundamentals/objects) for when to prefer it over a class or a `SchemaTypes`-registered name.
+Defines an object type. `param` can be a class, an `ObjectRef`, or a `SchemaTypes`-registered name — see [Object types](../fundamentals/objects) for how the three forms differ.
 
 - `param`: a key of the `Objects` property in `SchemaTypes`, a class, or an `ObjectRef` created by `builder.objectRef`.
 - `options`: `ObjectTypeOptions`
@@ -170,7 +170,7 @@ type ObjectTypeOptions = {
 
 - `description`: a description of the type.
 - `fields`: a function that receives a [`FieldBuilder`](./field-builder) and returns a map of field names to field refs.
-- `isTypeOf`: recommended when implementing interfaces. Pothos calls it to decide whether a value of an implemented interface is of this type.
+- `isTypeOf`: recommended when implementing interfaces. Called during execution to decide whether a value of an implemented interface is of this type.
 - `interfaces`: an array of interfaces this type implements. Each item is an interface param — see the `param` argument of `interfaceType`.
 - `name`: name of the GraphQL type. Required when `param` is a class.
 - `extensions`: arbitrary extension metadata, read by directives and server plugins.
@@ -378,7 +378,3 @@ Builds and returns a [`GraphQLSchema`](https://graphql.org/graphql-js/type/#grap
 ## `SchemaBuilder.allowPluginReRegistration`
 
 A static `boolean` on the `SchemaBuilder` class. When `true`, a plugin may call `registerPlugin` more than once — useful for hot-module reloading. It defaults to `false` so duplicate copies of a plugin surface as an error rather than a silent conflict.
-
-<Callout type="info">
-  See also: [SchemaBuilder](../fundamentals/schema-builder) for configuring the generic and constructor, [FieldBuilder](./field-builder) for what goes inside a `fields` function, or [Object types](../fundamentals/objects) for the `objectRef`-first workflow.
-</Callout>

@@ -3,8 +3,6 @@ title: Using plugins
 description: Install a Pothos plugin, register it on the builder, and understand the rules that apply to every plugin.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 Plugins extend Pothos with features that feel like they're part of the core API — auth scopes, validation, error unions, ORM integrations, Relay connections. Each plugin documents its own setup, but they all follow the same shape.
 
 ## Installing one
@@ -65,9 +63,3 @@ The full plugin index lives at [Plugins](./plugins). Some pointers:
 - **Federation.** [`plugin-federation`](./plugins/federation), [`plugin-sub-graph`](./plugins/sub-graph).
 - **Performance.** [`plugin-dataloader`](./plugins/dataloader), [`plugin-complexity`](./plugins/complexity).
 - **Schema utilities.** [`plugin-directives`](./plugins/directives), [`plugin-mocks`](./plugins/mocks), [`plugin-simple-objects`](./plugins/simple-objects).
-
-Reach for a plugin when its specific feature solves a problem your code is repeatedly working around. Until then, core is enough.
-
-<Callout type="info">
-  See also: [Writing plugins](./plugins/writing-plugins) if you'd like to author one.
-</Callout>

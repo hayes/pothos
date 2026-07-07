@@ -3,8 +3,6 @@ title: ArgBuilder
 description: Reference for the arg builder `t.arg` — the arg method and its scalar helpers.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 The arg builder is the `t.arg` object on a [`FieldBuilder`](./field-builder). Its methods define a field's arguments. For a guided introduction, see [Arguments](../fundamentals/args).
 
 ## `arg(options)`
@@ -52,7 +50,3 @@ Shortcuts for defining scalar args. Each works like [`arg`](./arg-builder#argopt
 - `arg.intList(options)`
 - `arg.floatList(options)`
 - `arg.listRef(type, options)`
-
-<Callout type="info">
-  See also: [Arguments](../fundamentals/args) for the concepts behind these methods, [InputFieldBuilder](./input-field-builder) for the same builder used inside input object types, or [FieldBuilder](./field-builder) for the field that carries the args.
-</Callout>

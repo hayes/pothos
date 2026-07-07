@@ -3,8 +3,6 @@ title: FieldBuilder
 description: Reference for the field builder `t` — field, the scalar helpers, and the expose helpers.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 The field builder is the `t` argument passed to every `fields` function. Its methods return field refs. For a guided introduction to defining fields and writing resolvers, see [Fields](../fundamentals/fields) and [Resolvers](../fundamentals/resolvers).
 
 ## `field(options)`
@@ -82,7 +80,3 @@ Shortcuts for exposing a property of the backing model directly, without a resol
 - `exposeFloatList(name, options)`
 
 The expose helpers exist only on object and interface field builders, where a backing model is in scope. They are not available on `Query`, `Mutation`, or `Subscription`, whose root value carries no properties to expose.
-
-<Callout type="info">
-  See also: [Fields](../fundamentals/fields) for the concepts behind these methods, [ArgBuilder](./arg-builder) for defining a field's `args`, or [SchemaBuilder](./schema-builder) for the type-definition methods whose refs become the `type` parameter.
-</Callout>
