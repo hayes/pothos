@@ -1,0 +1,50 @@
+---
+title: Mutations
+description: The Mutation root type, and fields that create, update, or delete data.
+---
+
+Mutations are the schema's entry points for writing data: the fields a client calls to create, update, or delete records. `mutationType` defines the Mutation root, and `mutationField`/`mutationFields` add fields to it from anywhere in a schema. Here is a mutation that updates a character's biography:
+
+<include cwd lang="typescript" meta='playground example="fundamentals-mutations"'>playground-examples/fundamentals-mutations/schema.ts#update-character-mutation</include>
+
+The field takes a single `input` argument, an [input object](./inputs) that groups the mutation's values (`characterId` and `biography`) into one named type. Inside the resolver, `if (!ctx.user)` guards on a signed-in user (see [Context](./context#requiring-a-signed-in-user)). The check specific to a write comes next: `entry.editorId !== ctx.user.id` decides whether this particular signed-in user may change this particular record. With both checks passed, the resolver updates the record and returns it. For real authorization, [`plugin-scope-auth`](../plugins/scope-auth) moves checks like these onto the field as declarative auth scopes.
+
+## The Mutation root
+
+`mutationType` defines the root, the way `queryType` defines the query root. Call it once, from the file that assembles your schema:
+
+```typescript
+builder.mutationType({});
+```
+
+In a schema split across modules, `mutationField` adds a single field to the root and `mutationFields` adds several, the same [cross-module merge](./queries#adding-fields-from-elsewhere) the query root allows:
+
+```typescript
+// characters.ts — registers its write on the shared root
+builder.mutationField('updateCharacter', (t) =>
+  t.field({
+    type: Character,
+    args: { input: t.arg({ type: UpdateCharacterInput, required: true }) },
+    resolve: (_root, { input }, ctx) => updateCharacter(input, ctx),
+  }),
+);
+```
+
+The root is named `Mutation` by default; pass `name` to `mutationType` to call it something else. A schema without writes can skip the mutation root entirely; of the three root types, only the query root is required by GraphQL's schema validation.
+
+When a client sends several mutation fields in one operation, the graphql-js executor runs them one at a time in the order written, each finishing before the next starts. (Query root fields resolve in parallel.)
+
+## Returning what changed
+
+Return the entity the mutation changed. Because the field's type is the object type, the client selects fields on the result and reads the new state in the same round trip:
+
+```graphql
+mutation UpdateCharacter {
+  updateCharacter(input: { characterId: "1", biography: "Bearer of the One Ring and hero of the War of the Ring." }) {
+    id
+    biography
+  }
+}
+```
+
+When a mutation has no single record to hand back, such as a bulk delete or a batch import, return a small payload type carrying whatever the client needs to know, like a count of the rows affected: `DeleteCharactersPayload { deletedCount: Int! }`.

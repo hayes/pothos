@@ -1,0 +1,11 @@
+{
+  "id": "patterns-printing-schema",
+  "title": "Printing schema to SDL",
+  "description": "Build a small schema and print its SDL with printSchema and lexicographicSortSchema — open the console to see the output.",
+  "category": "core",
+  "subcategory": "patterns",
+  "difficulty": "intermediate",
+  "order": 6,
+  "tags": ["printSchema", "lexicographicSortSchema", "sdl", "codegen"],
+  "relatedDocs": ["/docs/patterns/printing-and-codegen"]
+}

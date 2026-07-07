@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-queries",
+  "title": "Queries",
+  "description": "queryType, queryField, and queryFields for defining the Query root.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 8,
+  "tags": ["queries", "query-root"],
+  "relatedDocs": ["/docs/fundamentals/queries"]
+}

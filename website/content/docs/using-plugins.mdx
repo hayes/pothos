@@ -1,0 +1,65 @@
+---
+title: Using plugins
+description: Install a Pothos plugin, register it on the builder, and understand the rules that apply to every plugin.
+---
+
+Plugins extend Pothos with features that feel like they're part of the core API: auth scopes, validation, error unions, ORM integrations, Relay connections. Each plugin documents its own setup, but they all follow the same shape.
+
+## Installing one
+
+```package-install
+npm install @pothos/plugin-scope-auth
+```
+
+Import the plugin, list it in `plugins:`, and configure it if it asks for it:
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+
+const builder = new SchemaBuilder<{
+  Context: { user?: { id: string } };
+  AuthScopes: { loggedIn: boolean };
+}>({
+  plugins: [ScopeAuthPlugin],
+  scopeAuth: {
+    authScopes: (ctx) => ({
+      loggedIn: !!ctx.user,
+    }),
+  },
+});
+```
+
+Two slots are always involved:
+
+- **The generic** carries any types the plugin needs to know: `AuthScopes` for scope-auth, `DrizzleRelations` for drizzle, `PrismaTypes` for prisma.
+- **The constructor options** carry any runtime config: `scopeAuth: { authScopes: ... }`, `drizzle: { client, ... }`. The plugin's own docs spell out which keys.
+
+Once registered, the plugin's methods appear on the builder as if they were core methods. `t.withAuth({...})` only exists when scope-auth is loaded; `t.prismaField` only exists when the prisma plugin is loaded.
+
+## Plugin order matters
+
+Plugins are applied in reverse list order. The first plugin listed becomes the outermost wrapper at runtime — its hooks fire first on the way in, last on the way out. Put authorization-style plugins (anything that should reject early) near the front:
+
+```typescript
+plugins: [
+  ScopeAuthPlugin,       // applied last → wraps everything, runs first
+  ErrorsPlugin,
+  ValidationPlugin,
+  RelayPlugin,
+],
+```
+
+This ordering matters when one plugin's behavior depends on another's effect already being in place. The docs for each plugin call out the cases where order is load-bearing.
+
+## Plugin catalog
+
+The full plugin index lives at [Plugins](./plugins). Some pointers:
+
+- **Auth and validation.** [`plugin-scope-auth`](./plugins/scope-auth), [`plugin-validation`](./plugins/validation).
+- **Error handling.** [`plugin-errors`](./plugins/errors) for typed result unions.
+- **ORMs.** [`plugin-prisma`](./plugins/prisma), [`plugin-drizzle`](./plugins/drizzle).
+- **Relay.** [`plugin-relay`](./plugins/relay) for connections, cursors, and node interfaces.
+- **Federation.** [`plugin-federation`](./plugins/federation), [`plugin-sub-graph`](./plugins/sub-graph).
+- **Performance.** [`plugin-dataloader`](./plugins/dataloader), [`plugin-complexity`](./plugins/complexity).
+- **Schema utilities.** [`plugin-directives`](./plugins/directives), [`plugin-mocks`](./plugins/mocks), [`plugin-simple-objects`](./plugins/simple-objects).

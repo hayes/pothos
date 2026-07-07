@@ -1,91 +1,82 @@
 ---
-title: Zod Validation plugin
-description: Zod plugin docs for Pothos
+title: Zod validation plugin
+description: Validate field arguments and input fields with a validate option that maps onto zod constraints.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 <Callout type="warn">
-  [The new Pothos Validation plugin](https://pothos-graphql.dev/docs/plugins/validation) is now the recommended way
-  to add validation to your schema, and has support for zod, as well as several other validation libraries.
-
-  This plugin should continue to work, but does not support async validation, or validations that transform data.
+  The [validation plugin](./validation) is now the recommended way to validate a
+  schema. It supports zod alongside several other validation libraries. The zod
+  plugin keeps working; use it only on schemas already built around it.
 </Callout>
 
-A plugin for adding validation for field arguments based on
-[zod](https://github.com/colinhacks/zod). This plugin does not expose zod directly, but most of the
-options map closely to the validations available in zod.
+The zod plugin validates field arguments and input fields with [zod](https://github.com/colinhacks/zod). You attach a `validate` option wherever you accept input (a single argument, a whole field's args, an input object, or one of its fields) and the plugin builds a zod validator that runs before your resolver. It does not re-export zod; instead `validate` takes a small options object whose keys map onto the zod methods you already know (`min`, `max`, `email`, `regex`, and so on), or an actual zod schema when you want the full API.
 
-## Usage
-
-### Install
-
-To use the zod plugin you will need to install both `zod` package and the zod plugin:
+## Install
 
 ```package-install
 npm install --save zod @pothos/plugin-zod
 ```
 
-### Setup
+## Setup
+
+Add the plugin, then optionally hand it a `validationError` callback to shape what clients see when validation fails.
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import ZodPlugin from '@pothos/plugin-zod';
-const builder = new SchemaBuilder({
+
+const builder = new SchemaBuilder<{ Context: { userId: string } }>({
   plugins: [ZodPlugin],
   zod: {
-    // optionally customize how errors are formatted
-    validationError: (zodError, args, context, info) => {
-      // the default behavior is to just throw the zod error directly
-      return zodError;
-    },
+    // Runs when validation fails. Return a string or Error, or throw your own.
+    // The default is to throw the raw ZodError.
+    validationError: (zodError, _args, _context, _info) => zodError.issues[0].message,
   },
 });
+```
 
+`validationError` receives the `ZodError`, the field's `args`, the `context`, and the GraphQL `info`. Return a `string` (thrown as a `PothosValidationError`), return an `Error` instance (thrown as-is), or throw directly. Skip it to surface the raw zod error.
+
+## Validating a single argument
+
+Add `validate` to any argument. The keys you pass are constraints for that argument's type; here an email string capped at 254 characters.
+
+```typescript
 builder.queryType({
   fields: (t) => ({
-    simple: t.boolean({
+    playerByEmail: t.boolean({
       args: {
-        // Validate individual args
         email: t.arg.string({
           validate: {
             email: true,
+            maxLength: 254,
           },
         }),
-        phone: t.arg.string(),
       },
-      // Validate all args together
-      validate: (args) => !!args.phone || !!args.email,
       resolve: () => true,
     }),
   }),
 });
 ```
 
-## Options
+## Validating all arguments together
 
-`validationError`: (optional) A function that will be called when validation fails. The function
-will be passed the zod validation error, as well as the args, context and info objects. It can
-throw an error, or return an error message or custom Error instance.
-
-### Examples
-
-#### With custom message
+Cross-field rules ("at least one of these," "start before end") belong on the field's own `validate`, which receives the whole args object. It can be a function, or a `[function, options]` pair when you want a message.
 
 ```typescript
-builder.queryType({
+builder.mutationType({
   fields: (t) => ({
-    withMessage: t.boolean({
+    inviteToTeam: t.boolean({
       args: {
-        email: t.arg.string({
-          validate: {
-            email: [true, { message: 'invalid email address' }],
-          },
-        }),
+        email: t.arg.string({ validate: { email: true } }),
         phone: t.arg.string(),
       },
+      // Require at least one contact method across the two args.
       validate: [
-        (args) => !!args.phone || !!args.email,
-        { message: 'Must provide either phone number or email address' },
+        (args) => !!args.email || !!args.phone,
+        { message: 'Provide either an email address or a phone number' },
       ],
       resolve: () => true,
     }),
@@ -93,19 +84,35 @@ builder.queryType({
 });
 ```
 
-### Validating List
+## Custom messages
+
+Every constraint accepts either a bare value or a `[value, { message }]` pair. The pair form is a `Constraint`; the options object is passed straight to the underlying zod method, so anything zod's method accepts (a `message`, and a `path` for object refinements) works.
 
 ```typescript
-builder.queryType({
+t.arg.int({
+  validate: {
+    min: [0, { message: 'jersey number cannot be negative' }],
+    max: [99, { message: 'jersey number must be under 100' }],
+    int: true,
+  },
+});
+```
+
+## Lists
+
+List arguments validate the list and its items in one options object. Constraints like `minLength` / `maxLength` / `length` apply to the array; `items` carries the constraints for each element.
+
+```typescript
+builder.mutationType({
   fields: (t) => ({
-    list: t.boolean({
+    setRoster: t.boolean({
       args: {
-        list: t.arg.stringList({
+        emails: t.arg.stringList({
           validate: {
+            maxLength: 12,
             items: {
               email: true,
             },
-            maxLength: 3,
           },
         }),
       },
@@ -115,43 +122,53 @@ builder.queryType({
 });
 ```
 
-### Using your own zod schemas
+## Input objects
 
-If you just want to use a zod schema defined somewhere else, rather than using the validation
-options you can use the `schema` option:
+`validate` works the same on an input type and on its fields. Put per-field rules on each field, and cross-field rules on the input type itself, where the callback receives the whole object.
 
 ```typescript
-builder.queryType({
+const RegisterTeamInput = builder.inputType('RegisterTeamInput', {
   fields: (t) => ({
-    list: t.boolean({
-      args: {
-        max5: t.arg.int({
-          validate: {
-            schema: zod.number().int().max(5),
-          },
-        }),
-      },
-      resolve: () => true,
-    }),
+    name: t.string({ validate: { minLength: 3, maxLength: 40 } }),
+    contactEmail: t.string({ validate: { email: true } }),
+    backupEmail: t.string({ required: false, validate: { email: true } }),
   }),
+  // Runs against the assembled input object.
+  validate: [
+    (input) => input.contactEmail !== input.backupEmail,
+    { message: 'backup email must differ from contact email' },
+  ],
 });
 ```
 
-You can also validate all arguments together using a zod schema:
+## Bring your own zod schema
+
+When the built-in constraints run out (unions, branded types, `transform`, anything zod can express), pass a real schema with the `schema` key instead. It works on a single argument:
+
+```typescript
+import { z } from 'zod';
+
+t.arg.int({
+  validate: {
+    schema: z.number().int().max(5),
+  },
+});
+```
+
+...or on the whole field, validating every argument at once:
 
 ```typescript
 builder.queryType({
   fields: (t) => ({
-    simple: t.boolean({
+    signIn: t.boolean({
       args: {
         email: t.arg.string(),
-        phone: t.arg.string(),
+        password: t.arg.string(),
       },
-      // Validate all args together using own zod schema
       validate: {
-        schema: zod.object({
-          email: zod.string().email(),
-          phone: zod.string(),
+        schema: z.object({
+          email: z.string().email(),
+          password: z.string().min(8),
         }),
       },
       resolve: () => true,
@@ -160,237 +177,114 @@ builder.queryType({
 });
 ```
 
-## API
+You can combine `schema` with the constraint keys. The plugin pipes your schema into the generated validator, so both run. Validation runs as an async check just before your resolver; refinements may return a `Promise<boolean>`, and the parsed value (including anything a `transform` rewrites) becomes the args your resolver receives.
 
-### On Object fields (for validating field arguments)
+## Constraint reference
 
-- `validate`: `Refinement<T>` | `Refinement<T>[]` | `ValidationOptions`.
+`validate` accepts a bare refinement function, an array of them, or an options object. The options object always allows these keys:
 
-### On InputObjects (for validating all fields of an input object)
+| Key | Type | Purpose |
+| --- | --- | --- |
+| `type` | `'number' \| 'bigint' \| 'boolean' \| 'date' \| 'string' \| 'object' \| 'array'` | Pin the base zod type. See [How it works](#how-it-works) for why this matters. |
+| `refine` | function or `[function, { message?, path? }]`, or an array of either | A predicate handed to zod's `refine`. Receives the validated value; returns `boolean` or `Promise<boolean>`. |
+| `schema` | `ZodType` | A zod schema piped into the generated validator. |
 
-- `validate`: `Refinement<T>` | `Refinement<T>[]` | `ValidationOptions`.
+The remaining keys depend on the field's type. Each value is a `Constraint`, either a bare value or `[value, { message }]`:
 
-### On arguments or input object fields (for validating a specific input field or argument)
+| Type | Additional keys |
+| --- | --- |
+| Number | `min`, `max`, `int`, `positive`, `nonnegative`, `negative`, `nonpositive` |
+| String | `minLength`, `maxLength`, `length`, `email`, `url`, `uuid`, `regex` |
+| Array | `minLength`, `maxLength`, `length`, `items` (a nested `ValidationOptions` for each element) |
+| BigInt | *(base keys only)* |
+| Boolean | *(base keys only)* |
+| Date | *(base keys only)* |
+| Object | *(base keys only)* |
 
-- `validate`: `Refinement<T>` | `Refinement<T>[]` | `ValidationOptions`.
+## How it works
 
-### `Refinement`
-
-A `Refinement` is a function that will be passed to the `zod` `refine` method. It receives the args
-object, input object, or value of the specific field the refinement is defined on. It should return
-a `boolean` or `Promise<boolean>`.
-
-`Refinement`s can either be just a function: `(val) => isValid(val)`, or an array with the function,
-and an options object like: `[(val) => isValid(val), { message: 'field should be valid' }]`.
-
-The options object may have a `message` property, and if the type being validated is an object, it
-can also include a `path` property with an array of strings indicating the path of the field in the
-object being validated. See the zod docs on `refine` for more details.
-
-### `ValidationOptions`
-
-The validation options available depend on the type being validated. Each property of
-`ValidationOptions` can either be a value specific to the constraint, or an array with the value,
-and the options passed to the underlying zod method. This options object can be used to set a custom
-error message:
+Each argument and input field builds its own zod validator from its `validate` options. At runtime the plugin has no access to the JavaScript type behind a GraphQL type, so when you pass plain constraints it builds a union of every base type that could satisfy them. A lone `maxLength`, for example, fits both strings and arrays:
 
 ```typescript
-{
-  validate: {
-    max: [10, { message: 'should not be more than 10' }],
-    int: true,
-  }
-}
+z.union([z.string().max(5), z.array(z.unknown()).max(5)]);
 ```
 
-#### Number
+An `email` constraint only fits strings, so the union collapses to one member. When the argument is not required, the whole validator is wrapped `.optional().nullable()` rather than folded into the union.
 
-- `type`?: `'number'`
-- `refine`?: `Refinement<number> | Refinement<number>[]`
-- `min`?: `Constraint<number>`
-- `max`?: `Constraint<number>`
-- `positive`?: `Constraint<boolean>`
-- `nonnegative`?: `Constraint<boolean>`
-- `negative`?: `Constraint<boolean>`
-- `nonpositive`?: `Constraint<boolean>`
-- `int`?: `Constraint<boolean>`
-- `schema`?: `ZodSchema<number>`
-
-#### BigInt
-
-- `type`?: `'bigint'`
-- `refine`?: `Refinement<bigint> | Refinement<bigint>[]`
-- `schema`?: `ZodSchema<bigint>`
-
-#### Boolean
-
-- `type`?: `'boolean'`
-- `refine`?: `Refinement<boolean> | Refinement<boolean>[]`
-- `schema`?: `ZodSchema<boolean>`
-
-#### Date
-
-- `type`?: `'boolean'`
-- `refine`?: `Refinement<boolean> | Refinement<boolean>[]`
-- `schema`?: `ZodSchema<Date>`
-
-#### String
-
-- `type`?: `'string'`;
-- `refine`?: `Refinement<string> | Refinement<string>[]`
-- `minLength`?: `Constraint<number>`
-- `maxLength`?: `Constraint<number>`
-- `length`?: `Constraint<number>`
-- `url`?: `Constraint<boolean>`
-- `uuid`?: `Constraint<boolean>`
-- `email`?: `Constraint<boolean>`
-- `regex`?: `Constraint<RegExp>`
-- `schema`?: `ZodSchema<string>`
-
-#### Object
-
-- `type`?: `'object'`;
-- `refine`?: `Refinement<T> | Refinement<T>[]`
-- `schema`?: `ZodSchema<Ts>`
-
-#### Array
-
-- `type`?: `'array'`;
-- `refine`?: `Refinement<T[]> | Refinement<T[]>[]`
-- `minLength`?: `Constraint<number>`
-- `maxLength`?: `Constraint<number>`
-- `length`?: `Constraint<number>`
-- `items`?: `ValidationOptions<T> | Refinement<T>`
-- `schema`?: `ZodSchema<T[]>`
-
-### How it works
-
-Each arg on an object field, and each field on an input type with validation will build its own zod
-validator. These validators will be a union of all potential types that can apply the validations
-defined for that field. For example, if you define an optional field with a `maxLength` validator,
-it will create a zod schema that looks something like:
+Set `type` to skip the guessing and pin one base type:
 
 ```typescript
-zod.union([zod.null(), zod.undefined(), zod.array().maxLength(5), zod.string().maxLength(5)]);
+// { validate: { type: 'string', maxLength: 5 } } builds:
+z.string().max(5);
 ```
 
-If you set an `email` validation instead the schema might look like:
+Three cases sidestep the union entirely:
+
+- **Input object** args and fields always validate with `z.looseObject(...)`.
+- **List** args and fields always validate with `.array()`.
+- **Refinement-only** validators (a bare function, or an options object with just `refine` and/or `schema`) validate against `z.unknown()`, since no constraint narrows the type.
+
+A `schema` is piped into whatever the plugin generates (`yourSchema.pipe(generated)`), so your schema and the constraints both run.
+
+<Callout type="info">
+  Older releases wrapped optional validators as `z.union([z.null(), z.undefined(), …])` and merged `schema` with `z.intersection`. On zod 4 the plugin uses `.optional().nullable()` and `.pipe()` instead; the shapes above reflect current behavior.
+</Callout>
+
+## Sharing schemas with client code
+
+To reuse a validator on the client, write it as an ordinary zod schema in a shared module, then attach it with `schema`:
 
 ```typescript
-zod.union([zod.null(), zod.undefined(), zod.string().email()]);
+// shared/validators.ts
+import { z } from 'zod';
+
+export const jerseyNumber = z.number().int().min(0).max(99);
 ```
 
-At runtime, we don't know anything about the types being used by your schema, we can't infer the
-expected js type from the type definition, so the best we can do is limit the valid types based on
-what validations they support. The `type` validation allows explicitly validating the `type` of a
-field to be one of the base types supported by zod:
-
 ```typescript
-// field
-{
-validate: {
-  type: 'string',
-  maxLength: 5
-}
-// generated
-zod.union([zod.null(), zod.undefined(), zod.string().maxLength(5)]);
-```
-
-There are a few exceptions to the above:
-
-1. args and input fields that are `InputObject`s always use `zod.object()` rather than creating a
-   union of potential types.
-
-1. args and input fields that are list types always use `zod.array()`.
-
-1. If you only include a `refine` validation (or just pass a function directly to validate) we will
-   just use `zod`s unknown validator instead:
-
-```typescript
-// field
-{
-  validate: (val) => isValid(val),
-}
-// generated
-zod.union([zod.null(), zod.undefined(), zod.unknown().refine((val) => isValid(val))]);
-```
-
-If the validation options include a `schema` that schema will be used as an intersection with the
-generated validator:
-
-```typescript
-// field
-{
-  validate: {
-    int: true,
-    schema: zod.number().max(10),
-}
-// generated
-zod.union([zod.null(), zod.undefined(),  zod.intersection(zod.number().max(10), zod.number().int())]);
-```
-
-### Sharing schemas with client code
-
-The easiest way to share validators is to use them to define schemas for your fields in an external
-file using the normal zod APIs, and then attaching those to your fields using the `schema` option.
-
-```typescript
-// shared
-import { ValidationOptions } from '@pothos/plugin-zod';
-
-const numberValidation = zod.number().max(5);
-
 // server
-builder.queryType({
-  fields: (t) => ({
-    example: t.boolean({
-      args: {
-        num: t.arg.int({
-          validate: {
-            schema: numberValidation,
-          }
-        }),
-      },
-      resolve: () => true,
-    }),
-  });
-});
+import { jerseyNumber } from './shared/validators';
 
+t.arg.int({
+  validate: { schema: jerseyNumber },
+});
+```
+
+```typescript
 // client
-numberValidator.parse(3) // pass
-numberValidator.parse('3') // fail
+import { jerseyNumber } from './shared/validators';
+
+jerseyNumber.parse(23); // pass
+jerseyNumber.parse(100); // throws
 ```
 
-You can also use the `createZodSchema` helper from the plugin directly to create zod Schemas from an
-options object:
+If you would rather share the constraint options object, the plugin exports `createZodSchema` to turn one into a zod schema on demand. Type the options with the exported `ValidationOptions`:
 
 ```typescript
-// shared
-import { ValidationOptions } from '@pothos/plugin-zod';
+// shared/validators.ts
+import type { ValidationOptions } from '@pothos/plugin-zod';
 
-const numberValidation: ValidationOptions<number> = {
-  max: 5,
+export const jerseyNumberOptions: ValidationOptions<number> = {
+  min: 0,
+  max: 99,
+  int: true,
 };
+```
 
+```typescript
 // server
-builder.queryType({
-  fields: (t) => ({
-    example: t.boolean({
-      args: {
-        num: t.arg.int({
-          validate: numberValidation,
-        }),
-      },
-      resolve: () => true,
-    }),
-  });
-});
+import { jerseyNumberOptions } from './shared/validators';
 
+t.arg.int({ validate: jerseyNumberOptions });
+```
+
+```typescript
 // client
 import { createZodSchema } from '@pothos/plugin-zod';
+import { jerseyNumberOptions } from './shared/validators';
 
-const validator = createZodSchema(numberValidator);
+const validator = createZodSchema(jerseyNumberOptions);
 
-validator.parse(3) // pass
-validator.parse('3') // fail
+validator.parse(23); // pass
+validator.parse(100); // throws
 ```

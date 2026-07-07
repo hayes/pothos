@@ -1,0 +1,15 @@
+query Characters {
+  characters {
+    id
+    name
+    bio
+    age
+    titles
+    faction {
+      name
+      members {
+        name
+      }
+    }
+  }
+}

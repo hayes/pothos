@@ -1,819 +1,501 @@
 ---
 title: Relay plugin
-description: Relay plugin docs for Pothos
+description: Build a Relay-compliant schema with the Node interface, global IDs, connections, and Relay mutations.
 ---
 
-The Relay plugin adds a number of builder methods and helper functions to simplify building a relay
-compatible schema.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-## Usage
+Relay is a set of GraphQL conventions: a `Node` interface every object can be refetched through, opaque global IDs, and cursor-paginated connections. The relay plugin adds the builder methods that generate these: `builder.node` turns a type into a node addressable by a global ID, and `t.connection` defines a cursor-paginated field along with its `Connection`, `Edge`, and `PageInfo` types.
 
-### Install
+The examples below model an Ultimate League: `Team` and `Player` nodes, with each team's roster exposed as a connection.
+
+## Setup
 
 ```package-install
 npm install --save @pothos/plugin-relay
 ```
 
-### Setup
+Register the plugin and pass a `relay` options object; empty is fine to start.
 
-```typescript
-import RelayPlugin from '@pothos/plugin-relay';
-const builder = new SchemaBuilder({
-  plugins: [RelayPlugin],
-  relay: {},
-});
-```
+<include cwd lang="typescript" meta='playground example="relay-plugin"'>playground-examples/relay-plugin/schema.ts#relay-setup</include>
 
-### Options
+<Callout type="info">
+  The builder key is `relay`. Older versions used `relayOptions`; that name is only accepted in v3-compatibility mode, and new code should use `relay`.
+</Callout>
 
-The `relay` options object passed to builder can contain the following properties:
+## Nodes
 
-- `idFieldName`: The name of the field that contains the global id for the node. Defaults to `id`.
-- `idFieldOptions`: Options to pass to the id field.
-- `clientMutationId`: `omit` (default) | `required` | `optional`. Determines if clientMutationId
-  fields are created on `relayMutationFields`, and if they are required.
-- `relayMutationFieldOptions`: Default options for the `relayMutationField` method.
-- `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults to `String`
-- `nodeQueryOptions`: Options for the `node` field on the query object, set to false to omit the
-  field
-- `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
-  field
-- `nodeTypeOptions`: Options for the `Node` interface type. Supports a `name` property to customize
-  the type name.
-- `pageInfoTypeOptions`: Options for the `PageInfo` object type. Supports a `name` property to
-  customize the type name.
-- `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on connection objects
-- `clientMutationIdInputOptions`: Options for the `clientMutationId` input field on connections
-  fields
-- `mutationInputArgOptions`: Options for the Input object created for each connection field
-- `cursorFieldOptions`: Options for the `cursor` field on an edge object.
-- `nodeFieldOptions`: Options for the `node` field on an edge object.
-- `edgesFieldOptions`: Options for the `edges` field on a connection object.
-- `pageInfoFieldOptions`: Options for the `pageInfo` field on a connection object.
-- `hasNextPageFieldOptions`: Options for the `hasNextPage` field on the `PageInfo` object.
-- `hasPreviousPageFieldOptions`: Options for the `hasPreviousPage` field on the `PageInfo` object.
-- `startCursorFieldOptions`: Options for the `startCursor` field on the `PageInfo` object.
-- `endCursorFieldOptions`: Options for the `endCursor` field on the `PageInfo` object.
-- `beforeArgOptions`: Options for the `before` arg on a connection field.
-- `afterArgOptions`: Options for the `after` arg on a connection field.
-- `firstArgOptions`: Options for the `first` arg on a connection field.
-- `lastArgOptions`: Options for the `last` arg on a connection field.
-- `defaultConnectionTypeOptions`: Default options for the `Connection` Object types.
-- `defaultEdgeTypeOptions`: Default options for the `Edge` Object types.
-- `defaultPayloadTypeOptions`: Default options for the `Payload` Object types.
-- `defaultMutationInputTypeOptions`: default options for the mutation `Input` types.
-- `nodesOnConnection`: If true, the `nodes` field will be added to the `Connection` object types.
-- `defaultConnectionFieldOptions`: Default options for connection fields defined with t.connection
-- `brandLoadedObjects`: Defaults to `true`. This will add a hidden symbol to objects returned from
-  the `load` methods of Nodes that allows the default `resolveType` implementation to identify the
-  type of the node. When this is enabled, you will not need to implement an `isTypeOf` check for
-  most common patterns.
+A node is any object reachable by a single opaque global ID. Call `builder.node` to turn a type into one: you point at an `objectRef` (or a class), define how to read its `id`, and supply a loader that hydrates a node from that id.
 
-### Customizing type names
+```typescript playground example="relay-plugin"
+const Team = builder.objectRef<ITeam>('Team');
 
-If you have existing `Node` or `PageInfo` types in your schema that conflict with the ones generated
-by the relay plugin, you can customize the names using `nodeTypeOptions` and `pageInfoTypeOptions`:
-
-```typescript
-import RelayPlugin from '@pothos/plugin-relay';
-const builder = new SchemaBuilder({
-  plugins: [RelayPlugin],
-  relay: {
-    nodeTypeOptions: {
-      name: 'RelayNode',
-      description: 'A node in the graph',
-    },
-    pageInfoTypeOptions: {
-      name: 'RelayPageInfo',
-      description: 'Pagination information',
-    },
-  },
-});
-```
-
-Both options support all standard type options including `name`, `description`, and `extensions`.
-
-### Creating Nodes
-
-To create objects that extend the `Node` interface, you can use the new `builder.node` method.
-
-```typescript
-// Using object refs
-const User = builder.objectRef<UserType>('User');
-// Or using a class
-class User {
-  id: string;
-  name: string;
-}
-
-builder.node(User, {
-  // define an id field
+builder.node(Team, {
   id: {
-    resolve: (user) => user.id,
-    // other options for id field can be added here
+    resolve: (team) => team.id,
   },
-
-  // Define only one of the following methods for loading nodes by id
-  loadOne: (id) => loadUserByID(id),
-  loadMany: (ids) => loadUsers(ids),
-  loadWithoutCache: (id) => loadUserByID(id),
-  loadManyWithoutCache: (ids) => loadUsers(ids),
-
-  // if using a class instead of a ref, you will need to provide a name
-  name: 'User',
+  loadOne: (id) => Teams.get(id) ?? null,
+  loadMany: (ids) => ids.map((id) => Teams.get(id) ?? null),
   fields: (t) => ({
     name: t.exposeString('name'),
+    city: t.exposeString('city'),
   }),
 });
 ```
 
-`builder.node` will create an object type that implements the `Node` interface. It will also create
-the `Node` interface the first time it is used. The `resolve` function for `id` should return a
-number or string, which will be converted to a globalID. The relay plugin adds two new query fields
-`node` and `nodes` which can be used to directly fetch nodes using global IDs by calling the
-provided `loadOne` or `loadMany` method. Each node will only be loaded once by id, and cached if the
-same node is loaded multiple times in the same request. You can provide `loadWithoutCache` or
-`loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
-datasource like a dataloader.
+`builder.node` creates an object type that implements the `Node` interface, and creates the `Node` interface itself the first time it's used. The `id.resolve` function returns a string or number, which the plugin encodes into a global ID. It also wires up two query fields (`node(id:)` and `nodes(ids:)`) that refetch any node directly from its global ID by calling your loader.
 
-Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
-lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
-using an `instanceof` check, and falls back to checking the constructor property on the prototype.
-That means that for many cases if you are using classes in your type parameters, and all your values
-are instances of those classes, you won't need to implement an `isTypeOf` method, but it is usually
-better to explicitly define that behavior.
+Define exactly **one** of the loader methods:
 
-By default (unless `brandLoadedObjects` is set to `false`) any nodes loaded through one of the
-`load*` methods will be branded so that the default `resolveType` method can identify the GraphQL
-type for the loaded object. This means `isTypeOf` is only required for `union` and `interface`
-fields that return node objects that are manually loaded, where the union or interface does not have
-a custom `resolveType` method that knows how to resolve the node type.
+- `loadOne` / `loadMany` load a node (or list of nodes) by id, with a per-request cache so the same id is only loaded once.
+- `loadWithoutCache` / `loadManyWithoutCache` skip the cache. Use these if caching is undesirable or you already load through a dataloader.
 
-#### parsing node ids
+When you back a node with a **class** rather than an `objectRef`, pass a `name` so the type has a GraphQL name:
 
-By default all node ids are parsed as string. This behavior can be customized by providing a custom
-parse function for your node's ID field:
+```typescript
+class Player {
+  id: string;
+  name: string;
+}
 
-```ts
-const User = builder.objectRef<UserType>('User')
-builder.node(User, {
-  // define an id field
-  id: {
-    resolve: (user) => user.id,
-    parse: (id) => Number.parseInt(id, 10),
-  },
-  // the ID is now a number
-  loadOne: (id) => loadUserByID(id),
-  ...
+builder.node(Player, {
+  name: 'Player', // required when the type parameter is a class
+  id: { resolve: (player) => player.id },
+  loadOne: (id) => loadPlayer(id),
+  fields: (t) => ({ name: t.exposeString('name') }),
 });
 ```
 
-### Global IDs
+### Resolving the node type
 
-To make it easier to create globally unique ids the relay plugin adds new methods for creating
-globalID fields.
+The `node` field returns the `Node` interface, so Pothos needs to map a loaded object back to its concrete type. By default (`brandLoadedObjects: true`) any object returned from a `load*` method is tagged with a hidden symbol that the default `resolveType` reads, so most schemas never write an `isTypeOf` check.
+
+You still need `isTypeOf` for `union` and `interface` fields that return manually-loaded node objects where no custom `resolveType` knows the type. A node may also define its own `isTypeOf`:
+
+```typescript
+builder.node(Player, {
+  isTypeOf: (value) => value instanceof Player,
+  // ...
+});
+```
+
+When the type parameter is a class, `isTypeOf` defaults to an `instanceof` check (falling back to the prototype's constructor), so class-backed nodes often need nothing here, though declaring it explicitly is clearer.
+
+<Callout type="warn">
+  Turning off `brandLoadedObjects` means the default `resolveType` can no longer identify loaded nodes. Only disable it if every node defines its own `isTypeOf`.
+</Callout>
+
+### Parsing node ids
+
+Node ids arrive as strings. Supply a `parse` function on the `id` field to convert them (say, to a number) before they reach your loader:
+
+```typescript
+builder.node(Player, {
+  id: {
+    resolve: (player) => player.id,
+    parse: (id) => Number.parseInt(id, 10),
+  },
+  // `id` is now a number in loadOne
+  loadOne: (id) => loadPlayerByNumber(id),
+  fields: (t) => ({ name: t.exposeString('name') }),
+});
+```
+
+## Global IDs
+
+Global IDs let a client refetch anything by a single opaque string. The plugin adds field and argument builders for them.
+
+`t.globalID` and `t.globalIDList` produce fields whose resolver returns either a global ID string or an object with `id` and `type` (a type name, or any ref usable as a type parameter):
 
 ```typescript
 import { encodeGlobalID } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
-  singleID: t.globalID({
-    resolve: (parent, args, context) => {
-      return { id: 123, type: 'SomeType' };
-    },
+  featuredTeamId: t.globalID({
+    resolve: () => ({ id: 1, type: 'Team' }),
   }),
-  listOfIDs: t.globalIDList({
-    resolve: (parent, args, context) => {
-      return [{ id: 123, type: 'SomeType' }];
-    },
+  rosterIds: t.globalIDList({
+    resolve: () => [{ id: 1, type: 'Player' }],
   }),
 }));
 ```
 
-The returned IDs can either be a string \(which is expected to already be a globalID\), or an object
-with an `id` and a `type`. The type can be either the name of a type as a string, or any object
-that can be used in a type parameter.
-
-There are also new methods for adding globalIDs in arguments or fields of input types:
-
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    fieldThatAcceptsGlobalID: t.boolean({
-      args: {
-        id: t.arg.globalID({
-          required: true,
-        }),
-        idList: t.arg.globalIDList(),
-      },
-      resolve(parent, args) {
-        console.log(`Get request for type ${args.id.typename} with id ${args.id.id}`);
-        return true;
-      },
-    }),
-  }),
-});
-```
-
-globalIDs used in arguments expect the client to send a globalID string, but will automatically be
-converted to an object with 2 properties (`id` and `typename`) before they are passed to your
-resolver in the arguments object.
-
-#### Limiting global ID args to specific types
-
-`globalID` input's can be configured to validate the type of the globalID. This is useful if you
-only want to accept IDs for specific node types.
-
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    fieldThatAcceptsGlobalID: t.boolean({
-      args: {
-        id: t.arg.globalID({
-          for: SomeType,
-          // or allow multiple types
-          for: [TypeOne, TypeTwo],
-          required: true,
-        }),
-      },
-    }),
-  }),
-});
-```
-
-### Creating Connections
-
-The `t.connection` field builder method can be used to define connections. This method will
-automatically create the `Connection` and `Edge` objects used by the connection, and add `before`,
-`after`, `first`, and `last` arguments. The first time this method is used, it will also create the
-`PageInfo` type.
+On the input side, `t.arg.globalID` and `t.arg.globalIDList` accept a global ID string from the client and hand your resolver a decoded `{ id, typename }`:
 
 ```typescript
 builder.queryFields((t) => ({
-  numbers: t.connection(
-    {
-      type: NumberThing,
-      resolve: (parent, { first, last, before, after }) => {
-        return {
-          pageInfo: {
-            hasNextPage: false,
-            hasPreviousPage: false,
-            startCursor: 'abc',
-            endCursor: 'def',
-          },
-          edges: [
-            {
-              cursor: 'abc',
-              node: new NumberThing(123),
-            },
-            {
-              cursor: 'def',
-              node: new NumberThing(123),
-            },
-          ],
-        };
-      },
-    },
-    {
-      name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
-      fields: (tc) => ({
-        // define extra fields on Connection
-        // We need to use a new variable for the connection field builder (eg tc) to get the correct types
-      }),
-      edgesField: {}, // optional, allows customizing the edges field on the Connection Object
-      // Other options for connection object can be added here
-    },
-    {
-      // Same as above, but for the Edge Object
-      name: 'NameOfEdgeType', // optional, will use Connection name + "Edge" as the default
-      fields: (te) => ({
-        // define extra fields on Edge
-        // We need to use a new variable for the connection field builder (eg te) to get the correct types
-      }),
-      nodeField: {}, // optional, allows customizing the node field on the Edge Object
-    },
-  ),
-}));
-```
-
-Manually implementing connections can be cumbersome, so there are a couple of helper methods that
-can make resolving connections a little easier.
-
-For limit/offset based apis:
-
-```typescript
-import { resolveOffsetConnection } from '@pothos/plugin-relay';
-
-builder.queryFields((t) => ({
-  things: t.connection({
-    type: SomeThing,
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
-    },
-  }),
-}));
-```
-
-`resolveOffsetConnection` has a few default limits to prevent unintentionally allowing too many
-records to be fetched at once. These limits can be configure using the following options:
-
-```typescript
-{
-  args: ConnectionArguments;
-  defaultSize?: number; // defaults to 20
-  maxSize?: number; // defaults to 100
-  totalCount?: number // required to support using `last` without `before`
-}
-```
-
-For APIs where you have the full array available you can use `resolveArrayConnection`, which works
-just like `resolveOffsetConnection` and accepts the same options.
-
-```typescript
-import { resolveArrayConnection } from '@pothos/plugin-relay';
-
-builder.queryFields((t) => ({
-  things: t.connection({
-    type: SomeThings,
-    resolve: (parent, args) => {
-      return resolveArrayConnection({ args }, getAllTheThingsAsArray());
-    },
-  }),
-}));
-```
-
-Cursor based pagination can be implemented using the `resolveCursorConnection` method. The following
-example uses prisma, but a similar solution should work with any data store that supports limits,
-ordering, and filtering.
-
-```typescript
-import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
-
-builder.queryField('posts', (t) =>
-  t.connection({
-    type: Post,
-    resolve: (_, args) =>
-      resolveCursorConnection(
-        {
-          args,
-          toCursor: (post) => post.createdAt.toISOString(),
-        },
-        // Manually defining the arg type here is required
-        // so that typescript can correctly infer the return value
-        ({ before, after, limit, inverted }: ResolveCursorConnectionArgs) =>
-          prisma.post.findMany({
-            take: limit,
-            where: {
-              createdAt: {
-                lt: before,
-                gt: after,
-              },
-            },
-            orderBy: {
-              createdAt: inverted ? 'desc' : 'asc',
-            },
-          }),
-      ),
-  }),
-);
-```
-
-### Relay Mutations
-
-You can use the `relayMutationField` method to define relay compliant mutation fields. This method
-will generate a mutation field, an input object with a `clientMutationId` field, and an output
-object with the corresponding `clientMutationId`.
-
-Example usage:
-
-```typescript
-builder.relayMutationField(
-  'deleteItem',
-  {
-    inputFields: (t) => ({
-      id: t.id({
-        required: true,
-      }),
-    }),
-  },
-  {
-    nullable: false, // You can optionally change the nullability of the mutation field here
-    resolve: async (root, args, ctx) => {
-      if (ctx.items.has(args.input.id)) {
-        ctx.items.delete(args.input.id);
-
-        return { success: true };
-      }
-
-      return { success: false };
-    },
-  },
-  {
-    outputFields: (t) => ({
-      success: t.boolean({
-        resolve: (result) => result.success,
-      }),
-    }),
-  },
-);
-```
-
-Which produces the following graphql types:
-
-```graphql
-input DeleteItemInput {
-  clientMutationId: ID!
-  id: ID!
-}
-
-type DeleteItemPayload {
-  clientMutationId: ID!
-  success: Boolean
-}
-
-type Mutation {
-  deleteItem(input: DeleteItemInput!): DeleteItemPayload!
-}
-```
-
-The `relayMutationField` has 4 arguments:
-
-- `name`: Name of the mutation field
-- `inputOptions`: Options for the `input` object or a ref to an existing input object
-- `fieldOptions`: Options for the mutation field
-- `payloadOptions`: Options for the Payload object
-
-The `inputOptions` has a couple of non-standard options:
-
-- `name` which can be used to set the name of the input object
-- `argName` which can be used to overwrite the default arguments name (`input`).
-
-The `payloadOptions` object also accepts a `name` property for setting the name of the payload
-object.
-
-You can also access refs for the created input and payload objects so you can re-use them in other
-fields:
-
-```typescript
-// Using aliases when destructuring lets you name your refs rather than using the generic `inputType` and `payloadType`
-const { inputType: DeleteItemInput, payloadType: DeleteItemPayload } = builder.relayMutationField(
-  'deleteItem',
-  ...
-);
-```
-
-### Reusing connection objects
-
-In some cases you may want to create a connection object type that is shared by multiple fields. To
-do this, you will need to create the connection object separately and then create a fields using a
-ref to your connection object:
-
-```typescript
-import { resolveOffsetConnection } from '@pothos/plugin-relay';
-
-const ThingsConnection = builder.connectionObject(
-  {
-    // connection options
-    type: SomeThing,
-    name: 'ThingsConnection',
-  },
-  {
-    // Edge options (optional)
-    name: 'ThingsEdge', // defaults to Appending `Edge` to the Connection name
-  },
-);
-
-// You can use connection object with normal fields
-builder.queryFields((t) => ({
-  things: t.field({
-    type: ThingsConnection,
+  roster: t.field({
+    type: [Player],
     args: {
-      ...t.arg.connectionArgs(),
+      teamId: t.arg.globalID({ required: true }),
+      extra: t.arg.globalIDList(),
     },
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
+    resolve: (_parent, args) => {
+      console.log(`type ${args.teamId.typename}, id ${args.teamId.id}`);
+      return loadRoster(args.teamId.id);
     },
-  }),
-}));
-
-// Or by providing the connection type when creating a connection field
-builder.queryFields((t) => ({
-  things: t.connection({
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
-    },
-  }),
-  ThingsConnection,
-}));
-```
-
-`builder.connectionObject` creates the connect object type and the associated Edge type.
-`t.arg.connectionArgs()` will create the default connection args.
-
-### Reusing edge objects
-
-Similarly you can directly create and re-use edge objects
-
-```typescript
-import { resolveOffsetConnection } from '@pothos/plugin-relay';
-
-const ThingsEdge = builder.edgeObject(
-  {
-    name: 'ThingsEdge',
-    type: SomeThing,
-  },
-);
-
-// The edge object can be used when creating a connection object
-const ThingsConnection = builder.connectionObject(
-  {
-    type: SomeThing,
-    name: 'ThingsConnection',
-  },
-  ThingsEdge,
-);
-
-// Or when creating a connection field
-builder.queryFields((t) => ({
-  things: t.connection({
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
-    },
-  }),
-  {
-    // connection options
-  },
-  ThingsEdge,
-}));
-
-
-```
-
-`builder.connectionObject` creates the connect object type and the associated Edge type.
-`t.arg.connectionArgs()` will create the default connection args.
-
-### Expose nodes
-
-The `t.node` and `t.nodes` methods can be used to add additional node fields. the expected return
-values of `id` and `ids` fields is the same as the resolve value of `t.globalID`, and can either be
-a globalID or an object with an `id` and a `type`.
-
-Loading nodes by `id` uses a request cache, so the same node will only be loaded once per request,
-even if it is used multiple times across the schema.
-
-```typescript
-builder.queryFields((t) => ({
-  extraNode: t.node({
-    id: () => 'TnVtYmVyOjI=',
-  }),
-  moreNodes: t.nodeList({
-    ids: () => ['TnVtYmVyOjI=', { id: 10, type: 'SomeType' }],
   }),
 }));
 ```
 
-### decoding and encoding global ids
-
-The relay plugin exports `decodeGlobalID` and `encodeGlobalID` as helper methods for interacting
-with global IDs directly. If you accept a global ID as an argument you can use the `decodeGlobalID`
-function to decode it:
+Restrict which node types an argument accepts with `for`, either a single ref or an array:
 
 ```typescript
+teamId: t.arg.globalID({
+  for: Team, // or [Team, Player]
+  required: true,
+}),
+```
+
+For working with global IDs directly, the plugin exports `encodeGlobalID(typename, id)` and `decodeGlobalID(globalID)`:
+
+```typescript
+import { decodeGlobalID } from '@pothos/plugin-relay';
+
 builder.mutationFields((t) => ({
-  updateThing: t.field({
-    type: Thing,
+  renamePlayer: t.field({
+    type: Player,
     args: {
-      id: t.args.id({ required: true }),
-      update: t.args.string({ required: true }),
+      id: t.arg.id({ required: true }),
+      name: t.arg.string({ required: true }),
     },
-    resolve(parent, args) {
-      const { type, id } = decodeGlobalID(args.id);
-
-      const thing = Thing.findById(id);
-
-      thing.update(args.update);
-
-      return thing;
+    resolve: (_parent, args) => {
+      const { typename, id } = decodeGlobalID(args.id);
+      return renamePlayer(id, args.name);
     },
   }),
 }));
 ```
 
-### Using custom encoding for global ids
+### Custom id encoding
 
-In some cases you may want to encode global ids differently than the build in ID encoding. To do
-this, you can pass a custom encoding and decoding function into the relay options of the builder:
+To encode ids differently from the built-in base64 scheme, pass `encodeGlobalID` and `decodeGlobalID` into the `relay` options:
 
 ```typescript
-import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
-  relayOptions: {
-    encodeGlobalID: (typename: string, id: string | number | bigint) => `${typename}:${id}`,
-    decodeGlobalID: (globalID: string) => {
+  relay: {
+    encodeGlobalID: (typename, id) => `${typename}:${id}`,
+    decodeGlobalID: (globalID) => {
       const [typename, id] = globalID.split(':');
-
       return { typename, id };
     },
   },
 });
 ```
 
-### Using custom resolve for node and or nodes field
+### Exposing extra node fields
 
-If you need to customize how nodes are loaded for the `node` and or `nodes` fields you can provide
-custom resolve functions in the builder options for these fields:
-
-```typescript
-import RelayPlugin from '@pothos/plugin-relay';
-
-function customUserLoader({ id, typename }: { id: string; typename: string }) {
-  // load user
-}
-
-const builder = new SchemaBuilder({
-  plugins: [RelayPlugin],
-  relayOptions: {
-    nodeQueryOptions: {
-      resolve: (root, { id }, context, info, resolveNode) => {
-        // use custom loading for User nodes
-        if (id.typename === 'User') {
-          return customUserLoader(id);
-        }
-
-        // fallback to normal loading for everything else
-        return resolveNode(id);
-      },
-    },
-    nodesQueryOptions: {
-      resolve: (root, { ids }, context, info, resolveNodes) => {
-        return ids.map((id) => {
-          if (id.typename === 'User') {
-            return customNodeLoader(id);
-          }
-
-          // it would be more efficient to load all the nodes at once
-          // but it is important to ensure the resolver returns nodes in the right order
-          // we are resolving nodes one at a time here for simplicity
-          return resolveNodes([id]);
-        });
-      },
-    },
-  },
-});
-```
-
-### Extending all connections
-
-There are 2 builder methods for adding fields to all connection objects: `t.globalConnectionField`
-and `t.globalConnectionFields`. These methods work like many of the other methods on the builder for
-adding fields to objects or interfaces.
-
-```typescript
-builder.globalConnectionField('totalCount', (t) =>
-  t.int({
-    nullable: false,
-    resolve: (parent) => 123,
-  }),
-);
-// Or
-builder.globalConnectionFields((t) => ({
-  totalCount: t.int({
-    nullable: false,
-    resolve: (parent) => 123,
-  }),
-}));
-```
-
-In the above example, we are just returning a static number for our `totalCount` field. To make this
-more useful, we need to have our resolvers for each connection actually return an object that
-contains a totalCount for us. To guarantee that resolvers correctly implement this behavior, we can
-define custom properties that must be returned from connection resolvers when we set up our builder:
-
-```typescript
-import RelayPlugin from '@pothos/plugin-relay';
-const builder = new SchemaBuilder<{
-  Connection: {
-    totalCount: number;
-  };
-}>({
-  plugins: [RelayPlugin],
-  relayOptions: {},
-});
-```
-
-Now typescript will ensure that objects returned from each connection resolver include a totalCount
-property, which we can use in our connection fields:
-
-```typescript
-builder.globalConnectionField('totalCount', (t) =>
-  t.int({
-    nullable: false,
-    resolve: (parent) => parent.totalCount,
-  }),
-);
-```
-
-Note that adding additional required properties will make it harder to use the provided connection
-helpers since they will not automatically return your custom properties. You will need to manually
-add in any custom props after getting the result from the helpers:
+`t.node` and `t.nodeList` add standalone node fields anywhere. Their `id`/`ids` return values match `t.globalID`: a global ID string or an `{ id, type }` object. Loading goes through the same per-request cache, so a node used in several places loads once.
 
 ```typescript
 builder.queryFields((t) => ({
-  posts: t.connection({
-    type: Post,
-    resolve: (parent, args, context) => {
-      const postsArray = context.Posts.getAll();
-      const result = resolveArrayConnection({ args }, postsArray);
-
-      return result && { totalCount: postsArray.length, ...result };
-    },
+  featuredPlayer: t.node({
+    id: () => ({ id: 1, type: 'Player' }),
+  }),
+  rivalTeams: t.nodeList({
+    ids: () => [{ id: 1, type: 'Team' }, { id: 2, type: 'Team' }],
   }),
 }));
 ```
 
-### Changing nullability of edges and nodes
+## Connections
 
-If you want to change the nullability of the `edges` field on a `Connection` or the `node` field on
-an `Edge` you can configure this in 2 ways:
+`t.connection` defines a cursor-paginated field. It creates the `Connection` and `Edge` object types, adds the `before`, `after`, `first`, and `last` arguments, and creates `PageInfo` the first time it's used. Here a team exposes its roster:
 
-#### Globally
+<include cwd lang="typescript" meta='playground example="relay-plugin"'>playground-examples/relay-plugin/schema.ts#players-connection</include>
+
+The full form takes two extra option objects (one for the `Connection` type, one for the `Edge` type) for naming and adding fields:
 
 ```typescript
-import RelayPlugin from '@pothos/plugin-relay';
+t.connection(
+  { type: Player, resolve: /* ... */ },
+  {
+    name: 'TeamRosterConnection', // default: Parent + capitalize(field) + 'Connection'
+    fields: (tc) => ({ /* extra Connection fields — use the tc builder */ }),
+    edgesField: {}, // customize the edges field
+  },
+  {
+    name: 'TeamRosterEdge', // default: Connection name + 'Edge'
+    fields: (te) => ({ /* extra Edge fields — use the te builder */ }),
+    nodeField: {}, // customize the node field
+  },
+);
+```
+
+### Connection helpers
+
+Three helpers build the `edges`/`pageInfo` shape from common data shapes, so you don't assemble it by hand.
+
+`resolveArrayConnection` slices a fully-materialized array:
+
+```typescript
+import { resolveArrayConnection } from '@pothos/plugin-relay';
+
+t.connection({
+  type: Player,
+  resolve: (_parent, args) => resolveArrayConnection({ args }, loadAllPlayers()),
+});
+```
+
+`resolveOffsetConnection` drives a limit/offset API and caps how much a single query can pull:
+
+```typescript
+import { resolveOffsetConnection } from '@pothos/plugin-relay';
+
+t.connection({
+  type: Player,
+  resolve: (_parent, args) =>
+    resolveOffsetConnection({ args }, ({ limit, offset }) => loadPlayers(offset, limit)),
+});
+```
+
+It accepts a few sizing options alongside `args`:
+
+```typescript
+{
+  args: ConnectionArguments;
+  defaultSize?: number; // defaults to 20
+  maxSize?: number;     // defaults to 100
+  totalCount?: number;  // required to support `last` without `before`
+}
+```
+
+`resolveCursorConnection` drives true cursor pagination against any store that supports limits, ordering, and filtering. Annotate the callback argument with `ResolveCursorConnectionArgs` so the return type infers correctly:
+
+```typescript
+import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
+
+t.connection({
+  type: Player,
+  resolve: (_parent, args) =>
+    resolveCursorConnection(
+      { args, toCursor: (player) => player.joinedAt.toISOString() },
+      ({ before, after, limit, inverted }: ResolveCursorConnectionArgs) =>
+        db.players.findMany({
+          take: limit,
+          where: { joinedAt: { lt: before, gt: after } },
+          orderBy: { joinedAt: inverted ? 'desc' : 'asc' },
+        }),
+    ),
+});
+```
+
+### Reusing connection and edge objects
+
+To share one `Connection` type across several fields, build it once with `builder.connectionObject` and pass it to a plain field with `t.arg.connectionArgs()` for the standard args:
+
+```typescript
+const PlayersConnection = builder.connectionObject(
+  { type: Player, name: 'PlayersConnection' },
+  { name: 'PlayersEdge' }, // Edge options (optional); defaults to name + 'Edge'
+);
+
+builder.queryFields((t) => ({
+  players: t.field({
+    type: PlayersConnection,
+    args: { ...t.arg.connectionArgs() },
+    resolve: (_parent, args) => resolveArrayConnection({ args }, loadAllPlayers()),
+  }),
+}));
+```
+
+`builder.edgeObject` creates a reusable `Edge` type on its own, which you can then pass into `connectionObject`:
+
+```typescript
+const PlayersEdge = builder.edgeObject({ name: 'PlayersEdge', type: Player });
+
+const PlayersConnection = builder.connectionObject(
+  { type: Player, name: 'PlayersConnection' },
+  PlayersEdge,
+);
+```
+
+### Fields on every connection
+
+`builder.globalConnectionField` and `builder.globalConnectionFields` add a field to *every* `Connection` type, such as a `totalCount`:
+
+```typescript
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({ nullable: false, resolve: (parent) => parent.totalCount }),
+);
+```
+
+For that `parent.totalCount` to type-check, declare the extra property on the `Connection` generic so every connection resolver is required to return it:
+
+```typescript
+const builder = new SchemaBuilder<{
+  Connection: { totalCount: number };
+}>({
+  plugins: [RelayPlugin],
+  relay: {},
+});
+```
+
+<Callout type="warn">
+  The connection helpers don't know about your custom properties, so they won't return them. Merge the extra fields in after calling a helper: `return result && { totalCount: players.length, ...result };`
+</Callout>
+
+### Nullability of edges and nodes
+
+Set the nullability of the `edges` field and the `node` field globally through the `relay` options; the `DefaultEdgesNullability` and `DefaultNodeNullability` generics must match the option values:
+
+```typescript
 const builder = new SchemaBuilder<{
   DefaultEdgesNullability: false;
   DefaultNodeNullability: true;
 }>({
   plugins: [RelayPlugin],
-  relayOptions: {
-    edgesFieldOptions: {
-      nullable: false,
-    },
-    nodeFieldOptions: {
-      nullable: true,
-    },
+  relay: {
+    edgesFieldOptions: { nullable: false },
+    nodeFieldOptions: { nullable: true },
   },
 });
 ```
 
-The types provided for `DefaultEdgesNullability` and `DefaultNodeNullability` must match the values
-provided in the nullable option of `edgesFieldOptions` and `nodeFieldOptions` respectively. This
-will set the default nullability for all connections created by your builder.
-
-nullability for `edges` fields defaults to `{ list: options.defaultFieldNullability, items: true }`
-and the nullability of `node` fields is the same as `options.defaultFieldNullability` (which
-defaults to `true`).
-
-#### Per connection
+`edges` defaults to `{ list: defaultFieldNullability, items: true }` and `node` to `defaultFieldNullability` (itself `true` by default). Override per connection with `edgesNullable` and `nodeNullable`:
 
 ```typescript
-builder.queryFields((t) => ({
-  things: t.connection({
-    type: SomeThings,
-    edgesNullable: {
-      items: true,
-      list: false,
-    },
-    nodeNullable: false,
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
-    },
-  }),
-}));
-// Or
-
-const ThingsConnection = builder.connectionObject({
-  type: SomeThing,
-  name: 'ThingsConnection',
-  edgesNullable: {
-    items: true,
-    list: false,
-  },
+t.connection({
+  type: Player,
+  edgesNullable: { items: true, list: false },
   nodeNullable: false,
+  resolve: (_parent, args) => resolveArrayConnection({ args }, loadAllPlayers()),
 });
 ```
 
-### Extending the `Node` interface
+The same two keys work on `builder.connectionObject`. Set `nodesOnConnection: true` in the `relay` options to also add a flattened `nodes` field to every `Connection`.
 
-Use the `nodeInterfaceRef` method of your Builder.
+## Relay mutations
 
-For example, to add a new derived field on the interface:
+`builder.relayMutationField` generates a Relay-compliant mutation: an input object carrying a `clientMutationId`, a payload object carrying the matching `clientMutationId`, and the mutation field wiring them together.
 
-```ts
-builder.interfaceField(builder.nodeInterfaceRef(), 'extra', (t) =>
-  t.string({
-    resolve: () => 'it works',
-  }),
+```typescript
+builder.relayMutationField(
+  'signPlayer',
+  {
+    inputFields: (t) => ({
+      playerId: t.id({ required: true }),
+      teamId: t.id({ required: true }),
+    }),
+  },
+  {
+    nullable: false, // adjust the mutation field's nullability here
+    resolve: async (_root, args, ctx) => {
+      const player = await signPlayer(args.input.playerId, args.input.teamId);
+      return { success: Boolean(player) };
+    },
+  },
+  {
+    outputFields: (t) => ({
+      success: t.boolean({ resolve: (result) => result.success }),
+    }),
+  },
 );
 ```
+
+Which produces:
+
+```graphql
+input SignPlayerInput {
+  clientMutationId: ID!
+  playerId: ID!
+  teamId: ID!
+}
+
+type SignPlayerPayload {
+  clientMutationId: ID!
+  success: Boolean
+}
+
+type Mutation {
+  signPlayer(input: SignPlayerInput!): SignPlayerPayload!
+}
+```
+
+The method takes four arguments: the field `name`, then `inputOptions`, `fieldOptions`, and `payloadOptions`. `inputOptions` accepts a ref to an existing input object or two extra keys: `name` to name the generated input, and `argName` to rename the default `input` argument. `payloadOptions` accepts a `name` for the payload object.
+
+Whether a `clientMutationId` field is generated (and whether it's required) is controlled by the `clientMutationId` option: `omit` (default), `required`, or `optional`.
+
+Capture the generated refs to reuse the input and payload elsewhere:
+
+```typescript
+const { inputType: SignPlayerInput, payloadType: SignPlayerPayload } =
+  builder.relayMutationField('signPlayer', /* ... */);
+```
+
+## Customizing generated types
+
+### Renaming Node and PageInfo
+
+If `Node` or `PageInfo` collide with existing types, rename them with `nodeTypeOptions` and `pageInfoTypeOptions`; both take the standard type options (`name`, `description`, `extensions`):
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [RelayPlugin],
+  relay: {
+    nodeTypeOptions: { name: 'RelayNode', description: 'A node in the graph' },
+    pageInfoTypeOptions: { name: 'RelayPageInfo' },
+  },
+});
+```
+
+### Custom node loading
+
+To change how the `node`/`nodes` query fields load, pass a `resolve` in `nodeQueryOptions` / `nodesQueryOptions`. Each receives a `resolveNode`/`resolveNodes` callback for the default behavior:
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [RelayPlugin],
+  relay: {
+    nodeQueryOptions: {
+      resolve: (_root, { id }, ctx, info, resolveNode) =>
+        id.typename === 'Player' ? loadPlayerNode(id) : resolveNode(id),
+    },
+    nodesQueryOptions: {
+      // return nodes in the same order the ids were requested
+      resolve: (_root, { ids }, ctx, info, resolveNodes) => resolveNodes(ids),
+    },
+  },
+});
+```
+
+Set `nodeQueryOptions` or `nodesQueryOptions` to `false` to omit that query field entirely.
+
+### Extending the Node interface
+
+Add a derived field to the `Node` interface itself via `builder.nodeInterfaceRef`:
+
+```typescript
+builder.interfaceField(builder.nodeInterfaceRef(), 'extra', (t) =>
+  t.string({ resolve: () => 'it works' }),
+);
+```
+
+### Builder options reference
+
+Every option on the `relay` object, grouped by what it configures:
+
+| Option | Purpose |
+| --- | --- |
+| `idFieldName` | Name of the global id field on nodes. Defaults to `id`. |
+| `idFieldOptions` | Options passed to the generated id field. |
+| `cursorType` | `String` (default) or `ID`; the type used for cursor fields. |
+| `clientMutationId` | `omit` (default), `required`, or `optional`; controls `clientMutationId` on Relay mutations. |
+| `relayMutationFieldOptions` | Default options for `relayMutationField`. |
+| `nodeQueryOptions` / `nodesQueryOptions` | Options (or `false` to omit) for the `node` / `nodes` query fields. |
+| `nodeTypeOptions` / `pageInfoTypeOptions` | Options for the `Node` interface / `PageInfo` type, including `name`. |
+| `clientMutationIdFieldOptions` / `clientMutationIdInputOptions` | Options for the `clientMutationId` payload field / input field. |
+| `mutationInputArgOptions` | Options for the input arg created for each Relay mutation. |
+| `cursorFieldOptions` | Options for the `cursor` field on an edge. |
+| `nodeFieldOptions` / `edgesFieldOptions` | Options for the `node` field on an edge / the `edges` field on a connection. |
+| `pageInfoFieldOptions` | Options for the `pageInfo` field on a connection. |
+| `hasNextPageFieldOptions` / `hasPreviousPageFieldOptions` | Options for the `PageInfo` boolean fields. |
+| `startCursorFieldOptions` / `endCursorFieldOptions` | Options for the `PageInfo` cursor fields. |
+| `beforeArgOptions` / `afterArgOptions` / `firstArgOptions` / `lastArgOptions` | Options for each connection argument. |
+| `defaultConnectionTypeOptions` / `defaultEdgeTypeOptions` | Default options for generated `Connection` / `Edge` types. |
+| `defaultPayloadTypeOptions` / `defaultMutationInputTypeOptions` | Default options for generated Relay `Payload` / `Input` types. |
+| `defaultConnectionFieldOptions` | Default options for fields defined with `t.connection`. |
+| `nodesOnConnection` | Add a flattened `nodes` field to every `Connection`. |
+| `brandLoadedObjects` | Tag loaded nodes so the default `resolveType` can identify them. Defaults to `true`. |
+| `encodeGlobalID` / `decodeGlobalID` | Override the global ID encoding scheme. |

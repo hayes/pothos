@@ -1,0 +1,10 @@
+query Teams {
+  teams {
+    id
+    name
+    roster {
+      id
+      name
+    }
+  }
+}

@@ -1,0 +1,97 @@
+---
+title: Drizzle plugin
+description: Define GraphQL types from Drizzle tables and resolve relations with selection-aware, efficient queries.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The Drizzle plugin builds GraphQL object types straight from your Drizzle tables and resolves their relations with queries it plans for you. You call `builder.drizzleObject` with a table name, expose the columns you want, and add relation fields with `t.relation`, and the plugin reads each nested GraphQL selection to build a single query scoped to it, so a column loads only when a client asks for it.
+
+The plugin builds on Drizzle's [relational query builder](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2), so you define your tables and relations in Drizzle first, then hand them to Pothos. You don't have to use the plugin to use Drizzle with Pothos, but it handles a lot of the wiring and query planning for you; see [Using Drizzle without a plugin](./without-a-plugin) for the manual approach.
+
+<Callout type="warn">
+  This package is new and depends on Drizzle's [RQB v2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2). Some features are still missing and the API may change. It currently requires the `beta` tag for `drizzle-orm`. Upgrading from an older version? Read the [Drizzle relations migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2) and check this package's changelog for Pothos-specific changes.
+</Callout>
+
+## What it does
+
+- Define GraphQL types from your Drizzle tables with full type-safety, without hand-writing object refs or importing table types.
+- Resolve relations automatically from the relations you declared with `defineRelations`.
+- Load exactly the data a query needs in as few round-trips as possible, folding nested relations into a single query where it can.
+- Keep GraphQL type and field names independent of your column names.
+- Integrate with the [Relay plugin](./relay) for nodes and connections that paginate efficiently.
+- Back multiple GraphQL types with the same table through [variants](./variants).
+- Add relation [count fields](./relations#relation-counts) and other [derived fields](./relations#derived-fields-with-relatedfield) from SQL.
+
+## An example
+
+Here is a slice of an Ultimate League schema. It defines a `Team`, exposes columns, computes a field from a related table, loads a relation, and adds a Relay connection — all against the [canonical Drizzle schema](./setup):
+
+```typescript
+// A GraphQL type backed by the `teams` table — no object ref, no table imports.
+builder.drizzleObject('teams', {
+  name: 'Team',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    // A list relation, with an argument that shapes the relation query.
+    players: t.relation('players', {
+      args: {
+        byNumber: t.arg.boolean(),
+      },
+      query: (args) => ({
+        orderBy: args.byNumber ? { number: 'asc' } : { name: 'asc' },
+      }),
+    }),
+    // A Relay connection from the same relation.
+    playersConnection: t.relatedConnection('players'),
+  }),
+});
+
+// A Relay node backed by the `games` table.
+builder.drizzleNode('games', {
+  name: 'Game',
+  id: { column: (game) => game.id },
+  fields: (t) => ({
+    playedAt: t.exposeString('playedAt'),
+    homeTeam: t.relation('homeTeam'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    // An entry point that issues a single optimized query.
+    myTeam: t.drizzleField({
+      type: 'teams',
+      resolve: (query, _root, _args, ctx) =>
+        db.query.teams.findFirst(
+          // Calling `query()` adds the selection the plugin computed for the
+          // nested request, resolving as much as possible in one round-trip.
+          query({
+            where: { id: ctx.teamId },
+          }),
+        ),
+    }),
+  }),
+});
+```
+
+## How the query plan works
+
+Given the schema above, a nested query resolves in a **single** Drizzle call:
+
+```graphql
+query {
+  myTeam {
+    name
+    players {
+      name
+      stats {
+        goals
+      }
+    }
+  }
+}
+```
+
+The `myTeam` resolver receives a `query` carrying the selection needed to load `players` and their `stats` in one go. The plugin reads the GraphQL selection, folds it into the relational query, and never loads a column or relation the client did not ask for. Fields that can't fold into the parent query, such as a second copy of a relation with different arguments or a derived field computed in SQL, get their own scoped query, and the plugin plans that for you too.

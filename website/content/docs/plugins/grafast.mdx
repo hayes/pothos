@@ -1,20 +1,18 @@
 ---
 title: Grafast plugin
-description: A plugin for building schemas with Grafast plans instead of resolvers
+description: Build fields with Grafast plans instead of resolvers, and resolve interfaces and unions with planType.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-<Callout type="warn" title="Experimental Package">
-  This package is currently experimental and will have breaking changes in the near future.
+[Grafast](https://grafast.org/grafast/) is a planning-based GraphQL executor: instead of a resolver per field, you write a *plan* that Grafast optimizes across the whole operation before running it. This plugin swaps the Pothos field builder from `resolve` to `plan`, so every field you define expects a plan. You still define objects, interfaces, and unions the same way, with `builder.objectRef` and friends; only the field bodies change.
+
+<Callout type="warn" title="Experimental package">
+  This package is experimental and will have breaking changes in the near future.
 </Callout>
 
-
 <Callout type="warn">
-  This plugin currently does not work with MOST other Pothos plugins.
-
-  Many plugins depend on wrapping resolvers to add runtime functionality to your schema, which will not work
-  with grafast.
+  This plugin does not work with most other Pothos plugins. Many plugins add runtime behavior by wrapping resolvers, and a plan-based field has no resolver to wrap.
 </Callout>
 
 ## Install
@@ -25,152 +23,144 @@ npm install --save @pothos/plugin-grafast grafast@>=0.1.1-beta.24
 
 ## Setup
 
+Two things distinguish a Grafast build. `InferredFieldOptionsKind: 'Grafast'` tells the builder to expect `plan` on fields instead of `resolve`, and Grafast reads its context from a global `Grafast.Context` namespace, so you declare your context type in both places.
+
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import GrafastPlugin from '@pothos/plugin-grafast';
+
+interface LeagueContext {
+  // request-scoped values your plans read from
+}
 
 declare global {
   namespace Grafast {
-    // Define the Context type used by grafast
-    interface Context extends YourContextType {}
+    interface Context extends LeagueContext {}
   }
 }
 
-type BuilderTypes = {
-  // This tells the builder to expect plans instead of resolvers
+const builder = new SchemaBuilder<{
+  // Expect plans instead of resolvers.
   InferredFieldOptionsKind: 'Grafast';
-  Context: YourContextType;
-};
-
-const builder = new SchemaBuilder<BuilderTypes>({
+  Context: LeagueContext;
+}>({
   plugins: [GrafastPlugin],
 });
 ```
 
-## Usage
+## Adding plans to fields
 
-For documentation on how to write plans, see the [Grafast documentation](https://grafast.org/grafast/).
-
-### Adding plans to fields
+A field's `plan` receives step versions of its arguments (each prefixed with `$`) and returns a step. Combine steps with helpers like `lambda` to compute a value. See the [Grafast documentation](https://grafast.org/grafast/) for the full catalog of steps.
 
 ```typescript
+import { lambda } from 'grafast';
+
 builder.queryType({
   fields: (t) => ({
-    addTwoNumbers: t.int({
+    pointDifferential: t.int({
       args: {
-        a: t.arg.int({ required: true }),
-        b: t.arg.int({ required: true }),
+        scored: t.arg.int({ required: true }),
+        conceded: t.arg.int({ required: true }),
       },
-      plan: (_, { $a, $b }) => {
-        return lambda([$a, $b], ([a, b]) => a + b);
-      },
+      plan: (_, { $scored, $conceded }) =>
+        lambda([$scored, $conceded], ([scored, conceded]) => scored - conceded),
     }),
   }),
 });
 ```
 
-### Using resolvers
+## Using resolvers
 
-Pothos and Grafast will still allow you to write resolvers when using grafast,
-but you will not have access to the 4th `GraphqlResolveInfo` argument:
+You can still write a plain `resolve`, but the plan-based executor does not pass the fourth `GraphQLResolveInfo` argument, so a resolver here sees only `parent`, `args`, and `context`.
 
 ```typescript
 builder.queryType({
   fields: (t) => ({
-    addTwoNumbers: t.int({
+    pointDifferential: t.int({
       args: {
-        a: t.arg.int({ required: true }),
-        b: t.arg.int({ required: true }),
+        scored: t.arg.int({ required: true }),
+        conceded: t.arg.int({ required: true }),
       },
-      resolve: (_, { a, b }) => {
-        return a + b;
-      },
+      resolve: (_, { scored, conceded }) => scored - conceded,
     }),
   }),
 });
 ```
 
-Resolvers should not be used to load data, but can make it easier to define a field
-that would otherwise use a simple `lambda` plan.
+Don't use a resolver to load data; that defeats the point of planning. Use one only when it reads more clearly than a field that would otherwise be a one-line `lambda` plan.
 
-### Abstract types
+## Abstract types
 
-Abstract types (Unions and Interfaces) may require defining a plan to resolve to the correct type.
-For more details on how polymorphic types work in Grafast, see the [Grafast documentation](https://grafast.org/grafast/polymorphism).
+Interfaces and unions usually need a plan to resolve an incoming record to its concrete type. You attach that plan with `.withPlan` on the ref, whose `planType` returns a `$__typename` step naming the concrete member. For the deeper model behind these plans, see the [Grafast polymorphism docs](https://grafast.org/grafast/polymorphism).
 
+### Interfaces
 
-#### Interfaces
-
-To implement an interface, you can implement it as you normally would in Pothos, and then call the
-`.withPlan` method on the interface ref to provide a plan for resolving the correct type.
+Declare the interface, attach a plan that reads the type name off the record, then implement it. Object types join the interface the usual way through `interfaces`.
 
 ```typescript
-interface AnimalData {
+import { get, loadOne } from 'grafast';
+
+interface MemberData {
   id: string;
-  kind: 'Dog' | 'Cat';
+  kind: 'Player' | 'Coach';
 }
 
-export const Dog = builder.objectRef<AnimalData>('Dog').implement({
-  interfaces: [Animal],
-});
-export const Cat = builder.objectRef<AnimalData>('Cat').implement({
-  interfaces: [Animal],
+// The plan resolves each record to its concrete type via the `kind` field.
+const Member = builder.interfaceRef<MemberData>('Member').withPlan({
+  planType: ($record) => ({
+    $__typename: get($record, 'kind'),
+  }),
 });
 
-export const Animal = builder
-  .interfaceRef<AnimalData>('Animal')
-  .withPlan({
-    planType: ($record) => ({
-      $__typename: get($record, 'kind'),
-    }),
-  })
-
-Animal.implement({
+Member.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
   }),
 });
+
+export const Player = builder.objectRef<MemberData>('Player').implement({
+  interfaces: [Member],
+});
+
+export const Coach = builder.objectRef<MemberData>('Coach').implement({
+  interfaces: [Member],
+});
 ```
 
-You can now define a query to resolve this interface:
+A field returning the interface loads the record; the interface's own plan takes it from there:
 
 ```typescript
-export const Animals = [
-  {
-    id: '1',
-    kind: 'Dog',
-  },
-  {
-    id: '2',
-    kind: 'Cat',
-  },
-] satisfies AnimalData[];
+const members = [
+  { id: '1', kind: 'Player' },
+  { id: '2', kind: 'Coach' },
+] satisfies MemberData[];
 
-function getAnimalsById(ids: readonly string[]): (AnimalData | null)[] {
-  return ids.map((id) => Animals.find((entity) => entity.id === id) ?? null);
+function getMembersById(ids: readonly string[]): (MemberData | null)[] {
+  return ids.map((id) => members.find((m) => m.id === id) ?? null);
 }
 
 builder.queryFields((t) => ({
-  animal: t.field({
-    type: Animal,
+  member: t.field({
+    type: Member,
     args: {
       id: t.arg.string({ required: true }),
     },
-    plan: (_, $args) => loadOne($args.$id, getAnimalsById),
+    plan: (_, $args) => loadOne($args.$id, getMembersById),
   }),
 }));
 ```
 
 ### Unions
 
-Unions can be implemented just like interfaces:
+A union works the same way: build it with `builder.unionType`, then attach the resolving plan with `.withPlan`:
 
 ```typescript
-interface AlienData {
+interface SponsorData {
   id: string;
-  kind: 'Alien';
+  kind: 'Sponsor';
 }
 
-export const Alien = builder.objectRef<AlienData>('Alien').implement({
+export const Sponsor = builder.objectRef<SponsorData>('Sponsor').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
   }),
@@ -178,7 +168,7 @@ export const Alien = builder.objectRef<AlienData>('Alien').implement({
 
 export const Entity = builder
   .unionType('Entity', {
-    types: [Cat, Dog, Alien],
+    types: [Player, Coach, Sponsor],
   })
   .withPlan({
     planType: ($record) => ({
@@ -187,27 +177,36 @@ export const Entity = builder
   });
 ```
 
-### `planForType`
+### Loading records with `planForType`
 
-When planning polymorphic types, Grafast allows you to provide a `planForType` function that
-allows you to load the correct data for the current type.
-
-This also enables changing the type of plan required for fields that return the abstract type:
+If the field that returns an abstract type has only an id to work with, let the type's plan do the loading. Give `planType` an explicit specifier step, load the record inside the plan, and return a `planForType` that hands each concrete type its data. Fields returning the type then only need to produce the id.
 
 <Callout type="warn">
-  `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
-
-  This API is likely to change in the future.
+  `planForType` is not fully type-safe; it will accept plans that resolve to data for the wrong type. This API is likely to change.
 </Callout>
 
 ```typescript
+import { get, inhibitOnNull, loadOne, type Step } from 'grafast';
+
+type EntityData = MemberData | SponsorData;
+
+const entities = [
+  { id: '1', kind: 'Player' },
+  { id: '2', kind: 'Coach' },
+  { id: '3', kind: 'Sponsor' },
+] satisfies EntityData[];
+
+function getEntitiesById(ids: readonly string[]): (EntityData | null)[] {
+  return ids.map((id) => entities.find((e) => e.id === id) ?? null);
+}
+
 export const Entity = builder
   .unionType('Entity', {
-    types: [Cat, Dog, Alien],
+    types: [Player, Coach, Sponsor],
   })
   .withPlan({
     planType: (
-      // Provide an explicit type so that the query field only needs to return the ID
+      // An explicit specifier type lets query fields return just the id.
       $specifier: Step<string>,
     ) => {
       const $record = inhibitOnNull(loadOne($specifier, getEntitiesById));
@@ -224,8 +223,20 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string({ required: true }),
     },
-    // Because our Entity plan loads the record, we can just return the ID here
+    // The Entity plan loads the record, so this returns only the id.
     plan: (_, $args) => $args.$id,
   }),
 }));
 ```
+
+## Plan reference
+
+`.withPlan` is available on interface, union, and object refs. The plan object it takes accepts:
+
+| Key | Where | Purpose |
+| --- | --- | --- |
+| `planType` | interface / union / object | Returns the plan for the type. On abstract types it returns `{ $__typename }`, plus `planForType`, which is optional when the plan's specifier is the full record type but required when `planType` takes a narrowed specifier (an id, as in the `planForType` example above); on object types it returns the step Pothos hands to the type's fields. |
+| `$__typename` | returned from abstract `planType` | Step resolving to the concrete member's type name. |
+| `planForType` | returned from abstract `planType` | Loads the record for the resolved concrete type, so fields returning the abstract type can return only a specifier. |
+| `toSpecifier` | interface / union | Transforms the source step into the specifier step passed to `planType`. |
+| `assertStep` | object | Asserts the step passed to the object's `planType`, either a Step subclass or an assertion function. |

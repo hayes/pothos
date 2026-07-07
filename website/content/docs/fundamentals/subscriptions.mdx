@@ -1,0 +1,73 @@
+---
+title: Subscriptions
+description: The Subscription root type, and fields that push a stream of values to clients over a long-lived connection.
+---
+
+A subscription delivers a stream of values over a long-lived connection, where a query delivers a single response. `builder.subscriptionType` defines the schema's third root type to hold these fields, and `subscriptionField`/`subscriptionFields` register them from other modules. A subscription field is built from two functions: a `subscribe` that opens a stream of events, and a `resolve` that turns each event into the value the client receives. Here is a field that pushes a `Character` every time one is added:
+
+<include cwd lang="typescript" meta='playground example="fundamentals-subscriptions"'>playground-examples/fundamentals-subscriptions/schema.ts#character-added-subscription</include>
+
+`subscribe` receives the root value, the field's arguments, and context, and returns an async iterable of events. Here that is `ctx.pubSub.subscribe('CHARACTER_ADDED')`, the stream of characters published to that topic. When the subscription starts, graphql-js drives the iteration, running `resolve` once for each value the stream yields. So `resolve`'s first argument is a single emitted event, typed as whatever `subscribe`'s iterable produces: here already a `Character`, so `resolve: (character) => character` passes it through. It could instead project the event into any shape the field's type allows.
+
+Opening this in the playground builds the schema and checks the operation, but a browser runs a single operation rather than holding an event stream, so nothing streams there. Serve the schema with a GraphQL server (see [First server](../getting-started/first-server)) to watch `characterAdded` push each new entry.
+
+## Publishing events
+
+The events a subscription streams come from somewhere, usually a mutation that publishes to the same topic as it writes:
+
+<include cwd lang="typescript">playground-examples/fundamentals-subscriptions/schema.ts#add-character-mutation</include>
+
+`addCharacter` creates the record, publishes it to the `CHARACTER_ADDED` topic with `ctx.pubSub.publish`, and returns the created `Character`. Every open `characterAdded` subscription then receives that character as its next event.
+
+## Wiring the pub/sub
+
+The pub/sub itself is not part of Pothos; it lives on context, the way any per-request handle does. [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server) ships `createPubSub` for the in-memory case, so the server puts one on context alongside the user and database client:
+
+```typescript
+import { createPubSub, createYoga } from 'graphql-yoga';
+
+const pubSub = createPubSub();
+
+const yoga = createYoga({
+  schema,
+  context: () => ({ pubSub }),
+});
+```
+
+Declaring `pubSub` on the builder's `Context` type is what makes `ctx.pubSub` typed in every resolver, like the rest of [context](./context).
+
+## Filtering
+
+A subscriber often wants only part of a stream. Since the field is nullable, `resolve` can return `null` for events that don't apply. This field streams additions but surfaces only the ones made by a given editor:
+
+```typescript
+builder.subscriptionField('characterAddedByEditor', (t) =>
+  t.field({
+    type: Character,
+    nullable: true,
+    args: { editorId: t.arg.id({ required: true }) },
+    subscribe: (_root, _args, ctx) => ctx.pubSub.subscribe('CHARACTER_ADDED'),
+    resolve: (character, { editorId }) =>
+      character.editorId === Number(editorId) ? character : null,
+  }),
+);
+```
+
+The server still delivers a message for every event; returning `null` leaves this subscriber's copy empty. When most events on a topic are uninteresting, filter upstream instead: subscribe to a narrower topic, or pass a key to your pub/sub, so the stream never carries them. That mechanism belongs to the pub/sub you wired.
+
+## Authorization
+
+Check authorization in `subscribe`, where the stream opens, and trust the result for the connection's lifetime:
+
+```typescript
+subscribe: (_root, _args, ctx) => {
+  if (!ctx.user) {
+    throw new Error('Sign in to watch the feed');
+  }
+  return ctx.pubSub.subscribe('CHARACTER_ADDED');
+},
+```
+
+The `ctx.user` guard is covered in [Context](./context#requiring-a-signed-in-user). Checks that depend on the individual event go in `resolve` instead.
+
+[`plugin-smart-subscriptions`](../plugins/smart-subscriptions) offers a different model, where fields register subscriptions that re-run a query as the underlying data changes.

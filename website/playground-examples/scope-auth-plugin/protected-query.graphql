@@ -1,0 +1,8 @@
+# scoutingReport requires the staff scope.
+# With a staff viewer it resolves; drop role to "member" and it fails.
+query ScoutingReports {
+  teams {
+    name
+    scoutingReport
+  }
+}

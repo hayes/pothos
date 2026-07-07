@@ -1,0 +1,161 @@
+---
+title: Connections
+description: Build Relay connections over Drizzle tables with cursor pagination, total counts, and page-size limits.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Relay connections give you cursor-based pagination over a list. The Drizzle plugin builds them on top of the relational query builder and loads each page nested inside the same optimized query as the rest of the request. Use `t.relatedConnection` to paginate a relation of a [node](./relay), and `t.drizzleConnection` for a connection that's a root-field entry point.
+
+These examples assume the builder is set up with `DrizzlePlugin` and `RelayPlugin`, a `db` client in scope, and the league schema and relations from [Setup](./setup).
+
+## A connection from a relation
+
+`t.relatedConnection` builds a connection from a relation of the current table, with no resolver needed since the relation names the data. It defines the `Connection` and `Edge` types for you and pairs naturally with a [node](./relay).
+
+```typescript
+builder.drizzleNode('teams', {
+  name: 'Team',
+  id: { column: (team) => team.id },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    // The simplest form: paginate the team's players.
+    roster: t.relatedConnection('players'),
+  }),
+});
+```
+
+Unlike the Prisma plugin, there is no `cursor` option. The cursor is **derived from the connection's `orderBy`**, which defaults to the table's primary key. That derivation is also why the ordering format differs from Drizzle's own.
+
+<Callout type="warn">
+  To paginate backwards efficiently, the plugin runs some queries in reverse and inverts the ordering, so it needs to read `orderBy` as data, not as opaque SQL. Pass it as an object, `{ column: 'asc' | 'desc' }`, rather than Drizzle's `asc()` / `desc()` helpers. It can be a single column or an array for multi-column ordering, and the same columns are what the cursor is built from.
+</Callout>
+
+## Filtering and ordering the connection
+
+Pass a `query` to filter and order the connection, and `args` to make it client-driven. `query` takes the same shape as [`t.relation`](./relations) minus `limit` and `offset` (the connection arguments own the window), with the object-form `orderBy` above:
+
+```typescript
+builder.drizzleNode('teams', {
+  name: 'Team',
+  id: { column: (team) => team.id },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    players: t.relatedConnection('players', {
+      args: {
+        sortByNumber: t.arg.boolean(),
+      },
+      query: (args) => ({
+        orderBy: {
+          number: args.sortByNumber ? 'asc' : 'desc',
+        },
+      }),
+    }),
+  }),
+});
+```
+
+| Option | Purpose |
+| --- | --- |
+| `query` | A static object, or a function of `(args, ctx)`, merged into the relation query (`where` and the object-form `orderBy`). |
+| `type` | Override the node type with a [variant](./variants) ref of the related table. |
+| `totalCount` | Set `true` to add a `totalCount` field to the connection. |
+| `defaultSize` | Page size when neither `first` nor `last` is given. |
+| `maxSize` | Maximum number of nodes returned. |
+
+`t.relatedConnection` takes optional Connection and Edge options as its third and fourth arguments, exactly like `t.connection` from the [Relay plugin](../relay).
+
+<Callout type="warn">
+  `first` and `last` can't be combined on the same connection; passing both throws, since there's no efficient query that honors both ends at once. Use one or the other.
+</Callout>
+
+## Total count
+
+Set `totalCount: true` to add a `totalCount` field. It's issued as a subquery inside the main query, and it only runs when the client actually selects `totalCount`:
+
+```typescript
+builder.drizzleNode('teams', {
+  name: 'Team',
+  id: { column: (team) => team.id },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    roster: t.relatedConnection('players', {
+      totalCount: true,
+    }),
+  }),
+});
+```
+
+```graphql
+query {
+  node(id: "...") {
+    ... on Team {
+      roster(first: 10) {
+        totalCount
+        edges {
+          node {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## Page-size limits
+
+`defaultSize` sets the page size when the client passes neither `first` nor `last`; `maxSize` caps how many nodes a single page can return. Both accept a plain number or a function of `(args, ctx)`:
+
+```typescript
+roster: t.relatedConnection('players', {
+  defaultSize: 20,
+  maxSize: 100,
+});
+```
+
+To set them for every connection at once, use the `maxConnectionSize` and `defaultConnectionSize` options in the [plugin options](./setup). A per-field `defaultSize` or `maxSize` overrides the global default.
+
+## A connection as an entry point
+
+`t.drizzleConnection` defines a connection field that's a way into your Drizzle data, the connection equivalent of [`t.drizzleField`](./objects). Its resolver receives a `query` function you call and pass to `findMany`; `query` merges the pagination window and nested selection with any `where` and `orderBy` you add. The `orderBy` uses the same object form as `t.relatedConnection`:
+
+```typescript
+builder.queryFields((t) => ({
+  players: t.drizzleConnection({
+    type: 'players',
+    resolve: (query, _root, _args, _ctx) =>
+      db.query.players.findMany(
+        query({
+          orderBy: {
+            number: 'asc',
+          },
+        }),
+      ),
+  }),
+}));
+```
+
+Add a `totalCount` callback to include a total count. It receives the standard resolver arguments `(parent, args, context, info)`, so the count can depend on request context. The example uses `db.$count`, but any Drizzle count works:
+
+```typescript
+import { players } from './db/schema';
+
+builder.queryFields((t) => ({
+  players: t.drizzleConnection({
+    type: 'players',
+    totalCount: () => db.$count(players),
+    resolve: (query) =>
+      db.query.players.findMany(
+        query({
+          orderBy: {
+            number: 'asc',
+          },
+        }),
+      ),
+  }),
+}));
+```
+
+When only `totalCount` is requested, without `edges` or `nodes`, the plugin skips the main query and runs only the count.

@@ -1,0 +1,12 @@
+{
+  "id": "reusable-input-pattern",
+  "title": "Reusable Input Fields Pattern",
+  "description": "Share a timestampInputs() helper across the GameFilter and PlayerFilter input types",
+  "category": "patterns",
+  "subcategory": "advanced-patterns",
+  "difficulty": "advanced",
+  "order": 3,
+  "tags": ["patterns", "input", "dry", "type-safety"],
+  "relatedDocs": ["/docs/patterns/reusable-fields"],
+  "prerequisites": ["fundamentals-inputs", "fundamentals-queries"]
+}

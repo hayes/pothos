@@ -1,43 +1,43 @@
 ---
 title: InputFieldBuilder
-description: API docs for Pothos InputFieldBuilder
+description: Reference for the input field builder — the field method and its scalar helpers.
 ---
+
+The input field builder is the `t` argument passed to the `fields` function of [`builder.inputType`](./schema-builder#inputtypeparam-options). Its methods define the fields of an input object. For a guided introduction, see [Input objects](../fundamentals/inputs). The same builder backs a field's arguments through [`t.arg`](./arg-builder).
 
 ## `field(options)`
 
-- `options`: \[`FieldOptions`\]
+- `options`: `InputFieldOptions`
 
-### FieldOptions
+### `InputFieldOptions`
 
 ```typescript
-type FieldOptions = {
+type InputFieldOptions = {
   type: ReturnType;
   required?: boolean;
+  defaultValue?: DefaultValue;
   description?: string;
   deprecationReason?: string;
+  extensions?: Record<string, unknown>;
 };
 ```
 
 - `type`: [Type Parameter](./input-field-builder#type-parameter)
-- `required`: boolean, defaults to `false`, unless overwritten in SchemaBuilder. See
-  [Changing Default Nullability](../guide/changing-default-nullability).
+- `required`: whether the field must be provided. Defaults to `false` unless you flip it in the builder — see [Default nullability](../patterns/default-nullability).
+- `defaultValue`: default value used when the field is omitted. Its type follows the `type` option.
+- `description`: text description of the field, surfaced in tools like GraphiQL.
+- `deprecationReason`: marks the field deprecated with this reason.
+- `extensions`: arbitrary extension metadata, read by directives and server plugins.
 
-- `description`: string
-- `defaultValue`: default value for field, type based on `type` option.
+### Type parameter
 
-### Type Parameter
+An input field's type can be any `InputTypeRef` returned by a [`SchemaBuilder`](./schema-builder) method that defines an `InputObject`, `Enum`, or `Scalar`, a TypeScript enum used to define a GraphQL enum, or a string matching a key of the `Scalars` map in [`SchemaTypes`](./schema-builder#schematypes).
 
-A Type Parameter for a Field can be any `InputTypeRef` returned by one of the
-[`SchemaBuilder`](./schema-builder) methods for defining an `InputObject`, `Enum`, or `Scalar`, a ts
-enum used to define a graphql enum type, or a string that corresponds to one of the keys of the
-`Scalars` object defined in [`SchemaTypes`](./schema-builder#schematypes).
+For list fields, wrap any of the above in an array — for example `['ID']`.
 
-## helpers
+## Scalar helpers
 
-A set of helpers for creating scalar fields. This work the same as `field`, but omit the `type`
-field from options.
-
-### Scalars
+Shortcuts for defining scalar input fields. Each works like [`field`](./input-field-builder#inputfieldoptions) but omits the `type` option:
 
 - `string(options)`
 - `id(options)`

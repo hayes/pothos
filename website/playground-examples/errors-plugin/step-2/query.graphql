@@ -1,0 +1,19 @@
+# team(id: "99") throws NotFoundError. The union also carries the default
+# BaseError, and both satisfy the shared `... on Error` fragment.
+query LookupTeam {
+  team(id: "99") {
+    __typename
+    ... on QueryTeamSuccess {
+      data {
+        id
+        name
+      }
+    }
+    ... on Error {
+      message
+    }
+    ... on NotFoundError {
+      id
+    }
+  }
+}

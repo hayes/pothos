@@ -1,0 +1,62 @@
+---
+title: Input objects
+description: Define reusable input types with builder.inputType and use them as argument and field types.
+---
+
+An input object is a named type whose fields become the shape of an argument, so a field can take one structured value in place of several separate arguments. You define one with `builder.inputType` and use it anywhere an argument, or another input field, needs a type.
+
+## Defining an input object
+
+An input object is defined with `builder.inputType`, named the way object types are. It returns a reference, which you declare as a `const` and pass as an argument's `type`, just like an object ref:
+
+<include cwd lang="typescript" meta='playground example="fundamentals-inputs"'>playground-examples/fundamentals-inputs/schema.ts#add-character-mutation</include>
+
+`AddCharacterInput` has two fields, `name` and `birthYear`, and the reference it returns is used as the `input` argument's `type`. Inside the resolver `input` arrives fully typed: `input.name` is a `string` and `input.birthYear` is `number | null | undefined`, following the `required` option on each field. (`addCharacter` is defined on the mutation root, which the [Mutations](./mutations) guide covers.)
+
+## Input fields
+
+An input object's fields are built much like the fields on an object type: a general `t.field({ type })` form, plus a scalar shorthand for each built-in scalar (`t.string`, `t.int`, `t.id`, `t.boolean`, `t.float`, and their `…List` forms). Input fields take the same core options as arguments, including `required` and `defaultValue`, which [Arguments](./args) covers:
+
+```typescript
+fields: (t) => ({
+  name: t.string({ required: true }),
+  alignment: t.string({ defaultValue: 'Neutral' }),
+}),
+```
+
+## Sharing an input across fields
+
+A named input object is a reference like any other, so two fields can share one by declaring it as a variable and passing it to each:
+
+<include cwd lang="typescript">playground-examples/fundamentals-inputs/schema.ts#shared</include>
+
+`FactionFilter` is defined once and used as the `filter` argument on both `factions` and `factionCount`.
+
+## Nested inputs
+
+An input field's type can be another input object, so inputs nest:
+
+<include cwd lang="typescript">playground-examples/fundamentals-inputs/schema.ts#nested</include>
+
+`CharacterFilter` has a `faction` field whose type is the `FactionFilter` from above, declared with `t.field({ type: FactionFilter })` since only the built-in scalars have shorthands. The type can also be a list of an input object, wrapped in an array the same way a list argument is.
+
+## Recursive inputs
+
+An input that refers to itself can't be created with a single `inputType` call: its fields would reference the variable that call is still producing, and TypeScript can't infer a type that contains itself. `builder.inputRef` splits the two steps. It creates the reference first, with the TypeScript shape supplied as a type argument, then `implement` adds the fields:
+
+<include cwd lang="typescript" meta='playground example="fundamentals-inputs"'>playground-examples/fundamentals-inputs/schema.ts#recursive</include>
+
+`builder.inputRef<CharacterQueryInput>` creates the reference for `CharacterQuery`, and `implement` fills in its fields afterward. The `and` field lists `CharacterQuery` itself, which resolves because the reference already exists by the time the `fields` function runs, and giving the shape up front is what lets TypeScript type a field that points at its own type. This mirrors `builder.objectRef(...).implement(...)` from [Object types](./objects).
+
+Input fields are nullable by default, and the shape you give `inputRef` is normalized to match: each optional property on `CharacterQueryInput` (`and?`, `nameContains?`, `bornAfter?`) is treated as `| null | undefined`, so writing plain `?:` is all you need and adding `| null` yourself is redundant.
+
+## One-of inputs
+
+Setting `isOneOf: true` marks an input where the client provides exactly one of the fields, mapping to the `@oneOf` directive from the GraphQL specification. Pothos types the value as a discriminated union, so a resolver sees one field set and the rest as `never`:
+
+```typescript
+builder.inputType('NameOrId', {
+  isOneOf: true,
+  fields: (t) => ({ name: t.string(), id: t.id() }),
+});
+```

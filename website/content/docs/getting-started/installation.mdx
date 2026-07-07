@@ -1,0 +1,50 @@
+---
+title: Installation
+description: Install Pothos and create a small schema you can run.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+This page walks through installing Pothos and creating a small schema you can run.
+
+## Install
+
+```package-install
+npm install --save @pothos/core graphql
+```
+
+Plugins are published as separate packages (`@pothos/plugin-relay`, `@pothos/plugin-scope-auth`, etc.). `graphql` is a peer dependency, shared between Pothos and your GraphQL server.
+
+## TypeScript settings
+
+Pothos is built around type safety, and turning off strict null checks breaks some of its inference. Make sure `strict` mode is enabled in your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+## Hello world
+
+A builder and a `Query` type with one field is enough to create a working schema:
+
+<includeregions cwd lang="typescript" meta='playground example="getting-started-first-schema-step-1"'>playground-examples/getting-started-first-schema/step-1/schema.ts#imports,builder,query,export</includeregions>
+
+`new SchemaBuilder({})` creates the builder used to define the rest of the schema. The options object is where plugins and their settings will go later. `builder.queryType()` defines the schema's root `Query` type (the root types are covered in more detail in the [Queries](../fundamentals/queries) guide), and `builder.toSchema()` builds a standard graphql-js `GraphQLSchema` that can be passed to any GraphQL server.
+
+## Adding an object type
+
+Next, we can add an object type based on some data:
+
+<includeregions cwd lang="typescript" meta='playground example="getting-started-first-schema-step-2"'>playground-examples/getting-started-first-schema/step-2/schema.ts#builder,character-and-query</includeregions>
+
+`objectRef` creates a reference to a new `Character` type. The generic parameter tells Pothos what TypeScript shape the data behind this type will have (Pothos calls this the backing model). `implement` defines the type's fields; `t.exposeID('id')` and `t.exposeString('name')` return properties directly from the backing object. The [Fields](../fundamentals/fields) guide covers the field builder in more detail.
+
+Because the `frodo` field returns a `Character`, its resolver needs to return an object matching that shape, and TypeScript will report an error if it doesn't.
+
+<Callout type="info">
+  If you're new to GraphQL itself, [graphql.org/learn](https://graphql.org/learn/) covers the query language and type system these docs assume.
+</Callout>

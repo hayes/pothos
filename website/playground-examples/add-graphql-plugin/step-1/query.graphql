@@ -1,0 +1,9 @@
+# The imported Team type — including its Division enum — resolves through Pothos.
+query Standings {
+  teams {
+    id
+    name
+    wins
+    division
+  }
+}

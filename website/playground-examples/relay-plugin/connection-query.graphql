@@ -1,0 +1,38 @@
+# Page through every player in the league.
+query AllPlayers {
+  players {
+    edges {
+      cursor
+      node {
+        id
+        name
+        team {
+          name
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
+}
+
+# Forward pagination: the first two, then the page after a cursor.
+query FirstPlayers {
+  players(first: 2) {
+    edges {
+      cursor
+      node {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

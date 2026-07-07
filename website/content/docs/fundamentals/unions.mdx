@@ -1,0 +1,53 @@
+---
+title: Unions
+description: Define a union of object types with unionType, use it as a field type, and resolve which member each value is.
+---
+
+## Defining a union
+
+A union is a single type that stands for one of several object types. A search field is the usual case: a query can return a character, a location, or a quote, and those types share no fields. `builder.unionType` names the union and lists its members:
+
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-unions"'>playground-examples/fundamentals-unions/schema.ts#search-result-union</includeregions>
+
+`unionType` takes the union's name and an options object. `types` lists the members, here `Character`, `Location`, and `Quote`. Every member has to be an object type; interfaces, scalars, and other unions can't be listed. (`types` can also be a function returning the array, for members defined later in the file.) A union has no fields of its own, so there is no `fields` callback.
+
+`resolveType` tells the server which member a given value is. Each value in this schema carries a `kind` discriminator, so `resolveType` returns it directly, the same contract [interfaces](./interfaces) use. The union-specific point is that the name you return has to be one of the types in the union's `types` list.
+
+If you leave `resolveType` off, graphql-js falls back to each member type's `isTypeOf` function; when neither is defined, it has no way to tell the members apart and raises an error while executing the field.
+
+## Using a union as a field type
+
+A union reference is used as a field's `type` like any object type:
+
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-unions"'>playground-examples/fundamentals-unions/schema.ts#search-query</includeregions>
+
+`type: [SearchResult]` makes `search` return a list of union values. The resolver returns whatever mix of characters, locations, and quotes matches the term, and `resolveType` sorts out which member each one is as the field resolves.
+
+## Unions versus interfaces
+
+Both unions and interfaces let one field return more than one object type. The difference is whether the types share fields. An [interface](./interfaces) is a set of fields every implementer carries, like an `id` and a `name`, so a client can select those fields on the abstract type directly. A union groups types that have nothing in common, so a client works entirely through the individual members. The [`plugin-errors`](../plugins/errors) plugin builds on unions for another common case, where a mutation returns either its result or one of several error types.
+
+## Querying a union
+
+Because a union has no fields of its own, a client selects fields inside a fragment on each member type:
+
+```graphql
+query Search {
+  search(term: "frodo") {
+    __typename
+    ... on Character {
+      id
+      name
+    }
+    ... on Location {
+      name
+      terrain
+    }
+    ... on Quote {
+      text
+    }
+  }
+}
+```
+
+`__typename` returns the resolved member's name, which clients use to tell the members apart. The [Interfaces](./interfaces) guide covers these polymorphic selections (inline fragments and `__typename`) in more detail.

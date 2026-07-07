@@ -1,0 +1,67 @@
+---
+title: First server
+description: Serve a Pothos schema over HTTP with graphql-yoga and run a query against it.
+---
+
+With a schema built, the next step is to put it behind an HTTP endpoint. These guides use [`graphql-yoga`](https://the-guild.dev/graphql/yoga-server), but the `GraphQLSchema` returned by `toSchema()` should be compatible with any other GraphQL server implementation.
+
+## Install yoga
+
+```package-install
+npm install graphql-yoga
+```
+
+## The schema
+
+Here's a small schema with a single `hello` field:
+
+<include cwd lang="typescript" meta='playground example="getting-started-first-server-step-1"'>playground-examples/getting-started-first-server/step-1/schema.ts#schema</include>
+
+Save it as `schema.ts`; it exports `schema`, which is all the server imports. The `hello` field takes an optional `name` argument declared with `t.arg.string()` (the [Arguments](../fundamentals/args) guide covers arguments).
+
+## The server
+
+`createYoga` takes the schema and returns a request handler you can pass straight to Node's built-in HTTP server:
+
+<includeregions cwd lang="typescript" meta='playground example="getting-started-first-server-step-2"'>playground-examples/getting-started-first-server/step-2/server.ts#server</includeregions>
+
+Run it with `npx tsx server.ts` (or compile with `tsc` and run the output). yoga serves the API at `/graphql`, and by default it also serves the GraphiQL explorer at that same URL — open `http://localhost:4000/graphql` in a browser to load it. The port is whatever you pass to `server.listen`.
+
+## Running a query
+
+In GraphiQL, run:
+
+```graphql
+query Greet {
+  hello(name: "Frodo")
+}
+```
+
+yoga responds with:
+
+```json
+{
+  "data": {
+    "hello": "Hello, Frodo."
+  }
+}
+```
+
+## The context factory
+
+The `context` option is a function that runs while yoga handles a request; whatever it returns becomes the `ctx` value every resolver can read. The server above returns `{}`, so `ctx` is empty. In a real app the factory reads the incoming request and returns what resolvers need, such as the signed-in user and a database client:
+
+```typescript
+import { initContextCache } from '@pothos/core';
+
+const yoga = createYoga({
+  schema,
+  context: async ({ request }) => ({
+    ...initContextCache(),
+    user: await getUser(request.headers.get('authorization')),
+    db,
+  }),
+});
+```
+
+Spreading `initContextCache()` into the returned object sets up the per-request cache some plugins rely on; including it in every context factory keeps those plugins working. Declaring a matching `Context` type on the builder makes `ctx` fully typed in every resolver. The [Context](../fundamentals/context) guide covers what belongs on context and how to wire the types.

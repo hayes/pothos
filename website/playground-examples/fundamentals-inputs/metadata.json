@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-inputs",
+  "title": "Input objects",
+  "description": "Define reusable input objects and use them as argument and field types.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 7,
+  "tags": ["inputs", "mutations"],
+  "relatedDocs": ["/docs/fundamentals/inputs"]
+}

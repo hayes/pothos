@@ -1,0 +1,6 @@
+query Compendium {
+  characters {
+    id
+    name
+  }
+}

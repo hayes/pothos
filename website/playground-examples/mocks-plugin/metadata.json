@@ -1,0 +1,12 @@
+{
+  "id": "mocks-plugin",
+  "title": "Mocks plugin",
+  "description": "Replace field resolvers with inline mocks at schema-build time for tests and frontend development.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "beginner",
+  "order": 16,
+  "tags": ["mocks", "plugins", "testing"],
+  "relatedDocs": ["/docs/plugins/mocks"],
+  "prerequisites": ["fundamentals-queries"]
+}

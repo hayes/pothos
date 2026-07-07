@@ -1,0 +1,6 @@
+mutation UpdateCharacter {
+  updateCharacter(input: { characterId: "1", biography: "Bearer of the One Ring and hero of the War of the Ring." }) {
+    id
+    biography
+  }
+}

@@ -1,27 +1,14 @@
 ---
-title: LLM Integration
-description: AI-ready routes for LLMs to understand your documentation
+title: LLM integration
+description: Machine-readable routes that serve the docs as plain text for LLMs and AI tools.
 ---
 
-## Overview
+This site serves machine-readable routes so LLMs and AI tools can read the Pothos documentation without scraping HTML. Point a model at these URLs to give it the full, up-to-date reference.
 
-This documentation site provides special routes designed for Large Language Models (LLMs) to better understand and interact with the Pothos documentation.
+## Full documentation
 
-## Available Routes
+[`/llms-full.txt`](/llms-full.txt) concatenates every page into a single plain-text file, optimized for LLM consumption. Each entry carries the page title and URL, its description, and the full page content — enough for a model to answer questions across the whole corpus.
 
-### Full Documentation
+## Individual pages
 
-#### [`/llms-full.txt`](/llms-full.txt)
-
-A plain text representation of the entire documentation, optimized for LLM consumption. This route concatenates all documentation content into a single, easily parseable text file that includes:
-
-- Page titles and URLs
-- Page descriptions
-- Full content of each documentation page
-
-### Individual Pages
-
-#### `/docs/[path].mdx`
-
-Get the MDX content for any individual documentation page in an LLM-friendly format. Simply append `.mdx` to any docs path to retrieve that page's content.
- in a clean, parseable format
+Append `.mdx` to any docs path to fetch that one page as clean, parseable MDX, for example [`/docs/fundamentals/objects.mdx`](/docs/fundamentals/objects.mdx). Use this to hand a model a single topic instead of the entire site.

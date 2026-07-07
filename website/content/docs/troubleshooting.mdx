@@ -1,0 +1,94 @@
+---
+title: Troubleshooting
+description: Fixes for the most common Pothos issues you'll hit.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## Type errors are unreadable
+
+Pothos's type inference produces dense errors when something doesn't fit. Two tweaks make them readable:
+
+**Turn on `strict` mode.** Without it, the inference Pothos relies on collapses and the resulting errors look stranger.
+
+```json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+**Extract the builder generic into a named interface.** The error message references your interface by name instead of inlining its full structure:
+
+```typescript
+interface PothosTypes {
+  Context: {
+    user?: { id: string };
+  };
+}
+
+const builder = new SchemaBuilder<PothosTypes>({});
+```
+
+## VS Code or `tsc` is slow
+
+Pothos's types are deliberately rich. Two things make them disproportionately slow:
+
+- **Complex `Context` types.** Avoid putting whole ORM models on the context type. Reference handles (`db`, `pubSub`), not types like `Prisma.UserGetPayload<{...}>` whose definitions are large. See [microsoft/TypeScript#45405](https://github.com/microsoft/TypeScript/issues/45405) for background.
+- **Inferring through many `objectRef`s in one expression.** If a single field's resolve function references a dozen other refs, TypeScript has to chase each one. Splitting field declarations across separate `objectField` calls usually fixes it.
+
+## "Plugin methods are not defined"
+
+Pothos plugins extend the builder's prototype at import time. If two copies of `@pothos/core` exist in your `node_modules` (usually from pnpm hoisting or a mismatched workspace version), the plugin patches one copy while your app uses the other.
+
+Check for duplicates:
+
+```bash
+npm ls @pothos/core
+# or
+pnpm why @pothos/core
+```
+
+The fix is to deduplicate so exactly one `@pothos/core` lives in the root `node_modules`.
+
+## "Received multiple implementations for plugin"
+
+By default Pothos won't accept the same plugin registered twice. This usually surfaces when HMR re-runs the builder module without clearing the registry.
+
+To allow re-registration during development:
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+
+SchemaBuilder.allowPluginReRegistration = true;
+```
+
+Set it before any plugin imports, and leave it off in production builds.
+
+## "Cannot read property X of undefined" at startup
+
+Most of these are circular imports. Pothos handles circular imports correctly *if* two rules hold:
+
+1. The file that constructs the builder (`builder.ts`) imports nothing that uses the builder.
+2. The file that calls `builder.toSchema()` (`schema.ts`) isn't imported by any of the files that use the builder.
+
+A common shape that works:
+
+```
+builder.ts    ← exports `builder`
+  ↑
+domain/*.ts   ← imports `builder`, registers types and queries
+  ↑
+schema.ts     ← imports each domain module for side effects, calls toSchema()
+```
+
+See [Project layout](./patterns/project-layout) for the full pattern.
+
+## Refs are undefined inside a resolver
+
+A symptom of the same circular-import class. The most reliable fix is the layout above — `builder` lives in its own file, types are declared in domain modules, and `schema.ts` is the only thing that calls `toSchema()`.
+
+<Callout type="info">
+  Hit an issue not covered here? Open one at [github.com/hayes/pothos](https://github.com/hayes/pothos/issues) with a minimal reproduction.
+</Callout>

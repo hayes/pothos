@@ -1,0 +1,80 @@
+---
+title: Interfaces
+description: Define GraphQL interfaces for a Drizzle table and share them across variants.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`builder.drizzleInterface` works exactly like [`builder.drizzleObject`](./objects), but produces a GraphQL interface instead of an object type. Like `drizzleObject`, it can define either a table's primary type (with `name`) or a [variant](./variants) (with `variant` in place of `name`). Use it to give several variants of one table a shared set of fields: the interface holds what they have in common, and each variant implements it and adds its own.
+
+This page assumes the [schema, relations, and builder](./setup) are already wired up. The examples add two columns to the `players` table, an `isCaptain` discriminator and an optional `bio`:
+
+```typescript
+export const players = sqliteTable('players', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  number: integer('number').notNull(),
+  isCaptain: integer('is_captain', { mode: 'boolean' }).notNull().default(false),
+  bio: text('bio'),
+  teamId: integer('team_id').notNull().references(() => teams.id),
+});
+```
+
+## An interface with two variants
+
+The interface defines the fields every player shares. A `resolveType` picks the concrete variant for a given row. Return the type name as a **string** rather than an object ref, which avoids circular-reference problems between the interface and the variants that implement it.
+
+```typescript
+const Player = builder.drizzleInterface('players', {
+  name: 'Player',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+  resolveType: (player) => (player.isCaptain ? 'Captain' : 'SquadPlayer'),
+});
+
+builder.drizzleObject('players', {
+  variant: 'Captain',
+  interfaces: [Player],
+  fields: (t) => ({
+    isCaptain: t.exposeBoolean('isCaptain'),
+  }),
+});
+
+builder.drizzleObject('players', {
+  variant: 'SquadPlayer',
+  interfaces: [Player],
+  fields: (t) => ({
+    bio: t.exposeString('bio', { nullable: true }),
+  }),
+});
+```
+
+Both `Captain` and `SquadPlayer` are variants of the same `players` table, so they inherit its backing shape. Each adds the fields specific to it on top of the interface's `id` and `name`.
+
+<Callout type="warn">
+  Selections are **not** inherited. Under [`select` mode](./selections), add the columns you need to both the interface *and* every implementing object type. Otherwise the object falls back to the default selection of all columns, which may not be what you want.
+</Callout>
+
+## Fields on the interface
+
+`builder.drizzleInterfaceField` and `builder.drizzleInterfaceFields` attach selection-aware fields to an interface after it's defined, the interface counterparts of [`drizzleObjectField(s)`](./objects). This is how you break a circular reference between an interface and a variant it links to, or add a relation the interface should carry:
+
+```typescript
+builder.drizzleInterfaceField(Player, 'stats', (t) =>
+  t.relatedConnection('stats'),
+);
+```
+
+## One table per interface
+
+A drizzle interface only spans the table it was defined on. Trying to have an object for a *different* table implement it fails at build time:
+
+```typescript
+// Error at build time: teams is a different table than players.
+builder.drizzleObject('teams', {
+  interfaces: [Player],
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+```

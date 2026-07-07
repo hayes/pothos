@@ -1,0 +1,26 @@
+{
+  "id": "dataloader-plugin",
+  "title": "Dataloader plugin",
+  "description": "Batch object and relation loads through a dataloader to kill N+1 queries, using loadableObject and the loadable field methods.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 16,
+  "tags": ["dataloader", "plugins", "batching", "n+1"],
+  "relatedDocs": ["/docs/plugins/dataloader"],
+  "prerequisites": ["fundamentals-objects"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Loadable objects",
+      "description": "Resolve ids and let builder.loadableObject batch them into one load call",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "Batching relations",
+      "description": "Load a one-to-many relation for a whole list of parents with loadableGroup",
+      "order": 2
+    }
+  ]
+}

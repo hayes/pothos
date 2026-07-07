@@ -1,0 +1,16 @@
+{
+  "title": "Drizzle",
+  "pages": [
+    "setup",
+    "objects",
+    "relations",
+    "selections",
+    "relay",
+    "connections",
+    "variants",
+    "indirect-relations",
+    "interfaces",
+    "without-a-plugin",
+    "..."
+  ]
+}

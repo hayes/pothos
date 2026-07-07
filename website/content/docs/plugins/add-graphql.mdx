@@ -1,20 +1,19 @@
 ---
 title: Add GraphQL plugin
-description: A plugin for adding existing GraphQL types to Pothos
+description: Bring types and whole schemas from an existing graphql-js service into a Pothos builder while you migrate to code-first.
 ---
 
-This plugin makes it easy to integrate GraphQL types from existing schemas into your Pothos API
+import { Callout } from 'fumadocs-ui/components/callout';
 
-It can be used for incremental migrations from nexus, graphql-tools, or any other JS/TS executable
-schema.
+The add-graphql plugin brings types from an existing executable GraphQL schema into a Pothos builder. Point it at a `GraphQLObjectType`, a handful of types, or a whole `GraphQLSchema` and Pothos re-registers them as its own, so you can migrate a service built on nexus, graphql-tools, or plain graphql-js one piece at a time while new fields are written in Pothos.
+
+There are two entry points. The `add` builder option pulls types in *bulk* when you construct the builder; the `addGraphQL` methods pull them *one at a time* and hand back a [ref](../fundamentals/objects) you can customize and use in field definitions.
 
 ## Install
 
 ```package-install
 npm install --save @pothos/plugin-add-graphql
 ```
-
-## Setup
 
 ```typescript
 import AddGraphQLPlugin from '@pothos/plugin-add-graphql';
@@ -24,169 +23,78 @@ const builder = new SchemaBuilder({
 });
 ```
 
-## Usage
+## Import an existing schema
 
-There are 2 ways you can reference existing types.
+Pass `add` when constructing the builder to fold existing types into the schema at build time. `add.schema` imports every type in a `GraphQLSchema`; `add.types` imports a specific list. Either way, any type reachable through a field, interface, or union member is imported recursively, so you don't have to enumerate dependencies.
 
-- Adding types (or a whole external schema) when setting up the builder
-- Adding types as Refs using new builder methods
+<include cwd lang="typescript" meta='playground example="add-graphql-plugin"'>playground-examples/add-graphql-plugin/step-1/schema.ts#schema-import</include>
 
-### Adding types when creating your builder
+`add.types` accepts an array of `GraphQLNamedType` (objects, interfaces, unions, enums, scalars, and input objects all qualify), or a name-keyed record of the same:
 
-Adding types to the builder will automatically include the types in your schema when it's built.
-Types will only be added if no existing type of the same name is added to the builder before
-building the schema.
-
-Adding types recursively adds any other types that the added type depends on in its fields,
-interfaces, or union members.
-
-```ts
-import { existingSchema } from './existing-schema-location';
-
+```typescript
 const builder = new SchemaBuilder({
   plugins: [AddGraphQLPlugin],
   add: {
-    // You can add individual types
-    // This accepts Any GraphQLNamedType (Objects, Interface, Unions, Enums, Scalars, and InputObjects)
-    types: [existingSchema.getType('User'), existingSchema.getType('Post')],
-    // Or you can add an entire external schema
-    schema: existingSchema,
+    types: [legacySchema.getType('Team')!, legacySchema.getType('Division')!],
   },
 });
 ```
 
-Adding types by themselves isn't very useful, so you'll probably want to be able to reference them
-when defining fields in your schema. To do this, you can add them to the builders generic Types.
+Imported types have to be *referenced* to be useful. Register them on the builder's generic `SchemaTypes` and you can name them as strings anywhere Pothos expects a type, as `teams` does with `['Team']` above. This shortcut covers **object, interface, and scalar** types only; for unions, enums, and inputs, use the `addGraphQL` methods below to get a ref instead.
 
-This currently only works for `Object`, `Interface`, and `Scalar` types. For other types, use the
-builder methods below to create refs to the added types.
+<Callout type="warn">
+  A type is imported only if no type of the same name is already registered on the builder before the schema is built. A name you define yourself always wins, so the plugin never clobbers your own types, but it also silently skips an imported type whose name you've already taken.
+</Callout>
 
-```ts
-import { existingSchema } from './existing-schema-location';
+<Callout type="warn">
+  Importing a schema that has its own `Query`, `Mutation`, or `Subscription` merges those root fields by calling `builder.queryType` (or `mutationType`/`subscriptionType`) for you. Add your own root fields with `builder.queryFields` so they merge with the imported ones. Defining your own `builder.queryType` instead does not error; the plugin silently skips the imported root type, dropping its fields.
+</Callout>
 
-const builder = new SchemaBuilder<{
-  Objects: {
-    User: UserType;
-  };
-  Interfaces: {
-    ExampleInterface: { id: string };
-  };
-  Scalars: {
-    DateTime: {
-      Output: Date;
-      Input: Date;
-    };
-  };
-}>({
-  plugins: [AddGraphQLPlugin],
-  add: {
-    types: [
-      existingSchema.getType('User'),
-      existingSchema.getType('ExampleInterface'),
-      existingSchema.getType('DateTime'),
-    ],
-  },
+## Refs for individual types
+
+The `addGraphQL` methods import one type and return a ref (an `ObjectRef`, `InterfaceRef`, and so on) that behaves exactly like a ref you built from scratch. Use it as a field's `type`, and customize the imported type on the way in. Passing a generic `Shape` is recommended: it types the ref's backing model so resolvers stay checked.
+
+<include cwd lang="typescript" meta='playground example="add-graphql-plugin-step-2"'>playground-examples/add-graphql-plugin/step-2/schema.ts#refs</include>
+
+The `fields` shape works like a patch over the imported type: return `null` for a field to drop it, return a field ref to add or replace one, and every field you don't mention is imported unchanged. Everything else Pothos can carry over (description, deprecation reasons, `isTypeOf`/`resolveType`, extensions, default values, and `isOneOf` on inputs) comes across automatically from the source type.
+
+## The type methods
+
+Each method takes the source `GraphQLType` plus optional options, and returns the matching ref:
+
+| Method | Source type | Returns |
+| --- | --- | --- |
+| `addGraphQLObject<Shape>` | `GraphQLObjectType` | `ObjectRef<Shape>` |
+| `addGraphQLInterface<Shape>` | `GraphQLInterfaceType` | `InterfaceRef<Shape>` |
+| `addGraphQLUnion<Shape>` | `GraphQLUnionType` | `UnionRef<Shape>` |
+| `addGraphQLEnum<Shape>` | `GraphQLEnumType` | `EnumRef<Shape>` |
+| `addGraphQLInput<Shape>` | `GraphQLInputObjectType` | `InputObjectRef<Shape>` |
+
+Every method's options are the standard options for that type kind, minus the part derived from the source, plus a `name` to rename the type as you import it:
+
+- **Objects and interfaces** take everything an object or interface type takes except `fields`, which is replaced by the patch-style shape above (`fieldName: null` to drop, a ref to add or replace). In practice the options that take effect are `name` and `extensions` (merged into the source's). `description`, `isTypeOf`/`resolveType`, and `interfaces` always come from the source type, so set those on the source rather than passing them here.
+- **Unions** take a `types` override to spell out the members yourself instead of importing the source's.
+- **Enums** take a `values` override to remap the values.
+- **Inputs** take the same patch-style `fields` shape as objects.
+
+If the source type isn't already typed with a generic, cast it to the expected kind so the method's `Shape` binds, for example `addGraphQLObject<IPlayer>(schema.getType('Player') as GraphQLObjectType)`.
+
+```typescript
+const NodeRef = builder.addGraphQLInterface<INode>(LegacyNode, {
+  name: 'Entity',
 });
 
-builder.queryFields((t) => ({
-  user: t.field({ type: 'User', resolve: () => getUser() }),
-  exampleInterface: t.field({ type: 'ExampleInterface', resolve: () => getThings() }),
-  now: t.field({ type: 'DateTime', resolve: () => new Date() }),
-}));
+const SearchResult = builder.addGraphQLUnion<ITeam | IPlayer>(LegacySearchResult);
+
+const Division = builder.addGraphQLEnum<'EAST' | 'WEST'>(LegacyDivision);
 ```
 
-### Adding types using builder methods
+## Scalars
 
-#### Objects
+There's no `addGraphQLScalar` method, because Pothos already has one. Register an existing scalar with the core `builder.addScalarType`:
 
-```ts
-// Passing in a generic type is recommended to ensure type-safety
-const UserRef = builder.addGraphQLObject<UserType>(
-  existingSchema.getType('User') as GraphQLObjectType,
-  {
-    // Optionally you can override the types name
-    name: 'AddedUser',
-    // You can also pass in any other options you can define for normal object types
-    description: 'This type represents Users',
-  },
-);
-
-const PostRef = builder.addGraphQLObject<{
-  id: string;
-  title: string;
-  content: string;
-}>(existingSchema.getType('Post') as GraphQLObjectType, {
-  fields: (t) => ({
-    // remove existing title field from type
-    title: null,
-    // add new titleField
-    postTitle: t.exposeString('title'),
-  }),
-});
+```typescript
+builder.addScalarType('DateTime', LegacyDateTime);
 ```
 
-You can then use the returned references when defining fields:
-
-```ts
-builder.queryFields((t) => ({
-  posts: t.field({
-    type: [PostRef],
-    resolve: () => loadPosts(),
-  }),
-}));
-```
-
-### Interfaces
-
-```ts
-const NodeRef = builder.addGraphQLInterface<NodeShape>(
-  existingSchema.getType('Node') as GraphQLInterfaceType,
-  {
-    // interface options
-  },
-);
-```
-
-### Unions
-
-```ts
-const SearchResult = builder.addGraphQLUnion<User | Post>(
-  existingSchema.getType('SearchResult') as GraphQLUnionType,
-  {
-    // union options
-  },
-);
-```
-
-### Enums
-
-```ts
-const OrderBy = builder.addGraphQLEnum<'Asc' | 'Desc'>(
-  existingSchema.getType('OrderBy') as GraphQLEnumType,
-  {
-    // enum options
-  },
-);
-```
-
-### Input objects
-
-```ts
-const PostFilter = builder.addGraphQLInput<{ title?: string, tags? string[] }>(
-  existingSchema.getType('PostFilter') as GraphQLInputObjectType,
-  {
-    // input options
-  },
-);
-```
-
-### Scalars
-
-This plugin does not add a new method for scalars, because Pothos already has a method for adding
-existing scalar types.
-
-```ts
-builder.addScalarType('DateTime', existingSchema.getType('DateTime') as GraphQLScalar, {
-  // scalar options
-});
-```
+Scalars imported through the `add` option or referenced by name from the `Scalars` generic work the same way; the dedicated method just exists for the ref-returning case.

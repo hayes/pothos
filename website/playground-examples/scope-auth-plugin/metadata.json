@@ -1,0 +1,12 @@
+{
+  "id": "scope-auth-plugin",
+  "title": "Scope auth plugin",
+  "description": "Guard fields and types with authorization scopes, scope loaders, and logical combinations.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 11,
+  "tags": ["authorization", "auth", "scopes", "permissions"],
+  "relatedDocs": ["/docs/plugins/scope-auth"],
+  "prerequisites": ["getting-started-first-schema"]
+}

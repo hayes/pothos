@@ -1,0 +1,9 @@
+# The Context tab seeds a staff viewer, so every field resolves.
+# Empty the Context tab to watch the member/staff fields fail.
+query Standings {
+  teams {
+    id
+    name
+    wins
+  }
+}

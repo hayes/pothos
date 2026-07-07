@@ -1,0 +1,114 @@
+---
+title: Selections
+description: Control which columns, relations, and SQL expressions Drizzle loads with select and field-level selections.
+---
+
+By default a `drizzleObject` loads every column of its table and pre-loads only the relations a query touches. A `select` option tunes that: narrow a wide table to the columns you expose, pre-load a relation every time, or add a raw SQL expression to the row. `select` has three parts: `columns`, related tables via `with`, and computed SQL via `extras`.
+
+```typescript
+builder.drizzleObject('players', {
+  name: 'Player',
+  select: {
+    columns: {
+      name: true,
+      number: true,
+    },
+    // Pre-load a relation so every resolver on this type can read it.
+    with: {
+      team: true,
+    },
+    // A raw SQL column, available on every row of this type.
+    extras: {
+      lowercaseName: (players, { sql }) => sql<string>`lower(${players.name})`,
+    },
+  },
+  fields: (t) => ({
+    number: t.exposeInt('number'),
+    label: t.string({
+      resolve: (player) => `#${player.number} ${player.name}`,
+    }),
+    teamName: t.string({
+      resolve: (player) => player.team.name,
+    }),
+    slug: t.string({
+      resolve: (player) => player.lowercaseName.replace(/\s+/g, '-'),
+    }),
+  }),
+});
+```
+
+Anything selected on the type is available in every resolver on that type. `extras` is the piece with no Prisma equivalent: a map of names to `(table, { sql }) => sql` builders that add computed columns straight from SQL.
+
+## Default selection
+
+The `select` option changes what loads by default:
+
+- **Omit `select`**: every column loads. Convenient, and fine for narrow tables.
+- **`select: {}`**: nothing loads by default. Each field adds only what it needs, so the database returns the minimum for a given request.
+- **`select: { columns: { ... } }`**: exactly the listed columns load on every request.
+
+Whichever you pick, `t.expose*` and `t.relation` still work: the plugin adds a column or relation to the query **when its field is queried**, on top of the default selection. So a `select: {}` type stays lean, and exposing a column you didn't select just pulls it in when a client asks for it.
+
+## Per-field selections
+
+A type-level `select` loads its columns for every request. To load a column, relation, or SQL expression only when a specific field is queried, put `select` on the field instead. This keeps each field's cost tied to whether the client asks for it:
+
+```typescript
+builder.drizzleObject('players', {
+  name: 'Player',
+  select: {},
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    // name + number load only when `label` is queried.
+    label: t.string({
+      select: {
+        columns: { name: true, number: true },
+      },
+      resolve: (player) => `#${player.number} ${player.name}`,
+    }),
+    // The team relation loads only when `teamName` is queried.
+    teamName: t.string({
+      select: {
+        with: { team: true },
+      },
+      resolve: (player) => player.team.name,
+    }),
+    // The SQL expression is computed only when `slug` is queried.
+    slug: t.string({
+      select: {
+        extras: {
+          lowercaseName: (players, { sql }) => sql<string>`lower(${players.name})`,
+        },
+      },
+      resolve: (player) => player.lowercaseName.replace(/\s+/g, '-'),
+    }),
+  }),
+});
+```
+
+## Selections from arguments or context
+
+A field-level `select` can be a function of the field's arguments and context, so a selection responds to input. This field takes a game id and pre-loads only the stats recorded in that game:
+
+```typescript
+builder.drizzleObject('players', {
+  name: 'Player',
+  select: {},
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    goalsInGame: t.int({
+      args: {
+        gameId: t.arg.int({ required: true }),
+      },
+      select: (args) => ({
+        with: {
+          stats: {
+            where: { gameId: args.gameId },
+          },
+        },
+      }),
+      resolve: (player) => player.stats.reduce((sum, s) => sum + s.goals, 0),
+    }),
+  }),
+});
+```

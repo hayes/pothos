@@ -1,0 +1,10 @@
+query Resolvers {
+  characterCount
+  character(id: "1") {
+    id
+    name
+  }
+  featuredCharacter {
+    name
+  }
+}

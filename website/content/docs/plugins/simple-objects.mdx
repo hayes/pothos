@@ -1,119 +1,72 @@
 ---
-title: Simple objects plugin
-description: Simple objects plugin docs for Pothos
+title: Simple objects
+description: Define objects and interfaces from their fields alone with simpleObject and simpleInterface, no separate backing type.
 ---
 
-The Simple Objects Plugin provides a way to define objects and interfaces without defining type
-definitions for those objects, while still getting full type safety.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-## Usage
-
-### Install
+Most object types need a backing model, the TypeScript shape your resolvers return. Usually you write that shape as an `interface` and hand it to `builder.objectRef`. The simple objects plugin skips that step: `builder.simpleObject` reads the fields you declare and infers the backing model from them, so a type and its shape are defined in one call. It fits response shapes that only exist to be returned (stats blocks, computed summaries, DTOs) where a hand-written interface would only repeat what the fields already declare.
 
 ```package-install
 npm install --save @pothos/plugin-simple-objects
 ```
 
-### Setup
+Add the plugin to the builder:
 
 ```typescript
 import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
+
 const builder = new SchemaBuilder({
   plugins: [SimpleObjectsPlugin],
 });
 ```
 
-### Example
+Then define types straight from their fields. Here a league standing is assembled from a `TeamStats` block and a `Node` interface, with no `interface` declarations anywhere:
+
+<includeregions cwd lang="typescript" meta='playground example="simple-objects-plugin"'>playground-examples/simple-objects-plugin/schema.ts#team-stats,node,standing</includeregions>
+
+The resolver on the `standing` query just returns a plain object (`{ id, team, stats: { wins, losses, pointDiff } }`) and TypeScript checks it against the shape Pothos inferred. Get a field name or type wrong and it fails to compile.
+
+## Why simpleObject
+
+`builder.simpleObject` returns an [`ObjectRef`](../fundamentals/objects), the same reference you'd get from `builder.objectRef<T>()`. The difference is where the backing model comes from. With `objectRef` you write the type yourself and Pothos trusts it. With `simpleObject` the fields *are* the type: declare `wins: t.int()` and the backing model gains a required `number`; declare `pointDiff: t.int({ nullable: true })` and it gains an optional `number | null`.
+
+Use `simpleObject` for types that only exist in the schema: a `TeamStats` block returned by one query doesn't need a hand-written interface, because the fields already say everything. Use a plain `objectRef` when the backing model is a real domain entity you load, mutate, and pass around.
+
+## Interfaces
+
+`builder.simpleInterface` is the interface counterpart, and simple objects implement interfaces through the same `interfaces` option a regular object uses. An implementing type inherits the interface's inferred fields; `Standing` gets `id` from `Node` without redeclaring it, and the inferred backing model is the intersection of both.
+
+Interfaces can also be a thunk, which defers evaluation so two types can reference each other:
 
 ```typescript
-import SchemaBuilder from '@pothos/core';
-import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
-
-const builder = new SchemaBuilder({
-  plugins: [SimpleObjectsPlugin],
-});
-
-const ContactInfo = builder.simpleObject('ContactInfo', {
+const Standing = builder.simpleObject('Standing', {
+  interfaces: () => [Node],
   fields: (t) => ({
-    email: t.string({
-      nullable: false,
-    }),
-    phoneNumber: t.string({
-      nullable: true,
-    }),
-  }),
-});
-
-const Node = builder.simpleInterface('Node', {
-  fields: (t) => ({
-    id: t.id({
-      nullable: false,
-    }),
-  }),
-});
-
-const UserType = builder.simpleObject(
-  'User',
-  {
-    interfaces: [Node],
-    fields: (t) => ({
-      firstName: t.string(),
-      lastName: t.string(),
-      contactInfo: t.field({
-        type: ContactInfo,
-        nullable: false,
-      }),
-    }),
-  },
-  // You can add additional fields with resolvers with a third fields argument
-  (t) => ({
-    fullName: t.string({
-      resolve: (user) => `${user.firstName} ${user.lastName}`,
-    }),
-  }),
-);
-
-builder.queryType({
-  fields: (t) => ({
-    user: t.field({
-      type: UserType,
-      args: {
-        id: t.arg.id({ required: true }),
-      },
-      resolve: (parent, args, { User }) => {
-        return {
-          id: '1003',
-          firstName: 'Leia',
-          lastName: 'Organa',
-          contactInfo: {
-            email: 'leia@example.com',
-            phoneNumber: null,
-          },
-        };
-      },
-    }),
+    team: t.string(),
   }),
 });
 ```
 
-## Extending simple objects
+Like `simpleObject`, `simpleInterface` takes an optional third argument for resolver-backed fields, so an interface can carry a computed field its implementers inherit.
 
-In some cases, you may want to add more complex fields with resolvers or args where the value isn't
-just passed down from the parent.
+## Computed fields
 
-In these cases, you can either add the field in the 3rd arg (fields) as shown above, or you can add
-additional fields to the type using methods like `builder.objectType`:
+The `fields` inside the second argument map one-to-one onto the inferred backing model; Pothos resolves each by reading the property of the same name off the parent. When a value is derived, takes arguments, or hits another source rather than being passed straight through, put it in the **third argument** instead. Those fields run through normal resolvers and receive the fully inferred parent, so `record` above can read `standing.stats.wins`.
+
+You can add the same kind of field after the fact. Because `simpleObject` hands back an `ObjectRef`, any builder method that extends a ref works on it:
 
 ```typescript
-builder.objectType(UserType, (t) => ({
-  fullName: t.string({
-    resolve: (user) => `${user.firstName} ${user.lastName}`,
+builder.objectType(Standing, (t) => ({
+  winPct: t.float({
+    resolve: (standing) =>
+      standing.stats.wins / (standing.stats.wins + standing.stats.losses),
   }),
 }));
 ```
 
-## Limitations
+Use whichever reads better: the third argument keeps a type's computed fields next to its declaration; a separate `builder.objectType` call works when the extra fields live in another module.
 
-When using simpleObjects in combination with other plugins like authorization, those plugins may use
-`unknown` as the parent type in some custom fields \(eg. `parent` of a permission check function on
-a field\).
+<Callout type="warn">
+  Fields declared in the second argument see the parent as `unknown`. That only surfaces when another plugin inspects the parent; a `plugin-scope-auth` `authScopes` callback on a simple-object field, for instance, gets `unknown` rather than the inferred shape. Move such fields to the third argument, where the parent is fully typed.
+</Callout>

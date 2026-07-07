@@ -1,78 +1,76 @@
 ---
-title: Prisma Objects
-description: Prisma plugin docs for Pothos
+title: Prisma objects
+description: Define GraphQL object types from Prisma models with prismaObject and resolve to them with prismaField.
 ---
 
-## Creating types with `builder.prismaObject`
-
-`builder.prismaObject` takes 2 arguments:
-
-1. `name`: The name of the prisma model this new type represents
-2. `options`: options for the type being created, this is very similar to the options for any other
-   object type
+`builder.prismaObject` defines a GraphQL object type backed by a Prisma model. You pass the model name and a set of options that mirror any other object type. The difference is that Pothos already knows the shape from your [generated `PrismaTypes`](./setup), so exposing columns and adding relations is fully typed without object refs or imports from the client.
 
 ```typescript
-builder.prismaObject('User', {
-  // Optional name for the object, defaults to the name of the prisma model
-  name: 'PostAuthor',
+builder.prismaObject('Team', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    email: t.exposeString('email'),
+    name: t.exposeString('name'),
   }),
 });
 
-builder.prismaObject('Post', {
+builder.prismaObject('Player', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    title: t.exposeString('title'),
+    name: t.exposeString('name'),
+    number: t.exposeInt('number'),
   }),
 });
 ```
 
-So far, this is just creating some simple object types. They work just like any other object type in
-Pothos. The main advantage of this is that we get the type information without using object refs, or
-needing imports from prisma client.
+These behave like any Pothos object type. `prismaObject` returns an object ref you can use anywhere a ref is expected. Unlike a plain `objectRef`, the type information comes from your schema, and relation fields on it can be query-planned.
 
-## Adding prisma fields to non-prisma objects (including Query and Mutation)
+## Naming the type
 
-There is a new `t.prismaField` method which can be used to define fields that resolve to your prisma
-types:
+The GraphQL type takes the model's name by default. Pass `name` to call it something else, which is handy when one model backs [more than one GraphQL type](./variants):
+
+```typescript
+builder.prismaObject('Team', {
+  // The GraphQL type is `Roster`, still backed by the Team model.
+  name: 'Roster',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+```
+
+## Resolving to a Prisma type
+
+Use `t.prismaField` to add a field whose type is a Prisma model, most often on `Query` or `Mutation`:
 
 ```typescript
 builder.queryType({
   fields: (t) => ({
-    me: t.prismaField({
-      type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+    myTeam: t.prismaField({
+      type: 'Team',
+      resolve: async (query, _root, _args, ctx) =>
+        prisma.team.findUniqueOrThrow({
           ...query,
-          where: { id: ctx.userId },
+          where: { id: ctx.teamId },
         }),
     }),
   }),
 });
 ```
 
-This method works just like the normal `t.field` method with a couple of differences:
+`t.prismaField` works like `t.field` with two differences:
 
-1. The `type` option must contain the name of the prisma model (eg. `User` or `[User]` for a list
-   field).
-2. The `resolve` function has a new first argument `query` which should be spread into your prisma
-   query. This will be used to load data for nested relationships.
+1. **`type`** is a Prisma model name: `'Team'`, or `['Team']` for a list field.
+2. **`resolve`** gets an extra first argument, `query`. Spread it into your Prisma call. It carries the `include`/`select` the plugin computed for the nested part of the request, so relations and selected columns load in the same query. Which fields end up in it depends on what the client selected and how you defined the fields and types involved.
 
-You do not need to use this method, and the `builder.prismaObject` method returns an object ref that
-can be used like any other object ref (with `t.field`), but using `t.prismaField` will allow you to
-take advantage of more efficient queries.
+You are not required to use `t.prismaField` (a `prismaObject` ref works with a plain `t.field` too), but only `t.prismaField` (and `t.prismaConnection`) gives you the `query` argument that makes the loading efficient.
 
-The `query` object will contain an object with `include` or `select` options to pre-load data needed
-to resolve nested parts of the current query. The included/selected fields are based on which fields
-are being queried, and the options provided when defining those fields and types.
+## Extending a Prisma object
 
+The usual `builder.objectField` and `builder.objectFields` work on Prisma objects, but they can't use [selections](./selections) or expose fields outside the default selection. To add a field that pulls in extra columns or relations, use `builder.prismaObjectField` or `builder.prismaObjectFields` instead:
 
-## Extending prisma objects
-
-The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support
-using selections, or exposing fields not in the default selection. To use these features, you can
-use
-
-`builder.prismaObjectField` or `builder.prismaObjectFields` instead.
+```typescript
+builder.prismaObjectField('Team', 'playerCount', (t) =>
+  t.relationCount('players'),
+);
+```

@@ -1,0 +1,12 @@
+{
+  "id": "reusable-args-pattern",
+  "title": "Reusable Args Pattern",
+  "description": "Share a pagination() args helper across the teams and players query fields",
+  "category": "patterns",
+  "subcategory": "advanced-patterns",
+  "difficulty": "advanced",
+  "order": 2,
+  "tags": ["patterns", "args", "dry", "type-safety"],
+  "relatedDocs": ["/docs/patterns/reusable-fields"],
+  "prerequisites": ["fundamentals-args", "fundamentals-queries"]
+}

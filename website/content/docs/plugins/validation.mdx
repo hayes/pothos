@@ -1,309 +1,152 @@
 ---
 title: Validation plugin
-description: Validation plugin docs for Pothos
+description: Validate arguments, input fields, and input objects with Zod or any Standard Schema library.
 ---
 
-A plugin for adding validation to field arguments, input object fields, and input types using modern validation libraries like [Zod](https://github.com/colinhacks/zod), [Valibot](https://valibot.dev), and [ArkType](https://arktype.io).
+GraphQL's type system checks shapes, not rules. It will accept `jersey: 250` or `email: "nope"` as long as the types line up. The validation plugin closes that gap: attach a [Standard Schema](https://standardschema.dev) (a [Zod](https://zod.dev), [Valibot](https://valibot.dev), or [ArkType](https://arktype.io) schema) to any argument, input field, or input type, and Pothos runs it before your resolver ever sees the value.
 
-This plugin provides a library-agnostic approach to validation by supporting any validation library that implements the [standard schema](https://standardschema.dev) interface, making it flexible and future-proof.
+Every attachment point (an argument, an input field, an input type, or a whole field's args) takes the same `validate` option.
 
-## Usage
-
-### Install
-
-To use the validation plugin, you'll need to install the validation plugin and a compatible validation library:
+## Setup
 
 ```package-install
 npm install --save @pothos/plugin-validation zod
-# OR
-npm install --save @pothos/plugin-validation valibot
-# OR
-npm install --save @pothos/plugin-validation arktype
 ```
 
-### Setup
+Swap `zod` for `valibot` or `arktype`; the plugin only cares that the library implements Standard Schema. Register the plugin like any other:
 
 ```typescript
 import ValidationPlugin from '@pothos/plugin-validation';
-import { z } from 'zod'; // or your preferred validation library
+import { z } from 'zod'; // or valibot, arktype, ...
 
 const builder = new SchemaBuilder({
   plugins: [ValidationPlugin],
 });
-
-builder.queryType({
-  fields: (t) => ({
-    simple: t.boolean({
-      args: {
-        // Validate individual arguments
-        email: t.arg.string({
-          validate: z.string().email(),
-        }),
-      },
-      resolve: () => true,
-    }),
-  }),
-});
 ```
 
-## Validation API Overview
+## Validating arguments
 
-The validation plugin supports validating inputs and arguments in several different ways:
+Pass a schema as the `validate` option on any argument. If the value fails, the resolver never runs and the client gets an error. Here a roster mutation guards the player's name length, email format, and jersey range:
 
-- **Argument validation**: `t.arg.string({ validate: schema })` or `t.arg.string().validate(schema)` - Validate individual arguments
-- **Validate all field args**: `t.field({ args, validate: schema, ... })` or `t.field({ args: t.validate(args), ... })` - Validate all arguments together
-- **Input type validation**: `builder.inputType({ validate: schema, ... })` or `builder.inputType({ ... }).validate(schema)` - Validate entire input objects
-- **Input field validation**: `t.string({ validate: schema })` or `t.string().validate(schema)` - Validate individual input type fields
+<include cwd lang="typescript" meta='playground example="validation-plugin"'>playground-examples/validation-plugin/schema.ts#register-mutation</include>
 
-## Validation Patterns
+Every point that accepts `validate:` also has a chained `.validate()` equivalent. The two are interchangeable for plain checks; use chaining when you want to **transform** the value.
 
-### Argument Validation
+## Transforming as you validate
 
-Validate each field argument independently using either the object syntax or chaining API:
+A Standard Schema can change a value's type, and Pothos hands the transformed result to your resolver. Chain `.validate()` to convert a comma-separated string into an array:
 
 ```typescript
-builder.queryType({
-  fields: (t) => ({
-    user: t.string({
-      args: {
-        email: t.arg.string({
-          validate: z.string().email(),
-        }),
-        name: t.arg.string()
-          .validate(z.string().min(2).max(50)),
-      },
-      resolve: (_, args) => `User: ${args.name}`,
-    }),
-  }),
-});
+const tags = t.arg.string()
+  .validate(z.string().transform((str) => str.split(',').map((s) => s.trim())));
+
+// In the resolver, args.tags is now string[]
 ```
 
-#### Data Transformation with Argument Validation
+Chaining `.validate()` more than once runs the schemas in order, so each transform feeds the next.
 
-When using the chaining API, you can transform data as part of the validation process:
+## Validating across arguments
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    processData: t.string({
-      args: {
-        // Convert comma-separated string to array
-        tags: t.arg.string()
-          .validate(z.string().transform(str => str.split(',').map(s => s.trim()))),
-      },
-      resolve: (_, args) => {
-        return `Processed ${args.tags.length} tags`;
-      },
-    }),
-  }),
-});
-```
-
-### Validating all Field Arguments Together
-
-You can validate all arguments of a field together by passing a validation schema to the `t.field`
+Per-argument schemas can't express "at least one of these." For cross-argument rules, put a `validate` schema on the field itself; it receives the whole args object:
 
 ```typescript
-builder.queryType({
-  fields: (t) => ({
-    contact: t.boolean({
-      args: {
-        email: t.arg.string(),
-        phone: t.arg.string(),
-      },
-      // Ensure at least one contact method is provided
-      validate: z
-        .object({
-          email: z.string().optional(),
-          phone: z.string().optional(),
-        })
-        .refine(
-          (args) => !!args.phone || !!args.email,
-          { message: 'Must provide either phone or email' }
-        ),
-      resolve: () => true,
-    }),
+builder.queryField('findPlayer', (t) =>
+  t.boolean({
+    args: {
+      email: t.arg.string(),
+      jersey: t.arg.int(),
+    },
+    // Require at least one lookup key
+    validate: z
+      .object({ email: z.string().optional(), jersey: z.number().optional() })
+      .refine((args) => args.email != null || args.jersey != null, {
+        message: 'Provide an email or a jersey number',
+      }),
+    resolve: () => true,
   }),
-});
-```
-
-#### With transforms
-
-To transform all arguments together, you will need to use t.validate(args):
-
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    user: t.string({
-      args: t.validate({
-        email: t.arg.string(),
-        phone: t.arg.string(),
-      },
-        z.object({
-          email: z.string().optional(),
-          phone: z.string().optional(),
-        })
-        .refine(
-          (args) => !!args.phone || !!args.email,
-          { message: 'Must provide either phone or email' }
-        )
-        .transform((args) => ({
-          filter: {
-            email: args.email ? args.email.toLowerCase() : undefined,
-            phone: args.phone ? args.phone.replace(/\D/g, '') : undefined,
-          },
-        }))
-      ),
-      resolve: (_, args) => {
-        // args has transformed shape:
-        // { filter: { email?: string, phone?: string } }
-        return `User filter: ${JSON.stringify(args.filter)}`;
-      },
-    }),
-  }),
-});
-```
-
-### Input Type Validation
-
-Validate entire input objects with complex validation logic using either object syntax or chaining:
-
-```typescript
-// Object syntax
-const UserInput = builder.inputType('UserInput', {
-  fields: (t) => ({
-    name: t.string(),
-    age: t.int(),
-  }),
-  validate: z
-    .object({
-      name: z.string(),
-      age: z.number(),
-    })
-    .refine((user) => user.name !== 'admin', {
-      message: 'Username "admin" is not allowed',
-    })
-});
-```
-
-#### Input Type Transformation
-
-Transform entire input types:
-
-```typescript
-const UserInput = builder.inputType('RawUserInput', {
-  fields: (t) => ({
-    fullName: t.string(),
-    birthYear: t.string(),
-  }),
-}).validate(
-  z.object({
-    fullName: z.string(),
-    birthYear: z.string(),
-  }).transform(data => ({
-    firstName: data.fullName.split(' ')[0],
-    lastName: data.fullName.split(' ').slice(1).join(' '),
-    age: new Date().getFullYear() - parseInt(data.birthYear),
-  }))
 );
-
-builder.queryType({
-  fields: (t) => ({
-    createUser: t.string({
-      args: {
-        userData: t.arg({ type: UserInput }),
-      },
-      resolve: (_, args) => {
-        // args.userData has transformed shape:
-        // { firstName: string, lastName: string, age: number }
-        return `Created user: ${args.userData.firstName} ${args.userData.lastName}`;
-      },
-    }),
-  }),
-});
 ```
 
-### Input Field Validation
-
-Validate individual fields within input types:
+To **transform** all arguments together, the field-level `validate` option can't help; it can't retype the args. Use `t.validate(args, schema)` instead, which wraps the args map and threads the transformed shape through to the resolver:
 
 ```typescript
-const UserInput = builder.inputType('UserInput', {
-  fields: (t) => ({
-    name: t.string({
-      validate: z.string().min(2).refine(
-        (name) => name[0].toUpperCase() === name[0],
-        { message: 'Name must be capitalized' }
-      ),
-    })
+builder.queryField('findPlayer', (t) =>
+  t.string({
+    args: t.validate(
+      { email: t.arg.string(), jersey: t.arg.int() },
+      z
+        .object({ email: z.string().optional(), jersey: z.number().optional() })
+        .transform((args) => ({
+          filter: { email: args.email?.toLowerCase(), jersey: args.jersey },
+        })),
+    ),
+    // args is now { filter: { email?: string; jersey?: number } }
+    resolve: (_root, args) => JSON.stringify(args.filter),
   }),
-});
+);
 ```
 
-#### Input Field Transformation
+## Validating input types
 
-Transform field values during validation:
+Input types take `validate` in both places an argument does: on each field, and on the type as a whole:
+
+<include cwd lang="typescript" meta='playground example="validation-plugin"'>playground-examples/validation-plugin/schema.ts#signup-input</include>
+
+The field-level `z.email()` runs per field; the type-level `signUpRules` sees every field at once, which is where cross-field rules like "primary and backup jersey numbers must differ" belong.
+
+Both levels transform, too. A type-level `.validate(z.object().transform(...))` can reshape the whole input (parsing a raw form into a normalized record), and a chained input-field `.validate()` can convert a value, such as an ISO date string into a `Date`:
 
 ```typescript
-const UserInput = builder.inputType('UserInput', {
+const RawSignUp = builder.inputType('RawSignUp', {
   fields: (t) => ({
-    birthDate: t.string()
+    joinedOn: t.string()
       .validate(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
-      .validate(z.string().transform(str => new Date(str))),
+      .validate(z.string().transform((str) => new Date(str))),
   }),
 });
 ```
 
-## Supported Validation Libraries
+## Choosing a validation library
 
-This plugin works with multiple validation libraries, giving you the flexibility to choose the one that best fits your needs:
+Any Standard Schema library works; pick on ergonomics and bundle size, not compatibility:
 
-- **[Zod](https://zod.dev)** - TypeScript-first schema validation with static type inference
-- **[Valibot](https://valibot.dev)** - The open source schema library for TypeScript with bundle size, type safety and developer experience in mind
-- **[ArkType](https://arktype.io)** - TypeScript's 1:1 validator, optimized from editor to runtime
-- Any library implementing the [standard schema](https://standardschema.dev) interface
+- **[Zod](https://zod.dev)**: TypeScript-first, the most feature-complete option.
+- **[Valibot](https://valibot.dev)**: modular and tree-shakeable, for bundle-size-sensitive builds.
+- **[ArkType](https://arktype.io)**: 1:1 TypeScript syntax, optimized editor-to-runtime.
 
+Because the plugin targets the Standard Schema interface rather than any one library, you can mix libraries in a single schema, or swap later without touching Pothos.
 
-## Plugin Options
+## Customizing validation errors
 
-### 'validationError'
-
-The `validationError` option allows you to customize how validation errors are handled and formatted. This is useful for:
-
-- Customizing error messages for your application's needs
-- Logging validation failures for monitoring
-- Integrating with error tracking services
-- Providing context-specific error messages
-
+By default a failed validation throws an `InputValidationError`, a `PothosValidationError` whose message lists each failing path and reason. Override the `validationError` option to reshape that into whatever your API and monitoring expect:
 
 ```typescript
 const builder = new SchemaBuilder({
   plugins: [ValidationPlugin],
   validation: {
-    validationError: (validationResult, args, context) => {
-      // validationResult contains the standard-schema validation result
-      return new Error(`Validation failed: ${validationResult.issues.map(i => i.message).join(', ')}`);
+    validationError: (result, args, context) => {
+      // result is the Standard Schema failure — result.issues[] carries path + message
+      return new Error(result.issues.map((issue) => issue.message).join('; '));
     },
   },
 });
 ```
 
-#### Return Values
+The handler runs with the raw failure `result`, the field's `args`, and the request `context`, enough to log, tag, or branch on the operation. It can:
 
-Your error handler can return:
+- **return an `Error`**, thrown as-is,
+- **return a `string`**, wrapped in a `PothosValidationError`, or
+- **throw** its own error directly.
 
-- **Error object**: Return a custom Error instance
-- **String**: Return a string message (will be wrapped in a PothosValidationError)
-- **Throw**: Throw an error directly
+Whatever it returns follows [normal error handling](../patterns/handling-errors) from there: mask it in production, or surface it as a typed result with [`plugin-errors`](./errors).
 
-### Validation Execution Order
+## Execution order
 
-Understanding when and how validations are executed:
+When a field carries validation at several levels, Pothos runs them from the inside out so that each transform is applied before the next schema sees the value:
 
-1. **Input Field Validation**: Individual input fields are validated first
-2. **Input Type Validation**: Whole input object validation runs after field validation passes
-3. **Argument Validation**: Individual field arguments are validated
-4. **Field-Level Validation**: Cross-field validation with `t.validate()` runs last
+1. **Input fields** validate first.
+2. **Input types** validate once their fields pass.
+3. **Arguments** validate next.
+4. **Field-level** `validate` / `t.validate` runs last, over the fully validated args.
 
-When there are multiple validations for the same field or type, they are executed in order, so that any transforms are applied before passing to the next schema.
-Validations for separate fields or arguments are executed in parallel, and their results are merged into a single set of issues.
+Schemas stacked on the *same* field or type run in sequence, so transforms chain. Schemas on *separate* fields or arguments run in parallel, and their failures merge into a single set of issues, so one response reports every problem at once rather than only the first.

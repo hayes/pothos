@@ -1,0 +1,75 @@
+---
+title: Relay nodes
+description: Turn a Drizzle table into a Relay node with global IDs, composite keys, and efficient node(id) lookups.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The Drizzle plugin wires into the [Relay plugin](../relay) so a Drizzle table becomes a Relay node with a global ID and an efficient `node(id: ID!)` lookup. `builder.drizzleNode` takes the place of `builder.drizzleObject`: it defines the same object type and, on top of it, implements the `Node` interface and the `id` field for you.
+
+These examples assume the builder is set up with both `DrizzlePlugin` and `RelayPlugin`, a `db` client in scope, and the league schema and relations from [Setup](./setup).
+
+<Callout type="warn">
+  `drizzleNode` throws at build time unless [`@pothos/plugin-relay`](../relay) is registered on the builder. Add `RelayPlugin` to `plugins` before you use it.
+</Callout>
+
+## Defining a node
+
+`drizzleNode` takes the same options as [`drizzleObject`](./objects) plus one required `id` option. Its `column` names the database column that backs the node's global ID, and Pothos derives both the encoded ID and the `node(id:)` lookup from it. The `column` is a function of the table's columns:
+
+```typescript
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: {
+    // Which column backs the node's global id.
+    column: (player) => player.id,
+  },
+  // fields work exactly like builder.drizzleObject.
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    number: t.exposeInt('number'),
+    team: t.relation('team'),
+  }),
+});
+```
+
+With the `id` set, the `node(id:)` query loads the record keyed on that column through the plugin's selection-aware loader, with no resolver to write, and the load joins into the same query as the rest of the request.
+
+## Composite primary keys
+
+When a table's primary key spans more than one column, common for join tables keyed on the two rows they connect, pass an array of columns. Pothos packs all of them into the global ID and unpacks them on lookup:
+
+```typescript
+builder.drizzleNode('playerStats', {
+  name: 'PlayerStat',
+  id: {
+    // A composite key over the two foreign keys.
+    column: (stat) => [stat.playerId, stat.gameId],
+  },
+  fields: (t) => ({
+    goals: t.exposeInt('goals'),
+    assists: t.exposeInt('assists'),
+  }),
+});
+```
+
+## Customizing the id field
+
+The rest of the `id` option is passed straight to the generated global-ID field, so you can set anything a normal field takes, such as a `description`. The plugin fixes `column`, `type`, `nullable`, and the field's `args`, so those aren't yours to override:
+
+```typescript
+builder.drizzleNode('players', {
+  name: 'Player',
+  id: {
+    column: (player) => player.id,
+    description: 'The global Relay ID for this player.',
+  },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+```
+
+## Variants carry over
+
+Every `drizzleObject` option works on `drizzleNode`, including `name` and `variant` for exposing [multiple GraphQL types from one table](./variants). A node can be the private `Viewer` view of a row just as easily as the public one; set `variant` in place of `name`.

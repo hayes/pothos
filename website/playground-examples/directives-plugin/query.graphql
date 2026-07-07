@@ -1,0 +1,15 @@
+# Rate-limited list query
+query Teams {
+  teams {
+    id
+    name
+  }
+}
+
+# Auth-guarded mutation
+mutation RenameTeam {
+  renameTeam(id: "1", name: "Meteor") {
+    id
+    name
+  }
+}

@@ -1,68 +1,73 @@
 ---
 title: Mocks plugin
-description: Mocks plugin docs for Pothos
+description: Replace field resolvers with inline mocks at schema-build time for tests and frontend development.
 ---
 
-A simple plugin for adding resolver mocks to a GraphQL schema.
+A field's resolver isn't always ready when you need to query it: the data feed isn't wired up yet, or a test needs a deterministic value instead of a live one. The mocks plugin swaps a resolver out at schema-build time. You pass a `mocks` map to `builder.toSchema`, keyed by type name then field name, and the plugin replaces the matching field's resolver with your function wherever it runs.
 
-## Usage
-
-### Install
+## Install
 
 ```package-install
 npm install --save @pothos/plugin-mocks
 ```
 
-### Setup
+Add the plugin to the builder. It contributes no field-builder methods; the whole surface is the `mocks` option on `builder.toSchema`.
 
 ```typescript
 import MocksPlugin from '@pothos/plugin-mocks';
+
 const builder = new SchemaBuilder({
   plugins: [MocksPlugin],
 });
 ```
 
-### Adding mocks
+## Mocking a field
 
-You can mock any field by adding a mock in the options passed to `builder.toSchema` under
-`mocks.{typeName}.{fieldName}`.
+Define your schema as usual. Any field whose resolver isn't ready can throw, and the mock will stand in for it. Here the `standings` query and the `Team.form` field both throw in their real resolvers, and the schema is only queryable because the `mocks` map replaces them.
+
+<includeregions cwd lang="typescript" meta='playground example="mocks-plugin"'>playground-examples/mocks-plugin/schema.ts#types,mock-schema</includeregions>
+
+The key path is `mocks[typeName][fieldName]`. `Query.standings` mocks a root field; `Team.form` mocks a field on an object type, exactly the same way; mocks aren't limited to the root types. A mock receives the standard resolver arguments, so it can read `parent`, `args`, `context`, and `info`. The plugin types `parent` as `unknown`, so cast it to the field's backing model before reading properties:
 
 ```typescript
-builder.queryType({
-  fields: (t) => ({
-    someField: t.string({
-      resolve: () => {
-        throw new Error('Not implemented');
-      },
-    }),
-  }),
-});
+mocks: {
+  Team: {
+    form: (parent, args, context, info) => ((parent as ITeam).wins > 7 ? 'WWWWW' : 'WLWDW'),
+  },
+}
+```
 
-builder.toSchema({
+Fields you don't list keep their real resolver, so you can mock a single not-yet-built field and leave the rest of the schema live.
+
+## Rebuilding with different mocks
+
+Mocks live in the `toSchema` call, not the field definition, so the same builder produces different schemas depending on what you pass. Build once with mocks for a test, once without for production, or build a fresh schema per test case with the exact values that case needs:
+
+```typescript
+// Production: real resolvers run.
+export const schema = builder.toSchema();
+
+// A test: pin the values this case asserts on.
+const mockedSchema = builder.toSchema({
   mocks: {
     Query: {
-      someField: (parent, args, context, info) => 'Mock result!',
+      standings: () => [{ id: 1, name: 'Comet', wins: 9 }],
     },
   },
 });
 ```
 
-Mocks will replace the resolve functions any time a mocked field is executed. A schema can be built
-multiple times with different mocks.
+## Mocking subscribe
 
-### Adding mocks for subscribe functions
-
-To add a mock for a subscriber you can nest the mocks for subscribe and resolve in an object:
+A mock can be a plain function (which replaces `resolve`) or an object with both `resolve` and `subscribe` keys, for mocking a subscription field's event source. The types expect both keys (the runtime tolerates a missing one, but supply both to match the types). Nest them to feed a subscription a canned async iterator:
 
 ```typescript
 builder.subscriptionType({
   fields: (t) => ({
-    someField: t.string({
-      resolve: () => {
-        throw new Error('Not implemented');
-      },
+    scoreUpdates: t.int({
+      resolve: (score) => score,
       subscribe: () => {
-        throw new Error('Not implemented');
+        throw new Error('score feed not implemented');
       },
     }),
   }),
@@ -71,13 +76,24 @@ builder.subscriptionType({
 builder.toSchema({
   mocks: {
     Subscription: {
-      someField: {
-        resolve: (parent, args, context, info) => 'Mock result!',
-        subscribe: (parent, args, context, info) => {
-          /* return a mock async iterator */
+      scoreUpdates: {
+        resolve: (parent, args, context, info) => parent,
+        subscribe: async function* () {
+          yield 1;
+          yield 2;
+          yield 3;
         },
       },
     },
   },
 });
 ```
+
+## Mock shapes
+
+Each entry under `mocks[typeName][fieldName]` is one of:
+
+| Value | Replaces |
+| --- | --- |
+| A function `(parent, args, context, info) => value` | The field's `resolve`. |
+| `{ resolve, subscribe }` | The field's `resolve` and `subscribe`; the object form takes both keys, for subscription fields whose event source you want to mock. |

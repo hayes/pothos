@@ -1,0 +1,26 @@
+{
+  "title": "Plugins",
+  "pages": [
+    "index",
+    "prisma",
+    "drizzle",
+    "relay",
+    "scope-auth",
+    "errors",
+    "validation",
+    "dataloader",
+    "with-input",
+    "simple-objects",
+    "directives",
+    "complexity",
+    "add-graphql",
+    "mocks",
+    "smart-subscriptions",
+    "sub-graph",
+    "tracing",
+    "federation",
+    "grafast",
+    "zod",
+    "writing-plugins"
+  ]
+}

@@ -1,0 +1,49 @@
+---
+title: Queries
+description: The schema's Query root type and the fields that serve as a client's read entry points.
+---
+
+## Defining the Query root
+
+The Query root is the object type whose fields are the entry points for every read a client can make. `builder.queryType()` defines it, and you can pass the root's fields straight in:
+
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-queries"'>playground-examples/fundamentals-queries/schema.ts#imports,builder,data,query-type,export</includeregions>
+
+`queryType` takes an options object whose `fields` callback defines the root's fields; each entry becomes a field on the root, and `hello` and `characterCount` here return a `String` and an `Int` from their resolvers. The type is named `Query` by default (pass `name` in the options to call it something else). `builder.toSchema()` then builds the standard graphql-js schema.
+
+A GraphQL schema has to have a query type. If `queryType` is never called, the schema is built without a query root, and graphql-js rejects it when the schema is validated or executed.
+
+## Adding fields from elsewhere
+
+Query fields can also be defined outside the `queryType` call, so each part of a schema can register its own entry points. `queryField` adds a single field to the root, and `queryFields` adds several at once:
+
+<include cwd lang="typescript">playground-examples/fundamentals-queries/schema.ts#query-field</include>
+
+<include cwd lang="typescript">playground-examples/fundamentals-queries/schema.ts#query-fields</include>
+
+`queryField` is called with a field name and a callback that returns one field; `queryFields` gets a callback that returns a map of several. Both add their fields to the same `Query` root as `queryType`, and the fields from every call are merged together. The one constraint is that each field name can only be defined once; if two calls both define `characterCount`, the schema throws when it builds.
+
+These calls can run before or after `queryType`. When they run first, the fields wait until `queryType` defines the root and then attach to it. That is what lets a larger schema register its query fields across several modules and call `queryType` once from the file that assembles them:
+
+```typescript
+// characters.ts
+import { builder } from './builder';
+
+builder.queryField('characterCount', (t) =>
+  t.int({ resolve: () => 4 }),
+);
+```
+
+```typescript
+// index.ts
+import { builder } from './builder';
+import './characters';
+
+builder.queryType();
+
+export const schema = builder.toSchema();
+```
+
+`builder.queryType()` with no arguments defines the root without adding any fields of its own. See [Project layout](../patterns/project-layout) for the full multi-module setup.
+
+The mutation and subscription roots work the same way, through `mutationType`/`mutationField`/`mutationFields` and `subscriptionType`/`subscriptionField`/`subscriptionFields`. See [Mutations](./mutations) and [Subscriptions](./subscriptions) for those.

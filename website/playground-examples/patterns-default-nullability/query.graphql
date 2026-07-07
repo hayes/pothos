@@ -1,0 +1,7 @@
+query Races {
+  races {
+    id
+    name
+    motto
+  }
+}

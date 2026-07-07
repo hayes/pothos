@@ -1,0 +1,38 @@
+---
+title: Arguments
+description: Declare the arguments a field accepts, and make each one required, optional, or default-valued.
+---
+
+A field can take arguments, declared in an `args` map alongside its `type` and `resolve`. Each entry's key is the argument's name, and its value is built with `t.arg`. Pothos derives the arguments' TypeScript types from that map.
+
+## Declaring arguments
+
+<include cwd lang="typescript" meta='playground example="fundamentals-args"'>playground-examples/fundamentals-args/schema.ts#characters-args</include>
+
+`characters` takes three arguments. The keys in the `args` map (`raceId`, `limit`, and `excludeIds`) are the argument names clients write in a query, and each value comes from `t.arg`. In the resolver, the second parameter, `args`, holds those values with the types Pothos derived from the map, so `args.limit` is a `number` and `args.excludeIds` is a `string[]`.
+
+The general form is `t.arg({ type })`, which takes the argument's `type` and returns the argument. The built-in scalars each have a shorthand: `t.arg.string`, `t.arg.int`, `t.arg.id`, `t.arg.boolean`, and `t.arg.float`. Each of those has a `…List` form as well (`t.arg.stringList`, `t.arg.idList`, and so on) for list arguments. Any other type, such as an enum or input object, uses the general form.
+
+## Required and optional arguments
+
+By default an argument is optional. Pothos follows GraphQL, where an argument with no `!` may be omitted, so `t.arg.string()` produces an argument the resolver sees as `string | null | undefined`. Pass `required: true` to make it non-nullable:
+
+```typescript
+raceId: t.arg.string({ required: true }),
+```
+
+Now the resolver sees `raceId: string`. A list argument's `required` also accepts a `{ list, items }` object, since the list and its items can each be null on their own. As with field nullability, the schema-wide default can be changed with a builder option, covered in [Default nullability](../patterns/default-nullability).
+
+## Default values
+
+`defaultValue` gives an argument a value to use when the client leaves it out:
+
+```typescript
+limit: t.arg.int({ defaultValue: 25 }),
+```
+
+GraphQL substitutes the default only when the argument is omitted; if the client passes `null` explicitly, the resolver receives `null`. The default does not change the argument's type: with only `defaultValue` set, `limit` is still `number | null | undefined` in the resolver, because the argument is still optional. The `characters` field above combines `defaultValue` with `required: true`, so `limit` is non-nullable and falls back to the default when omitted, and the resolver sees a plain `number`.
+
+## Input objects as argument types
+
+An argument's `type` can be any input type: a scalar, an enum, or an input object. A `filter: t.arg({ type: CharacterFilter })` argument, for example, works the same way as the scalar arguments above. [Input objects](./inputs) covers defining them and the options their fields take.

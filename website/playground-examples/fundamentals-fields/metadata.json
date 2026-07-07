@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-fields",
+  "title": "Fields",
+  "description": "Defining the fields that make up an object type, and where each field's value comes from.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 3,
+  "tags": ["fields", "expose", "computed", "lists"],
+  "relatedDocs": ["/docs/fundamentals/fields"]
+}

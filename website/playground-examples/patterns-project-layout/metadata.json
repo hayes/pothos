@@ -1,0 +1,26 @@
+{
+  "id": "patterns-project-layout",
+  "title": "Project layout",
+  "description": "Grow a single-file schema into a modular layout once it stops fitting in one file.",
+  "category": "core",
+  "subcategory": "patterns",
+  "difficulty": "intermediate",
+  "order": 1,
+  "tags": ["layout", "modularisation"],
+  "relatedDocs": ["/docs/patterns/project-layout"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Single file",
+      "description": "Everything in one schema.ts. Fine until the file outgrows the editor.",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "Modularised",
+      "description": "Shared builder in builder.ts; types and queries co-located per domain.",
+      "order": 2,
+      "defaultActiveFile": "schema.ts"
+    }
+  ]
+}

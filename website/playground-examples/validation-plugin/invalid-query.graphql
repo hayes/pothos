@@ -1,0 +1,11 @@
+# Fails argument validation: name too short, invalid email, jersey out of range
+mutation RegisterInvalid {
+  registerPlayer(name: "N", email: "not-an-email", jersey: 250) {
+    id
+  }
+}
+
+# Fails input-type validation: primary and backup jersey numbers match
+query DuplicateJersey {
+  checkSignUp(signUp: { email: "avery@comet.gg", jersey: 11, backupJersey: 11 })
+}

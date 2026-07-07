@@ -1,0 +1,182 @@
+---
+title: Setup
+description: Define your Drizzle schema and relations, then wire the client and DrizzleRelations into the builder.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The Drizzle plugin reads your Drizzle relational schema to understand your tables. You define the tables, describe their relations with `defineRelations`, then hand the client, a dialect-specific `getTableConfig`, and the relations type to the builder. Everything else on these pages assumes this wiring is in place.
+
+```package-install
+npm install --save @pothos/plugin-drizzle drizzle-orm@beta
+```
+
+<Callout type="warn">
+  The plugin depends on Drizzle's [RQB v2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2), which currently ships under the `beta` tag for `drizzle-orm`. If you are moving from an earlier version, the relations format changed, so read the [relations v1 to v2 migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2) before wiring up the builder.
+</Callout>
+
+## Define the schema
+
+This is the Ultimate League schema that runs through every Drizzle page. It uses SQLite, matching the dialect the plugin's own tests exercise:
+
+```typescript
+// db/schema.ts
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+export const teams = sqliteTable('teams', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+});
+
+export const players = sqliteTable('players', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  number: integer('number').notNull(),
+  teamId: integer('team_id')
+    .notNull()
+    .references(() => teams.id),
+});
+
+export const games = sqliteTable('games', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  playedAt: text('played_at').notNull(),
+  homeTeamId: integer('home_team_id')
+    .notNull()
+    .references(() => teams.id),
+  awayTeamId: integer('away_team_id')
+    .notNull()
+    .references(() => teams.id),
+});
+
+export const playerStats = sqliteTable('player_stats', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  goals: integer('goals').notNull(),
+  assists: integer('assists').notNull(),
+  playerId: integer('player_id')
+    .notNull()
+    .references(() => players.id),
+  gameId: integer('game_id')
+    .notNull()
+    .references(() => games.id),
+});
+```
+
+## Describe the relations
+
+The plugin resolves `t.relation` fields from relations you declare with `defineRelations`; there is no code generation step. Each relation names its `from` and `to` columns. A `.through()` clause turns the `player_stats` join table into a direct many-to-many between players and games, which the [indirect relations](./indirect-relations) page builds on:
+
+```typescript
+// db/relations.ts
+import { defineRelations } from 'drizzle-orm';
+import * as schema from './schema';
+
+export const relations = defineRelations(schema, (r) => ({
+  teams: {
+    players: r.many.players({ from: r.teams.id, to: r.players.teamId }),
+    homeGames: r.many.games({ from: r.teams.id, to: r.games.homeTeamId }),
+  },
+  players: {
+    team: r.one.teams({ from: r.players.teamId, to: r.teams.id }),
+    stats: r.many.playerStats({ from: r.players.id, to: r.playerStats.playerId }),
+    games: r.many.games({
+      from: r.players.id.through(r.playerStats.playerId),
+      to: r.games.id.through(r.playerStats.gameId),
+    }),
+  },
+  games: {
+    homeTeam: r.one.teams({ from: r.games.homeTeamId, to: r.teams.id }),
+    stats: r.many.playerStats({ from: r.games.id, to: r.playerStats.gameId }),
+  },
+  playerStats: {
+    player: r.one.players({ from: r.playerStats.playerId, to: r.players.id }),
+    game: r.one.games({ from: r.playerStats.gameId, to: r.games.id }),
+  },
+}));
+```
+
+## Wire up the builder
+
+Create the Drizzle client with these `relations`, register the plugin, expose the relations type through `DrizzleRelations` so Pothos can infer table shapes, and pass a `drizzle` config with the `client`, the dialect's `getTableConfig`, and the `relations`:
+
+```typescript
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+// Import getTableConfig from the core package for your dialect.
+import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import SchemaBuilder from '@pothos/core';
+import DrizzlePlugin from '@pothos/plugin-drizzle';
+import { relations } from './db/relations';
+
+export const db = drizzle({ client: new Database('league.db'), relations });
+
+const builder = new SchemaBuilder<{
+  // Gives the builder full type information about your Drizzle schema.
+  DrizzleRelations: typeof relations;
+}>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+  },
+});
+```
+
+The rest of the Drizzle pages assume this `builder` and this module-level `db` client already exist.
+
+<Callout type="warn">
+  Import `getTableConfig` from the package that matches your database: `drizzle-orm/sqlite-core`, `drizzle-orm/pg-core`, or `drizzle-orm/mysql-core`. The plugin uses it to read primary keys and column metadata, so the wrong dialect's import produces type errors on the config.
+</Callout>
+
+### Drizzle config options
+
+The `drizzle` object accepts:
+
+| Option | Purpose |
+| --- | --- |
+| `client` | The Drizzle client, or a function `(ctx) => client` to pick a client per request. |
+| `getTableConfig` | The dialect-specific helper (`sqlite-core`, `pg-core`, or `mysql-core`). Required so the plugin can read table metadata. |
+| `relations` | The object returned by `defineRelations`. Required when `client` is a function; otherwise inferred from the client. |
+| `maxConnectionSize` | Upper bound on the `first`/`last` a [Relay connection](./connections) will honor. |
+| `defaultConnectionSize` | Page size a connection uses when the client passes no `first`/`last`. |
+| `skipDeferredFragments` | Skip `@defer` fragments when planning the query, so deferred fields aren't fetched eagerly. Defaults to `true`. |
+
+### A client per request
+
+Pass a function for `client` to choose a client from context, useful for per-request transactions, connection scoping, or a read-only replica for some users:
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: { user: { isAdmin: boolean } };
+  DrizzleRelations: typeof relations;
+}>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: (ctx) => (ctx.user.isAdmin ? db : readOnlyDb),
+    getTableConfig,
+    relations,
+  },
+});
+```
+
+When `client` is a function, `relations` is required in the config, since the plugin can no longer read it off a fixed client.
+
+## Working with Relay and With-Input
+
+The Drizzle plugin composes with other Pothos plugins. [Relay](./relay) is required for [nodes](./relay) and [connections](./connections): `builder.drizzleNode`, `t.relatedConnection`, and `t.drizzleConnection` throw without it. [With-input](../with-input) is required for `t.drizzleFieldWithInput`. Register them before the Drizzle plugin:
+
+```typescript
+import RelayPlugin from '@pothos/plugin-relay';
+import WithInputPlugin from '@pothos/plugin-with-input';
+
+const builder = new SchemaBuilder<{
+  DrizzleRelations: typeof relations;
+}>({
+  plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+  },
+});
+```

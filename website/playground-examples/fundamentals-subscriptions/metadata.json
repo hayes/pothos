@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-subscriptions",
+  "title": "Subscriptions",
+  "description": "A subscribe + resolve field fed by a mutation that publishes to a context pub/sub.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "intermediate",
+  "order": 10,
+  "tags": ["subscriptions"],
+  "relatedDocs": ["/docs/fundamentals/subscriptions"]
+}

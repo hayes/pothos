@@ -1,0 +1,15 @@
+# Try id "1" for a hit, or "99" to take the Error branch of the union.
+query FindTeam {
+  team(id: "1") {
+    __typename
+    ... on QueryTeamSuccess {
+      data {
+        id
+        name
+      }
+    }
+    ... on Error {
+      message
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Fundamentals",
+  "defaultOpen": true,
+  "pages": [
+    "schema-builder",
+    "queries",
+    "objects",
+    "fields",
+    "resolvers",
+    "context",
+    "args",
+    "inputs",
+    "mutations",
+    "subscriptions",
+    "interfaces",
+    "unions",
+    "enums",
+    "scalars"
+  ]
+}

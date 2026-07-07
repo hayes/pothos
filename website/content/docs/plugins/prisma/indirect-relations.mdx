@@ -1,125 +1,128 @@
 ---
 title: Indirect relations
-description: Indirect relations and join tables
+description: Pre-load data through wrapper types and join tables with the nestedSelection helper.
 ---
-## Selecting fields from a nested GraphQL field
 
-By default, the `nestedSelection` function will return selections based on the type of the current
-field. `nestedSelection` can also be used to get a selection from a field nested deeper inside other
-fields. This is useful if the field returns a type that is not a `prismaObject`, but a field nested
-inside the returned type is.
+`t.relation` pre-loads a direct relation, but some fields don't map to one edge. A field might wrap a Prisma object in a non-Prisma type, or reach a model through a join table two hops away. For those, the `select` function on a field gives you `nestedSelection`, a helper that reads the GraphQL selection set at a path you choose and returns the matching Prisma `select`, so you can still load everything in one query.
+
+This page assumes the [generated types and builder](./setup) are already wired up.
+
+## Selecting through a wrapper type
+
+By default `nestedSelection` returns selections for the current field's own type. Pass it a path and it looks *deeper*, into a field nested inside the returned type. That's what you need when a field returns a plain `objectRef` whose inner field is the actual `prismaObject`.
+
+Here a `Player` exposes `statCards`, a list of a plain wrapper type. Each `StatCard` carries a computed `summary` plus the full `PlayerStat` behind its `stat` field. `nestedSelection` reaches into `statCards.stat` to figure out what to load:
 
 ```typescript
-const PostRef = builder.prismaObject('Post', {
+import { PlayerStat } from '@prisma/client';
+
+const PlayerStatRef = builder.prismaObject('PlayerStat', {
   fields: (t) => ({
-    title: t.exposeString('title'),
-    content: t.exposeString('content'),
-    author: t.relation('author'),
+    goals: t.exposeInt('goals'),
+    assists: t.exposeInt('assists'),
+    game: t.relation('game'),
   }),
 });
 
-const PostPreview = builder.objectRef<Post>('PostPreview').implement({
+const StatCard = builder.objectRef<PlayerStat>('StatCard').implement({
   fields: (t) => ({
-    post: t.field({
-      type: PostRef,
-      resolve: (post) => post,
+    stat: t.field({
+      type: PlayerStatRef,
+      resolve: (stat) => stat,
     }),
-    preview: t.string({
-      nullable: true,
-      resolve: (post) => post.content?.slice(10),
+    summary: t.string({
+      resolve: (stat) => `${stat.goals}G ${stat.assists}A`,
     }),
   }),
 });
 
-builder.prismaObject('User', {
+builder.prismaObject('Player', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    postPreviews: t.field({
+    statCards: t.field({
       select: (args, ctx, nestedSelection) => ({
-        posts: nestedSelection(
-          {
-            // limit the number of postPreviews to load
-            take: 2,
-          },
-          // Look at the selections in postPreviews.post to determine what relations/fields to select
-          ['post'],
-          // (optional) If the field returns a union or interface, you can pass a typeName to get selections for a specific object type
-          'Post',
+        stats: nestedSelection(
+          // Default query for the stats relation — cap how many we load.
+          { take: 2 },
+          // Look at selections under statCards.stat to decide what to select.
+          ['stat'],
+          // Optional: if the field returned a union or interface, name the
+          // concrete type whose selections you want.
+          'PlayerStat',
         ),
       }),
-      type: [PostPreview],
-      resolve: (user) => user.posts,
+      type: [StatCard],
+      resolve: (player) => player.stats,
     }),
   }),
 });
 ```
 
-## Indirect relations (eg. Join tables)
+The third argument is only needed when the nested field returns a union or interface; pass the object type name whose selections you want. For a plain object type it can be omitted.
 
-If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
-many relations using a custom join table is a common example of this) you can use the
-`nestedSelection` function passed to `select`.
+## Reaching through a join table
 
-Given a prisma schema like the following:
+Many-to-many relations modeled with an explicit join table are the common case for the two-hop reach. In the Ultimate League schema, `Player` and `Game` connect through `PlayerStat`:
 
-```
-model Post {
-  id        Int         @id @default(autoincrement())
-  title     String
-  content   String
-  media     PostMedia[]
+```prisma
+model Game {
+  id       Int          @id @default(autoincrement())
+  playedAt DateTime
+  stats    PlayerStat[]
 }
 
-model Media {
-  id           Int         @id @default(autoincrement())
-  url          String
-  posts        PostMedia[]
-  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
-  uploadedById Int
+model Player {
+  id     Int          @id @default(autoincrement())
+  name   String
+  stats  PlayerStat[]
 }
 
-model PostMedia {
-  id      Int   @id @default(autoincrement())
-  post    Post  @relation(fields: [postId], references: [id])
-  media   Media @relation(fields: [mediaId], references: [id])
-  postId  Int
-  mediaId Int
+model PlayerStat {
+  id       Int    @id @default(autoincrement())
+  goals    Int
+  assists  Int
+  player   Player @relation(fields: [playerId], references: [id])
+  playerId Int
+  game     Game   @relation(fields: [gameId], references: [id])
+  gameId   Int
 }
 ```
 
-You can define a media field that can pre-load the correct relations based on the graphql query:
+To expose the `Player`s who featured in a `Game` as a flat list, hiding the `PlayerStat` join entirely, nest `nestedSelection` inside the join relation's `select`. It reads what the query asks of `Player` and pre-loads exactly those columns and relations:
 
 ```typescript
-const PostDraft = builder.prismaObject('Post', {
+const Game = builder.prismaObject('Game', {
   fields: (t) => ({
-    title: t.exposeString('title'),
-    media: t.field({
+    id: t.exposeID('id'),
+    players: t.field({
       select: (args, ctx, nestedSelection) => ({
-        media: {
+        stats: {
           select: {
-            // This will look at what fields are queried on Media
-            // and automatically select uploadedBy if that relation is requested
-            media: nestedSelection(
-              // This argument is the default query for the media relation
-              // It could be something like: `{ select: { id: true } }` instead
+            // Inspects the fields queried on Player and selects them —
+            // automatically pulling in a relation like `team` if requested.
+            player: nestedSelection(
+              // Default query for the player relation; could also be
+              // something like `{ select: { id: true } }`.
               true,
             ),
           },
         },
       }),
-      type: [Media],
-      resolve: (post) => post.media.map(({ media }) => media),
+      type: [Player],
+      resolve: (game) => game.stats.map((stat) => stat.player),
     }),
   }),
 });
 
-const Media = builder.prismaObject('Media', {
+const Player = builder.prismaObject('Player', {
   select: {
     id: true,
   },
   fields: (t) => ({
-    url: t.exposeString('url'),
-    uploadedBy: t.relation('uploadedBy'),
+    name: t.exposeString('name'),
+    team: t.relation('team'),
   }),
 });
 ```
+
+The `resolve` maps the join rows back to their `Player`, so clients see `game.players` with no sign of `PlayerStat`, while the query still loads a requested `team` relation in the same round-trip.

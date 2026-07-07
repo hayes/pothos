@@ -1,0 +1,44 @@
+---
+title: Scalars
+description: Use built-in scalars and register custom ones for types like DateTime.
+---
+
+GraphQL's five built-in scalars (`ID`, `String`, `Int`, `Float`, and `Boolean`) are registered for you, and you reach them through the scalar field builders (`t.int`, `t.id`, and the rest) and the `t.expose*` helpers the [Fields](./fields) guide covers. Most schemas need at least one scalar beyond those, and `DateTime` is the usual first one. A custom scalar has two parts: a declaration on the builder generic and a runtime implementation.
+
+## Declaring a custom scalar
+
+<include cwd lang="typescript" meta='playground example="fundamentals-scalars"'>playground-examples/fundamentals-scalars/schema.ts#datetime-scalar</include>
+
+The `Scalars` entry on the builder generic maps the name `DateTime` to its Input and Output TypeScript types; this is a type-level declaration and adds no runtime behavior on its own (the [Schema builder](./schema-builder) guide covers the generic). `builder.scalarType('DateTime', { ... })` supplies that behavior, and because the name has to be one declared on `Scalars`, the implementation and the declared shapes are checked against each other. `serialize` and `parseValue` are the functions Pothos wires into a graphql-js scalar type for graphql-js to call as it executes a request: `serialize` turns the `Date` a resolver returns into the ISO string that goes on the wire, and `parseValue` turns an incoming value back into a `Date`.
+
+## Input vs Output
+
+A scalar's Input and Output types don't have to be the same. Output is the type your resolvers return, which `serialize` maps onto the wire; Input is the type they receive, which `parseValue` produces from the value the client sent. For `DateTime` both are `Date` (a resolver returns a `Date` and receives a `Date`), so the two halves are declared identically.
+
+They differ when the parsed value and the returned value aren't the same shape. The built-in `ID` is the clearest case: it declares `{ Input: string; Output: bigint | number | string }`. graphql-js coerces whatever the client sends (a string or an integer) to a string, so Input is `string`, while a resolver may return a `string`, a `number`, or a `bigint`, and graphql-js serializes any of them to a string on the wire. Splitting the two types lets each side keep the type it actually works with.
+
+## Using the scalar
+
+Once the scalar is registered, its name works anywhere a type is expected, as a field's `type` or an argument's `type`:
+
+<includeregions cwd lang="typescript">playground-examples/fundamentals-scalars/schema.ts#battle,query</includeregions>
+
+`Battle.foughtOn` is a `DateTime` field, so its resolver returns a `Date` and graphql-js serializes it with the `serialize` above. `battlesSince` takes a `DateTime` argument; inside the resolver `after` is `Date | null | undefined`, because graphql-js has already parsed the string the client sent using the `parseValue` you supplied. The [Arguments](./args) guide covers argument definitions and [Queries](./queries) covers the `Query` root.
+
+## graphql-scalars
+
+Writing `serialize` and `parseValue` by hand is fine for one or two scalars. For the common ones (`DateTime`, `EmailAddress`, `URL`, `JSON`, `UUID`, and dozens more), the [`graphql-scalars`](https://github.com/Urigo/graphql-scalars) package ships ready-made implementations, and `builder.addScalarType` registers one against a name you've declared on the generic:
+
+```typescript
+import { DateTimeResolver } from 'graphql-scalars';
+
+const builder = new SchemaBuilder<{
+  Scalars: {
+    DateTime: { Input: Date; Output: Date };
+  };
+}>({});
+
+builder.addScalarType('DateTime', DateTimeResolver);
+```
+
+`addScalarType` takes an existing `GraphQLScalarType` and reuses its configuration, so you still declare the Input and Output types on the generic but don't write the coercion functions yourself.

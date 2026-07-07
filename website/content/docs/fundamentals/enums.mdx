@@ -1,0 +1,58 @@
+---
+title: Enums
+description: Define an enum with string-literal values and use it as a field type and argument.
+---
+
+## Defining an enum
+
+An enum is a type whose values are a fixed set of named constants, here the moral alignments a faction can hold. The lightest way to declare one is the array form: an array of string literals.
+
+<include cwd lang="typescript" meta='playground example="fundamentals-enums"'>playground-examples/fundamentals-enums/schema.ts#alignment-enum</include>
+
+`builder.enumType` takes the type's name and an options object. The `values` array lists the enum's value names, and Pothos infers them as the literal union `'Good' | 'Neutral' | 'Evil'` (no `as const` needed, since `enumType` uses a `const` type parameter). That union is the TypeScript type Pothos threads through every field and argument built from the enum. The call returns a reference, `Alignment`, that works as both a field type and an argument type.
+
+## Using the enum
+
+An enum reference is used as a field's `type` and as an argument's `type` like any other type:
+
+<include cwd lang="typescript">playground-examples/fundamentals-enums/schema.ts#using-alignment</include>
+
+`Faction.alignment` returns the enum from the backing object, and the `factions` query takes an `alignment` argument to filter by. Because `Alignment` was built from the array form, that argument's type is the literal union `'Good' | 'Neutral' | 'Evil'` (nullable, since the argument is optional), so the resolver compares `f.alignment === args.alignment` against real union members rather than a bare string. The [Arguments](./args) guide covers arguments in more detail.
+
+## Descriptions and deprecations
+
+The enum itself takes a `description` in either form; the array-form enum above carries one. To describe or deprecate individual values, switch from the array to the object form, where each key maps to a config object:
+
+```typescript
+const Alignment = builder.enumType('Alignment', {
+  description: "A faction's moral leaning.",
+  values: {
+    Good: { description: 'Sides with the free peoples.' },
+    Neutral: { description: 'Stays out of the war.' },
+    Evil: { description: 'Serves Sauron.' },
+    Chaotic: { deprecationReason: 'Never used in the compendium; removed in v3.' },
+  },
+});
+```
+
+Each key still drives both the GraphQL value name and the TypeScript union, so switching forms changes nothing about how the enum is used. `description` appears in introspection and tooling, and `deprecationReason` marks a value deprecated (here `Chaotic`) while leaving it usable. A value config can also set a `value`, the internal value your resolver works with.
+
+## Backing with a TypeScript enum
+
+The value name a client sees and the value your resolver works with have been the same string so far, but they don't have to be. A GraphQL enum value has a name (the token in the schema, which clients send and receive) and an internal value (what a resolver returns and what an argument is parsed to before it reaches your code). When you already have a TypeScript `enum`, you can hand it to `builder.enumType` directly, and its keys and values fill those two roles:
+
+```typescript
+enum Alignment {
+  Good = 'GOOD',
+  Neutral = 'NEUTRAL',
+  Evil = 'EVIL',
+}
+
+const AlignmentType = builder.enumType(Alignment, {
+  name: 'Alignment',
+});
+```
+
+Passing the enum object in place of a name switches Pothos to this form, and `name` becomes required because the enum object carries no name of its own. The keys `Good`, `Neutral`, and `Evil` are the GraphQL enum values that appear in the schema and that clients use. The enum's runtime values `'GOOD'`, `'NEUTRAL'`, and `'EVIL'` are the backing values: a resolver for an `Alignment` field returns `Alignment.Evil`, graphql-js serializes it back to the name `Evil` in the response, and an incoming `Evil` argument reaches your resolver as `'EVIL'`. Clients never see the `'GOOD'`-style strings. The object form's per-value `value` option does the same thing for one value at a time.
+
+This form is useful when a codebase already has TypeScript enums you'd rather not maintain twice. For new code the array form is shorter and avoids the name-versus-value split, since there the name and the backing value are a single string.

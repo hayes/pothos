@@ -1,62 +1,62 @@
 ---
-title: Relay
-description: Using the Prisma and Relay plugins together
+title: Relay nodes
+description: Turn a Prisma model into a Relay node with global IDs and efficient node(id) lookups.
 ---
 
-This plugin has extensive integration with the
-[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
-connections very easy.
+The Prisma plugin wires into the [Relay plugin](../relay) so a Prisma model becomes a Relay node with a global ID and an efficient `node(id: ID!)` lookup. `builder.prismaNode` takes the place of `builder.prismaObject`: it defines the same object type and, on top of it, implements the `Node` interface and the `id` field for you.
 
-### `prismaNode`
+These examples assume the builder is set up with both `PrismaPlugin` and `RelayPlugin` and a `prisma` client in scope (see [Setup](./setup) for the generator, `PrismaTypes`, and builder wiring).
 
-The `prismaNode` method works just like the `prismaObject` method with a couple of small
-differences:
+## Defining a node
 
-- there is a new `id` option that mirrors the `id` option from `node` method of the relay plugin,
-  and must contain a resolve function that returns the id from an instance of the node. Rather than
-  defining a resolver for the id field, you can set the `field` option to the name of a unique
-  column or index.
+`prismaNode` takes the same options as [`prismaObject`](./objects) plus one required `id` option that mirrors the `id` option of the Relay plugin's `node` method. The simplest form points `id.field` at a unique column or index, and Pothos derives both the global ID and the lookup from it.
 
 ```typescript
-builder.prismaNode('Post', {
-  // This sets what database field to use for the nodes id field
+builder.prismaNode('Player', {
+  // Which database column backs the node's global id.
   id: { field: 'id' },
-  // fields work just like they do for builder.prismaObject
+  // fields work exactly like builder.prismaObject.
   fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
+    name: t.exposeString('name'),
+    number: t.exposeInt('number'),
+    team: t.relation('team'),
   }),
 });
 ```
 
-If you need to customize how ids are formatted, you can add a resolver for the `id`, and provide a
-`findUnique` option that can be used to load the node by its id. This is generally not necessary.
+With `id.field` set, the `node(id:)` query loads the record with a `prisma.player.findUnique` keyed on that column, with no resolver to write.
+
+## Customizing the id
+
+To format the global ID yourself, replace `id.field` with an `id.resolve` function that returns a string from a node instance. Pair it with `findUnique`, whose return value is passed as the `where` of a `prisma.player.findUnique` to load the node back from that formatted ID. This is for cases where the raw column value isn't the shape you want to expose.
 
 ```typescript
-builder.prismaNode('Post', {
-  id: { resolve: (post) => String(post.id) },
-  // The return value will be passed as the `where` of a `prisma.post.findUnique`
+builder.prismaNode('Player', {
+  id: { resolve: (player) => String(player.id) },
+  // The return value becomes the `where` of a prisma.player.findUnique.
   findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
+    name: t.exposeString('name'),
+    number: t.exposeInt('number'),
+    team: t.relation('team'),
   }),
 });
 ```
 
-When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
-the database, the default behavior is to throw an error. There are some scenarios where it is
-preferable to return `null` instead of throwing an error. For this you can add the `nullable: true`
-option:
+## Missing records
+
+When `node(id:)` resolves to a global ID that no longer maps to a row, the default behavior is to throw. Some clients would rather receive `null` for a deleted or never-existent node than surface an error. Set `nullable: true` to load with `findUnique` instead of `findUniqueOrThrow` and return `null` on a miss.
 
 ```typescript
-builder.prismaNode('Post', {
-  id: { resolve: (post) => String(post.id) },
+builder.prismaNode('Player', {
+  id: { resolve: (player) => String(player.id) },
   nullable: true,
   fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
+    name: t.exposeString('name'),
+    number: t.exposeInt('number'),
+    team: t.relation('team'),
   }),
 });
 ```
 
+Every other `prismaObject` option carries over unchanged, including `name` and `variant` for exposing [multiple GraphQL types from one model](./variants).

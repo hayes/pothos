@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-enums",
+  "title": "Enums",
+  "description": "Define an enum with string-literal values and use it as a field type and argument.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 13,
+  "tags": ["enums"],
+  "relatedDocs": ["/docs/fundamentals/enums"]
+}

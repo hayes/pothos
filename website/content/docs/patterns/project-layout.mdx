@@ -1,0 +1,121 @@
+---
+title: Project layout
+description: Grow a single-file schema into a modular layout once it stops fitting in one file.
+---
+
+You can spread a Pothos schema across as many files as you like. The smallest project lives in one `schema.ts`; larger ones split across many. This page covers moving from one file to several.
+
+<include cwd lang="typescript" meta='playground example="patterns-project-layout-step-1"'>playground-examples/patterns-project-layout/step-1/schema.ts#single-file</include>
+
+A single file works well for a small schema. As it grows, splitting it across files keeps each type easy to find, rather than scrolling past a hundred-line `Character` definition to reach the `Race` type.
+
+## A modular layout
+
+Most projects settle on the same shape: a shared `builder` module, one file per domain entity, and a `schema.ts` that imports each module before building the schema.
+
+```typescript playground example="patterns-project-layout-step-2"
+// builder.ts — the one place the SchemaBuilder is constructed.
+export const builder = new SchemaBuilder({});
+
+builder.queryType({});
+```
+
+```typescript
+// race.ts — owns the Race type and the queries that return it.
+import { builder } from './builder';
+import { type IRace, Races } from './data';
+
+export const Race = builder.objectRef<IRace>('Race').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+builder.queryFields((t) => ({
+  races: t.field({
+    type: [Race],
+    resolve: () => [...Races.values()],
+  }),
+}));
+```
+
+```typescript
+// character.ts — owns Character + its queries. Cross-domain reference
+// (race) lives here, not in race.ts.
+import { builder } from './builder';
+import { Characters, type ICharacter, Races } from './data';
+import { Race } from './race';
+
+export const Character = builder.objectRef<ICharacter>('Character').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    race: t.field({ type: Race, resolve: (c) => Races.get(c.raceId)! }),
+  }),
+});
+
+builder.queryFields((t) => ({
+  characters: t.field({
+    type: [Character],
+    resolve: () => Characters,
+  }),
+}));
+```
+
+```typescript
+// schema.ts — imports every domain module for its side effects,
+// then builds.
+import { builder } from './builder';
+import './race';
+import './character';
+
+export const schema = builder.toSchema();
+```
+
+The shape:
+
+- **`builder.ts`** is the one file that calls `new SchemaBuilder`. Every other module imports `builder` from here. There's exactly one builder per schema.
+- **One file per domain entity**, holding the object type, its fields, and the query/mutation entrypoints that return it. Cross-domain references (a `Character` returning a `Race`) live in the file that depends on the other type, not in the one being depended on.
+- **`schema.ts`** is the entry point. It imports each domain module for its side effects, then calls `builder.toSchema()`. The whole graph is registered by the time `toSchema()` runs.
+
+## Why side-effect imports
+
+The domain modules call `builder.objectRef(...).implement(...)` and `builder.queryFields(...)` at the top level. These are side effects: they register the type and its fields on the shared builder. `schema.ts` only needs each module loaded before `toSchema()`; it doesn't use any of their exports.
+
+If you'd rather avoid side-effect imports, every module can export its types and `schema.ts` can list them explicitly:
+
+```typescript
+import { Race } from './race';
+import { Character } from './character';
+
+const _types = [Race, Character]; // ensures both modules are loaded
+export const schema = builder.toSchema();
+```
+
+Both produce the same schema; use whichever your team prefers.
+
+## When to split further
+
+Once a single domain module crosses 200–300 lines, split *inside* it. `builder.objectField` adds a field to an existing type from anywhere, so a separate `character/weapons.ts` can attach a `wieldedWeapons` field to `Character` without crowding `character.ts`:
+
+```typescript
+// character/weapons.ts
+builder.objectField(Character, 'wieldedWeapons', (t) =>
+  t.field({
+    type: [Weapon],
+    resolve: (c) => loadWeaponsFor(c.id),
+  }),
+);
+```
+
+This is most useful for cross-domain attachments: a `character × item` field belongs naturally in neither the character module nor the item module.
+
+## Two reference layouts
+
+For larger schemas, the repo's `examples/` directory has two trees worth reading:
+
+- [`examples/lord-of-the-rings`](https://github.com/hayes/pothos/tree/main/examples/lord-of-the-rings) — core-only Pothos, no plugins. Demonstrates the layout above with rich interfaces, unions, and cross-domain references.
+- [`examples/ultimate-league`](https://github.com/hayes/pothos/tree/main/examples/ultimate-league) — Drizzle + scope-auth + validation. Shows how plugin configuration sits alongside the same layout.
+
+Both are complete, runnable projects.

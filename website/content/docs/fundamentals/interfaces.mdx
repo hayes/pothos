@@ -1,0 +1,83 @@
+---
+title: Interfaces
+description: Define an interface, implement it on object types, and resolve the concrete type behind a value with resolveType or isTypeOf.
+---
+
+## Defining an interface
+
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-interfaces"'>playground-examples/fundamentals-interfaces/schema.ts#backing-model,interface-type</includeregions>
+
+`builder.interfaceRef<ICharacter>('Character')` names the interface and states the backing model behind it, the way `objectRef` does for an object type (see [Object types](./objects)). Here the backing model is `ICharacter`, a union of the shapes that implement the interface; each of them extends `ICharacterBase`, which carries the shared `id` and `name`. `builder.interfaceType` defines the interface's fields with the same field builder object types use, so `t.exposeID('id')` and `t.exposeString('name')` read those two properties off the backing model, and every implementing type inherits them.
+
+## Implementing the interface
+
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-interfaces"'>playground-examples/fundamentals-interfaces/schema.ts#members</includeregions>
+
+An object type joins the interface by listing it in the `interfaces` option: `Hobbit.implement({ interfaces: [Character], ... })`. `Hobbit` and `Elf` each declare only their own field (`shireAddress`, `departed`) and pick up `id` and `name` from `Character`, so a client can select those on either type without the object redeclaring them.
+
+Two separate checks stand behind `interfaces: [Character]`. Pothos checks, at the type level, that the object's backing model is assignable to the interface's: `IHobbit` and `IElf` are arms of the `ICharacter` union, so each is assignable to it, and the option type-checks. GraphQL's own rule, that an implementing type carries every interface field with compatible types, is enforced by graphql-js schema validation; since Pothos fills in the interface's fields for you, that mostly comes up when a type redefines one of them.
+
+An interface can implement another interface the same way, by passing `interfaces: [...]` to `builder.interfaceType`.
+
+## Resolving the concrete type
+
+The response labels every value with its concrete type's name, so something has to decide which implementing type a value is. `resolveType` on the interface does this. When the backing model carries a discriminator it is a one-liner: `val.kind` is `'Hobbit' | 'Elf' | 'Wizard'`, and each string matches an implementing type's name:
+
+```typescript
+resolveType: (val) => val.kind,
+```
+
+The returned string has to match the name of one of the implementing types. When the data has no discriminator to read, `resolveType` can tell the types apart by their shape instead:
+
+```typescript
+resolveType: (val) => {
+  if ('shireAddress' in val) return 'Hobbit';
+  if ('departed' in val) return 'Elf';
+  return 'Wizard';
+},
+```
+
+An implementing type can identify itself instead of the interface sorting all of them out. An object type defined from a [class](./objects#definition-styles) can set `isTypeOf` to an `instanceof` check:
+
+```typescript
+class Hobbit {
+  kind = 'Hobbit' as const;
+  constructor(
+    public id: string,
+    public name: string,
+    public shireAddress?: string,
+  ) {}
+}
+
+builder.objectType(Hobbit, {
+  interfaces: [Character],
+  isTypeOf: (value) => value instanceof Hobbit,
+  fields: (t) => ({
+    shireAddress: t.exposeString('shireAddress', { nullable: true }),
+  }),
+});
+```
+
+When the interface has no `resolveType`, graphql-js falls back to calling each implementing type's `isTypeOf` in turn until one returns true. If the interface defines no `resolveType` and its members define no `isTypeOf`, graphql-js has no way to pick a type and reports an error when a query reaches such a field.
+
+## Querying
+
+A field typed as the interface can return any mix of implementing types (the example schema's `characters` field returns a list of `Character`). A client selects the shared fields directly and reaches a concrete type's own fields through an inline fragment:
+
+```graphql
+query Characters {
+  characters {
+    __typename
+    id
+    name
+    ... on Hobbit {
+      shireAddress
+    }
+    ... on Elf {
+      departed
+    }
+  }
+}
+```
+
+Inline fragments and the `__typename` meta-field are part of GraphQL itself. `__typename` returns each value's concrete type name (the same name `resolveType` or an implementing type's `isTypeOf` resolved to), and `... on Hobbit` selects its fields only when the value is a `Hobbit`.

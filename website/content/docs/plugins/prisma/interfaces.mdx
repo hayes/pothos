@@ -1,46 +1,68 @@
 ---
 title: Interfaces
-description: Creating interfaces for prisma models that can be shared by variants
+description: Define GraphQL interfaces for a Prisma model and share them across variants.
 ---
 
-`builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
-primary type or a variant for a model.
+import { Callout } from 'fumadocs-ui/components/callout';
 
-The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
-method returns the typenames as strings to avoid issues with circular references.
+`builder.prismaInterface` works exactly like [`builder.prismaObject`](./objects), but produces a GraphQL interface instead of an object type. Like `prismaObject`, it can define either a model's primary type (with `name`) or a [variant](./variants) (with `variant` in place of `name`). Use it to give several variants of one Prisma model a shared set of fields: the interface holds what they have in common, and each variant implements it and adds its own.
+
+This page assumes the [generated types and builder](./setup) are already wired up. The examples add two columns to the base `Player` model, an `isCaptain` discriminator and an optional `bio`:
+
+```prisma
+model Player {
+  id        Int     @id @default(autoincrement())
+  name      String
+  number    Int
+  isCaptain Boolean @default(false)
+  bio       String?
+  // ...team and stats relations as in the base schema
+}
+```
+
+## An interface with two variants
+
+The interface defines the fields every player shares. A `resolveType` picks the concrete variant for a given row. Return the type name as a **string** rather than an object ref, which avoids circular-reference problems between the interface and the variants that implement it.
 
 ```typescript
-builder.prismaInterface('User', {
-  name: 'User',
+const Player = builder.prismaInterface('Player', {
+  name: 'Player',
   fields: (t) => ({
     id: t.exposeID('id'),
-    email: t.exposeString('email'),
+    name: t.exposeString('name'),
   }),
-  resolveType: (user) => {
-    return user.isAdmin ? 'Admin' : 'Member';
-  },
+  resolveType: (player) => (player.isCaptain ? 'Captain' : 'SquadPlayer'),
 });
 
-builder.prismaObject('User', {
-  variant: 'Admin',
-  interfaces: [User],
+builder.prismaObject('Player', {
+  variant: 'Captain',
+  interfaces: [Player],
   fields: (t) => ({
-    isAdmin: t.exposeBoolean('isAdmin'),
+    isCaptain: t.exposeBoolean('isCaptain'),
   }),
 });
 
-builder.prismaObject('User', {
-  variant: 'Member',
-  interfaces: [User],
+builder.prismaObject('Player', {
+  variant: 'SquadPlayer',
+  interfaces: [Player],
   fields: (t) => ({
-    bio: t.exposeString('bio'),
+    bio: t.exposeString('bio', { nullable: true }),
   }),
 });
 ```
 
-When using select mode, it's recommended to add selections to both the interface and the object
-types that implement them. Selections are not inherited and will fallback to the default selection
-which includes all scalar columns.
+Both `Captain` and `SquadPlayer` are variants of the same `Player` model, so they inherit its backing shape. Each adds the fields specific to it on top of the interface's `id` and `name`.
 
-You will not be able to extend an interface for a different prisma model, doing so will result in an
-error at build time.
+<Callout type="warn">
+  Selections are **not** inherited. Under [`select` mode](./selections), add the columns you need to both the interface *and* every implementing object type. Otherwise the object falls back to the default selection of all scalar columns, which may not be what you want.
+</Callout>
+
+An interface only spans one model. Trying to have an object for a *different* Prisma model implement it fails at build time:
+
+```typescript
+// Error at build time: Team is a different model than Player.
+builder.prismaObject('Team', {
+  interfaces: [Player],
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+```

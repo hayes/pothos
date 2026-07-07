@@ -1,0 +1,48 @@
+---
+title: Circular references
+description: Two types that reference each other, untangled with objectRef declared up front and implemented later.
+---
+
+A `Character` that lists its `Faction`s and a `Faction` that lists its members reference each other, which runs into TypeScript's need to declare a value before using it. Splitting `objectRef` from `implement` gives each type a reference to use before either one's fields exist.
+
+<include cwd lang="typescript" meta='playground example="patterns-circular-references"'>playground-examples/patterns-circular-references/schema.ts#circular-refs</include>
+
+`objectRef` introduces a typed reference *before* the type is implemented. Both refs exist by the time the first `implement` runs, so each can reference the other freely.
+
+## Why this works
+
+The two-way reference happens at `implement` time. By then both `objectRef` calls have run, so each type already has a reference to the other. This scales to any number of mutually-referential types: declare all the `objectRef` calls first, then all the `implement` calls.
+
+## In a modular layout
+
+Splitting `objectRef` and `implement` is also what lets a modular schema cross file boundaries without import cycles: each module declares its `objectRef`, then implements it once the referenced types are in scope. See [Project layout](./project-layout) for the file shape this enables.
+
+## Referencing types by name
+
+If you'd rather not pass references around, you can register both type names on the builder's `Objects` generic and refer to each by its string name:
+
+```typescript
+const builder = new SchemaBuilder<{
+  Objects: { Character: ICharacter; Faction: IFaction };
+}>({});
+
+builder.objectType('Character', {
+  fields: (t) => ({
+    factions: t.field({
+      type: ['Faction'],
+      resolve: (character) => findFactions(character.id),
+    }),
+  }),
+});
+
+builder.objectType('Faction', {
+  fields: (t) => ({
+    members: t.field({
+      type: ['Character'],
+      resolve: (faction) => findMembers(faction.id),
+    }),
+  }),
+});
+```
+
+A string name like `'Faction'` is resolved when the schema builds, so neither definition needs a value from the other in scope, whether they sit in one file or across many. The [Builder types](../fundamentals/objects#definition-styles) style covers registering names this way.

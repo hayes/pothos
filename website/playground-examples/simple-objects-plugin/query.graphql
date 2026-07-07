@@ -1,0 +1,12 @@
+query Standings {
+  standing(id: "comet") {
+    id
+    team
+    record
+    stats {
+      wins
+      losses
+      pointDiff
+    }
+  }
+}

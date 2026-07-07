@@ -1,0 +1,59 @@
+---
+title: Reusable fields
+description: Share field, argument, and input shapes across multiple Pothos types without using an interface.
+---
+
+When several types share a common field or argument shape but you don't want to introduce a GraphQL interface to model it, write a helper that returns the shared definition. Pothos exposes the underlying builders so the helper stays type-safe.
+
+## Sharing fields across object types
+
+`builder.objectFields(ref, builderFn)` adds fields to an existing object type. Wrap a few of them in a function that takes a list of refs:
+
+<include cwd lang="typescript" meta='playground example="shared-fields-pattern"'>playground-examples/shared-fields-pattern/schema.ts#add-audit-fields</include>
+
+Both types now expose `id` and `createdAt` without duplicating the field definitions. The generic constraint on the helper guarantees every passed ref has the backing-model fields the closures rely on. `TypesWithDefaults` is `PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>`, the fully-extended types object every builder method operates on.
+
+The same approach works for interfaces: `builder.interfaceFields(ref, builderFn)` adds fields to an interface type, so a helper that needs to cover both can call whichever builder matches the ref it's given.
+
+## Sharing arguments across fields
+
+Arguments are inferred from the literal `args:` object Pothos sees, so you can't add them after the fact the way you can with `objectFields`. Instead, write a helper that returns the args map and spread it into each field:
+
+<include cwd lang="typescript" meta='playground example="reusable-args-pattern"'>playground-examples/reusable-args-pattern/schema.ts#pagination-args</include>
+
+The helper takes an object shaped like the field builder's `arg` property (`t.arg`), so the returned args carry their full type. Spreading the result preserves the inference Pothos relies on.
+
+## Sharing input fields
+
+Input fields work the same way:
+
+```typescript playground example="reusable-input-pattern"
+function timestampInputs(t: InputFieldBuilder<TypesWithDefaults, 'InputObject'>) {
+  return {
+    createdAfter: t.field({ type: 'DateTime', required: false }),
+    createdBefore: t.field({ type: 'DateTime', required: false }),
+  };
+}
+
+builder.inputType('GameFilter', {
+  fields: (t) => ({
+    ...timestampInputs(t),
+    teamId: t.id(),
+  }),
+});
+
+builder.inputType('PlayerFilter', {
+  fields: (t) => ({
+    ...timestampInputs(t),
+    position: t.string(),
+  }),
+});
+```
+
+Each input type ends up with its own version of the timestamp fields plus whatever it adds on top.
+
+## When an interface fits better
+
+If the shared fields represent a real abstraction your clients can query against (every entity has an `id`, every audit-logged record has `createdAt`/`updatedAt`), the cleaner answer is a GraphQL interface. Clients can fragment over the interface, codegen tools see the relationship, and the schema documents the polymorphism.
+
+The helper pattern fits when the shared fields are an implementation detail rather than an abstraction worth exposing.

@@ -1,0 +1,111 @@
+---
+title: Printing and codegen
+description: Emit an SDL file from a Pothos schema and generate client types with graphql-code-generator.
+---
+
+A Pothos schema is a TypeScript module, but two downstream consumers usually want an SDL string: schema-aware tooling (linters, diff viewers, federation gateways) and `graphql-code-generator`, which produces client types from the schema. Both can read the SDL directly from disk.
+
+## Printing to a file
+
+`printSchema` from `graphql` serializes a `GraphQLSchema` to SDL. `lexicographicSortSchema` sorts types and fields alphabetically. Without it the output order tracks source order, so unrelated edits produce noisy diffs.
+
+```typescript
+import { writeFileSync } from 'node:fs';
+import { lexicographicSortSchema, printSchema } from 'graphql';
+import { schema } from './schema';
+
+writeFileSync('./schema.graphql', printSchema(lexicographicSortSchema(schema)));
+```
+
+Wire this into a script in `package.json`:
+
+```json
+{
+  "scripts": {
+    "schema": "tsx scripts/print-schema.ts"
+  }
+}
+```
+
+Running `npm run schema` after a schema change refreshes the SDL file. Check it into source control; diffs in `schema.graphql` are easier to review than diffs across a hundred TypeScript files.
+
+The playground sandbox has no filesystem to write to, but the same two calls work standalone: swap the file write for a `console.log` and you can see exactly the SDL `printSchema` produces:
+
+<includeregions cwd lang="typescript" meta='playground example="patterns-printing-schema"'>playground-examples/patterns-printing-schema/schema.ts#print-schema-export,print-schema-log</includeregions>
+
+Open the console panel after running it to see the sorted SDL.
+
+## Setting up graphql-code-generator
+
+Clients usually want typed query documents. `graphql-code-generator` reads your operations and the schema, then emits typed hooks or query functions.
+
+```package-install
+npm install --save graphql
+npm install --save -D @graphql-codegen/cli @graphql-codegen/client-preset
+```
+
+Point the codegen at the SDL file you just printed:
+
+```typescript
+// codegen.ts
+import type { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: './schema.graphql',
+  documents: ['src/**/*.tsx'],
+  generates: {
+    './src/gql/': {
+      preset: 'client',
+      plugins: [],
+    },
+  },
+};
+
+export default config;
+```
+
+Running `graphql-codegen` regenerates the types under `src/gql/`. Most teams add it to a pre-commit hook or to the dev server's watch loop.
+
+## Reading the schema directly
+
+If you'd rather skip the SDL file, the codegen can import the schema module:
+
+```typescript
+import { printSchema } from 'graphql';
+import { schema } from './src/schema';
+
+const config: CodegenConfig = {
+  schema: printSchema(schema),
+  // ...
+};
+```
+
+The trade-off is that `codegen.ts` now depends on every transitive import of `schema.ts`, typically including your database client. Checking the SDL file into source control decouples the two and makes the schema visible in PR diffs. Most projects do both: print to file as part of the schema-update flow, and have codegen read from the file.
+
+## Custom scalars
+
+If your schema uses scalars beyond the built-ins, the codegen needs a TypeScript type for each — without one, every custom scalar field collapses to `any`:
+
+```typescript
+const config: CodegenConfig = {
+  // ...
+  config: {
+    scalars: {
+      DateTime: 'Date',
+      UUID: 'string',
+      JSON: 'unknown',
+    },
+  },
+};
+```
+
+The map matches the GraphQL scalar name to the TypeScript type clients should see for it.
+
+## Federation and other consumers
+
+The same printed SDL feeds:
+
+- Federation gateways and supergraph composition tools.
+- Schema-diff CI checks (does this PR break a published schema?).
+- Linters like `graphql-eslint`.
+- IDE integrations that pre-validate queries.

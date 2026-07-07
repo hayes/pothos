@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-interfaces",
+  "title": "Interfaces",
+  "description": "Share fields across multiple object types with an interface, and dispatch with resolveType.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "intermediate",
+  "order": 11,
+  "tags": ["interfaces", "polymorphism"],
+  "relatedDocs": ["/docs/fundamentals/interfaces"]
+}

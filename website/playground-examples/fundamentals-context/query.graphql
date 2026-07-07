@@ -1,0 +1,6 @@
+query MyCharacters {
+  myCharacters {
+    id
+    name
+  }
+}

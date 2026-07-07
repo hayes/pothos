@@ -1,0 +1,11 @@
+{
+  "id": "fundamentals-schema-builder",
+  "title": "SchemaBuilder",
+  "description": "Create a SchemaBuilder with a typed context and a custom scalar declared in the SchemaTypes generic.",
+  "category": "core",
+  "subcategory": "fundamentals",
+  "difficulty": "beginner",
+  "order": 1,
+  "tags": ["builder", "context", "generics"],
+  "relatedDocs": ["/docs/fundamentals/schema-builder"]
+}

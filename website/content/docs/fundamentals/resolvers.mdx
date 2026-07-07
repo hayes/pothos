@@ -1,0 +1,31 @@
+---
+title: Resolvers
+description: How resolver functions produce a field's value, and what they can return.
+---
+
+A resolver is the function that produces a field's value. When a field appears in a query, the graphql-js executor calls that field's resolver and expects back a value matching the field's type. The `t.expose*` helpers from the [Fields](./fields) guide write a resolver for you that reads a property off the backing object; this guide is about writing the `resolve` function yourself.
+
+<include cwd lang="typescript" meta='playground example="fundamentals-resolvers"'>playground-examples/fundamentals-resolvers/schema.ts#count</include>
+
+`characterCount` is an `Int` field whose resolver returns a number. The executor runs it each time the field is selected in a query, and the returned value becomes the field's value in the response.
+
+## The four arguments
+
+The executor calls a resolver with four positional arguments, `(parent, args, context, info)`:
+
+<include cwd lang="typescript">playground-examples/fundamentals-resolvers/schema.ts#signature</include>
+
+- `parent` is the value the field's parent resolver returned, which is the backing model for that type (covered in [Object types](./objects)). On a field of the root `Query`, `Mutation`, or `Subscription` type there is no parent object, so `parent` is the `rootValue` the server passed to the executor, usually `undefined`.
+- `args` is the field's arguments, already coerced and type-checked against the field's `args` definition. The [Arguments](./args) guide covers declaring them.
+- `context` is the per-request [context](./context): the object your server builds for each request, where values like the authenticated `ctx.user` and database handles live.
+- `info` is information about the current query and field selection, which plugins like [Prisma](../plugins/prisma) and [Drizzle](../plugins/drizzle) read to plan a single database query for the fields a request selected.
+
+Most resolvers only need one or two of these, and since the parameters are positional you can leave off any trailing ones you don't use.
+
+## What a resolver returns
+
+A resolver returns a value matching the field's type, or a promise for one; the executor awaits the promise before continuing. A synchronous resolver returns its value directly, and an `async` resolver returns a promise for it.
+
+<include cwd lang="typescript">playground-examples/fundamentals-resolvers/schema.ts#async</include>
+
+The field's type decides what counts as a valid value, and Pothos checks it in TypeScript. A scalar field returns that scalar. A field returning an object type returns the [backing model](./objects) for that type rather than a GraphQL-shaped object, so you can hand back a database row or a plain object without reshaping it first. A list field accepts any iterable of those values, and a nullable field may also return `null` or `undefined`; `character` above returns `null` when no character matches the requested id.

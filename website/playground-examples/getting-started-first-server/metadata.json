@@ -1,0 +1,26 @@
+{
+  "id": "getting-started-first-server",
+  "title": "Your first server",
+  "description": "Wire a Pothos schema into graphql-yoga and run a query against it.",
+  "category": "core",
+  "subcategory": "getting-started",
+  "difficulty": "beginner",
+  "order": 2,
+  "tags": ["getting-started", "yoga", "server"],
+  "relatedDocs": ["/docs/getting-started/introduction"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "The schema",
+      "description": "A minimal schema with one query field.",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "Serve it with graphql-yoga",
+      "description": "Pass the schema to createYoga and listen for requests.",
+      "order": 2,
+      "defaultActiveFile": "server.ts"
+    }
+  ]
+}

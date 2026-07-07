@@ -1,0 +1,12 @@
+mutation RegisterPlayer {
+  registerPlayer(name: "Nomi Reyes", email: "nomi@comet.gg", jersey: 7) {
+    id
+    name
+    email
+    jersey
+  }
+}
+
+query CheckSignUp {
+  checkSignUp(signUp: { email: "avery@comet.gg", jersey: 11, backupJersey: 23 })
+}

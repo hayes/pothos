@@ -1,0 +1,70 @@
+---
+title: Introduction
+description: Build type-safe GraphQL schemas in plain TypeScript.
+---
+
+Pothos is a library for building GraphQL schemas in TypeScript. You define objects, fields, resolvers, and inputs on a builder as ordinary values, and `builder.toSchema()` turns them into a standard graphql-js `GraphQLSchema` your server runs.
+
+The types in your schema come from your own data. You start from a type you already have (a database row, an API response, a domain type) and build the GraphQL type on top of it. The builder keeps track of these types wherever they are used, so the schema stays type-safe without a separate SDL file or a code-generation step.
+
+## Building from your data
+
+Most types start with `builder.objectRef<T>()`. The generic `T` is the **backing model**, the TypeScript shape your resolvers return and that Pothos hands back as `parent`:
+
+```typescript playground
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+// The data you already have
+interface ICharacter {
+  id: string;
+  name: string;
+}
+
+const Character = builder.objectRef<ICharacter>('Character').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    // parent is an ICharacter, so this resolver is typed for free
+    firstName: t.string({ resolve: (parent) => parent.name.split(' ')[0] }),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    frodo: t.field({
+      type: Character,
+      resolve: () => ({ id: '1', name: 'Frodo Baggins' }),
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+Because `Character` was created with the `ICharacter` type, resolvers on it receive an `ICharacter` as `parent`, and the `frodo` resolver has to return one. `ICharacter` is the data behind the type and `Character` is what clients query; Pothos keeps them in sync as your code changes.
+
+These docs use objectRef as their default. Pothos also supports class-backed types and types registered by name on the builder's generics; [Object types](../fundamentals/objects) covers all three.
+
+## How it compares to schema-first
+
+Schema-first tools (GraphQL Tools, Mercurius, raw `graphql-js`) start from an SDL string, and use code generation to produce TypeScript types for the resolvers that implement it. With Pothos the schema is defined in TypeScript, and the SDL is generated from it by `toSchema()`. Because there is only one definition of the schema, the types and the SDL can't drift apart.
+
+## Where plugins fit
+
+Core gives you objects, fields, inputs, interfaces, unions, enums, and scalars, enough to build a complete schema. Its only peer dependency is `graphql`. Everything else is a plugin that adds methods to the same builder:
+
+- **[Relay](../plugins/relay)**: connections, nodes, and global IDs following the Relay spec.
+- **[Scope auth](../plugins/scope-auth)**: declarative authorization checks on fields and types.
+- **[Errors](../plugins/errors)**: model expected failures as part of the schema instead of throwing.
+- **[Validation](../plugins/validation)**: validate arguments and inputs with Zod or Valibot.
+- **[Dataloader](../plugins/dataloader)**: batch and cache loads to avoid N+1 queries.
+- **[Prisma](../plugins/prisma) / [Drizzle](../plugins/drizzle)**: define objects straight from your ORM models.
+- **[Federation](../plugins/federation)**: build subgraphs for a federated gateway.
+
+Plugin methods carry the same type safety as the built-in ones, and plugins are designed to be combined, so you add them as you need them.
+
+## What's next
+
+[Installation](./installation) and [First server](./first-server) go from an empty project to a running endpoint.
