@@ -232,7 +232,7 @@ A `schema` is piped into whatever the plugin generates (`yourSchema.pipe(generat
 
 ## Sharing schemas with client code
 
-The cleanest way to reuse a validator on the client is to write it as an ordinary zod schema in a shared module, then attach it with `schema`:
+To reuse a validator on the client, write it as an ordinary zod schema in a shared module, then attach it with `schema`:
 
 ```typescript
 // shared/validators.ts

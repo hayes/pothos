@@ -264,7 +264,7 @@ Team.implement({
 
 A `Team` normally needs `member`, but anyone arriving through `featuredTeam` reads it anyway. `grantScopes` can also be a function of the resolver arguments.
 
-A type can grant scopes to its own fields, which is a clean way to share one condition across a group of fields without repeating the logic:
+A type can grant scopes to its own fields, sharing one condition across a group of fields without repeating it:
 
 ```typescript
 Team.implement({
@@ -474,7 +474,7 @@ scopeAuth: {
 
 ## Testing
 
-Pass `disableScopeAuth` to `toSchema` to build the schema with every check turned off, which helps in tests that shouldn't thread auth context through every query:
+Pass `disableScopeAuth` to `toSchema` to build the schema with every check turned off, for tests that shouldn't thread auth context through every query:
 
 ```typescript
 const schema = builder.toSchema({ disableScopeAuth: true });

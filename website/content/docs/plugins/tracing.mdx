@@ -5,7 +5,7 @@ description: Wrap resolvers with tracing and logging, and export spans to OpenTe
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Tracing measures how long each resolver takes and reports it to your observability backend. In Pothos, you add a `tracing` option to the builder and to individual fields, and the plugin wraps the matching resolvers in a tracer you supply. The plugin ships deliberately thin. It decides *which* fields to trace and hands each resolver to your `wrap` function; the actual span or log is yours to produce, either by hand or through one of the provider packages below.
+Tracing measures how long each resolver takes and reports it to your observability backend. In Pothos, you add a `tracing` option to the builder and to individual fields, and the plugin wraps the matching resolvers in a tracer you supply. The plugin only decides *which* fields to trace and hands each resolver to your `wrap` function; you produce the actual span or log, by hand or through one of the provider packages below.
 
 The interface has three parts:
 
@@ -93,7 +93,7 @@ The `Tracing` generic defaults to `boolean` when you don't set it.
 
 ## Enabling tracing by default
 
-Configuring `tracing` on every field by hand doesn't scale. `tracing.default` decides tracing for any field that stays silent, and it receives the field's config so you can key the decision off the field's shape:
+`tracing.default` decides tracing for any field that doesn't set its own `tracing` option. It receives the field's config, so you can key the decision off the field's shape:
 
 ```typescript
 export const builder = new SchemaBuilder<{
@@ -184,7 +184,7 @@ export const builder = new SchemaBuilder({
 
 ## Using resolver arguments in tracers
 
-Sometimes the tracing options depend on the resolver's arguments, attaching a team id to a span, say. Both the field-level `tracing` option and `tracing.default` accept a function `(parent, args, context, info) => options` for exactly this:
+Sometimes the tracing options depend on the resolver's arguments, attaching a team id to a span, say. Both the field-level `tracing` option and `tracing.default` accept a function `(parent, args, context, info) => options`:
 
 ```typescript
 // A tracer that opens a span and attaches custom attributes when they're provided.

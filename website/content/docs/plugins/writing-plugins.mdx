@@ -7,7 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 A Pothos plugin is a class that hooks into schema construction. It can add options to the builder, add methods to the builder and field builders, wrap resolvers, and rewrite types and fields as the schema is built. Everything a plugin exposes to users lives in the same type system Pothos uses for its own API, so the work splits in two: extend the *types* so the new API is visible and checked, then implement the *behavior* in a plugin class.
 
-Much of this looks intimidating because Pothos' types are involved. You rarely need to understand all of them. Start from the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example), a working skeleton of every pattern below. Copy the pieces you need, and lean on the types to tell you what fits.
+You don't need to understand all of Pothos' types to write a plugin. Start from the [example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example), a working skeleton of every pattern below; copy the pieces you need, and lean on the types to tell you what fits.
 
 ## The type system
 

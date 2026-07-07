@@ -225,7 +225,7 @@ t.connection(
 
 ### Connection helpers
 
-Building the `edges`/`pageInfo` shape by hand is tedious. Three helpers resolve it from common data shapes.
+Three helpers build the `edges`/`pageInfo` shape from common data shapes, so you don't assemble it by hand.
 
 `resolveArrayConnection` slices a fully-materialized array:
 
@@ -313,7 +313,7 @@ const PlayersConnection = builder.connectionObject(
 
 ### Fields on every connection
 
-`builder.globalConnectionField` and `builder.globalConnectionFields` add a field to *every* `Connection` type, which is useful for a `totalCount`:
+`builder.globalConnectionField` and `builder.globalConnectionFields` add a field to *every* `Connection` type, such as a `totalCount`:
 
 ```typescript
 builder.globalConnectionField('totalCount', (t) =>

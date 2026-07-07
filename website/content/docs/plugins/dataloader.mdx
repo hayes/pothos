@@ -21,7 +21,7 @@ npm install --save dataloader @pothos/plugin-dataloader
 
 <includeregions cwd lang="typescript" meta='playground example="dataloader-plugin"'>playground-examples/dataloader-plugin/step-1/schema.ts#setup,player,query</includeregions>
 
-Annotate the `ids` parameter (and `context`, if you use it). Pothos reads the load function's types to constrain what resolvers for this type may return. A resolver can return a `string`, `number`, or `bigint` key, and the loader fetches it. Return the full object instead and Pothos detects that it isn't a key and skips the loader, which is useful when you already have the record in hand. Lists may mix the two: `[...ids, alreadyLoadedPlayer]` resolves the keys through the loader and passes the object straight through.
+Annotate the `ids` parameter (and `context`, if you use it). Pothos reads the load function's types to constrain what resolvers for this type may return. A resolver can return a `string`, `number`, or `bigint` key, and the loader fetches it. When you already have the record in hand, return the full object instead; Pothos detects that it isn't a key and skips the loader. Lists may mix the two: `[...ids, alreadyLoadedPlayer]` resolves the keys through the loader and passes the object straight through.
 
 <Callout type="warn">
   `load` must return results in the **same order** as the ids it was given, because the plugin maps results back to ids positionally, so a shuffled result array hands clients the wrong records. Fetching from a database rarely preserves order; the [`sort` option](#sorting-load-results) below does the reordering for you. See the [dataloader batch-function docs](https://github.com/graphql/dataloader#batch-function) for the contract in full.
@@ -29,7 +29,7 @@ Annotate the `ids` parameter (and `context`, if you use it). Pothos reads the lo
 
 ## Batching relations
 
-Relations are where batching pays off. A one-to-many like a team's roster is a `loadableGroup` field: `load` runs once with every parent id in the query and returns a flat list, and `group` sorts each row back to the parent it belongs to.
+A one-to-many like a team's roster is a `loadableGroup` field: `load` runs once with every parent id in the query and returns a flat list, and `group` sorts each row back to the parent it belongs to.
 
 <include cwd lang="typescript" meta='playground example="dataloader-plugin-step-2"'>playground-examples/dataloader-plugin/step-2/schema.ts#team</include>
 

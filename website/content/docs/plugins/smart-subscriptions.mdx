@@ -145,7 +145,7 @@ const Game = builder.objectRef<IGame>('Game').implement({
 
 ## Subscriptions on fields
 
-A single field can register its own events through the same `subscribe` callback in the field options, which helps when one field has a narrower refresh trigger than its parent type:
+When one field has a narrower refresh trigger than its parent type, register its events through the same `subscribe` callback in the field options:
 
 ```typescript
 const Game = builder.objectRef<IGame>('Game').implement({

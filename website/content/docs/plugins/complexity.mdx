@@ -37,7 +37,7 @@ complexity: {
 },
 ```
 
-The same options can be passed to `toSchema` (or `buildSchema`) instead of the builder, which is useful when the limits belong to the server that builds the schema rather than the schema definition itself:
+When the limits belong to the server that builds the schema rather than the schema definition itself, pass the same options to `toSchema` (or `buildSchema`) instead of the builder:
 
 ```typescript
 const schema = builder.toSchema({
@@ -111,7 +111,7 @@ Set `disabled: true` on the builder's `complexity` option to skip the check enti
 
 ## Measuring a query yourself
 
-`complexityFromQuery` scores a query outside of execution, which is useful for logging costs, rejecting requests at the edge, or asserting on complexity in tests.
+`complexityFromQuery` scores a query outside of execution: log costs, reject requests at the edge, or assert on complexity in tests.
 
 ```typescript
 import { complexityFromQuery } from '@pothos/plugin-complexity';

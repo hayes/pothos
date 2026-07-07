@@ -57,7 +57,7 @@ input QueryTeamInput {
 
 ## Why a generated input
 
-A single input argument is the standard shape for anything that mutates or takes structured arguments: it versions cleanly (add a field without touching the call site), it reads well on the client, and it keeps large argument lists from sprawling across the field signature. Declaring the input type separately is boilerplate that always tracks one field. `t.fieldWithInput` keeps the definition next to the field it serves and derives the type name from the field, so the two never drift apart.
+A single input argument is the standard shape for anything that mutates or takes structured arguments: new fields can be added without touching the call site, and large argument lists stay out of the field signature. `t.fieldWithInput` saves you from declaring a separate input type for each field, and keeps the input's definition next to the field it serves.
 
 ## Multiple input fields
 
@@ -136,7 +136,7 @@ const builder = new SchemaBuilder({
 
 ## Optional inputs
 
-The input argument is required by default. Set `argOptions.required: false` to make the whole argument optional, which suits a search or filter field that runs with no input at all:
+The input argument is required by default. Set `argOptions.required: false` to make the whole argument optional, as for a search or filter field that can run with no input at all:
 
 ```typescript playground example="with-input-plugin"
 builder.queryType({

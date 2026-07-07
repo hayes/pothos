@@ -31,7 +31,7 @@ The resolver on the `standing` query just returns a plain object (`{ id, team, s
 
 `builder.simpleObject` returns an [`ObjectRef`](../fundamentals/objects), the same reference you'd get from `builder.objectRef<T>()`. The difference is where the backing model comes from. With `objectRef` you write the type yourself and Pothos trusts it. With `simpleObject` the fields *are* the type: declare `wins: t.int()` and the backing model gains a required `number`; declare `pointDiff: t.int({ nullable: true })` and it gains an optional `number | null`.
 
-That trade is worth it when the type has no life outside the schema. A `TeamStats` block returned by one query doesn't need a hand-written interface; the fields already say everything. Use a plain `objectRef` when the backing model is a real domain entity you load, mutate, and pass around, where a named `interface` is worth defining.
+Use `simpleObject` for types that only exist in the schema: a `TeamStats` block returned by one query doesn't need a hand-written interface, because the fields already say everything. Use a plain `objectRef` when the backing model is a real domain entity you load, mutate, and pass around.
 
 ## Interfaces
 
@@ -65,7 +65,7 @@ builder.objectType(Standing, (t) => ({
 }));
 ```
 
-Use whichever reads better: the third argument keeps a type's computed fields next to its declaration; a separate `builder.objectType` call is handy when the extra fields live in another module.
+Use whichever reads better: the third argument keeps a type's computed fields next to its declaration; a separate `builder.objectType` call works when the extra fields live in another module.
 
 <Callout type="warn">
   Fields declared in the second argument see the parent as `unknown`. That only surfaces when another plugin inspects the parent; a `plugin-scope-auth` `authScopes` callback on a simple-object field, for instance, gets `unknown` rather than the inferred shape. Move such fields to the third argument, where the parent is fully typed.

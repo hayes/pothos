@@ -67,11 +67,11 @@ query {
 }
 ```
 
-Throwing is the type-safe path: a thrown value is untyped, so the resolver's return type stays `Team`. The plugin also unwraps errors you *return* rather than throw, but returning an `Error` widens the resolver's return type, so prefer `throw` for fields, and use the return form with [`errorUnion`](#manual-error-unions) and [`errorUnionField`](#custom-error-unions) below, which type the errors into the signature.
+Prefer throwing: a thrown value is untyped, so the resolver's return type stays `Team`. The plugin also unwraps errors you *return* rather than throw, but returning an `Error` widens the resolver's return type. Save the return form for [`errorUnion`](#manual-error-unions) and [`errorUnionField`](#custom-error-unions) below, which type the errors into the signature.
 
 ## A shared Error interface
 
-Listing raw `Error` on every field works, but it forces clients to know each concrete type. The durable pattern is an `Error` interface that every error implements, plus a base type in `defaultTypes` so it is merged into every field automatically. Clients can then always fall back to `... on Error { message }` and add narrower fragments only for the errors they render specifically, which keeps adding new error types from breaking existing queries.
+Listing raw `Error` on every field works, but it forces clients to know each concrete type. To avoid that, define an `Error` interface that every error implements, plus a base type in `defaultTypes` so it is merged into every field automatically. Clients can then always fall back to `... on Error { message }` and add narrower fragments only for the errors they render specifically, which keeps adding new error types from breaking existing queries.
 
 <includeregions cwd lang="typescript" meta='playground example="errors-plugin-step-2"'>playground-examples/errors-plugin/step-2/schema.ts#builder-setup,error-types</includeregions>
 
@@ -125,7 +125,7 @@ const builder = new SchemaBuilder({
 
 ## Per-item list errors
 
-For a list field, a single failure normally nulls or errors the whole list. Use `itemErrors` instead of `errors` to wrap *each item* in its own union, so one bad row surfaces in place while the rest resolve. The options are identical to `errors`; they apply per item. Return an `Error` (or a listed subclass) in the array to mark that slot as failed. That return works at runtime, but `itemErrors` reuses the plain field-option types, so the resolver's return type stays `ITeam[]`, and strict TypeScript may need a cast or a widened return annotation, the same throw-vs-return tension called out for field-level [`errors`](#a-field-with-errors) above.
+For a list field, a single failure normally nulls or errors the whole list. Use `itemErrors` instead of `errors` to wrap *each item* in its own union, so one bad row surfaces in place while the rest resolve. The options are identical to `errors`; they apply per item. Return an `Error` (or a listed subclass) in the array to mark that slot as failed. That return works at runtime, but `itemErrors` reuses the plain field-option types, so the resolver's return type stays `ITeam[]`, and strict TypeScript may need a cast or a widened return annotation, the same throw-vs-return trade-off as field-level [`errors`](#a-field-with-errors).
 
 ```typescript
 builder.queryType({
@@ -155,7 +155,7 @@ type QueryStandingsItemSuccess {
 }
 ```
 
-`itemErrors` also works with sync and async iterators, which is useful with `graphql@>=17` or any executor that supports the `@stream` directive. A yielded error becomes an error item; if the generator itself throws, that error is added as the final item and no further results are produced for the field:
+`itemErrors` also works with sync and async iterators (with `graphql@>=17` or any executor that supports the `@stream` directive). A yielded error becomes an error item; if the generator itself throws, that error is added as the final item and no further results are produced for the field:
 
 ```typescript
 builder.queryType({
@@ -277,7 +277,7 @@ t.errorUnionField({
 
 ## Manual error unions
 
-`builder.errorUnion` builds a reusable union type up front. Any field that returns it automatically handles both returned and thrown errors, which helps when several fields share the same success-or-error shape.
+`builder.errorUnion` builds a reusable union type up front, for several fields that share the same success-or-error shape. Any field that returns it automatically handles both returned and thrown errors.
 
 ```typescript
 const TeamResult = builder.errorUnion('TeamResult', {

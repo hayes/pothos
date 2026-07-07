@@ -67,7 +67,7 @@ export const schema = builder.toSchema({
 
 ## Output format
 
-The plugin writes the directive data onto the `extensions` of the underlying GraphQL type; it doesn't enforce the directive itself. A downstream transformer reads those extensions and does the real work.
+The plugin writes the directive data onto the `extensions` of the underlying GraphQL type; it doesn't enforce the directive itself. A downstream transformer reads those extensions and implements the directive's behavior.
 
 By default the plugin uses the extensions format Gatsby uses ([described here](https://github.com/graphql/graphql-js/issues/1343#issuecomment-479871020)), which [older versions of `graphql-tools` did not support](https://github.com/ardatan/graphql-tools/issues/2534). If your directive ships a schema visitor built against an older graphql-tools (the rate-limit directive below is one), set `useGraphQLToolsUnorderedDirectives` on the builder to emit the format those visitors expect.
 

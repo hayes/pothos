@@ -57,8 +57,6 @@ const mockedSchema = builder.toSchema({
 });
 ```
 
-This is the plugin's main use: a deterministic schema for tests and frontend development without touching your resolvers.
-
 ## Mocking subscribe
 
 A mock can be a plain function (which replaces `resolve`) or an object with both `resolve` and `subscribe` keys, for mocking a subscription field's event source. The types expect both keys (the runtime tolerates a missing one, but supply both to match the types). Nest them to feed a subscription a canned async iterator:

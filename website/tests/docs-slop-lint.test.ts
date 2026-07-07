@@ -42,6 +42,12 @@ const BANNED_PATTERNS: { name: string; pattern: RegExp }[] = [
   { name: 'A10 "the (Pothos|X) way"', pattern: /,\s*the \w+ way\b/i },
   // S1/S7 — advisory register
   { name: 'S1/S7 "reach for"', pattern: /\breach for\b/i },
+  // Hedge-filler and editorializing (round-6 second pass)
+  { name: 'hedge "which is useful"', pattern: /\bwhich (is useful|helps|makes it easy)\b/i },
+  { name: 'superlative "the cleanest/best/right way"', pattern: /\bthe (cleanest|best|right) way\b/i },
+  { name: 'aphorism "pays off"', pattern: /\bpays off\b/i },
+  { name: 'advisory "worth it when"', pattern: /\bworth it when\b/i },
+  { name: 'snap "for exactly this"', pattern: /\bfor exactly this\b/i },
   // S27 — robotic meta-commentary
   { name: 'S27 "first-class"', pattern: /\bfirst-class\b/i },
   { name: 'S27 "the rest of (this guide|these guides)"', pattern: /\bthe rest of (this guide|these guides)\b/i },
