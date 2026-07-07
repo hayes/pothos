@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 
+// #region backing-model
 interface ICharacterBase {
   id: string;
   name: string;
@@ -22,29 +23,30 @@ interface IWizard extends ICharacterBase {
 }
 
 type ICharacter = IHobbit | IElf | IWizard;
+// #endregion backing-model
 
 const Characters: ICharacter[] = [
-  { kind: 'Hobbit', id: 'frodo', name: 'Frodo Baggins', shireAddress: 'Bag End' },
-  { kind: 'Elf', id: 'galadriel', name: 'Galadriel', departed: true },
-  { kind: 'Wizard', id: 'gandalf', name: 'Gandalf', order: 'Istari', color: 'Grey' },
+  { kind: 'Hobbit', id: '1', name: 'Frodo Baggins', shireAddress: 'Bag End' },
+  { kind: 'Elf', id: '2', name: 'Galadriel', departed: true },
+  { kind: 'Wizard', id: '3', name: 'Gandalf', order: 'Istari', color: 'Grey' },
 ];
 
 const builder = new SchemaBuilder({});
 
-// #region character-interface
+// #region interface-type
 const Character = builder.interfaceRef<ICharacter>('Character');
 
 builder.interfaceType(Character, {
   description: 'A named being of Middle-earth.',
-  // resolveType returns the concrete typename. With a `kind`
-  // discriminator on the backing object it can be a one-liner.
   resolveType: (val) => val.kind,
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
   }),
 });
+// #endregion interface-type
 
+// #region members
 const Hobbit = builder.objectRef<IHobbit>('Hobbit');
 Hobbit.implement({
   interfaces: [Character],
@@ -60,7 +62,7 @@ Elf.implement({
     departed: t.exposeBoolean('departed'),
   }),
 });
-// #endregion character-interface
+// #endregion members
 
 const Wizard = builder.objectRef<IWizard>('Wizard');
 Wizard.implement({

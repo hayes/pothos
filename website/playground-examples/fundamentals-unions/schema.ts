@@ -22,9 +22,9 @@ interface IQuote {
 type SearchHit = ICharacter | ILocation | IQuote;
 
 const Index: SearchHit[] = [
-  { kind: 'Character', id: 'frodo', name: 'Frodo Baggins' },
-  { kind: 'Location', id: 'shire', name: 'The Shire', terrain: 'rolling hills' },
-  { kind: 'Quote', id: 'q1', text: 'All we have to decide is what to do with the time given us.' },
+  { kind: 'Character', id: '1', name: 'Frodo Baggins' },
+  { kind: 'Location', id: '2', name: 'The Shire', terrain: 'rolling hills' },
+  { kind: 'Quote', id: '3', text: "It's a dangerous business, Frodo, going out your door." },
 ];
 
 const builder = new SchemaBuilder({});
@@ -45,8 +45,6 @@ const Quote = builder.objectRef<IQuote>('Quote').implement({
   fields: (t) => ({ id: t.exposeID('id'), text: t.exposeString('text') }),
 });
 
-// A union groups unrelated object types behind a single field type.
-// resolveType returns the concrete typename for any given value.
 // #region search-result-union
 const SearchResult = builder.unionType('SearchResult', {
   types: [Character, Location, Quote],

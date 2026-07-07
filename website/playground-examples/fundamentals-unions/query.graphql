@@ -1,5 +1,5 @@
 query Search {
-  search(term: "shire") {
+  search(term: "frodo") {
     __typename
     ... on Character {
       id

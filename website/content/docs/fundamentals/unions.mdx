@@ -1,51 +1,39 @@
 ---
 title: Unions
-description: Combine unrelated object types behind one return type, dispatched by resolveType.
+description: Define a union of object types with unionType, use it as a field type, and resolve which member each value is.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+## Defining a union
 
-A union returns one of several object types that don't share fields. Where an [interface](./interfaces) demands every implementer carry common fields like `id` and `name`, a union groups types purely by the question they answer: "what is this thing?"
+A union is a single type that stands for one of several object types. A search field is the usual case: a query can return a character, a location, or a quote, and those types share no fields. `builder.unionType` names the union and lists its members:
 
-<includeregions cwd lang="typescript" meta='playground example="fundamentals-unions"'>playground-examples/fundamentals-unions/schema.ts#search-result-union,search-query</includeregions>
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-unions"'>playground-examples/fundamentals-unions/schema.ts#search-result-union</includeregions>
 
-Each value the resolver returns has to be assignable to one of the `types` listed. `resolveType` picks which one.
+`unionType` takes the union's name and an options object. `types` lists the members — here `Character`, `Location`, and `Quote`. Every member has to be an object type; interfaces, scalars, and other unions can't be listed. (`types` can also be a function returning the array, for members defined later in the file.) A union has no fields of its own, so there is no `fields` callback.
 
-## When to reach for a union
+`resolveType` tells the server which member a given value is. Each value in this schema carries a `kind` discriminator, so `resolveType` returns it directly. This is the same contract [interfaces](./interfaces) use, and that guide covers `resolveType` in full; the union-specific point is that the name you return has to be one of the types in the union's `types` list.
 
-Unions fit a handful of recurring shapes:
+If you leave `resolveType` off, graphql-js falls back to each member type's `isTypeOf` function; when neither is defined, it has no way to tell the members apart and raises an error while executing the field.
 
-- **Search results.** A query returns a heterogeneous mix — characters, locations, items — that share no fields beyond an id.
-- **Activity feeds.** Each entry is one of `PostCreated`, `CommentAdded`, `UserJoined`, with different payloads.
-- **Mutation outcomes.** A result that's either the changed entity or one of several error types — the pattern [`plugin-errors`](../plugins/errors) automates for you.
+## Using a union as a field type
 
-If the types do share fields, prefer an interface; clients can then select common fields without the per-type fragment dance.
+A union reference is used as a field's `type` like any object type:
 
-## resolveType
+<includeregions cwd lang="typescript" meta='playground example="fundamentals-unions"'>playground-examples/fundamentals-unions/schema.ts#search-query</includeregions>
 
-Same rules as interfaces: return the concrete type's name as a string. With a `kind` discriminator on the backing model this is a one-liner:
+`type: [SearchResult]` makes `search` return a list of union values. The resolver returns whatever mix of characters, locations, and quotes matches the term, and `resolveType` sorts out which member each one is as the field resolves.
 
-```typescript
-resolveType: (val) => val.kind,
-```
+## Unions versus interfaces
 
-Without a discriminator, infer from the shape:
+Both unions and interfaces let one field return more than one object type. The difference is whether the types share fields. An [interface](./interfaces) is a set of fields every implementer carries, like an `id` and a `name`, so a client can select those fields on the abstract type directly. A union groups types that have nothing in common, so a client works entirely through the individual members. The [`plugin-errors`](../plugins/errors) plugin builds on unions for another common case, where a mutation returns either its result or one of several error types.
 
-```typescript
-resolveType: (val) => {
-  if ('terrain' in val) return 'Location';
-  if ('text' in val) return 'Quote';
-  return 'Character';
-},
-```
+## Querying a union
 
-## Querying
-
-Clients access every field through a per-type fragment, since the union itself has no fields:
+Because a union has no fields of its own, a client selects fields inside a fragment on each member type:
 
 ```graphql
 query Search {
-  search(term: "shire") {
+  search(term: "frodo") {
     __typename
     ... on Character {
       id
@@ -62,8 +50,4 @@ query Search {
 }
 ```
 
-`__typename` is always available on union fields — it's the discriminator clients use to render the right component.
-
-<Callout type="info">
-  See also: [Interfaces](./interfaces) for shared-field polymorphism, or [`plugin-errors`](../plugins/errors) for mutation-result unions.
-</Callout>
+`__typename` is a GraphQL meta-field available on any union field; it returns the resolved member's name, which clients use to tell the members apart. The inline fragments (`... on Character`) are GraphQL syntax for selecting fields per type. The [Interfaces](./interfaces) guide covers these polymorphic selections in more detail.
