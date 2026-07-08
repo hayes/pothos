@@ -1,5 +1,5 @@
 import { createContextCache } from '@pothos/core';
-import type { DMMF, RuntimeDataModel } from './get-client';
+import type { DMMF, RuntimeDataModel } from './get-client.js';
 
 export interface FieldMap {
   model: string;

@@ -18,18 +18,18 @@ import type {
   LoadableUnionOptions,
   PothosDataloaderPlugin,
   ShapeFromLoadResult,
-} from '.';
-import type { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
-import type { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface';
-import type { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object';
-import type { LoadableUnionRef } from './refs/union';
+} from './index.js';
+import type { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs/index.js';
+import type { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface.js';
+import type { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object.js';
+import type { LoadableUnionRef } from './refs/union.js';
 import type {
   DataLoaderOptions,
   DataloaderObjectTypeOptions,
   LoadableFieldOptions,
   LoadableNodeId,
   LoadableNodeOptions,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

@@ -1,7 +1,7 @@
 import { type MaybePromise, PothosValidationError, type SchemaTypes } from '@pothos/core';
-import type SubscriptionCache from './cache';
-import FieldSubscriptionManager from './manager/field';
-import TypeSubscriptionManager from './manager/type';
+import type SubscriptionCache from './cache.js';
+import FieldSubscriptionManager from './manager/field.js';
+import TypeSubscriptionManager from './manager/type.js';
 
 export default class CacheNode<Types extends SchemaTypes> {
   path: string;

@@ -16,8 +16,8 @@ import type {
   LoadableGroupFieldOptions,
   LoadableListFieldOptions,
   LoaderShapeFromType,
-} from './types';
-import { pathDataloaderGetter, rejectErrors } from './util';
+} from './types.js';
+import { pathDataloaderGetter, rejectErrors } from './util.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,

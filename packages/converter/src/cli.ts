@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { buildSchema } from 'graphql';
 import yargs from 'yargs';
-import PothosConverter from '.';
+import PothosConverter from './index.js';
 
 export default yargs().command(
   'convert <path>',

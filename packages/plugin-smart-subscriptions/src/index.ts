@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
@@ -7,15 +7,15 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import { defaultFieldResolver, type GraphQLFieldResolver, type GraphQLTypeResolver } from 'graphql';
-import SubscriptionCache from './cache';
-import { getFieldSubscribe } from './create-field-data';
-import SubscriptionManager from './manager';
-import resolveWithCache from './resolve-with-cache';
+import SubscriptionCache from './cache.js';
+import { getFieldSubscribe } from './create-field-data.js';
+import SubscriptionManager from './manager/index.js';
+import resolveWithCache from './resolve-with-cache.js';
 
 const DEFAULT_DEBOUNCE_DELAY = 10;
 
-export * from './types';
-export * from './utils';
+export * from './types.js';
+export * from './utils.js';
 
 const pluginName = 'smartSubscriptions';
 
@@ -151,9 +151,9 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
 
 SchemaBuilder.registerPlugin(pluginName, PothosSmartSubscriptionsPlugin);
 
-export { default as SubscriptionCache } from './cache';
-export { default as CacheNode } from './cache-node';
-export { default as SubscriptionManager } from './manager';
-export { default as BaseSubscriptionManager } from './manager/base';
-export { default as FieldSubscriptionManager } from './manager/field';
-export { default as TypeSubscriptionManager } from './manager/type';
+export { default as SubscriptionCache } from './cache.js';
+export { default as CacheNode } from './cache-node.js';
+export { default as BaseSubscriptionManager } from './manager/base.js';
+export { default as FieldSubscriptionManager } from './manager/field.js';
+export { default as SubscriptionManager } from './manager/index.js';
+export { default as TypeSubscriptionManager } from './manager/type.js';

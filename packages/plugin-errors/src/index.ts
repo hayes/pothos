@@ -1,6 +1,6 @@
-import './global-types';
-import './schema-builder';
-import './field-builder';
+import './global-types.js';
+import './schema-builder.js';
+import './field-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type ImplementableObjectRef,
@@ -13,7 +13,7 @@ import SchemaBuilder, {
   unwrapOutputFieldType,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';
-import type { ErrorFieldOptions, GetTypeName } from './types';
+import type { ErrorFieldOptions, GetTypeName } from './types.js';
 import {
   defaultGetListItemResultName,
   defaultGetListItemUnionName,
@@ -26,10 +26,10 @@ import {
   wrapOrThrow,
   yieldAsyncErrors,
   yieldErrors,
-} from './utils';
+} from './utils.js';
 
-export * from './types';
-export * from './utils';
+export * from './types.js';
+export * from './utils.js';
 
 const pluginName = 'errors';
 

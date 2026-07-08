@@ -17,11 +17,11 @@ import type {
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
-import type { PothosDrizzlePlugin } from '.';
-import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
-import type { DrizzleInterfaceRef, DrizzleRef } from './interface-ref';
-import type { DrizzleNodeRef } from './node-ref';
-import type { DrizzleObjectRef, drizzleTableKey } from './object-ref';
+import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
+import type { PothosDrizzlePlugin } from './index.js';
+import type { DrizzleInterfaceRef, DrizzleRef } from './interface-ref.js';
+import type { DrizzleNodeRef } from './node-ref.js';
+import type { DrizzleObjectRef, drizzleTableKey } from './object-ref.js';
 import type {
   DrizzleConnectionFieldOptions,
   DrizzleConnectionShape,
@@ -35,7 +35,7 @@ import type {
   drizzleTableName,
   ShapeFromConnection,
   ShapeFromIdColumns,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

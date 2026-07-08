@@ -3,13 +3,13 @@ import { type FieldKind, ObjectRef, RootFieldBuilder, type SchemaTypes } from '@
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import { isInterfaceType, isObjectType, Kind } from 'graphql';
-import type { DrizzleRef } from './interface-ref';
-import type { DrizzleConnectionFieldOptions } from './types';
-import { getSchemaConfig } from './utils/config';
-import { resolveDrizzleCursorConnection } from './utils/cursors';
-import { queryFromInfo } from './utils/map-query';
-import { getRefFromModel } from './utils/refs';
-import type { SelectionMap } from './utils/selections';
+import type { DrizzleRef } from './interface-ref.js';
+import type { DrizzleConnectionFieldOptions } from './types.js';
+import { getSchemaConfig } from './utils/config.js';
+import { resolveDrizzleCursorConnection } from './utils/cursors.js';
+import { queryFromInfo } from './utils/map-query.js';
+import { getRefFromModel } from './utils/refs.js';
+import type { SelectionMap } from './utils/selections.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,

@@ -5,8 +5,8 @@ import {
   outputShapeKey,
   type PothosEnumTypeConfig,
   type SchemaTypes,
-} from '../types';
-import { BaseTypeRef } from './base';
+} from '../types/index.js';
+import { BaseTypeRef } from './base.js';
 
 export class EnumRef<Types extends SchemaTypes, T, U = T>
   extends BaseTypeRef<Types, PothosEnumTypeConfig>

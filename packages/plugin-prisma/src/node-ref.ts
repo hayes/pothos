@@ -1,6 +1,6 @@
 import type { SchemaTypes } from '@pothos/core';
-import { PrismaObjectRef } from './object-ref';
-import type { PrismaModelTypes } from './types';
+import { PrismaObjectRef } from './object-ref.js';
+import type { PrismaModelTypes } from './types.js';
 
 export class PrismaNodeRef<
   Types extends SchemaTypes,

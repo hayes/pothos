@@ -12,25 +12,25 @@ import {
   type GraphQLTypeResolver,
   lexicographicSortSchema,
 } from 'graphql';
-import { BuildCache } from './build-cache';
-import { ConfigStore } from './config-store';
-import { PothosError } from './errors';
-import { InputFieldBuilder } from './fieldUtils/input';
-import { InterfaceFieldBuilder } from './fieldUtils/interface';
-import { MutationFieldBuilder } from './fieldUtils/mutation';
-import { ObjectFieldBuilder } from './fieldUtils/object';
-import { QueryFieldBuilder } from './fieldUtils/query';
-import { SubscriptionFieldBuilder } from './fieldUtils/subscription';
-import { BaseTypeRef } from './refs/base';
-import { EnumRef } from './refs/enum';
-import { ImplementableInputObjectRef, InputObjectRef } from './refs/input-object';
-import { ImplementableInterfaceRef, InterfaceRef } from './refs/interface';
-import { MutationRef } from './refs/mutation';
-import { ImplementableObjectRef, ObjectRef } from './refs/object';
-import { QueryRef } from './refs/query';
-import { ScalarRef } from './refs/scalar';
-import { SubscriptionRef } from './refs/subscription';
-import { UnionRef } from './refs/union';
+import { BuildCache } from './build-cache.js';
+import { ConfigStore } from './config-store.js';
+import { PothosError } from './errors.js';
+import { InputFieldBuilder } from './fieldUtils/input.js';
+import { InterfaceFieldBuilder } from './fieldUtils/interface.js';
+import { MutationFieldBuilder } from './fieldUtils/mutation.js';
+import { ObjectFieldBuilder } from './fieldUtils/object.js';
+import { QueryFieldBuilder } from './fieldUtils/query.js';
+import { SubscriptionFieldBuilder } from './fieldUtils/subscription.js';
+import { BaseTypeRef } from './refs/base.js';
+import { EnumRef } from './refs/enum.js';
+import { ImplementableInputObjectRef, InputObjectRef } from './refs/input-object.js';
+import { ImplementableInterfaceRef, InterfaceRef } from './refs/interface.js';
+import { MutationRef } from './refs/mutation.js';
+import { ImplementableObjectRef, ObjectRef } from './refs/object.js';
+import { QueryRef } from './refs/query.js';
+import { ScalarRef } from './refs/scalar.js';
+import { SubscriptionRef } from './refs/subscription.js';
+import { UnionRef } from './refs/union.js';
 import type {
   AbstractReturnShape,
   AddVersionedDefaultsToBuilderOptions,
@@ -69,8 +69,8 @@ import type {
   SubscriptionFieldsShape,
   SubscriptionFieldThunk,
   ValuesFromEnum,
-} from './types';
-import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
+} from './types/index.js';
+import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.js';
 
 export class SchemaBuilder<Types extends SchemaTypes> {
   $inferSchemaTypes!: Types;

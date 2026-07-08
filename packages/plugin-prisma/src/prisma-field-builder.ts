@@ -24,8 +24,8 @@ import {
   isInterfaceType,
   isObjectType,
 } from 'graphql';
-import type { PrismaRef } from './interface-ref';
-import { ModelLoader } from './model-loader';
+import type { PrismaRef } from './interface-ref.js';
+import { ModelLoader } from './model-loader.js';
 import type {
   PrismaConnectionShape,
   PrismaModelTypes,
@@ -36,17 +36,17 @@ import type {
   ShapeFromConnection,
   TypesForRelation,
   VariantFieldOptions,
-} from './types';
+} from './types.js';
 import {
   getCursorFormatter,
   getCursorParser,
   prismaCursorConnectionQuery,
   wrapConnectionResult,
-} from './util/cursors';
-import { getRefFromModel, getRelation } from './util/datamodel';
-import { getFieldDescription } from './util/description';
+} from './util/cursors.js';
+import { getRefFromModel, getRelation } from './util/datamodel.js';
+import { getFieldDescription } from './util/description.js';
 
-import type { FieldMap } from './util/relation-map';
+import type { FieldMap } from './util/relation-map.js';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {

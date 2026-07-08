@@ -1,5 +1,5 @@
 import { sortClasses, typeBrandKey } from '@pothos/core';
-import type { GetTypeName } from './types';
+import type { GetTypeName } from './types.js';
 
 export { typeBrandKey };
 

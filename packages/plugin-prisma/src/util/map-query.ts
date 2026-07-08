@@ -24,17 +24,17 @@ import type {
   IndirectInclude,
   LoaderMappings,
   SelectionMap,
-} from '../types';
-import { setLoaderMappings } from './loader-map';
-import type { FieldMap } from './relation-map';
+} from '../types.js';
+import { setLoaderMappings } from './loader-map.js';
+import type { FieldMap } from './relation-map.js';
 import {
   createState,
   mergeSelection,
   type SelectionState,
   selectionCompatible,
   selectionToQuery,
-} from './selections';
-import { wrapWithUsageCheck } from './usage';
+} from './selections.js';
+import { wrapWithUsageCheck } from './usage.js';
 
 function addTypeSelectionsForField(
   type: GraphQLNamedType,

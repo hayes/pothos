@@ -6,17 +6,17 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { SelectionMap } from './types';
-import { getDelegateFromModel, getModel } from './util/datamodel';
-import { getClient } from './util/get-client';
-import { cacheKey, setLoaderMappings } from './util/loader-map';
-import { selectionStateFromInfo } from './util/map-query';
+import type { SelectionMap } from './types.js';
+import { getDelegateFromModel, getModel } from './util/datamodel.js';
+import { getClient } from './util/get-client.js';
+import { cacheKey, setLoaderMappings } from './util/loader-map.js';
+import { selectionStateFromInfo } from './util/map-query.js';
 import {
   mergeSelection,
   type SelectionState,
   selectionCompatible,
   selectionToQuery,
-} from './util/selections';
+} from './util/selections.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;

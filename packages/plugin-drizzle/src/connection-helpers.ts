@@ -6,17 +6,17 @@ import type {
   TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { DrizzleRef } from './interface-ref';
-import type { QueryForDrizzleConnection } from './types';
-import { getSchemaConfig } from './utils/config';
+import type { DrizzleRef } from './interface-ref.js';
+import type { QueryForDrizzleConnection } from './types.js';
+import { getSchemaConfig } from './utils/config.js';
 import {
   drizzleCursorConnectionQuery,
   getCursorFormatter,
   wrapConnectionResult,
-} from './utils/cursors';
-import { queryFromInfo } from './utils/map-query';
-import { getRefFromModel } from './utils/refs';
-import { createState, mergeSelection, selectionToQuery } from './utils/selections';
+} from './utils/cursors.js';
+import { queryFromInfo } from './utils/map-query.js';
+import { getRefFromModel } from './utils/refs.js';
+import { createState, mergeSelection, selectionToQuery } from './utils/selections.js';
 
 export function drizzleConnectionHelpers<
   Types extends SchemaTypes,

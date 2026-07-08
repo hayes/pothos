@@ -6,8 +6,8 @@ import type {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import type { PothosTracingPlugin } from '.';
-import type { TracingFieldOptions, TracingFieldWrapper } from './types';
+import type { PothosTracingPlugin } from './index.js';
+import type { TracingFieldOptions, TracingFieldWrapper } from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

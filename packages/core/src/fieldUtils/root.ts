@@ -1,4 +1,4 @@
-import { ListRef } from '../refs/list';
+import { ListRef } from '../refs/list.js';
 import type {
   ArgBuilder,
   DistributeOmit,
@@ -10,9 +10,9 @@ import type {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '../types';
-import { BaseFieldUtil } from './base';
-import { InputFieldBuilder } from './input';
+} from '../types/index.js';
+import { BaseFieldUtil } from './base.js';
+import { InputFieldBuilder } from './input.js';
 
 export class RootFieldBuilder<
   Types extends SchemaTypes,

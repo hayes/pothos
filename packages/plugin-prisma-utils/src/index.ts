@@ -1,5 +1,5 @@
-import './global-types';
-import './schema-builder';
+import './global-types.js';
+import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
@@ -11,7 +11,7 @@ import SchemaBuilder, {
   unwrapInputFieldType,
 } from '@pothos/core';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'prismaUtils';
 

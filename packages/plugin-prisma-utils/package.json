@@ -17,13 +17,12 @@
   "scripts": {
     "generate": "prisma generate && tsx tests/examples/codegen/generator.ts && pnpm schema",
     "schema": "tsx tests/examples/codegen/schema/index.ts && tsx tests/examples/crud/schema/index.ts",
-    "type": "tsgo --project tsconfig.type.json",
+    "type": "tsc --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
-    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
-    "build:dts": "tsgo",
-    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths",
+    "build:dts": "tsc",
     "test": "pnpm prisma migrate reset -f && pnpm prisma db seed && pnpm vitest --run"
   },
   "repository": {
@@ -64,13 +63,12 @@
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "@types/pg": "^8.20.0",
+    "@typescript/typescript6": "^6.0.2",
     "graphql-scalars": "^1.25.0",
     "graphql-tag": "^2.12.6",
     "pg": "^8.20.0",
     "prettier": "^3.8.2",
     "prisma": "^7.7.0",
-    "ts-node": "^10.9.2",
-    "typescript": "6.0.2",
     "zod": "^4.3.6"
   }
 }

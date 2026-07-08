@@ -6,7 +6,7 @@ import type {
   PothosPrismaUtilsPlugin,
   PrismaCreateManyOptions,
   PrismaIntAtomicUpdateOptions,
-} from '.';
+} from './index.js';
 import type {
   FilterListOps,
   FilterOps,
@@ -27,7 +27,7 @@ import type {
   PrismaWhereUniqueOptions,
   ScalarListFilterShape,
   ScalarListOps,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

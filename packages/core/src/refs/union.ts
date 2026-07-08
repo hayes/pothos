@@ -1,11 +1,11 @@
-import type { PothosUnionTypeConfig, SchemaTypes } from '../types';
+import type { PothosUnionTypeConfig, SchemaTypes } from '../types/index.js';
 import {
   type ObjectParam,
   type OutputRef,
   outputShapeKey,
   parentShapeKey,
-} from '../types/type-params';
-import { BaseTypeRef } from './base';
+} from '../types/type-params.js';
+import { BaseTypeRef } from './base.js';
 
 export class UnionRef<Types extends SchemaTypes, T, P = T>
   extends BaseTypeRef<Types, PothosUnionTypeConfig>

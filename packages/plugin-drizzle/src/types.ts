@@ -39,10 +39,10 @@ import type {
   TableRelationalConfig,
 } from 'drizzle-orm';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
-import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
-import type { DrizzleRef } from './interface-ref';
-import type { IndirectInclude } from './utils/map-query';
-import type { SelectionMap } from './utils/selections';
+import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
+import type { DrizzleRef } from './interface-ref.js';
+import type { IndirectInclude } from './utils/map-query.js';
+import type { SelectionMap } from './utils/selections.js';
 
 export interface FieldPathInfo {
   field: string;
@@ -736,4 +736,4 @@ export interface DrizzleGraphQLInputExtensions {
   inputType: 'insert' | 'filters' | 'orderBy' | 'update';
 }
 
-export { DrizzleObjectRef } from './object-ref';
+export { DrizzleObjectRef } from './object-ref.js';

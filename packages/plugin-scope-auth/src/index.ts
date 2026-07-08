@@ -1,6 +1,6 @@
-import './global-types';
-import './schema-builder';
-import './field-builders';
+import './global-types.js';
+import './schema-builder.js';
+import './field-builders.js';
 import SchemaBuilder, {
   BasePlugin,
   type FieldKind,
@@ -15,20 +15,20 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
-import { isTypeOfHelper } from './is-type-of-helper';
-import RequestCache from './request-cache';
-import { resolveHelper } from './resolve-helper';
+import { isTypeOfHelper } from './is-type-of-helper.js';
+import RequestCache from './request-cache.js';
+import { resolveHelper } from './resolve-helper.js';
 import {
   createFieldAuthScopesStep,
   createFieldGrantScopesStep,
   createResolveStep,
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
-} from './steps';
-import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
+} from './steps.js';
+import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.js';
 
-export * from './errors';
-export * from './types';
+export * from './errors.js';
+export * from './types.js';
 export { RequestCache };
 
 const pluginName = 'scopeAuth';

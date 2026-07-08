@@ -6,8 +6,8 @@ import {
   type PothosScalarTypeConfig,
   parentShapeKey,
   type SchemaTypes,
-} from '../types';
-import { BaseTypeRef } from './base';
+} from '../types/index.js';
+import { BaseTypeRef } from './base.js';
 
 export class ScalarRef<Types extends SchemaTypes, T, U, P = T>
   extends BaseTypeRef<Types, PothosScalarTypeConfig>

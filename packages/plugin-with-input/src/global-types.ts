@@ -7,13 +7,13 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import type { PothosWithInputPlugin } from '.';
+import type { PothosWithInputPlugin } from './index.js';
 import type {
   FieldWithInputOptions,
   WithInputArgOptions,
   WithInputBuilderOptions,
   WithInputTypeOptions,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

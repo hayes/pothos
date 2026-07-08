@@ -14,7 +14,7 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import type { PothosScopeAuthPlugin } from '.';
+import type { PothosScopeAuthPlugin } from './index.js';
 import type {
   AuthScopeMap,
   ContextForAuth,
@@ -27,7 +27,7 @@ import type {
   TypeAuthScopes,
   TypeGrantScopes,
   UnauthorizedOptions,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

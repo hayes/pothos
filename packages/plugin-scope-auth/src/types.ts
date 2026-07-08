@@ -10,7 +10,7 @@ import type {
   UnionToIntersection,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type RequestCache from './request-cache';
+import type RequestCache from './request-cache.js';
 
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
   unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;

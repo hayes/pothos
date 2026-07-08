@@ -7,9 +7,9 @@ import {
   setSegment,
 } from 'aws-xray-sdk-core';
 import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';
-import { AttributeNames, SpanNames } from './enums';
+import { AttributeNames, SpanNames } from './enums.js';
 
-export * from './enums';
+export * from './enums.js';
 
 interface XRayWrapperOptions<T> {
   includeArgs?: boolean;

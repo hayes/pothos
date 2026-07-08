@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type ContextCache,
@@ -8,13 +8,13 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { calculateComplexity } from './calculate-complexity';
-import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
-import { type ComplexityErrorFn, ComplexityErrorKind, type ComplexityResult } from './types';
+import { calculateComplexity } from './calculate-complexity.js';
+import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.js';
+import { type ComplexityErrorFn, ComplexityErrorKind, type ComplexityResult } from './types.js';
 
-export * from './types';
-export * from './util';
-export * from './validator';
+export * from './types.js';
+export * from './util.js';
+export * from './validator.js';
 
 const pluginName = 'complexity';
 

@@ -7,7 +7,7 @@ import {
   type PartialResolveInfo,
   type SchemaTypes,
 } from '@pothos/core';
-import type { StandardSchemaV1 } from './standard-schema';
+import type { StandardSchemaV1 } from './standard-schema.js';
 
 export function createArgsValidator<Types extends SchemaTypes>(
   argMappings: InputFieldsMapping<

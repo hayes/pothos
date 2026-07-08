@@ -9,7 +9,7 @@ datasource db {
 }
 
 generator pothos {
-    provider          = "node -r @swc-node/register ./src/generator.ts"
+    provider          = "tsx ./src/generator.ts"
     clientOutput      = "./client"
     pluginPath        = "../../src"
     output            = "./generated.ts"

@@ -6,6 +6,7 @@ import SchemaBuilder, {
   type FieldRef,
   getTypeBrand,
   InputObjectRef,
+  type InterfaceParam,
   type InterfaceRef,
   isThenable,
   type MaybePromise,
@@ -17,10 +18,10 @@ import SchemaBuilder, {
   verifyRef,
 } from '@pothos/core';
 import { defaultTypeResolver } from 'graphql';
-import { ImplementableNodeRef, NodeRef } from './node-ref';
-import type { ConnectionShape, PageInfoShape } from './types';
-import { capitalize, resolveNodes } from './utils';
-import { addNodeProperties } from './utils/add-node-props';
+import { ImplementableNodeRef, NodeRef } from './node-ref.js';
+import type { ConnectionShape, PageInfoShape } from './types.js';
+import { addNodeProperties } from './utils/add-node-props.js';
+import { capitalize, resolveNodes } from './utils/index.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -271,7 +272,10 @@ schemaBuilderProto.node = function node(
     this.configStore.associateParamWithRef(param, ref);
   }
 
-  this.objectType(
+  // The explicit type arguments avoid an inference difference between typescript 6 and 7 that
+  // causes typescript 7 to infer the objectType param from the fields/options arguments instead
+  // of the ref (see https://github.com/microsoft/typescript-go "same errors as 6.0" parity goal)
+  this.objectType<InterfaceParam<SchemaTypes>[], typeof ref>(
     ref,
     {
       name: nodeName,
@@ -392,6 +396,21 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     }),
   });
 
+  // Annotating the wrapper as `typeof resolve` (rather than letting its return type be
+  // re-inferred from the call) keeps the conditional return type assignable under both
+  // typescript 6 and 7
+  const wrappedResolve: typeof resolve = (root, fieldArgs, context, info) => {
+    if (inputRef) {
+      mutationIdCache(context).set(
+        String(info.path.key),
+        (fieldArgs as unknown as Record<string, { clientMutationId: string }>)[argName]
+          .clientMutationId,
+      );
+    }
+
+    return resolve(root, fieldArgs, context, info);
+  };
+
   this.mutationField(fieldName, (t) =>
     t.field({
       ...this.options.relay?.relayMutationFieldOptions,
@@ -409,17 +428,12 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
             }
           : {}),
       },
-      resolve: (root, fieldArgs, context, info) => {
-        if (inputRef) {
-          mutationIdCache(context).set(
-            String(info.path.key),
-            (fieldArgs as unknown as Record<string, { clientMutationId: string }>)[argName]
-              .clientMutationId,
-          );
-        }
-
-        return resolve(root, fieldArgs as never, context, info);
-      },
+      // typescript 7 (unlike 6) can't relate the declared Resolver type to the impl-side
+      // Resolver<..., any, ResolveReturnShape> here — even passing `resolve` through unchanged
+      // fails. wrappedResolve is fully checked against `typeof resolve` above, so this cast only
+      // bridges the checker divergence (typescript-go conditional-type assignability, see
+      // https://github.com/microsoft/typescript-go/issues/4408 for the same class of error)
+      resolve: wrappedResolve as never,
     }),
   );
 

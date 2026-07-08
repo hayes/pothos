@@ -1,9 +1,9 @@
 import { pathToString } from '@pothos/plugin-tracing';
 import { type GraphQLFieldResolver, print } from 'graphql';
 import newrelic from 'newrelic';
-import { AttributeNames } from './enums';
+import { AttributeNames } from './enums.js';
 
-export * from './enums';
+export * from './enums.js';
 
 export interface NewRelicWrapperOptions {
   includeArgs?: boolean;

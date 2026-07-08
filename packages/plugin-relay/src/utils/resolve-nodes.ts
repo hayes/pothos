@@ -8,7 +8,7 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { NodeObjectOptions } from '../types';
+import type { NodeObjectOptions } from '../types.js';
 
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 

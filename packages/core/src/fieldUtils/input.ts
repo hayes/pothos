@@ -1,6 +1,6 @@
-import { ArgumentRef } from '../refs/arg';
-import { InputFieldRef } from '../refs/input-field';
-import { InputListRef } from '../refs/input-list';
+import { ArgumentRef } from '../refs/arg.js';
+import { InputFieldRef } from '../refs/input-field.js';
+import { InputListRef } from '../refs/input-list.js';
 import type {
   ArgBuilder,
   FieldRequiredness,
@@ -10,8 +10,8 @@ import type {
   InputTypeParam,
   NormalizeArgs,
   SchemaTypes,
-} from '../types';
-import { inputTypeFromParam } from '../utils';
+} from '../types/index.js';
+import { inputTypeFromParam } from '../utils/index.js';
 
 export class InputFieldBuilder<
   Types extends SchemaTypes,

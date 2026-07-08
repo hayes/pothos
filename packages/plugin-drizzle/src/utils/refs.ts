@@ -1,6 +1,6 @@
 import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
-import { DrizzleInterfaceRef, type DrizzleRef } from '../interface-ref';
-import { DrizzleObjectRef } from '../object-ref';
+import { DrizzleInterfaceRef, type DrizzleRef } from '../interface-ref.js';
+import { DrizzleObjectRef } from '../object-ref.js';
 
 export const refMap = new WeakMap<object, Map<string, DrizzleRef<never>>>();
 

@@ -5,9 +5,9 @@ import {
   inputShapeKey,
   type PothosInputObjectTypeConfig,
   type SchemaTypes,
-} from '../types';
-import { BaseTypeRef } from './base';
-import type { InputFieldRef } from './input-field';
+} from '../types/index.js';
+import { BaseTypeRef } from './base.js';
+import type { InputFieldRef } from './input-field.js';
 
 export class InputObjectRef<Types extends SchemaTypes, T>
   extends BaseTypeRef<Types, PothosInputObjectTypeConfig>

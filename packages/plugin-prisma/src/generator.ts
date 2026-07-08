@@ -1,28 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, resolve as resolvePath } from 'node:path';
 import { type DMMF, generatorHandler } from '@prisma/generator-helper';
-import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
-import type { PothosPrismaDatamodel } from './types';
-
-const MIN_TS_VERSION = [4, 5, 2] as const;
-
-const versionParts = version.split(/[.-]/g).map((part) => Number.parseInt(part, 10));
-const modifiersArg = (versionParts[0] >= 5 ? [] : [[]]) as [];
-
-function checkVersion(expected: readonly [number, number, number]) {
-  for (let i = 0; i < 3; i += 1) {
-    const part = versionParts[i];
-    if (part < expected[i]) {
-      return false;
-    }
-
-    if (part > expected[i]) {
-      return true;
-    }
-  }
-
-  return true;
-}
+import type { PothosPrismaDatamodel } from './types.js';
 
 const defaultOutput = resolvePath(__dirname, '../generated.d.ts');
 
@@ -40,12 +19,6 @@ generatorHandler({
     defaultOutput,
   }),
   onGenerate: async (options) => {
-    if (!checkVersion(MIN_TS_VERSION)) {
-      throw new Error(
-        `@pothos/plugin-prisma requires typescript version >${MIN_TS_VERSION.join('.')}`,
-      );
-    }
-
     const config = options.generator.config as GeneratorConfig;
     const prismaOutputLocation =
       config.clientOutput ??
@@ -133,97 +106,39 @@ function trimDmmf(dmmf: DMMF.Document, documentation = false): PothosPrismaDatam
   return trimmed;
 }
 
+// Double-quoted string literal, matching the output of the typescript printer
+// previously used to emit these files
+function stringLiteral(value: string) {
+  return JSON.stringify(value);
+}
+
 // biome-ignore lint/suspicious/useAwait: needs to be async
 async function generateOutput(
   dmmf: DMMF.Document,
-  prismaTypes: ts.InterfaceDeclaration,
+  prismaTypes: string,
   prismaLocation: string,
   outputLocation: string,
   config: GeneratorConfig,
   datamodel?: 'esm' | 'cjs',
 ) {
-  const prismaImportStatement = ts.factory.createImportDeclaration(
-    ...modifiersArg,
-    [],
-    ts.factory.createImportClause(
-      true,
-      undefined,
-      ts.factory.createNamedImports([
-        ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier('Prisma')),
-        ...dmmf.datamodel.models.map((model) =>
-          ts.factory.createImportSpecifier(
-            false,
-            undefined,
-            ts.factory.createIdentifier(model.name),
-          ),
-        ),
-      ]),
-    ),
-    ts.factory.createStringLiteral(prismaLocation),
-  );
+  const modelNames = dmmf.datamodel.models.map((model) => model.name);
+  const prismaImportStatement = `import type { ${['Prisma', ...modelNames].join(', ')} } from ${stringLiteral(prismaLocation)};`;
 
-  const dmmfImportStatement = ts.factory.createImportDeclaration(
-    ...modifiersArg,
-    [],
-    ts.factory.createImportClause(
-      true,
-      undefined,
-      ts.factory.createNamedImports([
-        ts.factory.createImportSpecifier(
-          false,
-          undefined,
-          ts.factory.createIdentifier('PothosPrismaDatamodel'),
-        ),
-      ]),
-    ),
-    ts.factory.createStringLiteral(config.pluginPath ?? '@pothos/plugin-prisma'),
-  );
-
-  const printer = ts.createPrinter({});
-
-  const sourcefile = ts.createSourceFile(
-    outputLocation,
-    '',
-    ScriptTarget.ESNext,
-    false,
-    ScriptKind.TS,
-  );
+  const dmmfImportStatement = `import type { PothosPrismaDatamodel } from ${stringLiteral(config.pluginPath ?? '@pothos/plugin-prisma')};`;
 
   const trimmedDatamodel = trimDmmf(dmmf, config.documentation === 'true');
 
-  const dmmfExport = ts.factory.createFunctionDeclaration(
-    [ts.factory.createModifier(SyntaxKind.ExportKeyword)],
-    undefined,
-    'getDatamodel',
-    [],
-    [],
-    ts.factory.createTypeReferenceNode('PothosPrismaDatamodel'),
-    outputLocation.endsWith('.d.ts')
-      ? undefined
-      : ts.factory.createBlock([
-          ts.factory.createReturnStatement(
-            ts.factory.createCallExpression(
-              ts.factory.createPropertyAccessExpression(
-                ts.factory.createIdentifier('JSON'),
-                'parse',
-              ),
-              [],
-              [ts.factory.createStringLiteral(JSON.stringify(trimmedDatamodel))],
-            ),
-          ),
-        ]),
-  );
+  const dmmfExport = outputLocation.endsWith('.d.ts')
+    ? 'export function getDatamodel(): PothosPrismaDatamodel;'
+    : `export function getDatamodel(): PothosPrismaDatamodel { return JSON.parse(${JSON.stringify(JSON.stringify(trimmedDatamodel))}); }`;
 
-  const nodes = ts.factory.createNodeArray(
+  const statements =
     config.generateDatamodel !== 'false'
       ? [prismaImportStatement, dmmfImportStatement, prismaTypes, dmmfExport]
-      : [prismaImportStatement, prismaTypes],
-  );
+      : [prismaImportStatement, prismaTypes];
 
-  const result = printer.printList(ListFormat.SourceFileStatements, nodes, sourcefile);
-
-  mkdirSync(dirname(sourcefile.fileName), { recursive: true });
-  writeFileSync(sourcefile.fileName, `/* eslint-disable */\n${result}`);
+  mkdirSync(dirname(outputLocation), { recursive: true });
+  writeFileSync(outputLocation, `/* eslint-disable */\n${statements.join('\n')}`);
 
   if (outputLocation.endsWith('.d.ts')) {
     if (config.generateDatamodel === 'true' && datamodel === 'cjs') {
@@ -262,6 +177,10 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
 
   const prismaUtils = config.prismaUtils === 'true';
 
+  function stringUnion(values: readonly string[]) {
+    return values.length > 0 ? values.map((value) => stringLiteral(value)).join(' | ') : 'never';
+  }
+
   const modelTypes = dmmf.datamodel.models.map((model) => {
     const relations = model.fields.filter((field) => !!field.relationName);
     const listRelations = model.fields.filter((field) => !!field.relationName && field.isList);
@@ -274,171 +193,42 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
       (input) => input.name === `${model.name}UpdateInput`,
     );
 
-    return ts.factory.createPropertySignature(
-      [],
-      model.name,
-      undefined,
+    const relationEntries = relations.map((field) => {
+      const typeName = field.type;
+      const shape = field.isList
+        ? `${typeName}[]`
+        : field.isRequired
+          ? typeName
+          : `${typeName} | null`;
 
-      ts.factory.createTypeLiteralNode([
-        ts.factory.createPropertySignature(
-          [],
-          'Name',
-          undefined,
-          ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(model.name)),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'Shape',
-          undefined,
-          ts.factory.createTypeReferenceNode(model.name),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'Include',
-          undefined,
-          relations.length > 0
-            ? ts.factory.createTypeReferenceNode(`Prisma.${model.name}Include`)
-            : ts.factory.createTypeReferenceNode('never'),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'Select',
-          undefined,
-          ts.factory.createTypeReferenceNode(`Prisma.${model.name}Select`),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'OrderBy',
-          undefined,
-          ts.factory.createTypeReferenceNode(`Prisma.${getOrderByTypeName(model.name)}`),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'WhereUnique',
-          undefined,
-          ts.factory.createTypeReferenceNode(`Prisma.${model.name}WhereUniqueInput`),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'Where',
-          undefined,
-          ts.factory.createTypeReferenceNode(`Prisma.${model.name}WhereInput`),
-        ),
-        ...(prismaUtils
-          ? [
-              ts.factory.createPropertySignature(
-                [],
-                'Create',
-                undefined,
-                createInputUnavailable
-                  ? ts.factory.createTypeLiteralNode([])
-                  : ts.factory.createTypeReferenceNode(`Prisma.${model.name}CreateInput`),
-              ),
-              ts.factory.createPropertySignature(
-                [],
-                'Update',
-                undefined,
-                updateInputUnavailable
-                  ? ts.factory.createTypeLiteralNode([])
-                  : ts.factory.createTypeReferenceNode(`Prisma.${model.name}UpdateInput`),
-              ),
-            ]
-          : [
-              ts.factory.createPropertySignature(
-                [],
-                'Create',
-                undefined,
-                ts.factory.createTypeLiteralNode([]),
-              ),
-              ts.factory.createPropertySignature(
-                [],
-                'Update',
-                undefined,
-                ts.factory.createTypeLiteralNode([]),
-              ),
-            ]),
-        ts.factory.createPropertySignature(
-          [],
-          'RelationName',
-          undefined,
-          relations.length > 0
-            ? ts.factory.createUnionTypeNode(
-                relations.map((field) =>
-                  ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(field.name)),
-                ),
-              )
-            : ts.factory.createTypeReferenceNode('never'),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'ListRelations',
-          undefined,
-          listRelations.length > 0
-            ? ts.factory.createUnionTypeNode(
-                listRelations.map((field) =>
-                  ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(field.name)),
-                ),
-              )
-            : ts.factory.createTypeReferenceNode('never'),
-        ),
-        ts.factory.createPropertySignature(
-          [],
-          'Relations',
-          undefined,
-          ts.factory.createTypeLiteralNode(
-            relations.map((field) => {
-              const typeName = field.type;
+      return [
+        `            ${field.name}: {`,
+        `                Shape: ${shape};`,
+        `                Name: ${stringLiteral(typeName)};`,
+        `                Nullable: ${field.isRequired ? 'false' : 'true'};`,
+        '            };',
+      ].join('\n');
+    });
 
-              return ts.factory.createPropertySignature(
-                [],
-                field.name,
-                undefined,
-                ts.factory.createTypeLiteralNode([
-                  ts.factory.createPropertySignature(
-                    [],
-                    'Shape',
-                    undefined,
-                    field.isList
-                      ? ts.factory.createArrayTypeNode(ts.factory.createTypeReferenceNode(typeName))
-                      : field.isRequired
-                        ? ts.factory.createTypeReferenceNode(typeName)
-                        : ts.factory.createUnionTypeNode([
-                            ts.factory.createTypeReferenceNode(typeName),
-                            ts.factory.createLiteralTypeNode(ts.factory.createNull()),
-                          ]),
-                  ),
-                  ts.factory.createPropertySignature(
-                    [],
-                    'Name',
-                    undefined,
-                    ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(typeName)),
-                  ),
-                  ts.factory.createPropertySignature(
-                    [],
-                    'Nullable',
-                    undefined,
-                    ts.factory.createLiteralTypeNode(
-                      field.isRequired ? ts.factory.createFalse() : ts.factory.createTrue(),
-                    ),
-                  ),
-                ]),
-              );
-            }),
-          ),
-        ),
-      ]),
-    );
+    return [
+      `    ${model.name}: {`,
+      `        Name: ${stringLiteral(model.name)};`,
+      `        Shape: ${model.name};`,
+      `        Include: ${relations.length > 0 ? `Prisma.${model.name}Include` : 'never'};`,
+      `        Select: Prisma.${model.name}Select;`,
+      `        OrderBy: Prisma.${getOrderByTypeName(model.name)};`,
+      `        WhereUnique: Prisma.${model.name}WhereUniqueInput;`,
+      `        Where: Prisma.${model.name}WhereInput;`,
+      `        Create: ${prismaUtils && !createInputUnavailable ? `Prisma.${model.name}CreateInput` : '{}'};`,
+      `        Update: ${prismaUtils && !updateInputUnavailable ? `Prisma.${model.name}UpdateInput` : '{}'};`,
+      `        RelationName: ${stringUnion(relations.map((field) => field.name))};`,
+      `        ListRelations: ${stringUnion(listRelations.map((field) => field.name))};`,
+      relationEntries.length > 0
+        ? `        Relations: {\n${relationEntries.join('\n')}\n        };`
+        : '        Relations: {};',
+      '    };',
+    ].join('\n');
   });
 
-  return ts.factory.createInterfaceDeclaration(
-    ...modifiersArg,
-    [
-      ts.factory.createModifier(SyntaxKind.ExportKeyword),
-      ts.factory.createModifier(SyntaxKind.DefaultKeyword),
-    ],
-    'PrismaTypes',
-    [],
-    [],
-    modelTypes,
-  );
+  return ['export default interface PrismaTypes {', ...modelTypes, '}'].join('\n');
 }

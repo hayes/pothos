@@ -5,7 +5,7 @@ import {
   type SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
-import type { PrismaModelTypes, WithBrand } from './types';
+import type { PrismaModelTypes, WithBrand } from './types.js';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 

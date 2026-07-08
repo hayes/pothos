@@ -24,8 +24,8 @@ import {
   type SchemaTypes,
   type ShapeFromTypeParam,
 } from '@pothos/core';
-import type { DefaultEdgesNullability, PothosRelayPlugin } from '.';
-import type { ImplementableNodeRef, NodeRef } from './node-ref';
+import type { DefaultEdgesNullability, PothosRelayPlugin } from './index.js';
+import type { ImplementableNodeRef, NodeRef } from './node-ref.js';
 import type {
   ConnectionResultShape,
   ConnectionShape,
@@ -48,7 +48,7 @@ import type {
   RelayMutationInputOptions,
   RelayMutationPayloadOptions,
   RelayPluginOptions,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

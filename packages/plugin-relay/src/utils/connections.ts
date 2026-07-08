@@ -6,7 +6,7 @@ import {
   PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
-import type { ArrayConnectionShape, DefaultConnectionArguments } from '../types';
+import type { ArrayConnectionShape, DefaultConnectionArguments } from '../types.js';
 
 interface ResolveOffsetConnectionOptions {
   args: DefaultConnectionArguments;

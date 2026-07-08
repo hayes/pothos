@@ -5,9 +5,9 @@ import {
   PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
-import { getModel } from './datamodel';
-import type { DMMFField } from './get-client';
-import { extendWithUsage } from './usage';
+import { getModel } from './datamodel.js';
+import type { DMMFField } from './get-client.js';
+import { extendWithUsage } from './usage.js';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;

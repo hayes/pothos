@@ -1,17 +1,17 @@
 import type { InputFieldMap, InputShapeFromFields, ObjectRef, SchemaTypes } from '@pothos/core';
-import type { PrismaRef } from './interface-ref';
-import { ModelLoader } from './model-loader';
-import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types';
+import type { PrismaRef } from './interface-ref.js';
+import { ModelLoader } from './model-loader.js';
+import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types.js';
 import {
   getCursorFormatter,
   getCursorParser,
   prismaCursorConnectionQuery,
   wrapConnectionResult,
-} from './util/cursors';
-import { getRefFromModel } from './util/datamodel';
-import { getDMMF } from './util/get-client';
-import { getRelationMap } from './util/relation-map';
-import { createState, mergeSelection, selectionToQuery } from './util/selections';
+} from './util/cursors.js';
+import { getRefFromModel } from './util/datamodel.js';
+import { getDMMF } from './util/get-client.js';
+import { getRelationMap } from './util/relation-map.js';
+import { createState, mergeSelection, selectionToQuery } from './util/selections.js';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 

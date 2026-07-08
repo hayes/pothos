@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type InputTypeFieldsMapping,
@@ -18,10 +18,10 @@ import createZodSchema, {
   createArrayValidator,
   isArrayValidator,
   refine,
-} from './createZodSchema';
-import type { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types';
+} from './createZodSchema.js';
+import type { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types.js';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'zod';
 
@@ -196,4 +196,4 @@ SchemaBuilder.registerPlugin(pluginName, PothosZodPlugin, {
 
 export default pluginName;
 
-export { default as createZodSchema } from './createZodSchema';
+export { default as createZodSchema } from './createZodSchema.js';

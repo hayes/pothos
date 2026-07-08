@@ -24,8 +24,8 @@ import {
   typeBrandKey,
 } from '@pothos/core';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
-import type { PrismaInterfaceRef, PrismaRef } from './interface-ref';
-import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
+import type { PrismaInterfaceRef, PrismaRef } from './interface-ref.js';
+import type { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
 
 export interface PrismaDelegate {
   // biome-ignore lint/suspicious/noExplicitAny: this is fine

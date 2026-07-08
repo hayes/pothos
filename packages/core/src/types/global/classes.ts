@@ -1,30 +1,30 @@
-import type { SchemaBuilder as Builder } from '../../builder';
-import type { FieldBuilder as InternalFieldBuilder } from '../../fieldUtils/builder';
-import type { InputFieldBuilder as InternalInputFieldBuilder } from '../../fieldUtils/input';
-import type { RootFieldBuilder as InternalRootFieldBuilder } from '../../fieldUtils/root';
-import type { ArgumentRef as InternalArgumentRef } from '../../refs/arg';
-import type { BaseTypeRef as InternalBaseRef } from '../../refs/base';
-import type { EnumRef as InternalEnumRef } from '../../refs/enum';
-import type { FieldRef as InternalFieldRef } from '../../refs/field';
-import type { InputFieldRef as InternalInputFieldRef } from '../../refs/input-field';
-import type { InputListRef as InternalInputListRef } from '../../refs/input-list';
+import type { SchemaBuilder as Builder } from '../../builder.js';
+import type { FieldBuilder as InternalFieldBuilder } from '../../fieldUtils/builder.js';
+import type { InputFieldBuilder as InternalInputFieldBuilder } from '../../fieldUtils/input.js';
+import type { RootFieldBuilder as InternalRootFieldBuilder } from '../../fieldUtils/root.js';
+import type { ArgumentRef as InternalArgumentRef } from '../../refs/arg.js';
+import type { BaseTypeRef as InternalBaseRef } from '../../refs/base.js';
+import type { EnumRef as InternalEnumRef } from '../../refs/enum.js';
+import type { FieldRef as InternalFieldRef } from '../../refs/field.js';
+import type { InputFieldRef as InternalInputFieldRef } from '../../refs/input-field.js';
+import type { InputListRef as InternalInputListRef } from '../../refs/input-list.js';
 import type {
   ImplementableInputObjectRef as InternalImplementableInputObjectRef,
   InputObjectRef as InternalInputObjectRef,
-} from '../../refs/input-object';
+} from '../../refs/input-object.js';
 import type {
   ImplementableInterfaceRef as InternalImplementableInterfaceRef,
   InterfaceRef as InternalInterfaceRef,
-} from '../../refs/interface';
-import type { ListRef as InternalListRef } from '../../refs/list';
+} from '../../refs/interface.js';
+import type { ListRef as InternalListRef } from '../../refs/list.js';
 import type {
   ImplementableObjectRef as InternalImplementableObjectRef,
   ObjectRef as InternalObjectRef,
-} from '../../refs/object';
-import type { ScalarRef as InternalScalarRef } from '../../refs/scalar';
-import type { UnionRef as InternalUnionRef } from '../../refs/union';
-import type { FieldKind } from '../builder-options';
-import type { SchemaTypes } from '../schema-types';
+} from '../../refs/object.js';
+import type { ScalarRef as InternalScalarRef } from '../../refs/scalar.js';
+import type { UnionRef as InternalUnionRef } from '../../refs/union.js';
+import type { FieldKind } from '../builder-options.js';
+import type { SchemaTypes } from '../schema-types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

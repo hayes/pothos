@@ -1,4 +1,4 @@
-import type { RegisterOptions } from '../types';
+import type { RegisterOptions } from '../types.js';
 
 type Timer = ReturnType<typeof setTimeout>;
 export default class SubscriptionManager implements AsyncIterator<object> {

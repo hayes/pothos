@@ -1,4 +1,4 @@
-import { PothosValidationError } from '../errors';
+import { PothosValidationError } from '../errors.js';
 
 const getGlobalThis = () => {
   if (typeof globalThis !== 'undefined') {

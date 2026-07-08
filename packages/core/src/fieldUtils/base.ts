@@ -1,6 +1,6 @@
 import { defaultFieldResolver } from 'graphql';
-import type { ArgumentRef } from '../refs/arg';
-import { FieldRef } from '../refs/field';
+import type { ArgumentRef } from '../refs/arg.js';
+import { FieldRef } from '../refs/field.js';
 import type {
   FieldKind,
   FieldNullability,
@@ -10,8 +10,8 @@ import type {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '../types';
-import { typeFromParam } from '../utils';
+} from '../types/index.js';
+import { typeFromParam } from '../utils/index.js';
 
 export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   kind: Kind;

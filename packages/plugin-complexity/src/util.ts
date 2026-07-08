@@ -7,8 +7,8 @@ import {
   type OperationDefinitionNode,
   parse,
 } from 'graphql';
-import { complexityFromSelectionSet } from './calculate-complexity';
-import { asVariableValues } from './variable-values';
+import { complexityFromSelectionSet } from './calculate-complexity.js';
+import { asVariableValues } from './variable-values.js';
 
 export function complexityFromQuery(
   query: DocumentNode | string,

@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type FieldMap,
@@ -12,7 +12,7 @@ import SchemaBuilder, {
   type SchemaTypes,
   type UnionToIntersection,
 } from '@pothos/core';
-import type { OutputShapeFromFields } from './types';
+import type { OutputShapeFromFields } from './types.js';
 
 const pluginName = 'simpleObjects';
 

@@ -6,7 +6,7 @@ import type {
   ResolveStep,
   TypeAuthScopes,
   TypeGrantScopes,
-} from './types';
+} from './types.js';
 
 export function createTypeAuthScopesStep<Types extends SchemaTypes>(
   authScopes: TypeAuthScopes<Types, unknown>,

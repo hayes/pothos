@@ -1,7 +1,7 @@
-import './global-types';
-import './field-builder';
-import './input-field-builder';
-import './schema-builder';
+import './global-types.js';
+import './field-builder.js';
+import './input-field-builder.js';
+import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   createInputValueMapper,
@@ -11,11 +11,11 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { internalDecodeGlobalID } from './utils/internal';
+import { internalDecodeGlobalID } from './utils/internal.js';
 
-export * from './node-ref';
-export * from './types';
-export * from './utils';
+export * from './node-ref.js';
+export * from './types.js';
+export * from './utils/index.js';
 
 const pluginName = 'relay';
 

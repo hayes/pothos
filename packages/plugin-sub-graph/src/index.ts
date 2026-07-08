@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type PothosInputFieldConfig,
@@ -24,7 +24,7 @@ import {
   isNonNullType,
   isObjectType,
 } from 'graphql';
-import { replaceType } from './util';
+import { replaceType } from './util.js';
 
 const pluginName = 'subGraph';
 

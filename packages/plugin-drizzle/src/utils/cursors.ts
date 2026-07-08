@@ -14,10 +14,10 @@ import {
   type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types';
-import type { PothosDrizzleSchemaConfig } from './config';
-import { queryFromInfo } from './map-query';
-import type { SelectionMap } from './selections';
+import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types.js';
+import type { PothosDrizzleSchemaConfig } from './config.js';
+import { queryFromInfo } from './map-query.js';
+import type { SelectionMap } from './selections.js';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;

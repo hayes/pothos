@@ -1,8 +1,8 @@
-import type { ConfigStore } from '../config-store';
-import { PothosSchemaError } from '../errors';
-import { BaseTypeRef } from '../refs/base';
-import { InputListRef } from '../refs/input-list';
-import { ListRef } from '../refs/list';
+import type { ConfigStore } from '../config-store.js';
+import { PothosSchemaError } from '../errors.js';
+import { BaseTypeRef } from '../refs/base.js';
+import { InputListRef } from '../refs/input-list.js';
+import { ListRef } from '../refs/list.js';
 import type {
   FieldNullability,
   FieldRequiredness,
@@ -13,7 +13,7 @@ import type {
   PothosOutputFieldType,
   SchemaTypes,
   TypeParam,
-} from '../types';
+} from '../types/index.js';
 
 export function unwrapOutputFieldType<Types extends SchemaTypes>(
   type: PothosOutputFieldType<Types>,

@@ -1,5 +1,5 @@
-import './global-types';
-import './methods';
+import './global-types.js';
+import './methods.js';
 import SchemaBuilder, {
   BasePlugin,
   mapInputFields,
@@ -10,11 +10,11 @@ import SchemaBuilder, {
   type SchemaTypes,
   unwrapInputFieldType,
 } from '@pothos/core';
-import { InputValidationError } from './errors';
-import type { StandardSchemaV1 } from './standard-schema';
-import { createArgsValidator } from './utils';
+import { InputValidationError } from './errors.js';
+import type { StandardSchemaV1 } from './standard-schema.js';
+import { createArgsValidator } from './utils.js';
 
-export * from './types';
+export * from './types.js';
 export { InputValidationError, type StandardSchemaV1 };
 
 const pluginName = 'validation';

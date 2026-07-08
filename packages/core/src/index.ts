@@ -1,34 +1,34 @@
-import { SchemaBuilder as SchemaBuilderClass } from './builder';
-import { FieldBuilder as InternalFieldBuilder } from './fieldUtils/builder';
-import { InputFieldBuilder as InternalInputFieldBuilder } from './fieldUtils/input';
-import { InterfaceFieldBuilder as InternalInterfaceFieldBuilder } from './fieldUtils/interface';
-import { MutationFieldBuilder as InternalMutationFieldBuilder } from './fieldUtils/mutation';
-import { ObjectFieldBuilder as InternalObjectFieldBuilder } from './fieldUtils/object';
-import { QueryFieldBuilder as InternalQueryFieldBuilder } from './fieldUtils/query';
-import { RootFieldBuilder as InternalRootFieldBuilder } from './fieldUtils/root';
-import { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from './fieldUtils/subscription';
-import { ArgumentRef as InternalArgumentRef } from './refs/arg';
-import { BaseTypeRef as InternalBaseTypeRef } from './refs/base';
-import { EnumRef as InternalEnumRef } from './refs/enum';
-import { FieldRef as InternalFieldRef } from './refs/field';
-import { InputFieldRef as InternalInputFieldRef } from './refs/input-field';
-import { InputListRef as InternalInputListRef } from './refs/input-list';
+import { SchemaBuilder as SchemaBuilderClass } from './builder.js';
+import { FieldBuilder as InternalFieldBuilder } from './fieldUtils/builder.js';
+import { InputFieldBuilder as InternalInputFieldBuilder } from './fieldUtils/input.js';
+import { InterfaceFieldBuilder as InternalInterfaceFieldBuilder } from './fieldUtils/interface.js';
+import { MutationFieldBuilder as InternalMutationFieldBuilder } from './fieldUtils/mutation.js';
+import { ObjectFieldBuilder as InternalObjectFieldBuilder } from './fieldUtils/object.js';
+import { QueryFieldBuilder as InternalQueryFieldBuilder } from './fieldUtils/query.js';
+import { RootFieldBuilder as InternalRootFieldBuilder } from './fieldUtils/root.js';
+import { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from './fieldUtils/subscription.js';
+import { ArgumentRef as InternalArgumentRef } from './refs/arg.js';
+import { BaseTypeRef as InternalBaseTypeRef } from './refs/base.js';
+import { EnumRef as InternalEnumRef } from './refs/enum.js';
+import { FieldRef as InternalFieldRef } from './refs/field.js';
+import { InputFieldRef as InternalInputFieldRef } from './refs/input-field.js';
+import { InputListRef as InternalInputListRef } from './refs/input-list.js';
 import {
   ImplementableInputObjectRef as InternalImplementableInputObjectRef,
   InputObjectRef as InternalInputObjectRef,
-} from './refs/input-object';
+} from './refs/input-object.js';
 import {
   ImplementableInterfaceRef as InternalImplementableInterfaceRef,
   InterfaceRef as InternalInterfaceRef,
-} from './refs/interface';
-import { ListRef as InternalListRef } from './refs/list';
+} from './refs/interface.js';
+import { ListRef as InternalListRef } from './refs/list.js';
 import {
   ImplementableObjectRef as InternalImplementableObjectRef,
   ObjectRef as InternalObjectRef,
-} from './refs/object';
-import { ScalarRef as InternalScalarRef } from './refs/scalar';
-import { UnionRef as InternalUnionRef } from './refs/union';
-import './types/global';
+} from './refs/object.js';
+import { ScalarRef as InternalScalarRef } from './refs/scalar.js';
+import { UnionRef as InternalUnionRef } from './refs/union.js';
+import './types/global/index.js';
 
 import type {
   AddVersionedDefaultsToBuilderOptions,
@@ -41,12 +41,12 @@ import type {
   RootName,
   SchemaTypes,
   TypeParam,
-} from './types';
+} from './types/index.js';
 
-export * from './errors';
-export * from './plugins';
-export * from './types';
-export * from './utils';
+export * from './errors.js';
+export * from './plugins/index.js';
+export * from './types/index.js';
+export * from './utils/index.js';
 
 const SchemaBuilder = SchemaBuilderClass as unknown as {
   registerPlugin: typeof SchemaBuilderClass.registerPlugin;
@@ -289,10 +289,10 @@ export const ArgumentRef = InternalArgumentRef as new <Types extends SchemaTypes
   ) => PothosInputFieldConfig<Types>,
 ) => PothosSchemaTypes.ArgumentRef<Types, T>;
 
-export { BuildCache } from './build-cache';
-export { BuiltinScalarRef } from './refs/builtin-scalar';
-export { InputTypeRef } from './refs/input';
-export { MutationRef } from './refs/mutation';
-export { OutputTypeRef } from './refs/output';
-export { QueryRef } from './refs/query';
-export { SubscriptionRef } from './refs/subscription';
+export { BuildCache } from './build-cache.js';
+export { BuiltinScalarRef } from './refs/builtin-scalar.js';
+export { InputTypeRef } from './refs/input.js';
+export { MutationRef } from './refs/mutation.js';
+export { OutputTypeRef } from './refs/output.js';
+export { QueryRef } from './refs/query.js';
+export { SubscriptionRef } from './refs/subscription.js';

@@ -9,8 +9,8 @@ import type {
   InputShapeFromFields,
   Resolver,
   Subscriber,
-} from '../builder-options';
-import type { SchemaTypes } from '../schema-types';
+} from '../builder-options.js';
+import type { SchemaTypes } from '../schema-types.js';
 import type {
   FieldNullability,
   FieldRequiredness,
@@ -18,7 +18,7 @@ import type {
   InputType,
   ShapeFromTypeParam,
   TypeParam,
-} from '../type-params';
+} from '../type-params.js';
 
 declare global {
   export namespace PothosSchemaTypes {

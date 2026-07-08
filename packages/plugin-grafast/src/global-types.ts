@@ -9,8 +9,8 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { ExecutableStep, FieldArgs, ObjectStep, Step } from 'grafast';
-import type { PothosGrafastPlugin } from '.';
-import type { AbstractTypePlanOptions, ObjectTypePlanOptions } from './types';
+import type { PothosGrafastPlugin } from './index.js';
+import type { AbstractTypePlanOptions, ObjectTypePlanOptions } from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type PothosEnumValueConfig,
@@ -11,7 +11,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'example';
 

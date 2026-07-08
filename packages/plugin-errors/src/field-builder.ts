@@ -9,7 +9,7 @@ import {
   defaultGetListItemUnionName,
   defaultGetUnionName,
   extractAndSortErrorTypes,
-} from './utils';
+} from './utils.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
