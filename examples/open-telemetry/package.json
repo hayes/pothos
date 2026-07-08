@@ -30,6 +30,6 @@
   },
   "scripts": {
     "start": "node src/server.ts",
-    "type": "tsgo --noEmit"
+    "type": "tsc --noEmit"
   }
 }
