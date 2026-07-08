@@ -272,9 +272,6 @@ schemaBuilderProto.node = function node(
     this.configStore.associateParamWithRef(param, ref);
   }
 
-  // The explicit type arguments avoid an inference difference between typescript 6 and 7 that
-  // causes typescript 7 to infer the objectType param from the fields/options arguments instead
-  // of the ref (see https://github.com/microsoft/typescript-go "same errors as 6.0" parity goal)
   this.objectType<InterfaceParam<SchemaTypes>[], typeof ref>(
     ref,
     {
@@ -396,9 +393,6 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     }),
   });
 
-  // Annotating the wrapper as `typeof resolve` (rather than letting its return type be
-  // re-inferred from the call) keeps the conditional return type assignable under both
-  // typescript 6 and 7
   const wrappedResolve: typeof resolve = (root, fieldArgs, context, info) => {
     if (inputRef) {
       mutationIdCache(context).set(
@@ -428,11 +422,6 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
             }
           : {}),
       },
-      // typescript 7 (unlike 6) can't relate the declared Resolver type to the impl-side
-      // Resolver<..., any, ResolveReturnShape> here — even passing `resolve` through unchanged
-      // fails. wrappedResolve is fully checked against `typeof resolve` above, so this cast only
-      // bridges the checker divergence (typescript-go conditional-type assignability, see
-      // https://github.com/microsoft/typescript-go/issues/4408 for the same class of error)
       resolve: wrappedResolve as never,
     }),
   );
