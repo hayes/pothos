@@ -14,6 +14,7 @@ import SchemaBuilder, {
   ObjectRef,
   type OutputRef,
   PothosValidationError,
+  type Resolver,
   type SchemaTypes,
   verifyRef,
 } from '@pothos/core';
@@ -422,7 +423,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
             }
           : {}),
       },
-      resolve: wrappedResolve as never,
+      resolve: wrappedResolve as Resolver<object, Record<string, unknown>, object, unknown>,
     }),
   );
 
