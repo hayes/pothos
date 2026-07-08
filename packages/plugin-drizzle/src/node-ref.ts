@@ -1,5 +1,5 @@
 import type { SchemaTypes } from '@pothos/core';
-import { DrizzleObjectRef } from './object-ref';
+import { DrizzleObjectRef } from './object-ref.js';
 
 export const relayIDShapeKey = Symbol.for('Pothos.relayIDShapeKey');
 

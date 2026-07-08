@@ -1,9 +1,9 @@
 import { pathToString, runFunction } from '@pothos/plugin-tracing';
 import * as Sentry from '@sentry/node';
 import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';
-import { AttributeNames } from './enums';
+import { AttributeNames } from './enums.js';
 
-export * from './enums';
+export * from './enums.js';
 
 interface SentryWrapperOptions<T> {
   ignoreError?: boolean;

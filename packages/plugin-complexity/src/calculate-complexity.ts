@@ -16,8 +16,8 @@ import {
   Kind,
   type SelectionSetNode,
 } from 'graphql';
-import type { ComplexityResult, FieldComplexity } from '.';
-import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
+import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.js';
+import type { ComplexityResult, FieldComplexity } from './index.js';
 
 function isListType(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLList) {

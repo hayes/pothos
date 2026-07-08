@@ -1,18 +1,18 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type PothosOutputFieldConfig,
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import type { TracingFieldOptions, TracingFieldWrapper } from './types';
+import type { TracingFieldOptions, TracingFieldWrapper } from './types.js';
 
 const pluginName = 'tracing';
 
 export default pluginName;
 
-export * from './types';
-export * from './util';
+export * from './types.js';
+export * from './util.js';
 
 export class PothosTracingPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(

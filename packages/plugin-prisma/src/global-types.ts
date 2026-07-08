@@ -13,11 +13,11 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { PothosPrismaPlugin } from '.';
-import type { PrismaInterfaceRef, PrismaRef } from './interface-ref';
-import type { PrismaNodeRef } from './node-ref';
-import type { PrismaObjectRef, prismaModelKey } from './object-ref';
-import type { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
+import type { PothosPrismaPlugin } from './index.js';
+import type { PrismaInterfaceRef, PrismaRef } from './interface-ref.js';
+import type { PrismaNodeRef } from './node-ref.js';
+import type { PrismaObjectRef, prismaModelKey } from './object-ref.js';
+import type { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
 import {
   type PrismaClient,
   type PrismaConnectionFieldOptions,
@@ -32,7 +32,7 @@ import {
   prismaModelName,
   type ShapeFromConnection,
   type ShapeFromSelection,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

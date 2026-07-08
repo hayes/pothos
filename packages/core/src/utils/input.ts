@@ -1,12 +1,12 @@
-import type { BuildCache } from '../build-cache';
-import { PothosSchemaError } from '../errors';
+import type { BuildCache } from '../build-cache.js';
+import { PothosSchemaError } from '../errors.js';
 import type {
   PothosInputFieldConfig,
   PothosInputFieldType,
   PothosTypeConfig,
   SchemaTypes,
-} from '../types';
-import { unwrapInputFieldType } from './params';
+} from '../types/index.js';
+import { unwrapInputFieldType } from './params.js';
 
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
   configs: Record<string, PothosInputFieldConfig<Types>>;

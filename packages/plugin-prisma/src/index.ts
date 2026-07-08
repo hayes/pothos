@@ -1,6 +1,6 @@
-import './global-types';
-import './schema-builder';
-import './field-builder';
+import './global-types.js';
+import './schema-builder.js';
+import './field-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
@@ -10,20 +10,20 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import type { ModelLoader } from './model-loader';
-import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
-import type { PrismaModelTypes } from './types';
-import { formatPrismaCursor, parsePrismaCursor } from './util/cursors';
-import { getModel, getRefFromModel } from './util/datamodel';
-import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
-import { queryFromInfo } from './util/map-query';
+import type { ModelLoader } from './model-loader.js';
+import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
+import type { PrismaModelTypes } from './types.js';
+import { formatPrismaCursor, parsePrismaCursor } from './util/cursors.js';
+import { getModel, getRefFromModel } from './util/datamodel.js';
+import { getLoaderMapping, setLoaderMappings } from './util/loader-map.js';
+import { queryFromInfo } from './util/map-query.js';
 
-export { prismaConnectionHelpers } from './connection-helpers';
-export { PrismaInterfaceRef } from './interface-ref';
-export { PrismaNodeRef } from './node-ref';
-export { PrismaObjectRef, prismaModelKey } from './object-ref';
-export * from './types';
-export { prismaClientCache } from './util/get-client';
+export { prismaConnectionHelpers } from './connection-helpers.js';
+export { PrismaInterfaceRef } from './interface-ref.js';
+export { PrismaNodeRef } from './node-ref.js';
+export { PrismaObjectRef, prismaModelKey } from './object-ref.js';
+export * from './types.js';
+export { prismaClientCache } from './util/get-client.js';
 
 const pluginName = 'prisma';
 

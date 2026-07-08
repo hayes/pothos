@@ -1,8 +1,8 @@
 import { PothosValidationError } from '@pothos/core';
 import type { DBQueryConfig, TableRelationalConfig } from 'drizzle-orm';
-import type { PothosDrizzleSchemaConfig } from './config';
-import { deepEqual } from './deep-equal';
-import type { LoaderMappings } from './loader-map';
+import type { PothosDrizzleSchemaConfig } from './config.js';
+import { deepEqual } from './deep-equal.js';
+import type { LoaderMappings } from './loader-map.js';
 
 export interface SelectionState {
   table: TableRelationalConfig;

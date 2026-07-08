@@ -20,9 +20,9 @@ import {
   Kind,
   type SelectionSetNode,
 } from 'graphql';
-import type { DrizzleFieldSelection, FieldPathInfo, PathInfo } from '../types';
-import type { PothosDrizzleSchemaConfig } from './config';
-import { type LoaderMappings, setLoaderMappings } from './loader-map';
+import type { DrizzleFieldSelection, FieldPathInfo, PathInfo } from '../types.js';
+import type { PothosDrizzleSchemaConfig } from './config.js';
+import { type LoaderMappings, setLoaderMappings } from './loader-map.js';
 import {
   createState,
   mergeSelection,
@@ -30,8 +30,8 @@ import {
   type SelectionState,
   selectionCompatible,
   selectionToQuery,
-} from './selections';
-import { wrapWithUsageCheck } from './usage';
+} from './selections.js';
+import { wrapWithUsageCheck } from './usage.js';
 
 export interface IndirectInclude {
   getType: () => string;

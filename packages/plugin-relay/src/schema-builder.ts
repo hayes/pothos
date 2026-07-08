@@ -6,6 +6,7 @@ import SchemaBuilder, {
   type FieldRef,
   getTypeBrand,
   InputObjectRef,
+  type InterfaceParam,
   type InterfaceRef,
   isThenable,
   type MaybePromise,
@@ -13,14 +14,15 @@ import SchemaBuilder, {
   ObjectRef,
   type OutputRef,
   PothosValidationError,
+  type Resolver,
   type SchemaTypes,
   verifyRef,
 } from '@pothos/core';
 import { defaultTypeResolver } from 'graphql';
-import { ImplementableNodeRef, NodeRef } from './node-ref';
-import type { ConnectionShape, PageInfoShape } from './types';
-import { capitalize, resolveNodes } from './utils';
-import { addNodeProperties } from './utils/add-node-props';
+import { ImplementableNodeRef, NodeRef } from './node-ref.js';
+import type { ConnectionShape, PageInfoShape } from './types.js';
+import { addNodeProperties } from './utils/add-node-props.js';
+import { capitalize, resolveNodes } from './utils/index.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -271,7 +273,7 @@ schemaBuilderProto.node = function node(
     this.configStore.associateParamWithRef(param, ref);
   }
 
-  this.objectType(
+  this.objectType<InterfaceParam<SchemaTypes>[], typeof ref>(
     ref,
     {
       name: nodeName,
@@ -392,6 +394,18 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     }),
   });
 
+  const wrappedResolve: typeof resolve = (root, fieldArgs, context, info) => {
+    if (inputRef) {
+      mutationIdCache(context).set(
+        String(info.path.key),
+        (fieldArgs as unknown as Record<string, { clientMutationId: string }>)[argName]
+          .clientMutationId,
+      );
+    }
+
+    return resolve(root, fieldArgs, context, info);
+  };
+
   this.mutationField(fieldName, (t) =>
     t.field({
       ...this.options.relay?.relayMutationFieldOptions,
@@ -409,17 +423,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
             }
           : {}),
       },
-      resolve: (root, fieldArgs, context, info) => {
-        if (inputRef) {
-          mutationIdCache(context).set(
-            String(info.path.key),
-            (fieldArgs as unknown as Record<string, { clientMutationId: string }>)[argName]
-              .clientMutationId,
-          );
-        }
-
-        return resolve(root, fieldArgs as never, context, info);
-      },
+      resolve: wrappedResolve as Resolver<object, Record<string, unknown>, object, unknown>,
     }),
   );
 

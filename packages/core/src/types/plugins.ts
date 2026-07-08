@@ -1,6 +1,6 @@
-import type { BuildCache } from '../build-cache';
-import type { BasePlugin } from '../plugins/plugin';
-import type { SchemaTypes } from './schema-types';
+import type { BuildCache } from '../build-cache.js';
+import type { BasePlugin } from '../plugins/plugin.js';
+import type { SchemaTypes } from './schema-types.js';
 
 export type PluginConstructorMap<Types extends SchemaTypes> = {
   [K in keyof PothosSchemaTypes.Plugins<SchemaTypes>]: new (

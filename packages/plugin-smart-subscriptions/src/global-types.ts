@@ -10,8 +10,8 @@ import type {
   FieldSubscriptionManager,
   PothosSmartSubscriptionsPlugin,
   TypeSubscriptionManager,
-} from '.';
-import type { SmartSubscriptionOptions } from './types';
+} from './index.js';
+import type { SmartSubscriptionOptions } from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

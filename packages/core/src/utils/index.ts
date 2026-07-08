@@ -5,9 +5,9 @@ import {
   type GraphQLField,
   getArgumentValues,
 } from 'graphql';
-import { PothosSchemaError, PothosValidationError } from '../errors';
-import { InputListRef } from '../refs/input-list';
-import { ListRef } from '../refs/list';
+import { PothosSchemaError, PothosValidationError } from '../errors.js';
+import { InputListRef } from '../refs/input-list.js';
+import { ListRef } from '../refs/list.js';
 import {
   type InputType,
   type InputTypeParam,
@@ -18,14 +18,14 @@ import {
   type SchemaTypes,
   type TypeParam,
   typeBrandKey,
-} from '../types';
+} from '../types/index.js';
 
-export * from './base64';
-export * from './context-cache';
-export * from './enums';
-export * from './input';
-export * from './params';
-export * from './sort-classes';
+export * from './base64.js';
+export * from './context-cache.js';
+export * from './enums.js';
+export * from './input.js';
+export * from './params.js';
+export * from './sort-classes.js';
 
 export function assertNever(value: never): never {
   throw new TypeError(`Unexpected value: ${value}`);

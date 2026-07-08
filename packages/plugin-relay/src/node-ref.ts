@@ -4,8 +4,8 @@ import {
   ObjectRef,
   type SchemaTypes,
 } from '@pothos/core';
-import type { NodeRefOptions } from './types';
-import { addNodeProperties } from './utils/add-node-props';
+import type { NodeRefOptions } from './types.js';
+import { addNodeProperties } from './utils/add-node-props.js';
 
 export const relayIDShapeKey = Symbol.for('Pothos.relayIDShapeKey');
 

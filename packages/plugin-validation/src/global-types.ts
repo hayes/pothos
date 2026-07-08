@@ -8,9 +8,9 @@ import type {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import type { PothosValidationPlugin } from '.';
-import type { StandardSchemaV1 } from './standard-schema';
-import type { ValidationPluginOptions } from './types';
+import type { PothosValidationPlugin } from './index.js';
+import type { StandardSchemaV1 } from './standard-schema.js';
+import type { ValidationPluginOptions } from './types.js';
 
 declare module 'graphql' {
   interface GraphQLInputFieldExtensions {

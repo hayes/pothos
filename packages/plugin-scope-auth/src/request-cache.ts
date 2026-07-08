@@ -13,8 +13,8 @@ import {
   type AuthScopeMap,
   type ScopeLoaderMap,
   type TypeAuthScopesFunction,
-} from './types';
-import { cacheKey, canCache } from './util';
+} from './types.js';
+import { cacheKey, canCache } from './util.js';
 
 const contextCache = createContextCache(
   (ctx, builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => new RequestCache(builder, ctx),

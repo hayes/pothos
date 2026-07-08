@@ -1,9 +1,9 @@
 import type { GraphQLResolveInfo } from 'graphql';
-import type { ArgumentRef } from '../refs/arg';
-import type { InputFieldRef } from '../refs/input-field';
-import type { InterfaceRef } from '../refs/interface';
-import type { ObjectRef } from '../refs/object';
-import type { SchemaTypes, VersionedSchemaBuilderOptions } from './schema-types';
+import type { ArgumentRef } from '../refs/arg.js';
+import type { InputFieldRef } from '../refs/input-field.js';
+import type { InterfaceRef } from '../refs/interface.js';
+import type { ObjectRef } from '../refs/object.js';
+import type { SchemaTypes, VersionedSchemaBuilderOptions } from './schema-types.js';
 import type {
   BaseEnum,
   EnumParam,
@@ -17,7 +17,7 @@ import type {
   ObjectParam,
   ShapeFromTypeParam,
   TypeParam,
-} from './type-params';
+} from './type-params.js';
 import type {
   MaybePromise,
   Merge,
@@ -25,7 +25,7 @@ import type {
   NormalizeNullableFields,
   RemoveNeverKeys,
   Simplify,
-} from './utils';
+} from './utils.js';
 
 export type AddVersionedDefaultsToBuilderOptions<
   Types extends SchemaTypes,

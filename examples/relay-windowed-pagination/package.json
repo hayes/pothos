@@ -11,7 +11,7 @@
   "types": "src/index.ts",
   "scripts": {
     "start": "node src/server.ts",
-    "type": "tsgo --noEmit"
+    "type": "tsc --noEmit"
   },
   "prisma": {
     "seed": "node prisma/seed.ts"

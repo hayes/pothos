@@ -1,5 +1,5 @@
 import { get, type Step } from 'grafast';
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   InterfaceRef,
@@ -9,7 +9,7 @@ import SchemaBuilder, {
   type SchemaTypes,
   UnionRef,
 } from '@pothos/core';
-import type { AbstractTypePlanOptions, ObjectTypePlanOptions } from './types';
+import type { AbstractTypePlanOptions, ObjectTypePlanOptions } from './types.js';
 
 const pluginName = 'grafast' as const;
 

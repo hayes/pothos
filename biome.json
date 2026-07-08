@@ -254,6 +254,21 @@
       }
     },
     {
+      "includes": ["**/packages/*/src/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useImportExtensions": {
+              "level": "error",
+              "options": {
+                "forceJsExtensions": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/global-types.ts"],
       "linter": {
         "rules": {

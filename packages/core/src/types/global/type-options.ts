@@ -23,10 +23,10 @@ import type {
   QueryFieldsShape,
   SubscriptionFieldsShape,
   ValidateInterfaces,
-} from '../builder-options';
-import type { RootName, SchemaTypes } from '../schema-types';
-import type { InterfaceParam, ObjectParam, ParentShape } from '../type-params';
-import type { MaybePromise } from '../utils';
+} from '../builder-options.js';
+import type { RootName, SchemaTypes } from '../schema-types.js';
+import type { InterfaceParam, ObjectParam, ParentShape } from '../type-params.js';
+import type { MaybePromise } from '../utils.js';
 
 declare global {
   export namespace PothosSchemaTypes {

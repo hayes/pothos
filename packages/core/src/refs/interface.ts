@@ -6,8 +6,8 @@ import {
   type PothosInterfaceTypeConfig,
   parentShapeKey,
   type SchemaTypes,
-} from '../types';
-import { TypeRefWithFields } from './base-with-fields';
+} from '../types/index.js';
+import { TypeRefWithFields } from './base-with-fields.js';
 
 export class InterfaceRef<Types extends SchemaTypes, T, P = T>
   extends TypeRefWithFields<Types, PothosInterfaceTypeConfig>

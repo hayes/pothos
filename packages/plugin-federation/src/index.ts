@@ -1,5 +1,5 @@
-import './global-types';
-import './schema-builder';
+import './global-types.js';
+import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type PothosEnumValueConfig,
@@ -10,12 +10,12 @@ import SchemaBuilder, {
   type TypeParam,
 } from '@pothos/core';
 import { defaultFieldResolver } from 'graphql';
-import { providesMap } from './external-ref';
-import { addUsedDirectives, entityMapping, keyDirective, mergeDirectives } from './util';
+import { providesMap } from './external-ref.js';
+import { addUsedDirectives, entityMapping, keyDirective, mergeDirectives } from './util.js';
 
-export { hasResolvableKey } from './schema-builder';
+export { hasResolvableKey } from './schema-builder.js';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'federation';
 

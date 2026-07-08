@@ -37,7 +37,7 @@ import {
   isInterfaceType,
   isObjectType,
 } from 'graphql';
-import type { DrizzleRef } from './interface-ref';
+import type { DrizzleRef } from './interface-ref.js';
 import type {
   DrizzleConnectionShape,
   ListRelation,
@@ -48,15 +48,15 @@ import type {
   ShapeFromConnection,
   TypesForRelation,
   VariantFieldOptions,
-} from './types';
-import { getClient, getSchemaConfig } from './utils/config';
+} from './types.js';
+import { getClient, getSchemaConfig } from './utils/config.js';
 import {
   drizzleCursorConnectionQuery,
   getCursorFormatter,
   wrapConnectionResult,
-} from './utils/cursors';
-import { getRefFromModel } from './utils/refs';
-import type { SelectionMap } from './utils/selections';
+} from './utils/cursors.js';
+import { getRefFromModel } from './utils/refs.js';
+import type { SelectionMap } from './utils/selections.js';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {

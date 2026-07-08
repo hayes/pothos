@@ -1,9 +1,9 @@
 import { context as opentelemetryContext, type Span, type Tracer, trace } from '@opentelemetry/api';
 import { createSpanWithParent, runFunction } from '@pothos/plugin-tracing';
 import { type GraphQLFieldResolver, type GraphQLResolveInfo, print } from 'graphql';
-import { AttributeNames, SpanNames } from './enums';
+import { AttributeNames, SpanNames } from './enums.js';
 
-export * from './enums';
+export * from './enums.js';
 
 export interface TracingWrapperOptions<T> {
   includeArgs?: boolean;

@@ -1,6 +1,6 @@
 import type { Path, PothosFieldConfig, SchemaTypes } from '@pothos/core';
 
-import type { AuthScopeMap } from '.';
+import type { AuthScopeMap } from './index.js';
 
 export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): boolean {
   if (map.$granted) {

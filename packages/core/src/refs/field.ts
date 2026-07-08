@@ -4,7 +4,7 @@ import {
   type PothosOutputFieldConfig,
   type PothosTypeConfig,
   type SchemaTypes,
-} from '../types';
+} from '../types/index.js';
 
 export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends FieldKind = FieldKind>
   implements PothosSchemaTypes.FieldRef<Types, T, Kind>

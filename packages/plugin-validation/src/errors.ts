@@ -1,5 +1,5 @@
 import { PothosValidationError } from '@pothos/core';
-import type { StandardSchemaV1 } from './standard-schema';
+import type { StandardSchemaV1 } from './standard-schema.js';
 export class InputValidationError extends PothosValidationError {
   issues: readonly StandardSchemaV1.Issue[];
 

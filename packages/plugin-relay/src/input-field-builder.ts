@@ -4,7 +4,7 @@ import {
   type ObjectRef,
   type SchemaTypes,
 } from '@pothos/core';
-import type { GlobalIDInputFieldOptions, GlobalIDListInputFieldOptions } from './types';
+import type { GlobalIDInputFieldOptions, GlobalIDListInputFieldOptions } from './types.js';
 
 type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
 

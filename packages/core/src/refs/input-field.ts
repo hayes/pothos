@@ -3,7 +3,7 @@ import {
   type PothosInputFieldConfig,
   type PothosTypeConfig,
   type SchemaTypes,
-} from '../types';
+} from '../types/index.js';
 
 export class InputFieldRef<Types extends SchemaTypes, T = unknown>
   implements PothosSchemaTypes.InputFieldRef<Types, T>

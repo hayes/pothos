@@ -1,8 +1,8 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PothosSchemaError } from '@pothos/core';
+import type ts from '@typescript/typescript6';
 import { format, resolveConfig } from 'prettier';
-import type ts from 'typescript';
 import { getDatamodel } from '../../generated';
 import {
   capitalize,

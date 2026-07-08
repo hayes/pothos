@@ -1,6 +1,6 @@
-import './global-types';
-import './field-builder';
-import './schema-builder';
+import './global-types.js';
+import './field-builder.js';
+import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type PothosOutputFieldConfig,
@@ -9,14 +9,14 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLFieldResolver } from 'graphql';
-import type { ModelLoader } from './model-loader';
-import { getLoaderMapping, setLoaderMappings } from './utils/loader-map';
+import type { ModelLoader } from './model-loader.js';
+import { getLoaderMapping, setLoaderMappings } from './utils/loader-map.js';
 
-export { drizzleConnectionHelpers } from './connection-helpers';
-export { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
-export * from './types';
-export { drizzleTableName } from './types';
-export { drizzleClientCache } from './utils/config';
+export { drizzleConnectionHelpers } from './connection-helpers.js';
+export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
+export * from './types.js';
+export { drizzleTableName } from './types.js';
+export { drizzleClientCache } from './utils/config.js';
 
 const pluginName = 'drizzle';
 

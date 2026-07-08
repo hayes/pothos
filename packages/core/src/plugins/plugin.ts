@@ -4,8 +4,8 @@ import type {
   GraphQLSchema,
   GraphQLTypeResolver,
 } from 'graphql';
-import type { BuildCache } from '../build-cache';
-import { PothosError } from '../errors';
+import type { BuildCache } from '../build-cache.js';
+import { PothosError } from '../errors.js';
 import type {
   PothosEnumValueConfig,
   PothosInputFieldConfig,
@@ -15,8 +15,8 @@ import type {
   PothosTypeConfig,
   PothosUnionTypeConfig,
   SchemaTypes,
-} from '../types';
-import { createContextCache } from '../utils/context-cache';
+} from '../types/index.js';
+import { createContextCache } from '../utils/context-cache.js';
 
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {

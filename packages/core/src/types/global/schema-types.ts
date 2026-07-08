@@ -1,8 +1,8 @@
 import type { GraphQLDirective, SchemaDefinitionNode } from 'graphql';
-import type { InferredFieldOptionsKind } from '../builder-options';
-import type { PluginConstructorMap } from '../plugins';
-import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types';
-import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils';
+import type { InferredFieldOptionsKind } from '../builder-options.js';
+import type { PluginConstructorMap } from '../plugins.js';
+import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types.js';
+import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils.js';
 
 declare global {
   export namespace PothosSchemaTypes {

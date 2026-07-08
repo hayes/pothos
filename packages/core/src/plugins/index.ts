@@ -1,2 +1,2 @@
-export * from './merge-plugins';
-export * from './plugin';
+export * from './merge-plugins.js';
+export * from './plugin.js';

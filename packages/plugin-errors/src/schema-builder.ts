@@ -1,6 +1,6 @@
 import SchemaBuilder, { type ObjectParam, type SchemaTypes } from '@pothos/core';
 import { defaultTypeResolver, type GraphQLAbstractType, type GraphQLResolveInfo } from 'graphql';
-import { errorTypeMap, extractAndSortErrorTypes } from './utils';
+import { errorTypeMap, extractAndSortErrorTypes } from './utils.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 

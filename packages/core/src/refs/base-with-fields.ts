@@ -7,9 +7,9 @@ import type {
   PothosQueryTypeConfig,
   PothosSubscriptionTypeConfig,
   SchemaTypes,
-} from '../types';
-import { BaseTypeRef } from './base';
-import type { FieldRef } from './field';
+} from '../types/index.js';
+import { BaseTypeRef } from './base.js';
+import type { FieldRef } from './field.js';
 
 export type ObjectLikeConfig =
   | PothosMutationTypeConfig

@@ -1,6 +1,6 @@
 import type { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '@pothos/core';
-import type { PothosExamplePlugin } from '.';
-import type { ExamplePluginOptions } from './types';
+import type { PothosExamplePlugin } from './index.js';
+import type { ExamplePluginOptions } from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

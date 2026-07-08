@@ -14,7 +14,7 @@
     "schema": "node scripts/build-schema.ts",
     "seed": "prisma migrate reset -f",
     "start": "node src/server.ts",
-    "type": "tsgo --noEmit"
+    "type": "tsc --noEmit"
   },
   "prisma": {
     "seed": "node prisma/seed.ts"

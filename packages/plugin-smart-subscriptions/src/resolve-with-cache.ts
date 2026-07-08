@@ -1,7 +1,7 @@
 import { isThenable, type SchemaTypes } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import type SubscriptionCache from './cache';
-import type { FieldSubscriber } from './types';
+import type SubscriptionCache from './cache.js';
+import type { FieldSubscriber } from './types.js';
 
 export default function resolveWithCache<Types extends SchemaTypes>(
   cache: SubscriptionCache<Types>,

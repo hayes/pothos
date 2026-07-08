@@ -16,12 +16,16 @@ import {
   isObjectType,
   Kind,
 } from 'graphql';
-import { ModelLoader } from './model-loader';
-import type { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
-import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } from './util/cursors';
-import { getRefFromModel } from './util/datamodel';
-import { queryFromInfo } from './util/map-query';
-import { isUsed } from './util/usage';
+import { ModelLoader } from './model-loader.js';
+import type { PrismaConnectionFieldOptions, PrismaModelTypes } from './types.js';
+import {
+  getCursorFormatter,
+  getCursorParser,
+  resolvePrismaCursorConnection,
+} from './util/cursors.js';
+import { getRefFromModel } from './util/datamodel.js';
+import { queryFromInfo } from './util/map-query.js';
+import { isUsed } from './util/usage.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,

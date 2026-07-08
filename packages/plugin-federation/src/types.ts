@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import type {
   FieldMap,
   FieldRef,

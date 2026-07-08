@@ -1,5 +1,5 @@
 import type { SchemaTypes } from '@pothos/core';
-import type { StandardSchemaV1 } from './standard-schema';
+import type { StandardSchemaV1 } from './standard-schema.js';
 
 export interface ValidationPluginOptions<Types extends SchemaTypes> {
   validationError?: ValidationErrorFn<Types>;

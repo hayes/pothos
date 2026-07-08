@@ -22,11 +22,11 @@ import {
   type GraphQLTypeResolver,
   GraphQLUnionType,
 } from 'graphql';
-import type { SchemaBuilder } from './builder';
-import type { ConfigStore } from './config-store';
-import { PothosError, PothosSchemaError } from './errors';
-import { type BasePlugin, MergedPlugins } from './plugins';
-import { BuiltinScalarRef } from './refs/builtin-scalar';
+import type { SchemaBuilder } from './builder.js';
+import type { ConfigStore } from './config-store.js';
+import { PothosError, PothosSchemaError } from './errors.js';
+import { type BasePlugin, MergedPlugins } from './plugins/index.js';
+import { BuiltinScalarRef } from './refs/builtin-scalar.js';
 import {
   type InputType,
   type OutputType,
@@ -49,8 +49,8 @@ import {
   type PothosUnionTypeConfig,
   type SchemaTypes,
   typeBrandKey,
-} from './types';
-import { assertNever, getTypeBrand, isThenable } from './utils';
+} from './types/index.js';
+import { assertNever, getTypeBrand, isThenable } from './utils/index.js';
 
 type NullableOutputType =
   | GraphQLScalarType

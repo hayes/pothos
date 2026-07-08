@@ -1,11 +1,11 @@
-import { PothosSchemaError } from './errors';
-import { BaseTypeRef } from './refs/base';
-import { InputObjectRef } from './refs/input-object';
-import { InterfaceRef } from './refs/interface';
-import { MutationRef } from './refs/mutation';
-import { ObjectRef } from './refs/object';
-import { QueryRef } from './refs/query';
-import { SubscriptionRef } from './refs/subscription';
+import { PothosSchemaError } from './errors.js';
+import { BaseTypeRef } from './refs/base.js';
+import { InputObjectRef } from './refs/input-object.js';
+import { InterfaceRef } from './refs/interface.js';
+import { MutationRef } from './refs/mutation.js';
+import { ObjectRef } from './refs/object.js';
+import { QueryRef } from './refs/query.js';
+import { SubscriptionRef } from './refs/subscription.js';
 import type {
   ConfigurableRef,
   FieldMap,
@@ -16,7 +16,7 @@ import type {
   PothosFieldConfig,
   PothosTypeConfig,
   SchemaTypes,
-} from './types';
+} from './types/index.js';
 
 export class ConfigStore<Types extends SchemaTypes> {
   typeConfigs = new Map<string, PothosTypeConfig>();

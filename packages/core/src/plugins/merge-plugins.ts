@@ -4,7 +4,7 @@ import type {
   GraphQLSchema,
   GraphQLTypeResolver,
 } from 'graphql';
-import type { BuildCache } from '../build-cache';
+import type { BuildCache } from '../build-cache.js';
 import type {
   PothosEnumValueConfig,
   PothosInputFieldConfig,
@@ -14,9 +14,9 @@ import type {
   PothosTypeConfig,
   PothosUnionTypeConfig,
   SchemaTypes,
-} from '../types';
-import { completeValue, reduceMaybeAsync } from '../utils';
-import { BasePlugin } from './plugin';
+} from '../types/index.js';
+import { completeValue, reduceMaybeAsync } from '../utils/index.js';
+import { BasePlugin } from './plugin.js';
 
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
   plugins;

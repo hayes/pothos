@@ -31,7 +31,7 @@ import type {
   PrismaWhereOptions,
   PrismaWhereUniqueOptions,
   ScalarListOps,
-} from './types';
+} from './types.js';
 
 export const schemaBuilder =
   SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;

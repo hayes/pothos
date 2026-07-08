@@ -1,6 +1,6 @@
 import { createContextCache, PothosSchemaError } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { SmartSubscriptionOptions } from './types';
+import type { SmartSubscriptionOptions } from './types.js';
 
 export function rootName(path: GraphQLResolveInfo['path']): string {
   if (path.prev) {

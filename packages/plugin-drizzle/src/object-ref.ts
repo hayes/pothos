@@ -5,7 +5,7 @@ import {
   type SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
-import type { WithBrand } from './types';
+import type { WithBrand } from './types.js';
 
 export const drizzleTableKey = Symbol.for('Pothos.drizzleTableKey');
 

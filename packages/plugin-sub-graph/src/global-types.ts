@@ -11,7 +11,7 @@ import type {
 } from '@pothos/core';
 
 import type { GraphQLNamedType } from 'graphql';
-import type { PothosSubGraphPlugin } from '.';
+import type { PothosSubGraphPlugin } from './index.js';
 
 declare global {
   export namespace PothosSchemaTypes {

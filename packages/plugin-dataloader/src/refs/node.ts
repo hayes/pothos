@@ -1,7 +1,7 @@
 import { ImplementableObjectRef, type ObjectRef, type SchemaTypes } from '@pothos/core';
-import type { DataLoaderOptions, LoadableNodeId } from '../types';
-import { dataloaderGetter } from '../util';
-import { LoadableObjectRef } from './object';
+import type { DataLoaderOptions, LoadableNodeId } from '../types.js';
+import { dataloaderGetter } from '../util.js';
+import { LoadableObjectRef } from './object.js';
 
 export class LoadableNodeRef<
   Types extends SchemaTypes,

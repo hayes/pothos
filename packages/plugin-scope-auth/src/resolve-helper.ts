@@ -5,10 +5,10 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
-import { ForbiddenError } from './errors';
-import RequestCache from './request-cache';
-import { AuthScopeFailureType, type ResolveStep, type UnauthorizedResolver } from './types';
+import { ForbiddenError } from './errors.js';
+import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from './index.js';
+import RequestCache from './request-cache.js';
+import { AuthScopeFailureType, type ResolveStep, type UnauthorizedResolver } from './types.js';
 
 const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (
   _root,

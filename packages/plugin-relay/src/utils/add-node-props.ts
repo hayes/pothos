@@ -8,7 +8,7 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { NodeRefOptions } from '../types';
+import type { NodeRefOptions } from '../types.js';
 
 export function addNodeProperties<Types extends SchemaTypes, T, P = T, IDShape = string>(
   name: string,

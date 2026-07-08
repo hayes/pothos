@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   brandWithType,
   type InterfaceRef,
@@ -6,18 +6,18 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PrismaInterfaceRef } from './interface-ref';
-import { ModelLoader } from './model-loader';
-import { PrismaNodeRef } from './node-ref';
-import { PrismaObjectRef } from './object-ref';
-import { PrismaObjectFieldBuilder } from './prisma-field-builder';
-import type { PrismaModelTypes, PrismaNodeOptions } from './types';
-import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
-import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
-import { getModelDescription } from './util/description';
-import { getClient, getDMMF } from './util/get-client';
-import { queryFromInfo } from './util/map-query';
-import { getRelationMap } from './util/relation-map';
+import { PrismaInterfaceRef } from './interface-ref.js';
+import { ModelLoader } from './model-loader.js';
+import { PrismaNodeRef } from './node-ref.js';
+import { PrismaObjectRef } from './object-ref.js';
+import { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
+import type { PrismaModelTypes, PrismaNodeOptions } from './types.js';
+import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors.js';
+import { getDelegateFromModel, getRefFromModel } from './util/datamodel.js';
+import { getModelDescription } from './util/description.js';
+import { getClient, getDMMF } from './util/get-client.js';
+import { queryFromInfo } from './util/map-query.js';
+import { getRelationMap } from './util/relation-map.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 

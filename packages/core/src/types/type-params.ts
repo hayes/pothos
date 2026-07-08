@@ -1,7 +1,7 @@
-import type { BaseTypeRef } from '../refs/base';
-import type { InterfaceRef } from '../refs/interface';
-import type { ObjectRef } from '../refs/object';
-import type { SchemaTypes } from './schema-types';
+import type { BaseTypeRef } from '../refs/base.js';
+import type { InterfaceRef } from '../refs/interface.js';
+import type { ObjectRef } from '../refs/object.js';
+import type { SchemaTypes } from './schema-types.js';
 
 export const outputShapeKey = Symbol.for('Pothos.outputShapeKey');
 export const parentShapeKey = Symbol.for('Pothos.parentShapeKey');

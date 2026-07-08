@@ -10,15 +10,15 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import type { Column } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { DrizzleObjectFieldBuilder } from './drizzle-field-builder';
-import { DrizzleInterfaceRef } from './interface-ref';
-import { ModelLoader } from './model-loader';
-import { DrizzleNodeRef } from './node-ref';
-import { DrizzleObjectRef } from './object-ref';
-import type { DrizzleNodeOptions } from './types';
-import { getSchemaConfig } from './utils/config';
-import { getIDParser, getIDSerializer } from './utils/cursors';
-import { getRefFromModel } from './utils/refs';
+import { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
+import { DrizzleInterfaceRef } from './interface-ref.js';
+import { ModelLoader } from './model-loader.js';
+import { DrizzleNodeRef } from './node-ref.js';
+import { DrizzleObjectRef } from './object-ref.js';
+import type { DrizzleNodeOptions } from './types.js';
+import { getSchemaConfig } from './utils/config.js';
+import { getIDParser, getIDSerializer } from './utils/cursors.js';
+import { getRefFromModel } from './utils/refs.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 

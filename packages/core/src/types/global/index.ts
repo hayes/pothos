@@ -1,4 +1,4 @@
-import './type-options';
-import './field-options';
-import './classes';
-import './schema-types';
+import './type-options.js';
+import './field-options.js';
+import './classes.js';
+import './schema-types.js';

@@ -1,6 +1,6 @@
-import type { LoaderMappings, SelectionMap } from '../types';
-import { deepEqual } from './deep-equal';
-import type { FieldMap } from './relation-map';
+import type { LoaderMappings, SelectionMap } from '../types.js';
+import { deepEqual } from './deep-equal.js';
+import type { FieldMap } from './relation-map.js';
 
 export type SelectionMode = 'include' | 'select';
 

@@ -6,8 +6,8 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type DataLoader from 'dataloader';
-import type { DataLoaderOptions } from '../types';
-import { dataloaderGetter } from '../util';
+import type { DataLoaderOptions } from '../types.js';
+import { dataloaderGetter } from '../util.js';
 
 export class LoadableInterfaceRef<
   Types extends SchemaTypes,

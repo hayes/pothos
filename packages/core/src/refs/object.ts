@@ -9,8 +9,8 @@ import {
   type PothosSubscriptionTypeConfig,
   parentShapeKey,
   type SchemaTypes,
-} from '../types';
-import { TypeRefWithFields } from './base-with-fields';
+} from '../types/index.js';
+import { TypeRefWithFields } from './base-with-fields.js';
 
 export type ObjectLikeConfig =
   | PothosMutationTypeConfig

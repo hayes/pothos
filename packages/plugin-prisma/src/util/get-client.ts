@@ -1,5 +1,5 @@
 import { createContextCache, type SchemaTypes } from '@pothos/core';
-import type { PrismaClient } from '../types';
+import type { PrismaClient } from '../types.js';
 
 export interface DMMFField {
   type: string;

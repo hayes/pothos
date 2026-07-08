@@ -6,7 +6,7 @@
     "generate": "tsx graphql/build-schema.ts && echo | gql.tada generate-output",
     "dev": "next dev",
     "prod-build": "next build",
-    "type": "tsgo --noEmit",
+    "type": "tsc --noEmit",
     "start": "next start"
   },
   "dependencies": {

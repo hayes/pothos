@@ -1,7 +1,7 @@
 import type { BuildCache, Path, SchemaTypes } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import CacheNode from './cache-node';
-import type SubscriptionManager from './manager';
+import CacheNode from './cache-node.js';
+import type SubscriptionManager from './manager/index.js';
 
 export default class SubscriptionCache<Types extends SchemaTypes> {
   manager: SubscriptionManager;
@@ -125,4 +125,4 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
   }
 }
 
-export { default as CacheNode } from './cache-node';
+export { default as CacheNode } from './cache-node.js';

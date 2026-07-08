@@ -1,5 +1,5 @@
-import type { SchemaTypes } from '../types';
-import { FieldBuilder } from './builder';
+import type { SchemaTypes } from '../types/index.js';
+import { FieldBuilder } from './builder.js';
 
 export class InterfaceFieldBuilder<Types extends SchemaTypes, ParentShape> extends FieldBuilder<
   Types,

@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   BasePlugin,
   type PothosEnumValueConfig,
@@ -8,10 +8,10 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLSchema } from 'graphql';
-import mockAst from './mock-ast';
-import type { DirectiveList } from './types';
+import mockAst from './mock-ast.js';
+import type { DirectiveList } from './types.js';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'directives';
 

@@ -12,8 +12,8 @@ import type {
   Selection,
   SelectionFromShape,
   selectionShapeKey,
-} from './types';
-import { addUsedDirectives, keyDirective, mergeDirectives } from './util';
+} from './types.js';
+import { addUsedDirectives, keyDirective, mergeDirectives } from './util.js';
 
 export const providesMap = new WeakMap<{}, string>();
 

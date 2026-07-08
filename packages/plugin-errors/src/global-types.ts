@@ -10,14 +10,14 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import type { PothosErrorsPlugin } from '.';
+import type { PothosErrorsPlugin } from './index.js';
 import type {
   ErrorFieldOptions,
   ErrorsPluginOptions,
   ErrorUnionFieldOptions,
   ErrorUnionListFieldOptions,
   ErrorUnionOptions,
-} from './types';
+} from './types.js';
 
 declare global {
   export namespace PothosSchemaTypes {

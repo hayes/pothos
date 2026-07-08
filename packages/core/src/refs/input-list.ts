@@ -1,5 +1,5 @@
-import { type InputTypeParam, inputShapeKey, type SchemaTypes } from '../types';
-import { BaseTypeRef } from './base';
+import { type InputTypeParam, inputShapeKey, type SchemaTypes } from '../types/index.js';
+import { BaseTypeRef } from './base.js';
 
 export class InputListRef<Types extends SchemaTypes, T>
   extends BaseTypeRef<Types>

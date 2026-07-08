@@ -12,14 +12,14 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
+import type { ExternalEntityRef } from './external-ref.js';
 import type {
   KeyDirective,
   PothosFederationPlugin,
   Selection,
   SelectionFromShape,
   selectionShapeKey,
-} from '.';
-import type { ExternalEntityRef } from './external-ref';
+} from './index.js';
 
 declare global {
   export namespace PothosSchemaTypes {

@@ -1,6 +1,6 @@
-import './global-types';
-import './field-builder';
-import './schema-builder';
+import './global-types.js';
+import './field-builder.js';
+import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   isThenable,
@@ -12,9 +12,9 @@ import SchemaBuilder, {
 import type DataLoader from 'dataloader';
 import type { GraphQLFieldResolver } from 'graphql';
 
-export * from './refs';
-export * from './types';
-export * from './util';
+export * from './refs/index.js';
+export * from './types.js';
+export * from './util.js';
 
 const pluginName = 'dataloader';
 export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

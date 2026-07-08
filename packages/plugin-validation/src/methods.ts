@@ -8,7 +8,7 @@ import {
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
-import type * as standardSchema from './standard-schema';
+import type * as standardSchema from './standard-schema.js';
 
 (RootFieldBuilder.prototype as RootFieldBuilder<SchemaTypes, unknown>).validate = function validate<
   Args extends InputFieldMap,

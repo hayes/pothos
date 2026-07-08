@@ -6,10 +6,10 @@ import SchemaBuilder, {
   type SchemaTypes,
   type ShapeFromTypeParam,
 } from '@pothos/core';
-import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
-import { ImplementableLoadableInterfaceRef } from './refs/interface';
-import { ImplementableLoadableObjectRef } from './refs/object';
-import { LoadableUnionRef } from './refs/union';
+import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs/index.js';
+import { ImplementableLoadableInterfaceRef } from './refs/interface.js';
+import { ImplementableLoadableObjectRef } from './refs/object.js';
+import { LoadableUnionRef } from './refs/union.js';
 import type {
   DataloaderKey,
   DataloaderObjectTypeOptions,
@@ -17,8 +17,8 @@ import type {
   LoadableNodeOptions,
   LoadableUnionOptions,
   ShapeFromLoadResult,
-} from './types';
-import { dataloaderGetter } from './util';
+} from './types.js';
+import { dataloaderGetter } from './util.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 

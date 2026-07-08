@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import SchemaBuilder, {
   type ArgumentRef,
   type EnumRef,
@@ -34,8 +34,8 @@ import type {
   AddGraphQLObjectTypeOptions,
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
-} from './types';
-import { addReferencedType } from './utils';
+} from './types.js';
+import { addReferencedType } from './utils.js';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
