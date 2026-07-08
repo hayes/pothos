@@ -1,5 +1,14 @@
 # @pothos-examples/open-telemetry
 
+## 2.1.25
+
+### Patch Changes
+
+- Updated dependencies [76e06e7]
+  - @pothos/core@4.13.1
+  - @pothos/plugin-tracing@1.1.3
+  - @pothos/tracing-opentelemetry@1.2.1
+
 ## 2.1.24
 
 ### Patch Changes

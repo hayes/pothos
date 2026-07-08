@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=22.18.0"
   },
-  "version": "2.1.24",
+  "version": "2.1.25",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {

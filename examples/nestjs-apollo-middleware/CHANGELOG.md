@@ -1,5 +1,12 @@
 # @pothos-examples/nestjs-apollo-middleware
 
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [76e06e7]
+  - @pothos/core@4.13.1
+
 ## 1.0.14
 
 ### Patch Changes
