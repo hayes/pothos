@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-dataloader",
-  "version": "4.4.4",
+  "version": "4.4.5",
   "description": "A Pothos plugin for attaching dataloader to object types",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
