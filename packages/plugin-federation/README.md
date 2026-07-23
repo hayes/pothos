@@ -119,6 +119,38 @@ ProductRef.implement({
 });
 ```
 
+### Selections with inline fragments
+
+The template-literal type that checks selection strings can not express selections that use inline
+fragments (e.g. selecting through a union or interface field). For these cases, a string can be cast
+to `FieldSet<Shape>` to bypass the selection string checks. The cast replaces the generic argument
+of `builder.selection` — the shape is inferred from the cast, and is still used for the resolver's
+`parent` type:
+
+```typescript
+import { type FieldSet } from '@pothos/plugin-federation';
+
+type Media = { __typename: 'Image'; url: string } | { __typename: 'Video'; url: string };
+
+PostRef.implement({
+  externalFields: (t) => ({
+    media: t.field({ type: [MediaUnion] }),
+  }),
+  fields: (t) => ({
+    mediaUrls: t.stringList({
+      requires: builder.selection(
+        'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
+      ),
+      resolve: (post) => post.media.map((media) => media.url),
+    }),
+  }),
+});
+```
+
+`FieldSet` is accepted anywhere a selection string is expected, including `builder.selection` and
+`ref.provides`. The selection string is not validated against the shape, so make sure the selection
+matches the fields described by the generic argument.
+
 To set the `resolvable` property of an external field to `false`, can use `builder.keyDirective`:
 
 ```ts

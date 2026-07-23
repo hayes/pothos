@@ -15,13 +15,9 @@ export const checked = builder.selection<{ upc: string; price?: number }>('upc p
 // @ts-expect-error incomplete selections are still rejected
 export const missingField = builder.selection<{ upc: string; price?: number }>('upc');
 
-// a FieldSet cast allows selections SelectionFromShape can not express
-export const withFragments = builder.selection<{ media: Media[] }>(
-  'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
-);
-
-// the shape is carried by the brand, so the generic can be inferred from the cast
-export const inferred: Selection<{ media: Media[] }> = builder.selection(
+// a FieldSet cast allows selections SelectionFromShape can not express; the cast
+// replaces the generic entirely — the shape is inferred from the brand
+export const withFragments: Selection<{ media: Media[] }> = builder.selection(
   'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
 );
 

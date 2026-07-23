@@ -53,7 +53,7 @@ PostRef.implement({
   fields: (t) => ({
     id: t.exposeString('id'),
     mediaUrls: t.stringList({
-      requires: builder.selection<{ media: Media[] }>(
+      requires: builder.selection(
         'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
       ),
       resolve: (post) => post.media.map((media) => media.url),

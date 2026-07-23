@@ -17,10 +17,10 @@ declare const fieldSetShapeKey: unique symbol;
  * `SelectionFromShape` can not express every valid FieldSet (e.g. selections that
  * require inline fragments to select through a union or interface field). Casting a
  * string to `FieldSet<Shape>` allows it to be passed anywhere a selection for `Shape`
- * is expected:
+ * is expected, replacing the generic argument entirely:
  *
  * ```ts
- * builder.selection<{ media: Media[] }>(
+ * builder.selection(
  *   'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
  * )
  * ```

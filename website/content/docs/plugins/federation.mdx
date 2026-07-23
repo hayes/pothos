@@ -126,8 +126,9 @@ ProductRef.implement({
 
 The template-literal type that checks selection strings can not express selections that use inline
 fragments (e.g. selecting through a union or interface field). For these cases, a string can be cast
-to `FieldSet<Shape>` to bypass the selection string checks while keeping the shape used for the
-resolver's `parent` type:
+to `FieldSet<Shape>` to bypass the selection string checks. The cast replaces the generic argument
+of `builder.selection` — the shape is inferred from the cast, and is still used for the resolver's
+`parent` type:
 
 ```typescript
 import { type FieldSet } from '@pothos/plugin-federation';
@@ -140,7 +141,7 @@ PostRef.implement({
   }),
   fields: (t) => ({
     mediaUrls: t.stringList({
-      requires: builder.selection<{ media: Media[] }>(
+      requires: builder.selection(
         'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
       ),
       resolve: (post) => post.media.map((media) => media.url),
