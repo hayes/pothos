@@ -101,6 +101,66 @@ type _Service {
 }"
 `;
 
+exports[`federation > media schema > generates expected schema 1`] = `
+"extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@key", "@requires"])
+
+type Image {
+  url: String
+}
+
+union Media = Image | Video
+
+type Post
+  @key(fields: "id")
+  @extends
+{
+  media: [Media!] @external
+  id: String
+  mediaUrls: [String!] @requires(fields: "media { ... on Image { url } ... on Video { url } }")
+}
+
+type Video {
+  url: String
+  previewUrl: String
+}"
+`;
+
+exports[`federation > media schema > generates expected schema 2`] = `
+"type Image {
+  url: String
+}
+
+union Media = Image | Video
+
+type Post {
+  id: String
+  media: [Media!]
+  mediaUrls: [String!]
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type Video {
+  previewUrl: String
+  url: String
+}
+
+scalar _Any
+
+union _Entity = Post
+
+type _Service {
+  """
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  """
+  sdl: String
+}"
+`;
+
 exports[`federation > products schema > generates expected schema 1`] = `
 "extend schema
   @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@composeDirective"])

@@ -9,6 +9,26 @@ import type {
 
 export const selectionShapeKey = Symbol.for('Pothos.federationSelectionKey');
 
+declare const fieldSetShapeKey: unique symbol;
+
+/**
+ * A branded selection string for `Shape` that bypasses the `SelectionFromShape` checks.
+ *
+ * `SelectionFromShape` can not express every valid FieldSet (e.g. selections that
+ * require inline fragments to select through a union or interface field). Casting a
+ * string to `FieldSet<Shape>` allows it to be passed anywhere a selection for `Shape`
+ * is expected, replacing the generic argument entirely:
+ *
+ * ```ts
+ * builder.selection(
+ *   'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
+ * )
+ * ```
+ */
+export type FieldSet<Shape extends object = object> = string & {
+  readonly [fieldSetShapeKey]: Shape;
+};
+
 export type EntityObjectFieldsShape<Types extends SchemaTypes, Shape, Fields extends FieldMap> = (
   t: PothosSchemaTypes.FieldBuilder<Types, Shape, 'EntityObject'>,
 ) => Fields;
