@@ -13,7 +13,12 @@ import {
   lexicographicSortSchema,
 } from 'graphql';
 import { ExternalEntityRef } from './external-ref.js';
-import { type Selection, type SelectionFromShape, selectionShapeKey } from './types.js';
+import {
+  type FieldSet,
+  type Selection,
+  type SelectionFromShape,
+  selectionShapeKey,
+} from './types.js';
 import { entityMapping, getUsedDirectives, mergeDirectives } from './util.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -46,7 +51,9 @@ export function hasResolvableKey(type: GraphQLNamedType) {
   return directives.key?.resolvable !== false;
 }
 
-schemaBuilderProto.selection = <Shape extends object>(selection: SelectionFromShape<Shape>) => ({
+schemaBuilderProto.selection = <Shape extends object>(
+  selection: FieldSet<Shape> | SelectionFromShape<Shape>,
+) => ({
   selection,
   [selectionShapeKey]: {} as unknown as Shape,
 });

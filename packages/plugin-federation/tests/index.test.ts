@@ -6,6 +6,7 @@ import { printSchema } from 'graphql';
 import { schema as accountsSchema } from './example/accounts/schema';
 import { createGateway } from './example/gateway';
 import { schema as inventorySchema } from './example/inventory/schema';
+import { schema as mediaSchema } from './example/media/schema';
 import { schema as productsSchema } from './example/products/schema';
 import { schema as reviewsSchema } from './example/reviews/schema';
 import { startServers } from './example/servers';
@@ -22,6 +23,19 @@ describe('federation', () => {
     it('generates expected schema', () => {
       expect(printSubgraphSchema(inventorySchema)).toMatchSnapshot();
       expect(printSchema(inventorySchema)).toMatchSnapshot();
+    });
+  });
+
+  describe('media schema', () => {
+    it('generates expected schema', () => {
+      expect(printSubgraphSchema(mediaSchema)).toMatchSnapshot();
+      expect(printSchema(mediaSchema)).toMatchSnapshot();
+    });
+
+    it('supports selections with inline fragments via FieldSet', () => {
+      expect(printSubgraphSchema(mediaSchema)).toContain(
+        '@requires(fields: "media { ... on Image { url } ... on Video { url } }")',
+      );
     });
   });
 

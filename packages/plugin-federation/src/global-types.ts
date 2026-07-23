@@ -14,6 +14,7 @@ import type {
 import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import type { ExternalEntityRef } from './external-ref.js';
 import type {
+  FieldSet,
   KeyDirective,
   PothosFederationPlugin,
   Selection,
@@ -103,7 +104,9 @@ declare global {
         ) => MaybePromise<Shape | null | undefined>,
       ) => ExternalEntityRef<Types, Shape, KeySelection>;
 
-      selection: <Shape extends object>(selection: SelectionFromShape<Shape>) => Selection<Shape>;
+      selection: <Shape extends object>(
+        selection: FieldSet<Shape> | SelectionFromShape<Shape>,
+      ) => Selection<Shape>;
 
       keyDirective: <Shape extends object, Resolvable extends boolean = true>(
         key: Selection<Shape>,

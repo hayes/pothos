@@ -9,6 +9,7 @@ import {
 import type { GraphQLResolveInfo } from 'graphql';
 import type {
   ExternalEntityOptions,
+  FieldSet,
   Selection,
   SelectionFromShape,
   selectionShapeKey,
@@ -91,7 +92,7 @@ export class ExternalEntityRef<
     return this;
   }
 
-  provides<T extends object>(selection: SelectionFromShape<T>) {
+  provides<T extends object>(selection: FieldSet<T> | SelectionFromShape<T>) {
     const ref = Object.create(this) as ExternalEntityRef<Types, Shape & T, Key>;
 
     providesMap.set(ref, selection);
