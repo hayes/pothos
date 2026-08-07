@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
+    "@vercel/analytics": "^1.6.1",
     "class-variance-authority": "^0.7.1",
     "fumadocs-core": "16.7.15",
     "fumadocs-docgen": "^3.0.10",

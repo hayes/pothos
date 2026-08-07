@@ -1,4 +1,5 @@
 import './global.css';
+import { Analytics } from '@vercel/analytics/next';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 
@@ -9,7 +10,10 @@ const inter = Inter({
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

@@ -1,0 +1,9 @@
+# pothos-graphql.dev
+# Docs are freely crawlable. Plain-text versions for LLMs/agents are
+# available at /llms.txt (index), /llms-full.txt (full corpus), and
+# per-page at /docs/<page>.mdx — prefer those over scraping HTML.
+
+User-agent: *
+Allow: /
+# Internal search endpoint; not useful to crawlers and each hit invokes a function.
+Disallow: /api/
