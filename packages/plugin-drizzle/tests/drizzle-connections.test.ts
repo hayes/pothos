@@ -1,11 +1,13 @@
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
+import { vi } from 'vitest';
 import { createContext } from './example/context';
-import { clearDrizzleLogs, drizzleLogs } from './example/db';
+import { clearDrizzleLogs, db, drizzleLogs } from './example/db';
 import { schema } from './example/schema';
 
 describe('drizzle connections', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     clearDrizzleLogs();
   });
   it('first', async () => {
@@ -874,6 +876,7 @@ describe('drizzle connections', () => {
 
   it('default orderBy', async () => {
     const context = await createContext({ userId: '1' });
+    const findMany = vi.spyOn(db.query.users, 'findMany');
     clearDrizzleLogs();
     const result = await execute({
       schema,
@@ -891,6 +894,8 @@ describe('drizzle connections', () => {
         `,
       contextValue: context,
     });
+
+    expect(findMany.mock.calls[0][0]).not.toHaveProperty('where');
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [

@@ -446,12 +446,14 @@ export function drizzleCursorConnectionQuery({
     whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
   }
 
+  const connectionWhere = whereClauses.length > 1 ? { AND: whereClauses } : whereClauses[0];
+
   return {
     cursorColumns: parsedOrderBy.columns,
     columns,
     orderBy: parsedOrderBy.orderBy,
     limit,
-    where: whereClauses.length > 1 ? { AND: whereClauses } : whereClauses[0],
+    ...(connectionWhere === undefined ? {} : { where: connectionWhere }),
   };
 }
 
@@ -536,6 +538,12 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
       table,
     });
     formatter = getCursorFormatter(cursorColumns, config);
+    const connectionWhere =
+      connectionQuery.where && q.where
+        ? {
+            AND: [q.where, connectionQuery.where],
+          }
+        : q.where || connectionQuery.where;
 
     query = queryFromInfo({
       context: options.ctx,
@@ -546,12 +554,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
           ...q.columns,
           ...connectionQuery.columns,
         },
-        where:
-          connectionQuery.where && q.where
-            ? {
-                AND: [q.where, connectionQuery.where],
-              }
-            : q.where || connectionQuery.where,
+        ...(connectionWhere === undefined ? {} : { where: connectionWhere }),
       } as never,
       paths: [['nodes'], ['edges', 'node']],
       typeName,

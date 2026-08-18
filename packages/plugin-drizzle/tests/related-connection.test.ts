@@ -1,11 +1,13 @@
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
+import { vi } from 'vitest';
 import { createContext } from './example/context';
-import { clearDrizzleLogs, drizzleLogs } from './example/db';
+import { clearDrizzleLogs, db, drizzleLogs } from './example/db';
 import { schema } from './example/schema';
 
 describe('related connections', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     clearDrizzleLogs();
   });
   it('first', async () => {
@@ -1089,6 +1091,7 @@ describe('related connections', () => {
 
   it('custom totalCount field', async () => {
     const context = await createContext({ userId: '1' });
+    const findFirst = vi.spyOn(db.query.users, 'findFirst');
     clearDrizzleLogs();
     const result = await execute({
       schema,
@@ -1109,6 +1112,8 @@ describe('related connections', () => {
         `,
       contextValue: context,
     });
+
+    expect(findFirst.mock.calls[0][0]?.with?.comments).not.toHaveProperty('where');
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
