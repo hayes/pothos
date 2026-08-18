@@ -1113,6 +1113,7 @@ describe('related connections', () => {
       contextValue: context,
     });
 
+    expect(findFirst).toHaveBeenCalled();
     expect(findFirst.mock.calls[0][0]?.with?.comments).not.toHaveProperty('where');
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
