@@ -16,7 +16,12 @@ import {
 } from './utils/cursors.js';
 import { queryFromInfo } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
-import { createState, mergeSelection, selectionToQuery } from './utils/selections.js';
+import {
+  createState,
+  mergeSelection,
+  omitUndefinedKeys,
+  selectionToQuery,
+} from './utils/selections.js';
 
 export function drizzleConnectionHelpers<
   Types extends SchemaTypes,
@@ -181,10 +186,10 @@ export function drizzleConnectionHelpers<
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
     const queryResult = selectionToQuery(config, selectState);
 
-    return {
+    return omitUndefinedKeys({
       ...baseQuery,
       ...queryResult,
-    } as unknown as Omit<Selection, 'orderBy'> & {
+    }) as unknown as Omit<Selection, 'orderBy'> & {
       orderBy: {
         [K in TableConfig['table']['_'] extends { columns: infer Columns }
           ? keyof Columns

@@ -36,7 +36,7 @@ builder.queryType({
     users: t.drizzleField({
       type: ['users'],
       resolve: (query) => {
-        return db.query.users.findMany(query());
+        return db.query.users.findMany(query({ where: undefined }));
       },
     }),
     usersConnection: t.drizzleConnection({

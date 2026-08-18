@@ -1,16 +1,19 @@
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
+import { vi } from 'vitest';
 import { createContext } from './example/context';
-import { clearDrizzleLogs } from './example/db';
+import { clearDrizzleLogs, db } from './example/db';
 import { schema } from './example/schema';
 
 describe('query path tracking', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     clearDrizzleLogs();
   });
 
   it('captures pathInfo in t.relation() query callback', async () => {
     const context = await createContext({ userId: '1' });
+    const findFirst = vi.spyOn(db.query.users, 'findFirst');
 
     // First query to trigger the relation with query callback
     const result = await execute({
@@ -38,6 +41,8 @@ describe('query path tracking', () => {
       contextValue: context,
     });
 
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(findFirst.mock.calls[0][0]?.with?.posts).not.toHaveProperty('where');
     expect(result.errors).toBeUndefined();
 
     const data = result.data as {

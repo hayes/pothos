@@ -1,15 +1,18 @@
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
+import { vi } from 'vitest';
 import { createContext } from './example/context';
-import { clearDrizzleLogs, drizzleLogs } from './example/db';
+import { clearDrizzleLogs, db, drizzleLogs } from './example/db';
 import { schema } from './example/schema';
 
 describe('connection helpers', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     clearDrizzleLogs();
   });
   it('basic indirect connection', async () => {
     const context = await createContext({ userId: '1' });
+    const findFirst = vi.spyOn(db.query.users, 'findFirst');
     clearDrizzleLogs();
     const result = await execute({
       schema,
@@ -37,6 +40,8 @@ describe('connection helpers', () => {
       contextValue: context,
     });
 
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(findFirst.mock.calls[0][0]?.with?.userRoles).not.toHaveProperty('where');
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
         "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
