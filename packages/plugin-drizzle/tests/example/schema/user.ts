@@ -38,6 +38,7 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   }),
   query: (args: { invert?: boolean | null }) => ({
     orderBy: args.invert ? { roleId: 'desc' } : { roleId: 'asc' },
+    where: undefined,
   }),
   select: (nestedSelection) => ({
     with: {
@@ -268,6 +269,7 @@ export const User = builder.drizzleNode('users', {
         return {
           limit: args.testLimit ?? 5,
           orderBy: { updatedAt: 'desc' },
+          where: undefined,
         };
       },
     }),

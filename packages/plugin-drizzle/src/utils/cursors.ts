@@ -17,7 +17,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
 import { queryFromInfo } from './map-query.js';
-import type { SelectionMap } from './selections.js';
+import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -446,13 +446,13 @@ export function drizzleCursorConnectionQuery({
     whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
   }
 
-  return {
+  return omitUndefinedKeys({
     cursorColumns: parsedOrderBy.columns,
     columns,
     orderBy: parsedOrderBy.orderBy,
     limit,
     where: whereClauses.length > 1 ? { AND: whereClauses } : whereClauses[0],
-  };
+  });
 }
 
 export function wrapConnectionResult<T extends {}>(
@@ -540,7 +540,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     query = queryFromInfo({
       context: options.ctx,
       info,
-      select: {
+      select: omitUndefinedKeys({
         ...connectionQuery,
         columns: {
           ...q.columns,
@@ -552,7 +552,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
                 AND: [q.where, connectionQuery.where],
               }
             : q.where || connectionQuery.where,
-      } as never,
+      }) as never,
       paths: [['nodes'], ['edges', 'node']],
       typeName,
       config,

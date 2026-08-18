@@ -19,6 +19,13 @@ export interface SelectionState {
 
 export type SelectionMap = DBQueryConfig<'one'>;
 
+export function omitUndefinedKeys<T extends object>(query: T): T {
+  const entries = Object.entries(query);
+  const defined = entries.filter(([, value]) => value !== undefined);
+
+  return defined.length === entries.length ? query : (Object.fromEntries(defined) as T);
+}
+
 export function selectionCompatible(
   state: SelectionState,
   selectionMap: SelectionMap | boolean,
@@ -53,7 +60,7 @@ export function selectionCompatible(
     return false;
   }
 
-  return ignoreQuery || deepEqual(state.query, query);
+  return ignoreQuery || deepEqual(state.query, omitUndefinedKeys(query));
 }
 
 export function stateCompatible(
@@ -134,8 +141,9 @@ export function mergeSelection(
     }
   }
 
-  if (Object.keys(query).length > 0) {
-    state.query = query;
+  const normalizedQuery = omitUndefinedKeys(query);
+  if (Object.keys(normalizedQuery).length > 0) {
+    state.query = normalizedQuery;
   }
 
   if (extras) {
@@ -178,7 +186,7 @@ export function selectionToQuery(
   state: SelectionState,
 ): SelectionMap {
   const query: SelectionMap & { extras: Record<string, unknown> } = {
-    ...state.query,
+    ...omitUndefinedKeys(state.query),
     columns: undefined,
     with: {},
     extras: {},

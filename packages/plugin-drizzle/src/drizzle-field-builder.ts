@@ -56,7 +56,7 @@ import {
   wrapConnectionResult,
 } from './utils/cursors.js';
 import { getRefFromModel } from './utils/refs.js';
-import type { SelectionMap } from './utils/selections.js';
+import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -526,7 +526,7 @@ export class DrizzleObjectFieldBuilder<
       const relQuery = {
         columns: {},
         with: {
-          [name]: {
+          [name]: omitUndefinedKeys({
             ...nestedQuery(query),
             ...((typeof query === 'function'
               ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(
@@ -535,7 +535,7 @@ export class DrizzleObjectFieldBuilder<
                   pathInfo,
                 )
               : query) as {}),
-          },
+          }),
         },
       };
 

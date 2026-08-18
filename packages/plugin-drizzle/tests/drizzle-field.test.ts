@@ -1,13 +1,36 @@
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
+import { vi } from 'vitest';
 import { createContext } from './example/context';
-import { clearDrizzleLogs, drizzleLogs } from './example/db';
+import { clearDrizzleLogs, db, drizzleLogs } from './example/db';
 import { schema } from './example/schema';
 
 describe('drizzle fields', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     clearDrizzleLogs();
   });
+
+  it('omits an undefined filter from a root query', async () => {
+    const context = await createContext({ userId: '1' });
+    const findMany = vi.spyOn(db.query.users, 'findMany');
+    const result = await execute({
+      schema,
+      document: gql`
+        {
+          users {
+            id
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(findMany.mock.calls[0][0]).not.toHaveProperty('where');
+    expect(result.errors).toBeUndefined();
+  });
+
   it('simple query using with, columns, extras on type', async () => {
     const context = await createContext({ userId: '1' });
     clearDrizzleLogs();
