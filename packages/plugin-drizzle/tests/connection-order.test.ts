@@ -215,3 +215,69 @@ describe('connections ordered by a selected expression', () => {
     expect(result.errors?.[0]?.message).toContain('has no such column');
   });
 });
+
+describe('expression ordering across connection APIs', () => {
+  it('works through a related connection', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+
+    const result = (await execute({
+      schema,
+      document: gql`
+        query {
+          user(id: "VXNlcjox") {
+            postsByTitleLengthConnection(first: 3) {
+              edges {
+                cursor
+                node {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    })) as {
+      errors?: readonly Error[];
+      data: { user: { postsByTitleLengthConnection: { edges: { cursor: string }[] } } };
+    };
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user.postsByTitleLengthConnection.edges).not.toHaveLength(0);
+    expect(drizzleLogs.join('\n')).toContain('order by length("d1"."title") asc');
+
+    // the cursor carries the expression value alongside the appended primary key
+    const [{ cursor }] = result.data.user.postsByTitleLengthConnection.edges;
+    expect(Buffer.from(cursor, 'base64').toString()).toMatch(/^DC:J:\[\d+,\d+\]$/);
+  });
+
+  it('works through drizzleConnectionHelpers', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+
+    const result = (await execute({
+      schema,
+      document: gql`
+        query {
+          rolesByIdLengthConnection(userId: 1, first: 2) {
+            edges {
+              cursor
+              node {
+                id
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    })) as {
+      errors?: readonly Error[];
+      data: { rolesByIdLengthConnection: { edges: { cursor: string }[] } };
+    };
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data.rolesByIdLengthConnection.edges).not.toHaveLength(0);
+    expect(drizzleLogs.join('\n')).toContain('cast("d0"."role_id" as text)');
+  });
+});
