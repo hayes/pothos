@@ -68,6 +68,9 @@ type GetTableConfigFn<TTable = Table> = (table: TTable) => {
   primaryKeys: {
     readonly columns: Column[];
   }[];
+  uniqueConstraints?: {
+    readonly columns: Column[];
+  }[];
   readonly columns: Column[];
 };
 

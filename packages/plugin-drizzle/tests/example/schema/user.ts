@@ -395,6 +395,19 @@ builder.queryField('userRolesConnection', (t) =>
   }),
 );
 
+builder.queryField('usersByUsername', (t) =>
+  t.drizzleConnection({
+    type: 'users',
+    resolve: (query) =>
+      db.query.users.findMany(
+        query({
+          // username is unique and not null, so it orders users on its own
+          orderBy: { username: 'asc' },
+        }),
+      ),
+  }),
+);
+
 builder.queryField('admin', (t) =>
   t.drizzleField({
     type: Admin,

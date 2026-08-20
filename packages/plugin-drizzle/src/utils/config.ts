@@ -5,7 +5,9 @@ import type { DrizzleClient } from '../types.js';
 export interface PothosDrizzleSchemaConfig {
   skipDeferredFragments: boolean;
   relations: AnyRelations;
+  findPrimaryKey: (tableName: string) => Column[] | null;
   getPrimaryKey: (tableName: string) => Column[];
+  getUniqueConstraints: (tableName: string) => Column[][];
   columnToTsName: (column: Column) => string;
 }
 const configCache = createContextCache(
@@ -27,6 +29,48 @@ const configCache = createContextCache(
       }
     });
 
+    const getTableConfig = (tableName: string) =>
+      builder.options.drizzle.getTableConfig(relations[tableName].table as Table);
+
+    // Every set of columns the database guarantees is unique. Unique indexes
+    // are not included: missing one only costs a redundant order column, while
+    // wrongly reporting a set as unique would break pagination.
+    const getUniqueConstraints = (tableName: string) => {
+      const tableConfig = getTableConfig(tableName);
+
+      return [
+        ...tableConfig.columns
+          .filter((column) => column.primary || column.isUnique)
+          .map((column) => [column]),
+        ...tableConfig.primaryKeys.map((key) => key.columns),
+        ...(tableConfig.uniqueConstraints ?? []).map((constraint) => constraint.columns),
+      ].filter((columns) => columns.length > 0);
+    };
+
+    const findPrimaryKey = (tableName: string) => {
+      const tableConfig = getTableConfig(tableName);
+
+      const primaryKey = tableConfig.columns.find((column) => column.primary);
+
+      if (primaryKey) {
+        return [primaryKey];
+      }
+
+      const primaryKeys = tableConfig.primaryKeys.find((key) => key.columns.length > 0);
+
+      if (primaryKeys) {
+        return primaryKeys.columns;
+      }
+
+      const uniqueColumn = tableConfig.columns.find((column) => column.isUnique);
+
+      if (uniqueColumn) {
+        return [uniqueColumn];
+      }
+
+      return null;
+    };
+
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       columnToTsName: (column) => {
@@ -38,30 +82,16 @@ const configCache = createContextCache(
 
         return tsName;
       },
+      findPrimaryKey,
+      getUniqueConstraints,
       getPrimaryKey: (tableName) => {
-        const tableConfig = builder.options.drizzle.getTableConfig(
-          relations[tableName].table as Table,
-        );
+        const primaryKey = findPrimaryKey(tableName);
 
-        const primaryKey = tableConfig.columns.find((column) => column.primary);
-
-        if (primaryKey) {
-          return [primaryKey];
+        if (!primaryKey) {
+          throw new Error(`Could not find primary key for table ${tableName}`);
         }
 
-        const primaryKeys = tableConfig.primaryKeys.find((key) => key.columns.length > 0);
-
-        if (primaryKeys) {
-          return primaryKeys.columns;
-        }
-
-        const uniqueColumn = tableConfig.columns.find((column) => column.isUnique);
-
-        if (uniqueColumn) {
-          return [uniqueColumn];
-        }
-
-        throw new Error(`Could not find primary key for table ${tableName}`);
+        return primaryKey;
       },
       relations,
     };

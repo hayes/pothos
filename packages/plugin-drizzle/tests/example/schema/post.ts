@@ -140,6 +140,16 @@ builder.queryFields((t) => ({
       return db.query.posts.findMany(q);
     },
   }),
+  postsByAuthor: t.drizzleConnection({
+    type: 'posts',
+    resolve: (query) =>
+      db.query.posts.findMany(
+        query({
+          // authorId is not unique: 10 authors with 15 posts each
+          orderBy: { authorId: 'asc' },
+        }),
+      ),
+  }),
   postsWithCount: t.drizzleConnection({
     type: 'posts',
     totalCount: () => db.$count(posts, eq(posts.published, 1)),
