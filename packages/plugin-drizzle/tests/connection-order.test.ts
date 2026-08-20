@@ -122,3 +122,96 @@ describe('cursors issued before the tie breaker existed', () => {
     expect(result.data.postsByAuthor.edges).not.toHaveLength(0);
   });
 });
+
+const byTitleLength = gql`
+  query ($first: Int!, $after: String) {
+    postsByTitleLength(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+        }
+      }
+    }
+  }
+`;
+
+describe('connections ordered by a selected expression', () => {
+  it('visits every row exactly once', async () => {
+    const context = await createContext({ userId: '1' });
+    const total = await db.$count(posts);
+    const ids: string[] = [];
+    let after: string | null = null;
+
+    for (let requests = 0; requests < 1000; requests++) {
+      const result = (await execute({
+        schema,
+        document: byTitleLength,
+        contextValue: context,
+        variableValues: { first: 9, after },
+      })) as {
+        errors?: readonly Error[];
+        data: {
+          postsByTitleLength: {
+            pageInfo: { endCursor: string | null; hasNextPage: boolean };
+            edges: { node: { id: string } }[];
+          };
+        };
+      };
+
+      expect(result.errors).toBeUndefined();
+
+      const { pageInfo, edges } = result.data.postsByTitleLength;
+
+      ids.push(...edges.map((edge) => edge.node.id));
+
+      if (!pageInfo.hasNextPage) {
+        break;
+      }
+
+      after = pageInfo.endCursor;
+    }
+
+    expect(ids).toHaveLength(total);
+    expect(new Set(ids).size).toBe(total);
+  });
+
+  it('orders and compares on the expression, not a column', async () => {
+    const context = await createContext({ userId: '1' });
+    clearDrizzleLogs();
+
+    await execute({
+      schema,
+      document: byTitleLength,
+      contextValue: context,
+      variableValues: { first: 2, after: null },
+    });
+
+    expect(drizzleLogs[0]).toContain('order by length("d0"."title") asc, "d0"."id" asc');
+  });
+
+  it('rejects an orderBy naming neither a column nor an extra', async () => {
+    const context = await createContext({ userId: '1' });
+
+    const result = (await execute({
+      schema,
+      document: gql`
+        query {
+          postsMissingOrderByExtra(first: 2) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    })) as { errors?: readonly Error[] };
+
+    expect(result.errors?.[0]?.message).toContain('has no such column');
+  });
+});

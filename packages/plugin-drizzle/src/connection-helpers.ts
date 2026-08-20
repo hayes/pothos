@@ -10,6 +10,7 @@ import type { DrizzleRef } from './interface-ref.js';
 import type { QueryForDrizzleConnection } from './types.js';
 import { getSchemaConfig } from './utils/config.js';
 import {
+  type DrizzleCursorConnectionQueryOptions,
   drizzleCursorConnectionQuery,
   getCursorFormatter,
   wrapConnectionResult,
@@ -93,8 +94,8 @@ export function drizzleConnectionHelpers<
     ctx: Types['Context'],
     parent?: Parent,
   ) {
-    const { select, cursorColumns } = getQueryArgs(args, ctx);
-    const formatCursor = getCursorFormatter(cursorColumns, config);
+    const { select, cursorFields } = getQueryArgs(args, ctx);
+    const formatCursor = getCursorFormatter(cursorFields, config);
     return wrapConnectionResult(
       list,
       args,
@@ -122,7 +123,7 @@ export function drizzleConnectionHelpers<
       (typeof query === 'function' ? query(args, ctx) : query) ?? {};
     const table = config.relations[tableName];
 
-    const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
+    const { cursorFields, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
       ctx,
       maxSize,
       defaultSize: typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize,
@@ -130,6 +131,7 @@ export function drizzleConnectionHelpers<
       orderBy:
         (typeof orderBy === 'function' ? orderBy(table) : orderBy) ??
         getSchemaConfig(builder).getPrimaryKey(tableName),
+      extras: (fieldQuery as { extras?: DrizzleCursorConnectionQueryOptions['extras'] }).extras,
       where,
       config,
       table,
@@ -145,7 +147,7 @@ export function drizzleConnectionHelpers<
         },
         limit: Math.abs(limit ?? connectionQuery.limit),
       },
-      cursorColumns,
+      cursorFields,
     };
   };
 

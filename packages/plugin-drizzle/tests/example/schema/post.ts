@@ -150,6 +150,21 @@ builder.queryFields((t) => ({
         }),
       ),
   }),
+  postsByTitleLength: t.drizzleConnection({
+    type: 'posts',
+    resolve: (query) =>
+      db.query.posts.findMany(
+        query({
+          // ordering by an expression the query selects, rather than a column
+          extras: { titleLength: (table) => sql`length(${table.title})` },
+          orderBy: { titleLength: 'asc' },
+        }),
+      ),
+  }),
+  postsMissingOrderByExtra: t.drizzleConnection({
+    type: 'posts',
+    resolve: (query) => db.query.posts.findMany(query({ orderBy: { notAColumn: 'asc' } })),
+  }),
   postsWithCount: t.drizzleConnection({
     type: 'posts',
     totalCount: () => db.$count(posts, eq(posts.published, 1)),
