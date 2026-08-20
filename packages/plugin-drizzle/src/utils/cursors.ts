@@ -395,9 +395,9 @@ function orderIsUnique(
 // A cursor names a row's position in the ordering, which only works if no two
 // rows can share a position. Ordering by a column with duplicate values (a
 // timestamp, a status) leaves ties to be broken arbitrarily, so a row can move
-// between pages and end up returned twice or skipped entirely. Appending the
-// primary key makes the ordering unique. Key columns already in the ordering
-// are left where the user put them.
+// between pages and end up returned twice or skipped entirely. Appending a key
+// the database keeps unique fixes that. Key columns already in the ordering are
+// left where the user put them.
 function appendTieBreaker(
   entries: OrderByEntry[],
   config: PothosDrizzleSchemaConfig,
@@ -407,15 +407,15 @@ function appendTieBreaker(
     return;
   }
 
-  const primaryKey = config.findPrimaryKey(table.name);
+  const tieBreaker = config.findTieBreaker(table.name);
 
-  if (!primaryKey || primaryKey.some((column) => !column.notNull)) {
+  if (!tieBreaker) {
     return;
   }
 
   const direction = entries[entries.length - 1]?.direction ?? 'asc';
 
-  for (const column of primaryKey) {
+  for (const column of tieBreaker) {
     if (!ordersBy(entries, column)) {
       entries.push({ direction, key: config.columnToTsName(column), column });
     }

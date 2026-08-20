@@ -592,10 +592,13 @@ all marked `notNull()`, are used as provided. Nullable unique columns are not tr
 because rows containing a `null` are still tied with each other. Uniqueness declared with
 `uniqueIndex()` is not detected, so those orderings still get the primary key appended.
 
-Nothing is appended when Pothos cannot find a key it can rely on. That covers tables with no primary
-key or unique column, and composite keys declared with `primaryKey({ columns: [...] })` whose columns
-are not individually marked `notNull()`. Those connections keep the ordering you wrote, so give them
-a tie breaker yourself.
+Primary keys are used whether or not their columns are marked `notNull()`, since SQL makes primary
+key columns non-nullable anyway. That includes composite keys declared with
+`primaryKey({ columns: [...] })`.
+
+Nothing is appended when Pothos cannot find a key it can rely on, which means tables with no primary
+key, and tables whose only unique column is nullable. Those connections keep the ordering you wrote,
+so give them a tie breaker yourself.
 
 ### Nullable ordering columns
 

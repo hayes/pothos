@@ -72,6 +72,45 @@ describe('cursor values', () => {
 });
 
 describe('composite primary keys', () => {
+  it('is trusted even when its columns are not marked notNull', async () => {
+    const { defineRelations } = await import('drizzle-orm');
+    const { getTableConfig: getPgTableConfig, primaryKey } = await import('drizzle-orm/pg-core');
+    const { default: SchemaBuilder } = await import('@pothos/core');
+    const { getSchemaConfig } = await import('../src/utils/config');
+    const { drizzleCursorConnectionQuery } = await import('../src/utils/cursors');
+    const DrizzlePlugin = (await import('../src')).default;
+
+    // the columns carry no .notNull(), but SQL makes primary key columns
+    // non-nullable regardless
+    const memberships = pgTable(
+      'memberships',
+      {
+        userId: integer('user_id'),
+        groupId: integer('group_id'),
+        joinedAt: timestamp('joined_at'),
+      },
+      (t) => [primaryKey({ columns: [t.userId, t.groupId] })],
+    );
+
+    const relations = defineRelations({ memberships }, () => ({}));
+    const builder = new SchemaBuilder<{ DrizzleRelations: typeof relations }>({
+      plugins: [DrizzlePlugin],
+      drizzle: { client: {} as never, getTableConfig: getPgTableConfig, relations },
+    } as never);
+
+    const schemaConfig = getSchemaConfig(builder as never);
+
+    const query = drizzleCursorConnectionQuery({
+      args: { first: 3 },
+      ctx: {},
+      orderBy: { joinedAt: 'desc' },
+      config: schemaConfig,
+      table: schemaConfig.relations.memberships,
+    });
+
+    expect(query.orderBy).toEqual({ joinedAt: 'desc', userId: 'desc', groupId: 'desc' });
+  });
+
   it('appends the rest of the key on postgres, where drizzle reports it as ExtraConfigColumns', async () => {
     const { getSchemaConfig } = await import('../src/utils/config');
     const { drizzleCursorConnectionQuery } = await import('../src/utils/cursors');

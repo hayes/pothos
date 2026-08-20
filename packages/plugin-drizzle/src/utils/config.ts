@@ -6,6 +6,7 @@ export interface PothosDrizzleSchemaConfig {
   skipDeferredFragments: boolean;
   relations: AnyRelations;
   findPrimaryKey: (tableName: string) => Column[] | null;
+  findTieBreaker: (tableName: string) => Column[] | null;
   getPrimaryKey: (tableName: string) => Column[];
   getUniqueConstraints: (tableName: string) => Column[][];
   columnToTsName: (column: Column) => string;
@@ -79,6 +80,31 @@ const configCache = createContextCache(
       ].filter((columns) => columns.length > 0);
     };
 
+    // What a cursor can rely on to break ties. Primary key columns are
+    // non-nullable whatever the drizzle schema says, because SQL requires it,
+    // so a composite key declared without notNull() on each column still
+    // counts. A column that is only unique has to say so itself: comparing a
+    // cursor against null matches nothing, and rows sharing a null tie anyway.
+    const findTieBreaker = (tableName: string) => {
+      const tableConfig = getTableConfig(tableName);
+
+      const primaryKey = tableConfig.columns.find((column) => column.primary);
+
+      if (primaryKey) {
+        return [primaryKey];
+      }
+
+      const compositeKey = tableConfig.primaryKeys.find((columns) => columns.length > 0);
+
+      if (compositeKey) {
+        return compositeKey;
+      }
+
+      const uniqueColumn = tableConfig.columns.find((column) => column.isUnique && column.notNull);
+
+      return uniqueColumn ? [uniqueColumn] : null;
+    };
+
     const findPrimaryKey = (tableName: string) => {
       const tableConfig = getTableConfig(tableName);
 
@@ -115,6 +141,7 @@ const configCache = createContextCache(
         return tsName;
       },
       findPrimaryKey,
+      findTieBreaker,
       getUniqueConstraints,
       getPrimaryKey: (tableName) => {
         const primaryKey = findPrimaryKey(tableName);
