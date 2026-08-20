@@ -344,6 +344,42 @@ function parseOrderBy(
   };
 }
 
+// Exclusive keyset comparison is only exclusive of the cursor row if every
+// compared value round-trips to the stored column. Date cursors are encoded at
+// millisecond precision (JSON.stringify / D:<epoch-ms>) while Postgres
+// timestamptz defaults to microseconds, so `created_at > truncated` matches the
+// cursor row itself. Number and bigint columns round-trip, so requiring
+// `id <> cursor.id` restores the Relay rule (the named node must not appear)
+// without depending on timestamp precision. String columns are left out: they
+// may themselves be timestamp text.
+function identityExclusions(
+  parsedOrderBy: ReturnType<typeof parseOrderBy>,
+  parsedCursor: Record<string, unknown>,
+  config: PothosDrizzleSchemaConfig,
+): Record<string, { ne: unknown }>[] {
+  const clauses: Record<string, { ne: unknown }>[] = [];
+
+  for (const { column } of parsedOrderBy.normalized) {
+    const dataType = column.dataType;
+    if (dataType.startsWith('number') || dataType.startsWith('bigint')) {
+      clauses.push({
+        [config.columnToTsName(column)]: { ne: parsedCursor[column.name] },
+      });
+    }
+  }
+
+  return clauses;
+}
+
+function pushCursorPredicate(
+  whereClauses: {}[],
+  parts: {}[],
+  exclusions: Record<string, { ne: unknown }>[],
+) {
+  const keyset = parts.length > 1 ? { OR: parts } : parts[0];
+  whereClauses.push(exclusions.length > 0 ? { AND: [keyset, ...exclusions] } : keyset);
+}
+
 export function drizzleCursorConnectionQuery({
   args,
   ctx,
@@ -415,7 +451,11 @@ export function drizzleCursorConnectionQuery({
       };
     });
 
-    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
+    pushCursorPredicate(
+      whereClauses,
+      parts,
+      identityExclusions(parsedOrderBy, parsedCursor, config),
+    );
   }
 
   if (before) {
@@ -443,7 +483,11 @@ export function drizzleCursorConnectionQuery({
       };
     });
 
-    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
+    pushCursorPredicate(
+      whereClauses,
+      parts,
+      identityExclusions(parsedOrderBy, parsedCursor, config),
+    );
   }
 
   return omitUndefinedKeys({
