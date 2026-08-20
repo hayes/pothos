@@ -72,6 +72,43 @@ describe('cursor values', () => {
 });
 
 describe('composite primary keys', () => {
+  it('falls back to a composite unique constraint when there is no primary key', async () => {
+    const { defineRelations } = await import('drizzle-orm');
+    const { getTableConfig: getPgTableConfig, unique } = await import('drizzle-orm/pg-core');
+    const { default: SchemaBuilder } = await import('@pothos/core');
+    const { getSchemaConfig } = await import('../src/utils/config');
+    const { drizzleCursorConnectionQuery } = await import('../src/utils/cursors');
+    const DrizzlePlugin = (await import('../src')).default;
+
+    const readings = pgTable(
+      'readings',
+      {
+        sensorId: integer('sensor_id').notNull(),
+        slot: integer('slot').notNull(),
+        takenAt: timestamp('taken_at'),
+      },
+      (t) => [unique('readings_sensor_slot').on(t.sensorId, t.slot)],
+    );
+
+    const relations = defineRelations({ readings }, () => ({}));
+    const builder = new SchemaBuilder<{ DrizzleRelations: typeof relations }>({
+      plugins: [DrizzlePlugin],
+      drizzle: { client: {} as never, getTableConfig: getPgTableConfig, relations },
+    } as never);
+
+    const schemaConfig = getSchemaConfig(builder as never);
+
+    const query = drizzleCursorConnectionQuery({
+      args: { first: 3 },
+      ctx: {},
+      orderBy: { takenAt: 'desc' },
+      config: schemaConfig,
+      table: schemaConfig.relations.readings,
+    });
+
+    expect(query.orderBy).toEqual({ takenAt: 'desc', sensorId: 'desc', slot: 'desc' });
+  });
+
   it('is trusted even when its columns are not marked notNull', async () => {
     const { defineRelations } = await import('drizzle-orm');
     const { getTableConfig: getPgTableConfig, primaryKey } = await import('drizzle-orm/pg-core');

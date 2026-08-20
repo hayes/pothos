@@ -30,8 +30,6 @@ const configCache = createContextCache(
       }
     });
 
-    const tableConfigs = new Map<string, ReturnType<typeof buildTableConfig>>();
-
     const buildTableConfig = (tableName: string) => {
       const table = relations[tableName].table as Table;
       const tableConfig = builder.options.drizzle.getTableConfig(table);
@@ -52,6 +50,8 @@ const configCache = createContextCache(
         ),
       };
     };
+
+    const tableConfigs = new Map<string, ReturnType<typeof buildTableConfig>>();
 
     // drizzle rebuilds this from the table's config callback on every call
     const getTableConfig = (tableName: string) => {
@@ -102,7 +102,15 @@ const configCache = createContextCache(
 
       const uniqueColumn = tableConfig.columns.find((column) => column.isUnique && column.notNull);
 
-      return uniqueColumn ? [uniqueColumn] : null;
+      if (uniqueColumn) {
+        return [uniqueColumn];
+      }
+
+      const uniqueConstraint = tableConfig.uniqueConstraints.find(
+        (columns) => columns.length > 0 && columns.every((column) => column.notNull),
+      );
+
+      return uniqueConstraint ?? null;
     };
 
     const findPrimaryKey = (tableName: string) => {
