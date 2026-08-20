@@ -55,21 +55,21 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6SjpbMSwxXQ==",
+                  "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                   "node": {
                     "id": "1",
                     "name": "admin",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMiwxXQ==",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMywxXQ==",
+                  "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                   "node": {
                     "id": "3",
                     "name": "user",
@@ -77,10 +77,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6SjpbMywxXQ==",
+                "endCursor": "REM6VDpbIk46MyIsIk46MSJd",
                 "hasNextPage": false,
                 "hasPreviousPage": false,
-                "startCursor": "REM6SjpbMSwxXQ==",
+                "startCursor": "REM6VDpbIk46MSIsIk46MSJd",
               },
             },
           },
@@ -131,7 +131,7 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6SjpbMiwxXQ==",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
@@ -139,10 +139,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6SjpbMiwxXQ==",
+                "endCursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "hasNextPage": true,
                 "hasPreviousPage": true,
-                "startCursor": "REM6SjpbMiwxXQ==",
+                "startCursor": "REM6VDpbIk46MiIsIk46MSJd",
               },
             },
           },
@@ -193,7 +193,7 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6SjpbMiwxXQ==",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
@@ -201,10 +201,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6SjpbMiwxXQ==",
+                "endCursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "hasNextPage": true,
                 "hasPreviousPage": true,
-                "startCursor": "REM6SjpbMiwxXQ==",
+                "startCursor": "REM6VDpbIk46MiIsIk46MSJd",
               },
             },
           },
@@ -255,21 +255,21 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6SjpbMywxXQ==",
+                  "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                   "node": {
                     "id": "3",
                     "name": "user",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMiwxXQ==",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMSwxXQ==",
+                  "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                   "node": {
                     "id": "1",
                     "name": "admin",
@@ -277,10 +277,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6SjpbMSwxXQ==",
+                "endCursor": "REM6VDpbIk46MSIsIk46MSJd",
                 "hasNextPage": false,
                 "hasPreviousPage": false,
-                "startCursor": "REM6SjpbMywxXQ==",
+                "startCursor": "REM6VDpbIk46MyIsIk46MSJd",
               },
             },
           },
@@ -331,14 +331,14 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6SjpbMiwxXQ==",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMSwxXQ==",
+                  "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                   "node": {
                     "id": "1",
                     "name": "admin",
@@ -346,10 +346,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6SjpbMSwxXQ==",
+                "endCursor": "REM6VDpbIk46MSIsIk46MSJd",
                 "hasNextPage": false,
                 "hasPreviousPage": true,
-                "startCursor": "REM6SjpbMiwxXQ==",
+                "startCursor": "REM6VDpbIk46MiIsIk46MSJd",
               },
             },
           },
@@ -400,14 +400,14 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6SjpbMywxXQ==",
+                  "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                   "node": {
                     "id": "3",
                     "name": "user",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMiwxXQ==",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
@@ -415,10 +415,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6SjpbMiwxXQ==",
+                "endCursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "hasNextPage": true,
                 "hasPreviousPage": false,
-                "startCursor": "REM6SjpbMywxXQ==",
+                "startCursor": "REM6VDpbIk46MyIsIk46MSJd",
               },
             },
           },
@@ -466,21 +466,21 @@ describe('connection helpers', () => {
           "userRolesConnection": {
             "edges": [
               {
-                "cursor": "REM6SjpbMSwxXQ==",
+                "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                 "node": {
                   "id": "1",
                   "name": "admin",
                 },
               },
               {
-                "cursor": "REM6SjpbMiwxXQ==",
+                "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "node": {
                   "id": "2",
                   "name": "author",
                 },
               },
               {
-                "cursor": "REM6SjpbMywxXQ==",
+                "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                 "node": {
                   "id": "3",
                   "name": "user",
@@ -488,10 +488,10 @@ describe('connection helpers', () => {
               },
             ],
             "pageInfo": {
-              "endCursor": "REM6SjpbMywxXQ==",
+              "endCursor": "REM6VDpbIk46MyIsIk46MSJd",
               "hasNextPage": false,
               "hasPreviousPage": false,
-              "startCursor": "REM6SjpbMSwxXQ==",
+              "startCursor": "REM6VDpbIk46MSIsIk46MSJd",
             },
           },
         },

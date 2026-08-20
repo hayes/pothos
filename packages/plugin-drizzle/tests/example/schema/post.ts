@@ -165,6 +165,13 @@ builder.queryFields((t) => ({
     type: 'posts',
     resolve: (query) => db.query.posts.findMany(query({ orderBy: { notAColumn: 'asc' } })),
   }),
+  postsBySlug: t.drizzleConnection({
+    type: 'posts',
+    resolve: (query) =>
+      // slug is unique but nullable, so it neither counts as a unique ordering
+      // nor compares like an ordinary value
+      db.query.posts.findMany(query({ orderBy: { slug: 'asc' } })),
+  }),
   postsWithCount: t.drizzleConnection({
     type: 'posts',
     totalCount: () => db.$count(posts, eq(posts.published, 1)),

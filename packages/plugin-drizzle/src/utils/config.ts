@@ -29,8 +29,40 @@ const configCache = createContextCache(
       }
     });
 
-    const getTableConfig = (tableName: string) =>
-      builder.options.drizzle.getTableConfig(relations[tableName].table as Table);
+    const tableConfigs = new Map<string, ReturnType<typeof buildTableConfig>>();
+
+    const buildTableConfig = (tableName: string) => {
+      const table = relations[tableName].table as Table;
+      const tableConfig = builder.options.drizzle.getTableConfig(table);
+      const tableColumns = Object.values(getColumns(table));
+
+      // The pg dialect builds primaryKeys and uniqueConstraints from
+      // ExtraConfigColumns rather than the table's own columns, so the objects
+      // it hands back are not the ones columnNameMappings knows about, and do
+      // not carry notNull. Look each one back up by name.
+      const toTableColumn = (column: Column) =>
+        tableColumns.find((candidate) => candidate.name === column.name) ?? column;
+
+      return {
+        columns: tableConfig.columns.map(toTableColumn),
+        primaryKeys: tableConfig.primaryKeys.map((key) => key.columns.map(toTableColumn)),
+        uniqueConstraints: (tableConfig.uniqueConstraints ?? []).map((constraint) =>
+          constraint.columns.map(toTableColumn),
+        ),
+      };
+    };
+
+    // drizzle rebuilds this from the table's config callback on every call
+    const getTableConfig = (tableName: string) => {
+      let tableConfig = tableConfigs.get(tableName);
+
+      if (!tableConfig) {
+        tableConfig = buildTableConfig(tableName);
+        tableConfigs.set(tableName, tableConfig);
+      }
+
+      return tableConfig;
+    };
 
     // Every set of columns the database guarantees is unique. Unique indexes
     // are not included: missing one only costs a redundant order column, while
@@ -42,8 +74,8 @@ const configCache = createContextCache(
         ...tableConfig.columns
           .filter((column) => column.primary || column.isUnique)
           .map((column) => [column]),
-        ...tableConfig.primaryKeys.map((key) => key.columns),
-        ...(tableConfig.uniqueConstraints ?? []).map((constraint) => constraint.columns),
+        ...tableConfig.primaryKeys,
+        ...tableConfig.uniqueConstraints,
       ].filter((columns) => columns.length > 0);
     };
 
@@ -56,10 +88,10 @@ const configCache = createContextCache(
         return [primaryKey];
       }
 
-      const primaryKeys = tableConfig.primaryKeys.find((key) => key.columns.length > 0);
+      const primaryKeys = tableConfig.primaryKeys.find((columns) => columns.length > 0);
 
       if (primaryKeys) {
-        return primaryKeys.columns;
+        return primaryKeys;
       }
 
       const uniqueColumn = tableConfig.columns.find((column) => column.isUnique);

@@ -587,9 +587,24 @@ different position or direction:
 orderBy: { createdAt: 'desc', id: 'asc' }
 ```
 
-Orderings that already contain the primary key, or any unique column that is not nullable, are used
-as provided. Nullable unique columns are not treated as unique, because rows containing a `null` are
-still tied with each other.
+Orderings that already contain the primary key, or a unique column or constraint whose columns are
+all marked `notNull()`, are used as provided. Nullable unique columns are not treated as unique,
+because rows containing a `null` are still tied with each other. Uniqueness declared with
+`uniqueIndex()` is not detected, so those orderings still get the primary key appended.
+
+Nothing is appended when Pothos cannot find a key it can rely on. That covers tables with no primary
+key or unique column, and composite keys declared with `primaryKey({ columns: [...] })` whose columns
+are not individually marked `notNull()`. Those connections keep the ordering you wrote, so give them
+a tie breaker yourself.
+
+### Nullable ordering columns
+
+A row whose ordering value is `null` cannot be paged past. `null` is not greater or less than
+anything in SQL, so no row compares as coming after it and the next page comes back empty. The same
+applies to an ordering expression that can evaluate to `null`.
+
+Order by columns that are `notNull()`, or give the expression a real value to fall back to with
+`coalesce`.
 
 ### Cursor values and precision
 
@@ -641,7 +656,7 @@ builder.queryFields((t) => ({
 
 ### Ordering by an expression
 
-`orderBy` accepts the name of any extra selected by the same query. Pothos orders by the expression,
+`orderBy` accepts the name of any extra declared in the same query. Pothos orders by the expression,
 builds the cursor from the value it returns, and compares the expression when paging:
 
 ```ts
@@ -654,6 +669,9 @@ query({
 Extras used this way should be written as a callback. Drizzle aliases the table it queries and passes
 that alias to the callback, so an expression built from the imported table object will reference a
 name the query does not have.
+
+With `drizzleConnectionHelpers`, declare the extra in `query` rather than in `select`. Only `query`
+is read when the ordering is resolved.
 
 The expression also needs to sort in the same order its values compare. A timestamp formatted as
 fixed width UTC text sorts the same way it does chronologically, but a local time or variable width

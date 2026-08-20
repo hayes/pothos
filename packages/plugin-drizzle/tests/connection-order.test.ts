@@ -249,7 +249,7 @@ describe('expression ordering across connection APIs', () => {
 
     // the cursor carries the expression value alongside the appended primary key
     const [{ cursor }] = result.data.user.postsByTitleLengthConnection.edges;
-    expect(Buffer.from(cursor, 'base64').toString()).toMatch(/^DC:J:\[\d+,\d+\]$/);
+    expect(Buffer.from(cursor, 'base64').toString()).toMatch(/^DC:T:\["N:\d+","N:\d+"\]$/);
   });
 
   it('works through drizzleConnectionHelpers', async () => {
@@ -279,5 +279,63 @@ describe('expression ordering across connection APIs', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data.rolesByIdLengthConnection.edges).not.toHaveLength(0);
     expect(drizzleLogs.join('\n')).toContain('cast("d0"."role_id" as text)');
+  });
+});
+
+describe('connections ordered by a nullable column', () => {
+  it('does not crash when the cursor value is null', async () => {
+    const context = await createContext({ userId: '1' });
+
+    const first = (await execute({
+      schema,
+      document: gql`
+        query {
+          postsBySlug(first: 1) {
+            pageInfo {
+              endCursor
+            }
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    })) as {
+      errors?: readonly Error[];
+      data: { postsBySlug: { pageInfo: { endCursor: string } } };
+    };
+
+    expect(first.errors).toBeUndefined();
+
+    const { endCursor } = first.data.postsBySlug.pageInfo;
+    // sqlite orders nulls first, so the cursor names a row with no slug
+    expect(Buffer.from(endCursor, 'base64').toString()).toContain('null');
+
+    const second = (await execute({
+      schema,
+      document: gql`
+        query ($after: String) {
+          postsBySlug(first: 2, after: $after) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      `,
+      contextValue: context,
+      variableValues: { after: endCursor },
+    })) as { errors?: readonly Error[]; data: { postsBySlug: { edges: unknown[] } } };
+
+    // Paging past a null used to throw a TypeError out of drizzle. It no longer
+    // does, but the page is empty: `slug > null` is unknown in SQL, so no row
+    // compares after one whose ordering value is null. Ordering by a nullable
+    // column cannot be paged, and the docs say so.
+    expect(second.errors).toBeUndefined();
+    expect(second.data.postsBySlug.edges).toHaveLength(0);
   });
 });

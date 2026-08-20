@@ -898,21 +898,21 @@ describe('related connections', () => {
             "postsConnection": {
               "edges": [
                 {
-                  "cursor": "REM6SjpbMSwxNV0=",
+                  "cursor": "REM6VDpbIk46MSIsIk46MTUiXQ==",
                   "node": {
                     "category": "news",
                     "id": "15",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMiwxMF0=",
+                  "cursor": "REM6VDpbIk46MiIsIk46MTAiXQ==",
                   "node": {
                     "category": "sports",
                     "id": "10",
                   },
                 },
                 {
-                  "cursor": "REM6SjpbMyw3XQ==",
+                  "cursor": "REM6VDpbIk46MyIsIk46NyJd",
                   "node": {
                     "category": "politics",
                     "id": "7",
@@ -920,10 +920,10 @@ describe('related connections', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6SjpbMyw3XQ==",
+                "endCursor": "REM6VDpbIk46MyIsIk46NyJd",
                 "hasNextPage": true,
                 "hasPreviousPage": true,
-                "startCursor": "REM6SjpbMSwxNV0=",
+                "startCursor": "REM6VDpbIk46MSIsIk46MTUiXQ==",
               },
             },
           },

@@ -13,6 +13,7 @@ import {
   eq,
   getColumns,
   gt,
+  isNull,
   lt,
   type SQL,
   sql,
@@ -106,7 +107,11 @@ export function getColumnSerializer(
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      return `J:${JSON.stringify(fields.map((field) => value[cursorFieldKey(field, config)]))}`;
+      // each value carries its own type tag, the same ones a single value gets.
+      // Plain JSON would turn a Date into a string and refuse a bigint outright.
+      return `T:${JSON.stringify(
+        fields.map((field) => formatCursorChunk(value[cursorFieldKey(field, config)])),
+      )}`;
     }
 
     return formatCursorChunk(value[cursorFieldKey(fields[0], config)]);
@@ -145,13 +150,13 @@ export function parseDrizzleCursor(cursor: unknown) {
   }
 }
 
-export function parseSerializedDrizzleColumn(value: unknown) {
+export function parseSerializedDrizzleColumn(value: unknown): unknown {
   if (typeof value !== 'string') {
     throw new PothosValidationError('value must be a string');
   }
 
   try {
-    const [, type, rawValue] = value.match(/^(S|N|D|J|I):(.*)/) as [string, string, string];
+    const [, type, rawValue] = value.match(/^(S|N|D|J|I|T):(.*)/) as [string, string, string];
 
     switch (type) {
       case 'S':
@@ -161,7 +166,13 @@ export function parseSerializedDrizzleColumn(value: unknown) {
       case 'D':
         return new Date(Number.parseInt(rawValue, 10));
       case 'J':
+        // compound values from before each one carried a tag: whatever JSON
+        // preserved is the best that can be recovered
         return JSON.parse(rawValue) as unknown;
+      case 'T':
+        return (JSON.parse(rawValue) as (string | null)[]).map((chunk) =>
+          chunk === null ? null : parseSerializedDrizzleColumn(chunk),
+        );
       case 'I':
         return BigInt(rawValue);
       default:
@@ -297,6 +308,10 @@ export function getCursorParser(keys: readonly string[]) {
     // less precise one, so the page is keyed off the prefix the cursor covers
     // rather than rejected. Cursors returned by that page carry every column.
     const values = Array.isArray(parsed) ? parsed : [parsed];
+
+    if (values.length === 0) {
+      throw new PothosValidationError('Cursor contains no values');
+    }
 
     if (values.length > keys.length) {
       throw new PothosValidationError(
@@ -450,7 +465,7 @@ function parseOrderBy(
 
       if (!expression) {
         throw new PothosValidationError(
-          `Can't order by "${name}": ${table.name} has no such column, and the query selects no extra with that name`,
+          `Can't order by "${name}": ${table.name} has no such column, and the query passed to the connection declares no extra with that name`,
         );
       }
 
@@ -484,8 +499,20 @@ function parseOrderBy(
 // doesn't cover are left out: it was issued for a shorter ordering, and its
 // prefix still describes a position.
 function compareTo(entry: OrderByEntry, operator: 'gt' | 'lt' | 'eq', value: unknown) {
+  // drizzle's shorthand equality takes `typeof null === 'object'` for a nested
+  // filter and throws, so a null has to be spelled out
+  const isNullish = value === null || value === undefined;
+
   if (entry.column) {
-    return operator === 'eq' ? { [entry.key]: value } : { [entry.key]: { [operator]: value } };
+    if (operator === 'eq') {
+      return isNullish ? { [entry.key]: { isNull: true } } : { [entry.key]: value };
+    }
+
+    return { [entry.key]: { [operator]: value } };
+  }
+
+  if (operator === 'eq' && isNullish) {
+    return { RAW: (table: Table) => isNull(orderTarget(entry, table) as SQL) };
   }
 
   const operators = { gt, lt, eq };
