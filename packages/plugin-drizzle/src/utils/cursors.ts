@@ -348,27 +348,42 @@ function parseOrderBy(
 // compared value round-trips to the stored column. Date cursors are encoded at
 // millisecond precision (JSON.stringify / D:<epoch-ms>) while Postgres
 // timestamptz defaults to microseconds, so `created_at > truncated` matches the
-// cursor row itself. Number and bigint columns round-trip, so requiring
-// `id <> cursor.id` restores the Relay rule (the named node must not appear)
-// without depending on timestamp precision. String columns are left out: they
-// may themselves be timestamp text.
+// cursor row itself. A single-column number or bigint primary key round-trips,
+// so requiring `id <> cursor.id` restores the Relay rule (the named node must
+// not appear) without depending on timestamp precision. Non-PK numeric order
+// columns must not be excluded: `category_id <> cursor.category_id` drops the
+// rest of the current keyset prefix. Composite and string primary keys are
+// left out; strings may themselves be timestamp text.
 function identityExclusions(
   parsedOrderBy: ReturnType<typeof parseOrderBy>,
   parsedCursor: Record<string, unknown>,
   config: PothosDrizzleSchemaConfig,
+  table: TableRelationalConfig,
 ): Record<string, { ne: unknown }>[] {
-  const clauses: Record<string, { ne: unknown }>[] = [];
-
-  for (const { column } of parsedOrderBy.normalized) {
-    const dataType = column.dataType;
-    if (dataType.startsWith('number') || dataType.startsWith('bigint')) {
-      clauses.push({
-        [config.columnToTsName(column)]: { ne: parsedCursor[column.name] },
-      });
-    }
+  const primaryKey = config.getPrimaryKey(table.name);
+  if (primaryKey.length !== 1) {
+    return [];
   }
 
-  return clauses;
+  const [column] = primaryKey;
+  const dataType = column.dataType;
+  if (!dataType.startsWith('number') && !dataType.startsWith('bigint')) {
+    return [];
+  }
+
+  const inOrderBy = parsedOrderBy.normalized.some(
+    (entry) => entry.column === column || entry.column.name === column.name,
+  );
+  if (!inOrderBy) {
+    return [];
+  }
+
+  const value = parsedCursor[column.name];
+  if (value == null) {
+    return [];
+  }
+
+  return [{ [config.columnToTsName(column)]: { ne: value } }];
 }
 
 function pushCursorPredicate(
@@ -454,7 +469,7 @@ export function drizzleCursorConnectionQuery({
     pushCursorPredicate(
       whereClauses,
       parts,
-      identityExclusions(parsedOrderBy, parsedCursor, config),
+      identityExclusions(parsedOrderBy, parsedCursor, config, table),
     );
   }
 
@@ -486,7 +501,7 @@ export function drizzleCursorConnectionQuery({
     pushCursorPredicate(
       whereClauses,
       parts,
-      identityExclusions(parsedOrderBy, parsedCursor, config),
+      identityExclusions(parsedOrderBy, parsedCursor, config, table),
     );
   }
 

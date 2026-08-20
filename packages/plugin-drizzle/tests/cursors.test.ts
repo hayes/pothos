@@ -2,13 +2,11 @@ import { getColumns, type TableRelationalConfig } from 'drizzle-orm';
 import { integer, pgTable, timestamp } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import type { PothosDrizzleSchemaConfig } from '../src/utils/config';
-import {
-  drizzleCursorConnectionQuery,
-  getCursorFormatter,
-} from '../src/utils/cursors';
+import { drizzleCursorConnectionQuery, getCursorFormatter } from '../src/utils/cursors';
 
 const posts = pgTable('posts', {
   id: integer('id').primaryKey(),
+  categoryId: integer('category_id').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
@@ -63,6 +61,29 @@ describe('drizzleCursorConnectionQuery identity exclusivity', () => {
     expect(result.where).toEqual(
       expect.objectContaining({
         AND: expect.arrayContaining([{ id: { ne: 1018 } }]),
+      }),
+    );
+  });
+
+  it('must not exclude a non-PK numeric order column (compound keyset prefix)', () => {
+    const compoundFormatter = getCursorFormatter([posts.categoryId, posts.id], config);
+    const compoundCursor = compoundFormatter({ categoryId: 1, id: 25 });
+    const result = drizzleCursorConnectionQuery({
+      args: { first: 3, after: compoundCursor },
+      ctx: {},
+      orderBy: { categoryId: 'asc', id: 'asc' },
+      config,
+      table,
+    });
+
+    expect(result.where).toEqual(
+      expect.objectContaining({
+        AND: expect.arrayContaining([{ id: { ne: 25 } }]),
+      }),
+    );
+    expect(result.where).not.toEqual(
+      expect.objectContaining({
+        AND: expect.arrayContaining([{ categoryId: { ne: 1 } }]),
       }),
     );
   });
