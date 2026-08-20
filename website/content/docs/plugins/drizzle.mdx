@@ -561,45 +561,51 @@ query {
 
 ## Ordering and cursors
 
-A cursor names a row's position in the connection's ordering. That works only if the ordering can't
-put two rows in the same position, and if the values the cursor carries still mean the same thing
-when they come back. This applies to every connection in this plugin: `t.relatedConnection`,
-`t.drizzleConnection`, and `drizzleConnectionHelpers`.
+Connections page with a cursor that records where in the ordering the previous page ended. Two things
+need to be true for this to work. The ordering has to place every row in a distinct position, and the
+values in the cursor have to compare against the database the same way they did when the cursor was
+created. This applies to `t.relatedConnection`, `t.drizzleConnection`, and
+`drizzleConnectionHelpers`.
 
-### The ordering has to be unique
+### Unique orderings
 
-`orderBy: { createdAt: 'desc' }` leaves rows sharing a timestamp in an order the database is free to
-change between queries, so paging can return a row twice or skip it. Pothos appends the primary key
-when the ordering doesn't already cover a unique, non-nullable set of columns, so this:
+`orderBy: { createdAt: 'desc' }` does not describe a unique ordering. Rows with the same timestamp
+can be returned in a different order on each query, so paging through the connection may return a row
+twice, or skip it.
+
+Pothos adds the primary key to the ordering when the columns you provide are not already unique, so
+this:
 
 ```ts
 orderBy: { createdAt: 'desc' }
 ```
 
-is queried as `createdAt desc, id desc`. Write the tie breaker yourself if you want it in a different
-position or direction:
+is queried as `createdAt desc, id desc`. You can add the tie breaker yourself if you want it in a
+different position or direction:
 
 ```ts
 orderBy: { createdAt: 'desc', id: 'asc' }
 ```
 
-Orderings that already end in a primary key, or in any unique non-nullable column, are left alone.
-A nullable unique column doesn't count: rows sharing a `null` still tie with each other.
+Orderings that already contain the primary key, or any unique column that is not nullable, are used
+as provided. Nullable unique columns are not treated as unique, because rows containing a `null` are
+still tied with each other.
 
-### Cursor values have to round trip
+### Cursor values and precision
 
-A cursor stores the value your driver handed to JavaScript, then compares that value against the
-column on the next request. If the two aren't the same value, the comparison is wrong.
+A cursor stores the values your driver returned to JavaScript, and those values are compared against
+the column when the next page is requested. If the value in the cursor is not the value the database
+has, the comparison will not match the rows you expect.
 
-Timestamps are the case that bites. `timestamp({ mode: 'date' })` gives you a JavaScript `Date`,
-which holds milliseconds, while a Postgres `timestamptz` stores microseconds. A row stored at
-`.086068` produces a cursor holding `.086`, and `created_at < '.086'` matches nothing else in that
-millisecond, so those rows never appear on any page.
+This comes up with timestamps. `timestamp({ mode: 'date' })` returns a JavaScript `Date`, which only
+holds milliseconds, while a Postgres `timestamptz` column stores microseconds. A row stored at
+`.086068` produces a cursor containing `.086`, and `created_at < '.086'` does not match the other
+rows in that millisecond, so they are never returned on any page.
 
-There are two ways to fix it.
+There are two ways to avoid this.
 
-**Keep the full value in JavaScript.** `mode: 'string'` hands you the timestamp as text with the
-microseconds intact:
+The first is to map the column so the full value reaches JavaScript. `mode: 'string'` returns the
+timestamp as text, with the microseconds intact:
 
 ```ts
 export const posts = pgTable('posts', {
@@ -608,12 +614,12 @@ export const posts = pgTable('posts', {
 });
 ```
 
-Nothing else changes. The cursor holds the text, Postgres parses it back to the exact value it
-stored, and the column is still what gets ordered and compared, so an index on it is still used. The
-field is a `string` in your code rather than a `Date`.
+The cursor stores that text, and Postgres parses it back to the value it stored. The column is still
+what gets ordered and compared, so an index on it is still used. The field is typed as a `string`
+rather than a `Date`.
 
-**Order by an expression instead.** To keep the `Date` mapping, select the full value as an extra and
-order by that:
+The second is to order by an expression that returns the full value, which lets you keep the `Date`
+mapping:
 
 ```ts
 builder.queryFields((t) => ({
@@ -635,7 +641,7 @@ builder.queryFields((t) => ({
 
 ### Ordering by an expression
 
-`orderBy` accepts the name of any extra the same query selects. Pothos orders by the expression,
+`orderBy` accepts the name of any extra selected by the same query. Pothos orders by the expression,
 builds the cursor from the value it returns, and compares the expression when paging:
 
 ```ts
@@ -645,16 +651,16 @@ query({
 })
 ```
 
-Write extras as a callback. Drizzle aliases the table it queries and passes that alias to the
-callback; an expression built from the imported table object refers to a name the query doesn't have.
+Extras used this way should be written as a callback. Drizzle aliases the table it queries and passes
+that alias to the callback, so an expression built from the imported table object will reference a
+name the query does not have.
 
-Two things to get right:
+The expression also needs to sort in the same order its values compare. A timestamp formatted as
+fixed width UTC text sorts the same way it does chronologically, but a local time or variable width
+format does not, and will skip rows.
 
-- The expression has to sort the way its values compare. A timestamp rendered as fixed-width UTC text
-  sorts the same way it does chronologically. A local-time or variable-width format doesn't, and will
-  skip rows.
-- Ordering by an expression can't use an index on the underlying column. Add an index on the
-  expression if the table is large enough to need one.
+Ordering by an expression cannot use an index on the underlying column. If the table is large enough
+to need one, add an index on the expression.
 
 ## Drizzle connections
 
