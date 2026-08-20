@@ -1,5 +1,5 @@
 ---
-"@pothos/plugin-drizzle": patch
+"@pothos/plugin-drizzle": minor
 ---
 
 Tag each value in a compound cursor, so cursors covering more than one column round trip `Date` and `bigint` values.
