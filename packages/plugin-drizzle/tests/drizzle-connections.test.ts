@@ -841,21 +841,21 @@ describe('drizzle connections', () => {
           "posts": {
             "edges": [
               {
-                "cursor": "REM6SjpbMSwyN10=",
+                "cursor": "REM6VDpbIk46MSIsIk46MjciXQ==",
                 "node": {
                   "category": "news",
                   "id": "27",
                 },
               },
               {
-                "cursor": "REM6SjpbMSwyOF0=",
+                "cursor": "REM6VDpbIk46MSIsIk46MjgiXQ==",
                 "node": {
                   "category": "news",
                   "id": "28",
                 },
               },
               {
-                "cursor": "REM6SjpbMSwzMF0=",
+                "cursor": "REM6VDpbIk46MSIsIk46MzAiXQ==",
                 "node": {
                   "category": "news",
                   "id": "30",
@@ -863,10 +863,10 @@ describe('drizzle connections', () => {
               },
             ],
             "pageInfo": {
-              "endCursor": "REM6SjpbMSwzMF0=",
+              "endCursor": "REM6VDpbIk46MSIsIk46MzAiXQ==",
               "hasNextPage": true,
               "hasPreviousPage": true,
-              "startCursor": "REM6SjpbMSwyN10=",
+              "startCursor": "REM6VDpbIk46MSIsIk46MjciXQ==",
             },
           },
         },

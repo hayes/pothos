@@ -1,4 +1,4 @@
-import { count, eq } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
 import { drizzleConnectionHelpers } from '../../../src';
 import type { PathInfo } from '../../../src/types';
 import { builder } from '../builder';
@@ -39,6 +39,20 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   query: (args: { invert?: boolean | null }) => ({
     orderBy: args.invert ? { roleId: 'desc' } : { roleId: 'asc' },
     where: undefined,
+  }),
+  select: (nestedSelection) => ({
+    with: {
+      role: nestedSelection(),
+    },
+  }),
+  resolveNode: (userRole) => userRole.role,
+});
+
+// same expression ordering, but through drizzleConnectionHelpers
+const rolesByIdLength = drizzleConnectionHelpers(builder, 'userRoles', {
+  query: () => ({
+    extras: { roleIdText: (table) => sql`cast(${table.roleId} as text)` },
+    orderBy: { roleIdText: 'asc' },
   }),
   select: (nestedSelection) => ({
     with: {
@@ -334,6 +348,13 @@ export const User = builder.drizzleNode('users', {
         },
       }),
     }),
+    postsByTitleLengthConnection: t.relatedConnection('posts', {
+      query: () => ({
+        // same expression ordering, but through a related connection
+        extras: { titleLength: (table) => sql`length(${table.title})` },
+        orderBy: { titleLength: 'asc' },
+      }),
+    }),
     unOrderedPostsConnection: t.relatedConnection('posts', {
       query: () => ({
         where: {
@@ -392,6 +413,40 @@ builder.queryField('userRolesConnection', (t) =>
       });
       return rolesConnection.resolve(userRoles, args, ctx);
     },
+  }),
+);
+
+builder.queryField('rolesByIdLengthConnection', (t) =>
+  t.connection({
+    type: Role,
+    args: {
+      userId: t.arg.int({ required: true }),
+    },
+    nodeNullable: true,
+    resolve: async (_, args, ctx, info) => {
+      const query = rolesByIdLength.getQuery(args, ctx, info);
+      const userRoles = await db.query.userRoles.findMany({
+        ...query,
+        where: {
+          ...query.where,
+          userId: args.userId,
+        },
+      });
+      return rolesByIdLength.resolve(userRoles, args, ctx);
+    },
+  }),
+);
+
+builder.queryField('usersByUsername', (t) =>
+  t.drizzleConnection({
+    type: 'users',
+    resolve: (query) =>
+      db.query.users.findMany(
+        query({
+          // username is unique and not null, so it orders users on its own
+          orderBy: { username: 'asc' },
+        }),
+      ),
   }),
 );
 

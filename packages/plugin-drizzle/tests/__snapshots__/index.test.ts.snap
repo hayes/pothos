@@ -146,11 +146,17 @@ type Query {
   post(id: ID!): Post
   postWithErrors(id: ID!): QueryPostWithErrorsResult
   posts(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): QueryPostsConnection
+  postsByAuthor(after: String, before: String, first: Int, last: Int): QueryPostsByAuthorConnection
+  postsBySlug(after: String, before: String, first: Int, last: Int): QueryPostsBySlugConnection
+  postsByTitleLength(after: String, before: String, first: Int, last: Int): QueryPostsByTitleLengthConnection
+  postsMissingOrderByExtra(after: String, before: String, first: Int, last: Int): QueryPostsMissingOrderByExtraConnection
   postsWithCount(after: String, before: String, first: Int, last: Int): QueryPostsWithCountConnection
+  rolesByIdLengthConnection(after: String, before: String, first: Int, last: Int, userId: Int!): QueryRolesByIdLengthConnection
   user(id: ID!): User
   userRolesConnection(after: String, before: String, first: Int, last: Int, userId: Int!): QueryUserRolesConnection
   userWithInput(input: QueryUserWithInputInput!): User
   users: [User!]
+  usersByUsername(after: String, before: String, first: Int, last: Int): QueryUsersByUsernameConnection
   usersConnection(after: String, before: String, first: Int, last: Int): QueryUsersConnection
 }
 
@@ -160,12 +166,52 @@ type QueryPostWithErrorsSuccess {
   data: Post!
 }
 
+type QueryPostsByAuthorConnection {
+  edges: [QueryPostsByAuthorConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryPostsByAuthorConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type QueryPostsBySlugConnection {
+  edges: [QueryPostsBySlugConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryPostsBySlugConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type QueryPostsByTitleLengthConnection {
+  edges: [QueryPostsByTitleLengthConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryPostsByTitleLengthConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
 type QueryPostsConnection {
   edges: [QueryPostsConnectionEdge]
   pageInfo: PageInfo!
 }
 
 type QueryPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type QueryPostsMissingOrderByExtraConnection {
+  edges: [QueryPostsMissingOrderByExtraConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryPostsMissingOrderByExtraConnectionEdge {
   cursor: String!
   node: Post
 }
@@ -181,6 +227,16 @@ type QueryPostsWithCountConnectionEdge {
   node: Post
 }
 
+type QueryRolesByIdLengthConnection {
+  edges: [QueryRolesByIdLengthConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryRolesByIdLengthConnectionEdge {
+  cursor: String!
+  node: Role
+}
+
 type QueryUserRolesConnection {
   edges: [QueryUserRolesConnectionEdge]
   pageInfo: PageInfo!
@@ -193,6 +249,16 @@ type QueryUserRolesConnectionEdge {
 
 input QueryUserWithInputInput {
   id: ID!
+}
+
+type QueryUsersByUsernameConnection {
+  edges: [QueryUsersByUsernameConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryUsersByUsernameConnectionEdge {
+  cursor: String!
+  node: User
 }
 
 type QueryUsersConnection {
@@ -221,6 +287,7 @@ type User implements Node {
   lastName: String
   postTitles: [String!]
   posts(limit: Int, offset: Int): [Post!]
+  postsByTitleLengthConnection(after: String, before: String, first: Int, last: Int): UserPostsByTitleLengthConnection
   postsConnection(after: String, before: String, category: String, first: Int, invert: Boolean, last: Int, sortByCategory: Boolean): UserPostsConnection
   postsConnectionWithCount(after: String, before: String, first: Int, last: Int): UserPostsConnectionWithCountConnection
   postsCount: Int
@@ -229,6 +296,16 @@ type User implements Node {
   publishedPostsCount: Int!
   unOrderedPostsConnection(after: String, before: String, first: Int, last: Int): UserUnOrderedPostsConnection
   viewer: Viewer
+}
+
+type UserPostsByTitleLengthConnection {
+  edges: [UserPostsByTitleLengthConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type UserPostsByTitleLengthConnectionEdge {
+  cursor: String!
+  node: Post
 }
 
 type UserPostsConnection {

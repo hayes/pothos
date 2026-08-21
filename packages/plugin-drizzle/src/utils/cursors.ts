@@ -6,10 +6,17 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import {
+  asc,
   type Column,
   type DBQueryConfig,
+  desc,
+  eq,
   getColumns,
+  gt,
+  isNull,
+  lt,
   type SQL,
+  sql,
   type Table,
   type TableRelationalConfig,
 } from 'drizzle-orm';
@@ -81,21 +88,40 @@ export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaCon
   };
 }
 
-export function getColumnSerializer(fields: Column[], config: PothosDrizzleSchemaConfig) {
+// A cursor is built from the ordering, and the ordering can name a column or an
+// extra the query selected. Either way what the cursor needs is the key the
+// value arrives under on the row.
+export type CursorField = Column | string;
+
+export function cursorFieldKey(field: CursorField, config: PothosDrizzleSchemaConfig) {
+  return typeof field === 'string' ? field : config.columnToTsName(field);
+}
+
+export function getColumnSerializer(
+  fields: readonly CursorField[],
+  config: PothosDrizzleSchemaConfig,
+) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column serializer must have at least one field');
   }
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      return `J:${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
+      // each value carries its own type tag, the same ones a single value gets.
+      // Plain JSON would turn a Date into a string and refuse a bigint outright.
+      return `T:${JSON.stringify(
+        fields.map((field) => formatCursorChunk(value[cursorFieldKey(field, config)])),
+      )}`;
     }
 
-    return formatCursorChunk(value[config.columnToTsName(fields[0])]);
+    return formatCursorChunk(value[cursorFieldKey(fields[0], config)]);
   };
 }
 
-export function getCursorFormatter(fields: Column[], config: PothosDrizzleSchemaConfig) {
+export function getCursorFormatter(
+  fields: readonly CursorField[],
+  config: PothosDrizzleSchemaConfig,
+) {
   if (fields.length === 0) {
     throw new PothosValidationError('Cursor must have at least one field');
   }
@@ -124,13 +150,13 @@ export function parseDrizzleCursor(cursor: unknown) {
   }
 }
 
-export function parseSerializedDrizzleColumn(value: unknown) {
+export function parseSerializedDrizzleColumn(value: unknown): unknown {
   if (typeof value !== 'string') {
     throw new PothosValidationError('value must be a string');
   }
 
   try {
-    const [, type, rawValue] = value.match(/^(S|N|D|J|I):(.*)/) as [string, string, string];
+    const [, type, rawValue] = value.match(/^(S|N|D|J|I|T):(.*)/) as [string, string, string];
 
     switch (type) {
       case 'S':
@@ -140,7 +166,13 @@ export function parseSerializedDrizzleColumn(value: unknown) {
       case 'D':
         return new Date(Number.parseInt(rawValue, 10));
       case 'J':
+        // compound values from before each one carried a tag: whatever JSON
+        // preserved is the best that can be recovered
         return JSON.parse(rawValue) as unknown;
+      case 'T':
+        return (JSON.parse(rawValue) as (string | null)[]).map((chunk) =>
+          chunk === null ? null : parseSerializedDrizzleColumn(chunk),
+        );
       case 'I':
         return BigInt(rawValue);
       default:
@@ -259,28 +291,38 @@ export function getColumnParser(fields: readonly Column[]) {
   };
 }
 
-export function getCursorParser(fields: readonly Column[]) {
-  if (fields.length === 0) {
+export function getCursorParser(keys: readonly string[]) {
+  if (keys.length === 0) {
     throw new PothosValidationError('Cursor must have at least one field');
   }
 
   return (cursor: unknown) => {
-    const parsed = parseDrizzleCursor(cursor) as unknown[];
+    const parsed = parseDrizzleCursor(cursor);
 
-    if (fields.length === 1) {
-      return { [fields[0].name]: parsed };
+    if (keys.length === 1) {
+      return { [keys[0]]: parsed };
     }
 
-    if (!Array.isArray(parsed)) {
+    // A cursor issued before a column joined the ordering only holds values for
+    // the columns that came before it. Those still describe a position, just a
+    // less precise one, so the page is keyed off the prefix the cursor covers
+    // rather than rejected. Cursors returned by that page carry every column.
+    const values = Array.isArray(parsed) ? parsed : [parsed];
+
+    if (values.length === 0) {
+      throw new PothosValidationError('Cursor contains no values');
+    }
+
+    if (values.length > keys.length) {
       throw new PothosValidationError(
-        `Expected compound cursor to contain an array, but got ${parsed}`,
+        `Expected cursor to contain at most ${keys.length} values, but got ${values.length}`,
       );
     }
 
     const record: Record<string, unknown> = {};
 
-    fields.forEach((field, i) => {
-      record[field.name] = parsed[i];
+    values.forEach((value, i) => {
+      record[keys[i]] = value;
     });
 
     return record;
@@ -293,9 +335,91 @@ export interface DrizzleCursorConnectionQueryOptions {
   defaultSize?: number | ((args: {}, ctx: {}) => number);
   maxSize?: number | ((args: {}, ctx: {}) => number);
   orderBy: ConnectionOrderBy<TableRelationalConfig>;
+  extras?: Record<string, OrderByExpression | undefined>;
   where?: SQL;
   config: PothosDrizzleSchemaConfig;
   table: TableRelationalConfig;
+}
+
+export type OrderByExpression = SQL | ((table: never, operators: never) => SQL);
+
+// An ordering entry is either a column or an expression the query selected as
+// an extra. `key` is where the value lands on the row, and so what the cursor
+// is built from; `target` is what SQL orders and compares.
+type OrderByEntry = {
+  direction: 'asc' | 'desc';
+  key: string;
+  column?: Column;
+  expression?: OrderByExpression;
+};
+
+function resolveExpression(expression: OrderByExpression, table: Table) {
+  return typeof expression === 'function'
+    ? (expression as (table: Table, operators: { sql: typeof sql }) => SQL)(table, { sql })
+    : expression;
+}
+
+// Drizzle aliases the table it is querying (`d0`), so ordering and comparing
+// have to reach for the column on that alias rather than the original table.
+// Expressions get the alias handed to them and resolve themselves.
+function orderTarget(entry: OrderByEntry, table: Table) {
+  if (entry.column) {
+    return (table as unknown as Record<string, Column>)[entry.key] ?? entry.column;
+  }
+
+  return resolveExpression(entry.expression!, table);
+}
+
+function flipDirection(direction: 'asc' | 'desc') {
+  return direction === 'asc' ? 'desc' : 'asc';
+}
+
+function ordersBy(entries: OrderByEntry[], column: Column) {
+  return entries.some((entry) => entry.column?.name === column.name);
+}
+
+// The ordering fixes a row's position only if some set of columns the database
+// keeps unique is fully covered by it. A nullable column can't contribute:
+// rows sharing a null tie with each other, and a cursor compared against null
+// matches nothing.
+function orderIsUnique(
+  entries: OrderByEntry[],
+  config: PothosDrizzleSchemaConfig,
+  table: TableRelationalConfig,
+) {
+  return config
+    .getUniqueConstraints(table.name)
+    .some((columns) => columns.every((column) => column.notNull && ordersBy(entries, column)));
+}
+
+// A cursor names a row's position in the ordering, which only works if no two
+// rows can share a position. Ordering by a column with duplicate values (a
+// timestamp, a status) leaves ties to be broken arbitrarily, so a row can move
+// between pages and end up returned twice or skipped entirely. Appending a key
+// the database keeps unique fixes that. Key columns already in the ordering are
+// left where the user put them.
+function appendTieBreaker(
+  entries: OrderByEntry[],
+  config: PothosDrizzleSchemaConfig,
+  table: TableRelationalConfig,
+) {
+  if (orderIsUnique(entries, config, table)) {
+    return;
+  }
+
+  const tieBreaker = config.findTieBreaker(table.name);
+
+  if (!tieBreaker) {
+    return;
+  }
+
+  const direction = entries[entries.length - 1]?.direction ?? 'asc';
+
+  for (const column of tieBreaker) {
+    if (!ordersBy(entries, column)) {
+      entries.push({ direction, key: config.columnToTsName(column), column });
+    }
+  }
 }
 
 function parseOrderBy(
@@ -303,23 +427,21 @@ function parseOrderBy(
   table: TableRelationalConfig,
   orderBy: ConnectionOrderBy<TableRelationalConfig>,
   invert: boolean,
+  extras?: Record<string, OrderByExpression | undefined>,
 ) {
-  const entries: [name: string, direction: 'asc' | 'desc'][] = [];
-  const columns: Column[] = [];
-  const normalized: { direction: 'asc' | 'desc'; column: Column }[] = [];
+  const normalized: OrderByEntry[] = [];
 
-  const asc = invert ? 'desc' : 'asc';
-  const desc = invert ? 'asc' : 'desc';
+  const columnEntry = (column: Column, direction: 'asc' | 'desc') => ({
+    direction,
+    key: config.columnToTsName(column),
+    column,
+  });
 
   if ('table' in orderBy && orderBy.table && typeof orderBy.table === 'object') {
-    entries.push([config.columnToTsName(orderBy as Column), asc]);
-    columns.push(orderBy as Column);
-    normalized.push({ direction: 'asc', column: orderBy as Column });
+    normalized.push(columnEntry(orderBy as unknown as Column, 'asc'));
   } else if (Array.isArray(orderBy)) {
     for (const field of orderBy) {
-      entries.push([config.columnToTsName(field), asc]);
-      columns.push(field);
-      normalized.push({ direction: 'asc', column: field });
+      normalized.push(columnEntry(field, 'asc'));
     }
   } else {
     const tableColumns = getColumns(table.table as Table);
@@ -328,20 +450,103 @@ function parseOrderBy(
         [k: string]: 'asc' | 'desc' | undefined;
       },
     ).forEach(([name, direction]) => {
-      if (direction) {
-        const column = tableColumns[name];
-        columns.push(column);
-        entries.push([name, direction === 'asc' ? asc : desc]);
-        normalized.push({ direction: direction, column });
+      if (!direction) {
+        return;
       }
+
+      const column = tableColumns[name];
+
+      if (column) {
+        normalized.push(columnEntry(column, direction));
+        return;
+      }
+
+      const expression = extras?.[name];
+
+      if (!expression) {
+        throw new PothosValidationError(
+          `Can't order by "${name}": ${table.name} has no such column, and the query passed to the connection declares no extra with that name`,
+        );
+      }
+
+      normalized.push({ direction, key: name, expression });
     });
   }
 
+  appendTieBreaker(normalized, config, table);
+
+  const directionFor = ({ direction }: OrderByEntry) =>
+    invert ? flipDirection(direction) : direction;
+
   return {
     normalized,
-    columns,
-    orderBy: Object.fromEntries(entries),
+    // only real columns need adding to the selection; extras are already selected
+    columns: normalized.flatMap(({ column }) => (column ? [column] : [])),
+    cursorFields: normalized.map(({ column, key }) => column ?? key),
+    // the object form can only name columns, so an expression forces the
+    // callback form -- which renders identically for the columns beside it
+    orderBy: normalized.some(({ expression }) => expression)
+      ? (t: Table) =>
+          normalized.map((entry) =>
+            (directionFor(entry) === 'asc' ? asc : desc)(orderTarget(entry, t)),
+          )
+      : Object.fromEntries(normalized.map((entry) => [entry.key, directionFor(entry)])),
   };
+}
+
+// Rows past the cursor are those where the first ordering column that differs
+// from the cursor differs in the direction being paged. Columns the cursor
+// doesn't cover are left out: it was issued for a shorter ordering, and its
+// prefix still describes a position.
+function compareTo(entry: OrderByEntry, operator: 'gt' | 'lt' | 'eq', value: unknown) {
+  // drizzle's shorthand equality takes `typeof null === 'object'` for a nested
+  // filter and throws, so a null has to be spelled out
+  const isNullish = value === null || value === undefined;
+
+  if (entry.column) {
+    if (operator === 'eq') {
+      return isNullish ? { [entry.key]: { isNull: true } } : { [entry.key]: value };
+    }
+
+    return { [entry.key]: { [operator]: value } };
+  }
+
+  if (operator === 'eq' && isNullish) {
+    return { RAW: (table: Table) => isNull(orderTarget(entry, table) as SQL) };
+  }
+
+  const operators = { gt, lt, eq };
+
+  // RAW hands the filter the table it is being built against, which is what an
+  // expression needs to resolve
+  return {
+    RAW: (table: Table) => operators[operator](orderTarget(entry, table) as SQL, value),
+  };
+}
+
+function keysetFilter(entries: OrderByEntry[], cursor: string, paging: 'after' | 'before') {
+  const parsedCursor = getCursorParser(entries.map(({ key }) => key))(cursor);
+  const covered = entries.filter(({ key }) => key in parsedCursor);
+
+  const parts = covered.map((entry, index) => {
+    const ascending = paging === 'after' ? entry.direction === 'asc' : entry.direction === 'desc';
+    const compare = compareTo(entry, ascending ? 'gt' : 'lt', parsedCursor[entry.key]);
+
+    if (index === 0) {
+      return compare;
+    }
+
+    return {
+      AND: [
+        ...covered
+          .slice(0, index)
+          .map((previous) => compareTo(previous, 'eq', parsedCursor[previous.key])),
+        compare,
+      ],
+    };
+  });
+
+  return parts.length > 1 ? { OR: parts } : parts[0];
 }
 
 export function drizzleCursorConnectionQuery({
@@ -350,6 +555,7 @@ export function drizzleCursorConnectionQuery({
   maxSize = DEFAULT_MAX_SIZE,
   defaultSize = DEFAULT_SIZE,
   orderBy,
+  extras,
   where,
   config,
   table,
@@ -376,7 +582,7 @@ export function drizzleCursorConnectionQuery({
   const limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
   const inverted = !first && !!last;
 
-  const parsedOrderBy = parseOrderBy(config, table, orderBy, inverted);
+  const parsedOrderBy = parseOrderBy(config, table, orderBy, inverted, extras);
 
   const columns: Record<string, boolean> = {};
 
@@ -391,63 +597,15 @@ export function drizzleCursorConnectionQuery({
   }
 
   if (after) {
-    const cursorParser = getCursorParser(parsedOrderBy.columns);
-    const parsedCursor = cursorParser(after);
-
-    const parts = parsedOrderBy.normalized.map(({ direction, column }, index) => {
-      const columnName = config.columnToTsName(column);
-      const compare =
-        direction === 'asc'
-          ? { [columnName]: { gt: parsedCursor[column.name] } }
-          : { [columnName]: { lt: parsedCursor[column.name] } };
-
-      if (index === 0) {
-        return compare;
-      }
-
-      return {
-        AND: [
-          ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
-            return { [config.columnToTsName(c)]: parsedCursor[c.name] };
-          }),
-          compare,
-        ],
-      };
-    });
-
-    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
+    whereClauses.push(keysetFilter(parsedOrderBy.normalized, after, 'after'));
   }
 
   if (before) {
-    const cursorParser = getCursorParser(parsedOrderBy.columns);
-    const parsedCursor = cursorParser(before);
-
-    const parts = parsedOrderBy.normalized.map(({ direction, column }, index) => {
-      const columnName = config.columnToTsName(column);
-      const compare =
-        direction === 'desc'
-          ? { [columnName]: { gt: parsedCursor[column.name] } }
-          : { [columnName]: { lt: parsedCursor[column.name] } };
-
-      if (index === 0) {
-        return compare;
-      }
-
-      return {
-        AND: [
-          ...parsedOrderBy.normalized.slice(0, index).map(({ column: c }) => {
-            return { [config.columnToTsName(c)]: parsedCursor[c.name] };
-          }),
-          compare,
-        ],
-      };
-    });
-
-    whereClauses.push(parts.length > 1 ? { OR: parts } : parts[0]);
+    whereClauses.push(keysetFilter(parsedOrderBy.normalized, before, 'before'));
   }
 
   return omitUndefinedKeys({
-    cursorColumns: parsedOrderBy.columns,
+    cursorFields: parsedOrderBy.cursorFields,
     columns,
     orderBy: parsedOrderBy.orderBy,
     limit,
@@ -527,21 +685,23 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   let query: DBQueryConfig<'many'> | undefined;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
-    const { cursorColumns, ...connectionQuery } = drizzleCursorConnectionQuery({
+    const { cursorFields, ...connectionQuery } = drizzleCursorConnectionQuery({
       ...options,
       config,
       orderBy:
         (typeof q.orderBy === 'function' ? q.orderBy(table.table as Table) : q.orderBy) ??
         config.getPrimaryKey(table.name),
+      extras: q.extras as DrizzleCursorConnectionQueryOptions['extras'],
       table,
     });
-    formatter = getCursorFormatter(cursorColumns, config);
+    formatter = getCursorFormatter(cursorFields, config);
 
     query = queryFromInfo({
       context: options.ctx,
       info,
       select: omitUndefinedKeys({
         ...connectionQuery,
+        extras: q.extras,
         columns: {
           ...q.columns,
           ...connectionQuery.columns,

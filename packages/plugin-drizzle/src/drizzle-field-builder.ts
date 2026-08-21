@@ -51,6 +51,7 @@ import type {
 } from './types.js';
 import { getClient, getSchemaConfig } from './utils/config.js';
 import {
+  type DrizzleCursorConnectionQueryOptions,
   drizzleCursorConnectionQuery,
   getCursorFormatter,
   wrapConnectionResult,
@@ -236,9 +237,10 @@ export class DrizzleObjectFieldBuilder<
         orderBy?: unknown;
         where?: SQL;
         columns?: Record<string, boolean>;
+        extras?: DrizzleCursorConnectionQueryOptions['extras'];
       };
 
-      const { cursorColumns, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
+      const { cursorFields, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
         maxSize,
         defaultSize,
@@ -246,6 +248,7 @@ export class DrizzleObjectFieldBuilder<
         orderBy:
           (typeof orderBy === 'function' ? orderBy(relatedTable.table) : orderBy) ??
           getSchemaConfig(this.builder).getPrimaryKey(relationField.targetTableName),
+        extras: fieldQuery.extras,
         where,
         config: schemaConfig,
         table: relatedTable,
@@ -261,7 +264,7 @@ export class DrizzleObjectFieldBuilder<
           },
           limit: Math.abs(limit ?? connectionQuery.limit),
         },
-        cursorColumns,
+        cursorFields,
       };
     };
 
@@ -376,13 +379,13 @@ export class DrizzleObjectFieldBuilder<
             };
           }
 
-          const { select, cursorColumns } = getQuery(args, context);
+          const { select, cursorFields } = getQuery(args, context);
 
           return wrapConnectionResult(
             parentRecord[name] as readonly {}[],
             args,
             select.limit,
-            getCursorFormatter(cursorColumns, schemaConfig),
+            getCursorFormatter(cursorFields, schemaConfig),
             undefined,
             parent,
             countValue,

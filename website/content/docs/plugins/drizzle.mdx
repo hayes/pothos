@@ -559,6 +559,130 @@ query {
 }
 ```
 
+## Ordering and cursors
+
+Connections page with a cursor that records where in the ordering the previous page ended. Two things
+need to be true for this to work. The ordering has to place every row in a distinct position, and the
+values in the cursor have to compare against the database the same way they did when the cursor was
+created. This applies to `t.relatedConnection`, `t.drizzleConnection`, and
+`drizzleConnectionHelpers`.
+
+### Unique orderings
+
+`orderBy: { createdAt: 'desc' }` does not describe a unique ordering. Rows with the same timestamp
+can be returned in a different order on each query, so paging through the connection may return a row
+twice, or skip it.
+
+Pothos adds the primary key to the ordering when the columns you provide are not already unique, so
+this:
+
+```ts
+orderBy: { createdAt: 'desc' }
+```
+
+is queried as `createdAt desc, id desc`. You can add the tie breaker yourself if you want it in a
+different position or direction:
+
+```ts
+orderBy: { createdAt: 'desc', id: 'asc' }
+```
+
+Orderings that already contain the primary key, or a unique column or constraint whose columns are
+all marked `notNull()`, are used as provided. Nullable unique columns are not treated as unique,
+because rows containing a `null` are still tied with each other. Uniqueness declared with
+`uniqueIndex()` is not detected, so those orderings still get the primary key appended.
+
+Primary keys are used whether or not their columns are marked `notNull()`, since SQL makes primary
+key columns non-nullable anyway. That includes composite keys declared with
+`primaryKey({ columns: [...] })`.
+
+Nothing is appended when Pothos cannot find a key it can rely on, which means tables with no primary
+key, and tables whose only unique column is nullable. Those connections keep the ordering you wrote,
+so give them a tie breaker yourself.
+
+### Nullable ordering columns
+
+A row whose ordering value is `null` cannot be paged past. `null` is not greater or less than
+anything in SQL, so no row compares as coming after it and the next page comes back empty. The same
+applies to an ordering expression that can evaluate to `null`.
+
+Order by columns that are `notNull()`, or give the expression a real value to fall back to with
+`coalesce`.
+
+### Cursor values and precision
+
+A cursor stores the values your driver returned to JavaScript, and those values are compared against
+the column when the next page is requested. If the value in the cursor is not the value the database
+has, the comparison will not match the rows you expect.
+
+This comes up with timestamps. `timestamp({ mode: 'date' })` returns a JavaScript `Date`, which only
+holds milliseconds, while a Postgres `timestamptz` column stores microseconds. A row stored at
+`.086068` produces a cursor containing `.086`, and `created_at < '.086'` does not match the other
+rows in that millisecond, so they are never returned on any page.
+
+There are two ways to avoid this.
+
+The first is to map the column so the full value reaches JavaScript. `mode: 'string'` returns the
+timestamp as text, with the microseconds intact:
+
+```ts
+export const posts = pgTable('posts', {
+  id: serial('id').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+});
+```
+
+The cursor stores that text, and Postgres parses it back to the value it stored. The column is still
+what gets ordered and compared, so an index on it is still used. The field is typed as a `string`
+rather than a `Date`.
+
+The second is to order by an expression that returns the full value, which lets you keep the `Date`
+mapping:
+
+```ts
+builder.queryFields((t) => ({
+  posts: t.drizzleConnection({
+    type: 'posts',
+    resolve: (query) =>
+      db.query.posts.findMany(
+        query({
+          extras: {
+            createdAtExact: (table) =>
+              sql`to_char(${table.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+          },
+          orderBy: { createdAtExact: 'desc' },
+        }),
+      ),
+  }),
+}));
+```
+
+### Ordering by an expression
+
+`orderBy` accepts the name of any extra declared in the same query. Pothos orders by the expression,
+builds the cursor from the value it returns, and compares the expression when paging:
+
+```ts
+query({
+  extras: { titleLength: (table) => sql`length(${table.title})` },
+  orderBy: { titleLength: 'asc' },
+})
+```
+
+Extras used this way should be written as a callback. Drizzle aliases the table it queries and passes
+that alias to the callback, so an expression built from the imported table object will reference a
+name the query does not have.
+
+With `drizzleConnectionHelpers`, declare the extra in `query` rather than in `select`. Only `query`
+is read when the ordering is resolved.
+
+The expression also needs to sort in the same order its values compare. A timestamp formatted as
+fixed width UTC text sorts the same way it does chronologically, but a local time or variable width
+format does not, and will skip rows.
+
+Ordering by an expression cannot use an index on the underlying column. If the table is large enough
+to need one, add an index on the expression.
+
 ## Drizzle connections
 
 Similar to `t.drizzleField`, `t.drizzleConnection` allows you to define a connection field that acts

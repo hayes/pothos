@@ -44,7 +44,7 @@ describe('connection helpers', () => {
     expect(findFirst.mock.calls[0][0]?.with?.userRoles).not.toHaveProperty('where');
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" asc, "d1"."user_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
       ]
     `);
 
@@ -55,21 +55,21 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6Tjox",
+                  "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                   "node": {
                     "id": "1",
                     "name": "admin",
                   },
                 },
                 {
-                  "cursor": "REM6Tjoy",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
                   },
                 },
                 {
-                  "cursor": "REM6Tjoz",
+                  "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                   "node": {
                     "id": "3",
                     "name": "user",
@@ -77,10 +77,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6Tjoz",
+                "endCursor": "REM6VDpbIk46MyIsIk46MSJd",
                 "hasNextPage": false,
                 "hasPreviousPage": false,
-                "startCursor": "REM6Tjox",
+                "startCursor": "REM6VDpbIk46MSIsIk46MSJd",
               },
             },
           },
@@ -120,7 +120,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" > ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 2, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" > ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" asc, "d1"."user_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 2, 1, 1]",
       ]
     `);
 
@@ -131,7 +131,7 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6Tjoy",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
@@ -139,10 +139,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6Tjoy",
+                "endCursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "hasNextPage": true,
                 "hasPreviousPage": true,
-                "startCursor": "REM6Tjoy",
+                "startCursor": "REM6VDpbIk46MiIsIk46MSJd",
               },
             },
           },
@@ -182,7 +182,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" < ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 2, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" < ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" desc, "d1"."user_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 2, 1, 1]",
       ]
     `);
 
@@ -193,7 +193,7 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6Tjoy",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
@@ -201,10 +201,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6Tjoy",
+                "endCursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "hasNextPage": true,
                 "hasPreviousPage": true,
-                "startCursor": "REM6Tjoy",
+                "startCursor": "REM6VDpbIk46MiIsIk46MSJd",
               },
             },
           },
@@ -244,7 +244,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where "d0"."id" = "d1"."user_id" order by "d1"."role_id" desc, "d1"."user_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 21, 1, 1]",
       ]
     `);
 
@@ -255,21 +255,21 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6Tjoz",
+                  "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                   "node": {
                     "id": "3",
                     "name": "user",
                   },
                 },
                 {
-                  "cursor": "REM6Tjoy",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
                   },
                 },
                 {
-                  "cursor": "REM6Tjox",
+                  "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                   "node": {
                     "id": "1",
                     "name": "admin",
@@ -277,10 +277,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6Tjox",
+                "endCursor": "REM6VDpbIk46MSIsIk46MSJd",
                 "hasNextPage": false,
                 "hasPreviousPage": false,
-                "startCursor": "REM6Tjoz",
+                "startCursor": "REM6VDpbIk46MyIsIk46MSJd",
               },
             },
           },
@@ -320,7 +320,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" < ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 21, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" < ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" desc, "d1"."user_id" desc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 3, 21, 1, 1]",
       ]
     `);
 
@@ -331,14 +331,14 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6Tjoy",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
                   },
                 },
                 {
-                  "cursor": "REM6Tjox",
+                  "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                   "node": {
                     "id": "1",
                     "name": "admin",
@@ -346,10 +346,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6Tjox",
+                "endCursor": "REM6VDpbIk46MSIsIk46MSJd",
                 "hasNextPage": false,
                 "hasPreviousPage": true,
-                "startCursor": "REM6Tjoy",
+                "startCursor": "REM6VDpbIk46MiIsIk46MSJd",
               },
             },
           },
@@ -389,7 +389,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" > ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 3, 1, 1]",
+        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('userId', "userId", 'roleId', "roleId", 'role', jsonb("role"))) as "r" from (select "d1"."user_id" as "userId", "d1"."role_id" as "roleId", (select jsonb_object('id', "id", 'name', "name") as "r" from (select "d2"."id" as "id", "d2"."name" as "name" from "roles" as "d2" where "d1"."role_id" = "d2"."id" limit ?) as "t") as "role" from "user_roles" as "d1" where (("d1"."role_id" > ?) and ("d0"."id" = "d1"."user_id")) order by "d1"."role_id" asc, "d1"."user_id" asc limit ?) as "t"), jsonb_array()) as "userRoles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 3, 1, 1]",
       ]
     `);
 
@@ -400,14 +400,14 @@ describe('connection helpers', () => {
             "rolesConnection": {
               "edges": [
                 {
-                  "cursor": "REM6Tjoz",
+                  "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                   "node": {
                     "id": "3",
                     "name": "user",
                   },
                 },
                 {
-                  "cursor": "REM6Tjoy",
+                  "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                   "node": {
                     "id": "2",
                     "name": "author",
@@ -415,10 +415,10 @@ describe('connection helpers', () => {
                 },
               ],
               "pageInfo": {
-                "endCursor": "REM6Tjoy",
+                "endCursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "hasNextPage": true,
                 "hasPreviousPage": false,
-                "startCursor": "REM6Tjoz",
+                "startCursor": "REM6VDpbIk46MyIsIk46MSJd",
               },
             },
           },
@@ -456,7 +456,7 @@ describe('connection helpers', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."user_id" as "userId", "d0"."role_id" as "roleId", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "roles" as "d1" where "d0"."role_id" = "d1"."id" limit ?) as "t") as "role" from "user_roles" as "d0" where "d0"."user_id" = ? order by "d0"."role_id" asc limit ? -- params: [1, 1, 21]",
+        "Query: select "d0"."user_id" as "userId", "d0"."role_id" as "roleId", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "roles" as "d1" where "d0"."role_id" = "d1"."id" limit ?) as "t") as "role" from "user_roles" as "d0" where "d0"."user_id" = ? order by "d0"."role_id" asc, "d0"."user_id" asc limit ? -- params: [1, 1, 21]",
       ]
     `);
 
@@ -466,21 +466,21 @@ describe('connection helpers', () => {
           "userRolesConnection": {
             "edges": [
               {
-                "cursor": "REM6Tjox",
+                "cursor": "REM6VDpbIk46MSIsIk46MSJd",
                 "node": {
                   "id": "1",
                   "name": "admin",
                 },
               },
               {
-                "cursor": "REM6Tjoy",
+                "cursor": "REM6VDpbIk46MiIsIk46MSJd",
                 "node": {
                   "id": "2",
                   "name": "author",
                 },
               },
               {
-                "cursor": "REM6Tjoz",
+                "cursor": "REM6VDpbIk46MyIsIk46MSJd",
                 "node": {
                   "id": "3",
                   "name": "user",
@@ -488,10 +488,10 @@ describe('connection helpers', () => {
               },
             ],
             "pageInfo": {
-              "endCursor": "REM6Tjoz",
+              "endCursor": "REM6VDpbIk46MyIsIk46MSJd",
               "hasNextPage": false,
               "hasPreviousPage": false,
-              "startCursor": "REM6Tjox",
+              "startCursor": "REM6VDpbIk46MSIsIk46MSJd",
             },
           },
         },

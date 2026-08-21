@@ -5,7 +5,10 @@ import type { DrizzleClient } from '../types.js';
 export interface PothosDrizzleSchemaConfig {
   skipDeferredFragments: boolean;
   relations: AnyRelations;
+  findPrimaryKey: (tableName: string) => Column[] | null;
+  findTieBreaker: (tableName: string) => Column[] | null;
   getPrimaryKey: (tableName: string) => Column[];
+  getUniqueConstraints: (tableName: string) => Column[][];
   columnToTsName: (column: Column) => string;
 }
 const configCache = createContextCache(
@@ -27,6 +30,113 @@ const configCache = createContextCache(
       }
     });
 
+    const buildTableConfig = (tableName: string) => {
+      const table = relations[tableName].table as Table;
+      const tableConfig = builder.options.drizzle.getTableConfig(table);
+      const tableColumns = Object.values(getColumns(table));
+
+      // The pg dialect builds primaryKeys and uniqueConstraints from
+      // ExtraConfigColumns rather than the table's own columns, so the objects
+      // it hands back are not the ones columnNameMappings knows about, and do
+      // not carry notNull. Look each one back up by name.
+      const toTableColumn = (column: Column) =>
+        tableColumns.find((candidate) => candidate.name === column.name) ?? column;
+
+      return {
+        columns: tableConfig.columns.map(toTableColumn),
+        primaryKeys: tableConfig.primaryKeys.map((key) => key.columns.map(toTableColumn)),
+        uniqueConstraints: (tableConfig.uniqueConstraints ?? []).map((constraint) =>
+          constraint.columns.map(toTableColumn),
+        ),
+      };
+    };
+
+    const tableConfigs = new Map<string, ReturnType<typeof buildTableConfig>>();
+
+    // drizzle rebuilds this from the table's config callback on every call
+    const getTableConfig = (tableName: string) => {
+      let tableConfig = tableConfigs.get(tableName);
+
+      if (!tableConfig) {
+        tableConfig = buildTableConfig(tableName);
+        tableConfigs.set(tableName, tableConfig);
+      }
+
+      return tableConfig;
+    };
+
+    // Every set of columns the database guarantees is unique. Unique indexes
+    // are not included: missing one only costs a redundant order column, while
+    // wrongly reporting a set as unique would break pagination.
+    const getUniqueConstraints = (tableName: string) => {
+      const tableConfig = getTableConfig(tableName);
+
+      return [
+        ...tableConfig.columns
+          .filter((column) => column.primary || column.isUnique)
+          .map((column) => [column]),
+        ...tableConfig.primaryKeys,
+        ...tableConfig.uniqueConstraints,
+      ].filter((columns) => columns.length > 0);
+    };
+
+    // What a cursor can rely on to break ties. Primary key columns are
+    // non-nullable whatever the drizzle schema says, because SQL requires it,
+    // so a composite key declared without notNull() on each column still
+    // counts. A column that is only unique has to say so itself: comparing a
+    // cursor against null matches nothing, and rows sharing a null tie anyway.
+    const findTieBreaker = (tableName: string) => {
+      const tableConfig = getTableConfig(tableName);
+
+      const primaryKey = tableConfig.columns.find((column) => column.primary);
+
+      if (primaryKey) {
+        return [primaryKey];
+      }
+
+      const compositeKey = tableConfig.primaryKeys.find((columns) => columns.length > 0);
+
+      if (compositeKey) {
+        return compositeKey;
+      }
+
+      const uniqueColumn = tableConfig.columns.find((column) => column.isUnique && column.notNull);
+
+      if (uniqueColumn) {
+        return [uniqueColumn];
+      }
+
+      const uniqueConstraint = tableConfig.uniqueConstraints.find(
+        (columns) => columns.length > 0 && columns.every((column) => column.notNull),
+      );
+
+      return uniqueConstraint ?? null;
+    };
+
+    const findPrimaryKey = (tableName: string) => {
+      const tableConfig = getTableConfig(tableName);
+
+      const primaryKey = tableConfig.columns.find((column) => column.primary);
+
+      if (primaryKey) {
+        return [primaryKey];
+      }
+
+      const primaryKeys = tableConfig.primaryKeys.find((columns) => columns.length > 0);
+
+      if (primaryKeys) {
+        return primaryKeys;
+      }
+
+      const uniqueColumn = tableConfig.columns.find((column) => column.isUnique);
+
+      if (uniqueColumn) {
+        return [uniqueColumn];
+      }
+
+      return null;
+    };
+
     return {
       skipDeferredFragments: builder.options.drizzle.skipDeferredFragments ?? true,
       columnToTsName: (column) => {
@@ -38,30 +148,17 @@ const configCache = createContextCache(
 
         return tsName;
       },
+      findPrimaryKey,
+      findTieBreaker,
+      getUniqueConstraints,
       getPrimaryKey: (tableName) => {
-        const tableConfig = builder.options.drizzle.getTableConfig(
-          relations[tableName].table as Table,
-        );
+        const primaryKey = findPrimaryKey(tableName);
 
-        const primaryKey = tableConfig.columns.find((column) => column.primary);
-
-        if (primaryKey) {
-          return [primaryKey];
+        if (!primaryKey) {
+          throw new Error(`Could not find primary key for table ${tableName}`);
         }
 
-        const primaryKeys = tableConfig.primaryKeys.find((key) => key.columns.length > 0);
-
-        if (primaryKeys) {
-          return primaryKeys.columns;
-        }
-
-        const uniqueColumn = tableConfig.columns.find((column) => column.isUnique);
-
-        if (uniqueColumn) {
-          return [uniqueColumn];
-        }
-
-        throw new Error(`Could not find primary key for table ${tableName}`);
+        return primaryKey;
       },
       relations,
     };

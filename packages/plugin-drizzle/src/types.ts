@@ -68,6 +68,9 @@ type GetTableConfigFn<TTable = Table> = (table: TTable) => {
   primaryKeys: {
     readonly columns: Column[];
   }[];
+  uniqueConstraints?: {
+    readonly columns: Column[];
+  }[];
   readonly columns: Column[];
 };
 
@@ -677,11 +680,12 @@ export type RelatedConnectionOptions<
 export type ConnectionOrderBy<T extends TableRelationalConfig> =
   | Column
   | Column[]
+  // keys name a column, or an extra the same query selects. `string & {}` keeps
+  // the column names in autocomplete while letting extra names through
   | {
-      [K in T['table']['_'] extends { columns: infer Columns } ? keyof Columns : never]?:
-        | 'asc'
-        | 'desc'
-        | undefined;
+      [K in
+        | (T['table']['_'] extends { columns: infer Columns } ? keyof Columns : never)
+        | (string & {})]?: 'asc' | 'desc' | undefined;
     };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
