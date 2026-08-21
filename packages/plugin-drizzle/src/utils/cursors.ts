@@ -499,15 +499,16 @@ function parseOrderBy(
 // doesn't cover are left out: it was issued for a shorter ordering, and its
 // prefix still describes a position.
 function compareTo(entry: OrderByEntry, operator: 'gt' | 'lt' | 'eq', value: unknown) {
-  // drizzle's shorthand equality takes `typeof null === 'object'` for a nested
-  // filter and throws, so a null has to be spelled out
   const isNullish = value === null || value === undefined;
 
   if (entry.column) {
-    if (operator === 'eq') {
-      return isNullish ? { [entry.key]: { isNull: true } } : { [entry.key]: value };
+    if (operator === 'eq' && isNullish) {
+      return { [entry.key]: { isNull: true } };
     }
 
+    // never the `{ column: value }` shorthand: drizzle reads any object value
+    // as a nested filter, so a null throws and a Date silently drops the
+    // comparison. Naming the operator works for every value a cursor can hold
     return { [entry.key]: { [operator]: value } };
   }
 

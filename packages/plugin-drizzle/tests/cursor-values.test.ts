@@ -169,3 +169,61 @@ describe('composite primary keys', () => {
     expect(query.orderBy).toEqual({ userId: 'asc', groupId: 'asc' });
   });
 });
+
+describe('keyset filters', () => {
+  async function whereSQLForCursor(cursorValues: { createdAt: Date | null; id: bigint }) {
+    const { defineRelations } = await import('drizzle-orm');
+    const { getTableConfig: getPgTableConfig } = await import('drizzle-orm/pg-core');
+    const { drizzle } = await import('drizzle-orm/postgres-js');
+    const { default: postgres } = await import('postgres');
+    const { default: SchemaBuilder } = await import('@pothos/core');
+    const { getSchemaConfig } = await import('../src/utils/config');
+    const { drizzleCursorConnectionQuery, getCursorFormatter } = await import(
+      '../src/utils/cursors'
+    );
+    const DrizzlePlugin = (await import('../src')).default;
+
+    const relations = defineRelations({ events }, () => ({}));
+    const builder = new SchemaBuilder<{ DrizzleRelations: typeof relations }>({
+      plugins: [DrizzlePlugin],
+      drizzle: { client: {} as never, getTableConfig: getPgTableConfig, relations },
+    } as never);
+
+    const schemaConfig = getSchemaConfig(builder as never);
+    const cursor = getCursorFormatter([events.createdAt, events.id], schemaConfig)(cursorValues);
+
+    const query = drizzleCursorConnectionQuery({
+      args: { first: 3, after: cursor },
+      ctx: {},
+      orderBy: { createdAt: 'desc', id: 'desc' },
+      config: schemaConfig,
+      table: schemaConfig.relations.events,
+    });
+
+    // the filter is only as good as the SQL drizzle builds from it, so compile it
+    const db = drizzle({
+      client: postgres('postgresql://pothos:pothos@localhost:5455/pothos'),
+      relations,
+    });
+
+    return db.query.events.findMany({ where: query.where as {} }).toSQL();
+  }
+
+  it('keeps the equality clause when the cursor value is a Date', async () => {
+    const createdAt = new Date('2026-08-20T12:00:00.086Z');
+    const { sql, params } = await whereSQLForCursor({ createdAt, id: BigInt(12) });
+
+    // drizzle reads a bare Date as a nested filter and drops the clause, which
+    // leaves `created_at < $1 or id < $2` -- a filter that walks rows it should
+    // not, and skips rows it should return
+    expect(sql).toMatch(/"created_at" < \$1.*"created_at" = \$2.*"id" < \$3/s);
+    // the timestamp codec renders the Date, and both copies have to survive it
+    expect(params).toEqual([createdAt.toISOString(), createdAt.toISOString(), BigInt(12)]);
+  });
+
+  it('keeps comparing against null cursor values with is null', async () => {
+    const { sql } = await whereSQLForCursor({ createdAt: null, id: BigInt(12) });
+
+    expect(sql).toMatch(/"created_at" is null.*"id" < \$/s);
+  });
+});
