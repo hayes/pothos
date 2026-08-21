@@ -1,5 +1,38 @@
 # @pothos/plugin-drizzle
 
+## 0.18.0
+
+### Minor Changes
+
+- 4105614: Tag each value in a compound cursor, so cursors covering more than one column round trip `Date` and `bigint` values.
+
+  Compound cursors were serialized with plain JSON, which returns a `Date` as a string and cannot serialize a `bigint` at all. Single-value cursors did not have this problem, so it only surfaced on orderings that named more than one column. Cursors written before this change are still read.
+
+  Also fixes two crashes reachable from the same orderings: an ordering value of `null` now compares with `IS NULL` rather than throwing out of drizzle, and composite primary keys are looked up against the table's own columns, which the postgres dialect does not use when reporting them.
+
+  Composite primary keys are now used as the tie breaker whether or not their columns are marked `notNull()`, since SQL makes primary key columns non-nullable regardless. Previously a key declared with `primaryKey({ columns: [...] })` alone was skipped, leaving those connections with the non-unique ordering the tie breaker exists to fix.
+
+- 99cf79e: Connection `orderBy` can now name an extra selected by the same query, rather than only a column:
+
+  ```ts
+  query({
+    extras: { titleLength: (table) => sql`length(${table.title})` },
+    orderBy: { titleLength: "asc" },
+  });
+  ```
+
+  Pothos orders by the expression, builds the cursor from the value it returns, and compares the expression when paging.
+
+  This gives cursors a way to carry a value the column's JavaScript mapping does not preserve. A `timestamp({ mode: 'date' })` column is returned as a `Date`, which only holds milliseconds, so a cursor built from it cannot address a row stored with microsecond precision. Selecting the full value as an extra and ordering by that can. See "Ordering and cursors" in the drizzle plugin docs.
+
+### Patch Changes
+
+- d5211ea: Add the primary key to connection `orderBy` when the ordering is not already unique.
+
+  A cursor records a row's position in an ordering. When that ordering is not unique, `orderBy: { createdAt: 'desc' }` for example, rows sharing a value can be returned in a different order on each query, so paging through the connection may return a row twice, or skip it.
+
+  Connections ordered by a unique set of non-nullable columns are unchanged. Other connections get the primary key as a trailing order column, and their cursors include the matching values. Cursors created before this change still work: they page from the columns they contain, and the cursors returned by that page contain the full set.
+
 ## 0.17.6
 
 ### Patch Changes
