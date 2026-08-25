@@ -144,6 +144,19 @@ so we need a separate to handle the second `posts` relation.
 yarn add @pothos/plugin-prisma
 ```
 
+### Prisma versions
+
+This plugin is built on Prisma ORM's `@prisma/client` and its `prisma generate` generator API. It
+works with Prisma ORM 7 (and earlier versions), which Prisma continues to maintain on the
+[`v7` branch](https://github.com/prisma/prisma/tree/v7).
+
+Prisma 8 (`prisma@latest`, currently a release candidate) is
+[Prisma Next](https://github.com/prisma/prisma), a from-scratch rewrite with a different client and
+no `schema.prisma` generators or `@prisma/client`. It is a different ORM rather than an upgrade, and
+this plugin does not target it. If you use this plugin, keep `prisma` and `@prisma/client` on `^7`,
+or install the [`@prisma/prisma7`](https://www.npmjs.com/package/@prisma/prisma7) CLI wrapper if
+you need Prisma 8 alongside a Prisma ORM 7 project.
+
 ## Setup
 
 This plugin requires a little more setup than other plugins because it integrates with the prisma to

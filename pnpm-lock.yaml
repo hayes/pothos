@@ -845,7 +845,7 @@ importers:
   packages/plugin-prisma:
     dependencies:
       '@prisma/generator-helper':
-        specifier: ^7.7.0
+        specifier: ^7.7.0 || ^8.0.0
         version: 7.7.0
       graphql:
         specifier: ^17.0.1
@@ -894,7 +894,7 @@ importers:
   packages/plugin-prisma-utils:
     dependencies:
       '@prisma/generator-helper':
-        specifier: ^7.7.0
+        specifier: ^7.7.0 || ^8.0.0
         version: 7.7.0
       graphql:
         specifier: ^17.0.1

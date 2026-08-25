@@ -47,7 +47,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^7.7.0"
+    "@prisma/generator-helper": "^7.7.0 || ^8.0.0"
   },
   "peerDependencies": {
     "@pothos/core": "*",

@@ -64,7 +64,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@prisma/generator-helper": "^7.7.0"
+    "@prisma/generator-helper": "^7.7.0 || ^8.0.0"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
