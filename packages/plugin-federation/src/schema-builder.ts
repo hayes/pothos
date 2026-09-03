@@ -1,5 +1,5 @@
 import { printSubgraphSchema } from '@apollo/subgraph';
-import { EntityType, entitiesField, serviceField } from '@apollo/subgraph/dist/types';
+import { EntityType, entitiesField, serviceField } from '@apollo/subgraph/dist/types.js';
 import SchemaBuilder, { type MaybePromise, type SchemaTypes } from '@pothos/core';
 import {
   GraphQLList,
