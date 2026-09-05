@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.18.1
+
+### Patch Changes
+
+- 6424480: Plan fragments on interfaces implemented by a Drizzle object against the object, so `select` declared on the interface's fields is merged into the query instead of being skipped and loaded separately. Export `DrizzleInterfaceRef` and the `DrizzleRef` type from the package index.
+
 ## 0.18.0
 
 ### Minor Changes
