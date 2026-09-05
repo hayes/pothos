@@ -230,6 +230,39 @@ function resolveIndirectInclude(
   }
 }
 
+// The type to plan a fragment's selections against, or null when the fragment
+// cannot apply to `type`. A fragment on an interface the object implements is
+// planned against the object, whose field map already carries the interface
+// fields and their `select` extensions.
+function typeForFragment(
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  condition: GraphQLNamedType,
+): GraphQLInterfaceType | GraphQLObjectType | null {
+  if (isObjectType(type)) {
+    if (condition.name === type.name) {
+      return type;
+    }
+
+    if (
+      isInterfaceType(condition) &&
+      type.getInterfaces().some((iface) => iface.name === condition.name)
+    ) {
+      return type;
+    }
+
+    return null;
+  }
+
+  if (
+    (isObjectType(condition) || isInterfaceType(condition)) &&
+    condition.extensions?.pothosDrizzleModel === type.extensions.pothosDrizzleModel
+  ) {
+    return condition;
+  }
+
+  return null;
+}
+
 function addNestedSelections(
   config: PothosDrizzleSchemaConfig,
   type: GraphQLInterfaceType | GraphQLObjectType,
@@ -240,7 +273,7 @@ function addNestedSelections(
   indirectPath: string[],
   segments: FieldPathInfo[] = [],
 ) {
-  let parentType = type;
+  let parentType: GraphQLInterfaceType | GraphQLObjectType | null = type;
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
@@ -252,14 +285,11 @@ function addNestedSelections(
           continue;
         }
 
-        parentType = info.schema.getType(
-          info.fragments[selection.name.value].typeCondition.name.value,
-        )! as GraphQLObjectType;
-        if (
-          isObjectType(type)
-            ? parentType.name !== type.name
-            : parentType.extensions?.pothosDrizzleModel !== type.extensions.pothosDrizzleModel
-        ) {
+        parentType = typeForFragment(
+          type,
+          info.schema.getType(info.fragments[selection.name.value].typeCondition.name.value)!,
+        );
+        if (!parentType) {
           continue;
         }
 
@@ -282,13 +312,9 @@ function addNestedSelections(
         }
 
         parentType = selection.typeCondition
-          ? (info.schema.getType(selection.typeCondition.name.value) as GraphQLObjectType)
+          ? typeForFragment(type, info.schema.getType(selection.typeCondition.name.value)!)
           : type;
-        if (
-          isObjectType(type)
-            ? parentType.name !== type.name
-            : parentType.extensions?.pothosDrizzleModel !== type.extensions.pothosDrizzleModel
-        ) {
+        if (!parentType) {
           continue;
         }
 
