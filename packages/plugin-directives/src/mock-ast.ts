@@ -1,7 +1,7 @@
 import './global-types.js';
+import * as graphqlModule from 'graphql';
 import {
   type ArgumentNode,
-  astFromValue,
   type ConstDirectiveNode,
   type ConstValueNode,
   type DirectiveNode,
@@ -33,6 +33,62 @@ import {
   type ValueNode,
 } from 'graphql';
 import type { DirectiveList } from './types.js';
+
+// graphql 17 deprecated astFromValue() in favor of valueToLiteral().
+// They take different value shapes: astFromValue takes internal/coerced values,
+// valueToLiteral takes external values. For default values, prefer stored AST
+// literals from graphql 17+ 'default' API when available.
+// biome-ignore lint/suspicious/noExplicitAny: accessing conditionally available APIs
+const gql = graphqlModule as Record<string, any>;
+const _astFromValue = gql.astFromValue as
+  | ((value: unknown, type: GraphQLType) => ValueNode | null | undefined)
+  | undefined;
+const _valueToLiteral = gql.valueToLiteral as
+  | ((value: unknown, type: GraphQLType) => ValueNode | undefined)
+  | undefined;
+
+/**
+ * Convert an internal/coerced default value to an AST literal.
+ * Handles the graphql v16→v17→v18 migration:
+ * - v16/v17: uses astFromValue (deprecated in v17)
+ * - v17+: uses stored literal from 'default' API when available
+ * - v18+: uses valueToLiteral with serialize() to convert internal→external values
+ */
+function internalValueToLiteral(
+  value: unknown,
+  type: GraphQLType,
+  storedDefault?: { literal?: ValueNode; value?: unknown },
+): ValueNode | null | undefined {
+  // Prefer stored AST literal (graphql 17+ 'default: { literal }' API)
+  if (storedDefault?.literal) {
+    return storedDefault.literal;
+  }
+
+  // Use astFromValue if available (graphql 16/17)
+  if (_astFromValue) {
+    return _astFromValue(value, type);
+  }
+
+  // Fallback for graphql 18+: serialize internal→external, then valueToLiteral
+  if (_valueToLiteral) {
+    const namedType = getNamedType(type);
+    if (namedType && 'serialize' in namedType) {
+      const externalValue = (namedType as GraphQLScalarType | GraphQLEnumType).serialize(value);
+      return _valueToLiteral(externalValue, type);
+    }
+    // For non-scalar/enum types, value is already in external form
+    return _valueToLiteral(value, type);
+  }
+
+  return null;
+}
+
+function getNamedType(type: GraphQLType): GraphQLType {
+  if (type instanceof GraphQLNonNull || type instanceof GraphQLList) {
+    return getNamedType(type.ofType);
+  }
+  return type;
+}
 
 export default function mockAst(schema: GraphQLSchema) {
   const types = schema.getTypeMap();
@@ -146,7 +202,9 @@ function valueNode(value: unknown, arg?: GraphQLArgument): ValueNode {
   }
 
   if (arg) {
-    return astFromValue(value, arg.type) as ValueNode;
+    // biome-ignore lint/suspicious/noExplicitAny: accessing v17+ 'default' property
+    const stored = (arg as any).default as { literal?: ValueNode; value?: unknown } | undefined;
+    return (internalValueToLiteral(value, arg.type, stored) ?? { kind: Kind.NULL }) as ValueNode;
   }
 
   if (Array.isArray(value)) {
@@ -261,14 +319,21 @@ function inputFieldNodes(
   return Object.keys(fields).map((fieldName) => {
     const field: GraphQLInputField = fields[fieldName];
 
-    const defaultValueNode = astFromValue(field.defaultValue, field.type) as ConstValueNode;
+    // biome-ignore lint/suspicious/noExplicitAny: accessing v17+ 'default' property
+    const stored = (field as any).default as { literal?: ValueNode; value?: unknown } | undefined;
+    // Use stored literal (v17+) or fall back to field.defaultValue (internal/coerced).
+    // Do NOT use stored?.value — it's in external form and astFromValue expects internal.
+    const defaultValueNode =
+      field.defaultValue === undefined && !stored?.literal
+        ? undefined
+        : (internalValueToLiteral(field.defaultValue, field.type, stored) as ConstValueNode);
 
     field.astNode ||= {
       kind: Kind.INPUT_VALUE_DEFINITION,
       description: field.description ? { kind: Kind.STRING, value: field.description } : undefined,
       name: { kind: Kind.NAME, value: fieldName },
       type: typeNode(field.type),
-      defaultValue: field.defaultValue === undefined ? undefined : defaultValueNode,
+      defaultValue: defaultValueNode,
       directives: directiveNodes(
         field.extensions?.directives as DirectiveList,
         field.deprecationReason ?? null,
@@ -285,14 +350,19 @@ function argumentNodes(
   schema: GraphQLSchema,
 ): InputValueDefinitionNode[] {
   return args.map((arg): InputValueDefinitionNode => {
-    const defaultValueNode = astFromValue(arg.defaultValue, arg.type) as ConstValueNode;
+    // biome-ignore lint/suspicious/noExplicitAny: accessing v17+ 'default' property
+    const stored = (arg as any).default as { literal?: ValueNode; value?: unknown } | undefined;
+    const defaultValueNode =
+      arg.defaultValue === undefined && !stored?.literal
+        ? undefined
+        : (internalValueToLiteral(arg.defaultValue, arg.type, stored) as ConstValueNode);
 
     arg.astNode ||= {
       kind: Kind.INPUT_VALUE_DEFINITION,
       description: arg.description ? { kind: Kind.STRING, value: arg.description } : undefined,
       name: { kind: Kind.NAME, value: arg.name },
       type: typeNode(arg.type),
-      defaultValue: arg.defaultValue === undefined ? undefined : defaultValueNode,
+      defaultValue: defaultValueNode,
       directives: directiveNodes(
         arg.extensions?.directives as DirectiveList,
         arg.deprecationReason ?? null,

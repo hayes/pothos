@@ -141,7 +141,8 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
             ...input,
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
-            defaultValue: arg.defaultValue,
+            // biome-ignore lint/suspicious/noExplicitAny: v17+ 'default' API
+            defaultValue: (arg as any).default?.value ?? arg.defaultValue,
             extensions: arg.extensions,
             astNode: arg.astNode ?? undefined,
           });
@@ -214,7 +215,8 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
             ...resolveInputType(this, arg.type),
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
-            defaultValue: arg.defaultValue,
+            // biome-ignore lint/suspicious/noExplicitAny: v17+ 'default' API
+            defaultValue: (arg as any).default?.value ?? arg.defaultValue,
             extensions: arg.extensions,
             astNode: arg.astNode ?? undefined,
           });
@@ -332,7 +334,8 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
         combinedFields[fieldName] = t.field({
           ...resolveInputType(this, field.type),
           description: field.description ?? undefined,
-          defaultValue: field.defaultValue,
+          // biome-ignore lint/suspicious/noExplicitAny: v17+ 'default' API
+          defaultValue: (field as any).default?.value ?? field.defaultValue,
           extensions: field.extensions,
           astNode: field.astNode ?? undefined,
         });

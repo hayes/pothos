@@ -111,6 +111,13 @@ describe('extends example schema', () => {
     });
   });
 
+  it('prints schema with enum default values correctly (graphql v17+ compat)', () => {
+    // Validates that enum defaults with internal values (e.g., 2 for TWO)
+    // produce valid SDL via printSchema — previously broken in graphql v17
+    const sdl = printSchema(schema);
+    expect(sdl).toContain('enumWithDefault: EN = TWO');
+  });
+
   it('gatsby format', () => {
     const builder = new SchemaBuilder<{
       Directives: {

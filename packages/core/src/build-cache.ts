@@ -21,6 +21,7 @@ import {
   GraphQLString,
   type GraphQLTypeResolver,
   GraphQLUnionType,
+  getNamedType,
 } from 'graphql';
 import type { SchemaBuilder } from './builder.js';
 import type { ConfigStore } from './config-store.js';
@@ -64,6 +65,48 @@ type NullableInputType =
   | GraphQLEnumType
   | GraphQLInputObjectType
   | GraphQLList<GraphQLInputType>;
+
+/**
+ * Serialize a default value from internal/coerced form to external form.
+ * Required for graphql 17+ where `default: { value }` expects external values.
+ * For enums, converts internal value (e.g., 2) to external name (e.g., "TWO").
+ * For scalars, applies the serialize function.
+ * For input objects and lists, recursively serializes nested values.
+ */
+function unwrapType(type: GraphQLInputType): GraphQLInputType {
+  return type instanceof GraphQLNonNull ? type.ofType : type;
+}
+
+function serializeDefaultValue(value: unknown, type: GraphQLInputType): unknown {
+  if (value == null) {
+    return value;
+  }
+
+  const unwrapped = unwrapType(type);
+
+  if (Array.isArray(value) && unwrapped instanceof GraphQLList) {
+    const itemType = unwrapType(unwrapped.ofType);
+    return value.map((item) => serializeDefaultValue(item, itemType));
+  }
+
+  const namedType = getNamedType(type);
+
+  if (namedType instanceof GraphQLEnumType || namedType instanceof GraphQLScalarType) {
+    return namedType.serialize(value);
+  }
+
+  if (namedType instanceof GraphQLInputObjectType && typeof value === 'object') {
+    const fields = namedType.getFields();
+    const result: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      const field = fields[key];
+      result[key] = field ? serializeDefaultValue(val, field.type) : val;
+    }
+    return result;
+  }
+
+  return value;
+}
 
 export class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();
@@ -376,9 +419,18 @@ export class BuildCache<Types extends SchemaTypes> {
       const config = this.inputFieldConfigs.get(originalConfig)!;
 
       if (config) {
+        const builtType = this.buildInputTypeParam(config.type);
+
         built[fieldName] = {
           ...config,
-          type: this.buildInputTypeParam(config.type),
+          type: builtType,
+          // graphql 17+ default value API; uses 'default: { value }' with the external
+          // (serialized) value. Enum internal values (e.g., 2) must be serialized to
+          // external names (e.g., "TWO") to avoid v17 validation errors.
+          // Spread so keys don't trip graphql 16's narrower config types. Ignored on v16.
+          ...(config.defaultValue !== undefined
+            ? { default: { value: serializeDefaultValue(config.defaultValue, builtType) } }
+            : {}),
           extensions: {
             ...config.extensions,
             pothosOptions: config.pothosOptions,
