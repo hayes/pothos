@@ -214,8 +214,8 @@ export class PrismaObjectFieldBuilder<
     const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
     const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
 
-    const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
-      const connectionQuery = prismaCursorConnectionQuery({
+    const getConnectionQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) =>
+      prismaCursorConnectionQuery({
         parseCursor,
         ctx,
         maxSize,
@@ -223,13 +223,16 @@ export class PrismaObjectFieldBuilder<
         args,
       });
 
+    const mergeQueryResult = (
+      connectionQuery: ReturnType<typeof getConnectionQuery>,
+      queryResult: {} | null | undefined,
+    ) => {
       const {
         take = connectionQuery.take,
         skip = connectionQuery.skip,
         cursor = connectionQuery.cursor,
         ...fieldQuery
-      } = ((typeof query === 'function' ? query(args, ctx) : query) ??
-        {}) as typeof connectionQuery;
+      } = (queryResult ?? {}) as typeof connectionQuery;
 
       return {
         ...fieldQuery,
@@ -238,6 +241,19 @@ export class PrismaObjectFieldBuilder<
         skip,
         ...(cursor ? { cursor } : {}),
       };
+    };
+
+    const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
+      const connectionQuery = getConnectionQuery(args, ctx);
+      const queryResult = typeof query === 'function' ? query(args, ctx) : query;
+
+      if (isThenable(queryResult)) {
+        return (queryResult as PromiseLike<{}>).then((resolved) =>
+          mergeQueryResult(connectionQuery, resolved),
+        );
+      }
+
+      return mergeQueryResult(connectionQuery, queryResult as {} | null | undefined);
     };
 
     const cursorSelection = ModelLoader.getCursorSelection(
@@ -254,7 +270,17 @@ export class PrismaObjectFieldBuilder<
       getSelection: (path: string[]) => FieldNode | null,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
-      const nested = nestedQuery(getQuery(args, context), {
+      const connectionQuery = getConnectionQuery(
+        args as PothosSchemaTypes.DefaultConnectionArguments,
+        context,
+      );
+      const queryResult = typeof query === 'function' ? query(args, context) : query;
+      // Selection tree building is sync — if query is async, skip the filter
+      // (async filters are applied in the fallback/resolve path instead)
+      const syncQuery = isThenable(queryResult)
+        ? connectionQuery
+        : mergeQueryResult(connectionQuery, queryResult as {} | null | undefined);
+      const nested = nestedQuery(syncQuery, {
         getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
@@ -336,19 +362,20 @@ export class PrismaObjectFieldBuilder<
               args: PothosSchemaTypes.DefaultConnectionArguments,
               context: {},
               info: GraphQLResolveInfo,
-            ) =>
-              Promise.resolve(
-                resolve(
-                  {
-                    ...q,
-                    ...getQuery(args, context),
-                  } as never,
-                  parent,
-                  args,
-                  context,
-                  info,
-                ),
-              ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor))),
+            ) => {
+              const queryResult = getQuery(args, context);
+
+              const doResolve = (merged: {}) =>
+                Promise.resolve(
+                  resolve({ ...q, ...merged } as never, parent, args, context, info),
+                ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor));
+
+              if (isThenable(queryResult)) {
+                return (queryResult as PromiseLike<{}>).then(doResolve);
+              }
+
+              return doResolve(queryResult);
+            }),
         },
         type: ref,
         resolve: (
@@ -369,13 +396,19 @@ export class PrismaObjectFieldBuilder<
             ),
           );
 
-          const connectionQuery = getQuery(args, context);
+          // Data is already batch-loaded — only need pagination params.
+          // getQuery may return a Promise if user's query callback is async;
+          // in that case, fall back to base connection query for take/skip.
+          const queryResult = getQuery(args, context);
+          const paginationQuery = isThenable(queryResult)
+            ? getConnectionQuery(args, context)
+            : queryResult;
 
           return wrapConnectionResult(
             parent,
             totalCountOnly ? [] : ((parent as Record<string, never>)[name] ?? []),
             args,
-            connectionQuery.take,
+            paginationQuery.take,
             formatCursor,
             (parent as { _count?: Record<string, number> })._count?.[name],
           );
@@ -457,14 +490,29 @@ export class PrismaObjectFieldBuilder<
         pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
         pothosPrismaFallback:
           resolve &&
-          ((q: {}, parent: Shape, args: {}, context: {}, info: GraphQLResolveInfo) =>
-            resolve(
-              { ...q, ...(typeof query === 'function' ? query(args, context) : query) } as never,
+          ((q: {}, parent: Shape, args: {}, context: {}, info: GraphQLResolveInfo) => {
+            const queryResult = typeof query === 'function' ? query(args, context) : query;
+
+            if (isThenable(queryResult)) {
+              return (queryResult as PromiseLike<{}>).then((resolved) =>
+                resolve(
+                  { ...q, ...resolved } as never,
+                  parent,
+                  args as never,
+                  context,
+                  info,
+                ),
+              );
+            }
+
+            return resolve(
+              { ...q, ...queryResult } as never,
               parent,
               args as never,
               context,
               info,
-            )),
+            );
+          }),
       },
       resolve: (parent) => {
         const result = (parent as Record<string, never>)[name];

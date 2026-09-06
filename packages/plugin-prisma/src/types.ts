@@ -372,7 +372,7 @@ type QueryForField<
       | ((
           args: InputShapeFromFields<Args>,
           ctx: Types['Context'],
-        ) => Omit<Include, 'include' | 'select'>)
+        ) => MaybePromise<Omit<Include, 'include' | 'select'>>)
   : never;
 
 type QueryFromRelation<
