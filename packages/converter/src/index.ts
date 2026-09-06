@@ -660,8 +660,10 @@ export default class PothosConverter {
             this.writeRequiredness(writer, arg.type);
             writer.write(',');
             writer.newLine();
-            if (arg.defaultValue != null) {
-              writer.write(`defaultValue: ${JSON.stringify(arg.defaultValue)}`);
+            // biome-ignore lint/suspicious/noExplicitAny: v17+ 'default' API
+            const defaultVal = (arg as any).default?.value ?? arg.defaultValue;
+            if (defaultVal != null) {
+              writer.write(`defaultValue: ${JSON.stringify(defaultVal)}`);
               writer.write(',');
               writer.newLine();
             }
