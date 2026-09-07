@@ -1,0 +1,290 @@
+import SchemaBuilder from '@pothos/core';
+import { execute } from '@pothos/test-utils';
+import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import type { DocumentNode, GraphQLResolveInfo } from 'graphql';
+import { gql } from 'graphql-tag';
+import DrizzlePlugin from '../src';
+import { getSchemaConfig } from '../src/utils/config';
+import { queryFromInfo } from '../src/utils/map-query';
+import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
+
+// A schema where a drizzle-backed field only exists on one implementation of an interface, so it
+// can only be selected behind an inline fragment or fragment spread.
+const builder = new SchemaBuilder<{
+  DrizzleRelations: DrizzleRelations;
+  Context: { user: { id: number } };
+}>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: () => db,
+    getTableConfig,
+    relations,
+  },
+});
+
+const Post = builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({
+    id: t.exposeID('postId'),
+    title: t.exposeString('title'),
+  }),
+});
+
+interface PostShape {
+  postId: number;
+  title: string;
+}
+
+const PostPreview = builder.objectRef<PostShape>('PostPreview').implement({
+  fields: (t) => ({
+    post: t.field({
+      type: Post,
+      resolve: (post) => post,
+    }),
+  }),
+});
+
+const User = builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    posts: t.relation('posts'),
+    postPreviews: t.field({
+      type: [PostPreview],
+      select: (_args, _ctx, nestedSelection) => ({
+        with: {
+          posts: nestedSelection({ limit: 2 }, ['post']),
+        },
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+
+interface EntryShape {
+  kind: string;
+  user?: unknown;
+}
+
+const Entry = builder.interfaceRef<EntryShape>('Entry').implement({
+  fields: (t) => ({
+    kind: t.exposeString('kind'),
+  }),
+  resolveType: (entry) => (entry.user ? 'AppointmentEntry' : 'OtherEntry'),
+});
+
+builder.objectRef<EntryShape>('AppointmentEntry').implement({
+  interfaces: [Entry],
+  fields: (t) => ({
+    appointment: t.field({
+      type: User,
+      resolve: (entry) => entry.user as never,
+    }),
+  }),
+});
+
+builder.objectRef<EntryShape>('OtherEntry').implement({
+  interfaces: [Entry],
+});
+
+async function resolveEntries(
+  context: object,
+  info: GraphQLResolveInfo,
+  path: (string | { name: string; type?: string })[],
+) {
+  const query = queryFromInfo({
+    config: getSchemaConfig(builder),
+    context,
+    info,
+    typeName: 'User',
+    path,
+  });
+
+  const user = await db.query.users.findFirst({
+    ...query,
+    where: { id: 1 },
+  } as never);
+
+  return [{ kind: 'appointment', user }, { kind: 'other' }];
+}
+
+builder.queryType({
+  fields: (t) => ({
+    entries: t.field({
+      type: [Entry],
+      resolve: (_root, _args, context, info) => resolveEntries(context, info, ['appointment']),
+    }),
+    entriesWithTypedPath: t.field({
+      type: [Entry],
+      resolve: (_root, _args, context, info) =>
+        resolveEntries(context, info, [{ name: 'appointment', type: 'AppointmentEntry' }]),
+    }),
+    me: t.drizzleField({
+      type: User,
+      resolve: (query, _root, _args, ctx) =>
+        db.query.users.findFirst(query({ where: { id: ctx.user.id } })),
+    }),
+  }),
+});
+
+const schema = builder.toSchema();
+
+async function run(document: DocumentNode) {
+  clearDrizzleLogs();
+
+  const result = await execute({
+    schema,
+    document,
+    contextValue: { user: { id: 1 } },
+  });
+
+  return { result, logs: [...drizzleLogs] };
+}
+
+const expectedEntries = {
+  entries: [
+    {
+      kind: 'appointment',
+      appointment: { id: '1', posts: expect.arrayContaining([{ id: expect.any(String) }]) },
+    },
+    { kind: 'other' },
+  ],
+};
+
+describe('indirect include paths through fragments', () => {
+  afterEach(() => {
+    clearDrizzleLogs();
+  });
+
+  describe('queryFromInfo path into a field behind a narrowing fragment', () => {
+    it('resolves the field through an inline fragment on an implementing type', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries {
+            kind
+            ... on AppointmentEntry {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expectedEntries);
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toContain('"posts"');
+    });
+
+    it('resolves the field through a fragment spread on an implementing type', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries {
+            kind
+            ...AppointmentFields
+          }
+        }
+
+        fragment AppointmentFields on AppointmentEntry {
+          appointment {
+            id
+            posts {
+              id
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expectedEntries);
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toContain('"posts"');
+    });
+
+    it('accepts { name, type } segments to pin the fragment type', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries: entriesWithTypedPath {
+            kind
+            ... on AppointmentEntry {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expectedEntries);
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toContain('"posts"');
+    });
+  });
+
+  describe('nestedSelection path into a field selected through a fragment', () => {
+    it('plans the same query whether the field is selected directly or through a fragment', async () => {
+      const direct = await run(gql`
+        query {
+          me {
+            postPreviews {
+              post {
+                id
+                title
+              }
+            }
+          }
+        }
+      `);
+
+      const inline = await run(gql`
+        query {
+          me {
+            postPreviews {
+              ... on PostPreview {
+                post {
+                  id
+                  title
+                }
+              }
+            }
+          }
+        }
+      `);
+
+      const spread = await run(gql`
+        query {
+          me {
+            postPreviews {
+              ...PreviewFields
+            }
+          }
+        }
+
+        fragment PreviewFields on PostPreview {
+          post {
+            id
+            title
+          }
+        }
+      `);
+
+      expect(direct.result.errors).toBeUndefined();
+      expect(direct.logs).toHaveLength(1);
+      expect(direct.logs[0]).toContain('"title"');
+
+      expect(inline.result).toEqual(direct.result);
+      expect(inline.logs).toEqual(direct.logs);
+
+      expect(spread.result).toEqual(direct.result);
+      expect(spread.logs).toEqual(direct.logs);
+    });
+  });
+});

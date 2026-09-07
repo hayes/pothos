@@ -175,3 +175,18 @@ builder.mutationField(
   },
 );
 ```
+
+The `path` is followed through fragments in the query, including inline fragments and fragment
+spreads that narrow an interface or union to one of its implementations. When several
+implementations share a field name and you need to target a specific one, a segment can be written
+as `{ name, type }` to pin the type condition the field must be selected under:
+
+```typescript
+queryFromInfo({
+  context,
+  info,
+  typeName: 'User',
+  // only match `appointment` when selected inside `... on AppointmentEntry`
+  path: [{ name: 'appointment', type: 'AppointmentEntry' }],
+});
+```
