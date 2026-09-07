@@ -13,6 +13,7 @@ import {
   getDirectiveValues,
   getNamedType,
   type InlineFragmentNode,
+  isAbstractType,
   isInterfaceType,
   isObjectType,
   Kind,
@@ -174,35 +175,52 @@ function resolveIndirectInclude(
           );
         }
         continue;
-      case Kind.FRAGMENT_SPREAD:
-        resolveIndirectInclude(
-          info.schema.getType(info.fragments[sel.name.value].typeCondition.name.value)!,
+      case Kind.FRAGMENT_SPREAD: {
+        const fragment = info.fragments[sel.name.value];
+        const next = resolveFragmentTypes(
           info,
-          info.fragments[sel.name.value],
+          info.schema.getType(fragment.typeCondition.name.value)!,
+          type,
+          expectedType,
+          include,
+        );
+
+        resolveIndirectInclude(
+          next.type,
+          info,
+          fragment,
           includePath,
           path,
           resolve,
           deferred || isDeferredFragment(sel, info),
-          include.type ? info.schema.getType(include.type)! : expectedType,
+          next.expectedType,
         );
 
         continue;
+      }
 
-      case Kind.INLINE_FRAGMENT:
-        if (!sel.typeCondition || !include.type || sel.typeCondition.name.value === include.type) {
-          resolveIndirectInclude(
-            sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : type,
-            info,
-            sel,
-            includePath,
-            path,
-            resolve,
-            deferred || isDeferredFragment(sel, info),
-            include.type ? info.schema.getType(include.type)! : expectedType,
-          );
-        }
+      case Kind.INLINE_FRAGMENT: {
+        const next = resolveFragmentTypes(
+          info,
+          sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : undefined,
+          type,
+          expectedType,
+          include,
+        );
+
+        resolveIndirectInclude(
+          next.type,
+          info,
+          sel,
+          includePath,
+          path,
+          resolve,
+          deferred || isDeferredFragment(sel, info),
+          next.expectedType,
+        );
 
         continue;
+      }
 
       default:
         throw new PothosValidationError(
@@ -210,6 +228,54 @@ function resolveIndirectInclude(
         );
     }
   }
+}
+
+/**
+ * Determines the type to walk and the type fields are expected on when descending into a fragment
+ * while resolving an indirect include path.
+ *
+ * - A segment with an explicit `type` pins the expected type.
+ * - A fragment that narrows the expected type (`... on Impl` under an interface or union) advances
+ *   the expected type so the segment's field can be found on the concrete type.
+ * - A fragment that widens the expected type (`... on Node` under `User`) keeps walking as the
+ *   expected type, since every field of the wider type also exists on it.
+ * - Fragments on unrelated types keep the expected type and their fields are skipped until a nested
+ *   fragment narrows back to it.
+ */
+function resolveFragmentTypes(
+  info: GraphQLResolveInfo,
+  fragmentType: GraphQLNamedType | undefined,
+  type: GraphQLNamedType,
+  expectedType: GraphQLNamedType,
+  include: { type?: string; name: string },
+) {
+  const expected = include.type ? info.schema.getType(include.type)! : expectedType;
+
+  if (!fragmentType) {
+    return { type, expectedType: expected };
+  }
+
+  if (fragmentType.name === expected.name) {
+    return { type: fragmentType, expectedType: expected };
+  }
+
+  if (
+    isAbstractType(expected) &&
+    (isObjectType(fragmentType) || isInterfaceType(fragmentType)) &&
+    info.schema.isSubType(expected, fragmentType)
+  ) {
+    return { type: fragmentType, expectedType: fragmentType };
+  }
+
+  if (
+    isAbstractType(fragmentType) &&
+    (isObjectType(expected) || isInterfaceType(expected)) &&
+    info.schema.isSubType(fragmentType, expected)
+  ) {
+    return { type: expected, expectedType: expected };
+  }
+
+  return { type: fragmentType, expectedType: expected };
 }
 
 function addNestedSelections(
@@ -459,8 +525,8 @@ export function queryFromInfo<
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
-  path?: string[];
-  paths?: string[][];
+  path?: (string | { name: string; type?: string })[];
+  paths?: (string | { name: string; type?: string })[][];
   withUsageCheck?: boolean;
   skipDeferredFragments?: boolean;
 } & (
@@ -603,7 +669,10 @@ function normalizeInclude(
 ): IndirectInclude {
   let currentType = path.length > 0 ? type : (expectedType ?? type);
 
-  const normalized: { name: string; type: string }[] = [];
+  // Segments intentionally omit `type`: a segment `type` pins the fragment type condition the
+  // field must be found under, which is not known for a plain string path. The walker narrows
+  // through fragments on its own.
+  const normalized: { name: string }[] = [];
 
   if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
     throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
@@ -622,13 +691,13 @@ function normalizeInclude(
       throw new PothosValidationError(`Expected ${currentType} to be an Object or Interface type`);
     }
 
-    normalized.push({ name: fieldName, type: currentType.name });
+    normalized.push({ name: fieldName });
   }
 
+  const targetType = currentType;
+
   return {
-    getType: () =>
-      expectedType?.name ??
-      (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
+    getType: () => expectedType?.name ?? targetType.name,
     path: normalized,
   };
 }
