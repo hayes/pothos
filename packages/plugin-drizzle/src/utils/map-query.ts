@@ -411,14 +411,10 @@ function addFieldSelection(
               expectedType ? getNamedType(info.schema.getType(expectedType)) : undefined,
             )
           : indirectInclude;
-        const fieldState = createStateForSelection(
-          config,
-          info,
-          normalizedIndirectInclude
-            ? info.schema.getType(normalizedIndirectInclude.getType())!
-            : returnType,
-          state,
-        );
+        const fieldTargetType = normalizedIndirectInclude
+          ? info.schema.getType(normalizedIndirectInclude.getType())!
+          : returnType;
+        const fieldState = createStateForSelection(config, info, fieldTargetType, state);
 
         if (typeof query === 'object' && Object.keys(query).length > 0) {
           mergeSelection(config, fieldState, { columns: {}, ...query });
@@ -435,6 +431,10 @@ function addFieldSelection(
             normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
             [],
             (resolvedType, resolvedField, path, deferred) => {
+              if (!matchesTargetModel(resolvedType, fieldTargetType, info)) {
+                return;
+              }
+
               addTypeSelectionsForField(
                 config,
                 resolvedType,
@@ -583,6 +583,10 @@ export function stateFromInfo<T extends SelectionMap>({
             : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested, deferred) => {
+            if (!matchesTargetModel(resolvedType, type, info)) {
+              return;
+            }
+
             state = createStateForSelection(
               config,
               info,
@@ -691,6 +695,23 @@ function createStateForSelection(
   }
 
   return state;
+}
+
+/**
+ * Checks whether a field matched by an indirect include path returns the same drizzle table as the
+ * type the selection is being built for. Multiple implementations of an interface may share a field
+ * name while returning different tables; selections for a different table are skipped rather than
+ * merged into the wrong query. Types without a table (interfaces, wrappers) always match.
+ */
+function matchesTargetModel(
+  resolvedType: GraphQLNamedType,
+  targetType: GraphQLNamedType,
+  info: GraphQLResolveInfo,
+) {
+  const resolvedModel = getIndirectType(resolvedType, info).extensions?.pothosDrizzleModel;
+  const targetModel = getIndirectType(targetType, info).extensions?.pothosDrizzleModel;
+
+  return !resolvedModel || !targetModel || resolvedModel === targetModel;
 }
 
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {

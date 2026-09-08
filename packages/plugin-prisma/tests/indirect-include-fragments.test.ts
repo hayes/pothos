@@ -19,10 +19,17 @@ const builder = new SchemaBuilder<{
   },
 });
 
-builder.prismaObject('User', {
+const User = builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
     posts: t.relation('posts'),
+  }),
+});
+
+const Profile = builder.prismaObject('Profile', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    bio: t.exposeString('bio', { nullable: true }),
   }),
 });
 
@@ -47,7 +54,7 @@ const Entry = builder.interfaceRef<EntryShape>('Entry').implement({
 const HasAppointment = builder.interfaceRef<EntryShape>('HasAppointment').implement({
   fields: (t) => ({
     appointment: t.field({
-      type: 'User',
+      type: User,
       resolve: (entry) => entry.user as never,
     }),
   }),
@@ -59,6 +66,13 @@ builder.objectRef<EntryShape>('AppointmentEntry').implement({
 
 builder.objectRef<EntryShape>('OtherEntry').implement({
   interfaces: [Entry],
+  fields: (t) => ({
+    // Same field name as AppointmentEntry.appointment, but a different prisma model
+    appointment: t.field({
+      type: Profile,
+      resolve: () => ({ id: 1, bio: 'other' }) as never,
+    }),
+  }),
 });
 
 async function resolveEntries(
@@ -233,6 +247,51 @@ describe('indirect include paths through fragments', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual(expectedData);
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { include: { posts: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+  });
+
+  describe('same field name on multiple implementations', () => {
+    it('skips matches whose field returns a different prisma model', async () => {
+      const result = await execute({
+        schema: entriesSchema,
+        document: gql`
+          query {
+            entries {
+              kind
+              ... on OtherEntry {
+                appointment {
+                  id
+                  bio
+                }
+              }
+              ... on AppointmentEntry {
+                appointment {
+                  id
+                  posts {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        entries: [
+          expectedData.entries[0],
+          { kind: 'other', appointment: { id: '1', bio: 'other' } },
+        ],
+      });
       expect(queries).toEqual([
         {
           action: 'findUniqueOrThrow',
