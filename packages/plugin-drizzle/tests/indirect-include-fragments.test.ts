@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { DocumentNode, GraphQLResolveInfo } from 'graphql';
@@ -14,11 +15,14 @@ const builder = new SchemaBuilder<{
   DrizzleRelations: DrizzleRelations;
   Context: { user: { id: number } };
 }>({
-  plugins: [DrizzlePlugin],
+  plugins: [ScopeAuthPlugin, DrizzlePlugin],
   drizzle: {
     client: () => db,
     getTableConfig,
     relations,
+  },
+  scopeAuth: {
+    authScopes: () => ({}),
   },
 });
 
@@ -39,7 +43,7 @@ const PostPreview = builder.objectRef<PostShape>('PostPreview').implement({
   fields: (t) => ({
     post: t.field({
       type: Post,
-      resolve: (post) => post,
+      resolve: (post) => post as never,
     }),
   }),
 });
@@ -85,6 +89,13 @@ builder.objectRef<EntryShape>('AppointmentEntry').implement({
 
 builder.objectRef<EntryShape>('OtherEntry').implement({
   interfaces: [Entry],
+  fields: (t) => ({
+    // Same field name as AppointmentEntry.appointment, but a different drizzle table
+    appointment: t.drizzleField({
+      type: Post,
+      resolve: (query) => db.query.posts.findFirst(query({ where: { postId: 1 } })),
+    }),
+  }),
 });
 
 async function resolveEntries(
@@ -226,6 +237,45 @@ describe('indirect include paths through fragments', () => {
       expect(result.data).toEqual(expectedEntries);
       expect(logs).toHaveLength(1);
       expect(logs[0]).toContain('"posts"');
+    });
+  });
+
+  describe('same field name on multiple implementations', () => {
+    it('skips matches whose field returns a different drizzle table', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries {
+            kind
+            ... on OtherEntry {
+              appointment {
+                id
+                title
+              }
+            }
+            ... on AppointmentEntry {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        entries: [
+          expectedEntries.entries[0],
+          { kind: 'other', appointment: { id: '1', title: expect.any(String) } },
+        ],
+      });
+      // One query for the user with its posts relation, one for the other entry's post
+      expect(logs).toHaveLength(2);
+      expect(logs[0]).toContain('"users"');
+      expect(logs[0]).toContain('"posts"');
+      expect(logs[1]).not.toContain('"users"');
     });
   });
 
