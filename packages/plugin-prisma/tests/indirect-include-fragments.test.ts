@@ -24,6 +24,16 @@ const User = builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
     posts: t.relation('posts'),
+    profile: t.relation('profile', { nullable: true }),
+  }),
+});
+
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    profile: t.relation('profile', { nullable: true }),
   }),
 });
 
@@ -49,13 +59,27 @@ interface OtherEntryShape {
   kind: 'other';
 }
 
-type EntryShape = AppointmentEntryShape | OtherEntryShape;
+interface VariantEntryShape {
+  kind: 'variant';
+  user: UserRow;
+}
+
+type EntryShape = AppointmentEntryShape | OtherEntryShape | VariantEntryShape;
 
 const Entry = builder.interfaceRef<EntryShape>('Entry').implement({
   fields: (t) => ({
     kind: t.exposeString('kind'),
   }),
-  resolveType: (entry) => (entry.kind === 'appointment' ? 'AppointmentEntry' : 'OtherEntry'),
+  resolveType: (entry) => {
+    switch (entry.kind) {
+      case 'appointment':
+        return 'AppointmentEntry';
+      case 'variant':
+        return 'VariantEntry';
+      default:
+        return 'OtherEntry';
+    }
+  },
 });
 
 const HasAppointment = builder.interfaceRef<AppointmentEntryShape>('HasAppointment').implement({
@@ -67,13 +91,24 @@ const HasAppointment = builder.interfaceRef<AppointmentEntryShape>('HasAppointme
   }),
 });
 
-builder.objectRef<AppointmentEntryShape>('AppointmentEntry').implement({
+const AppointmentEntry = builder.objectRef<AppointmentEntryShape>('AppointmentEntry').implement({
   interfaces: [Entry, HasAppointment],
+});
+
+// Same field name as AppointmentEntry.appointment, same prisma model, different variant
+builder.objectRef<VariantEntryShape>('VariantEntry').implement({
+  interfaces: [Entry],
+  fields: (t) => ({
+    appointment: t.field({
+      type: Viewer,
+      resolve: (entry) => entry.user,
+    }),
+  }),
 });
 
 const otherProfile: ProfileRow = { id: 1, bio: 'other', userId: 1 };
 
-builder.objectRef<OtherEntryShape>('OtherEntry').implement({
+const OtherEntry = builder.objectRef<OtherEntryShape>('OtherEntry').implement({
   interfaces: [Entry],
   fields: (t) => ({
     // Same field name as AppointmentEntry.appointment, but a different prisma model
@@ -84,17 +119,33 @@ builder.objectRef<OtherEntryShape>('OtherEntry').implement({
   }),
 });
 
+const EntryUnion = builder.unionType('EntryUnion', {
+  types: [AppointmentEntry, OtherEntry],
+  resolveType: (entry) => (entry.kind === 'appointment' ? 'AppointmentEntry' : 'OtherEntry'),
+});
+
 async function resolveEntries(
   context: object,
   info: Parameters<typeof queryFromInfo>[0]['info'],
   path: (string | { name: string; type?: string })[],
-): Promise<EntryShape[]> {
+): Promise<(AppointmentEntryShape | OtherEntryShape)[]> {
   const user = await prisma.user.findUniqueOrThrow({
     ...queryFromInfo({ context, info, typeName: 'User', path }),
     where: { id: 1 },
   });
 
   return [{ kind: 'appointment', user }, { kind: 'other' }];
+}
+
+async function resolveEntriesWithVariant(
+  context: object,
+  info: Parameters<typeof queryFromInfo>[0]['info'],
+  path: (string | { name: string; type?: string })[],
+): Promise<EntryShape[]> {
+  const entries = await resolveEntries(context, info, path);
+  const user = (entries[0] as AppointmentEntryShape).user;
+
+  return [...entries, { kind: 'variant', user }];
 }
 
 builder.queryType({
@@ -107,6 +158,27 @@ builder.queryType({
       type: [Entry],
       resolve: (_root, _args, context, info) =>
         resolveEntries(context, info, [{ name: 'appointment', type: 'AppointmentEntry' }]),
+    }),
+    entriesWithUnknownType: t.field({
+      type: [Entry],
+      resolve: (_root, _args, context, info) =>
+        resolveEntries(context, info, [{ name: 'appointment', type: 'Nope' }]),
+    }),
+    entriesWithVariant: t.field({
+      type: [Entry],
+      resolve: (_root, _args, context, info) =>
+        resolveEntriesWithVariant(context, info, ['appointment']),
+    }),
+    entriesWithVariantTypedPath: t.field({
+      type: [Entry],
+      resolve: (_root, _args, context, info) =>
+        resolveEntriesWithVariant(context, info, [
+          { name: 'appointment', type: 'AppointmentEntry' },
+        ]),
+    }),
+    unionEntries: t.field({
+      type: [EntryUnion],
+      resolve: (_root, _args, context, info) => resolveEntries(context, info, ['appointment']),
     }),
   }),
 });
@@ -263,6 +335,227 @@ describe('indirect include paths through fragments', () => {
           args: { include: { posts: true }, where: { id: 1 } },
         },
       ]);
+    });
+  });
+
+  describe('fragments on overlapping abstract types', () => {
+    it('resolves the field through a fragment on an interface that overlaps the list type', async () => {
+      const result = await execute({
+        schema: entriesSchema,
+        document: gql`
+          query {
+            entries {
+              kind
+              ... on HasAppointment {
+                appointment {
+                  id
+                  posts {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expectedData);
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { include: { posts: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+
+    it('resolves the field through a fragment on a union member', async () => {
+      const result = await execute({
+        schema: entriesSchema,
+        document: gql`
+          query {
+            entries: unionEntries {
+              ... on AppointmentEntry {
+                kind
+                appointment {
+                  id
+                  posts {
+                    id
+                  }
+                }
+              }
+              ... on OtherEntry {
+                kind
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expectedData);
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { include: { posts: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+  });
+
+  describe('path segment validation', () => {
+    it('reports an unknown segment type instead of crashing', async () => {
+      const result = await execute({
+        schema: entriesSchema,
+        document: gql`
+          query {
+            entries: entriesWithUnknownType {
+              kind
+              ... on AppointmentEntry {
+                appointment {
+                  id
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors?.[0]?.message).toContain('Unknown type Nope');
+    });
+  });
+
+  describe('multiple matches for the same segment', () => {
+    it('merges selections from every fragment that selects the field', async () => {
+      const result = await execute({
+        schema: entriesSchema,
+        document: gql`
+          query {
+            entries {
+              kind
+              ... on AppointmentEntry {
+                appointment {
+                  id
+                  posts {
+                    id
+                  }
+                }
+              }
+              ...Extra
+            }
+          }
+
+          fragment Extra on AppointmentEntry {
+            appointment {
+              profile {
+                bio
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { include: { posts: true, profile: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+
+    it('walks a variant of the target model with its own fields', async () => {
+      const result = await execute({
+        schema: entriesSchema,
+        document: gql`
+          query {
+            entries: entriesWithVariant {
+              kind
+              ... on AppointmentEntry {
+                appointment {
+                  id
+                  posts {
+                    id
+                  }
+                }
+              }
+              ... on VariantEntry {
+                appointment {
+                  id
+                  email
+                  profile {
+                    bio
+                  }
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        entries: [
+          ...expectedData.entries,
+          {
+            kind: 'variant',
+            appointment: { id: '1', email: expect.any(String), profile: expect.anything() },
+          },
+        ],
+      });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { include: { posts: true, profile: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+
+    it('only matches under the pinned type when a segment has a type', async () => {
+      const result = await execute({
+        schema: entriesSchema,
+        document: gql`
+          query {
+            entries: entriesWithVariantTypedPath {
+              kind
+              ... on AppointmentEntry {
+                appointment {
+                  id
+                  posts {
+                    id
+                  }
+                }
+              }
+              ... on VariantEntry {
+                appointment {
+                  id
+                  profile {
+                    bio
+                  }
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      // The VariantEntry selection is skipped, so its profile relation is loaded separately
+      expect(queries[0]).toEqual({
+        action: 'findUniqueOrThrow',
+        model: 'User',
+        args: { include: { posts: true }, where: { id: 1 } },
+      });
     });
   });
 
