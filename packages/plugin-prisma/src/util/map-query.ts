@@ -582,7 +582,7 @@ function addFieldSelection(
 
   const fieldSelect = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
 
-  let fieldSelectionMap: SelectionMap;
+  let fieldSelectionMap: SelectionMap | false | null | undefined;
 
   let mappings: LoaderMappings = {};
 
@@ -679,7 +679,9 @@ function addFieldSelection(
     fieldSelectionMap = { select: fieldSelect };
   }
 
-  if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
+  // A falsy map means the field selects nothing here: it is neither merged nor mapped, so it
+  // loads its own data when resolved.
+  if (fieldSelect && fieldSelectionMap && selectionCompatible(state, fieldSelectionMap, true)) {
     mergeSelection(state, fieldSelectionMap);
 
     state.mappings = mergeMappings(state.mappings, {

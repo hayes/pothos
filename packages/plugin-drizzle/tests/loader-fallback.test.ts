@@ -41,6 +41,12 @@ const User = builder.drizzleObject('users', {
       },
       resolve: (user) => `${user.firstName}:${user.posts.length}`,
     }),
+    // Selects nothing from the parent row, so it is never answered from the planned query.
+    shout: t.string({
+      nullable: true,
+      select: () => null as unknown as { columns: { firstName: true } },
+      resolve: (user) => user.firstName?.toUpperCase(),
+    }),
   }),
 });
 
@@ -105,6 +111,33 @@ describe('model loader fallback', () => {
       [
         "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
         "Query: select "d0"."first_name" as "firstName", "d0"."id" as "id", coalesce((select json_group_array(json_object('postId', "postId", 'slug', "slug", 'title', "title", 'content', "content", 'published', "published", 'authorId', "authorId", 'categoryId', "categoryId", 'createdAt', "createdAt", 'updatedAt', "updatedAt")) as "r" from (select "d1"."id" as "postId", "d1"."slug" as "slug", "d1"."title" as "title", "d1"."content" as "content", "d1"."published" as "published", "d1"."author_id" as "authorId", "d1"."category_id" as "categoryId", "d1"."createdAt" as "createdAt", "d1"."createdAt" as "updatedAt" from "posts" as "d1" where "d0"."id" = "d1"."author_id") as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" in (?) -- params: [1]",
+      ]
+    `);
+  });
+
+  it('loads a field whose select returns nothing through the fallback', async () => {
+    const user = await db.query.users.findFirst({ where: { id: 1 } });
+    clearDrizzleLogs();
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user {
+            shout
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ user: { shout: user?.firstName?.toUpperCase() ?? null } });
+    // The planned query and the fallback both carry only the type-level columns.
+    expect(drizzleLogs).toMatchInlineSnapshot(`
+      [
+        "Query: select "d0"."first_name" as "firstName", "d0"."id" as "id" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        "Query: select "d0"."first_name" as "firstName", "d0"."id" as "id" from "users" as "d0" where "d0"."id" in (?) -- params: [1]",
       ]
     `);
   });

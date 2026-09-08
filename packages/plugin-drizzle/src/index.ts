@@ -129,14 +129,12 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
                     path: pathInfo.path,
                     segments: pathInfo.segments,
                   });
-                  return {
-                    columns: {},
-                    ...(select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {})(
-                      args,
-                      ctx,
-                      nestedQueryWithPath,
-                    ),
-                  };
+                  const selected = (
+                    select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null
+                  )(args, ctx, nestedQueryWithPath);
+
+                  // A falsy selection means the field selects nothing from the parent row.
+                  return selected ? { columns: {}, ...selected } : null;
                 }
               : {
                   columns: {},
