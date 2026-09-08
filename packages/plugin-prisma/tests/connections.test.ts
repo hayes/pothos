@@ -2030,6 +2030,12 @@ describe('prisma', () => {
                   "media": true,
                 },
               },
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
               "media": {
                 "cursor": {
                   "postId_mediaId": {
