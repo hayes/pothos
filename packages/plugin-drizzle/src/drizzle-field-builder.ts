@@ -25,9 +25,11 @@ import {
   eq,
   type InferSelectModel,
   Many,
+  relationsFilterToSQL,
   type SQL,
   type Table,
   type TableRelationalConfig,
+  type TablesRelationalConfig,
 } from 'drizzle-orm';
 import {
   type FieldNode,
@@ -67,6 +69,15 @@ const RootBuilder: {
     graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
+
+// drizzle-orm declares two parameters, but the implementation also takes the table's relations
+// and the full relational config, which lets a `where` filter on related tables.
+type RelationsFilterToSQL = (
+  table: Table,
+  filter: unknown,
+  tableRelations?: TableRelationalConfig['relations'],
+  tablesRelations?: TablesRelationalConfig,
+) => SQL | undefined;
 
 export class DrizzleObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -212,34 +223,59 @@ export class DrizzleObjectFieldBuilder<
     const ref = options.type ?? getRefFromModel(relationField.targetTableName, this.builder);
     let typeName: string | undefined;
 
-    const buildCountFilter = (parentTable: TableConfig['table']): SQL => {
+    const filterTotalCount = this.builder.options.drizzle?.filterConnectionTotalCount !== false;
+
+    // The count for `totalCount` matches the connection's own filter: the relation columns plus
+    // the `where` from the field's `query`, so the count agrees with the rows being paginated.
+    const buildCountFilter = (parentTable: TableConfig['table'], where?: unknown): SQL => {
       const { sourceColumns, targetColumns } = relationField;
-      return and(
+      const relationFilter = and(
         ...sourceColumns.map((sourceCol: { name: string }, i: number) =>
           eq(targetColumns[i], parentTable[sourceCol.name as never]),
         ),
       )!;
+
+      if (!where || !filterTotalCount) {
+        return relationFilter;
+      }
+
+      return and(
+        relationFilter,
+        (relationsFilterToSQL as RelationsFilterToSQL)(
+          relatedTable.table as Table,
+          where,
+          relatedTable.relations,
+          schemaConfig.relations,
+        ),
+      )!;
     };
 
-    const getQuery = (
+    interface ConnectionFieldQuery {
+      limit?: number;
+      orderBy?: unknown;
+      where?: SQL;
+      columns?: Record<string, boolean>;
+      extras?: DrizzleCursorConnectionQueryOptions['extras'];
+    }
+
+    const resolveFieldQuery = (
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: {},
       pathInfo?: import('./types').PathInfo,
-    ) => {
-      const { limit, orderBy, where, ...fieldQuery } = ((typeof query === 'function'
+    ): ConnectionFieldQuery =>
+      ((typeof query === 'function'
         ? (query as (args: {}, ctx: {}, pathInfo?: import('./types').PathInfo) => {})(
             args,
             ctx,
             pathInfo,
           )
-        : query) ?? {}) as {
-        limit?: number;
-        orderBy?: unknown;
-        where?: SQL;
-        columns?: Record<string, boolean>;
-        extras?: DrizzleCursorConnectionQueryOptions['extras'];
-      };
+        : query) ?? {}) as ConnectionFieldQuery;
 
+    const getQuery = (
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: {},
+      { limit, orderBy, where, ...fieldQuery }: ConnectionFieldQuery,
+    ) => {
       const { cursorFields, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
         maxSize,
@@ -282,11 +318,12 @@ export class DrizzleObjectFieldBuilder<
       const hasNodes = !!getSelection(['nodes']);
       const hasPageInfo = !!getSelection(['pageInfo']);
       const totalCountOnly = hasTotalCount && !hasEdges && !hasNodes && !hasPageInfo;
+      const fieldQuery = resolveFieldQuery(args, context, pathInfo);
       const countSelection = {
         [`_${name as string}_count`]: (parent: TableConfig['table']) =>
           getClient(this.builder, context).$count(
             relatedTable.table as Table,
-            buildCountFilter(parent),
+            buildCountFilter(parent, fieldQuery.where),
           ),
       };
 
@@ -298,7 +335,7 @@ export class DrizzleObjectFieldBuilder<
         };
       }
 
-      const nested = nestedQuery(getQuery(args, context, pathInfo).select, {
+      const nested = nestedQuery(getQuery(args, context, fieldQuery).select, {
         getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
@@ -379,7 +416,11 @@ export class DrizzleObjectFieldBuilder<
             };
           }
 
-          const { select, cursorFields } = getQuery(args, context);
+          const { select, cursorFields } = getQuery(
+            args,
+            context,
+            resolveFieldQuery(args, context),
+          );
 
           return wrapConnectionResult(
             parentRecord[name] as readonly {}[],
