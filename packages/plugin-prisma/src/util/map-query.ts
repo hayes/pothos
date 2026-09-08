@@ -633,11 +633,7 @@ function addFieldSelection(
             info,
             selection,
             normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
-            {
-              prefix: (returnType.extensions?.pothosIndirectInclude as IndirectInclude | undefined)
-                ?.path,
-              targetType: fieldTargetType,
-            },
+            { prefix: indirectIncludePath(returnType), targetType: fieldTargetType },
           );
 
           for (const match of matches) {
@@ -665,16 +661,18 @@ function addFieldSelection(
         return selectionToQuery(fieldState);
       },
       (path) => {
-        if (path.length === 0) {
-          return selection;
-        }
-
+        // The return type may be a wrapper (an errors plugin result, for instance) whose own
+        // path leads to the type the caller's path starts from.
         const returnType = getNamedType(field.type);
-        const matches = findIndirectSelections(returnType, info, selection, [
-          path.map((name) => ({ name })),
-        ]);
+        const matches = findIndirectSelections(
+          returnType,
+          info,
+          selection,
+          [path.map((name) => ({ name }))],
+          { prefix: indirectIncludePath(returnType) },
+        );
 
-        return matches.length > 0 ? matches[matches.length - 1].field : null;
+        return matches[0]?.field ?? null;
       },
     );
   } else {
@@ -748,10 +746,6 @@ export function queryFromInfo<
   const initialSelection = select ? { select } : include ? { include } : undefined;
 
   if (path.length > 0 || paths.length > 0) {
-    const { pothosIndirectInclude } = (returnType.extensions ?? {}) as {
-      pothosIndirectInclude?: IndirectInclude;
-    };
-
     const matches = findIndirectSelections(
       returnType,
       info,
@@ -759,7 +753,7 @@ export function queryFromInfo<
       paths.length > 0
         ? paths.map((p) => p.map((n) => (typeof n === 'string' ? { name: n } : n)))
         : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
-      { prefix: pothosIndirectInclude?.path, targetType: type },
+      { prefix: indirectIncludePath(returnType), targetType: type },
     );
 
     if (matches.length > 0) {
@@ -867,6 +861,26 @@ function createStateForType(
 
 function getPrismaModel(type: GraphQLNamedType, info: GraphQLResolveInfo) {
   return getIndirectType(type, info).extensions?.pothosPrismaModel as string | undefined;
+}
+
+/** The path a wrapper type's own `pothosIndirectInclude` takes to reach the wrapped type. */
+function indirectIncludePath(type: GraphQLNamedType) {
+  return (type.extensions?.pothosIndirectInclude as IndirectInclude | undefined)?.path;
+}
+
+/**
+ * Whether the field being resolved selects `path` (`['totalCount']`, say) in any of its nodes,
+ * seen through fragments, directives, and any wrapper on the return type (an errors plugin
+ * result, for instance) so the resolve side reads the document the way the planner does.
+ */
+export function selectsPath(info: GraphQLResolveInfo, path: string[]): boolean {
+  const returnType = getNamedType(info.returnType);
+  const prefix = indirectIncludePath(returnType);
+  const segments = path.map((name) => ({ name }));
+
+  return info.fieldNodes.some(
+    (node) => findIndirectSelections(returnType, info, node, [segments], { prefix }).length > 0,
+  );
 }
 
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {

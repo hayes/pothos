@@ -16,14 +16,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import {
-  type FieldNode,
-  Kind as GraphQLKind,
-  type GraphQLResolveInfo,
-  getNamedType,
-  isInterfaceType,
-  isObjectType,
-} from 'graphql';
+import { type FieldNode, Kind as GraphQLKind, type GraphQLResolveInfo } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -45,6 +38,7 @@ import {
 } from './util/cursors.js';
 import { getRefFromModel, getRelation } from './util/datamodel.js';
 import { getFieldDescription } from './util/description.js';
+import { selectsPath } from './util/map-query.js';
 
 import type { FieldMap } from './util/relation-map.js';
 
@@ -247,6 +241,18 @@ export class PrismaObjectFieldBuilder<
       this.builder,
     );
 
+    // What the document asks of this connection, read the way the planner reads it (through
+    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan.
+    const connectionSelection = (info: GraphQLResolveInfo) => {
+      const hasTotalCount = !!totalCount && selectsPath(info, ['totalCount']);
+      const hasRows =
+        selectsPath(info, ['edges']) ||
+        selectsPath(info, ['nodes']) ||
+        selectsPath(info, ['pageInfo']);
+
+      return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
+    };
+
     const relationSelect = (
       args: object,
       context: object,
@@ -259,10 +265,12 @@ export class PrismaObjectFieldBuilder<
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
 
-      const selection = getSelection([])!;
+      // Null when the connection is behind a wrapper whose path is not selected (an errors
+      // plugin result with only the error member selected, for instance).
+      const selection = getSelection([]);
       const hasTotalCount = totalCount && !!getSelection(['totalCount']);
 
-      const selections = selection.selectionSet?.selections.filter(
+      const selections = selection?.selectionSet?.selections.filter(
         (sel) => !(sel.kind === GraphQLKind.FIELD && sel.name.value === '__typename'),
       );
       const totalCountOnly =
@@ -309,24 +317,13 @@ export class PrismaObjectFieldBuilder<
           pothosPrismaRelationField: relationField,
           pothosPrismaSelect: relationSelect,
           pothosPrismaLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
-            const returnType = getNamedType(info.returnType);
-            const fields =
-              isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+            const { hasTotalCount, totalCountOnly } = connectionSelection(info);
 
-            const selections = info.fieldNodes;
-
-            const totalCountOnly = selections.every((selection) =>
-              selection.selectionSet?.selections.every(
-                (s) =>
-                  s.kind === GraphQLKind.FIELD &&
-                  (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
-                    s.name.value === '__typename'),
-              ),
+            return (
+              (!hasTotalCount ||
+                (value as { _count?: Record<string, unknown> })._count?.[name] !== undefined) &&
+              (totalCountOnly || value[name] !== undefined)
             );
-
-            return totalCountOnly
-              ? (value as { _count?: Record<string, unknown> })._count?.[name] !== undefined
-              : value[name] !== undefined;
           },
           pothosPrismaFallback:
             resolve &&
@@ -357,18 +354,7 @@ export class PrismaObjectFieldBuilder<
           context: {},
           info: GraphQLResolveInfo,
         ) => {
-          const returnType = getNamedType(info.returnType);
-          const fields =
-            isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
-          const totalCountOnly = info.fieldNodes.every((selection) =>
-            selection.selectionSet?.selections.every(
-              (s) =>
-                s.kind === GraphQLKind.FIELD &&
-                (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
-                  s.name.value === '__typename'),
-            ),
-          );
-
+          const { totalCountOnly } = connectionSelection(info);
           const connectionQuery = getQuery(args, context);
 
           return wrapConnectionResult(
