@@ -115,21 +115,32 @@ function resolveIndirectIncludePaths(
   path: string[],
   resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
   deferred = false,
+  targetType?: GraphQLNamedType,
 ) {
+  // Several implementations of an interface may share a field name while returning different
+  // models. When the target is known, only matches that return the same model (or a type
+  // without one) are passed through, so selections are never merged into the wrong query.
+  const targetModel = targetType && getPrismaModel(targetType, info);
+  const resolveMatch: typeof resolve = targetModel
+    ? (resolvedType, field, resolvedPath, resolvedDeferred) => {
+        const resolvedModel = getPrismaModel(resolvedType, info);
+
+        if (!resolvedModel || resolvedModel === targetModel) {
+          resolve(resolvedType, field, resolvedPath, resolvedDeferred);
+        }
+      }
+    : resolve;
+
   for (const includePath of includePaths) {
-    if (pathPrefix.length > 0) {
-      resolveIndirectInclude(
-        type,
-        info,
-        selection,
-        [...pathPrefix, ...includePath],
-        path,
-        resolve,
-        deferred,
-      );
-    } else {
-      resolveIndirectInclude(type, info, selection, includePath, path, resolve, deferred);
-    }
+    resolveIndirectInclude(
+      type,
+      info,
+      selection,
+      pathPrefix.length > 0 ? [...pathPrefix, ...includePath] : includePath,
+      path,
+      resolveMatch,
+      deferred,
+    );
   }
 }
 
@@ -426,10 +437,6 @@ function addFieldSelection(
               (normalizedIndirectInclude?.path ? [normalizedIndirectInclude.path] : []),
             [],
             (resolvedType, resolvedField, path, deferred) => {
-              if (!matchesTargetModel(resolvedType, fieldTargetType, info)) {
-                return;
-              }
-
               addTypeSelectionsForField(
                 resolvedType,
                 context,
@@ -440,6 +447,8 @@ function addFieldSelection(
                 deferred,
               );
             },
+            undefined,
+            fieldTargetType,
           );
         } else if (normalizedIndirectInclude) {
           const targetType = info.schema.getType(normalizedIndirectInclude.getType())!;
@@ -570,10 +579,6 @@ export function queryFromInfo<
             : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested, deferred) => {
-            if (!matchesTargetModel(resolvedType, type, info)) {
-              return;
-            }
-
             state = createStateForType(
               typeName ? type : resolvedType,
               info,
@@ -593,6 +598,7 @@ export function queryFromInfo<
             );
           },
           deferred,
+          type,
         );
       },
     );
@@ -659,21 +665,8 @@ function createStateForType(
   return state;
 }
 
-/**
- * Checks whether a field matched by an indirect include path returns the same prisma model as the
- * type the selection is being built for. Multiple implementations of an interface may share a field
- * name while returning different models; selections for a different model are skipped rather than
- * merged into the wrong query. Types without a prisma model (interfaces, wrappers) always match.
- */
-function matchesTargetModel(
-  resolvedType: GraphQLNamedType,
-  targetType: GraphQLNamedType,
-  info: GraphQLResolveInfo,
-) {
-  const resolvedModel = getIndirectType(resolvedType, info).extensions?.pothosPrismaModel;
-  const targetModel = getIndirectType(targetType, info).extensions?.pothosPrismaModel;
-
-  return !resolvedModel || !targetModel || resolvedModel === targetModel;
+function getPrismaModel(type: GraphQLNamedType, info: GraphQLResolveInfo) {
+  return getIndirectType(type, info).extensions?.pothosPrismaModel as string | undefined;
 }
 
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {

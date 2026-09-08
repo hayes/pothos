@@ -132,21 +132,32 @@ function resolveIndirectIncludePaths(
   path: string[],
   resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
   deferred?: boolean,
+  targetType?: GraphQLNamedType,
 ) {
+  // Several implementations of an interface may share a field name while returning different
+  // tables. When the target is known, only matches that return the same table (or a type without
+  // one) are passed through, so selections are never merged into the wrong query.
+  const targetModel = targetType && getDrizzleModel(targetType, info);
+  const resolveMatch: typeof resolve = targetModel
+    ? (resolvedType, field, resolvedPath, resolvedDeferred) => {
+        const resolvedModel = getDrizzleModel(resolvedType, info);
+
+        if (!resolvedModel || resolvedModel === targetModel) {
+          resolve(resolvedType, field, resolvedPath, resolvedDeferred);
+        }
+      }
+    : resolve;
+
   for (const includePath of includePaths) {
-    if (pathPrefix.length > 0) {
-      resolveIndirectInclude(
-        type,
-        info,
-        selection,
-        [...pathPrefix, ...includePath],
-        path,
-        resolve,
-        deferred,
-      );
-    } else {
-      resolveIndirectInclude(type, info, selection, includePath, path, resolve, deferred);
-    }
+    resolveIndirectInclude(
+      type,
+      info,
+      selection,
+      pathPrefix.length > 0 ? [...pathPrefix, ...includePath] : includePath,
+      path,
+      resolveMatch,
+      deferred,
+    );
   }
 }
 
@@ -431,10 +442,6 @@ function addFieldSelection(
             normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
             [],
             (resolvedType, resolvedField, path, deferred) => {
-              if (!matchesTargetModel(resolvedType, fieldTargetType, info)) {
-                return;
-              }
-
               addTypeSelectionsForField(
                 config,
                 resolvedType,
@@ -447,6 +454,8 @@ function addFieldSelection(
                 allSegments,
               );
             },
+            undefined,
+            fieldTargetType,
           );
         }
         addTypeSelectionsForField(
@@ -583,10 +592,6 @@ export function stateFromInfo<T extends SelectionMap>({
             : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested, deferred) => {
-            if (!matchesTargetModel(resolvedType, type, info)) {
-              return;
-            }
-
             state = createStateForSelection(
               config,
               info,
@@ -607,6 +612,7 @@ export function stateFromInfo<T extends SelectionMap>({
             );
           },
           deferred,
+          type,
         );
       },
     );
@@ -697,21 +703,8 @@ function createStateForSelection(
   return state;
 }
 
-/**
- * Checks whether a field matched by an indirect include path returns the same drizzle table as the
- * type the selection is being built for. Multiple implementations of an interface may share a field
- * name while returning different tables; selections for a different table are skipped rather than
- * merged into the wrong query. Types without a table (interfaces, wrappers) always match.
- */
-function matchesTargetModel(
-  resolvedType: GraphQLNamedType,
-  targetType: GraphQLNamedType,
-  info: GraphQLResolveInfo,
-) {
-  const resolvedModel = getIndirectType(resolvedType, info).extensions?.pothosDrizzleModel;
-  const targetModel = getIndirectType(targetType, info).extensions?.pothosDrizzleModel;
-
-  return !resolvedModel || !targetModel || resolvedModel === targetModel;
+function getDrizzleModel(type: GraphQLNamedType, info: GraphQLResolveInfo) {
+  return getIndirectType(type, info).extensions?.pothosDrizzleModel as string | undefined;
 }
 
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {
