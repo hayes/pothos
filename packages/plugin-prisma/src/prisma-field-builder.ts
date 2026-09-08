@@ -466,11 +466,11 @@ export class PrismaObjectFieldBuilder<
               info,
             )),
       },
-      resolve: (parent) => {
+      resolve: (parent, args, context, info) => {
         const result = (parent as Record<string, never>)[name];
 
         if (typeof onNull === 'function' && result == null) {
-          return onNull(parent, {} as never, {} as never, {} as never) as never;
+          return onNull(parent, args as never, context, info) as never;
         }
 
         return result;

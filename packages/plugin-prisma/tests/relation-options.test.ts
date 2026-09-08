@@ -42,6 +42,14 @@ builder.prismaObject('User', {
       select: { posts: { select: { title: true } } },
       resolve: (user) => user.posts.map((post) => post.title),
     }),
+    profile: t.relation('profile', {
+      nullable: true,
+      args: { label: t.arg.string() },
+      onNull: (user, args, context, info) =>
+        new Error(
+          `no profile for user ${user.id} (${args.label}) via ${info.parentType.name}.${info.fieldName} for viewer ${context.user.id}`,
+        ),
+    }),
   }),
 });
 
@@ -93,6 +101,33 @@ describe('relation field options', () => {
           where: { id: 1 },
         },
       },
+    ]);
+  });
+
+  it('passes args, context and info to onNull', async () => {
+    const userWithoutProfile = await prisma.user.findFirstOrThrow({
+      where: { profile: null },
+      select: { id: true },
+    });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query ($id: Int!) {
+          user(id: $id) {
+            profile(label: "primary") {
+              id
+            }
+          }
+        }
+      `,
+      variableValues: { id: userWithoutProfile.id },
+      contextValue: { user: { id: 42 } },
+    });
+
+    expect(result.data).toEqual({ user: { profile: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      `no profile for user ${userWithoutProfile.id} (primary) via User.profile for viewer 42`,
     ]);
   });
 });
