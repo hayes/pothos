@@ -44,10 +44,18 @@ const PostPreview = builder.objectRef<typeof posts.$inferSelect>('PostPreview').
   }),
 });
 
+builder.drizzleObject('userProfile', {
+  name: 'Profile',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
 const User = builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     id: t.exposeID('id'),
+    profile: t.relation('profile'),
     posts: t.relation('posts'),
     postPreviews: t.field({
       type: [PostPreview],
@@ -70,17 +78,40 @@ interface OtherEntryShape {
   kind: 'other';
 }
 
-type EntryShape = AppointmentEntryShape | OtherEntryShape;
+interface VariantEntryShape {
+  kind: 'variant';
+  user: typeof users.$inferSelect;
+}
+
+type EntryShape = AppointmentEntryShape | OtherEntryShape | VariantEntryShape;
+
+const Viewer = builder.drizzleObject('users', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    username: t.exposeString('username'),
+    profile: t.relation('profile'),
+  }),
+});
 
 const Entry = builder.interfaceRef<EntryShape>('Entry').implement({
   fields: (t) => ({
     kind: t.exposeString('kind'),
   }),
-  resolveType: (entry) => (entry.kind === 'appointment' ? 'AppointmentEntry' : 'OtherEntry'),
+  resolveType: (entry) => {
+    switch (entry.kind) {
+      case 'appointment':
+        return 'AppointmentEntry';
+      case 'variant':
+        return 'VariantEntry';
+      default:
+        return 'OtherEntry';
+    }
+  },
 });
 
-builder.objectRef<AppointmentEntryShape>('AppointmentEntry').implement({
-  interfaces: [Entry],
+// Not a declared subtype of Entry, but shares an implementation with it
+const HasAppointment = builder.interfaceRef<AppointmentEntryShape>('HasAppointment').implement({
   fields: (t) => ({
     appointment: t.field({
       type: User,
@@ -89,7 +120,22 @@ builder.objectRef<AppointmentEntryShape>('AppointmentEntry').implement({
   }),
 });
 
-builder.objectRef<OtherEntryShape>('OtherEntry').implement({
+const AppointmentEntry = builder.objectRef<AppointmentEntryShape>('AppointmentEntry').implement({
+  interfaces: [Entry, HasAppointment],
+});
+
+// Same field name as AppointmentEntry.appointment, same table, different variant
+builder.objectRef<VariantEntryShape>('VariantEntry').implement({
+  interfaces: [Entry],
+  fields: (t) => ({
+    appointment: t.field({
+      type: Viewer,
+      resolve: (entry) => entry.user,
+    }),
+  }),
+});
+
+const OtherEntry = builder.objectRef<OtherEntryShape>('OtherEntry').implement({
   interfaces: [Entry],
   fields: (t) => ({
     // Same field name as AppointmentEntry.appointment, but a different drizzle table
@@ -100,11 +146,16 @@ builder.objectRef<OtherEntryShape>('OtherEntry').implement({
   }),
 });
 
+const EntryUnion = builder.unionType('EntryUnion', {
+  types: [AppointmentEntry, OtherEntry],
+  resolveType: (entry) => (entry.kind === 'appointment' ? 'AppointmentEntry' : 'OtherEntry'),
+});
+
 async function resolveEntries(
   context: object,
   info: GraphQLResolveInfo,
   path: (string | { name: string; type?: string })[],
-): Promise<EntryShape[]> {
+): Promise<(AppointmentEntryShape | OtherEntryShape)[]> {
   const query = queryFromInfo({
     config: getSchemaConfig(builder),
     context,
@@ -125,6 +176,17 @@ async function resolveEntries(
   return [{ kind: 'appointment', user }, { kind: 'other' }];
 }
 
+async function resolveEntriesWithVariant(
+  context: object,
+  info: GraphQLResolveInfo,
+  path: (string | { name: string; type?: string })[],
+): Promise<EntryShape[]> {
+  const entries = await resolveEntries(context, info, path);
+  const user = (entries[0] as AppointmentEntryShape).user;
+
+  return [...entries, { kind: 'variant', user }];
+}
+
 builder.queryType({
   fields: (t) => ({
     entries: t.field({
@@ -135,6 +197,20 @@ builder.queryType({
       type: [Entry],
       resolve: (_root, _args, context, info) =>
         resolveEntries(context, info, [{ name: 'appointment', type: 'AppointmentEntry' }]),
+    }),
+    entriesWithUnknownType: t.field({
+      type: [Entry],
+      resolve: (_root, _args, context, info) =>
+        resolveEntries(context, info, [{ name: 'appointment', type: 'Nope' }]),
+    }),
+    entriesWithVariant: t.field({
+      type: [Entry],
+      resolve: (_root, _args, context, info) =>
+        resolveEntriesWithVariant(context, info, ['appointment']),
+    }),
+    unionEntries: t.field({
+      type: [EntryUnion],
+      resolve: (_root, _args, context, info) => resolveEntries(context, info, ['appointment']),
     }),
     me: t.drizzleField({
       type: User,
@@ -243,6 +319,155 @@ describe('indirect include paths through fragments', () => {
       expect(result.data).toEqual(expectedEntries);
       expect(logs).toHaveLength(1);
       expect(logs[0]).toContain('"posts"');
+    });
+  });
+
+  describe('fragments on overlapping abstract types', () => {
+    it('resolves the field through a fragment on an interface that overlaps the list type', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries {
+            kind
+            ... on HasAppointment {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expectedEntries);
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toContain('"posts"');
+    });
+
+    it('resolves the field through a fragment on a union member', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries: unionEntries {
+            ... on AppointmentEntry {
+              kind
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+            ... on OtherEntry {
+              kind
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expectedEntries);
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toContain('"posts"');
+    });
+  });
+
+  describe('path segment validation', () => {
+    it('reports an unknown segment type instead of crashing', async () => {
+      const { result } = await run(gql`
+        query {
+          entries: entriesWithUnknownType {
+            kind
+            ... on AppointmentEntry {
+              appointment {
+                id
+              }
+            }
+          }
+        }
+      `);
+
+      expect(result.errors?.[0]?.message).toContain('Unknown type Nope');
+    });
+  });
+
+  describe('multiple matches for the same segment', () => {
+    it('merges selections from every fragment that selects the field', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries {
+            kind
+            ... on AppointmentEntry {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+            ...Extra
+          }
+        }
+
+        fragment Extra on AppointmentEntry {
+          appointment {
+            profile {
+              id
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toContain('"posts"');
+      expect(logs[0]).toContain('"profile"');
+    });
+
+    it('walks a variant of the target table with its own fields', async () => {
+      const { result, logs } = await run(gql`
+        query {
+          entries: entriesWithVariant {
+            kind
+            ... on AppointmentEntry {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+            ... on VariantEntry {
+              appointment {
+                id
+                username
+                profile {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        entries: [
+          ...expectedEntries.entries,
+          {
+            kind: 'variant',
+            appointment: { id: '1', username: expect.any(String), profile: expect.anything() },
+          },
+        ],
+      });
+      // The first query carries the relations selected under both fragments. The loader mapping
+      // is recorded for the User type, so the Viewer variant's `id` is fetched by the model
+      // loader afterwards; no relation is re-queried.
+      expect(logs[0]).toContain('"posts"');
+      expect(logs[0]).toContain('"profile"');
+      expect(logs.slice(1).join('\n')).not.toContain('"posts"');
+      expect(logs.slice(1).join('\n')).not.toContain('"profile"');
     });
   });
 

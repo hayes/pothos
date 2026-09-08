@@ -177,10 +177,11 @@ builder.mutationField(
 ```
 
 The `path` is followed through fragments in the query, including inline fragments and fragment
-spreads that narrow an interface or union to one of its implementations. If several implementations
-share a field name, matches whose field returns a different Prisma model are ignored. When you need
-to target a specific implementation, a segment can be written as `{ name, type }` to pin the type
-condition the field must be selected under:
+spreads that narrow an interface or union to one of its implementations. Every selection of the
+field that is found is merged into the query. If several implementations share a field name,
+matches whose field returns a different Prisma model are ignored. When you need to target a
+specific implementation, a segment can be written as `{ name, type }`. The field then only matches
+when it is selected directly, or under a fragment on that type or one of its subtypes:
 
 ```typescript
 queryFromInfo({

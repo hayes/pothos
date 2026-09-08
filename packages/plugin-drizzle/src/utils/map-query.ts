@@ -1,6 +1,7 @@
 import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
 import type { DBQueryConfig, TableRelationalConfig } from 'drizzle-orm';
 import {
+  doTypesOverlap,
   type FieldNode,
   type FragmentDefinitionNode,
   type FragmentSpreadNode,
@@ -62,30 +63,29 @@ function addTypeSelectionsForField(
 
   if (
     (!!pothosIndirectInclude?.path && pothosIndirectInclude.path.length > 0) ||
-    (!!pothosIndirectInclude?.paths && pothosIndirectInclude.paths.length === 0)
+    (!!pothosIndirectInclude?.paths && pothosIndirectInclude.paths.length > 0)
   ) {
-    resolveIndirectIncludePaths(
+    const matches = findIndirectSelections(
       type,
       info,
       selection,
-      [],
       pothosIndirectInclude.paths ?? [pothosIndirectInclude.path!],
-      indirectPath,
-      (resolvedType, field, path) => {
-        addTypeSelectionsForField(
-          config,
-          resolvedType,
-          context,
-          info,
-          state,
-          field,
-          path,
-          deferred,
-          segments,
-        );
-      },
-      deferred,
+      { path: indirectPath, deferred },
     );
+
+    for (const match of matches) {
+      addTypeSelectionsForField(
+        config,
+        match.type,
+        context,
+        info,
+        state,
+        match.field,
+        match.path,
+        match.deferred,
+        segments,
+      );
+    }
   } else if (pothosIndirectInclude) {
     addTypeSelectionsForField(
       config,
@@ -123,86 +123,127 @@ function addTypeSelectionsForField(
   }
 }
 
-function resolveIndirectIncludePaths(
+export interface IndirectPathSegment {
+  type?: string;
+  name: string;
+}
+
+export interface IndirectSelection {
+  /** The GraphQL type of the matched field's return type */
+  type: GraphQLNamedType;
+  field: FieldNode;
+  /** Aliased field names from the starting selection to the matched field */
+  path: string[];
+  deferred: boolean;
+}
+
+/**
+ * Finds every field selected at the end of one of `paths`, starting from `selection` (which is
+ * expected to be a selection on `type`). Paths are followed through fragments; see
+ * `resolveFragmentTypes` for the rules. Matches are returned in document order.
+ *
+ * When `targetType` is given, matches whose field returns a different drizzle table are dropped:
+ * several implementations of an interface may share a field name while returning different tables,
+ * and their selections must never be merged into the same query. Types without a table always
+ * match.
+ */
+function findIndirectSelections(
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
   selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  pathPrefix: { type?: string; name: string }[],
-  includePaths: { type?: string; name: string }[][],
-  path: string[],
-  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
-  deferred?: boolean,
-  targetType?: GraphQLNamedType,
-) {
-  // Several implementations of an interface may share a field name while returning different
-  // tables. When the target is known, only matches that return the same table (or a type without
-  // one) are passed through, so selections are never merged into the wrong query.
-  const targetModel = targetType && getDrizzleModel(targetType, info);
-  const resolveMatch: typeof resolve = targetModel
-    ? (resolvedType, field, resolvedPath, resolvedDeferred) => {
-        const resolvedModel = getDrizzleModel(resolvedType, info);
+  paths: IndirectPathSegment[][],
+  {
+    prefix,
+    path = [],
+    deferred = false,
+    targetType,
+  }: {
+    prefix?: IndirectPathSegment[];
+    path?: string[];
+    deferred?: boolean;
+    targetType?: GraphQLNamedType;
+  } = {},
+): IndirectSelection[] {
+  const matches: IndirectSelection[] = [];
 
-        if (!resolvedModel || resolvedModel === targetModel) {
-          resolve(resolvedType, field, resolvedPath, resolvedDeferred);
-        }
-      }
-    : resolve;
-
-  for (const includePath of includePaths) {
-    resolveIndirectInclude(
+  for (const includePath of paths) {
+    walkIndirectPath(
+      type,
       type,
       info,
       selection,
-      pathPrefix.length > 0 ? [...pathPrefix, ...includePath] : includePath,
+      prefix && prefix.length > 0 ? [...prefix, ...includePath] : includePath,
       path,
-      resolveMatch,
       deferred,
+      matches,
     );
   }
+
+  const targetModel = targetType && getDrizzleModel(targetType, info);
+
+  if (!targetModel) {
+    return matches;
+  }
+
+  return matches.filter((match) => {
+    const model = getDrizzleModel(match.type, info);
+
+    return !model || model === targetModel;
+  });
 }
 
-function resolveIndirectInclude(
+/**
+ * Recursive step of `findIndirectSelections`.
+ *
+ * `type` is the type of the selection set being walked. `expectedType` is the type the next path
+ * segment must be selected on: a field only matches while the two are the same, which is what
+ * prevents a same-named field under an unrelated fragment from matching.
+ */
+function walkIndirectPath(
   type: GraphQLNamedType,
+  expectedType: GraphQLNamedType,
   info: GraphQLResolveInfo,
   selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  includePath: { type?: string; name: string }[],
+  includePath: IndirectPathSegment[],
   path: string[],
-  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
-  deferred = false,
-  expectedType = type,
+  deferred: boolean,
+  matches: IndirectSelection[],
 ) {
   if (includePath.length === 0) {
-    resolve(type, selection as FieldNode, path, deferred);
+    matches.push({ type, field: selection as FieldNode, path, deferred });
+    return;
+  }
+
+  if (!selection.selectionSet) {
     return;
   }
 
   const [include, ...rest] = includePath;
-  if (!selection.selectionSet || !include) {
-    return;
-  }
 
   for (const sel of selection.selectionSet.selections) {
     switch (sel.kind) {
-      case Kind.FIELD:
+      case Kind.FIELD: {
         if (
           expectedType.name === type.name &&
-          !fieldSkipped(info, sel) &&
           sel.name.value === include.name &&
-          (isObjectType(type) || isInterfaceType(type))
+          (isObjectType(type) || isInterfaceType(type)) &&
+          !fieldSkipped(info, sel)
         ) {
           const returnType = getNamedType(type.getFields()[sel.name.value].type);
 
-          resolveIndirectInclude(
+          walkIndirectPath(
+            returnType,
             returnType,
             info,
             sel,
             rest,
             [...path, sel.alias?.value ?? sel.name.value],
-            resolve,
             deferred,
+            matches,
           );
         }
         continue;
+      }
       case Kind.FRAGMENT_SPREAD: {
         const fragment = info.fragments[sel.name.value];
         const next = resolveFragmentTypes(
@@ -213,20 +254,18 @@ function resolveIndirectInclude(
           include,
         );
 
-        resolveIndirectInclude(
+        walkIndirectPath(
           next.type,
+          next.expectedType,
           info,
           fragment,
           includePath,
           path,
-          resolve,
           deferred || isDeferredFragment(sel, info),
-          next.expectedType,
+          matches,
         );
-
         continue;
       }
-
       case Kind.INLINE_FRAGMENT: {
         const next = resolveFragmentTypes(
           info,
@@ -236,32 +275,26 @@ function resolveIndirectInclude(
           include,
         );
 
-        resolveIndirectInclude(
+        walkIndirectPath(
           next.type,
+          next.expectedType,
           info,
           sel,
           includePath,
           path,
-          resolve,
           deferred || isDeferredFragment(sel, info),
-          next.expectedType,
+          matches,
         );
-
         continue;
       }
-
       default:
         throw new PothosValidationError(
-          `Unsupported selection kind ${(selection as { kind: string }).kind}`,
+          `Unsupported selection kind ${(sel as { kind: string }).kind}`,
         );
     }
   }
 }
 
-// The type to plan a fragment's selections against, or null when the fragment
-// cannot apply to `type`. A fragment on an interface the object implements is
-// planned against the object, whose field map already carries the interface
-// fields and their `select` extensions.
 function typeForFragment(
   type: GraphQLInterfaceType | GraphQLObjectType,
   condition: GraphQLNamedType,
@@ -434,29 +467,31 @@ function addFieldSelection(
           (!!normalizedIndirectInclude?.path && normalizedIndirectInclude.path.length > 0) ||
           (!!normalizedIndirectInclude?.paths && normalizedIndirectInclude.paths.length > 0)
         ) {
-          resolveIndirectIncludePaths(
+          const matches = findIndirectSelections(
             returnType,
             info,
             selection,
-            (returnType.extensions?.pothosIndirectInclude as { path: [] })?.path ?? [],
             normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
-            [],
-            (resolvedType, resolvedField, path, deferred) => {
-              addTypeSelectionsForField(
-                config,
-                resolvedType,
-                context,
-                info,
-                fieldState,
-                resolvedField,
-                path,
-                deferred,
-                allSegments,
-              );
+            {
+              prefix: (returnType.extensions?.pothosIndirectInclude as IndirectInclude | undefined)
+                ?.path,
+              targetType: fieldTargetType,
             },
-            undefined,
-            fieldTargetType,
           );
+
+          for (const match of matches) {
+            addTypeSelectionsForField(
+              config,
+              match.type,
+              context,
+              info,
+              fieldState,
+              match.field,
+              match.path,
+              match.deferred,
+              allSegments,
+            );
+          }
         }
         addTypeSelectionsForField(
           config,
@@ -474,20 +509,11 @@ function addFieldSelection(
       },
       (path) => {
         const returnType = getNamedType(field.type);
-        let node: FieldNode | null = null;
-        resolveIndirectInclude(
-          returnType,
-          info,
-          selection,
-          path.map((name) => ({
-            name,
-          })),
-          [],
-          (_, resolvedField) => {
-            node = resolvedField;
-          },
-        );
-        return node;
+        const matches = findIndirectSelections(returnType, info, selection, [
+          path.map((name) => ({ name })),
+        ]);
+
+        return matches.length > 0 ? matches[matches.length - 1].field : null;
       },
       pathInfo,
     );
@@ -575,47 +601,43 @@ export function stateFromInfo<T extends SelectionMap>({
       pothosIndirectInclude?: IndirectInclude;
     };
 
-    resolveIndirectInclude(
+    const matches = findIndirectSelections(
       returnType,
       info,
       info.fieldNodes[0],
-      pothosIndirectInclude?.path ?? [],
-      [],
-      (indirectType, indirectField, subPath, deferred) => {
-        resolveIndirectIncludePaths(
-          indirectType,
-          info,
-          indirectField,
-          [],
-          paths.length > 0
-            ? paths.map((p) => p.map((n) => (typeof n === 'string' ? { name: n } : n)))
-            : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
-          subPath,
-          (resolvedType, resolvedField, nested, deferred) => {
-            state = createStateForSelection(
-              config,
-              info,
-              resolvedType,
-              undefined,
-              initialSelection,
-            );
-
-            addTypeSelectionsForField(
-              config,
-              typeName ? type : resolvedType,
-              context,
-              info,
-              state,
-              resolvedField,
-              nested,
-              deferred,
-            );
-          },
-          deferred,
-          type,
-        );
-      },
+      paths.length > 0
+        ? paths.map((p) => p.map((n) => (typeof n === 'string' ? { name: n } : n)))
+        : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
+      { prefix: pothosIndirectInclude?.path, targetType: type },
     );
+
+    if (matches.length > 0) {
+      state = createStateForSelection(
+        config,
+        info,
+        typeName ? type : matches[0].type,
+        undefined,
+        initialSelection,
+      );
+
+      for (const match of matches) {
+        // A matched type with its own table (including variants of the target table) is walked
+        // with its own field map. Types without a table (interfaces, wrappers) are walked as the
+        // requested type so its fields can be found.
+        const walkType = typeName && !getDrizzleModel(match.type, info) ? type : match.type;
+
+        addTypeSelectionsForField(
+          config,
+          walkType,
+          context,
+          info,
+          state,
+          match.field,
+          match.path,
+          match.deferred,
+        );
+      }
+    }
   } else {
     state = createStateForSelection(config, info, type, undefined, initialSelection);
 
@@ -787,15 +809,16 @@ function isDeferredFragment(
 }
 
 /**
- * Determines the type to walk and the type fields are expected on when descending into a fragment
- * while resolving an indirect include path.
+ * Determines the type to walk and the type the next segment is expected on when descending into a
+ * fragment.
  *
  * - A segment with an explicit `type` pins the expected type.
- * - A fragment that narrows the expected type (`... on Impl` under an interface or union) advances
- *   the expected type so the segment's field can be found on the concrete type.
- * - A fragment that widens the expected type (`... on Node` under `User`) keeps walking as the
- *   expected type, since every field of the wider type also exists on it.
- * - Fragments on unrelated types keep the expected type and their fields are skipped until a nested
+ * - A fragment on the expected type, or on an abstract type the expected type belongs to, walks as
+ *   the expected type: every field selectable there also exists on it.
+ * - A fragment that narrows an abstract expected type to an implementation or member, or to an
+ *   abstract type that overlaps it, advances the expected type so the segment's field can be found
+ *   on the narrower type.
+ * - Fragments on unrelated types keep the expected type, so their fields are skipped until a nested
  *   fragment narrows back to it.
  */
 function resolveFragmentTypes(
@@ -803,24 +826,24 @@ function resolveFragmentTypes(
   fragmentType: GraphQLNamedType | undefined,
   type: GraphQLNamedType,
   expectedType: GraphQLNamedType,
-  include: { type?: string; name: string },
+  include: IndirectPathSegment,
 ) {
-  const expected = include.type ? info.schema.getType(include.type)! : expectedType;
+  let expected = expectedType;
 
-  if (!fragmentType) {
-    return { type, expectedType: expected };
+  if (include.type) {
+    const pinned = info.schema.getType(include.type);
+
+    if (!pinned) {
+      throw new PothosValidationError(
+        `Unknown type ${include.type} in indirect include path segment ${include.name}`,
+      );
+    }
+
+    expected = pinned;
   }
 
-  if (fragmentType.name === expected.name) {
-    return { type: fragmentType, expectedType: expected };
-  }
-
-  if (
-    isAbstractType(expected) &&
-    (isObjectType(fragmentType) || isInterfaceType(fragmentType)) &&
-    info.schema.isSubType(expected, fragmentType)
-  ) {
-    return { type: fragmentType, expectedType: fragmentType };
+  if (!fragmentType || fragmentType.name === expected.name) {
+    return { type: fragmentType ?? type, expectedType: expected };
   }
 
   if (
@@ -829,6 +852,19 @@ function resolveFragmentTypes(
     info.schema.isSubType(fragmentType, expected)
   ) {
     return { type: expected, expectedType: expected };
+  }
+
+  if (isAbstractType(expected)) {
+    const narrows =
+      isObjectType(fragmentType) || isInterfaceType(fragmentType)
+        ? info.schema.isSubType(expected, fragmentType)
+        : false;
+    const overlaps =
+      isAbstractType(fragmentType) && doTypesOverlap(info.schema, expected, fragmentType);
+
+    if (narrows || overlaps) {
+      return { type: fragmentType, expectedType: fragmentType };
+    }
   }
 
   return { type: fragmentType, expectedType: expected };
