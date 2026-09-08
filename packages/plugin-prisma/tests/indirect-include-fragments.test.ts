@@ -2,6 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
 import PrismaPlugin, { type PrismaTypesFromClient, queryFromInfo } from '../src';
+import type { Profile as ProfileRow, User as UserRow } from './client/client.js';
 import { prisma, queries } from './example/builder';
 import schema from './example/schema';
 import { getDatamodel } from './generated.js';
@@ -39,38 +40,46 @@ builder.prismaObject('Post', {
   }),
 });
 
-interface EntryShape {
-  kind: string;
-  user?: { id: number };
+interface AppointmentEntryShape {
+  kind: 'appointment';
+  user: UserRow;
 }
+
+interface OtherEntryShape {
+  kind: 'other';
+}
+
+type EntryShape = AppointmentEntryShape | OtherEntryShape;
 
 const Entry = builder.interfaceRef<EntryShape>('Entry').implement({
   fields: (t) => ({
     kind: t.exposeString('kind'),
   }),
-  resolveType: (entry) => (entry.user ? 'AppointmentEntry' : 'OtherEntry'),
+  resolveType: (entry) => (entry.kind === 'appointment' ? 'AppointmentEntry' : 'OtherEntry'),
 });
 
-const HasAppointment = builder.interfaceRef<EntryShape>('HasAppointment').implement({
+const HasAppointment = builder.interfaceRef<AppointmentEntryShape>('HasAppointment').implement({
   fields: (t) => ({
     appointment: t.field({
       type: User,
-      resolve: (entry) => entry.user as never,
+      resolve: (entry) => entry.user,
     }),
   }),
 });
 
-builder.objectRef<EntryShape>('AppointmentEntry').implement({
+builder.objectRef<AppointmentEntryShape>('AppointmentEntry').implement({
   interfaces: [Entry, HasAppointment],
 });
 
-builder.objectRef<EntryShape>('OtherEntry').implement({
+const otherProfile: ProfileRow = { id: 1, bio: 'other', userId: 1 };
+
+builder.objectRef<OtherEntryShape>('OtherEntry').implement({
   interfaces: [Entry],
   fields: (t) => ({
     // Same field name as AppointmentEntry.appointment, but a different prisma model
     appointment: t.field({
       type: Profile,
-      resolve: () => ({ id: 1, bio: 'other' }) as never,
+      resolve: () => otherProfile,
     }),
   }),
 });
@@ -79,7 +88,7 @@ async function resolveEntries(
   context: object,
   info: Parameters<typeof queryFromInfo>[0]['info'],
   path: (string | { name: string; type?: string })[],
-) {
+): Promise<EntryShape[]> {
   const user = await prisma.user.findUniqueOrThrow({
     ...queryFromInfo({ context, info, typeName: 'User', path }),
     where: { id: 1 },

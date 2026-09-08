@@ -8,6 +8,7 @@ import DrizzlePlugin from '../src';
 import { getSchemaConfig } from '../src/utils/config';
 import { queryFromInfo } from '../src/utils/map-query';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
+import type { posts, users } from './example/db/schema';
 
 // A schema where a drizzle-backed field only exists on one implementation of an interface, so it
 // can only be selected behind an inline fragment or fragment spread.
@@ -34,16 +35,11 @@ const Post = builder.drizzleObject('posts', {
   }),
 });
 
-interface PostShape {
-  postId: number;
-  title: string;
-}
-
-const PostPreview = builder.objectRef<PostShape>('PostPreview').implement({
+const PostPreview = builder.objectRef<typeof posts.$inferSelect>('PostPreview').implement({
   fields: (t) => ({
     post: t.field({
       type: Post,
-      resolve: (post) => post as never,
+      resolve: (post) => post,
     }),
   }),
 });
@@ -65,29 +61,35 @@ const User = builder.drizzleObject('users', {
   }),
 });
 
-interface EntryShape {
-  kind: string;
-  user?: unknown;
+interface AppointmentEntryShape {
+  kind: 'appointment';
+  user: typeof users.$inferSelect;
 }
+
+interface OtherEntryShape {
+  kind: 'other';
+}
+
+type EntryShape = AppointmentEntryShape | OtherEntryShape;
 
 const Entry = builder.interfaceRef<EntryShape>('Entry').implement({
   fields: (t) => ({
     kind: t.exposeString('kind'),
   }),
-  resolveType: (entry) => (entry.user ? 'AppointmentEntry' : 'OtherEntry'),
+  resolveType: (entry) => (entry.kind === 'appointment' ? 'AppointmentEntry' : 'OtherEntry'),
 });
 
-builder.objectRef<EntryShape>('AppointmentEntry').implement({
+builder.objectRef<AppointmentEntryShape>('AppointmentEntry').implement({
   interfaces: [Entry],
   fields: (t) => ({
     appointment: t.field({
       type: User,
-      resolve: (entry) => entry.user as never,
+      resolve: (entry) => entry.user,
     }),
   }),
 });
 
-builder.objectRef<EntryShape>('OtherEntry').implement({
+builder.objectRef<OtherEntryShape>('OtherEntry').implement({
   interfaces: [Entry],
   fields: (t) => ({
     // Same field name as AppointmentEntry.appointment, but a different drizzle table
@@ -102,7 +104,7 @@ async function resolveEntries(
   context: object,
   info: GraphQLResolveInfo,
   path: (string | { name: string; type?: string })[],
-) {
+): Promise<EntryShape[]> {
   const query = queryFromInfo({
     config: getSchemaConfig(builder),
     context,
@@ -114,7 +116,11 @@ async function resolveEntries(
   const user = await db.query.users.findFirst({
     ...query,
     where: { id: 1 },
-  } as never);
+  });
+
+  if (!user) {
+    throw new Error('Expected user 1 to exist');
+  }
 
   return [{ kind: 'appointment', user }, { kind: 'other' }];
 }
