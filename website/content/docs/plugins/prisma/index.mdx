@@ -38,6 +38,8 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
+      // the profile relation is nullable, so this field is too
+      nullable: true,
       // automatically load the bio from the profile
       // when this field is queried
       select: {
@@ -49,7 +51,7 @@ builder.prismaObject('User', {
       },
       // user will be typed correctly to include the
       // selected fields from above
-      resolve: (user) => user.profile.bio,
+      resolve: (user) => user.profile?.bio,
     }),
     // Load posts as list field.
     posts: t.relation('posts', {
