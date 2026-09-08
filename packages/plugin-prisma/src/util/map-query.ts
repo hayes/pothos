@@ -115,10 +115,8 @@ function applyTypeSelection(
   state: SelectionState,
   { compatibleOnly = false } = {},
 ) {
-  const { pothosPrismaInclude, pothosPrismaSelect, pothosPrismaModel } = (type.extensions ??
-    {}) as {
+  const { pothosPrismaSelect, pothosPrismaModel } = (type.extensions ?? {}) as {
     pothosPrismaModel?: string;
-    pothosPrismaInclude?: IncludeMap;
     pothosPrismaSelect?: IncludeMap;
   };
 
@@ -126,16 +124,40 @@ function applyTypeSelection(
     state.mode = 'include';
   }
 
+  const selection = typeLevelSelection(type);
+
+  if (selection) {
+    mergeSelection(state, compatibleOnly ? withoutConflicts(state, selection) : selection);
+  }
+}
+
+function typeLevelSelection(type: GraphQLNamedType): SelectionMap | undefined {
+  const { pothosPrismaInclude, pothosPrismaSelect } = (type.extensions ?? {}) as {
+    pothosPrismaInclude?: IncludeMap;
+    pothosPrismaSelect?: IncludeMap;
+  };
+
   if (!(pothosPrismaInclude ?? pothosPrismaSelect)) {
-    return;
+    return undefined;
   }
 
-  const selection: SelectionMap = {
+  return {
     select: pothosPrismaSelect ? { ...pothosPrismaSelect } : undefined,
     include: pothosPrismaInclude ? { ...pothosPrismaInclude } : undefined,
   };
+}
 
-  mergeSelection(state, compatibleOnly ? withoutConflicts(state, selection) : selection);
+/** The first relation (or count) of `selection` whose arguments conflict with `state`. */
+function conflictingRelation(state: SelectionState, { select, include }: SelectionMap) {
+  const conflict =
+    Object.entries(select ?? {}).find(
+      ([key, value]) => !selectionCompatible(state, { select: { [key]: value } }, true),
+    ) ??
+    Object.entries(include ?? {}).find(
+      ([key, value]) => !selectionCompatible(state, { include: { [key]: value } }, true),
+    );
+
+  return conflict?.[0];
 }
 
 function withoutConflicts(state: SelectionState, { select, include }: SelectionMap): SelectionMap {
@@ -389,6 +411,37 @@ function resolveFragmentTypes(
   return { type: fragmentType, expectedType: expected };
 }
 
+/**
+ * The type to plan a fragment's selections against, or null when the fragment cannot apply to
+ * `type`. A fragment on an interface `type` implements is planned against `type`, whose field map
+ * already carries the interface fields and their `select` extensions. A fragment on another type
+ * of the same model (a variant, or an interface of the model) is planned against that type.
+ */
+function typeForFragment(
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  condition: GraphQLNamedType,
+): GraphQLInterfaceType | GraphQLObjectType | null {
+  if (condition.name === type.name) {
+    return type;
+  }
+
+  if (
+    isInterfaceType(condition) &&
+    type.getInterfaces().some((iface) => iface.name === condition.name)
+  ) {
+    return type;
+  }
+
+  if (
+    (isObjectType(condition) || isInterfaceType(condition)) &&
+    condition.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
+  ) {
+    return condition;
+  }
+
+  return null;
+}
+
 function addNestedSelections(
   type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
@@ -396,60 +449,48 @@ function addNestedSelections(
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
-  expectedType = type,
+  skipFields = false,
 ) {
-  let parentType = type;
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
-        if (expectedType.name !== type.name) {
-          continue;
+        if (!skipFields) {
+          addFieldSelection(type, context, info, state, selection, indirectPath);
         }
-        addFieldSelection(type, context, info, state, selection, indirectPath);
 
         continue;
-      case Kind.FRAGMENT_SPREAD:
+      case Kind.FRAGMENT_SPREAD: {
         if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
           continue;
         }
 
-        parentType = info.schema.getType(
-          info.fragments[selection.name.value].typeCondition.name.value,
-        )! as GraphQLObjectType;
+        const fragment = info.fragments[selection.name.value];
 
-        addNestedSelections(
-          parentType,
+        addFragmentSelections(
+          type,
           context,
           info,
           state,
-          info.fragments[selection.name.value].selectionSet,
+          info.schema.getType(fragment.typeCondition.name.value)!,
+          fragment.selectionSet,
           indirectPath,
-          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
-            ? parentType
-            : expectedType,
         );
 
         continue;
-
+      }
       case Kind.INLINE_FRAGMENT:
         if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
           continue;
         }
 
-        parentType = selection.typeCondition
-          ? (info.schema.getType(selection.typeCondition.name.value) as GraphQLObjectType)
-          : type;
-
-        addNestedSelections(
-          parentType,
+        addFragmentSelections(
+          type,
           context,
           info,
           state,
+          selection.typeCondition ? info.schema.getType(selection.typeCondition.name.value)! : type,
           selection.selectionSet,
           indirectPath,
-          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
-            ? parentType
-            : expectedType,
         );
 
         continue;
@@ -460,6 +501,57 @@ function addNestedSelections(
         );
     }
   }
+}
+
+/**
+ * Walks the selections of a fragment on `condition` found under `type`. A fragment that cannot
+ * apply to `type` contributes no fields, but a fragment nested inside it may still narrow back to
+ * `type`, so nested fragments are classified against `type` as usual.
+ */
+function addFragmentSelections(
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  context: object,
+  info: GraphQLResolveInfo,
+  state: SelectionState,
+  condition: GraphQLNamedType,
+  selections: SelectionSetNode,
+  indirectPath: string[],
+) {
+  const fragmentType = typeForFragment(type, condition);
+
+  if (!fragmentType) {
+    addNestedSelections(type, context, info, state, selections, indirectPath, true);
+    return;
+  }
+
+  if (fragmentType !== type) {
+    enterVariant(type, fragmentType, state);
+  }
+
+  addNestedSelections(fragmentType, context, info, state, selections, indirectPath);
+}
+
+/**
+ * Merges the type-level selection of `variant` when a fragment moves the walk from `type` to
+ * another type of the same model, so the variant's resolvers find what its `select` promises. A
+ * variant without a `select` is an include-mode type and flips the state to include mode. Unlike
+ * a field-level select, a type-level selection has no per-field fallback, so relation arguments
+ * that conflict with what is already selected are an error.
+ */
+function enterVariant(
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  variant: GraphQLInterfaceType | GraphQLObjectType,
+  state: SelectionState,
+) {
+  const relation = conflictingRelation(state, typeLevelSelection(variant) ?? {});
+
+  if (relation) {
+    throw new PothosValidationError(
+      `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${relation}". Move the relation arguments to a field-level select on one of the types.`,
+    );
+  }
+
+  applyTypeSelection(variant, state);
 }
 
 function addFieldSelection(
