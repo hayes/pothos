@@ -58,9 +58,8 @@ function addTypeSelectionsForField(
     return;
   }
 
-  const { pothosDrizzleSelect, pothosIndirectInclude } = (type.extensions ?? {}) as {
+  const { pothosIndirectInclude } = (type.extensions ?? {}) as {
     pothosIndirectInclude?: IndirectInclude;
-    pothosDrizzleSelect?: boolean | DBQueryConfig<'one'>;
   };
 
   if (
@@ -107,9 +106,7 @@ function addTypeSelectionsForField(
     return;
   }
 
-  if (pothosDrizzleSelect) {
-    mergeSelection(config, state, pothosDrizzleSelect === true ? true : { ...pothosDrizzleSelect });
-  }
+  applyTypeSelection(config, type, state);
 
   if (selection.selectionSet && (!deferred || !state.skipDeferredFragments)) {
     addNestedSelections(
@@ -123,6 +120,62 @@ function addTypeSelectionsForField(
       segments,
     );
   }
+}
+
+/**
+ * Merges a type's own type-level selection into `state`. A drizzle type without a `select` selects
+ * every column, which marks the state as selecting all columns.
+ *
+ * With `compatibleOnly`, relations and extras whose type-level definition conflicts with what
+ * `state` already selects are left out instead of replacing it.
+ */
+function applyTypeSelection(
+  config: PothosDrizzleSchemaConfig,
+  type: GraphQLNamedType,
+  state: SelectionState,
+  { compatibleOnly = false } = {},
+) {
+  const { pothosDrizzleSelect } = (type.extensions ?? {}) as {
+    pothosDrizzleSelect?: boolean | DBQueryConfig<'one'>;
+  };
+
+  if (!pothosDrizzleSelect) {
+    return;
+  }
+
+  if (pothosDrizzleSelect === true) {
+    mergeSelection(config, state, true);
+    return;
+  }
+
+  const selection = { ...pothosDrizzleSelect };
+
+  mergeSelection(config, state, compatibleOnly ? withoutConflicts(state, selection) : selection);
+}
+
+function withoutConflicts(
+  state: SelectionState,
+  { with: withSelection, extras, ...rest }: SelectionMap,
+): SelectionMap {
+  return {
+    ...rest,
+    with:
+      withSelection &&
+      compatibleEntries(withSelection, (entry) =>
+        selectionCompatible(state, { columns: {}, with: entry }, true),
+      ),
+    extras:
+      extras &&
+      compatibleEntries(extras, (entry) =>
+        selectionCompatible(state, { columns: {}, extras: entry }, true),
+      ),
+  };
+}
+
+function compatibleEntries<T extends object>(map: T, compatible: (entry: T) => boolean): T {
+  return Object.fromEntries(
+    Object.entries(map).filter(([key, value]) => compatible({ [key]: value } as T)),
+  ) as T;
 }
 
 export interface IndirectPathSegment {
@@ -698,6 +751,12 @@ export function selectionStateFromInfo(
   for (const fieldNode of info.fieldNodes) {
     addFieldSelection(config, type, context, info, state, fieldNode, []);
   }
+
+  // The loaded row replaces the parent the field resolver sees, so besides the field's own
+  // selection it carries the parent type's type-level selection. The field is what the row is
+  // loaded for, so it is merged first and a type-level relation whose arguments conflict with
+  // it is left out.
+  applyTypeSelection(config, type, state, { compatibleOnly: true });
 
   return state;
 }

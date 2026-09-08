@@ -248,6 +248,7 @@ describe('select mode', () => {
                   "posts": true,
                 },
               },
+              "id": true,
               "posts": {
                 "orderBy": {
                   "createdAt": "desc",

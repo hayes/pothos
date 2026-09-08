@@ -191,6 +191,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 250,
@@ -203,6 +209,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 249,
@@ -306,6 +318,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 250,
@@ -318,6 +336,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 249,
@@ -798,6 +822,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 250,
@@ -810,6 +840,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 249,
@@ -916,6 +952,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 250,
@@ -928,6 +970,12 @@ describe('defer', () => {
           "args": {
             "include": {
               "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
             },
             "where": {
               "id": 249,

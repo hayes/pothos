@@ -51,13 +51,9 @@ function addTypeSelectionsForField(
     return;
   }
 
-  const { pothosPrismaInclude, pothosPrismaSelect, pothosIndirectInclude, pothosPrismaModel } =
-    (type.extensions ?? {}) as {
-      pothosPrismaModel?: string;
-      pothosPrismaInclude?: IncludeMap;
-      pothosPrismaSelect?: IncludeMap;
-      pothosIndirectInclude?: IndirectInclude;
-    };
+  const { pothosIndirectInclude } = (type.extensions ?? {}) as {
+    pothosIndirectInclude?: IndirectInclude;
+  };
 
   if (
     (!!pothosIndirectInclude?.path && pothosIndirectInclude.path.length > 0) ||
@@ -99,20 +95,64 @@ function addTypeSelectionsForField(
     return;
   }
 
-  if (pothosPrismaModel && !pothosPrismaSelect) {
-    state.mode = 'include';
-  }
-
-  if (pothosPrismaInclude ?? pothosPrismaSelect) {
-    mergeSelection(state, {
-      select: pothosPrismaSelect ? { ...pothosPrismaSelect } : undefined,
-      include: pothosPrismaInclude ? { ...pothosPrismaInclude } : undefined,
-    });
-  }
+  applyTypeSelection(type, state);
 
   if (selection.selectionSet && (!deferred || !state.skipDeferredFragments)) {
     addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
   }
+}
+
+/**
+ * Merges a type's own type-level selection into `state`. A model type without a `select` is an
+ * include-mode type, so it flips the state to include mode; a `select` or `include` on the type is
+ * merged as-is.
+ *
+ * With `compatibleOnly`, relations and counts whose type-level arguments conflict with what
+ * `state` already selects are left out instead of replacing it.
+ */
+function applyTypeSelection(
+  type: GraphQLNamedType,
+  state: SelectionState,
+  { compatibleOnly = false } = {},
+) {
+  const { pothosPrismaInclude, pothosPrismaSelect, pothosPrismaModel } = (type.extensions ??
+    {}) as {
+    pothosPrismaModel?: string;
+    pothosPrismaInclude?: IncludeMap;
+    pothosPrismaSelect?: IncludeMap;
+  };
+
+  if (pothosPrismaModel && !pothosPrismaSelect) {
+    state.mode = 'include';
+  }
+
+  if (!(pothosPrismaInclude ?? pothosPrismaSelect)) {
+    return;
+  }
+
+  const selection: SelectionMap = {
+    select: pothosPrismaSelect ? { ...pothosPrismaSelect } : undefined,
+    include: pothosPrismaInclude ? { ...pothosPrismaInclude } : undefined,
+  };
+
+  mergeSelection(state, compatibleOnly ? withoutConflicts(state, selection) : selection);
+}
+
+function withoutConflicts(state: SelectionState, { select, include }: SelectionMap): SelectionMap {
+  return {
+    select:
+      select &&
+      compatibleEntries(select, (entry) => selectionCompatible(state, { select: entry }, true)),
+    include:
+      include &&
+      compatibleEntries(include, (entry) => selectionCompatible(state, { include: entry }, true)),
+  };
+}
+
+function compatibleEntries(map: IncludeMap, compatible: (entry: IncludeMap) => boolean) {
+  return Object.fromEntries(
+    Object.entries(map).filter(([key, value]) => compatible({ [key]: value })),
+  );
 }
 
 export interface IndirectPathSegment {
@@ -686,6 +726,12 @@ export function selectionStateFromInfo(
   for (const fieldNode of info.fieldNodes) {
     addFieldSelection(type, context, info, state, fieldNode, []);
   }
+
+  // The loaded row replaces the parent the field resolver sees, so besides the field's own
+  // selection it carries the parent type's type-level selection. The field is what the row is
+  // loaded for, so it is merged first and a type-level relation whose arguments conflict with
+  // it is left out.
+  applyTypeSelection(type, state, { compatibleOnly: true });
 
   return state;
 }
