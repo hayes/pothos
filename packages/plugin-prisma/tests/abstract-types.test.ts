@@ -390,9 +390,7 @@ describe('abstract types', () => {
           "args": {
             "include": {
               "author": {
-                "select": {
-                  "id": true,
-                  "name": true,
+                "include": {
                   "profile": true,
                 },
               },

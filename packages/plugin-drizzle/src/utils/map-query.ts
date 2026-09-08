@@ -135,22 +135,42 @@ function applyTypeSelection(
   state: SelectionState,
   { compatibleOnly = false } = {},
 ) {
+  const selection = typeLevelSelection(type);
+
+  if (!selection) {
+    return;
+  }
+
+  mergeSelection(
+    config,
+    state,
+    compatibleOnly && selection !== true ? withoutConflicts(state, selection) : selection,
+  );
+}
+
+function typeLevelSelection(type: GraphQLNamedType): SelectionMap | true | undefined {
   const { pothosDrizzleSelect } = (type.extensions ?? {}) as {
     pothosDrizzleSelect?: boolean | DBQueryConfig<'one'>;
   };
 
   if (!pothosDrizzleSelect) {
-    return;
+    return undefined;
   }
 
-  if (pothosDrizzleSelect === true) {
-    mergeSelection(config, state, true);
-    return;
+  return pothosDrizzleSelect === true ? true : { ...pothosDrizzleSelect };
+}
+
+/** The first relation of `selection` whose arguments conflict with `state`. */
+function conflictingRelation(state: SelectionState, selection: SelectionMap | true) {
+  if (selection === true) {
+    return undefined;
   }
 
-  const selection = { ...pothosDrizzleSelect };
+  const conflict = Object.entries(selection.with ?? {}).find(
+    ([key, value]) => !selectionCompatible(state, { columns: {}, with: { [key]: value } }, true),
+  );
 
-  mergeSelection(config, state, compatibleOnly ? withoutConflicts(state, selection) : selection);
+  return conflict?.[0];
 }
 
 function withoutConflicts(
@@ -350,6 +370,13 @@ function walkIndirectPath(
   }
 }
 
+/**
+ * The type to plan a fragment's selections against, or null when the fragment cannot apply to
+ * `type`. A fragment on an interface the object implements is planned against the object, whose
+ * field map already carries the interface fields and their `select` extensions. Under an
+ * interface, a fragment on another type of the same table (a variant, or another interface of
+ * the table) is planned against that type.
+ */
 function typeForFragment(
   type: GraphQLInterfaceType | GraphQLObjectType,
   condition: GraphQLNamedType,
@@ -388,58 +415,49 @@ function addNestedSelections(
   selections: SelectionSetNode,
   indirectPath: string[],
   segments: FieldPathInfo[] = [],
+  skipFields = false,
 ) {
-  let parentType: GraphQLInterfaceType | GraphQLObjectType | null = type;
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
-        addFieldSelection(config, type, context, info, state, selection, indirectPath, segments);
+        if (!skipFields) {
+          addFieldSelection(config, type, context, info, state, selection, indirectPath, segments);
+        }
 
         continue;
-      case Kind.FRAGMENT_SPREAD:
+      case Kind.FRAGMENT_SPREAD: {
         if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
           continue;
         }
 
-        parentType = typeForFragment(
-          type,
-          info.schema.getType(info.fragments[selection.name.value].typeCondition.name.value)!,
-        );
-        if (!parentType) {
-          continue;
-        }
+        const fragment = info.fragments[selection.name.value];
 
-        addNestedSelections(
+        addFragmentSelections(
           config,
-          parentType,
+          type,
           context,
           info,
           state,
-          info.fragments[selection.name.value].selectionSet,
+          info.schema.getType(fragment.typeCondition.name.value)!,
+          fragment.selectionSet,
           indirectPath,
           segments,
         );
 
         continue;
-
+      }
       case Kind.INLINE_FRAGMENT:
         if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
           continue;
         }
 
-        parentType = selection.typeCondition
-          ? typeForFragment(type, info.schema.getType(selection.typeCondition.name.value)!)
-          : type;
-        if (!parentType) {
-          continue;
-        }
-
-        addNestedSelections(
+        addFragmentSelections(
           config,
-          parentType,
+          type,
           context,
           info,
           state,
+          selection.typeCondition ? info.schema.getType(selection.typeCondition.name.value)! : type,
           selection.selectionSet,
           indirectPath,
           segments,
@@ -453,6 +471,79 @@ function addNestedSelections(
         );
     }
   }
+}
+
+/**
+ * Walks the selections of a fragment on `condition` found under `type`. A fragment that cannot
+ * apply to `type` contributes no fields, but a fragment nested inside it may still narrow back to
+ * `type`, so nested fragments are classified against `type` as usual.
+ */
+function addFragmentSelections(
+  config: PothosDrizzleSchemaConfig,
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  context: object,
+  info: GraphQLResolveInfo,
+  state: SelectionState,
+  condition: GraphQLNamedType,
+  selections: SelectionSetNode,
+  indirectPath: string[],
+  segments: FieldPathInfo[],
+) {
+  const fragmentType = typeForFragment(type, condition);
+
+  if (!fragmentType) {
+    addNestedSelections(
+      config,
+      type,
+      context,
+      info,
+      state,
+      selections,
+      indirectPath,
+      segments,
+      true,
+    );
+    return;
+  }
+
+  if (fragmentType !== type) {
+    enterVariant(config, type, fragmentType, state);
+  }
+
+  addNestedSelections(
+    config,
+    fragmentType,
+    context,
+    info,
+    state,
+    selections,
+    indirectPath,
+    segments,
+  );
+}
+
+/**
+ * Merges the type-level selection of `variant` when a fragment moves the walk from `type` to
+ * another type of the same table, so the variant's resolvers find what its `select` promises. A
+ * variant without a `select` selects every column. Unlike a field-level select, a type-level
+ * selection has no per-field fallback, so relation arguments that conflict with what is already
+ * selected are an error.
+ */
+function enterVariant(
+  config: PothosDrizzleSchemaConfig,
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  variant: GraphQLInterfaceType | GraphQLObjectType,
+  state: SelectionState,
+) {
+  const relation = conflictingRelation(state, typeLevelSelection(variant) ?? {});
+
+  if (relation) {
+    throw new PothosValidationError(
+      `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${relation}". Move the relation arguments to a field-level select on one of the types.`,
+    );
+  }
+
+  applyTypeSelection(config, variant, state);
 }
 
 function addFieldSelection(
