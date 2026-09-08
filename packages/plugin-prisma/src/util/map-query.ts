@@ -51,8 +51,9 @@ function addTypeSelectionsForField(
     return;
   }
 
-  const { pothosIndirectInclude } = (type.extensions ?? {}) as {
+  const { pothosIndirectInclude, pothosPrismaModel } = (type.extensions ?? {}) as {
     pothosIndirectInclude?: IndirectInclude;
+    pothosPrismaModel?: string;
   };
 
   if (
@@ -77,6 +78,13 @@ function addTypeSelectionsForField(
         match.path,
         match.deferred,
       );
+    }
+
+    // The wrapper's own selection is planned only when the wrapper itself is backed by the model
+    // being queried (a variant that also points at a nested field). A plain wrapper, or one backed
+    // by another model, has nothing of its own to add to this query.
+    if (pothosPrismaModel !== state.fieldMap.model) {
+      return;
     }
   } else if (pothosIndirectInclude) {
     addTypeSelectionsForField(

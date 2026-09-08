@@ -58,8 +58,9 @@ function addTypeSelectionsForField(
     return;
   }
 
-  const { pothosIndirectInclude } = (type.extensions ?? {}) as {
+  const { pothosIndirectInclude, pothosDrizzleModel } = (type.extensions ?? {}) as {
     pothosIndirectInclude?: IndirectInclude;
+    pothosDrizzleModel?: string;
   };
 
   if (
@@ -86,6 +87,13 @@ function addTypeSelectionsForField(
         match.deferred,
         segments,
       );
+    }
+
+    // The wrapper's own selection is planned only when the wrapper itself is backed by the table
+    // being queried (a variant that also points at a nested field). A plain wrapper, or one backed
+    // by another table, has nothing of its own to add to this query.
+    if (pothosDrizzleModel !== state.table.name) {
+      return;
     }
   } else if (pothosIndirectInclude) {
     addTypeSelectionsForField(
