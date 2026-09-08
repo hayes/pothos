@@ -661,18 +661,6 @@ export type RelatedConnectionOptions<
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
-        resolve?: (
-          parent: Shape,
-          args: ConnectionArgs,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<
-          ShapeFromTypeParam<
-            Types,
-            [ObjectRef<Types, TypesForRelation<Types, Table['relations'][Field]>>],
-            Nullable
-          >
-        >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
         type?: Type & DrizzleRef<any, Table['relations'][Field]['targetTableName']>;

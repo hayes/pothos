@@ -79,7 +79,7 @@ export function drizzleConnectionHelpers<
       | number
       | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) => number);
     resolveNode?: (edge: EdgeShape) => NodeShape;
-  },
+  } = {},
 ) {
   const config = getSchemaConfig(builder);
   const tableName =
