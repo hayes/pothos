@@ -31,18 +31,15 @@ export function deepEqual(left: unknown, right: unknown, ignore?: Set<string>) {
       return lValue === rValue;
     }
 
-    const keys = Object.keys(left);
-    const keyLength = keys.length;
+    // Keys holding `undefined` are treated as absent, so `{ where: cond ? filter : undefined }`
+    // compares equal to `{}` when the condition is false. Ignored keys are skipped on both sides.
+    const keys = comparedKeys(left as Record<string, unknown>, ignore);
 
-    if (keyLength !== Object.keys(right).length) {
+    if (keys.length !== comparedKeys(right as Record<string, unknown>, ignore).length) {
       return false;
     }
 
     for (const key of keys) {
-      if (ignore?.has(key)) {
-        continue;
-      }
-
       if (
         !deepEqual((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key])
       ) {
@@ -54,4 +51,8 @@ export function deepEqual(left: unknown, right: unknown, ignore?: Set<string>) {
   }
 
   return false;
+}
+
+function comparedKeys(value: Record<string, unknown>, ignore?: Set<string>) {
+  return Object.keys(value).filter((key) => value[key] !== undefined && !ignore?.has(key));
 }
