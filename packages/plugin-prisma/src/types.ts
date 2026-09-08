@@ -782,7 +782,7 @@ export type FieldSelection =
         type?: string,
       ) => SelectionMap | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
-    ) => SelectionMap);
+    ) => SelectionMap | false | null | undefined);
 
 export type LoaderMappings = Record<
   string,

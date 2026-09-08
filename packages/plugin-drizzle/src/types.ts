@@ -365,7 +365,7 @@ export type DrizzleFieldSelection =
       ) => DBQueryConfig<'one'> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
       pathInfo: PathInfo,
-    ) => SelectionMap);
+    ) => SelectionMap | false | null | undefined);
 
 export type ExtractTable<Types extends SchemaTypes, Shape> = Shape extends {
   [drizzleTableName]?: keyof Types['DrizzleRelations'];

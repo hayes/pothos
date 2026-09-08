@@ -34,6 +34,13 @@ const User = builder.prismaObject('User', {
       },
       resolve: (user) => `${user.name}:${user.posts.length}`,
     }),
+    // Selects nothing from the parent row at runtime, so it is never answered from the planned
+    // query. The cast only gives the resolver its parent shape.
+    shout: t.string({
+      nullable: true,
+      select: () => null as unknown as { name: true },
+      resolve: (user) => user.name?.toUpperCase(),
+    }),
   }),
 });
 
@@ -122,6 +129,39 @@ describe('model loader fallback', () => {
           select: { id: true, name: true, posts: { select: { id: true } } },
           where: { id: 1 },
         },
+      },
+    ]);
+  });
+
+  it('loads a field whose select returns nothing through the fallback', async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: 1 } });
+    queries.length = 0;
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user {
+            shout
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ user: { shout: user.name?.toUpperCase() ?? null } });
+    // The planned query and the fallback both carry only the type-level select.
+    expect(queries).toEqual([
+      {
+        action: 'findUniqueOrThrow',
+        model: 'User',
+        args: { select: { id: true, name: true }, where: { id: 1 } },
+      },
+      {
+        action: 'findUniqueOrThrow',
+        model: 'User',
+        args: { select: { id: true, name: true }, where: { id: 1 } },
       },
     ]);
   });

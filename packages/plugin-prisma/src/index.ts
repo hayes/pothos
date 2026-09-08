@@ -96,13 +96,14 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
                   args: {},
                   ctx: Types['Context'],
                   nestedQuery: (query: unknown, path?: string[], type?: string) => never,
-                ) => ({
-                  select: (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {})(
-                    args,
-                    ctx,
-                    nestedQuery,
-                  ),
-                })
+                ) => {
+                  const selected = (
+                    select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null
+                  )(args, ctx, nestedQuery);
+
+                  // A falsy selection means the field selects nothing from the parent row.
+                  return selected ? { select: selected } : null;
+                }
               : select,
         },
       };

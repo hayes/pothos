@@ -584,7 +584,7 @@ function addFieldSelection(
 
   const fieldSelect = field.extensions?.pothosDrizzleSelect as DrizzleFieldSelection | undefined;
 
-  let fieldSelectionMap: DBQueryConfig<'one'> | undefined;
+  let fieldSelectionMap: DBQueryConfig<'one'> | false | null | undefined;
   let mappings: LoaderMappings = {};
   if (typeof fieldSelect === 'function') {
     const pathInfo: PathInfo = {
@@ -677,7 +677,9 @@ function addFieldSelection(
     fieldSelectionMap = fieldSelect!;
   }
 
-  if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
+  // A falsy map means the field selects nothing here: it is neither merged nor mapped, so it
+  // loads its own data when resolved.
+  if (fieldSelect && fieldSelectionMap && selectionCompatible(state, fieldSelectionMap, true)) {
     mergeSelection(config, state, fieldSelectionMap);
 
     state.mappings = mergeMappings(state.mappings, {
