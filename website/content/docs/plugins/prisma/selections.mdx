@@ -19,9 +19,11 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
+      // The profile relation is nullable, so this field is too.
+      nullable: true,
       // The profile relation will always be loaded, and user will now be typed to include the
       // profile field so you can return the bio from the nested profile relation.
-      resolve: (user) => user.profile.bio,
+      resolve: (user) => user.profile?.bio,
     }),
   }),
 });

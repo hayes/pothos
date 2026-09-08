@@ -266,8 +266,16 @@ builder.drizzleObject('users', {
 
 The query API enables you to define args and convert them into parameters that will be passed into
 the relational query builder. The `query` callback receives `(args, ctx, pathInfo)` where `pathInfo`
-contains the GraphQL query path information (`path` and `segments`). You can read more about the
-relation query builder api [here](https://orm.drizzle.team/docs/rqb#querying)
+describes where in the GraphQL query the relation is being loaded:
+
+- `path`: a list of `ParentType.fieldName` strings, from the root field down to the field being
+  resolved (eg. `['Query.user', 'User.posts']`).
+- `segments`: one object per entry in `path`, with `field` (the field name), `alias` (the alias used
+  in the query, or the field name if none), `parentType` (the name of the type the field is defined
+  on), and `isList` (whether the field returns a list).
+
+You can read more about the relation query builder api
+[here](https://orm.drizzle.team/docs/rqb#querying)
 
 ## Drizzle Fields
 
@@ -491,9 +499,10 @@ is that the `orderBy` format is slightly changed.
 
 To comply with the relay spec and efficiently support backwards pagination, some queries need to be
 performed in reverse order, which requires inverting the orderBy clause. To do this automatically,
-the `t.relatedConnection` method accepts orderBy as an object like `{ asc: column }` or
-`{ desc: column }` rather than using the `asc(column)` and `desc(column)` helpers from drizzle.
-orderBy can still be returned as either a single column or array when ordering by multiple columns.
+the `t.relatedConnection` method accepts orderBy as an object keyed by column name with `'asc'` or
+`'desc'` values, like `{ createdAt: 'desc' }`, rather than using the `asc(column)` and
+`desc(column)` helpers from drizzle. orderBy can also be returned as a single column, or an array of
+columns when ordering by multiple columns, which orders ascending.
 
 Ordering defaults to using the table `primaryKey`, and the orderBy columns will also be used to
 derive the connections cursor.
@@ -557,6 +566,23 @@ query {
     }
   }
 }
+```
+
+The count applies the `where` returned by the field's `query`, so it counts the same rows the
+connection paginates (only published posts in the example above). To count every related row
+regardless of the filter, set `filterConnectionTotalCount: false` in the `drizzle` plugin options:
+
+```ts
+const builder = new SchemaBuilder<PothosTypes>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+    // count every related row for totalCount, ignoring the where from query (defaults to true)
+    filterConnectionTotalCount: false,
+  },
+});
 ```
 
 ## Ordering and cursors
@@ -769,7 +795,7 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   resolveNode: (userRole) => userRole.role,
 });
 
-builder.drizzleObjectField('User', 'rolesConnection', (t) =>
+builder.drizzleObjectField('users', 'rolesConnection', (t) =>
   t.connection({
     // The type for the Node
     type: Role,
@@ -797,7 +823,7 @@ connections share the same model, and pagination happens directly on a relation 
 if that relation is nested).
 
 ```ts
-const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'Comment');
+const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'comments');
 
 const SelectPost = builder.drizzleObject('posts', {
   fields: (t) => ({
@@ -843,7 +869,7 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
 });
 
 
-builder.drizzleObjectField('User', 'rolesConnection', (t) =>
+builder.drizzleObjectField('users', 'rolesConnection', (t) =>
   t.connection({
     type: Role,
     // add the args from the connection helper to the field
@@ -872,7 +898,7 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   resolveNode: (userRole) => userRole.role,
 });
 
-builder.drizzleObjectFields('User', (t) => ({
+builder.drizzleObjectFields('users', (t) => ({
   rolesConnection: t.connection(
     {
       type: Role,
