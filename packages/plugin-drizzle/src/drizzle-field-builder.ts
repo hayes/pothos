@@ -8,7 +8,6 @@ import {
   type InputShapeFromFields,
   type InterfaceParam,
   isThenable,
-  type MaybePromise,
   type NormalizeArgs,
   ObjectRef,
   type PluginName,
@@ -186,7 +185,6 @@ export class DrizzleObjectFieldBuilder<
       maxSize = this.builder.options.drizzle?.maxConnectionSize,
       defaultSize = this.builder.options.drizzle?.defaultConnectionSize,
       query,
-      resolve: _,
       extensions,
       description,
       totalCount,
@@ -199,13 +197,6 @@ export class DrizzleObjectFieldBuilder<
       description?: string;
       query?: ((args: {}, ctx: {}) => {}) | {};
       totalCount?: boolean;
-      resolve?: (
-        query: {},
-        parent: unknown,
-        args: {},
-        ctx: {},
-        info: {},
-      ) => MaybePromise<readonly {}[]>;
     } = {},
     connectionOptions = {},
     edgeOptions = {},
@@ -304,6 +295,23 @@ export class DrizzleObjectFieldBuilder<
       };
     };
 
+    const countKey = `_${name as string}_count`;
+
+    const isTotalCountOnly = (info: GraphQLResolveInfo) => {
+      const returnType = getNamedType(info.returnType);
+      const fields =
+        isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+
+      return info.fieldNodes.every((selection) =>
+        selection.selectionSet?.selections.every(
+          (s) =>
+            s.kind === GraphQLKind.FIELD &&
+            (fields[s.name.value]?.extensions?.pothosDrizzleTotalCount ||
+              s.name.value === '__typename'),
+        ),
+      );
+    };
+
     const relationSelect = (
       args: object,
       context: object,
@@ -320,7 +328,7 @@ export class DrizzleObjectFieldBuilder<
       const totalCountOnly = hasTotalCount && !hasEdges && !hasNodes && !hasPageInfo;
       const fieldQuery = resolveFieldQuery(args, context, pathInfo);
       const countSelection = {
-        [`_${name as string}_count`]: (parent: TableConfig['table']) =>
+        [countKey]: (parent: TableConfig['table']) =>
           getClient(this.builder, context).$count(
             relatedTable.table as Table,
             buildCountFilter(parent, fieldQuery.where),
@@ -358,6 +366,10 @@ export class DrizzleObjectFieldBuilder<
         extensions: {
           ...extensions,
           pothosDrizzleSelect: relationSelect,
+          pothosDrizzleLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) =>
+            totalCount && isTotalCountOnly(info)
+              ? value[countKey] !== undefined
+              : value[name as string] !== undefined,
         },
         description,
         type: ref,
@@ -367,41 +379,13 @@ export class DrizzleObjectFieldBuilder<
           context: {},
           info: GraphQLResolveInfo,
         ) => {
-          const countKey = `_${name as string}_count`;
           const parentRecord = parent as Record<string, unknown>;
           const countValue = totalCount
             ? (parentRecord[countKey] as number | undefined)
             : undefined;
 
-          if (!(name in parentRecord)) {
-            return {
-              parent,
-              args,
-              totalCount: countValue,
-              edges: [],
-              pageInfo: {
-                startCursor: null,
-                endCursor: null,
-                hasPreviousPage: false,
-                hasNextPage: false,
-              },
-            };
-          }
-
-          // Detect totalCountOnly to skip cursor computation when only totalCount is requested
-          const returnType = getNamedType(info.returnType);
-          const fields =
-            isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
-          const totalCountOnly = info.fieldNodes.every((selection) =>
-            selection.selectionSet?.selections.every(
-              (s) =>
-                s.kind === GraphQLKind.FIELD &&
-                (fields[s.name.value]?.extensions?.pothosDrizzleTotalCount ||
-                  s.name.value === '__typename'),
-            ),
-          );
-
-          if (totalCountOnly) {
+          // Only totalCount was requested: the relation was never selected, so skip the cursors.
+          if (isTotalCountOnly(info)) {
             return {
               parent,
               args,
@@ -592,6 +576,8 @@ export class DrizzleObjectFieldBuilder<
       extensions: {
         ...extensions,
         pothosDrizzleSelect: relationSelect as never,
+        pothosDrizzleLoaded: (value: Record<string, unknown>) =>
+          value[name as string] !== undefined,
       },
       resolve: (parent: Record<string, never>) => parent[name as string],
     } as never) as never;
@@ -626,6 +612,7 @@ export class DrizzleObjectFieldBuilder<
         ctx: Types['Context'],
         info: unknown,
       ) => ShapeFromTypeParam<Types, Type, Nullable>;
+      extensions?: Record<string, unknown>;
     },
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'DrizzleObject'> {
     const schemaConfig = getSchemaConfig(this.builder);
@@ -665,12 +652,12 @@ export class DrizzleObjectFieldBuilder<
       };
     };
 
+    const { select: _select, extensions, ...fieldOptions } = options;
+
     return this.field({
-      type: options.type,
-      nullable: options.nullable,
-      args: options.args,
-      description: options.description,
+      ...fieldOptions,
       extensions: {
+        ...extensions,
         pothosDrizzleSelect: relationSelect as never,
       },
       resolve: options.resolve as never,
@@ -695,6 +682,10 @@ export class DrizzleObjectFieldBuilder<
       ...options,
       type: 'Int' as never,
       nullable: false,
+      extensions: {
+        ...(options as { extensions?: Record<string, unknown> }).extensions,
+        pothosDrizzleLoaded: (value: Record<string, unknown>) => value[countKey] !== undefined,
+      },
       select: (
         buildFilter: (parent: TableConfig['table']) => SQL,
         args: object,

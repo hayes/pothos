@@ -8,7 +8,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import type { GraphQLFieldResolver } from 'graphql';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { getLoaderMapping, setLoaderMappings } from './utils/loader-map.js';
 
@@ -161,6 +161,12 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     }
 
     const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
+    // A field can declare how to tell whether its data is already on the parent row. When the
+    // row was not loaded from the planned query (a resolver returned a row it fetched itself),
+    // the mapping alone is not proof, and the field falls back to the model loader.
+    const loadedCheck = fieldConfig.extensions?.pothosDrizzleLoaded as
+      | ((value: unknown, info: GraphQLResolveInfo) => boolean)
+      | undefined;
 
     const parentTypes = new Set([fieldConfig.parentType]);
 
@@ -193,7 +199,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         }
       }
 
-      if (mapping) {
+      if ((!loadedCheck || loadedCheck(parent, info)) && mapping) {
         setLoaderMappings(context, info, mapping);
 
         return resolver(parent, args, context, info);
