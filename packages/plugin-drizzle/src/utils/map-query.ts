@@ -723,6 +723,14 @@ export function queryFromInfo<T extends SelectionMap>({
 }: QueryFromInfoOptions<T>): T {
   const state = stateFromInfo(options);
 
+  if (!state) {
+    // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
+    // caller gets back its own selection.
+    const query = (options.select ?? {}) as T;
+
+    return withUsageCheck ? wrapWithUsageCheck(query) : query;
+  }
+
   setLoaderMappings(options.context, options.info, state.mappings);
 
   const query = selectionToQuery(options.config, state) as T;
@@ -730,6 +738,10 @@ export function queryFromInfo<T extends SelectionMap>({
   return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
 
+/**
+ * Plans the selection for a field's return type, or for the fields found under `path`/`paths`.
+ * Returns undefined when paths are given and nothing is selected under them.
+ */
 export function stateFromInfo<T extends SelectionMap>({
   config,
   context,
@@ -738,7 +750,7 @@ export function stateFromInfo<T extends SelectionMap>({
   select,
   path = [],
   paths = [],
-}: QueryFromInfoOptions<T>) {
+}: QueryFromInfoOptions<T>): SelectionState | undefined {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
   const initialSelection = select
@@ -820,10 +832,6 @@ export function stateFromInfo<T extends SelectionMap>({
       undefined,
       initialSegments,
     );
-  }
-
-  if (!state) {
-    state = createStateForSelection(config, info, type, undefined, initialSelection);
   }
 
   return state;

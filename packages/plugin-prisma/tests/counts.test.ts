@@ -398,6 +398,9 @@ describe('prisma counts', () => {
         {
           "action": "findMany",
           "args": {
+            "select": {
+              "id": true,
+            },
             "skip": 0,
             "take": 2,
           },
@@ -499,6 +502,9 @@ describe('prisma counts', () => {
         {
           "action": "findMany",
           "args": {
+            "select": {
+              "id": true,
+            },
             "skip": 0,
             "take": 2,
           },
