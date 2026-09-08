@@ -107,12 +107,13 @@ export class ModelLoader {
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
     const key = cacheKey(typeName, info.path);
     if (!this.queryCache.has(key)) {
+      // Without `path`/`paths` a state is always built.
       const selection = stateFromInfo({
         config: this.config,
         context: this.context,
         info,
         typeName,
-      });
+      })!;
 
       this.queryCache.set(key, {
         selection,

@@ -795,7 +795,11 @@ export function queryFromInfo<
   }
 
   if (!state) {
-    state = createStateForType(type, info, skipDeferredFragments, undefined, initialSelection);
+    // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
+    // caller gets back its own selection (never an empty `select`, which prisma rejects).
+    const query = (initialSelection ?? {}) as { select: Select; include: Include };
+
+    return withUsageCheck ? wrapWithUsageCheck(query) : query;
   }
 
   setLoaderMappings(context, info, state.mappings);
