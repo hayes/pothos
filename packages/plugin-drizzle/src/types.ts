@@ -85,6 +85,12 @@ type DrizzlePluginBaseOptions = {
   maxConnectionSize?: number;
   defaultConnectionSize?: number;
   skipDeferredFragments?: boolean;
+  /**
+   * When `true` (the default), the `totalCount` of a `relatedConnection` applies the `where`
+   * returned by the field's `query`, so it counts the same rows the connection paginates. Set to
+   * `false` to count every related row regardless of the filter.
+   */
+  filterConnectionTotalCount?: boolean;
 };
 
 export type DrizzlePluginOptions<Types extends SchemaTypes> = DrizzlePluginBaseOptions &
