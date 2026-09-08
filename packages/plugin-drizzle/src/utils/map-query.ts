@@ -801,25 +801,12 @@ export function stateFromInfo<T extends SelectionMap>({
           match.field,
           match.path,
           match.deferred,
+          rootPathSegments(info),
         );
       }
     }
   } else {
     state = createStateForSelection(config, info, type, undefined, initialSelection);
-
-    // Create initial segment for the root query field
-    const rootFieldNode = info.fieldNodes[0];
-    const rootField = info.parentType.getFields()[rootFieldNode.name.value];
-    const initialSegments: FieldPathInfo[] = rootField
-      ? [
-          {
-            field: rootFieldNode.name.value,
-            alias: rootFieldNode.alias?.value ?? rootFieldNode.name.value,
-            parentType: info.parentType.name,
-            isList: isListField(rootField.type),
-          },
-        ]
-      : [];
 
     addTypeSelectionsForField(
       config,
@@ -830,11 +817,33 @@ export function stateFromInfo<T extends SelectionMap>({
       info.fieldNodes[0],
       [],
       undefined,
-      initialSegments,
+      rootPathSegments(info),
     );
   }
 
   return state;
+}
+
+/**
+ * The segment for the field being resolved, which starts the `pathInfo.path` handed to relation
+ * `query` callbacks planned under it.
+ */
+function rootPathSegments(info: GraphQLResolveInfo): FieldPathInfo[] {
+  const rootFieldNode = info.fieldNodes[0];
+  const rootField = info.parentType.getFields()[rootFieldNode.name.value];
+
+  if (!rootField) {
+    return [];
+  }
+
+  return [
+    {
+      field: rootFieldNode.name.value,
+      alias: rootFieldNode.alias?.value ?? rootFieldNode.name.value,
+      parentType: info.parentType.name,
+      isList: isListField(rootField.type),
+    },
+  ];
 }
 
 export function selectionStateFromInfo(
