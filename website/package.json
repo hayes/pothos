@@ -35,6 +35,7 @@
     "@pothos/plugin-sub-graph": "workspace:^",
     "@pothos/plugin-validation": "workspace:^",
     "@pothos/plugin-with-input": "workspace:^",
+    "@pothos/selection-mapper": "workspace:^",
     "@prisma-next/adapter-sqlite": "^0.16.0",
     "@prisma-next/contract": "^0.16.0",
     "@prisma-next/driver-sqlite": "^0.16.0",

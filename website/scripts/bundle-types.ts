@@ -669,6 +669,17 @@ function main() {
     pluginDefinitions['@pothos/plugin-dataloader'].push(...readDataloaderTypes());
   }
 
+  // plugin-prisma-next's type defs import `Adapter`, `SelectFn`, `Walk`
+  // and friends from the workspace `@pothos/selection-mapper` package
+  // (its selection walker). Ship that package's dts alongside the
+  // plugin's so those imports resolve in Monaco; at runtime the walker
+  // is bundled into the plugin module (see lib/playground/prisma-next-bundle.ts).
+  if (pluginDefinitions['@pothos/plugin-prisma-next']) {
+    pluginDefinitions['@pothos/plugin-prisma-next'].push(
+      ...readDtsFiles(path.join(PACKAGES_DIR, 'selection-mapper'), '@pothos/selection-mapper'),
+    );
+  }
+
   // Separate core global declarations from module declarations
   const coreGlobals = coreDefinitions.filter((d) => d.content.includes('declare global'));
   const coreModules = coreDefinitions.filter((d) => !d.content.includes('declare global'));

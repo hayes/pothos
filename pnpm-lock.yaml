@@ -1418,6 +1418,9 @@ importers:
       '@pothos/plugin-with-input':
         specifier: workspace:^
         version: link:../packages/plugin-with-input
+      '@pothos/selection-mapper':
+        specifier: workspace:^
+        version: link:../packages/selection-mapper
       '@prisma-next/adapter-sqlite':
         specifier: ^0.16.0
         version: 0.16.0(typanion@3.14.0)(typescript@6.0.2)

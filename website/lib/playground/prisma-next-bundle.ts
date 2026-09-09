@@ -16,6 +16,11 @@
 
 'use client';
 
+// The selection walker `@pothos/plugin-prisma-next` plans queries with.
+// Registered as a stub so it resolves to the one instance the statically
+// bundled plugin uses (never fetched from esm.sh), and so a demo can
+// import its helpers (`selectedFieldNames`) if it wants to.
+import * as SelectionMapper from '@pothos/selection-mapper';
 import * as AdapterSqliteRuntime from '@prisma-next/adapter-sqlite/runtime';
 import * as AdapterSqliteTypes from '@prisma-next/adapter-sqlite/types';
 import * as ContractTypes from '@prisma-next/contract/types';
@@ -37,6 +42,7 @@ import * as PlaygroundCapture from './prisma-next';
 // capture middleware so demo `db.ts` can `import { capturePlaygroundSql }`
 // without learning about the website's internal file layout.
 export const prismaNextModules: Record<string, unknown> = {
+  '@pothos/selection-mapper': SelectionMapper,
   '@prisma-next/sqlite/runtime': SqliteRuntime,
   '@prisma-next/sql-orm-client': SqlOrmClient,
   '@prisma-next/contract/types': ContractTypes,
