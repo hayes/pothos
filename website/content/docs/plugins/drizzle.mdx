@@ -305,9 +305,9 @@ builder.drizzleObject('users', {
 builder.queryField('me', (t) =>
   t.drizzleField({
     type: 'users',
-    // `query()` returns a promise when a selection beneath the field is async
-    resolve: async (query, root, args, ctx) =>
-      db.query.users.findFirst(await query({ where: { id: ctx.userId } })),
+    // The plan is settled before the resolver runs, so `query()` never returns a promise
+    resolve: (query, root, args, ctx) =>
+      db.query.users.findFirst(query({ where: { id: ctx.userId } })),
   }),
 );
 ```

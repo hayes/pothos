@@ -2,7 +2,13 @@ import { completeValue, isThenable } from '@pothos/core';
 import type { GraphQLObjectType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import type { Adapter, SelectFn } from '../src';
-import { getLoaderMapping, queryFromInfo, selectionStateFromInfo, walkFromInfo } from '../src';
+import {
+  getLoaderMapping,
+  queryFromInfo,
+  queryFromWalk,
+  selectionStateFromInfo,
+  walkFromInfo,
+} from '../src';
 import { type FakeMap, type FakeModel, type FakePath, resolveInfo } from './fake-adapter';
 import { countPromises } from './promise-spy';
 import { createTestAdapter, createTestSchema } from './schema';
@@ -306,6 +312,30 @@ describe('async callbacks', () => {
     );
   });
 
+  it('settles walkFromInfo, then queryFromWalk emits synchronously', async () => {
+    const source = '{ user { posts(take: 2) { id author(x: 1) { name } } } }';
+    const info = await resolveInfo(schema, source);
+    const syncContext = {};
+    const expected = queryFromInfo(adapter, { context: syncContext, info, initial: { take: 1 } });
+    const context = {};
+    const pending = walkFromInfo(
+      withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
+      { context, info },
+    );
+
+    expect(isThenable(pending)).toBe(true);
+
+    const walk = (await pending)!;
+    // A resolver handed the settled plan emits without creating a promise.
+    const { result, promises } = countPromises(() => queryFromWalk(walk, { take: 1 }));
+
+    expect(promises).toBe(0);
+    expect(result).toEqual(expected);
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual(
+      getLoaderMapping(syncContext, pathOf('user', 'posts'), 'User'),
+    );
+  });
+
   it('returns the loader walk after its async select, then enters the parent type (E-2)', async () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
@@ -316,11 +346,11 @@ describe('async callbacks', () => {
     expect(adapter.serialize(walk.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
     expect(walk.mappings).toEqual({ 'Viewer@posts': { nested: {} } });
 
-    const direct = await walkFromInfo(withSelects(['posts'], deferred), {
+    const direct = (await walkFromInfo(withSelects(['posts'], deferred), {
       context: {},
       info: await resolveInfo(schema, '{ user { posts { id } } }'),
       typeName: 'User',
-    });
+    }))!;
 
     expect(adapter.serialize(direct.root)).toEqual({ select: { posts: true } });
   });
@@ -371,6 +401,17 @@ describe('the synchronous path (A-1)', () => {
         }),
       ).promises,
     ).toBe(0);
+  });
+
+  it('creates no promise for a plan settled before its resolver runs', async () => {
+    const context = {};
+    const info = await resolveInfo(schema, source);
+    const { result, promises } = countPromises(() =>
+      queryFromWalk(walkFromInfo(adapter, { context, info })!, { take: 1 }),
+    );
+
+    expect(promises).toBe(0);
+    expect(result).toEqual(queryFromInfo(adapter, { context: {}, info, initial: { take: 1 } }));
   });
 
   it('counts the promises the spy is meant to see', () => {

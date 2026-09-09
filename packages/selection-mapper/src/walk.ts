@@ -193,12 +193,48 @@ export function queryFromInfo<M, Map extends object, X = undefined>(
   return finish(walk, emitQuery, options.withUsageCheck);
 }
 
-/** E-1 without paths: the walk itself, nothing recorded. Always produces a walk. */
+/**
+ * E-1 without emitting: the walk itself, nothing recorded, or undefined when paths are given and
+ * nothing is selected under them. Declared synchronous like `queryFromInfo` (A-7). A plugin that
+ * must hand a resolver a synchronous query builder settles this first, then emits the query with
+ * `queryFromWalk` once the resolver asks for it.
+ */
 export function walkFromInfo<M, Map extends object, X = undefined>(
   adapter: Adapter<M, Map, X>,
   options: EntryOptions<Map>,
-): Walk<M, Map, X> {
-  return finish(buildWalk(makeEnv(adapter, options), options)!, identity);
+): Walk<M, Map, X> | undefined {
+  const walk = buildWalk(makeEnv(adapter, options), options);
+
+  return walk && finish(walk, identity);
+}
+
+/**
+ * E-1 from a settled walk: the loader mappings recorded (L-2) and the query serialized (M-6,
+ * L-5). Synchronous: the walk must be one `walkFromInfo` returned, and when that was a promise,
+ * the walk it resolved to. `select` takes the place of `initial`: the query is built from it first
+ * and the walked plan merged over it, so a compatible `select` yields what `queryFromInfo` yields
+ * with it as `initial`. The caller checks compatibility (`typeLevelConflict`) first: a relation or
+ * extra the plan already holds with other arguments cannot be merged after the fact.
+ */
+export function queryFromWalk<M, Map extends object, X = undefined>(
+  walk: Walk<M, Map, X>,
+  select?: Map,
+  withUsageCheck?: boolean,
+): Map {
+  const { adapter, context, info } = walk.env;
+
+  setLoaderMappings(context, info, walk.mappings);
+
+  if (!select) {
+    return wrap(adapter.serialize(walk.root), withUsageCheck);
+  }
+
+  const root = createNode(walk.root.model);
+
+  adapter.merge(root, select);
+  adapter.merge(root, adapter.serialize(walk.root));
+
+  return wrap(adapter.serialize(root), withUsageCheck);
 }
 
 /**

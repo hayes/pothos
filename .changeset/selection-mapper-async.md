@@ -17,6 +17,7 @@ Allow the callbacks that build a selection to be async.
   closure they did not create before.
 - Inside an async `select`, `await` the result of `nestedSelection` (and of `getQuery` from the
   connection helpers) before adding it to the selection; a selection holding the promise itself
-  throws with a message naming the relation. `queryFromInfo` (prisma) and the `query()` builder
-  handed to a `drizzleField` resolver return a promise when a callback beneath the field is async,
-  and must then be awaited; their declared types stay synchronous.
+  throws with a message naming the relation. `queryFromInfo` returns a promise when a callback
+  beneath the field is async, and must then be awaited; its declared type stays synchronous. The
+  `query()` builder handed to a `drizzleField` or `drizzleConnection` resolver never returns a
+  promise: the plan is settled before the resolver runs, and the builder merges into it.

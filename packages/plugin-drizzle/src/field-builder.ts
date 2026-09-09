@@ -1,13 +1,20 @@
 import type { FieldRef, MaybePromise } from '@pothos/core';
-import { type FieldKind, ObjectRef, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
+import {
+  type FieldKind,
+  isThenable,
+  ObjectRef,
+  RootFieldBuilder,
+  type SchemaTypes,
+} from '@pothos/core';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import { isInterfaceType, isObjectType, Kind } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type { DrizzleConnectionFieldOptions } from './types.js';
-import { getSchemaConfig } from './utils/config.js';
+import type { DrizzleWalk } from './utils/adapter.js';
+import { getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
 import { resolveDrizzleCursorConnection } from './utils/cursors.js';
-import { queryFromInfo } from './utils/map-query.js';
+import { queryFromWalk, walkFromInfo } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';
 
@@ -30,20 +37,24 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
     ...(options as {}),
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      return resolve(
-        (select) =>
-          queryFromInfo({
-            config: getSchemaConfig(this.builder),
-            context,
-            select,
-            info,
-            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-          }) as never,
-        parent,
-        args as never,
-        context,
-        info,
-      ) as never;
+      const config = getSchemaConfig(this.builder);
+      // A promise while a selection beneath the field is async: the resolver runs once it has
+      // settled, so the builder it is handed never returns one.
+      const walk = walkFromInfo({ config, context, info });
+
+      return isThenable(walk)
+        ? walk.then((settled) =>
+            resolveWithWalk(
+              config,
+              resolve as never,
+              settled as DrizzleWalk | undefined,
+              parent,
+              args,
+              context,
+              info,
+            ),
+          )
+        : resolveWithWalk(config, resolve as never, walk, parent, args, context, info);
     },
   }) as never;
 };
@@ -71,23 +82,54 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
     ...(options as {}),
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      return resolve(
-        (select: SelectionMap) =>
-          queryFromInfo({
-            config: getSchemaConfig(this.builder),
-            context,
-            select,
-            info,
-            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-          }),
-        parent,
-        args as never,
-        context,
-        info,
-      ) as never;
+      const config = getSchemaConfig(this.builder);
+      const walk = walkFromInfo({ config, context, info });
+
+      return isThenable(walk)
+        ? walk.then((settled) =>
+            resolveWithWalk(
+              config,
+              resolve,
+              settled as DrizzleWalk | undefined,
+              parent,
+              args,
+              context,
+              info,
+            ),
+          )
+        : resolveWithWalk(config, resolve, walk, parent, args, context, info);
     },
   }) as never;
 } as never;
+
+/**
+ * Runs a `drizzleField` resolver with a builder over its settled plan; built once so a
+ * synchronous plan allocates nothing but the builder itself.
+ */
+function resolveWithWalk(
+  config: PothosDrizzleSchemaConfig,
+  resolve: (...args: unknown[]) => unknown,
+  walk: DrizzleWalk | undefined,
+  parent: unknown,
+  args: unknown,
+  context: {},
+  info: GraphQLResolveInfo,
+) {
+  return resolve(
+    (select?: SelectionMap) =>
+      queryFromWalk(walk, {
+        config,
+        context,
+        select,
+        info,
+        // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
+      }),
+    parent,
+    args,
+    context,
+    info,
+  );
+}
 
 fieldBuilderProto.drizzleConnection = function drizzleConnection<
   Type extends
@@ -121,6 +163,45 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
   const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
   const typeName = this.builder.configStore.getTypeConfig(ref).name;
   const tableName = typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName;
+
+  // Built once per field: resolving with a synchronous plan allocates nothing beyond the
+  // callback `resolveDrizzleCursorConnection` was already handed.
+  const resolveConnection = (
+    walk: DrizzleWalk | undefined,
+    parent: unknown,
+    args: PothosSchemaTypes.DefaultConnectionArguments,
+    context: {},
+    info: GraphQLResolveInfo,
+    totalCountOnly: boolean,
+  ) =>
+    resolveDrizzleCursorConnection(
+      tableName,
+      info,
+      walk,
+      typeName,
+      getSchemaConfig(this.builder),
+      {
+        ctx: context,
+        maxSize,
+        defaultSize,
+        args,
+        totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
+      },
+      (q) => {
+        if (totalCountOnly) {
+          return [];
+        }
+
+        // return checkIfQueryIsUsed(
+        //   this.builder,
+        //   query,
+        //   info,
+        return resolve(q as never, parent, args as never, context, info) as never;
+        // );
+      },
+      parent,
+    );
+
   const fieldRef = (
     this as typeof fieldBuilderProto & {
       connection: (...args: unknown[]) => FieldRef<SchemaTypes, unknown>;
@@ -150,32 +231,28 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
           ),
         );
 
-        return resolveDrizzleCursorConnection(
-          tableName,
+        // Planned before the resolver runs, so the builder it is handed is synchronous even when
+        // a selection beneath the connection is async.
+        const walk = walkFromInfo({
+          config: getSchemaConfig(this.builder),
+          context,
           info,
+          paths: [['nodes'], ['edges', 'node']],
           typeName,
-          getSchemaConfig(this.builder),
-          {
-            ctx: context,
-            maxSize,
-            defaultSize,
-            args,
-            totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
-          },
-          (q) => {
-            if (totalCountOnly) {
-              return [];
-            }
+        });
 
-            // return checkIfQueryIsUsed(
-            //   this.builder,
-            //   query,
-            //   info,
-            return resolve(q as never, parent, args as never, context, info) as never;
-            // );
-          },
-          parent,
-        );
+        return isThenable(walk)
+          ? walk.then((settled) =>
+              resolveConnection(
+                settled as DrizzleWalk | undefined,
+                parent,
+                args,
+                context,
+                info,
+                totalCountOnly,
+              ),
+            )
+          : resolveConnection(walk, parent, args, context, info, totalCountOnly);
       },
     },
     connectionOptions instanceof ObjectRef

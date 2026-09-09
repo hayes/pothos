@@ -14,6 +14,7 @@ it('exports only what the plugins use', () => {
     'getLoaderMapping',
     'isUsed',
     'queryFromInfo',
+    'queryFromWalk',
     'relation',
     'selectedFieldNames',
     'selectionStateFromInfo',

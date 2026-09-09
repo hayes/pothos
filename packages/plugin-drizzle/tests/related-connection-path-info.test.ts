@@ -138,8 +138,14 @@ describe('relatedConnection pathInfo on the resolve path', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    // Planned by the loader for the field alone, so the path starts at the field.
-    expect(seenPaths).toEqual([['User.postsConnection'], ['User.postsConnection']]);
+    // `rawUser` plans the document before its resolver runs (whether or not the resolver asks for
+    // the query), so the callback first sees the root path; the loader then plans the field
+    // alone, so the path starts at the field, and the resolve path agrees with that plan.
+    expect(seenPaths).toEqual([
+      ['Query.rawUser', 'User.postsConnection'],
+      ['User.postsConnection'],
+      ['User.postsConnection'],
+    ]);
     expect(result.data).toEqual({
       rawUser: {
         postsConnection: {

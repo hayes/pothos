@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { getLoaderMapping, queryFromInfo, selectionStateFromInfo, walkFromInfo } from '../src';
+import {
+  getLoaderMapping,
+  queryFromInfo,
+  queryFromWalk,
+  selectionStateFromInfo,
+  walkFromInfo,
+} from '../src';
 import { resolveInfo } from './fake-adapter';
 import { createTestAdapter, createTestSchema } from './schema';
 
@@ -659,10 +665,67 @@ describe('walkFromInfo', () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
-    const walk = walkFromInfo(adapter, { context, info, typeName: 'User' });
+    const walk = walkFromInfo(adapter, { context, info, typeName: 'User' })!;
 
     expect(adapter.serialize(walk.root)).toEqual({ select: { posts: true } });
     expect(walk.mappings).toEqual({ 'User@posts': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+  });
+
+  it('returns undefined when paths are given and nothing is selected under them', async () => {
+    const paths = [['nodes'], ['edges', 'node']];
+    const at: [string, string] = ['User', 'postsConnection'];
+    const options = { context: {}, typeName: 'Post', paths };
+
+    const empty = await resolveInfo(schema, '{ user { postsConnection { totalCount } } }', { at });
+
+    expect(walkFromInfo(adapter, { ...options, info: empty })).toBeUndefined();
+
+    const nodes = await resolveInfo(
+      schema,
+      '{ user { postsConnection { nodes { author { id } } } } }',
+      {
+        at,
+      },
+    );
+    const walk = walkFromInfo(adapter, { ...options, info: nodes })!;
+
+    expect(adapter.serialize(walk.root)).toEqual({ select: { author: true } });
+  });
+});
+
+describe('queryFromWalk', () => {
+  it('emits what queryFromInfo emits with the selection as initial, and records the mappings', async () => {
+    const info = await resolveInfo(
+      schema,
+      '{ user { id posts(take: 2) { id author(x: 1) { name } } } }',
+    );
+    const select = { select: { profile: true }, take: 1 };
+    const expectedContext = {};
+    const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
+    const context = {};
+    const walk = walkFromInfo(adapter, { context, info })!;
+
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+
+    const query = queryFromWalk(walk, select);
+
+    expect(query).toEqual(expected);
+    // The caller's selection comes first, as `initial` does (E-1), so the query is the same
+    // object key for key.
+    expect(Object.keys(query.select!)).toEqual(Object.keys(expected.select!));
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual(
+      getLoaderMapping(expectedContext, pathOf('user', 'posts'), 'User'),
+    );
+  });
+
+  it('emits the walked plan alone without a selection', async () => {
+    const context = {};
+    const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
+
+    expect(queryFromWalk(walkFromInfo(adapter, { context, info })!)).toEqual(
+      queryFromInfo(adapter, { context: {}, info }),
+    );
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual({ nested: {} });
   });
 });
