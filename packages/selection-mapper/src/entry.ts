@@ -74,10 +74,10 @@ export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Nod
   walk: Walk<M, Map, X, N>,
   select?: Map,
 ): Map {
-  const { adapter, context, info } = walk.env;
+  const { adapter, info } = walk.env;
 
   if (!select) {
-    setLoaderMappings(context, info, walk.mappings);
+    recordMappings(walk, walk.mappings);
 
     return adapter.serialize(walk.root);
   }
@@ -88,7 +88,7 @@ export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Nod
 
   if (!adapter.typeLevelConflict(walk.root, select)) {
     adapter.merge(root, adapter.serialize(walk.root));
-    setLoaderMappings(context, info, walk.mappings);
+    recordMappings(walk, walk.mappings);
 
     return adapter.serialize(root);
   }
@@ -115,9 +115,23 @@ export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Nod
     }
   }
 
-  setLoaderMappings(context, info, mappings);
+  recordMappings(walk, mappings);
 
   return adapter.serialize(root);
+}
+
+/**
+ * L-2: records the walk's mappings for the resolvers beneath it, unless the adapter records none,
+ * in which case the context is not touched either (an adapter that reads rows its own way may
+ * run with a context that is not an object).
+ */
+function recordMappings<M, Map, X, N extends NodeBase<M>>(
+  walk: Walk<M, Map, X, N>,
+  mappings: Mappings,
+) {
+  if (walk.env.adapter.recordsMappings !== false) {
+    setLoaderMappings(walk.env.context, walk.env.info, mappings);
+  }
 }
 
 /**
@@ -249,12 +263,14 @@ function rootExtra<M, Map, X, N extends NodeBase<M>>({
   adapter,
   info,
 }: Env<M, Map, X, N>): X | undefined {
+  if (!adapter.callbackExtra) {
+    return undefined;
+  }
+
   const node = info.fieldNodes[0];
   const field = info.parentType.getFields()[node.name.value];
 
-  return field && adapter.callbackExtra
-    ? adapter.callbackExtra(undefined, info.parentType, field, node)
-    : undefined;
+  return field ? adapter.callbackExtra(undefined, info.parentType, field, node) : undefined;
 }
 
 function normalizePaths(paths: PathSegment[][]): IndirectPathSegment[][] {

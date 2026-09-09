@@ -39,8 +39,8 @@ function withSelects(fields: string[], wrap: Wrap): Adapter<FakeModel, FakeMap, 
   const wrapped = createTestAdapter();
   const { fieldSelection } = wrapped;
 
-  wrapped.fieldSelection = (field) => {
-    const selection = fieldSelection(field);
+  wrapped.fieldSelection = (field, type) => {
+    const selection = fieldSelection(field, type);
 
     return typeof selection === 'function' && fields.includes(field.name)
       ? wrap(selection, field.name)

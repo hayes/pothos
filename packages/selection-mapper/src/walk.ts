@@ -469,7 +469,7 @@ export function applyField<M, Map, X, N extends NodeBase<M>>(
     throw new PothosValidationError(`Unknown field ${name} on ${type.name}`);
   }
 
-  const selection = adapter.fieldSelection(field);
+  const selection = adapter.fieldSelection(field, type);
 
   if (!selection) {
     return;
@@ -603,23 +603,29 @@ function nestedSelectionFor<M, Map, X, N extends NodeBase<M>>(
         )
       : pathOrInclude;
     const target = include ? info.schema.getType(include.getType())! : returnType;
+    // `true` is the public "no query"; it never reaches an adapter.
+    const query: MaybePromise<Map | null | undefined> =
+      rawQuery === true
+        ? undefined
+        : typeof rawQuery === 'function'
+          ? (
+              rawQuery as (
+                args: object,
+                ctx: object,
+                extra: X,
+              ) => MaybePromise<Map | null | undefined>
+            )(args, env.context, extra as X)
+          : rawQuery;
+
+    if (!env.modelOf(target)) {
+      // A model-less field (a scalar, a type without a model) has nothing beneath it to plan:
+      // the nested selection is the query alone, and nothing is recorded for it.
+      return (query ?? ({} as Map)) as Map;
+    }
+
     const child = createWalk(env, target, mapping.nested, extra);
 
     try {
-      // `true` is the public "no query"; it never reaches an adapter.
-      const query: MaybePromise<Map | null | undefined> =
-        rawQuery === true
-          ? undefined
-          : typeof rawQuery === 'function'
-            ? (
-                rawQuery as (
-                  args: object,
-                  ctx: object,
-                  extra: X,
-                ) => MaybePromise<Map | null | undefined>
-              )(args, env.context, extra as X)
-            : rawQuery;
-
       if (isThenable(query)) {
         chain(child, query as PromiseLike<Map | null | undefined>, (resolved) =>
           mergeQuery(child, resolved),

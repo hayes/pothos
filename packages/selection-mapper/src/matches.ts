@@ -143,6 +143,13 @@ const selectedFieldNamesCache = createContextCache(
  * for every resolve, while the nodes are the document's own.
  */
 export function selectedFieldNames(context: object, info: GraphQLResolveInfo): ReadonlySet<string> {
+  // The memo needs a real `GraphQLResolveInfo`: it is keyed on `variableValues` (one object per
+  // execution) and on `returnType`. A context that is not an object cannot key a cache; the
+  // names are then collected without one.
+  if (typeof context !== 'object' || context === null) {
+    return collectSelectedFieldNames(info);
+  }
+
   const byExecution = selectedFieldNamesCache(context);
   let byType = byExecution.get(info.variableValues);
 

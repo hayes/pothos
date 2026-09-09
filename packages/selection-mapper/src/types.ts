@@ -97,8 +97,15 @@ export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>
   createNode(model: M): N;
   /** S-1: what the type always needs, or undefined. */
   typeSelection(type: GraphQLNamedType): Map | undefined;
-  /** S-4..S-6: a static map, a select function, or nothing. */
-  fieldSelection(field: GraphQLField<unknown, unknown>): Map | SelectFn<Map, X> | undefined;
+  /**
+   * S-4..S-6: a static map, a select function, or nothing. `type` is the type the field is being
+   * walked on (its parent type, or a same-model type the walk moved to), for an adapter that
+   * classifies a selection's keys against the parent model.
+   */
+  fieldSelection(
+    field: GraphQLField<unknown, unknown>,
+    type: WalkedType,
+  ): Map | SelectFn<Map, X> | undefined;
   /**
    * M-1, M-2, S-9, in place. Never mutates `map`. `key` is the field the map came from
    * (`Type@alias`, or `Type@path.alias` beneath an indirect include) when the map is a field's

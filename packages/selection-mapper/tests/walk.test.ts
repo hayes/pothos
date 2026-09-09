@@ -3,6 +3,7 @@ import {
   getLoaderMapping,
   queryFromInfo,
   queryFromWalk,
+  selectedFieldNames,
   selectionStateFromInfo,
   walkFromInfo,
 } from '../src';
@@ -268,8 +269,8 @@ describe('queryFromInfo', () => {
     const seen: unknown[] = [];
     const { fieldSelection } = withExtra;
 
-    withExtra.fieldSelection = (field) => {
-      const selection = fieldSelection(field);
+    withExtra.fieldSelection = (field, type) => {
+      const selection = fieldSelection(field, type);
 
       return typeof selection === 'function'
         ? (...args) => {
@@ -481,12 +482,12 @@ describe('repeated fragment spreads (W-2)', () => {
 
       return typeSelection(type);
     };
-    counting.fieldSelection = (field) => {
+    counting.fieldSelection = (field, type) => {
       if (field.name === 'email') {
         calls.fieldSelection += 1;
       }
 
-      return fieldSelection(field);
+      return fieldSelection(field, type);
     };
 
     const info = await resolveInfo(
@@ -641,6 +642,79 @@ describe('selectionStateFromInfo (E-2)', () => {
     });
     expect(Object.keys(walk.mappings)).toEqual(['User@latest']);
     expect(walk.mappings['User@latest'].nested).toEqual({ 'Post@author': { nested: {} } });
+  });
+});
+
+describe('adapter contract details', () => {
+  it('hands fieldSelection the type the field is walked on (W-1)', async () => {
+    const seen: string[] = [];
+    const spied = createTestAdapter();
+    const { fieldSelection } = spied;
+
+    spied.fieldSelection = (field, type) => {
+      seen.push(`${type.name}.${field.name}`);
+
+      return fieldSelection(field, type);
+    };
+
+    const info = await resolveInfo(schema, '{ user { posts { title } } }');
+
+    queryFromInfo(spied, { context: {}, info });
+
+    expect(seen).toEqual(['User.posts', 'Post.title']);
+  });
+
+  it('hands back the query alone for a nested selection on a model-less field (A-1)', async () => {
+    const scalar = createTestAdapter();
+    const { fieldSelection } = scalar;
+    let nested: unknown;
+
+    scalar.fieldSelection = (field, type) =>
+      field.name === 'title'
+        ? (_args, _ctx, nestedSelection) => {
+            nested = nestedSelection({ select: { comments: true } });
+
+            return { select: { title: true } };
+          }
+        : fieldSelection(field, type);
+
+    const context = {};
+    const info = await resolveInfo(schema, '{ user { posts { title } } }');
+    const query = queryFromInfo(scalar, { context, info });
+
+    // No walk beneath a String field: the query given is the query returned, unchanged, and the
+    // field's own map is merged as any other (Post is in all-columns mode here, so no change).
+    expect(nested).toEqual({ select: { comments: true } });
+    expect(query).toEqual(queryFromInfo(adapter, { context: {}, info }));
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toMatchObject({
+      nested: { 'Post@title': { nested: {} } },
+    });
+  });
+
+  it('reads nothing of info.parentType without a callbackExtra (A-2)', async () => {
+    const info = await resolveInfo(schema, '{ user { posts { id } } }');
+    const partial = { ...info, parentType: undefined } as unknown as typeof info;
+
+    expect(queryFromInfo(adapter, { context: {}, info: partial })).toEqual(
+      queryFromInfo(adapter, { context: {}, info }),
+    );
+  });
+
+  it('touches neither the context nor the mappings when the adapter records none (A-3)', async () => {
+    const silent = createTestAdapter();
+
+    silent.recordsMappings = false;
+
+    const info = await resolveInfo(schema, '{ user { posts { id } } }');
+    const nullContext = null as unknown as object;
+
+    expect(queryFromInfo(silent, { context: nullContext, info })).toEqual(
+      queryFromInfo(adapter, { context: {}, info }),
+    );
+    expect(queryFromWalk(walkFromInfo(silent, { context: nullContext, info })!)).toEqual(
+      queryFromInfo(adapter, { context: {}, info }),
+    );
+    expect([...selectedFieldNames(nullContext, info)]).toEqual(['posts']);
   });
 });
 
