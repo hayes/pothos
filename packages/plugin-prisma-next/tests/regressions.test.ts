@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import { type GraphQLObjectType, printSchema } from 'graphql';
+import { GraphQLInt, GraphQLObjectType, printSchema } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, {
   type AnyContract,
@@ -427,7 +427,9 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
 
     // Build fake info whose returnType is *not* User; the override
     // forces the mapper to descend against the User type tree.
+    const schema = builder.toSchema();
     const info = {
+      parentType: schema.getType('User'),
       fieldNodes: [
         {
           kind: 'Field',
@@ -441,7 +443,7 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
       returnType: { name: 'Unrelated' },
       fragments: {},
       variableValues: {},
-      schema: builder.toSchema(),
+      schema,
     } as never;
 
     applySelectionToCollection(
@@ -684,8 +686,16 @@ describe('t.variant — extensions preservation (drizzle parity)', () => {
 });
 
 describe('buildTotalCountPromise — direct unit', () => {
+  // `selectedFieldNames` reads the field's return type to see the selection through any
+  // wrapper on it, so the fake info carries a connection-shaped return type.
+  const connectionType = new GraphQLObjectType({
+    name: 'FakeConnection',
+    fields: { edges: { type: GraphQLInt }, totalCount: { type: GraphQLInt } },
+  });
+
   it('returns resolved-undefined when totalCount is not selected', async () => {
     const info = {
+      returnType: connectionType,
       fieldNodes: [
         {
           selectionSet: {
@@ -710,6 +720,7 @@ describe('buildTotalCountPromise — direct unit', () => {
 
   it('runs the user-supplied resolver when totalCount is selected', async () => {
     const info = {
+      returnType: connectionType,
       fieldNodes: [
         {
           selectionSet: {
@@ -734,6 +745,7 @@ describe('buildTotalCountPromise — direct unit', () => {
 
   it('synchronously-throwing user resolver yields a rejected promise (no escape)', async () => {
     const info = {
+      returnType: connectionType,
       fieldNodes: [
         {
           selectionSet: {
@@ -761,6 +773,7 @@ describe('buildTotalCountPromise — direct unit', () => {
 
   it('falls back to baseCollection.aggregate when no resolver is supplied', async () => {
     const info = {
+      returnType: connectionType,
       fieldNodes: [
         {
           selectionSet: {
