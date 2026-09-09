@@ -785,7 +785,10 @@ export type FieldSelection =
       resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap | false | null | undefined);
 
-/** @deprecated use `Mappings` from `@pothos/selection-mapper` */
+/**
+ * @deprecated kept for compatibility. The loader mapping record is internal to the plugin and
+ * not part of its public API.
+ */
 export type LoaderMappings = Mappings;
 
 export interface IndirectInclude {
