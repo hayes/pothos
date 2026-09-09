@@ -1,4 +1,11 @@
-import type { InputFieldMap, InputShapeFromFields, ObjectRef, SchemaTypes } from '@pothos/core';
+import {
+  completeValue,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  type MaybePromise,
+  type ObjectRef,
+  type SchemaTypes,
+} from '@pothos/core';
 import { createNode } from '@pothos/selection-mapper';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
@@ -46,15 +53,15 @@ export function prismaConnectionHelpers<
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
-    ) => Select;
+    ) => MaybePromise<Select>;
     query?:
       | ((
           args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
           ctx: Types['Context'],
-        ) => {
+        ) => MaybePromise<{
           where?: Model['Where'];
           orderBy?: Model['OrderBy'];
-        })
+        }>)
       | {
           where?: Model['Where'];
           orderBy?: Model['OrderBy'];
@@ -127,25 +134,33 @@ export function prismaConnectionHelpers<
     ctx: Types['Context'],
     nestedSelection: <T extends true | {}>(selection?: T, path?: string[]) => T,
   ) {
-    const nestedSelect: Record<string, unknown> | true = select
-      ? { select: select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
+    // Both callbacks start now; the query waits for whichever of them is async (A-3, A-7: the
+    // declared type stays synchronous, so an async schema awaits the result).
+    const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
+      ? completeValue(
+          select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx),
+          (selected) => ({ select: selected }),
+        )
       : nestedSelection(true, ['edges', 'node']);
-
-    const node = createNode(fieldMap);
-
-    prismaAdapter.merge(node, { select: cursorSelection });
-
-    if (typeof nestedSelect === 'object' && nestedSelect) {
-      prismaAdapter.merge(node, nestedSelect);
-    }
-
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
 
-    return {
-      ...baseQuery,
-      ...getQueryArgs(args, ctx),
-      ...prismaAdapter.serialize(node),
-    } as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
+    return completeValue(nestedSelect, (nestedSelect) =>
+      completeValue(baseQuery, (baseQuery) => {
+        const node = createNode(fieldMap);
+
+        prismaAdapter.merge(node, { select: cursorSelection });
+
+        if (typeof nestedSelect === 'object' && nestedSelect) {
+          prismaAdapter.merge(node, nestedSelect);
+        }
+
+        return {
+          ...baseQuery,
+          ...getQueryArgs(args, ctx),
+          ...prismaAdapter.serialize(node),
+        };
+      }),
+    ) as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
       where?: Model['Where'];
       orderBy?: Model['OrderBy'];
       skip?: number;

@@ -1,4 +1,5 @@
 import {
+  completeValue,
   type FieldKind,
   type FieldRef,
   type InputFieldMap,
@@ -45,21 +46,22 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
   return this.field({
     ...(options as {}),
     type: typeParam,
-    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({
-        context,
-        info,
-        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
-        skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
-      });
-
-      return checkIfQueryIsUsed(
-        this.builder,
-        query,
-        info,
-        resolve(query, parent, args as never, context, info) as never,
-      );
-    },
+    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) =>
+      completeValue(
+        queryFromInfo({
+          context,
+          info,
+          withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+          skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
+        }),
+        (query) =>
+          checkIfQueryIsUsed(
+            this.builder,
+            query,
+            info,
+            resolve(query, parent, args as never, context, info) as never,
+          ),
+      ),
   }) as never;
 };
 
@@ -84,21 +86,22 @@ fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
   ).fieldWithInput({
     ...(options as {}),
     type: typeParam,
-    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({
-        context,
-        info,
-        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
-        skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
-      });
-
-      return checkIfQueryIsUsed(
-        this.builder,
-        query,
-        info,
-        resolve(query, parent, args as never, context, info) as never,
-      );
-    },
+    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) =>
+      completeValue(
+        queryFromInfo({
+          context,
+          info,
+          withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+          skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
+        }),
+        (query) =>
+          checkIfQueryIsUsed(
+            this.builder,
+            query,
+            info,
+            resolve(query, parent, args as never, context, info) as never,
+          ),
+      ),
   }) as never;
 } as never;
 
@@ -152,16 +155,6 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
-        const query = queryFromInfo({
-          context,
-          info,
-          select: cursorSelection as {},
-          paths: [['nodes'], ['edges', 'node']],
-          typeName,
-          withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
-          skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
-        });
-
         const returnType = getNamedType(info.returnType);
         const fields =
           isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
@@ -177,30 +170,42 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           ),
         );
 
-        return resolvePrismaCursorConnection(
-          {
-            parent,
-            query,
-            ctx: context,
-            parseCursor,
-            maxSize,
-            defaultSize,
-            args,
-            totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
-          },
-          formatCursor,
-          (q) => {
-            if (totalCountOnly) {
-              return [];
-            }
+        return completeValue(
+          queryFromInfo({
+            context,
+            info,
+            select: cursorSelection as {},
+            paths: [['nodes'], ['edges', 'node']],
+            typeName,
+            withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+            skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
+          }),
+          (query) =>
+            resolvePrismaCursorConnection(
+              {
+                parent,
+                query,
+                ctx: context,
+                parseCursor,
+                maxSize,
+                defaultSize,
+                args,
+                totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
+              },
+              formatCursor,
+              (q) => {
+                if (totalCountOnly) {
+                  return [];
+                }
 
-            return checkIfQueryIsUsed(
-              this.builder,
-              query,
-              info,
-              resolve(q as never, parent, args as never, context, info) as never,
-            );
-          },
+                return checkIfQueryIsUsed(
+                  this.builder,
+                  query,
+                  info,
+                  resolve(q as never, parent, args as never, context, info) as never,
+                );
+              },
+            ),
         );
       },
     },

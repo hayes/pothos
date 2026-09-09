@@ -4,6 +4,7 @@ import './field-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
+  completeValue,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
@@ -110,14 +111,15 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
                   args: {},
                   ctx: Types['Context'],
                   nestedQuery: (query: unknown, path?: string[], type?: string) => never,
-                ) => {
-                  const selected = (
-                    select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null
-                  )(args, ctx, nestedQuery);
-
-                  // A falsy selection means the field selects nothing from the parent row.
-                  return selected ? { select: selected } : null;
-                }
+                ) =>
+                  completeValue(
+                    (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null)(
+                      args,
+                      ctx,
+                      nestedQuery,
+                    ),
+                    wrapSelect,
+                  )
               : select,
         },
       };
@@ -176,16 +178,13 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if (fallback) {
-        return fallback(
+        return completeValue(
           queryFromInfo({
             context,
             info,
             skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments,
           }),
-          parent,
-          args,
-          context,
-          info,
+          (query) => fallback(query, parent, args, context, info),
         );
       }
 
@@ -194,6 +193,11 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         .then((result) => resolver(result, args, context, info));
     };
   }
+}
+
+/** A falsy selection means the field selects nothing from the parent row. */
+function wrapSelect(selected: {} | null) {
+  return selected ? { select: selected } : null;
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosPrismaPlugin, {

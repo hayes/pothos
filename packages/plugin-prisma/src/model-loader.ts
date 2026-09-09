@@ -1,6 +1,8 @@
 import {
+  completeValue,
   createContextCache,
   type InterfaceRef,
+  type MaybePromise,
   type ObjectRef,
   PothosSchemaError,
   type SchemaTypes,
@@ -27,7 +29,8 @@ export class ModelLoader {
 
   modelName: string;
 
-  queryCache = new Map<string, { walk: PrismaWalk; query: SelectionMap }>();
+  // L-4: one selection per `Type@path`, a promise while a select beneath the field is async.
+  queryCache = new Map<string, MaybePromise<{ walk: PrismaWalk; query: SelectionMap }>>();
 
   staged = new Set<{
     walk: PrismaWalk;
@@ -231,22 +234,24 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const walk = selectionStateFromInfo(
-        this.context,
-        info,
-        this.builder.options.prisma.skipDeferredFragments ?? true,
+      this.queryCache.set(
+        key,
+        completeValue(
+          selectionStateFromInfo(
+            this.context,
+            info,
+            this.builder.options.prisma.skipDeferredFragments ?? true,
+          ),
+          selectionOf,
+        ),
       );
-      this.queryCache.set(key, {
-        walk,
-        query: prismaAdapter.serialize(walk.root),
-      });
     }
 
     return this.queryCache.get(key)!;
   }
 
   async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { walk, query } = this.getSelection(info);
+    const { walk, query } = await this.getSelection(info);
 
     const result = await this.stageQuery(walk, query, model);
 
@@ -323,6 +328,10 @@ export class ModelLoader {
 
     return promise.promise;
   }
+}
+
+function selectionOf(walk: PrismaWalk) {
+  return { walk, query: prismaAdapter.serialize(walk.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {
