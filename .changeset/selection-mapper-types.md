@@ -14,10 +14,12 @@ Type the selection API by what it does, and document what was undocumented.
   field), keeping the keys it was given as given, so a `select`/`columns` in them still narrows
   the parent shape. Its argument is typed by that query when the field's type names a model, so
   literals such as `select: { title: true }` are kept. It used to return its argument's type.
-- One `PathSegment` type (`string | { name: string; type?: string }`) for `queryFromInfo` paths,
-  `nestedSelection` paths, and `IndirectInclude`, exported from `@pothos/selection-mapper` and
-  re-exported by both plugins. A `{ name, type }` segment given to `nestedSelection` now pins the
-  implementation the field is found under at runtime, as it already did for `queryFromInfo`.
+- One `PathSegment` type (`string | { name: string; type?: string }`) for `queryFromInfo` paths
+  and `nestedSelection` paths, exported from `@pothos/selection-mapper` and re-exported by both
+  plugins, together with `IndirectPathSegment` (its `{ name, type? }` form) and `IndirectInclude`,
+  whose `path`/`paths` still take only `IndirectPathSegment` objects. A `{ name, type }` segment
+  given to `nestedSelection` now pins the implementation the field is found under at runtime, as
+  it already did for `queryFromInfo`.
 - The `query` a `t.relation` fallback `resolve` receives (prisma) carries the relation's own
   arguments (`where`, `orderBy`, `take`, ...) alongside the planned `select`/`include`, so it
   spreads into a prisma call without a cast. Exported as `QueryFromRelation`.
