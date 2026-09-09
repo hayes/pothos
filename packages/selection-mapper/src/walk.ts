@@ -175,6 +175,18 @@ export interface Walk<M, Map, X = undefined> {
 const NONE: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
 
 /**
+ * One select invocation's mapping record while the invocation runs: `pending` counts the nested
+ * selections it started whose walk is async and which have not resolved (A-8). Set only when a
+ * nested walk is async, and removed once every one has resolved, so a recorded `Mapping` never
+ * carries it and a synchronous invocation never touches it.
+ */
+interface Invocation extends Mapping {
+  pending?: number;
+}
+
+function noop() {}
+
+/**
  * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
  * Declared synchronous (A-7): a promise is returned only when a callback returned one.
  */
@@ -832,7 +844,7 @@ function applyField<M, Map, X>(
   // This invocation's mapping; every nested walk it makes records into `mapping.nested`, which
   // stays invisible to the walk until the invocation's map is accepted.
   const extra = adapter.callbackExtra?.(walk.extra, type, field, fieldNode);
-  const mapping: Mapping = { nested: {}, extra };
+  const mapping: Invocation = { nested: {}, extra };
   const args = getMappedArgumentValues(field, fieldNode, context, info);
   const select = selection as SelectFn<Map, X>;
 
@@ -872,18 +884,33 @@ function runSelect<M, Map, X>(
  * S-5, M-3, M-4, L-2: merges an accepted map and records its mapping, or does neither. A
  * rejected or falsy map records nothing, so the resolver loads its own data (L-3). This is the
  * only place a mapping is recorded.
+ *
+ * A-8: an invocation whose nested selection is still pending returned without awaiting it. Its
+ * map cannot hold what the nested walk will select, so recording its mapping would claim data
+ * the query never loads: the invocation is refused instead, and the pending walks (already
+ * handled, see `awaitNested`) are left to settle unobserved. Checked after the merge, so a map
+ * that embeds the pending promise is reported as that by the adapter.
  */
 function mergeField<M, Map, X>(
   walk: Walk<M, Map, X>,
   node: Node<M>,
   key: string,
   map: Map | false | null | undefined,
-  mapping: Mapping,
+  mapping: Invocation,
 ) {
-  if (map && walk.env.adapter.compatible(node, map, true)) {
-    walk.env.adapter.merge(node, map);
-    walk.mappings[key] = unionMappings(walk.mappings[key], mapping);
+  if (!(map && walk.env.adapter.compatible(node, map, true))) {
+    return;
   }
+
+  walk.env.adapter.merge(node, map);
+
+  if (mapping.pending) {
+    throw new PothosValidationError(
+      `The selection function of ${key.replace('@', '.')} returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.`,
+    );
+  }
+
+  walk.mappings[key] = unionMappings(walk.mappings[key], mapping);
 }
 
 /** Adopts the first mapping accepted for a key; later accepted walks of the key deep-union. */
@@ -906,7 +933,7 @@ function nestedSelectionFor<M, Map, X>(
   fieldNode: FieldNode,
   args: object,
   extra: X | undefined,
-  mapping: Mapping,
+  mapping: Invocation,
 ): NestedSelection<Map, X> {
   const { env } = walk;
   const { info } = env;
@@ -984,8 +1011,32 @@ function nestedSelectionFor<M, Map, X>(
       ]);
     }
 
-    return finish(child, serializeRoot);
+    // A promise behind the declared synchronous type, as `finish` returns one (A-7).
+    return child.pending ? (awaitNested(child, mapping) as Map) : serializeRoot(child);
   };
+}
+
+/**
+ * A-8: the promise of a nested selection whose walk is async, counted against its invocation
+ * until it resolves. It is handled here, so a nested selection the invocation discards is never
+ * an unhandled rejection: `mergeField` refuses the invocation instead. A rejection keeps the
+ * count, since the invocation did not wait for it either; one that was awaited surfaces through
+ * the invocation's own promise.
+ */
+function awaitNested<M, Map, X>(child: Walk<M, Map, X>, mapping: Invocation) {
+  mapping.pending = (mapping.pending ?? 0) + 1;
+
+  const result = child.pending!.then(() => serializeRoot(child));
+
+  result.then(() => {
+    if (mapping.pending === 1) {
+      delete mapping.pending;
+    } else {
+      mapping.pending! -= 1;
+    }
+  }, noop);
+
+  return result;
 }
 
 /** E-3: a relation query merges over `empty`, so a query without columns adds none. */
