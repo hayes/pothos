@@ -111,10 +111,11 @@ const PostDraft = builder.prismaObject('Post', {
 
 ## Async selections
 
-`select` functions, relation `query` callbacks, and `relationCount` `where` callbacks may be async.
-The plugin still builds one query: it waits for the callbacks and merges what they return after
-every synchronous selection, in document order. Schemas without async callbacks are unaffected: no
-promise is created until a callback returns one.
+`select` functions, relation `query` callbacks, `relationCount` `where` callbacks, and the `select`
+and `query` callbacks of `prismaConnectionHelpers` may be async. The plugin still builds one query:
+it waits for the callbacks and merges what they return after every synchronous selection, in
+document order. Schemas without async callbacks are unaffected: no promise is created until a
+callback returns one.
 
 ```typescript
 builder.prismaObject('Post', {
@@ -136,7 +137,8 @@ builder.prismaObject('Post', {
 
 Inside an async `select`, `await` the result of `nestedSelection` (and of helpers built on it, such
 as `getQuery` from `prismaConnectionHelpers`) before adding it to the selection; a selection that
-contains the promise itself throws. Calling `nestedSelection` and discarding its result is not
+contains the promise itself throws, and so does a `select` that returns while a nested selection it
+started is still pending. Calling `nestedSelection` and discarding a synchronous result is not
 detected: the nested selection is then not loaded with the parent, and the field falls back to its
 own query. `queryFromInfo` returns a promise when a callback beneath the field is async, so `await`
 it in resolvers that call it directly.
@@ -184,7 +186,8 @@ builder.mutationField(
       }
 
       const post = prisma.city.create({
-        ...queryFromInfo({
+        // A promise when a callback beneath the field is async, so it is awaited
+        ...(await queryFromInfo({
           context,
           info,
           // nested path where the selections for this type can be found
@@ -194,7 +197,7 @@ builder.mutationField(
           select: {
             comments: true,
           },
-        }),
+        })),
         data: {
           title: args.input.title,
           ...
