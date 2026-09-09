@@ -38,6 +38,12 @@ import {
 } from './selections.js';
 import { wrapWithUsageCheck } from './usage.js';
 
+/**
+ * Plans `selection` (a field node) against `type`. `declaredType` is the named return type of the
+ * field the selection set belongs to; it differs from `type` when a walk is pinned to another
+ * type (a `typeName`, or an expected type handed to a nested selection), and decides whether
+ * fragments on other object types of the same model can apply (see `typeForFragment`).
+ */
 function addTypeSelectionsForField(
   type: GraphQLNamedType,
   context: object,
@@ -46,6 +52,7 @@ function addTypeSelectionsForField(
   selection: FieldNode,
   indirectPath: string[],
   deferred?: boolean,
+  declaredType: GraphQLNamedType = type,
 ) {
   if (selection.name.value.startsWith('__')) {
     return;
@@ -95,6 +102,7 @@ function addTypeSelectionsForField(
       selection,
       indirectPath,
       deferred,
+      declaredType,
     );
     return;
   }
@@ -106,7 +114,15 @@ function addTypeSelectionsForField(
   applyTypeSelection(type, state);
 
   if (selection.selectionSet && (!deferred || !state.skipDeferredFragments)) {
-    addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
+    addNestedSelections(
+      type,
+      context,
+      info,
+      state,
+      selection.selectionSet,
+      indirectPath,
+      isAbstractType(declaredType),
+    );
   }
 }
 
@@ -447,10 +463,15 @@ function resolveFragmentTypes(
  * `type`. A fragment on an interface `type` implements is planned against `type`, whose field map
  * already carries the interface fields and their `select` extensions. A fragment on another type
  * of the same model (a variant, or an interface of the model) is planned against that type.
+ *
+ * A different object type of the same model is entered only under an abstract declared type
+ * (`underAbstractType`): under a concrete one the fragment can never execute as that object, so
+ * its type-level selection has nothing to contribute and must not conflict.
  */
 function typeForFragment(
   type: GraphQLInterfaceType | GraphQLObjectType,
   condition: GraphQLNamedType,
+  underAbstractType: boolean,
 ): GraphQLInterfaceType | GraphQLObjectType | null {
   if (condition.name === type.name) {
     return type;
@@ -467,12 +488,16 @@ function typeForFragment(
     (isObjectType(condition) || isInterfaceType(condition)) &&
     condition.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
   ) {
-    return condition;
+    return isObjectType(condition) && !underAbstractType ? null : condition;
   }
 
   return null;
 }
 
+/**
+ * Plans the selection set of a field whose declared return type is `type`; `underAbstractType`
+ * says whether that declared type is abstract, which decides which same-model fragments enter.
+ */
 function addNestedSelections(
   type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
@@ -480,14 +505,15 @@ function addNestedSelections(
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
+  underAbstractType: boolean,
 ) {
   // Every variant a fragment at this node enters is merged before any field here is planned, so
   // conflicts are only ever found between type-level selections, whatever order the document
   // lists fields and fragments in. A field-level select that conflicts with a variant's
   // type-level selection then falls back to its own query, as it would against the node's own
   // type-level selection.
-  enterVariants(type, info, state, selections);
-  addSelections(type, context, info, state, selections, indirectPath);
+  enterVariants(type, info, state, selections, underAbstractType);
+  addSelections(type, context, info, state, selections, indirectPath, underAbstractType);
 }
 
 /**
@@ -500,6 +526,7 @@ function enterVariants(
   info: GraphQLResolveInfo,
   state: SelectionState,
   selections: SelectionSetNode,
+  underAbstractType: boolean,
 ) {
   for (const selection of selections.selections) {
     if (selection.kind === Kind.FIELD || fragmentSkipped(info, state, selection)) {
@@ -511,13 +538,13 @@ function enterVariants(
     const condition = fragment.typeCondition
       ? info.schema.getType(fragment.typeCondition.name.value)!
       : type;
-    const fragmentType = typeForFragment(type, condition);
+    const fragmentType = typeForFragment(type, condition, underAbstractType);
 
     if (fragmentType && fragmentType !== type) {
       enterVariant(type, fragmentType, state);
     }
 
-    enterVariants(fragmentType ?? type, info, state, fragment.selectionSet);
+    enterVariants(fragmentType ?? type, info, state, fragment.selectionSet, underAbstractType);
   }
 }
 
@@ -528,6 +555,7 @@ function addSelections(
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
+  underAbstractType: boolean,
   skipFields = false,
 ) {
   for (const selection of selections.selections) {
@@ -553,6 +581,7 @@ function addSelections(
           info.schema.getType(fragment.typeCondition.name.value)!,
           fragment.selectionSet,
           indirectPath,
+          underAbstractType,
         );
 
         continue;
@@ -570,6 +599,7 @@ function addSelections(
           selection.typeCondition ? info.schema.getType(selection.typeCondition.name.value)! : type,
           selection.selectionSet,
           indirectPath,
+          underAbstractType,
         );
 
         continue;
@@ -596,8 +626,9 @@ function addFragmentSelections(
   condition: GraphQLNamedType,
   selections: SelectionSetNode,
   indirectPath: string[],
+  underAbstractType: boolean,
 ) {
-  const fragmentType = typeForFragment(type, condition);
+  const fragmentType = typeForFragment(type, condition, underAbstractType);
 
   addSelections(
     fragmentType ?? type,
@@ -606,6 +637,7 @@ function addFragmentSelections(
     state,
     selections,
     indirectPath,
+    underAbstractType,
     !fragmentType,
   );
 }
@@ -721,7 +753,16 @@ function addFieldSelection(
         } else if (normalizedIndirectInclude) {
           const targetType = info.schema.getType(normalizedIndirectInclude.getType())!;
           if (targetType !== returnType) {
-            addTypeSelectionsForField(targetType, context, info, fieldState, selection, []);
+            addTypeSelectionsForField(
+              targetType,
+              context,
+              info,
+              fieldState,
+              selection,
+              [],
+              undefined,
+              returnType,
+            );
           }
         }
 
@@ -852,13 +893,23 @@ export function queryFromInfo<
           match.field,
           match.path,
           match.deferred,
+          match.type,
         );
       }
     }
   } else {
     state = createStateForType(type, info, skipDeferredFragments, undefined, initialSelection);
 
-    addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
+    addTypeSelectionsForField(
+      type,
+      context,
+      info,
+      state,
+      info.fieldNodes[0],
+      [],
+      undefined,
+      returnType,
+    );
   }
 
   if (!state) {
