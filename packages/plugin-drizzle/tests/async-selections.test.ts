@@ -8,7 +8,7 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import { eq } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import type { DocumentNode } from 'graphql';
+import type { DocumentNode, GraphQLObjectType } from 'graphql';
 import { gql } from 'graphql-tag';
 import DrizzlePlugin, { drizzleConnectionHelpers } from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
@@ -40,7 +40,12 @@ SchemaBuilder.registerPlugin('asyncArgs', AsyncArgsPlugin);
 
 interface Context {
   user: { id: number };
+  /** The query `user` planned, and a row loaded with it, returned by `spiedUser` as is. */
+  planned?: object;
+  row?: object;
+  /** Promise count and call count of the resolvers wrapped by `spyResolvers`. */
   promises?: number;
+  resolved?: number;
 }
 
 const builder = new SchemaBuilder<{
@@ -213,7 +218,11 @@ builder.queryType({
     // The query is a promise when a selection beneath the field is async (A-7).
     user: t.drizzleField({
       type: User,
-      resolve: async (query) => db.query.users.findFirst(await query({ where: { id: 1 } })),
+      resolve: async (query, _root, _args, ctx) => {
+        ctx.planned = await query({ where: { id: 1 } });
+
+        return db.query.users.findFirst(ctx.planned);
+      },
     }),
     // A row fetched without the planned selection: every field with a `select` loads its own
     // data through the model loader.
@@ -221,21 +230,47 @@ builder.queryType({
       type: User,
       resolve: () => db.query.users.findFirst({ where: { id: 1 } }),
     }),
-    // Plans the document under a Promise spy and reports the count on the context.
+    // Returns a row the test loaded with the planned query, so the whole resolution (planning
+    // included) can run under the Promise spy without a database round trip.
     spiedUser: t.drizzleField({
       type: User,
       resolve: (query, _root, _args, ctx) => {
-        const { result, promises } = countPromises(() => query({ where: { id: 1 } }));
+        query({ where: { id: 1 } });
 
-        ctx.promises = promises;
-
-        return db.query.users.findFirst(result);
+        return ctx.row as never;
       },
     }),
   }),
 });
 
 const schema = builder.toSchema();
+
+/** Wraps the built resolvers of `fields` so every call is counted under the Promise spy. */
+function spyResolvers(fields: [string, string][]) {
+  for (const [typeName, fieldName] of fields) {
+    const field = (schema.getType(typeName) as GraphQLObjectType).getFields()[fieldName];
+    const { resolve } = field;
+
+    field.resolve = (parent, args, ctx: Context, info) => {
+      const { result, promises } = countPromises(() => resolve!(parent, args, ctx, info));
+
+      ctx.promises = (ctx.promises ?? 0) + promises;
+      ctx.resolved = (ctx.resolved ?? 0) + 1;
+
+      return result;
+    };
+  }
+}
+
+spyResolvers([
+  ['Query', 'spiedUser'],
+  ['User', 'posts'],
+  ['User', 'publishedCount'],
+  ['User', 'postsTotal'],
+  ['User', 'postsConnection'],
+  ['User', 'commentsConnection'],
+  ['Post', 'comments'],
+]);
 
 async function run(document: DocumentNode) {
   clearDrizzleLogs();
@@ -367,21 +402,36 @@ describe('async selections', () => {
     expect(logs[1]).toContain('"d0"."id" in (?)');
   });
 
-  it('creates no promise while planning a synchronous document (A-1)', async () => {
-    const { result, logs, context } = await run(gql`
-      {
-        spiedUser {
-          id
-          ... on User { posts(limit: 2) { id comments { id } } }
-          publishedCount
-          postsTotal
-          commentsConnection(first: 1) { edges { node { id } } }
-        }
-      }
-    `);
+  it('creates no promise while planning and resolving a synchronous document (A-1)', async () => {
+    const selection = /* GraphQL */ `{
+      id
+      ... on User { publishedCount }
+      postsTotal
+      postsConnection(first: 2) { edges { node { id comments { id } } } }
+      commentsConnection(first: 1) { edges { node { id } } }
+    }`;
+    // The row `spiedUser` hands back: loaded with the query the same document plans.
+    const planned = await run(gql`{ user ${selection} }`);
+
+    expect(planned.logs).toHaveLength(1);
+
+    const row = await db.query.users.findFirst(planned.context.planned as never);
+    clearDrizzleLogs();
+
+    const contextValue: Context = { user: { id: 1 }, row };
+    const result = await execute({
+      schema,
+      document: gql`{ spiedUser ${selection} }`,
+      contextValue,
+    });
 
     expect(result.errors).toBeUndefined();
-    expect(logs).toHaveLength(1);
-    expect(context.promises).toBe(0);
+    expect(result.data).toEqual({ spiedUser: (planned.result.data as { user: unknown }).user });
+    expect(drizzleLogs).toHaveLength(0);
+    // The root field (planning + `drizzleField` resolve), the loaded-path count, related field
+    // and connection fields for the row, and the loaded-path relation `comments` for each of
+    // its two posts.
+    expect(contextValue.resolved).toBe(1 + 4 + 2);
+    expect(contextValue.promises).toBe(0);
   });
 });

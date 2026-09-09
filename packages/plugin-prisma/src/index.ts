@@ -5,6 +5,7 @@ import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
   completeValue,
+  isThenable,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
@@ -178,14 +179,15 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if (fallback) {
-        return completeValue(
-          queryFromInfo({
-            context,
-            info,
-            skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments,
-          }),
-          (query) => fallback(query, parent, args, context, info),
-        );
+        const query = queryFromInfo({
+          context,
+          info,
+          skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments,
+        });
+
+        return isThenable(query)
+          ? query.then((resolved) => fallback(resolved as {}, parent, args, context, info))
+          : fallback(query, parent, args, context, info);
       }
 
       return loaderCache(context)

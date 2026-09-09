@@ -287,13 +287,20 @@ function chain<M, Map, X, T>(walk: Walk<M, Map, X>, value: PromiseLike<T>, merge
  * The single exit of every entry point (A-3): `done` runs now when nothing is pending, else
  * after every pending merge. The result is then a promise behind the declared synchronous type
  * (A-7): a schema without async callbacks never sees one, and one with them must await it.
+ * Fixed arity, so the synchronous call allocates nothing.
  */
-function finish<M, Map, X, A extends unknown[], R>(
+function finish<M, Map, X, R>(walk: Walk<M, Map, X>, done: (walk: Walk<M, Map, X>) => R): R;
+function finish<M, Map, X, A, R>(
   walk: Walk<M, Map, X>,
-  done: (walk: Walk<M, Map, X>, ...args: A) => R,
-  ...args: A
+  done: (walk: Walk<M, Map, X>, arg: A) => R,
+  arg: A,
+): R;
+function finish<M, Map, X, A, R>(
+  walk: Walk<M, Map, X>,
+  done: (walk: Walk<M, Map, X>, arg?: A) => R,
+  arg?: A,
 ): R {
-  return walk.pending ? (walk.pending.then(() => done(walk, ...args)) as R) : done(walk, ...args);
+  return walk.pending ? (walk.pending.then(() => done(walk, arg)) as R) : done(walk, arg);
 }
 
 function identity<M, Map, X>(walk: Walk<M, Map, X>) {

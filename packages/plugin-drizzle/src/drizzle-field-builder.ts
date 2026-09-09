@@ -311,6 +311,39 @@ export class DrizzleObjectFieldBuilder<
       return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
     };
 
+    // Built once per field, so a synchronous plan allocates nothing beyond the map itself.
+    const selectConnection = (
+      fieldQuery: ConnectionFieldQuery,
+      nested: SelectionMap | undefined,
+      context: object,
+      hasTotalCount: boolean,
+      totalCountOnly: boolean,
+    ) => {
+      const countSelection = {
+        [countKey]: (parent: TableConfig['table']) =>
+          getClient(this.builder, context).$count(
+            relatedTable.table as Table,
+            buildCountFilter(parent, fieldQuery.where),
+          ),
+      };
+
+      if (totalCountOnly) {
+        return {
+          columns: {},
+          with: {},
+          extras: countSelection,
+        };
+      }
+
+      return {
+        columns: {},
+        with: {
+          [name]: nested,
+        },
+        extras: hasTotalCount ? countSelection : {},
+      };
+    };
+
     const relationSelect = (
       args: object,
       context: object,
@@ -320,7 +353,7 @@ export class DrizzleObjectFieldBuilder<
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
 
-      const hasTotalCount = totalCount && !!getSelection(['totalCount']);
+      const hasTotalCount = !!totalCount && !!getSelection(['totalCount']);
       const hasEdges = !!getSelection(['edges']);
       const hasNodes = !!getSelection(['nodes']);
       const hasPageInfo = !!getSelection(['pageInfo']);
@@ -340,31 +373,32 @@ export class DrizzleObjectFieldBuilder<
             },
           ) as MaybePromise<SelectionMap>);
 
-      return completeValue(fieldQuery, (fieldQuery) => {
-        const countSelection = {
-          [countKey]: (parent: TableConfig['table']) =>
-            getClient(this.builder, context).$count(
-              relatedTable.table as Table,
-              buildCountFilter(parent, fieldQuery.where),
-            ),
-        };
+      return isThenable(fieldQuery) || isThenable(nested)
+        ? Promise.all([fieldQuery, nested]).then(([resolvedQuery, resolvedNested]) =>
+            selectConnection(resolvedQuery, resolvedNested, context, hasTotalCount, totalCountOnly),
+          )
+        : selectConnection(fieldQuery, nested, context, hasTotalCount, totalCountOnly);
+    };
 
-        if (totalCountOnly) {
-          return {
-            columns: {},
-            with: {},
-            extras: countSelection,
-          };
-        }
+    // The loaded path, per parent row: the rows are on the parent, only the page is needed.
+    const resolveLoaded = (
+      fieldQuery: ConnectionFieldQuery,
+      parent: unknown,
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      context: {},
+      countValue: number | undefined,
+    ) => {
+      const { select, cursorFields } = getQuery(args, context, fieldQuery);
 
-        return completeValue(nested, (nested) => ({
-          columns: {},
-          with: {
-            [name]: nested,
-          },
-          extras: hasTotalCount ? countSelection : {},
-        }));
-      });
+      return wrapConnectionResult(
+        (parent as Record<string, unknown>)[name] as readonly {}[],
+        args,
+        select.limit,
+        getCursorFormatter(cursorFields, schemaConfig),
+        undefined,
+        parent,
+        countValue,
+      );
     };
     const fieldRef = (
       this as unknown as {
@@ -424,19 +458,13 @@ export class DrizzleObjectFieldBuilder<
             | PathInfo
             | undefined;
 
-          return completeValue(resolveFieldQuery(args, context, pathInfo), (fieldQuery) => {
-            const { select, cursorFields } = getQuery(args, context, fieldQuery);
+          const fieldQuery = resolveFieldQuery(args, context, pathInfo);
 
-            return wrapConnectionResult(
-              parentRecord[name] as readonly {}[],
-              args,
-              select.limit,
-              getCursorFormatter(cursorFields, schemaConfig),
-              undefined,
-              parent,
-              countValue,
-            );
-          });
+          return isThenable(fieldQuery)
+            ? fieldQuery.then((resolved) =>
+                resolveLoaded(resolved, parent, args, context, countValue),
+              )
+            : resolveLoaded(fieldQuery, parent, args, context, countValue);
         },
       },
       connectionOptions instanceof ObjectRef
@@ -688,6 +716,22 @@ export class DrizzleObjectFieldBuilder<
     const relationField = schemaConfig.relations?.[this.table].relations[relationName as string];
     const relatedTable = schemaConfig.relations[relationField.targetTableName];
 
+    // Built once per field; the `extras` function it returns is what the plan carried before.
+    const countExtras = (
+      whereClause: SQL | undefined,
+      ctx: Types['Context'],
+      buildFilter: (parent: TableConfig['table']) => SQL,
+    ) =>
+      ({
+        extras: {
+          [countKey]: (parent: TableConfig['table']) =>
+            getClient(this.builder, ctx).$count(
+              relatedTable.table as Table,
+              whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
+            ),
+        },
+      }) as never;
+
     return this.relatedField(relationName, {
       ...options,
       type: 'Int' as never,
@@ -700,22 +744,18 @@ export class DrizzleObjectFieldBuilder<
         buildFilter: (parent: TableConfig['table']) => SQL,
         args: object,
         ctx: Types['Context'],
-      ) =>
-        completeValue(
+      ) => {
+        const whereClause =
           typeof where === 'function'
             ? (where as (args: unknown, ctx: unknown) => MaybePromise<SQL | undefined>)(args, ctx)
-            : where,
-          (whereClause) =>
-            ({
-              extras: {
-                [countKey]: (parent: TableConfig['table']) =>
-                  getClient(this.builder, ctx).$count(
-                    relatedTable.table as Table,
-                    whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
-                  ),
-              },
-            }) as never,
-        ),
+            : where;
+
+        return isThenable(whereClause)
+          ? whereClause.then((resolved) =>
+              countExtras(resolved as SQL | undefined, ctx, buildFilter),
+            )
+          : countExtras(whereClause, ctx, buildFilter);
+      },
       resolve: (parent: Record<string, number>) => parent[countKey],
     } as never) as FieldRef<Types, number, 'DrizzleObject'>;
   }

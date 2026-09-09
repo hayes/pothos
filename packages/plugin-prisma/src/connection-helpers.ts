@@ -2,6 +2,7 @@ import {
   completeValue,
   type InputFieldMap,
   type InputShapeFromFields,
+  isThenable,
   type MaybePromise,
   type ObjectRef,
   type SchemaTypes,
@@ -22,6 +23,10 @@ import { getDMMF } from './util/get-client.js';
 import { getRelationMap } from './util/relation-map.js';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
+
+function wrapSelect(selected: unknown) {
+  return { select: selected };
+}
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -139,33 +144,48 @@ export function prismaConnectionHelpers<
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? completeValue(
           select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx),
-          (selected) => ({ select: selected }),
+          wrapSelect,
         )
       : nestedSelection(true, ['edges', 'node']);
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
 
-    return completeValue(nestedSelect, (nestedSelect) =>
-      completeValue(baseQuery, (baseQuery) => {
-        const node = createNode(fieldMap);
-
-        prismaAdapter.merge(node, { select: cursorSelection });
-
-        if (typeof nestedSelect === 'object' && nestedSelect) {
-          prismaAdapter.merge(node, nestedSelect);
-        }
-
-        return {
-          ...baseQuery,
-          ...getQueryArgs(args, ctx),
-          ...prismaAdapter.serialize(node),
-        };
-      }),
-    ) as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
+    return (isThenable(nestedSelect) || isThenable(baseQuery)
+      ? Promise.all([nestedSelect, baseQuery]).then(([nested, base]) =>
+          buildQuery(nested, base, args, ctx),
+        )
+      : buildQuery(
+          nestedSelect,
+          baseQuery,
+          args,
+          ctx,
+        )) as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
       where?: Model['Where'];
       orderBy?: Model['OrderBy'];
       skip?: number;
       take?: number;
       cursor?: Model['WhereUnique'];
+    };
+  }
+
+  // Built once per helper, so a synchronous `getQuery` allocates nothing beyond the query.
+  function buildQuery(
+    nestedSelect: Record<string, unknown> | true,
+    baseQuery: object,
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+    ctx: Types['Context'],
+  ) {
+    const node = createNode(fieldMap);
+
+    prismaAdapter.merge(node, { select: cursorSelection });
+
+    if (typeof nestedSelect === 'object' && nestedSelect) {
+      prismaAdapter.merge(node, nestedSelect);
+    }
+
+    return {
+      ...baseQuery,
+      ...getQueryArgs(args, ctx),
+      ...prismaAdapter.serialize(node),
     };
   }
 

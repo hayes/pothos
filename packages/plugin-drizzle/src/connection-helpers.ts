@@ -2,6 +2,7 @@ import {
   completeValue,
   type InputFieldMap,
   type InputShapeFromFields,
+  isThenable,
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
@@ -116,25 +117,38 @@ export function drizzleConnectionHelpers<
       orEmpty,
     );
 
+  // Built once per helper, so a synchronous `resolve` allocates nothing beyond the connection.
+  const resolveList = (
+    baseQuery: BaseQuery,
+    list: (EdgeShape & {})[],
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+    ctx: Types['Context'],
+    parent: unknown,
+  ) => {
+    const { select, cursorFields } = getQueryArgs(args, ctx, baseQuery);
+    const formatCursor = getCursorFormatter(cursorFields, config);
+
+    return wrapConnectionResult(
+      list,
+      args,
+      select.limit,
+      formatCursor,
+      (resolveNode as never) ?? ((edge: unknown) => edge),
+      parent,
+    );
+  };
+
   function resolve<Parent = undefined>(
     list: (EdgeShape & {})[],
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     parent?: Parent,
   ) {
-    return completeValue(baseQueryFor(args, ctx), (baseQuery) => {
-      const { select, cursorFields } = getQueryArgs(args, ctx, baseQuery);
-      const formatCursor = getCursorFormatter(cursorFields, config);
+    const baseQuery = baseQueryFor(args, ctx);
 
-      return wrapConnectionResult(
-        list,
-        args,
-        select.limit,
-        formatCursor,
-        (resolveNode as never) ?? ((edge: unknown) => edge),
-        parent,
-      );
-    }) as unknown as {
+    return (isThenable(baseQuery)
+      ? baseQuery.then((resolved) => resolveList(resolved, list, args, ctx, parent))
+      : resolveList(baseQuery, list, args, ctx, parent)) as unknown as {
       parent: Parent;
       edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
       pageInfo: {
@@ -207,22 +221,11 @@ export function drizzleConnectionHelpers<
       : nestedSelection(true, ['edges', 'node']);
     const baseQuery = baseQueryFor(args, ctx);
 
-    return completeValue(nestedSelect, (nestedSelect) =>
-      completeValue(baseQuery, (baseQuery) => {
-        const node = createNode(config.relations[tableName]);
-
-        adapter.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);
-
-        if (typeof nestedSelect === 'object' && nestedSelect) {
-          adapter.merge(node, nestedSelect);
-        }
-
-        return omitUndefinedKeys({
-          ...baseQuery,
-          ...adapter.serialize(node),
-        });
-      }),
-    ) as unknown as Omit<Selection, 'orderBy'> & {
+    return (isThenable(nestedSelect) || isThenable(baseQuery)
+      ? Promise.all([nestedSelect, baseQuery]).then(([nested, base]) =>
+          buildQuery(nested, base, args, ctx),
+        )
+      : buildQuery(nestedSelect, baseQuery, args, ctx)) as unknown as Omit<Selection, 'orderBy'> & {
       orderBy: {
         [K in TableConfig['table']['_'] extends { columns: infer Columns }
           ? keyof Columns
@@ -230,6 +233,27 @@ export function drizzleConnectionHelpers<
       };
       where: RelationsFilter<TableConfig, Types['DrizzleRelations']>;
     };
+  }
+
+  // Built once per helper, so a synchronous `getQuery` allocates nothing beyond the query.
+  function buildQuery(
+    nestedSelect: Record<string, unknown> | true,
+    baseQuery: BaseQuery,
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+    ctx: Types['Context'],
+  ) {
+    const node = createNode(config.relations[tableName]);
+
+    adapter.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);
+
+    if (typeof nestedSelect === 'object' && nestedSelect) {
+      adapter.merge(node, nestedSelect);
+    }
+
+    return omitUndefinedKeys({
+      ...baseQuery,
+      ...adapter.serialize(node),
+    });
   }
 
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;
