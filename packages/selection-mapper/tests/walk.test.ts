@@ -259,20 +259,101 @@ describe('queryFromInfo', () => {
 
 describe('fragments (S-7)', () => {
   it("merges a variant's type-level selection when a fragment enters it", async () => {
+    const info = await resolveInfo(schema, '{ person { id ... on User { name } } }');
+
+    // Person is select mode; the User fragment flips the query to every column.
+    expect(queryFromInfo(adapter, { context: {}, info })).toEqual({});
+  });
+
+  it('does not enter an object variant under a concrete field type', async () => {
     const info = await resolveInfo(schema, '{ viewer { id ... on User { name } } }');
 
-    // Viewer is select mode; the User fragment flips the query to every column.
+    // The field is declared as Viewer, so a User row can never be returned there.
     expect(queryFromInfo(adapter, { context: {}, info })).toEqual({
-      select: { posts: { take: 5 } },
+      select: { posts: { take: 5 }, id: true },
     });
   });
 
   it('rejects a variant whose type-level relation arguments conflict', async () => {
-    const info = await resolveInfo(schema, '{ viewer { id ... on Admin { id } } }');
+    const info = await resolveInfo(
+      schema,
+      '{ person { id ... on Viewer { email } ... on Admin { id } } }',
+    );
 
     expect(() => queryFromInfo(adapter, { context: {}, info })).toThrow(
-      'Type-level selections of Viewer and Admin conflict on relation "posts"',
+      'Type-level selections of Person and Admin conflict on relation "posts"',
     );
+  });
+
+  it('rejects a variant whose type-level extras conflict', async () => {
+    const withExtras = createTestAdapter();
+    const { typeSelection } = withExtras;
+    const count = () => 1;
+
+    withExtras.typeSelection = (type) => {
+      if (type.name === 'Person') {
+        return { select: { id: true }, extras: { total: count } };
+      }
+
+      if (type.name === 'Viewer') {
+        return { select: { id: true }, extras: { total: () => 2 } };
+      }
+
+      if (type.name === 'Admin') {
+        return { select: { id: true }, extras: { total: count } };
+      }
+
+      return typeSelection(type);
+    };
+
+    const same = await resolveInfo(schema, '{ person { id ... on Admin { id } } }');
+
+    expect(queryFromInfo(withExtras, { context: {}, info: same })).toEqual({
+      extras: { total: count },
+      select: { id: true },
+    });
+
+    const other = await resolveInfo(schema, '{ person { id ... on Viewer { email } } }');
+
+    expect(() => queryFromInfo(withExtras, { context: {}, info: other })).toThrow(
+      'Type-level selections of Person and Viewer conflict on extra "total". Define the extra with the same function on both types, or move it to a field-level select on one of the types.',
+    );
+  });
+
+  it('enters variants before any field is merged, so conflicts are order-independent', async () => {
+    const context = {};
+    const info = await resolveInfo(
+      schema,
+      '{ person { posts(take: 2) { id } ... on Viewer { email } } }',
+    );
+
+    // Viewer's type-level `posts: { take: 5 }` wins; the field's own `take: 2` is a field-level
+    // conflict, so `posts` loads on its own instead of raising an error.
+    expect(queryFromInfo(adapter, { context, info })).toEqual({
+      select: { posts: { take: 5 }, id: true, email: true },
+    });
+    expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Person')).toBe(null);
+  });
+
+  it('honours @skip and @include on fragments', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `
+        query ($skip: Boolean!) {
+          person {
+            ... on Viewer @skip(if: $skip) { email }
+            ...Admin @include(if: false)
+            ... @include(if: true) { posts { id } }
+          }
+        }
+        fragment Admin on Admin { id }
+      `,
+      { variableValues: { skip: true } },
+    );
+
+    expect(queryFromInfo(adapter, { context: {}, info })).toEqual({
+      select: { posts: true, id: true },
+    });
   });
 
   it('suppresses fields of a fragment that cannot apply, but lets a nested one narrow back', async () => {
@@ -298,14 +379,18 @@ describe('fragments (S-7)', () => {
 
   it('lets the adapter classify fragments itself', async () => {
     const strict = createTestAdapter();
+    const seen: string[] = [];
 
-    strict.fragmentType = (type, condition) => (condition === type ? type : undefined);
+    strict.fragmentType = (type, condition, declared) => {
+      seen.push(`${type.name}:${condition.name}:${declared.name}`);
 
-    const info = await resolveInfo(schema, '{ viewer { id ... on User { posts { id } } } }');
+      return condition === type ? type : undefined;
+    };
 
-    expect(queryFromInfo(strict, { context: {}, info })).toEqual({
-      select: { posts: { take: 5 }, id: true },
-    });
+    const info = await resolveInfo(schema, '{ person { id ... on User { posts { id } } } }');
+
+    expect(queryFromInfo(strict, { context: {}, info })).toEqual({ select: { id: true } });
+    expect(seen).toEqual(['Person:User:Person', 'Person:User:Person']);
   });
 });
 
@@ -320,6 +405,28 @@ describe('selectionStateFromInfo (E-2)', () => {
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
     expect(adapter.serialize(walk.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
     expect(walk.mappings).toEqual({ 'Viewer@posts': { nested: {} } });
+  });
+
+  it('plans every node selecting the field into the same row', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        user {
+          ... on User { posts(take: 1) { id } }
+          ... on User { posts(take: 1) { author { id } } }
+        }
+      }`,
+      { at: ['User', 'posts'] },
+    );
+
+    expect(info.fieldNodes).toHaveLength(2);
+
+    const walk = selectionStateFromInfo(adapter, {}, info);
+
+    expect(adapter.serialize(walk.root)).toEqual({
+      select: { posts: { take: 1, select: { author: true } } },
+    });
+    expect(walk.mappings['User@posts'].nested).toEqual({ 'Post@author': { nested: {} } });
   });
 
   it('keys the mapping by the field alias', async () => {
