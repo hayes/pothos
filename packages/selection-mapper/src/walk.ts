@@ -244,13 +244,13 @@ export function defaultFragmentType<M>(
   return undefined;
 }
 
-/** The single exit of every entry point, so async completion can be added here later. */
-function finish<M, Map, X, A, R>(
+/** The single exit of every entry point: the async seam, where awaiting the walk will land. */
+function finish<M, Map, X, A extends unknown[], R>(
   walk: Walk<M, Map, X>,
-  done: (walk: Walk<M, Map, X>, arg: A) => R,
-  arg?: A,
+  done: (walk: Walk<M, Map, X>, ...args: A) => R,
+  ...args: A
 ): R {
-  return done(walk, arg as A);
+  return done(walk, ...args);
 }
 
 function identity<M, Map, X>(walk: Walk<M, Map, X>) {
