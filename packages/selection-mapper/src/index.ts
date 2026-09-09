@@ -20,7 +20,7 @@ export {
   normalizeInclude,
   type PathSegment,
   resolveType,
-  selectedFieldNodes,
+  selectsPath,
 } from './matches.js';
 export { createNode, type Node, relation } from './node.js';
 export { extendWithUsage, isUsed, usageSymbol, wrapWithUsageCheck } from './usage.js';
@@ -33,6 +33,7 @@ export {
   queryFromInfo,
   type SelectFn,
   selectionStateFromInfo,
+  type TypeLevelConflict,
   type Walk,
   walkFromInfo,
 } from './walk.js';

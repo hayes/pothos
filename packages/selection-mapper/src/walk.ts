@@ -1,12 +1,15 @@
 import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
 import {
   type FieldNode,
+  type FragmentDefinitionNode,
   type GraphQLField,
   type GraphQLInterfaceType,
   type GraphQLNamedType,
   type GraphQLObjectType,
   type GraphQLResolveInfo,
   getNamedType,
+  type InlineFragmentNode,
+  isAbstractType,
   isInterfaceType,
   isObjectType,
   Kind,
@@ -90,8 +93,11 @@ export interface Adapter<M, Map, X = undefined> {
    * compared.
    */
   compatible(node: Node<M>, map: Map, ignoreArgs: boolean): boolean;
-  /** S-7: the first relation of `map` whose arguments conflict with `node`, if any. */
-  conflictingRelation(node: Node<M>, map: Map): string | undefined;
+  /**
+   * S-7: the first relation (arguments compared by value) or extra (compared as the adapter
+   * compares extras) of a type-level `map` that conflicts with what `node` already holds.
+   */
+  typeLevelConflict(node: Node<M>, map: Map): TypeLevelConflict | undefined;
   /** E-2: `map` without the relations and extras whose arguments conflict with `node`. */
   withoutConflicts(node: Node<M>, map: Map): Map;
   /** M-6. */
@@ -111,9 +117,20 @@ export interface Adapter<M, Map, X = undefined> {
    * S-7: how to walk a fragment on `condition` while walking `type`: as `type`, as `condition`
    * (a variant of the same model, whose type-level selection is merged), or not at all
    * (undefined: its fields are suppressed, nested fragments are still classified against `type`).
-   * Defaults to `defaultFragmentType`.
+   * `declared` is the declared return type of the field being walked, before any indirect
+   * include is followed. Defaults to `defaultFragmentType`.
    */
-  fragmentType?(type: WalkedType, condition: GraphQLNamedType): WalkedType | undefined;
+  fragmentType?(
+    type: WalkedType,
+    condition: GraphQLNamedType,
+    declared: GraphQLNamedType,
+  ): WalkedType | undefined;
+}
+
+/** A type-level selection entry that cannot be merged with what a node already holds. */
+export interface TypeLevelConflict {
+  kind: 'extra' | 'relation';
+  name: string;
 }
 
 /** What one entry-point call runs with, shared by reference with every nested walk. */
@@ -178,7 +195,11 @@ export function selectionStateFromInfo<M, Map extends object, X = undefined>(
   const type = info.parentType;
   const walk = createWalk(env, type, {});
 
-  applyField(walk, walk.root, type, info.fieldNodes[0], []);
+  // Every node selecting the field (one per fragment it appears under) plans into the same row,
+  // so the loaded row satisfies each of them.
+  for (const fieldNode of info.fieldNodes) {
+    applyField(walk, walk.root, type, fieldNode, []);
+  }
 
   const selection = adapter.typeSelection(type);
 
@@ -191,12 +212,15 @@ export function selectionStateFromInfo<M, Map extends object, X = undefined>(
 
 /**
  * The default S-7 classification: a fragment on the type itself or on an interface it implements
- * walks as the type; a fragment on another type of the same model walks as that type.
+ * walks as the type; a fragment on another type of the same model walks as that type. An object
+ * variant is only entered when the field's declared type is abstract: under a concrete field type
+ * the variant can never be the runtime type, so its selection is not needed.
  */
 export function defaultFragmentType<M>(
   adapter: Pick<Adapter<M, unknown, unknown>, 'modelFor'>,
   type: WalkedType,
   condition: GraphQLNamedType,
+  declared: GraphQLNamedType,
 ): WalkedType | undefined {
   if (condition === type) {
     return type;
@@ -206,7 +230,7 @@ export function defaultFragmentType<M>(
     return type;
   }
 
-  if (isObjectType(condition) || isInterfaceType(condition)) {
+  if (isInterfaceType(condition) || (isObjectType(condition) && isAbstractType(declared))) {
     const model = adapter.modelFor(condition);
 
     if (model && model === adapter.modelFor(type)) {
@@ -295,7 +319,7 @@ function buildWalk<M, Map, X>(
       // requested type so its fields can be found.
       const walkType = typeName && !env.modelOf(match.type) ? target : match.type;
 
-      walkField(walk, walk.root, walkType, match.field, match.path, match.deferred);
+      walkField(walk, walk.root, walkType, match.type, match.field, match.path, match.deferred);
     }
 
     return walk;
@@ -303,7 +327,7 @@ function buildWalk<M, Map, X>(
 
   const walk = createWalk(env, target, {}, extra, initial);
 
-  walkField(walk, walk.root, target, info.fieldNodes[0], [], false);
+  walkField(walk, walk.root, target, returnType, info.fieldNodes[0], [], false);
 
   return walk;
 }
@@ -362,7 +386,7 @@ function enter<M, Map, X>(walk: Walk<M, Map, X>, node: Node<M>, type: GraphQLNam
  * S-7: merges the type-level selection of `variant` when a fragment moves the walk from `type` to
  * another type of the same model, so the variant's resolvers find what its selection promises.
  * Unlike a field-level select, a type-level selection has no per-field fallback, so relation
- * arguments that conflict with what is already selected are an error.
+ * arguments or extras that conflict with what is already selected are an error.
  */
 function enterVariant<M, Map, X>(
   walk: Walk<M, Map, X>,
@@ -377,22 +401,32 @@ function enterVariant<M, Map, X>(
     return;
   }
 
-  const conflict = adapter.conflictingRelation(node, selection);
+  const conflict = adapter.typeLevelConflict(node, selection);
+
+  if (conflict?.kind === 'relation') {
+    throw new PothosValidationError(
+      `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
+    );
+  }
 
   if (conflict) {
     throw new PothosValidationError(
-      `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict}". Move the relation arguments to a field-level select on one of the types.`,
+      `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
     );
   }
 
   adapter.merge(node, selection);
 }
 
-/** E-4, S-1, S-8: walks the selection set of `fieldNode`, selected as `type`, into `node`. */
+/**
+ * E-4, S-1, S-8: walks the selection set of `fieldNode`, selected as `type`, into `node`.
+ * `declared` is the field's declared return type, which decides how fragments are classified.
+ */
 function walkField<M, Map, X>(
   walk: Walk<M, Map, X>,
   node: Node<M>,
   type: GraphQLNamedType,
+  declared: GraphQLNamedType,
   fieldNode: FieldNode,
   indirectPath: string[],
   deferred: boolean,
@@ -411,7 +445,7 @@ function walkField<M, Map, X>(
     });
 
     for (const match of matches) {
-      walkField(walk, node, match.type, match.field, match.path, match.deferred);
+      walkField(walk, node, match.type, match.type, match.field, match.path, match.deferred);
     }
 
     // The wrapper's own selection is planned only when the wrapper itself is backed by the model
@@ -425,6 +459,7 @@ function walkField<M, Map, X>(
       walk,
       node,
       info.schema.getType(include.getType())!,
+      declared,
       fieldNode,
       indirectPath,
       deferred,
@@ -440,30 +475,84 @@ function walkField<M, Map, X>(
   enter(walk, node, type);
 
   if (fieldNode.selectionSet && !(deferred && walk.env.skipDeferred)) {
-    walkSelections(walk, node, type, fieldNode.selectionSet.selections, indirectPath, true);
+    const { selections } = fieldNode.selectionSet;
+
+    enterVariants(walk, node, type, declared, selections);
+    walkSelections(walk, node, type, declared, selections, indirectPath, true);
   }
 }
 
 /**
- * S-7: fields apply to `node` unless the enclosing fragment cannot apply to `type`; nested
- * fragments are always classified against `type`, so one may narrow back to it.
+ * S-7 first pass: enters every same-model variant a fragment under `selections` moves the walk to,
+ * before any field at `node` is merged, so a conflict between two type-level selections is
+ * reported whichever order the fragments appear in and never depends on a field-level select.
+ */
+function enterVariants<M, Map, X>(
+  walk: Walk<M, Map, X>,
+  node: Node<M>,
+  type: WalkedType,
+  declared: GraphQLNamedType,
+  selections: readonly SelectionNode[],
+) {
+  for (const fragment of applicableFragments(walk.env, selections)) {
+    const as = fragmentTypeOf(walk.env, type, declared, fragment);
+
+    if (as && as !== type) {
+      enterVariant(walk, node, type, as);
+    }
+
+    enterVariants(walk, node, as ?? type, declared, fragment.selectionSet.selections);
+  }
+}
+
+/**
+ * S-7 second pass: fields apply to `node` unless the enclosing fragment cannot apply to `type`;
+ * nested fragments are always classified against `type`, so one may narrow back to it.
  */
 function walkSelections<M, Map, X>(
   walk: Walk<M, Map, X>,
   node: Node<M>,
   type: WalkedType,
+  declared: GraphQLNamedType,
   selections: readonly SelectionNode[],
   indirectPath: string[],
   fieldsApply: boolean,
 ) {
-  const { info } = walk.env;
+  if (fieldsApply) {
+    for (const selection of selections) {
+      if (selection.kind === Kind.FIELD) {
+        applyField(walk, node, type, selection, indirectPath);
+      }
+    }
+  }
+
+  for (const fragment of applicableFragments(walk.env, selections)) {
+    const as = fragmentTypeOf(walk.env, type, declared, fragment);
+
+    walkSelections(
+      walk,
+      node,
+      as ?? type,
+      declared,
+      fragment.selectionSet.selections,
+      indirectPath,
+      // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
+      fragment.typeCondition ? as !== undefined : fieldsApply,
+    );
+  }
+}
+
+type Fragment = FragmentDefinitionNode | InlineFragmentNode;
+
+/** The fragments of a selection set that apply: not skipped by a directive (S-2), not deferred (S-8). */
+function applicableFragments<M, Map, X>(
+  { info, skipDeferred }: Env<M, Map, X>,
+  selections: readonly SelectionNode[],
+): Fragment[] {
+  const fragments: Fragment[] = [];
 
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
-      if (fieldsApply) {
-        applyField(walk, node, type, selection, indirectPath);
-      }
-
       continue;
     }
 
@@ -473,45 +562,34 @@ function walkSelections<M, Map, X>(
       );
     }
 
-    if (walk.env.skipDeferred && isDeferred(info, selection)) {
+    if (isSkipped(info, selection) || (skipDeferred && isDeferred(info, selection))) {
       continue;
     }
 
-    const fragment =
-      selection.kind === Kind.FRAGMENT_SPREAD ? info.fragments[selection.name.value] : selection;
-
-    if (!fragment.typeCondition) {
-      walkSelections(walk, node, type, fragment.selectionSet.selections, indirectPath, fieldsApply);
-
-      continue;
-    }
-
-    const condition = info.schema.getType(fragment.typeCondition.name.value)!;
-    const as = fragmentType(walk.env, type, condition);
-
-    if (as && as !== type) {
-      enterVariant(walk, node, type, as);
-    }
-
-    walkSelections(
-      walk,
-      node,
-      as ?? type,
-      fragment.selectionSet.selections,
-      indirectPath,
-      as !== undefined,
+    fragments.push(
+      selection.kind === Kind.FRAGMENT_SPREAD ? info.fragments[selection.name.value] : selection,
     );
   }
+
+  return fragments;
 }
 
-function fragmentType<M, Map, X>(
-  { adapter }: Env<M, Map, X>,
+/** The type to walk `fragment` as while walking `type`; an untyped fragment inherits `type`. */
+function fragmentTypeOf<M, Map, X>(
+  env: Env<M, Map, X>,
   type: WalkedType,
-  condition: GraphQLNamedType,
-) {
-  return adapter.fragmentType
-    ? adapter.fragmentType(type, condition)
-    : defaultFragmentType(adapter, type, condition);
+  declared: GraphQLNamedType,
+  fragment: Fragment,
+): WalkedType | undefined {
+  if (!fragment.typeCondition) {
+    return type;
+  }
+
+  const condition = env.info.schema.getType(fragment.typeCondition.name.value)!;
+
+  return env.adapter.fragmentType
+    ? env.adapter.fragmentType(type, condition, declared)
+    : defaultFragmentType(env.adapter, type, condition, declared);
 }
 
 /** S-2..S-6: merges what `fieldNode` (a field of `type`) selects into `node`. */
@@ -652,14 +730,22 @@ function nestedSelectionFor<M, Map, X>(
       });
 
       for (const match of matches) {
-        walkField(child, child.root, match.type, match.field, match.path, match.deferred);
+        walkField(
+          child,
+          child.root,
+          match.type,
+          match.type,
+          match.field,
+          match.path,
+          match.deferred,
+        );
       }
     } else {
       if (target !== returnType) {
-        walkField(child, child.root, target, fieldNode, [], false);
+        walkField(child, child.root, target, returnType, fieldNode, [], false);
       }
 
-      walkField(child, child.root, returnType, fieldNode, [], false);
+      walkField(child, child.root, returnType, returnType, fieldNode, [], false);
     }
 
     return finish(child, serializeRoot);

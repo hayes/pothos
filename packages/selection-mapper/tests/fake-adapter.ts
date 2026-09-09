@@ -101,10 +101,20 @@ export function createFakeAdapter(
 
       return ignoreArgs || deepEqual(node.args, args);
     },
-    conflictingRelation(node, { select }) {
-      return Object.keys(select ?? {}).find(
+    typeLevelConflict(node, { select, extras }) {
+      const relation = Object.keys(select ?? {}).find(
         (key) => !adapter.compatible(node, { select: { [key]: select![key] } }, true),
       );
+
+      if (relation) {
+        return { kind: 'relation', name: relation };
+      }
+
+      const extra = Object.keys(extras ?? {}).find(
+        (key) => !adapter.compatible(node, { extras: { [key]: extras![key] } }, true),
+      );
+
+      return extra ? { kind: 'extra', name: extra } : undefined;
     },
     withoutConflicts(node, { select, extras, ...args }) {
       const kept: FakeMap = { ...args };

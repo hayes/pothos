@@ -120,16 +120,17 @@ export function findMatches<M>(
 }
 
 /**
- * The nodes selecting the field being resolved, seen through any wrapper on its return type (an
- * errors plugin result, for instance). Under a wrapper these are the nodes of the wrapped field,
- * so their selection sets apply to the type `resolveType` resolves to.
+ * Whether the document selects anything at `path` beneath the field being resolved, seen through
+ * any wrapper on its return type. The resolve-time counterpart of a select function's
+ * `getSelectedNode(path)`.
  */
-export function selectedFieldNodes(info: GraphQLResolveInfo): FieldNode[] {
+export function selectsPath(info: GraphQLResolveInfo, path: string[]): boolean {
   const returnType = getNamedType(info.returnType);
+  const paths = [path.map((name) => ({ name }))];
   const prefix = includeOf(returnType)?.path;
 
-  return info.fieldNodes.flatMap((node) =>
-    findMatches(info, returnType, node, [[]], { prefix }).map((match) => match.field),
+  return info.fieldNodes.some(
+    (node) => findMatches(info, returnType, node, paths, { prefix }).length > 0,
   );
 }
 
@@ -186,6 +187,10 @@ function walkIndirectPath(
         continue;
       }
       case Kind.FRAGMENT_SPREAD: {
+        if (isSkipped(info, sel)) {
+          continue;
+        }
+
         const fragment = info.fragments[sel.name.value];
         const next = resolveFragmentTypes(
           info,
@@ -208,6 +213,10 @@ function walkIndirectPath(
         continue;
       }
       case Kind.INLINE_FRAGMENT: {
+        if (isSkipped(info, sel)) {
+          continue;
+        }
+
         const next = resolveFragmentTypes(
           info,
           sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : undefined,
@@ -340,8 +349,11 @@ export function normalizeInclude(
   };
 }
 
-/** S-2: a field under `@skip(if: true)` or `@include(if: false)`. */
-export function isSkipped(info: GraphQLResolveInfo, selection: FieldNode) {
+/** S-2: a field or fragment under `@skip(if: true)` or `@include(if: false)`. */
+export function isSkipped(
+  info: GraphQLResolveInfo,
+  selection: FieldNode | FragmentSpreadNode | InlineFragmentNode,
+) {
   const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
   if (skip?.if === true) {
     return true;

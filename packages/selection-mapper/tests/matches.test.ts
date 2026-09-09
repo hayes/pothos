@@ -1,6 +1,6 @@
 import { getNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { findMatches, includeOf, normalizeInclude, resolveType, selectedFieldNodes } from '../src';
+import { findMatches, includeOf, normalizeInclude, resolveType, selectsPath } from '../src';
 import { fieldNodeOf, resolveInfo } from './fake-adapter';
 import { createTestAdapter, createTestSchema, models } from './schema';
 
@@ -109,13 +109,54 @@ describe('findMatches', () => {
     expect(matches.map((match) => [match.type.name, match.path])).toEqual([
       ['Post', ['data', 'posts']],
     ]);
-    expect(selectedFieldNodes(info).map((node) => node.name.value)).toEqual(['data']);
   });
 
-  it('returns the field itself for an empty path without a prefix', async () => {
-    const info = await resolveInfo(schema, '{ user { id } }');
+  it('ignores fragments under @skip and @include (S-2)', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        entries {
+          ... on AppointmentEntry @skip(if: true) { appointment { id } }
+          ...Variant @include(if: false)
+          ... on OtherEntry @include(if: true) { appointment { title } }
+        }
+      }
+      fragment Variant on VariantEntry { appointment { email } }`,
+    );
 
-    expect(selectedFieldNodes(info)).toEqual([fieldNodeOf(info)]);
+    const matches = findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [
+      [{ name: 'appointment' }],
+    ]);
+
+    expect(matches.map((match) => match.type.name)).toEqual(['Post']);
+  });
+});
+
+describe('selectsPath', () => {
+  it('reports whether any field node selects the path, through wrappers', async () => {
+    const connection = await resolveInfo(
+      schema,
+      '{ user { postsConnection { ... on PostConnection { totalCount } } } }',
+      { at: ['User', 'postsConnection'] },
+    );
+
+    expect(selectsPath(connection, ['totalCount'])).toBe(true);
+    expect(selectsPath(connection, ['edges'])).toBe(false);
+    expect(selectsPath(connection, [])).toBe(true);
+
+    const wrapped = await resolveInfo(schema, '{ result { ... on Failure { message } } }');
+
+    expect(selectsPath(wrapped, [])).toBe(false);
+    expect(selectsPath(wrapped, ['posts'])).toBe(false);
+
+    const success = await resolveInfo(
+      schema,
+      '{ result { ... on UserSuccess { data { posts { id } } } } }',
+    );
+
+    expect(selectsPath(success, [])).toBe(true);
+    expect(selectsPath(success, ['posts'])).toBe(true);
+    expect(selectsPath(success, ['profile'])).toBe(false);
   });
 });
 
