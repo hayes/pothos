@@ -74,6 +74,56 @@ type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends 
     : never
   : never;
 
+/** The model a field's type param names: a prisma ref, or a list of one. */
+export type ModelForTypeParam<Type> = Type extends [infer Item]
+  ? ModelForTypeParam<Item>
+  : // biome-ignore lint/suspicious/noExplicitAny: matching against any ref
+    Type extends PrismaRef<any, infer Model>
+    ? Model
+    : never;
+
+/**
+ * The query a relation of `Model` is loaded with: the arguments prisma accepts on the relation,
+ * and the `select` or `include` the planner adds beneath it.
+ */
+export interface PrismaRelationQuery<Model extends PrismaModelTypes> {
+  select?: Model['Select'];
+  include?: Model['Include'];
+  where?: Model['Where'];
+  orderBy?: Model['OrderBy'] | Model['OrderBy'][];
+  cursor?: Model['WhereUnique'];
+  take?: number;
+  skip?: number;
+}
+
+/**
+ * What `nestedSelection` returns: the relation query for `Model`, keeping the keys of the given
+ * selection as they were given (so a `select` in it still narrows the parent shape). With no
+ * selection, or `true`, it is the relation query itself. A field whose type has no model keeps
+ * the selection it was given.
+ */
+export type NestedSelectionResult<Selection, Model extends PrismaModelTypes> = [Model] extends [
+  never,
+]
+  ? Selection
+  : Selection extends boolean
+    ? PrismaRelationQuery<Model>
+    : Normalize<Omit<PrismaRelationQuery<Model>, keyof Selection> & Selection>;
+
+/**
+ * The callback a field's `select` function plans the selection beneath the field with: `path`
+ * walks a field nested under the field's type, `type` names the type the selection is read as.
+ * The selection is typed by the field's model when it has one, so `select: { title: true }`
+ * keeps its literal `true`.
+ */
+export type NestedSelectionFn<Model extends PrismaModelTypes> = <
+  Selection extends boolean | ([Model] extends [never] ? {} : PrismaRelationQuery<Model>) = true,
+>(
+  selection?: Selection,
+  path?: string[],
+  type?: string,
+) => NestedSelectionResult<Selection, Model>;
+
 export type PrismaObjectFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -111,11 +161,7 @@ export type PrismaObjectFieldOptions<
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: <Selection extends boolean | {}>(
-              selection?: Selection,
-              path?: string[],
-              type?: string,
-            ) => Selection,
+            nestedSelection: NestedSelectionFn<ModelForTypeParam<Type>>,
           ) => MaybePromise<ExtractModel<Types, ParentShape>['Select']>)
       );
   };
@@ -148,7 +194,9 @@ export type ShapeFromSelection<
   Selection,
 > = Normalize<
   Selection extends BaseSelection
-    ? unknown extends Selection['select']
+    ? // A `select` that is absent, or only possibly present (a planned relation query), does not
+      // narrow the row: every column may be there.
+      undefined extends Selection['select']
       ? Model['Shape'] & RelationShapeFromInclude<Types, Model, Selection['include']>
       : Pick<Model['Shape'], SelectedKeys<Selection['select']>> &
           RelationShapeFromInclude<Types, Model, Selection['select']> &

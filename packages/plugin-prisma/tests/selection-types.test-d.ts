@@ -1,10 +1,134 @@
+import SchemaBuilder from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf, it } from 'vitest';
-import { queryFromInfo, type SelectionMap } from '../src';
+import PrismaPlugin, {
+  type PrismaRelationQuery,
+  type PrismaTypesFromClient,
+  prismaConnectionHelpers,
+  queryFromInfo,
+  type SelectionMap,
+} from '../src';
 import { prisma } from './example/builder';
+import { getDatamodel } from './generated.js';
 
 declare const info: GraphQLResolveInfo;
 declare const context: {};
+
+type PrismaTypes = PrismaTypesFromClient<typeof prisma>;
+
+const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
+  plugins: [PrismaPlugin],
+  prisma: {
+    client: () => null as never,
+    dmmf: getDatamodel(),
+  },
+});
+
+const Post = builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+const Profile = builder.prismaObject('Profile', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+const commentHelpers = prismaConnectionHelpers(builder, 'Comment', {
+  cursor: 'id',
+  select: (nodeSelection) => ({ id: true, post: nodeSelection() }),
+  resolveNode: (comment) => comment.post,
+});
+
+// `nestedSelection` is typed as the relation query for the field's model, keeping the keys it
+// was given, so a `select` in it still narrows the parent shape.
+builder.prismaObject('User', {
+  fields: (t) => ({
+    latestPosts: t.field({
+      type: [Post],
+      select: (_args, _ctx, nestedSelection) => {
+        expectTypeOf(nestedSelection()).toEqualTypeOf<PrismaRelationQuery<PrismaTypes['Post']>>();
+        expectTypeOf(nestedSelection(true)).toEqualTypeOf<
+          PrismaRelationQuery<PrismaTypes['Post']>
+        >();
+
+        const query = nestedSelection({ take: 1, where: { published: true } });
+
+        expectTypeOf(query.take).toEqualTypeOf<number>();
+        // The given keys are typed by the model's query, so literals are kept.
+        expectTypeOf(query.where).toEqualTypeOf<{ published: true }>();
+        expectTypeOf(query.select).toEqualTypeOf<PrismaTypes['Post']['Select'] | undefined>();
+        expectTypeOf(query.include).toEqualTypeOf<PrismaTypes['Post']['Include'] | undefined>();
+
+        return { posts: query };
+      },
+      resolve: (user) => {
+        // A relation query without a `select` of its own loads every column.
+        expectTypeOf(user.posts[0].title).toEqualTypeOf<string>();
+
+        return user.posts;
+      },
+    }),
+    postTitles: t.stringList({
+      // A field type without a model keeps the given selection.
+      select: (_args, _ctx, nestedSelection) => ({
+        posts: nestedSelection({ select: { title: true } }),
+      }),
+      resolve: (user) => {
+        expectTypeOf(user.posts[0]).toEqualTypeOf<{ title: string }>();
+
+        return user.posts.map((post) => post.title);
+      },
+    }),
+    bio: t.string({
+      nullable: true,
+      select: (_args, _ctx, nestedSelection) => {
+        // A field type without a model keeps the given selection.
+        expectTypeOf(nestedSelection({ select: { bio: true } })).toEqualTypeOf<{
+          select: { bio: boolean };
+        }>();
+
+        return { profile: nestedSelection({ select: { bio: true } }) };
+      },
+      resolve: (user) => {
+        // A `select` given to `nestedSelection` narrows the parent shape as before.
+        expectTypeOf(user.profile).toEqualTypeOf<{ bio: string | null } | null>();
+
+        return user.profile?.bio;
+      },
+    }),
+    profile: t.field({
+      type: Profile,
+      nullable: true,
+      select: (_args, _ctx, nestedSelection) => {
+        // The given selection's keys are kept as given, with the literal `true`.
+        const query = nestedSelection({ select: { bio: true } });
+
+        expectTypeOf(query.select).toEqualTypeOf<{ bio: true }>();
+        expectTypeOf(query).toMatchTypeOf<
+          Omit<PrismaRelationQuery<PrismaTypes['Profile']>, 'select'>
+        >();
+
+        return { profile: nestedSelection() };
+      },
+      resolve: (user) => {
+        expectTypeOf(user.profile).toEqualTypeOf<PrismaTypes['Profile']['Shape'] | null>();
+
+        return user.profile;
+      },
+    }),
+    comments: t.connection({
+      type: Post,
+      // The field's nested selection is accepted by the helpers' `getQuery`.
+      select: (args, ctx, nestedSelection) => ({
+        comments: commentHelpers.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (user, args, ctx) => commentHelpers.resolve(user.comments, args, ctx),
+    }),
+  }),
+});
 
 // `queryFromInfo` is typed by what it was given: the `select` or `include` passed in, or, when
 // neither was, whichever of the two the walked type's mode produces (both optional, so the

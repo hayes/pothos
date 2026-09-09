@@ -10,7 +10,12 @@ import {
 import { createNode } from '@pothos/selection-mapper';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
-import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types.js';
+import type {
+  PrismaModelTypes,
+  SelectionMap,
+  ShapeFromSelection,
+  UniqueFieldsFromWhereUnique,
+} from './types.js';
 import { prismaAdapter } from './util/adapter.js';
 import {
   getCursorFormatter,
@@ -55,6 +60,7 @@ export function prismaConnectionHelpers<
   }: {
     cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
     select?: (
+      // The node's selection: its model is the connection field's, which the helper does not know.
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
@@ -137,16 +143,21 @@ export function prismaConnectionHelpers<
   function getQuery(
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
-    nestedSelection: <T extends true | {}>(selection?: T, path?: string[]) => T,
+    // The `nestedSelection` of the field's `select`, whatever model its type names.
+    nestedSelection: (selection?: SelectionMap | true, path?: string[]) => unknown,
   ) {
     // Both callbacks start now; the query waits for whichever of them is async (A-3, A-7: the
     // declared type stays synchronous, so an async schema awaits the result).
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? completeValue(
-          select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx),
+          select(
+            (sel) => nestedSelection(sel as SelectionMap, ['edges', 'node']) as never,
+            args,
+            ctx,
+          ),
           wrapSelect,
         )
-      : nestedSelection(true, ['edges', 'node']);
+      : (nestedSelection(true, ['edges', 'node']) as never);
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
 
     return (isThenable(nestedSelect) || isThenable(baseQuery)

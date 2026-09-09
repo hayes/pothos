@@ -65,6 +65,7 @@ export function drizzleConnectionHelpers<
   }: {
     args?: (t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => ExtraArgs;
     select?: (
+      // The node's selection: its table is the connection field's, which the helper does not know.
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
@@ -196,7 +197,8 @@ export function drizzleConnectionHelpers<
     };
   };
 
-  type NestedSelection = <T extends true | {}>(selection?: T, path?: string[]) => T;
+  // The `nestedSelection` of the field's `select`, whatever table its type names.
+  type NestedSelection = (selection?: SelectionMap | true, path?: string[]) => unknown;
 
   function getQuery(
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
@@ -211,14 +213,14 @@ export function drizzleConnectionHelpers<
               info: nestedSelectionOrInfo,
               context: ctx,
               config,
-              select,
+              select: select as SelectionMap,
               path,
             });
     // Both callbacks start now; the query waits for whichever of them is async (A-3, A-7: the
     // declared type stays synchronous, so an async schema awaits the result).
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
-      ? select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx)
-      : nestedSelection(true, ['edges', 'node']);
+      ? select((sel) => nestedSelection(sel as SelectionMap, ['edges', 'node']) as never, args, ctx)
+      : (nestedSelection(true, ['edges', 'node']) as never);
     const baseQuery = baseQueryFor(args, ctx);
 
     return (isThenable(nestedSelect) || isThenable(baseQuery)
