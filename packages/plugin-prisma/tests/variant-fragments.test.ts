@@ -539,4 +539,48 @@ describe('fragments on variants and non-model interfaces', () => {
       }
     });
   });
+
+  describe('sibling variants under a concrete field type', () => {
+    it('does not enter same-model objects nested under a fragment on their interface', async () => {
+      const posts = await prisma.post.findMany({ where: { authorId: 1 }, take: 3 });
+      queries.length = 0;
+
+      // normalViewer can never resolve as LatestPostViewer or PostPairViewer, so neither
+      // type-level select is merged: the two do not conflict, and recentPostIds is planned.
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            normalViewer {
+              recentPostIds
+              ... on Viewer {
+                ... on LatestPostViewer {
+                  latestPostId
+                }
+                ... on PostPairViewer {
+                  postPairIds
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        normalViewer: { recentPostIds: posts.map((post) => String(post.id)) },
+      });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: {
+            select: { id: true, name: true, posts: { take: 3, select: { id: true } } },
+            where: { id: 1 },
+          },
+        },
+      ]);
+    });
+  });
 });
