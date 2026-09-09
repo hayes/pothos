@@ -6,8 +6,7 @@ import {
   normalizeInclude,
   resolveType,
   selectedFieldNames,
-  selectsPath,
-} from '../src';
+} from '../src/matches.js';
 import { fieldNodeOf, resolveInfo } from './fake-adapter';
 import { createTestAdapter, createTestSchema, models } from './schema';
 
@@ -175,34 +174,6 @@ describe('findMatches', () => {
     ]);
 
     expect(matches.map((match) => match.type.name)).toEqual(['Post']);
-  });
-});
-
-describe('selectsPath', () => {
-  it('reports whether any field node selects the path, through wrappers', async () => {
-    const connection = await resolveInfo(
-      schema,
-      '{ user { postsConnection { ... on PostConnection { totalCount } } } }',
-      { at: ['User', 'postsConnection'] },
-    );
-
-    expect(selectsPath(connection, ['totalCount'])).toBe(true);
-    expect(selectsPath(connection, ['edges'])).toBe(false);
-    expect(selectsPath(connection, [])).toBe(true);
-
-    const wrapped = await resolveInfo(schema, '{ result { ... on Failure { message } } }');
-
-    expect(selectsPath(wrapped, [])).toBe(false);
-    expect(selectsPath(wrapped, ['posts'])).toBe(false);
-
-    const success = await resolveInfo(
-      schema,
-      '{ result { ... on UserSuccess { data { posts { id } } } } }',
-    );
-
-    expect(selectsPath(success, [])).toBe(true);
-    expect(selectsPath(success, ['posts'])).toBe(true);
-    expect(selectsPath(success, ['profile'])).toBe(false);
   });
 });
 

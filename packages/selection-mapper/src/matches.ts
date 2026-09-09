@@ -120,21 +120,6 @@ export function findMatches<M>(
   });
 }
 
-/**
- * Whether the document selects anything at `path` beneath the field being resolved, seen through
- * any wrapper on its return type. The resolve-time counterpart of a select function's
- * `getSelectedNode(path)`.
- */
-export function selectsPath(info: GraphQLResolveInfo, path: string[]): boolean {
-  const returnType = getNamedType(info.returnType);
-  const paths = [path.map((name) => ({ name }))];
-  const prefix = includeOf(returnType)?.path;
-
-  return info.fieldNodes.some(
-    (node) => findMatches(info, returnType, node, paths, { prefix }).length > 0,
-  );
-}
-
 /** One node of the memo trie: the names for the field nodes on the path to it, if computed. */
 interface SelectedFieldNamesEntry {
   names?: ReadonlySet<string>;
