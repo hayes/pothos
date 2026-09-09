@@ -1,6 +1,7 @@
 import { createContextCache, PothosValidationError } from '@pothos/core';
 import {
   type Adapter,
+  createNode,
   deepEqual,
   type Node,
   relation,
@@ -37,9 +38,9 @@ export const drizzleAdapter = createContextCache(
   (config: PothosDrizzleSchemaConfig): DrizzleAdapter => {
     const adapter: DrizzleAdapter = {
       skipDeferredFragments: config.skipDeferredFragments,
-      empty: { columns: {} },
       // Set by drizzleObject/drizzleInterface and propagated to implementing types by onTypeConfig.
       modelFor: (type) => type.extensions?.pothosDrizzleTable as TableRelationalConfig | undefined,
+      createNode,
       typeSelection(type) {
         // schema-builder stores `{ columns: {}, ...select }`, or `true` for every column.
         const selection = type.extensions?.pothosDrizzleSelect as SelectionMap | true | undefined;
@@ -92,6 +93,13 @@ export const drizzleAdapter = createContextCache(
           }
         } else {
           node.columns = null;
+        }
+      },
+      // A relation query merges over `{ columns: {} }`: without `columns` of its own it adds no
+      // columns, so it never means "every column".
+      mergeQuery(node, query) {
+        if (query && Object.keys(query).length > 0) {
+          adapter.merge(node, { columns: {}, ...query });
         }
       },
       compatible(node, { with: withSelection, extras, columns: _columns, ...args }, ignoreArgs) {

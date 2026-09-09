@@ -9,7 +9,7 @@ import {
   parse,
 } from 'graphql';
 import type { Adapter, SelectFn } from '../src';
-import { deepEqual, relation } from '../src';
+import { createNode, deepEqual, relation } from '../src';
 
 /** A model: one object per name, so identity is model identity. */
 export interface FakeModel {
@@ -48,8 +48,13 @@ export function createFakeAdapter(
 ): Adapter<FakeModel, FakeMap, FakePath> {
   const adapter: Adapter<FakeModel, FakeMap, FakePath> = {
     skipDeferredFragments: true,
-    empty: { select: {} },
     modelFor: (type) => models[type.extensions?.model as string],
+    createNode,
+    mergeQuery(node, query) {
+      if (query && Object.keys(query).length > 0) {
+        adapter.merge(node, { select: {}, ...query });
+      }
+    },
     typeSelection: (type) =>
       type.extensions?.model ? ((type.extensions.select as FakeMap | undefined) ?? ALL) : undefined,
     fieldSelection: (field) =>

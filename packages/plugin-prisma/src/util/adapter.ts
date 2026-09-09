@@ -1,5 +1,6 @@
 import {
   type Adapter,
+  createNode,
   deepEqual,
   type Node,
   relation,
@@ -29,9 +30,9 @@ const COUNT_ALL = '*';
  */
 export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
   skipDeferredFragments: true,
-  empty: { select: {} },
   // Set by prismaObject/prismaInterface and propagated to implementing types by onTypeConfig.
   modelFor: (type) => type.extensions?.pothosPrismaFieldMap as FieldMap | undefined,
+  createNode,
   // Precomputed once per type by onTypeConfig: `{ select, include }`, INCLUDE_ALL, or undefined.
   typeSelection: (type) => type.extensions?.pothosPrismaTypeSelection as SelectionMap | undefined,
   fieldSelection(field) {
@@ -56,6 +57,13 @@ export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
 
     if (hasKeys(args)) {
       node.args = args;
+    }
+  },
+  // A relation query merges over `{ select: {} }`: without a `select` of its own it stays in
+  // named-column mode with no columns, so it never means "every column".
+  mergeQuery(node, query) {
+    if (query && hasKeys(query)) {
+      prismaAdapter.merge(node, { select: {}, ...query });
     }
   },
   compatible(node, { select, include, ...args }, ignoreArgs) {

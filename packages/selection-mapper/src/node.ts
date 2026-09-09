@@ -1,15 +1,22 @@
 import { isThenable, PothosValidationError } from '@pothos/core';
 
 /**
- * One node of the query being built: the model it loads, its arguments, the columns it selects
- * (`null` = every column, which is final: a node never goes back to named columns), its relations
- * and adapter-specific extras (prisma `_count` entries, drizzle `extras`).
- *
- * `M` is the adapter's model description: whatever it needs to look a relation's target up by
- * name. One object per model, so model identity is the same as model equality.
+ * What the walker requires of a node: the model it loads. `M` is the adapter's model
+ * description: whatever it needs to look a relation's target up by name. One object per model,
+ * so model identity is the same as model equality.
  */
-export interface Node<M> {
+export interface NodeBase<M> {
   model: M;
+}
+
+/**
+ * The default node of the query being built, used by the prisma and drizzle adapters: the
+ * model, its arguments, the columns it selects (`null` = every column, which is final: a node
+ * never goes back to named columns), its relations and adapter-specific extras (prisma `_count`
+ * entries, drizzle `extras`). An adapter whose query is not a tree of this shape supplies its
+ * own node type through `Adapter.createNode`.
+ */
+export interface Node<M> extends NodeBase<M> {
   args: object;
   columns: Set<string> | null;
   relations: Map<string, Node<M>>;
