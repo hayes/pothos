@@ -19,6 +19,13 @@ import * as DataloaderModule from '@pothos/plugin-dataloader';
 import * as DirectivesModule from '@pothos/plugin-directives';
 import * as ErrorsModule from '@pothos/plugin-errors';
 import * as MocksModule from '@pothos/plugin-mocks';
+// plugin-prisma-next pulls in the `@prisma-next/*` runtime packages.
+// Like dataloader above, they are bundled together with the single
+// workspace @pothos/core instance. The @prisma-next/* modules user code
+// imports directly are registered as example stubs by
+// `prisma-next-bundle` (imported for its side effect here so the
+// registry is populated before the first schema build).
+import * as PrismaNextModule from '@pothos/plugin-prisma-next';
 import * as RelayModule from '@pothos/plugin-relay';
 import * as ScopeAuthModule from '@pothos/plugin-scope-auth';
 // Import the full plugin modules (includes default export and all named exports)
@@ -26,6 +33,7 @@ import * as SimpleObjectsModule from '@pothos/plugin-simple-objects';
 import * as SubGraphModule from '@pothos/plugin-sub-graph';
 import * as ValidationModule from '@pothos/plugin-validation';
 import * as WithInputModule from '@pothos/plugin-with-input';
+import './prisma-next-bundle';
 
 export const pluginModules = {
   '@pothos/plugin-simple-objects': SimpleObjectsModule,
@@ -40,6 +48,7 @@ export const pluginModules = {
   '@pothos/plugin-mocks': MocksModule,
   '@pothos/plugin-sub-graph': SubGraphModule,
   '@pothos/plugin-add-graphql': AddGraphQLModule,
+  '@pothos/plugin-prisma-next': PrismaNextModule,
 };
 
 export function getPluginModules(code: string): Record<string, unknown> {

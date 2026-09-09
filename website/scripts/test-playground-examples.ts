@@ -8,7 +8,12 @@ import { readdir, readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { type GraphQLSchema, parse, validate } from 'graphql';
 import * as ts from 'typescript';
-import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playground/pothos-types';
+import {
+  getCoreTypeDefinitions,
+  getPluginTypeDefinitions,
+  prismaNextPaths,
+  prismaNextTypeFiles,
+} from '../lib/playground/pothos-types';
 
 // Load examples from individual directories.
 //
@@ -229,6 +234,34 @@ function typeCheckCode(
   // Add the test code
   fileMap.set('test.ts', code);
 
+  // The prisma-next plugin demos import the @prisma-next/* runtime
+  // modules and the synthetic `@pothos/playground-capture` package.
+  // Bundle the same .d.ts payload Monaco uses in the playground so
+  // the typechecker resolves them just like the editor would.
+  const allBundleSource = [code, ...siblingFiles.map((f) => f.content)].join('\n');
+  const usesPrismaNext =
+    allBundleSource.includes("'@prisma-next/") || allBundleSource.includes('"@prisma-next/');
+  if (usesPrismaNext) {
+    for (const lib of prismaNextTypeFiles) {
+      // `lib.filePath` is a `file:///node_modules/...` URL; the TS
+      // host expects pathless module specifiers, so register under the
+      // `node_modules/...` suffix.
+      const stripped = lib.filePath.replace(/^file:\/\/\//, '');
+      fileMap.set(stripped, lib.content);
+    }
+  }
+  if (allBundleSource.includes("'@pothos/playground-capture'")) {
+    fileMap.set(
+      '__playground_capture.d.ts',
+      [
+        "declare module '@pothos/playground-capture' {",
+        "  import type { SqlMiddleware } from '@prisma-next/sql-runtime';",
+        '  export const capturePlaygroundSql: SqlMiddleware;',
+        '}',
+      ].join('\n'),
+    );
+  }
+
   // Add all type definitions
   for (const typeDef of allTypes) {
     // Skip if content is missing
@@ -395,6 +428,20 @@ function typeCheckCode(
         }
       }
 
+      // Bare-specifier external imports — first try the prisma-next
+      // bundle's `paths` map (covers the per-subpath exports of every
+      // bundled @prisma-next package), then fall back to the
+      // node_modules-shaped lookups used by core/plugin types.
+      const prismaNextEntry = prismaNextPaths[moduleName];
+      if (prismaNextEntry?.length) {
+        // The paths map stores `file:///node_modules/...` URLs; the
+        // fileMap was registered with the URL prefix stripped.
+        const resolved = prismaNextEntry[0].replace(/^file:\/\/\//, '');
+        if (fileMap.has(resolved)) {
+          return { resolvedFileName: resolved, isExternalLibraryImport: true };
+        }
+      }
+
       // Try to resolve as a node_modules path
       const possiblePaths = [
         `node_modules/${moduleName}/index.d.ts`,
@@ -418,9 +465,15 @@ function typeCheckCode(
   // Create the program. Pass sibling source files as entry points too
   // so the typechecker visits them, otherwise their own type errors
   // (and any cross-file inferences they contribute) silently disappear.
+  // The synthetic `__playground_capture.d.ts` is also pulled in so its
+  // `declare module '@pothos/playground-capture'` ambient registers.
   const entryFiles = ['test.ts'];
   for (const filename of fileMap.keys()) {
     if (filename === 'test.ts') {
+      continue;
+    }
+    if (filename === '__playground_capture.d.ts') {
+      entryFiles.push(filename);
       continue;
     }
     if (filename.endsWith('.ts') && !filename.endsWith('.d.ts')) {

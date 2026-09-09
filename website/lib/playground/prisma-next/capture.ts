@@ -1,18 +1,21 @@
 /**
- * Module-level capture slot for the prisma-next playground demo.
+ * Capture sink for the prisma-next playground demo.
  *
- * On each `graphql()` run the playground harness calls `resetCapture()`,
- * user code's `@prisma-next/sqlite` runtime is configured with the
- * capture middleware (see `capture-middleware.ts`), and the runner reads
- * `getCapturedPanels()` after the operation finishes to attach the SQL
- * + orm-intent tabs to the response's `extensions`.
+ * Each executed SQL plan becomes one sub-tab in two response panels —
+ * "SQL" (the lowered statement + params) and "Prisma query AST" (the
+ * pre-lowering intent). The panels live in the playground's generic
+ * extension-panel slot (`extension-panels-slot.ts`): the query runner
+ * resets that slot before every run and reads it back afterwards, so
+ * the first capture of a run pushes a fresh pair of panels and later
+ * captures append tabs to them.
  *
  * Browser-only — no AsyncLocalStorage. Concurrent runs aren't possible
- * (the playground runs one operation per click), so a flat slot is
- * sufficient. Multiple SQL plans within a run are appended in execution
- * order; cross-resolver grouping isn't attempted.
+ * (the playground runs one operation per click), so module-level state
+ * is sufficient. Multiple SQL plans within a run are appended in
+ * execution order; cross-resolver grouping isn't attempted.
  */
-import type { ExtensionPanel } from '../playground-panels';
+import { getExtensionPanels, pushExtensionPanel } from '../extension-panels-slot';
+import type { ExtensionPanel, ExtensionSubPanel } from '../playground-panels';
 
 export interface CapturedSql {
   /** Formatted SQL text. */
@@ -27,47 +30,55 @@ export interface CapturedSql {
   label: string;
 }
 
-let captures: CapturedSql[] = [];
+interface RunPanels {
+  sql: ExtensionPanel & { tabs: ExtensionSubPanel[] };
+  intent: ExtensionPanel & { tabs: ExtensionSubPanel[] };
+}
 
-export function resetCapture(): void {
-  captures = [];
+let current: RunPanels | null = null;
+const sqlTabByCapture = new WeakMap<CapturedSql, ExtensionSubPanel>();
+
+/**
+ * Return this run's panel pair, pushing a fresh pair into the slot if
+ * the runner has reset it since the last capture (identity check —
+ * a reset slot no longer contains our panel object).
+ */
+function panelsForRun(): RunPanels {
+  if (current && getExtensionPanels().includes(current.sql)) {
+    return current;
+  }
+  current = {
+    sql: { name: 'SQL', tabs: [] },
+    intent: { name: 'Prisma query AST', tabs: [] },
+  };
+  pushExtensionPanel(current.sql);
+  pushExtensionPanel(current.intent);
+  return current;
 }
 
 export function pushCapture(entry: CapturedSql): void {
-  captures.push(entry);
+  const panels = panelsForRun();
+  const index = panels.sql.tabs.length + 1;
+  const sqlTab: ExtensionSubPanel = {
+    name: `${index}. ${entry.label}`,
+    language: 'sql',
+    content: renderSqlBody(entry),
+  };
+  panels.sql.tabs.push(sqlTab);
+  panels.intent.tabs.push({
+    name: `${index}. ${entry.label}`,
+    language: 'json',
+    content: JSON.stringify(entry.intent ?? {}, null, 2),
+  });
+  sqlTabByCapture.set(entry, sqlTab);
 }
 
-export function getCaptures(): readonly CapturedSql[] {
-  return captures;
-}
-
-/**
- * Build the `extensions.playgroundPanels` entries for the current run.
- * Returns an array with one top-level panel per kind (SQL / ORM intent),
- * each carrying sub-tabs — one sub-tab per captured plan in execution
- * order.
- */
-export function getCapturedPanels(): ExtensionPanel[] {
-  if (captures.length === 0) {
-    return [];
+/** Re-render a capture's SQL tab after `afterExecute` reported latency. */
+export function updateCapture(entry: CapturedSql): void {
+  const tab = sqlTabByCapture.get(entry);
+  if (tab) {
+    tab.content = renderSqlBody(entry);
   }
-
-  const sqlTabs = captures.map((cap, i) => ({
-    name: `${i + 1}. ${cap.label}`,
-    language: 'sql' as const,
-    content: renderSqlBody(cap),
-  }));
-
-  const intentTabs = captures.map((cap, i) => ({
-    name: `${i + 1}. ${cap.label}`,
-    language: 'json' as const,
-    content: JSON.stringify(cap.intent ?? {}, null, 2),
-  }));
-
-  return [
-    { name: 'SQL', tabs: sqlTabs },
-    { name: 'Prisma query AST', tabs: intentTabs },
-  ];
 }
 
 function renderSqlBody(cap: CapturedSql): string {

@@ -35,15 +35,17 @@ let flushScheduled = false;
 // versioned specifier (e.g. `lodash@4.17.21`).
 const versionedAliases = new Map<string, Set<string>>();
 
-const SKIP_PATH = /^\/node_modules\/(?:@pothos\/|graphql(?:\/|$))/;
+const SKIP_PATH = /^\/node_modules\/(?:@pothos\/|@prisma-next\/|graphql(?:\/|$))/;
 
-// Imports we never want ATA to ask jsdelivr about: @pothos/* is
-// bundled into Monaco directly via setup-monaco, and `readline` is
+// Imports we never want ATA to ask jsdelivr about: @pothos/* and
+// @prisma-next/* are bundled into Monaco directly via setup-monaco
+// (the @prisma-next/* types come from the installed packages, matched
+// to the runtime the playground actually executes), and `readline` is
 // a Node builtin for which `@types/readline` doesn't exist on the
 // registry. ATA's fetch still hits jsdelivr per import even when
 // receivedFile filters the result, so we strip them at the
 // source-rewrite stage.
-const ATA_SKIP_BARE = /^(?:@pothos\/[^/'"]+|readline)/;
+const ATA_SKIP_BARE = /^(?:@pothos\/[^/'"]+|@prisma-next\/[^/'"]+|readline)/;
 
 function stripBundledImportsForAta(source: string): string {
   return source.replace(

@@ -17,12 +17,13 @@
  *   });
  *
  * That's the entire wiring. The middleware pushes per-plan captures
- * into a module-level slot; `useQueryRunner` reads them after the
- * operation finishes and attaches them to `extensions.playgroundPanels`.
+ * into the playground's extension-panel slot; `useQueryRunner` reads
+ * them after the operation finishes and attaches them to
+ * `extensions.playgroundPanels`.
  */
 
 import type { SqlMiddleware } from '@prisma-next/sql-runtime';
-import { type CapturedSql, pushCapture } from './capture';
+import { type CapturedSql, pushCapture, updateCapture } from './capture';
 
 interface AstLike {
   kind?: string;
@@ -146,6 +147,7 @@ export const capturePlaygroundSql: SqlMiddleware = {
     pendingByPlan.delete(plan as unknown as object);
     if (typeof result.latencyMs === 'number') {
       entry.latencyMs = Math.round(result.latencyMs * 10) / 10;
+      updateCapture(entry);
     }
     return Promise.resolve();
   },
