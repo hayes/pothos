@@ -348,6 +348,34 @@ describe('fragments (S-7)', () => {
     expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Person')).toBe(null);
   });
 
+  it('walks fields and fragment fields in document order, so the first selection of a relation wins (E-1)', async () => {
+    const fragmentFirst = {};
+    const info = await resolveInfo(
+      schema,
+      '{ user { ... on User { first: posts(take: 1) { id } } second: posts(take: 2) { id } } }',
+    );
+
+    expect(queryFromInfo(adapter, { context: fragmentFirst, info })).toEqual({
+      select: { posts: { take: 1 } },
+    });
+    expect(getLoaderMapping(fragmentFirst, pathOf('user', 'first'), 'User')).toEqual({
+      nested: {},
+    });
+    expect(getLoaderMapping(fragmentFirst, pathOf('user', 'second'), 'User')).toBe(null);
+
+    const fieldFirst = {};
+    const mirror = await resolveInfo(
+      schema,
+      '{ user { second: posts(take: 2) { id } ... on User { first: posts(take: 1) { id } } } }',
+    );
+
+    expect(queryFromInfo(adapter, { context: fieldFirst, info: mirror })).toEqual({
+      select: { posts: { take: 2 } },
+    });
+    expect(getLoaderMapping(fieldFirst, pathOf('user', 'second'), 'User')).toEqual({ nested: {} });
+    expect(getLoaderMapping(fieldFirst, pathOf('user', 'first'), 'User')).toBe(null);
+  });
+
   it('honours @skip and @include on fragments', async () => {
     const info = await resolveInfo(
       schema,
