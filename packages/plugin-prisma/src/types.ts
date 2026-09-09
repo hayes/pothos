@@ -784,16 +784,6 @@ export type FieldSelection =
       resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap | false | null | undefined);
 
-export type LoaderMappings = Record<
-  string,
-  {
-    field: string;
-    type: string;
-    mappings: LoaderMappings;
-    indirectPath: string[];
-  }
->;
-
 export interface IndirectInclude {
   getType: () => string;
   path?: { type?: string; name: string }[];
