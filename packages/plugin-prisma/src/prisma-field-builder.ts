@@ -16,7 +16,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { type FieldNode, Kind as GraphQLKind, type GraphQLResolveInfo } from 'graphql';
+import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -265,19 +265,13 @@ export class PrismaObjectFieldBuilder<
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
 
-      // Null when the connection is behind a wrapper whose path is not selected (an errors
-      // plugin result with only the error member selected, for instance).
-      const selection = getSelection([]);
-      const hasTotalCount = totalCount && !!getSelection(['totalCount']);
-
-      const selections = selection?.selectionSet?.selections.filter(
-        (sel) => !(sel.kind === GraphQLKind.FIELD && sel.name.value === '__typename'),
-      );
-      const totalCountOnly =
-        selections?.length === 1 &&
-        selections[0].kind === GraphQLKind.FIELD &&
-        selections[0].name.value === 'totalCount' &&
-        hasTotalCount;
+      // Each lookup searches every node selecting the connection (fragments on a wrapper's
+      // success type may split totalCount and edges across two of them), so the plan agrees with
+      // what `connectionSelection` reads at resolve time.
+      const hasTotalCount = !!totalCount && !!getSelection(['totalCount']);
+      const hasRows =
+        !!getSelection(['edges']) || !!getSelection(['nodes']) || !!getSelection(['pageInfo']);
+      const totalCountOnly = hasTotalCount && !hasRows;
 
       const countSelect =
         this.builder.options.prisma.filterConnectionTotalCount !== false

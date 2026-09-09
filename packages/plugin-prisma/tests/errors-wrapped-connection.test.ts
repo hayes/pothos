@@ -98,4 +98,73 @@ describe('relatedConnection wrapped by the errors plugin', () => {
       },
     ]);
   });
+
+  it('plans the count and the rows when success fragments select them separately', async () => {
+    const expectedCount = await prisma.post.count({ where: { authorId: 1 } });
+    const posts = await prisma.post.findMany({ where: { authorId: 1 }, take: 2 });
+    queries.length = 0;
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user {
+            postsConnection(first: 2) {
+              ... on UserPostsConnectionSuccess {
+                data {
+                  totalCount
+                }
+              }
+              ... on UserPostsConnectionSuccess {
+                data {
+                  edges {
+                    node {
+                      id
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      user: {
+        postsConnection: {
+          data: {
+            totalCount: expectedCount,
+            edges: posts.map((post) => ({ node: { id: String(post.id) } })),
+          },
+        },
+      },
+    });
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "skip": 0,
+                "take": 3,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "model": "User",
+        },
+      ]
+    `);
+  });
 });
