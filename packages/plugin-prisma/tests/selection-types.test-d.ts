@@ -9,6 +9,7 @@ import PrismaPlugin, {
   type PrismaRelationQuery,
   type PrismaTypesFromClient,
   prismaConnectionHelpers,
+  type QueryFromRelation,
   queryFromInfo,
   type SelectionMap,
 } from '../src';
@@ -138,6 +139,41 @@ builder.prismaObject('User', {
     }),
   }),
 });
+
+// A relation's fallback `resolve` is handed the relation's own query: prisma's arguments for
+// the relation, with the planned `select`/`include`, so it spreads into a query without a cast.
+builder.prismaObject('Comment', {
+  fields: (t) => ({
+    author: t.relation('author', {
+      resolve: (query, comment) => {
+        expectTypeOf(query).toEqualTypeOf<QueryFromRelation<PrismaTypes['Comment'], 'author'>>();
+        expectTypeOf(query.select).toEqualTypeOf<PrismaTypes['User']['Select'] | undefined>();
+        expectTypeOf(query.include).toEqualTypeOf<PrismaTypes['User']['Include'] | undefined>();
+        // @ts-expect-error a to-one relation has no `take`
+        expectTypeOf(query.take);
+
+        return prisma.user.findUniqueOrThrow({ ...query, where: { id: comment.authorId } });
+      },
+    }),
+  }),
+});
+
+builder.prismaObjectField('User', 'publishedPosts', (t) =>
+  t.relation('posts', {
+    query: { where: { published: true } },
+    resolve: (query, user) => {
+      expectTypeOf(query.where).toEqualTypeOf<PrismaTypes['Post']['Where'] | undefined>();
+      expectTypeOf(query.take).toEqualTypeOf<number | undefined>();
+      expectTypeOf(query.skip).toEqualTypeOf<number | undefined>();
+      expectTypeOf(query.cursor).toEqualTypeOf<PrismaTypes['Post']['WhereUnique'] | undefined>();
+      expectTypeOf(query.orderBy).toEqualTypeOf<
+        PrismaTypes['Post']['OrderBy'] | PrismaTypes['Post']['OrderBy'][] | undefined
+      >();
+
+      return prisma.post.findMany({ ...query, where: { ...query.where, authorId: user.id } });
+    },
+  }),
+);
 
 // One path segment type, shared with the planner, for `queryFromInfo` paths, `nestedSelection`
 // paths, and the `IndirectInclude` a type's extensions carry.
