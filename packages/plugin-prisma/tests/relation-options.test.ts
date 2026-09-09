@@ -20,6 +20,7 @@ builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
     title: t.exposeString('title'),
+    author: t.relation('author'),
   }),
 });
 
@@ -55,6 +56,11 @@ builder.prismaObject('User', {
 
 builder.queryType({
   fields: (t) => ({
+    // Returns a row fetched without the planned selection, so relation fields load themselves.
+    rawUser: t.prismaField({
+      type: 'User',
+      resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }),
+    }),
     user: t.prismaField({
       type: 'User',
       args: { id: t.arg.int({ required: true }) },
@@ -128,6 +134,43 @@ describe('relation field options', () => {
     expect(result.data).toEqual({ user: { profile: null } });
     expect(result.errors?.map((error) => error.message)).toEqual([
       `no profile for user ${userWithoutProfile.id} (primary) via User.profile for viewer 42`,
+    ]);
+  });
+
+  it('plans every occurrence of the field when loading it through the fallback', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          rawUser {
+            posts {
+              id
+            }
+            ... on User {
+              posts {
+                author {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    const posts = (result.data as { rawUser: { posts: { id: string; author: { id: string } }[] } })
+      .rawUser.posts;
+    expect(posts.length).toBeGreaterThan(0);
+    expect(posts.every((post) => post.author.id === '1')).toBe(true);
+    expect(queries).toEqual([
+      { action: 'findUniqueOrThrow', model: 'User', args: { where: { id: 1 } } },
+      {
+        action: 'findUniqueOrThrow',
+        model: 'User',
+        args: { include: { posts: { include: { author: true } } }, where: { id: 1 } },
+      },
     ]);
   });
 });
