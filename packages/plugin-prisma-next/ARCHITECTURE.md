@@ -22,20 +22,22 @@ around those two steps.
 
 | Path | What lives here |
 |---|---|
-| `src/index.ts` | Plugin class. `onTypeConfig` (precompute relation metadata, M:N rejection). `wrapResolve` (Collection auto-detect + materialize; per-field overlay for combine slots). |
+| `src/index.ts` | Plugin class. `onTypeConfig` (precompute relation metadata, unknown-cardinality rejection). `wrapResolve` (Collection auto-detect + materialize; per-field overlay for combine slots). |
 | `src/schema-builder.ts` | `builder.prismaObject` / `prismaInterface` / `prismaNode` / `prismaObjectField(s)` / `prismaInterfaceField(s)`. |
 | `src/prisma-next-field-builder.ts` | `t.prismaField` / `t.prismaFieldWithInput` on `RootFieldBuilder`. |
 | `src/prisma-next-connection.ts` | `t.prismaConnection` on `RootFieldBuilder`. |
 | `src/prisma-next-object-field-builder.ts` | `PrismaNextObjectFieldBuilder`: `t.relation` / `t.relatedConnection` / `t.variant` / `t.expose*` / `t.withAuth`. |
 | `src/connection-helpers.ts` | `prismaConnectionHelpers` — public composable for custom paginators. |
-| `src/utils/apply-selection.ts` | The walker. Public entry: `applySelectionToCollection`. |
+| `src/utils/adapter.ts` | The `@pothos/selection-mapper` adapter: the node, the spec map, the compile of `select` shapes, and `emit` (spec → builder chain). |
+| `src/utils/map-query.ts` | Public entry: `applySelectionToCollection` over `walkFromInfo` / `queryFromWalk`. |
+| `src/utils/model.ts` | One `PrismaNextModel` per contract model (relations with resolved targets, column set), built from the contract. |
 | `src/utils/branding.ts` | `rebrandForVariant` (used by `t.variant` only). |
 | `src/utils/refs.ts` | Per-builder ref cache (drizzle shape). |
 | `src/utils/cursors.ts` | Cursor encode/decode + pagination predicate builders. |
 | `src/utils/node-batch.ts` | Per-request micro-batching for `prismaNode.load`. |
 | `src/utils/total-count.ts` | `buildTotalCountPromise` + `wrapConnectionOptionsWithTotalCount`. |
 | `src/object-ref.ts` / `interface-ref.ts` / `node-ref.ts` | The three ref classes. |
-| `src/constants.ts` | Extension keys: `pothosPrismaNextModel`, `pothosPrismaNextPrepared`, `pothosPrismaNextSelect`, `pothosPrismaNextRelations`. |
+| `src/constants.ts` | Extension keys: `pothosPrismaNextModel`, `pothosPrismaNextPrepared`, `pothosPrismaNextSelect`, `pothosPrismaNextRelations`, `pothosPrismaNextFieldSelect`. |
 
 ## Schema build
 
@@ -49,8 +51,10 @@ When the user calls `builder.prismaObject('User', ...)`, the plugin:
    spec).
 3. Inside `onTypeConfig` the plugin walks every relation declared on
    that contract model and caches `{ isToMany, localFields, targetModel }`
-   per relation as `pothosPrismaNextRelations`. M:N relations throw
-   here (fail-fast — the walker doesn't know how to join junctions).
+   per relation as `pothosPrismaNextRelations`. An unknown cardinality
+   throws here (fail-fast). The adapter reads the same metadata through
+   `src/utils/model.ts`, one model object per contract model, so model
+   identity is what the walker compares.
 
 For `t.prismaField({ type: 'User', resolve })`, the field builder wraps
 the resolver and stamps `pothosPrismaNextPrepared: { modelName, typeName }`
@@ -80,51 +84,79 @@ only runs step 4 — the auto-include step is skipped. This makes
 
 ## The walker
 
-`applySelectionToCollection(baseCollection, info, contract, ctx, opts)`
-emits the chain inline. It does not build an intermediate tree: each
-level's state is a `LevelAcc` that lives only inside one stack frame.
+The selection walk is `@pothos/selection-mapper` (the walker shared with
+`@pothos/plugin-prisma` and `@pothos/plugin-drizzle`); this plugin
+supplies an `Adapter` for prisma-next's builder-chain query format
+(`src/utils/adapter.ts`). `applySelectionToCollection(baseCollection,
+info, contract, ctx, opts)` (`src/utils/map-query.ts`) runs
+`walkFromInfo`, serializes the root with `queryFromWalk`, and emits the
+result onto the collection. The walk is synchronous unless a `select`
+callback returned a promise, in which case the augmented collection is
+a promise the plugin's own consumers await.
 
-For one level (one GraphQL selection set on one type):
+The adapter's node, one per level (one selection set on one model):
 
 ```
-LevelAcc {
-  columns: Set<string>            → emitted as base.select(...columns)
-  relations: Map<name, RelationAcc>  → emitted as base.include(rel, cb)
-}
-RelationAcc {
-  isToMany
-  branches: Map<alias, BranchAcc>     // refined includes per alias
-  counts: Map<alias, CountAcc>        // legacy peer counts (unused on current path)
-  specFunctions: RelationSpecFn[]     // function-form select callbacks
-  parentFkColumns: string[]           // FK cols to merge into parent SELECT
+PrismaNextNode {
+  model: PrismaNextModel
+  columns: Set<string>                    → emitted as base.select(...columns)
+  relations: Map<name, {
+    meta                                  // isToMany, localFields, target model
+    branches: Map<'<alias>:<slot>', { alias, slot, args, refine?, node }>
+    functions: Map<alias, fn>             // function-form select entries
+  }>                                      → emitted as base.include(rel, cb)
 }
 ```
 
-Each field in the selection set drops contributions into the level:
+Its `Map` (what a type or a field hands the walker) is `PrismaNextSpec`:
+columns, and relation entries that are a branch (its own nested spec,
+a `refine`, the field's `args`, a `slot`), a function-form entry, or
+`true`. Every serialized entry carries the alias it was walked under,
+so a spec round-trips through `merge` without a key.
 
-- `t.expose*` writes `pothosExposedField` = column name → walker calls
-  `level.columns.add(name)`.
-- `t.relation`/`t.relatedConnection`/`t.field({ select })` write
-  `pothosOptions.select` on the field config. The walker reads it,
-  resolves callbacks (with `args + ctx`), and adds branches or spec
-  functions to the relevant `RelationAcc`.
-- Type-level `pothosPrismaNextSelect` (from `prismaObject({ select })`)
-  is applied at the start of every descent — declared columns always
-  load, declared relations get a default branch.
+Each field with prisma-next-relevant behaviour is compiled once, at
+first walk, by `fieldSelection(field, type)`:
 
-After collecting, the walker runs **FK augmentation**: every relation
-that ended up in the level merges its `parentFkColumns` into
-`level.columns`. This is the workaround for prisma-next's nested-stitch
-plan needing the parent's FK on depth-2+ includes. The metadata comes
-from the precomputed `pothosPrismaNextRelations` extension — the walker
-never touches the contract.
+- `t.expose*` writes `pothosExposedField` = column name → a static
+  `{ columns }`.
+- `t.field({ select: [...] })` and an object select of columns only →
+  a static `{ columns }`.
+- `t.relation` / `t.relationCount` / `t.field({ select })` with relation
+  entries write `pothosOptions.select` (a literal or `(args, ctx) =>`
+  callback). Compiled to a select function: keys are classified against
+  the parent model (a typo throws `select: 'x' is not a column or
+  relation on User`); a `true` or declarative entry is a branch whose
+  nested spec is `nested(query)`, the walk of the field's own selection
+  set as its return type; a function entry is stored and run at emit
+  time against the relation collection.
+- `t.variant` writes a field-level `pothosIndirectInclude { getType }`
+  (no path) → a select function returning `nested(true)`, the variant
+  type's selection set walked on the same row, plus the forced columns
+  of its `select` option.
+- `t.relatedConnection` precompiles its own select function into
+  `pothosPrismaNextFieldSelect` (see Connections).
+- Type-level `pothosPrismaNextSelect` (`prismaObject({ select })`) is
+  compiled once per type and merged whenever the walker enters the type,
+  slotted under `:object:<Type>`.
 
-Then **emission**:
+`merge` adds a spec to a node: columns union; each relation entry lands
+in its `<alias>:<slot>` branch (unioned when the walker applies the same
+field twice — two fragments selecting it — and refused when the two
+arrive with different arguments), function entries by alias. Getting a
+relation for the first time runs **FK augmentation**: the relation's
+`localFields` (the parent-side join columns) go into the node's columns,
+the workaround for prisma-next's nested-stitch plan needing the parent's
+FK on depth-2+ includes. `compatible` always answers true and
+`typeLevelConflict` never reports one: every consumer has its own slot,
+so nothing conflicts. `recordsMappings: false`: rows are read back
+through the per-resolve overlay, not loader mappings.
+
+Then **emission** (`emit`, from the serialized root):
 
 ```
 acc = base.select(...columns)
 for each relation:
-  if single consumer (one branch, no count, no spec-fn):
+  if single consumer (to-one, or one branch and no function entry):
       acc = acc.include(name, cb => emitBranch(cb))   // fast path
   else:
       acc = acc.include(name, cb => cb.combine(specObject))  // multi-consumer
@@ -136,17 +168,19 @@ falls back to multi-query whenever an include uses `.combine` (painpoint
 
 ### Indirect-include descent
 
-`pothosIndirectInclude` is a field- or type-level extension that tells
-the walker to redirect:
+`pothosIndirectInclude` on a **type** (set by `@pothos/plugin-errors` on
+result-union types: `{ getType, path: [{ name: 'data' }] }`) is honoured
+by the walker itself: a selection on the wrapper is a selection on
+`getType()` found under `path`. `paths` given to
+`applySelectionToCollection` (`[['edges','node'], ['nodes']]`) and to a
+nested selection (`t.relatedConnection`) are matched the same way, and
+compose with a wrapper on the field (`prefix`), so a result-union of a
+connection works without special-casing.
 
-- `{ getType }` — same-row redirect. Walk the named type's selections
-  on the same parent row. Used by `t.variant`.
-- `{ getType, paths }` — descend through named paths. Used by
-  `t.relatedConnection` (paths into `edges.node` and `nodes`) and by
-  `@pothos/plugin-errors` (paths into a result-union's `data` field).
-
-Both forms thread through `resolveIndirectInclude` /
-`resolveIndirectIncludePaths` in `apply-selection.ts`.
+On a **field**, `pothosIndirectInclude` is the plugin's own marker: the
+walker does not read it; the adapter compiles the no-path form into the
+`t.variant` same-row descent, and `t.relatedConnection` hands its paths
+form to `nested()` as the include to walk.
 
 ## Combine slots
 
@@ -222,28 +256,31 @@ selecting only `nodes` skip the per-row encode.
 
 ### `t.relatedConnection`
 
-Sugar that compiles to a `t.connection` field with a function-form
-`pothosOptions.select`. Pagination lives INSIDE the include refinement,
-so the parent + the page rows ship as one SQL plan whenever prisma-next
-can collapse it:
+Sugar that compiles to a `t.connection` field with a precompiled select
+function (`pothosPrismaNextFieldSelect`). Pagination lives INSIDE the
+include refinement, so the parent + the page rows ship as one SQL plan
+whenever prisma-next can collapse it:
 
 ```
-select: (_args, _ctx, info, fieldSelection, connectionType) => ({
-  [relationName]: (sub, args, ctx) => {
-    const filtered = userWhere?.(sub) ?? sub
-    const paginated = applyCursorPagination(filtered, cursor, args, sizes)
-    const withCols = applySelectionToCollection(paginated.collection, info,
-      contract, ctx, { paths: [['edges','node'], ['nodes']], extraColumns: cursorCols, ... })
-    return wantsTotalCount
-      ? { rows: withCols, count: filtered.count() }
-      : { rows: withCols }
-  },
-})
+select: (args, ctx, nested, getSelectedNode) => {
+  const rows = nested(
+    { slot: 'rows', columns: cursorCols,
+      refine: (rel) => applyCursorPagination(userWhere?.(rel) ?? rel, cursor, args, sizes).collection },
+    { getType: () => relatedType, paths: [['edges','node'], ['nodes']] },
+  )
+  return { relations: { [relationName]:
+    totalCount && getSelectedNode(['totalCount'])
+      ? [rows, { fn: (sub) => ({ count: (userWhere?.(sub) ?? sub).count() }) }]
+      : rows } }
+}
 ```
 
 The connection field's resolver reads `parent.rows` and (optionally)
-`parent.count` from the per-field overlay, re-builds the pagination
-state to encode cursors, and returns the Relay connection page.
+`parent.count` from the per-field overlay when the relation went
+through `combine` (another consumer, or the count), or the relation
+value itself when the connection was its only consumer (fast path),
+re-builds the pagination state to encode cursors, and returns the Relay
+connection page.
 
 ## Relay nodes
 
@@ -281,10 +318,10 @@ manually — same pattern as `@pothos/plugin-prisma`.
 - **plugin-relay** — `prismaNode` integrates via `nodeRef`. The brand
   check is the `isTypeOf` fallback when the user doesn't provide one.
 - **plugin-errors** — sets `pothosIndirectInclude` on result-union
-  types. The walker honors type-level indirect-includes
-  (`apply-selection.ts:walkField`) and descends into the union's `data`
-  field, so wrapping a Connection or relation in a result-union "just
-  works" — no errors-plugin-specific code in this plugin.
+  types. The shared walker honors type-level indirect-includes and
+  descends into the union's `data` field, so wrapping a Connection or
+  relation in a result-union "just works" — no errors-plugin-specific
+  code in this plugin.
 - **plugin-scope-auth** — `t.withAuth(scopes)` on
   `PrismaNextObjectFieldBuilder` returns a derived builder that
   injects `authScopes` into every field-config before
@@ -308,5 +345,6 @@ See `feedback/prisma-next-painpoints.md` for the live list. Highlights:
   (painpoint #4).
 - SQL-only. The mapper emits `.combine` and callback-form `.where`,
   which Mongo's `Collection` shape doesn't have (painpoint #8).
-- M:N relations rejected at schema build until the contract carries
-  junction columns (painpoint #7).
+- N:M relations are emitted like any to-many include; prisma-next
+  resolves the junction from the contract's `through` (painpoint #7,
+  resolved upstream in 0.14).
