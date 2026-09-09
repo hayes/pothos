@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
 import PrismaPlugin, { type PrismaTypesFromClient, queryFromInfo } from '../src';
-import type { Profile as ProfileRow, User as UserRow } from './client/client.js';
+import type { Post as PostRow, Profile as ProfileRow, User as UserRow } from './client/client.js';
 import { prisma, queries } from './example/builder';
 import schema from './example/schema';
 import { getDatamodel } from './generated.js';
@@ -148,8 +148,78 @@ async function resolveEntriesWithVariant(
   return [...entries, { kind: 'variant', user }];
 }
 
+// A relation with field-level arguments next to a variant whose type-level select plans the same
+// relation with other arguments: whichever fragment comes first, the type-level select wins and
+// the field loads its own rows.
+const LimitedUser = builder.prismaObject('User', {
+  variant: 'LimitedUser',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    posts: t.relation('posts', { query: { take: 2 } }),
+  }),
+});
+
+const LimitedViewer = builder.prismaObject('User', {
+  variant: 'LimitedViewer',
+  select: { id: true, posts: { take: 5 } },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+const LimitedEntry = builder
+  .interfaceRef<AppointmentEntryShape | VariantEntryShape>('LimitedEntry')
+  .implement({
+    fields: (t) => ({
+      kind: t.exposeString('kind'),
+    }),
+    resolveType: (entry) =>
+      entry.kind === 'appointment' ? 'LimitedAppointmentEntry' : 'LimitedVariantEntry',
+  });
+
+builder.objectRef<AppointmentEntryShape>('LimitedAppointmentEntry').implement({
+  interfaces: [LimitedEntry],
+  fields: (t) => ({
+    appointment: t.field({
+      type: LimitedUser,
+      resolve: (entry) => entry.user,
+    }),
+  }),
+});
+
+builder.objectRef<VariantEntryShape>('LimitedVariantEntry').implement({
+  interfaces: [LimitedEntry],
+  fields: (t) => ({
+    appointment: t.field({
+      type: LimitedViewer,
+      // The row was loaded by the walk that entered LimitedViewer, so it carries the posts the
+      // variant's type-level select plans.
+      resolve: (entry) => entry.user as UserRow & { posts: PostRow[] },
+    }),
+  }),
+});
+
+async function resolveLimitedEntries(
+  context: object,
+  info: Parameters<typeof queryFromInfo>[0]['info'],
+): Promise<(AppointmentEntryShape | VariantEntryShape)[]> {
+  const user = await prisma.user.findUniqueOrThrow({
+    ...queryFromInfo({ context, info, typeName: 'LimitedUser', path: ['appointment'] }),
+    where: { id: 1 },
+  });
+
+  return [
+    { kind: 'appointment', user },
+    { kind: 'variant', user },
+  ];
+}
+
 builder.queryType({
   fields: (t) => ({
+    limitedEntries: t.field({
+      type: [LimitedEntry],
+      resolve: (_root, _args, context, info) => resolveLimitedEntries(context, info),
+    }),
     entries: t.field({
       type: [Entry],
       resolve: (_root, _args, context, info) => resolveEntries(context, info, ['appointment']),
@@ -518,6 +588,110 @@ describe('indirect include paths through fragments', () => {
           args: { include: { posts: true, profile: true }, where: { id: 1 } },
         },
       ]);
+    });
+
+    it("settles a variant's type-level select before any match's field, whichever match comes first", async () => {
+      const appointmentFirst = gql`
+        query {
+          entries: limitedEntries {
+            kind
+            ... on LimitedAppointmentEntry {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+            ... on LimitedVariantEntry {
+              appointment {
+                id
+              }
+            }
+          }
+        }
+      `;
+      const variantFirst = gql`
+        query {
+          entries: limitedEntries {
+            kind
+            ... on LimitedVariantEntry {
+              appointment {
+                id
+              }
+            }
+            ... on LimitedAppointmentEntry {
+              appointment {
+                id
+                posts {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `;
+      const seen: unknown[][] = [];
+
+      for (const document of [appointmentFirst, variantFirst]) {
+        const result = await execute({
+          schema: entriesSchema,
+          document,
+          contextValue: { user: { id: 1 } },
+        });
+
+        expect(result.errors).toBeUndefined();
+        // LimitedUser.posts reads its own two rows, not the five the variant planned.
+        expect(result.data).toEqual({
+          entries: [
+            {
+              kind: 'appointment',
+              appointment: {
+                id: '1',
+                posts: [{ id: expect.any(String) }, { id: expect.any(String) }],
+              },
+            },
+            { kind: 'variant', appointment: { id: '1' } },
+          ],
+        });
+        expect(queries).toHaveLength(2);
+        seen.push([...queries]);
+        queries.length = 0;
+      }
+
+      expect(seen[1]).toEqual(seen[0]);
+      expect(seen[0]).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "findUniqueOrThrow",
+            "args": {
+              "include": {
+                "posts": {
+                  "take": 5,
+                },
+              },
+              "where": {
+                "id": 1,
+              },
+            },
+            "model": "User",
+          },
+          {
+            "action": "findUniqueOrThrow",
+            "args": {
+              "include": {
+                "posts": {
+                  "take": 2,
+                },
+              },
+              "where": {
+                "id": 1,
+              },
+            },
+            "model": "User",
+          },
+        ]
+      `);
     });
 
     it('only matches under the pinned type when a segment has a type', async () => {
