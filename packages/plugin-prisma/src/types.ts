@@ -79,13 +79,19 @@ type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends 
     : never
   : never;
 
-/** The model a field's type param names: a prisma ref, or a list of one. */
-export type ModelForTypeParam<Type> = Type extends [infer Item]
-  ? ModelForTypeParam<Item>
+/**
+ * The model a field's type param names: a prisma ref, the name of a prisma object type (one
+ * registered under its model's name, as `prismaObject` does without `name` or `variant`, and so
+ * a key of `Types['PrismaTypes']`), or a list of either.
+ */
+export type ModelForTypeParam<Types extends SchemaTypes, Type> = Type extends [infer Item]
+  ? ModelForTypeParam<Types, Item>
   : // biome-ignore lint/suspicious/noExplicitAny: matching against any ref
     Type extends PrismaRef<any, infer Model>
     ? Model
-    : never;
+    : Type extends keyof Types['PrismaTypes']
+      ? PrismaModelTypes & Types['PrismaTypes'][Type]
+      : never;
 
 /**
  * The query a relation of `Model` is loaded with: the arguments prisma accepts on a list relation
@@ -171,7 +177,7 @@ export type PrismaObjectFieldOptions<
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: NestedSelectionFn<ModelForTypeParam<Type>>,
+            nestedSelection: NestedSelectionFn<ModelForTypeParam<Types, Type>>,
           ) => MaybePromise<ExtractModel<Types, ParentShape>['Select']>)
       );
   };

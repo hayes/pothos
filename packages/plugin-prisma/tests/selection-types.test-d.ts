@@ -157,6 +157,53 @@ builder.prismaObject('User', {
   }),
 });
 
+// A field whose type is the name of a prisma object type (registered under its model's name) gets
+// the same model inference as one typed with the ref.
+const stringBuilder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Objects: { Post: PrismaTypes['Post']['Shape']; Profile: PrismaTypes['Profile']['Shape'] };
+}>({
+  plugins: [PrismaPlugin],
+  prisma: {
+    client: () => null as never,
+    dmmf: getDatamodel(),
+  },
+});
+
+stringBuilder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+stringBuilder.prismaObject('Profile', { fields: (t) => ({ id: t.exposeID('id') }) });
+
+stringBuilder.prismaObject('User', {
+  fields: (t) => ({
+    latestPosts: t.field({
+      type: ['Post'],
+      select: (_args, _ctx, nestedSelection) => {
+        expectTypeOf(nestedSelection()).toEqualTypeOf<PrismaRelationQuery<PrismaTypes['Post']>>();
+
+        const query = nestedSelection({ take: 1 });
+
+        expectTypeOf(query.take).toEqualTypeOf<number>();
+        expectTypeOf(query.select).toEqualTypeOf<PrismaTypes['Post']['Select'] | undefined>();
+
+        return { posts: query };
+      },
+      resolve: (user) => user.posts,
+    }),
+    profile: t.field({
+      type: 'Profile',
+      nullable: true,
+      select: (_args, _ctx, nestedSelection) => {
+        expectTypeOf(nestedSelection({ select: { bio: true } }).select).toEqualTypeOf<{
+          bio: true;
+        }>();
+
+        return { profile: nestedSelection() };
+      },
+      resolve: (user) => user.profile,
+    }),
+  }),
+});
+
 // A relation's fallback `resolve` is handed the relation's own query: prisma's arguments for
 // the relation, with the planned `select`/`include`, so it spreads into a query without a cast.
 builder.prismaObject('Comment', {
