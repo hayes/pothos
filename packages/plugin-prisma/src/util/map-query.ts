@@ -13,20 +13,15 @@ import { wrapWithUsageCheck } from './usage.js';
 export { selectedFieldNames };
 
 /**
- * What `queryFromInfo` returns. The walked type's mode wins: a given `include` puts the query in
- * include mode, so the result is `{ include }`; with neither given it is whichever of the two the
- * mode produced, both optional so the result spreads into a prisma call either way. A given
- * `select` is kept as `{ select }` by a type in select mode, but a type in include mode merges it
- * into an `include` query (`{ include }`, or `{}` when nothing is included), so the result is the
- * union of the two; the selected columns are on the rows in both.
+ * What `queryFromInfo` returns. A given `include` puts the query in include mode, so the result
+ * is `{ include }`. Otherwise it is whichever of `select` and `include` the walked type's mode
+ * produced, both optional, so the result spreads into a prisma call either way: a type in select
+ * mode keeps a given `select` as `select`, a type in include mode merges it into `include`; the
+ * selected columns are on the rows in both.
  */
-export type QueryFromInfoResult<Select, Include> = undefined extends Select
-  ? undefined extends Include
-    ? { select?: SelectionMap['select']; include?: SelectionMap['include'] }
-    : { include: Include }
-  :
-      | { select: Select; include?: undefined }
-      | { select?: undefined; include?: SelectionMap['include'] };
+export type QueryFromInfoResult<Include> = undefined extends Include
+  ? { select?: SelectionMap['select']; include?: SelectionMap['include'] }
+  : { include: Include };
 
 /**
  * The query for the field `info` resolves. A given `select` is merged as the initial selection;
@@ -57,7 +52,7 @@ export function queryFromInfo<
 } & (
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
-)): QueryFromInfoResult<Select, Include> {
+)): QueryFromInfoResult<Include> {
   const query = walkQueryFromInfo(prismaAdapter, {
     context,
     info,

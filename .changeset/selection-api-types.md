@@ -10,11 +10,11 @@ Two changes can stop existing code from compiling; in both cases that code faile
 
 - `t.relationCount` (prisma) and `t.relatedCount` (drizzle) accept only list relations. Calling
   either on a to-one relation built a count query prisma or drizzle rejected.
-- `queryFromInfo` (prisma) is typed by what it was given: `{ include }` when one was passed,
-  `{ select?, include? }` when neither was, and for a given `select` the union of `{ select }` and
-  `{ include? }`, since a type in include mode merges the select into an `include` query. It used
-  to claim `{ select: Select }` for every call without `include`, so code reading `.select` off
-  that result now sees it as possibly undefined. Every form spreads into a prisma call as before.
+- `queryFromInfo` (prisma) is typed by what it returns: `{ include }` when an `include` was
+  passed, and otherwise `{ select?, include? }`, whichever of the two the type's mode produced.
+  It used to claim `{ select: Select }` for every call without `include`, which was wrong for a
+  type in include mode, so code reading `.select` off that result now sees it as possibly
+  undefined. Every form spreads into a prisma call as before.
 
 New and widened types:
 

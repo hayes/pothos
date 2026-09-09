@@ -395,21 +395,20 @@ it('re-exports the shared path segment types', () => {
     .toEqualTypeOf<PathSegment[] | undefined>();
 });
 
-// `queryFromInfo` is typed by what it was given and by what the walked type's mode can make of
-// it: an `include` passed in, or, when neither was, whichever of the two the mode produces (both
-// optional, so the result spreads into a prisma call). A given `select` is kept by a type in
-// select mode, and merged into an `include` query by a type in include mode, so the result is the
-// union of the two.
+// `queryFromInfo` is typed by what the walked type's mode can make of what it was given: an
+// `include` passed in comes back as `include`; otherwise whichever of the two the mode produces,
+// both optional, so the result spreads into a prisma call.
 it('types queryFromInfo by what was passed', () => {
   expectTypeOf(queryFromInfo({ context, info })).toEqualTypeOf<{
     select?: SelectionMap['select'];
     include?: SelectionMap['include'];
   }>();
 
-  expectTypeOf(queryFromInfo({ context, info, select: { id: true } })).toEqualTypeOf<
-    | { select: { id: true }; include?: undefined }
-    | { select?: undefined; include?: SelectionMap['include'] }
-  >();
+  // A given `select` may come back as `select` or, from a type in include mode, as `include`.
+  expectTypeOf(queryFromInfo({ context, info, select: { id: true } })).toEqualTypeOf<{
+    select?: SelectionMap['select'];
+    include?: SelectionMap['include'];
+  }>();
 
   expectTypeOf(queryFromInfo({ context, info, include: { posts: true } })).toEqualTypeOf<{
     include: { posts: true };
