@@ -87,6 +87,12 @@ export interface EntryOptions<Map> {
 export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
   skipDeferredFragments: boolean;
   /**
+   * L-2: whether the walk records loader mappings for the plugin's resolvers to look up
+   * (`getLoaderMapping`). Default true. An adapter whose resolvers read a loaded row another way
+   * sets it false, and the walk records nothing.
+   */
+  recordsMappings?: boolean;
+  /**
    * The model a type carries, or undefined. Does not follow indirect includes (`Env.modelOf`
    * does). One object per model: identity is model identity.
    */
@@ -104,18 +110,19 @@ export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>
   /**
    * M-1, M-2, S-9, in place. Never mutates `map`. `key` is the field the map came from
    * (`Type@alias`, or `Type@path.alias` beneath an indirect include) when the map is a field's
-   * selection, so an adapter that keeps one slot per selected field can key it; it is absent for
-   * a type-level selection, an initial selection, and a loader's staged query.
+   * selection, and `alias` the field's response key alone, so an adapter that keeps one slot per
+   * selected field can key it; both are absent for a type-level selection, an initial selection,
+   * and a loader's staged query.
    */
-  merge(node: N, map: Map, key?: string): void;
+  merge(node: N, map: Map, key?: string, alias?: string): void;
   /**
    * M-3: whether `map` can be merged into `node` without changing what is already selected:
    * relations present in both are compatible recursively (arguments deep-equal below the top),
    * extras present in both are equal. With `ignoreArgs` the node's own arguments are not
-   * compared. `key` as for `merge`. An adapter that never shares a node between two fields
+   * compared. `key` and `alias` as for `merge`. An adapter that never shares a node between two fields
    * answers true.
    */
-  compatible(node: N, map: Map, ignoreArgs: boolean, key?: string): boolean;
+  compatible(node: N, map: Map, ignoreArgs: boolean, key?: string, alias?: string): boolean;
   /**
    * E-3: merges the relation query a nested selection was given (a `t.relation` `query`, a
    * connection's cursor query) into the root of the nested walk. A query without a column
@@ -907,7 +914,7 @@ function applyField<M, Map, X, N extends NodeBase<M>>(
   const key = `${type.name}@${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
 
   if (typeof selection !== 'function') {
-    mergeField(walk, node, key, selection, NONE);
+    mergeField(walk, node, key, alias, selection, NONE);
 
     return;
   }
@@ -926,10 +933,10 @@ function applyField<M, Map, X, N extends NodeBase<M>>(
 
   if (isThenable(map)) {
     chain(walk, map as PromiseLike<Map | false | null | undefined>, (resolved) =>
-      mergeField(walk, node, key, resolved, mapping),
+      mergeField(walk, node, key, alias, resolved, mapping),
     );
   } else {
-    mergeField(walk, node, key, map, mapping);
+    mergeField(walk, node, key, alias, map, mapping);
   }
 }
 
@@ -966,14 +973,15 @@ function mergeField<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
   key: string,
+  alias: string,
   map: Map | false | null | undefined,
   mapping: Invocation,
 ) {
-  if (!(map && walk.env.adapter.compatible(node, map, true, key))) {
+  if (!(map && walk.env.adapter.compatible(node, map, true, key, alias))) {
     return;
   }
 
-  walk.env.adapter.merge(node, map, key);
+  walk.env.adapter.merge(node, map, key, alias);
 
   if (mapping.pending) {
     throw new PothosValidationError(
@@ -981,7 +989,9 @@ function mergeField<M, Map, X, N extends NodeBase<M>>(
     );
   }
 
-  walk.mappings[key] = unionMappings(walk.mappings[key], mapping);
+  if (walk.env.adapter.recordsMappings !== false) {
+    walk.mappings[key] = unionMappings(walk.mappings[key], mapping);
+  }
 }
 
 /** Adopts the first mapping accepted for a key; later accepted walks of the key deep-union. */
