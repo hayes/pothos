@@ -681,7 +681,11 @@ export function selectionStateFromInfo(
     );
   }
 
-  addFieldSelection(type, context, info, state, info.fieldNodes[0], []);
+  // The same response key can be selected more than once (through fragments); every occurrence
+  // contributes to what the resolver will read.
+  for (const fieldNode of info.fieldNodes) {
+    addFieldSelection(type, context, info, state, fieldNode, []);
+  }
 
   return state;
 }

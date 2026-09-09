@@ -10,6 +10,7 @@ import {
   type GraphQLInterfaceType,
   type GraphQLNamedType,
   type GraphQLObjectType,
+  type GraphQLOutputType,
   type GraphQLResolveInfo,
   GraphQLSkipDirective,
   getDirectiveValues,
@@ -18,6 +19,7 @@ import {
   isAbstractType,
   isInterfaceType,
   isListType,
+  isNonNullType,
   isObjectType,
   Kind,
   type SelectionSetNode,
@@ -424,7 +426,7 @@ function addFieldSelection(
       field: selection.name.value,
       alias: selection.alias?.value ?? selection.name.value,
       parentType: type.name,
-      isList: isListType(field.type) || isListType(getNamedType(field.type)),
+      isList: isListField(field.type),
     },
   ];
 
@@ -650,7 +652,7 @@ export function stateFromInfo<T extends SelectionMap>({
             field: rootFieldNode.name.value,
             alias: rootFieldNode.alias?.value ?? rootFieldNode.name.value,
             parentType: info.parentType.name,
-            isList: isListType(rootField.type) || isListType(getNamedType(rootField.type)),
+            isList: isListField(rootField.type),
           },
         ]
       : [];
@@ -691,7 +693,11 @@ export function selectionStateFromInfo(
     );
   }
 
-  addFieldSelection(config, type, context, info, state, info.fieldNodes[0], []);
+  // The same response key can be selected more than once (through fragments); every occurrence
+  // contributes to what the resolver will read.
+  for (const fieldNode of info.fieldNodes) {
+    addFieldSelection(config, type, context, info, state, fieldNode, []);
+  }
 
   return state;
 }
@@ -715,6 +721,11 @@ export function selectsPath(info: GraphQLResolveInfo, path: string[]): boolean {
         prefix: pothosIndirectInclude?.path,
       }).length > 0,
   );
+}
+
+/** A list field, whether or not the list itself is non-null (`[Post!]!`). */
+function isListField(type: GraphQLOutputType) {
+  return isListType(type) || (isNonNullType(type) && isListType(type.ofType));
 }
 
 function createStateForSelection(

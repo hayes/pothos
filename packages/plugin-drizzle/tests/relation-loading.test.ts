@@ -272,4 +272,52 @@ describe('relation loading', () => {
     expect(drizzleLogs).toHaveLength(2);
     expect(drizzleLogs[1]).toContain('count(*)');
   });
+
+  it('plans every occurrence of the field when loading it through the fallback', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          rawUser {
+            posts {
+              id
+            }
+            ... on User {
+              posts {
+                author {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    const posts = (result.data as { rawUser: { posts: { id: string; author: { id: string } }[] } })
+      .rawUser.posts;
+    expect(posts.length).toBeGreaterThan(0);
+    expect(posts.every((post) => post.author.id === '1')).toBe(true);
+  });
+
+  it('marks non-null list fields as lists in pathInfo segments', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user {
+            postsWithPath {
+              id
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(recordedSegments.at(-1)).toMatchObject({ field: 'postsWithPath', isList: true });
+  });
 });
