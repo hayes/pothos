@@ -322,4 +322,66 @@ describe('fragments on variants and non-model interfaces', () => {
       );
     });
   });
+
+  describe('fragments left out by @skip / @include', () => {
+    it('does not enter a variant through a skipped inline fragment', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query ($skip: Boolean!) {
+            postsViewer {
+              id
+              ... on RecentPostsViewer @skip(if: $skip) {
+                postCount
+              }
+            }
+          }
+        `,
+        variableValues: { skip: true },
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ postsViewer: { id: '1' } });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: {
+            select: { id: true, posts: { take: 3, select: { id: true } } },
+            where: { id: 1 },
+          },
+        },
+      ]);
+    });
+
+    it('leaves the fields of an excluded fragment spread out of the query', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              id
+              ...NormalViewerFields @include(if: false)
+            }
+          }
+
+          fragment NormalViewerFields on NormalViewer {
+            displayName
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { id: '1' } });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { select: { id: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+  });
 });

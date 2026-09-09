@@ -289,7 +289,7 @@ function walkIndirectPath(
           expectedType.name === type.name &&
           sel.name.value === include.name &&
           (isObjectType(type) || isInterfaceType(type)) &&
-          !fieldSkipped(info, sel)
+          !selectionSkipped(info, sel)
         ) {
           const returnType = getNamedType(type.getFields()[sel.name.value].type);
 
@@ -307,6 +307,10 @@ function walkIndirectPath(
         continue;
       }
       case Kind.FRAGMENT_SPREAD: {
+        if (selectionSkipped(info, sel)) {
+          continue;
+        }
+
         const fragment = info.fragments[sel.name.value];
         const next = resolveFragmentTypes(
           info,
@@ -329,6 +333,10 @@ function walkIndirectPath(
         continue;
       }
       case Kind.INLINE_FRAGMENT: {
+        if (selectionSkipped(info, sel)) {
+          continue;
+        }
+
         const next = resolveFragmentTypes(
           info,
           sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : undefined,
@@ -468,7 +476,7 @@ function addNestedSelections(
 
         continue;
       case Kind.FRAGMENT_SPREAD: {
-        if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
+        if (fragmentSkipped(info, state, selection)) {
           continue;
         }
 
@@ -487,7 +495,7 @@ function addNestedSelections(
         continue;
       }
       case Kind.INLINE_FRAGMENT:
-        if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
+        if (fragmentSkipped(info, state, selection)) {
           continue;
         }
 
@@ -570,7 +578,7 @@ function addFieldSelection(
   selection: FieldNode,
   indirectPath: string[],
 ) {
-  if (selection.name.value.startsWith('__') || fieldSkipped(info, selection)) {
+  if (selection.name.value.startsWith('__') || selectionSkipped(info, selection)) {
     return;
   }
 
@@ -937,7 +945,11 @@ function normalizeInclude(
   };
 }
 
-function fieldSkipped(info: GraphQLResolveInfo, selection: FieldNode) {
+/** Whether `@skip` / `@include` leave a field or fragment out of the response. */
+function selectionSkipped(
+  info: GraphQLResolveInfo,
+  selection: FieldNode | FragmentSpreadNode | InlineFragmentNode,
+) {
   const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
   if (skip?.if === true) {
     return true;
@@ -949,6 +961,21 @@ function fieldSkipped(info: GraphQLResolveInfo, selection: FieldNode) {
   }
 
   return false;
+}
+
+/**
+ * Whether a fragment contributes nothing to this plan: it is left out by `@skip` / `@include`, or
+ * it is deferred and deferred fragments are planned on their own.
+ */
+function fragmentSkipped(
+  info: GraphQLResolveInfo,
+  state: SelectionState,
+  fragment: FragmentSpreadNode | InlineFragmentNode,
+) {
+  return (
+    selectionSkipped(info, fragment) ||
+    (state.skipDeferredFragments && isDeferredFragment(fragment, info))
+  );
 }
 
 function isDeferredFragment(

@@ -316,4 +316,59 @@ describe('fragments on variants and non-model interfaces', () => {
       );
     });
   });
+
+  describe('fragments left out by @skip / @include', () => {
+    it('does not enter a variant through a skipped inline fragment', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query ($skip: Boolean!) {
+            postsViewer {
+              id
+              ... on RecentPostsViewer @skip(if: $skip) {
+                postCount
+              }
+            }
+          }
+        `,
+        variableValues: { skip: true },
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ postsViewer: { id: '1' } });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('postId', "postId", 'slug', "slug", 'title', "title", 'content', "content", 'published', "published", 'authorId', "authorId", 'categoryId', "categoryId", 'createdAt', "createdAt", 'updatedAt', "updatedAt")) as "r" from (select "d1"."id" as "postId", "d1"."slug" as "slug", "d1"."title" as "title", "d1"."content" as "content", "d1"."published" as "published", "d1"."author_id" as "authorId", "d1"."category_id" as "categoryId", "d1"."createdAt" as "createdAt", "d1"."createdAt" as "updatedAt" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [3, 1, 1]",
+        ]
+      `);
+    });
+
+    it('leaves the fields of an excluded fragment spread out of the query', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              id
+              ...NormalViewerFields @include(if: false)
+            }
+          }
+
+          fragment NormalViewerFields on NormalViewer {
+            displayName
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { id: '1' } });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
+    });
+  });
 });
