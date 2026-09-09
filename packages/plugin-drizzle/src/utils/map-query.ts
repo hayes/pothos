@@ -23,8 +23,6 @@ export interface QueryFromInfoOptions<T extends SelectionMap> {
   select?: T;
   path?: PathSegment[];
   paths?: PathSegment[][];
-  /** Records the walk's merges so `queryFromWalk` can put a resolver's selection first. */
-  replayable?: boolean;
 }
 
 export function queryFromInfo<T extends SelectionMap>({
@@ -53,8 +51,8 @@ export function queryFromInfo<T extends SelectionMap>({
 /**
  * The walk for the field `info` resolves (or `typeName`), nothing recorded: a promise while a
  * select beneath the field is async, undefined when `paths` are given and nothing is selected
- * under them. The model loader's, and the first step of a `drizzleField` resolve (replayable, so
- * the resolver's `query()` selection can come first).
+ * under them. The model loader's, and the first step of a `drizzleField` resolve, whose
+ * merges are recorded so the resolver's `query()` selection can come first.
  */
 export function walkFromInfo({
   config,
