@@ -300,7 +300,7 @@ const User = builder.prismaNode('User', {
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { ...(query as { where?: object }).where, authorId: user.id },
+          where: { ...query.where, authorId: user.id },
         }),
     }),
     postNodes: t.relation('posts', {
@@ -320,7 +320,7 @@ const User = builder.prismaNode('User', {
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { ...(query as { where?: object }).where, authorId: user.id },
+          where: { ...query.where, authorId: user.id },
         }),
     }),
     postsConnection: t.relatedConnection(

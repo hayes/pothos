@@ -433,7 +433,12 @@ type QueryForField<
         ) => MaybePromise<Omit<Include, 'include' | 'select'>>)
   : never;
 
-type QueryFromRelation<
+/**
+ * The query a relation's fallback `resolve` is handed: the arguments prisma accepts on the
+ * relation (`where`, `orderBy`, `take`, ... for a list relation), with the planned `select` or
+ * `include` beneath it.
+ */
+export type QueryFromRelation<
   Model extends PrismaModelTypes,
   Field extends keyof Model['Include'],
 > = Model['Include'][Field] extends infer Include
@@ -441,7 +446,7 @@ type QueryFromRelation<
       include?: infer I;
       select?: infer S;
     }
-    ? {
+    ? Omit<Include, 'include' | 'select'> & {
         include?: NonNullable<I>;
         select?: NonNullable<S>;
       }
