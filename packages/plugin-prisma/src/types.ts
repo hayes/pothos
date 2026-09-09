@@ -213,14 +213,17 @@ export type ShapeFromSelection<
     ? // A `select` that is absent, or only possibly present (a planned relation query), does not
       // narrow the row: every column may be there.
       undefined extends Selection['select']
-      ? Model['Shape'] & RelationShapeFromInclude<Types, Model, Selection['include']>
-      : Pick<Model['Shape'], SelectedKeys<Selection['select']>> &
+      ? Model['Shape'] &
+          RelationShapeFromInclude<Types, Model, Selection['include']> &
+          ShapeFromCount<CountSelection<Selection['include']>, Model>
+      : Pick<Model['Shape'], SelectedKeys<Selection['select']> & keyof Model['Shape']> &
           RelationShapeFromInclude<Types, Model, Selection['select']> &
-          ('_count' extends keyof Selection['select']
-            ? ShapeFromCount<Selection['select']['_count']>
-            : {})
+          ShapeFromCount<CountSelection<Selection['select']>, Model>
     : Model['Shape']
 >;
+
+/** The `_count` entry of a `select` or `include` map, or `undefined` when there is none. */
+type CountSelection<Map> = Map extends { _count?: infer Count } ? Count : undefined;
 
 /**
  * The shape of a row of `Model` loaded with `Query` (a `select` or `include` map): what a
@@ -240,11 +243,18 @@ export type PrismaQueriedShape<
   Query
 >;
 
-export type ShapeFromCount<Selection> = Selection extends true
-  ? { _count: number }
+/**
+ * What a `_count` selection adds to a row, as prisma returns it: `_count: true` counts every list
+ * relation of `Model`, `_count: { select }` the selected ones, and each count is a number.
+ */
+export type ShapeFromCount<
+  Selection,
+  Model extends PrismaModelTypes = PrismaModelTypes,
+> = Selection extends true
+  ? { _count: { [K in Model['ListRelations']]: number } }
   : Selection extends { select: infer Counts }
-    ? { _count: { [K in keyof Counts]: number } }
-    : never;
+    ? { _count: { [K in SelectedKeys<Counts>]: number } }
+    : {};
 
 export type TypesForRelation<
   Types extends SchemaTypes,
