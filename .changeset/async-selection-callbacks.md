@@ -4,7 +4,7 @@
 '@pothos/plugin-drizzle': minor
 ---
 
-Allow the callbacks that build a selection to be async.
+The callbacks that build a selection may be async.
 
 - A field's `select` function, a relation `query` callback, a `relationCount` / `relatedCount`
   `where` callback, and the `select` / `query` callbacks of `prismaConnectionHelpers` and
@@ -18,7 +18,8 @@ Allow the callbacks that build a selection to be async.
 - Inside an async `select`, `await` the result of `nestedSelection` (and of `getQuery` from the
   connection helpers) before adding it to the selection; a selection holding the promise itself
   throws with a message naming the relation, and a `select` that returns while a nested selection
-  it started is still pending throws with a message naming the field. `queryFromInfo` returns a promise when a callback
-  beneath the field is async, and must then be awaited; its declared type stays synchronous. The
-  `query()` builder handed to a `drizzleField` or `drizzleConnection` resolver never returns a
-  promise: the plan is settled before the resolver runs, and the builder merges into it.
+  it started is still pending throws with a message naming the field. `queryFromInfo` returns a
+  promise when a callback beneath the field is async, and must then be awaited; its declared type
+  stays synchronous. The `query()` builder handed to a `drizzleField` or `drizzleConnection`
+  resolver never returns a promise: the plan is settled before the resolver runs, and the builder
+  merges into it.
