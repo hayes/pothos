@@ -17,7 +17,6 @@ import {
 } from 'graphql';
 import {
   PRISMA_NEXT_COLUMNS,
-  PRISMA_NEXT_FIELD,
   PRISMA_NEXT_FIELD_SELECT,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_PREPARED,
@@ -26,7 +25,6 @@ import {
 } from './constants.js';
 import type { PreparedFieldExtension } from './extensions.js';
 import type { AnyContract } from './types.js';
-import type { PrismaNextFieldMeta } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
 import { resolveContractModel } from './utils/contract.js';
 import { buildColumnSet, buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
@@ -86,11 +84,6 @@ export type {
 export { getInterfaceRefFromContractModel, getRefFromContractModel } from './utils/refs.js';
 
 const pluginName = 'prismaNext';
-
-/** The named type ref beneath any list wrappers of a field type. */
-function namedTypeRef(type: { kind: string; ref?: unknown; type?: unknown }): unknown {
-  return type.kind === 'List' ? namedTypeRef(type.type as typeof type) : type.ref;
-}
 
 export default pluginName;
 
@@ -259,53 +252,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         ...(columns !== undefined ? { [PRISMA_NEXT_COLUMNS]: columns } : {}),
       },
     };
-  }
-
-  /**
-   * Stamps the parent model, and the model the field returns, on every field of a model-backed
-   * type. The adapter compiles the field's `select` against them at first walk: the walker hands
-   * it a bare `GraphQLField`, which knows neither its parent type nor, through an
-   * indirect-include wrapper such as an errors-plugin result type, the model of its return type.
-   */
-  override onOutputFieldConfig(
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): PothosOutputFieldConfig<Types> | null {
-    const parentModel = this.modelOfType(fieldConfig.parentType);
-
-    if (parentModel === undefined) {
-      return fieldConfig;
-    }
-
-    const returnModel = this.modelOfType(namedTypeRef(fieldConfig.type));
-    const meta: PrismaNextFieldMeta =
-      returnModel === undefined ? { parentModel } : { parentModel, returnModel };
-
-    return {
-      ...fieldConfig,
-      extensions: { ...fieldConfig.extensions, [PRISMA_NEXT_FIELD]: meta },
-    };
-  }
-
-  /** The model a type is backed by, following `pothosIndirectInclude` wrappers; undefined if none. */
-  private modelOfType(ref: unknown): string | undefined {
-    let config: PothosTypeConfig;
-
-    try {
-      config = this.buildCache.getTypeConfig(ref as never);
-    } catch {
-      return undefined;
-    }
-
-    const ext = (config.extensions ?? {}) as Record<string, unknown>;
-    const model = ext[PRISMA_NEXT_MODEL] as string | undefined;
-
-    if (model !== undefined) {
-      return model;
-    }
-
-    const include = ext.pothosIndirectInclude as { getType?: () => string } | undefined;
-
-    return include?.getType ? this.modelOfType(include.getType()) : undefined;
   }
 
   override wrapResolve(

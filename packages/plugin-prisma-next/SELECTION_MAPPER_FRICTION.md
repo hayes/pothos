@@ -14,6 +14,14 @@ None so far.
 
 ### W-1: `fieldSelection(field)` gets a bare `GraphQLField`: no parent type, no schema
 
+**Fixed upstream in 098a01fa**: `fieldSelection(field, type)` receives the walked type. The
+adapter classifies `select` keys against `modelFor(type)`; the `PRISMA_NEXT_FIELD` stamp,
+`onOutputFieldConfig` and `modelOfType` are removed from the plugin. The return-model half is
+covered by A-1's fix (below); the adapter keeps a schema-free guard
+(`modelFor(getNamedType(field.type))`) only to skip the descent for a `true` entry on a relation
+whose target is known to differ from the field's own model (B-9), which the walker cannot decide
+for it.
+
 - Where: `types.ts:118` (`fieldSelection(field: GraphQLField)`), `walk.ts:449` (`applyField` has
   `type` in hand and drops it). Plugin: `index.ts` `onOutputFieldConfig` + `modelOfType`,
   `utils/adapter.ts` `compileFieldSelection`, `constants.ts` `PRISMA_NEXT_FIELD`.
@@ -49,6 +57,11 @@ None so far.
 
 ### A-1: `nested()` throws when the field's return type has no model
 
+**Fixed upstream in 098a01fa**: a nested selection on a model-less target is the query alone.
+The adapter calls `nested(query)` for every `true` / declarative relation entry (the stamped
+`returnModel` gate is gone); `tests/adapter.test.ts` "includes a relation entry on a scalar field
+without walking beneath it" pins it.
+
 - Where: `walk.ts:558` (`nestedSelectionFor` → `createWalk` → `Expected Int to have a model`).
   Plugin: `utils/adapter.ts` `compileFieldSelection` (`branch:` option, `relation.target ===
   returnModel` guard).
@@ -79,6 +92,8 @@ None so far.
 
 ### A-2: `rootExtra` dereferences `info.parentType.getFields()` with no `callbackExtra`
 
+**Fixed upstream in 098a01fa.** The `parentType` given to the regression fake is reverted.
+
 - Where: `entry.ts:245-253`. Plugin: `tests/regressions.test.ts` "applySelectionToCollection
   accepts a typeName override" (a hand-built `info` without `parentType`, now given one).
 - The adapter defines no `callbackExtra`, yet every entry point reads
@@ -98,6 +113,10 @@ None so far.
   ```
 
 ### A-3: an object `context` is required even with `recordsMappings: false`
+
+**Fixed upstream in 098a01fa**: `queryFromWalk` records nothing for such an adapter and
+`selectedFieldNames` collects without its memo for a non-object context. `contextObject()` is
+deleted; the plugin passes the context through as is, and the unit tests that pass `null` stay.
 
 - Where: `entry.ts:73-78` (`queryFromWalk` calls `setLoaderMappings(context, info, walk.mappings)`
   unconditionally), `loader-map.ts:22` and `matches.ts:104` (`createContextCache` → WeakMap key).
@@ -122,6 +141,9 @@ None so far.
 
 ### A-4: `selectedFieldNames` needs `info.returnType` and an object `info.variableValues`
 
+**Fixed upstream in 098a01fa** for the context half; the `returnType` read is legitimate and the
+`buildTotalCountPromise` fakes keep theirs.
+
 - Where: `matches.ts:104-125` (`byExecution.get(info.variableValues)`, `entryIn(byType,
   getNamedType(info.returnType))`). Plugin: `tests/regressions.test.ts` "buildTotalCountPromise —
   direct unit" (fakes now carry a `returnType`).
@@ -131,6 +153,10 @@ None so far.
 - Upstream: nothing needed; a one-line doc note on `selectedFieldNames` would do.
 
 ### A-5: `merge` receives no key/alias for type-level, initial, and serialized maps
+
+**Ruled out by the maintainer, deliberately**: `key` is a field key, and a pseudo-key for
+type-level merges would overload it, while the serialized round-trip needs per-entry aliases
+anyway. The alias stays inside the map (`PrismaNextSpec.alias`).
 
 - Where: `types.ts:127-135` (`merge(node, map, key?, alias?)`: "both are absent for a type-level
   selection, an initial selection, and a loader's staged query"). Plugin: `utils/adapter.ts`
@@ -197,10 +223,11 @@ None so far.
 - B-8: walking an interface type and meeting `... on User` (a same-model object) now enters
   `User`'s type-level select (S-7 `enterVariant`). The old `collectSelections` walked the
   fragment's fields but never applied the fragment type's `PRISMA_NEXT_SELECT`.
-- B-9: a `true` relation entry in a `t.field({ select })` descends into the field's selection set
-  only when the field returns the relation's model. The old walker descended for every `true`
-  entry, so `t.field({ type: [Post], select: { posts: true, comments: true } })` walked Post's
-  fields into the `comments` include.
+- B-9: a `true` relation entry in a `t.field({ select })` is a bare include when the field's own
+  return type is backed by another model than the relation's. The old walker descended for every
+  `true` entry, so `t.field({ type: [Post], select: { posts: true, comments: true } })` walked
+  Post's fields into the `comments` include. Through a wrapper type (an errors-plugin result) the
+  adapter cannot see the model and descends, as the walker does.
 
 ## Verified prototype guesses
 

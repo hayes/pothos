@@ -34,15 +34,6 @@ export interface ApplySelectionOptions {
 }
 
 /**
- * The context as the walker's per-context caches need it: an object. graphql-js allows any
- * `contextValue`, including none; a primitive gets a throwaway object, so nothing is cached
- * across resolves for it.
- */
-export function contextObject(context: unknown): object {
-  return context !== null && typeof context === 'object' ? context : {};
-}
-
-/**
  * Walks the GraphQL info and emits the orm-client chain on `baseCollection`, returning the
  * augmented collection. The result is a promise only when a `select` callback beneath the
  * field returned one; a schema without async selections never sees one.
@@ -54,7 +45,8 @@ export function applySelectionToCollection(
   context: unknown,
   options: ApplySelectionOptions = {},
 ): MapperCollection {
-  const ctx = contextObject(context);
+  // The adapter records no loader mappings, so the walker never touches the context.
+  const ctx = context as object;
   const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
   const walk = walkFromInfo(prismaNextAdapter(contract), {
     context: ctx,

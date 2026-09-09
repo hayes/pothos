@@ -19,13 +19,8 @@ import {
   type SelectFn,
   type Walk,
 } from '@pothos/selection-mapper';
-import type { GraphQLField, GraphQLNamedType } from 'graphql';
-import {
-  PRISMA_NEXT_FIELD,
-  PRISMA_NEXT_FIELD_SELECT,
-  PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_SELECT,
-} from '../constants.js';
+import { type GraphQLField, type GraphQLNamedType, getNamedType } from 'graphql';
+import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from '../constants.js';
 import type { AnyContract } from '../types.js';
 import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
 
@@ -562,30 +557,23 @@ const fieldSelections = new WeakMap<
   PrismaNextSpec | PrismaNextSelectFn | null
 >();
 
-/** What `onOutputFieldConfig` stamps on a field of a model-backed type. */
-export interface PrismaNextFieldMeta {
-  parentModel: string;
-  /** The model the field returns (seen through indirect-include wrappers), if any. */
-  returnModel?: string;
-}
-
 interface FieldSelectExtensions {
   pothosExposedField?: unknown;
   pothosOptions?: { select?: unknown };
   pothosIndirectInclude?: { getType: () => string; path?: unknown[]; paths?: unknown[] };
-  [PRISMA_NEXT_FIELD]?: PrismaNextFieldMeta;
   [PRISMA_NEXT_FIELD_SELECT]?: PrismaNextSpec | PrismaNextSelectFn;
 }
 
 /**
- * S-4..S-6 for one field: the columns of `t.expose*` (`pothosExposedField`), the `select`
- * option (`pothosOptions.select`: columns, or relations that need a select function so the
- * nested selection beneath the field can be walked), and `t.variant` (a field-level indirect
- * include without a path: the variant type's selection set is walked on the same row).
+ * S-4..S-6 for one field of `parentModel`: the columns of `t.expose*` (`pothosExposedField`),
+ * the `select` option (`pothosOptions.select`: columns, or relations that need a select function
+ * so the nested selection beneath the field can be walked), and `t.variant` (a field-level
+ * indirect include without a path: the variant type's selection set is walked on the same row).
  */
 function compileFieldSelection(
   field: GraphQLField<unknown, unknown>,
-  contract: AnyContract,
+  parentModel: PrismaNextModel | undefined,
+  modelFor: (type: GraphQLNamedType) => PrismaNextModel | undefined,
 ): PrismaNextSpec | PrismaNextSelectFn | undefined {
   const ext = (field.extensions ?? {}) as FieldSelectExtensions;
 
@@ -598,11 +586,12 @@ function compileFieldSelection(
     | RawSelect
     | ((...args: unknown[]) => unknown)
     | undefined;
-  const meta = ext[PRISMA_NEXT_FIELD];
-  const parentModel = meta ? getModel(contract, meta.parentModel) : undefined;
-  const returnModel = meta?.returnModel ? getModel(contract, meta.returnModel) : undefined;
+  // The model the field returns directly. Undefined for a scalar (a nested selection there is
+  // the query alone) and for a wrapper such as an errors-plugin result type (the walker follows
+  // its include; the adapter cannot without the schema, so it descends).
+  const returnModel = modelFor(getNamedType(field.type));
   const indirect = ext.pothosIndirectInclude;
-  const owner = meta?.parentModel ?? '(unknown model)';
+  const owner = parentModel?.name ?? '(unknown model)';
 
   const withColumns = (spec: PrismaNextSpec, extra: readonly string[]): PrismaNextSpec =>
     extra.length === 0 ? spec : { ...spec, columns: [...extra, ...(spec.columns ?? [])] };
@@ -630,10 +619,10 @@ function compileFieldSelection(
         owner,
         label: 'select',
         args,
-        // The nested selection is walked as the field's return type, so it is only a selection
-        // on the relation's rows when that type is backed by the relation's model.
+        // The nested selection is walked as the field's return type, so when that type is
+        // known to be backed by another model than the relation's, the entry is a bare include.
         branch: (relation, query) =>
-          relation.target === returnModel ? nested(query) : (query ?? {}),
+          returnModel && returnModel !== relation.target ? (query ?? {}) : nested(query),
         fn: (value) => (sub, fnCtx) =>
           (value as PrismaNextSpecFn & ((s: unknown, a: unknown, c: unknown) => never))(
             sub,
@@ -720,11 +709,12 @@ export function prismaNextAdapter(contract: AnyContract): PrismaNextAdapter {
 
       return spec ?? undefined;
     },
-    fieldSelection(field) {
+    // A `GraphQLField` belongs to one type (`type.getFields()`), so the compile is cached on it.
+    fieldSelection(field, type) {
       let selection = fieldSelections.get(field);
 
       if (selection === undefined) {
-        selection = compileFieldSelection(field, contract) ?? null;
+        selection = compileFieldSelection(field, modelFor(type), modelFor) ?? null;
         fieldSelections.set(field, selection);
       }
 

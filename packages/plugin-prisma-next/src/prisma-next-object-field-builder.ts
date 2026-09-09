@@ -42,7 +42,6 @@ import {
   buildConnectionPage,
   buildPaginationParams,
 } from './utils/cursors.js';
-import { contextObject } from './utils/map-query.js';
 import { readPluginOptions, resolveSizeOption } from './utils/options.js';
 import { getRefFromContractModel } from './utils/refs.js';
 import { wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
@@ -704,7 +703,7 @@ export class PrismaNextObjectFieldBuilder<
           }
         } else if (
           totalCountCallback &&
-          selectedFieldNames(contextObject(context), info).has('totalCount')
+          selectedFieldNames(context as object, info).has('totalCount')
         ) {
           // Gated on selection: a rejecting callback shouldn't crash
           // queries that didn't ask for totalCount.

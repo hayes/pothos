@@ -1,7 +1,6 @@
 import { ObjectRef, type SchemaTypes } from '@pothos/core';
 import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import { contextObject } from './map-query.js';
 
 /** @internal */
 export interface BuildTotalCountPromiseOptions {
@@ -28,7 +27,7 @@ export function buildTotalCountPromise(
   options: BuildTotalCountPromiseOptions,
 ): Promise<number | undefined> {
   const { info, enabled, resolver, baseCollection, parent, args, context } = options;
-  if (!enabled || !selectedFieldNames(contextObject(context), info).has('totalCount')) {
+  if (!enabled || !selectedFieldNames(context as object, info).has('totalCount')) {
     return Promise.resolve(undefined);
   }
   if (resolver) {
