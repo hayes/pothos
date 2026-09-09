@@ -103,6 +103,7 @@ export function findMatches<M>(
       path,
       deferred,
       matches,
+      new Set(),
     );
   }
 
@@ -140,6 +141,11 @@ export function selectsPath(info: GraphQLResolveInfo, path: string[]): boolean {
  * `type` is the type of the selection set being walked. `expectedType` is the type the next path
  * segment must be selected on: a field only matches while the two are the same, which is what
  * prevents a same-named field under an unrelated fragment from matching.
+ *
+ * `visited` records the named fragments walked with each state (everything above but `matches`),
+ * so a fragment spread more than once at one point of the walk is expanded once: walking it again
+ * could only repeat the same matches, and a valid fragment DAG can spread the same fragment at
+ * every level, which makes expanding every spread exponential in its depth.
  */
 function walkIndirectPath(
   type: GraphQLNamedType,
@@ -150,6 +156,7 @@ function walkIndirectPath(
   path: string[],
   deferred: boolean,
   matches: Match[],
+  visited: Set<string>,
 ) {
   if (includePath.length === 0) {
     matches.push({ type, field: selection as FieldNode, path, deferred });
@@ -182,6 +189,7 @@ function walkIndirectPath(
             [...path, sel.alias?.value ?? sel.name.value],
             deferred,
             matches,
+            visited,
           );
         }
         continue;
@@ -199,7 +207,14 @@ function walkIndirectPath(
           expectedType,
           include,
         );
+        const isDeferredHere = deferred || isDeferred(info, sel);
+        const state = `${fragment.name.value}|${next.type.name}|${next.expectedType.name}|${includePath.length}|${path.join('.')}|${isDeferredHere}`;
 
+        if (visited.has(state)) {
+          continue;
+        }
+
+        visited.add(state);
         walkIndirectPath(
           next.type,
           next.expectedType,
@@ -207,8 +222,9 @@ function walkIndirectPath(
           fragment,
           includePath,
           path,
-          deferred || isDeferred(info, sel),
+          isDeferredHere,
           matches,
+          visited,
         );
         continue;
       }
@@ -234,6 +250,7 @@ function walkIndirectPath(
           path,
           deferred || isDeferred(info, sel),
           matches,
+          visited,
         );
         continue;
       }
