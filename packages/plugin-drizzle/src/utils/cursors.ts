@@ -1,6 +1,7 @@
 import {
   decodeBase64,
   encodeBase64,
+  isThenable,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
@@ -683,7 +684,8 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   parent: unknown,
 ) {
   const table = config.relations[tableName];
-  let query: DBQueryConfig<'many'> | undefined;
+  // A promise when a select beneath the connection is async; the resolver awaits it (A-7).
+  let query: MaybePromise<DBQueryConfig<'many'>> | undefined;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
     const { cursorFields, ...connectionQuery } = drizzleCursorConnectionQuery({
@@ -743,10 +745,12 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     };
   }
 
+  const { limit } = isThenable(query) ? await query : query;
+
   return wrapConnectionResult(
     results,
     options.args,
-    query.limit as number,
+    limit as number,
     formatter!,
     undefined,
     parent,

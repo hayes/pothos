@@ -311,7 +311,7 @@ export type DrizzleObjectFieldOptions<
             Record<string, unknown> &
               // biome-ignore lint/suspicious/noExplicitAny: this is fine
               Select extends (...args: any[]) => infer R
-              ? R & { columns: {} }
+              ? Awaited<R> & { columns: {} }
               : Select & { columns: {} }
           > &
             ParentShape,
@@ -335,6 +335,10 @@ export type DrizzleObjectFieldOptions<
     Args,
     ResolveReturnShape
   > & {
+    /**
+     * What the field needs from its parent row. A function may be async; `nestedSelection` is
+     * then a promise when a selection beneath it is async, and must be awaited.
+     */
     select?: Select &
       (
         | DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
@@ -346,7 +350,9 @@ export type DrizzleObjectFieldOptions<
               path?: string[],
             ) => Selection) &
               PathInfo,
-          ) => DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>)
+          ) => MaybePromise<
+            DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
+          >)
       );
   };
 
@@ -359,13 +365,13 @@ export type DrizzleFieldSelection =
         selection:
           | SelectionMap
           | boolean
-          | ((args: object, context: object) => DBQueryConfig<'one'>),
+          | ((args: object, context: object) => MaybePromise<DBQueryConfig<'one'>>),
         path?: IndirectInclude | string[],
         type?: string,
       ) => DBQueryConfig<'one'> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
       pathInfo: PathInfo,
-    ) => SelectionMap | false | null | undefined);
+    ) => MaybePromise<SelectionMap | false | null | undefined>);
 
 export type ExtractTable<Types extends SchemaTypes, Shape> = Shape extends {
   [drizzleTableName]?: keyof Types['DrizzleRelations'];
@@ -466,7 +472,9 @@ export type RelatedCountOptions<
   PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>,
   'type' | InferredFieldOptionKeys
 > & {
-  where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
+  where?:
+    | Where
+    | ((args: InputShapeFromFields<Args>, context: Types['Context']) => MaybePromise<Where>);
 };
 
 export type TypesForRelation<Types extends SchemaTypes, Rel extends Relation> = BuildQueryResult<
@@ -506,7 +514,7 @@ export type QueryForField<
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           pathInfo: PathInfo,
-        ) => QueryConfig)
+        ) => MaybePromise<QueryConfig>)
   : never;
 
 export type QueryForDrizzleField<
@@ -529,7 +537,9 @@ export type QueryForRelatedConnection<
 > & {
   orderBy?: ConnectionOrderBy<Table> | ((table: Table) => ConnectionOrderBy<Table>);
 } extends infer QueryConfig
-  ? QueryConfig | ((args: Args, context: Types['Context'], pathInfo: PathInfo) => QueryConfig)
+  ?
+      | QueryConfig
+      | ((args: Args, context: Types['Context'], pathInfo: PathInfo) => MaybePromise<QueryConfig>)
   : never;
 
 export type QueryForDrizzleConnection<
