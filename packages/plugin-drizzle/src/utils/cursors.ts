@@ -1,7 +1,6 @@
 import {
   decodeBase64,
   encodeBase64,
-  isThenable,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
@@ -23,8 +22,9 @@ import {
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types.js';
+import type { DrizzleWalk } from './adapter.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
-import { queryFromInfo } from './map-query.js';
+import { queryFromWalk } from './map-query.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
 const DEFAULT_MAX_SIZE = 100;
@@ -673,6 +673,8 @@ export function wrapConnectionResult<T extends {}>(
 export async function resolveDrizzleCursorConnection<T extends {}>(
   tableName: string,
   info: GraphQLResolveInfo,
+  // The settled plan of the connection's rows; the builder handed to `resolve` merges into it.
+  walk: DrizzleWalk | undefined,
   typeName: string,
   config: PothosDrizzleSchemaConfig,
   options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'> & {
@@ -684,8 +686,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   parent: unknown,
 ) {
   const table = config.relations[tableName];
-  // A promise when a select beneath the connection is async; the resolver awaits it (A-7).
-  let query: MaybePromise<DBQueryConfig<'many'>> | undefined;
+  let query: DBQueryConfig<'many'> | undefined;
   let formatter: (node: Record<string, unknown>) => string;
   const results = await resolve((q = {}) => {
     const { cursorFields, ...connectionQuery } = drizzleCursorConnectionQuery({
@@ -699,7 +700,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     });
     formatter = getCursorFormatter(cursorFields, config);
 
-    query = queryFromInfo({
+    query = queryFromWalk(walk, {
       context: options.ctx,
       info,
       select: omitUndefinedKeys({
@@ -745,7 +746,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     };
   }
 
-  const { limit } = isThenable(query) ? await query : query;
+  const { limit } = query;
 
   return wrapConnectionResult(
     results,

@@ -112,7 +112,8 @@ export class ModelLoader {
       this.queryCache.set(
         key,
         completeValue(
-          walkFromInfo({ config: this.config, context: this.context, info, typeName }),
+          // Walked without paths, so there is always a walk.
+          walkFromInfo({ config: this.config, context: this.context, info, typeName })!,
           this.selectionOf,
         ),
       );

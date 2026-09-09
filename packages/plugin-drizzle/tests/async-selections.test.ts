@@ -215,14 +215,28 @@ const User = builder.drizzleObject('users', {
 
 builder.queryType({
   fields: (t) => ({
-    // The query is a promise when a selection beneath the field is async (A-7).
+    // The builder is synchronous even when a selection beneath the field is async: the plan is
+    // settled before the resolver runs, and the resolver hands the query straight to drizzle.
     user: t.drizzleField({
       type: User,
-      resolve: async (query, _root, _args, ctx) => {
-        ctx.planned = await query({ where: { id: 1 } });
+      resolve: (query, _root, _args, ctx) => {
+        ctx.planned = query({ where: { id: 1 } });
 
         return db.query.users.findFirst(ctx.planned);
       },
+    }),
+    usersConnection: t.drizzleConnection({
+      type: 'users',
+      resolve: (query) => db.query.users.findMany(query({ where: { id: 1 } })),
+    }),
+    // Repeats a planned relation with other arguments: the caller's selection keeps precedence
+    // by planning again with it first, which needs every selection beneath to be synchronous.
+    userWithPosts: t.drizzleField({
+      type: User,
+      resolve: (query) =>
+        db.query.users.findFirst(
+          query({ where: { id: 1 }, with: { posts: { limit: 5, orderBy: { postId: 'asc' } } } }),
+        ),
     }),
     // A row fetched without the planned selection: every field with a `select` loads its own
     // data through the model loader.
@@ -400,6 +414,48 @@ describe('async selections', () => {
     expect(logs[0]).not.toContain('"title"');
     expect(logs[1]).toContain('"title"');
     expect(logs[1]).toContain('"d0"."id" in (?)');
+  });
+
+  it('hands a drizzleField resolver a synchronous builder once the async plan settles', async () => {
+    const { logs } = await sameAsSync(
+      gql`{ user { id titles } }`,
+      gql`{ user { id titles: asyncTitles } }`,
+    );
+
+    // The resolver passed the builder's result to drizzle without awaiting it: the query still
+    // carries its predicate and the async selection's columns.
+    expect(logs[0]).toContain('"d0"."id" = ?');
+    expect(logs[0]).toContain('"title"');
+  });
+
+  it('hands a drizzleConnection resolver a synchronous builder once the async plan settles', async () => {
+    const { logs } = await sameAsSync(
+      gql`{ usersConnection(first: 1) { edges { node { id titles } } } }`,
+      gql`{ usersConnection(first: 1) { edges { node { id titles: asyncTitles } } } }`,
+    );
+
+    expect(logs[0]).toContain('"d0"."id" = ?');
+    expect(logs[0]).toContain('"title"');
+  });
+
+  it('keeps the precedence of a builder selection that conflicts with a synchronous plan', async () => {
+    const { result, logs } = await run(gql`{ userWithPosts { posts(limit: 1) { id } } }`);
+
+    expect(result.errors).toBeUndefined();
+    // The caller's `posts` was planned first; the field's conflicting `posts` loads on its own.
+    expect(logs).toHaveLength(2);
+    expect(logs[0]).toContain('params: [5, 1, 1]');
+    expect(logs[1]).toContain('"d0"."id" in (?)');
+    expect(logs[1]).toContain('params: [1, 1]');
+  });
+
+  it('rejects a builder selection that conflicts with an async plan', async () => {
+    const { result, logs } = await run(gql`{ userWithPosts { asyncPosts(limit: 1) { id } } }`);
+
+    expect(logs).toHaveLength(0);
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'The relation "posts" passed to query() in the resolver for Query.userWithPosts conflicts with the arguments a selection beneath the field planned for it, and a selection beneath the field is async. Move the relation\'s arguments to the field that selects it.',
+    ]);
   });
 
   it('creates no promise while planning and resolving a synchronous document (A-1)', async () => {

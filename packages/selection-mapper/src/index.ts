@@ -27,6 +27,7 @@ export {
   type Env,
   type NestedSelection,
   queryFromInfo,
+  queryFromWalk,
   type SelectFn,
   selectionStateFromInfo,
   type TypeLevelConflict,
