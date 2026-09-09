@@ -14,6 +14,7 @@ import PrismaPlugin, {
   queryFromInfo,
   type SelectionMap,
 } from '../src';
+import type { Prisma } from './client/client';
 import { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
@@ -64,6 +65,21 @@ builder.prismaObject('User', {
         expectTypeOf(
           nestedSelection({ take: 1 }, [{ name: 'post', type: 'PostEntry' }]),
         ).toEqualTypeOf(nestedSelection({ take: 1 }, ['post']));
+
+        // Every argument prisma accepts on a list relation is accepted, `omit` and `distinct`
+        // among them, and the query is one prisma accepts for the relation.
+        expectTypeOf(nestedSelection({ omit: { content: true } }).omit).toEqualTypeOf<{
+          content: true;
+        }>();
+        expectTypeOf(
+          nestedSelection({ distinct: 'title' as const }).distinct,
+        ).toEqualTypeOf<'title'>();
+        expectTypeOf(nestedSelection({ distinct: ['title', 'content'] }).distinct).toEqualTypeOf<
+          ('title' | 'content')[]
+        >();
+        expectTypeOf<
+          PrismaRelationQuery<PrismaTypes['Post']>
+        >().toMatchTypeOf<Prisma.User$postsArgs>();
 
         const query = nestedSelection({ take: 1, where: { published: true } });
 
