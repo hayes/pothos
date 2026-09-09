@@ -34,3 +34,8 @@ util/search-index.js
 
 # vercel
 .vercel
+
+# generated playground bundles
+/lib/playground/pothos-types.ts
+/components/playground/examples/examples-index.generated.ts
+/public/playground-examples/*.json
