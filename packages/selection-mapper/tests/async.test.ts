@@ -356,6 +356,105 @@ describe('async callbacks', () => {
   });
 });
 
+/**
+ * Runs `run`, then gives anything it left pending time to settle, and expects no unhandled
+ * rejection in the meantime.
+ */
+async function withoutUnhandledRejection(run: () => Promise<void>) {
+  const unhandled: unknown[] = [];
+  const onUnhandled = (reason: unknown) => {
+    unhandled.push(reason);
+  };
+
+  process.on('unhandledRejection', onUnhandled);
+
+  try {
+    await run();
+    await sleep(30);
+
+    expect(unhandled).toEqual([]);
+  } finally {
+    process.off('unhandledRejection', onUnhandled);
+  }
+}
+
+describe('a nested selection that was not awaited (A-8)', () => {
+  const message =
+    'The selection function of User.posts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.';
+  const rejecting: Wrap = () => () => Promise.reject(new Error('no author'));
+
+  /** A sync select that starts the nested selection and returns without it. */
+  const discarding: Wrap = (_select, name) => (_args, _ctx, nested) => {
+    nested({});
+
+    return { select: { [name]: true } };
+  };
+
+  /** An async select that does the same, returning after `delay`. */
+  const discardingAsync =
+    (delay: number): Wrap =>
+    (_select, name) =>
+    async (_args, _ctx, nested) => {
+      nested({});
+      await sleep(delay);
+
+      return { select: { [name]: true } };
+    };
+
+  const source = '{ user { posts { author { name } } } }';
+
+  it('refuses a sync select whose discarded nested walk rejects, without an unhandled rejection', async () => {
+    await withoutUnhandledRejection(async () => {
+      const context = {};
+      const info = await resolveInfo(schema, source);
+
+      expect(() =>
+        queryFromInfo(withWraps({ posts: discarding, author: rejecting }), { context, info }),
+      ).toThrow(message);
+      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+    });
+  });
+
+  it('refuses an async select whose discarded nested walk rejected before it returned', async () => {
+    await withoutUnhandledRejection(async () => {
+      const context = {};
+      const info = await resolveInfo(schema, source);
+
+      await expect(
+        queryFromInfo(withWraps({ posts: discardingAsync(5), author: rejecting }), {
+          context,
+          info,
+        }),
+      ).rejects.toThrow(message);
+      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+    });
+  });
+
+  it('refuses an async select whose discarded nested walk resolves late, recording nothing', async () => {
+    await withoutUnhandledRejection(async () => {
+      const context = {};
+      const info = await resolveInfo(schema, source);
+      const late = withWraps({ posts: discardingAsync(1), author: asyncRelation(undefined, 20) });
+
+      await expect(queryFromInfo(late, { context, info })).rejects.toThrow(message);
+      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+
+      // The discarded walk completes after the invocation was refused: still nothing recorded.
+      await sleep(25);
+
+      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+    });
+  });
+
+  it('accepts a nested selection that was awaited, and records the same mapping as the sync walk', async () => {
+    await sameAs(
+      source,
+      withWraps({ posts: asyncRelation(), author: asyncRelation(undefined, 1) }),
+      [['User', ['user', 'posts']]],
+    );
+  });
+});
+
 describe('the synchronous path (A-1)', () => {
   const source = /* GraphQL */ `{
     user {

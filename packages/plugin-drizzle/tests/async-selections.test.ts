@@ -5,6 +5,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+import { getLoaderMapping } from '@pothos/selection-mapper';
 import { execute } from '@pothos/test-utils';
 import { eq } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
@@ -64,6 +65,16 @@ const builder = new SchemaBuilder<{
 });
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 1));
+
+function pathOf(...keys: (string | number)[]) {
+  let path: { prev: unknown; key: string | number; typename: undefined } | undefined;
+
+  for (const key of keys) {
+    path = { prev: path, key, typename: undefined };
+  }
+
+  return path as never;
+}
 
 const Comment = builder.drizzleObject('comments', {
   name: 'Comment',
@@ -160,6 +171,17 @@ const User = builder.drizzleObject('users', {
       select: async (_args, _ctx, nestedSelection) => ({
         with: { posts: nestedSelection({ limit: 1, orderBy: { postId: 'asc' as const } }) },
       }),
+      resolve: (user) => user.posts,
+    }),
+    // Starts a nested selection and returns without it: its walk is async when a selection
+    // beneath the posts is, and would otherwise record mappings for data this never loads.
+    discardedPosts: t.field({
+      type: [Post],
+      select: async (_args, _ctx, nestedSelection) => {
+        nestedSelection({ limit: 1, orderBy: { postId: 'asc' as const } });
+
+        return { with: { posts: { limit: 1, orderBy: { postId: 'asc' as const } } } };
+      },
       resolve: (user) => user.posts,
     }),
     publishedCount: t.relatedCount('posts', { where: eq(posts.published, 1) }),
@@ -385,6 +407,18 @@ describe('async selections', () => {
     expect(result.errors?.map((error) => error.message)).toEqual([
       'Relation "posts" was given a promise. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
     ]);
+  });
+
+  it('rejects a nested selection that was discarded, recording no mapping for it', async () => {
+    const { result, logs, context } = await run(
+      gql`{ user { discardedPosts { id comments: asyncComments { id } } } }`,
+    );
+
+    expect(logs).toHaveLength(0);
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'The selection function of User.discardedPosts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
+    ]);
+    expect(getLoaderMapping(context, pathOf('user', 'discardedPosts'), 'User')).toBe(null);
   });
 
   it('merges the sync sibling first when it conflicts with an async one (D-5)', async () => {
