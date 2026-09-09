@@ -88,17 +88,22 @@ export type ModelForTypeParam<Type> = Type extends [infer Item]
     : never;
 
 /**
- * The query a relation of `Model` is loaded with: the arguments prisma accepts on the relation,
- * and the `select` or `include` the planner adds beneath it.
+ * The query a relation of `Model` is loaded with: the arguments prisma accepts on a list relation
+ * (the generated `Parent$relationArgs`, which `PrismaModelTypes` does not carry, so the keys are
+ * named here from what it does carry), and the `select` or `include` the planner adds beneath it.
+ * The scalar fields of the model are the keys of its `Shape`, so `omit` and `distinct` are typed
+ * by them.
  */
 export interface PrismaRelationQuery<Model extends PrismaModelTypes> {
   select?: Model['Select'];
   include?: Model['Include'];
+  omit?: { [K in keyof Model['Shape']]?: boolean };
   where?: Model['Where'];
   orderBy?: Model['OrderBy'] | Model['OrderBy'][];
   cursor?: Model['WhereUnique'];
   take?: number;
   skip?: number;
+  distinct?: (keyof Model['Shape'] & string) | (keyof Model['Shape'] & string)[];
 }
 
 /**
