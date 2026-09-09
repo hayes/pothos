@@ -29,8 +29,8 @@ class AsyncArgsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 }
 
 declare global {
-  export namespace PothosSchemaTypes {
-    export interface Plugins<Types extends SchemaTypes> {
+  namespace PothosSchemaTypes {
+    interface Plugins<Types extends SchemaTypes> {
       asyncArgs: AsyncArgsPlugin<Types>;
     }
   }
