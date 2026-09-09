@@ -401,10 +401,17 @@ function resolvePrismaNextPackageDir(pkgName: string): string | null {
   const slug = pkgName.replace('@prisma-next/', '');
   const storeRoot = path.join(__dirname, '../../node_modules/.pnpm');
   if (fs.existsSync(storeRoot)) {
-    for (const entry of fs.readdirSync(storeRoot)) {
-      if (!entry.startsWith(`@prisma-next+${slug}@`)) {
-        continue;
-      }
+    // The store can hold several versions of a transitive package (pnpm
+    // leaves the previous line's directories behind after an upgrade
+    // until the next prune), so pick the newest rather than the first
+    // directory entry — otherwise a stale 0.x type tree would be
+    // bundled next to the current runtime.
+    const prefix = `@prisma-next+${slug}@`;
+    const candidates = fs
+      .readdirSync(storeRoot)
+      .filter((entry) => entry.startsWith(prefix))
+      .sort((a, b) => compareStoreVersionsDesc(a.slice(prefix.length), b.slice(prefix.length)));
+    for (const entry of candidates) {
       const candidate = path.join(storeRoot, entry, 'node_modules', pkgName);
       if (fs.existsSync(path.join(candidate, 'package.json'))) {
         return fs.realpathSync(candidate);
@@ -412,6 +419,35 @@ function resolvePrismaNextPackageDir(pkgName: string): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Order the version suffixes of pnpm store directory names
+ * (`1.2.3_peer@x.y.z...`, the part after `@scope+name@`) newest version
+ * first. Prerelease tags sort after the release they precede, so
+ * `0.16.0` beats `0.16.0-dev.35`.
+ */
+function compareStoreVersionsDesc(a: string, b: string): number {
+  const parse = (suffix: string) => {
+    const version = suffix.split('_')[0];
+    const [core, pre] = version.split('-');
+    return { parts: core.split('.').map(Number), pre };
+  };
+  const va = parse(a);
+  const vb = parse(b);
+  for (let i = 0; i < Math.max(va.parts.length, vb.parts.length); i++) {
+    const diff = (vb.parts[i] ?? 0) - (va.parts[i] ?? 0);
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+  if (va.pre && !vb.pre) {
+    return 1;
+  }
+  if (!va.pre && vb.pre) {
+    return -1;
+  }
+  return (vb.pre ?? '').localeCompare(va.pre ?? '');
 }
 
 /**
