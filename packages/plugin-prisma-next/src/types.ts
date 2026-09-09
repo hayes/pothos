@@ -74,12 +74,14 @@ type RelationsOfModel<TContract extends AnyContract, M extends string> =
 // brand their result through a module-private symbol (`RowSelection<T>`'s
 // `[RowType]: T`) that can't be matched outside the package — so it was dropped
 // from the public surface.
-// TODO(prisma-next bump): the next prisma-next release exports
+// TODO(prisma-next bump): once a prisma-next release exports
 // `IncludeRefinementCollection`/`IsToManyRelation`/`IncludeRefinementResult`
-// (added upstream for this plugin) — adopt them and delete these reconstructions
-// when bumping past 0.14.0. Watch the m2m cardinality tag too: it is renamed
-// `'N:M'` → `'M:N'` post-0.14, so `IsToManyRelation`'s `'1:N' | 'N:M'` (and the
-// runtime guard in index.ts) must be updated on that bump.
+// from `@prisma-next/sql-orm-client`, adopt them and delete these
+// reconstructions. Checked at 0.16.0: they are still module-internal (declared
+// in the d.mts but absent from the export block), and the m2m cardinality tag
+// is still spelled `'N:M'` in `@prisma-next/contract` — if it is ever renamed
+// to `'M:N'`, `IsToManyRelation`'s `'1:N' | 'N:M'` (and the runtime guard in
+// index.ts) must be updated on that bump.
 type IncludeRefinementTerminals =
   | 'all'
   | 'first'

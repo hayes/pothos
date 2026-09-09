@@ -98,7 +98,7 @@ export async function createTestRuntime(): Promise<TestRuntimeContext> {
  * fallback path, which still consults the table when present.
  */
 function createSchema(db: DatabaseSync, contract: SampleContract): void {
-  // Marker table shape mirrors prisma-next 0.14.0's sqlite control adapter
+  // Marker table shape mirrors prisma-next 0.16.0's sqlite control adapter
   // (`_prisma_marker` defined in @prisma-next/adapter-sqlite). The adapter
   // reads `WHERE space = 'app'` selecting core_hash/profile_hash/
   // contract_json/canonical_version/updated_at/app_tag/meta/invariants, so

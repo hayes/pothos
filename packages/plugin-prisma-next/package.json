@@ -47,9 +47,9 @@
     "@pothos/core": "*",
     "@pothos/plugin-relay": "*",
     "@pothos/plugin-with-input": "*",
-    "@prisma-next/contract": "^0.14.0",
-    "@prisma-next/sql-contract": "^0.14.0",
-    "@prisma-next/sql-orm-client": "^0.14.0",
+    "@prisma-next/contract": "^0.16.0",
+    "@prisma-next/sql-contract": "^0.16.0",
+    "@prisma-next/sql-orm-client": "^0.16.0",
     "graphql": "^16.10.0 || ^17.0.0"
   },
   "peerDependenciesMeta": {
@@ -66,16 +66,16 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma-next/adapter-sqlite": "^0.14.0",
-    "@prisma-next/contract": "^0.14.0",
-    "@prisma-next/driver-sqlite": "^0.14.0",
-    "@prisma-next/framework-components": "^0.14.0",
-    "@prisma-next/sql-builder": "^0.14.0",
-    "@prisma-next/sql-contract": "^0.14.0",
-    "@prisma-next/sql-orm-client": "^0.14.0",
-    "@prisma-next/sql-relational-core": "^0.14.0",
-    "@prisma-next/sql-runtime": "^0.14.0",
-    "@prisma-next/sqlite": "^0.14.0",
-    "@prisma-next/target-sqlite": "^0.14.0"
+    "@prisma-next/adapter-sqlite": "^0.16.0",
+    "@prisma-next/contract": "^0.16.0",
+    "@prisma-next/driver-sqlite": "^0.16.0",
+    "@prisma-next/framework-components": "^0.16.0",
+    "@prisma-next/sql-builder": "^0.16.0",
+    "@prisma-next/sql-contract": "^0.16.0",
+    "@prisma-next/sql-orm-client": "^0.16.0",
+    "@prisma-next/sql-relational-core": "^0.16.0",
+    "@prisma-next/sql-runtime": "^0.16.0",
+    "@prisma-next/sqlite": "^0.16.0",
+    "@prisma-next/target-sqlite": "^0.16.0"
   }
 }

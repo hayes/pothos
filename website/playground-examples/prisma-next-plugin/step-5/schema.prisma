@@ -1,6 +1,6 @@
 // Source schema for the blog demo. Regenerate `contract.json` +
 // `contract.d.ts` from this with `prisma-next contract emit` (prisma-next
-// 0.14.0). The SQL PSL provider v1 doesn't accept a `datasource` block or
+// 0.16.0). The SQL PSL provider v1 doesn't accept a `datasource` block or
 // a `Boolean` field, so `published` is modelled as `Int` and the target
 // comes from the CLI config. Char(36) ids use the `Uuid` type alias.
 

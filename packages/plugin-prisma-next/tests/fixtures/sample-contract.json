@@ -343,8 +343,6 @@
               },
               "foreignKeys": [
                 {
-                  "constraint": true,
-                  "index": true,
                   "source": {
                     "columns": [
                       "authorId"
@@ -361,8 +359,6 @@
                   }
                 },
                 {
-                  "constraint": true,
-                  "index": true,
                   "source": {
                     "columns": [
                       "postId"
@@ -379,7 +375,20 @@
                   }
                 }
               ],
-              "indexes": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "authorId"
+                  ],
+                  "name": "comment_authorId_idx"
+                },
+                {
+                  "columns": [
+                    "postId"
+                  ],
+                  "name": "comment_postId_idx"
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -428,8 +437,6 @@
               },
               "foreignKeys": [
                 {
-                  "constraint": true,
-                  "index": true,
                   "source": {
                     "columns": [
                       "authorId"
@@ -446,7 +453,14 @@
                   }
                 }
               ],
-              "indexes": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "authorId"
+                  ],
+                  "name": "post_authorId_idx"
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -492,7 +506,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "sha256:c73c51421b796456af77538adf9e75ab9de57b1c61def53bd64ce3f9cc701cea",
+    "storageHash": "sha256:1533af297c6862378f203924b8fbcca2582e3f5a3a7d9ab9696588621cbded38",
     "types": {
       "Uuid": {
         "codecId": "sql/char@1",

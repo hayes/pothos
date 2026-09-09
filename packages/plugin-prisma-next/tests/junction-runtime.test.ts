@@ -167,7 +167,7 @@ async function createJunctionRuntime(): Promise<JunctionRuntime> {
 
   const rawDb = new DatabaseSync(dbPath);
   rawDb.exec('PRAGMA foreign_keys = ON');
-  // Marker table mirrors prisma-next 0.14.0's sqlite control adapter (see
+  // Marker table mirrors prisma-next 0.16.0's sqlite control adapter (see
   // tests/fixtures/runtime.ts for the column rationale). The runtime
   // reads it under `space = 'app'`.
   rawDb.exec(`

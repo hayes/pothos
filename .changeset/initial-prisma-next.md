@@ -5,8 +5,8 @@
 Initial release of `@pothos/plugin-prisma-next` — a Pothos plugin for the new
 `prisma-next` ORM client.
 
-Built against `@prisma-next/* @ ^0.14.0` (the first published prisma-next line).
-Note that `IncludeRefinementResult` is no longer re-exported: prisma-next 0.14.0
+Built against `@prisma-next/* @ ^0.16.0`.
+Note that `IncludeRefinementResult` is not re-exported: prisma-next 0.14.0
 made it internal and it cannot be faithfully reconstructed (it is branded with a
 module-private symbol). `IncludeRefinementCollection` and `IsToManyRelation`
 remain available.
@@ -18,7 +18,7 @@ What ships:
 - `t.exposeID/String/Int/Float/Boolean[List]` — typed against the model's row.
 - `t.relation` — autocompleted relation names, cardinality-aware nullability,
   typed `query` refinement callback. Resolves N:M (junction) relations
-  directly: prisma-next 0.14.0 emits the junction join internally from the
+  directly: prisma-next (since 0.14.0) emits the junction join internally from the
   contract's `through` block, so no explicit join model is needed in the schema.
 - `t.relationCount` / `t.relationAggregate` — expose a relation's row count or a
   `sum`/`avg`/`min`/`max` reducer as a numeric field, with an optional `where`

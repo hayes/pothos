@@ -16,7 +16,7 @@ import type {
 } from '@prisma-next/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'sha256:71c9bd0dd2593146612df8cebf0a9f6073d31d411b6ba29726e6f3a50ce58dc9'>;
+  StorageHashBase<'sha256:fcb99af763113f80c8a483837e1172455edb03892a8d61d47b161a87069aa03a'>;
 export type ExecutionHash =
   ExecutionHashBase<'sha256:747459643b12975edbfde553600ba765a3f9c1ede90226713e1804a5e22343dd'>;
 export type ProfileHash =
@@ -79,11 +79,63 @@ export type FieldInputTypes = {
     };
   };
 };
+export type StorageColumnTypes = {
+  readonly __unbound__: {
+    readonly comment: {
+      readonly authorId: CodecTypes['sql/char@1']['output'];
+      readonly body: CodecTypes['sqlite/text@1']['output'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
+      readonly id: CodecTypes['sql/char@1']['output'];
+      readonly postId: CodecTypes['sql/char@1']['output'];
+    };
+    readonly post: {
+      readonly authorId: CodecTypes['sql/char@1']['output'];
+      readonly content: CodecTypes['sqlite/text@1']['output'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
+      readonly id: CodecTypes['sql/char@1']['output'];
+      readonly published: CodecTypes['sqlite/integer@1']['output'];
+      readonly title: CodecTypes['sqlite/text@1']['output'];
+    };
+    readonly user: {
+      readonly email: CodecTypes['sqlite/text@1']['output'];
+      readonly firstName: CodecTypes['sqlite/text@1']['output'];
+      readonly id: CodecTypes['sql/char@1']['output'];
+      readonly lastName: CodecTypes['sqlite/text@1']['output'];
+    };
+  };
+};
+export type StorageColumnInputTypes = {
+  readonly __unbound__: {
+    readonly comment: {
+      readonly authorId: CodecTypes['sql/char@1']['input'];
+      readonly body: CodecTypes['sqlite/text@1']['input'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
+      readonly id: CodecTypes['sql/char@1']['input'];
+      readonly postId: CodecTypes['sql/char@1']['input'];
+    };
+    readonly post: {
+      readonly authorId: CodecTypes['sql/char@1']['input'];
+      readonly content: CodecTypes['sqlite/text@1']['input'];
+      readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
+      readonly id: CodecTypes['sql/char@1']['input'];
+      readonly published: CodecTypes['sqlite/integer@1']['input'];
+      readonly title: CodecTypes['sqlite/text@1']['input'];
+    };
+    readonly user: {
+      readonly email: CodecTypes['sqlite/text@1']['input'];
+      readonly firstName: CodecTypes['sqlite/text@1']['input'];
+      readonly id: CodecTypes['sql/char@1']['input'];
+      readonly lastName: CodecTypes['sqlite/text@1']['input'];
+    };
+  };
+};
 export type TypeMaps = TypeMapsType<
   CodecTypes,
   QueryOperationTypes,
   FieldOutputTypes,
-  FieldInputTypes
+  FieldInputTypes,
+  StorageColumnTypes,
+  StorageColumnInputTypes
 >;
 
 type ContractBase = Omit<
@@ -91,7 +143,7 @@ type ContractBase = Omit<
     readonly namespaces: {
       readonly __unbound__: {
         readonly id: '__unbound__';
-        readonly kind: 'sql-namespace';
+        readonly kind: 'sqlite-namespace';
         readonly entries: {
           readonly table: {
             readonly comment: {
@@ -128,7 +180,10 @@ type ContractBase = Omit<
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
-              indexes: readonly [];
+              indexes: readonly [
+                { readonly columns: readonly ['authorId']; readonly name: 'comment_authorId_idx' },
+                { readonly columns: readonly ['postId']; readonly name: 'comment_postId_idx' },
+              ];
               foreignKeys: readonly [
                 {
                   readonly source: {
@@ -141,8 +196,6 @@ type ContractBase = Omit<
                     readonly tableName: 'user';
                     readonly columns: readonly ['id'];
                   };
-                  readonly constraint: true;
-                  readonly index: true;
                 },
                 {
                   readonly source: {
@@ -155,8 +208,6 @@ type ContractBase = Omit<
                     readonly tableName: 'post';
                     readonly columns: readonly ['id'];
                   };
-                  readonly constraint: true;
-                  readonly index: true;
                 },
               ];
             };
@@ -202,7 +253,9 @@ type ContractBase = Omit<
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
-              indexes: readonly [];
+              indexes: readonly [
+                { readonly columns: readonly ['authorId']; readonly name: 'post_authorId_idx' },
+              ];
               foreignKeys: readonly [
                 {
                   readonly source: {
@@ -215,8 +268,6 @@ type ContractBase = Omit<
                     readonly tableName: 'user';
                     readonly columns: readonly ['id'];
                   };
-                  readonly constraint: true;
-                  readonly index: true;
                 },
               ];
             };

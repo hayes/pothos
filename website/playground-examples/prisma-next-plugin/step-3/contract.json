@@ -63,8 +63,12 @@
               "author": {
                 "cardinality": "N:1",
                 "on": {
-                  "localFields": ["authorId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "authorId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -74,8 +78,12 @@
               "post": {
                 "cardinality": "N:1",
                 "on": {
-                  "localFields": ["postId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "postId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "Post",
@@ -154,8 +162,12 @@
               "author": {
                 "cardinality": "N:1",
                 "on": {
-                  "localFields": ["authorId"],
-                  "targetFields": ["id"]
+                  "localFields": [
+                    "authorId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
                 },
                 "to": {
                   "model": "User",
@@ -165,8 +177,12 @@
               "comments": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["postId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "postId"
+                  ]
                 },
                 "to": {
                   "model": "Comment",
@@ -234,8 +250,12 @@
               "comments": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["authorId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "authorId"
+                  ]
                 },
                 "to": {
                   "model": "Comment",
@@ -245,8 +265,12 @@
               "posts": {
                 "cardinality": "1:N",
                 "on": {
-                  "localFields": ["id"],
-                  "targetFields": ["authorId"]
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "authorId"
+                  ]
                 },
                 "to": {
                   "model": "Post",
@@ -319,37 +343,56 @@
               },
               "foreignKeys": [
                 {
-                  "constraint": true,
-                  "index": true,
                   "source": {
-                    "columns": ["authorId"],
+                    "columns": [
+                      "authorId"
+                    ],
                     "namespaceId": "__unbound__",
                     "tableName": "comment"
                   },
                   "target": {
-                    "columns": ["id"],
+                    "columns": [
+                      "id"
+                    ],
                     "namespaceId": "__unbound__",
                     "tableName": "user"
                   }
                 },
                 {
-                  "constraint": true,
-                  "index": true,
                   "source": {
-                    "columns": ["postId"],
+                    "columns": [
+                      "postId"
+                    ],
                     "namespaceId": "__unbound__",
                     "tableName": "comment"
                   },
                   "target": {
-                    "columns": ["id"],
+                    "columns": [
+                      "id"
+                    ],
                     "namespaceId": "__unbound__",
                     "tableName": "post"
                   }
                 }
               ],
-              "indexes": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "authorId"
+                  ],
+                  "name": "comment_authorId_idx"
+                },
+                {
+                  "columns": [
+                    "postId"
+                  ],
+                  "name": "comment_postId_idx"
+                }
+              ],
               "primaryKey": {
-                "columns": ["id"]
+                "columns": [
+                  "id"
+                ]
               },
               "uniques": []
             },
@@ -398,23 +441,34 @@
               },
               "foreignKeys": [
                 {
-                  "constraint": true,
-                  "index": true,
                   "source": {
-                    "columns": ["authorId"],
+                    "columns": [
+                      "authorId"
+                    ],
                     "namespaceId": "__unbound__",
                     "tableName": "post"
                   },
                   "target": {
-                    "columns": ["id"],
+                    "columns": [
+                      "id"
+                    ],
                     "namespaceId": "__unbound__",
                     "tableName": "user"
                   }
                 }
               ],
-              "indexes": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "authorId"
+                  ],
+                  "name": "post_authorId_idx"
+                }
+              ],
               "primaryKey": {
-                "columns": ["id"]
+                "columns": [
+                  "id"
+                ]
               },
               "uniques": []
             },
@@ -445,11 +499,15 @@
               "foreignKeys": [],
               "indexes": [],
               "primaryKey": {
-                "columns": ["id"]
+                "columns": [
+                  "id"
+                ]
               },
               "uniques": [
                 {
-                  "columns": ["email"]
+                  "columns": [
+                    "email"
+                  ]
                 }
               ]
             }
@@ -458,7 +516,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "sha256:71c9bd0dd2593146612df8cebf0a9f6073d31d411b6ba29726e6f3a50ce58dc9",
+    "storageHash": "sha256:fcb99af763113f80c8a483837e1172455edb03892a8d61d47b161a87069aa03a",
     "types": {
       "Uuid": {
         "codecId": "sql/char@1",
