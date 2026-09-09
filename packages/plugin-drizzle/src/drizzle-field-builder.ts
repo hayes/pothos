@@ -703,7 +703,7 @@ export class DrizzleObjectFieldBuilder<
   }
 
   relatedCount<
-    Field extends keyof TableConfig['relations'],
+    Field extends ListRelation<TableConfig>,
     Args extends InputFieldMap,
     Where extends SQL | undefined,
   >(

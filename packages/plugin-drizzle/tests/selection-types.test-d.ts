@@ -147,6 +147,13 @@ builder.drizzleObject('users', {
   }),
 });
 
+// Only a list relation can be counted.
+builder.drizzleObjectFields('users', (t) => ({
+  postCount: t.relatedCount('posts'),
+  // @ts-expect-error a to-one relation has no count
+  profileCount: t.relatedCount('profile'),
+}));
+
 it('types the nested selection as the query it returns', () => {
   expectTypeOf(builder).not.toBeAny();
 });

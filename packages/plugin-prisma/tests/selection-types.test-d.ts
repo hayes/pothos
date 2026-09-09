@@ -158,6 +158,13 @@ builder.prismaObject('Comment', {
   }),
 });
 
+// Only a list relation can be counted.
+builder.prismaObjectFields('User', (t) => ({
+  postCount: t.relationCount('posts'),
+  // @ts-expect-error a to-one relation has no count
+  profileCount: t.relationCount('profile'),
+}));
+
 builder.prismaObjectField('User', 'publishedPosts', (t) =>
   t.relation('posts', {
     query: { where: { published: true } },
