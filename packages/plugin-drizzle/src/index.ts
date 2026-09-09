@@ -8,9 +8,10 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
+import { getLoaderMapping, setFieldMapping } from '@pothos/selection-mapper';
+import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
-import { getLoaderMapping, setLoaderMappings } from './utils/loader-map.js';
 
 export { drizzleConnectionHelpers } from './connection-helpers.js';
 export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
@@ -33,10 +34,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     }
 
     let model = typeConfig.extensions?.pothosDrizzleModel as string | undefined;
+    let table = typeConfig.extensions?.pothosDrizzleTable as TableRelationalConfig | undefined;
 
     for (const iface of typeConfig.interfaces) {
-      const interfaceModel = this.buildCache.getTypeConfig(iface, 'Interface').extensions
-        ?.pothosDrizzleModel as string | undefined;
+      const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
+      const interfaceModel = interfaceConfig.extensions?.pothosDrizzleModel as string | undefined;
 
       if (interfaceModel) {
         if (model && model !== interfaceModel) {
@@ -46,6 +48,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         }
 
         model = interfaceModel;
+        // A plain object type implementing a drizzle interface is walked with the interface's
+        // table, so fragments on it plan the relations it inherits.
+        table ??= interfaceConfig.extensions?.pothosDrizzleTable as
+          | TableRelationalConfig
+          | undefined;
       }
     }
 
@@ -54,6 +61,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       extensions: {
         ...typeConfig.extensions,
         pothosDrizzleModel: model,
+        pothosDrizzleTable: table,
       },
     };
   }
@@ -198,7 +206,9 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       }
 
       if ((!loadedCheck || loadedCheck(parent, info)) && mapping) {
-        setLoaderMappings(context, info, mapping);
+        // Recorded under the field's own parent type as well, so its resolver finds the pathInfo
+        // it was planned with, whichever same-model type the plan was made for.
+        setFieldMapping(context, info, mapping);
 
         return resolver(parent, args, context, info);
       }

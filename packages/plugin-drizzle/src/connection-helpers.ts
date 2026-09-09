@@ -1,4 +1,5 @@
 import type { InputFieldMap, InputShapeFromFields, SchemaTypes } from '@pothos/core';
+import { createNode } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
@@ -8,6 +9,7 @@ import type {
 import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type { QueryForDrizzleConnection } from './types.js';
+import { drizzleAdapter } from './utils/adapter.js';
 import { getSchemaConfig } from './utils/config.js';
 import {
   type DrizzleCursorConnectionQueryOptions,
@@ -17,12 +19,7 @@ import {
 } from './utils/cursors.js';
 import { queryFromInfo } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
-import {
-  createState,
-  mergeSelection,
-  omitUndefinedKeys,
-  selectionToQuery,
-} from './utils/selections.js';
+import { omitUndefinedKeys } from './utils/selections.js';
 
 export function drizzleConnectionHelpers<
   Types extends SchemaTypes,
@@ -82,6 +79,7 @@ export function drizzleConnectionHelpers<
   } = {},
 ) {
   const config = getSchemaConfig(builder);
+  const adapter = drizzleAdapter(config);
   const tableName =
     typeof refOrType === 'string'
       ? refOrType
@@ -174,19 +172,16 @@ export function drizzleConnectionHelpers<
       : nestedSelection(true, ['edges', 'node']);
     const queryArgs = getQueryArgs(args, ctx);
 
-    const selectState = createState(
-      config.relations[tableName],
-      builder.options.drizzle?.skipDeferredFragments ?? true,
-    );
+    const node = createNode(config.relations[tableName]);
 
-    mergeSelection(config, selectState, queryArgs.select);
+    adapter.merge(node, queryArgs.select);
 
     if (typeof nestedSelect === 'object' && nestedSelect) {
-      mergeSelection(config, selectState, nestedSelect);
+      adapter.merge(node, nestedSelect);
     }
 
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
-    const queryResult = selectionToQuery(config, selectState);
+    const queryResult = adapter.serialize(node);
 
     return omitUndefinedKeys({
       ...baseQuery,
