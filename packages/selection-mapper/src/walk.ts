@@ -1,4 +1,9 @@
-import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
+import {
+  getMappedArgumentValues,
+  isThenable,
+  type MaybePromise,
+  PothosValidationError,
+} from '@pothos/core';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
@@ -32,14 +37,20 @@ import { wrapWithUsageCheck } from './usage.js';
 
 type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
 
+/** A relation query: a map, or a callback building one from the field's arguments. */
+export type NestedQuery<Map, X = undefined> =
+  | MaybePromise<Map | null | undefined>
+  | ((args: object, ctx: object, extra: X) => MaybePromise<Map | null | undefined>);
+
 /**
  * The callback handed to a field's select function to plan the selection beneath the field:
  * `query` is merged first (a function is called with the field's args, `true` means no query),
  * then the selection found under `path` (an explicit include, or a string path from the field's
- * return type) is walked as `type` (or the field's return type).
+ * return type) is walked as `type` (or the field's return type). Declared synchronous (A-7): the
+ * result is a promise only when a callback beneath it returned one, and must then be awaited.
  */
 export type NestedSelection<Map, X = undefined> = (
-  query?: Map | true | ((args: object, ctx: object, extra: X) => Map | null | undefined),
+  query?: NestedQuery<Map, X> | true,
   path?: string[] | IndirectInclude,
   type?: string,
 ) => Map;
@@ -51,7 +62,7 @@ export type SelectFn<Map, X = undefined> = (
   nested: NestedSelection<Map, X>,
   getSelectedNode: (path: string[]) => FieldNode | null,
   extra: X,
-) => Map | false | null | undefined;
+) => MaybePromise<Map | false | null | undefined>;
 
 export interface EntryOptions<Map> {
   context: object;
@@ -153,12 +164,20 @@ export interface Walk<M, Map, X = undefined> {
   mappings: Mappings;
   /** D-7: the extra of the field this walk hangs beneath. */
   extra?: X;
+  /**
+   * The merges waiting on a user callback that returned a promise, in the order they were
+   * appended (A-2, A-4). Absent until the first one: a synchronous walk never creates a promise.
+   */
+  pending?: Promise<void>;
 }
 
 /** The mapping of a static selection: nothing can ever be recorded beneath one. */
 const NONE: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
 
-/** E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2). */
+/**
+ * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
+ * Declared synchronous (A-7): a promise is returned only when a callback returned one.
+ */
 export function queryFromInfo<M, Map extends object, X = undefined>(
   adapter: Adapter<M, Map, X>,
   options: EntryOptions<Map>,
@@ -204,13 +223,19 @@ export function selectionStateFromInfo<M, Map extends object, X = undefined>(
     applyField(walk, walk.root, type, fieldNode, []);
   }
 
+  return finish(walk, enterLoaded, type);
+}
+
+/** E-2: the parent type's selection, minus what conflicts with the field, once it is merged. */
+function enterLoaded<M, Map, X>(walk: Walk<M, Map, X>, type: GraphQLNamedType) {
+  const { adapter } = walk.env;
   const selection = adapter.typeSelection(type);
 
   if (selection) {
     adapter.merge(walk.root, adapter.withoutConflicts(walk.root, selection));
   }
 
-  return finish(walk, identity);
+  return walk;
 }
 
 /**
@@ -244,13 +269,31 @@ export function defaultFragmentType<M>(
   return undefined;
 }
 
-/** The single exit of every entry point: the async seam, where awaiting the walk will land. */
+/**
+ * A-2: appends the merge of `value` to the walk's pending chain. Only merges are chained, never
+ * user code, so a link can never append another and the chain needs no loop. Each link waits on
+ * the previous one, so async merges run in the order they were appended (A-4). Both promises get
+ * a handler at once, so a callback that rejects early is never an unhandled rejection.
+ */
+function chain<M, Map, X, T>(walk: Walk<M, Map, X>, value: PromiseLike<T>, merge: (v: T) => void) {
+  const prev = walk.pending;
+
+  walk.pending = prev
+    ? Promise.all([prev, value]).then(([, v]) => merge(v))
+    : Promise.resolve(value).then(merge);
+}
+
+/**
+ * The single exit of every entry point (A-3): `done` runs now when nothing is pending, else
+ * after every pending merge. The result is then a promise behind the declared synchronous type
+ * (A-7): a schema without async callbacks never sees one, and one with them must await it.
+ */
 function finish<M, Map, X, A extends unknown[], R>(
   walk: Walk<M, Map, X>,
   done: (walk: Walk<M, Map, X>, ...args: A) => R,
   ...args: A
 ): R {
-  return done(walk, ...args);
+  return walk.pending ? (walk.pending.then(() => done(walk, ...args)) as R) : done(walk, ...args);
 }
 
 function identity<M, Map, X>(walk: Walk<M, Map, X>) {
@@ -747,17 +790,39 @@ function applyField<M, Map, X>(
   // stays invisible to the walk until the invocation's map is accepted.
   const extra = adapter.callbackExtra?.(walk.extra, type, field, fieldNode);
   const mapping: Mapping = { nested: {}, extra };
-  const args = getMappedArgumentValues(field, fieldNode, context, info) as Record<string, unknown>;
+  const args = getMappedArgumentValues(field, fieldNode, context, info);
+  const select = selection as SelectFn<Map, X>;
 
-  const map = (selection as SelectFn<Map, X>)(
+  // S-6: the select runs as soon as its own arguments are known; only its merge waits (A-3).
+  const map = isThenable(args)
+    ? args.then((mapped) => runSelect(walk, field, fieldNode, select, mapped, extra, mapping))
+    : runSelect(walk, field, fieldNode, select, args, extra, mapping);
+
+  if (isThenable(map)) {
+    chain(walk, map as PromiseLike<Map | false | null | undefined>, (resolved) =>
+      mergeField(walk, node, key, resolved, mapping),
+    );
+  } else {
+    mergeField(walk, node, key, map, mapping);
+  }
+}
+
+function runSelect<M, Map, X>(
+  walk: Walk<M, Map, X>,
+  field: GraphQLField<unknown, unknown>,
+  fieldNode: FieldNode,
+  select: SelectFn<Map, X>,
+  args: object,
+  extra: X | undefined,
+  mapping: Mapping,
+) {
+  return select(
     args,
-    context,
+    walk.env.context,
     nestedSelectionFor(walk, field, fieldNode, args, extra, mapping),
     getNodeFor(walk, field, fieldNode),
     extra as X,
   );
-
-  mergeField(walk, node, key, map, mapping);
 }
 
 /**
@@ -801,7 +866,7 @@ function nestedSelectionFor<M, Map, X>(
   mapping: Mapping,
 ): NestedSelection<Map, X> {
   const { env } = walk;
-  const { info, adapter } = env;
+  const { info } = env;
 
   return (rawQuery, pathOrInclude, typeName) => {
     const returnType = getNamedType(field.type);
@@ -815,19 +880,25 @@ function nestedSelectionFor<M, Map, X>(
     const target = include ? info.schema.getType(include.getType())! : returnType;
     const child = createWalk(env, target, mapping.nested, extra);
     // `true` is the public "no query"; it never reaches an adapter.
-    const query =
+    const query: MaybePromise<Map | null | undefined> =
       rawQuery === true
         ? undefined
         : typeof rawQuery === 'function'
-          ? (rawQuery as (args: object, ctx: object, extra: X) => Map | null | undefined)(
-              args,
-              env.context,
-              extra as X,
-            )
+          ? (
+              rawQuery as (
+                args: object,
+                ctx: object,
+                extra: X,
+              ) => MaybePromise<Map | null | undefined>
+            )(args, env.context, extra as X)
           : rawQuery;
 
-    if (query && hasKeys(query)) {
-      adapter.merge(child.root, { ...adapter.empty, ...query });
+    if (isThenable(query)) {
+      chain(child, query as PromiseLike<Map | null | undefined>, (resolved) =>
+        mergeQuery(child, resolved),
+      );
+    } else {
+      mergeQuery(child, query);
     }
 
     const paths = include?.paths?.length
@@ -872,6 +943,13 @@ function nestedSelectionFor<M, Map, X>(
 
     return finish(child, serializeRoot);
   };
+}
+
+/** E-3: a relation query merges over `empty`, so a query without columns adds none. */
+function mergeQuery<M, Map, X>(child: Walk<M, Map, X>, query: Map | null | undefined) {
+  if (query && hasKeys(query)) {
+    child.env.adapter.merge(child.root, { ...child.env.adapter.empty, ...query });
+  }
 }
 
 /**

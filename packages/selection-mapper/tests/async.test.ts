@@ -1,0 +1,382 @@
+import { completeValue, isThenable } from '@pothos/core';
+import type { GraphQLObjectType } from 'graphql';
+import { describe, expect, it } from 'vitest';
+import type { Adapter, SelectFn } from '../src';
+import { getLoaderMapping, queryFromInfo, selectionStateFromInfo, walkFromInfo } from '../src';
+import { type FakeMap, type FakeModel, type FakePath, resolveInfo } from './fake-adapter';
+import { countPromises } from './promise-spy';
+import { createTestAdapter, createTestSchema } from './schema';
+
+const schema = createTestSchema();
+const adapter = createTestAdapter();
+
+type Select = SelectFn<FakeMap, FakePath>;
+type Args = Record<string, unknown>;
+type Wrap = (select: Select, field: string) => Select;
+
+function pathOf(...keys: (string | number)[]) {
+  let path: { prev: unknown; key: string | number; typename: undefined } | undefined;
+
+  for (const key of keys) {
+    path = { prev: path, key, typename: undefined };
+  }
+
+  return path as never;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** The test adapter with the select functions of `fields` wrapped by `wrap`. */
+function withSelects(fields: string[], wrap: Wrap): Adapter<FakeModel, FakeMap, FakePath> {
+  const wrapped = createTestAdapter();
+  const { fieldSelection } = wrapped;
+
+  wrapped.fieldSelection = (field) => {
+    const selection = fieldSelection(field);
+
+    return typeof selection === 'function' && fields.includes(field.name)
+      ? wrap(selection, field.name)
+      : selection;
+  };
+
+  return wrapped;
+}
+
+const takeQuery = (args: Args): FakeMap => (args.take === undefined ? {} : { take: args.take });
+const whereXQuery = (args: Args): FakeMap => (args.x === undefined ? {} : { where: { x: args.x } });
+
+/** An async `t.relation`-style select: it awaits its nested selection (A-6). */
+const asyncRelation =
+  (query?: (args: Args) => FakeMap, delay = 0): Wrap =>
+  (_select, name) =>
+  async (args, _ctx, nested) => {
+    if (delay) {
+      await sleep(delay);
+    }
+
+    return { select: { [name]: await nested(query?.(args as Args) ?? {}) } };
+  };
+
+/** A plugin-owned relation select: sync unless the nested selection is a promise. */
+const pluginRelation =
+  (query?: (args: Args) => FakeMap): Wrap =>
+  (_select, name) =>
+  (args, _ctx, nested) =>
+    completeValue(nested(query?.(args as Args) ?? {}), (map) => ({ select: { [name]: map } }));
+
+/** The field's own select, made async. */
+const deferred: Wrap = (select) => async (args, ctx, nested, getNode, extra) => {
+  await sleep(1);
+
+  return select(args, ctx, nested, getNode, extra);
+};
+
+function withWraps(wraps: Record<string, Wrap>) {
+  return withSelects(Object.keys(wraps), (select, name) => wraps[name](select, name));
+}
+
+async function sameAs(
+  source: string,
+  async: Adapter<FakeModel, FakeMap, FakePath>,
+  keys: [string, (string | number)[]][],
+) {
+  const info = await resolveInfo(schema, source);
+  const syncContext = {};
+  const expected = queryFromInfo(adapter, { context: syncContext, info });
+  const context = {};
+  const result = queryFromInfo(async, { context, info });
+
+  expect(isThenable(result)).toBe(true);
+
+  // L-2: nothing is recorded until every pending merge has run.
+  for (const [type, path] of keys) {
+    expect(getLoaderMapping(context, pathOf(...path), type)).toBe(null);
+  }
+
+  expect(await result).toEqual(expected);
+
+  for (const [type, path] of keys) {
+    expect(getLoaderMapping(context, pathOf(...path), type)).toEqual(
+      getLoaderMapping(syncContext, pathOf(...path), type),
+    );
+  }
+}
+
+describe('async callbacks', () => {
+  it('awaits an async select and builds the query the sync select builds', async () => {
+    await sameAs(
+      '{ user { id posts(take: 2) { id author(x: 1) { name } } profile { bio } } }',
+      withWraps({
+        posts: asyncRelation(takeQuery, 1),
+        author: asyncRelation(whereXQuery, 1),
+        profile: deferred,
+      }),
+      [
+        ['User', ['user', 'posts']],
+        ['User', ['user', 'profile']],
+      ],
+    );
+  });
+
+  it('propagates a nested async walk through a plugin-owned select (A-6)', async () => {
+    await sameAs(
+      '{ user { posts(take: 2) { id author(x: 1) { name } } } }',
+      withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
+      [['User', ['user', 'posts']]],
+    );
+  });
+
+  it('awaits an async relation query', async () => {
+    const async = withSelects(['posts'], (_select, name) => (_args, _ctx, nested) => ({
+      select: { [name]: nested(async (args) => takeQuery(args as Args)) },
+    }));
+
+    // A relation query that returns a promise makes the nested selection a promise, which a
+    // synchronous select cannot embed (A-6)...
+    const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
+
+    expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
+      'Relation "posts" was given a promise',
+    );
+
+    // ...so the select awaits it.
+    await sameAs(
+      '{ user { posts(take: 2) { id author { name } } } }',
+      withSelects(['posts'], (_select, name) => async (_args, _ctx, nested) => ({
+        select: { [name]: await nested(async (args) => takeQuery(args as Args)) },
+      })),
+      [['User', ['user', 'posts']]],
+    );
+  });
+
+  it('rejects an async select that embeds a nested selection without awaiting it', async () => {
+    const async = withSelects(['posts'], (_select, name) => async (_args, _ctx, nested) => ({
+      select: { [name]: nested(async () => ({ take: 1 })) },
+    }));
+    const info = await resolveInfo(schema, '{ user { posts { id } } }');
+
+    await expect(queryFromInfo(async, { context: {}, info })).rejects.toThrow(
+      'Relation "posts" was given a promise',
+    );
+  });
+
+  it('runs a select as soon as its async arguments resolve (S-6)', async () => {
+    const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
+    const field = (schema.getType('User') as GraphQLObjectType).getFields().posts;
+    const seen: string[] = [];
+    const spied = withSelects(['posts'], (select) => (args, ...rest) => {
+      seen.push(`select:${JSON.stringify(args)}`);
+
+      return select(args, ...rest);
+    });
+
+    field.extensions = {
+      ...field.extensions,
+      pothosArgMappers: [
+        async (args: { take: number }) => {
+          seen.push('mapper');
+          await new Promise((resolve) => setTimeout(resolve, 1));
+
+          return { take: args.take * 10 };
+        },
+      ],
+    };
+
+    try {
+      const context = {};
+      const result = queryFromInfo(spied, { context, info });
+
+      expect(seen).toEqual(['mapper']);
+      expect(await result).toEqual({ select: { posts: { take: 20 } } });
+      expect(seen).toEqual(['mapper', 'select:{"take":20}']);
+      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual({ nested: {} });
+    } finally {
+      field.extensions = { ...field.extensions, pothosArgMappers: undefined };
+    }
+  });
+
+  it('starts every callback of a walk in the same tick (A-3)', async () => {
+    const started: string[] = [];
+    const async = withSelects(['posts', 'profile'], (select, name) => async (...args) => {
+      started.push(name);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
+      return select(...args);
+    });
+    const info = await resolveInfo(schema, '{ user { posts { id } profile { bio } } }');
+
+    const result = queryFromInfo(async, { context: {}, info });
+
+    expect(started).toEqual(['posts', 'profile']);
+    expect(await result).toEqual({ select: { posts: true, profile: true } });
+  });
+
+  it('merges sync selections first, then async ones in document order (A-4, D-5)', async () => {
+    // `first` takes 1 and is async; `second` takes 2 and is sync. They conflict on `take`.
+    const syncWins = withSelects(['posts'], (select) => (args, ...rest) => {
+      const map = select(args, ...rest);
+
+      return (args as { take: number }).take === 1 ? Promise.resolve(map) : map;
+    });
+    const info = await resolveInfo(
+      schema,
+      '{ user { first: posts(take: 1) { id } second: posts(take: 2) { id } } }',
+    );
+    const context = {};
+
+    expect(await queryFromInfo(syncWins, { context, info })).toEqual({
+      select: { posts: { take: 2 } },
+    });
+    expect(getLoaderMapping(context, pathOf('user', 'second'), 'User')).toEqual({ nested: {} });
+    expect(getLoaderMapping(context, pathOf('user', 'first'), 'User')).toBe(null);
+
+    // Both async: `first` resolves last but was appended first, so it wins.
+    const appendOrder = withSelects(['posts'], (select) => (args, ...rest) => {
+      const map = select(args, ...rest);
+
+      return (args as { take: number }).take === 1
+        ? new Promise((resolve) => setTimeout(() => resolve(map), 5))
+        : Promise.resolve(map);
+    });
+    const ordered = {};
+
+    expect(await queryFromInfo(appendOrder, { context: ordered, info })).toEqual({
+      select: { posts: { take: 1 } },
+    });
+    expect(getLoaderMapping(ordered, pathOf('user', 'first'), 'User')).toEqual({ nested: {} });
+    expect(getLoaderMapping(ordered, pathOf('user', 'second'), 'User')).toBe(null);
+  });
+
+  it('unions the mappings of a key accepted from an async and a sync walk', async () => {
+    const source = /* GraphQL */ `{
+      user {
+        ... on User { posts { author { name } } }
+        ... on User { posts { comments { id } } }
+      }
+    }`;
+    // The first `posts` walk is async (its `author` is), the second is sync.
+    const mixed = withWraps({ posts: pluginRelation(), author: asyncRelation(undefined, 1) });
+
+    await sameAs(source, mixed, [['User', ['user', 'posts']]]);
+
+    const context = {};
+
+    await queryFromInfo(mixed, { context, info: await resolveInfo(schema, source) });
+
+    // The sync walk was merged first (D-5); the async one unioned into its mapping.
+    expect(Object.keys(getLoaderMapping(context, pathOf('user', 'posts'), 'User')!.nested)).toEqual(
+      ['Post@comments', 'Post@author'],
+    );
+  });
+
+  it('rejects the walk when a callback rejects', async () => {
+    const failing = withWraps({
+      posts: pluginRelation(),
+      author: () => () => Promise.reject(new Error('no author')),
+    });
+    const info = await resolveInfo(schema, '{ user { posts { author { name } } } }');
+
+    await expect(queryFromInfo(failing, { context: {}, info })).rejects.toThrow('no author');
+  });
+
+  it('plans a connection through an async relation query', async () => {
+    const async = withSelects(['postsConnection'], (select) => (args, ctx, nested, ...rest) => {
+      const nestedAsync: typeof nested = (query, path, type) =>
+        nested(
+          async () =>
+            typeof query === 'function' ? query(args, ctx, []) : query === true ? undefined : query,
+          path,
+          type,
+        );
+
+      return select(args, ctx, nestedAsync, ...rest);
+    });
+
+    // The connection select embeds the nested promise synchronously, as `getQuery` helpers do
+    // when not awaited.
+    const info = await resolveInfo(
+      schema,
+      '{ user { postsConnection(first: 2) { totalCount nodes { id } } } }',
+    );
+
+    expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
+      'Relation "posts" was given a promise',
+    );
+  });
+
+  it('returns the loader walk after its async select, then enters the parent type (E-2)', async () => {
+    const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
+      at: ['Viewer', 'posts'],
+    });
+    const walk = await selectionStateFromInfo(withSelects(['posts'], deferred), {}, info);
+
+    // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
+    expect(adapter.serialize(walk.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
+    expect(walk.mappings).toEqual({ 'Viewer@posts': { nested: {} } });
+
+    const direct = await walkFromInfo(withSelects(['posts'], deferred), {
+      context: {},
+      info: await resolveInfo(schema, '{ user { posts { id } } }'),
+      typeName: 'User',
+    });
+
+    expect(adapter.serialize(direct.root)).toEqual({ select: { posts: true } });
+  });
+});
+
+describe('the synchronous path (A-1)', () => {
+  const source = /* GraphQL */ `{
+    user {
+      id
+      posts(take: 2) { id author(x: 1) { name } ... on Post { comments { author { id } } } }
+      profile { bio }
+      postsConnection(first: 2) { totalCount nodes { id } edges { node { title } } }
+    }
+  }`;
+
+  it('creates no promise', async () => {
+    const context = {};
+    const info = await resolveInfo(schema, source);
+    const { result, promises } = countPromises(() => queryFromInfo(adapter, { context, info }));
+
+    expect(promises).toBe(0);
+    expect(isThenable(result)).toBe(false);
+    expect(result).toEqual({
+      extras: { postsCount: true },
+      select: {
+        posts: {
+          take: 2,
+          select: { author: { where: { x: 1 } }, comments: { select: { author: true } } },
+        },
+        profile: true,
+      },
+    });
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).not.toBe(null);
+  });
+
+  it('creates no promise for the loader entry points', async () => {
+    const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
+      at: ['Viewer', 'posts'],
+    });
+
+    expect(countPromises(() => selectionStateFromInfo(adapter, {}, info)).promises).toBe(0);
+    expect(
+      countPromises(() =>
+        walkFromInfo(adapter, {
+          context: {},
+          info,
+          typeName: 'Post',
+        }),
+      ).promises,
+    ).toBe(0);
+  });
+
+  it('counts the promises the spy is meant to see', () => {
+    expect(countPromises(() => Promise.resolve(1)).promises).toBe(1);
+    expect(countPromises(() => Promise.resolve(1).then(() => 2)).promises).toBe(2);
+    expect(countPromises(() => Promise.all([])).promises).toBe(1);
+    expect(countPromises(() => new Promise(() => {})).promises).toBe(1);
+  });
+});
