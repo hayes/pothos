@@ -169,6 +169,19 @@ describe('queryFromInfo', () => {
         initial: { select: { id: true } },
       }),
     ).toEqual({ select: { id: true } });
+
+    const raw = { select: { id: true } };
+
+    expect(
+      queryFromInfo(adapter, {
+        context,
+        info,
+        typeName: 'User',
+        paths: [['appointment']],
+        initial: { select: { id: true, name: true } },
+        noMatch: raw,
+      }),
+    ).toBe(raw);
   });
 
   it('walks every path match as its own type into one query (W-11)', async () => {
