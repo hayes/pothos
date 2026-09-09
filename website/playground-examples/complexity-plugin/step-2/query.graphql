@@ -1,0 +1,11 @@
+# players costs 5 + first(3) * name(1) = 8; leaderboard costs its base 20 plus
+# 10 * name(1) = 30. Raise `first` to watch the players cost climb toward the
+# limit of 100.
+query Costs {
+  players(first: 3) {
+    name
+  }
+  leaderboard {
+    name
+  }
+}

@@ -1,0 +1,10 @@
+# Both `standings` and `Team.form` throw in their real resolvers.
+# The query still works because the mocks passed to toSchema stand in for them.
+query Standings {
+  standings {
+    id
+    name
+    wins
+    form
+  }
+}

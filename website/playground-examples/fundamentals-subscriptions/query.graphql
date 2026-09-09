@@ -1,0 +1,6 @@
+subscription NewCharacters {
+  characterAdded {
+    id
+    name
+  }
+}

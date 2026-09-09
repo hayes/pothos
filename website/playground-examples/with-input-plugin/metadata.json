@@ -1,0 +1,12 @@
+{
+  "id": "with-input-plugin",
+  "title": "With-Input Plugin",
+  "description": "Define fields whose arguments live in a single generated input object with t.fieldWithInput.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "beginner",
+  "order": 13,
+  "tags": ["with-input", "mutations", "inputs"],
+  "relatedDocs": ["/docs/plugins/with-input"],
+  "prerequisites": ["fundamentals-inputs"]
+}

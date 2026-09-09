@@ -1,0 +1,16 @@
+query ReusableInputExample {
+  # GameFilter and PlayerFilter both get createdAfter/createdBefore
+  # from the shared timestampInputs() helper.
+  games(filter: { teamId: "Comet" }) {
+    id
+    homeTeam
+    awayTeam
+    createdAt
+  }
+
+  players(filter: { position: "Cutter" }) {
+    id
+    name
+    position
+  }
+}
