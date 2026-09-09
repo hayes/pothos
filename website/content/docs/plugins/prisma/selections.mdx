@@ -109,6 +109,38 @@ const PostDraft = builder.prismaObject('Post', {
 });
 ```
 
+## Async selections
+
+`select` functions, relation `query` callbacks, and `relationCount` `where` callbacks may be async.
+The plugin still builds one query: it waits for the callbacks and merges what they return after
+every synchronous selection, in document order. Schemas without async callbacks are unaffected: no
+promise is created until a callback returns one.
+
+```typescript
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    comments: t.relation('comments', {
+      query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
+    }),
+    latestComments: t.field({
+      type: [Comment],
+      select: async (args, ctx, nestedSelection) => ({
+        // A promise when a selection beneath it is async, so it must be awaited
+        comments: await nestedSelection({ take: await ctx.previewSize() }),
+      }),
+      resolve: (post) => post.comments,
+    }),
+  }),
+});
+```
+
+Inside an async `select`, `await` the result of `nestedSelection` (and of helpers built on it, such
+as `getQuery` from `prismaConnectionHelpers`) before adding it to the selection; a selection that
+contains the promise itself throws. Calling `nestedSelection` and discarding its result is not
+detected: the nested selection is then not loaded with the parent, and the field falls back to its
+own query. `queryFromInfo` returns a promise when a callback beneath the field is async, so `await`
+it in resolvers that call it directly.
+
 ## Optimized queries without `t.prismaField`
 
 In some cases, it may be useful to get an optimized query for fields where you can't use

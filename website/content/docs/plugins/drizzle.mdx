@@ -277,6 +277,46 @@ describes where in the GraphQL query the relation is being loaded:
 You can read more about the relation query builder api
 [here](https://orm.drizzle.team/docs/rqb#querying)
 
+## Async selections
+
+`select` functions, relation `query` callbacks, and `relatedCount` `where` callbacks may be async.
+The plugin still builds one query: it waits for the callbacks and merges what they return after
+every synchronous selection, in document order. Schemas without async callbacks are unaffected: no
+promise is created until a callback returns one.
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    posts: t.relation('posts', {
+      query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
+    }),
+    latestPosts: t.field({
+      type: [Post],
+      select: async (args, ctx, nestedSelection) => ({
+        // A promise when a selection beneath it is async, so it must be awaited
+        with: { posts: await nestedSelection({ limit: await ctx.previewSize() }) },
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+
+builder.queryField('me', (t) =>
+  t.drizzleField({
+    type: 'users',
+    // `query()` returns a promise when a selection beneath the field is async
+    resolve: async (query, root, args, ctx) =>
+      db.query.users.findFirst(await query({ where: { id: ctx.userId } })),
+  }),
+);
+```
+
+Inside an async `select`, `await` the result of `nestedSelection` (and of helpers built on it, such
+as `getQuery` from `drizzleConnectionHelpers`) before adding it to the selection; a selection that
+contains the promise itself throws. Calling `nestedSelection` and discarding its result is not
+detected: the nested selection is then not loaded with the parent.
+
 ## Drizzle Fields
 
 Drizzle objects and relations allow you to define parts of your schema backed by your drizzle
