@@ -696,6 +696,27 @@ export function selectionStateFromInfo(
   return state;
 }
 
+/**
+ * Whether the field being resolved selects `path` beneath its return type, following fragments,
+ * skip/include directives, and the return type's own indirect include prefix (a connection wrapped
+ * by the errors plugin sits under its `data` field). It is the walk the planner uses, so a
+ * resolver's view of the selection agrees with what was planned for it.
+ */
+export function selectsPath(info: GraphQLResolveInfo, path: string[]): boolean {
+  const returnType = getNamedType(info.returnType);
+  const { pothosIndirectInclude } = (returnType.extensions ?? {}) as {
+    pothosIndirectInclude?: IndirectInclude;
+  };
+  const segments = path.map((name) => ({ name }));
+
+  return info.fieldNodes.some(
+    (node) =>
+      findIndirectSelections(returnType, info, node, [segments], {
+        prefix: pothosIndirectInclude?.path,
+      }).length > 0,
+  );
+}
+
 function createStateForSelection(
   config: PothosDrizzleSchemaConfig,
   info: GraphQLResolveInfo,

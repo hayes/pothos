@@ -30,14 +30,7 @@ import {
   type TableRelationalConfig,
   type TablesRelationalConfig,
 } from 'drizzle-orm';
-import {
-  type FieldNode,
-  Kind as GraphQLKind,
-  type GraphQLResolveInfo,
-  getNamedType,
-  isInterfaceType,
-  isObjectType,
-} from 'graphql';
+import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type {
   DrizzleConnectionShape,
@@ -57,6 +50,7 @@ import {
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors.js';
+import { selectsPath } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
 import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
 
@@ -297,19 +291,16 @@ export class DrizzleObjectFieldBuilder<
 
     const countKey = `_${name as string}_count`;
 
-    const isTotalCountOnly = (info: GraphQLResolveInfo) => {
-      const returnType = getNamedType(info.returnType);
-      const fields =
-        isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+    // What the document asks of this connection, read the way the planner reads it (through
+    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan.
+    const connectionSelection = (info: GraphQLResolveInfo) => {
+      const hasTotalCount = !!totalCount && selectsPath(info, ['totalCount']);
+      const hasRows =
+        selectsPath(info, ['edges']) ||
+        selectsPath(info, ['nodes']) ||
+        selectsPath(info, ['pageInfo']);
 
-      return info.fieldNodes.every((selection) =>
-        selection.selectionSet?.selections.every(
-          (s) =>
-            s.kind === GraphQLKind.FIELD &&
-            (fields[s.name.value]?.extensions?.pothosDrizzleTotalCount ||
-              s.name.value === '__typename'),
-        ),
-      );
+      return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
     };
 
     const relationSelect = (
@@ -366,10 +357,14 @@ export class DrizzleObjectFieldBuilder<
         extensions: {
           ...extensions,
           pothosDrizzleSelect: relationSelect,
-          pothosDrizzleLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) =>
-            totalCount && isTotalCountOnly(info)
-              ? value[countKey] !== undefined
-              : value[name as string] !== undefined,
+          pothosDrizzleLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
+            const { hasTotalCount, totalCountOnly } = connectionSelection(info);
+
+            return (
+              (!hasTotalCount || value[countKey] !== undefined) &&
+              (totalCountOnly || value[name as string] !== undefined)
+            );
+          },
         },
         description,
         type: ref,
@@ -385,7 +380,7 @@ export class DrizzleObjectFieldBuilder<
             : undefined;
 
           // Only totalCount was requested: the relation was never selected, so skip the cursors.
-          if (isTotalCountOnly(info)) {
+          if (connectionSelection(info).totalCountOnly) {
             return {
               parent,
               args,
@@ -551,23 +546,23 @@ export class DrizzleObjectFieldBuilder<
       _resolveSelection: unknown,
       pathInfo: PathInfo,
     ) => {
-      const relQuery = {
+      // Evaluate a `query` callback once, with `pathInfo`; it used to be called a second time
+      // (without `pathInfo`) when the nested selection was built.
+      const fieldQuery = (
+        typeof query === 'function'
+          ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(args, context, pathInfo)
+          : query
+      ) as {};
+
+      return {
         columns: {},
         with: {
           [name]: omitUndefinedKeys({
-            ...nestedQuery(query),
-            ...((typeof query === 'function'
-              ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(
-                  args,
-                  context,
-                  pathInfo,
-                )
-              : query) as {}),
+            ...nestedQuery(fieldQuery),
+            ...fieldQuery,
           }),
         },
       };
-
-      return relQuery;
     };
 
     return this.field({
