@@ -23,6 +23,7 @@ import {
   type TypeParam,
   typeBrandKey,
 } from '@pothos/core';
+import type { Mappings } from '@pothos/selection-mapper';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef, PrismaRef } from './interface-ref.js';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -783,6 +784,9 @@ export type FieldSelection =
       ) => SelectionMap | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap | false | null | undefined);
+
+/** @deprecated use `Mappings` from `@pothos/selection-mapper` */
+export type LoaderMappings = Mappings;
 
 export interface IndirectInclude {
   getType: () => string;
