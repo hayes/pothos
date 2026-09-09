@@ -84,6 +84,8 @@ const builder = new SchemaBuilder<{
     filterConnectionTotalCount: true,
     // warn when not using a query parameter correctly
     onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
+    // leave selections inside @defer fragments out of the planned query (defaults to true)
+    skipDeferredFragments: true,
   },
 });
 ```
@@ -141,3 +143,13 @@ a flag if the property is accessed. If no properties are accessed on the query o
 resolver returns, it will trigger the `onUnusedQuery` condition.
 
 It's recommended to enable this check in development to more quickly find potential issues.
+
+## Deferred fragments
+
+Selections inside a `@defer` fragment are left out of the planned query by default: the fragment
+resolves after the initial payload, and loading what it needs up front would delay that payload
+for data the client agreed to wait for. When the deferred fragment resolves, its fields load
+through [fallback queries](./relations#fallback-queries), batched as usual.
+
+Set `skipDeferredFragments: false` in the plugin options to plan deferred selections with the rest
+of the query. `queryFromInfo` takes the same option per call.

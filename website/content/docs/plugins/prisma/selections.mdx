@@ -3,6 +3,26 @@ title: Selections
 description: how to use custom includes and selections to optimize your prisma queries
 ---
 
+## How selections are planned
+
+Every field on a prisma object is answered in one of two ways, never both. Either its selection is
+**planned** into the query of the nearest ancestor that runs one (a `t.prismaField`, a
+`t.relation`, a connection, or a [fallback query](./relations#fallback-queries)) and the field
+reads its data from the loaded row, or the field is **loaded on its own**: by a `resolve` that
+queries prisma itself, or by the fallback query the plugin issues for a `t.relation` whose data is
+not on the row.
+
+Two selections of the same relation share one place in the query only when their arguments
+(`where`, `orderBy`, `take`, ...) are the same. When they differ, the first in document order is
+planned and the second is loaded by a query of its own.
+
+A field-level `select` is merged into the same query as its siblings and the type-level selection;
+it does not get a private copy of the row. A relation selected with arguments by one field is the
+relation every other field reads from that row, so two fields that need the same relation with
+different arguments cannot both be answered from one row: the second is loaded on its own.
+
+The callbacks that build a selection may be async; see [Async selections](#async-selections).
+
 ## Includes on types
 
 In some cases, you may want to always pre-load certain relations. This can be helpful for defining
@@ -75,6 +95,33 @@ builder.prismaObject('User', {
         },
       },
       resolve: (user) => user.profile.bio,
+    }),
+  }),
+});
+```
+
+### Selections on `t.prismaField`
+
+A `t.prismaField` defined on a prisma object takes a `select` as well. The selection is planned
+into the parent row like any other field-level `select`, and the resolver still receives the
+`query` for the field's own model:
+
+```typescript
+builder.prismaObject('User', {
+  select: { email: true },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+    latestPost: t.prismaField({
+      type: 'Post',
+      nullable: true,
+      // loaded with the user row, so the resolver can filter on it
+      select: { id: true },
+      resolve: (query, user) =>
+        prisma.post.findFirst({
+          ...query,
+          where: { authorId: user.id },
+          orderBy: { createdAt: 'desc' },
+        }),
     }),
   }),
 });
@@ -163,7 +210,7 @@ builder.objectRef<{
     success: t.boolean(),
     post: t.field({
       type: Post,
-      nullable:
+      nullable: true,
       resolve: (result) => result.post,
     }),
   }),
@@ -185,15 +232,15 @@ builder.mutationField(
         }
       }
 
-      const post = prisma.city.create({
+      const post = prisma.post.create({
         // A promise when a callback beneath the field is async, so it is awaited
         ...(await queryFromInfo({
           context,
           info,
           // nested path where the selections for this type can be found
-          path: ['post']
-          // optionally you can pass a custom initial selection, generally you wouldn't need this
-          // but if the field at `path` is not selected, the initial selection set may be empty
+          path: ['post'],
+          // optionally you can pass an initial selection, generally you wouldn't need this;
+          // when nothing is selected at `path`, it is returned as is
           select: {
             comments: true,
           },
@@ -213,6 +260,11 @@ builder.mutationField(
 );
 ```
 
+`queryFromInfo` returns `{ select }` or `{ include }` when it was given one, and otherwise
+`{ select?, include? }`, whichever the type's mode produced. All three spread into a prisma call.
+A `select` given for a type in include mode is merged into an `include` query: prisma then loads
+every column, the selected ones among them, and the relations in the `select` are included.
+
 The `path` is followed through fragments in the query, including inline fragments and fragment
 spreads that narrow an interface or union to one of its implementations. Every selection of the
 field that is found is merged into the query. If several implementations share a field name,
@@ -229,3 +281,27 @@ queryFromInfo({
   path: [{ name: 'appointment', type: 'AppointmentEntry' }],
 });
 ```
+
+## Typing rows you load yourself
+
+A resolver that loads rows with its own prisma query decides what is on them. `PrismaQueriedShape`
+names that shape from the model and the query, so it can be written once next to the query that
+loads the rows rather than repeated wherever they are used:
+
+```typescript
+import type { PrismaQueriedShape } from '@pothos/plugin-prisma';
+
+type Types = typeof builder.$inferSchemaTypes;
+
+type PostWithAuthor = PrismaQueriedShape<Types, 'Post', { include: { author: true } }>;
+// { id: number; title: string; ...; author: { id: number; email: string; ... } }
+
+async function loadPost(id: number): Promise<PostWithAuthor> {
+  return prisma.post.findUniqueOrThrow({ where: { id }, include: { author: true } });
+}
+```
+
+The shape is the one a resolver's `parent` has when the row was planned with the same query: a
+`select` narrows it to the selected columns and relations, an `include` adds the relations to every
+column, and `_count` selections are typed as counts. The model can also be given as its
+`PrismaTypes` entry (`PrismaQueriedShape<Types, PrismaTypes['Post'], ...>`).

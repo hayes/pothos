@@ -54,6 +54,62 @@ builder.prismaObject('User', {
 });
 ```
 
+`nestedSelection` returns the relation query for the type it selected (`{ select?, include?,
+where?, orderBy?, take?, skip?, cursor? }` for a `Post`), with the keys it was given kept as they
+were given, so a `select` passed to it still narrows the parent's shape. With no argument, or
+`true`, it is the planned selection alone.
+
+### Pinning a type in the path
+
+The `path` is followed through fragments: a segment is found whether the field is selected
+directly or under a fragment on an implementation of the field's type. When several
+implementations share the field name, a segment can name the implementation it must be found
+under, as `{ name, type }`. Only selections of that field under a fragment on that type (or one of
+its subtypes) are planned:
+
+```typescript
+builder.prismaObject('User', {
+  fields: (t) => ({
+    entries: t.field({
+      type: [Entry],
+      select: (args, ctx, nestedSelection) => ({
+        // Plan what `post` selects under `... on PostEntry`, not under other implementations
+        posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
+      }),
+      resolve: (user) => user.posts.map((post) => ({ kind: 'post', post })),
+    }),
+  }),
+});
+```
+
+The same segments are accepted by `queryFromInfo`'s `path` and `paths`; the type is exported as
+`PathSegment`.
+
+### Selecting as a specific type
+
+When the field returns an interface or union, the third argument names the object type the
+selection is read as: its type-level selection and the fields selected under a fragment on it are
+planned, and fragments on other types are left out. With an empty path, that is the field's own
+return type:
+
+```typescript
+// Activity is a union of Post and Comment
+builder.prismaObject('User', {
+  fields: (t) => ({
+    recentActivity: t.field({
+      type: [Activity],
+      select: (args, ctx, nestedSelection) => ({
+        // What the query selects under `... on Post`, as a query for the posts relation
+        posts: nestedSelection({ take: 5 }, [], 'Post'),
+        // and under `... on Comment`, for the comments relation
+        comments: nestedSelection({ take: 5 }, [], 'Comment'),
+      }),
+      resolve: (user) => [...user.posts, ...user.comments],
+    }),
+  }),
+});
+```
+
 ## Indirect relations (eg. Join tables)
 
 If you want to define a GraphQL field that directly exposes data from a nested relationship (many to

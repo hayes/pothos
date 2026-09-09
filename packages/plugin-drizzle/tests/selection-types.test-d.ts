@@ -150,6 +150,25 @@ builder.drizzleObject('users', {
   }),
 });
 
+// A `t.variant` field can carry a `select` of its own (the docs' Variants example).
+const Viewer = builder.drizzleObject('users', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+builder.drizzleObjectFields('users', (t) => ({
+  viewer: t.variant(Viewer, {
+    select: { columns: { firstName: true } },
+    isNull: (user) => {
+      expectTypeOf(user.firstName).toEqualTypeOf<string | null>();
+
+      return false;
+    },
+  }),
+}));
+
 // Only a list relation can be counted.
 builder.drizzleObjectFields('users', (t) => ({
   postCount: t.relatedCount('posts'),

@@ -82,6 +82,20 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
+### Plugin options
+
+- `client`: the drizzle client, or a function returning one from the request context.
+- `getTableConfig`: the `getTableConfig` of your dialect, used to read primary keys and unique
+  constraints.
+- `relations`: the relations passed to `drizzle()`.
+- `defaultConnectionSize` / `maxConnectionSize`: the page size a connection uses when the query
+  gives none (defaults to 20), and the largest it accepts (defaults to 100). Both can also be set
+  per field with `defaultSize` and `maxSize`.
+- `filterConnectionTotalCount`: see [Connection totalCount](#connection-totalcount).
+- `skipDeferredFragments`: selections inside a `@defer` fragment are left out of the planned query
+  by default, and the fragment's fields load through [fallback queries](#fallback-queries) when it
+  resolves. Set it to `false` to plan deferred selections with the rest of the query.
+
 ## Defining Objects
 
 The `builder.drizzleObject` method can be used to define GraphQL Object types based on a drizzle
@@ -189,6 +203,73 @@ const UserRef = builder.drizzleObject('users', {
   }),
 });
 ```
+
+### How selections are planned
+
+Every field on a drizzle object is answered in one of two ways, never both. Either its selection is
+**planned** into the query of the nearest ancestor that runs one (a `t.drizzleField`, a
+`t.relation`, a connection, or a [fallback query](#fallback-queries)) and the field reads its data
+from the loaded row, or the field is **loaded on its own**: by a `resolve` that queries drizzle
+itself, or by the fallback query the plugin issues for a relation whose data is not on the row.
+
+Two selections of the same relation share one place in the query only when their arguments
+(`where`, `orderBy`, `limit`, ...) are the same. When they differ, the first in document order is
+planned and the second is loaded by a query of its own. A field-level `select` is merged into the
+same query as its siblings and the type-level selection rather than isolating the field, so two
+fields that need the same relation with different arguments cannot both be answered from one row.
+
+The callbacks that build a selection may be async; see [Async selections](#async-selections).
+
+### Nested selections
+
+A `select` function receives `nestedSelection`, which plans the selection beneath the field for
+the field's own type. It returns the query config for that table (a `many` config for a list
+field), keeping the keys it was given as they were given, so `columns` passed to it still narrow
+the parent shape:
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    latestPosts: t.field({
+      type: [Post],
+      select: (args, ctx, nestedSelection) => ({
+        // what the query selects on the posts, limited to one
+        with: { posts: nestedSelection({ limit: 1 }) },
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+`nestedSelection(query, path, type)` can also select a field nested under the field's type
+(`path`: a list of field names, or `{ name, type }` segments pinning the implementation a segment
+must be found under), and read the selection as a specific member of an interface or union
+(`type`). It also carries the `path` and `segments` of the field being planned, described under
+[Relation queries](#relation-queries).
+
+### Typing rows you load yourself
+
+A resolver that loads rows with its own drizzle query decides what is on them.
+`DrizzleQueriedShape` names that shape from the table and the query config, so it can be written
+once next to the query that loads the rows:
+
+```ts
+import type { DrizzleQueriedShape } from '@pothos/plugin-drizzle';
+
+type Types = typeof builder.$inferSchemaTypes;
+
+type PostWithAuthor = DrizzleQueriedShape<Types, 'posts', { with: { author: true } }>;
+// { id: number; title: string; ...; author: { id: number; firstName: string; ... } }
+
+async function loadPost(id: number): Promise<PostWithAuthor | undefined> {
+  return db.query.posts.findFirst({ where: { id }, with: { author: true } });
+}
+```
+
+The query is read as drizzle reads it (without `columns`, every column is loaded), and the shape
+is what `db.query.<table>.findFirst(query)` returns. Without a query, it is the table's full row.
 
 ## Relations
 
@@ -357,6 +438,39 @@ passed to a drizzle `findOne` or `findMany` query. The `query` function optional
 arguments that are normally passed into the query, and will merge these options with the selection
 used to resolve data for the nested GraphQL selections.
 
+### `drizzleFieldWithInput`
+
+With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
+`t.drizzleFieldWithInput` combines `t.drizzleField` with `t.fieldWithInput`: the `input` fields
+become an input object argument, and the resolver still receives the `query` function first:
+
+```ts
+builder.queryFields((t) => ({
+  user: t.drizzleFieldWithInput({
+    type: 'users',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    resolve: (query, root, args, ctx) =>
+      db.query.users.findFirst(query({ where: { id: Number.parseInt(args.input.id, 10) } })),
+  }),
+}));
+```
+
+## Fallback queries
+
+A field whose data is not on the row it resolves from is loaded by a fallback query. That happens
+when the parent row was not loaded through a `t.drizzleField`, `t.relation`, or connection (a
+resolver returned a row it queried itself, or a row from somewhere else), when a `drizzleField`
+resolver did not pass the result of `query()` to drizzle, and when a relation's arguments conflict
+with a sibling selection of the same relation that was planned first.
+
+Fallback queries are batched: every row of a table that needs the same selection in the same tick
+is loaded by one `findMany` filtered on the primary key, and the rows are matched back to their
+parents. A parent whose row the query did not return (deleted since it was loaded, or a row that
+never came from the table) rejects with `Model users(1) not found`, where the value in
+parentheses is its primary key.
+
 ## Variants
 
 It is often useful to be able to define multiple object types based on the same table. This can be
@@ -419,6 +533,77 @@ builder.drizzleNode('users', {
 });
 ```
 
+A `t.variant` field can carry a `select` of its own. It is planned, with the variant's type-level
+selection, when the variant is queried through that field:
+
+```ts
+builder.drizzleNode('users', {
+  name: 'User',
+  fields: (t) => ({
+    viewer: t.variant(Viewer, {
+      // loaded with the row when `viewer` is selected
+      select: { columns: { email: true } },
+      isNull: (user, args, ctx) => user.id !== ctx.user?.id,
+    }),
+  }),
+});
+```
+
+### Conflicting type-level selections
+
+When a query selects two variants of one table for the same row (a fragment on each under one
+field, or a `t.variant` field), their type-level selections are merged into one query, since one
+row answers both. A type-level selection has no per-field fallback, so the plugin throws a
+`PothosValidationError` when the two cannot be merged: a relation selected with different
+arguments on each (`Type-level selections of Viewer and Admin conflict on relation "posts"`), or an
+extra defined with a different function on each (`... conflict on extra "lowercaseName"`). The fix
+is the one the message names: move the relation with its arguments, or the extra, to a field-level
+`select` on one of the variants, where a conflict falls back to a query for that field instead of
+failing the request.
+
+## Interfaces
+
+`builder.drizzleInterface` defines a GraphQL interface backed by a table, the same way
+`drizzleObject` does, so the primary type or a variant of a table can be an interface implemented
+by other variants. Its `select` is planned whenever a field returns the interface; an
+implementation's own `select` is planned when a fragment narrows to it. Selections are not
+inherited, so an implementation that exposes more columns needs a `select` of its own.
+
+```ts
+export const Viewer = builder.drizzleInterface('users', {
+  variant: 'Viewer',
+  select: { columns: { id: true, role: true } },
+  resolveType: (user) => (user.role === 'admin' ? 'AdminViewer' : 'MemberViewer'),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    user: t.variant('users'),
+  }),
+});
+
+builder.drizzleObject('users', {
+  variant: 'AdminViewer',
+  interfaces: [Viewer],
+  select: { columns: { permissions: true } },
+  fields: (t) => ({
+    permissions: t.exposeStringList('permissions'),
+  }),
+});
+```
+
+Fields can be added to an interface later with `builder.drizzleInterfaceField` and
+`builder.drizzleInterfaceFields`, which take the interface ref (or the table name) like their
+`drizzleObjectField(s)` counterparts:
+
+```ts
+builder.drizzleInterfaceFields(Viewer, (t) => ({
+  posts: t.relatedConnection('posts'),
+}));
+```
+
+An object type implementing a drizzle interface must be backed by the same table. A plain object
+type implementing it is planned with the interface's table, so fragments on it select the
+relations it inherits.
+
 ## Related field
 
 The `t.relatedField` method allows you to define a field based on a relation that uses custom
@@ -455,6 +640,10 @@ builder.drizzleNode('users', {
 The `buildFilter` function passed to `select` generates the appropriate SQL filter based on the
 relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
 it easier to filter for the related records.
+
+`t.relatedField` takes the ordinary field options as well (`description`, `deprecationReason`,
+`extensions`, and what other plugins add, such as `authScopes`). `resolve` may be async, and
+receives the resolve `info` as its fourth argument.
 
 ## Related count
 
@@ -1009,3 +1198,4 @@ builder.queryFields((t) => ({
     },
   }),
 }));
+```
