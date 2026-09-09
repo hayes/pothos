@@ -4,6 +4,7 @@
  * Everything else is module-private; see the README.
  */
 export { deepEqual } from './deep-equal.js';
+export { queryFromInfo, queryFromWalk, selectionStateFromInfo, walkFromInfo } from './entry.js';
 export {
   cacheKey,
   getLoaderMapping,
@@ -19,17 +20,13 @@ export {
   selectedFieldNames,
 } from './matches.js';
 export { createNode, type Node, type NodeBase, relation } from './node.js';
-export {
-  type Adapter,
-  defaultFragmentType,
-  type EntryOptions,
-  type Env,
-  type NestedSelection,
-  queryFromInfo,
-  queryFromWalk,
-  type SelectFn,
-  selectionStateFromInfo,
-  type TypeLevelConflict,
-  type Walk,
-  walkFromInfo,
-} from './walk.js';
+export type {
+  Adapter,
+  EntryOptions,
+  Env,
+  NestedSelection,
+  SelectFn,
+  TypeLevelConflict,
+  Walk,
+} from './types.js';
+export { defaultFragmentType } from './walk.js';

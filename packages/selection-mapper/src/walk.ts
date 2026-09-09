@@ -1,3 +1,7 @@
+/**
+ * The walk itself: S-1..S-9 (types, variants, fields, fragments), M-1..M-6 through the adapter,
+ * E-3 nested selections, L-2 mapping records. Entry points live in entry.ts.
+ */
 import {
   getMappedArgumentValues,
   isThenable,
@@ -8,10 +12,7 @@ import {
   type FieldNode,
   type FragmentDefinitionNode,
   type GraphQLField,
-  type GraphQLInterfaceType,
   type GraphQLNamedType,
-  type GraphQLObjectType,
-  type GraphQLResolveInfo,
   getNamedType,
   type InlineFragmentNode,
   isAbstractType,
@@ -20,178 +21,18 @@ import {
   Kind,
   type SelectionNode,
 } from 'graphql';
-import { type Mapping, type Mappings, setLoaderMappings } from './loader-map.js';
+import { abandon, chain, noop } from './async.js';
+import type { Mapping, Mappings } from './loader-map.js';
 import {
   findMatches,
-  type IndirectInclude,
-  type IndirectPathSegment,
   includeOf,
   isDeferred,
   isSkipped,
   normalizeInclude,
-  type PathSegment,
   resolveType,
 } from './matches.js';
-import type { Node, NodeBase } from './node.js';
-
-type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
-
-/** A relation query: a map, or a callback building one from the field's arguments. */
-export type NestedQuery<Map, X = undefined> =
-  | MaybePromise<Map | null | undefined>
-  | ((args: object, ctx: object, extra: X) => MaybePromise<Map | null | undefined>);
-
-/**
- * The callback handed to a field's select function to plan the selection beneath the field:
- * `query` is merged first (a function is called with the field's args, `true` means no query),
- * then the selection found under `path` (an explicit include, or a string path from the field's
- * return type) is walked as `type` (or the field's return type). Declared synchronous (A-7): the
- * result is a promise only when a callback beneath it returned one, and must then be awaited.
- */
-export type NestedSelection<Map, X = undefined> = (
-  query?: NestedQuery<Map, X> | true,
-  path?: PathSegment[] | IndirectInclude,
-  type?: string,
-) => Map;
-
-/** A function field selection (S-6). A falsy result selects nothing (S-5). */
-export type SelectFn<Map, X = undefined> = (
-  args: object,
-  ctx: object,
-  nested: NestedSelection<Map, X>,
-  getSelectedNode: (path: string[]) => FieldNode | null,
-  extra: X,
-) => MaybePromise<Map | false | null | undefined>;
-
-export interface EntryOptions<Map> {
-  context: object;
-  info: GraphQLResolveInfo;
-  typeName?: string;
-  path?: PathSegment[];
-  paths?: PathSegment[][];
-  /**
-   * Merged into the root before anything is walked (E-1), so on a conflict it wins; returned as
-   * is when paths are given and nothing is selected under them.
-   */
-  initial?: Map;
-  skipDeferredFragments?: boolean;
-}
-
-/**
- * The ORM boundary. `M` is the model description a node carries, `Map` the ORM's own selection
- * format (prisma `{ select, include, ...args }`, drizzle `DBQueryConfig`), opaque to the walker,
- * `X` an adapter-owned value threaded from a walk to the select functions beneath it (drizzle's
- * `PathInfo`), and `N` the adapter's node type, of which the walker reads only `model`.
- */
-export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
-  skipDeferredFragments: boolean;
-  /**
-   * L-2: whether the walk records loader mappings for the plugin's resolvers to look up
-   * (`getLoaderMapping`). Default true. An adapter whose resolvers read a loaded row another way
-   * sets it false, and the walk records nothing.
-   */
-  recordsMappings?: boolean;
-  /**
-   * The model a type carries, or undefined. Does not follow indirect includes (`Env.modelOf`
-   * does). One object per model: identity is model identity.
-   */
-  modelFor(type: GraphQLNamedType): M | undefined;
-  /**
-   * A fresh, empty node of the query tree for `model`. The walker never looks inside a node
-   * beyond `model`; the adapter owns the shape. `createNode` from this package builds the
-   * default tree (columns, relations, extras, arguments) the prisma and drizzle adapters use.
-   */
-  createNode(model: M): N;
-  /** S-1: what the type always needs, or undefined. */
-  typeSelection(type: GraphQLNamedType): Map | undefined;
-  /** S-4..S-6: a static map, a select function, or nothing. */
-  fieldSelection(field: GraphQLField<unknown, unknown>): Map | SelectFn<Map, X> | undefined;
-  /**
-   * M-1, M-2, S-9, in place. Never mutates `map`. `key` is the field the map came from
-   * (`Type@alias`, or `Type@path.alias` beneath an indirect include) when the map is a field's
-   * selection, and `alias` the field's response key alone, so an adapter that keeps one slot per
-   * selected field can key it; both are absent for a type-level selection, an initial selection,
-   * and a loader's staged query.
-   */
-  merge(node: N, map: Map, key?: string, alias?: string): void;
-  /**
-   * M-3: whether `map` can be merged into `node` without changing what is already selected:
-   * relations present in both are compatible recursively (arguments deep-equal below the top),
-   * extras present in both are equal. With `ignoreArgs` the node's own arguments are not
-   * compared. `key` and `alias` as for `merge`. An adapter that never shares a node between two fields
-   * answers true.
-   */
-  compatible(node: N, map: Map, ignoreArgs: boolean, key?: string, alias?: string): boolean;
-  /**
-   * E-3: merges the relation query a nested selection was given (a `t.relation` `query`, a
-   * connection's cursor query) into the root of the nested walk. A query without a column
-   * selection must add no columns: the walk beneath it adds the columns it needs. `null` or
-   * `undefined` means no query.
-   */
-  mergeQuery(node: N, query: Map | null | undefined): void;
-  /**
-   * S-7: the first relation (arguments compared by value) or extra (compared as the adapter
-   * compares extras) of a type-level `map` that conflicts with what `node` already holds.
-   */
-  typeLevelConflict(node: N, map: Map): TypeLevelConflict | undefined;
-  /** E-2: `map` without the relations and extras whose arguments conflict with `node`. */
-  withoutConflicts(node: N, map: Map): Map;
-  /** M-6. */
-  serialize(node: N): Map;
-  /**
-   * D-7: the extra handed to the select function of `field` (selected by `node` on `type`), built
-   * from the extra of the walk it hangs beneath. Called once per entry point for the resolved
-   * field and once per function-select field.
-   */
-  callbackExtra?(
-    parent: X | undefined,
-    type: WalkedType,
-    field: GraphQLField<unknown, unknown>,
-    node: FieldNode,
-  ): X;
-  /**
-   * S-7: how to walk a fragment on `condition` while walking `type`: as `type`, as `condition`
-   * (a variant of the same model, whose type-level selection is merged), or not at all
-   * (undefined: its fields are suppressed, nested fragments are still classified against `type`).
-   * `declared` is the declared return type of the field being walked, before any indirect
-   * include is followed. Defaults to `defaultFragmentType`.
-   */
-  fragmentType?(
-    type: WalkedType,
-    condition: GraphQLNamedType,
-    declared: GraphQLNamedType,
-  ): WalkedType | undefined;
-}
-
-/** A type-level selection entry that cannot be merged with what a node already holds. */
-export interface TypeLevelConflict {
-  kind: 'extra' | 'relation';
-  name: string;
-}
-
-/** What one entry-point call runs with, shared by reference with every nested walk. */
-export interface Env<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
-  adapter: Adapter<M, Map, X, N>;
-  context: object;
-  info: GraphQLResolveInfo;
-  skipDeferred: boolean;
-  /** The model of a type, following indirect includes. */
-  modelOf: (type: GraphQLNamedType) => M | undefined;
-}
-
-/** One root being built: its query tree and the mappings recorded beneath it. */
-export interface Walk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
-  env: Env<M, Map, X, N>;
-  root: N;
-  mappings: Mappings;
-  /** D-7: the extra of the field this walk hangs beneath. */
-  extra?: X;
-  /**
-   * The merges waiting on a user callback that returned a promise, in the order they were
-   * appended (A-2, A-4). Absent until the first one: a synchronous walk never creates a promise.
-   */
-  pending?: Promise<void>;
-}
+import type { NodeBase } from './node.js';
+import type { Adapter, Env, NestedSelection, SelectFn, Walk, WalkedType } from './types.js';
 
 /** The mapping of a static selection: nothing can ever be recorded beneath one. */
 const NONE: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
@@ -206,112 +47,8 @@ interface Invocation extends Mapping {
   pending?: number;
 }
 
-function noop() {}
-
-/**
- * A-3, M-2: a walk that threw synchronously never reaches `finish`, so the merges it had already
- * chained would reject unobserved once their callbacks settle. The throw is what the caller sees.
- */
-function abandon<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
-  walk.pending?.catch(noop);
-}
-
-/**
- * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
- * Declared synchronous (A-7): a promise is returned only when a callback returned one.
- */
-export function queryFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, X, N>,
-  options: EntryOptions<Map>,
-): Map {
-  const walk = walkFromInfo(adapter, options);
-
-  if (!walk) {
-    // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
-    // caller gets back its own selection.
-    return options.initial ?? ({} as Map);
-  }
-
-  return isThenable(walk)
-    ? (walk.then((settled) => queryFromWalk(settled as Walk<M, Map, X, N>)) as unknown as Map)
-    : queryFromWalk(walk);
-}
-
-/**
- * E-1 without emitting: the walk itself, nothing recorded, or undefined when paths are given and
- * nothing is selected under them. Declared synchronous like `queryFromInfo` (A-7). A plugin that
- * must hand a resolver a synchronous query builder settles this first, then emits the query with
- * `queryFromWalk` once the resolver asks for it.
- */
-export function walkFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, X, N>,
-  options: EntryOptions<Map>,
-): Walk<M, Map, X, N> | undefined {
-  const walk = buildWalk(makeEnv(adapter, options), options);
-
-  return walk && finish(walk, identity);
-}
-
-/**
- * E-1 from a settled walk: the loader mappings recorded (L-2) and the query serialized (M-6,
- * L-5). Synchronous: the walk must be one `walkFromInfo` returned, and when that was a promise,
- * the walk it resolved to. `select` takes the place of `initial`: the query is built from it first
- * and the walked plan merged over it, so a compatible `select` yields what `queryFromInfo` yields
- * with it as `initial`. The caller checks compatibility (`typeLevelConflict`) first: a relation or
- * extra the plan already holds with other arguments cannot be merged after the fact.
- */
-export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  walk: Walk<M, Map, X, N>,
-  select?: Map,
-): Map {
-  const { adapter, context, info } = walk.env;
-
-  setLoaderMappings(context, info, walk.mappings);
-
-  if (!select) {
-    return adapter.serialize(walk.root);
-  }
-
-  const root = adapter.createNode(walk.root.model);
-
-  adapter.merge(root, select);
-  adapter.merge(root, adapter.serialize(walk.root));
-
-  return adapter.serialize(root);
-}
-
-/**
- * E-2: the walk loading the field `info` resolves for its parent row. The loaded row replaces the
- * parent the field resolver sees, so besides the field's own selection it carries the parent
- * type's type-level selection. The field is what the row is loaded for, so it is merged first
- * and a type-level relation whose arguments conflict with it is left out.
- */
-export function selectionStateFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, X, N>,
-  context: object,
-  info: GraphQLResolveInfo,
-  skipDeferredFragments?: boolean,
-): Walk<M, Map, X, N> {
-  const env = makeEnv(adapter, { context, info, skipDeferredFragments });
-  const type = info.parentType;
-  const walk = createWalk(env, type, {});
-
-  try {
-    // Every node selecting the field (one per fragment it appears under) plans into the same
-    // row, so the loaded row satisfies each of them.
-    for (const fieldNode of info.fieldNodes) {
-      applyField(walk, walk.root, type, fieldNode, []);
-    }
-  } catch (error) {
-    abandon(walk);
-    throw error;
-  }
-
-  return finish(walk, enterLoaded, type);
-}
-
 /** E-2: the parent type's selection, minus what conflicts with the field, once it is merged. */
-function enterLoaded<M, Map, X, N extends NodeBase<M>>(
+export function enterLoaded<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   type: GraphQLNamedType,
 ) {
@@ -356,159 +93,11 @@ export function defaultFragmentType<M>(
   return undefined;
 }
 
-/**
- * A-2: appends the merge of `value` to the walk's pending chain. Only merges are chained, never
- * user code, so a link can never append another and the chain needs no loop. Each link waits on
- * the previous one, so async merges run in the order they were appended (A-4). Both promises get
- * a handler at once, so a callback that rejects early is never an unhandled rejection.
- */
-function chain<M, Map, X, N extends NodeBase<M>, T>(
-  walk: Walk<M, Map, X, N>,
-  value: PromiseLike<T>,
-  merge: (v: T) => void,
-) {
-  const prev = walk.pending;
-
-  walk.pending = prev
-    ? Promise.all([prev, value]).then(([, v]) => merge(v))
-    : Promise.resolve(value).then(merge);
-}
-
-/**
- * The single exit of every entry point (A-3): `done` runs now when nothing is pending, else
- * after every pending merge. The result is then a promise behind the declared synchronous type
- * (A-7): a schema without async callbacks never sees one, and one with them must await it.
- * Fixed arity, so the synchronous call allocates nothing.
- */
-function finish<M, Map, X, N extends NodeBase<M>, R>(
-  walk: Walk<M, Map, X, N>,
-  done: (walk: Walk<M, Map, X, N>) => R,
-): R;
-function finish<M, Map, X, N extends NodeBase<M>, A, R>(
-  walk: Walk<M, Map, X, N>,
-  done: (walk: Walk<M, Map, X, N>, arg: A) => R,
-  arg: A,
-): R;
-function finish<M, Map, X, N extends NodeBase<M>, A, R>(
-  walk: Walk<M, Map, X, N>,
-  done: (walk: Walk<M, Map, X, N>, arg?: A) => R,
-  arg?: A,
-): R {
-  return walk.pending ? (walk.pending.then(() => done(walk, arg)) as R) : done(walk, arg);
-}
-
-function identity<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
-  return walk;
-}
-
 function serializeRoot<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
   return walk.env.adapter.serialize(walk.root);
 }
 
-function makeEnv<M, Map, X, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, X, N>,
-  {
-    context,
-    info,
-    skipDeferredFragments,
-  }: Pick<EntryOptions<Map>, 'context' | 'info'> & {
-    skipDeferredFragments?: boolean;
-  },
-): Env<M, Map, X, N> {
-  return {
-    adapter,
-    context,
-    info,
-    skipDeferred: skipDeferredFragments ?? adapter.skipDeferredFragments,
-    modelOf: (type) => adapter.modelFor(resolveType(info.schema, type)),
-  };
-}
-
-/** E-1: undefined when paths are given and nothing is selected under them. */
-function buildWalk<M, Map, X, N extends NodeBase<M>>(
-  env: Env<M, Map, X, N>,
-  { typeName, path, paths, initial }: EntryOptions<Map>,
-): Walk<M, Map, X, N> | undefined {
-  const { info } = env;
-  const returnType = getNamedType(info.returnType);
-  const target = typeName ? info.schema.getType(typeName)! : returnType;
-  const extra = rootExtra(env);
-
-  // graphql merges every occurrence of the field's response key into `info.fieldNodes`; each is
-  // planned into the one root, so the query answers whichever occurrence a resolver runs for.
-  if (paths?.length || path?.length) {
-    const includePaths = normalizePaths(paths?.length ? paths : [path!]);
-    const options = {
-      prefix: includeOf(returnType)?.path,
-      targetType: target,
-      modelOf: env.modelOf,
-    };
-    const matches = info.fieldNodes.flatMap((fieldNode) =>
-      findMatches(info, returnType, fieldNode, includePaths, options),
-    );
-
-    if (matches.length === 0) {
-      return undefined;
-    }
-
-    const walk = createWalk(env, typeName ? target : matches[0].type, {}, extra, initial);
-
-    try {
-      // Every match is planned into the one root, entered under its own type first (W-11).
-      walkFieldWalks(
-        walk,
-        walk.root,
-        matches.map((match) => ({
-          // A matched type with its own model (including variants of the target model) is walked
-          // with its own model. Types without a model (interfaces, wrappers) are walked as the
-          // requested type so its fields can be found.
-          type: typeName && !env.modelOf(match.type) ? target : match.type,
-          declared: match.type,
-          fieldNodes: [match.field],
-          indirectPath: match.path,
-          deferred: match.deferred,
-        })),
-      );
-    } catch (error) {
-      abandon(walk);
-      throw error;
-    }
-
-    return walk;
-  }
-
-  const walk = createWalk(env, target, {}, extra, initial);
-
-  try {
-    walkFields(walk, walk.root, target, returnType, info.fieldNodes, [], false);
-  } catch (error) {
-    abandon(walk);
-    throw error;
-  }
-
-  return walk;
-}
-
-/** D-7: the extra for the resolved field itself, which starts the extras of the fields beneath. */
-function rootExtra<M, Map, X, N extends NodeBase<M>>({
-  adapter,
-  info,
-}: Env<M, Map, X, N>): X | undefined {
-  const node = info.fieldNodes[0];
-  const field = info.parentType.getFields()[node.name.value];
-
-  return field && adapter.callbackExtra
-    ? adapter.callbackExtra(undefined, info.parentType, field, node)
-    : undefined;
-}
-
-function normalizePaths(paths: PathSegment[][]): IndirectPathSegment[][] {
-  return paths.map((path) =>
-    path.map((segment) => (typeof segment === 'string' ? { name: segment } : segment)),
-  );
-}
-
-function createWalk<M, Map, X, N extends NodeBase<M>>(
+export function createWalk<M, Map, X, N extends NodeBase<M>>(
   env: Env<M, Map, X, N>,
   type: GraphQLNamedType,
   mappings: Mappings,
@@ -604,7 +193,7 @@ interface ResolvedFieldWalk {
 }
 
 /** E-4, S-1, S-8: `walkFieldWalks` for one selection. */
-function walkFields<M, Map, X, N extends NodeBase<M>>(
+export function walkFields<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
   type: GraphQLNamedType,
@@ -622,7 +211,7 @@ function walkFields<M, Map, X, N extends NodeBase<M>>(
  * merged, so type-level selections are settled first and the plan does not depend on which
  * selection comes first: neither the occurrence of a field (W-1) nor the path match (W-11).
  */
-function walkFieldWalks<M, Map, X, N extends NodeBase<M>>(
+export function walkFieldWalks<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
   walks: FieldWalk[],
@@ -862,7 +451,7 @@ function fragmentTypeOf<M, Map, X, N extends NodeBase<M>>(
 }
 
 /** S-2..S-6: merges what `fieldNode` (a field of `type`) selects into `node`. */
-function applyField<M, Map, X, N extends NodeBase<M>>(
+export function applyField<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
   type: WalkedType,
