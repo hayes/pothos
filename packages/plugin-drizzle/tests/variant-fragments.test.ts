@@ -2,10 +2,12 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
+import type { SQLOperator } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { gql } from 'graphql-tag';
 import DrizzlePlugin from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
+import type { users } from './example/db/schema';
 
 // Fragments that move between an interface and its variants, or onto an interface that is not
 // backed by a drizzle table.
@@ -183,8 +185,69 @@ builder.drizzleObject('users', {
   }),
 });
 
+// Extras are compared by identity: two types defining the same extra must share the function.
+const lowercaseFirstName = (user: typeof users, { sql }: SQLOperator) =>
+  sql<string>`lower(${user.firstName})`;
+const uppercaseFirstName = (user: typeof users, { sql }: SQLOperator) =>
+  sql<string>`upper(${user.firstName})`;
+
+const NamedViewer = builder.drizzleInterface('users', {
+  variant: 'NamedViewer',
+  select: {
+    columns: {
+      id: true,
+    },
+    extras: {
+      casedFirstName: lowercaseFirstName,
+    },
+  },
+  resolveType: () => 'LowercaseViewer',
+  fields: (t) => ({
+    casedFirstName: t.string({
+      resolve: (user) => user.casedFirstName,
+    }),
+  }),
+});
+
+// The same extra through the same function: compatible.
+builder.drizzleObject('users', {
+  variant: 'LowercaseViewer',
+  interfaces: [NamedViewer],
+  select: {
+    columns: {
+      id: true,
+    },
+    extras: {
+      casedFirstName: lowercaseFirstName,
+    },
+  },
+  fields: (t) => ({
+    shoutedFirstName: t.string({
+      resolve: (user) => user.casedFirstName.toUpperCase(),
+    }),
+  }),
+});
+
+// The same extra through another function: a conflict.
+builder.drizzleObject('users', {
+  variant: 'UppercaseViewer',
+  interfaces: [NamedViewer],
+  select: {
+    columns: {
+      id: true,
+    },
+    extras: {
+      casedFirstName: uppercaseFirstName,
+    },
+  },
+});
+
 builder.queryType({
   fields: (t) => ({
+    namedViewer: t.drizzleField({
+      type: NamedViewer,
+      resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
+    }),
     viewer: t.drizzleField({
       type: Viewer,
       resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
@@ -527,6 +590,58 @@ describe('fragments on variants and non-model interfaces', () => {
           /^Type-level selections of Viewer and (LatestPostViewer|PostPairViewer) conflict on relation "posts"\./,
         );
       }
+    });
+  });
+
+  describe('extras in type-level selections', () => {
+    it('merges a variant defining the same extra through the same function', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            namedViewer {
+              casedFirstName
+              ... on LowercaseViewer {
+                shoutedFirstName
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        namedViewer: {
+          casedFirstName: user.firstName?.toLowerCase(),
+          shoutedFirstName: user.firstName?.toUpperCase(),
+        },
+      });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", (lower("d0"."first_name")) as "casedFirstName" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
+    });
+
+    it('rejects a variant defining the same extra through another function', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            namedViewer {
+              ... on UppercaseViewer {
+                casedFirstName
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors?.[0]?.message).toBe(
+        'Type-level selections of NamedViewer and UppercaseViewer conflict on extra "casedFirstName". Define the extra with the same function on both types, or move it to a field-level select on one of the types.',
+      );
     });
   });
 });

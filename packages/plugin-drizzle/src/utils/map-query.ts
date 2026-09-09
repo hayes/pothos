@@ -168,17 +168,29 @@ function typeLevelSelection(type: GraphQLNamedType): SelectionMap | true | undef
   return pothosDrizzleSelect === true ? true : { ...pothosDrizzleSelect };
 }
 
-/** The first relation of `selection` whose arguments conflict with `state`. */
-function conflictingRelation(state: SelectionState, selection: SelectionMap | true) {
+/**
+ * The first relation or extra of `selection` whose type-level definition conflicts with `state`.
+ * Relation arguments are compared by value; extras by identity, so two types defining the same
+ * extra must share the function.
+ */
+function typeLevelConflict(state: SelectionState, selection: SelectionMap | true) {
   if (selection === true) {
     return undefined;
   }
 
-  const conflict = Object.entries(selection.with ?? {}).find(
+  const relation = Object.entries(selection.with ?? {}).find(
     ([key, value]) => !selectionCompatible(state, { columns: {}, with: { [key]: value } }, true),
   );
 
-  return conflict?.[0];
+  if (relation) {
+    return { kind: 'relation', name: relation[0] } as const;
+  }
+
+  const extra = Object.entries(selection.extras ?? {}).find(
+    ([key, value]) => !selectionCompatible(state, { columns: {}, extras: { [key]: value } }, true),
+  );
+
+  return extra ? ({ kind: 'extra', name: extra[0] } as const) : undefined;
 }
 
 function withoutConflicts(
@@ -576,8 +588,8 @@ function addFragmentSelections(
  * Merges the type-level selection of `variant` when a fragment moves the walk from `type` to
  * another type of the same table, so the variant's resolvers find what its `select` promises. A
  * variant without a `select` selects every column. Unlike a field-level select, a type-level
- * selection has no per-field fallback, so relation arguments that conflict with what is already
- * selected are an error.
+ * selection has no per-field fallback, so relation arguments or extras that conflict with what is
+ * already selected are an error.
  */
 function enterVariant(
   config: PothosDrizzleSchemaConfig,
@@ -585,11 +597,17 @@ function enterVariant(
   variant: GraphQLInterfaceType | GraphQLObjectType,
   state: SelectionState,
 ) {
-  const relation = conflictingRelation(state, typeLevelSelection(variant) ?? {});
+  const conflict = typeLevelConflict(state, typeLevelSelection(variant) ?? {});
 
-  if (relation) {
+  if (conflict?.kind === 'relation') {
     throw new PothosValidationError(
-      `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${relation}". Move the relation arguments to a field-level select on one of the types.`,
+      `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
+    );
+  }
+
+  if (conflict) {
+    throw new PothosValidationError(
+      `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
     );
   }
 
