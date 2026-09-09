@@ -1143,6 +1143,24 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
 
+  packages/selection-mapper:
+    devDependencies:
+      '@pothos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@pothos/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      graphql:
+        specifier: ^17.0.1
+        version: 17.0.1
+      graphql-tag:
+        specifier: ^2.12.6
+        version: 2.12.6(graphql@17.0.1)
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/test-utils:
     dependencies:
       graphql:
