@@ -98,6 +98,43 @@ builder.prismaObject('User', {
         return user.posts;
       },
     }),
+    // The selection may also be a callback of the field's arguments and context, or a promise;
+    // the result is typed by the query either way.
+    recentPosts: t.field({
+      type: [Post],
+      args: { limit: t.arg.int() },
+      select: (_args, _ctx, nestedSelection) => {
+        const query = nestedSelection((args, ctx) => {
+          expectTypeOf(args).toEqualTypeOf<{ limit?: number | null }>();
+          expectTypeOf(ctx).toEqualTypeOf<{}>();
+
+          return { take: args.limit ?? 1 };
+        });
+
+        expectTypeOf(query.take).toEqualTypeOf<number>();
+        expectTypeOf(query.select).toEqualTypeOf<PrismaTypes['Post']['Select'] | undefined>();
+
+        return { posts: query };
+      },
+      resolve: (user) => user.posts,
+    }),
+    awaitedPosts: t.field({
+      type: [Post],
+      select: async (_args, _ctx, nestedSelection) => {
+        const query = await nestedSelection(Promise.resolve({ take: 1 }));
+        const fromAsyncCallback = await nestedSelection(async () => ({ skip: 1 }));
+
+        expectTypeOf(query.take).toEqualTypeOf<number>();
+        expectTypeOf(query.include).toEqualTypeOf<PrismaTypes['Post']['Include'] | undefined>();
+        expectTypeOf(fromAsyncCallback.skip).toEqualTypeOf<number>();
+        expectTypeOf(fromAsyncCallback.select).toEqualTypeOf<
+          PrismaTypes['Post']['Select'] | undefined
+        >();
+
+        return { posts: query };
+      },
+      resolve: (user) => user.posts,
+    }),
     postTitles: t.stringList({
       // A field type without a model keeps the given selection.
       select: (_args, _ctx, nestedSelection) => ({

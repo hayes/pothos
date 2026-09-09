@@ -351,7 +351,7 @@ export type DrizzleObjectFieldOptions<
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: NestedSelectionFn<Types, Type>,
+            nestedSelection: NestedSelectionFn<Types, Type, Args>,
           ) => MaybePromise<
             DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
           >)
@@ -401,18 +401,34 @@ export type NestedSelectionResult<Types extends SchemaTypes, Selection, Type> = 
  * It also carries the `PathInfo` of the field being planned. The selection is typed by the
  * field's table when it has one, so `columns: { title: true }` keeps its literal `true`.
  */
-export type NestedSelectionFn<Types extends SchemaTypes, Type> = (<
+export type NestedSelectionFn<Types extends SchemaTypes, Type, Args extends InputFieldMap = {}> = (<
   Selection extends
     | boolean
     | ([QueryForTypeParam<Types, Type>] extends [never]
         ? {}
         : QueryForTypeParam<Types, Type>) = true,
 >(
-  selection?: Selection,
+  selection?: NestedSelectionArg<Types, Selection, Args>,
   path?: PathSegment[],
   type?: string,
 ) => NestedSelectionResult<Types, Selection, Type>) &
   PathInfo;
+
+/**
+ * The selection given to `nestedSelection`: the query config itself, a promise of it, or a
+ * callback building it from the field's arguments, the context, and the field's `PathInfo`
+ * (which may be async). The result is typed by the query either way; it is a promise at runtime
+ * only when a promise or an async callback was given, or a selection beneath it is async, and
+ * must then be awaited.
+ */
+export type NestedSelectionArg<Types extends SchemaTypes, Selection, Args extends InputFieldMap> =
+  | Selection
+  | PromiseLike<Selection>
+  | ((
+      args: InputShapeFromFields<Args>,
+      ctx: Types['Context'],
+      pathInfo: PathInfo,
+    ) => MaybePromise<Selection>);
 
 export type DrizzleFieldSelection =
   | DBQueryConfig<'one'>

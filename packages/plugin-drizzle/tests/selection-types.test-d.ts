@@ -103,6 +103,42 @@ builder.drizzleObject('users', {
         return user.posts;
       },
     }),
+    // The selection may also be a callback of the field's arguments, context, and path info, or a
+    // promise; the result is typed by the query config either way.
+    recentPosts: t.field({
+      type: [Post],
+      args: { limit: t.arg.int() },
+      select: (_args, _ctx, nestedSelection) => {
+        const query = nestedSelection((args, ctx, pathInfo) => {
+          expectTypeOf(args).toEqualTypeOf<{ limit?: number | null }>();
+          expectTypeOf(ctx).toEqualTypeOf<{}>();
+          expectTypeOf(pathInfo.path).toEqualTypeOf<string[]>();
+
+          return { limit: args.limit ?? 1 };
+        });
+
+        expectTypeOf(query.limit).toEqualTypeOf<number>();
+        expectTypeOf(query.columns).toEqualTypeOf<PostsQuery['columns']>();
+
+        return { with: { posts: query } };
+      },
+      resolve: (user) => user.posts,
+    }),
+    awaitedPosts: t.field({
+      type: [Post],
+      select: async (_args, _ctx, nestedSelection) => {
+        const query = await nestedSelection(Promise.resolve({ limit: 1 }));
+        const fromAsyncCallback = await nestedSelection(async () => ({ offset: 1 }));
+
+        expectTypeOf(query.limit).toEqualTypeOf<number>();
+        expectTypeOf(query.with).toEqualTypeOf<PostsQuery['with']>();
+        expectTypeOf(fromAsyncCallback.offset).toEqualTypeOf<number>();
+        expectTypeOf(fromAsyncCallback.columns).toEqualTypeOf<PostsQuery['columns']>();
+
+        return { with: { posts: query } };
+      },
+      resolve: (user) => user.posts,
+    }),
     postTitles: t.field({
       type: [Post],
       select: (_args, _ctx, nestedSelection) => {
