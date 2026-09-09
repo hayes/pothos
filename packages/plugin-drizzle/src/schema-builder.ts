@@ -186,7 +186,8 @@ schemaBuilderProto.drizzleObjectField = function drizzleObjectField(type, fieldN
 };
 
 schemaBuilderProto.drizzleInterfaceField = function drizzleInterfaceField(type, fieldName, field) {
-  const ref = typeof type === 'string' ? getRefFromModel(type, this) : (type as never);
+  // A table name names the interface registered under it, as `drizzleInterface` registers one.
+  const ref = typeof type === 'string' ? getRefFromModel(type, this, 'interface') : (type as never);
   this.configStore.onTypeConfig(ref, ({ name }) => {
     this.configStore.addFields(ref, () => ({
       [fieldName]: field(new DrizzleObjectFieldBuilder(name, this, ref.tableName, 'Interface')),
@@ -204,7 +205,7 @@ schemaBuilderProto.drizzleObjectFields = function drizzleObjectFields(type, fiel
 };
 
 schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type, fields) {
-  const ref = typeof type === 'string' ? getRefFromModel(type, this) : (type as never);
+  const ref = typeof type === 'string' ? getRefFromModel(type, this, 'interface') : (type as never);
   this.configStore.onTypeConfig(ref, ({ name }) => {
     this.configStore.addFields(ref, () =>
       fields(new DrizzleObjectFieldBuilder(name, this, ref.tableName, 'Interface')),
