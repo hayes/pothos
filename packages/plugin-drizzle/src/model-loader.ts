@@ -1,4 +1,5 @@
 import { createContextCache, type SchemaTypes } from '@pothos/core';
+import { cacheKey, setFieldMapping, setLoaderMappings } from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -9,16 +10,10 @@ import {
   type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
+import { type DrizzleAdapter, type DrizzleWalk, drizzleAdapter } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
-import { cacheKey, setLoaderMappings } from './utils/loader-map.js';
-import { selectionStateFromInfo, stateFromInfo } from './utils/map-query.js';
-import {
-  mergeSelection,
-  type SelectionMap,
-  type SelectionState,
-  selectionCompatible,
-  selectionToQuery,
-} from './utils/selections.js';
+import { selectionStateFromInfo, walkFromInfo } from './utils/map-query.js';
+import type { SelectionMap } from './utils/selections.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -32,14 +27,15 @@ export class ModelLoader {
 
   modelName: string;
 
-  queryCache = new Map<string, { selection: SelectionState; query: SelectionMap }>();
+  queryCache = new Map<string, { walk: DrizzleWalk; query: SelectionMap }>();
 
   staged = new Set<{
-    state: SelectionState;
+    walk: DrizzleWalk;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
   config: PothosDrizzleSchemaConfig;
+  adapter: DrizzleAdapter;
   table: TableRelationalConfig;
   columns: Column[];
   primaryKey: Column[];
@@ -55,6 +51,7 @@ export class ModelLoader {
     this.builder = builder;
     this.modelName = modelName;
     this.config = getSchemaConfig(builder);
+    this.adapter = drizzleAdapter(this.config);
     this.table = this.config.relations[modelName];
     this.primaryKey = this.config.getPrimaryKey(modelName);
     this.columns = columns ?? this.primaryKey;
@@ -94,10 +91,10 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(this.config, this.context, info);
+      const walk = selectionStateFromInfo(this.config, this.context, info);
       this.queryCache.set(key, {
-        selection,
-        query: selectionToQuery(this.config, selection),
+        walk,
+        query: this.adapter.serialize(walk.root),
       });
     }
 
@@ -107,17 +104,16 @@ export class ModelLoader {
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
     const key = cacheKey(typeName, info.path);
     if (!this.queryCache.has(key)) {
-      // Without `path`/`paths` a state is always built.
-      const selection = stateFromInfo({
+      const walk = walkFromInfo({
         config: this.config,
         context: this.context,
         info,
         typeName,
-      })!;
+      });
 
       this.queryCache.set(key, {
-        selection,
-        query: selectionToQuery(this.config, selection),
+        walk,
+        query: this.adapter.serialize(walk.root),
       });
     }
 
@@ -125,15 +121,17 @@ export class ModelLoader {
   }
 
   async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { selection, query } = this.getSelection(info);
+    const { walk, query } = this.getSelection(info);
 
-    const result = await this.stageQuery(selection, query, model);
+    const result = await this.stageQuery(walk, query, model);
 
     if (result) {
-      const mappings = selection.mappings[info.path.key];
+      const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
 
-      if (mappings) {
-        setLoaderMappings(this.context, info, mappings.mappings);
+      if (mapping) {
+        // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
+        // with, along with the mappings of the fields beneath it.
+        setFieldMapping(this.context, info, mapping);
       }
     }
 
@@ -141,21 +139,21 @@ export class ModelLoader {
   }
 
   async loadSelectionForField(info: GraphQLResolveInfo, model: object, returnType: string) {
-    const { selection, query } = this.getSelectionForField(info, returnType);
+    const { walk, query } = this.getSelectionForField(info, returnType);
 
-    const result = await this.stageQuery(selection, query, model);
+    const result = await this.stageQuery(walk, query, model);
 
     if (result) {
-      setLoaderMappings(this.context, info, selection.mappings);
+      setLoaderMappings(this.context, info, walk.mappings);
     }
 
     return result;
   }
 
-  stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
+  stageQuery(walk: DrizzleWalk, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
-      if (selectionCompatible(entry.state, query)) {
-        mergeSelection(this.config, entry.state, query);
+      if (this.adapter.compatible(entry.walk.root, query, false)) {
+        this.adapter.merge(entry.walk.root, query);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -165,13 +163,13 @@ export class ModelLoader {
       }
     }
 
-    return this.initLoad(selection, model);
+    return this.initLoad(walk, model);
   }
 
-  initLoad(selection: SelectionState, model: object) {
+  initLoad(walk: DrizzleWalk, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     const entry = {
-      state: selection,
+      walk,
       models: new Map([[model, promise]]),
     };
     this.staged.add(entry);
@@ -190,7 +188,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...selectionToQuery(this.config, selection),
+          ...this.adapter.serialize(walk.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(

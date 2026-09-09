@@ -667,6 +667,9 @@ importers:
 
   packages/plugin-drizzle:
     dependencies:
+      '@pothos/selection-mapper':
+        specifier: workspace:*
+        version: link:../selection-mapper
       graphql:
         specifier: ^17.0.1
         version: 17.0.1

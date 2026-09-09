@@ -1,21 +1,17 @@
+import { createNode } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
+import { drizzleAdapter } from '../src/utils/adapter';
 import type { PothosDrizzleSchemaConfig } from '../src/utils/config';
-import {
-  createState,
-  mergeSelection,
-  omitUndefinedKeys,
-  selectionCompatible,
-  selectionToQuery,
-  stateCompatible,
-} from '../src/utils/selections';
+import { omitUndefinedKeys } from '../src/utils/selections';
 
-const fakeTable = { name: 'users' } as unknown as TableRelationalConfig;
+const fakeTable = { name: 'users', relations: {} } as unknown as TableRelationalConfig;
 const fakeConfig = {
   getPrimaryKey: () => [],
   columnToTsName: () => '',
   skipDeferredFragments: true,
   relations: {},
 } as unknown as PothosDrizzleSchemaConfig;
+const adapter = drizzleAdapter(fakeConfig);
 
 describe('selections', () => {
   it('omits undefined properties without mutating the source query', () => {
@@ -41,36 +37,36 @@ describe('selections', () => {
     'limit',
     'offset',
   ])('omits an undefined %s from merged selections', (key) => {
-    const state = createState(fakeTable, true);
+    const node = createNode(fakeTable);
 
-    mergeSelection(fakeConfig, state, { [key]: undefined });
+    adapter.merge(node, { [key]: undefined });
 
-    expect(selectionToQuery(fakeConfig, state)).not.toHaveProperty(key);
+    expect(adapter.serialize(node)).not.toHaveProperty(key);
   });
 
   it('treats an undefined property as equivalent to an absent one when merging', () => {
-    const withUndefined = createState(fakeTable, true);
-    mergeSelection(fakeConfig, withUndefined, { orderBy: undefined, where: undefined });
+    const withUndefined = createNode(fakeTable);
+    adapter.merge(withUndefined, { orderBy: undefined, where: undefined });
 
-    const withoutKeys = createState(fakeTable, true);
-    mergeSelection(fakeConfig, withoutKeys, {});
+    const withoutKeys = createNode(fakeTable);
+    adapter.merge(withoutKeys, {});
 
-    expect(selectionCompatible(withUndefined, {})).toBe(true);
-    expect(stateCompatible(withUndefined, withoutKeys)).toBe(true);
+    expect(adapter.compatible(withUndefined, {}, false)).toBe(true);
+    expect(adapter.compatible(withUndefined, adapter.serialize(withoutKeys), false)).toBe(true);
   });
 
   it('ignores columns set to false instead of adding them to the selection', () => {
-    const state = createState(fakeTable, true);
+    const node = createNode(fakeTable);
 
-    mergeSelection(fakeConfig, state, {
+    adapter.merge(node, {
       columns: {
         firstName: true,
         passwordHash: false,
       },
     });
 
-    expect(state.columns).toEqual(new Set(['firstName']));
-    expect(selectionToQuery(fakeConfig, state)).toEqual({
+    expect(node.columns).toEqual(new Set(['firstName']));
+    expect(adapter.serialize(node)).toEqual({
       columns: { firstName: true },
       with: {},
       extras: {},
@@ -78,33 +74,32 @@ describe('selections', () => {
   });
 
   it('still allows a column to be added later if another field requests it', () => {
-    const state = createState(fakeTable, true);
+    const node = createNode(fakeTable);
 
-    mergeSelection(fakeConfig, state, {
+    adapter.merge(node, {
       columns: {
         passwordHash: false,
       },
     });
 
-    mergeSelection(fakeConfig, state, {
+    adapter.merge(node, {
       columns: {
         passwordHash: true,
       },
     });
 
-    expect(state.columns).toEqual(new Set(['passwordHash']));
+    expect(node.columns).toEqual(new Set(['passwordHash']));
   });
 
   it('treats columns object with only falsy entries as an empty selection', () => {
-    const state = createState(fakeTable, true);
+    const node = createNode(fakeTable);
 
-    mergeSelection(fakeConfig, state, {
+    adapter.merge(node, {
       columns: {
         passwordHash: false,
       },
     });
 
-    expect(state.columns.size).toBe(0);
-    expect(state.allColumns).toBe(false);
+    expect(node.columns?.size).toBe(0);
   });
 });

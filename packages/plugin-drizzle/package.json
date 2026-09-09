@@ -42,6 +42,9 @@
     "access": "public",
     "provenance": true
   },
+  "dependencies": {
+    "@pothos/selection-mapper": "workspace:*"
+  },
   "peerDependencies": {
     "@pothos/core": "*",
     "drizzle-orm": ">=1.0.0-beta.2",
