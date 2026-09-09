@@ -89,7 +89,7 @@ export type PrismaObjectFieldOptions<
           Types,
           ExtractModel<Types, ParentShape>,
           // biome-ignore lint/suspicious/noExplicitAny: this is fine
-          { select: Select extends (...args: any[]) => infer S ? S : Select }
+          { select: Select extends (...args: any[]) => infer S ? Awaited<S> : Select }
         >,
 > = PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Nullable, Args, ResolveReturnShape> &
   InferredFieldOptionsByKind<
@@ -101,6 +101,10 @@ export type PrismaObjectFieldOptions<
     Args,
     ResolveReturnShape
   > & {
+    /**
+     * What the field needs from its parent row. A function may be async; `nestedSelection` is
+     * then a promise when a selection beneath it is async, and must be awaited.
+     */
     select?: Select &
       (
         | ExtractModel<Types, ParentShape>['Select']
@@ -112,7 +116,7 @@ export type PrismaObjectFieldOptions<
               path?: string[],
               type?: string,
             ) => Selection,
-          ) => ExtractModel<Types, ParentShape>['Select'])
+          ) => MaybePromise<ExtractModel<Types, ParentShape>['Select']>)
       );
   };
 
@@ -373,7 +377,7 @@ type QueryForField<
       | ((
           args: InputShapeFromFields<Args>,
           ctx: Types['Context'],
-        ) => Omit<Include, 'include' | 'select'>)
+        ) => MaybePromise<Omit<Include, 'include' | 'select'>>)
   : never;
 
 type QueryFromRelation<
@@ -500,7 +504,9 @@ export type RelationCountOptions<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => MaybePromise<number>;
-  where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
+  where?:
+    | Where
+    | ((args: InputShapeFromFields<Args>, context: Types['Context']) => MaybePromise<Where>);
 };
 
 export type PrismaFieldOptions<

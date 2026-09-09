@@ -1,5 +1,6 @@
 import {
   type CompatibleTypes,
+  completeValue,
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
@@ -208,6 +209,7 @@ export class PrismaObjectFieldBuilder<
     const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
     const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
 
+    // The field's `query` may be async, so the result is a promise when it is (A-5).
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
       const connectionQuery = prismaCursorConnectionQuery({
         parseCursor,
@@ -217,21 +219,28 @@ export class PrismaObjectFieldBuilder<
         args,
       });
 
-      const {
-        take = connectionQuery.take,
-        skip = connectionQuery.skip,
-        cursor = connectionQuery.cursor,
-        ...fieldQuery
-      } = ((typeof query === 'function' ? query(args, ctx) : query) ??
-        {}) as typeof connectionQuery;
+      return completeValue(
+        (typeof query === 'function' ? query(args, ctx) : query) as
+          | MaybePromise<typeof connectionQuery>
+          | null
+          | undefined,
+        (userQuery) => {
+          const {
+            take = connectionQuery.take,
+            skip = connectionQuery.skip,
+            cursor = connectionQuery.cursor,
+            ...fieldQuery
+          } = userQuery ?? ({} as typeof connectionQuery);
 
-      return {
-        ...fieldQuery,
-        ...connectionQuery,
-        take,
-        skip,
-        ...(cursor ? { cursor } : {}),
-      };
+          return {
+            ...fieldQuery,
+            ...connectionQuery,
+            take,
+            skip,
+            ...(cursor ? { cursor } : {}),
+          };
+        },
+      );
     };
 
     const cursorSelection = ModelLoader.getCursorSelection(
@@ -259,10 +268,11 @@ export class PrismaObjectFieldBuilder<
       getSelection: (path: string[]) => FieldNode | null,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
+      // A maybe-promise query starts the nested walk now; its merge waits for the query.
       const nested = nestedQuery(getQuery(args, context), {
         getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
-      }) as SelectionMap;
+      }) as MaybePromise<SelectionMap>;
 
       // Each lookup searches every node selecting the connection (fragments on a wrapper's
       // success type may split totalCount and edges across two of them), so the plan agrees with
@@ -272,29 +282,31 @@ export class PrismaObjectFieldBuilder<
         !!getSelection(['edges']) || !!getSelection(['nodes']) || !!getSelection(['pageInfo']);
       const totalCountOnly = hasTotalCount && !hasRows;
 
-      const countSelect =
-        this.builder.options.prisma.filterConnectionTotalCount !== false
-          ? nested.where
-            ? { where: nested.where }
-            : true
-          : true;
+      return completeValue(nested, (nested) => {
+        const countSelect =
+          this.builder.options.prisma.filterConnectionTotalCount !== false
+            ? nested.where
+              ? { where: nested.where }
+              : true
+            : true;
 
-      return {
-        select: {
-          ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
-          [name]: totalCountOnly
-            ? undefined
-            : nested?.select
-              ? {
-                  ...nested,
-                  select: {
-                    ...cursorSelection,
-                    ...nested.select,
-                  },
-                }
-              : nested,
-        },
-      };
+        return {
+          select: {
+            ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
+            [name]: totalCountOnly
+              ? undefined
+              : nested?.select
+                ? {
+                    ...nested,
+                    select: {
+                      ...cursorSelection,
+                      ...nested.select,
+                    },
+                  }
+                : nested,
+          },
+        };
+      });
     };
 
     const fieldRef = (
@@ -331,18 +343,22 @@ export class PrismaObjectFieldBuilder<
               context: {},
               info: GraphQLResolveInfo,
             ) =>
-              Promise.resolve(
-                resolve(
-                  {
-                    ...q,
-                    ...getQuery(args, context),
-                  } as never,
-                  parent,
-                  args,
-                  context,
-                  info,
+              completeValue(getQuery(args, context), (connectionQuery) =>
+                Promise.resolve(
+                  resolve(
+                    {
+                      ...q,
+                      ...connectionQuery,
+                    } as never,
+                    parent,
+                    args,
+                    context,
+                    info,
+                  ),
+                ).then((result) =>
+                  wrapConnectionResult(parent, result, args, q.take, formatCursor),
                 ),
-              ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor))),
+              )),
         },
         type: ref,
         resolve: (
@@ -352,15 +368,16 @@ export class PrismaObjectFieldBuilder<
           info: GraphQLResolveInfo,
         ) => {
           const { totalCountOnly } = connectionSelection(context, info);
-          const connectionQuery = getQuery(args, context);
 
-          return wrapConnectionResult(
-            parent,
-            totalCountOnly ? [] : ((parent as Record<string, never>)[name] ?? []),
-            args,
-            connectionQuery.take,
-            formatCursor,
-            (parent as { _count?: Record<string, number> })._count?.[name],
+          return completeValue(getQuery(args, context), (connectionQuery) =>
+            wrapConnectionResult(
+              parent,
+              totalCountOnly ? [] : ((parent as Record<string, never>)[name] ?? []),
+              args,
+              connectionQuery.take,
+              formatCursor,
+              (parent as { _count?: Record<string, number> })._count?.[name],
+            ),
           );
         },
       },
@@ -423,11 +440,13 @@ export class PrismaObjectFieldBuilder<
 
     const { query = {}, resolve, extensions, onNull, ...rest } = options;
 
+    // Built once per field: the select allocates nothing when the nested selection is sync.
+    const selectRelation = (nested: unknown) => ({ select: { [name]: nested } });
     const relationSelect = (
       _args: object,
       _context: object,
       nestedQuery: (query: unknown) => unknown,
-    ) => ({ select: { [name]: nestedQuery(query) } });
+    ) => completeValue(nestedQuery(query), selectRelation);
 
     return this.field({
       ...(rest as {}),
@@ -441,12 +460,8 @@ export class PrismaObjectFieldBuilder<
         pothosPrismaFallback:
           resolve &&
           ((q: {}, parent: Shape, args: {}, context: {}, info: GraphQLResolveInfo) =>
-            resolve(
-              { ...q, ...(typeof query === 'function' ? query(args, context) : query) } as never,
-              parent,
-              args as never,
-              context,
-              info,
+            completeValue(typeof query === 'function' ? query(args, context) : query, (userQuery) =>
+              resolve({ ...q, ...userQuery } as never, parent, args as never, context, info),
             )),
       },
       resolve: (parent, args, context, info) => {
@@ -476,15 +491,14 @@ export class PrismaObjectFieldBuilder<
   ): FieldRef<Types, number, 'Object'> {
     const [{ where, ...options } = {} as never] = allArgs;
 
+    const selectCount = (where: {}) => ({ _count: { select: { [name]: { where } } } });
     const countSelect =
       typeof where === 'function'
-        ? (args: {}, context: {}) => ({
-            _count: {
-              select: {
-                [name]: { where: (where as (args: unknown, ctx: unknown) => {})(args, context) },
-              },
-            },
-          })
+        ? (args: {}, context: {}) =>
+            completeValue(
+              (where as (args: unknown, ctx: unknown) => MaybePromise<{}>)(args, context),
+              selectCount,
+            )
         : {
             _count: {
               select: { [name]: where ? { where } : true },
