@@ -320,14 +320,21 @@ function buildWalk<M, Map, X>(
 
     const walk = createWalk(env, typeName ? target : matches[0].type, {}, extra, initial);
 
-    for (const match of matches) {
-      // A matched type with its own model (including variants of the target model) is walked
-      // with its own model. Types without a model (interfaces, wrappers) are walked as the
-      // requested type so its fields can be found.
-      const walkType = typeName && !env.modelOf(match.type) ? target : match.type;
-
-      walkFields(walk, walk.root, walkType, match.type, [match.field], match.path, match.deferred);
-    }
+    // Every match is planned into the one root, entered under its own type first (W-11).
+    walkFieldWalks(
+      walk,
+      walk.root,
+      matches.map((match) => ({
+        // A matched type with its own model (including variants of the target model) is walked
+        // with its own model. Types without a model (interfaces, wrappers) are walked as the
+        // requested type so its fields can be found.
+        type: typeName && !env.modelOf(match.type) ? target : match.type,
+        declared: match.type,
+        fieldNodes: [match.field],
+        indirectPath: match.path,
+        deferred: match.deferred,
+      })),
+    );
 
     return walk;
   }
@@ -426,11 +433,27 @@ function enterVariant<M, Map, X>(
 }
 
 /**
- * E-4, S-1, S-8: walks the selection sets of `fieldNodes` (every node selecting one field, as
- * `type`) into `node`. `declared` is the field's declared return type, which decides how
- * fragments are classified. Variants are entered across every node before any field is merged,
- * so the plan does not depend on which occurrence of the field comes first.
+ * One selection to walk into a node: the selection sets of `fieldNodes` (every node selecting one
+ * field), walked as `type`. `declared` is the field's declared return type, which decides how
+ * fragments are classified.
  */
+interface FieldWalk {
+  type: GraphQLNamedType;
+  declared: GraphQLNamedType;
+  fieldNodes: readonly FieldNode[];
+  indirectPath: string[];
+  deferred: boolean;
+}
+
+/** A `FieldWalk` resolved through any indirect include to the type whose fields are walked. */
+interface ResolvedFieldWalk {
+  type: WalkedType;
+  declared: GraphQLNamedType;
+  selectionSets: (readonly SelectionNode[])[];
+  indirectPath: string[];
+}
+
+/** E-4, S-1, S-8: `walkFieldWalks` for one selection. */
 function walkFields<M, Map, X>(
   walk: Walk<M, Map, X>,
   node: Node<M>,
@@ -440,13 +463,55 @@ function walkFields<M, Map, X>(
   indirectPath: string[],
   deferred: boolean,
 ) {
+  walkFieldWalks(walk, node, [{ type, declared, fieldNodes, indirectPath, deferred }]);
+}
+
+/**
+ * E-4, S-1, S-8: walks every selection of `walks` into `node`. The types the selections are
+ * walked as, and the variants their fragments move to, are all entered before any field is
+ * merged, so type-level selections are settled first and the plan does not depend on which
+ * selection comes first: neither the occurrence of a field (W-1) nor the path match (W-11).
+ */
+function walkFieldWalks<M, Map, X>(walk: Walk<M, Map, X>, node: Node<M>, walks: FieldWalk[]) {
+  const resolved = walks.flatMap((fieldWalk) => resolveFieldWalk(walk, node, fieldWalk));
+
+  for (const { type, declared, selectionSets } of resolved) {
+    enter(walk, node, type);
+
+    const entered = new Set<string>();
+
+    for (const selections of selectionSets) {
+      enterVariants(walk, node, type, declared, selections, entered);
+    }
+  }
+
+  for (const { type, declared, selectionSets, indirectPath } of resolved) {
+    const walked = new Set<string>();
+
+    for (const selections of selectionSets) {
+      walkSelections(walk, node, type, declared, selections, indirectPath, true, walked);
+    }
+  }
+}
+
+/**
+ * E-4: the selections `fieldWalk` stands for once its type's indirect include is followed, in the
+ * order they are walked. A type-level path yields one per match beneath the wrapper; a plain
+ * include re-types the walk; anything but an object or interface type yields nothing.
+ */
+function resolveFieldWalk<M, Map, X>(
+  walk: Walk<M, Map, X>,
+  node: Node<M>,
+  { type, declared, fieldNodes, indirectPath, deferred }: FieldWalk,
+): ResolvedFieldWalk[] {
   // Every node selects the same field.
   if (fieldNodes.length === 0 || fieldNodes[0].name.value.startsWith('__')) {
-    return;
+    return [];
   }
 
   const { info, adapter } = walk.env;
   const include = includeOf(type);
+  const beneath: ResolvedFieldWalk[] = [];
 
   if (include?.paths?.length || include?.path?.length) {
     for (const fieldNode of fieldNodes) {
@@ -456,7 +521,15 @@ function walkFields<M, Map, X>(
       });
 
       for (const match of matches) {
-        walkFields(walk, node, match.type, match.type, [match.field], match.path, match.deferred);
+        beneath.push(
+          ...resolveFieldWalk(walk, node, {
+            type: match.type,
+            declared: match.type,
+            fieldNodes: [match.field],
+            indirectPath: match.path,
+            deferred: match.deferred,
+          }),
+        );
       }
     }
 
@@ -464,46 +537,31 @@ function walkFields<M, Map, X>(
     // being queried (a variant that also points at a nested field). A plain wrapper, or one backed
     // by another model, has nothing of its own to add to this query.
     if (adapter.modelFor(type) !== node.model) {
-      return;
+      return beneath;
     }
   } else if (include) {
-    walkFields(
-      walk,
-      node,
-      info.schema.getType(include.getType())!,
+    return resolveFieldWalk(walk, node, {
+      type: info.schema.getType(include.getType())!,
       declared,
       fieldNodes,
       indirectPath,
       deferred,
-    );
-
-    return;
+    });
   }
 
   if (!(isObjectType(type) || isInterfaceType(type))) {
-    return;
+    return beneath;
   }
 
-  enter(walk, node, type);
+  // A deferred selection is entered but, when deferred fragments are skipped, not walked.
+  const selectionSets =
+    deferred && walk.env.skipDeferred
+      ? []
+      : fieldNodes.flatMap((fieldNode) =>
+          fieldNode.selectionSet ? [fieldNode.selectionSet.selections] : [],
+        );
 
-  if (deferred && walk.env.skipDeferred) {
-    return;
-  }
-
-  const selectionSets = fieldNodes.flatMap((fieldNode) =>
-    fieldNode.selectionSet ? [fieldNode.selectionSet.selections] : [],
-  );
-  const entered = new Set<string>();
-
-  for (const selections of selectionSets) {
-    enterVariants(walk, node, type, declared, selections, entered);
-  }
-
-  const walked = new Set<string>();
-
-  for (const selections of selectionSets) {
-    walkSelections(walk, node, type, declared, selections, indirectPath, true, walked);
-  }
+  return [...beneath, { type, declared, selectionSets, indirectPath }];
 }
 
 type Fragment = FragmentDefinitionNode | InlineFragmentNode;
@@ -786,23 +844,30 @@ function nestedSelectionFor<M, Map, X>(
         modelOf: env.modelOf,
       });
 
-      for (const match of matches) {
-        walkFields(
-          child,
-          child.root,
-          match.type,
-          match.type,
-          [match.field],
-          match.path,
-          match.deferred,
-        );
-      }
+      walkFieldWalks(
+        child,
+        child.root,
+        matches.map((match) => ({
+          type: match.type,
+          declared: match.type,
+          fieldNodes: [match.field],
+          indirectPath: match.path,
+          deferred: match.deferred,
+        })),
+      );
     } else {
-      if (target !== returnType) {
-        walkFields(child, child.root, target, returnType, [fieldNode], [], false);
-      }
+      const asType = (type: GraphQLNamedType): FieldWalk => ({
+        type,
+        declared: returnType,
+        fieldNodes: [fieldNode],
+        indirectPath: [],
+        deferred: false,
+      });
 
-      walkFields(child, child.root, returnType, returnType, [fieldNode], [], false);
+      walkFieldWalks(child, child.root, [
+        ...(target === returnType ? [] : [asType(target)]),
+        asType(returnType),
+      ]);
     }
 
     return finish(child, serializeRoot);

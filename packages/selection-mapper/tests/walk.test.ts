@@ -213,6 +213,36 @@ describe('queryFromInfo', () => {
     });
   });
 
+  it('enters every path match before merging any field, whichever match comes first (W-11)', async () => {
+    const appointmentFirst = /* GraphQL */ `{
+      entries {
+        ... on AppointmentEntry { appointment { posts(take: 2) { id } } }
+        ... on VariantEntry { appointment { id } }
+      }
+    }`;
+    const variantFirst = /* GraphQL */ `{
+      entries {
+        ... on VariantEntry { appointment { id } }
+        ... on AppointmentEntry { appointment { posts(take: 2) { id } } }
+      }
+    }`;
+
+    for (const source of [appointmentFirst, variantFirst]) {
+      const context = {};
+      const info = await resolveInfo(schema, source);
+
+      // Viewer's type-level `posts: { take: 5 }` is settled before the User match's field is
+      // merged, so `posts(take: 2)` is a field-level conflict in both orders: it is not mapped
+      // and its resolver loads its own two rows instead of reading the five planned here.
+      expect(
+        queryFromInfo(adapter, { context, info, typeName: 'User', path: ['appointment'] }),
+      ).toEqual({ select: { posts: { take: 5 } } });
+      expect(getLoaderMapping(context, pathOf('entries', 0, 'appointment', 'posts'), 'User')).toBe(
+        null,
+      );
+    }
+  });
+
   it('plans through a wrapper with a type-level path (E-4, E-5)', async () => {
     const context = {};
     const info = await resolveInfo(
