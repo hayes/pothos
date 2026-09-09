@@ -180,9 +180,24 @@ function withoutConflicts(state: SelectionState, { select, include }: SelectionM
 }
 
 function compatibleEntries(map: IncludeMap, compatible: (entry: IncludeMap) => boolean) {
-  return Object.fromEntries(
-    Object.entries(map).filter(([key, value]) => compatible({ [key]: value })),
-  );
+  const entries: IncludeMap = {};
+
+  for (const [key, value] of Object.entries(map)) {
+    if (key === '_count' && typeof value === 'object' && value.select) {
+      // Counts are checked one at a time, so one conflicting count leaves the others in.
+      const counts = compatibleEntries(value.select, (count) =>
+        compatible({ _count: { select: count } }),
+      );
+
+      if (Object.keys(counts).length > 0) {
+        entries._count = { select: counts };
+      }
+    } else if (compatible({ [key]: value })) {
+      entries[key] = value;
+    }
+  }
+
+  return entries;
 }
 
 export interface IndirectPathSegment {

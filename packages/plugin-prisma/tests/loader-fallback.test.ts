@@ -44,6 +44,31 @@ const User = builder.prismaObject('User', {
   }),
 });
 
+// Type-level counts, one of which conflicts with the count a field selects for itself.
+const CountedUser = builder.prismaObject('User', {
+  variant: 'CountedUser',
+  select: {
+    _count: {
+      select: {
+        posts: { where: { published: true } },
+        comments: true,
+      },
+    },
+  },
+  fields: (t) => ({
+    counts: t.string({
+      select: {
+        _count: {
+          select: {
+            posts: true,
+          },
+        },
+      },
+      resolve: (user) => `${user._count.posts}/${user._count.comments}`,
+    }),
+  }),
+});
+
 builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -61,6 +86,11 @@ builder.queryType({
     rawUser: t.field({
       type: User,
       resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }),
+    }),
+    // A row fetched without the type's counts; the cast only gives it the type's parent shape.
+    rawCountedUser: t.field({
+      type: CountedUser,
+      resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }) as never,
     }),
   }),
 });
@@ -162,6 +192,46 @@ describe('model loader fallback', () => {
         action: 'findUniqueOrThrow',
         model: 'User',
         args: { select: { id: true, name: true }, where: { id: 1 } },
+      },
+    ]);
+  });
+
+  it('keeps the compatible type-level counts when one count conflicts with the field', async () => {
+    const { _count } = await prisma.user.findUniqueOrThrow({
+      where: { id: 1 },
+      select: { _count: { select: { posts: true, comments: true } } },
+    });
+    queries.length = 0;
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          rawCountedUser {
+            counts
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      rawCountedUser: { counts: `${_count.posts}/${_count.comments}` },
+    });
+    expect(queries).toEqual([
+      {
+        action: 'findUniqueOrThrow',
+        model: 'User',
+        args: { where: { id: 1 } },
+      },
+      {
+        action: 'findUniqueOrThrow',
+        model: 'User',
+        args: {
+          select: { id: true, _count: { select: { posts: true, comments: true } } },
+          where: { id: 1 },
+        },
       },
     ]);
   });
