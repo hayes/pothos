@@ -7,7 +7,7 @@ import {
   type ObjectRef,
   type SchemaTypes,
 } from '@pothos/core';
-import { createNode } from '@pothos/selection-mapper';
+import { createNode, type PathSegment } from '@pothos/selection-mapper';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -144,7 +144,7 @@ export function prismaConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     // The `nestedSelection` of the field's `select`, whatever model its type names.
-    nestedSelection: (selection?: SelectionMap | true, path?: string[]) => unknown,
+    nestedSelection: (selection?: SelectionMap | true, path?: PathSegment[]) => unknown,
   ) {
     // Both callbacks start now; the query waits for whichever of them is async (A-3, A-7: the
     // declared type stays synchronous, so an async schema awaits the result).

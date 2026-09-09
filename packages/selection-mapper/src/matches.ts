@@ -443,28 +443,48 @@ function resolveFragmentTypes(
 }
 
 /**
- * Turns a plain string path handed to `nestedSelection` into an include. Segments intentionally
- * omit `type`: a segment `type` pins the fragment type condition the field must be found under,
- * which is not known for a plain string path. The walker narrows through fragments on its own.
+ * Turns a path handed to `nestedSelection` into an include. A string segment is a field of the
+ * type the previous segment reached; the walker narrows through fragments on its own. A
+ * `{ name, type }` segment pins the fragment type condition the field must be found under, and
+ * is a field of that type.
  */
 export function normalizeInclude(
-  path: string[],
+  path: PathSegment[],
   type: GraphQLNamedType,
-  expectedType?: GraphQLNamedType,
+  expectedType: GraphQLNamedType | undefined,
+  schema: GraphQLSchema,
 ): IndirectInclude {
   let currentType = path.length > 0 ? type : (expectedType ?? type);
 
-  const normalized: { name: string }[] = [];
+  const normalized: IndirectPathSegment[] = [];
 
-  if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
+  if (path.length === 0 && !(isObjectType(currentType) || isInterfaceType(currentType))) {
     throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
   }
 
-  for (const fieldName of path) {
-    const field: GraphQLField<unknown, unknown> = currentType.getFields()[fieldName];
+  for (const segment of path) {
+    const { name, type: pinned } = typeof segment === 'string' ? { name: segment } : segment;
+
+    if (pinned) {
+      const pinnedType = schema.getType(pinned);
+
+      if (!pinnedType) {
+        throw new PothosValidationError(
+          `Unknown type ${pinned} in nested selection path segment ${name}`,
+        );
+      }
+
+      currentType = pinnedType;
+    }
+
+    if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
+      throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
+    }
+
+    const field: GraphQLField<unknown, unknown> = currentType.getFields()[name];
 
     if (!field) {
-      throw new PothosValidationError(`Expected ${currentType} to have a field ${fieldName}`);
+      throw new PothosValidationError(`Expected ${currentType} to have a field ${name}`);
     }
 
     currentType = getNamedType(field.type);
@@ -473,7 +493,7 @@ export function normalizeInclude(
       throw new PothosValidationError(`Expected ${currentType} to be an Object or Interface type`);
     }
 
-    normalized.push({ name: fieldName });
+    normalized.push(pinned ? { name, type: pinned } : { name });
   }
 
   const targetType = currentType;

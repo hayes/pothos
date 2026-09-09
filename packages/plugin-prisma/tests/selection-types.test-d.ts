@@ -1,7 +1,11 @@
 import SchemaBuilder from '@pothos/core';
+import type * as SelectionMapper from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf, it } from 'vitest';
 import PrismaPlugin, {
+  type IndirectInclude,
+  type IndirectPathSegment,
+  type PathSegment,
   type PrismaRelationQuery,
   type PrismaTypesFromClient,
   prismaConnectionHelpers,
@@ -53,6 +57,11 @@ builder.prismaObject('User', {
         expectTypeOf(nestedSelection(true)).toEqualTypeOf<
           PrismaRelationQuery<PrismaTypes['Post']>
         >();
+
+        // A path segment is a name, or `{ name, type }`, as for `queryFromInfo`.
+        expectTypeOf(
+          nestedSelection({ take: 1 }, [{ name: 'post', type: 'PostEntry' }]),
+        ).toEqualTypeOf(nestedSelection({ take: 1 }, ['post']));
 
         const query = nestedSelection({ take: 1, where: { published: true } });
 
@@ -128,6 +137,20 @@ builder.prismaObject('User', {
       resolve: (user, args, ctx) => commentHelpers.resolve(user.comments, args, ctx),
     }),
   }),
+});
+
+// One path segment type, shared with the planner, for `queryFromInfo` paths, `nestedSelection`
+// paths, and the `IndirectInclude` a type's extensions carry.
+it('re-exports the shared path segment types', () => {
+  expectTypeOf<PathSegment>().toEqualTypeOf<SelectionMapper.PathSegment>();
+  expectTypeOf<IndirectPathSegment>().toEqualTypeOf<SelectionMapper.IndirectPathSegment>();
+  expectTypeOf<IndirectInclude>().toEqualTypeOf<SelectionMapper.IndirectInclude>();
+  expectTypeOf<PathSegment>().toEqualTypeOf<string | { name: string; type?: string }>();
+
+  expectTypeOf(queryFromInfo)
+    .parameter(0)
+    .toHaveProperty('path')
+    .toEqualTypeOf<PathSegment[] | undefined>();
 });
 
 // `queryFromInfo` is typed by what it was given: the `select` or `include` passed in, or, when

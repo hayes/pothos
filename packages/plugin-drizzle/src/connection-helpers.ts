@@ -6,7 +6,7 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import { createNode } from '@pothos/selection-mapper';
+import { createNode, type PathSegment } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
@@ -198,7 +198,7 @@ export function drizzleConnectionHelpers<
   };
 
   // The `nestedSelection` of the field's `select`, whatever table its type names.
-  type NestedSelection = (selection?: SelectionMap | true, path?: string[]) => unknown;
+  type NestedSelection = (selection?: SelectionMap | true, path?: PathSegment[]) => unknown;
 
   function getQuery(
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,

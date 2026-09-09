@@ -23,7 +23,12 @@ import {
   type TypeParam,
   typeBrandKey,
 } from '@pothos/core';
-import type { Mappings } from '@pothos/selection-mapper';
+import type {
+  IndirectInclude,
+  IndirectPathSegment,
+  Mappings,
+  PathSegment,
+} from '@pothos/selection-mapper';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef, PrismaRef } from './interface-ref.js';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -120,7 +125,7 @@ export type NestedSelectionFn<Model extends PrismaModelTypes> = <
   Selection extends boolean | ([Model] extends [never] ? {} : PrismaRelationQuery<Model>) = true,
 >(
   selection?: Selection,
-  path?: string[],
+  path?: PathSegment[],
   type?: string,
 ) => NestedSelectionResult<Selection, Model>;
 
@@ -841,7 +846,7 @@ export type FieldSelection =
           | SelectionMap
           | boolean
           | ((args: object, context: object) => MaybePromise<SelectionMap>),
-        path?: IndirectInclude | string[],
+        path?: IndirectInclude | PathSegment[],
         type?: string,
       ) => SelectionMap | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
@@ -853,11 +858,11 @@ export type FieldSelection =
  */
 export type LoaderMappings = Mappings;
 
-export interface IndirectInclude {
-  getType: () => string;
-  path?: { type?: string; name: string }[];
-  paths?: { type?: string; name: string }[][];
-}
+/**
+ * A segment of a `path` given to `queryFromInfo` or `nestedSelection`: a field name, or
+ * `{ name, type }` to pin the type the field must be selected under (a fragment on it).
+ */
+export type { IndirectInclude, IndirectPathSegment, PathSegment };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
 

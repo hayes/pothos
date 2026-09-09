@@ -26,6 +26,7 @@ import {
   type TypeParam,
   typeBrandKey,
 } from '@pothos/core';
+import type { IndirectInclude, IndirectPathSegment, PathSegment } from '@pothos/selection-mapper';
 import type {
   AnyRelations,
   BuildQueryResult,
@@ -41,8 +42,13 @@ import type {
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import type { DrizzleRef } from './interface-ref.js';
-import type { IndirectInclude } from './utils/map-query.js';
 import type { SelectionMap } from './utils/selections.js';
+
+/**
+ * A segment of a `path` given to `queryFromInfo` or `nestedSelection`: a field name, or
+ * `{ name, type }` to pin the type the field must be selected under (a fragment on it).
+ */
+export type { IndirectInclude, IndirectPathSegment, PathSegment };
 
 export interface FieldPathInfo {
   field: string;
@@ -403,7 +409,7 @@ export type NestedSelectionFn<Types extends SchemaTypes, Type> = (<
         : QueryForTypeParam<Types, Type>) = true,
 >(
   selection?: Selection,
-  path?: string[],
+  path?: PathSegment[],
   type?: string,
 ) => NestedSelectionResult<Types, Selection, Type>) &
   PathInfo;
@@ -418,7 +424,7 @@ export type DrizzleFieldSelection =
           | SelectionMap
           | boolean
           | ((args: object, context: object) => MaybePromise<DBQueryConfig<'one'>>),
-        path?: IndirectInclude | string[],
+        path?: IndirectInclude | PathSegment[],
         type?: string,
       ) => DBQueryConfig<'one'> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
