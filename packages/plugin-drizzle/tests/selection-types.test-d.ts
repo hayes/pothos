@@ -4,6 +4,7 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import type * as SelectionMapper from '@pothos/selection-mapper';
 import type { DBQueryConfig } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf, it } from 'vitest';
 import DrizzlePlugin, {
   drizzleConnectionHelpers,
@@ -13,6 +14,7 @@ import DrizzlePlugin, {
 } from '../src';
 import { queryFromInfo } from '../src/utils/map-query';
 import { type DrizzleRelations, db, relations } from './example/db';
+import { posts } from './example/db/schema';
 
 // One path segment type, shared with the planner, for `queryFromInfo` paths, `nestedSelection`
 // paths, and the `IndirectInclude` a type's extensions carry.
@@ -152,6 +154,26 @@ builder.drizzleObjectFields('users', (t) => ({
   postCount: t.relatedCount('posts'),
   // @ts-expect-error a to-one relation has no count
   profileCount: t.relatedCount('profile'),
+}));
+
+// `t.relatedField` takes the ordinary field options, an async `resolve`, and the resolve info.
+builder.drizzleObjectFields('users', (t) => ({
+  postsTotal: t.relatedField('posts', {
+    type: 'Int',
+    description: 'how many posts',
+    deprecationReason: 'use postCount',
+    extensions: { complexity: 1 },
+    authScopes: {},
+    select: async (buildFilter) => ({
+      extras: { postsTotal: (parent) => db.$count(posts, buildFilter(parent)) },
+    }),
+    resolve: (user, _args, _ctx, info) => {
+      expectTypeOf(info).toEqualTypeOf<GraphQLResolveInfo>();
+      expectTypeOf(user.postsTotal).toEqualTypeOf<number>();
+
+      return Promise.resolve(user.postsTotal);
+    },
+  }),
 }));
 
 it('types the nested selection as the query it returns', () => {
