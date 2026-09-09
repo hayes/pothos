@@ -844,6 +844,9 @@ importers:
 
   packages/plugin-prisma:
     dependencies:
+      '@pothos/selection-mapper':
+        specifier: workspace:*
+        version: link:../selection-mapper
       '@prisma/generator-helper':
         specifier: ^7.7.0
         version: 7.7.0

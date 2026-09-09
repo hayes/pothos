@@ -5,18 +5,13 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
+import { cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from './types.js';
+import { type PrismaWalk, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
 import { getClient } from './util/get-client.js';
-import { cacheKey, setLoaderMappings } from './util/loader-map.js';
 import { selectionStateFromInfo } from './util/map-query.js';
-import {
-  mergeSelection,
-  type SelectionState,
-  selectionCompatible,
-  selectionToQuery,
-} from './util/selections.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -32,10 +27,10 @@ export class ModelLoader {
 
   modelName: string;
 
-  queryCache = new Map<string, { selection: SelectionState; query: SelectionMap }>();
+  queryCache = new Map<string, { walk: PrismaWalk; query: SelectionMap }>();
 
   staged = new Set<{
-    state: SelectionState;
+    walk: PrismaWalk;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
@@ -236,14 +231,14 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(
+      const walk = selectionStateFromInfo(
         this.context,
         info,
         this.builder.options.prisma.skipDeferredFragments ?? true,
       );
       this.queryCache.set(key, {
-        selection,
-        query: selectionToQuery(selection),
+        walk,
+        query: prismaAdapter.serialize(walk.root),
       });
     }
 
@@ -251,25 +246,25 @@ export class ModelLoader {
   }
 
   async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { selection, query } = this.getSelection(info);
+    const { walk, query } = this.getSelection(info);
 
-    const result = await this.stageQuery(selection, query, model);
+    const result = await this.stageQuery(walk, query, model);
 
     if (result) {
-      const mappings = selection.mappings[info.path.key];
+      const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
 
-      if (mappings) {
-        setLoaderMappings(this.context, info, mappings.mappings);
+      if (mapping) {
+        setLoaderMappings(this.context, info, mapping.nested);
       }
     }
 
     return result;
   }
 
-  async stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
+  async stageQuery(walk: PrismaWalk, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
-      if (selectionCompatible(entry.state, query)) {
-        mergeSelection(entry.state, query);
+      if (prismaAdapter.compatible(entry.walk.root, query, false)) {
+        prismaAdapter.merge(entry.walk.root, query);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -279,10 +274,10 @@ export class ModelLoader {
       }
     }
 
-    return this.initLoad(selection, model);
+    return this.initLoad(walk, model);
   }
 
-  initLoad(state: SelectionState, initialModel: {}) {
+  initLoad(walk: PrismaWalk, initialModel: {}) {
     const delegate = getDelegateFromModel(
       getClient(this.builder, this.context as never),
       this.modelName,
@@ -295,7 +290,7 @@ export class ModelLoader {
 
     const entry = {
       models,
-      state,
+      walk,
     };
 
     this.staged.add(entry);
@@ -308,7 +303,7 @@ export class ModelLoader {
         if (delegate.findUniqueOrThrow) {
           delegate
             .findUniqueOrThrow({
-              ...selectionToQuery(state),
+              ...prismaAdapter.serialize(walk.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -316,7 +311,7 @@ export class ModelLoader {
           delegate
             .findUnique({
               rejectOnNotFound: true,
-              ...selectionToQuery(state),
+              ...prismaAdapter.serialize(walk.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);

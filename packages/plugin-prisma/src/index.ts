@@ -9,14 +9,16 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
+import { getLoaderMapping, setLoaderMappings } from '@pothos/selection-mapper';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
-import type { PrismaModelTypes } from './types.js';
+import type { IncludeMap, PrismaModelTypes } from './types.js';
+import { INCLUDE_ALL } from './util/adapter.js';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors.js';
 import { getModel, getRefFromModel } from './util/datamodel.js';
-import { getLoaderMapping, setLoaderMappings } from './util/loader-map.js';
 import { queryFromInfo } from './util/map-query.js';
+import type { FieldMap } from './util/relation-map.js';
 
 export { prismaConnectionHelpers } from './connection-helpers.js';
 export { PrismaInterfaceRef } from './interface-ref.js';
@@ -56,10 +58,11 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     }
 
     let model = typeConfig.extensions?.pothosPrismaModel as string | undefined;
+    let fieldMap = typeConfig.extensions?.pothosPrismaFieldMap as FieldMap | undefined;
 
     for (const iface of typeConfig.interfaces) {
-      const interfaceModel = this.buildCache.getTypeConfig(iface, 'Interface').extensions
-        ?.pothosPrismaModel as string | undefined;
+      const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
+      const interfaceModel = interfaceConfig.extensions?.pothosPrismaModel as string | undefined;
 
       if (interfaceModel) {
         if (model && model !== interfaceModel) {
@@ -69,14 +72,25 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         }
 
         model = interfaceModel;
+        // A plain object type implementing a prisma interface is walked with the interface's
+        // field map, so fragments on it plan the relations it inherits.
+        fieldMap ??= interfaceConfig.extensions?.pothosPrismaFieldMap as FieldMap | undefined;
       }
     }
+
+    const { pothosPrismaSelect: select, pothosPrismaInclude: include } = (typeConfig.extensions ??
+      {}) as { pothosPrismaSelect?: IncludeMap; pothosPrismaInclude?: IncludeMap };
 
     return {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
         pothosPrismaModel: model,
+        pothosPrismaFieldMap: fieldMap,
+        // The type-level selection merged whenever the type is walked (S-1), built once so the
+        // walk allocates nothing per type: a model type without a `select` is include mode.
+        pothosPrismaTypeSelection:
+          select || include ? Object.freeze({ select, include }) : model ? INCLUDE_ALL : undefined,
       },
     };
   }
@@ -156,7 +170,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if ((!loadedCheck || loadedCheck(parent, info)) && mapping) {
-        setLoaderMappings(context, info, mapping);
+        setLoaderMappings(context, info, mapping.nested);
 
         return resolver(parent, args, context, info);
       }

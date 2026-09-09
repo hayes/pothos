@@ -9,6 +9,7 @@ import {
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
+import { isUsed } from '@pothos/selection-mapper';
 import {
   type GraphQLResolveInfo,
   getNamedType,
@@ -25,7 +26,6 @@ import {
 } from './util/cursors.js';
 import { getRefFromModel } from './util/datamodel.js';
 import { queryFromInfo } from './util/map-query.js';
-import { isUsed } from './util/usage.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,

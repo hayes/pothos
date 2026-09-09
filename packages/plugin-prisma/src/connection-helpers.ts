@@ -1,7 +1,9 @@
 import type { InputFieldMap, InputShapeFromFields, ObjectRef, SchemaTypes } from '@pothos/core';
+import { createNode } from '@pothos/selection-mapper';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types.js';
+import { prismaAdapter } from './util/adapter.js';
 import {
   getCursorFormatter,
   getCursorParser,
@@ -11,7 +13,6 @@ import {
 import { getRefFromModel } from './util/datamodel.js';
 import { getDMMF } from './util/get-client.js';
 import { getRelationMap } from './util/relation-map.js';
-import { createState, mergeSelection, selectionToQuery } from './util/selections.js';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 
@@ -130,16 +131,12 @@ export function prismaConnectionHelpers<
       ? { select: select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
       : nestedSelection(true, ['edges', 'node']);
 
-    const selectState = createState(
-      fieldMap,
-      'select',
-      builder.options.prisma.skipDeferredFragments ?? true,
-    );
+    const node = createNode(fieldMap);
 
-    mergeSelection(selectState, { select: cursorSelection });
+    prismaAdapter.merge(node, { select: cursorSelection });
 
     if (typeof nestedSelect === 'object' && nestedSelect) {
-      mergeSelection(selectState, nestedSelect);
+      prismaAdapter.merge(node, nestedSelect);
     }
 
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
@@ -147,7 +144,7 @@ export function prismaConnectionHelpers<
     return {
       ...baseQuery,
       ...getQueryArgs(args, ctx),
-      ...selectionToQuery(selectState),
+      ...prismaAdapter.serialize(node),
     } as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
       where?: Model['Where'];
       orderBy?: Model['OrderBy'];
