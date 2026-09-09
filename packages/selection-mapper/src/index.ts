@@ -20,6 +20,7 @@ export {
   normalizeInclude,
   type PathSegment,
   resolveType,
+  selectedFieldNames,
   selectsPath,
 } from './matches.js';
 export { createNode, type Node, relation } from './node.js';

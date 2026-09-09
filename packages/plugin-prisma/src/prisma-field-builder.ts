@@ -38,7 +38,7 @@ import {
 } from './util/cursors.js';
 import { getRefFromModel, getRelation } from './util/datamodel.js';
 import { getFieldDescription } from './util/description.js';
-import { selectsPath } from './util/map-query.js';
+import { selectedFieldNames } from './util/map-query.js';
 
 import type { FieldMap } from './util/relation-map.js';
 
@@ -242,13 +242,12 @@ export class PrismaObjectFieldBuilder<
     );
 
     // What the document asks of this connection, read the way the planner reads it (through
-    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan.
-    const connectionSelection = (info: GraphQLResolveInfo) => {
-      const hasTotalCount = !!totalCount && selectsPath(info, ['totalCount']);
-      const hasRows =
-        selectsPath(info, ['edges']) ||
-        selectsPath(info, ['nodes']) ||
-        selectsPath(info, ['pageInfo']);
+    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan. The
+    // selection is read once per request and shared by every parent row.
+    const connectionSelection = (context: object, info: GraphQLResolveInfo) => {
+      const selected = selectedFieldNames(context, info);
+      const hasTotalCount = !!totalCount && selected.has('totalCount');
+      const hasRows = selected.has('edges') || selected.has('nodes') || selected.has('pageInfo');
 
       return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
     };
@@ -310,8 +309,12 @@ export class PrismaObjectFieldBuilder<
           ...extensions,
           pothosPrismaRelationField: relationField,
           pothosPrismaSelect: relationSelect,
-          pothosPrismaLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
-            const { hasTotalCount, totalCountOnly } = connectionSelection(info);
+          pothosPrismaLoaded: (
+            value: Record<string, unknown>,
+            info: GraphQLResolveInfo,
+            context: object,
+          ) => {
+            const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
 
             return (
               (!hasTotalCount ||
@@ -348,7 +351,7 @@ export class PrismaObjectFieldBuilder<
           context: {},
           info: GraphQLResolveInfo,
         ) => {
-          const { totalCountOnly } = connectionSelection(info);
+          const { totalCountOnly } = connectionSelection(context, info);
           const connectionQuery = getQuery(args, context);
 
           return wrapConnectionResult(

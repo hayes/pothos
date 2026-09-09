@@ -1,4 +1,4 @@
-import { PothosValidationError } from '@pothos/core';
+import { createContextCache, PothosValidationError } from '@pothos/core';
 import {
   doTypesOverlap,
   type FieldNode,
@@ -133,6 +133,139 @@ export function selectsPath(info: GraphQLResolveInfo, path: string[]): boolean {
   return info.fieldNodes.some(
     (node) => findMatches(info, returnType, node, paths, { prefix }).length > 0,
   );
+}
+
+/** One node of the memo trie: the names for the field nodes on the path to it, if computed. */
+interface SelectedFieldNamesEntry {
+  names?: ReadonlySet<string>;
+  next: WeakMap<FieldNode, SelectedFieldNamesEntry>;
+}
+
+/**
+ * Per request context, per execution (`info.variableValues` is built once per execution, and the
+ * names depend on the variables through `@skip`/`@include`), per return type, then per field node.
+ */
+const selectedFieldNamesCache = createContextCache(
+  () => new WeakMap<object, WeakMap<GraphQLNamedType, SelectedFieldNamesEntry>>(),
+);
+
+/**
+ * The names of the fields the document selects directly beneath the field being resolved, seen
+ * through any wrapper on its return type: `selectsPath(info, [name])` for every top-level name in
+ * one traversal. Every row of a list resolves the field with the same field nodes, so the result
+ * is memoised on them for the execution, which is what a resolver called per row wants. The memo
+ * is keyed on the nodes rather than on `info.fieldNodes`: graphql-js 17 builds that array anew
+ * for every resolve, while the nodes are the document's own.
+ */
+export function selectedFieldNames(context: object, info: GraphQLResolveInfo): ReadonlySet<string> {
+  const byExecution = selectedFieldNamesCache(context);
+  let byType = byExecution.get(info.variableValues);
+
+  if (!byType) {
+    byType = new WeakMap();
+    byExecution.set(info.variableValues, byType);
+  }
+
+  let entry = entryIn(byType, getNamedType(info.returnType));
+
+  for (const node of info.fieldNodes) {
+    entry = entryIn(entry.next, node);
+  }
+
+  entry.names ??= collectSelectedFieldNames(info);
+
+  return entry.names;
+}
+
+function entryIn<K extends object>(
+  map: WeakMap<K, SelectedFieldNamesEntry>,
+  key: K,
+): SelectedFieldNamesEntry {
+  let entry = map.get(key);
+
+  if (!entry) {
+    entry = { next: new WeakMap() };
+    map.set(key, entry);
+  }
+
+  return entry;
+}
+
+function collectSelectedFieldNames(info: GraphQLResolveInfo): ReadonlySet<string> {
+  const returnType = getNamedType(info.returnType);
+  const prefix = includeOf(returnType)?.path;
+  const names = new Set<string>();
+
+  for (const node of info.fieldNodes) {
+    // Through a wrapper, the fields are those beneath its inner field.
+    const roots = prefix?.length
+      ? findMatches(info, returnType, node, [prefix])
+      : [{ type: returnType, field: node }];
+
+    for (const root of roots) {
+      collectFieldNames(info, root.type, root.type, root.field, names, new Set());
+    }
+  }
+
+  return names;
+}
+
+/** The last step of `walkIndirectPath` for every field name at once. */
+function collectFieldNames(
+  info: GraphQLResolveInfo,
+  type: GraphQLNamedType,
+  expectedType: GraphQLNamedType,
+  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
+  names: Set<string>,
+  visited: Set<string>,
+) {
+  if (!selection.selectionSet) {
+    return;
+  }
+
+  for (const sel of selection.selectionSet.selections) {
+    if (sel.kind === Kind.FIELD) {
+      if (
+        expectedType.name === type.name &&
+        (isObjectType(type) || isInterfaceType(type)) &&
+        !isSkipped(info, sel)
+      ) {
+        names.add(sel.name.value);
+      }
+
+      continue;
+    }
+
+    if (sel.kind !== Kind.FRAGMENT_SPREAD && sel.kind !== Kind.INLINE_FRAGMENT) {
+      throw new PothosValidationError(
+        `Unsupported selection kind ${(sel as { kind: string }).kind}`,
+      );
+    }
+
+    if (isSkipped(info, sel)) {
+      continue;
+    }
+
+    const fragment = sel.kind === Kind.FRAGMENT_SPREAD ? info.fragments[sel.name.value] : sel;
+    const next = resolveFragmentTypes(
+      info,
+      fragment.typeCondition ? info.schema.getType(fragment.typeCondition.name.value)! : undefined,
+      type,
+      expectedType,
+    );
+
+    if (fragment.kind === Kind.FRAGMENT_DEFINITION) {
+      const state = `${fragment.name.value}|${next.type.name}|${next.expectedType.name}`;
+
+      if (visited.has(state)) {
+        continue;
+      }
+
+      visited.add(state);
+    }
+
+    collectFieldNames(info, next.type, next.expectedType, fragment, names, visited);
+  }
 }
 
 /**
@@ -280,11 +413,11 @@ function resolveFragmentTypes(
   fragmentType: GraphQLNamedType | undefined,
   type: GraphQLNamedType,
   expectedType: GraphQLNamedType,
-  include: IndirectPathSegment,
+  include?: IndirectPathSegment,
 ) {
   let expected = expectedType;
 
-  if (include.type) {
+  if (include?.type) {
     const pinned = info.schema.getType(include.type);
 
     if (!pinned) {
