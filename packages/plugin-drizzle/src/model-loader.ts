@@ -107,7 +107,7 @@ export class ModelLoader {
     if (!this.queryCache.has(key)) {
       this.queryCache.set(
         key,
-        completeValue(selectionStateFromInfo(this.config, this.context, info), this.selectionOf),
+        completeValue(selectionStateFromInfo(this.config, this.context, info), selectionOf),
       );
     }
 
@@ -122,15 +122,13 @@ export class ModelLoader {
         completeValue(
           // Walked without paths, so there is always a walk.
           walkFromInfo({ config: this.config, context: this.context, info, typeName })!,
-          this.selectionOf,
+          selectionOf,
         ),
       );
     }
 
     return this.queryCache.get(key)!;
   }
-
-  selectionOf = (walk: DrizzleWalk) => ({ walk, query: this.adapter.serialize(walk.root) });
 
   /**
    * L-3: `model` reloaded with the selection of the field `info` resolves. A synchronous
@@ -269,6 +267,11 @@ export class ModelLoader {
 
     return promise.promise;
   }
+}
+
+/** The walk carries the adapter it was built with, so no loader instance is needed here. */
+function selectionOf(walk: DrizzleWalk): Selection {
+  return { walk, query: walk.env.adapter.serialize(walk.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {
