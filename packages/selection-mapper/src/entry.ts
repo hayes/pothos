@@ -2,10 +2,10 @@
  * The entry points: E-1 (`queryFromInfo`, `walkFromInfo`, `queryFromWalk`) and E-2
  * (`selectionStateFromInfo`).
  */
-import { isThenable } from '@pothos/core';
+import { isThenable, PothosValidationError } from '@pothos/core';
 import { type GraphQLResolveInfo, getNamedType } from 'graphql';
 import { abandon, finish } from './async.js';
-import { setLoaderMappings } from './loader-map.js';
+import { type Mappings, setLoaderMappings } from './loader-map.js';
 import {
   findMatches,
   type IndirectPathSegment,
@@ -15,7 +15,15 @@ import {
 } from './matches.js';
 import type { Node, NodeBase } from './node.js';
 import type { Adapter, EntryOptions, Env, Walk } from './types.js';
-import { applyField, createWalk, enterLoaded, walkFields, walkFieldWalks } from './walk.js';
+import {
+  applyField,
+  createWalk,
+  enterLoaded,
+  mergeVariant,
+  unionMappings,
+  walkFields,
+  walkFieldWalks,
+} from './walk.js';
 
 /**
  * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
@@ -56,10 +64,11 @@ export function walkFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node
 /**
  * E-1 from a settled walk: the loader mappings recorded (L-2) and the query serialized (M-6,
  * L-5). Synchronous: the walk must be one `walkFromInfo` returned, and when that was a promise,
- * the walk it resolved to. `select` takes the place of `initial`: the query is built from it first
- * and the walked plan merged over it, so a compatible `select` yields what `queryFromInfo` yields
- * with it as `initial`. The caller checks compatibility (`typeLevelConflict`) first: a relation or
- * extra the plan already holds with other arguments cannot be merged after the fact.
+ * the walk it resolved to. `select` takes the place of `initial`: it comes first, so a relation
+ * or extra the walked plan holds with other arguments loses (M-4) and its field loads on its own.
+ * When `select` conflicts with nothing, merging it under the settled plan gives that same query;
+ * otherwise the plan is replayed from the merges a replayable walk recorded, which runs no user
+ * callback again, so it is synchronous whether or not the plan was async.
  */
 export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
   walk: Walk<M, Map, X, N>,
@@ -67,16 +76,46 @@ export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Nod
 ): Map {
   const { adapter, context, info } = walk.env;
 
-  setLoaderMappings(context, info, walk.mappings);
-
   if (!select) {
+    setLoaderMappings(context, info, walk.mappings);
+
     return adapter.serialize(walk.root);
   }
 
   const root = adapter.createNode(walk.root.model);
 
   adapter.merge(root, select);
-  adapter.merge(root, adapter.serialize(walk.root));
+
+  if (!adapter.typeLevelConflict(walk.root, select)) {
+    adapter.merge(root, adapter.serialize(walk.root));
+    setLoaderMappings(context, info, walk.mappings);
+
+    return adapter.serialize(root);
+  }
+
+  if (!walk.merges) {
+    throw new PothosValidationError(
+      `The selection passed to query() in the resolver for ${info.parentType.name}.${info.fieldName} conflicts with a selection beneath the field, and the walk was not built with replayable: true.`,
+    );
+  }
+
+  const mappings: Mappings = {};
+
+  for (const merge of walk.merges) {
+    if (merge.kind === 'type') {
+      adapter.merge(root, merge.map);
+    } else if (merge.kind === 'variant') {
+      mergeVariant(adapter, root, merge.type, merge.variant, merge.map);
+    } else if (adapter.compatible(root, merge.map, true, merge.key, merge.alias)) {
+      adapter.merge(root, merge.map, merge.key, merge.alias);
+
+      if (adapter.recordsMappings !== false) {
+        mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
+      }
+    }
+  }
+
+  setLoaderMappings(context, info, mappings);
 
   return adapter.serialize(root);
 }
@@ -137,7 +176,7 @@ function makeEnv<M, Map, X, N extends NodeBase<M>>(
 /** E-1: undefined when paths are given and nothing is selected under them. */
 function buildWalk<M, Map, X, N extends NodeBase<M>>(
   env: Env<M, Map, X, N>,
-  { typeName, path, paths, initial }: EntryOptions<Map>,
+  { typeName, path, paths, initial, replayable }: EntryOptions<Map>,
 ): Walk<M, Map, X, N> | undefined {
   const { info } = env;
   const returnType = getNamedType(info.returnType);
@@ -161,7 +200,14 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
       return undefined;
     }
 
-    const walk = createWalk(env, typeName ? target : matches[0].type, {}, extra, initial);
+    const walk = createWalk(
+      env,
+      typeName ? target : matches[0].type,
+      {},
+      extra,
+      initial,
+      replayable,
+    );
 
     try {
       // Every match is planned into the one root, entered under its own type first (W-11).
@@ -186,7 +232,7 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
     return walk;
   }
 
-  const walk = createWalk(env, target, {}, extra, initial);
+  const walk = createWalk(env, target, {}, extra, initial, replayable);
 
   try {
     walkFields(walk, walk.root, target, info.fieldNodes, [], false);

@@ -1,4 +1,4 @@
-import { isThenable, PothosValidationError } from '@pothos/core';
+import { isThenable } from '@pothos/core';
 import {
   type IndirectInclude,
   type PathSegment,
@@ -23,6 +23,8 @@ export interface QueryFromInfoOptions<T extends SelectionMap> {
   select?: T;
   path?: PathSegment[];
   paths?: PathSegment[][];
+  /** Records the walk's merges so `queryFromWalk` can put a resolver's selection first. */
+  replayable?: boolean;
 }
 
 export function queryFromInfo<T extends SelectionMap>({
@@ -51,7 +53,8 @@ export function queryFromInfo<T extends SelectionMap>({
 /**
  * The walk for the field `info` resolves (or `typeName`), nothing recorded: a promise while a
  * select beneath the field is async, undefined when `paths` are given and nothing is selected
- * under them. The model loader's, and the first step of a `drizzleField` resolve.
+ * under them. The model loader's, and the first step of a `drizzleField` resolve (replayable, so
+ * the resolver's `query()` selection can come first).
  */
 export function walkFromInfo({
   config,
@@ -61,43 +64,23 @@ export function walkFromInfo({
 }
 
 /**
- * The query for a walk `walkFromInfo` returned, settled: the caller's `select` merged into it,
- * the mappings recorded, and the query serialized. This is how the `query()` builder handed to a
- * `drizzleField` or `drizzleConnection` resolver stays synchronous once a selection beneath the
- * field is async: the document is planned first, and `select` is merged into the settled plan.
- * A `select` that repeats a planned relation or extra with other arguments keeps the precedence
- * of `queryFromInfo` (the caller's selection first, the document after it) by planning again,
- * which is only possible while nothing beneath the field is async.
+ * The query for a walk `walkFromInfo` returned, settled: the caller's `select` first, the walked
+ * plan after it, the mappings recorded, and the query serialized. This is how the `query()`
+ * builder handed to a `drizzleField` or `drizzleConnection` resolver stays synchronous once a
+ * selection beneath the field is async, with the precedence of `queryFromInfo`: a relation the
+ * document also plans with other arguments loads on its own.
  */
 export function queryFromWalk<T extends SelectionMap>(
   walk: DrizzleWalk | undefined,
-  options: QueryFromInfoOptions<T>,
+  { select }: QueryFromInfoOptions<T>,
 ): T {
-  const { config, select } = options;
-
   if (!walk) {
     // Nothing is selected under the paths: the caller gets its own selection back.
     return (select ?? {}) as T;
   }
 
-  const initial = select ? { columns: {}, ...select } : undefined;
-  const conflict = initial && drizzleAdapter(config).typeLevelConflict(walk.root, initial);
-
-  if (!conflict) {
-    return walkQueryFromWalk(walk, initial) as T;
-  }
-
-  const query = queryFromInfo(options);
-
-  if (isThenable(query)) {
-    const { info } = walk.env;
-
-    throw new PothosValidationError(
-      `The ${conflict.kind} "${conflict.name}" passed to query() in the resolver for ${info.parentType.name}.${info.fieldName} conflicts with the arguments a selection beneath the field planned for it, and a selection beneath the field is async. Move the ${conflict.kind}'s arguments to the field that selects it.`,
-    );
-  }
-
-  return query;
+  // A `select` without `columns` merges as "no columns yet", not "every column".
+  return walkQueryFromWalk(walk, select ? { columns: {}, ...select } : undefined) as T;
 }
 
 /** The walk loading the field `info` resolves for its parent row (the model loader's query). */

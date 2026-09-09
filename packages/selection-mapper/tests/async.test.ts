@@ -569,6 +569,24 @@ describe('the synchronous path (A-1)', () => {
     ).toBe(0);
   });
 
+  it('replays an async plan over a conflicting selection without a promise', async () => {
+    const source = '{ user { posts(take: 2) { id author(x: 1) { name } } } }';
+    const info = await resolveInfo(schema, source);
+    const select = { select: { posts: { take: 1 } } };
+    const expectedContext = {};
+    const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
+    const context = {};
+    const walk = (await walkFromInfo(
+      withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
+      { context, info, replayable: true },
+    ))!;
+    const { result, promises } = countPromises(() => queryFromWalk(walk, select));
+
+    expect(promises).toBe(0);
+    expect(result).toEqual(expected);
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+  });
+
   it('creates no promise for a plan settled before its resolver runs', async () => {
     const context = {};
     const info = await resolveInfo(schema, source);

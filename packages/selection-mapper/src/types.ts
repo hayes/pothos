@@ -11,7 +11,7 @@ import type {
   GraphQLObjectType,
   GraphQLResolveInfo,
 } from 'graphql';
-import type { Mappings } from './loader-map.js';
+import type { Mapping, Mappings } from './loader-map.js';
 import type { IndirectInclude, PathSegment } from './matches.js';
 import type { Node, NodeBase } from './node.js';
 
@@ -56,7 +56,19 @@ export interface EntryOptions<Map> {
    */
   initial?: Map;
   skipDeferredFragments?: boolean;
+  /**
+   * Records every merge into the root (`Walk.merges`), so `queryFromWalk` can rebuild the query
+   * with a caller's selection ahead of the walked plan. For the walk a plugin settles before
+   * handing a resolver a synchronous query builder.
+   */
+  replayable?: boolean;
 }
+
+/** One merge into a walk's root, in order, kept only for a replayable walk. */
+export type RootMerge<Map> =
+  | { kind: 'type'; map: Map }
+  | { kind: 'variant'; type: WalkedType; variant: WalkedType; map: Map }
+  | { kind: 'field'; key: string; alias: string; map: Map; mapping: Mapping };
 
 /**
  * The ORM boundary. `M` is the model description a node carries, `Map` the ORM's own selection
@@ -160,4 +172,6 @@ export interface Walk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
    * appended (A-2, A-4). Absent until the first one: a synchronous walk never creates a promise.
    */
   pending?: Promise<void>;
+  /** The merges into `root` in order, when the walk was built replayable; see `queryFromWalk`. */
+  merges?: RootMerge<Map>[];
 }

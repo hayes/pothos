@@ -31,7 +31,7 @@ import {
   resolveType,
 } from './matches.js';
 import type { NodeBase } from './node.js';
-import type { Env, NestedSelection, SelectFn, Walk, WalkedType } from './types.js';
+import type { Adapter, Env, NestedSelection, SelectFn, Walk, WalkedType } from './types.js';
 
 /** The mapping of a static selection: nothing can ever be recorded beneath one. */
 const NONE: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
@@ -71,6 +71,7 @@ export function createWalk<M, Map, X, N extends NodeBase<M>>(
   mappings: Mappings,
   extra?: X,
   initial?: Map,
+  replayable?: boolean,
 ): Walk<M, Map, X, N> {
   const model = env.modelOf(type);
 
@@ -81,6 +82,10 @@ export function createWalk<M, Map, X, N extends NodeBase<M>>(
   }
 
   const walk: Walk<M, Map, X, N> = { env, root: env.adapter.createNode(model), mappings, extra };
+
+  if (replayable) {
+    walk.merges = [];
+  }
 
   if (initial) {
     env.adapter.merge(walk.root, initial);
@@ -100,6 +105,7 @@ function enter<M, Map, X, N extends NodeBase<M>>(
 
   if (selection) {
     walk.env.adapter.merge(node, selection);
+    walk.merges?.push({ kind: 'type', map: selection });
   }
 }
 
@@ -115,13 +121,24 @@ function enterVariant<M, Map, X, N extends NodeBase<M>>(
   type: WalkedType,
   variant: WalkedType,
 ) {
-  const { adapter } = walk.env;
-  const selection = adapter.typeSelection(variant);
+  const selection = walk.env.adapter.typeSelection(variant);
 
   if (!selection) {
     return;
   }
 
+  mergeVariant(walk.env.adapter, node, type, variant, selection);
+  walk.merges?.push({ kind: 'variant', type, variant, map: selection });
+}
+
+/** S-7 for one variant selection: rejected as an error when it conflicts with the node. */
+export function mergeVariant<M, Map, X, N extends NodeBase<M>>(
+  adapter: Adapter<M, Map, X, N>,
+  node: N,
+  type: WalkedType,
+  variant: WalkedType,
+  selection: Map,
+) {
   const conflict = adapter.typeLevelConflict(node, selection);
 
   if (conflict?.kind === 'relation') {
@@ -537,22 +554,30 @@ function mergeField<M, Map, X, N extends NodeBase<M>>(
     );
   }
 
+  walk.merges?.push({ kind: 'field', key, alias, map, mapping });
+
   if (walk.env.adapter.recordsMappings !== false) {
     walk.mappings[key] = unionMappings(walk.mappings[key], mapping);
   }
 }
 
-/** Adopts the first mapping accepted for a key; later accepted walks of the key deep-union. */
-function unionMappings(into: Mapping | undefined, from: Mapping): Mapping {
+/**
+ * Adopts the first mapping accepted for a key; a later accepted walk of the key deep-unions into
+ * a copy, so a recorded mapping is never changed after the fact (a replay may accept a different
+ * subset of the walks).
+ */
+export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping {
   if (!into || into === NONE) {
     return from;
   }
 
+  const nested: Mappings = { ...into.nested };
+
   for (const key of Object.keys(from.nested)) {
-    into.nested[key] = unionMappings(into.nested[key], from.nested[key]);
+    nested[key] = unionMappings(nested[key], from.nested[key]);
   }
 
-  return into;
+  return into.extra === undefined ? { nested } : { nested, extra: into.extra };
 }
 
 /** E-3: the nested selection callback of one select invocation. */

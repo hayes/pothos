@@ -21,5 +21,6 @@ The callbacks that build a selection may be async.
   it started is still pending throws with a message naming the field. `queryFromInfo` returns a
   promise when a callback beneath the field is async, and must then be awaited; its declared type
   stays synchronous. The `query()` builder handed to a `drizzleField` or `drizzleConnection`
-  resolver never returns a promise: the plan is settled before the resolver runs, and the builder
-  merges into it.
+  resolver never returns a promise: the plan is settled before the resolver runs. A selection
+  passed to `query()` comes first, as for `queryFromInfo`: a relation the document also plans
+  with other arguments loads on its own, whether or not a selection beneath the field is async.

@@ -25,6 +25,7 @@ export type {
   EntryOptions,
   Env,
   NestedSelection,
+  RootMerge,
   SelectFn,
   TypeLevelConflict,
   Walk,

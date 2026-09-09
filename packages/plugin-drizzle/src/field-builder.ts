@@ -40,7 +40,7 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
       const config = getSchemaConfig(this.builder);
       // A promise while a selection beneath the field is async: the resolver runs once it has
       // settled, so the builder it is handed never returns one.
-      const walk = walkFromInfo({ config, context, info });
+      const walk = walkFromInfo({ config, context, info, replayable: true });
 
       return isThenable(walk)
         ? walk.then((settled) =>
@@ -83,7 +83,7 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
       const config = getSchemaConfig(this.builder);
-      const walk = walkFromInfo({ config, context, info });
+      const walk = walkFromInfo({ config, context, info, replayable: true });
 
       return isThenable(walk)
         ? walk.then((settled) =>
@@ -238,6 +238,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
           info,
           paths: [['nodes'], ['edges', 'node']],
           typeName,
+          replayable: true,
         });
 
         return isThenable(walk)

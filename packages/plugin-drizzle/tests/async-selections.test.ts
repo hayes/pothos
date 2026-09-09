@@ -177,6 +177,7 @@ const User = builder.drizzleObject('users', {
     // beneath the posts is, and would otherwise record mappings for data this never loads.
     discardedPosts: t.field({
       type: [Post],
+      // biome-ignore lint/suspicious/useAwait: the select must be async and must not await the nested selection it discards
       select: async (_args, _ctx, nestedSelection) => {
         nestedSelection({ limit: 1, orderBy: { postId: 'asc' as const } });
 
@@ -496,13 +497,16 @@ describe('async selections', () => {
     expect(logs[1]).toContain('params: [1, 1]');
   });
 
-  it('rejects a builder selection that conflicts with an async plan', async () => {
+  it('keeps the precedence of a builder selection that conflicts with an async plan', async () => {
     const { result, logs } = await run(gql`{ userWithPosts { asyncPosts(limit: 1) { id } } }`);
 
-    expect(logs).toHaveLength(0);
-    expect(result.errors?.map((error) => error.message)).toEqual([
-      'The relation "posts" passed to query() in the resolver for Query.userWithPosts conflicts with the arguments a selection beneath the field planned for it, and a selection beneath the field is async. Move the relation\'s arguments to the field that selects it.',
-    ]);
+    expect(result.errors).toBeUndefined();
+    // The plan is replayed with the caller's `posts` first; the field's conflicting `posts`
+    // loads on its own, as with a synchronous plan.
+    expect(logs).toHaveLength(2);
+    expect(logs[0]).toContain('params: [5, 1, 1]');
+    expect(logs[1]).toContain('"d0"."id" in (?)');
+    expect(logs[1]).toContain('params: [1, 1]');
   });
 
   it('loads every parent of a list through one staged batch', async () => {
