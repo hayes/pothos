@@ -501,7 +501,7 @@ export class PrismaObjectFieldBuilder<
     }) as FieldRef<Types, Model['Relations'][Field]['Shape'], 'Object'>;
   }
 
-  relationCount<Field extends Model['RelationName'], Args extends InputFieldMap>(
+  relationCount<Field extends Model['ListRelations'], Args extends InputFieldMap>(
     name: Field,
     ...allArgs: NormalizeArgs<
       [
