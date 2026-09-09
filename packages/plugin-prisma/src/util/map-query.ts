@@ -9,9 +9,25 @@ import { type PrismaWalk, prismaAdapter } from './adapter.js';
 
 export { selectedFieldNames };
 
+/**
+ * What `queryFromInfo` returns: the shape that was passed in, or, when neither `select` nor
+ * `include` was given, whichever of the two the walked type's mode produced. Both keys are
+ * optional so the result spreads into a prisma call either way.
+ */
+export type QueryFromInfoResult<Select, Include> = undefined extends Select
+  ? undefined extends Include
+    ? { select?: SelectionMap['select']; include?: SelectionMap['include'] }
+    : { include: Include }
+  : { select: Select };
+
+/**
+ * The query for the field `info` resolves. A given `select` is merged as the initial selection;
+ * for a type in include mode the walk still produces `include`, with the columns of that
+ * `select` implied by the row.
+ */
 export function queryFromInfo<
   Select extends SelectionMap['select'] | undefined = undefined,
-  Include extends SelectionMap['select'] | undefined = undefined,
+  Include extends SelectionMap['include'] | undefined = undefined,
 >({
   context,
   info,
@@ -33,11 +49,7 @@ export function queryFromInfo<
 } & (
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
-)): undefined extends Include
-  ? {
-      select: Select;
-    }
-  : { include: Include } {
+)): QueryFromInfoResult<Select, Include> {
   return walkQueryFromInfo(prismaAdapter, {
     context,
     info,
