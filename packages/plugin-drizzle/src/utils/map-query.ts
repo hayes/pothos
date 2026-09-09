@@ -24,7 +24,6 @@ export interface QueryFromInfoOptions<T extends SelectionMap> {
   select?: T;
   path?: PathSegment[];
   paths?: PathSegment[][];
-  withUsageCheck?: boolean;
 }
 
 export function queryFromInfo<T extends SelectionMap>({
@@ -66,7 +65,7 @@ export function queryFromWalk<T extends SelectionMap>(
   walk: DrizzleWalk | undefined,
   options: QueryFromInfoOptions<T>,
 ): T {
-  const { config, select, withUsageCheck } = options;
+  const { config, select } = options;
 
   if (!walk) {
     // Nothing is selected under the paths: the caller gets its own selection back.
@@ -77,7 +76,7 @@ export function queryFromWalk<T extends SelectionMap>(
   const conflict = initial && drizzleAdapter(config).typeLevelConflict(walk.root, initial);
 
   if (!conflict) {
-    return walkQueryFromWalk(walk, initial, withUsageCheck) as T;
+    return walkQueryFromWalk(walk, initial) as T;
   }
 
   const query = queryFromInfo(options);
