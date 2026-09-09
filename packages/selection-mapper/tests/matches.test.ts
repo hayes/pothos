@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   findMatches,
   includeOf,
+  matchesForModel,
+  modelOf,
   normalizeInclude,
   resolveType,
   selectedFieldNames,
@@ -12,8 +14,6 @@ import { createTestAdapter, createTestSchema, models } from './schema';
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
-const modelOf = (type: Parameters<typeof adapter.modelFor>[0]) =>
-  adapter.modelFor(resolveType(schema, type));
 
 describe('findMatches', () => {
   it('finds the field at the end of a path under every fragment, in document order', async () => {
@@ -39,7 +39,7 @@ describe('findMatches', () => {
     ]);
   });
 
-  it('drops matches returning a different model than the target (W-10)', async () => {
+  it('matchesForModel drops matches returning a different model than the target (W-10)', async () => {
     const info = await resolveInfo(
       schema,
       /* GraphQL */ `{
@@ -51,12 +51,13 @@ describe('findMatches', () => {
       }`,
     );
 
-    const matches = findMatches(
-      info,
-      getNamedType(info.returnType),
-      fieldNodeOf(info),
-      [[{ name: 'appointment' }]],
-      { targetType: schema.getType('User')!, modelOf },
+    const matches = matchesForModel(
+      adapter,
+      schema,
+      findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [
+        [{ name: 'appointment' }],
+      ]),
+      schema.getType('User')!,
     );
 
     expect(matches.map((match) => match.type.name)).toEqual(['User', 'Viewer']);
@@ -233,7 +234,7 @@ describe('resolveType', () => {
   it('follows indirect includes to the wrapped type', () => {
     expect(resolveType(schema, schema.getType('UserResult')!)).toBe(schema.getType('User'));
     expect(resolveType(schema, schema.getType('User')!)).toBe(schema.getType('User'));
-    expect(modelOf(schema.getType('UserResult')!)).toBe(models.User);
+    expect(modelOf(adapter, schema, schema.getType('UserResult')!)).toBe(models.User);
   });
 });
 

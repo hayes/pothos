@@ -2,7 +2,7 @@
  * The entry points: E-1 (`queryFromInfo`, `walkFromInfo`, `queryFromWalk`) and E-2
  * (`selectionStateFromInfo`).
  */
-import { isThenable, PothosValidationError } from '@pothos/core';
+import { PothosValidationError } from '@pothos/core';
 import { type GraphQLResolveInfo, getNamedType } from 'graphql';
 import { abandon, finish } from './async.js';
 import { type Mappings, setLoaderMappings } from './loader-map.js';
@@ -10,18 +10,18 @@ import {
   findMatches,
   type IndirectPathSegment,
   includeOf,
+  matchesForModel,
+  modelOf,
   type PathSegment,
-  resolveType,
 } from './matches.js';
 import type { Node, NodeBase } from './node.js';
-import type { Adapter, EntryOptions, Env, Walk } from './types.js';
+import type { Adapter, EntryOptions, RootMerge, Walk } from './types.js';
 import {
   applyField,
   createWalk,
   enterLoaded,
   mergeVariant,
   unionMappings,
-  walkFields,
   walkFieldWalks,
 } from './walk.js';
 
@@ -33,7 +33,8 @@ export function queryFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Nod
   adapter: Adapter<M, Map, X, N>,
   options: EntryOptions<Map>,
 ): Map {
-  const walk = walkFromInfo(adapter, options);
+  // Emitted here and now, so the merges a replay would need are never recorded.
+  const walk = buildWalk(adapter, options, false);
 
   if (!walk) {
     // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
@@ -41,22 +42,21 @@ export function queryFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Nod
     return options.initial ?? ({} as Map);
   }
 
-  return isThenable(walk)
-    ? (walk.then((settled) => queryFromWalk(settled as Walk<M, Map, X, N>)) as unknown as Map)
-    : queryFromWalk(walk);
+  return finish(walk, emit);
 }
 
 /**
  * E-1 without emitting: the walk itself, nothing recorded, or undefined when paths are given and
  * nothing is selected under them. Declared synchronous like `queryFromInfo` (A-7). A plugin that
  * must hand a resolver a synchronous query builder settles this first, then emits the query with
- * `queryFromWalk` once the resolver asks for it.
+ * `queryFromWalk` once the resolver asks for it. The walk records its merges into the root, which
+ * is what lets `queryFromWalk` put the resolver's own selection first.
  */
 export function walkFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
   adapter: Adapter<M, Map, X, N>,
   options: EntryOptions<Map>,
 ): Walk<M, Map, X, N> | undefined {
-  const walk = buildWalk(makeEnv(adapter, options), options);
+  const walk = buildWalk(adapter, options, true);
 
   return walk && finish(walk, identity);
 }
@@ -67,19 +67,17 @@ export function walkFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node
  * the walk it resolved to. `select` takes the place of `initial`: it comes first, so a relation
  * or extra the walked plan holds with other arguments loses (M-4) and its field loads on its own.
  * When `select` conflicts with nothing, merging it under the settled plan gives that same query;
- * otherwise the plan is replayed from the merges a replayable walk recorded, which runs no user
- * callback again, so it is synchronous whether or not the plan was async.
+ * otherwise the plan is replayed from the merges the walk recorded, which runs no user callback
+ * again, so it is synchronous whether or not the plan was async.
  */
 export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
   walk: Walk<M, Map, X, N>,
   select?: Map,
 ): Map {
-  const { adapter, info } = walk.env;
+  const { adapter } = walk;
 
   if (!select) {
-    recordMappings(walk, walk.mappings);
-
-    return adapter.serialize(walk.root);
+    return emit(walk);
   }
 
   const root = adapter.createNode(walk.root.model);
@@ -88,50 +86,44 @@ export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Nod
 
   if (!adapter.typeLevelConflict(walk.root, select)) {
     adapter.merge(root, adapter.serialize(walk.root));
-    recordMappings(walk, walk.mappings);
+    setLoaderMappings(walk.context, walk.info, walk.mappings);
 
     return adapter.serialize(root);
   }
 
-  if (!walk.merges) {
-    throw new PothosValidationError(
-      `The selection passed to query() in the resolver for ${info.parentType.name}.${info.fieldName} conflicts with a selection beneath the field, and the walk was not built with replayable: true.`,
-    );
-  }
-
   const mappings: Mappings = {};
 
-  for (const merge of walk.merges) {
-    if (merge.kind === 'type') {
-      adapter.merge(root, merge.map);
-    } else if (merge.kind === 'variant') {
-      mergeVariant(adapter, root, merge.type, merge.variant, merge.map);
-    } else if (adapter.compatible(root, merge.map, true, merge.key, merge.alias)) {
-      adapter.merge(root, merge.map, merge.key, merge.alias);
+  // Only `walkFromInfo` records merges, and only its walks are emitted through here.
+  for (const merge of walk.merges!) {
+    switch (merge.kind) {
+      case 'type':
+        adapter.merge(root, merge.map);
+        break;
+      case 'variant':
+        mergeVariant(adapter, root, merge.type, merge.variant, merge.map);
+        break;
+      case 'field':
+        // M-3, M-4: a field's selection is merged, and its mapping recorded, only while it still
+        // fits the root the caller's selection went into first; otherwise the field is skipped
+        // here and its resolver loads its own data (L-3).
+        if (adapter.compatible(root, merge.map, true, merge.key, merge.alias)) {
+          adapter.merge(root, merge.map, merge.key, merge.alias);
+          mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
+        }
+        break;
+      default: {
+        const unknown: never = merge;
 
-      if (adapter.recordsMappings !== false) {
-        mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
+        throw new PothosValidationError(
+          `Unknown root merge ${String((unknown as RootMerge<Map>).kind)}`,
+        );
       }
     }
   }
 
-  recordMappings(walk, mappings);
+  setLoaderMappings(walk.context, walk.info, mappings);
 
   return adapter.serialize(root);
-}
-
-/**
- * L-2: records the walk's mappings for the resolvers beneath it, unless the adapter records none,
- * in which case the context is not touched either (an adapter that reads rows its own way may
- * run with a context that is not an object).
- */
-function recordMappings<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
-  mappings: Mappings,
-) {
-  if (walk.env.adapter.recordsMappings !== false) {
-    setLoaderMappings(walk.env.context, walk.env.info, mappings);
-  }
 }
 
 /**
@@ -146,9 +138,8 @@ export function selectionStateFromInfo<M, Map, X = undefined, N extends NodeBase
   info: GraphQLResolveInfo,
   skipDeferredFragments?: boolean,
 ): Walk<M, Map, X, N> {
-  const env = makeEnv(adapter, { context, info, skipDeferredFragments });
   const type = info.parentType;
-  const walk = createWalk(env, type, {});
+  const walk = createWalk(adapter, { context, info, skipDeferredFragments }, type);
 
   try {
     // Every node selecting the field (one per fragment it appears under) plans into the same
@@ -164,50 +155,41 @@ export function selectionStateFromInfo<M, Map, X = undefined, N extends NodeBase
   return finish(walk, enterLoaded, type);
 }
 
+/** L-2, M-6: the walk's mappings recorded for the resolvers beneath it, and its query serialized. */
+function emit<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>): Map {
+  setLoaderMappings(walk.context, walk.info, walk.mappings);
+
+  return walk.adapter.serialize(walk.root);
+}
+
+/** `finish` needs something to run once the walk has settled; `walkFromInfo` wants the walk. */
 function identity<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
   return walk;
 }
 
-function makeEnv<M, Map, X, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, X, N>,
-  {
-    context,
-    info,
-    skipDeferredFragments,
-  }: Pick<EntryOptions<Map>, 'context' | 'info'> & {
-    skipDeferredFragments?: boolean;
-  },
-): Env<M, Map, X, N> {
-  return {
-    adapter,
-    context,
-    info,
-    skipDeferred: skipDeferredFragments ?? adapter.skipDeferredFragments,
-    modelOf: (type) => adapter.modelFor(resolveType(info.schema, type)),
-  };
-}
-
 /** E-1: undefined when paths are given and nothing is selected under them. */
 function buildWalk<M, Map, X, N extends NodeBase<M>>(
-  env: Env<M, Map, X, N>,
-  { typeName, path, paths, initial, replayable }: EntryOptions<Map>,
+  adapter: Adapter<M, Map, X, N>,
+  options: EntryOptions<Map>,
+  replayable: boolean,
 ): Walk<M, Map, X, N> | undefined {
-  const { info } = env;
+  const { info, typeName, path, paths } = options;
   const returnType = getNamedType(info.returnType);
   const target = typeName ? info.schema.getType(typeName)! : returnType;
-  const extra = rootExtra(env);
+  const extra = extraForResolvedField(adapter, info);
 
   // graphql merges every occurrence of the field's response key into `info.fieldNodes`; each is
   // planned into the one root, so the query answers whichever occurrence a resolver runs for.
   if (paths?.length || path?.length) {
     const includePaths = normalizePaths(paths?.length ? paths : [path!]);
-    const options = {
-      prefix: includeOf(returnType)?.path,
-      targetType: target,
-      modelOf: env.modelOf,
-    };
-    const matches = info.fieldNodes.flatMap((fieldNode) =>
-      findMatches(info, returnType, fieldNode, includePaths, options),
+    const prefix = includeOf(returnType)?.path;
+    const matches = matchesForModel(
+      adapter,
+      info.schema,
+      info.fieldNodes.flatMap((fieldNode) =>
+        findMatches(info, returnType, fieldNode, includePaths, { prefix }),
+      ),
+      target,
     );
 
     if (matches.length === 0) {
@@ -215,11 +197,10 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
     }
 
     const walk = createWalk(
-      env,
+      adapter,
+      options,
       typeName ? target : matches[0].type,
-      {},
       extra,
-      initial,
       replayable,
     );
 
@@ -232,7 +213,7 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
           // A matched type with its own model (including variants of the target model) is walked
           // with its own model. Types without a model (interfaces, wrappers) are walked as the
           // requested type so its fields can be found.
-          type: typeName && !env.modelOf(match.type) ? target : match.type,
+          type: typeName && !modelOf(adapter, info.schema, match.type) ? target : match.type,
           fieldNodes: [match.field],
           indirectPath: match.path,
           deferred: match.deferred,
@@ -246,10 +227,12 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
     return walk;
   }
 
-  const walk = createWalk(env, target, {}, extra, initial, replayable);
+  const walk = createWalk(adapter, options, target, extra, replayable);
 
   try {
-    walkFields(walk, walk.root, target, info.fieldNodes, [], false);
+    walkFieldWalks(walk, walk.root, [
+      { type: target, fieldNodes: info.fieldNodes, indirectPath: [], deferred: false },
+    ]);
   } catch (error) {
     abandon(walk);
     throw error;
@@ -258,11 +241,15 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
   return walk;
 }
 
-/** D-7: the extra for the resolved field itself, which starts the extras of the fields beneath. */
-function rootExtra<M, Map, X, N extends NodeBase<M>>({
-  adapter,
-  info,
-}: Env<M, Map, X, N>): X | undefined {
+/**
+ * D-7: the adapter's `X` for the field being resolved, which seeds the chain every `X` beneath it
+ * is built from, so a select function knows where in the query its field sits. Undefined for an
+ * adapter without `callbackExtra`.
+ */
+function extraForResolvedField<M, Map, X, N extends NodeBase<M>>(
+  adapter: Adapter<M, Map, X, N>,
+  info: GraphQLResolveInfo,
+): X | undefined {
   if (!adapter.callbackExtra) {
     return undefined;
   }

@@ -19,3 +19,6 @@ serializes. `merge` and `compatible` receive the field key a map came from, so a
 merge same-named relations into one node (prisma, drizzle) or keep one slot per selected field.
 `node.ts` exports the default tree the prisma and drizzle adapters use; an ORM whose query is not a
 tree of columns, relations and extras supplies its own node type instead.
+
+Every walk records its loader mappings on the request context, which pothos requires to be an
+object; an adapter whose resolvers read a loaded row another way simply never looks them up.

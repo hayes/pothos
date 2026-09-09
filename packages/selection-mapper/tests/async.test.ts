@@ -578,7 +578,7 @@ describe('the synchronous path (A-1)', () => {
     const context = {};
     const walk = (await walkFromInfo(
       withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
-      { context, info, replayable: true },
+      { context, info },
     ))!;
     const { result, promises } = countPromises(() => queryFromWalk(walk, select));
 

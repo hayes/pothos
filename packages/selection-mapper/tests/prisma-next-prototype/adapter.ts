@@ -351,8 +351,6 @@ export const pnAdapter: PnAdapter = {
   typeSelection: typeSelectionOf,
   // S-4..S-6: a static spec or a select function, precompiled onto the field by the schema.
   fieldSelection: (field) => field.extensions?.[PN_SELECT] as PnSpec | PnSelectFn | undefined,
-  // Rows are read back through the per-resolve overlay, never through loader mappings.
-  recordsMappings: false,
   // The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field alias)
   // or the response key of the field the walker is merging.
   merge(node, spec, _key, alias) {

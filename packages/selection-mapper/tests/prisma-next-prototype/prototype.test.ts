@@ -493,8 +493,9 @@ describe('entry points', () => {
       'select(id, email)',
       'include(posts){ combine(posts:posts=[take(1) select(id)], :object:AdminUser:total=count[]) }',
     ]);
-    // recordsMappings is false: the row overlay is the read-back path, so nothing is recorded.
-    expect(Object.keys(walk.mappings)).toEqual([]);
+    // The walk records its mappings whatever the adapter does with them; this one reads rows
+    // back through the per-resolve overlay and never looks them up.
+    expect(Object.keys(walk.mappings)).toEqual(['AdminUser@posts']);
   });
 
   it('queryFromWalk emits the walk over a caller selection, and round-trips a serialized spec', async () => {
@@ -517,8 +518,11 @@ describe('entry points', () => {
       'select(name, id)',
       'include(posts){ combine(recent:posts=[take(1) select(id)], n:posts=count[]) }',
     ]);
-    // Still nothing recorded after emitting: the adapter opted out of loader mappings.
-    expect(getLoaderMapping(context, pathOf('user', 'recent'), 'User')).toBe(null);
+    // Emitting records the mappings, which this adapter simply never looks up.
+    expect(getLoaderMapping(context, pathOf('user', 'recent'), 'User')).toEqual({
+      extra: undefined,
+      nested: { 'Post@id': { nested: {} } },
+    });
     // A serialized spec merges back without a key: every entry carries its alias.
     expect(chain(queryFromWalk(walk))).toEqual(chain(pnAdapter.serialize(walk.root)));
   });

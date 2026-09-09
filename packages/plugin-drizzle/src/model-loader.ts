@@ -271,7 +271,7 @@ export class ModelLoader {
 
 /** The walk carries the adapter it was built with, so no loader instance is needed here. */
 function selectionOf(walk: DrizzleWalk): Selection {
-  return { walk, query: walk.env.adapter.serialize(walk.root) };
+  return { walk, query: walk.adapter.serialize(walk.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

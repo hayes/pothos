@@ -45,20 +45,17 @@ export interface Match {
   deferred: boolean;
 }
 
-export interface MatchOptions<M> {
+export interface MatchOptions {
   /** A type-level path prepended to every path. */
   prefix?: IndirectPathSegment[];
   /** The alias path the returned matches' paths start with. */
   path?: string[];
   deferred?: boolean;
-  /**
-   * W-10: matches whose field returns a different model than `targetType` are dropped. Several
-   * implementations of an interface may share a field name while returning different models, and
-   * their selections must never be merged into the same query. Types without a model always
-   * match. `modelOf` resolves a type's model through any indirect include.
-   */
-  targetType?: GraphQLNamedType;
-  modelOf?: (type: GraphQLNamedType) => M | undefined;
+}
+
+/** Just enough of an `Adapter` to look a type's model up. */
+export interface ModelLookup<M> {
+  modelFor: (type: GraphQLNamedType) => M | undefined;
 }
 
 /** The include a type carries, if any. */
@@ -80,16 +77,53 @@ export function resolveType(schema: GraphQLSchema, type: GraphQLNamedType): Grap
 }
 
 /**
+ * The model of a type, following indirect includes, which `Adapter.modelFor` does not. Every
+ * model question the walk asks goes through here.
+ */
+export function modelOf<M>(
+  adapter: ModelLookup<M>,
+  schema: GraphQLSchema,
+  type: GraphQLNamedType,
+): M | undefined {
+  return adapter.modelFor(resolveType(schema, type));
+}
+
+/**
+ * W-10: `matches` without the ones whose field returns a model other than `targetType`'s. Several
+ * implementations of an interface may share a field name while returning different models, and
+ * their selections must never be merged into the same query. Types without a model always match,
+ * and a target without one filters nothing.
+ */
+export function matchesForModel<M>(
+  adapter: ModelLookup<M>,
+  schema: GraphQLSchema,
+  matches: Match[],
+  targetType: GraphQLNamedType,
+): Match[] {
+  const targetModel = modelOf(adapter, schema, targetType);
+
+  if (!targetModel) {
+    return matches;
+  }
+
+  return matches.filter((match) => {
+    const model = modelOf(adapter, schema, match.type);
+
+    return !model || model === targetModel;
+  });
+}
+
+/**
  * Finds every field selected at the end of one of `paths`, starting from `selection` (which is
  * expected to be a selection on `type`). Paths are followed through fragments; see
  * `resolveFragmentTypes` for the rules. Matches are returned in path order, then document order.
  */
-export function findMatches<M>(
+export function findMatches(
   info: GraphQLResolveInfo,
   type: GraphQLNamedType,
   selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
   paths: IndirectPathSegment[][],
-  { prefix, path = [], deferred = false, targetType, modelOf }: MatchOptions<M> = {},
+  { prefix, path = [], deferred = false }: MatchOptions = {},
 ): Match[] {
   const matches: Match[] = [];
 
@@ -107,17 +141,7 @@ export function findMatches<M>(
     );
   }
 
-  const targetModel = targetType && modelOf?.(targetType);
-
-  if (!targetModel) {
-    return matches;
-  }
-
-  return matches.filter((match) => {
-    const model = modelOf!(match.type);
-
-    return !model || model === targetModel;
-  });
+  return matches;
 }
 
 /** One node of the memo trie: the names for the field nodes on the path to it, if computed. */
@@ -140,16 +164,10 @@ const selectedFieldNamesCache = createContextCache(
  * one traversal. Every row of a list resolves the field with the same field nodes, so the result
  * is memoised on them for the execution, which is what a resolver called per row wants. The memo
  * is keyed on the nodes rather than on `info.fieldNodes`: graphql-js 17 builds that array anew
- * for every resolve, while the nodes are the document's own.
+ * for every resolve, while the nodes are the document's own. Beneath that it is keyed on
+ * `info.variableValues` (one object per execution) and on the return type.
  */
 export function selectedFieldNames(context: object, info: GraphQLResolveInfo): ReadonlySet<string> {
-  // The memo needs a real `GraphQLResolveInfo`: it is keyed on `variableValues` (one object per
-  // execution) and on `returnType`. A context that is not an object cannot key a cache; the
-  // names are then collected without one.
-  if (typeof context !== 'object' || context === null) {
-    return collectSelectedFieldNames(info);
-  }
-
   const byExecution = selectedFieldNamesCache(context);
   let byType = byExecution.get(info.variableValues);
 
@@ -216,29 +234,35 @@ function collectFieldNames(
   }
 
   for (const sel of selection.selectionSet.selections) {
-    if (sel.kind === Kind.FIELD) {
-      if (
-        expectedType.name === type.name &&
-        (isObjectType(type) || isInterfaceType(type)) &&
-        !isSkipped(info, sel)
-      ) {
-        names.add(sel.name.value);
-      }
-
-      continue;
-    }
-
-    if (sel.kind !== Kind.FRAGMENT_SPREAD && sel.kind !== Kind.INLINE_FRAGMENT) {
-      throw new PothosValidationError(
-        `Unsupported selection kind ${(sel as { kind: string }).kind}`,
-      );
-    }
-
     if (isSkipped(info, sel)) {
       continue;
     }
 
-    const fragment = sel.kind === Kind.FRAGMENT_SPREAD ? info.fragments[sel.name.value] : sel;
+    let fragment: FragmentDefinitionNode | InlineFragmentNode;
+
+    switch (sel.kind) {
+      case Kind.FIELD: {
+        if (expectedType.name === type.name && (isObjectType(type) || isInterfaceType(type))) {
+          names.add(sel.name.value);
+        }
+
+        continue;
+      }
+      case Kind.FRAGMENT_SPREAD:
+        fragment = info.fragments[sel.name.value];
+        break;
+      case Kind.INLINE_FRAGMENT:
+        fragment = sel;
+        break;
+      default: {
+        const unsupported: never = sel;
+
+        throw new PothosValidationError(
+          `Unsupported selection kind ${(unsupported as { kind: string }).kind}`,
+        );
+      }
+    }
+
     const next = resolveFragmentTypes(
       info,
       fragment.typeCondition ? info.schema.getType(fragment.typeCondition.name.value)! : undefined,
@@ -379,10 +403,13 @@ function walkIndirectPath(
         );
         continue;
       }
-      default:
+      default: {
+        const unsupported: never = sel;
+
         throw new PothosValidationError(
-          `Unsupported selection kind ${(sel as { kind: string }).kind}`,
+          `Unsupported selection kind ${(unsupported as { kind: string }).kind}`,
         );
+      }
     }
   }
 }

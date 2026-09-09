@@ -1,6 +1,6 @@
 /**
  * The public types of the walk: what an entry point takes, the `Adapter` an ORM plugin supplies,
- * and the `Env` and `Walk` the walk runs with.
+ * and the `Walk` it runs with.
  */
 import type { MaybePromise } from '@pothos/core';
 import type {
@@ -55,16 +55,15 @@ export interface EntryOptions<Map> {
    * is when paths are given and nothing is selected under them.
    */
   initial?: Map;
-  skipDeferredFragments?: boolean;
   /**
-   * Records every merge into the root (`Walk.merges`), so `queryFromWalk` can rebuild the query
-   * with a caller's selection ahead of the walked plan. For the walk a plugin settles before
-   * handing a resolver a synchronous query builder.
+   * S-8, overriding `Adapter.skipDeferredFragments` for this walk. The setting belongs to a
+   * builder while prisma's adapter is a module singleton, so that plugin passes it per entry
+   * point instead of putting it on the adapter.
    */
-  replayable?: boolean;
+  skipDeferredFragments?: boolean;
 }
 
-/** One merge into a walk's root, in order, kept only for a replayable walk. */
+/** One merge into a walk's root, in order, recorded only by `walkFromInfo`. */
 export type RootMerge<Map> =
   | { kind: 'type'; map: Map }
   | { kind: 'variant'; type: WalkedType; variant: WalkedType; map: Map }
@@ -73,20 +72,19 @@ export type RootMerge<Map> =
 /**
  * The ORM boundary. `M` is the model description a node carries, `Map` the ORM's own selection
  * format (prisma `{ select, include, ...args }`, drizzle `DBQueryConfig`), opaque to the walker,
- * `X` an adapter-owned value threaded from a walk to the select functions beneath it (drizzle's
- * `PathInfo`), and `N` the adapter's node type, of which the walker reads only `model`.
+ * and `N` the adapter's node type, of which the walker reads only `model`.
+ *
+ * `X` is an adapter-owned value the walker carries down the walk without reading: `callbackExtra`
+ * builds one per field from the one above it, and the select functions beneath that field are
+ * called with it (drizzle's `PathInfo`, which records where in the loaded row a field's data will
+ * be found). Adapters that need nothing of the sort leave it `undefined`.
  */
 export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
+  /** S-8: whether a fragment under `@defer` is walked. `EntryOptions` may override it. */
   skipDeferredFragments: boolean;
   /**
-   * L-2: whether the walk records loader mappings for the plugin's resolvers to look up
-   * (`getLoaderMapping`). Default true. An adapter whose resolvers read a loaded row another way
-   * sets it false, and the walk records nothing.
-   */
-  recordsMappings?: boolean;
-  /**
-   * The model a type carries, or undefined. Does not follow indirect includes (`Env.modelOf`
-   * does). One object per model: identity is model identity.
+   * The model a type carries, or undefined. Does not follow indirect includes (the walker's own
+   * `modelOf` does). One object per model: identity is model identity.
    */
   modelFor(type: GraphQLNamedType): M | undefined;
   /**
@@ -157,28 +155,33 @@ export interface TypeLevelConflict {
   name: string;
 }
 
-/** What one entry-point call runs with, shared by reference with every nested walk. */
-export interface Env<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
+/**
+ * One root being built: its query tree, the mappings recorded beneath it, and what the walk runs
+ * with. An entry point creates one; every nested selection creates a child walk that copies
+ * `adapter`, `context`, `info` and `skipDeferred` from it.
+ */
+export interface Walk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
   adapter: Adapter<M, Map, X, N>;
   context: object;
   info: GraphQLResolveInfo;
+  /** S-8: `EntryOptions.skipDeferredFragments`, or the adapter's own setting. */
   skipDeferred: boolean;
-  /** The model of a type, following indirect includes. */
-  modelOf: (type: GraphQLNamedType) => M | undefined;
-}
-
-/** One root being built: its query tree and the mappings recorded beneath it. */
-export interface Walk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
-  env: Env<M, Map, X, N>;
   root: N;
   mappings: Mappings;
-  /** D-7: the extra of the field this walk hangs beneath. */
+  /**
+   * D-7: the adapter's `X` for the field this walk hangs beneath, which the `X` of every field
+   * walked into it is built from. Undefined for an adapter without `callbackExtra`.
+   */
   extra?: X;
   /**
    * The merges waiting on a user callback that returned a promise, in the order they were
    * appended (A-2, A-4). Absent until the first one: a synchronous walk never creates a promise.
    */
   pending?: Promise<void>;
-  /** The merges into `root` in order, when the walk was built replayable; see `queryFromWalk`. */
+  /**
+   * The merges into `root` in order, recorded by `walkFromInfo` so `queryFromWalk` can replay
+   * them behind a caller's selection. Absent for every other walk: nested walks are never
+   * replayed, and `selectionStateFromInfo` is not emitted through `queryFromWalk`.
+   */
   merges?: RootMerge<Map>[];
 }

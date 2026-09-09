@@ -3,7 +3,6 @@ import {
   getLoaderMapping,
   queryFromInfo,
   queryFromWalk,
-  selectedFieldNames,
   selectionStateFromInfo,
   walkFromInfo,
 } from '../src';
@@ -699,23 +698,6 @@ describe('adapter contract details', () => {
       queryFromInfo(adapter, { context: {}, info }),
     );
   });
-
-  it('touches neither the context nor the mappings when the adapter records none (A-3)', async () => {
-    const silent = createTestAdapter();
-
-    silent.recordsMappings = false;
-
-    const info = await resolveInfo(schema, '{ user { posts { id } } }');
-    const nullContext = null as unknown as object;
-
-    expect(queryFromInfo(silent, { context: nullContext, info })).toEqual(
-      queryFromInfo(adapter, { context: {}, info }),
-    );
-    expect(queryFromWalk(walkFromInfo(silent, { context: nullContext, info })!)).toEqual(
-      queryFromInfo(adapter, { context: {}, info }),
-    );
-    expect([...selectedFieldNames(nullContext, info)]).toEqual(['posts']);
-  });
 });
 
 describe('walkFromInfo', () => {
@@ -777,13 +759,13 @@ describe('queryFromWalk', () => {
     );
   });
 
-  it('replays a replayable plan over a conflicting selection, which wins as initial does', async () => {
+  it('replays the walked plan over a conflicting selection, which wins as initial does', async () => {
     const info = await resolveInfo(schema, '{ user { id posts(take: 2) { id } } }');
     const select = { select: { posts: { take: 1 } } };
     const expectedContext = {};
     const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
     const context = {};
-    const walk = walkFromInfo(adapter, { context, info, replayable: true })!;
+    const walk = walkFromInfo(adapter, { context, info })!;
 
     expect(queryFromWalk(walk, select)).toEqual(expected);
     // The document's `posts(take: 2)` lost the conflict: no mapping, it loads on its own.
@@ -791,15 +773,6 @@ describe('queryFromWalk', () => {
     expect(getLoaderMapping(expectedContext, pathOf('user', 'posts'), 'User')).toBe(null);
     // The walk itself is untouched: emitting it again without a selection gives the plan.
     expect(queryFromWalk(walk)).toEqual(queryFromInfo(adapter, { context: {}, info }));
-  });
-
-  it('refuses a conflicting selection when the walk was not built replayable', async () => {
-    const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
-    const walk = walkFromInfo(adapter, { context: {}, info })!;
-
-    expect(() => queryFromWalk(walk, { select: { posts: { take: 1 } } })).toThrow(
-      'replayable: true',
-    );
   });
 
   it('emits the walked plan alone without a selection', async () => {

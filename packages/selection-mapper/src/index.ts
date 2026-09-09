@@ -23,7 +23,6 @@ export { createNode, type Node, type NodeBase, relation } from './node.js';
 export type {
   Adapter,
   EntryOptions,
-  Env,
   NestedSelection,
   RootMerge,
   SelectFn,
