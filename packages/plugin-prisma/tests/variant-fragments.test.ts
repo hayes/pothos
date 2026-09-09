@@ -43,6 +43,19 @@ const Viewer = builder.prismaInterface('User', {
       },
       resolve: (user) => user.profile?.bio,
     }),
+    // A field-level select whose relation arguments conflict with LatestPostViewer's type-level
+    // select.
+    recentPostIds: t.idList({
+      select: {
+        posts: {
+          take: 3,
+          select: {
+            id: true,
+          },
+        },
+      },
+      resolve: (user) => user.posts.map((post) => post.id),
+    }),
   }),
 });
 
@@ -75,6 +88,47 @@ builder.prismaObject('User', {
   interfaces: [Viewer],
   fields: (t) => ({
     email: t.exposeString('email'),
+  }),
+});
+
+// Type-level relation arguments that conflict with Viewer.recentPostIds's field-level select.
+builder.prismaObject('User', {
+  variant: 'LatestPostViewer',
+  interfaces: [Viewer],
+  select: {
+    id: true,
+    posts: {
+      take: 1,
+      select: {
+        id: true,
+      },
+    },
+  },
+  fields: (t) => ({
+    latestPostId: t.id({
+      nullable: true,
+      resolve: (user) => user.posts[0]?.id,
+    }),
+  }),
+});
+
+// A second variant of Viewer whose type-level select conflicts with LatestPostViewer's.
+builder.prismaObject('User', {
+  variant: 'PostPairViewer',
+  interfaces: [Viewer],
+  select: {
+    id: true,
+    posts: {
+      take: 2,
+      select: {
+        id: true,
+      },
+    },
+  },
+  fields: (t) => ({
+    postPairIds: t.idList({
+      resolve: (user) => user.posts.map((post) => post.id),
+    }),
   }),
 });
 
@@ -382,6 +436,107 @@ describe('fragments on variants and non-model interfaces', () => {
           args: { select: { id: true }, where: { id: 1 } },
         },
       ]);
+    });
+  });
+
+  describe('type-level selections are merged before fields', () => {
+    const fieldFirst = gql`
+      query {
+        viewer {
+          recentPostIds
+          ... on LatestPostViewer {
+            latestPostId
+          }
+        }
+      }
+    `;
+    const fragmentFirst = gql`
+      query {
+        viewer {
+          ... on LatestPostViewer {
+            latestPostId
+          }
+          recentPostIds
+        }
+      }
+    `;
+
+    it('lets a conflicting field-level select fall back whichever side of the fragment it is on', async () => {
+      const posts = await prisma.post.findMany({ where: { authorId: 1 }, take: 3 });
+      queries.length = 0;
+
+      for (const document of [fieldFirst, fragmentFirst]) {
+        const result = await execute({
+          schema,
+          document,
+          contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+        });
+
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual({
+          viewer: {
+            recentPostIds: posts.map((post) => String(post.id)),
+            latestPostId: String(posts[0].id),
+          },
+        });
+        // The variant's type-level select is planned; the field loads its own posts.
+        expect(queries).toEqual([
+          {
+            action: 'findUniqueOrThrow',
+            model: 'User',
+            args: {
+              select: { id: true, posts: { take: 1, select: { id: true } } },
+              where: { id: 1 },
+            },
+          },
+          {
+            action: 'findUniqueOrThrow',
+            model: 'User',
+            args: {
+              select: { id: true, posts: { take: 3, select: { id: true } } },
+              where: { id: 1 },
+            },
+          },
+        ]);
+        queries.length = 0;
+      }
+    });
+
+    it('rejects conflicting type-level selections whichever fragment comes first', async () => {
+      const documents = [
+        gql`
+          query {
+            viewer {
+              ... on LatestPostViewer {
+                latestPostId
+              }
+              ... on PostPairViewer {
+                postPairIds
+              }
+            }
+          }
+        `,
+        gql`
+          query {
+            viewer {
+              ... on PostPairViewer {
+                postPairIds
+              }
+              ... on LatestPostViewer {
+                latestPostId
+              }
+            }
+          }
+        `,
+      ];
+
+      for (const document of documents) {
+        const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+
+        expect(result.errors?.[0]?.message).toMatch(
+          /^Type-level selections of Viewer and (LatestPostViewer|PostPairViewer) conflict on relation "posts"\./,
+        );
+      }
     });
   });
 });

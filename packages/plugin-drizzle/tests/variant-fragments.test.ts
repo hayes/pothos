@@ -48,6 +48,21 @@ const Viewer = builder.drizzleInterface('users', {
       },
       resolve: (user) => `@${user.username}`,
     }),
+    // A field-level select whose relation arguments conflict with LatestPostViewer's type-level
+    // select.
+    recentPostIds: t.idList({
+      select: {
+        with: {
+          posts: {
+            limit: 3,
+            columns: {
+              postId: true,
+            },
+          },
+        },
+      },
+      resolve: (user) => user.posts.map((post) => post.postId),
+    }),
   }),
 });
 
@@ -84,6 +99,55 @@ builder.drizzleObject('users', {
   interfaces: [Viewer],
   fields: (t) => ({
     lastName: t.exposeString('lastName', { nullable: true }),
+  }),
+});
+
+// Type-level relation arguments that conflict with Viewer.recentPostIds's field-level select.
+builder.drizzleObject('users', {
+  variant: 'LatestPostViewer',
+  interfaces: [Viewer],
+  select: {
+    columns: {
+      id: true,
+    },
+    with: {
+      posts: {
+        limit: 1,
+        columns: {
+          postId: true,
+        },
+      },
+    },
+  },
+  fields: (t) => ({
+    latestPostId: t.id({
+      nullable: true,
+      resolve: (user) => user.posts[0]?.postId,
+    }),
+  }),
+});
+
+// A second variant of Viewer whose type-level select conflicts with LatestPostViewer's.
+builder.drizzleObject('users', {
+  variant: 'PostPairViewer',
+  interfaces: [Viewer],
+  select: {
+    columns: {
+      id: true,
+    },
+    with: {
+      posts: {
+        limit: 2,
+        columns: {
+          postId: true,
+        },
+      },
+    },
+  },
+  fields: (t) => ({
+    postPairIds: t.idList({
+      resolve: (user) => user.posts.map((post) => post.postId),
+    }),
   }),
 });
 
@@ -369,6 +433,100 @@ describe('fragments on variants and non-model interfaces', () => {
           "Query: select "d0"."id" as "id" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
         ]
       `);
+    });
+  });
+
+  describe('type-level selections are merged before fields', () => {
+    const fieldFirst = gql`
+      query {
+        viewer {
+          recentPostIds
+          ... on LatestPostViewer {
+            latestPostId
+          }
+        }
+      }
+    `;
+    const fragmentFirst = gql`
+      query {
+        viewer {
+          ... on LatestPostViewer {
+            latestPostId
+          }
+          recentPostIds
+        }
+      }
+    `;
+
+    it('lets a conflicting field-level select fall back whichever side of the fragment it is on', async () => {
+      const posts = await db.query.posts.findMany({ where: { authorId: 1 }, limit: 3 });
+      clearDrizzleLogs();
+
+      const logs: string[][] = [];
+
+      for (const document of [fieldFirst, fragmentFirst]) {
+        const result = await execute({
+          schema,
+          document,
+          contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+        });
+
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual({
+          viewer: {
+            recentPostIds: posts.map((post) => String(post.postId)),
+            latestPostId: String(posts[0].postId),
+          },
+        });
+        logs.push([...drizzleLogs]);
+        clearDrizzleLogs();
+      }
+
+      expect(logs[1]).toEqual(logs[0]);
+      // The variant's type-level select is planned; the field loads its own posts.
+      expect(logs[0]).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
+          "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" in (?) -- params: [3, 1]",
+        ]
+      `);
+    });
+
+    it('rejects conflicting type-level selections whichever fragment comes first', async () => {
+      const documents = [
+        gql`
+          query {
+            viewer {
+              ... on LatestPostViewer {
+                latestPostId
+              }
+              ... on PostPairViewer {
+                postPairIds
+              }
+            }
+          }
+        `,
+        gql`
+          query {
+            viewer {
+              ... on PostPairViewer {
+                postPairIds
+              }
+              ... on LatestPostViewer {
+                latestPostId
+              }
+            }
+          }
+        `,
+      ];
+
+      for (const document of documents) {
+        const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+
+        expect(result.errors?.[0]?.message).toMatch(
+          /^Type-level selections of Viewer and (LatestPostViewer|PostPairViewer) conflict on relation "posts"\./,
+        );
+      }
     });
   });
 });

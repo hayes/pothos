@@ -431,6 +431,57 @@ function addNestedSelections(
   selections: SelectionSetNode,
   indirectPath: string[],
   segments: FieldPathInfo[] = [],
+) {
+  // Every variant a fragment at this node enters is merged before any field here is planned, so
+  // conflicts are only ever found between type-level selections, whatever order the document
+  // lists fields and fragments in. A field-level select that conflicts with a variant's
+  // type-level selection then falls back to its own query, as it would against the node's own
+  // type-level selection.
+  enterVariants(config, type, info, state, selections);
+  addSelections(config, type, context, info, state, selections, indirectPath, segments);
+}
+
+/**
+ * Merges the type-level selection of every variant that fragments under `type` enter, following
+ * nested fragments the way `addFragmentSelections` does: a fragment that does not apply to `type`
+ * contributes no variant of its own, but a fragment nested inside it may.
+ */
+function enterVariants(
+  config: PothosDrizzleSchemaConfig,
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  info: GraphQLResolveInfo,
+  state: SelectionState,
+  selections: SelectionSetNode,
+) {
+  for (const selection of selections.selections) {
+    if (selection.kind === Kind.FIELD || fragmentSkipped(info, state, selection)) {
+      continue;
+    }
+
+    const fragment =
+      selection.kind === Kind.FRAGMENT_SPREAD ? info.fragments[selection.name.value] : selection;
+    const condition = fragment.typeCondition
+      ? info.schema.getType(fragment.typeCondition.name.value)!
+      : type;
+    const fragmentType = typeForFragment(type, condition);
+
+    if (fragmentType && fragmentType !== type) {
+      enterVariant(config, type, fragmentType, state);
+    }
+
+    enterVariants(config, fragmentType ?? type, info, state, fragment.selectionSet);
+  }
+}
+
+function addSelections(
+  config: PothosDrizzleSchemaConfig,
+  type: GraphQLInterfaceType | GraphQLObjectType,
+  context: object,
+  info: GraphQLResolveInfo,
+  state: SelectionState,
+  selections: SelectionSetNode,
+  indirectPath: string[],
+  segments: FieldPathInfo[] = [],
   skipFields = false,
 ) {
   for (const selection of selections.selections) {
@@ -492,7 +543,8 @@ function addNestedSelections(
 /**
  * Walks the selections of a fragment on `condition` found under `type`. A fragment that cannot
  * apply to `type` contributes no fields, but a fragment nested inside it may still narrow back to
- * `type`, so nested fragments are classified against `type` as usual.
+ * `type`, so nested fragments are classified against `type` as usual. A fragment that enters a
+ * variant walks as the variant; its type-level selection was merged by `enterVariants` already.
  */
 function addFragmentSelections(
   config: PothosDrizzleSchemaConfig,
@@ -507,34 +559,16 @@ function addFragmentSelections(
 ) {
   const fragmentType = typeForFragment(type, condition);
 
-  if (!fragmentType) {
-    addNestedSelections(
-      config,
-      type,
-      context,
-      info,
-      state,
-      selections,
-      indirectPath,
-      segments,
-      true,
-    );
-    return;
-  }
-
-  if (fragmentType !== type) {
-    enterVariant(config, type, fragmentType, state);
-  }
-
-  addNestedSelections(
+  addSelections(
     config,
-    fragmentType,
+    fragmentType ?? type,
     context,
     info,
     state,
     selections,
     indirectPath,
     segments,
+    !fragmentType,
   );
 }
 
