@@ -2,7 +2,6 @@ import type { InputFieldMap, InputShapeFromFields, MaybePromise, SchemaTypes } f
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { AnyContract, CollectionFor, CursorSpec, ModelName, Row } from './types.js';
-import { applySelectionToCollection } from './utils/apply-selection.js';
 import { compileWhere } from './utils/compile-query.js';
 import {
   applyCursorPagination,
@@ -10,6 +9,7 @@ import {
   type ConnectionPage,
   normalizeCursor,
 } from './utils/cursors.js';
+import { applySelectionToCollection } from './utils/map-query.js';
 import {
   mapperOptionsFromPluginOpts,
   readPluginOptions,

@@ -1,7 +1,7 @@
 import { decodeBase64, encodeBase64, PothosValidationError } from '@pothos/core';
 import { parseCursorConnectionArgs } from '@pothos/plugin-relay';
 import { and, or } from '@prisma-next/sql-orm-client';
-import type { MapperCollection } from './apply-selection.js';
+import type { MapperCollection } from './adapter.js';
 
 // Per-column accessor shape. orm-client's `ModelAccessor` exposes the
 // same methods; the local interface avoids the literal-contract generics

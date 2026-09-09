@@ -1,0 +1,80 @@
+/**
+ * The plugin's entry points into `@pothos/selection-mapper`: the walk of a resolver's `info`
+ * emitted onto its collection.
+ */
+import { isThenable } from '@pothos/core';
+import {
+  type IndirectInclude,
+  type PathSegment,
+  queryFromWalk,
+  selectedFieldNames,
+  walkFromInfo,
+} from '@pothos/selection-mapper';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { AnyContract } from '../types.js';
+import { emit, type MapperCollection, type PrismaNextWalk, prismaNextAdapter } from './adapter.js';
+
+export type { IndirectInclude };
+export { selectedFieldNames };
+
+export interface PothosPrismaNextConfig {
+  contract: AnyContract;
+  skipDeferredFragments: boolean;
+}
+
+export interface ApplySelectionOptions {
+  /** Descend through these paths from the field's return type (`[['edges', 'node'], ['nodes']]`). */
+  paths?: PathSegment[][];
+  path?: PathSegment[];
+  /** Columns always read on the root, ahead of anything the selection adds (cursor and id columns). */
+  extraColumns?: readonly string[];
+  skipDeferredFragments?: boolean;
+  /** Walk as this type instead of `info.returnType` (a `node(id:)` load of a concrete type). */
+  typeName?: string;
+}
+
+/**
+ * The context as the walker's per-context caches need it: an object. graphql-js allows any
+ * `contextValue`, including none; a primitive gets a throwaway object, so nothing is cached
+ * across resolves for it.
+ */
+export function contextObject(context: unknown): object {
+  return context !== null && typeof context === 'object' ? context : {};
+}
+
+/**
+ * Walks the GraphQL info and emits the orm-client chain on `baseCollection`, returning the
+ * augmented collection. The result is a promise only when a `select` callback beneath the
+ * field returned one; a schema without async selections never sees one.
+ */
+export function applySelectionToCollection(
+  baseCollection: MapperCollection,
+  info: GraphQLResolveInfo,
+  contract: AnyContract,
+  context: unknown,
+  options: ApplySelectionOptions = {},
+): MapperCollection {
+  const ctx = contextObject(context);
+  const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
+  const walk = walkFromInfo(prismaNextAdapter(contract), {
+    context: ctx,
+    info,
+    typeName: options.typeName,
+    path: options.path,
+    paths: options.paths,
+    initial,
+    skipDeferredFragments: options.skipDeferredFragments,
+  });
+
+  if (!walk) {
+    // Nothing is selected under the paths: only the caller's own columns are read.
+    return emit(baseCollection, initial ?? {}, undefined, ctx);
+  }
+
+  const finish = (settled: PrismaNextWalk) =>
+    emit(baseCollection, queryFromWalk(settled), settled.root.model, ctx);
+
+  return isThenable(walk)
+    ? (walk.then((settled) => finish(settled as PrismaNextWalk)) as unknown as MapperCollection)
+    : finish(walk);
+}

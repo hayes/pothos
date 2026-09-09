@@ -43,6 +43,9 @@
     "access": "public",
     "provenance": true
   },
+  "dependencies": {
+    "@pothos/selection-mapper": "workspace:*"
+  },
   "peerDependencies": {
     "@pothos/core": "*",
     "@pothos/plugin-relay": "*",

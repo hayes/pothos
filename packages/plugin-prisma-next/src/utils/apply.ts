@@ -1,8 +1,13 @@
 import type { GraphQLResolveInfo } from 'graphql';
 import type { AnyContract } from '../types.js';
-import { applySelectionToCollection, type MapperCollection } from './apply-selection.js';
+import type { MapperCollection } from './adapter.js';
+import { applySelectionToCollection } from './map-query.js';
 import { type MapperPluginOptions, mapperOptionsFromPluginOpts } from './options.js';
 
+/**
+ * Applies the walked selection to a collection. The result is a promise of the collection only
+ * when a `select` callback beneath the field returned one (A-7).
+ */
 export type Apply = <C>(collection: C) => C;
 
 export interface CreateApplyOptions {

@@ -125,7 +125,8 @@ async function flush<IDShape>(state: BatchState<IDShape>, context: unknown): Pro
         const ids = entries.map((e) => e.parsedId);
         const base = runner.collection(context);
         const filtered = base.where(runner.buildIdPredicate(ids));
-        const applied = apply(filtered) as unknown as {
+        // `apply` is a promise only when a select callback beneath the field was async.
+        const applied = (await apply(filtered)) as unknown as {
           all: () => Promise<readonly unknown[]>;
         };
         const result = await applied.all();

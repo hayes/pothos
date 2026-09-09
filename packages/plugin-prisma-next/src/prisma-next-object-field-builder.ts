@@ -14,8 +14,10 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
+import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma-next/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
+import { PRISMA_NEXT_FIELD_SELECT } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
@@ -31,11 +33,7 @@ import type {
   Row,
   ToManyRelationKeys,
 } from './types.js';
-import {
-  applySelectionToCollection,
-  type IndirectInclude,
-  type MapperCollection,
-} from './utils/apply-selection.js';
+import type { MapperCollection, PrismaNextSelectFn, PrismaNextSpec } from './utils/adapter.js';
 import { rebrandForVariant } from './utils/branding.js';
 import { compileWhere } from './utils/compile-query.js';
 import { resolveContractModel } from './utils/contract.js';
@@ -44,9 +42,9 @@ import {
   buildConnectionPage,
   buildPaginationParams,
 } from './utils/cursors.js';
+import { contextObject } from './utils/map-query.js';
 import { readPluginOptions, resolveSizeOption } from './utils/options.js';
 import { getRefFromContractModel } from './utils/refs.js';
-import { selectionIncludesField, selectionSetIncludesField } from './utils/selection-walk.js';
 import { wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 function isToManyCardinality(cardinality: string): boolean {
@@ -274,12 +272,11 @@ export class PrismaNextObjectFieldBuilder<
       );
     }
     // Compile the variant routing through `pothosIndirectInclude` —
-    // the field-level extension the walker honors to descend into the
-    // named type's selection set on the same row. `select` (forced
-    // column reads) compiles to `pothosOptions.select` as a column-only
-    // array. Both extensions live on the field config; the walker
-    // applies the columns at the parent level and recurses through the
-    // indirect include for the rest of the selection.
+    // the field-level extension the adapter compiles into a same-row
+    // descent: the named type's selection set is walked as a nested
+    // selection of the same row and merged into the parent level.
+    // `select` (forced column reads) compiles to `pothosOptions.select`
+    // as a column-only array, applied to the same level.
     const pothosIndirectInclude = {
       getType: () => variantTypeName,
     };
@@ -301,9 +298,8 @@ export class PrismaNextObjectFieldBuilder<
         : (parent: unknown) => rebrandForVariant(parent, variantTypeName) as never,
     };
     if (variantSelect !== undefined && variantSelect.length > 0) {
-      // Pass through as a column-array `select` — the walker's
-      // `pothosOptions.select` branch picks up plain string arrays as
-      // parent-level column reads.
+      // Pass through as a column-array `select` — the adapter reads
+      // plain string arrays as parent-level column reads.
       fieldOpts.select = variantSelect;
     }
     return this.field(fieldOpts as never) as FieldRef<Types, unknown>;
@@ -594,95 +590,66 @@ export class PrismaNextObjectFieldBuilder<
     const pluginOpts = readPluginOptions(this.builder);
     const fallbackDefault = pluginOpts?.defaultConnectionSize;
     const fallbackMax = pluginOpts?.maxConnectionSize;
-    const contract = this.contract as AnyContract;
     const cursorOpt = options.cursor;
-    const relatedTypeName = meta.to.model;
+    // The GraphQL type the rows are walked as: a variant ref names itself, not its model.
+    const relatedTypeName = (targetRef as { name?: string }).name ?? meta.to.model;
 
     // Field-level pothosIndirectInclude — declares how the connection
-    // wraps related rows so the plugin-errors interop sees the same
-    // descent paths every other indirect-include uses. The walker
-    // doesn't auto-descend through this for the column load (that's
-    // handled inside the function-form select callback below where we
-    // have access to `info` and the connection field's selection
-    // node); the metadata is here for downstream plugins and future
-    // walker simplifications.
+    // wraps related rows, for downstream plugins (plugin-errors interop
+    // sees the same descent paths every other indirect-include uses).
+    // The select function below hands the same paths to the walker's
+    // nested selection, so the rows branch is walked as the related
+    // type through `edges.node` and `nodes`, through any result-union
+    // wrapper on the field.
     const pothosIndirectInclude: IndirectInclude = {
       getType: () => relatedTypeName,
       paths: [[{ name: 'edges' }, { name: 'node' }], [{ name: 'nodes' }]],
     };
+    const cursorCols: readonly string[] = typeof cursorOpt === 'string' ? [cursorOpt] : cursorOpt;
 
-    // Function-form `select` returning `{ [relationName]: fn }`. The
-    // inner function receives (sub, fnArgs, fnCtx) and returns the
-    // combine-spec entries that the walker namespaces under
-    // `<fieldAlias>:<innerKey>`. The per-field overlay then surfaces
-    // `parent.rows` and (when present) `parent.count` to the
-    // connection field's resolver.
-    //
-    // The outer callback also receives `info` and the connection
-    // field's selection node (internal extension to the signature) so
-    // we can gate the synthetic `count` entry on whether the client
-    // selected `totalCount` — emitting it unconditionally would force
-    // an extra COUNT(*) per page on every query.
-    const buildSelect = (
-      _args: unknown,
-      _ctx: unknown,
-      info: GraphQLResolveInfo,
-      fieldSelection: import('graphql').FieldNode,
-      connectionReturnType: import('graphql').GraphQLNamedType,
-    ) => {
-      const wantsTotalCount =
-        totalCountFlag &&
-        selectionSetIncludesField(fieldSelection.selectionSet, 'totalCount', info);
+    // The compiled selection: `{ [relationName]: rows }`, or `[rows, count]` when the client
+    // selected `totalCount` and the user opted in with `totalCount: true`. The rows branch is
+    // the nested selection under the connection paths, refined by the user's `where` and then
+    // cursor pagination, reading the cursor columns so every row can encode its cursor. The
+    // combine slots are `<alias>:rows` and `<alias>:count`; the per-field overlay lifts them
+    // onto `parent.rows` / `parent.count` for the resolver.
+    const select: PrismaNextSelectFn = (args, ctx, nested, getSelectedNode) => {
+      const filter = (rel: MapperCollection) =>
+        refine != null ? (refine(rel, args, ctx) as MapperCollection) : rel;
+      const resolvedDefault = resolveSizeOption(defaultSize, args, ctx) ?? fallbackDefault;
+      const resolvedMax = resolveSizeOption(maxSize, args, ctx) ?? fallbackMax;
+      const rows: PrismaNextSpec = {
+        ...nested(
+          {
+            slot: 'rows',
+            columns: cursorCols,
+            // The user's `where` comes BEFORE cursor pagination so the cursor over-fetch
+            // (`take(N+1)`) runs on the matching set.
+            refine: (rel) =>
+              applyCursorPagination(
+                filter(rel),
+                cursorOpt,
+                args as import('@pothos/plugin-relay').DefaultConnectionArguments,
+                {
+                  ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
+                  ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
+                },
+              ).collection,
+          },
+          pothosIndirectInclude,
+        ),
+        args: args as Record<string, unknown>,
+      };
+      // Synthetic count fires only when the client selected totalCount AND
+      // the user opted in via `totalCount: true`. Callable totalCount stays
+      // in the resolver — no extra DB round-trip in the spec.
+      const wantsTotalCount = totalCountFlag && getSelectedNode(['totalCount']) !== null;
+
       return {
-        [relationName]: (sub: unknown, fnArgs: unknown, fnCtx: unknown) => {
-          // 1) Apply user's `where` refine on the raw relation. The
-          //    filter must come BEFORE cursor pagination so cursor
-          //    over-fetch (`take(N+1)`) runs on the matching set.
-          const filtered =
-            refine != null
-              ? (refine(sub, fnArgs, fnCtx) as MapperCollection)
-              : (sub as MapperCollection);
-          // 2) Resolve size options once per call.
-          const resolvedDefault = resolveSizeOption(defaultSize, fnArgs, fnCtx) ?? fallbackDefault;
-          const resolvedMax = resolveSizeOption(maxSize, fnArgs, fnCtx) ?? fallbackMax;
-          // 3) Apply cursor pagination.
-          const pagination = applyCursorPagination(
-            filtered,
-            cursorOpt,
-            fnArgs as import('@pothos/plugin-relay').DefaultConnectionArguments,
-            {
-              ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
-              ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
-            },
-          );
-          // 4) Descend into edges.node / nodes selections to pull the
-          //    relevant columns into the paginated collection. The
-          //    cursor cols are always loaded so buildConnectionPage
-          //    can encode each row's cursor.
-          const cursorCols: readonly string[] =
-            typeof cursorOpt === 'string' ? [cursorOpt] : cursorOpt;
-          const paginatedWithCols = applySelectionToCollection(
-            pagination.collection,
-            info,
-            contract,
-            fnCtx,
-            {
-              paths: [['edges', 'node'], ['nodes']],
-              extraColumns: cursorCols,
-              fieldNode: fieldSelection,
-              startType: connectionReturnType,
-              ...(pluginOpts?.skipDeferredFragments !== undefined
-                ? { skipDeferredFragments: pluginOpts.skipDeferredFragments }
-                : {}),
-            },
-          );
-          // 5) Build the spec. Synthetic count fires only when the
-          //    client selected totalCount AND user opted in via
-          //    `totalCount: true`. Callable totalCount stays in the
-          //    resolver — no extra DB round-trip in the spec.
-          return wantsTotalCount
-            ? { rows: paginatedWithCols, count: filtered.count() }
-            : { rows: paginatedWithCols };
+        relations: {
+          [relationName]: wantsTotalCount
+            ? [rows, { fn: (sub: MapperCollection) => ({ count: filter(sub).count() }) }]
+            : rows,
         },
       };
     };
@@ -690,19 +657,25 @@ export class PrismaNextObjectFieldBuilder<
     const connectionConfig = {
       ...rest,
       type: targetRef,
-      select: buildSelect,
-      extensions: { ...userExtensions, pothosIndirectInclude },
+      extensions: {
+        ...userExtensions,
+        pothosIndirectInclude,
+        [PRISMA_NEXT_FIELD_SELECT]: select,
+      },
       resolve: async (
         parent: unknown,
         args: unknown,
         context: unknown,
         info: GraphQLResolveInfo,
       ) => {
-        // The per-field overlay surfaces `<alias>:rows` (and
-        // `<alias>:count` when present) onto `parent` as `rows` /
-        // `count`. Read those directly — no relation key lookups.
-        const p = parent as { rows?: unknown; count?: unknown };
-        const rows = p.rows;
+        // When the connection shares its relation with another consumer
+        // (a sibling `t.relation`, a type-level select, a count), the
+        // per-field overlay surfaces `<alias>:rows` (and `<alias>:count`)
+        // onto `parent` as `rows` / `count`. When it is the relation's only
+        // consumer the include took the single-consumer fast path and the
+        // rows are the relation value itself.
+        const p = parent as { rows?: unknown; count?: unknown; [key: string]: unknown };
+        const rows = p.rows !== undefined ? p.rows : p[relationName];
         if (rows === undefined) {
           throw new PothosValidationError(
             `relatedConnection '${info.parentType.name}.${info.fieldName}' was reached from a parent not loaded by t.prismaField. ` +
@@ -729,7 +702,10 @@ export class PrismaNextObjectFieldBuilder<
           if (p.count !== undefined) {
             (page as { totalCount?: number }).totalCount = p.count as number;
           }
-        } else if (totalCountCallback && selectionIncludesField(info, 'totalCount')) {
+        } else if (
+          totalCountCallback &&
+          selectedFieldNames(contextObject(context), info).has('totalCount')
+        ) {
           // Gated on selection: a rejecting callback shouldn't crash
           // queries that didn't ask for totalCount.
           (page as { totalCount?: number }).totalCount = await totalCountCallback(

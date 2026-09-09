@@ -13,8 +13,8 @@ import type {
   ModelName,
   PrismaNextConnectionFieldOptions,
 } from './types.js';
+import type { MapperCollection } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
-import type { MapperCollection } from './utils/apply-selection.js';
 import { applyCursorPagination, buildConnectionPage, normalizeCursor } from './utils/cursors.js';
 import {
   mapperOptionsFromPluginOpts,
@@ -159,7 +159,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           paths: [['edges', 'node'], ['nodes']],
           extraColumns: cursorCols,
         });
-        const applied = apply(userCollection) as MapperCollection;
+        // A promise only when a select callback beneath the field was async.
+        const applied = (await apply(userCollection)) as MapperCollection;
 
         const pagination = applyCursorPagination(applied, cursor as never, relayArgs, {
           ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
