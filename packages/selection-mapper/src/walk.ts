@@ -497,7 +497,17 @@ function enterVariants<M, Map, X>(
   declared: GraphQLNamedType,
   selections: readonly SelectionNode[],
 ) {
-  for (const fragment of applicableFragments(walk.env, selections)) {
+  for (const selection of selections) {
+    if (selection.kind === Kind.FIELD) {
+      continue;
+    }
+
+    const fragment = applicableFragment(walk.env, selection);
+
+    if (!fragment) {
+      continue;
+    }
+
     const as = fragmentTypeOf(walk.env, type, declared, fragment);
 
     if (as && as !== type) {
@@ -509,8 +519,9 @@ function enterVariants<M, Map, X>(
 }
 
 /**
- * S-7 second pass: fields apply to `node` unless the enclosing fragment cannot apply to `type`;
- * nested fragments are always classified against `type`, so one may narrow back to it.
+ * S-7 second pass: walks `selections` in document order, a fragment's fields where the fragment
+ * appears. Fields apply to `node` unless the enclosing fragment cannot apply to `type`; nested
+ * fragments are always classified against `type`, so one may narrow back to it.
  */
 function walkSelections<M, Map, X>(
   walk: Walk<M, Map, X>,
@@ -521,15 +532,21 @@ function walkSelections<M, Map, X>(
   indirectPath: string[],
   fieldsApply: boolean,
 ) {
-  if (fieldsApply) {
-    for (const selection of selections) {
-      if (selection.kind === Kind.FIELD) {
+  for (const selection of selections) {
+    if (selection.kind === Kind.FIELD) {
+      if (fieldsApply) {
         applyField(walk, node, type, selection, indirectPath);
       }
-    }
-  }
 
-  for (const fragment of applicableFragments(walk.env, selections)) {
+      continue;
+    }
+
+    const fragment = applicableFragment(walk.env, selection);
+
+    if (!fragment) {
+      continue;
+    }
+
     const as = fragmentTypeOf(walk.env, type, declared, fragment);
 
     walkSelections(
@@ -547,34 +564,25 @@ function walkSelections<M, Map, X>(
 
 type Fragment = FragmentDefinitionNode | InlineFragmentNode;
 
-/** The fragments of a selection set that apply: not skipped by a directive (S-2), not deferred (S-8). */
-function applicableFragments<M, Map, X>(
+/**
+ * The fragment a non-field selection stands for, or undefined when it does not apply: skipped by
+ * a directive (S-2), or deferred (S-8).
+ */
+function applicableFragment<M, Map, X>(
   { info, skipDeferred }: Env<M, Map, X>,
-  selections: readonly SelectionNode[],
-): Fragment[] {
-  const fragments: Fragment[] = [];
-
-  for (const selection of selections) {
-    if (selection.kind === Kind.FIELD) {
-      continue;
-    }
-
-    if (selection.kind !== Kind.FRAGMENT_SPREAD && selection.kind !== Kind.INLINE_FRAGMENT) {
-      throw new PothosValidationError(
-        `Unsupported selection kind ${(selection as { kind: string }).kind}`,
-      );
-    }
-
-    if (isSkipped(info, selection) || (skipDeferred && isDeferred(info, selection))) {
-      continue;
-    }
-
-    fragments.push(
-      selection.kind === Kind.FRAGMENT_SPREAD ? info.fragments[selection.name.value] : selection,
+  selection: SelectionNode,
+): Fragment | undefined {
+  if (selection.kind !== Kind.FRAGMENT_SPREAD && selection.kind !== Kind.INLINE_FRAGMENT) {
+    throw new PothosValidationError(
+      `Unsupported selection kind ${(selection as { kind: string }).kind}`,
     );
   }
 
-  return fragments;
+  if (isSkipped(info, selection) || (skipDeferred && isDeferred(info, selection))) {
+    return undefined;
+  }
+
+  return selection.kind === Kind.FRAGMENT_SPREAD ? info.fragments[selection.name.value] : selection;
 }
 
 /** The type to walk `fragment` as while walking `type`; an untyped fragment inherits `type`. */
