@@ -159,6 +159,34 @@ builder.prismaObject('Comment', {
   }),
 });
 
+// A `t.prismaField` on a prisma object takes a `select` planned into the parent row, and still
+// receives the query for its own model (the docs' "Selections on t.prismaField" example).
+builder.prismaObject('User', {
+  variant: 'SelectUser',
+  select: { email: true },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+    latestPost: t.prismaField({
+      type: 'Post',
+      nullable: true,
+      select: { id: true },
+      resolve: (query, user) => {
+        expectTypeOf(user.id).toEqualTypeOf<number>();
+        expectTypeOf(query).toEqualTypeOf<{
+          include?: PrismaTypes['Post']['Include'];
+          select?: PrismaTypes['Post']['Select'];
+        }>();
+
+        return prisma.post.findFirst({
+          ...query,
+          where: { authorId: user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+      },
+    }),
+  }),
+});
+
 // Only a list relation can be counted.
 builder.prismaObjectFields('User', (t) => ({
   postCount: t.relationCount('posts'),

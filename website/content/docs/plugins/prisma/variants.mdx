@@ -100,3 +100,19 @@ builder.prismaObjectField(Viewer, 'user', t.variant(User));
 ```
 
 This same workaround applies when defining relations using variants.
+
+## Conflicting type-level selections
+
+When a query selects two variants of one model for the same row (a fragment on each under one
+field, or a `t.variant` field), their type-level `select`/`include` are merged into one query,
+since one row answers both. A type-level selection has no per-field fallback, so two variants that
+select the same relation with different arguments cannot be merged, and the plugin throws:
+
+```
+PothosValidationError: Type-level selections of Viewer and Admin conflict on relation "posts".
+Move the relation arguments to a field-level select on one of the types.
+```
+
+The fix is the one the message names: keep the relation with its arguments in the `select` of the
+field that needs it, on one of the variants. A field-level selection that conflicts with what the
+row already holds falls back to a query of its own instead of failing the request.
