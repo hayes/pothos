@@ -111,6 +111,45 @@ describe('findMatches', () => {
     ]);
   });
 
+  it('expands a fragment spread more than once at one point of the walk once (W-2)', async () => {
+    // F1 spreads F2 twice, F2 spreads F3 twice, and so on: 2^11 spreads reach F12.
+    const fragments: string[] = [];
+
+    for (let i = 1; i < 12; i += 1) {
+      fragments.push(`fragment F${i} on Person { ...F${i + 1} ...F${i + 1} }`);
+    }
+
+    fragments.push('fragment F12 on Person { posts { id } }');
+
+    const info = await resolveInfo(schema, `{ person { ...F1 } }\n${fragments.join('\n')}`);
+    const started = performance.now();
+    const matches = findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [
+      [{ name: 'posts' }],
+    ]);
+
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(matches.map((match) => [match.type.name, match.path])).toEqual([['Post', ['posts']]]);
+  });
+
+  it('expands a fragment again under another alias path', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `
+        { user { a: posts { ...Author } b: posts { ...Author } } }
+        fragment Author on Post { author { id } }
+      `,
+    );
+
+    const matches = findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [
+      [{ name: 'posts' }, { name: 'author' }],
+    ]);
+
+    expect(matches.map((match) => match.path)).toEqual([
+      ['a', 'author'],
+      ['b', 'author'],
+    ]);
+  });
+
   it('ignores fragments under @skip and @include (S-2)', async () => {
     const info = await resolveInfo(
       schema,

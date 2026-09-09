@@ -499,6 +499,44 @@ describe('fragments on variants and non-model interfaces', () => {
     });
   });
 
+  describe('a fragment spread more than once', () => {
+    it('plans a deep chain of repeated spreads like the fragment it ends in', async () => {
+      // F1 spreads F2 twice, F2 spreads F3 twice, and so on: 2^11 spreads reach F12.
+      const fragments: string[] = [];
+
+      for (let i = 1; i < 12; i += 1) {
+        fragments.push(`fragment F${i} on Viewer { ...F${i + 1} ...F${i + 1} }`);
+      }
+
+      fragments.push('fragment F12 on Viewer { ... on NormalViewer { reverseFirstName } }');
+
+      const started = performance.now();
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ...F1
+            }
+          }
+          ${fragments.join('\n')}
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(performance.now() - started).toBeLessThan(1000);
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        viewer: { reverseFirstName: user.firstName?.split('').reverse().join('') ?? null },
+      });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
+    });
+  });
+
   describe('a field selected more than once', () => {
     // graphql merges both `viewer` selections into one `info.fieldNodes`.
     const variantLater = gql`

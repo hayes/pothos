@@ -493,14 +493,41 @@ function walkFields<M, Map, X>(
   const selectionSets = fieldNodes.flatMap((fieldNode) =>
     fieldNode.selectionSet ? [fieldNode.selectionSet.selections] : [],
   );
+  const entered = new Set<string>();
 
   for (const selections of selectionSets) {
-    enterVariants(walk, node, type, declared, selections);
+    enterVariants(walk, node, type, declared, selections, entered);
   }
 
+  const walked = new Set<string>();
+
   for (const selections of selectionSets) {
-    walkSelections(walk, node, type, declared, selections, indirectPath, true);
+    walkSelections(walk, node, type, declared, selections, indirectPath, true, walked);
   }
+}
+
+type Fragment = FragmentDefinitionNode | InlineFragmentNode;
+
+/**
+ * Whether `fragment` was already expanded under `key` in the pass `visited` belongs to, recording
+ * it if not. A named fragment spread more than once under the same type does the same work each
+ * time, and a valid fragment DAG can spread the same fragment at every level, so expanding every
+ * spread is exponential in its depth. Inline fragments cannot repeat.
+ */
+function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): boolean {
+  if (fragment.kind !== Kind.FRAGMENT_DEFINITION) {
+    return false;
+  }
+
+  const id = `${key}:${fragment.name.value}`;
+
+  if (visited.has(id)) {
+    return true;
+  }
+
+  visited.add(id);
+
+  return false;
 }
 
 /**
@@ -514,6 +541,7 @@ function enterVariants<M, Map, X>(
   type: WalkedType,
   declared: GraphQLNamedType,
   selections: readonly SelectionNode[],
+  visited: Set<string>,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
@@ -522,7 +550,7 @@ function enterVariants<M, Map, X>(
 
     const fragment = applicableFragment(walk.env, selection);
 
-    if (!fragment) {
+    if (!fragment || expandedBefore(visited, type.name, fragment)) {
       continue;
     }
 
@@ -532,7 +560,7 @@ function enterVariants<M, Map, X>(
       enterVariant(walk, node, type, as);
     }
 
-    enterVariants(walk, node, as ?? type, declared, fragment.selectionSet.selections);
+    enterVariants(walk, node, as ?? type, declared, fragment.selectionSet.selections, visited);
   }
 }
 
@@ -549,6 +577,7 @@ function walkSelections<M, Map, X>(
   selections: readonly SelectionNode[],
   indirectPath: string[],
   fieldsApply: boolean,
+  visited: Set<string>,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
@@ -561,7 +590,7 @@ function walkSelections<M, Map, X>(
 
     const fragment = applicableFragment(walk.env, selection);
 
-    if (!fragment) {
+    if (!fragment || expandedBefore(visited, `${type.name}:${fieldsApply}`, fragment)) {
       continue;
     }
 
@@ -576,11 +605,10 @@ function walkSelections<M, Map, X>(
       indirectPath,
       // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
       fragment.typeCondition ? as !== undefined : fieldsApply,
+      visited,
     );
   }
 }
-
-type Fragment = FragmentDefinitionNode | InlineFragmentNode;
 
 /**
  * The fragment a non-field selection stands for, or undefined when it does not apply: skipped by

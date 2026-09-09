@@ -435,6 +435,74 @@ describe('fragments (S-7)', () => {
   });
 });
 
+describe('repeated fragment spreads (W-2)', () => {
+  /** F1 spreads F2 twice, F2 spreads F3 twice, and so on; the last fragment selects `leaf`. */
+  function fragmentChain(depth: number, leaf: string) {
+    const fragments: string[] = [];
+
+    for (let i = 1; i < depth; i += 1) {
+      fragments.push(`fragment F${i} on Person { ...F${i + 1} ...F${i + 1} }`);
+    }
+
+    fragments.push(`fragment F${depth} on Person { ${leaf} }`);
+
+    return fragments.join('\n');
+  }
+
+  it('expands a fragment spread more than once under a type once per pass', async () => {
+    const counting = createTestAdapter();
+    const calls = { typeSelection: 0, fieldSelection: 0 };
+    const { typeSelection, fieldSelection } = counting;
+
+    counting.typeSelection = (type) => {
+      if (type.name === 'Viewer') {
+        calls.typeSelection += 1;
+      }
+
+      return typeSelection(type);
+    };
+    counting.fieldSelection = (field) => {
+      if (field.name === 'email') {
+        calls.fieldSelection += 1;
+      }
+
+      return fieldSelection(field);
+    };
+
+    const info = await resolveInfo(
+      schema,
+      `{ person { id ...F1 } }\n${fragmentChain(12, '... on Viewer { email }')}`,
+    );
+    const started = performance.now();
+
+    expect(queryFromInfo(counting, { context: {}, info })).toEqual({
+      select: { posts: { take: 5 }, id: true, email: true },
+    });
+    expect(performance.now() - started).toBeLessThan(1000);
+    // The variant is entered once and its field applied once, not 2^11 times each.
+    expect(calls).toEqual({ typeSelection: 1, fieldSelection: 1 });
+  });
+
+  it('expands a fragment again when it is reached under another type', async () => {
+    const context = {};
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `
+        { person { ... on Viewer { ...Posts } ...Posts } }
+        fragment Posts on Person { posts(take: 5) { id } }
+      `,
+    );
+
+    expect(queryFromInfo(adapter, { context, info })).toEqual({
+      select: { posts: { take: 5 }, id: true },
+    });
+    // Under Viewer the field is keyed by the variant, under Person by the interface: the
+    // resolver looks its mapping up by the runtime type, so both are needed.
+    expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Viewer')).toEqual({ nested: {} });
+    expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Person')).toEqual({ nested: {} });
+  });
+});
+
 describe('a field selected more than once (W-1)', () => {
   // graphql merges every occurrence of a response key into `info.fieldNodes`.
   const variantLater = /* GraphQL */ `
