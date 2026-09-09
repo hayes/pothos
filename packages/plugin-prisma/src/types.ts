@@ -778,18 +778,26 @@ export interface SelectionMap {
   where?: object;
 }
 
+/**
+ * A field's selection: a static map, or a function that may be async and whose nested-query
+ * callback may be too. What the function is handed (`mergeNestedSelection`) keeps its
+ * synchronous declared type: it is a promise only when a callback beneath it returned one.
+ */
 export type FieldSelection =
   | Record<string, SelectionMap | boolean>
   | ((
       args: object,
       context: object,
       mergeNestedSelection: (
-        selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
+        selection:
+          | SelectionMap
+          | boolean
+          | ((args: object, context: object) => MaybePromise<SelectionMap>),
         path?: IndirectInclude | string[],
         type?: string,
       ) => SelectionMap | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
-    ) => SelectionMap | false | null | undefined);
+    ) => MaybePromise<SelectionMap | false | null | undefined>);
 
 /**
  * @deprecated kept for compatibility. The loader mapping record is internal to the plugin and
