@@ -345,16 +345,68 @@ export type DrizzleObjectFieldOptions<
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: (<Selection extends boolean | {}>(
-              selection?: Selection,
-              path?: string[],
-            ) => Selection) &
-              PathInfo,
+            nestedSelection: NestedSelectionFn<Types, Type>,
           ) => MaybePromise<
             DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
           >)
       );
   };
+
+/** The table a field's type param names: a drizzle ref, or a list of one. */
+export type TableForTypeParam<Types extends SchemaTypes, Type> = Type extends [infer Item]
+  ? TableForTypeParam<Types, Item>
+  : // biome-ignore lint/suspicious/noExplicitAny: matching against any ref
+    Type extends DrizzleRef<any, infer Table>
+    ? Table & keyof Types['DrizzleRelations']
+    : never;
+
+/**
+ * The query config for the table a field's type param names (a `many` config for a list field),
+ * or never when the type has no table.
+ */
+export type QueryForTypeParam<Types extends SchemaTypes, Type> =
+  TableForTypeParam<Types, Type> extends infer Table
+    ? [Table] extends [never]
+      ? never
+      : DBQueryConfig<
+          Type extends [unknown] ? 'many' : 'one',
+          Types['DrizzleRelations'],
+          Types['DrizzleRelations'][Table & keyof Types['DrizzleRelations']]
+        >
+    : never;
+
+/**
+ * What `nestedSelection` returns: the query config for the field's table, keeping the keys of
+ * the given selection as they were given (so `columns` in it still narrow the parent shape).
+ * With no selection, or `true`, it is the config itself. A field whose type has no table keeps
+ * the selection it was given.
+ */
+export type NestedSelectionResult<Types extends SchemaTypes, Selection, Type> = [
+  QueryForTypeParam<Types, Type>,
+] extends [never]
+  ? Selection
+  : Selection extends boolean
+    ? QueryForTypeParam<Types, Type>
+    : Normalize<Omit<QueryForTypeParam<Types, Type>, keyof Selection> & Selection>;
+
+/**
+ * The callback a field's `select` function plans the selection beneath the field with: `path`
+ * walks a field nested under the field's type, `type` names the type the selection is read as.
+ * It also carries the `PathInfo` of the field being planned. The selection is typed by the
+ * field's table when it has one, so `columns: { title: true }` keeps its literal `true`.
+ */
+export type NestedSelectionFn<Types extends SchemaTypes, Type> = (<
+  Selection extends
+    | boolean
+    | ([QueryForTypeParam<Types, Type>] extends [never]
+        ? {}
+        : QueryForTypeParam<Types, Type>) = true,
+>(
+  selection?: Selection,
+  path?: string[],
+  type?: string,
+) => NestedSelectionResult<Types, Selection, Type>) &
+  PathInfo;
 
 export type DrizzleFieldSelection =
   | DBQueryConfig<'one'>
