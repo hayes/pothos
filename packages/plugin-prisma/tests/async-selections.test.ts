@@ -8,7 +8,9 @@ import { getLoaderMapping } from '@pothos/selection-mapper';
 import { execute } from '@pothos/test-utils';
 import type { DocumentNode, GraphQLObjectType } from 'graphql';
 import { gql } from 'graphql-tag';
+import { vi } from 'vitest';
 import PrismaPlugin, { type PrismaTypesFromClient, prismaConnectionHelpers } from '../src';
+import { ModelLoader } from '../src/model-loader';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 import { countPromises } from './promise-spy';
@@ -206,6 +208,15 @@ const User = builder.prismaObject('User', {
   }),
 });
 
+// Loaded by id through `loadWithoutCache`, with the selection beneath the node field.
+builder.prismaNode('Profile', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    bio: t.exposeString('bio', { nullable: true }),
+    user: t.relation('user'),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     user: t.prismaField({
@@ -217,6 +228,10 @@ builder.queryType({
     rawUser: t.field({
       type: User,
       resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }),
+    }),
+    rawUsers: t.field({
+      type: [User],
+      resolve: () => prisma.user.findMany({ take: 3, orderBy: { id: 'asc' } }),
     }),
     // Returns a row the test loaded with the planned query, so the whole resolution (planning
     // included) can run under the Promise spy without a database round trip.
@@ -282,6 +297,8 @@ async function sameAsSync(sync: DocumentNode, async: DocumentNode) {
 describe('async selections', () => {
   afterEach(() => {
     queries.length = 0;
+    // A spied method chains onto the promise it returns, which the Promise spy would count.
+    vi.restoreAllMocks();
   });
 
   afterAll(async () => {
@@ -423,6 +440,99 @@ describe('async selections', () => {
         },
       },
     ]);
+  });
+
+  it('loads every parent of a list through one staged batch', async () => {
+    const initLoad = vi.spyOn(ModelLoader.prototype, 'initLoad');
+    const { result, queries } = await run(gql`{ rawUsers { posts(limit: 1) { id } } }`);
+
+    expect(result.errors).toBeUndefined();
+    expect((result.data as { rawUsers: unknown[] }).rawUsers).toHaveLength(3);
+    // One batch: every row's synchronous selection staged in the tick the rows resolved in.
+    expect(initLoad).toHaveBeenCalledTimes(1);
+    expect(queries.map((query) => (query as { action: string }).action)).toEqual([
+      'findMany',
+      'findUniqueOrThrow',
+      'findUniqueOrThrow',
+      'findUniqueOrThrow',
+    ]);
+    expect(
+      new Set(
+        queries
+          .slice(1)
+          .map((query) => JSON.stringify((query as { args: { include: unknown } }).args.include)),
+      ).size,
+    ).toBe(1);
+  });
+
+  it('stages an unloaded row synchronously, creating only the loader batch promises', async () => {
+    const contextValue: Context = { user: { id: 1 } };
+    const result = await execute({
+      schema,
+      document: gql`{
+        rawUser {
+          posts(limit: 2) { id }
+          publishedCount
+          commentsConnection(first: 1) { edges { node { id } } }
+        }
+      }`,
+      contextValue,
+    });
+
+    expect(result.errors).toBeUndefined();
+    // The raw row, then the one batch the relation, the count and the connection staged into.
+    expect(queries.map((query) => (query as { action: string }).action)).toEqual([
+      'findUniqueOrThrow',
+      'findUniqueOrThrow',
+    ]);
+    expect(contextValue.resolved).toBe(3);
+    // Exactly the loader's own promises, all created before each resolver returned (planning a
+    // synchronous selection creates none): the first field creates the loader (its `tick`) and
+    // the batch (the row's promise, the next tick's promise, and the `tick.then` that issues the
+    // batch), and every field chains the mapping step and its resolver onto the row's promise.
+    expect(contextValue.promises).toBe(1 + 3 + 2 * 3);
+    queries.length = 0;
+  });
+
+  it('issues a node load synchronously, creating no promise beyond the query itself', async () => {
+    const config = builder.configStore.getTypeConfig('Profile', 'Object');
+    const options = config.pothosOptions as {
+      loadWithoutCache: (id: string, context: Context, info: unknown) => unknown;
+    };
+    const { loadWithoutCache } = options;
+    let promises = -1;
+
+    options.loadWithoutCache = (id, context, info) => {
+      const counted = countPromises(() => loadWithoutCache(id, context, info));
+
+      promises = counted.promises;
+
+      return counted.result;
+    };
+
+    try {
+      const { result, queries: issuedQueries } = await run(
+        gql`{ node(id: "UHJvZmlsZTox") { ... on Profile { bio user { id } } } }`,
+      );
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ node: { bio: expect.any(String), user: { id: '1' } } });
+      expect(issuedQueries).toMatchObject([
+        { action: 'findUniqueOrThrow', model: 'Profile', args: { include: { user: true } } },
+      ]);
+      // The query was issued, and its result chained, before loadWithoutCache returned: the
+      // synchronous window holds exactly the promises issuing the query itself creates, and
+      // planning added none.
+      const baseline = countPromises(() =>
+        prisma.profile.findUniqueOrThrow({ where: { id: 1 } }).then((record) => record),
+      );
+
+      await baseline.result;
+      expect(baseline.promises).toBeGreaterThan(0);
+      expect(promises).toBe(baseline.promises);
+    } finally {
+      options.loadWithoutCache = loadWithoutCache;
+    }
   });
 
   it('creates no promise while planning and resolving a synchronous document (A-1)', async () => {

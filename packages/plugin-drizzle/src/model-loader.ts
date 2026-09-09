@@ -1,6 +1,7 @@
 import {
   completeValue,
   createContextCache,
+  isThenable,
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
@@ -25,6 +26,13 @@ interface ResolvablePromise<T> {
   resolve: (value: T) => void;
   reject: (err: unknown) => void;
 }
+
+/** A field's loader walk and the query it serializes to. */
+interface Selection {
+  walk: DrizzleWalk;
+  query: SelectionMap;
+}
+
 export class ModelLoader {
   context: object;
 
@@ -33,7 +41,7 @@ export class ModelLoader {
   modelName: string;
 
   // L-4: one selection per `Type@path`, a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<{ walk: DrizzleWalk; query: SelectionMap }>>();
+  queryCache = new Map<string, MaybePromise<Selection>>();
 
   staged = new Set<{
     walk: DrizzleWalk;
@@ -124,34 +132,56 @@ export class ModelLoader {
 
   selectionOf = (walk: DrizzleWalk) => ({ walk, query: this.adapter.serialize(walk.root) });
 
-  async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { walk, query } = await this.getSelection(info);
+  /**
+   * L-3: `model` reloaded with the selection of the field `info` resolves. A synchronous
+   * selection stages synchronously, so every row resolved in a tick joins the same batch; only a
+   * selection with an async select beneath the field waits for it.
+   */
+  loadSelection(info: GraphQLResolveInfo, model: object): Promise<Record<string, unknown> | null> {
+    const selection = this.getSelection(info);
 
-    const result = await this.stageQuery(walk, query, model);
-
-    if (result) {
-      const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
-
-      if (mapping) {
-        // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
-        // with, along with the mappings of the fields beneath it.
-        setFieldMapping(this.context, info, mapping);
-      }
-    }
-
-    return result;
+    return isThenable(selection)
+      ? selection.then((settled) => this.loadWith(settled as Selection, info, model))
+      : this.loadWith(selection, info, model);
   }
 
-  async loadSelectionForField(info: GraphQLResolveInfo, model: object, returnType: string) {
-    const { walk, query } = await this.getSelectionForField(info, returnType);
+  private loadWith({ walk, query }: Selection, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(walk, query, model).then((result) => {
+      if (result) {
+        const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
 
-    const result = await this.stageQuery(walk, query, model);
+        if (mapping) {
+          // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
+          // with, along with the mappings of the fields beneath it.
+          setFieldMapping(this.context, info, mapping);
+        }
+      }
 
-    if (result) {
-      setLoaderMappings(this.context, info, walk.mappings);
-    }
+      return result;
+    });
+  }
 
-    return result;
+  /** A node loaded by id with the selection beneath the field `info` resolves, as `returnType`. */
+  loadSelectionForField(
+    info: GraphQLResolveInfo,
+    model: object,
+    returnType: string,
+  ): Promise<Record<string, unknown> | null> {
+    const selection = this.getSelectionForField(info, returnType);
+
+    return isThenable(selection)
+      ? selection.then((settled) => this.loadFieldWith(settled as Selection, info, model))
+      : this.loadFieldWith(selection, info, model);
+  }
+
+  private loadFieldWith({ walk, query }: Selection, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(walk, query, model).then((result) => {
+      if (result) {
+        setLoaderMappings(this.context, info, walk.mappings);
+      }
+
+      return result;
+    });
   }
 
   stageQuery(walk: DrizzleWalk, query: SelectionMap, model: object) {
