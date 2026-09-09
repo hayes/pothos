@@ -471,10 +471,10 @@ resolver did not pass the result of `query()` to drizzle, and when a relation's 
 with a sibling selection of the same relation that was planned first.
 
 Fallback queries are batched: every row of a table that needs the same selection in the same tick
-is loaded by one `findMany` filtered on the primary key, and the rows are matched back to their
-parents. A parent whose row the query did not return (deleted since it was loaded, or a row that
-never came from the table) rejects with `Model users(1) not found`, where the value in
-parentheses is its primary key.
+is loaded by one `findMany` filtered on the primary key (or, for a table without one, the first
+unique column), and the rows are matched back to their parents. A parent whose row the query did
+not return (deleted since it was loaded, or a row that never came from the table) rejects with
+`Model users(1) not found`, where the value in parentheses is that key.
 
 ## Variants
 
