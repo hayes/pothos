@@ -2,6 +2,7 @@ import {
   completeValue,
   createContextCache,
   type InterfaceRef,
+  isThenable,
   type MaybePromise,
   type ObjectRef,
   PothosSchemaError,
@@ -20,6 +21,13 @@ interface ResolvablePromise<T> {
   resolve: (value: T) => void;
   reject: (err: unknown) => void;
 }
+
+/** A field's loader walk and the query it serializes to. */
+interface Selection {
+  walk: PrismaWalk;
+  query: SelectionMap;
+}
+
 export class ModelLoader {
   context: object;
 
@@ -30,7 +38,7 @@ export class ModelLoader {
   modelName: string;
 
   // L-4: one selection per `Type@path`, a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<{ walk: PrismaWalk; query: SelectionMap }>>();
+  queryCache = new Map<string, MaybePromise<Selection>>();
 
   staged = new Set<{
     walk: PrismaWalk;
@@ -250,23 +258,34 @@ export class ModelLoader {
     return this.queryCache.get(key)!;
   }
 
-  async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { walk, query } = await this.getSelection(info);
+  /**
+   * L-3: `model` reloaded with the selection of the field `info` resolves. A synchronous
+   * selection stages synchronously, so every row resolved in a tick joins the same batch; only a
+   * selection with an async select beneath the field waits for it.
+   */
+  loadSelection(info: GraphQLResolveInfo, model: object): Promise<Record<string, unknown> | null> {
+    const selection = this.getSelection(info);
 
-    const result = await this.stageQuery(walk, query, model);
-
-    if (result) {
-      const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
-
-      if (mapping) {
-        setLoaderMappings(this.context, info, mapping.nested);
-      }
-    }
-
-    return result;
+    return isThenable(selection)
+      ? selection.then((settled) => this.loadWith(settled as Selection, info, model))
+      : this.loadWith(selection, info, model);
   }
 
-  async stageQuery(walk: PrismaWalk, query: SelectionMap, model: object) {
+  private loadWith({ walk, query }: Selection, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(walk, query, model).then((result) => {
+      if (result) {
+        const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
+
+        if (mapping) {
+          setLoaderMappings(this.context, info, mapping.nested);
+        }
+      }
+
+      return result;
+    });
+  }
+
+  stageQuery(walk: PrismaWalk, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
       if (prismaAdapter.compatible(entry.walk.root, query, false)) {
         prismaAdapter.merge(entry.walk.root, query);
@@ -275,7 +294,7 @@ export class ModelLoader {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
         }
 
-        return await entry.models.get(model)!.promise;
+        return entry.models.get(model)!.promise;
       }
     }
 

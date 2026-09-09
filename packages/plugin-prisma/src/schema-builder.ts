@@ -2,6 +2,7 @@ import './global-types.js';
 import SchemaBuilder, {
   brandWithType,
   type InterfaceRef,
+  isThenable,
   type OutputType,
   type SchemaTypes,
 } from '@pothos/core';
@@ -140,33 +141,39 @@ schemaBuilderProto.prismaNode = function prismaNode(
 
   const ref = this.prismaObject(type, extendedOptions as never);
 
+  // Built once per node type: loading with a synchronous plan issues the query in the same tick,
+  // without a promise or closure of its own.
+  const loadNode = (query: object, id: string, context: SchemaTypes['Context']) => {
+    const delegate = getDelegateFromModel(getClient(this, context), type);
+    const where = rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) };
+
+    return (
+      delegate.findUniqueOrThrow && !nullable
+        ? delegate.findUniqueOrThrow({ ...query, where } as never)
+        : delegate.findUnique({
+            ...query,
+            ...(nullable ? {} : { rejectOnNotFound: true }),
+            where,
+          } as never)
+    ).then((record: unknown) => {
+      brandWithType(record, typeName as OutputType<SchemaTypes>);
+
+      return record;
+    });
+  };
+
   (this as typeof this & { nodeRef: (ref: unknown, options: unknown) => unknown }).nodeRef(ref, {
     id: {
       ...idOptions,
       resolve: (parent: never, _args: object, context: object) => resolve(parent, context),
     },
-    loadWithoutCache: async (
-      id: string,
-      context: SchemaTypes['Context'],
-      info: GraphQLResolveInfo,
-    ) => {
-      const query = await queryFromInfo({ context, info, typeName });
-      const delegate = getDelegateFromModel(getClient(this, context), type);
+    loadWithoutCache: (id: string, context: SchemaTypes['Context'], info: GraphQLResolveInfo) => {
+      // A promise while a select beneath the node is async (A-7); the query waits only then.
+      const query = queryFromInfo({ context, info, typeName });
 
-      const record = await (delegate.findUniqueOrThrow && !nullable
-        ? delegate.findUniqueOrThrow({
-            ...query,
-            where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
-          } as never)
-        : delegate.findUnique({
-            ...query,
-            ...(nullable ? {} : { rejectOnNotFound: true }),
-            where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
-          } as never));
-
-      brandWithType(record, typeName as OutputType<SchemaTypes>);
-
-      return record;
+      return isThenable(query)
+        ? query.then((settled) => loadNode(settled as object, id, context))
+        : loadNode(query, id, context);
     },
   });
 

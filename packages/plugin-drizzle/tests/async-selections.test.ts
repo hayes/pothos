@@ -235,6 +235,15 @@ const User = builder.drizzleObject('users', {
   }),
 });
 
+// Loaded by id through `loadWithoutCache`, with the selection beneath the node field.
+builder.drizzleNode('comments', {
+  variant: 'CommentNode',
+  id: { column: (comment) => comment.id },
+  fields: (t) => ({
+    post: t.relation('post'),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     // The builder is synchronous even when a selection beneath the field is async: the plan is
@@ -265,6 +274,10 @@ builder.queryType({
     rawUser: t.drizzleField({
       type: User,
       resolve: () => db.query.users.findFirst({ where: { id: 1 } }),
+    }),
+    rawUsers: t.drizzleField({
+      type: [User],
+      resolve: () => db.query.users.findMany({ limit: 3, orderBy: { id: 'asc' } }),
     }),
     // Returns a row the test loaded with the planned query, so the whole resolution (planning
     // included) can run under the Promise spy without a database round trip.
@@ -490,6 +503,79 @@ describe('async selections', () => {
     expect(result.errors?.map((error) => error.message)).toEqual([
       'The relation "posts" passed to query() in the resolver for Query.userWithPosts conflicts with the arguments a selection beneath the field planned for it, and a selection beneath the field is async. Move the relation\'s arguments to the field that selects it.',
     ]);
+  });
+
+  it('loads every parent of a list through one staged batch', async () => {
+    const { result, logs } = await run(gql`{ rawUsers { posts(limit: 1) { id } } }`);
+
+    expect(result.errors).toBeUndefined();
+    expect((result.data as { rawUsers: unknown[] }).rawUsers).toHaveLength(3);
+    // One batch: every row's synchronous selection staged in the tick the rows resolved in.
+    expect(logs).toHaveLength(2);
+    expect(logs[1]).toContain('"d0"."id" in (?, ?, ?)');
+  });
+
+  it('stages an unloaded row synchronously, creating only the loader batch promises', async () => {
+    const contextValue: Context = { user: { id: 1 } };
+    const result = await execute({
+      schema,
+      document: gql`{
+        rawUser {
+          posts(limit: 2) { id }
+          publishedCount
+          commentsConnection(first: 1) { edges { node { id } } }
+        }
+      }`,
+      contextValue,
+    });
+
+    expect(result.errors).toBeUndefined();
+    // The raw row, then the one batch the relation, the count and the connection staged into.
+    expect(drizzleLogs).toHaveLength(2);
+    expect(drizzleLogs[1]).toContain('"d0"."id" in (?)');
+    expect(contextValue.resolved).toBe(3);
+    // Exactly the loader's own promises, all created before each resolver returned (planning a
+    // synchronous selection creates none): the first field creates the batch (the row's promise,
+    // the next tick's promise, and the `then` and `catch` that issue it), and every field chains
+    // the mapping step and its resolver onto the row's promise.
+    expect(contextValue.promises).toBe(4 + 2 * 3);
+  });
+
+  it('issues a node load synchronously, creating only the loader batch promises', async () => {
+    const config = builder.configStore.getTypeConfig('CommentNode', 'Object');
+    const options = config.pothosOptions as {
+      loadWithoutCache: (id: string, context: Context, info: unknown) => unknown;
+    };
+    const { loadWithoutCache } = options;
+    let promises = -1;
+
+    options.loadWithoutCache = (id, context, info) => {
+      const counted = countPromises(() => loadWithoutCache(id, context, info));
+
+      promises = counted.promises;
+
+      return counted.result;
+    };
+
+    try {
+      const { result, logs } = await run(
+        gql`{ node(id: "Q29tbWVudE5vZGU6MQ==") { ... on CommentNode { id post { id } } } }`,
+      );
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        node: { id: 'Q29tbWVudE5vZGU6MQ==', post: { id: expect.any(String) } },
+      });
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toContain('"d0"."id" in (?)');
+      expect(logs[0]).toContain('"post"');
+      // The batch (the row's promise, the next tick's promise, and the `then` and `catch` that
+      // issue it) and the mapping step, all created before loadWithoutCache returned: planning
+      // the synchronous selection created none.
+      expect(promises).toBe(4 + 1);
+    } finally {
+      options.loadWithoutCache = loadWithoutCache;
+    }
   });
 
   it('creates no promise while planning and resolving a synchronous document (A-1)', async () => {
