@@ -1,0 +1,21 @@
+query DeepFallback {
+  # Depth-3 nested includes (users → posts → comments → author) push
+  # past prisma-next's planner threshold for a single-statement plan.
+  # The runtime falls back to multiple SQL statements stitched on the
+  # client side; you'll see N entries in the SQL panel instead of one.
+  # The GraphQL response is identical either way — the plugin's
+  # selection-set walk doesn't change, only what prisma-next's SQL
+  # planner decides to emit.
+  users {
+    firstName
+    posts {
+      title
+      comments {
+        body
+        author {
+          firstName
+        }
+      }
+    }
+  }
+}

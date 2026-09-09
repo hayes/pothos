@@ -1,0 +1,12 @@
+query PublishedPosts {
+  # `publishedPosts` resolver runs `db.orm.Post.where(p => p.published.eq(1))`.
+  # The plugin layers `.select(...)` (from the GraphQL fields) and
+  # `.include('author', …)` (because `author` is a `t.relation`) on
+  # top of the already-filtered collection.
+  publishedPosts {
+    title
+    author {
+      firstName
+    }
+  }
+}

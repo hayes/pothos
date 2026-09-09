@@ -1,0 +1,10 @@
+query ListUsers {
+  # Toggle fields below and re-run — the SQL `SELECT` column list
+  # tracks the selection. The plugin walks this selection set; it
+  # doesn't pre-emit columns based on the type definition.
+  users {
+    id
+    firstName
+    email
+  }
+}

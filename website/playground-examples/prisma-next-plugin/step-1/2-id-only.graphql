@@ -1,0 +1,7 @@
+query IdOnly {
+  # Asking for only `id` produces `SELECT id FROM user`. No "select *"
+  # by default — the column list mirrors the GraphQL selection set.
+  users {
+    id
+  }
+}

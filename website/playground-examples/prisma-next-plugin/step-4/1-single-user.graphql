@@ -1,0 +1,9 @@
+query SingleUser {
+  # Top-level filter via `.where(u => u.id.eq(...))`. The resolver
+  # returns a collection; the plugin's auto-materialize layer sees the
+  # GraphQL type is non-list and emits `.first()` (= LIMIT 1) on it.
+  user(id: "u-alice") {
+    firstName
+    email
+  }
+}

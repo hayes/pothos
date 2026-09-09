@@ -1,0 +1,15 @@
+query Mixed {
+  # Posts list AND post count under the same selection. The walker
+  # sees two consumers of the `posts` relation:
+  #   • the GraphQL `posts` field (wants rows)
+  #   • the `postCount` field (wants `.count()`)
+  # Both land in one `.include('posts', sub => sub.combine({...}))`
+  # call — each consumer in its own namespaced slot.
+  users {
+    firstName
+    postCount
+    posts {
+      title
+    }
+  }
+}

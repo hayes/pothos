@@ -1,0 +1,27 @@
+query CompoundCursor {
+  # Compound cursor over `[createdAt, id]` — declared on
+  # `pagedPostsConnection`. Cursor encoding now packs both columns;
+  # the SQL ordering becomes:
+  #   ORDER BY post.createdAt ASC, post.id ASC
+  #   LIMIT 3
+  # When paginating forward (next page), the WHERE clause is a
+  # lexicographic predicate:
+  #   WHERE (post.createdAt, post.id) > (<created>, <id>)
+  # Both columns are pulled into the SELECT automatically so each
+  # edge's cursor can carry them.
+  user(id: "u-alice") {
+    pagedPostsConnection(first: 2) {
+      edges {
+        cursor
+        node {
+          id
+          title
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+query LastPage {
+  # Backward pagination: `last: 2` (instead of `first`). The plugin
+  # reverses the ORDER BY internally so the SQL ends up:
+  #   ORDER BY post.id DESC
+  #   LIMIT 3
+  # …then reverses the rows back to ascending before building edges,
+  # so the page is still ordered by `id ASC` from the client's POV.
+  # `pageInfo.hasPreviousPage` flips on instead of `hasNextPage`.
+  #
+  # `before:` works symmetrically with `last:` for paging earlier
+  # pages of an already-loaded sequence.
+  user(id: "u-alice") {
+    postsConnection(last: 2) {
+      edges {
+        cursor
+        node {
+          id
+          title
+        }
+      }
+      pageInfo {
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+}

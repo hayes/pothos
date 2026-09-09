@@ -1,0 +1,39 @@
+// Source schema for the blog demo. Regenerate `contract.json` +
+// `contract.d.ts` from this with `prisma-next contract emit` (prisma-next
+// 0.14.0). The SQL PSL provider v1 doesn't accept a `datasource` block or
+// a `Boolean` field, so `published` is modelled as `Int` and the target
+// comes from the CLI config. Char(36) ids use the `Uuid` type alias.
+
+types {
+  Uuid = String @db.Char(36)
+}
+
+model User {
+  id        Uuid      @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String    @unique
+  posts     Post[]
+  comments  Comment[]
+}
+
+model Post {
+  id        Uuid      @id @default(uuid())
+  title     String
+  content   String
+  published Int       @default(0)
+  authorId  Uuid
+  createdAt DateTime  @default(now())
+  author    User      @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+}
+
+model Comment {
+  id        Uuid     @id @default(uuid())
+  body      String
+  authorId  Uuid
+  postId    Uuid
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+}

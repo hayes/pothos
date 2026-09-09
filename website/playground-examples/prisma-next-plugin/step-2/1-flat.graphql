@@ -1,0 +1,8 @@
+query Flat {
+  # No relation in the selection set → single `SELECT` against `user`.
+  # The include chain you'll see in the next two queries doesn't fire.
+  users {
+    firstName
+    email
+  }
+}

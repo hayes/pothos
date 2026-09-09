@@ -1,0 +1,181 @@
+---
+title: Connections
+description: Relay-style connections backed by orm-client collections
+---
+
+`@pothos/plugin-prisma-next` ships two connection helpers and a public
+composable for advanced cases. All three share the same cursor-pagination
+machinery and the same `totalCount` plumbing.
+
+## `t.prismaConnection`
+
+A top-level Relay connection. Define one on Query / Mutation / any
+non-prisma object:
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    users: t.prismaConnection({
+      type: 'User',
+      cursor: 'id',
+      resolve: (_root, _args, ctx) => ctx.db.orm.User,
+    }),
+  }),
+});
+```
+
+The resolver returns the base `Collection`. The plugin:
+
+1. Auto-applies the selection set (descending through `edges.node` and
+   `nodes` so nested relations preload).
+2. Applies cursor pagination (`.where(cursor predicate).orderBy(cursor).take(limit + 1)`).
+3. Materializes via `.all()`.
+4. Optionally runs a parallel `totalCount` aggregate (see below).
+5. Builds the Relay connection page (`edges` / `pageInfo` / optional
+   `totalCount`).
+
+### Cursor
+
+`cursor: 'id'` uses a single column as the cursor. For lexicographic
+compound cursors, pass a tuple:
+
+```ts
+cursor: ['createdAt', 'id'] as const,
+```
+
+Both columns ship into every row's SELECT automatically.
+
+### Options
+
+| option | type | description |
+|---|---|---|
+| `type` | model name or ref | the connection's node type |
+| `cursor` | string or tuple | column(s) used for cursor pagination |
+| `args` | input args | extra args for filtering / sorting |
+| `defaultSize` | `number \| (args, ctx) => number` | default `first:` value |
+| `maxSize` | `number \| (args, ctx) => number` | hard cap on page size |
+| `totalCount` | `boolean \| (parent, args, ctx, info) => number` | enable totalCount (see below) |
+| `resolve` | `(parent, args, ctx, info) => Collection` | return the base collection |
+
+`defaultSize` / `maxSize` fall back to the plugin-wide
+`defaultConnectionSize` / `maxConnectionSize` options if not set.
+
+### totalCount
+
+Three modes:
+
+- `totalCount: false` (default) — no totalCount field.
+- `totalCount: true` — adds a `totalCount: Int!` field on the connection
+  type. The plugin runs an aggregate `count()` against the user-returned
+  collection (post-filter, pre-pagination), in parallel with the rows
+  fetch.
+- `totalCount: (parent, args, ctx, info) => number` — adds the field;
+  the user provides the count. Only invoked when the client actually
+  selects `totalCount`, so you don't pay for a count the client didn't
+  ask for.
+
+## `t.relatedConnection`
+
+A connection nested on a prisma object — pages a to-many relation
+without making a separate orm-client call. Useful for queries like
+`user.postsConnection(first: 10)`.
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    postsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+      where: { published: 1 },
+      totalCount: true,
+    }),
+  }),
+});
+```
+
+The pagination happens INSIDE the `.include('posts', cb => …)` callback
+on the parent collection — so the parent and the page rows ship as one
+orm-client plan whenever prisma-next's planner can collapse it. (At
+time of writing, the use of `.combine` for `totalCount` forces a
+multi-query fallback; tracked upstream.)
+
+### Options
+
+Same as `t.prismaConnection`, with one addition:
+
+- `where`: filter applied to the relation before cursor pagination.
+  Accepts a literal `ShorthandWhereFilter` or a callback
+  `(accessor, args, ctx) => predicate`.
+
+The `where` is filter-only at the type level — `take`/`skip`/`orderBy`
+are owned by cursor pagination and rejected as options.
+
+## `prismaConnectionHelpers`
+
+For custom connection fields that don't fit `t.prismaConnection` /
+`t.relatedConnection` (e.g. a connection that wraps the rows in
+domain-specific metadata), use `prismaConnectionHelpers`:
+
+```ts
+import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
+
+const userPostsHelpers = prismaConnectionHelpers(builder, 'Post', {
+  cursor: 'id',
+  // `args` accepts the callback form so `t.arg` is in scope.
+  args: (t) => ({
+    onlyPublished: t.boolean(),
+  }),
+  totalCount: true,
+  where: (p, args) => (args.onlyPublished ? p.published.eq(1) : undefined),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    posts: t.field({
+      type: someCustomConnectionType,
+      args: userPostsHelpers.getArgs(),
+      resolve: async (user, args, ctx, info) => {
+        const { collection, totalCountPromise, wrap } =
+          userPostsHelpers.applyPagination(
+            ctx.db.orm.Post.where((p) => p.authorId.eq(user.id)),
+            args,
+            info,
+            ctx,
+          );
+        const rows = await collection.all();
+        return wrap(rows, await totalCountPromise);
+      },
+    }),
+  }),
+});
+```
+
+The returned object exposes:
+
+- `ref`: the cached `PrismaNextObjectRef` for the model.
+- `getArgs()`: the connection args (idempotent — call once per field).
+- `applyPagination(coll, args, info, ctx)`: applies cursor pagination
+  + auto-include and returns `{ collection, totalCountPromise, wrap }`.
+- `connectionOptions(options)`: injects the synthetic `totalCount`
+  field onto the connection type's options.
+
+Pass `info` to `applyPagination` whenever possible — without it, the
+auto-include mapper can't descend into `edges.node` and nested
+`t.relation` fields under the connection won't preload.
+
+### Mapping rows on the edge
+
+Pass `resolveNode` to transform each row into a different shape (e.g.
+to expose a wrapper object with extra metadata as the connection's
+node):
+
+```ts
+prismaConnectionHelpers(builder, 'Post', {
+  cursor: 'id',
+  resolveNode: (row) => ({ post: row, decoratedAt: new Date() }),
+});
+```
+
+`resolveNode` runs AFTER `buildConnectionPage` builds the cursors, so
+each edge's cursor is encoded from the original row columns — the
+transform doesn't change cursor semantics.

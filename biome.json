@@ -16,6 +16,7 @@
       "!**/examples/**/prisma/**/*",
       "!**/packages/**/prisma/**/*",
       "!**/packages/**/client/**/*",
+      "!**/packages/plugin-prisma-next/tests/fixtures/**/*",
       "!**/packages/**/*/lib/**/*",
       "!**/packages/**/*/esm/**/*",
       "!**/packages/**/*/dts/**/*",
@@ -29,6 +30,9 @@
       "!**/components/playground/examples/examples-index.generated.ts",
       "!**/public/playground-examples/*.json",
       "!**/playground-examples/*.json",
+      "!**/playground-examples/**/contract.json",
+      "!**/playground-examples/**/contract.d.ts",
+      "!**/lib/playground/prisma-next/driver-sqlite/**/*",
       "!**/graphql-env.d.ts"
     ]
   },

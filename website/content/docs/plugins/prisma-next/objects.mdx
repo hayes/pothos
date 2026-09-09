@@ -1,0 +1,179 @@
+---
+title: Objects
+description: Defining GraphQL types backed by contract models
+---
+
+## Creating types with `builder.prismaObject`
+
+`builder.prismaObject` takes 2 arguments:
+
+1. `model`: The name of the contract model the new type represents.
+2. `options`: options for the type being created — very similar to the
+   options for any other object type.
+
+```ts
+builder.prismaObject('User', {
+  // Optional GraphQL type name, defaults to the contract model name.
+  name: 'PostAuthor',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+  }),
+});
+```
+
+These are regular object types — they work like any other type in Pothos.
+The advantage is that the plugin infers column types from the contract,
+so you don't need to write parent shapes by hand or import row types from
+the orm-client.
+
+## Adding prisma-next fields to other types
+
+`t.prismaField` defines fields that return contract-backed types. Resolvers
+return an orm-client `Collection`; the plugin auto-applies the GraphQL
+selection set and materializes the rows.
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    me: t.prismaField({
+      type: 'User',
+      resolve: (_root, _args, ctx) =>
+        ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
+    }),
+  }),
+});
+```
+
+`t.prismaField` differs from a plain `t.field` in two ways:
+
+1. `type` must name a registered prismaObject (or a list of one, e.g.
+   `['User']`).
+2. The resolver can return a `Collection` directly. The plugin layers
+   `.select(...)` / `.include(...)` onto it from the GraphQL selection
+   set, then calls `.all()` (with `.take(1)` injected for single-row
+   fields).
+
+If you need post-processing in the resolver, return the materialized
+rows yourself — the plugin's auto-detect only fires for actual orm-client
+collections.
+
+```ts
+me: t.prismaField({
+  type: 'User',
+  resolve: async (_root, _args, ctx) => {
+    const user = await ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)).first();
+    if (!user) throw new Error('Not found');
+    return user;
+  },
+}),
+```
+
+### With an input object — `t.prismaFieldWithInput`
+
+When `@pothos/plugin-with-input` is loaded, `t.prismaFieldWithInput`
+combines `t.prismaField`'s auto-include behavior with the
+with-input plugin's args-as-an-object pattern:
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    userByEmail: t.prismaFieldWithInput({
+      type: 'User',
+      nullable: true,
+      input: { email: t.input.string({ required: true }) },
+      resolve: (_root, args, ctx) =>
+        ctx.db.orm.User.where((u) => u.email.eq(args.input.email)),
+    }),
+  }),
+});
+```
+
+## Always-loaded columns — `prismaObject({ select })`
+
+When a custom resolver inside `fields:` needs columns that the GraphQL
+field name doesn't expose, declare them on the type with `select`:
+
+```ts
+builder.prismaObject('User', {
+  // Always load these columns + relations when this type is selected.
+  select: {
+    firstName: true,
+    lastName: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
+    }),
+  }),
+});
+```
+
+`select` accepts the same shape as `t.field({ select })`:
+
+- `{ col: true }` — column read.
+- `{ rel: true }` — simple include; the relation rows attach to the row.
+- `{ rel: { where, orderBy, take, skip } }` — declarative refine.
+- `{ rel: (sub) => ({...}) }` — function-form select for counts,
+  aggregates, or multiple variants. The inner keys land on the row as
+  flat properties (namespaced per type so variants don't collide).
+
+## Per-field selections — `t.field({ select })`
+
+Each field can declare its own columns and relations:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    initials: t.string({
+      select: ['firstName', 'lastName'],
+      resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
+    }),
+    publishedPostCount: t.field({
+      type: 'Int',
+      select: {
+        // Function form: `sub` is the relation's refinement collection.
+        posts: (sub) => ({ posts: sub.where({ published: 1 }).count() }),
+      },
+      // The walker namespaces combine slots; the plugin's per-field
+      // overlay surfaces `parent.posts` here as the count value, and
+      // the inferred parent type already carries `posts: number`.
+      resolve: (parent) => parent.posts,
+    }),
+  }),
+});
+```
+
+The walker collects every field's `select` declaration and emits one
+`.include('posts', cb => …)` per relation. Sibling consumers (a plain
+`posts` list, a `published` filter, and a count) land in one
+`cb.combine({...})` call with each consumer in its own namespaced slot.
+
+## Extending prisma objects
+
+The normal `builder.objectField(s)` methods can be used on prisma object
+refs, but they don't support `select`. To extend a prismaObject with
+fields that need column dependencies, use `prismaObjectField` or
+`prismaObjectFields`:
+
+```ts
+builder.prismaObjectField('User', 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```
+
+The string form requires that `User` has already been registered as a
+prismaObject. If only a variant exists (see [Variants](./variants)),
+pass the variant's ref or variant name explicitly.

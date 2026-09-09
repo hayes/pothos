@@ -1,0 +1,20 @@
+query NodeLookup {
+  # Relay's `node(id:)` decodes the global ID, dispatches to the right
+  # type's loader, then walks the GraphQL selection set. Two `... on Post`
+  # selections on the same query → the plugin's batch loader coalesces
+  # them into ONE `db.orm.Post.where(id IN (...)).include(author).all()`
+  # call — no DataLoader required, the plugin batches by path.
+  hello: node(id: "UG9zdDpwLWhlbGxv") {
+    ... on Post {
+      title
+      author {
+        firstName
+      }
+    }
+  }
+  types: node(id: "UG9zdDpwLXR5cGVz") {
+    ... on Post {
+      title
+    }
+  }
+}
