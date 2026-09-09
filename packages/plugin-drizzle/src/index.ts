@@ -171,7 +171,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     // row was not loaded from the planned query (a resolver returned a row it fetched itself),
     // the mapping alone is not proof, and the field falls back to the model loader.
     const loadedCheck = fieldConfig.extensions?.pothosDrizzleLoaded as
-      | ((value: unknown, info: GraphQLResolveInfo) => boolean)
+      | ((value: unknown, info: GraphQLResolveInfo, context: object) => boolean)
       | undefined;
 
     const parentTypes = new Set([fieldConfig.parentType]);
@@ -205,7 +205,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         }
       }
 
-      if ((!loadedCheck || loadedCheck(parent, info)) && mapping) {
+      if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         // Recorded under the field's own parent type as well, so its resolver finds the pathInfo
         // it was planned with, whichever same-model type the plan was made for.
         setFieldMapping(context, info, mapping);

@@ -1,6 +1,6 @@
 import {
   type IndirectInclude,
-  selectsPath,
+  selectedFieldNames,
   queryFromInfo as walkQueryFromInfo,
   selectionStateFromInfo as walkSelectionStateFromInfo,
   walkFromInfo as walkWalkFromInfo,
@@ -11,7 +11,7 @@ import type { PothosDrizzleSchemaConfig } from './config.js';
 import type { SelectionMap } from './selections.js';
 
 export type { IndirectInclude };
-export { selectsPath };
+export { selectedFieldNames };
 
 export interface QueryFromInfoOptions<T extends SelectionMap> {
   config: PothosDrizzleSchemaConfig;

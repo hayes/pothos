@@ -136,7 +136,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
     const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
     const loadedCheck = fieldConfig.extensions?.pothosPrismaLoaded as
-      | ((val: unknown, info: GraphQLResolveInfo) => boolean)
+      | ((val: unknown, info: GraphQLResolveInfo, context: object) => boolean)
       | undefined;
     const loaderCache = parentConfig.extensions?.pothosPrismaLoader as (
       model: unknown,
@@ -169,7 +169,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         }
       }
 
-      if ((!loadedCheck || loadedCheck(parent, info)) && mapping) {
+      if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         setLoaderMappings(context, info, mapping.nested);
 
         return resolver(parent, args, context, info);

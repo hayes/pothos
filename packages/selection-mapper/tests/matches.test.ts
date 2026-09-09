@@ -1,6 +1,13 @@
 import { getNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { findMatches, includeOf, normalizeInclude, resolveType, selectsPath } from '../src';
+import {
+  findMatches,
+  includeOf,
+  normalizeInclude,
+  resolveType,
+  selectedFieldNames,
+  selectsPath,
+} from '../src';
 import { fieldNodeOf, resolveInfo } from './fake-adapter';
 import { createTestAdapter, createTestSchema, models } from './schema';
 
@@ -196,6 +203,58 @@ describe('selectsPath', () => {
     expect(selectsPath(success, [])).toBe(true);
     expect(selectsPath(success, ['posts'])).toBe(true);
     expect(selectsPath(success, ['profile'])).toBe(false);
+  });
+});
+
+describe('selectedFieldNames', () => {
+  it('reports the fields beneath the field, through fragments, directives, and wrappers', async () => {
+    const connection = await resolveInfo(
+      schema,
+      /* GraphQL */ `
+        {
+          user {
+            postsConnection {
+              ... on PostConnection { totalCount }
+              ...Edges
+              pageInfo @skip(if: true) { hasNextPage }
+            }
+          }
+        }
+        fragment Edges on PostConnection { edges { cursor } }
+      `,
+      { at: ['User', 'postsConnection'] },
+    );
+
+    expect([...selectedFieldNames({}, connection)]).toEqual(['totalCount', 'edges']);
+
+    const wrapped = await resolveInfo(schema, '{ result { ... on Failure { message } } }');
+
+    expect([...selectedFieldNames({}, wrapped)]).toEqual([]);
+
+    const success = await resolveInfo(
+      schema,
+      '{ result { ... on UserSuccess { data { posts { id } profile { bio } } } } }',
+    );
+
+    expect([...selectedFieldNames({}, success)]).toEqual(['posts', 'profile']);
+  });
+
+  it('reads the selection once per execution for the same field nodes (W-3)', async () => {
+    const info = await resolveInfo(schema, '{ user { postsConnection { totalCount } } }', {
+      at: ['User', 'postsConnection'],
+    });
+    const context = {};
+    const names = selectedFieldNames(context, info);
+
+    // graphql builds a new info per row, and (since 17) a new `fieldNodes` array around the same
+    // nodes.
+    expect(selectedFieldNames(context, { ...info })).toBe(names);
+    expect(selectedFieldNames(context, { ...info, fieldNodes: [...info.fieldNodes] })).toBe(names);
+    // Another request, or another execution (whose variables may skip other fields), reads again.
+    expect(selectedFieldNames({}, info)).not.toBe(names);
+    expect(
+      selectedFieldNames(context, { ...info, variableValues: { ...info.variableValues } }),
+    ).not.toBe(names);
   });
 });
 

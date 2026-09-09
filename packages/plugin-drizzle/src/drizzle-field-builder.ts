@@ -51,7 +51,7 @@ import {
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors.js';
-import { selectsPath } from './utils/map-query.js';
+import { selectedFieldNames } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
 import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
 
@@ -293,13 +293,12 @@ export class DrizzleObjectFieldBuilder<
     const countKey = `_${name as string}_count`;
 
     // What the document asks of this connection, read the way the planner reads it (through
-    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan.
-    const connectionSelection = (info: GraphQLResolveInfo) => {
-      const hasTotalCount = !!totalCount && selectsPath(info, ['totalCount']);
-      const hasRows =
-        selectsPath(info, ['edges']) ||
-        selectsPath(info, ['nodes']) ||
-        selectsPath(info, ['pageInfo']);
+    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan. The
+    // selection is read once per request and shared by every parent row.
+    const connectionSelection = (context: object, info: GraphQLResolveInfo) => {
+      const selected = selectedFieldNames(context, info);
+      const hasTotalCount = !!totalCount && selected.has('totalCount');
+      const hasRows = selected.has('edges') || selected.has('nodes') || selected.has('pageInfo');
 
       return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
     };
@@ -358,8 +357,12 @@ export class DrizzleObjectFieldBuilder<
         extensions: {
           ...extensions,
           pothosDrizzleSelect: relationSelect,
-          pothosDrizzleLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
-            const { hasTotalCount, totalCountOnly } = connectionSelection(info);
+          pothosDrizzleLoaded: (
+            value: Record<string, unknown>,
+            info: GraphQLResolveInfo,
+            context: object,
+          ) => {
+            const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
 
             return (
               (!hasTotalCount || value[countKey] !== undefined) &&
@@ -381,7 +384,7 @@ export class DrizzleObjectFieldBuilder<
             : undefined;
 
           // Only totalCount was requested: the relation was never selected, so skip the cursors.
-          if (connectionSelection(info).totalCountOnly) {
+          if (connectionSelection(context, info).totalCountOnly) {
             return {
               parent,
               args,

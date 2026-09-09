@@ -1,5 +1,5 @@
 import {
-  selectsPath,
+  selectedFieldNames,
   queryFromInfo as walkQueryFromInfo,
   selectionStateFromInfo as walkSelectionStateFromInfo,
 } from '@pothos/selection-mapper';
@@ -7,7 +7,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
 import { type PrismaWalk, prismaAdapter } from './adapter.js';
 
-export { selectsPath };
+export { selectedFieldNames };
 
 export function queryFromInfo<
   Select extends SelectionMap['select'] | undefined = undefined,
