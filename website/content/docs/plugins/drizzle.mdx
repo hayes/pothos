@@ -206,17 +206,22 @@ const UserRef = builder.drizzleObject('users', {
 
 ### How selections are planned
 
-Every field on a drizzle object is answered in one of two ways, never both. Either its selection is
+Every field on a drizzle object is answered in one of two ways. Either its selection is
 **planned** into the query of the nearest ancestor that runs one (a `t.drizzleField`, a
 `t.relation`, a connection, or a [fallback query](#fallback-queries)) and the field reads its data
 from the loaded row, or the field is **loaded on its own**: by a `resolve` that queries drizzle
-itself, or by the fallback query the plugin issues for a relation whose data is not on the row.
+itself, or by the fallback query the plugin issues for a relation whose data is not on the row. A
+field can do both: a `t.drizzleField` (or any field with a `select`) nested under such an ancestor
+has its `select` planned into the parent's row, and its `resolve` still runs a query of its own.
+What is planned is the parent data it reads; what it loads itself is what it returns.
 
 Two selections of the same relation share one place in the query only when their arguments
-(`where`, `orderBy`, `limit`, ...) are the same. When they differ, the first in document order is
-planned and the second is loaded by a query of its own. A field-level `select` is merged into the
-same query as its siblings and the type-level selection rather than isolating the field, so two
-fields that need the same relation with different arguments cannot both be answered from one row.
+(`where`, `orderBy`, `limit`, ...) are the same. When they differ, the first to be planned wins and
+the other is loaded by a query of its own. A type-level `select` is planned before any field's
+selection, whatever the document's order; among fields, the first in document order is planned
+first. A field-level `select` is merged into the same query as its siblings and the type-level
+selection rather than isolating the field, so two fields that need the same relation with
+different arguments cannot both be answered from one row.
 
 The callbacks that build a selection may be async; see [Async selections](#async-selections).
 

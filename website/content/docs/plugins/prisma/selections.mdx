@@ -5,16 +5,21 @@ description: how to use custom includes and selections to optimize your prisma q
 
 ## How selections are planned
 
-Every field on a prisma object is answered in one of two ways, never both. Either its selection is
+Every field on a prisma object is answered in one of two ways. Either its selection is
 **planned** into the query of the nearest ancestor that runs one (a `t.prismaField`, a
 `t.relation`, a connection, or a [fallback query](./relations#fallback-queries)) and the field
 reads its data from the loaded row, or the field is **loaded on its own**: by a `resolve` that
 queries prisma itself, or by the fallback query the plugin issues for a `t.relation` whose data is
-not on the row.
+not on the row. A field can do both: a `t.prismaField` (or any field with a `select`) nested under
+such an ancestor has its `select` planned into the parent's row, and its `resolve` still runs a
+query of its own. What is planned is the parent data it reads; what it loads itself is what it
+returns.
 
 Two selections of the same relation share one place in the query only when their arguments
-(`where`, `orderBy`, `take`, ...) are the same. When they differ, the first in document order is
-planned and the second is loaded by a query of its own.
+(`where`, `orderBy`, `take`, ...) are the same. When they differ, the first to be planned wins and
+the other is loaded by a query of its own. A type-level `select` or `include` is planned before
+any field's selection, whatever the document's order; among fields, the first in document order is
+planned first.
 
 A field-level `select` is merged into the same query as its siblings and the type-level selection;
 it does not get a private copy of the row. A relation selected with arguments by one field is the
