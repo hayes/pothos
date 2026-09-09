@@ -184,9 +184,10 @@ builder.drizzleObjectFields('users', (t) => ({
     deprecationReason: 'use postCount',
     extensions: { complexity: 1 },
     authScopes: {},
-    select: async (buildFilter) => ({
-      extras: { postsTotal: (parent) => db.$count(posts, buildFilter(parent)) },
-    }),
+    select: (buildFilter) =>
+      Promise.resolve({
+        extras: { postsTotal: (parent) => db.$count(posts, buildFilter(parent)) },
+      }),
     resolve: (user, _args, _ctx, info) => {
       expectTypeOf(info).toEqualTypeOf<GraphQLResolveInfo>();
       expectTypeOf(user.postsTotal).toEqualTypeOf<number>();

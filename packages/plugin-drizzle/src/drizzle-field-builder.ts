@@ -6,7 +6,6 @@ import {
   type FieldRef,
   type InferredFieldOptionKeys,
   type InputFieldMap,
-  type InputShapeFromFields,
   type InterfaceParam,
   isThenable,
   type MaybePromise,
