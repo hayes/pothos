@@ -147,6 +147,7 @@ describe('plugin · end-to-end execution', () => {
     await execute({
       schema,
       document: parse('{ users { id firstName posts { id title } } }'),
+      contextValue: {},
     });
 
     // The mapper should have called .select(...) and .include('posts', ...)
@@ -188,6 +189,7 @@ describe('plugin · end-to-end execution', () => {
           postCount
         }
       }`),
+      contextValue: {},
     });
 
     expect(result.errors).toBeUndefined();
@@ -219,6 +221,7 @@ describe('plugin · end-to-end execution', () => {
     const result = await execute({
       schema,
       document: parse('{ users { id posts { id title } } }'),
+      contextValue: {},
     });
 
     expect(result.errors).toBeUndefined();
@@ -259,6 +262,7 @@ describe('plugin · end-to-end execution', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ userById { id } }'),
+      contextValue: {},
     });
 
     expect(result.errors).toBeUndefined();
@@ -299,6 +303,7 @@ describe('plugin · end-to-end execution', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ rawUser { id posts { id } } }'),
+      contextValue: {},
     });
 
     expect(result.errors).toBeDefined();
@@ -337,6 +342,7 @@ describe('plugin · end-to-end execution', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ users { id garbled } }'),
+      contextValue: {},
     });
     expect(result.errors).toBeDefined();
     const msg = (result.errors ?? []).map((e) => e.message).join('\n');
@@ -380,6 +386,7 @@ describe('plugin · end-to-end execution', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ users { id garbled } }'),
+      contextValue: {},
     });
     expect(result.errors).toBeDefined();
     const msg = (result.errors ?? []).map((e) => e.message).join('\n');
@@ -421,6 +428,7 @@ describe('plugin · end-to-end execution', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ firstUser { id } }'),
+      contextValue: {},
     });
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ firstUser: { id: 'u-1' } });
@@ -433,6 +441,7 @@ describe('plugin · end-to-end execution', () => {
     const result2 = await execute({
       schema: builder.toSchema(),
       document: parse('{ allUsers { id } }'),
+      contextValue: {},
     });
     expect(result2.errors).toBeUndefined();
     const listTakeCalls = single.calls.filter((c) => c.method === 'take');
@@ -494,6 +503,7 @@ describe('plugin · end-to-end execution', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ users { id basicView { id postCount } } }'),
+      contextValue: {},
     });
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({

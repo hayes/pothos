@@ -713,7 +713,7 @@ describe('buildTotalCountPromise — direct unit', () => {
       baseCollection: null,
       parent: null,
       args: null,
-      context: null,
+      context: {},
     });
     expect(await promise).toBeUndefined();
   });
@@ -738,7 +738,7 @@ describe('buildTotalCountPromise — direct unit', () => {
       baseCollection: null,
       parent: null,
       args: null,
-      context: null,
+      context: {},
     });
     expect(await promise).toBe(42);
   });
@@ -766,7 +766,7 @@ describe('buildTotalCountPromise — direct unit', () => {
       baseCollection: null,
       parent: null,
       args: null,
-      context: null,
+      context: {},
     });
     await expect(promise).rejects.toThrow(/boom/);
   });
@@ -799,7 +799,7 @@ describe('buildTotalCountPromise — direct unit', () => {
       baseCollection,
       parent: null,
       args: null,
-      context: null,
+      context: {},
     });
     expect(await promise).toBe(99);
   });

@@ -6,6 +6,11 @@ in the package), `wart` (works but awkward, unclear, or costs more than it shoul
 (fit well). Package paths are under `packages/selection-mapper/src/`, plugin paths under
 `packages/plugin-prisma-next/src/`.
 
+The `diff` blocks below show the package as it stood when each finding was reported. The package
+has since folded `Env` into `Walk` (`walk.env.adapter` is `walk.adapter`, `env.modelOf(type)` is
+`modelOf(adapter, schema, type)`) and dropped `Adapter.recordsMappings` and
+`EntryOptions.replayable`, so read them as proposals rather than as current line references.
+
 ## Blockers
 
 None so far.
@@ -112,32 +117,26 @@ without walking beneath it" pins it.
    }
   ```
 
-### A-3: an object `context` is required even with `recordsMappings: false`
+### A-3: the context must be an object
 
-**Fixed upstream in 098a01fa**: `queryFromWalk` records nothing for such an adapter and
-`selectedFieldNames` collects without its memo for a non-object context. `contextObject()` is
-deleted; the plugin passes the context through as is, and the unit tests that pass `null` stay.
+**Resolved upstream, the other way round.** `Adapter.recordsMappings` was removed: the walk
+always records its loader mappings and always publishes them, and an adapter that reads rows
+another way (this one reads them through the per-resolve overlay) simply never looks them up.
+The context must therefore be an object, as it must in every pothos plugin — core's own context
+cache is a WeakMap keyed on it — so `selectedFieldNames` lost its non-object fallback too.
 
-- Where: `entry.ts:73-78` (`queryFromWalk` calls `setLoaderMappings(context, info, walk.mappings)`
-  unconditionally), `loader-map.ts:22` and `matches.ts:104` (`createContextCache` → WeakMap key).
-  Plugin: `utils/map-query.ts` `contextObject`, used by `applySelectionToCollection`,
-  `total-count.ts`, and the `relatedConnection` resolver.
-- graphql-js allows any `contextValue`, including none; the plugin's unit tests pass `null`. The
-  old walker coerced `(context as object) ?? {}`. With the shared package, `setLoaderMappings` is
-  called for an adapter that records nothing, and `selectedFieldNames` keys a WeakMap on the
-  context; both throw `Invalid value used as weak map key` on a primitive.
-- Workaround: `contextObject()` hands a throwaway `{}` for a non-object context.
-- Smallest upstream change (`entry.ts`): skip the record when nothing is recorded.
-  ```diff
-   if (!select) {
-  -  setLoaderMappings(context, info, walk.mappings);
-  +  if (adapter.recordsMappings !== false) {
-  +    setLoaderMappings(context, info, walk.mappings);
-  +  }
-     return adapter.serialize(walk.root);
-   }
-  ```
-  `selectedFieldNames` could fall back to an uncached traversal for a non-object context.
+- Plugin: `contextObject()` is deleted and the context is passed through as is; the
+  `buildTotalCountPromise` unit tests pass `{}` instead of `null`, and the adapter no longer
+  declares the flag.
+- Original report: graphql-js allows any `contextValue`, including none, and the plugin's unit
+  tests passed `null`; the old plugin-local walker coerced `(context as object) ?? {}`. With the
+  shared package, `setLoaderMappings` keys `createContextCache` on the context and
+  `selectedFieldNames` keys a WeakMap on it, so a primitive throws `Invalid value used as weak
+  map key`.
+- The proposed fix was to skip the record when the adapter records nothing. The maintainer's
+  ruling: a flag that makes the walker branch is more complexity than the thing it buys, and
+  requiring an object context is already the rule everywhere else in pothos. Recording mappings
+  an adapter ignores costs one entry per merged field and nothing else.
 
 ### A-4: `selectedFieldNames` needs `info.returnType` and an object `info.variableValues`
 

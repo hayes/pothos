@@ -366,6 +366,7 @@ describe('N:M (junction) — end-to-end against real sqlite', () => {
       execute({
         schema: buildSchema(),
         document: parse('{ posts { id title tags { id name } } }'),
+        contextValue: {},
       }),
     );
     expect(result.errors).toBeUndefined();
@@ -425,6 +426,7 @@ describe('N:M (junction) — end-to-end against real sqlite', () => {
       execute({
         schema: builder.toSchema(),
         document: parse('{ posts { id graphqlTags { name } } }'),
+        contextValue: {},
       }),
     );
     expect(result.errors).toBeUndefined();

@@ -506,7 +506,7 @@ describe('counts and function-form entries', () => {
     });
     const schema = builder.toSchema();
 
-    await execute({ schema, document: parse('{ users { garbled } }') });
+    await execute({ schema, document: parse('{ users { garbled } }'), contextValue: {} });
     expect(() =>
       applySelectionToCollection(new RecordingCollection(), info!, sampleContract as never, {}),
     ).toThrow("select: 'firstNme' is not a column or relation on User");

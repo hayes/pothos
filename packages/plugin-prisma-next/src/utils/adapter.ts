@@ -8,8 +8,9 @@
  *
  * Every relation consumer gets its own combine slot (`<alias>:<slot>`, or
  * `:object:<Type>:<slot>` for a type-level select), so nothing ever conflicts: `compatible`
- * answers true, `typeLevelConflict` never reports one, and rows are read back through the
- * per-resolve overlay in the plugin index rather than loader mappings (`recordsMappings: false`).
+ * answers true and `typeLevelConflict` never reports one. Rows are read back through the
+ * per-resolve overlay in the plugin index, so the loader mappings the walk records are never
+ * looked up.
  */
 import { isThenable, PothosValidationError } from '@pothos/core';
 import {
@@ -720,8 +721,6 @@ export function prismaNextAdapter(contract: AnyContract): PrismaNextAdapter {
 
       return selection ?? undefined;
     },
-    // Rows are read back through the per-resolve overlay, never through loader mappings.
-    recordsMappings: false,
     // The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field
     // alias) or the response key of the field the walker is merging.
     merge(node, spec, _key, alias) {

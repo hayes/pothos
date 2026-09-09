@@ -170,6 +170,7 @@ describe('plugin-options end-to-end', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ users { edges { node { id } } pageInfo { hasNextPage } } }'),
+      contextValue: {},
     });
     expect(result.errors).toBeUndefined();
     const data = result.data as {
@@ -206,6 +207,7 @@ describe('plugin-options end-to-end', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ users(first: 100) { edges { node { id } } } }'),
+      contextValue: {},
     });
     expect(result.errors).toBeUndefined();
     const data = result.data as { users: { edges: Array<{ node: { id: string } }> } };
@@ -242,6 +244,7 @@ describe('plugin-options end-to-end', () => {
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ users { id } }'),
+      contextValue: {},
     });
     expect(result.errors).toBeUndefined();
   });

@@ -148,8 +148,8 @@ relation for the first time runs **FK augmentation**: the relation's
 the workaround for prisma-next's nested-stitch plan needing the parent's
 FK on depth-2+ includes. `compatible` always answers true and
 `typeLevelConflict` never reports one: every consumer has its own slot,
-so nothing conflicts. `recordsMappings: false`: rows are read back
-through the per-resolve overlay, not loader mappings.
+so nothing conflicts. Rows are read back through the per-resolve overlay,
+so the loader mappings the walk records are never looked up.
 
 Then **emission** (`emit`, from the serialized root):
 

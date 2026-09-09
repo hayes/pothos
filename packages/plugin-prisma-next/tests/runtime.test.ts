@@ -271,7 +271,7 @@ function buildSchema() {
 async function runQuery(query: string) {
   const captures: CapturedExecution[] = [];
   const result = await withCapture(captures, async () =>
-    Promise.resolve(execute({ schema: buildSchema(), document: parse(query) })),
+    Promise.resolve(execute({ schema: buildSchema(), document: parse(query), contextValue: {} })),
   );
   return { result, captures };
 }

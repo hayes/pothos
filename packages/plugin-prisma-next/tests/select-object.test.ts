@@ -79,7 +79,7 @@ describe('object-level select on prismaObject', () => {
   async function runQuery(query: string) {
     const captures: CapturedExecution[] = [];
     const result = await withCapture(captures, async () =>
-      Promise.resolve(execute({ schema: buildSchema(), document: parse(query) })),
+      Promise.resolve(execute({ schema: buildSchema(), document: parse(query), contextValue: {} })),
     );
     return { result, captures };
   }
@@ -169,7 +169,7 @@ describe('object-form select on t.field', () => {
   async function runQuery(query: string) {
     const captures: CapturedExecution[] = [];
     const result = await withCapture(captures, async () =>
-      Promise.resolve(execute({ schema: buildSchema(), document: parse(query) })),
+      Promise.resolve(execute({ schema: buildSchema(), document: parse(query), contextValue: {} })),
     );
     return { result, captures };
   }
