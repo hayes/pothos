@@ -279,10 +279,11 @@ You can read more about the relation query builder api
 
 ## Async selections
 
-`select` functions, relation `query` callbacks, and `relatedCount` `where` callbacks may be async.
-The plugin still builds one query: it waits for the callbacks and merges what they return after
-every synchronous selection, in document order. Schemas without async callbacks are unaffected: no
-promise is created until a callback returns one.
+`select` functions, relation `query` callbacks, `relatedCount` `where` callbacks, and the `select`
+and `query` callbacks of `drizzleConnectionHelpers` may be async. The plugin still builds one query:
+it waits for the callbacks and merges what they return after every synchronous selection, in
+document order. Schemas without async callbacks are unaffected: no promise is created until a
+callback returns one.
 
 ```ts
 builder.drizzleObject('users', {
@@ -314,7 +315,8 @@ builder.queryField('me', (t) =>
 
 Inside an async `select`, `await` the result of `nestedSelection` (and of helpers built on it, such
 as `getQuery` from `drizzleConnectionHelpers`) before adding it to the selection; a selection that
-contains the promise itself throws. Calling `nestedSelection` and discarding its result is not
+contains the promise itself throws, and so does a `select` that returns while a nested selection it
+started is still pending. Calling `nestedSelection` and discarding a synchronous result is not
 detected: the nested selection is then not loaded with the parent.
 
 ## Drizzle Fields
