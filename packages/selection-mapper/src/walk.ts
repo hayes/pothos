@@ -59,7 +59,10 @@ export interface EntryOptions<Map> {
   typeName?: string;
   path?: PathSegment[];
   paths?: PathSegment[][];
+  /** Merged into the root before anything is walked (E-1). */
   initial?: Map;
+  /** Returned when paths are given and nothing is selected under them; defaults to `initial`. */
+  noMatch?: Map;
   skipDeferredFragments?: boolean;
   withUsageCheck?: boolean;
 }
@@ -165,7 +168,7 @@ export function queryFromInfo<M, Map extends object, X = undefined>(
   if (!walk) {
     // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
     // caller gets back its own selection.
-    return wrap(options.initial ?? ({} as Map), options.withUsageCheck);
+    return wrap(options.noMatch ?? options.initial ?? ({} as Map), options.withUsageCheck);
   }
 
   return finish(walk, emitQuery, options.withUsageCheck);
