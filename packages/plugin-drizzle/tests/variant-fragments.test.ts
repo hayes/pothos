@@ -499,6 +499,68 @@ describe('fragments on variants and non-model interfaces', () => {
     });
   });
 
+  describe('a field selected more than once', () => {
+    // graphql merges both `viewer` selections into one `info.fieldNodes`.
+    const variantLater = gql`
+      query {
+        viewer {
+          id
+        }
+        ...More
+      }
+
+      fragment More on Query {
+        viewer {
+          ... on NormalViewer {
+            reverseFirstName
+          }
+        }
+      }
+    `;
+    const variantFirst = gql`
+      query {
+        ...More
+        viewer {
+          id
+        }
+      }
+
+      fragment More on Query {
+        viewer {
+          ... on NormalViewer {
+            reverseFirstName
+          }
+        }
+      }
+    `;
+
+    it("merges a variant's type-level select from either occurrence of the field", async () => {
+      const logs: string[][] = [];
+
+      for (const document of [variantLater, variantFirst]) {
+        const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual({
+          viewer: {
+            id: '1',
+            reverseFirstName: user.firstName?.split('').reverse().join('') ?? null,
+          },
+        });
+        logs.push([...drizzleLogs]);
+        clearDrizzleLogs();
+      }
+
+      expect(logs[1]).toEqual(logs[0]);
+      // The variant's `firstName` is loaded in the one query.
+      expect(logs[0]).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
+    });
+  });
+
   describe('type-level selections are merged before fields', () => {
     const fieldFirst = gql`
       query {

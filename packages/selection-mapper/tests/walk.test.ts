@@ -435,6 +435,73 @@ describe('fragments (S-7)', () => {
   });
 });
 
+describe('a field selected more than once (W-1)', () => {
+  // graphql merges every occurrence of a response key into `info.fieldNodes`.
+  const variantLater = /* GraphQL */ `
+    query { person { id } ...More }
+    fragment More on Query { person { ... on Viewer { email } } }
+  `;
+  const variantFirst = /* GraphQL */ `
+    query { ...More person { id } }
+    fragment More on Query { person { ... on Viewer { email } } }
+  `;
+
+  it('plans every node selecting the field into the one root, whichever occurrence comes first', async () => {
+    for (const source of [variantLater, variantFirst]) {
+      const info = await resolveInfo(schema, source);
+
+      expect(info.fieldNodes).toHaveLength(2);
+      expect(queryFromInfo(adapter, { context: {}, info })).toEqual({
+        select: { posts: { take: 5 }, id: true, email: true },
+      });
+    }
+  });
+
+  it('enters the variants of every node before merging any field', async () => {
+    const fieldFirst = /* GraphQL */ `
+      query { person { posts(take: 2) { id } } ...More }
+      fragment More on Query { person { ... on Viewer { email } } }
+    `;
+    const fragmentFirst = /* GraphQL */ `
+      query { ...More person { posts(take: 2) { id } } }
+      fragment More on Query { person { ... on Viewer { email } } }
+    `;
+
+    for (const source of [fieldFirst, fragmentFirst]) {
+      const context = {};
+      const info = await resolveInfo(schema, source);
+
+      // Viewer's type-level `posts: { take: 5 }` wins over the other node's field, which loads on
+      // its own instead of turning the variant entry into a conflict.
+      expect(queryFromInfo(adapter, { context, info })).toEqual({
+        select: { posts: { take: 5 }, id: true, email: true },
+      });
+      expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Person')).toBe(null);
+    }
+  });
+
+  it('matches the paths of every node selecting the field', async () => {
+    const context = {};
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `
+        query { entries { ... on AppointmentEntry { appointment { id } } } ...More }
+        fragment More on Query {
+          entries { ... on AppointmentEntry { appointment { posts { id } } } }
+        }
+      `,
+    );
+
+    expect(info.fieldNodes).toHaveLength(2);
+    expect(
+      queryFromInfo(adapter, { context, info, typeName: 'User', path: ['appointment'] }),
+    ).toEqual({ select: { posts: true } });
+    expect(getLoaderMapping(context, pathOf('entries', 'appointment', 'posts'), 'User')).toEqual({
+      nested: {},
+    });
+  });
+});
+
 describe('selectionStateFromInfo (E-2)', () => {
   it("merges the field first, then the parent type's selection without conflicts", async () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
