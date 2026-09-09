@@ -17,6 +17,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
+import { getLoaderMapping } from '@pothos/selection-mapper';
 import {
   and,
   type BuildQueryResult,
@@ -395,10 +396,15 @@ export class DrizzleObjectFieldBuilder<
             };
           }
 
+          // The same `pathInfo` the select path planned this field with, recorded alongside its
+          // loader mapping, so a `query` that branches on it pages the rows it selected.
+          const pathInfo = getLoaderMapping(context, info.path, info.parentType.name)?.extra as
+            | PathInfo
+            | undefined;
           const { select, cursorFields } = getQuery(
             args,
             context,
-            resolveFieldQuery(args, context),
+            resolveFieldQuery(args, context, pathInfo),
           );
 
           return wrapConnectionResult(
