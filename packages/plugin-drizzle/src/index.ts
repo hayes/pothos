@@ -3,6 +3,7 @@ import './field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  completeValue,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
@@ -137,12 +138,14 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
                     path: pathInfo.path,
                     segments: pathInfo.segments,
                   });
-                  const selected = (
-                    select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null
-                  )(args, ctx, nestedQueryWithPath);
-
-                  // A falsy selection means the field selects nothing from the parent row.
-                  return selected ? { columns: {}, ...selected } : null;
+                  return completeValue(
+                    (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null)(
+                      args,
+                      ctx,
+                      nestedQueryWithPath,
+                    ),
+                    wrapSelect,
+                  );
                 }
               : {
                   columns: {},
@@ -218,6 +221,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         .then((result) => resolver(result, args, context, info));
     };
   }
+}
+
+/** A falsy selection means the field selects nothing from the parent row. */
+function wrapSelect(selected: {} | null) {
+  return selected ? { columns: {}, ...selected } : null;
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosDrizzlePlugin, {});

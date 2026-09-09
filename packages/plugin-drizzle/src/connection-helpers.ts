@@ -1,9 +1,16 @@
-import type { InputFieldMap, InputShapeFromFields, SchemaTypes } from '@pothos/core';
+import {
+  completeValue,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  type MaybePromise,
+  type SchemaTypes,
+} from '@pothos/core';
 import { createNode } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
   RelationsFilter,
+  SQL,
   TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -19,7 +26,7 @@ import {
 } from './utils/cursors.js';
 import { queryFromInfo } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
-import { omitUndefinedKeys } from './utils/selections.js';
+import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
 
 export function drizzleConnectionHelpers<
   Types extends SchemaTypes,
@@ -60,11 +67,14 @@ export function drizzleConnectionHelpers<
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
-    ) => Selection;
+    ) => MaybePromise<Selection>;
     query?: QueryForDrizzleConnection<Types, TableConfig> extends infer QueryConfig
       ?
           | QueryConfig
-          | ((args: InputShapeFromFields<ExtraArgs>, context: Types['Context']) => QueryConfig)
+          | ((
+              args: InputShapeFromFields<ExtraArgs>,
+              context: Types['Context'],
+            ) => MaybePromise<QueryConfig>)
       : never;
     defaultSize?:
       | number
@@ -86,22 +96,45 @@ export function drizzleConnectionHelpers<
       : (refOrType as DrizzleRef<Types, Type extends DrizzleRef<Types, infer T> ? T : Type>)
           .tableName;
 
+  interface BaseQuery {
+    limit?: number;
+    orderBy?: unknown;
+    where?: SQL;
+    columns?: Record<string, boolean>;
+    extras?: DrizzleCursorConnectionQueryOptions['extras'];
+  }
+
+  /** The user's `query`, a promise when its callback is async (A-7: awaited by the caller). */
+  const baseQueryFor = (
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+    ctx: Types['Context'],
+  ): MaybePromise<BaseQuery> =>
+    completeValue(
+      (typeof query === 'function' ? query(args, ctx) : query) as MaybePromise<
+        BaseQuery | null | undefined
+      >,
+      orEmpty,
+    );
+
   function resolve<Parent = undefined>(
     list: (EdgeShape & {})[],
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     parent?: Parent,
   ) {
-    const { select, cursorFields } = getQueryArgs(args, ctx);
-    const formatCursor = getCursorFormatter(cursorFields, config);
-    return wrapConnectionResult(
-      list,
-      args,
-      select.limit,
-      formatCursor,
-      (resolveNode as never) ?? ((edge: unknown) => edge),
-      parent,
-    ) as unknown as {
+    return completeValue(baseQueryFor(args, ctx), (baseQuery) => {
+      const { select, cursorFields } = getQueryArgs(args, ctx, baseQuery);
+      const formatCursor = getCursorFormatter(cursorFields, config);
+
+      return wrapConnectionResult(
+        list,
+        args,
+        select.limit,
+        formatCursor,
+        (resolveNode as never) ?? ((edge: unknown) => edge),
+        parent,
+      );
+    }) as unknown as {
       parent: Parent;
       edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
       pageInfo: {
@@ -116,9 +149,9 @@ export function drizzleConnectionHelpers<
   const getQueryArgs = (
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: {},
+    baseQuery: BaseQuery,
   ) => {
-    const { limit, orderBy, where, ...fieldQuery } =
-      (typeof query === 'function' ? query(args, ctx) : query) ?? {};
+    const { limit, orderBy, where, ...fieldQuery } = baseQuery;
     const table = config.relations[tableName];
 
     const { cursorFields, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
@@ -167,26 +200,29 @@ export function drizzleConnectionHelpers<
               select,
               path,
             });
-    const nestedSelect: Record<string, unknown> | true = select
+    // Both callbacks start now; the query waits for whichever of them is async (A-3, A-7: the
+    // declared type stays synchronous, so an async schema awaits the result).
+    const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx)
       : nestedSelection(true, ['edges', 'node']);
-    const queryArgs = getQueryArgs(args, ctx);
+    const baseQuery = baseQueryFor(args, ctx);
 
-    const node = createNode(config.relations[tableName]);
+    return completeValue(nestedSelect, (nestedSelect) =>
+      completeValue(baseQuery, (baseQuery) => {
+        const node = createNode(config.relations[tableName]);
 
-    adapter.merge(node, queryArgs.select);
+        adapter.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);
 
-    if (typeof nestedSelect === 'object' && nestedSelect) {
-      adapter.merge(node, nestedSelect);
-    }
+        if (typeof nestedSelect === 'object' && nestedSelect) {
+          adapter.merge(node, nestedSelect);
+        }
 
-    const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
-    const queryResult = adapter.serialize(node);
-
-    return omitUndefinedKeys({
-      ...baseQuery,
-      ...queryResult,
-    }) as unknown as Omit<Selection, 'orderBy'> & {
+        return omitUndefinedKeys({
+          ...baseQuery,
+          ...adapter.serialize(node),
+        });
+      }),
+    ) as unknown as Omit<Selection, 'orderBy'> & {
       orderBy: {
         [K in TableConfig['table']['_'] extends { columns: infer Columns }
           ? keyof Columns
@@ -197,6 +233,10 @@ export function drizzleConnectionHelpers<
   }
 
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;
+
+  function orEmpty(baseQuery: BaseQuery | null | undefined): BaseQuery {
+    return baseQuery ?? ({} as BaseQuery);
+  }
 
   return {
     ref: (typeof refOrType === 'string'

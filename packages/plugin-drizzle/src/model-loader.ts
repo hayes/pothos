@@ -1,4 +1,9 @@
-import { createContextCache, type SchemaTypes } from '@pothos/core';
+import {
+  completeValue,
+  createContextCache,
+  type MaybePromise,
+  type SchemaTypes,
+} from '@pothos/core';
 import { cacheKey, setFieldMapping, setLoaderMappings } from '@pothos/selection-mapper';
 import {
   type AnyTable,
@@ -27,7 +32,8 @@ export class ModelLoader {
 
   modelName: string;
 
-  queryCache = new Map<string, { walk: DrizzleWalk; query: SelectionMap }>();
+  // L-4: one selection per `Type@path`, a promise while a select beneath the field is async.
+  queryCache = new Map<string, MaybePromise<{ walk: DrizzleWalk; query: SelectionMap }>>();
 
   staged = new Set<{
     walk: DrizzleWalk;
@@ -91,11 +97,10 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const walk = selectionStateFromInfo(this.config, this.context, info);
-      this.queryCache.set(key, {
-        walk,
-        query: this.adapter.serialize(walk.root),
-      });
+      this.queryCache.set(
+        key,
+        completeValue(selectionStateFromInfo(this.config, this.context, info), this.selectionOf),
+      );
     }
 
     return this.queryCache.get(key)!;
@@ -104,24 +109,22 @@ export class ModelLoader {
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
     const key = cacheKey(typeName, info.path);
     if (!this.queryCache.has(key)) {
-      const walk = walkFromInfo({
-        config: this.config,
-        context: this.context,
-        info,
-        typeName,
-      });
-
-      this.queryCache.set(key, {
-        walk,
-        query: this.adapter.serialize(walk.root),
-      });
+      this.queryCache.set(
+        key,
+        completeValue(
+          walkFromInfo({ config: this.config, context: this.context, info, typeName }),
+          this.selectionOf,
+        ),
+      );
     }
 
     return this.queryCache.get(key)!;
   }
 
+  selectionOf = (walk: DrizzleWalk) => ({ walk, query: this.adapter.serialize(walk.root) });
+
   async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { walk, query } = this.getSelection(info);
+    const { walk, query } = await this.getSelection(info);
 
     const result = await this.stageQuery(walk, query, model);
 
@@ -139,7 +142,7 @@ export class ModelLoader {
   }
 
   async loadSelectionForField(info: GraphQLResolveInfo, model: object, returnType: string) {
-    const { walk, query } = this.getSelectionForField(info, returnType);
+    const { walk, query } = await this.getSelectionForField(info, returnType);
 
     const result = await this.stageQuery(walk, query, model);
 

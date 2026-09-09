@@ -1,5 +1,6 @@
 import {
   type CompatibleTypes,
+  completeValue,
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
@@ -8,6 +9,7 @@ import {
   type InputShapeFromFields,
   type InterfaceParam,
   isThenable,
+  type MaybePromise,
   type NormalizeArgs,
   ObjectRef,
   type PluginName,
@@ -53,7 +55,7 @@ import {
 } from './utils/cursors.js';
 import { selectedFieldNames } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
-import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
+import type { SelectionMap } from './utils/selections.js';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -244,18 +246,24 @@ export class DrizzleObjectFieldBuilder<
       extras?: DrizzleCursorConnectionQueryOptions['extras'];
     }
 
+    // The field's `query` may be async, so the result is a promise when it is (A-5).
     const resolveFieldQuery = (
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: {},
       pathInfo?: import('./types').PathInfo,
-    ): ConnectionFieldQuery =>
-      ((typeof query === 'function'
-        ? (query as (args: {}, ctx: {}, pathInfo?: import('./types').PathInfo) => {})(
-            args,
-            ctx,
-            pathInfo,
-          )
-        : query) ?? {}) as ConnectionFieldQuery;
+    ): MaybePromise<ConnectionFieldQuery> =>
+      completeValue(
+        (typeof query === 'function'
+          ? (
+              query as (
+                args: {},
+                ctx: {},
+                pathInfo?: import('./types').PathInfo,
+              ) => MaybePromise<{} | null | undefined>
+            )(args, ctx, pathInfo)
+          : query) as MaybePromise<ConnectionFieldQuery | null | undefined>,
+        orEmpty,
+      );
 
     const getQuery = (
       args: PothosSchemaTypes.DefaultConnectionArguments,
@@ -318,34 +326,45 @@ export class DrizzleObjectFieldBuilder<
       const hasPageInfo = !!getSelection(['pageInfo']);
       const totalCountOnly = hasTotalCount && !hasEdges && !hasNodes && !hasPageInfo;
       const fieldQuery = resolveFieldQuery(args, context, pathInfo);
-      const countSelection = {
-        [countKey]: (parent: TableConfig['table']) =>
-          getClient(this.builder, context).$count(
-            relatedTable.table as Table,
-            buildCountFilter(parent, fieldQuery.where),
-          ),
-      };
+      // The nested walk starts now, with a query that waits for the field's `query` when that is
+      // async, so every callback beneath the connection runs in the same tick (A-3).
+      const nested = totalCountOnly
+        ? undefined
+        : (nestedQuery(
+            isThenable(fieldQuery)
+              ? fieldQuery.then((resolved) => getQuery(args, context, resolved).select)
+              : getQuery(args, context, fieldQuery).select,
+            {
+              getType: () => typeName!,
+              paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
+            },
+          ) as MaybePromise<SelectionMap>);
 
-      if (totalCountOnly) {
-        return {
-          columns: {},
-          with: {},
-          extras: countSelection,
+      return completeValue(fieldQuery, (fieldQuery) => {
+        const countSelection = {
+          [countKey]: (parent: TableConfig['table']) =>
+            getClient(this.builder, context).$count(
+              relatedTable.table as Table,
+              buildCountFilter(parent, fieldQuery.where),
+            ),
         };
-      }
 
-      const nested = nestedQuery(getQuery(args, context, fieldQuery).select, {
-        getType: () => typeName!,
-        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
-      }) as SelectionMap;
+        if (totalCountOnly) {
+          return {
+            columns: {},
+            with: {},
+            extras: countSelection,
+          };
+        }
 
-      return {
-        columns: {},
-        with: {
-          [name]: nested,
-        },
-        extras: hasTotalCount ? countSelection : {},
-      };
+        return completeValue(nested, (nested) => ({
+          columns: {},
+          with: {
+            [name]: nested,
+          },
+          extras: hasTotalCount ? countSelection : {},
+        }));
+      });
     };
     const fieldRef = (
       this as unknown as {
@@ -404,21 +423,20 @@ export class DrizzleObjectFieldBuilder<
           const pathInfo = getLoaderMapping(context, info.path, info.parentType.name)?.extra as
             | PathInfo
             | undefined;
-          const { select, cursorFields } = getQuery(
-            args,
-            context,
-            resolveFieldQuery(args, context, pathInfo),
-          );
 
-          return wrapConnectionResult(
-            parentRecord[name] as readonly {}[],
-            args,
-            select.limit,
-            getCursorFormatter(cursorFields, schemaConfig),
-            undefined,
-            parent,
-            countValue,
-          );
+          return completeValue(resolveFieldQuery(args, context, pathInfo), (fieldQuery) => {
+            const { select, cursorFields } = getQuery(args, context, fieldQuery);
+
+            return wrapConnectionResult(
+              parentRecord[name] as readonly {}[],
+              args,
+              select.limit,
+              getCursorFormatter(cursorFields, schemaConfig),
+              undefined,
+              parent,
+              countValue,
+            );
+          });
         },
       },
       connectionOptions instanceof ObjectRef
@@ -548,31 +566,25 @@ export class DrizzleObjectFieldBuilder<
 
     const { query = {}, extensions, ...rest } = options;
 
+    // Built once per field: the select allocates nothing when the nested selection is sync. The
+    // nested selection already carries the field's `query` (it is merged into the child first),
+    // so nothing is spread over it.
+    const selectRelation = (nested: unknown) => ({ columns: {}, with: { [name]: nested } });
     const relationSelect = (
       args: object,
       context: object,
       nestedQuery: (query: unknown) => {},
       _resolveSelection: unknown,
       pathInfo: PathInfo,
-    ) => {
-      // Evaluate a `query` callback once, with `pathInfo`; it used to be called a second time
-      // (without `pathInfo`) when the nested selection was built.
-      const fieldQuery = (
-        typeof query === 'function'
-          ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(args, context, pathInfo)
-          : query
-      ) as {};
-
-      return {
-        columns: {},
-        with: {
-          [name]: omitUndefinedKeys({
-            ...nestedQuery(fieldQuery),
-            ...fieldQuery,
-          }),
-        },
-      };
-    };
+    ) =>
+      completeValue(
+        nestedQuery(
+          typeof query === 'function'
+            ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(args, context, pathInfo)
+            : query,
+        ),
+        selectRelation,
+      );
 
     return this.field({
       ...(rest as {}),
@@ -609,7 +621,7 @@ export class DrizzleObjectFieldBuilder<
         nestedQuery: (
           query: DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
         ) => DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
-      ) => Select;
+      ) => MaybePromise<Select>;
       resolve: (
         parent: ShapeWithSelection,
         args: Args extends InputFieldMap ? InputShapeFromFields<Args> : {},
@@ -642,19 +654,13 @@ export class DrizzleObjectFieldBuilder<
       args: object,
       context: Types['Context'],
       nestedQuery: (query: unknown) => unknown,
-    ) => {
-      const selection = options.select(
-        buildFilter as never,
-        args as never,
-        context,
-        nestedQuery as never,
-      ) as Select & { with?: unknown };
-      return {
-        columns: selection.columns ?? {},
-        extras: selection.extras,
-        with: selection.with,
-      };
-    };
+    ) =>
+      completeValue(
+        options.select(buildFilter as never, args as never, context, nestedQuery as never) as
+          | MaybePromise<Select & { with?: unknown }>
+          | undefined,
+        pickSelection,
+      );
 
     const { select: _select, extensions, ...fieldOptions } = options;
 
@@ -694,22 +700,22 @@ export class DrizzleObjectFieldBuilder<
         buildFilter: (parent: TableConfig['table']) => SQL,
         args: object,
         ctx: Types['Context'],
-      ) => {
-        const whereClause =
+      ) =>
+        completeValue(
           typeof where === 'function'
-            ? (where as (args: unknown, ctx: unknown) => SQL | undefined)(args, ctx)
-            : where;
-
-        return {
-          extras: {
-            [countKey]: (parent: TableConfig['table']) =>
-              getClient(this.builder, ctx).$count(
-                relatedTable.table as Table,
-                whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
-              ),
-          },
-        } as never;
-      },
+            ? (where as (args: unknown, ctx: unknown) => MaybePromise<SQL | undefined>)(args, ctx)
+            : where,
+          (whereClause) =>
+            ({
+              extras: {
+                [countKey]: (parent: TableConfig['table']) =>
+                  getClient(this.builder, ctx).$count(
+                    relatedTable.table as Table,
+                    whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
+                  ),
+              },
+            }) as never,
+        ),
       resolve: (parent: Record<string, number>) => parent[countKey],
     } as never) as FieldRef<Types, number, 'DrizzleObject'>;
   }
@@ -797,4 +803,18 @@ export class DrizzleObjectFieldBuilder<
       ) as never;
     };
   }
+}
+
+/** A relation `query` callback may return nothing; the connection then adds no filter. */
+function orEmpty<T extends object>(query: T | null | undefined): T {
+  return query ?? ({} as T);
+}
+
+/** A `relatedField` select's map, with the columns it may have left out defaulted. */
+function pickSelection(selection: { columns?: {}; extras?: unknown; with?: unknown } | undefined) {
+  return {
+    columns: selection?.columns ?? {},
+    extras: selection?.extras,
+    with: selection?.with,
+  };
 }
