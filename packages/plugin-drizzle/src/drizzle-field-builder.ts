@@ -42,6 +42,7 @@ import type {
   RelatedConnectionOptions,
   RelatedCountOptions,
   RelatedFieldOptions,
+  RelatedSelectionFieldOptions,
   ShapeFromConnection,
   TypesForRelation,
   VariantFieldOptions,
@@ -637,27 +638,15 @@ export class DrizzleObjectFieldBuilder<
       BuildQueryResult<Types['DrizzleRelations'], TableConfig, Select & { columns: {} }>,
   >(
     relationName: Field,
-    options: {
-      type: Type;
-      nullable?: Nullable;
-      args?: Args;
-      description?: string;
-      select: (
-        buildFilter: (parentTable: TableConfig['table']) => SQL,
-        args: Args extends InputFieldMap ? InputShapeFromFields<Args> : {},
-        ctx: Types['Context'],
-        nestedQuery: (
-          query: DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
-        ) => DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
-      ) => MaybePromise<Select>;
-      resolve: (
-        parent: ShapeWithSelection,
-        args: Args extends InputFieldMap ? InputShapeFromFields<Args> : {},
-        ctx: Types['Context'],
-        info: unknown,
-      ) => ShapeFromTypeParam<Types, Type, Nullable>;
-      extensions?: Record<string, unknown>;
-    },
+    options: RelatedSelectionFieldOptions<
+      Types,
+      TableConfig,
+      Type,
+      Nullable,
+      Args,
+      Select,
+      ShapeWithSelection
+    >,
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'DrizzleObject'> {
     const schemaConfig = getSchemaConfig(this.builder);
     const relationField = schemaConfig.relations?.[this.table].relations[relationName as string];

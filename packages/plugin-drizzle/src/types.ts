@@ -535,6 +535,42 @@ export type RelatedCountOptions<
     | ((args: InputShapeFromFields<Args>, context: Types['Context']) => MaybePromise<Where>);
 };
 
+/**
+ * The options of `t.relatedField`: the ordinary object field options (description, deprecation,
+ * extensions, and what other plugins add), with a `select` that plans a query on the relation.
+ */
+export type RelatedSelectionFieldOptions<
+  Types extends SchemaTypes,
+  TableConfig extends TableRelationalConfig,
+  Type extends TypeParam<Types>,
+  Nullable extends boolean,
+  Args extends InputFieldMap,
+  Select,
+  ShapeWithSelection,
+> = Omit<
+  PothosSchemaTypes.ObjectFieldOptions<Types, ShapeWithSelection, Type, Nullable, Args, unknown>,
+  InferredFieldOptionKeys
+> & {
+  /**
+   * The query planned on the parent row for this field: `buildFilter` filters the related table
+   * to the parent's rows, `nestedQuery` plans the field's own selection beneath a query.
+   */
+  select: (
+    buildFilter: (parentTable: TableConfig['table']) => SQL,
+    args: InputShapeFromFields<Args>,
+    ctx: Types['Context'],
+    nestedQuery: (
+      query: DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
+    ) => DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
+  ) => MaybePromise<Select>;
+  resolve: (
+    parent: ShapeWithSelection,
+    args: InputShapeFromFields<Args>,
+    ctx: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
+};
+
 export type TypesForRelation<Types extends SchemaTypes, Rel extends Relation> = BuildQueryResult<
   Types['DrizzleRelations'],
   Types['DrizzleRelations'][Rel['targetTableName']],
