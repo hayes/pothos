@@ -7,7 +7,7 @@ import {
   responsePath,
   setFieldMapping,
   setLoaderMappings,
-} from '../src';
+} from '../src/loader-map.js';
 
 type Path = GraphQLResolveInfo['path'];
 
