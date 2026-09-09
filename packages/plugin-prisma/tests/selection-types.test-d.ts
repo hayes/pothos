@@ -293,6 +293,49 @@ it('names the shape of a row loaded with a query', () => {
     PrismaTypes['User']['Shape']
   >();
 
+  // `_count` is typed as prisma returns it, in a `select` or an `include`: `true` counts every
+  // list relation, `{ select }` the selected ones.
+  expectTypeOf<
+    PrismaQueriedShape<Types, 'User', { select: { id: true; _count: true } }>
+  >().toEqualTypeOf<{
+    id: number;
+    _count: {
+      posts: number;
+      comments: number;
+      followers: number;
+      following: number;
+      Media: number;
+    };
+  }>();
+  expectTypeOf<
+    PrismaQueriedShape<Types, 'User', { select: { _count: { select: { posts: true } } } }>
+  >().toEqualTypeOf<{ _count: { posts: number } }>();
+  expectTypeOf<
+    PrismaQueriedShape<Types, 'User', { include: { _count: { select: { posts: true } } } }>
+  >().toEqualTypeOf<{
+    id: number;
+    email: string;
+    name: string | null;
+    _count: { posts: number };
+  }>();
+  expectTypeOf<PrismaQueriedShape<Types, 'User', { include: { _count: true } }>>()
+    .toHaveProperty('_count')
+    .toEqualTypeOf<{
+      posts: number;
+      comments: number;
+      followers: number;
+      following: number;
+      Media: number;
+    }>();
+  // A count with a filter is still a number.
+  expectTypeOf<
+    PrismaQueriedShape<
+      Types,
+      'User',
+      { select: { _count: { select: { posts: { where: { published: true } } } } } }
+    >
+  >().toEqualTypeOf<{ _count: { posts: number } }>();
+
   // The model can be given as its types rather than its name.
   expectTypeOf<
     PrismaQueriedShape<Types, PrismaTypes['User'], { select: { email: true } }>

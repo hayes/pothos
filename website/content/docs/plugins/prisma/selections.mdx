@@ -302,6 +302,8 @@ async function loadPost(id: number): Promise<PostWithAuthor> {
 ```
 
 The shape is the one a resolver's `parent` has when the row was planned with the same query: a
-`select` narrows it to the selected columns and relations, an `include` adds the relations to every
-column, and `_count` selections are typed as counts. The model can also be given as its
-`PrismaTypes` entry (`PrismaQueriedShape<Types, PrismaTypes['Post'], ...>`).
+`select` narrows it to the selected columns and relations, and an `include` adds the relations to
+every column. A `_count` in either is typed as prisma returns it: `_count: true` adds
+`_count: { posts: number, comments: number, ... }` with every list relation of the model, and
+`_count: { select: { posts: true } }` adds `_count: { posts: number }`. The model can also be given
+as its `PrismaTypes` entry (`PrismaQueriedShape<Types, PrismaTypes['Post'], ...>`).
