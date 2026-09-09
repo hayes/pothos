@@ -187,6 +187,14 @@ interface Invocation extends Mapping {
 function noop() {}
 
 /**
+ * A-3, M-2: a walk that threw synchronously never reaches `finish`, so the merges it had already
+ * chained would reject unobserved once their callbacks settle. The throw is what the caller sees.
+ */
+function abandon<M, Map, X>(walk: Walk<M, Map, X>) {
+  walk.pending?.catch(noop);
+}
+
+/**
  * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
  * Declared synchronous (A-7): a promise is returned only when a callback returned one.
  */
@@ -265,10 +273,15 @@ export function selectionStateFromInfo<M, Map extends object, X = undefined>(
   const type = info.parentType;
   const walk = createWalk(env, type, {});
 
-  // Every node selecting the field (one per fragment it appears under) plans into the same row,
-  // so the loaded row satisfies each of them.
-  for (const fieldNode of info.fieldNodes) {
-    applyField(walk, walk.root, type, fieldNode, []);
+  try {
+    // Every node selecting the field (one per fragment it appears under) plans into the same
+    // row, so the loaded row satisfies each of them.
+    for (const fieldNode of info.fieldNodes) {
+      applyField(walk, walk.root, type, fieldNode, []);
+    }
+  } catch (error) {
+    abandon(walk);
+    throw error;
   }
 
   return finish(walk, enterLoaded, type);
@@ -418,28 +431,38 @@ function buildWalk<M, Map, X>(
 
     const walk = createWalk(env, typeName ? target : matches[0].type, {}, extra, initial);
 
-    // Every match is planned into the one root, entered under its own type first (W-11).
-    walkFieldWalks(
-      walk,
-      walk.root,
-      matches.map((match) => ({
-        // A matched type with its own model (including variants of the target model) is walked
-        // with its own model. Types without a model (interfaces, wrappers) are walked as the
-        // requested type so its fields can be found.
-        type: typeName && !env.modelOf(match.type) ? target : match.type,
-        declared: match.type,
-        fieldNodes: [match.field],
-        indirectPath: match.path,
-        deferred: match.deferred,
-      })),
-    );
+    try {
+      // Every match is planned into the one root, entered under its own type first (W-11).
+      walkFieldWalks(
+        walk,
+        walk.root,
+        matches.map((match) => ({
+          // A matched type with its own model (including variants of the target model) is walked
+          // with its own model. Types without a model (interfaces, wrappers) are walked as the
+          // requested type so its fields can be found.
+          type: typeName && !env.modelOf(match.type) ? target : match.type,
+          declared: match.type,
+          fieldNodes: [match.field],
+          indirectPath: match.path,
+          deferred: match.deferred,
+        })),
+      );
+    } catch (error) {
+      abandon(walk);
+      throw error;
+    }
 
     return walk;
   }
 
   const walk = createWalk(env, target, {}, extra, initial);
 
-  walkFields(walk, walk.root, target, returnType, info.fieldNodes, [], false);
+  try {
+    walkFields(walk, walk.root, target, returnType, info.fieldNodes, [], false);
+  } catch (error) {
+    abandon(walk);
+    throw error;
+  }
 
   return walk;
 }
@@ -949,66 +972,72 @@ function nestedSelectionFor<M, Map, X>(
       : pathOrInclude;
     const target = include ? info.schema.getType(include.getType())! : returnType;
     const child = createWalk(env, target, mapping.nested, extra);
-    // `true` is the public "no query"; it never reaches an adapter.
-    const query: MaybePromise<Map | null | undefined> =
-      rawQuery === true
-        ? undefined
-        : typeof rawQuery === 'function'
-          ? (
-              rawQuery as (
-                args: object,
-                ctx: object,
-                extra: X,
-              ) => MaybePromise<Map | null | undefined>
-            )(args, env.context, extra as X)
-          : rawQuery;
 
-    if (isThenable(query)) {
-      chain(child, query as PromiseLike<Map | null | undefined>, (resolved) =>
-        mergeQuery(child, resolved),
-      );
-    } else {
-      mergeQuery(child, query);
-    }
+    try {
+      // `true` is the public "no query"; it never reaches an adapter.
+      const query: MaybePromise<Map | null | undefined> =
+        rawQuery === true
+          ? undefined
+          : typeof rawQuery === 'function'
+            ? (
+                rawQuery as (
+                  args: object,
+                  ctx: object,
+                  extra: X,
+                ) => MaybePromise<Map | null | undefined>
+              )(args, env.context, extra as X)
+            : rawQuery;
 
-    const paths = include?.paths?.length
-      ? include.paths
-      : include?.path?.length
-        ? [include.path]
-        : undefined;
+      if (isThenable(query)) {
+        chain(child, query as PromiseLike<Map | null | undefined>, (resolved) =>
+          mergeQuery(child, resolved),
+        );
+      } else {
+        mergeQuery(child, query);
+      }
 
-    if (paths) {
-      // Each match is walked as its own type (W-11); the wrapper's selection set is not walked.
-      const matches = findMatches(info, returnType, fieldNode, paths, {
-        prefix: includeOf(returnType)?.path,
-        targetType: target,
-        modelOf: env.modelOf,
-      });
+      const paths = include?.paths?.length
+        ? include.paths
+        : include?.path?.length
+          ? [include.path]
+          : undefined;
 
-      walkFieldWalks(
-        child,
-        child.root,
-        matches.map((match) => ({
-          type: match.type,
-          declared: match.type,
-          fieldNodes: [match.field],
-          indirectPath: match.path,
-          deferred: match.deferred,
-        })),
-      );
-    } else {
-      const asType = (type: GraphQLNamedType): FieldWalk => ({
-        type,
-        declared: returnType,
-        fieldNodes: [fieldNode],
-        indirectPath: [],
-        deferred: false,
-      });
+      if (paths) {
+        // Each match is walked as its own type (W-11); the wrapper's selection set is not walked.
+        const matches = findMatches(info, returnType, fieldNode, paths, {
+          prefix: includeOf(returnType)?.path,
+          targetType: target,
+          modelOf: env.modelOf,
+        });
 
-      walkFieldWalks(child, child.root, [
-        ...(target === returnType ? [] : [asType(target)]),
-        asType(returnType),
-      ]);
+        walkFieldWalks(
+          child,
+          child.root,
+          matches.map((match) => ({
+            type: match.type,
+            declared: match.type,
+            fieldNodes: [match.field],
+            indirectPath: match.path,
+            deferred: match.deferred,
+          })),
+        );
+      } else {
+        const asType = (type: GraphQLNamedType): FieldWalk => ({
+          type,
+          declared: returnType,
+          fieldNodes: [fieldNode],
+          indirectPath: [],
+          deferred: false,
+        });
+
+        walkFieldWalks(child, child.root, [
+          ...(target === returnType ? [] : [asType(target)]),
+          asType(returnType),
+        ]);
+      }
+    } catch (error) {
+      abandon(child);
+      throw error;
     }
 
     // A promise behind the declared synchronous type, as `finish` returns one (A-7).

@@ -455,6 +455,73 @@ describe('a nested selection that was not awaited (A-8)', () => {
   });
 });
 
+describe('a walk that throws after a callback started (M-2)', () => {
+  const rejecting: Wrap = () => () => Promise.reject(new Error('late'));
+  const throwing: Wrap = () => () => {
+    throw new Error('sync');
+  };
+
+  it('handles the pending merges of every entry point before rethrowing', async () => {
+    await withoutUnhandledRejection(async () => {
+      const failing = withWraps({ posts: rejecting, profile: throwing });
+      const info = await resolveInfo(schema, '{ user { posts { id } profile { bio } } }');
+
+      expect(() => queryFromInfo(failing, { context: {}, info })).toThrow('sync');
+      expect(() => walkFromInfo(failing, { context: {}, info, typeName: 'User' })).toThrow('sync');
+
+      const paths = await resolveInfo(
+        schema,
+        '{ entries { ... on AppointmentEntry { appointment { posts { id } profile { bio } } } } }',
+      );
+
+      expect(() =>
+        queryFromInfo(failing, {
+          context: {},
+          info: paths,
+          typeName: 'User',
+          path: ['appointment'],
+        }),
+      ).toThrow('sync');
+    });
+  });
+
+  it('handles the pending merge of a loader walk whose second field node throws', async () => {
+    await withoutUnhandledRejection(async () => {
+      let calls = 0;
+      const failing = withSelects(['posts'], () => () => {
+        calls += 1;
+
+        if (calls === 1) {
+          return Promise.reject(new Error('late'));
+        }
+
+        throw new Error('sync');
+      });
+      // Two nodes select the field, so the loader walk applies two selects to the one row.
+      const info = await resolveInfo(
+        schema,
+        '{ viewer { ... on Viewer { posts { id } } ... on Viewer { posts { title } } } }',
+        { at: ['Viewer', 'posts'] },
+      );
+
+      expect(() => selectionStateFromInfo(failing, {}, info)).toThrow('sync');
+      expect(calls).toBe(2);
+    });
+  });
+
+  it('handles the pending merge of a nested walk that throws', async () => {
+    await withoutUnhandledRejection(async () => {
+      const failing = withWraps({ author: rejecting, comments: throwing });
+      const info = await resolveInfo(
+        schema,
+        '{ user { posts { author { name } comments { id } } } }',
+      );
+
+      expect(() => queryFromInfo(failing, { context: {}, info })).toThrow('sync');
+    });
+  });
+});
+
 describe('the synchronous path (A-1)', () => {
   const source = /* GraphQL */ `{
     user {
