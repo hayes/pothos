@@ -301,13 +301,17 @@ function buildWalk<M, Map, X>(
   const target = typeName ? info.schema.getType(typeName)! : returnType;
   const extra = rootExtra(env);
 
+  // graphql merges every occurrence of the field's response key into `info.fieldNodes`; each is
+  // planned into the one root, so the query answers whichever occurrence a resolver runs for.
   if (paths?.length || path?.length) {
-    const matches = findMatches(
-      info,
-      returnType,
-      info.fieldNodes[0],
-      normalizePaths(paths?.length ? paths : [path!]),
-      { prefix: includeOf(returnType)?.path, targetType: target, modelOf: env.modelOf },
+    const includePaths = normalizePaths(paths?.length ? paths : [path!]);
+    const options = {
+      prefix: includeOf(returnType)?.path,
+      targetType: target,
+      modelOf: env.modelOf,
+    };
+    const matches = info.fieldNodes.flatMap((fieldNode) =>
+      findMatches(info, returnType, fieldNode, includePaths, options),
     );
 
     if (matches.length === 0) {
@@ -322,7 +326,7 @@ function buildWalk<M, Map, X>(
       // requested type so its fields can be found.
       const walkType = typeName && !env.modelOf(match.type) ? target : match.type;
 
-      walkField(walk, walk.root, walkType, match.type, match.field, match.path, match.deferred);
+      walkFields(walk, walk.root, walkType, match.type, [match.field], match.path, match.deferred);
     }
 
     return walk;
@@ -330,7 +334,7 @@ function buildWalk<M, Map, X>(
 
   const walk = createWalk(env, target, {}, extra, initial);
 
-  walkField(walk, walk.root, target, returnType, info.fieldNodes[0], [], false);
+  walkFields(walk, walk.root, target, returnType, info.fieldNodes, [], false);
 
   return walk;
 }
@@ -422,19 +426,22 @@ function enterVariant<M, Map, X>(
 }
 
 /**
- * E-4, S-1, S-8: walks the selection set of `fieldNode`, selected as `type`, into `node`.
- * `declared` is the field's declared return type, which decides how fragments are classified.
+ * E-4, S-1, S-8: walks the selection sets of `fieldNodes` (every node selecting one field, as
+ * `type`) into `node`. `declared` is the field's declared return type, which decides how
+ * fragments are classified. Variants are entered across every node before any field is merged,
+ * so the plan does not depend on which occurrence of the field comes first.
  */
-function walkField<M, Map, X>(
+function walkFields<M, Map, X>(
   walk: Walk<M, Map, X>,
   node: Node<M>,
   type: GraphQLNamedType,
   declared: GraphQLNamedType,
-  fieldNode: FieldNode,
+  fieldNodes: readonly FieldNode[],
   indirectPath: string[],
   deferred: boolean,
 ) {
-  if (fieldNode.name.value.startsWith('__')) {
+  // Every node selects the same field.
+  if (fieldNodes.length === 0 || fieldNodes[0].name.value.startsWith('__')) {
     return;
   }
 
@@ -442,13 +449,15 @@ function walkField<M, Map, X>(
   const include = includeOf(type);
 
   if (include?.paths?.length || include?.path?.length) {
-    const matches = findMatches(info, type, fieldNode, include.paths ?? [include.path!], {
-      path: indirectPath,
-      deferred,
-    });
+    for (const fieldNode of fieldNodes) {
+      const matches = findMatches(info, type, fieldNode, include.paths ?? [include.path!], {
+        path: indirectPath,
+        deferred,
+      });
 
-    for (const match of matches) {
-      walkField(walk, node, match.type, match.type, match.field, match.path, match.deferred);
+      for (const match of matches) {
+        walkFields(walk, node, match.type, match.type, [match.field], match.path, match.deferred);
+      }
     }
 
     // The wrapper's own selection is planned only when the wrapper itself is backed by the model
@@ -458,12 +467,12 @@ function walkField<M, Map, X>(
       return;
     }
   } else if (include) {
-    walkField(
+    walkFields(
       walk,
       node,
       info.schema.getType(include.getType())!,
       declared,
-      fieldNode,
+      fieldNodes,
       indirectPath,
       deferred,
     );
@@ -477,10 +486,19 @@ function walkField<M, Map, X>(
 
   enter(walk, node, type);
 
-  if (fieldNode.selectionSet && !(deferred && walk.env.skipDeferred)) {
-    const { selections } = fieldNode.selectionSet;
+  if (deferred && walk.env.skipDeferred) {
+    return;
+  }
 
+  const selectionSets = fieldNodes.flatMap((fieldNode) =>
+    fieldNode.selectionSet ? [fieldNode.selectionSet.selections] : [],
+  );
+
+  for (const selections of selectionSets) {
     enterVariants(walk, node, type, declared, selections);
+  }
+
+  for (const selections of selectionSets) {
     walkSelections(walk, node, type, declared, selections, indirectPath, true);
   }
 }
@@ -741,22 +759,22 @@ function nestedSelectionFor<M, Map, X>(
       });
 
       for (const match of matches) {
-        walkField(
+        walkFields(
           child,
           child.root,
           match.type,
           match.type,
-          match.field,
+          [match.field],
           match.path,
           match.deferred,
         );
       }
     } else {
       if (target !== returnType) {
-        walkField(child, child.root, target, returnType, fieldNode, [], false);
+        walkFields(child, child.root, target, returnType, [fieldNode], [], false);
       }
 
-      walkField(child, child.root, returnType, returnType, fieldNode, [], false);
+      walkFields(child, child.root, returnType, returnType, [fieldNode], [], false);
     }
 
     return finish(child, serializeRoot);

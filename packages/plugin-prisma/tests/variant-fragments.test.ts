@@ -439,6 +439,62 @@ describe('fragments on variants and non-model interfaces', () => {
     });
   });
 
+  describe('a field selected more than once', () => {
+    // graphql merges both `viewer` selections into one `info.fieldNodes`.
+    const variantLater = gql`
+      query {
+        viewer {
+          id
+        }
+        ...More
+      }
+
+      fragment More on Query {
+        viewer {
+          ... on NormalViewer {
+            reverseName
+          }
+        }
+      }
+    `;
+    const variantFirst = gql`
+      query {
+        ...More
+        viewer {
+          id
+        }
+      }
+
+      fragment More on Query {
+        viewer {
+          ... on NormalViewer {
+            reverseName
+          }
+        }
+      }
+    `;
+
+    it("merges a variant's type-level select from either occurrence of the field", async () => {
+      for (const document of [variantLater, variantFirst]) {
+        const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual({
+          viewer: { id: '1', reverseName: user.name?.split('').reverse().join('') ?? null },
+        });
+        // The variant's `name` is loaded in the one query.
+        expect(queries).toEqual([
+          {
+            action: 'findUniqueOrThrow',
+            model: 'User',
+            args: { select: { id: true, name: true }, where: { id: 1 } },
+          },
+        ]);
+        queries.length = 0;
+      }
+    });
+  });
+
   describe('type-level selections are merged before fields', () => {
     const fieldFirst = gql`
       query {
