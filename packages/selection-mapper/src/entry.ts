@@ -173,7 +173,6 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
           // with its own model. Types without a model (interfaces, wrappers) are walked as the
           // requested type so its fields can be found.
           type: typeName && !env.modelOf(match.type) ? target : match.type,
-          declared: match.type,
           fieldNodes: [match.field],
           indirectPath: match.path,
           deferred: match.deferred,
@@ -190,7 +189,7 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
   const walk = createWalk(env, target, {}, extra, initial);
 
   try {
-    walkFields(walk, walk.root, target, returnType, info.fieldNodes, [], false);
+    walkFields(walk, walk.root, target, info.fieldNodes, [], false);
   } catch (error) {
     abandon(walk);
     throw error;

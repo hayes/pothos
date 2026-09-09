@@ -130,18 +130,6 @@ export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>
     field: GraphQLField<unknown, unknown>,
     node: FieldNode,
   ): X;
-  /**
-   * S-7: how to walk a fragment on `condition` while walking `type`: as `type`, as `condition`
-   * (a variant of the same model, whose type-level selection is merged), or not at all
-   * (undefined: its fields are suppressed, nested fragments are still classified against `type`).
-   * `declared` is the declared return type of the field being walked, before any indirect
-   * include is followed. Defaults to `defaultFragmentType`.
-   */
-  fragmentType?(
-    type: WalkedType,
-    condition: GraphQLNamedType,
-    declared: GraphQLNamedType,
-  ): WalkedType | undefined;
 }
 
 /** A type-level selection entry that cannot be merged with what a node already holds. */

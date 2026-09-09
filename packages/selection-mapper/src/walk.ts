@@ -15,7 +15,6 @@ import {
   type GraphQLNamedType,
   getNamedType,
   type InlineFragmentNode,
-  isAbstractType,
   isInterfaceType,
   isObjectType,
   Kind,
@@ -32,7 +31,7 @@ import {
   resolveType,
 } from './matches.js';
 import type { NodeBase } from './node.js';
-import type { Adapter, Env, NestedSelection, SelectFn, Walk, WalkedType } from './types.js';
+import type { Env, NestedSelection, SelectFn, Walk, WalkedType } from './types.js';
 
 /** The mapping of a static selection: nothing can ever be recorded beneath one. */
 const NONE: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
@@ -60,37 +59,6 @@ export function enterLoaded<M, Map, X, N extends NodeBase<M>>(
   }
 
   return walk;
-}
-
-/**
- * The default S-7 classification: a fragment on the type itself or on an interface it implements
- * walks as the type; a fragment on another type of the same model walks as that type. An object
- * variant is only entered when the field's declared type is abstract: under a concrete field type
- * the variant can never be the runtime type, so its selection is not needed.
- */
-export function defaultFragmentType<M>(
-  adapter: Pick<Adapter<M, unknown, unknown>, 'modelFor'>,
-  type: WalkedType,
-  condition: GraphQLNamedType,
-  declared: GraphQLNamedType,
-): WalkedType | undefined {
-  if (condition === type) {
-    return type;
-  }
-
-  if (isInterfaceType(condition) && type.getInterfaces().includes(condition)) {
-    return type;
-  }
-
-  if (isInterfaceType(condition) || (isObjectType(condition) && isAbstractType(declared))) {
-    const model = adapter.modelFor(condition);
-
-    if (model && model === adapter.modelFor(type)) {
-      return condition;
-    }
-  }
-
-  return undefined;
 }
 
 function serializeRoot<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
@@ -173,12 +141,10 @@ function enterVariant<M, Map, X, N extends NodeBase<M>>(
 
 /**
  * One selection to walk into a node: the selection sets of `fieldNodes` (every node selecting one
- * field), walked as `type`. `declared` is the field's declared return type, which decides how
- * fragments are classified.
+ * field), walked as `type`.
  */
 interface FieldWalk {
   type: GraphQLNamedType;
-  declared: GraphQLNamedType;
   fieldNodes: readonly FieldNode[];
   indirectPath: string[];
   deferred: boolean;
@@ -187,7 +153,6 @@ interface FieldWalk {
 /** A `FieldWalk` resolved through any indirect include to the type whose fields are walked. */
 interface ResolvedFieldWalk {
   type: WalkedType;
-  declared: GraphQLNamedType;
   selectionSets: (readonly SelectionNode[])[];
   indirectPath: string[];
 }
@@ -197,12 +162,11 @@ export function walkFields<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
   type: GraphQLNamedType,
-  declared: GraphQLNamedType,
   fieldNodes: readonly FieldNode[],
   indirectPath: string[],
   deferred: boolean,
 ) {
-  walkFieldWalks(walk, node, [{ type, declared, fieldNodes, indirectPath, deferred }]);
+  walkFieldWalks(walk, node, [{ type, fieldNodes, indirectPath, deferred }]);
 }
 
 /**
@@ -218,21 +182,21 @@ export function walkFieldWalks<M, Map, X, N extends NodeBase<M>>(
 ) {
   const resolved = walks.flatMap((fieldWalk) => resolveFieldWalk(walk, node, fieldWalk));
 
-  for (const { type, declared, selectionSets } of resolved) {
+  for (const { type, selectionSets } of resolved) {
     enter(walk, node, type);
 
     const entered = new Set<string>();
 
     for (const selections of selectionSets) {
-      enterVariants(walk, node, type, declared, selections, entered);
+      enterVariants(walk, node, type, selections, entered);
     }
   }
 
-  for (const { type, declared, selectionSets, indirectPath } of resolved) {
+  for (const { type, selectionSets, indirectPath } of resolved) {
     const walked = new Set<string>();
 
     for (const selections of selectionSets) {
-      walkSelections(walk, node, type, declared, selections, indirectPath, true, walked);
+      walkSelections(walk, node, type, selections, indirectPath, true, walked);
     }
   }
 }
@@ -245,7 +209,7 @@ export function walkFieldWalks<M, Map, X, N extends NodeBase<M>>(
 function resolveFieldWalk<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
-  { type, declared, fieldNodes, indirectPath, deferred }: FieldWalk,
+  { type, fieldNodes, indirectPath, deferred }: FieldWalk,
 ): ResolvedFieldWalk[] {
   // Every node selects the same field.
   if (fieldNodes.length === 0 || fieldNodes[0].name.value.startsWith('__')) {
@@ -267,7 +231,6 @@ function resolveFieldWalk<M, Map, X, N extends NodeBase<M>>(
         beneath.push(
           ...resolveFieldWalk(walk, node, {
             type: match.type,
-            declared: match.type,
             fieldNodes: [match.field],
             indirectPath: match.path,
             deferred: match.deferred,
@@ -285,7 +248,6 @@ function resolveFieldWalk<M, Map, X, N extends NodeBase<M>>(
   } else if (include) {
     return resolveFieldWalk(walk, node, {
       type: info.schema.getType(include.getType())!,
-      declared,
       fieldNodes,
       indirectPath,
       deferred,
@@ -304,7 +266,7 @@ function resolveFieldWalk<M, Map, X, N extends NodeBase<M>>(
           fieldNode.selectionSet ? [fieldNode.selectionSet.selections] : [],
         );
 
-  return [...beneath, { type, declared, selectionSets, indirectPath }];
+  return [...beneath, { type, selectionSets, indirectPath }];
 }
 
 type Fragment = FragmentDefinitionNode | InlineFragmentNode;
@@ -340,7 +302,6 @@ function enterVariants<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
   type: WalkedType,
-  declared: GraphQLNamedType,
   selections: readonly SelectionNode[],
   visited: Set<string>,
 ) {
@@ -355,13 +316,13 @@ function enterVariants<M, Map, X, N extends NodeBase<M>>(
       continue;
     }
 
-    const as = fragmentTypeOf(walk.env, type, declared, fragment);
+    const as = fragmentTypeOf(walk.env, type, fragment);
 
     if (as && as !== type) {
       enterVariant(walk, node, type, as);
     }
 
-    enterVariants(walk, node, as ?? type, declared, fragment.selectionSet.selections, visited);
+    enterVariants(walk, node, as ?? type, fragment.selectionSet.selections, visited);
   }
 }
 
@@ -374,7 +335,6 @@ function walkSelections<M, Map, X, N extends NodeBase<M>>(
   walk: Walk<M, Map, X, N>,
   node: N,
   type: WalkedType,
-  declared: GraphQLNamedType,
   selections: readonly SelectionNode[],
   indirectPath: string[],
   fieldsApply: boolean,
@@ -395,13 +355,12 @@ function walkSelections<M, Map, X, N extends NodeBase<M>>(
       continue;
     }
 
-    const as = fragmentTypeOf(walk.env, type, declared, fragment);
+    const as = fragmentTypeOf(walk.env, type, fragment);
 
     walkSelections(
       walk,
       node,
       as ?? type,
-      declared,
       fragment.selectionSet.selections,
       indirectPath,
       // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
@@ -432,11 +391,19 @@ function applicableFragment<M, Map, X, N extends NodeBase<M>>(
   return selection.kind === Kind.FRAGMENT_SPREAD ? info.fragments[selection.name.value] : selection;
 }
 
-/** The type to walk `fragment` as while walking `type`; an untyped fragment inherits `type`. */
+/**
+ * S-7: the type to walk `fragment` as while walking `type`, or undefined when the fragment cannot
+ * apply to `type` (its fields are suppressed; nested fragments are still classified against
+ * `type`). An untyped fragment inherits `type`. An object type accepts a fragment on itself or on
+ * an interface it implements, walked as itself: a walk on an object type is a walk on rows of that
+ * type (the field's own type, a pinned `typeName`, a node load), so a fragment on any other object
+ * type cannot apply to them. An interface accepts a fragment on another type of the same model,
+ * object or interface, walked as that type, so that type's own selection is planned for the rows
+ * that resolve to it.
+ */
 function fragmentTypeOf<M, Map, X, N extends NodeBase<M>>(
   env: Env<M, Map, X, N>,
   type: WalkedType,
-  declared: GraphQLNamedType,
   fragment: Fragment,
 ): WalkedType | undefined {
   if (!fragment.typeCondition) {
@@ -445,9 +412,23 @@ function fragmentTypeOf<M, Map, X, N extends NodeBase<M>>(
 
   const condition = env.info.schema.getType(fragment.typeCondition.name.value)!;
 
-  return env.adapter.fragmentType
-    ? env.adapter.fragmentType(type, condition, declared)
-    : defaultFragmentType(env.adapter, type, condition, declared);
+  if (condition === type) {
+    return type;
+  }
+
+  if (isInterfaceType(condition) && type.getInterfaces().includes(condition)) {
+    return type;
+  }
+
+  if (
+    isInterfaceType(type) &&
+    (isObjectType(condition) || isInterfaceType(condition)) &&
+    env.adapter.modelFor(condition) === env.adapter.modelFor(type)
+  ) {
+    return condition;
+  }
+
+  return undefined;
 }
 
 /** S-2..S-6: merges what `fieldNode` (a field of `type`) selects into `node`. */
@@ -641,7 +622,6 @@ function nestedSelectionFor<M, Map, X, N extends NodeBase<M>>(
           child.root,
           matches.map((match) => ({
             type: match.type,
-            declared: match.type,
             fieldNodes: [match.field],
             indirectPath: match.path,
             deferred: match.deferred,
@@ -650,7 +630,6 @@ function nestedSelectionFor<M, Map, X, N extends NodeBase<M>>(
       } else {
         const asType = (type: GraphQLNamedType): FieldWalk => ({
           type,
-          declared: returnType,
           fieldNodes: [fieldNode],
           indirectPath: [],
           deferred: false,

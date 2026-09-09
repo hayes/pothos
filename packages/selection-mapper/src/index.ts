@@ -29,4 +29,3 @@ export type {
   TypeLevelConflict,
   Walk,
 } from './types.js';
-export { defaultFragmentType } from './walk.js';

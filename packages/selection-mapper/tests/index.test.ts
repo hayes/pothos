@@ -9,7 +9,6 @@ it('exports only what the plugins use', () => {
     'cacheKey',
     'createNode',
     'deepEqual',
-    'defaultFragmentType',
     'getLoaderMapping',
     'queryFromInfo',
     'queryFromWalk',

@@ -453,22 +453,6 @@ describe('fragments (S-7)', () => {
     });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual({ nested: {} });
   });
-
-  it('lets the adapter classify fragments itself', async () => {
-    const strict = createTestAdapter();
-    const seen: string[] = [];
-
-    strict.fragmentType = (type, condition, declared) => {
-      seen.push(`${type.name}:${condition.name}:${declared.name}`);
-
-      return condition === type ? type : undefined;
-    };
-
-    const info = await resolveInfo(schema, '{ person { id ... on User { posts { id } } } }');
-
-    expect(queryFromInfo(strict, { context: {}, info })).toEqual({ select: { id: true } });
-    expect(seen).toEqual(['Person:User:Person', 'Person:User:Person']);
-  });
 });
 
 describe('repeated fragment spreads (W-2)', () => {

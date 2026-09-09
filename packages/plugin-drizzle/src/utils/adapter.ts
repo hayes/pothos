@@ -9,14 +9,7 @@ import {
   type Walk,
 } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
-import {
-  type GraphQLNamedType,
-  type GraphQLOutputType,
-  isInterfaceType,
-  isListType,
-  isNonNullType,
-  isObjectType,
-} from 'graphql';
+import { type GraphQLNamedType, type GraphQLOutputType, isListType, isNonNullType } from 'graphql';
 import type { DrizzleFieldSelection, PathInfo } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
@@ -200,27 +193,6 @@ export const drizzleAdapter = createContextCache(
           path: [...(parent?.path ?? []), `${type.name}.${segment.field}`],
           segments: [...(parent?.segments ?? []), segment],
         };
-      },
-      /**
-       * An object type accepts a fragment on itself or on an interface it implements; under an
-       * interface, a fragment on another type of the same table (a variant, or another interface
-       * of the table) is walked as that type.
-       */
-      fragmentType(type, condition) {
-        if (isObjectType(type)) {
-          if (condition === type) {
-            return type;
-          }
-
-          return isInterfaceType(condition) && type.getInterfaces().includes(condition)
-            ? type
-            : undefined;
-        }
-
-        return (isObjectType(condition) || isInterfaceType(condition)) &&
-          adapter.modelFor(condition) === adapter.modelFor(type)
-          ? condition
-          : undefined;
       },
     };
 

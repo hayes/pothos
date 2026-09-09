@@ -17,8 +17,11 @@ Entering another type of the same model through a fragment (a variant under a mo
   fields there are planned, so the result no longer depends on document order: a field-level
   `select` whose relation arguments conflict with a variant's type-level selection falls back to
   its own query whichever comes first, and only two type-level selections can conflict.
-- Prisma: under a field declared as a concrete object type, a fragment on another object type of
-  the same model (which the field can never resolve as) does not merge that type's selection; it
-  is still entered under an interface or union.
+- A walk on an object type is a walk on rows of that type: the field's own type, the `typeName`
+  given to `queryFromInfo`, the type pinned by `nestedSelection`, or a node load. A fragment on
+  another object type of the same model cannot apply to those rows, so it is not entered; it is
+  entered while walking an interface, where rows may resolve to it. Prisma previously entered it
+  whenever the field's declared type was abstract, planning a sibling variant's selection for
+  rows that could never be it.
 - In both plugins, a fragment that does not apply to the type still lets a nested fragment narrow
   back to it (drizzle previously stopped at the outer fragment).
