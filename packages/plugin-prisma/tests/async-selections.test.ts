@@ -5,13 +5,9 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { execute } from '@pothos/test-utils';
-import type { DocumentNode } from 'graphql';
+import type { DocumentNode, GraphQLObjectType } from 'graphql';
 import { gql } from 'graphql-tag';
-import PrismaPlugin, {
-  type PrismaTypesFromClient,
-  prismaConnectionHelpers,
-  queryFromInfo,
-} from '../src';
+import PrismaPlugin, { type PrismaTypesFromClient, prismaConnectionHelpers } from '../src';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 import { countPromises } from './promise-spy';
@@ -41,7 +37,11 @@ SchemaBuilder.registerPlugin('asyncArgs', AsyncArgsPlugin);
 
 interface Context {
   user: { id: number };
+  /** A row already loaded with the planned selection, returned by `spiedUser` as is. */
+  row?: object;
+  /** Promise count and call count of the resolvers wrapped by `spyResolvers`. */
   promises?: number;
+  resolved?: number;
 }
 
 const builder = new SchemaBuilder<{
@@ -196,21 +196,42 @@ builder.queryType({
       type: User,
       resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }),
     }),
-    // Plans the document under a Promise spy and reports the count on the context.
-    spiedUser: t.field({
+    // Returns a row the test loaded with the planned query, so the whole resolution (planning
+    // included) can run under the Promise spy without a database round trip.
+    spiedUser: t.prismaField({
       type: User,
-      resolve: (_root, _args, ctx, info) => {
-        const { result, promises } = countPromises(() => queryFromInfo({ context: ctx, info }));
-
-        ctx.promises = promises;
-
-        return prisma.user.findUniqueOrThrow({ ...result, where: { id: 1 } });
-      },
+      resolve: (_query, _root, _args, ctx) => ctx.row as never,
     }),
   }),
 });
 
 const schema = builder.toSchema();
+
+/** Wraps the built resolvers of `fields` so every call is counted under the Promise spy. */
+function spyResolvers(fields: [string, string][]) {
+  for (const [typeName, fieldName] of fields) {
+    const field = (schema.getType(typeName) as GraphQLObjectType).getFields()[fieldName];
+    const { resolve } = field;
+
+    field.resolve = (parent, args, ctx: Context, info) => {
+      const { result, promises } = countPromises(() => resolve!(parent, args, ctx, info));
+
+      ctx.promises = (ctx.promises ?? 0) + promises;
+      ctx.resolved = (ctx.resolved ?? 0) + 1;
+
+      return result;
+    };
+  }
+}
+
+spyResolvers([
+  ['Query', 'spiedUser'],
+  ['User', 'posts'],
+  ['User', 'publishedCount'],
+  ['User', 'postsConnection'],
+  ['User', 'commentsConnection'],
+  ['Post', 'comments'],
+]);
 
 async function run(document: DocumentNode) {
   const contextValue: Context = { user: { id: 1 } };
@@ -370,20 +391,36 @@ describe('async selections', () => {
     ]);
   });
 
-  it('creates no promise while planning a synchronous document (A-1)', async () => {
-    const { result, queries, context } = await run(gql`
-      {
-        spiedUser {
-          id
-          ... on User { posts(limit: 2) { id comments { id } } }
-          publishedCount
-          commentsConnection(first: 1) { edges { node { id } } }
-        }
-      }
-    `);
+  it('creates no promise while planning and resolving a synchronous document (A-1)', async () => {
+    const selection = /* GraphQL */ `{
+      id
+      ... on User { publishedCount }
+      postsConnection(first: 2) { edges { node { id comments { id } } } }
+      commentsConnection(first: 1) { edges { node { id } } }
+    }`;
+    // The row `spiedUser` hands back: loaded with the query the same document plans.
+    const planned = await run(gql`{ user ${selection} }`);
+
+    expect(planned.queries).toHaveLength(1);
+
+    const row = await prisma.user.findUniqueOrThrow(
+      (planned.queries[0] as { args: { where: { id: number } } }).args,
+    );
+    queries.length = 0;
+
+    const contextValue: Context = { user: { id: 1 }, row };
+    const result = await execute({
+      schema,
+      document: gql`{ spiedUser ${selection} }`,
+      contextValue,
+    });
 
     expect(result.errors).toBeUndefined();
-    expect(queries).toHaveLength(1);
-    expect(context.promises).toBe(0);
+    expect(result.data).toEqual({ spiedUser: (planned.result.data as { user: unknown }).user });
+    expect(queries).toHaveLength(0);
+    // The root field (planning + `prismaField` resolve), the loaded-path count and connection
+    // fields for the row, and the loaded-path relation `comments` for each of its two posts.
+    expect(contextValue.resolved).toBe(1 + 3 + 2);
+    expect(contextValue.promises).toBe(0);
   });
 });

@@ -13,7 +13,8 @@ Allow the callbacks that build a selection to be async.
   `select` and silently dropped it.
 - The plugin still builds one query: callbacks start in the same tick, and what they return is
   merged after every synchronous selection, in document order. Schemas without async callbacks are
-  unaffected: no promise is created until a callback returns one.
+  unaffected: until a callback returns a promise, planning and resolving create no promise and no
+  closure they did not create before.
 - Inside an async `select`, `await` the result of `nestedSelection` (and of `getQuery` from the
   connection helpers) before adding it to the selection; a selection holding the promise itself
   throws with a message naming the relation. `queryFromInfo` (prisma) and the `query()` builder
