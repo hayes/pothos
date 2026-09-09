@@ -103,4 +103,51 @@ describe('relatedConnection wrapped by the errors plugin', () => {
       ]
     `);
   });
+
+  it('plans the count and the rows when success fragments select them separately', async () => {
+    const posts = await db.query.posts.findMany({ where: { authorId: 1 } });
+    clearDrizzleLogs();
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          user {
+            postsConnection(first: 2) {
+              ... on UserPostsConnectionSuccess {
+                data {
+                  totalCount
+                }
+              }
+              ... on UserPostsConnectionSuccess {
+                data {
+                  edges {
+                    node {
+                      id
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      user: {
+        postsConnection: {
+          data: {
+            totalCount: posts.length,
+            edges: posts.slice(0, 2).map((post) => ({ node: { id: String(post.postId) } })),
+          },
+        },
+      },
+    });
+    expect(drizzleLogs).toHaveLength(1);
+    expect(drizzleLogs[0]).toContain('count(*)');
+    expect(drizzleLogs[0]).toContain('"posts"');
+  });
 });
