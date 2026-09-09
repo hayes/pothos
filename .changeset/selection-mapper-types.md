@@ -21,7 +21,9 @@ Type the selection API by what it does, and document what was undocumented.
 - The `query` a `t.relation` fallback `resolve` receives (prisma) carries the relation's own
   arguments (`where`, `orderBy`, `take`, ...) alongside the planned `select`/`include`, so it
   spreads into a prisma call without a cast. Exported as `QueryFromRelation`.
-- `t.relationCount` (prisma) and `t.relatedCount` (drizzle) accept only list relations.
+- `t.relationCount` (prisma) and `t.relatedCount` (drizzle) accept only list relations. Code that
+  called either on a to-one relation (which built a count query prisma or drizzle rejected at
+  runtime) compiled before and now fails to compile.
 - `t.relatedField` (drizzle) accepts the ordinary field options (`deprecationReason`,
   `extensions`, `authScopes`, ...); its `resolve` may be async and receives the resolve `info`.
   Exported as `RelatedSelectionFieldOptions`.
