@@ -127,15 +127,30 @@ export type NestedSelectionResult<Selection, Model extends PrismaModelTypes> = [
     : Normalize<Omit<PrismaRelationQuery<Model>, keyof Selection> & Selection>;
 
 /**
+ * The selection given to `nestedSelection`: the query itself, a promise of it, or a callback
+ * building it from the field's arguments and the context (which may be async). The result is
+ * typed by the query either way; it is a promise at runtime only when a promise or an async
+ * callback was given, or a selection beneath it is async, and must then be awaited.
+ */
+export type NestedSelectionArg<Selection, Args extends InputFieldMap, Context> =
+  | Selection
+  | PromiseLike<Selection>
+  | ((args: InputShapeFromFields<Args>, ctx: Context) => MaybePromise<Selection>);
+
+/**
  * The callback a field's `select` function plans the selection beneath the field with: `path`
  * walks a field nested under the field's type, `type` names the type the selection is read as.
  * The selection is typed by the field's model when it has one, so `select: { title: true }`
  * keeps its literal `true`.
  */
-export type NestedSelectionFn<Model extends PrismaModelTypes> = <
+export type NestedSelectionFn<
+  Model extends PrismaModelTypes,
+  Args extends InputFieldMap = {},
+  Context = object,
+> = <
   Selection extends boolean | ([Model] extends [never] ? {} : PrismaRelationQuery<Model>) = true,
 >(
-  selection?: Selection,
+  selection?: NestedSelectionArg<Selection, Args, Context>,
   path?: PathSegment[],
   type?: string,
 ) => NestedSelectionResult<Selection, Model>;
@@ -177,7 +192,11 @@ export type PrismaObjectFieldOptions<
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: NestedSelectionFn<ModelForTypeParam<Types, Type>>,
+            nestedSelection: NestedSelectionFn<
+              ModelForTypeParam<Types, Type>,
+              Args,
+              Types['Context']
+            >,
           ) => MaybePromise<ExtractModel<Types, ParentShape>['Select']>)
       );
   };
