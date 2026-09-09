@@ -6,6 +6,7 @@ import PrismaPlugin, {
   type IndirectInclude,
   type IndirectPathSegment,
   type PathSegment,
+  type PrismaQueriedShape,
   type PrismaRelationQuery,
   type PrismaTypesFromClient,
   prismaConnectionHelpers,
@@ -181,6 +182,33 @@ builder.prismaObjectField('User', 'publishedPosts', (t) =>
     },
   }),
 );
+
+// `PrismaQueriedShape` names the row shape a query loads, for rows a resolver loads itself.
+it('names the shape of a row loaded with a query', () => {
+  type Types = typeof builder.$inferSchemaTypes;
+
+  expectTypeOf<
+    PrismaQueriedShape<Types, 'User', { select: { id: true; posts: { select: { title: true } } } }>
+  >().toEqualTypeOf<{ id: number; posts: { title: string }[] }>();
+
+  expectTypeOf<PrismaQueriedShape<Types, 'User', { include: { profile: true } }>>().toEqualTypeOf<{
+    id: number;
+    email: string;
+    name: string | null;
+    profile: { id: number; bio: string | null; userId: number } | null;
+  }>();
+
+  expectTypeOf<PrismaQueriedShape<Types, 'User', {}>>().toEqualTypeOf<
+    PrismaTypes['User']['Shape']
+  >();
+
+  // The model can be given as its types rather than its name.
+  expectTypeOf<
+    PrismaQueriedShape<Types, PrismaTypes['User'], { select: { email: true } }>
+  >().toEqualTypeOf<{
+    email: string;
+  }>();
+});
 
 // One path segment type, shared with the planner, for `queryFromInfo` paths, `nestedSelection`
 // paths, and the `IndirectInclude` a type's extensions carry.

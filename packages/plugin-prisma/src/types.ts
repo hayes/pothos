@@ -211,6 +211,24 @@ export type ShapeFromSelection<
     : Model['Shape']
 >;
 
+/**
+ * The shape of a row of `Model` loaded with `Query` (a `select` or `include` map): what a
+ * resolver on the model's type sees when the row was planned with that query. For rows a
+ * resolver loads itself, so what is on them is named once, next to the query that loaded them.
+ * `Model` is the model's name, or its `PrismaModelTypes`.
+ */
+export type PrismaQueriedShape<
+  Types extends SchemaTypes,
+  Model extends keyof Types['PrismaTypes'] | PrismaModelTypes,
+  Query,
+> = ShapeFromSelection<
+  Types,
+  Model extends PrismaModelTypes
+    ? Model
+    : PrismaModelTypes & Types['PrismaTypes'][Model & keyof Types['PrismaTypes']],
+  Query
+>;
+
 export type ShapeFromCount<Selection> = Selection extends true
   ? { _count: number }
   : Selection extends { select: infer Counts }
