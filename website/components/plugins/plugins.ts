@@ -62,13 +62,22 @@ export const PLUGINS: PluginEntry[] = [
     order: 1,
   },
   {
+    slug: 'prisma-next',
+    name: 'Prisma Next',
+    description:
+      'Define types from your prisma-next contract, with selections and relations compiled onto the collection API.',
+    icon: '◈',
+    category: 'data',
+    order: 2,
+  },
+  {
     slug: 'drizzle',
     name: 'Drizzle',
     description:
       'Define types from your Drizzle schema, resolved through its relational query builder.',
     icon: '◇',
     category: 'data',
-    order: 2,
+    order: 3,
   },
   {
     slug: 'dataloader',
@@ -76,7 +85,7 @@ export const PLUGINS: PluginEntry[] = [
     description: 'Batch and cache loads with dataloaders declared on types and fields.',
     icon: '≡',
     category: 'data',
-    order: 3,
+    order: 4,
   },
   {
     slug: 'add-graphql',
@@ -84,7 +93,7 @@ export const PLUGINS: PluginEntry[] = [
     description: 'Fold existing GraphQL types or SDL into your Pothos schema.',
     icon: '＋',
     category: 'data',
-    order: 4,
+    order: 5,
   },
 
   // ── Schema ────────────────────────────────────────────────────────

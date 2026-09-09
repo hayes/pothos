@@ -8,7 +8,7 @@
   "order": 20,
   "tags": ["prisma", "prisma-next", "orm", "sqlite", "relations", "relay"],
   "relatedDocs": ["/docs/plugins/prisma-next"],
-  "prerequisites": ["01-first-schema", "relay-plugin"],
+  "prerequisites": ["getting-started-first-schema", "relay-plugin"],
   "steps": [
     {
       "id": "step-1",
