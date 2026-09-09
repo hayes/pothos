@@ -720,7 +720,6 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
       paths: [['nodes'], ['edges', 'node']],
       typeName,
       config,
-      // withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
     });
 
     return query;

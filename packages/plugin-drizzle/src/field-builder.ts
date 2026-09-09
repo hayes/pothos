@@ -122,7 +122,6 @@ function resolveWithWalk(
         context,
         select,
         info,
-        // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
       }),
     parent,
     args,
