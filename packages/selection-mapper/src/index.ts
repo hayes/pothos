@@ -19,7 +19,6 @@ export {
   selectedFieldNames,
 } from './matches.js';
 export { createNode, type Node, type NodeBase, relation } from './node.js';
-export { extendWithUsage, isUsed } from './usage.js';
 export {
   type Adapter,
   defaultFragmentType,

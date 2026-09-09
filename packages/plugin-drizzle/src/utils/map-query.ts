@@ -3,7 +3,6 @@ import {
   type IndirectInclude,
   type PathSegment,
   selectedFieldNames,
-  queryFromInfo as walkQueryFromInfo,
   queryFromWalk as walkQueryFromWalk,
   selectionStateFromInfo as walkSelectionStateFromInfo,
   walkFromInfo as walkWalkFromInfo,
@@ -31,13 +30,22 @@ export function queryFromInfo<T extends SelectionMap>({
   select,
   ...options
 }: QueryFromInfoOptions<T>): T {
-  return walkQueryFromInfo(drizzleAdapter(config), {
+  const walk = walkWalkFromInfo(drizzleAdapter(config), {
     ...options,
-    // A `select` without `columns` merges as "no columns yet", not "every column"; when nothing
-    // is planned the caller gets its own selection back untouched.
+    // A `select` without `columns` merges as "no columns yet", not "every column".
     initial: select ? { columns: {}, ...select } : undefined,
-    noMatch: select,
-  }) as T;
+  });
+
+  if (!walk) {
+    // Nothing is planned under the paths: the caller gets its own selection back untouched.
+    return (select ?? {}) as T;
+  }
+
+  return (
+    isThenable(walk)
+      ? walk.then((settled) => walkQueryFromWalk(settled as DrizzleWalk))
+      : walkQueryFromWalk(walk)
+  ) as T;
 }
 
 /**

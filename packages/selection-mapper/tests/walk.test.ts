@@ -176,7 +176,8 @@ describe('queryFromInfo', () => {
       }),
     ).toEqual({ select: { id: true } });
 
-    const raw = { select: { id: true } };
+    // The initial selection comes back as the caller's own object: nothing was planned into it.
+    const initial = { select: { id: true, name: true } };
 
     expect(
       queryFromInfo(adapter, {
@@ -184,10 +185,9 @@ describe('queryFromInfo', () => {
         info,
         typeName: 'User',
         paths: [['appointment']],
-        initial: { select: { id: true, name: true } },
-        noMatch: raw,
+        initial,
       }),
-    ).toBe(raw);
+    ).toBe(initial);
   });
 
   it('walks every path match as its own type into one query (W-11)', async () => {

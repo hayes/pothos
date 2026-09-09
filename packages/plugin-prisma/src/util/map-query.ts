@@ -1,3 +1,4 @@
+import { isThenable } from '@pothos/core';
 import {
   type PathSegment,
   selectedFieldNames,
@@ -7,6 +8,7 @@ import {
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
 import { type PrismaWalk, prismaAdapter } from './adapter.js';
+import { wrapWithUsageCheck } from './usage.js';
 
 export { selectedFieldNames };
 
@@ -56,16 +58,27 @@ export function queryFromInfo<
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
 )): QueryFromInfoResult<Select, Include> {
-  return walkQueryFromInfo(prismaAdapter, {
+  const query = walkQueryFromInfo(prismaAdapter, {
     context,
     info,
     typeName,
     path,
     paths,
-    withUsageCheck,
     skipDeferredFragments,
     initial: select ? { select } : include ? { include } : undefined,
-  }) as never;
+  });
+
+  if (!withUsageCheck) {
+    return query as never;
+  }
+
+  // `onUnusedQuery`: the query is wrapped so reads on it can be observed; a promise (A-7) is
+  // wrapped once it settles.
+  return (
+    isThenable(query)
+      ? query.then((settled) => wrapWithUsageCheck(settled as object))
+      : wrapWithUsageCheck(query)
+  ) as never;
 }
 
 /** The walk loading the field `info` resolves for its parent row (the model loader's query). */

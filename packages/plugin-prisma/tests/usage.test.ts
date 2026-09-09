@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extendWithUsage, isUsed, wrapWithUsageCheck } from '../src/usage.js';
+import { extendWithUsage, isUsed, wrapWithUsageCheck } from '../src/util/usage';
 
 describe('usage check', () => {
   it('reports a query as used once any key is read', () => {

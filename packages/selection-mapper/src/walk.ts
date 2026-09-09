@@ -33,7 +33,6 @@ import {
   resolveType,
 } from './matches.js';
 import type { Node, NodeBase } from './node.js';
-import { wrapWithUsageCheck } from './usage.js';
 
 type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
 
@@ -70,12 +69,12 @@ export interface EntryOptions<Map> {
   typeName?: string;
   path?: PathSegment[];
   paths?: PathSegment[][];
-  /** Merged into the root before anything is walked (E-1). */
+  /**
+   * Merged into the root before anything is walked (E-1), so on a conflict it wins; returned as
+   * is when paths are given and nothing is selected under them.
+   */
   initial?: Map;
-  /** Returned when paths are given and nothing is selected under them; defaults to `initial`. */
-  noMatch?: Map;
   skipDeferredFragments?: boolean;
-  withUsageCheck?: boolean;
 }
 
 /**
@@ -221,21 +220,21 @@ function abandon<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
  * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
  * Declared synchronous (A-7): a promise is returned only when a callback returned one.
  */
-export function queryFromInfo<
-  M,
-  Map extends object,
-  X = undefined,
-  N extends NodeBase<M> = Node<M>,
->(adapter: Adapter<M, Map, X, N>, options: EntryOptions<Map>): Map {
-  const walk = buildWalk(makeEnv(adapter, options), options);
+export function queryFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
+  adapter: Adapter<M, Map, X, N>,
+  options: EntryOptions<Map>,
+): Map {
+  const walk = walkFromInfo(adapter, options);
 
   if (!walk) {
     // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
     // caller gets back its own selection.
-    return wrap(options.noMatch ?? options.initial ?? ({} as Map), options.withUsageCheck);
+    return options.initial ?? ({} as Map);
   }
 
-  return finish(walk, emitQuery, options.withUsageCheck);
+  return isThenable(walk)
+    ? (walk.then((settled) => queryFromWalk(settled as Walk<M, Map, X, N>)) as unknown as Map)
+    : queryFromWalk(walk);
 }
 
 /**
@@ -244,7 +243,7 @@ export function queryFromInfo<
  * must hand a resolver a synchronous query builder settles this first, then emits the query with
  * `queryFromWalk` once the resolver asks for it.
  */
-export function walkFromInfo<M, Map extends object, X = undefined, N extends NodeBase<M> = Node<M>>(
+export function walkFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
   adapter: Adapter<M, Map, X, N>,
   options: EntryOptions<Map>,
 ): Walk<M, Map, X, N> | undefined {
@@ -261,18 +260,16 @@ export function walkFromInfo<M, Map extends object, X = undefined, N extends Nod
  * with it as `initial`. The caller checks compatibility (`typeLevelConflict`) first: a relation or
  * extra the plan already holds with other arguments cannot be merged after the fact.
  */
-export function queryFromWalk<
-  M,
-  Map extends object,
-  X = undefined,
-  N extends NodeBase<M> = Node<M>,
->(walk: Walk<M, Map, X, N>, select?: Map, withUsageCheck?: boolean): Map {
+export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
+  walk: Walk<M, Map, X, N>,
+  select?: Map,
+): Map {
   const { adapter, context, info } = walk.env;
 
   setLoaderMappings(context, info, walk.mappings);
 
   if (!select) {
-    return wrap(adapter.serialize(walk.root), withUsageCheck);
+    return adapter.serialize(walk.root);
   }
 
   const root = adapter.createNode(walk.root.model);
@@ -280,7 +277,7 @@ export function queryFromWalk<
   adapter.merge(root, select);
   adapter.merge(root, adapter.serialize(walk.root));
 
-  return wrap(adapter.serialize(root), withUsageCheck);
+  return adapter.serialize(root);
 }
 
 /**
@@ -289,12 +286,7 @@ export function queryFromWalk<
  * type's type-level selection. The field is what the row is loaded for, so it is merged first
  * and a type-level relation whose arguments conflict with it is left out.
  */
-export function selectionStateFromInfo<
-  M,
-  Map extends object,
-  X = undefined,
-  N extends NodeBase<M> = Node<M>,
->(
+export function selectionStateFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
   adapter: Adapter<M, Map, X, N>,
   context: object,
   info: GraphQLResolveInfo,
@@ -411,20 +403,6 @@ function identity<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
 
 function serializeRoot<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
   return walk.env.adapter.serialize(walk.root);
-}
-
-/** L-2, M-6, L-5 in that order. */
-function emitQuery<M, Map extends object, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
-  withUsageCheck?: boolean,
-) {
-  setLoaderMappings(walk.env.context, walk.env.info, walk.mappings);
-
-  return wrap(walk.env.adapter.serialize(walk.root), withUsageCheck);
-}
-
-function wrap<Map extends object>(query: Map, withUsageCheck?: boolean) {
-  return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
 
 function makeEnv<M, Map, X, N extends NodeBase<M>>(

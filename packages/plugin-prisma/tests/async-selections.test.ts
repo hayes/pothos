@@ -164,6 +164,7 @@ const User = builder.prismaObject('User', {
     // beneath the posts is, and would otherwise record mappings for data this never loads.
     discardedPosts: t.field({
       type: [Post],
+      // biome-ignore lint/suspicious/useAwait: the select must be async and must not await the nested selection it discards
       select: async (_args, _ctx, nestedSelection) => {
         nestedSelection({ take: 1, orderBy: { id: 'asc' as const } });
 
