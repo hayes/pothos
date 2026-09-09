@@ -1,7 +1,7 @@
 ---
 '@pothos/selection-mapper': minor
-'@pothos/plugin-prisma': patch
-'@pothos/plugin-drizzle': patch
+'@pothos/plugin-prisma': minor
+'@pothos/plugin-drizzle': minor
 ---
 
 Move the selection planner shared by the prisma and drizzle plugins into a new internal package, `@pothos/selection-mapper`, and fix three things on the way.

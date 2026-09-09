@@ -1,7 +1,7 @@
 ---
 '@pothos/selection-mapper': patch
-'@pothos/plugin-prisma': patch
-'@pothos/plugin-drizzle': patch
+'@pothos/plugin-prisma': minor
+'@pothos/plugin-drizzle': minor
 ---
 
 Type the selection API by what it does, and document what was undocumented.

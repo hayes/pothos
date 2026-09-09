@@ -1,6 +1,6 @@
 ---
-'@pothos/plugin-prisma': patch
-'@pothos/plugin-drizzle': patch
+'@pothos/plugin-prisma': minor
+'@pothos/plugin-drizzle': minor
 ---
 
 Fix resolution of indirect include paths that pass through fragments.
