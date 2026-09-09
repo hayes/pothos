@@ -1,6 +1,7 @@
 import { isThenable, PothosValidationError } from '@pothos/core';
 import {
   type IndirectInclude,
+  type PathSegment,
   selectedFieldNames,
   queryFromInfo as walkQueryFromInfo,
   queryFromWalk as walkQueryFromWalk,
@@ -21,8 +22,8 @@ export interface QueryFromInfoOptions<T extends SelectionMap> {
   info: GraphQLResolveInfo;
   typeName?: string;
   select?: T;
-  path?: (string | { name: string; type?: string })[];
-  paths?: (string | { name: string; type?: string })[][];
+  path?: PathSegment[];
+  paths?: PathSegment[][];
   withUsageCheck?: boolean;
 }
 

@@ -1,4 +1,5 @@
 import {
+  type PathSegment,
   selectedFieldNames,
   queryFromInfo as walkQueryFromInfo,
   selectionStateFromInfo as walkSelectionStateFromInfo,
@@ -42,8 +43,8 @@ export function queryFromInfo<
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
-  path?: (string | { name: string; type?: string })[];
-  paths?: (string | { name: string; type?: string })[][];
+  path?: PathSegment[];
+  paths?: PathSegment[][];
   withUsageCheck?: boolean;
   skipDeferredFragments?: boolean;
 } & (

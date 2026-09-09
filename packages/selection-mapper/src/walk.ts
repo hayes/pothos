@@ -51,7 +51,7 @@ export type NestedQuery<Map, X = undefined> =
  */
 export type NestedSelection<Map, X = undefined> = (
   query?: NestedQuery<Map, X> | true,
-  path?: string[] | IndirectInclude,
+  path?: PathSegment[] | IndirectInclude,
   type?: string,
 ) => Map;
 
@@ -968,6 +968,7 @@ function nestedSelectionFor<M, Map, X>(
           pathOrInclude,
           resolveType(info.schema, returnType),
           typeName ? info.schema.getType(typeName) : undefined,
+          info.schema,
         )
       : pathOrInclude;
     const target = include ? info.schema.getType(include.getType())! : returnType;

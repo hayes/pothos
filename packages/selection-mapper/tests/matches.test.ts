@@ -239,25 +239,70 @@ describe('resolveType', () => {
 
 describe('normalizeInclude', () => {
   it('turns a string path into an include targeting the type at its end', () => {
-    const include = normalizeInclude(['edges', 'node'], schema.getType('PostConnection')!);
+    const include = normalizeInclude(
+      ['edges', 'node'],
+      schema.getType('PostConnection')!,
+      undefined,
+      schema,
+    );
 
     expect(include.path).toEqual([{ name: 'edges' }, { name: 'node' }]);
     expect(include.getType()).toBe('Post');
   });
 
   it('lets an explicit type override the target', () => {
-    const include = normalizeInclude([], schema.getType('User')!, schema.getType('Viewer')!);
+    const include = normalizeInclude(
+      [],
+      schema.getType('User')!,
+      schema.getType('Viewer')!,
+      schema,
+    );
 
     expect(include.path).toEqual([]);
     expect(include.getType()).toBe('Viewer');
   });
 
-  it('rejects unknown fields and non-object types along the path', () => {
-    expect(() => normalizeInclude(['missing'], schema.getType('User')!)).toThrow(
+  it('looks a typed segment up on the type it pins', () => {
+    // The field only exists on the implementations, each returning a different type.
+    const include = normalizeInclude(
+      [{ name: 'appointment', type: 'OtherEntry' }],
+      schema.getType('Entry')!,
+      undefined,
+      schema,
+    );
+
+    expect(include.path).toEqual([{ name: 'appointment', type: 'OtherEntry' }]);
+    expect(include.getType()).toBe('Post');
+
+    // A pin also names the member of a union the path goes through.
+    const viaUnion = normalizeInclude(
+      [{ name: 'data', type: 'UserSuccess' }],
+      schema.getType('UserResult')!,
+      undefined,
+      schema,
+    );
+
+    expect(viaUnion.path).toEqual([{ name: 'data', type: 'UserSuccess' }]);
+    expect(viaUnion.getType()).toBe('User');
+  });
+
+  it('rejects unknown fields, unknown pinned types, and non-object types along the path', () => {
+    expect(() => normalizeInclude(['missing'], schema.getType('User')!, undefined, schema)).toThrow(
       'Expected User to have a field missing',
     );
-    expect(() => normalizeInclude(['name'], schema.getType('User')!)).toThrow(
+    expect(() => normalizeInclude(['name'], schema.getType('User')!, undefined, schema)).toThrow(
       'Expected String to be an Object or Interface type',
     );
+    expect(() =>
+      normalizeInclude(
+        [{ name: 'appointment', type: 'Nope' }],
+        schema.getType('Entry')!,
+        undefined,
+        schema,
+      ),
+    ).toThrow('Unknown type Nope in nested selection path segment appointment');
+    expect(() =>
+      normalizeInclude(['data'], schema.getType('UserResult')!, undefined, schema),
+    ).toThrow('Expected UserResult to be an Object type');
   });
 });

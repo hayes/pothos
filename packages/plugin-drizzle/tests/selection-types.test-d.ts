@@ -1,11 +1,32 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+import type * as SelectionMapper from '@pothos/selection-mapper';
 import type { DBQueryConfig } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { expectTypeOf, it } from 'vitest';
-import DrizzlePlugin, { drizzleConnectionHelpers } from '../src';
+import DrizzlePlugin, {
+  drizzleConnectionHelpers,
+  type IndirectInclude,
+  type IndirectPathSegment,
+  type PathSegment,
+} from '../src';
+import { queryFromInfo } from '../src/utils/map-query';
 import { type DrizzleRelations, db, relations } from './example/db';
+
+// One path segment type, shared with the planner, for `queryFromInfo` paths, `nestedSelection`
+// paths, and the `IndirectInclude` a type's extensions carry.
+it('re-exports the shared path segment types', () => {
+  expectTypeOf<PathSegment>().toEqualTypeOf<SelectionMapper.PathSegment>();
+  expectTypeOf<IndirectPathSegment>().toEqualTypeOf<SelectionMapper.IndirectPathSegment>();
+  expectTypeOf<IndirectInclude>().toEqualTypeOf<SelectionMapper.IndirectInclude>();
+  expectTypeOf<PathSegment>().toEqualTypeOf<string | { name: string; type?: string }>();
+
+  expectTypeOf(queryFromInfo)
+    .parameter(0)
+    .toHaveProperty('path')
+    .toEqualTypeOf<PathSegment[] | undefined>();
+});
 
 const builder = new SchemaBuilder<{
   DrizzleRelations: DrizzleRelations;
@@ -58,6 +79,11 @@ builder.drizzleObject('users', {
         expectTypeOf(nestedSelection()).toEqualTypeOf<PostsQuery>();
         expectTypeOf(nestedSelection(true)).toEqualTypeOf<PostsQuery>();
         expectTypeOf(nestedSelection.path).toEqualTypeOf<string[]>();
+
+        // A path segment is a name, or `{ name, type }`, as for `queryFromInfo`.
+        expectTypeOf(
+          nestedSelection({ limit: 1 }, [{ name: 'post', type: 'PostEntry' }]),
+        ).toEqualTypeOf(nestedSelection({ limit: 1 }, ['post']));
 
         const query = nestedSelection({ limit: 1 });
 
