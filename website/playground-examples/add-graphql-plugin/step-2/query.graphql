@@ -1,0 +1,9 @@
+# Refs from addGraphQLObject / addGraphQLInput drive ordinary Pothos fields.
+# displayName is the field we swapped in; fullName was dropped.
+query Roster {
+  players(filter: { position: HANDLER }) {
+    id
+    displayName
+    position
+  }
+}

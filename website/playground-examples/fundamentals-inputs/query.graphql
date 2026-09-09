@@ -1,0 +1,7 @@
+mutation AddCharacter {
+  addCharacter(input: { name: "Frodo", birthYear: 2968 }) {
+    id
+    name
+    birthYear
+  }
+}

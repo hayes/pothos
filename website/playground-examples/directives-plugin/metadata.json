@@ -1,0 +1,12 @@
+{
+  "id": "directives-plugin",
+  "title": "Directives Plugin",
+  "description": "Attach schema directives to Pothos types and fields for downstream tools like graphql-tools to consume.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 14,
+  "tags": ["directives", "metadata", "schema"],
+  "relatedDocs": ["/docs/plugins/directives"],
+  "prerequisites": ["getting-started-first-schema"]
+}

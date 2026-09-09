@@ -1,0 +1,10 @@
+# Two batched loads total: one for every team, one for every roster —
+# no matter how many teams the query walks.
+query Standings {
+  teams {
+    name
+    players {
+      name
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "simple-objects-plugin",
+  "title": "Simple Objects Plugin",
+  "description": "Define objects and interfaces from their fields alone with simpleObject and simpleInterface, no separate backing type.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "beginner",
+  "order": 12,
+  "tags": ["objects", "interfaces", "simple", "types"],
+  "relatedDocs": ["/docs/plugins/simple-objects"],
+  "prerequisites": ["getting-started-first-schema"]
+}

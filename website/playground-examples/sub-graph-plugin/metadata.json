@@ -1,0 +1,12 @@
+{
+  "id": "sub-graph-plugin",
+  "title": "SubGraph plugin",
+  "description": "Tag types and fields into named sub-graphs, then build a public or internal view of one schema.",
+  "category": "plugins",
+  "subcategory": "advanced-plugins",
+  "difficulty": "advanced",
+  "order": 16,
+  "tags": ["sub-graph", "plugins", "schema"],
+  "relatedDocs": ["/docs/plugins/sub-graph"],
+  "prerequisites": ["fundamentals-objects"]
+}
