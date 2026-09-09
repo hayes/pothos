@@ -27,8 +27,11 @@ builder.drizzleObject('posts', {
   fields: (t) => ({
     id: t.exposeID('postId'),
     title: t.exposeString('title'),
+    author: t.relation('author'),
   }),
 });
+
+let recordedSegments: { field: string; isList: boolean }[] = [];
 
 builder.drizzleObject('userProfile', {
   name: 'Profile',
@@ -48,6 +51,12 @@ const User = builder.drizzleObject('users', {
     postsConnection: t.relatedConnection('posts', {
       totalCount: true,
       query: () => ({ orderBy: { postId: 'desc' } }),
+    }),
+    postsWithPath: t.relation('posts', {
+      query: (_args, _ctx, pathInfo) => {
+        recordedSegments = pathInfo.segments;
+        return {};
+      },
     }),
     postsWithResolve: t.relatedConnection('posts', {
       // A custom resolver was accepted and silently discarded; it is now rejected.
@@ -71,6 +80,11 @@ builder.queryType({
     rawUser: t.drizzleField({
       type: User,
       resolve: () => db.query.users.findFirst({ where: { id: 1 } }),
+    }),
+    // A row that carries the relation rows but not the count the connection also needs.
+    userWithPosts: t.drizzleField({
+      type: User,
+      resolve: () => db.query.users.findFirst({ where: { id: 1 }, with: { posts: true } }),
     }),
   }),
 });
@@ -176,6 +190,85 @@ describe('relation loading', () => {
 
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ rawUser: { postsConnection: { totalCount: 15 } } });
+    expect(drizzleLogs).toHaveLength(2);
+    expect(drizzleLogs[1]).toContain('count(*)');
+  });
+
+  it('answers a totalCount-only connection selected through a fragment', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          rawUser {
+            postsConnection {
+              ... on UserPostsConnection {
+                totalCount
+              }
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ rawUser: { postsConnection: { totalCount: 15 } } });
+  });
+
+  it('treats a connection whose row fields are skipped as totalCount-only', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          rawUser {
+            postsConnection {
+              totalCount
+              edges @skip(if: true) {
+                node {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ rawUser: { postsConnection: { totalCount: 15 } } });
+  });
+
+  it('loads the count when the row has the relation but not the count', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          userWithPosts {
+            postsConnection(first: 2) {
+              totalCount
+              edges {
+                node {
+                  id
+                }
+              }
+            }
+          }
+        }
+      `,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      userWithPosts: {
+        postsConnection: {
+          totalCount: 15,
+          edges: [{ node: { id: '15' } }, { node: { id: '14' } }],
+        },
+      },
+    });
+    // the raw row, then the loader reloading the connection with its count
     expect(drizzleLogs).toHaveLength(2);
     expect(drizzleLogs[1]).toContain('count(*)');
   });
