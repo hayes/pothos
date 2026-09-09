@@ -431,6 +431,21 @@ export type DrizzleFieldSelection =
       pathInfo: PathInfo,
     ) => MaybePromise<SelectionMap | false | null | undefined>);
 
+/**
+ * The shape of a row of `Table` loaded with `Query` (a query config, or `true` for every
+ * column): what drizzle returns for that query, and what a resolver on the table's type sees
+ * when the row was planned with it. For rows a resolver loads itself, so what is on them is
+ * named once, next to the query that loaded them. `Query` is read as drizzle reads it: without
+ * `columns`, every column is loaded.
+ */
+export type DrizzleQueriedShape<
+  Types extends SchemaTypes,
+  Table extends keyof Types['DrizzleRelations'],
+  Query extends
+    | DBQueryConfig<'one', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]>
+    | true = true,
+> = BuildQueryResult<Types['DrizzleRelations'], Types['DrizzleRelations'][Table], Query>;
+
 export type ExtractTable<Types extends SchemaTypes, Shape> = Shape extends {
   [drizzleTableName]?: keyof Types['DrizzleRelations'];
 }
