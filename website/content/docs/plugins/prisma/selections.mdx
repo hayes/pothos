@@ -265,14 +265,19 @@ builder.mutationField(
 );
 ```
 
-`queryFromInfo` returns `{ include }` when it was given one, and otherwise `{ select?, include? }`,
-whichever the type's mode produced. The type's mode wins over a given `select`: a type in select
-mode returns `{ select }` with the given columns among the selected ones, but a type in include
-mode merges the `select` into an `include` query (prisma then loads every column, the selected
-ones among them, and the relations in the `select` are included), so the result is `{ include }`,
-or `{}` when nothing is included. The return type of a call with `select` is therefore
-`{ select?, include? }`, the same as a call with neither. All of them spread into a prisma call,
-and the given columns are on the rows either way.
+`queryFromInfo` returns `{ include }` when it was given one, `{ select }` with the given select's
+own type when it was given one, and otherwise `{ select?, include? }`, whichever the type's mode
+produced. All of them spread into a prisma call, and a given `select` narrows the rows to the
+columns and relations you asked for: spread it into a query and read your selection back with
+types.
+
+At runtime the type's mode wins over a given `select`: a type in select mode returns `{ select }`
+with the given columns among the selected ones, but a type in include mode merges the `select` into
+an `include` query (prisma then loads every column, the selected ones among them, and the relations
+in the `select` are included), so the query is `{ include }`, or `{}` when nothing is included. The
+given columns and relations are on the rows either way, which is why the rows are typed by the
+select in both modes. Reading `.select` off the returned query itself is the one thing the type
+does not promise: a type in include mode does not return one.
 
 The `path` is followed through fragments in the query, including inline fragments and fragment
 spreads that narrow an interface or union to one of its implementations. Every selection of the

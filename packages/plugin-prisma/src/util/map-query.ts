@@ -6,14 +6,25 @@ import { type PrismaPlan, prismaAdapter } from './adapter.js';
 import { wrapWithUsageCheck } from './usage.js';
 
 /**
- * What `queryFromInfo` returns. A given `include` puts the query in include mode, so the result
- * is `{ include }`. Otherwise it is whichever of `select` and `include` the walked type's mode
- * produced, both optional, so the result spreads into a prisma call either way: a type in select
- * mode keeps a given `select` as `select`, a type in include mode merges it into `include`; the
- * selected columns are on the rows in both.
+ * What `queryFromInfo` returns, typed so the result round trips: spread it into a prisma call and
+ * the rows carry what was asked for, with types.
+ *
+ * A given `include` puts the query in include mode, so the result is `{ include }`. A given
+ * `select` keeps its literal type, so prisma narrows the rows to the selected columns. With
+ * neither, nothing narrows the rows and the result is whichever of the two the walked type's mode
+ * produced, both optional.
+ *
+ * `{ select: Select }` is what the rows hold, not always what the query is: only a type in select
+ * mode returns the `select` (widened by the walk, so the rows are a superset of `Select`). A type
+ * in include mode merges it into `include` instead, dropping the columns and keeping the
+ * relations, and an include-mode query loads every column — so the given columns and relations are
+ * on the rows there too. Reading `Select`'s keys off a row is therefore sound in both modes;
+ * reading `.select` off the query itself is not, since an include-mode type does not return one.
  */
-export type QueryFromInfoResult<Include> = undefined extends Include
-  ? { select?: SelectionMap['select']; include?: SelectionMap['include'] }
+export type QueryFromInfoResult<Select, Include> = undefined extends Include
+  ? undefined extends Select
+    ? { select?: SelectionMap['select']; include?: SelectionMap['include'] }
+    : { select: Select; include?: SelectionMap['include'] }
   : { include: Include };
 
 /**
@@ -49,7 +60,7 @@ export function queryFromInfo<
 } & (
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
-)): QueryFromInfoResult<Include> {
+)): QueryFromInfoResult<Select, Include> {
   const initial = select ? { select } : include ? { include } : undefined;
   const plan = Plan.fromInfo(prismaAdapter, {
     context,

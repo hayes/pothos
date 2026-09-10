@@ -6,16 +6,11 @@
 
 The selection API is typed by what it does, and everything it does is documented.
 
-Three changes can stop existing code from compiling; in the first two cases that code failed at
-runtime before:
+Two changes can stop existing code from compiling; in the first case that code failed at runtime
+before:
 
 - `t.relationCount` (prisma) and `t.relatedCount` (drizzle) accept only list relations. Calling
   either on a to-one relation built a count query prisma or drizzle rejected.
-- `queryFromInfo` (prisma) is typed by what it returns: `{ include }` when an `include` was
-  passed, and otherwise `{ select?, include? }`, whichever of the two the type's mode produced.
-  It used to claim `{ select: Select }` for every call without `include`, which was wrong for a
-  type in include mode, so code reading `.select` off that result now sees it as possibly
-  undefined. Every form spreads into a prisma call as before.
 - `LoaderMappings` (prisma) is a deprecated alias of the shared `Mappings` type. The record it
   names is internal to the plugin, and the plugin no longer builds the `{ field, type, mappings,
   indirectPath }` entries the old declaration described, so code that reads those keys off it no
@@ -23,6 +18,11 @@ runtime before:
 
 New and widened types:
 
+- `queryFromInfo` (prisma) is typed by what was passed: `{ include }` for a given `include`, and
+  `{ select }` keeping a given select's own type, so the selection round trips — spread the result
+  into a prisma call and read the selected columns and relations back off the rows, with types. A
+  call with neither now returns `{ select?, include? }`, whichever of the two the type's mode
+  produced, rather than a `select` key that a type in include mode does not return.
 - `nestedSelection` returns the relation query for the field's model or table (prisma:
   `PrismaRelationQuery<Model>`; drizzle: the table's `DBQueryConfig`, a `many` config for a list
   field), keeping the keys it was given as given, so a `select`/`columns` in them still narrows

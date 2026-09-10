@@ -395,18 +395,19 @@ it('re-exports the shared path segment types', () => {
     .toEqualTypeOf<PathSegment[] | undefined>();
 });
 
-// `queryFromInfo` is typed by what the walked type's mode can make of what it was given: an
-// `include` passed in comes back as `include`; otherwise whichever of the two the mode produces,
-// both optional, so the result spreads into a prisma call.
+// `queryFromInfo` is typed by what it was given: a given `include` comes back as `include`, a
+// given `select` keeps its literal type, and with neither the result is whichever of the two the
+// walked type's mode produced, both optional. Every form spreads into a prisma call.
 it('types queryFromInfo by what was passed', () => {
   expectTypeOf(queryFromInfo({ context, info })).toEqualTypeOf<{
     select?: SelectionMap['select'];
     include?: SelectionMap['include'];
   }>();
 
-  // A given `select` may come back as `select` or, from a type in include mode, as `include`.
+  // The given `select` keeps its literal type. A type in include mode returns `include` instead,
+  // so the key is on the type too, but the given columns are on the rows either way.
   expectTypeOf(queryFromInfo({ context, info, select: { id: true } })).toEqualTypeOf<{
-    select?: SelectionMap['select'];
+    select: { id: true };
     include?: SelectionMap['include'];
   }>();
 
@@ -421,14 +422,66 @@ it('types queryFromInfo by what was passed', () => {
   ).resolves.items.toMatchTypeOf<{ id: number; email: string }>();
   expectTypeOf(
     prisma.user.findMany({
-      ...queryFromInfo({ context, info, select: { email: true } }),
-      where: { id: 1 },
-    }),
-  ).resolves.items.toMatchTypeOf<{ email: string }>();
-  expectTypeOf(
-    prisma.user.findMany({
       ...queryFromInfo({ context, info, include: { posts: true } }),
       where: { id: 1 },
     }),
   ).resolves.items.toMatchTypeOf<{ email: string; posts: { title: string }[] }>();
+});
+
+// The round trip: the selection a caller passes to `queryFromInfo` comes back on the rows of the
+// prisma call it was spread into, with its own types. The row is exactly the given columns — never
+// the whole model — so every read off it is a read of something that was selected.
+it('narrows a prisma row to the select given to queryFromInfo', async () => {
+  const user = await prisma.user.findUniqueOrThrow({
+    ...queryFromInfo({ context, info, select: { email: true } }),
+    where: { id: 1 },
+  });
+
+  expectTypeOf(user).toEqualTypeOf<{ email: string }>();
+  expectTypeOf(user.email).toEqualTypeOf<string>();
+
+  // Not the whole model: `name` was not selected, and reading it is an error rather than a
+  // `string | null` that is `undefined` at runtime.
+  // @ts-expect-error `name` was not selected.
+  user.name;
+
+  const list = await prisma.user.findMany({
+    ...queryFromInfo({ context, info, select: { id: true, name: true } }),
+    where: { id: 1 },
+  });
+
+  expectTypeOf(list).items.toEqualTypeOf<{ id: number; name: string | null }>();
+  // @ts-expect-error `email` was not selected.
+  list[0].email;
+});
+
+// A relation in the given `select` round trips the same way: a type in select mode keeps it under
+// `select`, a type in include mode moves it under `include`, and the rows carry it in both.
+it('narrows a relation selected through queryFromInfo', async () => {
+  const user = await prisma.user.findUniqueOrThrow({
+    ...queryFromInfo({ context, info, select: { posts: { select: { title: true } } } }),
+    where: { id: 1 },
+  });
+
+  expectTypeOf(user).toEqualTypeOf<{ posts: { title: string }[] }>();
+  // @ts-expect-error only `title` was selected on the posts.
+  user.posts[0].id;
+});
+
+// Include mode: a given `include` is the query, and prisma loads every column beside it, so the
+// row is the whole model plus the included relations. Nothing is narrowed away, and nothing is
+// claimed that is not loaded.
+it('types an include given to queryFromInfo as an include-mode row', async () => {
+  const user = await prisma.user.findUniqueOrThrow({
+    ...queryFromInfo({ context, info, include: { posts: true } }),
+    where: { id: 1 },
+  });
+
+  expectTypeOf(user.id).toEqualTypeOf<number>();
+  expectTypeOf(user.email).toEqualTypeOf<string>();
+  expectTypeOf(user.name).toEqualTypeOf<string | null>();
+  expectTypeOf(user.posts).items.toMatchTypeOf<{ title: string }>();
+
+  // @ts-expect-error `profile` was not included.
+  user.profile;
 });
