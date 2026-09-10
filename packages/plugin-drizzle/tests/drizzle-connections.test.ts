@@ -1122,4 +1122,61 @@ describe('drizzle connections', () => {
       }
     `);
   });
+
+  // `last: 0` is a backward page of zero rows: `first` and `last` are read as given rather than
+  // by truthiness, so the ordering inverts and `pageInfo` is a backward page's. Read by
+  // truthiness, `last: 0` looked like no `last` at all and answered as a forward page.
+  it('last: 0 pages backwards', async () => {
+    const context = await createContext({ userId: '1' });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          posts(last: 0) {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+            }
+            edges {
+              cursor
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      posts: { edges: [], pageInfo: { hasNextPage: false, hasPreviousPage: true } },
+    });
+  });
+
+  it('first: 0 pages forwards', async () => {
+    const context = await createContext({ userId: '1' });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          posts(first: 0) {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+            }
+            edges {
+              cursor
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      posts: { edges: [], pageInfo: { hasNextPage: true, hasPreviousPage: false } },
+    });
+  });
 });

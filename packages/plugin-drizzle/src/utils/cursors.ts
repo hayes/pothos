@@ -214,14 +214,16 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
   }
 }
 
-export function getIDParser(fields: readonly Column[]) {
+// Keyed by the typescript name, as `getIDSerializer` reads by: the record is a row of the table,
+// and every consumer (the node ref's `parseId`, the model loader) looks columns up that way.
+export function getIDParser(fields: readonly Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column parser must have at least one field');
   }
 
   return (value: string) => {
     if (fields.length === 1) {
-      return { [fields[0].name]: parseSerializedIDColumn(value, fields[0]) };
+      return { [config.columnToTsName(fields[0])]: parseSerializedIDColumn(value, fields[0]) };
     }
 
     try {
@@ -242,7 +244,7 @@ export function getIDParser(fields: readonly Column[]) {
       const record: Record<string, unknown> = {};
 
       fields.forEach((field, i) => {
-        record[field.name] = parsed[i];
+        record[config.columnToTsName(field)] = parsed[i];
       });
 
       return record;
@@ -580,7 +582,8 @@ export function drizzleCursorConnectionQuery({
     typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
 
   const limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
-  const inverted = !first && !!last;
+  // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`.
+  const inverted = first == null && last != null;
 
   const parsedOrderBy = parseOrderBy(config, table, orderBy, inverted, extras);
 
@@ -623,8 +626,11 @@ export function wrapConnectionResult<T extends {}>(
   totalCount?: number | (() => MaybePromise<number>) | null,
 ) {
   const gotFullResults = results.length === Math.abs(limit);
-  const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : !args.first && !!args.last ? gotFullResults : false;
+  // `first`/`last` are compared against null rather than by truthiness, so `last: 0` reports the
+  // `pageInfo` of a backward page of zero rows rather than of a forward one.
+  const backward = args.first == null && args.last != null;
+  const hasNextPage = args.before ? true : args.last != null ? false : gotFullResults;
+  const hasPreviousPage = args.after ? true : backward ? gotFullResults : false;
   const nodes = gotFullResults ? results.slice(0, -1) : results;
 
   const connection = {
@@ -657,7 +663,7 @@ export function wrapConnectionResult<T extends {}>(
           },
   );
 
-  if (args.last && !args.first) {
+  if (backward) {
     edges.reverse();
   }
 

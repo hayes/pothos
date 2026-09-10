@@ -234,8 +234,11 @@ export class ModelLoader {
         query.then(
           (results) => {
             for (const [model, promise] of entry.models.entries()) {
+              // Matched on the columns the batch was keyed by, which are the columns a row of
+              // `entry.models` carries: a node loaded by a column other than the primary key
+              // has only that one.
               const result = results.find((row) =>
-                this.primaryKey.every(
+                this.columns.every(
                   (key) =>
                     row[this.config.columnToTsName(key) as keyof typeof row] ===
                     (model as Record<string, unknown>)[this.config.columnToTsName(key)],

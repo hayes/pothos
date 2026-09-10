@@ -153,12 +153,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
           return [];
         }
 
-        // return checkIfQueryIsUsed(
-        //   this.builder,
-        //   query,
-        //   info,
         return resolve(q as never, parent, args as never, context, info) as never;
-        // );
       },
       parent,
     );
