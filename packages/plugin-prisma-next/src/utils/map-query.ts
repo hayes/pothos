@@ -64,7 +64,7 @@ export function applySelectionToCollection(
   }
 
   const finish = (settled: PrismaNextPlan) =>
-    emit(baseCollection, queryFromPlan(settled), settled.root.model, ctx);
+    emit(baseCollection, queryFromPlan(settled), settled.model, ctx);
 
   return isThenable(plan)
     ? (plan.then((settled) => finish(settled as PrismaNextPlan)) as unknown as MapperCollection)
