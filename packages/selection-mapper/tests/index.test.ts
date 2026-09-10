@@ -5,18 +5,26 @@ import * as index from '../src';
 // `Adapter` contract, and the entry points, and nothing else. Types are not visible here; this
 // pins the runtime surface.
 it('exports only what the plugins use', () => {
-  expect(Object.keys(index).sort()).toEqual([
-    'cacheKey',
-    'createNode',
-    'deepEqual',
-    'getLoaderMapping',
-    'planFromInfo',
-    'queryFromInfo',
-    'queryFromPlan',
-    'relation',
-    'rowPlanFromInfo',
-    'selectedFieldNames',
-    'setFieldMapping',
-    'setLoaderMappings',
-  ]);
+  expect(Object.keys(index).sort()).toEqual(
+    [
+      'absorb',
+      'accepts',
+      'acceptsFrom',
+      'cacheKey',
+      'conflictOf',
+      'createNode',
+      'deepEqual',
+      'getLoaderMapping',
+      'hasKeys',
+      'planFromInfo',
+      'queryFromInfo',
+      'queryFromPlan',
+      'relation',
+      'rowPlanFromInfo',
+      'selectedFieldNames',
+      'setFieldMapping',
+      'setLoaderMappings',
+      'treeAccumulator',
+    ].sort(),
+  );
 });

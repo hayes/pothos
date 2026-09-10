@@ -89,9 +89,10 @@ export type RootMerge<Query> =
   | { kind: 'field'; key: string; alias: string; query: Query; mapping: Mapping };
 
 /**
- * The ORM boundary. `Model` is the model description a node carries, `Query` the ORM's own selection
- * format (prisma `{ select, include, ...args }`, drizzle `DBQueryConfig`), opaque to the walker,
- * and `NodeType` the adapter's node type, of which the walker reads only `model`.
+ * The ORM boundary, translation only. `Model` is the model description a node carries, `Query`
+ * the ORM's own selection format (prisma `{ select, include, ...args }`, drizzle
+ * `DBQueryConfig`), opaque to the traversal, and `NodeType` what selections accumulate into, of
+ * which the traversal reads only `model`.
  */
 export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
   /** S-8: whether a fragment under `@defer` is walked. `EntryOptions` may override it. */
@@ -101,12 +102,6 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
    * `modelOf` does). One object per model: identity is model identity.
    */
   modelFor(type: GraphQLNamedType): Model | undefined;
-  /**
-   * A fresh, empty node of the query tree for `model`. The walker never looks inside a node
-   * beyond `model`; the adapter owns the shape. `createNode` from this package builds the
-   * default tree (columns, relations, extras, arguments) the prisma and drizzle adapters use.
-   */
-  createNode(model: Model): NodeType;
   /** S-1: what the type always needs, or undefined. */
   typeSelection(type: GraphQLNamedType): Query | undefined;
   /**
@@ -118,6 +113,21 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
     field: GraphQLField<unknown, unknown>,
     type: WalkedType,
   ): Query | SelectFn<Query> | undefined;
+  /**
+   * How selections accumulate into a query. `treeAccumulator` from this package builds the one
+   * the prisma and drizzle adapters use, from a `QueryFormat` describing their query; an adapter
+   * whose query is not a tree of columns, relations and extras supplies its own.
+   */
+  accumulator?: Accumulator<Model, Query, NodeType>;
+  // ---------------------------------------------------------------------------------------------
+  // TEMPORARY: the members `accumulator` replaces, kept while the adapters are ported one at a
+  // time. They go away together, and `accumulator` becomes required.
+  // ---------------------------------------------------------------------------------------------
+  /**
+   * A fresh, empty node of the query tree for `model`. `createNode` from this package builds the
+   * default tree (columns, relations, extras, arguments) the prisma and drizzle adapters use.
+   */
+  createNode(model: Model): NodeType;
   /**
    * M-1, M-2, S-9, in place. Never mutates `query`. `key` is the field the query came from
    * (`Type@alias`, or `Type@path.alias` beneath an indirect include) when the query is a field's
@@ -156,6 +166,60 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
   withoutConflicts(node: NodeType, query: Query): Query;
   /** M-6. */
   serialize(node: NodeType): Query;
+}
+
+/** How one merge into an accumulator differs from a plain one. */
+export interface MergeOptions {
+  /**
+   * M-3: the node's own top-level arguments are not compared. A field's selection is merged into
+   * a node whose arguments came from somewhere else, so only what is nested below is checked.
+   */
+  ignoreArgs?: boolean;
+  /**
+   * E-3: the query is a relation query, not a selection. A query without a column selection must
+   * add no columns: the plan beneath it adds the ones it needs.
+   */
+  asQuery?: boolean;
+  /**
+   * E-2: entries that conflict with what the accumulator holds are left out, one at a time,
+   * instead of the merge being refused or throwing.
+   */
+  lenient?: boolean;
+  /**
+   * The field the query came from (`Type@alias`, or `Type@path.alias` beneath an indirect
+   * include) and the field's response key alone, so an accumulator that keeps one slot per
+   * selected field can key it. Both absent for a type-level selection, an initial selection and
+   * a staged query.
+   */
+  key?: string;
+  alias?: string;
+}
+
+/**
+ * Where a plan's selections accumulate. The traversal creates one per root and merges into it;
+ * only `create`, `merge` and `emit` are required, and an accumulator that never shares a slot
+ * between two consumers needs nothing else. The optional members are the merge rules: an
+ * accumulator that omits one gets the trivial answer (`accepts` true, `conflict` none) or the
+ * round trip through `emit` (`absorb`, `acceptsFrom`).
+ */
+export interface Accumulator<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
+  /** A fresh, empty accumulator for `model`. */
+  create(model: Model): NodeType;
+  /** M-1, M-2, S-9, E-2, E-3, in place. Never mutates `query`. */
+  merge(node: NodeType, query: Query, options?: MergeOptions): void;
+  /** M-6. */
+  emit(node: NodeType): Query;
+  /**
+   * M-3: whether `query` can be merged into `node` without changing what is already selected.
+   * Absent means nothing ever conflicts.
+   */
+  accepts?(node: NodeType, query: Query, options?: MergeOptions): boolean;
+  /** S-7: the first entry of a type-level `query` that conflicts with what `node` holds. */
+  conflict?(node: NodeType, query: Query): TypeLevelConflict | undefined;
+  /** Everything `from` holds, merged into `node`. Defaults to `merge(node, emit(from))`. */
+  absorb?(node: NodeType, from: NodeType): void;
+  /** M-3 node to node. Defaults to `accepts(node, emit(from))`. */
+  acceptsFrom?(node: NodeType, from: NodeType): boolean;
 }
 
 /** A type-level selection entry that cannot be merged with what a node already holds. */

@@ -3,6 +3,7 @@
  * and the loader-map, node, usage, and equality helpers their adapters and loaders call.
  * Everything else is module-private; see the README.
  */
+export { absorb, accepts, acceptsFrom, conflictOf } from './accumulate.js';
 export { deepEqual } from './deep-equal.js';
 export { planFromInfo, queryFromInfo, queryFromPlan, rowPlanFromInfo } from './entry.js';
 export {
@@ -20,9 +21,12 @@ export {
   selectedFieldNames,
 } from './matches.js';
 export { createNode, type Node, type NodeBase, relation } from './node.js';
+export { type EntryVisitor, hasKeys, type QueryFormat, treeAccumulator } from './tree.js';
 export type {
+  Accumulator,
   Adapter,
   EntryOptions,
+  MergeOptions,
   NestedSelection,
   Plan,
   Position,
