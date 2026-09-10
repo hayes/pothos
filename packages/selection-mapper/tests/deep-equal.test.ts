@@ -9,6 +9,7 @@ describe('deepEqual', () => {
     expect(deepEqual({ where: { id: 1 } }, { where: { id: 2 } })).toBe(false);
     expect(deepEqual([1, 2], [1, 2, 3])).toBe(false);
     expect(deepEqual([1, 2], { 0: 1, 1: 2 })).toBe(false);
+    expect(deepEqual({}, [])).toBe(false);
   });
 
   it('treats keys holding undefined as absent', () => {
@@ -19,5 +20,7 @@ describe('deepEqual', () => {
   it('compares boxed and date values by their primitive value', () => {
     expect(deepEqual(new Date(1), new Date(1))).toBe(true);
     expect(deepEqual(new Date(1), new Date(2))).toBe(false);
+    expect(deepEqual({}, new Date(1))).toBe(false);
+    expect(deepEqual(new Date(1), {})).toBe(false);
   });
 });

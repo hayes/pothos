@@ -9,8 +9,8 @@ export function deepEqual(left: unknown, right: unknown): boolean {
   }
 
   if (left && right && typeof left === 'object' && typeof right === 'object') {
-    if (Array.isArray(left)) {
-      if (!Array.isArray(right)) {
+    if (Array.isArray(left) || Array.isArray(right)) {
+      if (!Array.isArray(left) || !Array.isArray(right)) {
         return false;
       }
 
@@ -32,7 +32,13 @@ export function deepEqual(left: unknown, right: unknown): boolean {
     const lValue = left.valueOf?.();
     const rValue = right.valueOf?.();
 
-    if ((lValue != null || rValue != null) && typeof lValue !== 'object') {
+    // A boxed value (a Date, a boxed primitive) compares by its primitive, whichever side it is
+    // on: a plain object's `valueOf` returns the object itself, and a null-prototype object has
+    // none at all, so neither is mistaken for one.
+    if (
+      (lValue != null && typeof lValue !== 'object') ||
+      (rValue != null && typeof rValue !== 'object')
+    ) {
       return lValue === rValue;
     }
 
