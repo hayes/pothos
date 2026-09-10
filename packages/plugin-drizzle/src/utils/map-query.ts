@@ -8,7 +8,7 @@ import {
   selectedFieldNames,
 } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import { type DrizzlePlan, drizzleAdapter } from './adapter.js';
+import { type DrizzlePlan, type DrizzlePlayedPlan, drizzleAdapter } from './adapter.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
 import type { SelectionMap } from './selections.js';
 
@@ -81,11 +81,14 @@ export function queryFromPlan<T extends SelectionMap>(
   return mapper.queryFromPlan(plan, select ? { columns: {}, ...select } : undefined) as T;
 }
 
-/** The plan loading the field `info` resolves for its parent row (the model loader's query). */
+/**
+ * The plan loading the field `info` resolves for its parent row (the model loader's query),
+ * already played: an E-2 plan is never played behind another selection.
+ */
 export function rowPlanFromInfo(
   config: PothosDrizzleSchemaConfig,
   context: object,
   info: GraphQLResolveInfo,
-): DrizzlePlan {
+): DrizzlePlayedPlan {
   return mapper.rowPlanFromInfo(drizzleAdapter(config), context, info);
 }

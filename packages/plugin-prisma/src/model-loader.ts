@@ -9,7 +9,7 @@ import {
 } from '@pothos/core';
 import { absorb, acceptsFrom, cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import { type PrismaPlan, prismaAdapter } from './util/adapter.js';
+import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
 import { getClient } from './util/get-client.js';
 import { rowPlanFromInfo } from './util/map-query.js';
@@ -29,11 +29,14 @@ export class ModelLoader {
 
   modelName: string;
 
-  // L-4: one plan per `Type@path`, a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<PrismaPlan>>();
+  // L-4: one E-2 plan per `Type@path`, played where it is made (it is never played behind
+  // another selection); a promise while a select beneath the field is async.
+  queryCache = new Map<string, MaybePromise<PrismaPlayedPlan>>();
 
+  // Each batch owns the node it accumulates into, so nothing a cached play holds is changed by a
+  // row joining the batch.
   staged = new Set<{
-    plan: PrismaPlan;
+    root: PrismaNode;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
@@ -256,14 +259,14 @@ export class ModelLoader {
     const selection = this.getSelection(info);
 
     return isThenable(selection)
-      ? selection.then((settled) => this.loadWith(settled as PrismaPlan, info, model))
+      ? selection.then((settled) => this.loadWith(settled, info, model))
       : this.loadWith(selection, info, model);
   }
 
-  private loadWith(plan: PrismaPlan, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(plan, model).then((result) => {
+  private loadWith(played: PrismaPlayedPlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(played, model).then((result) => {
       if (result) {
-        const mapping = plan.mappings[`${info.parentType.name}@${info.path.key}`];
+        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
 
         if (mapping) {
           setLoaderMappings(this.context, info, mapping.nested);
@@ -274,13 +277,13 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(plan: PrismaPlan, model: object) {
+  stageQuery(played: PrismaPlayedPlan, model: object) {
     const accumulator = prismaAdapter.accumulator;
 
     for (const entry of this.staged) {
-      // Node to node: the staged plan takes the field's plan whole, never through a query.
-      if (acceptsFrom(accumulator, entry.plan.root, plan.root)) {
-        absorb(accumulator, entry.plan.root, plan.root);
+      // Node to node: the batch takes the field's play whole, never through a query.
+      if (acceptsFrom(accumulator, entry.root, played.root)) {
+        absorb(accumulator, entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -290,10 +293,10 @@ export class ModelLoader {
       }
     }
 
-    return this.initLoad(plan, model);
+    return this.initLoad(played, model);
   }
 
-  initLoad(plan: PrismaPlan, initialModel: {}) {
+  initLoad(played: PrismaPlayedPlan, initialModel: {}) {
     const delegate = getDelegateFromModel(
       getClient(this.builder, this.context as never),
       this.modelName,
@@ -304,9 +307,13 @@ export class ModelLoader {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     models.set(initialModel, promise);
 
+    const root = prismaAdapter.accumulator.create(played.root.model);
+
+    absorb(prismaAdapter.accumulator, root, played.root);
+
     const entry = {
       models,
-      plan,
+      root,
     };
 
     this.staged.add(entry);
@@ -319,7 +326,7 @@ export class ModelLoader {
         if (delegate.findUniqueOrThrow) {
           delegate
             .findUniqueOrThrow({
-              ...prismaAdapter.accumulator.emit(plan.root),
+              ...prismaAdapter.accumulator.emit(entry.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -327,7 +334,7 @@ export class ModelLoader {
           delegate
             .findUnique({
               rejectOnNotFound: true,
-              ...prismaAdapter.accumulator.emit(plan.root),
+              ...prismaAdapter.accumulator.emit(entry.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);

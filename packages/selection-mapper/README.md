@@ -20,20 +20,28 @@ their own. Use the plugins.
   model identity is model equality.
 - **Node** — one level of the query tree being built (a model, its columns, its relations, its
   extras). The adapter owns the shape; the walker reads only `node.model`.
-- **Plan** — one root being built: its query tree, the mappings recorded beneath it, and the
-  adapter, context and settings the traversal runs with. Entry points return plans; a nested
-  selection makes a child plan.
+- **Plan** — what a traversal collected for one root: the model it loads, the selection it starts
+  from, and the merges it collected, in order. A plan holds no node. Entry points return plans; a
+  nested selection makes a child plan.
+- **Merge (noun)** — one entry of a plan's list: a type's selection, a variant's, a nested
+  selection's relation query, or a field's, each with the query the adapter produced for it and,
+  for a field, the mapping to record if it is taken (`RootMerge`).
+- **Play** — to fold a plan's merges into a fresh node, in order, behind a seed selection
+  (`play`). Every merge is offered to the node being built, so this is where one is accepted or
+  rejected and the only place a mapping is recorded — the traversal decides none of it. A plan can
+  be played any number of times, behind a different seed each time; a play owns its node
+  (`PlayedPlan`), so a caller may merge into what it gets back.
 - **Walk** — only ever the verb: to read a selection into a plan (`walkBranches`, `walkField`,
   `walkSelections`, `walkIndirectPath`). Never a noun.
 - **Branch** — one selection set (or several, for one field selected under several fragments) with
   the type to walk it as: the unit `walkBranches` takes.
-- **Merge** — to fold a query into a node, through the accumulator.
+- **Merge (verb)** — to fold a query into a node, through the accumulator.
 - **Accumulate** — what a plan's selections do: the accumulator holds the merge rules the
   adapter's translation feeds. `Adapter.accumulator`.
 - **Format** — the format-specific half of a tree accumulator: how to read an ORM's query and
   how to write one back (`QueryFormat`).
-- **Mapping** — what a plan records for a merged field so its resolver can find its data in the
-  loaded row; absent means the resolver loads its own data.
+- **Mapping** — what a play records for a field whose merge it took, so the field's resolver can
+  find its data in the loaded row; absent means the resolver loads its own data.
 - **Position** — where a field is: a link of `{ parent, type, field, node }` running back to the
   field an entry point was called for, handed to a select function and recorded with the field's
   mapping.
@@ -74,8 +82,13 @@ path or a list of segments walks `parent` and materializes its own — and recor
 field's mapping, so a resolver can ask the same question the select path asked. An adapter that
 never looks at a position pays for one link per select function and no arrays.
 
-Every plan records its loader mappings on the request context, which pothos requires to be an
+Every play records its loader mappings on the request context, which pothos requires to be an
 object; an adapter whose resolvers read a loaded row another way simply never looks them up.
+
+A merge holds the query the adapter produced for it by reference, and a play merges that same
+object however many times the plan is played. A select function that returns a query and then
+mutates it changes what a later play builds; nothing copies it, because a query is opaque to this
+package and could only be copied by round-tripping it through the accumulator on every field.
 
 ## Rule tags
 

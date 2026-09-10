@@ -20,6 +20,27 @@ export interface Mapping {
  */
 export type Mappings = Record<string, Mapping>;
 
+/** The mapping of a static selection: nothing can ever be recorded beneath one. */
+export const EMPTY_MAPPING: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
+
+/**
+ * Adopts the first mapping recorded for a key; a later one deep-unions into a copy, so a recorded
+ * mapping is never changed after the fact (two plays may accept a different subset of the fields).
+ */
+export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping {
+  if (!into || into === EMPTY_MAPPING) {
+    return from;
+  }
+
+  const nested: Mappings = { ...into.nested };
+
+  for (const key of Object.keys(from.nested)) {
+    nested[key] = unionMappings(nested[key], from.nested[key]);
+  }
+
+  return into.position === undefined ? { nested } : { nested, position: into.position };
+}
+
 const cache = createContextCache(() => new Map<string, Mapping>());
 
 /** The string keys of a response path joined by `.`; list indices are dropped. */

@@ -5,6 +5,7 @@ import type { Adapter, SelectFn } from '../src';
 import {
   getLoaderMapping,
   planFromInfo,
+  play,
   queryFromInfo,
   queryFromPlan,
   rowPlanFromInfo,
@@ -142,11 +143,12 @@ describe('async callbacks', () => {
     }));
 
     // A relation query that returns a promise makes the nested selection a promise, which a
-    // synchronous select cannot embed (A-6)...
+    // synchronous select cannot embed (A-6): the invocation returned while its nested selection
+    // was still pending, which is what it is refused for (A-8)...
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
-      'Relation "posts" was given a promise',
+      'The selection function of User.posts returned while a nested selection it started was still pending',
     );
 
     // ...so the select awaits it.
@@ -166,7 +168,7 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
     await expect(queryFromInfo(async, { context: {}, info })).rejects.toThrow(
-      'Relation "posts" was given a promise',
+      'The selection function of User.posts returned while a nested selection it started was still pending',
     );
   });
 
@@ -323,7 +325,7 @@ describe('async callbacks', () => {
     );
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
-      'Relation "posts" was given a promise',
+      'The selection function of User.postsConnection returned while a nested selection it started was still pending',
     );
   });
 
@@ -369,7 +371,7 @@ describe('async callbacks', () => {
       typeName: 'User',
     }))!;
 
-    expect(adapter.accumulator.emit(direct.root)).toEqual({ select: { posts: true } });
+    expect(adapter.accumulator.emit(play(direct).root)).toEqual({ select: { posts: true } });
   });
 });
 

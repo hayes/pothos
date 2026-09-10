@@ -419,7 +419,7 @@ describe('async selections', () => {
 
     expect(logs).toHaveLength(0);
     expect(result.errors?.map((error) => error.message)).toEqual([
-      'Relation "posts" was given a promise. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
+      'The selection function of User.unawaitedPosts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
     ]);
   });
 

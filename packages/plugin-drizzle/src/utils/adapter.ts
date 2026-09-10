@@ -4,6 +4,7 @@ import {
   type EntryVisitor,
   type Node,
   type Plan,
+  type PlayedPlan,
   type QueryFormat,
   type SelectFn,
   treeAccumulator,
@@ -16,6 +17,7 @@ import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
 export type DrizzleNode = Node<TableRelationalConfig>;
 export type DrizzlePlan = Plan<TableRelationalConfig, SelectionMap>;
+export type DrizzlePlayedPlan = PlayedPlan<TableRelationalConfig, SelectionMap>;
 export type DrizzleAdapter = Adapter<TableRelationalConfig, SelectionMap>;
 
 /** A map without `columns`: every column. Shared and never mutated. */

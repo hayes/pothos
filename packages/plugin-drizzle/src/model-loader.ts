@@ -3,6 +3,7 @@ import {
   absorb,
   acceptsFrom,
   cacheKey,
+  play,
   setFieldMapping,
   setLoaderMappings,
 } from '@pothos/selection-mapper';
@@ -16,7 +17,13 @@ import {
   type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { type DrizzleAdapter, type DrizzlePlan, drizzleAdapter } from './utils/adapter.js';
+import {
+  type DrizzleAdapter,
+  type DrizzleNode,
+  type DrizzlePlan,
+  type DrizzlePlayedPlan,
+  drizzleAdapter,
+} from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
 import { planFromInfo, rowPlanFromInfo } from './utils/map-query.js';
 
@@ -33,11 +40,17 @@ export class ModelLoader {
 
   modelName: string;
 
-  // L-4: one plan per `Type@path`, a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<DrizzlePlan>>();
+  // L-4: one plan per `Type@path`, a promise while a select beneath the field is async. The E-2
+  // plan of a row is played where it is made (it is never played behind another selection); the
+  // plan of a field is played per load, so no two loads share a node.
+  rowCache = new Map<string, MaybePromise<DrizzlePlayedPlan>>();
 
+  planCache = new Map<string, MaybePromise<DrizzlePlan>>();
+
+  // Each batch owns the node it accumulates into, so nothing a cached plan or play holds is
+  // changed by a row joining the batch.
   staged = new Set<{
-    plan: DrizzlePlan;
+    root: DrizzleNode;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
@@ -97,24 +110,24 @@ export class ModelLoader {
 
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
-    if (!this.queryCache.has(key)) {
-      this.queryCache.set(key, rowPlanFromInfo(this.config, this.context, info));
+    if (!this.rowCache.has(key)) {
+      this.rowCache.set(key, rowPlanFromInfo(this.config, this.context, info));
     }
 
-    return this.queryCache.get(key)!;
+    return this.rowCache.get(key)!;
   }
 
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
     const key = cacheKey(typeName, info.path);
-    if (!this.queryCache.has(key)) {
-      this.queryCache.set(
+    if (!this.planCache.has(key)) {
+      this.planCache.set(
         key,
         // Walked without paths, so there is always a plan.
         planFromInfo({ config: this.config, context: this.context, info, typeName })!,
       );
     }
 
-    return this.queryCache.get(key)!;
+    return this.planCache.get(key)!;
   }
 
   /**
@@ -126,14 +139,14 @@ export class ModelLoader {
     const selection = this.getSelection(info);
 
     return isThenable(selection)
-      ? selection.then((settled) => this.loadWith(settled as DrizzlePlan, info, model))
+      ? selection.then((settled) => this.loadWith(settled, info, model))
       : this.loadWith(selection, info, model);
   }
 
-  private loadWith(plan: DrizzlePlan, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(plan, model).then((result) => {
+  private loadWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(played, model).then((result) => {
       if (result) {
-        const mapping = plan.mappings[`${info.parentType.name}@${info.path.key}`];
+        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
 
         if (mapping) {
           // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
@@ -155,27 +168,27 @@ export class ModelLoader {
     const selection = this.getSelectionForField(info, returnType);
 
     return isThenable(selection)
-      ? selection.then((settled) => this.loadFieldWith(settled as DrizzlePlan, info, model))
-      : this.loadFieldWith(selection, info, model);
+      ? selection.then((settled) => this.loadFieldWith(play(settled), info, model))
+      : this.loadFieldWith(play(selection), info, model);
   }
 
-  private loadFieldWith(plan: DrizzlePlan, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(plan, model).then((result) => {
+  private loadFieldWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(played, model).then((result) => {
       if (result) {
-        setLoaderMappings(this.context, info, plan.mappings);
+        setLoaderMappings(this.context, info, played.mappings);
       }
 
       return result;
     });
   }
 
-  stageQuery(plan: DrizzlePlan, model: object) {
+  stageQuery(played: DrizzlePlayedPlan, model: object) {
     const accumulator = this.adapter.accumulator;
 
     for (const entry of this.staged) {
-      // Node to node: the staged plan takes the field's plan whole, never through a query.
-      if (acceptsFrom(accumulator, entry.plan.root, plan.root)) {
-        absorb(accumulator, entry.plan.root, plan.root);
+      // Node to node: the batch takes the field's play whole, never through a query.
+      if (acceptsFrom(accumulator, entry.root, played.root)) {
+        absorb(accumulator, entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -185,13 +198,17 @@ export class ModelLoader {
       }
     }
 
-    return this.initLoad(plan, model);
+    return this.initLoad(played, model);
   }
 
-  initLoad(plan: DrizzlePlan, model: object) {
+  initLoad(played: DrizzlePlayedPlan, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
+    const root = this.adapter.accumulator.create(played.root.model);
+
+    absorb(this.adapter.accumulator, root, played.root);
+
     const entry = {
-      plan,
+      root,
       models: new Map([[model, promise]]),
     };
     this.staged.add(entry);
@@ -210,7 +227,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...this.adapter.accumulator.emit(plan.root),
+          ...this.adapter.accumulator.emit(entry.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(

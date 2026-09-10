@@ -4,6 +4,7 @@ import {
   getLoaderMapping,
   type IndirectInclude,
   planFromInfo,
+  play,
   queryFromInfo,
   queryFromPlan,
   rowPlanFromInfo,
@@ -523,6 +524,6 @@ describe('entry points', () => {
       nested: { 'Post@id': { nested: {} } },
     });
     // A serialized spec merges back without a key: every entry carries its alias.
-    expect(chain(queryFromPlan(plan))).toEqual(chain(pnAdapter.accumulator.emit(plan.root)));
+    expect(chain(queryFromPlan(plan))).toEqual(chain(pnAdapter.accumulator.emit(play(plan).root)));
   });
 });

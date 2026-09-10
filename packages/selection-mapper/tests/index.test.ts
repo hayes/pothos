@@ -17,6 +17,7 @@ it('exports only what the plugins use', () => {
       'getLoaderMapping',
       'hasKeys',
       'planFromInfo',
+      'play',
       'queryFromInfo',
       'queryFromPlan',
       'relation',

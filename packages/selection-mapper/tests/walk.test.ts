@@ -3,6 +3,7 @@ import type { Position } from '../src';
 import {
   getLoaderMapping,
   planFromInfo,
+  play,
   queryFromInfo,
   queryFromPlan,
   rowPlanFromInfo,
@@ -777,10 +778,10 @@ describe('planFromInfo', () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
-    const plan = planFromInfo(adapter, { context, info, typeName: 'User' })!;
+    const played = play(planFromInfo(adapter, { context, info, typeName: 'User' })!);
 
-    expect(adapter.accumulator.emit(plan.root)).toEqual({ select: { posts: true } });
-    expect(mappingsOf(plan.mappings)).toEqual({ 'User@posts': { nested: {} } });
+    expect(adapter.accumulator.emit(played.root)).toEqual({ select: { posts: true } });
+    expect(mappingsOf(played.mappings)).toEqual({ 'User@posts': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
   });
 
@@ -802,7 +803,7 @@ describe('planFromInfo', () => {
     );
     const plan = planFromInfo(adapter, { ...options, info: nodes })!;
 
-    expect(adapter.accumulator.emit(plan.root)).toEqual({ select: { author: true } });
+    expect(adapter.accumulator.emit(play(plan).root)).toEqual({ select: { author: true } });
   });
 });
 

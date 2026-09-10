@@ -20,9 +20,8 @@ import {
   Kind,
   type SelectionNode,
 } from 'graphql';
-import { accepts, conflictOf } from './accumulate.js';
 import { abandon, chain, noop } from './async.js';
-import type { Mapping, Mappings } from './loader-map.js';
+import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
   findMatches,
   includeOf,
@@ -34,23 +33,21 @@ import {
   resolveType,
 } from './matches.js';
 import type { NodeBase } from './node.js';
+import { play } from './play.js';
 import type {
   Adapter,
   EntryOptions,
   MergeOptions,
   NestedSelection,
   Plan,
+  PlayedPlan,
   Position,
   SelectFn,
   WalkedType,
 } from './types.js';
 
-/** The mapping of a static selection: nothing can ever be recorded beneath one. */
-const EMPTY_MAPPING: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
-
-/** E-2 and E-3, which carry nothing per merge. */
+/** E-2, which carries nothing per merge. */
 const LENIENT: MergeOptions = Object.freeze({ lenient: true });
-const AS_QUERY: MergeOptions = Object.freeze({ asQuery: true });
 
 /**
  * One select invocation's mapping record while the invocation runs: `pending` counts the nested
@@ -62,69 +59,61 @@ interface Invocation extends Mapping {
   pending?: number;
 }
 
-/** E-2: the parent type's selection, minus what conflicts with the field, once it is merged. */
+/**
+ * E-2: the plan played, with the parent type's selection merged in behind it, minus what
+ * conflicts with the field the row is loaded for. An E-2 plan is never replayed behind a caller's
+ * selection, so it plays once, here.
+ */
 export function enterParentType<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: GraphQLNamedType,
-) {
+): PlayedPlan<Model, Query, NodeType> {
   const { adapter } = plan;
+  const played = play(plan);
   const selection = adapter.typeSelection(type);
 
   if (selection) {
-    adapter.accumulator.merge(plan.root, selection, LENIENT);
+    adapter.accumulator.merge(played.root, selection, LENIENT);
   }
 
-  return plan;
+  return played;
 }
 
-/** The empty query tree a plan of `type` starts from, or a validation error when it has no model. */
-function rootNode<Model, Query, NodeType extends NodeBase<Model>>(
+/** The model a plan of `type` loads, or a validation error when the type has none. */
+function modelForType<Model, Query, NodeType extends NodeBase<Model>>(
   adapter: Adapter<Model, Query, NodeType>,
   schema: GraphQLSchema,
   type: GraphQLNamedType,
-): NodeType {
+): Model {
   const model = modelOf(adapter, schema, type);
 
   if (!model) {
     throw new PothosValidationError(`Expected ${resolveType(schema, type).name} to have a model`);
   }
 
-  return adapter.accumulator.create(model);
+  return model;
 }
 
-/**
- * The root plan of an entry point. `replayable` records every merge into the root (`Plan.merges`)
- * so `queryFromPlan` can rebuild the query with a caller's selection ahead of the walked plan;
- * only `planFromInfo` needs that.
- */
+/** The root plan of an entry point: what it loads, what it starts from, and nothing collected. */
 export function createPlan<Model, Query, NodeType extends NodeBase<Model>>(
   adapter: Adapter<Model, Query, NodeType>,
   options: PlanOptions<Query>,
   type: GraphQLNamedType,
   position?: Position,
-  replayable?: boolean,
 ): Plan<Model, Query, NodeType> {
   const { context, info, initial, skipDeferredFragments } = options;
-  const plan: Plan<Model, Query, NodeType> = {
+
+  // Not entered: a type is entered when its selection set is walked (S-1).
+  return {
     adapter,
     context,
     info,
     skipDeferred: skipDeferredFragments ?? adapter.skipDeferredFragments,
-    root: rootNode(adapter, info.schema, type),
-    mappings: {},
+    model: modelForType(adapter, info.schema, type),
+    initial,
+    merges: [],
     position,
   };
-
-  if (replayable) {
-    plan.merges = [];
-  }
-
-  if (initial) {
-    adapter.accumulator.merge(plan.root, initial);
-  }
-
-  // Not entered: a type is entered when its selection set is walked (S-1).
-  return plan;
 }
 
 /** What `createPlan` reads of an entry point's options. */
@@ -135,13 +124,12 @@ export type PlanOptions<Query> = Pick<
 
 /**
  * E-3: the plan beneath one nested selection, which carries the parent's adapter, context, info
- * and deferred setting and records into the invocation's own mappings. It hangs beneath the field
- * whose select function made it, so that field's position is where the child plan is.
+ * and deferred setting and collects merges of its own. It hangs beneath the field whose select
+ * function made it, so that field's position is where the child plan is.
  */
 function createNestedPlan<Model, Query, NodeType extends NodeBase<Model>>(
   parent: Plan<Model, Query, NodeType>,
   type: GraphQLNamedType,
-  mappings: Mappings,
   position: Position,
 ): Plan<Model, Query, NodeType> {
   const { adapter, context, info, skipDeferred } = parent;
@@ -151,8 +139,8 @@ function createNestedPlan<Model, Query, NodeType extends NodeBase<Model>>(
     context,
     info,
     skipDeferred,
-    root: rootNode(adapter, info.schema, type),
-    mappings,
+    model: modelForType(adapter, info.schema, type),
+    merges: [],
     position,
   };
 }
@@ -160,73 +148,34 @@ function createNestedPlan<Model, Query, NodeType extends NodeBase<Model>>(
 /** S-1. */
 function enter<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   type: GraphQLNamedType,
 ) {
   const selection = plan.adapter.typeSelection(type);
 
   if (selection) {
-    plan.adapter.accumulator.merge(node, selection);
-    plan.merges?.push({ kind: 'type', query: selection });
+    plan.merges.push({ kind: 'type', query: selection });
   }
 }
 
 /**
- * S-7: merges the type-level selection of `variant` when a fragment moves the plan from `type` to
- * another type of the same model, so the variant's resolvers find what its selection promises.
- * Unlike a field-level select, a type-level selection has no per-field fallback, so relation
- * arguments or extras that conflict with what is already selected are an error.
+ * S-7: collects the type-level selection of `variant` when a fragment moves the plan from `type`
+ * to another type of the same model, so the variant's resolvers find what its selection promises.
+ * Whether the two selections can live in one node is decided when the plan is played.
  */
 function enterVariant<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   type: WalkedType,
   variant: WalkedType,
 ) {
   const selection = plan.adapter.typeSelection(variant);
 
-  if (!selection) {
-    return;
+  if (selection) {
+    plan.merges.push({ kind: 'variant', type, variant, query: selection });
   }
-
-  mergeVariant(plan.adapter, node, type, variant, selection);
-  plan.merges?.push({ kind: 'variant', type, variant, query: selection });
-}
-
-/** S-7 for one variant selection: rejected as an error when it conflicts with the node. */
-export function mergeVariant<Model, Query, NodeType extends NodeBase<Model>>(
-  adapter: Adapter<Model, Query, NodeType>,
-  node: NodeType,
-  type: WalkedType,
-  variant: WalkedType,
-  selection: Query,
-) {
-  const accumulator = adapter.accumulator;
-  const conflict = conflictOf(accumulator, node, selection);
-
-  if (conflict) {
-    switch (conflict.kind) {
-      case 'relation':
-        throw new PothosValidationError(
-          `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
-        );
-      case 'extra':
-        throw new PothosValidationError(
-          `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
-        );
-      default: {
-        const unknown: never = conflict.kind;
-
-        throw new PothosValidationError(`Unknown type-level conflict ${unknown as string}`);
-      }
-    }
-  }
-
-  accumulator.merge(node, selection);
 }
 
 /**
- * One selection to walk into a node, before any indirect include on `type` is followed: the
+ * One selection to walk into a plan, before any indirect include on `type` is followed: the
  * selection sets of `fieldNodes` (every node selecting one field), walked as `type`.
  */
 interface Branch {
@@ -247,25 +196,24 @@ interface ResolvedBranch {
 }
 
 /**
- * E-4, S-1, S-8: walks every branch into `node`. The types the selections are
- * walked as, and the variants their fragments move to, are all entered before any field is
- * merged, so type-level selections are settled first and the plan does not depend on which
- * selection comes first: neither the occurrence of a field (W-1) nor the path match (W-11).
+ * E-4, S-1, S-8: walks every branch into `plan`. The types the selections are walked as, and the
+ * variants their fragments move to, are all collected before any field is, so type-level
+ * selections come first in the merge list and the plan does not depend on which selection came
+ * first in the document: neither the occurrence of a field (W-1) nor the path match (W-11).
  */
 export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   branches: Branch[],
 ) {
-  const resolved = branches.flatMap((branch) => resolveBranch(plan, node, branch));
+  const resolved = branches.flatMap((branch) => resolveBranch(plan, branch));
 
   for (const { type, selectionSets } of resolved) {
-    enter(plan, node, type);
+    enter(plan, type);
 
     const entered = new Set<string>();
 
     for (const selections of selectionSets) {
-      enterVariants(plan, node, type, selections, entered);
+      enterVariants(plan, type, selections, entered);
     }
   }
 
@@ -273,7 +221,7 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
     const walked = new Set<string>();
 
     for (const selections of selectionSets) {
-      walkSelections(plan, node, type, selections, indirectPath, true, walked);
+      walkSelections(plan, type, selections, indirectPath, true, walked);
     }
   }
 }
@@ -285,7 +233,6 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
  */
 function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   { type, fieldNodes, indirectPath, deferred }: Branch,
 ): ResolvedBranch[] {
   // Every node selects the same field.
@@ -306,7 +253,7 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 
       for (const match of matches) {
         beneath.push(
-          ...resolveBranch(plan, node, {
+          ...resolveBranch(plan, {
             type: match.type,
             fieldNodes: [match.field],
             indirectPath: match.path,
@@ -319,11 +266,11 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
     // The wrapper's own selection is planned only when the wrapper itself is backed by the model
     // being queried (a variant that also points at a nested field). A plain wrapper, or one backed
     // by another model, has nothing of its own to add to this query.
-    if (adapter.modelFor(type) !== node.model) {
+    if (adapter.modelFor(type) !== plan.model) {
       return beneath;
     }
   } else if (include) {
-    return resolveBranch(plan, node, {
+    return resolveBranch(plan, {
       type: info.schema.getType(include.getType())!,
       fieldNodes,
       indirectPath,
@@ -377,7 +324,6 @@ function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): 
  */
 function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   type: WalkedType,
   selections: readonly SelectionNode[],
   visited: Set<string>,
@@ -396,10 +342,10 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
     const as = fragmentTypeOf(plan, type, fragment);
 
     if (as && as !== type) {
-      enterVariant(plan, node, type, as);
+      enterVariant(plan, type, as);
     }
 
-    enterVariants(plan, node, as ?? type, fragment.selectionSet.selections, visited);
+    enterVariants(plan, as ?? type, fragment.selectionSet.selections, visited);
   }
 }
 
@@ -410,7 +356,6 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
  */
 function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   type: WalkedType,
   selections: readonly SelectionNode[],
   indirectPath: string[],
@@ -420,7 +365,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
       if (fieldsApply) {
-        walkField(plan, node, type, selection, indirectPath);
+        walkField(plan, type, selection, indirectPath);
       }
 
       continue;
@@ -436,7 +381,6 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
 
     walkSelections(
       plan,
-      node,
       as ?? type,
       fragment.selectionSet.selections,
       indirectPath,
@@ -516,10 +460,9 @@ function fragmentTypeOf<Model, Query, NodeType extends NodeBase<Model>>(
   return undefined;
 }
 
-/** S-2..S-6: merges what `fieldNode` (a field of `type`) selects into `node`. */
+/** S-2..S-6: collects what `fieldNode` (a field of `type`) selects. */
 export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   type: WalkedType,
   fieldNode: FieldNode,
   indirectPath: string[],
@@ -547,7 +490,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   const key = `${type.name}@${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
 
   if (typeof selection !== 'function') {
-    mergeField(plan, node, key, alias, selection, EMPTY_MAPPING);
+    collectField(plan, key, alias, selection, EMPTY_MAPPING);
 
     return;
   }
@@ -568,10 +511,10 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
 
   if (isThenable(query)) {
     chain(plan, query as PromiseLike<Query | false | null | undefined>, (resolved) =>
-      mergeField(plan, node, key, alias, resolved, mapping),
+      collectField(plan, key, alias, resolved, mapping),
     );
   } else {
-    mergeField(plan, node, key, alias, query, mapping);
+    collectField(plan, key, alias, query, mapping);
   }
 }
 
@@ -603,35 +546,25 @@ function fieldName({ type, node }: Position) {
 }
 
 /**
- * S-5, M-3, M-4, L-2: merges an accepted query and records its mapping, or does neither. A
- * rejected or falsy query records nothing, so the resolver loads its own data (L-3). This is the
- * only place a mapping is recorded.
+ * S-5: collects a field's query with the mapping to record if a play takes it. A falsy query is
+ * collected as nothing, so the resolver loads its own data (L-3). Whether the query fits, and
+ * therefore whether the mapping is ever recorded, is decided by `play`.
  *
  * A-8: an invocation whose nested selection is still pending returned without awaiting it. Its
  * query cannot hold what the nested plan will select, so recording its mapping would claim data
  * the query never loads: the invocation is refused instead, and the pending plans (already
- * handled, see `awaitNested`) are left to settle unobserved. Checked after the merge, so a query
- * that embeds the pending promise is reported as that by the adapter.
+ * handled, see `awaitNested`) are left to settle unobserved.
  */
-function mergeField<Model, Query, NodeType extends NodeBase<Model>>(
+function collectField<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  node: NodeType,
   key: string,
   alias: string,
   query: Query | false | null | undefined,
   mapping: Invocation,
 ) {
-  const accumulator = plan.adapter.accumulator;
-
-  // One options object for the pair: `merge` reads only the key and the alias, and `accepts` the
-  // `ignoreArgs` alongside them.
-  const options: MergeOptions = { ignoreArgs: true, key, alias };
-
-  if (!(query && accepts(accumulator, node, query, options))) {
+  if (!query) {
     return;
   }
-
-  accumulator.merge(node, query, options);
 
   if (mapping.pending) {
     // Only a select invocation can be pending, and every one of those has a position.
@@ -640,27 +573,7 @@ function mergeField<Model, Query, NodeType extends NodeBase<Model>>(
     );
   }
 
-  plan.merges?.push({ kind: 'field', key, alias, query, mapping });
-  plan.mappings[key] = unionMappings(plan.mappings[key], mapping);
-}
-
-/**
- * Adopts the first mapping accepted for a key; a later accepted plan of the key deep-unions into
- * a copy, so a recorded mapping is never changed after the fact (a replay may accept a different
- * subset of the plans).
- */
-export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping {
-  if (!into || into === EMPTY_MAPPING) {
-    return from;
-  }
-
-  const nested: Mappings = { ...into.nested };
-
-  for (const key of Object.keys(from.nested)) {
-    nested[key] = unionMappings(nested[key], from.nested[key]);
-  }
-
-  return into.position === undefined ? { nested } : { nested, position: into.position };
+  plan.merges.push({ kind: 'field', key, alias, query, mapping });
 }
 
 /** E-3: the nested selection callback of one select invocation. */
@@ -704,7 +617,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
       return (query ?? ({} as Query)) as Query;
     }
 
-    const child = createNestedPlan(plan, target, mapping.nested, position);
+    const child = createNestedPlan(plan, target, position);
 
     try {
       if (isThenable(query)) {
@@ -734,7 +647,6 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
 
         walkBranches(
           child,
-          child.root,
           matches.map((match) => ({
             type: match.type,
             fieldNodes: [match.field],
@@ -750,7 +662,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
           deferred: false,
         });
 
-        walkBranches(child, child.root, [
+        walkBranches(child, [
           ...(target === returnType ? [] : [asType(target)]),
           asType(returnType),
         ]);
@@ -763,7 +675,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
     // A promise behind the declared synchronous type, as `finish` returns one (A-7).
     return child.pending
       ? (awaitNested(child, mapping) as Query)
-      : adapter.accumulator.emit(child.root);
+      : adapter.accumulator.emit(playNested(child, mapping).root);
   };
 }
 
@@ -780,7 +692,9 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
 ) {
   mapping.pending = (mapping.pending ?? 0) + 1;
 
-  const result = child.pending!.then(() => child.adapter.accumulator.emit(child.root));
+  const result = child.pending!.then(() =>
+    child.adapter.accumulator.emit(playNested(child, mapping).root),
+  );
 
   result.then(() => {
     if (mapping.pending === 1) {
@@ -793,13 +707,35 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
   return result;
 }
 
-/** E-3: the relation query of a nested selection, merged into the child's root as a query. */
+/**
+ * E-3: the nested plan played where the callback needs it serialized, with the mappings it
+ * recorded folded into the invocation that started it. Every nested plan of one invocation
+ * records into the same `mapping.nested`, so two that map the same key union.
+ */
+function playNested<Model, Query, NodeType extends NodeBase<Model>>(
+  child: Plan<Model, Query, NodeType>,
+  mapping: Invocation,
+) {
+  const played = play(child);
+
+  for (const key of Object.keys(played.mappings)) {
+    mapping.nested[key] = unionMappings(mapping.nested[key], played.mappings[key]);
+  }
+
+  return played;
+}
+
+/**
+ * E-3: the relation query of a nested selection, collected where it happens — before the walk
+ * beneath it when the query is synchronous and after it when it is not, which is exactly where
+ * merging it into a live root put it.
+ */
 function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
   query: Query | null | undefined,
 ) {
   if (query) {
-    child.adapter.accumulator.merge(child.root, query, AS_QUERY);
+    child.merges.push({ kind: 'query', query });
   }
 }
 

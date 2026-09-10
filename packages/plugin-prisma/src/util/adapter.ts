@@ -5,6 +5,7 @@ import {
   hasKeys,
   type Node,
   type Plan,
+  type PlayedPlan,
   type QueryFormat,
   type SelectFn,
   treeAccumulator,
@@ -14,6 +15,7 @@ import type { FieldMap } from './relation-map.js';
 
 export type PrismaNode = Node<FieldMap>;
 export type PrismaPlan = Plan<FieldMap, SelectionMap>;
+export type PrismaPlayedPlan = PlayedPlan<FieldMap, SelectionMap>;
 
 /** A map without `select`: include mode, every column. Shared and never mutated. */
 export const INCLUDE_ALL: SelectionMap = Object.freeze({});

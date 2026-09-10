@@ -82,9 +82,19 @@ export interface EntryOptions<Query> {
   skipDeferredFragments?: boolean;
 }
 
-/** One merge into a plan's root, in order, recorded only by `planFromInfo`. */
+/**
+ * One merge a traversal collected, in the order it happened: a type's selection (S-1), a
+ * same-model variant's (S-7), a nested selection's relation query (E-3), or a field's (S-4..S-6).
+ * `play` folds the list into a node; nothing is merged, accepted or rejected before then.
+ *
+ * A record holds its query by reference, so a select function that mutates the query it returned
+ * after returning it changes what a later play builds. Nothing copies it: a query is opaque to
+ * this package, which could only copy one by round-tripping it through the accumulator on every
+ * field. Returning a query and then mutating it is a bug in the select function.
+ */
 export type RootMerge<Query> =
   | { kind: 'type'; query: Query }
+  | { kind: 'query'; query: Query }
   | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query }
   | { kind: 'field'; key: string; alias: string; query: Query; mapping: Mapping };
 
@@ -182,10 +192,11 @@ export interface TypeLevelConflict {
 }
 
 /**
- * One root being built: its query tree, the mappings recorded beneath it, and what the traversal
- * runs
- * with. An entry point creates one; every nested selection creates a child plan that copies
- * `adapter`, `context`, `info` and `skipDeferred` from it.
+ * One root being planned: the model it loads, the selection it starts from, the merges the
+ * traversal collected for it, and what the traversal runs with. A plan holds no node — `play`
+ * builds one from `merges` — so the same plan can be played more than once, behind a different
+ * seed each time. An entry point creates one; every nested selection creates a child plan that
+ * copies `adapter`, `context`, `info` and `skipDeferred` from it.
  */
 export interface Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
   adapter: Adapter<Model, Query, NodeType>;
@@ -193,8 +204,12 @@ export interface Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Mode
   info: GraphQLResolveInfo;
   /** S-8: `EntryOptions.skipDeferredFragments`, or the adapter's own setting. */
   skipDeferred: boolean;
-  root: NodeType;
-  mappings: Mappings;
+  /** What the plan loads. A node is created for it once per play. */
+  model: Model;
+  /** E-1: `EntryOptions.initial`, merged first by a play a caller gives no seed of its own. */
+  initial?: Query;
+  /** The traversal's whole output: every merge it collected, in the order it collected them. */
+  merges: RootMerge<Query>[];
   /**
    * D-7: where the field this plan hangs beneath is, which the position of every field walked
    * into it links back to. Undefined when there is no field above the plan: the model loader
@@ -207,9 +222,20 @@ export interface Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Mode
    */
   pending?: Promise<void>;
   /**
-   * The merges into `root` in order, recorded by `planFromInfo` so `queryFromPlan` can replay
-   * them behind a caller's selection. Absent for every other plan: nested plans are never
-   * replayed, and `rowPlanFromInfo` is not emitted through `queryFromPlan`.
+   * The play `planFromInfo` ran to settle the plan's own errors, which a later play takes whole
+   * when the seed conflicts with none of it. Never handed out: a play that reuses it copies it
+   * into a node of its own, so a caller may merge into what it gets back.
    */
-  merges?: RootMerge<Query>[];
+  played?: PlayedPlan<Model, Query, NodeType>;
+}
+
+/**
+ * A plan played: the node its merges built and the mappings the merges that were accepted
+ * recorded (L-2). A play owns its node, so a caller may merge into one without disturbing the
+ * plan or another play of it.
+ */
+export interface PlayedPlan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
+  plan: Plan<Model, Query, NodeType>;
+  root: NodeType;
+  mappings: Mappings;
 }

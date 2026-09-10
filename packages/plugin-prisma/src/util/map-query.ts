@@ -5,7 +5,7 @@ import * as mapper from '@pothos/selection-mapper';
 import { type PathSegment, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
-import { type PrismaPlan, prismaAdapter } from './adapter.js';
+import { type PrismaPlayedPlan, prismaAdapter } from './adapter.js';
 import { wrapWithUsageCheck } from './usage.js';
 
 export { selectedFieldNames };
@@ -74,11 +74,14 @@ export function queryFromInfo<
   ) as never;
 }
 
-/** The plan loading the field `info` resolves for its parent row (the model loader's query). */
+/**
+ * The plan loading the field `info` resolves for its parent row (the model loader's query),
+ * already played: an E-2 plan is never played behind another selection.
+ */
 export function rowPlanFromInfo(
   context: object,
   info: GraphQLResolveInfo,
   skipDeferredFragments: boolean,
-): PrismaPlan {
+): PrismaPlayedPlan {
   return mapper.rowPlanFromInfo(prismaAdapter, context, info, skipDeferredFragments);
 }

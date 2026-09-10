@@ -21,6 +21,7 @@ export {
   selectedFieldNames,
 } from './matches.js';
 export { createNode, type Node, type NodeBase, relation } from './node.js';
+export { play } from './play.js';
 export { type EntryVisitor, hasKeys, type QueryFormat, treeAccumulator } from './tree.js';
 export type {
   Accumulator,
@@ -29,6 +30,7 @@ export type {
   MergeOptions,
   NestedSelection,
   Plan,
+  PlayedPlan,
   Position,
   RootMerge,
   SelectFn,
