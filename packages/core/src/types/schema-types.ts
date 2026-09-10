@@ -1,4 +1,5 @@
 import type { InferredFieldOptionsKind } from './builder-options.js';
+import type { MaybePromise } from './utils.js';
 
 export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   outputShapes: {
@@ -27,10 +28,38 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   };
   DefaultFieldNullability: boolean;
   DefaultInputFieldRequiredness: boolean;
+  AsyncSelections: boolean;
   InferredFieldOptionsKind: InferredFieldOptionsKind;
   Root: object;
   Context: object;
 }
+
+/**
+ * The type of a selection an ORM plugin's callback may return: a promise only when the schema
+ * sets `AsyncSelections: true`. `true extends` rather than `extends true` so that a `Types` that
+ * has not resolved the flag — the bare `SchemaTypes` the plugins use internally — keeps the
+ * wider type.
+ */
+export type MaybeAsyncSelection<
+  Types extends SchemaTypes,
+  T,
+> = true extends Types['AsyncSelections'] ? MaybePromise<T> : T;
+
+/**
+ * Intersected into a `select` option to reject a callback that builds its selection
+ * asynchronously when the schema has not set `AsyncSelections: true`. The option's own type
+ * cannot reject it: the selection it returns is a map of optional keys, which a promise satisfies
+ * structurally once the option is intersected with the type parameter that captures it.
+ */
+export type CheckAsyncSelection<
+  Types extends SchemaTypes,
+  Select,
+> = true extends Types['AsyncSelections']
+  ? unknown
+  : // biome-ignore lint/suspicious/noExplicitAny: matching against any callback
+    Select extends (...args: any[]) => PromiseLike<unknown>
+    ? 'An async selection requires `AsyncSelections: true` in the schema types'
+    : unknown;
 
 export type MergedScalars<PartialTypes extends Partial<PothosSchemaTypes.UserSchemaTypes>> = (
   PartialTypes['Defaults'] extends 'v3'

@@ -66,6 +66,12 @@ declare global {
       Context: object;
       DefaultFieldNullability: boolean;
       DefaultInputFieldRequiredness: boolean;
+      /**
+       * Whether the selection callbacks of the ORM plugins may return a promise. `false` by
+       * default: a selection is built synchronously, so nothing a resolver is handed can be a
+       * promise it did not ask for.
+       */
+      AsyncSelections: boolean;
       InferredFieldOptionsKind: InferredFieldOptionsKind;
     }
 
@@ -91,6 +97,7 @@ declare global {
       DefaultInputFieldRequiredness: PartialTypes['DefaultInputFieldRequiredness'] extends true
         ? true
         : false;
+      AsyncSelections: PartialTypes['AsyncSelections'] extends true ? true : false;
       outputShapes: {
         [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
           Output: infer T;
