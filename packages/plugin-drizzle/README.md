@@ -3,12 +3,12 @@
 ## Installing
 
 ```package-install
-npm install --save @pothos/plugin-drizzle drizzle-orm@beta
+npm install --save @pothos/plugin-drizzle drizzle-orm@rc
 ```
 
 The drizzle plugin is built on top of drizzles relational query builder, and requires that you
 define and configure all the relevant relations in your drizzle schema. See
-https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v2 for detailed documentation on the relations API.
+https://orm.drizzle.team/docs/relations-v2 for detailed documentation on the relations API.
 
 Once you have configured your drizzle schema, you can initialize your Pothos
 SchemaBuilder with the drizzle plugin:

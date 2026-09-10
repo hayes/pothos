@@ -6,11 +6,14 @@ description: A plugin to support efficient queries through drizzles relational q
 import { Callout } from 'fumadocs-ui/components/callout';
 
 <Callout type="warn">
-  This package is new, and depends on drizzle [RQBV2 API](https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2#include-custom-fields). There are still some
-  missing features, and the API may still change. This package currently requires using the `beta` tag for drizzle.
+  This plugin uses drizzle's [relational query builder v2](https://orm.drizzle.team/docs/rqb-v2),
+  which ships in `drizzle-orm` 1.0. That release is still a release candidate, and npm's `latest`
+  tag is the 0.x line, so install drizzle with the `rc` tag. Its API can still change before 1.0 is
+  final.
 
-  If you are upgrading from an older version of this plugin, please read the [drizzle migration guide](https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2)
-  and refer to the changelog for this package for Pothos specific changes.
+  If you are upgrading from an older version of this plugin, read drizzle's [relations v1 to v2
+  guide](https://orm.drizzle.team/docs/relations-v1-v2), then this package's changelog for the
+  Pothos specific changes.
 </Callout>
 
 This plugin provides tighter integration with drizzle, making it easier to define GraphQL object
@@ -23,7 +26,7 @@ and efficient.
 Install the plugin and add it to your builder, as described in [Setup](/docs/plugins/drizzle/setup):
 
 ```package-install
-npm install --save @pothos/plugin-drizzle drizzle-orm@beta
+npm install --save @pothos/plugin-drizzle drizzle-orm@rc
 ```
 
 Define an object type for a table, expose the columns you want in your API, and add the relations
