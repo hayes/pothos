@@ -197,6 +197,14 @@ export function parseCompositeCursor(fields: readonly string[]) {
       );
     }
 
+    // A cursor of the wrong width would otherwise leave a key `undefined` (or silently drop an
+    // extra), and prisma rejects the query that builds. The drizzle plugin checks the same.
+    if (parsed.length !== fields.length) {
+      throw new PothosValidationError(
+        `Expected compound cursor to contain ${fields.length} elements, but got ${parsed.length}`,
+      );
+    }
+
     const record: Record<string, unknown> = {};
 
     fields.forEach((field, i) => {
@@ -263,7 +271,8 @@ export function prismaCursorConnectionQuery({
 
   let take = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
 
-  if (before ?? last) {
+  // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`.
+  if (before != null || last != null) {
     take = -take;
   }
 
@@ -286,8 +295,10 @@ export function wrapConnectionResult<T extends {}>(
   resolveNode?: (node: unknown) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(take);
-  const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : (args.before ?? args.last) ? gotFullResults : false;
+  // Compared against null rather than truthiness: `last: 0` is a backward page of zero rows.
+  const backward = args.before != null || args.last != null;
+  const hasNextPage = args.before != null ? true : args.last != null ? false : gotFullResults;
+  const hasPreviousPage = args.after != null ? true : backward ? gotFullResults : false;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;
