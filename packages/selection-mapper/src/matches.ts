@@ -7,7 +7,6 @@ import {
   type GraphQLField,
   GraphQLIncludeDirective,
   type GraphQLNamedType,
-  type GraphQLObjectType,
   type GraphQLResolveInfo,
   type GraphQLSchema,
   GraphQLSkipDirective,
@@ -260,9 +259,19 @@ function eachSelectedField(
   return false;
 }
 
-/** The field `name` of `type`. Only ever asked of the type a visitor was handed a field on. */
+/**
+ * The field `name` of `type`, or a validation error. A document naming a field the type does not
+ * have only reaches here when graphql validation was skipped; without this it would read a
+ * property of undefined.
+ */
 function fieldOn(type: GraphQLNamedType, name: string): GraphQLField<unknown, unknown> {
-  return (type as GraphQLObjectType).getFields()[name];
+  const field = isObjectType(type) || isInterfaceType(type) ? type.getFields()[name] : undefined;
+
+  if (!field) {
+    throw new PothosValidationError(`Unknown field ${name} on ${type.name}`);
+  }
+
+  return field;
 }
 
 /**

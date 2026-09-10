@@ -1,3 +1,4 @@
+import { PothosValidationError } from '@pothos/core';
 import { getNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import {
@@ -176,6 +177,20 @@ describe('findMatches', () => {
     ]);
 
     expect(matches.map((match) => match.type.name)).toEqual(['Post']);
+  });
+
+  it('reports a validation error for a path segment naming a field the type does not have', async () => {
+    // Only reachable when graphql validation was skipped, as the test helper does.
+    const info = await resolveInfo(schema, '{ user { profile { posts { id } } } }', {
+      at: ['User', 'profile'],
+    });
+
+    expect(() =>
+      findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [[{ name: 'posts' }]]),
+    ).toThrow(PothosValidationError);
+    expect(() =>
+      findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [[{ name: 'posts' }]]),
+    ).toThrow('Unknown field posts on Profile');
   });
 });
 
