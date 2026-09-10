@@ -113,7 +113,7 @@ describe('connection selection facts', () => {
     expect(drizzleLogs).toHaveLength(1);
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", ((select count(*) from "posts" where "d0"."id" = "posts"."author_id")) as "_posts_count", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" order by "d1"."id" asc limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" order by "d0"."id" asc limit ? -- params: [2, 3]",
+        "Query: select "d0"."id" as "id", (select count(*) from "posts" where "d0"."id" = "posts"."author_id") as "_posts_count", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" order by "d1"."id" asc limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" order by "d0"."id" asc limit ? -- params: [2, 3]",
       ]
     `);
 

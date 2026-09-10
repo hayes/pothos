@@ -685,6 +685,11 @@ publishedPostsCount: t.relatedCount('posts', {
 });
 ```
 
+For a many-to-many relation (one defined with `.through(...)`), `t.relatedCount` counts distinct
+related rows: a row reachable through two junction rows counts once. A `t.relatedConnection`'s
+`totalCount` counts the rows the connection pages over instead, which is one per junction row,
+because that is what the relational query builder returns for the relation.
+
 ## Relay integration
 
 Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it

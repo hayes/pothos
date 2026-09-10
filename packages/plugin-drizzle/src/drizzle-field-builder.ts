@@ -55,7 +55,7 @@ import {
 } from './utils/cursors.js';
 import { pathInfoFor } from './utils/path-info.js';
 import { getRefFromModel } from './utils/refs.js';
-import { buildRelationFilter } from './utils/relation-filter.js';
+import { buildRelationFilter, type RelationQueryBuilder } from './utils/relation-filter.js';
 import type { SelectionMap } from './utils/selections.js';
 
 // Workaround for FieldKind not being extended on Builder classes
@@ -216,29 +216,33 @@ export class DrizzleObjectFieldBuilder<
 
     // The count for `totalCount` matches the connection's own filter: what the relation selects
     // (including a `through` join and the relation's own `where`) plus the `where` from the
-    // field's `query`, so the count agrees with the rows being paginated.
+    // field's `query`, so the count agrees with the rows being paginated. The `where` goes
+    // through the same `relationsFilterToSQL` the relational query builder puts it through, and
+    // `countRows` combines the two in the same order, so the count's predicate is the page
+    // query's predicate less the limit and the keyset clauses.
     const buildCount = (
+      client: RelationQueryBuilder,
       parentTable: TableConfig['table'],
       where?: unknown,
-    ): { source: Table | SQL; filter: SQL } => {
-      const { count } = buildRelationFilter(relationField as Relation, parentTable as Table);
+    ): SQL<number> => {
+      const { countRows } = buildRelationFilter(
+        client,
+        relationField as Relation,
+        parentTable as Table,
+      );
 
       if (!where || !filterTotalCount) {
-        return count;
+        return countRows();
       }
 
-      return {
-        source: count.source,
-        filter: and(
-          count.filter,
-          (relationsFilterToSQL as RelationsFilterToSQL)(
-            relatedTable.table as Table,
-            where,
-            relatedTable.relations,
-            schemaConfig.relations,
-          ),
-        )!,
-      };
+      return countRows(
+        (relationsFilterToSQL as RelationsFilterToSQL)(
+          relatedTable.table as Table,
+          where,
+          relatedTable.relations,
+          schemaConfig.relations,
+        ),
+      );
     };
 
     interface ConnectionFieldQuery {
@@ -324,11 +328,8 @@ export class DrizzleObjectFieldBuilder<
       totalCountOnly: boolean,
     ) => {
       const countSelection = {
-        [countKey]: (parent: TableConfig['table']) => {
-          const { source, filter } = buildCount(parent, fieldQuery.where);
-
-          return getClient(this.builder, context).$count(source as Table, filter);
-        },
+        [countKey]: (parent: TableConfig['table']) =>
+          buildCount(getClient(this.builder, context) as never, parent, fieldQuery.where),
       };
 
       if (totalCountOnly) {
@@ -668,20 +669,25 @@ export class DrizzleObjectFieldBuilder<
       );
     }
 
-    const buildFilter = (parentTable: TableConfig['table']): SQL =>
-      buildRelationFilter(relationField as Relation, parentTable as Table).filter;
-
     const relationSelect = (
       args: object,
       context: Types['Context'],
       nestedQuery: (query: unknown) => unknown,
-    ) =>
-      completeValue(
+    ) => {
+      const buildFilter = (parentTable: TableConfig['table']): SQL =>
+        buildRelationFilter(
+          getClient(this.builder, context) as never,
+          relationField as Relation,
+          parentTable as Table,
+        ).filter;
+
+      return completeValue(
         options.select(buildFilter as never, args as never, context, nestedQuery as never) as
           | MaybePromise<Select & { with?: unknown }>
           | undefined,
         pickSelection,
       );
+    };
 
     const { select: _select, extensions, ...fieldOptions } = options;
 
@@ -708,6 +714,11 @@ export class DrizzleObjectFieldBuilder<
     const schemaConfig = getSchemaConfig(this.builder);
     const relationField = schemaConfig.relations?.[this.table].relations[relationName as string];
     const relatedTable = schemaConfig.relations[relationField.targetTableName];
+    // A related row counts once however many junction rows lead to it, which the count needs a
+    // column identifying a target row to say. Without one it falls back to counting the target
+    // table filtered by the relation, which says the same thing more slowly.
+    const targetKey = schemaConfig.findPrimaryKey(relationField.targetTableName);
+    const distinctBy = targetKey?.length === 1 ? targetKey[0] : undefined;
 
     // Built once per field; the `extras` function it returns is what the plan carried before.
     const countExtras = (
@@ -717,11 +728,22 @@ export class DrizzleObjectFieldBuilder<
     ) =>
       ({
         extras: {
-          [countKey]: (parent: TableConfig['table']) =>
-            getClient(this.builder, ctx).$count(
-              relatedTable.table as Table,
-              whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
-            ),
+          [countKey]: (parent: TableConfig['table']) => {
+            const client = getClient(this.builder, ctx);
+
+            if (!distinctBy) {
+              return client.$count(
+                relatedTable.table as Table,
+                whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
+              );
+            }
+
+            return buildRelationFilter(
+              client as never,
+              relationField as Relation,
+              parent as Table,
+            ).countDistinctRows(distinctBy, whereClause);
+          },
         },
       }) as never;
 

@@ -1,8 +1,9 @@
 import { execute } from '@pothos/test-utils';
 import { and, eq, sql } from 'drizzle-orm';
 import { gql } from 'graphql-tag';
+import { asPagedAliases, countSubquery } from './count-predicate';
 import { comments, posts } from './example/db/schema';
-import { db } from './relation-shapes/db';
+import { client, db } from './relation-shapes/db';
 import { schema, unfilteredCountSchema } from './relation-shapes/schema';
 
 const POST_ID = 1;
@@ -13,7 +14,19 @@ interface Connection {
   edges: { node: { id: string } }[];
 }
 
+const statements: string[] = [];
+const runStatement = client.execute.bind(client);
+
+// Every statement the schema runs, so a test can look at the SQL and not just the answer.
+(client as unknown as { execute: unknown }).execute = (statement: unknown, ...rest: unknown[]) => {
+  statements.push(typeof statement === 'string' ? statement : (statement as { sql: string }).sql);
+
+  return (runStatement as (...args: unknown[]) => unknown)(statement, ...rest);
+};
+
 async function query(document: string, target = schema) {
+  statements.length = 0;
+
   const result = await execute({
     schema: target,
     document: gql(document),
@@ -23,6 +36,12 @@ async function query(document: string, target = schema) {
   expect(result.errors).toBeUndefined();
 
   return result.data as never;
+}
+
+function onlyStatement() {
+  expect(statements).toHaveLength(1);
+
+  return statements[0] as string;
 }
 
 describe('relation shapes the count has to reproduce', () => {
@@ -118,6 +137,22 @@ describe('relation shapes the count has to reproduce', () => {
           commentersFieldCount: distinctCommenters,
         },
       });
+    });
+
+    it('counts distinct rows off the junction rather than scanning the target table', async () => {
+      // Counting the target table filtered by the relation says the same thing, but sqlite does
+      // not rewrite that `exists` into a semijoin the way postgres does: it scans the target
+      // table once per parent row. Reading the junction table by its index instead is the
+      // difference between a second and a millisecond over a thousand parents.
+      await query(`
+        {
+          post(id: ${POST_ID}) { commentersCount }
+        }
+      `);
+
+      expect(onlyStatement()).toContain(
+        'count(distinct "users"."id") from "users" inner join "comments" on',
+      );
     });
   });
 
@@ -251,6 +286,48 @@ describe('relation shapes the count has to reproduce', () => {
 
       expect(connection.edges).toHaveLength(published);
       expect(connection.totalCount).toBe(published);
+    });
+  });
+
+  // The failure this guards against is the one the count was written to avoid: two predicates
+  // that have to agree, built by different routes, agreeing today and drifting tomorrow. The
+  // aliases are renamed because the page query reads the relation inside a subquery of its own,
+  // and the rest has to be the same text.
+  describe('the count and the page query are the same predicate', () => {
+    it('for a many-to-many relation with a field where', async () => {
+      await query(`
+        {
+          post(id: ${POST_ID}) {
+            filteredCommentersConnection(first: 100) {
+              totalCount
+              edges { node { id } }
+            }
+          }
+        }
+      `);
+
+      const statement = onlyStatement();
+
+      expect(statement).toContain(
+        asPagedAliases(countSubquery(statement), { target: 'users', through: 'comments' }),
+      );
+    });
+
+    it('for a relation with its own where and a field where', async () => {
+      await query(`
+        {
+          user(id: ${USER_ID}) {
+            publishedPostsWithCategoryConnection(first: 100) {
+              totalCount
+              edges { node { id } }
+            }
+          }
+        }
+      `);
+
+      const statement = onlyStatement();
+
+      expect(statement).toContain(asPagedAliases(countSubquery(statement), { target: 'posts' }));
     });
   });
 

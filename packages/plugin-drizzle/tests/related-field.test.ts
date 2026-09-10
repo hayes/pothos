@@ -28,7 +28,7 @@ describe('relatedCount', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "comments" where "d0"."id" = "comments"."author_id")) as "_comments_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", (select count(*) from "comments" where "d0"."id" = "comments"."author_id") as "_comments_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
       ]
     `);
 
@@ -63,7 +63,7 @@ describe('relatedCount', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "posts" where (("d0"."id" = "posts"."author_id") and ("posts"."published" = ?)))) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1, 1]",
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", (select count(*) from "posts" where (("posts"."published" = ?) and ("d0"."id" = "posts"."author_id"))) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1, 1]",
       ]
     `);
 
@@ -100,7 +100,7 @@ describe('relatedCount', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "posts" where "d0"."id" = "posts"."author_id")) as "postsCount", ((select count(*) from "comments" where "d0"."id" = "comments"."author_id")) as "_comments_count", ((select count(*) from "posts" where (("d0"."id" = "posts"."author_id") and ("posts"."published" = ?)))) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1, 1]",
+        "Query: select "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", "d0"."id" as "id", (lower("d0"."first_name")) as "lowercaseFirstName", ((select count(*) from "posts" where "d0"."id" = "posts"."author_id")) as "postsCount", (select count(*) from "comments" where "d0"."id" = "comments"."author_id") as "_comments_count", (select count(*) from "posts" where (("posts"."published" = ?) and ("d0"."id" = "posts"."author_id"))) as "_posts_count", (select json_object('id', "id", 'userId', "userId", 'bio', "bio") as "r" from (select "d1"."id" as "id", "d1"."user_id" as "userId", "d1"."bio" as "bio" from "profile" as "d1" where "d0"."id" = "d1"."user_id" limit ?) as "t") as "profile" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1, 1]",
       ]
     `);
 
