@@ -26,10 +26,6 @@ const pluginName = 'drizzle';
 export default pluginName;
 
 export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  // private mappingCache = new Map<
-  //   string,
-  //   InputTypeFieldsMapping<Types, DrizzleGraphQLInputExtensions>
-  // >();
   override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
     if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
       return typeConfig;
@@ -71,49 +67,6 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
-    // const argMappings = mapInputFields<Types, DrizzleGraphQLInputExtensions>(
-    //   fieldConfig.args,
-    //   this.buildCache,
-    //   (inputField) => {
-    //     if (inputField.type.kind === 'InputObject') {
-    //       const config = this.buildCache.getTypeConfig(inputField.type.ref);
-
-    //       return (config.extensions?.drizzleGraphQL as DrizzleGraphQLInputExtensions) ?? null;
-    //     }
-
-    //     return null;
-    //   },
-    //   this.mappingCache,
-    // );
-
-    // const argMapper = argMappings
-    //   ? createInputValueMapper(argMappings, (input, mappings) => {
-    //       if (!mappings.value) {
-    //         return input;
-    //       }
-
-    //       const { table, tableConfig, inputType } = mappings.value;
-
-    //       switch (inputType) {
-    //         case 'orderBy':
-    //           return extractOrderBy(tableConfig, input as never);
-    //         case 'filters':
-    //           return extractFilters(tableConfig, table, input as never);
-    //         case 'insert':
-    //           return remapFromGraphQLSingleInput(input as never, tableConfig);
-    //         case 'update':
-    //           return remapFromGraphQLSingleInput(input as never, tableConfig);
-
-    //         default:
-    //           throw new Error(`Unknown drizzle input type: ${inputType}`);
-    //       }
-    //     })
-    //   : null;
-
-    // const argMappers: typeof fieldConfig.argMappers = argMapper
-    //   ? [...(fieldConfig.argMappers ?? []), (args) => argMapper(args, undefined)]
-    //   : fieldConfig.argMappers;
-
     if (
       fieldConfig.kind === 'DrizzleObject' &&
       fieldConfig.pothosOptions.select &&
@@ -122,7 +75,6 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       const { select } = fieldConfig.pothosOptions;
       return {
         ...fieldConfig,
-        // argMappers,
         extensions: {
           ...fieldConfig.extensions,
           pothosDrizzleSelect:
@@ -156,7 +108,6 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
     return {
       ...fieldConfig,
-      // argMappers,
     };
   }
 

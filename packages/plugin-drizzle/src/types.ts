@@ -852,22 +852,5 @@ export type DrizzleConnectionShape<
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };
 
-export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape extends {}>
-  extends Omit<
-    PothosSchemaTypes.InputObjectTypeOptions<
-      Types,
-      InputFieldsFromShape<Types, Shape, 'InputObject'>
-    >,
-    'fields'
-  > {
-  name?: string;
-}
-
-export interface DrizzleGraphQLInputExtensions {
-  table: string;
-  tableConfig: TableRelationalConfig;
-  inputType: 'insert' | 'filters' | 'orderBy' | 'update';
-}
-
 export { DrizzleInterfaceRef, type DrizzleRef } from './interface-ref.js';
 export { DrizzleObjectRef } from './object-ref.js';
