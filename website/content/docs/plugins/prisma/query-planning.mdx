@@ -116,9 +116,9 @@ incoming document rather than of the call site, so reading the call site does no
 Turning the opt-in on is a commitment to audit every one of them, and a schema that has none has
 nothing to audit.
 
-The two opt-ins are independent. The schema flag says whether a callback may be async;
-`awaitSelections` says whether a particular `queryFromInfo` or `getQuery` call will await the query
-it builds, and stays a per-call decision either way.
+The two opt-ins are independent. The schema flag says whether a selection callback you write
+through the builder may be async; `awaitSelections` says whether a particular `queryFromInfo` or
+`getQuery` call will await the query it builds, and stays a per-call decision either way.
 
 The throw is loud, and names the option to pass along with what the call was building: a
 `queryFromInfo` names the field (`Query.post`), and a `getQuery` names the connection's model
