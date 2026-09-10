@@ -4,7 +4,7 @@
  */
 import { PothosValidationError } from '@pothos/core';
 import { type GraphQLResolveInfo, getNamedType } from 'graphql';
-import { absorb, accepts, accumulatorOf, conflictOf } from './accumulate.js';
+import { absorb, accepts, conflictOf } from './accumulate.js';
 import { abandon, finish } from './async.js';
 import { type Mappings, setLoaderMappings } from './loader-map.js';
 import {
@@ -76,7 +76,7 @@ export function queryFromPlan<Model, Query, NodeType extends NodeBase<Model> = N
   select?: Query,
 ): Query {
   const { adapter } = plan;
-  const accumulator = accumulatorOf(adapter);
+  const accumulator = adapter.accumulator;
 
   if (!select) {
     return emit(plan);
@@ -170,7 +170,7 @@ function emit<Model, Query, NodeType extends NodeBase<Model>>(
 ): Query {
   setLoaderMappings(plan.context, plan.info, plan.mappings);
 
-  return accumulatorOf(plan.adapter).emit(plan.root);
+  return plan.adapter.accumulator.emit(plan.root);
 }
 
 /** `finish` needs something to run once the plan has settled; `planFromInfo` wants the plan. */

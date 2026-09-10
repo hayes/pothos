@@ -7,7 +7,7 @@ import {
   type ObjectRef,
   type SchemaTypes,
 } from '@pothos/core';
-import { accumulatorOf, type PathSegment } from '@pothos/selection-mapper';
+import type { PathSegment } from '@pothos/selection-mapper';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -185,7 +185,7 @@ export function prismaConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
-    const accumulator = accumulatorOf(prismaAdapter);
+    const accumulator = prismaAdapter.accumulator;
     const node = accumulator.create(fieldMap);
 
     accumulator.merge(node, { select: cursorSelection });

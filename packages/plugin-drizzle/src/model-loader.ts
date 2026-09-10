@@ -2,7 +2,6 @@ import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } f
 import {
   absorb,
   acceptsFrom,
-  accumulatorOf,
   cacheKey,
   setFieldMapping,
   setLoaderMappings,
@@ -171,7 +170,7 @@ export class ModelLoader {
   }
 
   stageQuery(plan: DrizzlePlan, model: object) {
-    const accumulator = accumulatorOf(this.adapter);
+    const accumulator = this.adapter.accumulator;
 
     for (const entry of this.staged) {
       // Node to node: the staged plan takes the field's plan whole, never through a query.
@@ -211,7 +210,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...accumulatorOf(this.adapter).emit(plan.root),
+          ...this.adapter.accumulator.emit(plan.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(

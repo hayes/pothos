@@ -1,4 +1,4 @@
-import { accepts, accumulatorOf } from '@pothos/selection-mapper';
+import { accepts } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import { drizzleAdapter } from '../src/utils/adapter';
 import type { PothosDrizzleSchemaConfig } from '../src/utils/config';
@@ -11,7 +11,7 @@ const fakeConfig = {
   skipDeferredFragments: true,
   relations: {},
 } as unknown as PothosDrizzleSchemaConfig;
-const accumulator = accumulatorOf(drizzleAdapter(fakeConfig));
+const { accumulator } = drizzleAdapter(fakeConfig);
 
 describe('selections', () => {
   it('omits undefined properties without mutating the source query', () => {

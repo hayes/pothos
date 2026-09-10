@@ -118,56 +118,7 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
    * the prisma and drizzle adapters use, from a `QueryFormat` describing their query; an adapter
    * whose query is not a tree of columns, relations and extras supplies its own.
    */
-  accumulator?: Accumulator<Model, Query, NodeType>;
-  // ---------------------------------------------------------------------------------------------
-  // TEMPORARY: the members `accumulator` replaces, kept while the adapters are ported one at a
-  // time. Nothing in the package calls them any more: an adapter that still spells them out gets
-  // an accumulator built from them. Exactly one of `accumulator` or the whole legacy set must be
-  // supplied; the set goes away, and `accumulator` becomes required.
-  // ---------------------------------------------------------------------------------------------
-  /**
-   * A fresh, empty node of the query tree for `model`. `createNode` from this package builds the
-   * default tree (columns, relations, extras, arguments) the prisma and drizzle adapters use.
-   */
-  createNode?(model: Model): NodeType;
-  /**
-   * M-1, M-2, S-9, in place. Never mutates `query`. `key` is the field the query came from
-   * (`Type@alias`, or `Type@path.alias` beneath an indirect include) when the query is a field's
-   * selection, and `alias` the field's response key alone, so an adapter that keeps one slot per
-   * selected field can key it; both are absent for a type-level selection, an initial selection,
-   * and a loader's staged query.
-   */
-  merge?(node: NodeType, query: Query, key?: string, alias?: string): void;
-  /**
-   * M-3: whether `query` can be merged into `node` without changing what is already selected:
-   * relations present in both are compatible recursively (arguments deep-equal below the top),
-   * extras present in both are equal. With `ignoreArgs` the node's own arguments are not
-   * compared. `key` and `alias` as for `merge`. An adapter that never shares a node between two fields
-   * answers true.
-   */
-  compatible?(
-    node: NodeType,
-    query: Query,
-    ignoreArgs: boolean,
-    key?: string,
-    alias?: string,
-  ): boolean;
-  /**
-   * E-3: merges the relation query a nested selection was given (a `t.relation` `query`, a
-   * connection's cursor query) into the root of the nested plan. A query without a column
-   * selection must add no columns: the plan beneath it adds the columns it needs. `null` or
-   * `undefined` means no query.
-   */
-  mergeQuery?(node: NodeType, query: Query | null | undefined): void;
-  /**
-   * S-7: the first relation (arguments compared by value) or extra (compared as the adapter
-   * compares extras) of a type-level `query` that conflicts with what `node` already holds.
-   */
-  typeLevelConflict?(node: NodeType, query: Query): TypeLevelConflict | undefined;
-  /** E-2: `query` without the relations and extras whose arguments conflict with `node`. */
-  withoutConflicts?(node: NodeType, query: Query): Query;
-  /** M-6. */
-  serialize?(node: NodeType): Query;
+  accumulator: Accumulator<Model, Query, NodeType>;
 }
 
 /** How one merge into an accumulator differs from a plain one. */

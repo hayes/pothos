@@ -20,7 +20,7 @@ import {
   Kind,
   type SelectionNode,
 } from 'graphql';
-import { accepts, accumulatorOf, conflictOf } from './accumulate.js';
+import { accepts, conflictOf } from './accumulate.js';
 import { abandon, chain, noop } from './async.js';
 import type { Mapping, Mappings } from './loader-map.js';
 import {
@@ -37,6 +37,7 @@ import type { NodeBase } from './node.js';
 import type {
   Adapter,
   EntryOptions,
+  MergeOptions,
   NestedSelection,
   Plan,
   Position,
@@ -46,6 +47,10 @@ import type {
 
 /** The mapping of a static selection: nothing can ever be recorded beneath one. */
 const EMPTY_MAPPING: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
+
+/** E-2 and E-3, which carry nothing per merge. */
+const LENIENT: MergeOptions = Object.freeze({ lenient: true });
+const AS_QUERY: MergeOptions = Object.freeze({ asQuery: true });
 
 /**
  * One select invocation's mapping record while the invocation runs: `pending` counts the nested
@@ -66,7 +71,7 @@ export function enterParentType<Model, Query, NodeType extends NodeBase<Model>>(
   const selection = adapter.typeSelection(type);
 
   if (selection) {
-    accumulatorOf(adapter).merge(plan.root, selection, { lenient: true });
+    adapter.accumulator.merge(plan.root, selection, LENIENT);
   }
 
   return plan;
@@ -84,7 +89,7 @@ function rootNode<Model, Query, NodeType extends NodeBase<Model>>(
     throw new PothosValidationError(`Expected ${resolveType(schema, type).name} to have a model`);
   }
 
-  return accumulatorOf(adapter).create(model);
+  return adapter.accumulator.create(model);
 }
 
 /**
@@ -115,7 +120,7 @@ export function createPlan<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   if (initial) {
-    accumulatorOf(adapter).merge(plan.root, initial);
+    adapter.accumulator.merge(plan.root, initial);
   }
 
   // Not entered: a type is entered when its selection set is walked (S-1).
@@ -161,7 +166,7 @@ function enter<Model, Query, NodeType extends NodeBase<Model>>(
   const selection = plan.adapter.typeSelection(type);
 
   if (selection) {
-    accumulatorOf(plan.adapter).merge(node, selection);
+    plan.adapter.accumulator.merge(node, selection);
     plan.merges?.push({ kind: 'type', query: selection });
   }
 }
@@ -196,7 +201,7 @@ export function mergeVariant<Model, Query, NodeType extends NodeBase<Model>>(
   variant: WalkedType,
   selection: Query,
 ) {
-  const accumulator = accumulatorOf(adapter);
+  const accumulator = adapter.accumulator;
   const conflict = conflictOf(accumulator, node, selection);
 
   if (conflict) {
@@ -616,13 +621,17 @@ function mergeField<Model, Query, NodeType extends NodeBase<Model>>(
   query: Query | false | null | undefined,
   mapping: Invocation,
 ) {
-  const accumulator = accumulatorOf(plan.adapter);
+  const accumulator = plan.adapter.accumulator;
 
-  if (!(query && accepts(accumulator, node, query, { ignoreArgs: true, key, alias }))) {
+  // One options object for the pair: `merge` reads only the key and the alias, and `accepts` the
+  // `ignoreArgs` alongside them.
+  const options: MergeOptions = { ignoreArgs: true, key, alias };
+
+  if (!(query && accepts(accumulator, node, query, options))) {
     return;
   }
 
-  accumulator.merge(node, query, { key, alias });
+  accumulator.merge(node, query, options);
 
   if (mapping.pending) {
     // Only a select invocation can be pending, and every one of those has a position.
@@ -754,7 +763,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
     // A promise behind the declared synchronous type, as `finish` returns one (A-7).
     return child.pending
       ? (awaitNested(child, mapping) as Query)
-      : accumulatorOf(adapter).emit(child.root);
+      : adapter.accumulator.emit(child.root);
   };
 }
 
@@ -771,7 +780,7 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
 ) {
   mapping.pending = (mapping.pending ?? 0) + 1;
 
-  const result = child.pending!.then(() => accumulatorOf(child.adapter).emit(child.root));
+  const result = child.pending!.then(() => child.adapter.accumulator.emit(child.root));
 
   result.then(() => {
     if (mapping.pending === 1) {
@@ -790,7 +799,7 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
   query: Query | null | undefined,
 ) {
   if (query) {
-    accumulatorOf(child.adapter).merge(child.root, query, { asQuery: true });
+    child.adapter.accumulator.merge(child.root, query, AS_QUERY);
   }
 }
 

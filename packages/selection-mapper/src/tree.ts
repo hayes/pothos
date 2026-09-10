@@ -66,10 +66,10 @@ export function treeAccumulator<Model, Query>(
 
   return {
     create: createNode,
-    merge(node, query, options) {
-      merger.run(node, query, options);
-    },
-    accepts: (node, query, options) => checker.run(node, query, options),
+    // Bound rather than wrapped: a merge and a check are the hot path, and a wrapper would add a
+    // frame to each.
+    merge: merger.run.bind(merger),
+    accepts: checker.run.bind(checker),
     conflict: (node, query) => firstConflict(format, node, query),
     absorb: absorbNode,
     acceptsFrom: (node, from) => acceptsNode(format, node, from, false),
@@ -103,7 +103,7 @@ class Merger<Model, Query> implements EntryVisitor<Model, Query> {
 
   constructor(private readonly format: QueryFormat<Model, Query>) {}
 
-  run(node: Node<Model>, query: Query, options?: MergeOptions) {
+  run(node: Node<Model>, query: Query, options?: MergeOptions): void {
     this.node = node;
     this.asQuery = options?.asQuery ?? false;
     this.lenient = options?.lenient ?? false;

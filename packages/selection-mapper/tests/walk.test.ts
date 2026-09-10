@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Position } from '../src';
 import {
-  accumulatorOf,
   getLoaderMapping,
   planFromInfo,
   queryFromInfo,
@@ -661,7 +660,7 @@ describe('rowPlanFromInfo (E-2)', () => {
     const plan = rowPlanFromInfo(adapter, {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
-    expect(accumulatorOf(adapter).emit(plan.root)).toEqual({
+    expect(adapter.accumulator.emit(plan.root)).toEqual({
       select: { posts: { take: 2 }, id: true },
     });
     expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
@@ -683,7 +682,7 @@ describe('rowPlanFromInfo (E-2)', () => {
 
     const plan = rowPlanFromInfo(adapter, {}, info);
 
-    expect(accumulatorOf(adapter).emit(plan.root)).toEqual({
+    expect(adapter.accumulator.emit(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
     expect(mappingsOf(plan.mappings['User@posts'].nested)).toEqual({
@@ -702,7 +701,7 @@ describe('rowPlanFromInfo (E-2)', () => {
 
     const plan = rowPlanFromInfo(adapter, {}, info);
 
-    expect(accumulatorOf(adapter).emit(plan.root)).toEqual({
+    expect(adapter.accumulator.emit(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
     expect(Object.keys(plan.mappings)).toEqual(['User@latest']);
@@ -780,7 +779,7 @@ describe('planFromInfo', () => {
 
     const plan = planFromInfo(adapter, { context, info, typeName: 'User' })!;
 
-    expect(accumulatorOf(adapter).emit(plan.root)).toEqual({ select: { posts: true } });
+    expect(adapter.accumulator.emit(plan.root)).toEqual({ select: { posts: true } });
     expect(mappingsOf(plan.mappings)).toEqual({ 'User@posts': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
   });
@@ -803,7 +802,7 @@ describe('planFromInfo', () => {
     );
     const plan = planFromInfo(adapter, { ...options, info: nodes })!;
 
-    expect(accumulatorOf(adapter).emit(plan.root)).toEqual({ select: { author: true } });
+    expect(adapter.accumulator.emit(plan.root)).toEqual({ select: { author: true } });
   });
 });
 

@@ -6,7 +6,7 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import { accumulatorOf, type PathSegment } from '@pothos/selection-mapper';
+import type { PathSegment } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
@@ -244,7 +244,7 @@ export function drizzleConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
-    const accumulator = accumulatorOf(adapter);
+    const accumulator = adapter.accumulator;
     const node = accumulator.create(config.relations[tableName]);
 
     accumulator.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);

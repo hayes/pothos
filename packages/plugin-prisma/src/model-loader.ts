@@ -7,13 +7,7 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import {
-  absorb,
-  acceptsFrom,
-  accumulatorOf,
-  cacheKey,
-  setLoaderMappings,
-} from '@pothos/selection-mapper';
+import { absorb, acceptsFrom, cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type PrismaPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
@@ -281,7 +275,7 @@ export class ModelLoader {
   }
 
   stageQuery(plan: PrismaPlan, model: object) {
-    const accumulator = accumulatorOf(prismaAdapter);
+    const accumulator = prismaAdapter.accumulator;
 
     for (const entry of this.staged) {
       // Node to node: the staged plan takes the field's plan whole, never through a query.
@@ -325,7 +319,7 @@ export class ModelLoader {
         if (delegate.findUniqueOrThrow) {
           delegate
             .findUniqueOrThrow({
-              ...accumulatorOf(prismaAdapter).emit(plan.root),
+              ...prismaAdapter.accumulator.emit(plan.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -333,7 +327,7 @@ export class ModelLoader {
           delegate
             .findUnique({
               rejectOnNotFound: true,
-              ...accumulatorOf(prismaAdapter).emit(plan.root),
+              ...prismaAdapter.accumulator.emit(plan.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);

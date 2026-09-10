@@ -27,7 +27,11 @@ their own. Use the plugins.
   `walkSelections`, `walkIndirectPath`). Never a noun.
 - **Branch** — one selection set (or several, for one field selected under several fragments) with
   the type to walk it as: the unit `walkBranches` takes.
-- **Merge** — to fold a query into a node, through the adapter.
+- **Merge** — to fold a query into a node, through the accumulator.
+- **Accumulate** — what a plan's selections do: the accumulator holds the merge rules the
+  adapter's translation feeds. `Adapter.accumulator`.
+- **Format** — the format-specific half of a tree accumulator: how to read an ORM's query and
+  how to write one back (`QueryFormat`).
 - **Mapping** — what a plan records for a merged field so its resolver can find its data in the
   loaded row; absent means the resolver loads its own data.
 - **Position** — where a field is: a link of `{ parent, type, field, node }` running back to the
@@ -40,14 +44,28 @@ their own. Use the plugins.
 ## The adapter contract
 
 An ORM plugin supplies an `Adapter<Model, Query, NodeType>`: how to find a type's model (`Model`),
-what a type and a field select in the ORM's own format (`Query`), a node factory (`createNode`),
-and how to merge, compare and serialize a node of its own type (`NodeType`). The walker reads
-nothing of a node but its `model`, and nothing of a query at all: it hands queries to the adapter
-and returns what the adapter serializes. `merge` and `compatible` receive the field key a query
-came from, so an adapter may merge same-named relations into one node (prisma, drizzle) or keep
-one slot per selected field. `node.ts` exports the default tree the prisma and drizzle adapters
-use; an ORM whose query is not a tree of columns, relations and extras supplies its own node type
-instead.
+what a type and a field select in the ORM's own format (`Query`), and an `Accumulator` — where
+those selections accumulate. Translation and accumulation are the two halves, and the adapter
+owns only the first: the traversal reads nothing of a node but its `model`, and nothing of a
+query at all.
+
+An `Accumulator<Model, Query, NodeType>` must answer three questions — `create` a node for a
+model, `merge` a query into one, `emit` the node as a query. Everything else is optional and has
+an answer for an accumulator that omits it: `accepts` (M-3) is true, `conflict` (S-7) is none,
+and `absorb` and `acceptsFrom` round-trip through `emit`. An accumulator that gives every
+consumer its own slot therefore implements three members and nothing more. `MergeOptions` says
+how one merge differs from a plain one: `asQuery` (E-3, a relation query adds no columns),
+`lenient` (E-2, conflicting entries are left out), `ignoreArgs` (M-3), and the `key`/`alias` the
+query came from, so an accumulator may merge same-named relations into one node (prisma,
+drizzle) or keep one slot per selected field.
+
+`treeAccumulator(format)` is the accumulator the prisma and drizzle adapters use: the node tree
+of `node.ts` (columns, relations, extras, arguments) with every merge rule this package owns. An
+adapter supplies only a `QueryFormat` — `read`, the key loop of its own query, reported entry by
+entry to an `EntryVisitor`; `serialize`, the node written back; and optionally `extraConflicts`
+when its extras are not compared by value. The visitor is reused down the tree, so a merge
+allocates only what the format's own key loop already allocated. An ORM whose query is not a
+tree of columns, relations and extras writes its own accumulator instead.
 
 Every select function is handed the `Position` of the field it plans: the field's node, the type
 it was walked on, and a link to the position of the field the plan hangs beneath, running back to
