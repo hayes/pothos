@@ -7,7 +7,6 @@ import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf, it } from 'vitest';
 import DrizzlePlugin, {
-  type DrizzleQueriedShape,
   drizzleConnectionHelpers,
   type IndirectInclude,
   type IndirectPathSegment,
@@ -233,22 +232,6 @@ builder.drizzleObjectFields('users', (t) => ({
   }),
 }));
 
-// `DrizzleQueriedShape` names the row shape a query loads, for rows a resolver loads itself.
-it('names the shape of a row loaded with a query', () => {
-  type Types = typeof builder.$inferSchemaTypes;
-
-  expectTypeOf<DrizzleQueriedShape<Types, 'users'>>().toEqualTypeOf<
-    DrizzleRelations['users']['table']['$inferSelect']
-  >();
-
-  expectTypeOf<
-    DrizzleQueriedShape<
-      Types,
-      'users',
-      { columns: { id: true }; with: { posts: { columns: { title: true } } } }
-    >
-  >().toEqualTypeOf<{ id: number; posts: { title: string }[] }>();
-});
 
 it('types the nested selection as the query it returns', () => {
   expectTypeOf(builder).not.toBeAny();

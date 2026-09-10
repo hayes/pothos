@@ -6,7 +6,7 @@ import PrismaPlugin, {
   type IndirectInclude,
   type IndirectPathSegment,
   type PathSegment,
-  type PrismaQueriedShape,
+  type ShapeFromSelection,
   type PrismaRelationQuery,
   type PrismaTypesFromClient,
   prismaConnectionHelpers,
@@ -311,29 +311,29 @@ builder.prismaObjectField('User', 'publishedPosts', (t) =>
   }),
 );
 
-// `PrismaQueriedShape` names the row shape a query loads, for rows a resolver loads itself.
+// `ShapeFromSelection` names the row shape a query loads.
 it('names the shape of a row loaded with a query', () => {
   type Types = typeof builder.$inferSchemaTypes;
 
   expectTypeOf<
-    PrismaQueriedShape<Types, 'User', { select: { id: true; posts: { select: { title: true } } } }>
+    ShapeFromSelection<Types, PrismaTypes['User'], { select: { id: true; posts: { select: { title: true } } } }>
   >().toEqualTypeOf<{ id: number; posts: { title: string }[] }>();
 
-  expectTypeOf<PrismaQueriedShape<Types, 'User', { include: { profile: true } }>>().toEqualTypeOf<{
+  expectTypeOf<ShapeFromSelection<Types, PrismaTypes['User'], { include: { profile: true } }>>().toEqualTypeOf<{
     id: number;
     email: string;
     name: string | null;
     profile: { id: number; bio: string | null; userId: number } | null;
   }>();
 
-  expectTypeOf<PrismaQueriedShape<Types, 'User', {}>>().toEqualTypeOf<
+  expectTypeOf<ShapeFromSelection<Types, PrismaTypes['User'], {}>>().toEqualTypeOf<
     PrismaTypes['User']['Shape']
   >();
 
   // `_count` is typed as prisma returns it, in a `select` or an `include`: `true` counts every
   // list relation, `{ select }` the selected ones.
   expectTypeOf<
-    PrismaQueriedShape<Types, 'User', { select: { id: true; _count: true } }>
+    ShapeFromSelection<Types, PrismaTypes['User'], { select: { id: true; _count: true } }>
   >().toEqualTypeOf<{
     id: number;
     _count: {
@@ -345,17 +345,17 @@ it('names the shape of a row loaded with a query', () => {
     };
   }>();
   expectTypeOf<
-    PrismaQueriedShape<Types, 'User', { select: { _count: { select: { posts: true } } } }>
+    ShapeFromSelection<Types, PrismaTypes['User'], { select: { _count: { select: { posts: true } } } }>
   >().toEqualTypeOf<{ _count: { posts: number } }>();
   expectTypeOf<
-    PrismaQueriedShape<Types, 'User', { include: { _count: { select: { posts: true } } } }>
+    ShapeFromSelection<Types, PrismaTypes['User'], { include: { _count: { select: { posts: true } } } }>
   >().toEqualTypeOf<{
     id: number;
     email: string;
     name: string | null;
     _count: { posts: number };
   }>();
-  expectTypeOf<PrismaQueriedShape<Types, 'User', { include: { _count: true } }>>()
+  expectTypeOf<ShapeFromSelection<Types, PrismaTypes['User'], { include: { _count: true } }>>()
     .toHaveProperty('_count')
     .toEqualTypeOf<{
       posts: number;
@@ -366,19 +366,13 @@ it('names the shape of a row loaded with a query', () => {
     }>();
   // A count with a filter is still a number.
   expectTypeOf<
-    PrismaQueriedShape<
+    ShapeFromSelection<
       Types,
       'User',
       { select: { _count: { select: { posts: { where: { published: true } } } } } }
     >
   >().toEqualTypeOf<{ _count: { posts: number } }>();
 
-  // The model can be given as its types rather than its name.
-  expectTypeOf<
-    PrismaQueriedShape<Types, PrismaTypes['User'], { select: { email: true } }>
-  >().toEqualTypeOf<{
-    email: string;
-  }>();
 });
 
 // Whether a `select` narrows the row turns on whether it names a column, not on whether the
@@ -389,12 +383,12 @@ it('names the shape of a row loaded with a query', () => {
 type SchemaTypesOfBuilder = typeof builder.$inferSchemaTypes;
 type UserModel = PrismaTypes['User'];
 
-declare const optionalSelect: PrismaQueriedShape<
+declare const optionalSelect: ShapeFromSelection<
   SchemaTypesOfBuilder,
   UserModel,
   { select?: { email: true } }
 >;
-declare const undefinedInSelect: PrismaQueriedShape<
+declare const undefinedInSelect: ShapeFromSelection<
   SchemaTypesOfBuilder,
   UserModel,
   { select: { email: true } | undefined }
@@ -402,13 +396,13 @@ declare const undefinedInSelect: PrismaQueriedShape<
 
 it('narrows on a select that names a column, optional key or not', () => {
   // 1. No `select` at all: every column is on the row.
-  expectTypeOf<PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, {}>>().toEqualTypeOf<
+  expectTypeOf<ShapeFromSelection<SchemaTypesOfBuilder, UserModel, {}>>().toEqualTypeOf<
     UserModel['Shape']
   >();
 
   // 2. A required `select`: exactly the selected columns.
   expectTypeOf<
-    PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, { select: { email: true } }>
+    ShapeFromSelection<SchemaTypesOfBuilder, UserModel, { select: { email: true } }>
   >().toEqualTypeOf<{ email: string }>();
 
   // 3. An optional `select` key: still exactly the selected columns, never the whole model.
@@ -426,15 +420,15 @@ it('narrows on a select that names a column, optional key or not', () => {
   // A planned relation query names no column of its own — its `select` is the model's whole
   // `Select`, every key of it optional — so the row is not narrowed.
   expectTypeOf<
-    PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, { select?: UserModel['Select'] }>
+    ShapeFromSelection<SchemaTypesOfBuilder, UserModel, { select?: UserModel['Select'] }>
   >().toEqualTypeOf<UserModel['Shape']>();
   expectTypeOf<
-    PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, PrismaRelationQuery<UserModel>>
+    ShapeFromSelection<SchemaTypesOfBuilder, UserModel, PrismaRelationQuery<UserModel>>
   >().toMatchTypeOf<UserModel['Shape']>();
 
   // A selected relation narrows through an optional `select` too.
   expectTypeOf<
-    PrismaQueriedShape<
+    ShapeFromSelection<
       SchemaTypesOfBuilder,
       UserModel,
       { select?: { posts: { select: { title: true } } } }

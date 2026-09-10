@@ -256,23 +256,6 @@ export type ShapeFromSelection<
 /** The `_count` entry of a `select` or `include` map, or `undefined` when there is none. */
 type CountSelection<Map> = Map extends { _count?: infer Count } ? Count : undefined;
 
-/**
- * The shape of a row of `Model` loaded with `Query` (a `select` or `include` map): what a
- * resolver on the model's type sees when the row was planned with that query. For rows a
- * resolver loads itself, so what is on them is named once, next to the query that loaded them.
- * `Model` is the model's name, or its `PrismaModelTypes`.
- */
-export type PrismaQueriedShape<
-  Types extends SchemaTypes,
-  Model extends keyof Types['PrismaTypes'] | PrismaModelTypes,
-  Query,
-> = ShapeFromSelection<
-  Types,
-  Model extends PrismaModelTypes
-    ? Model
-    : PrismaModelTypes & Types['PrismaTypes'][Model & keyof Types['PrismaTypes']],
-  Query
->;
 
 /**
  * What a `_count` selection adds to a row, as prisma returns it: `_count: true` counts every list

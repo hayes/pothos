@@ -41,12 +41,10 @@ New and widened types:
 - `t.relatedField` (drizzle) accepts the ordinary field options (`deprecationReason`,
   `extensions`, `authScopes`, ...); its `resolve` may be async and receives the resolve `info`.
   Exported as `RelatedSelectionFieldOptions`.
-- New `PrismaQueriedShape<Types, Model, Query>` and `DrizzleQueriedShape<Types, Table, Query>`
-  name the row shape a query loads, for resolvers that load rows themselves. A query whose
-  `select` key is optional but names columns (`{ select?: { email: true } }`) narrows the row to
-  those columns, rather than to no columns at all as `ShapeFromSelection` did before: the columns
-  are on the row whether or not the `select` is applied, since a row loaded without a `select`
-  carries every column.
+- A query whose `select` key is optional but names columns (`{ select?: { email: true } }`)
+  narrows the row to those columns, rather than to no columns at all as `ShapeFromSelection` did
+  before: the columns are on the row whether or not the `select` is applied, since a row loaded
+  without a `select` carries every column.
 
 The docs for both plugins now cover how a field gets its data, and when it costs a query of its
 own. Also newly documented: prisma `findUnique: null`, `onNull`,
