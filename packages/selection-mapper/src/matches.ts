@@ -599,7 +599,7 @@ export function normalizeInclude(
   const normalized: IndirectPathSegment[] = [];
 
   if (path.length === 0 && !(isObjectType(currentType) || isInterfaceType(currentType))) {
-    throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
+    throw new PothosValidationError(`Expected ${currentType} to be an Object or Interface type`);
   }
 
   for (const segment of path) {
@@ -618,7 +618,7 @@ export function normalizeInclude(
     }
 
     if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
-      throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
+      throw new PothosValidationError(`Expected ${currentType} to be an Object or Interface type`);
     }
 
     const field: GraphQLField<unknown, unknown> = currentType.getFields()[name];

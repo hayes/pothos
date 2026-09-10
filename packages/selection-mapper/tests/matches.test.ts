@@ -399,6 +399,6 @@ describe('normalizeInclude', () => {
     ).toThrow('Unknown type Nope in nested selection path segment appointment');
     expect(() =>
       normalizeInclude(['data'], schema.getType('UserResult')!, undefined, schema),
-    ).toThrow('Expected UserResult to be an Object type');
+    ).toThrow('Expected UserResult to be an Object or Interface type');
   });
 });
