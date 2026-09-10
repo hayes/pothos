@@ -9,7 +9,9 @@ Entering another type of the same model through a fragment (a variant under a mo
   column (drizzle).
 - If the two types' type-level selections disagree on a relation's arguments, a validation error
   names both types and the relation; move the relation arguments to a field-level `select` on one
-  of the types. Relation arguments are compared structurally, so equal arguments written
+  of the types. The error is raised whichever route brought the two types together: a fragment
+  entering a variant, or two indirect-include path matches landing on different types of the one
+  model. Relation arguments are compared structurally, so equal arguments written
   separately are fine. In drizzle, two types defining the same `extras` key with different
   functions are rejected the same way, naming the extra: an extra shared across variants must be
   the same function reference.
