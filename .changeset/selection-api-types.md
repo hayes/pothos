@@ -3,10 +3,11 @@
 '@pothos/plugin-drizzle': minor
 ---
 
-The selection API is typed by what it does, and everything it does is documented.
+The selection API is now typed to match what it actually does, and the behaviour it describes is
+documented.
 
-Two changes can stop existing code from compiling; in the first case that code failed at runtime
-before:
+Two changes can stop existing code from compiling. In the first case that code already failed at
+runtime:
 
 - `t.relationCount` (prisma) and `t.relatedCount` (drizzle) accept only list relations. Calling
   either on a to-one relation built a count query prisma or drizzle rejected.
@@ -18,7 +19,7 @@ before:
 New and widened types:
 
 - `queryFromInfo` (prisma) is typed by what was passed: `{ include }` for a given `include`, and
-  `{ select }` keeping a given select's own type, so the selection round trips — spread the result
+  `{ select }` keeping a given select's own type, so the selection round trips. Spread the result
   into a prisma call and read the selected columns and relations back off the rows, with types. A
   call with neither now returns `{ select?, include? }`, whichever of the two the type's mode
   produced, rather than a `select` key that a type in include mode does not return.
@@ -47,10 +48,10 @@ New and widened types:
   are on the row whether or not the `select` is applied, since a row loaded without a `select`
   carries every column.
 
-Docs: how selections are planned (a field is either planned into an ancestor's query or loaded
-on its own, never both; selections share a query node only with matching arguments; a
-field-level `select` merges with its siblings), prisma `findUnique: null`, `onNull`, `select`
-on `t.prismaField`, `nestedSelection`'s typed segments and third argument,
-`skipDeferredFragments`, `prismaFieldWithInput`/`drizzleFieldWithInput`, drizzle
+The docs for both plugins now cover how a field gets its data, and when it costs a query of its
+own. Also newly documented: prisma `findUnique: null`, `onNull`, `select` on `t.prismaField`,
+`nestedSelection`'s typed segments and third argument, `skipDeferredFragments`,
+`prismaFieldWithInput`/`drizzleFieldWithInput`, drizzle
 `drizzleInterface`/`drizzleInterfaceField(s)`, `t.variant(Ref, { select })`, connection size
-options, the drizzle fallback loader, and the error for conflicting type-level selections.
+options, the drizzle fallback loader, and the error two variants raise when their selections
+conflict.

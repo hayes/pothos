@@ -1,17 +1,15 @@
 {
-  "title": "Prisma",
+  "title": "Drizzle",
   "pages": [
     "setup",
     "objects",
     "relations",
     "selections",
-    "relay",
     "connections",
+    "ordering-and-cursors",
+    "relay",
     "variants",
-    "indirect-relations",
     "interfaces",
-    "prisma-utils",
-    "without-a-plugin",
     "query-planning",
     "..."
   ]

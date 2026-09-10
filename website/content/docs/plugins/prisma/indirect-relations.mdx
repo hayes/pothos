@@ -54,18 +54,18 @@ builder.prismaObject('User', {
 });
 ```
 
-`nestedSelection` returns the relation query for the type it selected (`{ select?, include?,
-where?, orderBy?, take?, skip?, cursor? }` for a `Post`), with the keys it was given kept as they
-were given, so a `select` passed to it still narrows the parent's shape. With no argument, or
-`true`, it is the planned selection alone.
+`nestedSelection` returns the relation query for the type it selected, which for a `Post` is
+`{ select?, include?, where?, orderBy?, take?, skip?, cursor? }`. Any keys you pass in are kept as
+they were given, so a `select` passed to `nestedSelection` will still narrow the parent's shape.
+With no argument, or with `true`, it returns the planned selection on its own.
 
 ### Pinning a type in the path
 
-The `path` is followed through fragments: a segment is found whether the field is selected
-directly or under a fragment on an implementation of the field's type. When several
-implementations share the field name, a segment can name the implementation it must be found
-under, as `{ name, type }`. Only selections of that field under a fragment on that type (or one of
-its subtypes) are planned:
+The `path` is followed through fragments, so a segment is found whether the field is selected
+directly, or under a fragment on an implementation of the field's type. When several
+implementations share the same field name, a segment can be written as `{ name, type }` to name the
+implementation the field must be found under. Only selections of that field under a fragment on
+that type, or one of its subtypes, will be planned:
 
 ```typescript
 builder.prismaObject('User', {
@@ -82,15 +82,15 @@ builder.prismaObject('User', {
 });
 ```
 
-The same segments are accepted by `queryFromInfo`'s `path` and `paths`; the type is exported as
-`PathSegment`.
+The same segments can be used in `queryFromInfo`'s `path` and `paths` options. The type is exported
+as `PathSegment`.
 
 ### Selecting as a specific type
 
 When the field returns an interface or union, the third argument names the object type the
-selection is read as: its type-level selection and the fields selected under a fragment on it are
-planned, and fragments on other types are left out. With an empty path, that is the field's own
-return type:
+selection should be read as. Its type-level selection and the fields selected under a fragment on
+it are planned, and fragments on other types are left out. With an empty path, this applies to the
+field's own return type:
 
 ```typescript
 // Activity is a union of Post and Comment

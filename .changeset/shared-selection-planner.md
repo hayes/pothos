@@ -22,6 +22,3 @@ full field path. Behaviour that differed between the two plugins for no reason n
 particular, prisma walks fragments the way drizzle did: fields under a fragment on an interface the
 type implements, including interfaces not backed by a model, are planned for the type instead of
 falling back to a query per row.
-
-The other entries in this release describe what changes for a schema; they are grouped by topic
-rather than by plugin where both are affected.

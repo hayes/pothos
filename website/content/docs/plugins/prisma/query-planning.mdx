@@ -1,0 +1,186 @@
+---
+title: Query planning
+description: How the plugin decides what each field loads, and when a field costs a query of its own
+---
+
+This page describes how the plugin turns a GraphQL query into prisma queries. You do not need it to
+build a schema, but it is worth reading when a schema issues more queries than you expect.
+
+## How fields get their data
+
+A field either reads its data from a row that has already been loaded, or runs a query of its own.
+
+A field's `select` is planned into the query of the nearest ancestor that runs one: a
+`t.prismaField`, a `t.relation`, a connection, or a
+[fallback query](./relations#fallback-queries). The field then reads what it needs off the loaded
+row, without a query of its own. A field runs its own query when its `resolve` queries prisma
+directly, and when the plugin issues a fallback query for a `t.relation` that is missing from the
+row.
+
+A field can do both. A `t.prismaField`, or any other field with a `select`, nested under one of
+those ancestors has its `select` planned into the parent's row, and still runs its own query when
+it resolves. The `select` describes the parent data it reads, and its own query produces the value
+it returns.
+
+Two selections of the same relation share a place in the query only when their arguments (`where`,
+`orderBy`, `take`, ...) match. When they differ, the first one planned wins, and the other is
+loaded with a query of its own. A type-level `select` or `include` is planned before any field's
+selection, no matter where they appear in the document, and fields are planned in the order they
+are selected.
+
+A field-level `select` is merged into the same query as its siblings and the type-level selection,
+rather than getting a copy of the row for that field alone. A relation selected with arguments by
+one field is the relation every other field reads from that row, so two fields that need the same
+relation with different arguments can not both be answered from one row, and the second one runs
+its own query.
+
+Selections can also be built by async callbacks, see [Async selections](#async-selections).
+
+## Async selections
+
+`select` functions, relation `query` callbacks, `relationCount` `where` callbacks, and the `select`
+and `query` callbacks of `prismaConnectionHelpers` may be async. The plugin still builds a single
+query. It waits for the callbacks, and merges what they return after every synchronous selection,
+in document order. Schemas that do not use async callbacks are unaffected, since no promise is
+created until a callback returns one.
+
+```typescript
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    comments: t.relation('comments', {
+      query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
+    }),
+    latestComments: t.field({
+      type: [Comment],
+      select: async (args, ctx, nestedSelection) => ({
+        // A promise when a selection beneath it is async, so it must be awaited
+        comments: await nestedSelection({ take: await ctx.previewSize() }),
+      }),
+      resolve: (post) => post.comments,
+    }),
+  }),
+});
+```
+
+Inside an async `select`, `await` the result of `nestedSelection` before adding it to the selection.
+The same applies to helpers built on it, like `getQuery` from `prismaConnectionHelpers`. A
+selection that contains the promise itself will throw, and so will a `select` that returns while a
+nested selection it started is still pending. Calling `nestedSelection` and discarding a
+synchronous result is not detected, and the nested selection will not be loaded with the parent, so
+the field falls back to its own query. `queryFromInfo` returns a promise when a callback beneath
+the field is async, so `await` it in resolvers that call it directly.
+
+## Optimized queries without `t.prismaField`
+
+In some cases, it may be useful to get an optimized query for fields where you can't use
+`t.prismaField`.
+
+This may be required for combining with other plugins, or because your query does not directly
+return a `PrismaObject`. In these cases, you can use the `queryFromInfo` helper. An example of this
+might be a mutation that wraps the prisma object in a result type.
+
+```typescript
+const Post = builder.prismaObject('Post', {...});
+
+builder.objectRef<{
+  success: boolean;
+  post?: Post
+  }>('CreatePostResult').implement({
+  fields: (t) => ({
+    success: t.boolean(),
+    post: t.field({
+      type: Post,
+      nullable: true,
+      resolve: (result) => result.post,
+    }),
+  }),
+});
+
+builder.mutationField(
+  'createPost',
+  {
+    args: (t) => ({
+      title: t.string({ required: true }),
+      ...
+    }),
+  },
+  {
+    resolve: async (parent, args, context, info) => {
+      if (!validateCreatePostArgs(args)) {
+        return {
+          success: false,
+        }
+      }
+
+      const post = prisma.post.create({
+        // A promise when a callback beneath the field is async, so it is awaited
+        ...(await queryFromInfo({
+          context,
+          info,
+          // nested path where the selections for this type can be found
+          path: ['post'],
+          // optionally you can pass an initial selection, generally you wouldn't need this;
+          // when nothing is selected at `path`, it is returned as is
+          select: {
+            comments: true,
+          },
+        })),
+        data: {
+          title: args.input.title,
+          ...
+        },
+      });
+
+      return {
+        success: true,
+        post,
+      }
+    },
+  },
+);
+```
+
+Spread the result into your prisma call, the way the example above does. The columns and relations
+the query selected come back on the rows, along with anything you passed in as `select`, and the
+rows are typed to match.
+
+The `path` is followed through fragments in the query, including inline fragments and fragment
+spreads that narrow an interface or union to one of its implementations. Every selection of the
+field that is found is merged into the query. If several implementations share a field name,
+matches whose field returns a different Prisma model are ignored. When you need to target a
+specific implementation, a segment can be written as `{ name, type }`. The field then only matches
+when it is selected directly, or under a fragment on that type or one of its subtypes:
+
+```typescript
+const user = await prisma.user.findUniqueOrThrow({
+  where: { id: args.id },
+  ...(await queryFromInfo({
+    context,
+    info,
+    typeName: 'User',
+    // only match `appointment` when selected inside `... on AppointmentEntry`
+    path: [{ name: 'appointment', type: 'AppointmentEntry' }],
+  })),
+});
+
+// user.appointments is loaded with the selections from `... on AppointmentEntry`,
+// and nothing from an `appointment` field on another implementation
+```
+
+## Conflicting selections between variants
+
+When a query selects two variants of one model for the same row, either with a fragment on each
+under one field, or through a `t.variant` field, the plugin will throw if their type-level
+`select`/`include` ask for the same relation with different arguments:
+
+```
+PothosValidationError: Type-level selections of Viewer and Admin conflict on relation "posts".
+Move the relation arguments to a field-level select on one of the types.
+```
+
+Both variants describe one row, so their type-level selections have to be merged into a single
+query, and unlike a field a type has nothing to fall back to.
+
+To fix this, keep the relation with its arguments in the `select` of the field that needs it, on
+one of the variants. A field-level selection that conflicts with what the row already holds falls
+back to a query of its own, rather than failing the request.

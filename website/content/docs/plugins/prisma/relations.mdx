@@ -95,9 +95,9 @@ The following are some edge cases that could cause an additional query to be nec
 All of the above should be relatively uncommon in normal usage, but the plugin ensures that these
 types of edge cases are automatically handled when they do occur.
 
-A fallback query loads the parent row again by its primary key (or by the first required unique
-field or index when the model has no primary key), selecting what the un-loaded fields need. To
-load it some other way, give the type a `findUnique` option returning the `where` for
+A fallback query loads the parent row again by its primary key, or by the first required unique
+field or index when the model has no primary key, selecting what the missing fields need. To load
+it some other way, add a `findUnique` option to the type that returns the `where` for
 `prisma.<model>.findUnique`:
 
 ```typescript
@@ -111,9 +111,9 @@ builder.prismaObject('User', {
 ```
 
 A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
-would need one then throws `Missing findUnique for User` instead of querying, which turns a row
-that reached a resolver without the relations the query asked for into an error you see in
-development rather than an extra query you find in production.
+would need one will throw `Missing findUnique for User` instead of querying. This turns a row that
+reached a resolver without the relations the query asked for into an error you see in development,
+rather than an extra query you find in production.
 
 ### Filters, Sorting, and arguments
 
@@ -172,11 +172,11 @@ builder.prismaObject('User', {
 
 ### Nullable relations and `onNull`
 
-A relation that is optional in the prisma schema (`profile Profile?`) is exposed as a nullable
-field with `nullable: true`. To expose it as non-nullable, `t.relation` requires an `onNull`
-option saying what happens when the related row is missing: `'error'` lets GraphQL raise the
-non-null error for the field, and a function returns a replacement value, or an `Error` to raise
-instead:
+A relation that is optional in the prisma schema (`profile Profile?`) can be exposed as a nullable
+field with `nullable: true`. To expose it as non-nullable, `t.relation` requires an `onNull` option
+describing what should happen when the related row is missing. Setting it to `'error'` lets GraphQL
+raise the non-null error for the field. A function can return a replacement value instead, or an
+`Error` to raise:
 
 ```typescript
 builder.prismaObject('User', {

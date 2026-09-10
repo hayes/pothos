@@ -72,9 +72,9 @@ are being queried, and the options provided when defining those fields and types
 ### `prismaFieldWithInput`
 
 With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
-`t.prismaFieldWithInput` combines `t.prismaField` with `t.fieldWithInput`: the `input` fields
-become an input object argument, and the resolver still receives the `query` to spread as its
-first argument.
+`t.prismaFieldWithInput` combines `t.prismaField` with `t.fieldWithInput`. The `input` fields become
+an input object argument, and the resolver still receives the `query` to spread as its first
+argument.
 
 ```typescript
 builder.mutationType({

@@ -1,0 +1,31 @@
+---
+title: Relay
+description: Using the Drizzle and Relay plugins together
+---
+
+## Relay integration
+
+Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it
+easy to comply with these best practices, the drizzle plugin has built in support for defining relay
+`nodes` and `connections`.
+
+## Relay Nodes
+
+Defining relay nodes works just like defining normal `drizzleObject`s, but requires specifying a
+column to use as the nodes `id` field.
+
+```ts
+builder.drizzleNode('users', {
+  name: 'User',
+  id: {
+    column: (user) => user.id,
+    // other options for the ID field can be passed here
+  },
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    lastName: t.exposeString('lastName'),
+  }),
+});
+```
+
+The id column can also be set to a list of columns for types with a composite primary key.

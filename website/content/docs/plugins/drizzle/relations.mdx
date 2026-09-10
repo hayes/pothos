@@ -1,0 +1,190 @@
+---
+title: Relations
+description: Adding relations to drizzle objects
+---
+
+## Relations
+
+Drizzles relational query builder allows you to define the relationships between your tables. The
+`t.relation` method makes it easy to add fields to your GraphQL API that implement those
+relations:
+
+```ts
+builder.drizzleObject('profiles', {
+  name: 'Profile',
+  fields: (t) => ({
+    bio: t.exposeString('bio'),
+  }),
+});
+
+builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    profile: t.relation('profile'),
+    posts: t.relation('posts'),
+  }),
+});
+```
+
+The relation will automatically define GraphQL fields of the appropriate type based on the relation
+defined in your drizzle schema.
+
+## Relation queries
+
+For some cases, exposing relations as fields without any customization works great, but in some
+cases you may want to apply some filtering or ordering to your relations. This can be done by
+specifying a `query` option on the relation:
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    posts: t.relation('posts', {
+      args: {
+        limit: t.arg.int(),
+        offset: t.arg.int(),
+      },
+      // query callback receives (args, ctx, pathInfo)
+      query: (args) => ({
+        limit: args.limit ?? 10,
+        offset: args.offset ?? 0,
+        where: {
+          published: true,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      }),
+    }),
+    drafts: t.relation('posts', {
+      query: {
+        where: {
+          published: false,
+        },
+      },
+    }),
+  }),
+});
+```
+
+The query API enables you to define args and convert them into parameters that will be passed into
+the relational query builder. The `query` callback receives `(args, ctx, pathInfo)` where `pathInfo`
+describes where in the GraphQL query the relation is being loaded:
+
+- `path`: a list of `ParentType.fieldName` strings, from the root field down to the field being
+  resolved (eg. `['Query.user', 'User.posts']`).
+- `segments`: one object per entry in `path`, with `field` (the field name), `alias` (the alias used
+  in the query, or the field name if none), `parentType` (the name of the type the field is defined
+  on), and `isList` (whether the field returns a list).
+
+You can read more about the relation query builder api
+[here](https://orm.drizzle.team/docs/rqb#querying)
+
+## Fallback queries
+
+A field whose data is not on the row it resolves from is loaded with a fallback query. This happens
+when:
+
+- The parent row was not loaded through a `t.drizzleField`, `t.relation`, or connection. This
+  covers rows a resolver queried itself, and rows that came from somewhere else entirely.
+- A `drizzleField` resolver did not pass the result of `query()` to drizzle.
+- A relation's arguments conflict with a sibling selection of the same relation that was planned
+  first.
+
+Fallback queries are batched. Every row of a table that needs the same selection in the same tick
+is loaded with one `findMany` filtered on the primary key, or on the first unique column for a
+table that has no primary key, and the rows are matched back to their parents. If the query does
+not return a row for a parent, because it was deleted since it was loaded, or never came from the
+table, that field rejects with `Model users(1) not found`, where the value in parentheses is the
+key that was looked up.
+
+## Related field
+
+The `t.relatedField` method allows you to define a field based on a relation that uses custom
+selections, including aggregations like counts. This is useful when you want to expose derived data
+from a relation without loading the full related records.
+
+### Count aggregations
+
+One common use case is adding a count field that efficiently counts related records:
+
+```ts
+import { count } from 'drizzle-orm';
+
+builder.drizzleNode('users', {
+  name: 'User',
+  id: { column: (user) => user.id },
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    // Add a count of related posts
+    postsCount: t.relatedField('posts', {
+      type: 'Int',
+      // buildFilter creates the correct WHERE clause for the relation
+      select: (buildFilter) => ({
+        extras: {
+          postsCount: (parent) => db.$count(posts, buildFilter(parent)),
+        },
+      }),
+      resolve: (user) => user.postsCount,
+    }),
+  }),
+});
+```
+
+The `buildFilter` function passed to `select` generates the appropriate SQL filter based on the
+relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
+it easier to filter for the related records.
+
+`t.relatedField` also accepts the normal field options (`description`, `deprecationReason`,
+`extensions`, and options added by other plugins like `authScopes`). Its `resolve` may be async,
+and receives the resolve `info` as its fourth argument.
+
+## Related count
+
+For the common case of counting related records, there's a simpler `t.relatedCount` method that handles
+all the boilerplate for you:
+
+```ts
+builder.drizzleNode('users', {
+  name: 'User',
+  id: { column: (user) => user.id },
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    // Simple count of all related comments
+    commentsCount: t.relatedCount('comments'),
+    // Count with a where filter
+    publishedPostsCount: t.relatedCount('posts', {
+      where: eq(posts.published, true),
+    }),
+  }),
+});
+```
+
+The `where` option accepts either a static SQL filter or a function that receives the field arguments
+and context:
+
+```ts
+publishedPostsCount: t.relatedCount('posts', {
+  args: {
+    category: t.arg.string(),
+  },
+  where: (args, ctx) => args.category
+    ? and(eq(posts.published, true), eq(posts.category, args.category))
+    : eq(posts.published, true),
+});
+```
+
+For a many-to-many relation (one defined with `.through(...)`), `t.relatedCount` counts distinct
+related rows, so a row reachable through two junction rows counts once. A `t.relatedConnection`'s
+`totalCount` counts the rows the connection pages over instead, which is one per junction row,
+since that is what the relational query builder returns for the relation.
