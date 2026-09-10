@@ -17,9 +17,9 @@ models.Post.relations = { comments: models.Comment };
 class RecordingAdapter extends FakeAdapter {
   readonly visitors: FakeVisitor[] = [];
 
-  override eachEntry(query: FakeMap, model: FakeModel, visit: FakeVisitor) {
+  override visitQuery(query: FakeMap, model: FakeModel, visit: FakeVisitor) {
     this.visitors.push(visit);
-    super.eachEntry(query, model, visit);
+    super.visitQuery(query, model, visit);
   }
 }
 

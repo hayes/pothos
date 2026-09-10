@@ -55,12 +55,12 @@ different, so none of them is here.
 - **Merge (verb)** — to fold a query into a node, through the adapter (`mergeQuery`), or one node
   into another (`mergeNode`). `canMergeQuery` and `canMergeNode` ask the same question without
   doing it: whether merging would leave everything already selected as it is.
-- **Entry** — one key of a query as the adapter reads it: a column, every column, a relation, a
-  computed value, or the query's arguments. `Adapter.eachEntry` reports each of them to an
-  `EntryVisitor`, and the visitor alone decides what to do with it, so merging, checking and
+- **Query key** — one key of a query as the adapter reads it: a column, every column, a relation,
+  a computed value, or the query's arguments. `Adapter.visitQuery` reports each of them to a
+  `QueryVisitor`, and the visitor alone decides what to do with it, so merging, checking and
   conflict-finding share one key loop per ORM.
 - **Computed value** — what a node holds that is neither a column nor a relation: a value the ORM
-  computes per row (prisma's `_count` entries, drizzle's `extras`). `node.computed` in the shared
+  computes per row (prisma's `_count` keys, drizzle's `extras`). `node.computed` in the shared
   contract; each ORM keeps its own word for it in what its users read.
 - **Adapter** — the ORM boundary, one class: how to find a type's model and what a type and a
   field select, and how those selections accumulate into a node (`Adapter`, `NodeAdapter`).
@@ -85,18 +85,18 @@ The four members below those are the merge rules, and each is inherited with the
 adapter that never shares a slot between two consumers wants: `canMergeQuery` (M-3) is true,
 `firstConflict` (S-7) is none, and `mergeNode` and `canMergeNode` round-trip through `toQuery`.
 `canMergeQuery` and `firstConflict` ask the same thing of different callers: one is the yes or no
-a play gates a merge on, the other names the first offending entry for an error message. An
+a play gates a merge on, the other names the first offending key for an error message. An
 adapter that gives every consumer its own slot therefore writes six methods and nothing more.
 `MergeOptions` says
 how one merge differs from a plain one: `asQuery` (E-3, a relation query adds no columns),
-`lenient` (E-2, conflicting entries are left out), `ignoreArgs` (M-3), and the `alias` the query
+`lenient` (E-2, conflicting keys are left out), `ignoreArgs` (M-3), and the `alias` the query
 came from, so an adapter may merge same-named relations into one node (prisma, drizzle) or keep
 one slot per selected field. `skipDeferredFragments` (S-8) defaults to true.
 
 `NodeAdapter<Model, Query>` is what the prisma and drizzle adapters extend: the node tree of
 `node.ts` (columns, relations, computed values, arguments) with every merge rule this package
-owns. A subclass writes `eachEntry`, the key loop of its own query, reported entry by entry to an
-`EntryVisitor`; `toQuery`, the node written back; and optionally `computedConflicts` when its
+owns. A subclass writes `visitQuery`, the key loop of its own query, reported key by key to a
+`QueryVisitor`; `toQuery`, the node written back; and optionally `computedConflicts` when its
 computed values are not compared by value — three methods on top of the three translation ones.
 The visitor is reused down the tree, so a merge allocates only what the subclass's own key loop
 already allocated. An ORM whose query is not a tree of columns, relations and computed values

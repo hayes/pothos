@@ -88,7 +88,7 @@ const relation =
       : { relations: { [name]: spec } };
   };
 
-/** `t.relationCount(name, { where })` (~450-485): a function-form entry reducing to `count()`. */
+/** `t.relationCount(name, { where })` (~450-485): a function-form value reducing to `count()`. */
 const relationCount =
   (name: string, where?: (args: Args) => unknown): PnSelectFn =>
   (args) => {
@@ -106,7 +106,7 @@ const relationCount =
 /**
  * `t.relatedConnection(name, { cursor, totalCount: true })` (~605-684): the rows branch is the
  * nested selection under `edges.node` / `nodes`, refined by cursor pagination and reading the
- * cursor column; the count is a second entry, gated on `totalCount` being selected.
+ * cursor column; the count is a second relation value, gated on `totalCount` being selected.
  */
 const relatedConnection =
   (name: string, target: string, cursor: string): PnSelectFn =>
@@ -272,10 +272,10 @@ async function plan(
   source: string,
   options: { typeName?: string; initial?: PnSpec; variableValues?: Record<string, unknown> } = {},
 ) {
-  const { variableValues, ...entry } = options;
+  const { variableValues, ...entryOptions } = options;
   const info = await resolveInfo(schema, source, { variableValues });
 
-  return chain(queryFromInfo(pnAdapter, { context: {}, info, ...entry }));
+  return chain(queryFromInfo(pnAdapter, { context: {}, info, ...entryOptions }));
 }
 
 function pathOf(...keys: (string | number)[]) {
@@ -390,7 +390,7 @@ describe('type-level selects', () => {
     ]);
   });
 
-  it('slots a type-level relation entry under :object:<Type>', async () => {
+  it('slots a type-level relation value under :object:<Type>', async () => {
     expect(await plan('{ admin { permissions } }')).toEqual([
       'select(email, id, permissions)',
       'include(posts){ combine(:object:AdminUser:total=count[]) }',
@@ -515,7 +515,7 @@ describe('entry points', () => {
     expect(mappingOf(getLoaderMapping(context, pathOf('user', 'recent'), 'User'))).toEqual({
       nested: { 'Post@id': { nested: {} } },
     });
-    // A serialized spec merges back without a key: every entry carries its alias.
+    // A serialized spec merges back without a key: every value carries its alias.
     expect(chain(plan.query())).toEqual(chain(pnAdapter.toQuery(plan.play().root)));
   });
 });

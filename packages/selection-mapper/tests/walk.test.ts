@@ -702,7 +702,7 @@ describe('a field selected more than once (W-1)', () => {
       const info = await resolveInfo(schema, source);
 
       // Viewer's type-level `posts: { take: 5 }` wins over the other node's field, which loads on
-      // its own instead of turning the variant entry into a conflict.
+      // its own instead of turning the variant's selection into a conflict.
       expect(queryFromInfo(adapter, { context, info })).toEqual({
         select: { posts: { take: 5 }, id: true, email: true },
       });

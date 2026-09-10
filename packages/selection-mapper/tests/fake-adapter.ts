@@ -9,7 +9,7 @@ import {
   type GraphQLResolveInfo,
   parse,
 } from 'graphql';
-import type { Adapter, EntryVisitor, Mappings, Node, SelectFn, WalkedType } from '../src';
+import type { Adapter, Mappings, Node, QueryVisitor, SelectFn, WalkedType } from '../src';
 import { NodeAdapter, Plan } from '../src';
 import type { NodeBase } from '../src/adapter';
 import type { Mapping } from '../src/loader-map';
@@ -69,7 +69,7 @@ export function createModels(...names: string[]) {
   return models;
 }
 
-export type FakeVisitor = EntryVisitor<FakeModel, FakeMap>;
+export type FakeVisitor = QueryVisitor<FakeModel, FakeMap>;
 
 /**
  * How the fake map reads onto the shared query tree, and how a node is written back. The models
@@ -95,7 +95,7 @@ export class FakeAdapter extends NodeAdapter<FakeModel, FakeMap> {
     return field.extensions?.select as FakeMap | SelectFn<FakeMap> | undefined;
   }
 
-  eachEntry({ select, extras, ...args }: FakeMap, model: FakeModel, visit: FakeVisitor) {
+  visitQuery({ select, extras, ...args }: FakeMap, model: FakeModel, visit: FakeVisitor) {
     // No `select` means every column, which is final (S-9).
     if (!select) {
       visit.allColumns();

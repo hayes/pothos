@@ -19,7 +19,7 @@ export {
   type PathSegment,
   selectedFieldNames,
 } from './matches.js';
-export { type EntryVisitor, type Node, NodeAdapter } from './node.js';
+export { type Node, NodeAdapter, type QueryVisitor } from './node.js';
 export { Plan, type PlayedPlan } from './plan.js';
 export type {
   MergeOptions,

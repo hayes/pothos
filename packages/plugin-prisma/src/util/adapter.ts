@@ -1,10 +1,10 @@
 import {
   deepEqual,
-  type EntryVisitor,
   type Node,
   NodeAdapter,
   type Plan,
   type PlayedPlan,
+  type QueryVisitor,
   type SelectFn,
 } from '@pothos/selection-mapper';
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
@@ -14,7 +14,7 @@ import type { FieldMap } from './relation-map.js';
 export type PrismaNode = Node<FieldMap>;
 export type PrismaPlan = Plan<FieldMap, SelectionMap>;
 export type PrismaPlayedPlan = PlayedPlan<FieldMap, SelectionMap>;
-type PrismaVisitor = EntryVisitor<FieldMap, SelectionMap>;
+type PrismaVisitor = QueryVisitor<FieldMap, SelectionMap>;
 
 /** A map without `select`: include mode, every column. Shared and never mutated. */
 export const INCLUDE_ALL: SelectionMap = Object.freeze({});
@@ -29,8 +29,7 @@ const COUNT_ALL = '*';
  * How prisma selections (`{ select, include, ...args }`) read onto the shared query tree, and how
  * a node is written back. A node in named-column mode serializes to `select`; a node whose
  * columns are `null` (include mode, the default for a type without a type-level `select`)
- * serializes to `include`. `_count` entries are the node's computed values, keyed by relation
- * name.
+ * serializes to `include`. `_count` keys are the node's computed values, keyed by relation name.
  *
  * The merge, compare and conflict rules are `NodeAdapter`'s: this is the schema side, the key
  * loop and `toQuery`.
@@ -58,7 +57,7 @@ class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
       : { select: selection };
   }
 
-  eachEntry({ select, include, ...args }: SelectionMap, model: FieldMap, visit: PrismaVisitor) {
+  visitQuery({ select, include, ...args }: SelectionMap, model: FieldMap, visit: PrismaVisitor) {
     // A map without `select` is an include-mode map, and include mode is final (S-9).
     if (!select) {
       visit.allColumns();
@@ -127,7 +126,7 @@ function hasKeys(value: object) {
   return Object.keys(value).length > 0;
 }
 
-/** M-1, M-2: the entries of a `select` or `include` map, classified against the model. */
+/** M-1, M-2: the keys of a `select` or `include` map, classified against the model. */
 function readKeys(map: IncludeMap | undefined, model: FieldMap, visit: PrismaVisitor) {
   if (!map) {
     return;
@@ -157,7 +156,7 @@ function readKeys(map: IncludeMap | undefined, model: FieldMap, visit: PrismaVis
 }
 
 /**
- * Counts are computed values, one entry per counted relation, so a conflicting count leaves the
+ * Counts are computed values, one key per counted relation, so a conflicting count leaves the
  * others in (E-2). A type-level conflict on one is reported as a relation conflict: it is a
  * relation's arguments that clash, not a computed value defined twice.
  */

@@ -93,7 +93,7 @@ export interface MergeOptions {
    */
   asQuery?: boolean;
   /**
-   * E-2: entries that conflict with what the node holds are left out, one at a time, instead of
+   * E-2: keys that conflict with what the node holds are left out, one at a time, instead of
    * the merge being refused or throwing.
    */
   lenient?: boolean;
@@ -106,8 +106,8 @@ export interface MergeOptions {
 }
 
 /**
- * A type-level selection entry that cannot be merged with what a node already holds. `kind`
- * chooses the error message, so it is the ORM's own word for the entry rather than this package's:
+ * A key of a type-level selection that cannot be merged with what a node already holds. `kind`
+ * chooses the error message, so it is the ORM's own word for the key rather than this package's:
  * prisma reports a conflicting `_count` as a `relation`, since that is what a user wrote.
  */
 export interface TypeLevelConflict {

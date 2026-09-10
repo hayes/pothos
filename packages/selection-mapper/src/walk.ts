@@ -112,7 +112,7 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
 ) {
   const resolved = branches.flatMap((branch) => resolveBranch(plan, branch));
   const enteredTypes = new Set<WalkedType>();
-  let entryType: WalkedType | undefined;
+  let firstType: WalkedType | undefined;
 
   for (const { type, selectionSets } of resolved) {
     // S-7: the plan is entered as the first type a match landed on, and every other one as a
@@ -122,10 +122,10 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
     if (!enteredTypes.has(type)) {
       enteredTypes.add(type);
 
-      if (entryType) {
-        enterVariant(plan, entryType, type);
+      if (firstType) {
+        enterVariant(plan, firstType, type);
       } else {
-        entryType = type;
+        firstType = type;
         enter(plan, type);
       }
     }

@@ -5,7 +5,7 @@
  *
  * Those rules are what this module replaced: each ORM plugin used to write its own merge, compare
  * and conflict logic over its own accumulator, and `NodeAdapter` is that logic written once. A
- * subclass supplies the only format-specific part left: `eachEntry`, the key loop of the ORM's
+ * subclass supplies the only format-specific part left: `visitQuery`, the key loop of the ORM's
  * own query, and `toQuery`, the node written back. The traversal never reaches in here — it
  * drives the `Adapter` contract, of which this implements everything but those two.
  */
@@ -17,7 +17,7 @@ import type { MergeOptions, TypeLevelConflict } from './types.js';
 /**
  * One level of the query being built, used by the prisma and drizzle adapters: the model, its
  * arguments, the columns it selects (`null` = every column, which is final: a node never goes
- * back to named columns), its relations and its computed values (prisma `_count` entries,
+ * back to named columns), its relations and its computed values (prisma `_count` keys,
  * drizzle `extras`). An adapter whose query is not a tree of this shape extends `Adapter`
  * directly and accumulates into a node of its own.
  */
@@ -60,14 +60,14 @@ export function relation<Model>(
 }
 
 /**
- * What an adapter reports for one entry of its query. Called by `NodeAdapter.eachEntry`; the
- * visitor decides what to do with the entry, so the four rules (merge, merge check, conflict,
+ * What an adapter reports for one key of its query. Called by `NodeAdapter.visitQuery`; the
+ * visitor decides what to do with the key, so the four rules (merge, merge check, conflict,
  * lenient merge) share one key loop per adapter instead of one each.
  *
- * A visitor is re-entrant: `relation` reads the nested query with the same visitor, so an
- * `eachEntry` must hold no state of its own across a callback.
+ * A visitor is re-entrant: `relation` reads the nested query with the same visitor, so a
+ * `visitQuery` must hold no state of its own across a callback.
  */
-export interface EntryVisitor<Model, Query> {
+export interface QueryVisitor<Model, Query> {
   /** A named column of the model. */
   column(name: string): void;
   /** S-9: every column. Final — a node never goes back to named columns. */
@@ -75,7 +75,7 @@ export interface EntryVisitor<Model, Query> {
   /** A relation, with the model it targets and the query selected beneath it. */
   relation(name: string, model: Model, query: Query): void;
   /**
-   * A value the ORM computes per row, neither a column nor a relation (prisma `_count` entries,
+   * A value the ORM computes per row, neither a column nor a relation (prisma `_count` keys,
    * drizzle `extras`). `kind` is what a conflict on it is called to a user of that ORM, whose own
    * word for these is not the shared one (prisma's counts read as a relation).
    */
@@ -90,21 +90,21 @@ export interface EntryVisitor<Model, Query> {
 
 /**
  * The adapter the prisma and drizzle adapters extend: the node tree above with every merge,
- * compare and conflict rule this package owns. A subclass answers `eachEntry` and `toQuery`, plus
+ * compare and conflict rule this package owns. A subclass answers `visitQuery` and `toQuery`, plus
  * the three translation members of `Adapter`.
  */
 export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, Node<Model>> {
   /**
    * One merger and one merge check per adapter, re-used down the tree: each saves and restores
    * the node it is at rather than allocating a visitor per level, so a merge allocates only what
-   * the subclass's own `eachEntry` does. They cannot be this object — a merge runs a check inside
-   * itself (E-2), so one `this` could not hold both cursors.
+   * the subclass's own `visitQuery` does. They cannot be this object — a merge runs a check
+   * inside itself (E-2), so one `this` could not hold both cursors.
    */
   private readonly merger: Merger<Model, Query> = new Merger(this);
   private readonly mergeCheck: MergeCheck<Model, Query> = new MergeCheck(this);
 
-  /** Every entry of `query`, read against `model` and reported to `visit`. The ORM's key loop. */
-  abstract eachEntry(query: Query, model: Model, visit: EntryVisitor<Model, Query>): void;
+  /** Every key of `query`, read against `model` and reported to `visit`. The ORM's key loop. */
+  abstract visitQuery(query: Query, model: Model, visit: QueryVisitor<Model, Query>): void;
 
   createNode(model: Model): Node<Model> {
     return createNode(model);
@@ -120,7 +120,7 @@ export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, No
 
   /**
    * M-3 for one computed value: whether `value` cannot join `computed` under `name`. A
-   * `deepEqual` against the entry already there, which is what an adapter whose computed values
+   * `deepEqual` against the value already there, which is what an adapter whose computed values
    * are plain values wants; drizzle compares its `extras` by identity, and prisma overrides it
    * for the `_count: true` wildcard.
    */
@@ -129,13 +129,13 @@ export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, No
   }
 
   /**
-   * S-7: the first top-level entry of `query` that conflicts with `node`. Top-level only, so the
-   * error names the entry a user wrote rather than something nested beneath it.
+   * S-7: the first top-level key of `query` that conflicts with `node`. Top-level only, so the
+   * error names the key a user wrote rather than something nested beneath it.
    */
   override firstConflict(node: Node<Model>, query: Query): TypeLevelConflict | undefined {
     let found: TypeLevelConflict | undefined;
 
-    this.eachEntry(query, node.model, {
+    this.visitQuery(query, node.model, {
       column() {},
       allColumns() {},
       args() {},
@@ -204,7 +204,7 @@ export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, No
 }
 
 /** M-1, M-2, S-9, E-2, E-3 in place. */
-class Merger<Model, Query> implements EntryVisitor<Model, Query> {
+class Merger<Model, Query> implements QueryVisitor<Model, Query> {
   private node!: Node<Model>;
   /** E-3: a relation query must add no columns; the plan beneath it adds the ones it needs. */
   private asQuery = false;
@@ -217,7 +217,7 @@ class Merger<Model, Query> implements EntryVisitor<Model, Query> {
     this.node = node;
     this.asQuery = options?.asQuery ?? false;
     this.lenient = options?.lenient ?? false;
-    this.adapter.eachEntry(query, node.model, this);
+    this.adapter.visitQuery(query, node.model, this);
   }
 
   column(name: string) {
@@ -248,7 +248,7 @@ class Merger<Model, Query> implements EntryVisitor<Model, Query> {
     this.node = child;
     this.asQuery = false;
     this.lenient = false;
-    this.adapter.eachEntry(query, model, this);
+    this.adapter.visitQuery(query, model, this);
     this.node = parent;
     this.asQuery = asQuery;
     this.lenient = lenient;
@@ -271,10 +271,10 @@ class Merger<Model, Query> implements EntryVisitor<Model, Query> {
 
 /**
  * M-3: whether a query merges into a node without changing what is already selected. Runs the
- * whole query even after the first failure (a rejection is the rare path) so an `eachEntry` stays
+ * whole query even after the first failure (a rejection is the rare path) so a `visitQuery` stays
  * a plain loop.
  */
-class MergeCheck<Model, Query> implements EntryVisitor<Model, Query> {
+class MergeCheck<Model, Query> implements QueryVisitor<Model, Query> {
   private node!: Node<Model>;
   private ignoreArgs = false;
   private ok = true;
@@ -285,7 +285,7 @@ class MergeCheck<Model, Query> implements EntryVisitor<Model, Query> {
     this.node = node;
     this.ignoreArgs = options?.ignoreArgs ?? false;
     this.ok = true;
-    this.adapter.eachEntry(query, node.model, this);
+    this.adapter.visitQuery(query, node.model, this);
 
     return this.ok;
   }
@@ -307,7 +307,7 @@ class MergeCheck<Model, Query> implements EntryVisitor<Model, Query> {
     // Below the top, a relation's own arguments are part of what is already selected (M-3).
     this.node = child;
     this.ignoreArgs = false;
-    this.adapter.eachEntry(query, model, this);
+    this.adapter.visitQuery(query, model, this);
     this.node = parent;
     this.ignoreArgs = ignoreArgs;
   }

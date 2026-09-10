@@ -125,7 +125,7 @@ describe('loader map', () => {
     }
 
     // Not one of them claimed a mapping of its own: replanning the field moves all of them at
-    // once. A row holding an entry of its own would keep reading the mapping it claimed.
+    // once. A row holding a mapping of its own would keep reading the mapping it claimed.
     const replanned: Mapping = { nested: {} };
 
     setLoaderMappings(ctx, infoAt('Query', 'users'), { 'User@posts': replanned });

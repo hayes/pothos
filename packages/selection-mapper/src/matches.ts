@@ -416,9 +416,9 @@ export function firstMatch(
 }
 
 /** One node of the memo trie: the names for the field nodes on the path to it, if computed. */
-interface SelectedFieldNamesEntry {
+interface SelectedFieldNamesMemo {
   names?: ReadonlySet<string>;
-  next: WeakMap<FieldNode, SelectedFieldNamesEntry>;
+  next: WeakMap<FieldNode, SelectedFieldNamesMemo>;
 }
 
 /**
@@ -426,7 +426,7 @@ interface SelectedFieldNamesEntry {
  * names depend on the variables through `@skip`/`@include`), per return type, then per field node.
  */
 const selectedFieldNamesCache = createContextCache(
-  () => new WeakMap<object, WeakMap<GraphQLNamedType, SelectedFieldNamesEntry>>(),
+  () => new WeakMap<object, WeakMap<GraphQLNamedType, SelectedFieldNamesMemo>>(),
 );
 
 /**
@@ -455,29 +455,29 @@ export function selectedFieldNames(context: object, info: GraphQLResolveInfo): R
     byExecution.set(info.variableValues, byType);
   }
 
-  let entry = entryIn(byType, getNamedType(info.returnType));
+  let memo = memoIn(byType, getNamedType(info.returnType));
 
   for (const node of info.fieldNodes) {
-    entry = entryIn(entry.next, node);
+    memo = memoIn(memo.next, node);
   }
 
-  entry.names ??= collectSelectedFieldNames(info);
+  memo.names ??= collectSelectedFieldNames(info);
 
-  return entry.names;
+  return memo.names;
 }
 
-function entryIn<K extends object>(
-  map: WeakMap<K, SelectedFieldNamesEntry>,
+function memoIn<K extends object>(
+  map: WeakMap<K, SelectedFieldNamesMemo>,
   key: K,
-): SelectedFieldNamesEntry {
-  let entry = map.get(key);
+): SelectedFieldNamesMemo {
+  let memo = map.get(key);
 
-  if (!entry) {
-    entry = { next: new WeakMap() };
-    map.set(key, entry);
+  if (!memo) {
+    memo = { next: new WeakMap() };
+    map.set(key, memo);
   }
 
-  return entry;
+  return memo;
 }
 
 function collectSelectedFieldNames(info: GraphQLResolveInfo): ReadonlySet<string> {

@@ -13,7 +13,7 @@
  *     (~123-134), because the walker walks nested selections eagerly through `nested()`.
  *   - `PnSpec`: the data format a field or type hands the adapter, and what `serialize` returns.
  *     A plain object (`initial` / `noMatch` may be `{}`) carrying columns, alias-keyed relation
- *     branches with a refine and args, function-form entries (count reducers), and the slot
+ *     branches with a refine and args, function-form values (count reducers), and the slot
  *     namespace (`:object:<Type>` for a type-level select).
  *   - `emit`: turns a serialized spec into builder calls (apply-selection's `emitLevel` /
  *     `emitRelation` / `emitBranch`, ~915-1001).
@@ -74,7 +74,7 @@ export type PnRefine = (
 ) => MapperCollection | null | undefined;
 
 /**
- * apply-selection's `RelationSpecFn.fn` (~142-146): the combine entries a consumer adds to the
+ * apply-selection's `RelationSpecFn.fn` (~142-146): the combine keys a consumer adds to the
  * relation, each keyed `<alias>:<key>` in the combine spec.
  */
 export type PnSpecFn = (
@@ -83,15 +83,15 @@ export type PnSpecFn = (
   ctx: object,
 ) => Record<string, unknown>;
 
-/** A function-form entry with the slot namespace and args it runs with (the serialized form). */
-export interface PnFnEntry {
+/** A function-form value with the slot namespace and args it runs with (the serialized form). */
+export interface PnFnValue {
   fn: PnSpecFn;
   alias?: string;
   args?: PnArgs;
 }
 
 /**
- * A selection on one level. On a relation entry it is one branch: its own nested selection,
+ * A selection on one level. On a relation value it is one branch: its own nested selection,
  * the refine and args applied before the descent, and the slot it answers to (`<alias>:<slot>`,
  * `slot` defaulting to the relation name; a connection uses `rows`).
  */
@@ -106,15 +106,15 @@ export interface PnSpec {
   args?: PnArgs;
   refine?: PnRefine;
   columns?: readonly string[];
-  relations?: Record<string, PnRelationEntry | PnRelationEntry[]>;
+  relations?: Record<string, PnRelationValue | PnRelationValue[]>;
 }
 
 /**
  * What a relation key holds: `true` (include, nothing beneath), a branch, or a function-form
- * entry. An array lists several consumers of one relation from one field (a connection: its
+ * value. An array lists several consumers of one relation from one field (a connection: its
  * rows branch and its count).
  */
-export type PnRelationEntry = true | PnSpec | PnSpecFn | PnFnEntry;
+export type PnRelationValue = true | PnSpec | PnSpecFn | PnFnValue;
 
 // ---------------------------------------------------------------------------------------------
 // Node: the accumulator.
@@ -194,7 +194,7 @@ function getOrCreateRelation(node: PnNode, name: string): PnRelation {
 /**
  * apply-selection's `addBranch` (~1044-1068), except that a slot already present is unioned
  * with the new selection instead of rejected: the walker applies one field once per node that
- * selects it (W-1: every `info.fieldNodes` entry; two fragments selecting the same field), and
+ * selects it (W-1: every `info.fieldNodes` node; two fragments selecting the same field), and
  * those are the same field with the same arguments by GraphQL's own merge rules.
  */
 function addBranch(relation: PnRelation, name: string, alias: string, spec: PnSpec) {
@@ -234,7 +234,7 @@ function addFunction(relation: PnRelation, alias: string, args: PnArgs, fn: PnSp
   }
 }
 
-/** M-1, M-2: `spec` into `node`, relation entries slotted under `alias` unless they carry one. */
+/** M-1, M-2: `spec` into `node`, relation values slotted under `alias` unless they carry one. */
 function mergeSpec(node: PnNode, spec: PnSpec, alias: string | undefined) {
   if (spec.columns) {
     for (const column of spec.columns) {
@@ -247,18 +247,18 @@ function mergeSpec(node: PnNode, spec: PnSpec, alias: string | undefined) {
   }
 
   for (const name of Object.keys(spec.relations)) {
-    const entries = spec.relations[name];
+    const values = spec.relations[name];
     const relation = getOrCreateRelation(node, name);
 
-    for (const entry of Array.isArray(entries) ? entries : [entries]) {
-      if (entry === true) {
+    for (const value of Array.isArray(values) ? values : [values]) {
+      if (value === true) {
         addBranch(relation, name, requireAlias(name, alias), {});
-      } else if (typeof entry === 'function') {
-        addFunction(relation, requireAlias(name, alias), {}, entry);
-      } else if ('fn' in entry) {
-        addFunction(relation, requireAlias(name, entry.alias ?? alias), entry.args ?? {}, entry.fn);
+      } else if (typeof value === 'function') {
+        addFunction(relation, requireAlias(name, alias), {}, value);
+      } else if ('fn' in value) {
+        addFunction(relation, requireAlias(name, value.alias ?? alias), value.args ?? {}, value.fn);
       } else {
-        addBranch(relation, name, requireAlias(name, entry.alias ?? alias), entry);
+        addBranch(relation, name, requireAlias(name, value.alias ?? alias), value);
       }
     }
   }
@@ -267,7 +267,7 @@ function mergeSpec(node: PnNode, spec: PnSpec, alias: string | undefined) {
 function requireAlias(name: string, alias: string | undefined): string {
   if (alias === undefined) {
     throw new Error(
-      `Relation "${name}" was merged without a slot: the walker gave no field key and the entry carries no alias.`,
+      `Relation "${name}" was merged without a slot: the walker gave no field key and the selection carries no alias.`,
     );
   }
 
@@ -296,10 +296,10 @@ function serializeNode(node: PnNode): PnSpec {
   spec.relations = {};
 
   for (const [name, relation] of node.relations) {
-    const entries: PnRelationEntry[] = [];
+    const values: PnRelationValue[] = [];
 
     for (const branch of relation.branches.values()) {
-      entries.push({
+      values.push({
         alias: branch.alias,
         slot: branch.slot,
         args: branch.args,
@@ -309,10 +309,10 @@ function serializeNode(node: PnNode): PnSpec {
     }
 
     for (const fn of relation.functions.values()) {
-      entries.push({ alias: fn.alias, args: fn.args, fn: fn.fn });
+      values.push({ alias: fn.alias, args: fn.args, fn: fn.fn });
     }
 
-    spec.relations[name] = entries.length === 1 ? entries[0] : entries;
+    spec.relations[name] = values.length === 1 ? values[0] : values;
   }
 
   return spec;
@@ -332,7 +332,7 @@ export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
   }
 
   /**
-   * S-1: the type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation entries
+   * S-1: the type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation values
    * (apply-selection ~795-878), compiled once to a spec slotted under `:object:<Type>`.
    */
   typeSelection(type: GraphQLNamedType): PnSpec | undefined {
@@ -391,11 +391,11 @@ export const pnAdapter = new PnAdapter();
 // Emission (apply-selection ~915-1019).
 // ---------------------------------------------------------------------------------------------
 
-function isBranch(entry: PnRelationEntry): entry is PnSpec {
-  return typeof entry === 'object' && !('fn' in entry);
+function isBranch(value: PnRelationValue): value is PnSpec {
+  return typeof value === 'object' && !('fn' in value);
 }
 
-/** Emits a serialized spec (every entry carries its alias) as a chain on `collection`. */
+/** Emits a serialized spec (every value carries its alias) as a chain on `collection`. */
 export function emit(
   collection: MapperCollection,
   spec: PnSpec,
@@ -418,7 +418,7 @@ export function emit(
 function emitRelation(
   parent: MapperCollection,
   name: string,
-  entries: PnRelationEntry | PnRelationEntry[],
+  values: PnRelationValue | PnRelationValue[],
   model: PnModel,
   ctx: object,
 ): MapperCollection {
@@ -428,12 +428,12 @@ function emitRelation(
     throw new Error(`Relation "${name}" does not exist on ${model.name}`);
   }
 
-  const list = Array.isArray(entries) ? entries : [entries];
+  const list = Array.isArray(values) ? values : [values];
   const branches = list.filter(isBranch);
-  const functions = list.filter((entry): entry is PnFnEntry => !isBranch(entry) && entry !== true);
+  const functions = list.filter((value): value is PnFnValue => !isBranch(value) && value !== true);
 
   // Single-consumer fast path (apply-selection ~931-958): a to-one relation, or a to-many with
-  // one branch and no function-form entry, is a plain include.
+  // one branch and no function-form value, is a plain include.
   if (!(meta.isToMany && (branches.length > 1 || functions.length > 0))) {
     const branch = branches[0];
 
@@ -454,11 +454,11 @@ function emitRelation(
       );
     }
 
-    for (const entry of functions) {
-      const result = entry.fn(rel, entry.args ?? {}, ctx);
+    for (const value of functions) {
+      const result = value.fn(rel, value.args ?? {}, ctx);
 
       for (const key of Object.keys(result)) {
-        combined[`${entry.alias}${COMBINE_SEPARATOR}${key}`] = result[key];
+        combined[`${value.alias}${COMBINE_SEPARATOR}${key}`] = result[key];
       }
     }
 

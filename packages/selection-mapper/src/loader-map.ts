@@ -49,7 +49,7 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * find what they would have written already there.
  *
  * `mappings` holds what a plan recorded for a whole field: every row of that field was loaded by
- * it, so one entry per path answers for all of them. `rows` holds a mapping only where a second
+ * it, so one mapping per path answers for all of them. `rows` holds a mapping only where a second
  * one turned up at a key the first had claimed, which is to say only where rows of one list
  * disagree about which plan loaded them. A mapping carries the position a connection pages with,
  * so a row that answered from a mapping recorded for a differently loaded row pages with
@@ -103,12 +103,12 @@ export function cacheKey(type: string, path: GraphQLResolveInfo['path']) {
  * prefix and shared by both tiers: the strings depend on the path and the plan's own keys, never
  * on which row is being recorded for.
  */
-function rehomedKeys(entry: Cache, prefix: string) {
-  let keys = entry.rehomed.get(prefix);
+function rehomedKeys(cached: Cache, prefix: string) {
+  let keys = cached.rehomed.get(prefix);
 
   if (!keys) {
     keys = new Map();
-    entry.rehomed.set(prefix, keys);
+    cached.rehomed.set(prefix, keys);
   }
 
   return keys;
@@ -137,22 +137,22 @@ function ownerOf(row: unknown): object | null {
  * Records `mapping` at `key` for `row`. An unclaimed key takes it, and so does a key that
  * already holds this very mapping: a field resolved for each of N rows of one list is handed the
  * mapping its plan recorded, so the rows after the first write nothing at all. A key holding a
- * different mapping is one two plans disagree about, and only there does the row get an entry of
+ * different mapping is one two plans disagree about, and only there does the row get a mapping of
  * its own — or, with no row to hang it off, nothing: the resolvers beneath fall back and load
  * their own data, which is the answer for a row nothing can be told about.
  */
-function claim(entry: Cache, key: string, mapping: Mapping, row: object | null) {
-  const held = entry.mappings.get(key);
+function claim(cached: Cache, key: string, mapping: Mapping, row: object | null) {
+  const held = cached.mappings.get(key);
 
   if (held === undefined) {
-    entry.mappings.set(key, mapping);
+    cached.mappings.set(key, mapping);
   } else if (held !== mapping && row) {
-    let own = entry.rows.get(row);
+    let own = cached.rows.get(row);
 
     if (!own) {
       own = new Map();
-      entry.rows.set(row, own);
-      entry.disagreed = true;
+      cached.rows.set(row, own);
+      cached.disagreed = true;
     }
 
     own.set(key, mapping);
@@ -165,12 +165,12 @@ function claim(entry: Cache, key: string, mapping: Mapping, row: object | null) 
  * shared tier, and a later plan for the same field replaces them.
  */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  const entry = cache(ctx);
+  const cached = cache(ctx);
   const prefix = responsePath(info.path);
-  const keys = rehomedKeys(entry, prefix);
+  const keys = rehomedKeys(cached, prefix);
 
   for (const key of Object.keys(mappings)) {
-    entry.mappings.set(rehome(keys, key, prefix), mappings[key]);
+    cached.mappings.set(rehome(keys, key, prefix), mappings[key]);
   }
 }
 
@@ -180,9 +180,10 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
  * a key with a different mapping, these are recorded against the row instead of replacing it, so
  * a row the planned query did not load never re-answers for a sibling it did.
  *
- * A row entry is found by the resolvers whose parent is `row` itself. Deeper down, the parent is
- * something `row`'s own resolvers produced, which nothing here has seen, and those resolvers read
- * the plan's entry — the answer they had before any of this, and the one their siblings read.
+ * A row mapping is found by the resolvers whose parent is `row` itself. Deeper down, the parent
+ * is something `row`'s own resolvers produced, which nothing here has seen, and those resolvers
+ * read the plan's mapping — the answer they had before any of this, and the one their siblings
+ * read.
  */
 export function setRowMappings(
   ctx: object,
@@ -194,16 +195,16 @@ export function setRowMappings(
 }
 
 function writeRowMappings(
-  entry: Cache,
+  cached: Cache,
   info: GraphQLResolveInfo,
   mappings: Mappings,
   row: object | null,
 ) {
   const prefix = responsePath(info.path);
-  const keys = rehomedKeys(entry, prefix);
+  const keys = rehomedKeys(cached, prefix);
 
   for (const key of Object.keys(mappings)) {
-    claim(entry, rehome(keys, key, prefix), mappings[key], row);
+    claim(cached, rehome(keys, key, prefix), mappings[key], row);
   }
 }
 
@@ -219,11 +220,11 @@ export function setFieldMapping(
   mapping: Mapping,
   row: unknown,
 ) {
-  const entry = cache(ctx);
+  const cached = cache(ctx);
   const owner = ownerOf(row);
 
-  claim(entry, cacheKey(info.parentType.name, info.path), mapping, owner);
-  writeRowMappings(entry, info, mapping.nested, owner);
+  claim(cached, cacheKey(info.parentType.name, info.path), mapping, owner);
+  writeRowMappings(cached, info, mapping.nested, owner);
 }
 
 /**
@@ -236,17 +237,17 @@ export function getLoaderMapping(
   type: string,
   row?: unknown,
 ): Mapping | null {
-  const entry = cache(ctx);
+  const cached = cache(ctx);
   const key = cacheKey(type, path);
 
-  if (entry.disagreed) {
+  if (cached.disagreed) {
     const owner = ownerOf(row);
-    const own = owner && entry.rows.get(owner)?.get(key);
+    const own = owner && cached.rows.get(owner)?.get(key);
 
     if (own) {
       return own;
     }
   }
 
-  return entry.mappings.get(key) ?? null;
+  return cached.mappings.get(key) ?? null;
 }

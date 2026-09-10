@@ -1,10 +1,10 @@
 import { createContextCache, PothosValidationError } from '@pothos/core';
 import {
-  type EntryVisitor,
   type Node,
   NodeAdapter,
   type Plan,
   type PlayedPlan,
+  type QueryVisitor,
   type SelectFn,
 } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
@@ -16,7 +16,7 @@ import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 export type DrizzleNode = Node<TableRelationalConfig>;
 export type DrizzlePlan = Plan<TableRelationalConfig, SelectionMap>;
 export type DrizzlePlayedPlan = PlayedPlan<TableRelationalConfig, SelectionMap>;
-type DrizzleVisitor = EntryVisitor<TableRelationalConfig, SelectionMap>;
+type DrizzleVisitor = QueryVisitor<TableRelationalConfig, SelectionMap>;
 
 /** A map without `columns`: every column. Shared and never mutated. */
 const ALL: SelectionMap = Object.freeze({});
@@ -55,7 +55,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       undefined) as SelectionMap | SelectFn<SelectionMap> | undefined;
   }
 
-  eachEntry(
+  visitQuery(
     { columns, with: withSelection, extras, ...args }: SelectionMap,
     model: TableRelationalConfig,
     visit: DrizzleVisitor,
@@ -120,7 +120,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
     return query;
   }
 
-  /** M-1: the entries of a `with` map, resolved to the tables they target. */
+  /** M-1: the keys of a `with` map, resolved to the tables they target. */
   private readRelations(
     withSelection: Record<string, unknown> | undefined,
     model: TableRelationalConfig,

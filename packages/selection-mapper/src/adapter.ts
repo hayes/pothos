@@ -68,7 +68,7 @@ export abstract class Adapter<Model, Query, NodeType extends NodeBase<Model>> {
 
   /**
    * M-3: whether merging `query` into `node` would leave everything already selected as it is.
-   * A yes or no; `firstConflict` is the version that names an entry. Inherited: nothing ever
+   * A yes or no; `firstConflict` is the version that names a key. Inherited: nothing ever
    * conflicts.
    */
   canMergeQuery(_node: NodeType, _query: Query, _options?: MergeOptions): boolean {
@@ -76,7 +76,7 @@ export abstract class Adapter<Model, Query, NodeType extends NodeBase<Model>> {
   }
 
   /**
-   * S-7: the first entry of a type-level `query` that conflicts with what `node` holds, for the
+   * S-7: the first key of a type-level `query` that conflicts with what `node` holds, for the
    * error message that names it. Inherited: none.
    */
   firstConflict(_node: NodeType, _query: Query): TypeLevelConflict | undefined {
