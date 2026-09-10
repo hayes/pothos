@@ -72,8 +72,8 @@ type RelationsOfModel<TContract extends AnyContract, M extends string> =
 // the plugin keeps re-exporting them. `IncludeRefinementResult` is *not*
 // reproduced — it unions orm-client's `IncludeScalar`/`IncludeCombine`, which
 // brand their result through a module-private symbol (`RowSelection<T>`'s
-// `[RowType]: T`) that can't be matched outside the package — so it was dropped
-// from the public surface.
+// `[RowType]: T`) that can't be matched outside the package, so it is not
+// re-exported.
 // TODO(prisma-next bump): once a prisma-next release exports
 // `IncludeRefinementCollection`/`IsToManyRelation`/`IncludeRefinementResult`
 // from `@prisma-next/sql-orm-client`, adopt them and delete these

@@ -394,9 +394,9 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('injects .take(1) when prismaField returns a single (non-list) type', async () => {
-    // Regression test: a single-row prismaField returning a Collection
-    // must auto-inject `.take(1)` so we don't fetch the entire table
-    // just to read the first row.
+    // A single-row prismaField returning a Collection must auto-inject
+    // `.take(1)` so we don't fetch the entire table just to read the
+    // first row.
     let single: RecordingCollection;
     single = createRecordingCollection(() => [{ id: 'u-1', firstName: 'Alice' }]);
 
@@ -449,7 +449,7 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('lifts combine slots through a variant-wrapped parent (overlay prototype walk)', async () => {
-    // Regression test: rebrandForVariant wraps via Object.create(parent),
+    // rebrandForVariant wraps via Object.create(parent),
     // so row data sits on the prototype chain. The per-field overlay
     // walk in wrapResolve must use `for...in` (prototype-walking) to
     // find combine slots — using `Object.keys` would only see own

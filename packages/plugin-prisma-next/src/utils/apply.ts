@@ -6,7 +6,7 @@ import { type MapperPluginOptions, mapperOptionsFromPluginOpts } from './options
 
 /**
  * Applies the walked selection to a collection. The result is a promise of the collection only
- * when a `select` callback beneath the field returned one (A-7).
+ * when a `select` callback beneath the field returned one.
  */
 export type Apply = <C>(collection: C) => C;
 

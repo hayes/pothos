@@ -31,10 +31,8 @@ export function normalizeCursor(cursor: string | readonly string[]): readonly st
  * plugins share: a cursor over one column is that column's chunk (`I:42`, `D:1700000000123`),
  * and one over several is a `T:` tuple of chunks, positional, in the order `cols` gives.
  *
- * Nothing is inferred from the payload's shape. The previous encoding was `JSON.stringify` of a
- * column-keyed object, which cannot hold a bigint (hence a `$bigint` envelope) and turns a Date
- * into a string that had to be guessed back with a regex over every string value -- so an
- * ordinary string column holding something ISO-8601 shaped came back as a Date.
+ * Every chunk carries its own type tag, so nothing is inferred from the payload's shape: a
+ * bigint needs no envelope and a string column holding ISO-8601 shaped text stays a string.
  */
 const CURSOR_PREFIX = 'PNC:';
 

@@ -35,7 +35,7 @@ export interface PrismaConnectionHelpers<
    * mapper can't descend into `edges.node` and nested `t.relation`
    * fields under the connection won't preload.
    *
-   * A promise only when a `select` callback beneath the connection returned one (A-7), so
+   * A promise only when a `select` callback beneath the connection returned one, so
    * `await` it: the collection is not usable until the selection it carries has settled.
    */
   applyPagination(
@@ -150,8 +150,8 @@ export function prismaConnectionHelpers<
         ...(maxSize !== undefined ? { maxSize } : {}),
       });
 
-      // A promise here only when a `select` callback beneath the connection returned one (A-7);
-      // the awaited collection is what the caller gets, never the promise dressed as one.
+      // A promise here only when a `select` callback beneath the connection returned one; the
+      // awaited collection is what the caller gets, never the promise dressed as one.
       const prepared =
         info && pluginOpts
           ? (applySelectionToCollection(

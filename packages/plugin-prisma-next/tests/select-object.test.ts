@@ -251,8 +251,8 @@ describe('function-form select on a to-one relation', () => {
     builder.prismaObject('Post', {
       fields: (t) => ({
         title: t.exposeString('title'),
-        // `t.relationCount` no longer accepts a to-one key; cast past the gate to reach the
-        // emitter, which is what a hand-written function-form select would also hit.
+        // `t.relationCount` does not accept a to-one key; the cast reaches the emitter past the
+        // type gate, which is what a hand-written function-form select would also hit.
         authorCount: t.relationCount('author' as never),
       }),
     });

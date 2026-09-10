@@ -202,7 +202,7 @@ describe('t.relationCount field helper', () => {
   });
 });
 
-describe('missing PrismaNextContract augmentation (D7)', () => {
+describe('missing PrismaNextContract augmentation', () => {
   it('narrows ModelName to a sentinel when no contract is augmented', () => {
     // Builder without `PrismaNextContract` in SchemaTypes — falls back
     // to the default `AnyContract`, so the model-name union collapses

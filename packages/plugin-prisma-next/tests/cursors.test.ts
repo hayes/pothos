@@ -69,8 +69,8 @@ describe('the cursor encoding', () => {
     expect(decodeCursor(['amount'], cursor).amount).toBe(digits);
   });
 
-  // Previously a string column whose value happened to look ISO-8601 shaped was revived as a
-  // Date, because the format carried no type and the decoder had to guess from the text.
+  // The cursor format carries each column's type, so a string is decoded as a string rather
+  // than guessed at from the shape of its text.
   it('leaves an ISO-8601 shaped string a string', () => {
     const value = '2025-03-15T12:00:00.000Z';
 

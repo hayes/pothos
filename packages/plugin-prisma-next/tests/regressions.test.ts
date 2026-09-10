@@ -460,7 +460,7 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
     expect(calls.some((c) => c === 'select:id')).toBe(true);
   });
 
-  it('totalCountSeq per-builder: independent counter per builder (R3-21)', () => {
+  it('totalCountSeq per-builder: independent counter per builder', () => {
     // The alias for `totalCount: true` includes a sequence number.
     // Two separately-built schemas should NOT share the counter;
     // each starts at 1. Construct two builders, register the same
@@ -654,10 +654,6 @@ describe('prismaNode — user isTypeOf merged with brand check', () => {
     expect(await result).toBe(false);
   });
 });
-
-// Forward-order ref-creation orphan: variant-only registration with a
-// prior string-form helper call previously had a custom error. Now
-// surfaces via Pothos's natural unresolved-ref error at toSchema().
 
 describe('t.variant — extensions preservation (drizzle parity)', () => {
   it('user-passed extensions land on the field config alongside the plugin extension', () => {

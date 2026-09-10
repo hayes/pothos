@@ -261,7 +261,7 @@ describe('N:M (junction) — schema build no longer rejects', () => {
       {
         fields: (t: never) => ({
           id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
-          // The to-many junction relation — previously rejected at build.
+          // The to-many junction relation.
           tags: (t as { relation: (n: string) => unknown }).relation('tags'),
         }),
       } as never,

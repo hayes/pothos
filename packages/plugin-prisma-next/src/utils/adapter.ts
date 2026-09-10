@@ -207,8 +207,8 @@ function getOrCreateRelation(node: PrismaNextNode, name: string): PrismaNextRela
     relation = { meta, branches: new Map(), functions: new Map() };
     node.relations.set(name, relation);
 
-    // W-1: including a relation reads its parent-side FK columns, so prisma-next's
-    // nested-stitch works at depth 2+ even when the GraphQL query didn't ask for them.
+    // Including a relation reads its parent-side FK columns, so prisma-next's nested-stitch
+    // works at depth 2+ even when the GraphQL query didn't ask for them.
     for (const column of meta.localFields) {
       node.columns.add(column);
     }
@@ -269,10 +269,10 @@ function addBranch(
 }
 
 /**
- * M-3 for a function-form entry. `options.fn` binds the field's arguments into a fresh closure
- * per compile, so one relation selected twice under the same alias (under `nodes` and under
- * `edges { node }` of a connection, say) arrives as two different functions. Comparing the
- * arguments they were bound to is what tells a duplicate of one selection from a conflict; a
+ * A function-form entry merged into `relation`. `options.fn` binds the field's arguments into a
+ * fresh closure per compile, so one relation selected twice under the same alias (under `nodes`
+ * and under `edges { node }` of a connection, say) arrives as two different functions. Comparing
+ * the arguments they were bound to is what tells a duplicate of one selection from a conflict; a
  * conflict is reported the way `addBranch` reports its own, rather than silently keeping the
  * first function for both paths.
  */
@@ -294,7 +294,7 @@ function addFunction(
   }
 }
 
-/** M-1, M-2: `spec` into `node`, relation entries slotted under `alias` unless they carry one. */
+/** `spec` into `node`, relation entries slotted under `alias` unless they carry one. */
 function mergeSpec(node: PrismaNextNode, spec: PrismaNextSpec, alias: string | undefined) {
   if (spec.columns) {
     for (const column of spec.columns) {
@@ -586,7 +586,7 @@ interface FieldSelectExtensions {
 }
 
 /**
- * S-4..S-6 for one field of `parentModel`: the columns of `t.expose*` (`pothosExposedField`),
+ * The selection of one field of `parentModel`: the columns of `t.expose*` (`pothosExposedField`),
  * the `select` option (`pothosOptions.select`: columns, or relations that need a select function
  * so the nested selection beneath the field can be walked), and `t.variant` (a field-level
  * indirect include without a path: the variant type's selection set is walked on the same row).
@@ -676,8 +676,8 @@ function compileFieldSelection(
 }
 
 /**
- * S-1: the type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation
- * entries, compiled once to a spec slotted under `:object:<Type>`.
+ * The type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation entries,
+ * compiled once to a spec slotted under `:object:<Type>`.
  */
 function compileTypeSelection(
   type: GraphQLNamedType,
@@ -755,8 +755,8 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
 
   /**
    * The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field alias)
-   * or the response key of the field the traversal is merging. E-3: a relation query is the
-   * branch's refine and slot; its columns (a connection's cursor) are read on the relation.
+   * or the response key of the field the traversal is merging. A relation query is the branch's
+   * refine and slot; its columns (a connection's cursor) are read on the relation.
    */
   mergeQuery(node: PrismaNextNode, spec: PrismaNextSpec, options?: MergeOptions) {
     if (options?.asQuery) {

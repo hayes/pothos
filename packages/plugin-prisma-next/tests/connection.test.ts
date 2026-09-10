@@ -56,7 +56,7 @@ function buildSchema() {
       // Refined + totalCount on the same field. The synthetic count
       // branch must apply the same `refine` as the paginated branch
       // so the count reflects the filtered set, not the unfiltered
-      // relation. (F7)
+      // relation.
       publishedPostsConnection: t.relatedConnection('posts', {
         cursor: 'id',
         defaultSize: 10,
@@ -64,7 +64,7 @@ function buildSchema() {
         where: { published: 1 },
       }),
       // Callable totalCount on relatedConnection — skips the synthetic
-      // include count and asks the resolver. (E4)
+      // include count and asks the resolver.
       postsConnectionWithCallableCount: t.relatedConnection('posts', {
         cursor: 'id',
         defaultSize: 10,
@@ -132,8 +132,8 @@ function buildSchema() {
     totalCount: () => 7,
   });
 
-  // Helper with `where` (pre-pagination filter) — R3 parity addition.
-  // Filters to Alice's row before pagination + count.
+  // Helper with `where` (pre-pagination filter): filters to Alice's row before pagination
+  // and count.
   const aliceOnly = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
     defaultSize: 10,
@@ -141,8 +141,8 @@ function buildSchema() {
     totalCount: true,
   });
 
-  // Helper with `resolveNode` (edge → node transform) — R3 parity addition.
-  // Transforms the User row to a stripped-down "name only" shape.
+  // Helper with `resolveNode` (edge → node transform): the User row becomes a stripped-down
+  // "name only" shape.
   const namesOnly = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
     defaultSize: 10,
@@ -150,7 +150,6 @@ function buildSchema() {
   });
 
   // Thunk form for `args` — closes over the InputFieldBuilder lazily.
-  // Used to exercise C8.
   const userSearchThunkArgs = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
     defaultSize: 10,
@@ -251,7 +250,6 @@ function buildSchema() {
         },
         userSearchCustomCount.connectionOptions({}),
       ),
-      // Exercises the thunk-form args from C8.
       searchUsersThunk: t.connection({
         type: userSearchThunkArgs.ref,
         args: userSearchThunkArgs.getArgs(),
@@ -453,7 +451,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(alice?.node.postsConnection.pageInfo.hasNextPage).toBe(true);
   });
 
-  it('prismaConnection totalCount accepts a callable form (C1)', async () => {
+  it('prismaConnection totalCount accepts a callable form', async () => {
     const result = await runQuery(
       '{ usersWithCustomCount(first: 1) { edges { node { id } } totalCount } }',
     );
@@ -479,7 +477,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(data.usersWithCount.totalCount).toBe(2);
   });
 
-  it('two relatedConnection totalCount fields on the same relation get independent counts (A4)', async () => {
+  it('two relatedConnection totalCount fields on the same relation get independent counts', async () => {
     // Old keying was `__pn_totalCount_<relationName>`, so two fields
     // both targeting `posts` collided and one's count clobbered the
     // other. Now each field claims a uniquely-suffixed alias.
@@ -674,7 +672,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(d2.postsByDate.pageInfo.hasPreviousPage).toBe(true);
   });
 
-  it('prismaConnectionHelpers args accepts thunk form (C8)', async () => {
+  it('prismaConnectionHelpers args accepts thunk form', async () => {
     const result = await runQuery(`{
       searchUsersThunk(first: 10, q: "Bob") {
         edges { node { id firstName } }
@@ -765,7 +763,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(data.posts.pageInfo.hasPreviousPage).toBe(true);
   });
 
-  it('relatedConnection refine and totalCount stay in sync (F7)', async () => {
+  it('relatedConnection refine and totalCount stay in sync', async () => {
     // Alice has 2 posts seeded (`p-hello` published, `p-draft1` not).
     // `publishedPostsConnection.query: { where: { published: 1 } }`
     // narrows both branches. totalCount must reflect the FILTERED set —
@@ -810,12 +808,12 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(byId['u-bob']!.edges[0]!.node.published).toBe(1);
   });
 
-  it('relatedConnection paginates backward with last + before (F8)', async () => {
-    // Backward pagination on a relatedConnection exercises the cursor
-    // `lt` branch in `buildLexicographicPredicate` — previously a dead
-    // code path (B4). The query asks for `last: 1` on Alice's posts;
-    // the include's cursor predicate must filter to the last row
-    // (highest id) and pageInfo must report hasPreviousPage.
+  it('relatedConnection paginates backward with last + before', async () => {
+    // Backward pagination on a relatedConnection reaches the cursor `lt`
+    // branch in `buildLexicographicPredicate`. The query asks for
+    // `last: 1` on Alice's posts; the include's cursor predicate must
+    // filter to the last row (highest id) and pageInfo must report
+    // hasPreviousPage.
     const result = await runQuery(`{
       users(first: 10) {
         edges {
@@ -897,7 +895,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(result.errors?.[0]?.message ?? '').toMatch(/count-failed/);
   });
 
-  it('prismaConnectionHelpers where: filters before pagination AND scopes totalCount (R3)', async () => {
+  it('prismaConnectionHelpers where: filters before pagination AND scopes totalCount', async () => {
     // `where` runs as a pre-pagination filter; `totalCount: true`
     // uses the filtered base, so totalCount reports 1 (Alice) not 2.
     const result = await runQuery(
@@ -915,7 +913,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(data.aliceOnly.totalCount).toBe(1);
   });
 
-  it('prismaConnectionHelpers resolveNode: transforms each edge to the node shape (R3)', async () => {
+  it('prismaConnectionHelpers resolveNode: transforms each edge to the node shape', async () => {
     // `resolveNode: (edge) => ({ id, name })` exposes a stripped
     // shape. The cursor still encodes the original row columns so
     // pagination remains stable.
@@ -934,7 +932,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     }
   });
 
-  it('totalCount rejection does NOT crash queries that did not select totalCount (R3-P0-1)', async () => {
+  it('totalCount rejection does NOT crash queries that did not select totalCount', async () => {
     // Round-3 fix: the count promise is only built when `totalCount`
     // is in the selection set. Without this gate, a `totalCount` that
     // rejects intermittently (cache misses, etc.) would crash every
@@ -965,7 +963,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(result.errors?.[0]?.message ?? '').toMatch(/sync-throw/);
   });
 
-  it('prismaConnectionHelpers totalCount: true returns the aggregate count (D5)', async () => {
+  it('prismaConnectionHelpers totalCount: true returns the aggregate count', async () => {
     const result = await runQuery(
       '{ searchUsersWithCount(first: 1) { edges { node { id } } totalCount } }',
     );
@@ -978,7 +976,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(data.searchUsersWithCount.totalCount).toBe(2);
   });
 
-  it('prismaConnectionHelpers totalCount: callable bypasses the aggregate (D5)', async () => {
+  it('prismaConnectionHelpers totalCount: callable bypasses the aggregate', async () => {
     const result = await runQuery(
       '{ searchUsersCustomCount(first: 1) { edges { node { id } } totalCount } }',
     );
@@ -990,7 +988,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(data.searchUsersCustomCount.totalCount).toBe(7);
   });
 
-  it('prismaNode composite-ID resolves via node(id) (E3)', async () => {
+  it('prismaNode composite-ID resolves via node(id)', async () => {
     // Composite ID encoded as a JSON-array global ID. `parse` decodes
     // the string; loadWithoutCache builds `AND(authorId.eq(a), id.eq(b))`.
     const composite = JSON.stringify(['u-alice', 'p-hello']);
@@ -1036,7 +1034,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(result.errors?.[0]?.message ?? '').toMatch(/expected 2 values, got 1/);
   });
 
-  it('relatedConnection accepts a callable totalCount (E4)', async () => {
+  it('relatedConnection accepts a callable totalCount', async () => {
     const result = await runQuery(`{
       users(first: 10) {
         edges {
@@ -1072,8 +1070,8 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
 });
 
 // `applyPagination` answers a promise when a `select` callback beneath the connection returned
-// one (A-7). Handing that promise back dressed as a collection failed with
-// `collection.all is not a function`, so the helper resolves it before the caller sees it.
+// one; the helper resolves it, so the caller is handed a usable collection rather than a
+// promise dressed as one.
 describe('prismaConnectionHelpers with an async select beneath the connection', () => {
   it('hands back a usable collection', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({

@@ -44,8 +44,8 @@ function buildSchema() {
         resolve: (user) => `${user.firstName} ${user.lastName}`,
       }),
       posts: t.relation('posts'),
-      // The old t.relationCount sugar is gone — function-form select
-      // on a plain t.field is the canonical pattern.
+      // Function-form select on a plain t.field is the canonical way
+      // to count a relation.
       postCount: t.field({
         type: 'Int',
         select: {
@@ -474,7 +474,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(formal['u-alice']).toBe('Greetings, Andrews');
   });
 
-  it('t.variant preloads nested relations on the variant prismaObject (A6)', async () => {
+  it('t.variant preloads nested relations on the variant prismaObject', async () => {
     // Without mapper registration of the variant the nested `posts`
     // relation under `basicView` would not preload and the resolver
     // would throw "reached from a parent not loaded by t.prismaField".
@@ -496,7 +496,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(captures).toHaveLength(1);
   });
 
-  it('function-form t.field({ select }) passes through description + extensions to the field config (A3)', () => {
+  it('function-form t.field({ select }) passes through description + extensions to the field config', () => {
     const schema = buildSchema();
     const user = schema.getType('User') as import('graphql').GraphQLObjectType;
     const field = user.getFields().firstPostTitleWithMeta;
@@ -516,7 +516,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(titles['u-bob']).toBeTruthy();
   });
 
-  it('function-form select where callback receives accessor + args + ctx (A1)', async () => {
+  it('function-form select where callback receives accessor + args + ctx', async () => {
     // Two aliases of the same field with different args — the mapper must
     // pass each alias's resolved args into the callback for each branch.
     const { result } = await runQuery(`{

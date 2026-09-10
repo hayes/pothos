@@ -363,7 +363,7 @@ describe('columns', () => {
     ).toEqual(['select(firstName, id, lastName)']);
   });
 
-  it('honours @skip / @include on fragments (B-3)', async () => {
+  it('honours @skip / @include on fragments', async () => {
     expect(
       await plan(
         /* GraphQL */ `
@@ -384,7 +384,7 @@ describe('relations', () => {
     ]);
   });
 
-  it('augments the parent .select(...) with the relation localFields (W-1)', async () => {
+  it('augments the parent .select(...) with the relation localFields', async () => {
     // `id` is the parent-side join column for `posts`; `authorId` for `author`.
     expect(await plan('{ users { firstName posts { author { firstName } } } }')).toEqual([
       'select(firstName, id)',
@@ -434,7 +434,7 @@ describe('relations', () => {
     );
   });
 
-  it('unions one relation selected under two fragments into one slot (B-1)', async () => {
+  it('unions one relation selected under two fragments into one slot', async () => {
     expect(
       await plan(/* GraphQL */ `
         { users { ...A ...B } }
@@ -514,7 +514,7 @@ describe('counts and function-form entries', () => {
 });
 
 describe('type-level selects and variants', () => {
-  it('applies a type-level column select on every level it enters (S-1)', async () => {
+  it('applies a type-level column select on every level it enters', async () => {
     expect(await plan('{ comments { body } }')).toEqual(['select(body, id)']);
   });
 
@@ -532,7 +532,7 @@ describe('type-level selects and variants', () => {
     ]);
   });
 
-  it('walks `... on Node`-style interface fragments under an object type (B-2)', async () => {
+  it('walks `... on Node`-style interface fragments under an object type', async () => {
     // No Node interface in this schema; an untyped inline fragment stands in for the rule that
     // a fragment applicable to the walked type is entered.
     expect(await plan('{ users { ... { id } ... on User { firstName } } }')).toEqual([
@@ -588,7 +588,7 @@ describe('entry options', () => {
     ).toEqual(['select(id, lastName)']);
   });
 
-  it('awaits an async select callback (B-6)', async () => {
+  it('awaits an async select callback', async () => {
     const { infoFor: asyncInfo } = createSchema({ asyncSelect: true });
     const info = await asyncInfo('{ users { postsPage { id } } }');
     const applied = applySelectionToCollection(
