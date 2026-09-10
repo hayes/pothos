@@ -17,10 +17,29 @@ import type { Node, NodeBase } from './node.js';
 
 export type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
 
+/**
+ * D-7: where a walk is. One link of a chain running from the field an entry point was called for
+ * down to the field being planned: the field's node in the document, the type it was found on,
+ * and the position of the field the walk it was found in hangs beneath.
+ *
+ * The walker builds one per select invocation and reads none of it: a caller that wants a path, a
+ * list of segments, or a name walks `parent` itself and materializes what it needs. A walk whose
+ * fields nothing asks about therefore costs one link per select function and no arrays at all.
+ */
+export interface Position {
+  /** The field this one is selected beneath, or undefined at the field the walk started from. */
+  readonly parent: Position | undefined;
+  /** The type the field was walked on: its parent type, or a same-model type the walk moved to. */
+  readonly type: WalkedType;
+  readonly field: GraphQLField<unknown, unknown>;
+  /** The field's node in the document, which carries its alias and arguments. */
+  readonly node: FieldNode;
+}
+
 /** A relation query: a map, or a callback building one from the field's arguments. */
-export type NestedQuery<Map, X = undefined> =
+export type NestedQuery<Map> =
   | MaybePromise<Map | null | undefined>
-  | ((args: object, ctx: object, extra: X) => MaybePromise<Map | null | undefined>);
+  | ((args: object, ctx: object, position: Position) => MaybePromise<Map | null | undefined>);
 
 /**
  * The callback handed to a field's select function to plan the selection beneath the field:
@@ -29,19 +48,19 @@ export type NestedQuery<Map, X = undefined> =
  * return type) is walked as `type` (or the field's return type). Declared synchronous (A-7): the
  * result is a promise only when a callback beneath it returned one, and must then be awaited.
  */
-export type NestedSelection<Map, X = undefined> = (
-  query?: NestedQuery<Map, X> | true,
+export type NestedSelection<Map> = (
+  query?: NestedQuery<Map> | true,
   path?: PathSegment[] | IndirectInclude,
   type?: string,
 ) => Map;
 
 /** A function field selection (S-6). A falsy result selects nothing (S-5). */
-export type SelectFn<Map, X = undefined> = (
+export type SelectFn<Map> = (
   args: object,
   ctx: object,
-  nested: NestedSelection<Map, X>,
+  nested: NestedSelection<Map>,
   getSelectedNode: (path: string[]) => FieldNode | null,
-  extra: X,
+  position: Position,
 ) => MaybePromise<Map | false | null | undefined>;
 
 export interface EntryOptions<Map> {
@@ -73,13 +92,8 @@ export type RootMerge<Map> =
  * The ORM boundary. `M` is the model description a node carries, `Map` the ORM's own selection
  * format (prisma `{ select, include, ...args }`, drizzle `DBQueryConfig`), opaque to the walker,
  * and `N` the adapter's node type, of which the walker reads only `model`.
- *
- * `X` is an adapter-owned value the walker carries down the walk without reading: `callbackExtra`
- * builds one per field from the one above it, and the select functions beneath that field are
- * called with it (drizzle's `PathInfo`, which records where in the loaded row a field's data will
- * be found). Adapters that need nothing of the sort leave it `undefined`.
  */
-export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
+export interface Adapter<M, Map, N extends NodeBase<M> = Node<M>> {
   /** S-8: whether a fragment under `@defer` is walked. `EntryOptions` may override it. */
   skipDeferredFragments: boolean;
   /**
@@ -103,7 +117,7 @@ export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>
   fieldSelection(
     field: GraphQLField<unknown, unknown>,
     type: WalkedType,
-  ): Map | SelectFn<Map, X> | undefined;
+  ): Map | SelectFn<Map> | undefined;
   /**
    * M-1, M-2, S-9, in place. Never mutates `map`. `key` is the field the map came from
    * (`Type@alias`, or `Type@path.alias` beneath an indirect include) when the map is a field's
@@ -136,17 +150,6 @@ export interface Adapter<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>
   withoutConflicts(node: N, map: Map): Map;
   /** M-6. */
   serialize(node: N): Map;
-  /**
-   * D-7: the extra handed to the select function of `field` (selected by `node` on `type`), built
-   * from the extra of the walk it hangs beneath. Called once per entry point for the resolved
-   * field and once per function-select field.
-   */
-  callbackExtra?(
-    parent: X | undefined,
-    type: WalkedType,
-    field: GraphQLField<unknown, unknown>,
-    node: FieldNode,
-  ): X;
 }
 
 /** A type-level selection entry that cannot be merged with what a node already holds. */
@@ -160,8 +163,8 @@ export interface TypeLevelConflict {
  * with. An entry point creates one; every nested selection creates a child walk that copies
  * `adapter`, `context`, `info` and `skipDeferred` from it.
  */
-export interface Walk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
-  adapter: Adapter<M, Map, X, N>;
+export interface Walk<M, Map, N extends NodeBase<M> = Node<M>> {
+  adapter: Adapter<M, Map, N>;
   context: object;
   info: GraphQLResolveInfo;
   /** S-8: `EntryOptions.skipDeferredFragments`, or the adapter's own setting. */
@@ -169,10 +172,11 @@ export interface Walk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>> {
   root: N;
   mappings: Mappings;
   /**
-   * D-7: the adapter's `X` for the field this walk hangs beneath, which the `X` of every field
-   * walked into it is built from. Undefined for an adapter without `callbackExtra`.
+   * D-7: where the field this walk hangs beneath is, which the position of every field walked
+   * into it links back to. Undefined when there is no field above the walk: the model loader
+   * plans a field for its own parent row, so its walk starts at that field.
    */
-  extra?: X;
+  position?: Position;
   /**
    * The merges waiting on a user callback that returned a promise, in the order they were
    * appended (A-2, A-4). Absent until the first one: a synchronous walk never creates a promise.

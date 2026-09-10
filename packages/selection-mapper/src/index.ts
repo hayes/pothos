@@ -24,8 +24,10 @@ export type {
   Adapter,
   EntryOptions,
   NestedSelection,
+  Position,
   RootMerge,
   SelectFn,
   TypeLevelConflict,
   Walk,
+  WalkedType,
 } from './types.js';

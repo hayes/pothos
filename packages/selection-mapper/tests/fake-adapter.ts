@@ -8,7 +8,7 @@ import {
   type GraphQLResolveInfo,
   parse,
 } from 'graphql';
-import type { Adapter, SelectFn } from '../src';
+import type { Adapter, Mapping, Mappings, SelectFn } from '../src';
 import { createNode, deepEqual, relation } from '../src';
 
 /** A model: one object per name, so identity is model identity. */
@@ -27,9 +27,6 @@ export interface FakeMap {
   [arg: string]: unknown;
 }
 
-/** The extra threaded through walks: the names of the fields a select function hangs beneath. */
-export type FakePath = string[];
-
 const ALL: FakeMap = Object.freeze({});
 
 export function createModels(...names: string[]) {
@@ -42,11 +39,8 @@ export function createModels(...names: string[]) {
   return models;
 }
 
-export function createFakeAdapter(
-  models: Record<string, FakeModel>,
-  { withExtra = false } = {},
-): Adapter<FakeModel, FakeMap, FakePath> {
-  const adapter: Adapter<FakeModel, FakeMap, FakePath> = {
+export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<FakeModel, FakeMap> {
+  const adapter: Adapter<FakeModel, FakeMap> = {
     skipDeferredFragments: true,
     modelFor: (type) => models[type.extensions?.model as string],
     createNode,
@@ -57,8 +51,7 @@ export function createFakeAdapter(
     },
     typeSelection: (type) =>
       type.extensions?.model ? ((type.extensions.select as FakeMap | undefined) ?? ALL) : undefined,
-    fieldSelection: (field) =>
-      field.extensions?.select as FakeMap | SelectFn<FakeMap, FakePath> | undefined,
+    fieldSelection: (field) => field.extensions?.select as FakeMap | SelectFn<FakeMap> | undefined,
     merge(node, { select, extras, ...args }) {
       if (!select) {
         node.columns = null;
@@ -172,20 +165,31 @@ export function createFakeAdapter(
     },
   };
 
-  if (withExtra) {
-    adapter.callbackExtra = (parent, type, _field, node) => [
-      ...(parent ?? []),
-      `${type.name}.${node.name.value}`,
-    ];
+  return adapter;
+}
+
+/**
+ * A recorded mapping without the position the walker records with it, so a test can compare what
+ * was mapped beneath a field on its own. Positions are asserted where they are the subject (D-7).
+ */
+export function mappingOf(mapping: Mapping | null | undefined) {
+  return mapping ? { nested: mappingsOf(mapping.nested) } : mapping;
+}
+
+export function mappingsOf(mappings: Mappings) {
+  const stripped: Record<string, unknown> = {};
+
+  for (const key of Object.keys(mappings)) {
+    stripped[key] = mappingOf(mappings[key]);
   }
 
-  return adapter;
+  return stripped;
 }
 
 export interface TypeSetup {
   model?: string;
   select?: FakeMap;
-  fields?: Record<string, FakeMap | SelectFn<FakeMap, FakePath> | false>;
+  fields?: Record<string, FakeMap | SelectFn<FakeMap> | false>;
   extensions?: Record<string, unknown>;
 }
 

@@ -62,7 +62,7 @@ describe('loader map', () => {
   it("records a field's own mapping under its parent type along with its children", () => {
     const ctx = {};
     const author: Mapping = { nested: {} };
-    const posts: Mapping = { nested: { 'Post@author': author }, extra: ['User.posts'] };
+    const posts: Mapping = { nested: { 'Post@author': author } };
 
     setFieldMapping(ctx, infoAt('User', 'user', 'posts'), posts);
 

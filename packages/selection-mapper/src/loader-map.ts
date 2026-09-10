@@ -1,14 +1,16 @@
 import { createContextCache } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
+import type { Position } from './types.js';
 
 /**
- * What a walk records for one field whose selection was merged: the mappings of the fields
- * walked beneath it, and the adapter-owned `extra` its select function was called with (drizzle's
- * `PathInfo`), so the resolve path can find the same value the select path used.
+ * What a walk records for one field whose selection was merged: the mappings of the fields walked
+ * beneath it, and, for a field a select function planned, the position it was planned at, so a
+ * resolver can ask the same question of it that the select path asked. A static selection records
+ * the shared empty mapping and has no position: it ran no callback that could have read one.
  */
 export interface Mapping {
   nested: Mappings;
-  extra?: unknown;
+  position?: Position;
 }
 
 /**

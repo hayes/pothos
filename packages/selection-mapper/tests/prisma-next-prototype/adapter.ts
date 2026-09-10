@@ -115,9 +115,6 @@ export interface PnSpec {
  */
 export type PnRelationEntry = true | PnSpec | PnSpecFn | PnFnEntry;
 
-/** `Adapter.X`: nothing is threaded to select functions. */
-export type PnExtra = undefined;
-
 // ---------------------------------------------------------------------------------------------
 // Node: the accumulator.
 // ---------------------------------------------------------------------------------------------
@@ -153,9 +150,9 @@ export interface PnNode {
   args?: PnArgs;
 }
 
-export type PnSelectFn = SelectFn<PnSpec, PnExtra>;
-export type PnAdapter = Adapter<PnModel, PnSpec, PnExtra, PnNode>;
-export type PnWalk = Walk<PnModel, PnSpec, PnExtra, PnNode>;
+export type PnSelectFn = SelectFn<PnSpec>;
+export type PnAdapter = Adapter<PnModel, PnSpec, PnNode>;
+export type PnWalk = Walk<PnModel, PnSpec, PnNode>;
 
 /** The extension keys the adapter reads; the test schema sets them. */
 export const PN_MODEL = 'pnModel';

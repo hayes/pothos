@@ -9,10 +9,11 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setFieldMapping } from '@pothos/selection-mapper';
+import { getLoaderMapping, type Position, setFieldMapping } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
+import { pathInfoFor } from './utils/path-info.js';
 
 export { drizzleConnectionHelpers } from './connection-helpers.js';
 export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
@@ -131,13 +132,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
                   ctx: Types['Context'],
                   nestedQuery: (query: unknown, path?: string[]) => never,
                   _resolveSelection: unknown,
-                  pathInfo: import('./types').PathInfo,
+                  position: Position,
                 ) => {
-                  // Attach PathInfo properties to nestedQuery for t.field select callbacks
-                  const nestedQueryWithPath = Object.assign(nestedQuery, {
-                    path: pathInfo.path,
-                    segments: pathInfo.segments,
-                  });
+                  // The walk position, formatted as the `PathInfo` a `t.field` select reads off
+                  // its `nestedQuery`, which is where this plugin has always carried it.
+                  const nestedQueryWithPath = Object.assign(nestedQuery, pathInfoFor(position));
                   return completeValue(
                     (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null)(
                       args,

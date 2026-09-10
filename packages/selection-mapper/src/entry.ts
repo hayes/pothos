@@ -15,7 +15,7 @@ import {
   type PathSegment,
 } from './matches.js';
 import type { Node, NodeBase } from './node.js';
-import type { Adapter, EntryOptions, RootMerge, Walk } from './types.js';
+import type { Adapter, EntryOptions, Position, RootMerge, Walk } from './types.js';
 import {
   applyField,
   createWalk,
@@ -29,8 +29,8 @@ import {
  * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
  * Declared synchronous (A-7): a promise is returned only when a callback returned one.
  */
-export function queryFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, X, N>,
+export function queryFromInfo<M, Map, N extends NodeBase<M> = Node<M>>(
+  adapter: Adapter<M, Map, N>,
   options: EntryOptions<Map>,
 ): Map {
   // Emitted here and now, so the merges a replay would need are never recorded.
@@ -52,10 +52,10 @@ export function queryFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Nod
  * `queryFromWalk` once the resolver asks for it. The walk records its merges into the root, which
  * is what lets `queryFromWalk` put the resolver's own selection first.
  */
-export function walkFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, X, N>,
+export function walkFromInfo<M, Map, N extends NodeBase<M> = Node<M>>(
+  adapter: Adapter<M, Map, N>,
   options: EntryOptions<Map>,
-): Walk<M, Map, X, N> | undefined {
+): Walk<M, Map, N> | undefined {
   const walk = buildWalk(adapter, options, true);
 
   return walk && finish(walk, identity);
@@ -70,8 +70,8 @@ export function walkFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node
  * otherwise the plan is replayed from the merges the walk recorded, which runs no user callback
  * again, so it is synchronous whether or not the plan was async.
  */
-export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  walk: Walk<M, Map, X, N>,
+export function queryFromWalk<M, Map, N extends NodeBase<M> = Node<M>>(
+  walk: Walk<M, Map, N>,
   select?: Map,
 ): Map {
   const { adapter } = walk;
@@ -132,12 +132,12 @@ export function queryFromWalk<M, Map, X = undefined, N extends NodeBase<M> = Nod
  * type's type-level selection. The field is what the row is loaded for, so it is merged first
  * and a type-level relation whose arguments conflict with it is left out.
  */
-export function selectionStateFromInfo<M, Map, X = undefined, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, X, N>,
+export function selectionStateFromInfo<M, Map, N extends NodeBase<M> = Node<M>>(
+  adapter: Adapter<M, Map, N>,
   context: object,
   info: GraphQLResolveInfo,
   skipDeferredFragments?: boolean,
-): Walk<M, Map, X, N> {
+): Walk<M, Map, N> {
   const type = info.parentType;
   const walk = createWalk(adapter, { context, info, skipDeferredFragments }, type);
 
@@ -156,27 +156,27 @@ export function selectionStateFromInfo<M, Map, X = undefined, N extends NodeBase
 }
 
 /** L-2, M-6: the walk's mappings recorded for the resolvers beneath it, and its query serialized. */
-function emit<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>): Map {
+function emit<M, Map, N extends NodeBase<M>>(walk: Walk<M, Map, N>): Map {
   setLoaderMappings(walk.context, walk.info, walk.mappings);
 
   return walk.adapter.serialize(walk.root);
 }
 
 /** `finish` needs something to run once the walk has settled; `walkFromInfo` wants the walk. */
-function identity<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
+function identity<M, Map, N extends NodeBase<M>>(walk: Walk<M, Map, N>) {
   return walk;
 }
 
 /** E-1: undefined when paths are given and nothing is selected under them. */
-function buildWalk<M, Map, X, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, X, N>,
+function buildWalk<M, Map, N extends NodeBase<M>>(
+  adapter: Adapter<M, Map, N>,
   options: EntryOptions<Map>,
   replayable: boolean,
-): Walk<M, Map, X, N> | undefined {
+): Walk<M, Map, N> | undefined {
   const { info, typeName, path, paths } = options;
   const returnType = getNamedType(info.returnType);
   const target = typeName ? info.schema.getType(typeName)! : returnType;
-  const extra = extraForResolvedField(adapter, info);
+  const position = positionForResolvedField(info);
 
   // graphql merges every occurrence of the field's response key into `info.fieldNodes`; each is
   // planned into the one root, so the query answers whichever occurrence a resolver runs for.
@@ -200,7 +200,7 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
       adapter,
       options,
       typeName ? target : matches[0].type,
-      extra,
+      position,
       replayable,
     );
 
@@ -227,7 +227,7 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
     return walk;
   }
 
-  const walk = createWalk(adapter, options, target, extra, replayable);
+  const walk = createWalk(adapter, options, target, position, replayable);
 
   try {
     walkFieldWalks(walk, walk.root, [
@@ -242,22 +242,15 @@ function buildWalk<M, Map, X, N extends NodeBase<M>>(
 }
 
 /**
- * D-7: the adapter's `X` for the field being resolved, which seeds the chain every `X` beneath it
- * is built from, so a select function knows where in the query its field sits. Undefined for an
- * adapter without `callbackExtra`.
+ * D-7: where the field being resolved is, which every position beneath it links back to, so a
+ * select function can tell where in the query its field sits. Undefined when `info` does not name
+ * the field it resolves (a caller building one by hand): the walk then starts at its own fields.
  */
-function extraForResolvedField<M, Map, X, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, X, N>,
-  info: GraphQLResolveInfo,
-): X | undefined {
-  if (!adapter.callbackExtra) {
-    return undefined;
-  }
-
+function positionForResolvedField(info: GraphQLResolveInfo): Position | undefined {
   const node = info.fieldNodes[0];
-  const field = info.parentType.getFields()[node.name.value];
+  const field = info.parentType?.getFields()[node.name.value];
 
-  return field ? adapter.callbackExtra(undefined, info.parentType, field, node) : undefined;
+  return field && { parent: undefined, type: info.parentType, field, node };
 }
 
 function normalizePaths(paths: PathSegment[][]): IndirectPathSegment[][] {

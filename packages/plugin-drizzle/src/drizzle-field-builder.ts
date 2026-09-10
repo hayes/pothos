@@ -18,7 +18,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { getLoaderMapping } from '@pothos/selection-mapper';
+import { getLoaderMapping, type Position } from '@pothos/selection-mapper';
 import {
   and,
   type BuildQueryResult,
@@ -54,6 +54,7 @@ import {
   wrapConnectionResult,
 } from './utils/cursors.js';
 import { selectedFieldNames } from './utils/map-query.js';
+import { pathInfoFor } from './utils/path-info.js';
 import { getRefFromModel } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';
 
@@ -246,11 +247,12 @@ export class DrizzleObjectFieldBuilder<
       extras?: DrizzleCursorConnectionQueryOptions['extras'];
     }
 
-    // The field's `query` may be async, so the result is a promise when it is (A-5).
+    // The field's `query` may be async, so the result is a promise when it is (A-5). The
+    // `PathInfo` is built from the walk position here, and only for a callback that takes one.
     const resolveFieldQuery = (
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: {},
-      pathInfo?: import('./types').PathInfo,
+      position?: Position,
     ): MaybePromise<ConnectionFieldQuery> =>
       completeValue(
         (typeof query === 'function'
@@ -258,9 +260,9 @@ export class DrizzleObjectFieldBuilder<
               query as (
                 args: {},
                 ctx: {},
-                pathInfo?: import('./types').PathInfo,
+                pathInfo?: PathInfo,
               ) => MaybePromise<{} | null | undefined>
-            )(args, ctx, pathInfo)
+            )(args, ctx, pathInfoFor(position))
           : query) as MaybePromise<ConnectionFieldQuery | null | undefined>,
         orEmpty,
       );
@@ -349,7 +351,7 @@ export class DrizzleObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown, path?: unknown) => { select?: object },
       getSelection: (path: string[]) => FieldNode | null,
-      pathInfo: import('./types').PathInfo,
+      position: Position,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
 
@@ -358,7 +360,7 @@ export class DrizzleObjectFieldBuilder<
       const hasNodes = !!getSelection(['nodes']);
       const hasPageInfo = !!getSelection(['pageInfo']);
       const totalCountOnly = hasTotalCount && !hasEdges && !hasNodes && !hasPageInfo;
-      const fieldQuery = resolveFieldQuery(args, context, pathInfo);
+      const fieldQuery = resolveFieldQuery(args, context, position);
       // The nested walk starts now, with a query that waits for the field's `query` when that is
       // async, so every callback beneath the connection runs in the same tick (A-3).
       const nested = totalCountOnly
@@ -452,13 +454,10 @@ export class DrizzleObjectFieldBuilder<
             };
           }
 
-          // The same `pathInfo` the select path planned this field with, recorded alongside its
-          // loader mapping, so a `query` that branches on it pages the rows it selected.
-          const pathInfo = getLoaderMapping(context, info.path, info.parentType.name)?.extra as
-            | PathInfo
-            | undefined;
-
-          const fieldQuery = resolveFieldQuery(args, context, pathInfo);
+          // The same position the select path planned this field at, recorded alongside its
+          // loader mapping, so a `query` that branches on its path pages the rows it selected.
+          const position = getLoaderMapping(context, info.path, info.parentType.name)?.position;
+          const fieldQuery = resolveFieldQuery(args, context, position);
 
           return isThenable(fieldQuery)
             ? fieldQuery.then((resolved) =>
@@ -603,12 +602,16 @@ export class DrizzleObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown) => {},
       _resolveSelection: unknown,
-      pathInfo: PathInfo,
+      position: Position,
     ) =>
       completeValue(
         nestedQuery(
           typeof query === 'function'
-            ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(args, context, pathInfo)
+            ? (query as (args: {}, context: {}, pathInfo?: PathInfo) => {})(
+                args,
+                context,
+                pathInfoFor(position),
+              )
             : query,
         ),
         selectRelation,

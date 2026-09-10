@@ -7,7 +7,7 @@ export function noop() {}
  * A-3, M-2: a walk that threw synchronously never reaches `finish`, so the merges it had already
  * chained would reject unobserved once their callbacks settle. The throw is what the caller sees.
  */
-export function abandon<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, N>) {
+export function abandon<M, Map, N extends NodeBase<M>>(walk: Walk<M, Map, N>) {
   walk.pending?.catch(noop);
 }
 
@@ -17,8 +17,8 @@ export function abandon<M, Map, X, N extends NodeBase<M>>(walk: Walk<M, Map, X, 
  * the previous one, so async merges run in the order they were appended (A-4). Both promises get
  * a handler at once, so a callback that rejects early is never an unhandled rejection.
  */
-export function chain<M, Map, X, N extends NodeBase<M>, T>(
-  walk: Walk<M, Map, X, N>,
+export function chain<M, Map, N extends NodeBase<M>, T>(
+  walk: Walk<M, Map, N>,
   value: PromiseLike<T>,
   merge: (v: T) => void,
 ) {
@@ -35,18 +35,18 @@ export function chain<M, Map, X, N extends NodeBase<M>, T>(
  * (A-7): a schema without async callbacks never sees one, and one with them must await it.
  * Fixed arity, so the synchronous call allocates nothing.
  */
-export function finish<M, Map, X, N extends NodeBase<M>, R>(
-  walk: Walk<M, Map, X, N>,
-  done: (walk: Walk<M, Map, X, N>) => R,
+export function finish<M, Map, N extends NodeBase<M>, R>(
+  walk: Walk<M, Map, N>,
+  done: (walk: Walk<M, Map, N>) => R,
 ): R;
-export function finish<M, Map, X, N extends NodeBase<M>, A, R>(
-  walk: Walk<M, Map, X, N>,
-  done: (walk: Walk<M, Map, X, N>, arg: A) => R,
+export function finish<M, Map, N extends NodeBase<M>, A, R>(
+  walk: Walk<M, Map, N>,
+  done: (walk: Walk<M, Map, N>, arg: A) => R,
   arg: A,
 ): R;
-export function finish<M, Map, X, N extends NodeBase<M>, A, R>(
-  walk: Walk<M, Map, X, N>,
-  done: (walk: Walk<M, Map, X, N>, arg?: A) => R,
+export function finish<M, Map, N extends NodeBase<M>, A, R>(
+  walk: Walk<M, Map, N>,
+  done: (walk: Walk<M, Map, N>, arg?: A) => R,
   arg?: A,
 ): R {
   return walk.pending ? (walk.pending.then(() => done(walk, arg)) as R) : done(walk, arg);

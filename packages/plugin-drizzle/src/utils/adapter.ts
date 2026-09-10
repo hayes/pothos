@@ -9,14 +9,14 @@ import {
   type Walk,
 } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
-import { type GraphQLNamedType, type GraphQLOutputType, isListType, isNonNullType } from 'graphql';
-import type { DrizzleFieldSelection, PathInfo } from '../types.js';
+import type { GraphQLNamedType } from 'graphql';
+import type { DrizzleFieldSelection } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
 export type DrizzleNode = Node<TableRelationalConfig>;
-export type DrizzleWalk = Walk<TableRelationalConfig, SelectionMap, PathInfo>;
-export type DrizzleAdapter = Adapter<TableRelationalConfig, SelectionMap, PathInfo>;
+export type DrizzleWalk = Walk<TableRelationalConfig, SelectionMap>;
+export type DrizzleAdapter = Adapter<TableRelationalConfig, SelectionMap>;
 
 /** A map without `columns`: every column. Shared and never mutated. */
 const ALL: SelectionMap = Object.freeze({});
@@ -42,7 +42,7 @@ export const drizzleAdapter = createContextCache(
       },
       fieldSelection: (field) =>
         ((field.extensions?.pothosDrizzleSelect as DrizzleFieldSelection | false | undefined) ||
-          undefined) as SelectionMap | SelectFn<SelectionMap, PathInfo> | undefined,
+          undefined) as SelectionMap | SelectFn<SelectionMap> | undefined,
       merge(node, { columns, with: withSelection, extras, ...args }) {
         for (const key of Object.keys(withSelection ?? {})) {
           const value = withSelection![key];
@@ -180,20 +180,6 @@ export const drizzleAdapter = createContextCache(
 
         return query;
       },
-      /** D-7: the parent's PathInfo plus this field's segment. */
-      callbackExtra(parent, type, field, node) {
-        const segment = {
-          field: node.name.value,
-          alias: node.alias?.value ?? node.name.value,
-          parentType: type.name,
-          isList: isListField(field.type),
-        };
-
-        return {
-          path: [...(parent?.path ?? []), `${type.name}.${segment.field}`],
-          segments: [...(parent?.segments ?? []), segment],
-        };
-      },
     };
 
     return adapter;
@@ -204,11 +190,6 @@ function compatibleEntries<T extends object>(map: T, compatible: (entry: T) => b
   return Object.fromEntries(
     Object.entries(map).filter(([key, value]) => compatible({ [key]: value } as T)),
   ) as T;
-}
-
-/** A list field, whether or not the list itself is non-null (`[Post!]!`). */
-function isListField(type: GraphQLOutputType) {
-  return isListType(type) || (isNonNullType(type) && isListType(type.ofType));
 }
 
 export type { GraphQLNamedType };

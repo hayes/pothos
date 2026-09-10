@@ -1,11 +1,5 @@
 import type { IndirectInclude, SelectFn } from '../src';
-import {
-  createFakeAdapter,
-  createModels,
-  createSchema,
-  type FakeMap,
-  type FakePath,
-} from './fake-adapter';
+import { createFakeAdapter, createModels, createSchema, type FakeMap } from './fake-adapter';
 
 export const models = createModels('User', 'Post', 'Comment', 'Profile');
 
@@ -13,7 +7,7 @@ models.User.relations = { posts: models.Post, profile: models.Profile };
 models.Post.relations = { author: models.User, comments: models.Comment };
 models.Comment.relations = { author: models.User };
 
-type Select = SelectFn<FakeMap, FakePath>;
+type Select = SelectFn<FakeMap>;
 
 type Args = Record<string, unknown>;
 
@@ -144,6 +138,6 @@ export function createTestSchema() {
   });
 }
 
-export function createTestAdapter(options?: { withExtra?: boolean }) {
-  return createFakeAdapter(models, options);
+export function createTestAdapter() {
+  return createFakeAdapter(models);
 }

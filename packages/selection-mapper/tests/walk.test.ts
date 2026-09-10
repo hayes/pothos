@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Position } from '../src';
 import {
   getLoaderMapping,
   queryFromInfo,
@@ -6,11 +7,43 @@ import {
   selectionStateFromInfo,
   walkFromInfo,
 } from '../src';
-import { resolveInfo } from './fake-adapter';
+import { mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
 import { createTestAdapter, createTestSchema } from './schema';
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
+
+/** The test adapter, recording the position handed to every select function it runs. */
+function watchPositions() {
+  const adapter = createTestAdapter();
+  const seen: [string, Position][] = [];
+  const { fieldSelection } = adapter;
+
+  adapter.fieldSelection = (field, type) => {
+    const selection = fieldSelection(field, type);
+
+    return typeof selection === 'function'
+      ? (...args) => {
+          seen.push([field.name, args[4]]);
+
+          return selection(...args);
+        }
+      : selection;
+  };
+
+  return { adapter, seen };
+}
+
+/** What a caller that wants a path builds from a position: `Type.field` from the top down. */
+function chainOf(position: Position) {
+  const path: string[] = [];
+
+  for (let at: Position | undefined = position; at; at = at.parent) {
+    path.push(`${at.type.name}.${at.node.name.value}`);
+  }
+
+  return path.reverse();
+}
 
 function pathOf(...keys: (string | number)[]) {
   let path: { prev: unknown; key: string | number; typename: undefined } | undefined;
@@ -39,7 +72,7 @@ describe('queryFromInfo', () => {
 
     const posts = getLoaderMapping(context, pathOf('user', 'posts'), 'User');
 
-    expect(posts?.nested).toEqual({ 'Post@author': { nested: {} } });
+    expect(mappingsOf(posts!.nested)).toEqual({ 'Post@author': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'profile'), 'User')?.nested).toEqual({});
     // Only the walked field's own mappings are recorded; deeper ones wait for their resolver.
     expect(getLoaderMapping(context, pathOf('user', 'posts', 0, 'author'), 'Post')).toBe(null);
@@ -106,7 +139,7 @@ describe('queryFromInfo', () => {
     expect(queryFromInfo(adapter, { context, info })).toEqual({
       select: { posts: { select: { author: { where: { x: 1 } } } } },
     });
-    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')?.nested).toEqual({
+    expect(mappingsOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User')!.nested)).toEqual({
       'Post@a1': { nested: {} },
     });
   });
@@ -207,13 +240,13 @@ describe('queryFromInfo', () => {
     expect(
       queryFromInfo(adapter, { context, info, typeName: 'User', path: ['appointment'] }),
     ).toEqual({ select: { posts: { take: 5 }, profile: true } });
-    expect(getLoaderMapping(context, pathOf('entries', 3, 'appointment', 'posts'), 'User')).toEqual(
-      {
-        nested: {},
-      },
-    );
     expect(
-      getLoaderMapping(context, pathOf('entries', 'appointment', 'profile'), 'Viewer'),
+      mappingOf(getLoaderMapping(context, pathOf('entries', 3, 'appointment', 'posts'), 'User')),
+    ).toEqual({
+      nested: {},
+    });
+    expect(
+      mappingOf(getLoaderMapping(context, pathOf('entries', 'appointment', 'profile'), 'Viewer')),
     ).toEqual({
       nested: {},
     });
@@ -257,41 +290,57 @@ describe('queryFromInfo', () => {
     );
 
     expect(queryFromInfo(adapter, { context, info })).toEqual({ select: { posts: true } });
-    expect(getLoaderMapping(context, pathOf('result', 'data', 'posts'), 'User')).toEqual({
-      nested: {},
-    });
+    expect(mappingOf(getLoaderMapping(context, pathOf('result', 'data', 'posts'), 'User'))).toEqual(
+      {
+        nested: {},
+      },
+    );
   });
 
-  it('hands the adapter extra of the enclosing field to every select function (D-7)', async () => {
+  it('hands every select function the position of its field (D-7)', async () => {
     const context = {};
-    const withExtra = createTestAdapter({ withExtra: true });
-    const seen: unknown[] = [];
-    const { fieldSelection } = withExtra;
+    const { adapter: watched, seen } = watchPositions();
+    const info = await resolveInfo(schema, '{ user { myPosts: posts { author { name } } } }');
 
-    withExtra.fieldSelection = (field, type) => {
-      const selection = fieldSelection(field, type);
+    queryFromInfo(watched, { context, info });
 
-      return typeof selection === 'function'
-        ? (...args) => {
-            seen.push([field.name, args[4]]);
-
-            return selection(...args);
-          }
-        : selection;
-    };
-
-    const info = await resolveInfo(schema, '{ user { posts { author { name } } } }');
-
-    queryFromInfo(withExtra, { context, info });
-
-    expect(seen).toEqual([
+    expect(seen.map(([name, position]) => [name, chainOf(position)])).toEqual([
       ['posts', ['Query.user', 'User.posts']],
       ['author', ['Query.user', 'User.posts', 'Post.author']],
     ]);
-    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')?.extra).toEqual([
-      'Query.user',
-      'User.posts',
-    ]);
+
+    const posts = seen[0][1];
+    const author = seen[1][1];
+
+    // A link, not a copy: everything beneath a field shares the one position it hangs from.
+    expect(author.parent).toBe(posts);
+    expect(posts.parent!.parent).toBeUndefined();
+    // Nothing is materialized: one link per select function, and no arrays at all.
+    expect(Object.keys(posts).sort()).toEqual(['field', 'node', 'parent', 'type']);
+    // The document's alias is on the node; `field` and `type` are the schema's own.
+    expect(posts.node.alias?.value).toBe('myPosts');
+    expect(posts.node.name.value).toBe('posts');
+    expect(posts.type.name).toBe('User');
+    expect(posts.field.name).toBe('posts');
+    // The same position is recorded with the mapping, so a resolver reads what the select read.
+    expect(getLoaderMapping(context, pathOf('user', 'myPosts'), 'User')?.position).toBe(posts);
+  });
+
+  it('builds no position for a static selection, which records the shared empty mapping', async () => {
+    const context = {};
+    const { adapter: watched, seen } = watchPositions();
+    const info = await resolveInfo(schema, '{ viewer { email profile { bio } } }');
+
+    queryFromInfo(watched, { context, info });
+
+    // `email` is a static map, `profile` a select function: only the latter ran a callback.
+    expect(seen.map(([name]) => name)).toEqual(['profile']);
+
+    const email = getLoaderMapping(context, pathOf('viewer', 'email'), 'Viewer');
+
+    // A frozen mapping is the walker's one shared constant: a static field allocates nothing.
+    expect(email?.position).toBeUndefined();
+    expect(Object.isFrozen(email)).toBe(true);
   });
 
   it('rejects a promise handed to a relation (A-6)', async () => {
@@ -394,7 +443,7 @@ describe('fragments (S-7)', () => {
     expect(queryFromInfo(adapter, { context: fragmentFirst, info })).toEqual({
       select: { posts: { take: 1 } },
     });
-    expect(getLoaderMapping(fragmentFirst, pathOf('user', 'first'), 'User')).toEqual({
+    expect(mappingOf(getLoaderMapping(fragmentFirst, pathOf('user', 'first'), 'User'))).toEqual({
       nested: {},
     });
     expect(getLoaderMapping(fragmentFirst, pathOf('user', 'second'), 'User')).toBe(null);
@@ -408,7 +457,9 @@ describe('fragments (S-7)', () => {
     expect(queryFromInfo(adapter, { context: fieldFirst, info: mirror })).toEqual({
       select: { posts: { take: 2 } },
     });
-    expect(getLoaderMapping(fieldFirst, pathOf('user', 'second'), 'User')).toEqual({ nested: {} });
+    expect(mappingOf(getLoaderMapping(fieldFirst, pathOf('user', 'second'), 'User'))).toEqual({
+      nested: {},
+    });
     expect(getLoaderMapping(fieldFirst, pathOf('user', 'first'), 'User')).toBe(null);
   });
 
@@ -441,7 +492,9 @@ describe('fragments (S-7)', () => {
     );
 
     expect(queryFromInfo(adapter, { context, info })).toEqual({ select: { posts: true } });
-    expect(getLoaderMapping(context, pathOf('person', 'posts'), 'User')).toEqual({ nested: {} });
+    expect(mappingOf(getLoaderMapping(context, pathOf('person', 'posts'), 'User'))).toEqual({
+      nested: {},
+    });
   });
 
   it('walks a fragment on an interface the type implements as the type', async () => {
@@ -451,7 +504,9 @@ describe('fragments (S-7)', () => {
     expect(queryFromInfo(adapter, { context, info })).toEqual({
       select: { posts: { take: 1 } },
     });
-    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual({ nested: {} });
+    expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
+      nested: {},
+    });
   });
 });
 
@@ -518,8 +573,12 @@ describe('repeated fragment spreads (W-2)', () => {
     });
     // Under Viewer the field is keyed by the variant, under Person by the interface: the
     // resolver looks its mapping up by the runtime type, so both are needed.
-    expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Viewer')).toEqual({ nested: {} });
-    expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Person')).toEqual({ nested: {} });
+    expect(mappingOf(getLoaderMapping(context, pathOf('person', 'posts'), 'Viewer'))).toEqual({
+      nested: {},
+    });
+    expect(mappingOf(getLoaderMapping(context, pathOf('person', 'posts'), 'Person'))).toEqual({
+      nested: {},
+    });
   });
 });
 
@@ -584,7 +643,9 @@ describe('a field selected more than once (W-1)', () => {
     expect(
       queryFromInfo(adapter, { context, info, typeName: 'User', path: ['appointment'] }),
     ).toEqual({ select: { posts: true } });
-    expect(getLoaderMapping(context, pathOf('entries', 'appointment', 'posts'), 'User')).toEqual({
+    expect(
+      mappingOf(getLoaderMapping(context, pathOf('entries', 'appointment', 'posts'), 'User')),
+    ).toEqual({
       nested: {},
     });
   });
@@ -600,7 +661,7 @@ describe('selectionStateFromInfo (E-2)', () => {
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
     expect(adapter.serialize(walk.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
-    expect(walk.mappings).toEqual({ 'Viewer@posts': { nested: {} } });
+    expect(mappingsOf(walk.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
   });
 
   it('plans every node selecting the field into the same row', async () => {
@@ -622,7 +683,9 @@ describe('selectionStateFromInfo (E-2)', () => {
     expect(adapter.serialize(walk.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
-    expect(walk.mappings['User@posts'].nested).toEqual({ 'Post@author': { nested: {} } });
+    expect(mappingsOf(walk.mappings['User@posts'].nested)).toEqual({
+      'Post@author': { nested: {} },
+    });
   });
 
   it('keys the mapping by the field alias', async () => {
@@ -640,7 +703,9 @@ describe('selectionStateFromInfo (E-2)', () => {
       select: { posts: { take: 1, select: { author: true } } },
     });
     expect(Object.keys(walk.mappings)).toEqual(['User@latest']);
-    expect(walk.mappings['User@latest'].nested).toEqual({ 'Post@author': { nested: {} } });
+    expect(mappingsOf(walk.mappings['User@latest'].nested)).toEqual({
+      'Post@author': { nested: {} },
+    });
   });
 });
 
@@ -690,12 +755,17 @@ describe('adapter contract details', () => {
     });
   });
 
-  it('reads nothing of info.parentType without a callbackExtra (A-2)', async () => {
+  it('plans the same query for an info that names no parent type (A-2)', async () => {
+    const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
     const partial = { ...info, parentType: undefined } as unknown as typeof info;
 
-    expect(queryFromInfo(adapter, { context: {}, info: partial })).toEqual(
+    // Only the position of the resolved field is lost: the walk starts at its own fields.
+    expect(queryFromInfo(adapter, { context, info: partial })).toEqual(
       queryFromInfo(adapter, { context: {}, info }),
+    );
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')?.position?.parent).toBe(
+      undefined,
     );
   });
 });
@@ -708,7 +778,7 @@ describe('walkFromInfo', () => {
     const walk = walkFromInfo(adapter, { context, info, typeName: 'User' })!;
 
     expect(adapter.serialize(walk.root)).toEqual({ select: { posts: true } });
-    expect(walk.mappings).toEqual({ 'User@posts': { nested: {} } });
+    expect(mappingsOf(walk.mappings)).toEqual({ 'User@posts': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
   });
 
@@ -754,8 +824,8 @@ describe('queryFromWalk', () => {
     // The caller's selection comes first, as `initial` does (E-1), so the query is the same
     // object key for key.
     expect(Object.keys(query.select!)).toEqual(Object.keys(expected.select!));
-    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual(
-      getLoaderMapping(expectedContext, pathOf('user', 'posts'), 'User'),
+    expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual(
+      mappingOf(getLoaderMapping(expectedContext, pathOf('user', 'posts'), 'User')),
     );
   });
 
@@ -782,6 +852,8 @@ describe('queryFromWalk', () => {
     expect(queryFromWalk(walkFromInfo(adapter, { context, info })!)).toEqual(
       queryFromInfo(adapter, { context: {}, info }),
     );
-    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual({ nested: {} });
+    expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
+      nested: {},
+    });
   });
 });

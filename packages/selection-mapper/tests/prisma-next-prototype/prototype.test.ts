@@ -8,7 +8,7 @@ import {
   selectionStateFromInfo,
   walkFromInfo,
 } from '../../src';
-import { resolveInfo } from '../fake-adapter';
+import { mappingOf, resolveInfo } from '../fake-adapter';
 import { countPromises } from '../promise-spy';
 import {
   emit,
@@ -519,8 +519,7 @@ describe('entry points', () => {
       'include(posts){ combine(recent:posts=[take(1) select(id)], n:posts=count[]) }',
     ]);
     // Emitting records the mappings, which this adapter simply never looks up.
-    expect(getLoaderMapping(context, pathOf('user', 'recent'), 'User')).toEqual({
-      extra: undefined,
+    expect(mappingOf(getLoaderMapping(context, pathOf('user', 'recent'), 'User'))).toEqual({
       nested: { 'Post@id': { nested: {} } },
     });
     // A serialized spec merges back without a key: every entry carries its alias.

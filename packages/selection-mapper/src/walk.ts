@@ -11,7 +11,6 @@ import {
 import {
   type FieldNode,
   type FragmentDefinitionNode,
-  type GraphQLField,
   type GraphQLNamedType,
   type GraphQLSchema,
   getNamedType,
@@ -38,6 +37,7 @@ import type {
   Adapter,
   EntryOptions,
   NestedSelection,
+  Position,
   SelectFn,
   Walk,
   WalkedType,
@@ -57,8 +57,8 @@ interface Invocation extends Mapping {
 }
 
 /** E-2: the parent type's selection, minus what conflicts with the field, once it is merged. */
-export function enterLoaded<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+export function enterLoaded<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   type: GraphQLNamedType,
 ) {
   const { adapter } = walk;
@@ -72,8 +72,8 @@ export function enterLoaded<M, Map, X, N extends NodeBase<M>>(
 }
 
 /** The empty query tree a walk of `type` starts from, or a validation error when it has no model. */
-function rootNode<M, Map, X, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, X, N>,
+function rootNode<M, Map, N extends NodeBase<M>>(
+  adapter: Adapter<M, Map, N>,
   schema: GraphQLSchema,
   type: GraphQLNamedType,
 ): N {
@@ -91,22 +91,22 @@ function rootNode<M, Map, X, N extends NodeBase<M>>(
  * so `queryFromWalk` can rebuild the query with a caller's selection ahead of the walked plan;
  * only `walkFromInfo` needs that.
  */
-export function createWalk<M, Map, X, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, X, N>,
+export function createWalk<M, Map, N extends NodeBase<M>>(
+  adapter: Adapter<M, Map, N>,
   options: WalkOptions<Map>,
   type: GraphQLNamedType,
-  extra?: X,
+  position?: Position,
   replayable?: boolean,
-): Walk<M, Map, X, N> {
+): Walk<M, Map, N> {
   const { context, info, initial, skipDeferredFragments } = options;
-  const walk: Walk<M, Map, X, N> = {
+  const walk: Walk<M, Map, N> = {
     adapter,
     context,
     info,
     skipDeferred: skipDeferredFragments ?? adapter.skipDeferredFragments,
     root: rootNode(adapter, info.schema, type),
     mappings: {},
-    extra,
+    position,
   };
 
   if (replayable) {
@@ -129,14 +129,15 @@ export type WalkOptions<Map> = Pick<
 
 /**
  * E-3: the walk beneath one nested selection, which carries the parent's adapter, context, info
- * and deferred setting and records into the invocation's own mappings.
+ * and deferred setting and records into the invocation's own mappings. It hangs beneath the field
+ * whose select function made it, so that field's position is where the child walk is.
  */
-function createNestedWalk<M, Map, X, N extends NodeBase<M>>(
-  parent: Walk<M, Map, X, N>,
+function createNestedWalk<M, Map, N extends NodeBase<M>>(
+  parent: Walk<M, Map, N>,
   type: GraphQLNamedType,
   mappings: Mappings,
-  extra: X | undefined,
-): Walk<M, Map, X, N> {
+  position: Position,
+): Walk<M, Map, N> {
   const { adapter, context, info, skipDeferred } = parent;
 
   return {
@@ -146,13 +147,13 @@ function createNestedWalk<M, Map, X, N extends NodeBase<M>>(
     skipDeferred,
     root: rootNode(adapter, info.schema, type),
     mappings,
-    extra,
+    position,
   };
 }
 
 /** S-1. */
-function enter<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+function enter<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   type: GraphQLNamedType,
 ) {
@@ -170,8 +171,8 @@ function enter<M, Map, X, N extends NodeBase<M>>(
  * Unlike a field-level select, a type-level selection has no per-field fallback, so relation
  * arguments or extras that conflict with what is already selected are an error.
  */
-function enterVariant<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+function enterVariant<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   type: WalkedType,
   variant: WalkedType,
@@ -187,8 +188,8 @@ function enterVariant<M, Map, X, N extends NodeBase<M>>(
 }
 
 /** S-7 for one variant selection: rejected as an error when it conflicts with the node. */
-export function mergeVariant<M, Map, X, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, X, N>,
+export function mergeVariant<M, Map, N extends NodeBase<M>>(
+  adapter: Adapter<M, Map, N>,
   node: N,
   type: WalkedType,
   variant: WalkedType,
@@ -244,8 +245,8 @@ interface ResolvedFieldWalk {
  * merged, so type-level selections are settled first and the plan does not depend on which
  * selection comes first: neither the occurrence of a field (W-1) nor the path match (W-11).
  */
-export function walkFieldWalks<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+export function walkFieldWalks<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   walks: UnresolvedFieldWalk[],
 ) {
@@ -275,8 +276,8 @@ export function walkFieldWalks<M, Map, X, N extends NodeBase<M>>(
  * order they are walked. A type-level path yields one per match beneath the wrapper; a plain
  * include re-types the walk; anything but an object or interface type yields nothing.
  */
-function resolveFieldWalk<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+function resolveFieldWalk<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   { type, fieldNodes, indirectPath, deferred }: UnresolvedFieldWalk,
 ): ResolvedFieldWalk[] {
@@ -367,8 +368,8 @@ function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): 
  * before any field at `node` is merged, so a conflict between two type-level selections is
  * reported whichever order the fragments appear in and never depends on a field-level select.
  */
-function enterVariants<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+function enterVariants<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   type: WalkedType,
   selections: readonly SelectionNode[],
@@ -400,8 +401,8 @@ function enterVariants<M, Map, X, N extends NodeBase<M>>(
  * appears. Fields apply to `node` unless the enclosing fragment cannot apply to `type`; nested
  * fragments are always classified against `type`, so one may narrow back to it.
  */
-function walkSelections<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+function walkSelections<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   type: WalkedType,
   selections: readonly SelectionNode[],
@@ -443,8 +444,8 @@ function walkSelections<M, Map, X, N extends NodeBase<M>>(
  * The fragment a non-field selection stands for, or undefined when it does not apply: skipped by
  * a directive (S-2), or deferred (S-8).
  */
-function applicableFragment<M, Map, X, N extends NodeBase<M>>(
-  { info, skipDeferred }: Walk<M, Map, X, N>,
+function applicableFragment<M, Map, N extends NodeBase<M>>(
+  { info, skipDeferred }: Walk<M, Map, N>,
   selection: SelectionNode,
 ): Fragment | undefined {
   let fragment: Fragment;
@@ -478,8 +479,8 @@ function applicableFragment<M, Map, X, N extends NodeBase<M>>(
  * object or interface, walked as that type, so that type's own selection is planned for the rows
  * that resolve to it.
  */
-function fragmentTypeOf<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+function fragmentTypeOf<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   type: WalkedType,
   fragment: Fragment,
 ): WalkedType | undefined {
@@ -509,8 +510,8 @@ function fragmentTypeOf<M, Map, X, N extends NodeBase<M>>(
 }
 
 /** S-2..S-6: merges what `fieldNode` (a field of `type`) selects into `node`. */
-export function applyField<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+export function applyField<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   type: WalkedType,
   fieldNode: FieldNode,
@@ -544,17 +545,19 @@ export function applyField<M, Map, X, N extends NodeBase<M>>(
     return;
   }
 
+  // D-7: where this field is, linked to where the walk it was found in hangs. One link, built
+  // once per select invocation; nothing walks it unless the adapter's callback asks.
+  const position: Position = { parent: walk.position, type, field, node: fieldNode };
   // This invocation's mapping; every nested walk it makes records into `mapping.nested`, which
   // stays invisible to the walk until the invocation's map is accepted.
-  const extra = adapter.callbackExtra?.(walk.extra, type, field, fieldNode);
-  const mapping: Invocation = { nested: {}, extra };
+  const mapping: Invocation = { nested: {}, position };
   const args = getMappedArgumentValues(field, fieldNode, context, info);
-  const select = selection as SelectFn<Map, X>;
+  const select = selection as SelectFn<Map>;
 
   // S-6: the select runs as soon as its own arguments are known; only its merge waits (A-3).
   const map = isThenable(args)
-    ? args.then((mapped) => runSelect(walk, field, fieldNode, select, mapped, extra, mapping))
-    : runSelect(walk, field, fieldNode, select, args, extra, mapping);
+    ? args.then((mapped) => runSelect(walk, select, mapped, position, mapping))
+    : runSelect(walk, select, args, position, mapping);
 
   if (isThenable(map)) {
     chain(walk, map as PromiseLike<Map | false | null | undefined>, (resolved) =>
@@ -565,21 +568,19 @@ export function applyField<M, Map, X, N extends NodeBase<M>>(
   }
 }
 
-function runSelect<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
-  field: GraphQLField<unknown, unknown>,
-  fieldNode: FieldNode,
-  select: SelectFn<Map, X>,
+function runSelect<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
+  select: SelectFn<Map>,
   args: object,
-  extra: X | undefined,
-  mapping: Mapping,
+  position: Position,
+  mapping: Invocation,
 ) {
   return select(
     args,
     walk.context,
-    nestedSelectionFor(walk, field, fieldNode, args, extra, mapping),
-    getNodeFor(walk, field, fieldNode),
-    extra as X,
+    nestedSelectionFor(walk, args, position, mapping),
+    getNodeFor(walk, position),
+    position,
   );
 }
 
@@ -594,8 +595,8 @@ function runSelect<M, Map, X, N extends NodeBase<M>>(
  * handled, see `awaitNested`) are left to settle unobserved. Checked after the merge, so a map
  * that embeds the pending promise is reported as that by the adapter.
  */
-function mergeField<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
+function mergeField<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   node: N,
   key: string,
   alias: string,
@@ -634,22 +635,21 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
     nested[key] = unionMappings(nested[key], from.nested[key]);
   }
 
-  return into.extra === undefined ? { nested } : { nested, extra: into.extra };
+  return into.position === undefined ? { nested } : { nested, position: into.position };
 }
 
 /** E-3: the nested selection callback of one select invocation. */
-function nestedSelectionFor<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
-  field: GraphQLField<unknown, unknown>,
-  fieldNode: FieldNode,
+function nestedSelectionFor<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
   args: object,
-  extra: X | undefined,
+  position: Position,
   mapping: Invocation,
-): NestedSelection<Map, X> {
+): NestedSelection<Map> {
   const { adapter, context, info } = walk;
+  const { node: fieldNode } = position;
 
   return (rawQuery, pathOrInclude, typeName) => {
-    const returnType = getNamedType(field.type);
+    const returnType = getNamedType(position.field.type);
     const include = Array.isArray(pathOrInclude)
       ? normalizeInclude(
           pathOrInclude,
@@ -668,9 +668,9 @@ function nestedSelectionFor<M, Map, X, N extends NodeBase<M>>(
               rawQuery as (
                 args: object,
                 ctx: object,
-                extra: X,
+                position: Position,
               ) => MaybePromise<Map | null | undefined>
-            )(args, context, extra as X)
+            )(args, context, position)
           : rawQuery;
 
     if (!modelOf(adapter, info.schema, target)) {
@@ -679,7 +679,7 @@ function nestedSelectionFor<M, Map, X, N extends NodeBase<M>>(
       return (query ?? ({} as Map)) as Map;
     }
 
-    const child = createNestedWalk(walk, target, mapping.nested, extra);
+    const child = createNestedWalk(walk, target, mapping.nested, position);
 
     try {
       if (isThenable(query)) {
@@ -747,10 +747,7 @@ function nestedSelectionFor<M, Map, X, N extends NodeBase<M>>(
  * count, since the invocation did not wait for it either; one that was awaited surfaces through
  * the invocation's own promise.
  */
-function awaitNested<M, Map, X, N extends NodeBase<M>>(
-  child: Walk<M, Map, X, N>,
-  mapping: Invocation,
-) {
+function awaitNested<M, Map, N extends NodeBase<M>>(child: Walk<M, Map, N>, mapping: Invocation) {
   mapping.pending = (mapping.pending ?? 0) + 1;
 
   const result = child.pending!.then(() => child.adapter.serialize(child.root));
@@ -767,8 +764,8 @@ function awaitNested<M, Map, X, N extends NodeBase<M>>(
 }
 
 /** E-3: the relation query of a nested selection, merged into the child's root by the adapter. */
-function mergeQuery<M, Map, X, N extends NodeBase<M>>(
-  child: Walk<M, Map, X, N>,
+function mergeQuery<M, Map, N extends NodeBase<M>>(
+  child: Walk<M, Map, N>,
   query: Map | null | undefined,
 ) {
   child.adapter.mergeQuery(child.root, query);
@@ -780,10 +777,9 @@ function mergeQuery<M, Map, X, N extends NodeBase<M>>(
  * type the caller's path starts from. An empty path yields the field node itself, or the
  * wrapper's inner node.
  */
-function getNodeFor<M, Map, X, N extends NodeBase<M>>(
-  walk: Walk<M, Map, X, N>,
-  field: GraphQLField<unknown, unknown>,
-  fieldNode: FieldNode,
+function getNodeFor<M, Map, N extends NodeBase<M>>(
+  walk: Walk<M, Map, N>,
+  { field, node: fieldNode }: Position,
 ) {
   const { info } = walk;
 

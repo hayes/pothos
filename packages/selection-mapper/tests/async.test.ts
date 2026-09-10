@@ -9,14 +9,14 @@ import {
   selectionStateFromInfo,
   walkFromInfo,
 } from '../src';
-import { type FakeMap, type FakeModel, type FakePath, resolveInfo } from './fake-adapter';
+import { type FakeMap, type FakeModel, mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
 import { countPromises } from './promise-spy';
 import { createTestAdapter, createTestSchema } from './schema';
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
 
-type Select = SelectFn<FakeMap, FakePath>;
+type Select = SelectFn<FakeMap>;
 type Args = Record<string, unknown>;
 type Wrap = (select: Select, field: string) => Select;
 
@@ -35,7 +35,7 @@ function sleep(ms: number) {
 }
 
 /** The test adapter with the select functions of `fields` wrapped by `wrap`. */
-function withSelects(fields: string[], wrap: Wrap): Adapter<FakeModel, FakeMap, FakePath> {
+function withSelects(fields: string[], wrap: Wrap): Adapter<FakeModel, FakeMap> {
   const wrapped = createTestAdapter();
   const { fieldSelection } = wrapped;
 
@@ -85,7 +85,7 @@ function withWraps(wraps: Record<string, Wrap>) {
 
 async function sameAs(
   source: string,
-  async: Adapter<FakeModel, FakeMap, FakePath>,
+  async: Adapter<FakeModel, FakeMap>,
   keys: [string, (string | number)[]][],
 ) {
   const info = await resolveInfo(schema, source);
@@ -104,8 +104,10 @@ async function sameAs(
   expect(await result).toEqual(expected);
 
   for (const [type, path] of keys) {
-    expect(getLoaderMapping(context, pathOf(...path), type)).toEqual(
-      getLoaderMapping(syncContext, pathOf(...path), type),
+    // Positions aside: a key accepted from two occurrences records the position of whichever was
+    // accepted first, which the async walk may reach in the other order.
+    expect(mappingOf(getLoaderMapping(context, pathOf(...path), type))).toEqual(
+      mappingOf(getLoaderMapping(syncContext, pathOf(...path), type)),
     );
   }
 }
@@ -197,7 +199,9 @@ describe('async callbacks', () => {
       expect(seen).toEqual(['mapper']);
       expect(await result).toEqual({ select: { posts: { take: 20 } } });
       expect(seen).toEqual(['mapper', 'select:{"take":20}']);
-      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toEqual({ nested: {} });
+      expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
+        nested: {},
+      });
     } finally {
       field.extensions = { ...field.extensions, pothosArgMappers: undefined };
     }
@@ -235,7 +239,9 @@ describe('async callbacks', () => {
     expect(await queryFromInfo(syncWins, { context, info })).toEqual({
       select: { posts: { take: 2 } },
     });
-    expect(getLoaderMapping(context, pathOf('user', 'second'), 'User')).toEqual({ nested: {} });
+    expect(mappingOf(getLoaderMapping(context, pathOf('user', 'second'), 'User'))).toEqual({
+      nested: {},
+    });
     expect(getLoaderMapping(context, pathOf('user', 'first'), 'User')).toBe(null);
 
     // Both async: `first` resolves last but was appended first, so it wins.
@@ -251,7 +257,9 @@ describe('async callbacks', () => {
     expect(await queryFromInfo(appendOrder, { context: ordered, info })).toEqual({
       select: { posts: { take: 1 } },
     });
-    expect(getLoaderMapping(ordered, pathOf('user', 'first'), 'User')).toEqual({ nested: {} });
+    expect(mappingOf(getLoaderMapping(ordered, pathOf('user', 'first'), 'User'))).toEqual({
+      nested: {},
+    });
     expect(getLoaderMapping(ordered, pathOf('user', 'second'), 'User')).toBe(null);
   });
 
@@ -288,17 +296,24 @@ describe('async callbacks', () => {
   });
 
   it('plans a connection through an async relation query', async () => {
-    const async = withSelects(['postsConnection'], (select) => (args, ctx, nested, ...rest) => {
-      const nestedAsync: typeof nested = (query, path, type) =>
-        nested(
-          async () =>
-            typeof query === 'function' ? query(args, ctx, []) : query === true ? undefined : query,
-          path,
-          type,
-        );
+    const async = withSelects(
+      ['postsConnection'],
+      (select) => (args, ctx, nested, getNode, position) => {
+        const nestedAsync: typeof nested = (query, path, type) =>
+          nested(
+            async () =>
+              typeof query === 'function'
+                ? query(args, ctx, position)
+                : query === true
+                  ? undefined
+                  : query,
+            path,
+            type,
+          );
 
-      return select(args, ctx, nestedAsync, ...rest);
-    });
+        return select(args, ctx, nestedAsync, getNode, position);
+      },
+    );
 
     // The connection select embeds the nested promise synchronously, as `getQuery` helpers do
     // when not awaited.
@@ -344,7 +359,7 @@ describe('async callbacks', () => {
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
     expect(adapter.serialize(walk.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
-    expect(walk.mappings).toEqual({ 'Viewer@posts': { nested: {} } });
+    expect(mappingsOf(walk.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
 
     const direct = (await walkFromInfo(withSelects(['posts'], deferred), {
       context: {},
