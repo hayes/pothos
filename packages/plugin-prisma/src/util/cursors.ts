@@ -55,8 +55,10 @@ export function parsePrismaCursor(cursor: unknown) {
     switch (type) {
       case 'S':
         return value;
+      // `Number`, not `parseInt`: a cursor on a float column holds `N:1.75`, which `parseInt`
+      // truncates to `1`, and a large number's `N:1e+21`, which it reads as `1`.
       case 'N':
-        return Number.parseInt(value, 10);
+        return Number(value);
       case 'D':
         return new Date(Number.parseInt(value, 10));
       case 'J':
@@ -92,7 +94,9 @@ export function parseID(id: string, dataType: string): unknown {
       return new Date(id);
     case 'Json':
       return JSON.parse(id) as unknown;
+    // `Bytes` is what the datamodel calls the type; `Byte` has never matched one.
     case 'Byte':
+    case 'Bytes':
       return Buffer.from(id, 'base64');
     default:
       return id;
@@ -112,16 +116,18 @@ export function getDefaultIDSerializer<Types extends SchemaTypes>(
     return (parent) => serializeID(parent[fieldName], field.type);
   }
 
+  // `f.type` names the scalar (`Json`, `Bytes`, ...); `f.kind` only says `scalar`, which no case
+  // of `serializeID` matches, and the parser below reads each part back by `f.type`.
   if ((model.primaryKey?.name ?? model.primaryKey?.fields.join('_')) === fieldName) {
     const fields = model.primaryKey!.fields.map((n) => model.fields.find((f) => f.name === n)!);
-    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.type)));
   }
 
   const index = model.uniqueIndexes.find((idx) => (idx.name ?? idx.fields.join('_')) === fieldName);
 
   if (index) {
     const fields = index.fields.map((n) => model.fields.find((f) => f.name === n)!);
-    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.type)));
   }
 
   throw new PothosValidationError(`Unable to find ${fieldName} for model ${modelName}`);
@@ -177,11 +183,17 @@ export function serializeID(id: unknown, dataType: string) {
   switch (dataType) {
     case 'Json':
       return JSON.stringify(id);
+    // `Bytes` is what the datamodel calls the type; `Byte` has never matched one.
     case 'Byte':
+    case 'Bytes':
       if (id instanceof Uint8Array) {
         return Buffer.from(id).toString('base64');
       }
       return (id as Buffer | Uint8Array).toString('base64');
+    // `String(date)` drops the milliseconds, and the id has to find the row again. Old ids in
+    // that format still parse, since `new Date` reads both.
+    case 'DateTime':
+      return id instanceof Date ? id.toISOString() : String(id);
     default:
       return String(id);
   }

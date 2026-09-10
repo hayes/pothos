@@ -158,7 +158,12 @@ schemaBuilderProto.prismaNode = function prismaNode(
     },
     loadWithoutCache: (id: string, context: SchemaTypes['Context'], info: GraphQLResolveInfo) => {
       // A promise while a select beneath the node is async (A-7); the query waits only then.
-      const query = queryFromInfo({ context, info, typeName });
+      const query = queryFromInfo({
+        context,
+        info,
+        typeName,
+        skipDeferredFragments: this.options.prisma?.skipDeferredFragments,
+      });
 
       return isThenable(query)
         ? query.then((settled) => loadNode(settled as object, id, context))
