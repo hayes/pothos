@@ -42,7 +42,11 @@ New and widened types:
   `extensions`, `authScopes`, ...); its `resolve` may be async and receives the resolve `info`.
   Exported as `RelatedSelectionFieldOptions`.
 - New `PrismaQueriedShape<Types, Model, Query>` and `DrizzleQueriedShape<Types, Table, Query>`
-  name the row shape a query loads, for resolvers that load rows themselves.
+  name the row shape a query loads, for resolvers that load rows themselves. A query whose
+  `select` key is optional but names columns (`{ select?: { email: true } }`) narrows the row to
+  those columns, rather than to no columns at all as `ShapeFromSelection` did before: the columns
+  are on the row whether or not the `select` is applied, since a row loaded without a `select`
+  carries every column.
 
 Docs: how selections are planned (a field is either planned into an ancestor's query or loaded
 on its own, never both; selections share a query node only with matching arguments; a

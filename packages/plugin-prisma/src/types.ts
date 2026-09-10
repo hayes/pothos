@@ -223,21 +223,37 @@ interface BaseSelection {
 
 export type SelectedKeys<T> = { [K in keyof T]: T[K] extends false ? never : K }[keyof T];
 
+/**
+ * Whether a `select` names any column at all. It does not when it is absent (`unknown`), and it
+ * does not when every key of it is optional, as on a planned relation query whose `select` is the
+ * model's whole `Select` map: such a query may select anything, so nothing is known to be on the
+ * row. A map with at least one required key does name columns, even when the `select` key itself
+ * is optional: those columns are on the row whether or not the `select` is applied, because a row
+ * loaded without a `select` carries every column.
+ */
+type SelectsNothing<Select> = [NonNullable<Select>] extends [never]
+  ? true
+  : {} extends NonNullable<Select>
+    ? true
+    : false;
+
 export type ShapeFromSelection<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Selection,
 > = Normalize<
   Selection extends BaseSelection
-    ? // A `select` that is absent, or only possibly present (a planned relation query), does not
-      // narrow the row: every column may be there.
-      undefined extends Selection['select']
+    ? // A `select` that names no column does not narrow the row: every column may be there.
+      SelectsNothing<Selection['select']> extends true
       ? Model['Shape'] &
           RelationShapeFromInclude<Types, Model, Selection['include']> &
           ShapeFromCount<CountSelection<Selection['include']>, Model>
-      : Pick<Model['Shape'], SelectedKeys<Selection['select']> & keyof Model['Shape']> &
-          RelationShapeFromInclude<Types, Model, Selection['select']> &
-          ShapeFromCount<CountSelection<Selection['select']>, Model>
+      : Pick<
+          Model['Shape'],
+          SelectedKeys<NonNullable<Selection['select']>> & keyof Model['Shape']
+        > &
+          RelationShapeFromInclude<Types, Model, NonNullable<Selection['select']>> &
+          ShapeFromCount<CountSelection<NonNullable<Selection['select']>>, Model>
     : Model['Shape']
 >;
 

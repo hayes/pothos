@@ -381,6 +381,67 @@ it('names the shape of a row loaded with a query', () => {
   }>();
 });
 
+// Whether a `select` narrows the row turns on whether it names a column, not on whether the
+// `select` key itself is optional. A map naming a column narrows even when the key is optional:
+// those columns are on the row either way, since a row loaded without a `select` carries every
+// column. A map that names nothing — absent, or the model's whole `Select`, as a planned relation
+// query carries — narrows nothing.
+type SchemaTypesOfBuilder = typeof builder.$inferSchemaTypes;
+type UserModel = PrismaTypes['User'];
+
+declare const optionalSelect: PrismaQueriedShape<
+  SchemaTypesOfBuilder,
+  UserModel,
+  { select?: { email: true } }
+>;
+declare const undefinedInSelect: PrismaQueriedShape<
+  SchemaTypesOfBuilder,
+  UserModel,
+  { select: { email: true } | undefined }
+>;
+
+it('narrows on a select that names a column, optional key or not', () => {
+  // 1. No `select` at all: every column is on the row.
+  expectTypeOf<PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, {}>>().toEqualTypeOf<
+    UserModel['Shape']
+  >();
+
+  // 2. A required `select`: exactly the selected columns.
+  expectTypeOf<
+    PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, { select: { email: true } }>
+  >().toEqualTypeOf<{ email: string }>();
+
+  // 3. An optional `select` key: still exactly the selected columns, never the whole model.
+  expectTypeOf(optionalSelect).toEqualTypeOf<{ email: string }>();
+  expectTypeOf(optionalSelect.email).toEqualTypeOf<string>();
+  // @ts-expect-error `name` was never selected, and is not on the row.
+  optionalSelect.name;
+
+  // 4. A `select` whose type explicitly includes `undefined`: the same. `undefined` is not a
+  // column, and does not widen the row back to the whole model.
+  expectTypeOf(undefinedInSelect).toEqualTypeOf<{ email: string }>();
+  // @ts-expect-error `name` was never selected, and is not on the row.
+  undefinedInSelect.name;
+
+  // A planned relation query names no column of its own — its `select` is the model's whole
+  // `Select`, every key of it optional — so the row is not narrowed.
+  expectTypeOf<
+    PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, { select?: UserModel['Select'] }>
+  >().toEqualTypeOf<UserModel['Shape']>();
+  expectTypeOf<
+    PrismaQueriedShape<SchemaTypesOfBuilder, UserModel, PrismaRelationQuery<UserModel>>
+  >().toMatchTypeOf<UserModel['Shape']>();
+
+  // A selected relation narrows through an optional `select` too.
+  expectTypeOf<
+    PrismaQueriedShape<
+      SchemaTypesOfBuilder,
+      UserModel,
+      { select?: { posts: { select: { title: true } } } }
+    >
+  >().toEqualTypeOf<{ posts: { title: string }[] }>();
+});
+
 // One path segment type, shared with the planner, for `queryFromInfo` paths, `nestedSelection`
 // paths, and the `IndirectInclude` a type's extensions carry.
 it('re-exports the shared path segment types', () => {
