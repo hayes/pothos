@@ -1,12 +1,7 @@
+import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import {
-  completeValue,
-  createContextCache,
-  isThenable,
-  type MaybePromise,
-  type SchemaTypes,
-} from '@pothos/core';
-import {
-  accepts,
+  absorb,
+  acceptsFrom,
   accumulatorOf,
   cacheKey,
   setFieldMapping,
@@ -25,18 +20,11 @@ import type { GraphQLResolveInfo } from 'graphql';
 import { type DrizzleAdapter, type DrizzlePlan, drizzleAdapter } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
 import { planFromInfo, rowPlanFromInfo } from './utils/map-query.js';
-import type { SelectionMap } from './utils/selections.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
   reject: (err: unknown) => void;
-}
-
-/** A field's loader plan and the query it serializes to. */
-interface Selection {
-  plan: DrizzlePlan;
-  query: SelectionMap;
 }
 
 export class ModelLoader {
@@ -46,8 +34,8 @@ export class ModelLoader {
 
   modelName: string;
 
-  // L-4: one selection per `Type@path`, a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<Selection>>();
+  // L-4: one plan per `Type@path`, a promise while a select beneath the field is async.
+  queryCache = new Map<string, MaybePromise<DrizzlePlan>>();
 
   staged = new Set<{
     plan: DrizzlePlan;
@@ -111,10 +99,7 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      this.queryCache.set(
-        key,
-        completeValue(rowPlanFromInfo(this.config, this.context, info), selectionOf),
-      );
+      this.queryCache.set(key, rowPlanFromInfo(this.config, this.context, info));
     }
 
     return this.queryCache.get(key)!;
@@ -125,11 +110,8 @@ export class ModelLoader {
     if (!this.queryCache.has(key)) {
       this.queryCache.set(
         key,
-        completeValue(
-          // Walked without paths, so there is always a plan.
-          planFromInfo({ config: this.config, context: this.context, info, typeName })!,
-          selectionOf,
-        ),
+        // Walked without paths, so there is always a plan.
+        planFromInfo({ config: this.config, context: this.context, info, typeName })!,
       );
     }
 
@@ -145,12 +127,12 @@ export class ModelLoader {
     const selection = this.getSelection(info);
 
     return isThenable(selection)
-      ? selection.then((settled) => this.loadWith(settled as Selection, info, model))
+      ? selection.then((settled) => this.loadWith(settled as DrizzlePlan, info, model))
       : this.loadWith(selection, info, model);
   }
 
-  private loadWith({ plan, query }: Selection, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(plan, query, model).then((result) => {
+  private loadWith(plan: DrizzlePlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(plan, model).then((result) => {
       if (result) {
         const mapping = plan.mappings[`${info.parentType.name}@${info.path.key}`];
 
@@ -174,12 +156,12 @@ export class ModelLoader {
     const selection = this.getSelectionForField(info, returnType);
 
     return isThenable(selection)
-      ? selection.then((settled) => this.loadFieldWith(settled as Selection, info, model))
+      ? selection.then((settled) => this.loadFieldWith(settled as DrizzlePlan, info, model))
       : this.loadFieldWith(selection, info, model);
   }
 
-  private loadFieldWith({ plan, query }: Selection, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(plan, query, model).then((result) => {
+  private loadFieldWith(plan: DrizzlePlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(plan, model).then((result) => {
       if (result) {
         setLoaderMappings(this.context, info, plan.mappings);
       }
@@ -188,12 +170,13 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(plan: DrizzlePlan, query: SelectionMap, model: object) {
+  stageQuery(plan: DrizzlePlan, model: object) {
     const accumulator = accumulatorOf(this.adapter);
 
     for (const entry of this.staged) {
-      if (accepts(accumulator, entry.plan.root, query)) {
-        accumulator.merge(entry.plan.root, query);
+      // Node to node: the staged plan takes the field's plan whole, never through a query.
+      if (acceptsFrom(accumulator, entry.plan.root, plan.root)) {
+        absorb(accumulator, entry.plan.root, plan.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -275,11 +258,6 @@ export class ModelLoader {
 
     return promise.promise;
   }
-}
-
-/** The plan carries the adapter it was built with, so no loader instance is needed here. */
-function selectionOf(plan: DrizzlePlan): Selection {
-  return { plan, query: accumulatorOf(plan.adapter).emit(plan.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {
