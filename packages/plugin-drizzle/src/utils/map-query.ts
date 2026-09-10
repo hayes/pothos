@@ -1,17 +1,9 @@
 import { isThenable } from '@pothos/core';
-import {
-  type IndirectInclude,
-  type PathSegment,
-  Plan,
-  selectedFieldNames,
-} from '@pothos/selection-mapper';
+import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import { type DrizzlePlan, type DrizzlePlayedPlan, drizzleAdapter } from './adapter.js';
+import { type DrizzlePlan, drizzleAdapter } from './adapter.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
 import type { SelectionMap } from './selections.js';
-
-export type { IndirectInclude };
-export { selectedFieldNames };
 
 export interface QueryFromInfoOptions<T extends SelectionMap> {
   config: PothosDrizzleSchemaConfig;
@@ -66,7 +58,7 @@ export function planFromInfo({
  */
 export function queryFromPlan<T extends SelectionMap>(
   plan: DrizzlePlan | undefined,
-  { select }: QueryFromInfoOptions<T>,
+  select?: T,
 ): T {
   if (!plan) {
     // Nothing is selected under the paths: the caller gets its own selection back.
@@ -75,16 +67,4 @@ export function queryFromPlan<T extends SelectionMap>(
 
   // A `select` without `columns` merges as "no columns yet", not "every column".
   return plan.query(select ? { columns: {}, ...select } : undefined) as T;
-}
-
-/**
- * The plan loading the field `info` resolves for its parent row (the model loader's query),
- * already played: an E-2 plan is never played behind another selection.
- */
-export function rowPlanFromInfo(
-  config: PothosDrizzleSchemaConfig,
-  context: object,
-  info: GraphQLResolveInfo,
-): DrizzlePlayedPlan {
-  return Plan.forParentRow(drizzleAdapter(config), context, info);
 }

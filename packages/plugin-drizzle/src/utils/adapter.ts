@@ -151,5 +151,3 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
 export const drizzleAdapter = createContextCache(
   (config: PothosDrizzleSchemaConfig) => new DrizzleAdapter(config),
 );
-
-export type { GraphQLNamedType };

@@ -18,7 +18,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { getLoaderMapping, type Position } from '@pothos/selection-mapper';
+import { getLoaderMapping, type Position, selectedFieldNames } from '@pothos/selection-mapper';
 import {
   and,
   type BuildQueryResult,
@@ -53,7 +53,6 @@ import {
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors.js';
-import { selectedFieldNames } from './utils/map-query.js';
 import { pathInfoFor } from './utils/path-info.js';
 import { getRefFromModel } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';

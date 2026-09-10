@@ -45,7 +45,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       if (interfaceModel) {
         if (model && model !== interfaceModel) {
           throw new PothosSchemaError(
-            `DrizzleObjects must be based on the same prisma model as any DrizzleInterfaces they extend. ${typeConfig.name} uses ${model} and ${iface.name} uses ${interfaceModel}`,
+            `DrizzleObjects must be based on the same drizzle table as any DrizzleInterfaces they extend. ${typeConfig.name} uses ${model} and ${iface.name} uses ${interfaceModel}`,
           );
         }
 

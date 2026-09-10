@@ -173,11 +173,7 @@ export const drizzleClientCache = createContextCache(
         ? createContextCache((ctx) => clientConfig(ctx))
         : (_ctx: object) => clientConfig;
 
-    return createContextCache((context: object) => {
-      const client = getClient(context);
-
-      return client;
-    });
+    return createContextCache(getClient);
   },
 );
 

@@ -20,7 +20,6 @@ import {
   type Table,
   type TableRelationalConfig,
 } from 'drizzle-orm';
-import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types.js';
 import type { DrizzlePlan } from './adapter.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
@@ -81,7 +80,6 @@ export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaCon
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      fields.map((field) => field.keyAsName);
       return `${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
     }
 
@@ -672,10 +670,8 @@ export function wrapConnectionResult<T extends {}>(
 
 export async function resolveDrizzleCursorConnection<T extends {}>(
   tableName: string,
-  info: GraphQLResolveInfo,
   // The settled plan of the connection's rows; the builder handed to `resolve` merges into it.
   plan: DrizzlePlan | undefined,
-  typeName: string,
   config: PothosDrizzleSchemaConfig,
   options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'> & {
     totalCount?: () => MaybePromise<number>;
@@ -700,10 +696,9 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     });
     formatter = getCursorFormatter(cursorFields, config);
 
-    query = queryFromPlan(plan, {
-      context: options.ctx,
-      info,
-      select: omitUndefinedKeys({
+    query = queryFromPlan(
+      plan,
+      omitUndefinedKeys({
         ...connectionQuery,
         extras: q.extras,
         columns: {
@@ -717,10 +712,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
               }
             : q.where || connectionQuery.where,
       }) as never,
-      paths: [['nodes'], ['edges', 'node']],
-      typeName,
-      config,
-    });
+    );
 
     return query;
   });

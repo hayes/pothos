@@ -1,5 +1,5 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
-import { cacheKey, setFieldMapping, setRowMappings } from '@pothos/selection-mapper';
+import { cacheKey, Plan, setFieldMapping, setRowMappings } from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -18,7 +18,7 @@ import {
   drizzleAdapter,
 } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
-import { planFromInfo, rowPlanFromInfo } from './utils/map-query.js';
+import { planFromInfo } from './utils/map-query.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -104,7 +104,7 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.rowCache.has(key)) {
-      this.rowCache.set(key, rowPlanFromInfo(this.config, this.context, info));
+      this.rowCache.set(key, Plan.forParentRow(drizzleAdapter(this.config), this.context, info));
     }
 
     return this.rowCache.get(key)!;
