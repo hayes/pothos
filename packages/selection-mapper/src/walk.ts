@@ -1,6 +1,8 @@
 /**
  * The traversal itself: S-1..S-9 (types, variants, fields, fragments), M-1..M-6 through the adapter,
- * E-3 nested selections, L-2 mapping records. Entry points live in entry.ts.
+ * E-3 nested selections, L-2 mapping records. The entry points that drive it are the statics of
+ * `Plan` in plan.ts, which imports this module; the `Plan` import below is a type import, so
+ * nothing here runs at import time and the pair is not a runtime cycle.
  */
 import {
   getMappedArgumentValues,

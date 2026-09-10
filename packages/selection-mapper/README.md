@@ -9,6 +9,13 @@ This package is an implementation detail of those plugins. Its exports exist for
 with them: it is not a supported public API, and its versions carry no compatibility promise of
 their own. Use the plugins.
 
+The surface is what the three plugins import and nothing more: `Plan` (with `Plan.fromInfo` and
+`Plan.forParentRow` on it), `Adapter` and `TreeAdapter`, the loader-map helpers (`cacheKey`,
+`getLoaderMapping`, `setFieldMapping`, `setLoaderMappings`, `setRowMappings`), `selectedFieldNames`
+and `deepEqual`. A rule only one plugin wants belongs to that plugin: turning a plan into the
+query a resolver is handed is prisma's `queryFromInfo`, drizzle's, and prisma-next's, each
+different, so none of them is here.
+
 ## Vocabulary
 
 - **Selection** — what the GraphQL document asks for: a `SelectionNode`, a selection set, a
@@ -22,7 +29,9 @@ their own. Use the plugins.
   extras). The adapter owns the shape; the walker reads only `node.model`.
 - **Plan** — what a traversal collected for one root: the model it loads, the selection it starts
   from, and the merges it collected, in order. A plan holds no node, and owns its own fold and
-  its own pending chain (`Plan`). Entry points return plans; `plan.nested()` makes a child plan.
+  its own pending chain (`Plan`), and the two entry points as statics: `Plan.fromInfo` (E-1, the
+  plan for the field a resolver was called for) and `Plan.forParentRow` (E-2, the plan loading
+  that field for its parent row, already played). `plan.nested()` makes a child plan.
 - **Merge (noun)** — one entry of a plan's list: a type's selection, a variant's, a nested
   selection's relation query, or a field's, each with the query the adapter produced for it and,
   for a field, the mapping to record if it is taken (`RootMerge`).

@@ -1,21 +1,31 @@
 /**
- * One root being planned: what it loads, what it starts from, the merges a traversal collected
- * for it, and the fold that turns those merges into a node.
+ * One root being planned: the two entry points that build one from a resolver's `info`, what it
+ * loads, what it starts from, the merges a traversal collected for it, and the fold that turns
+ * those merges into a node.
  *
  * A plan holds no node — playing it builds one — so the same plan can be played more than once,
  * behind a different seed each time. Playing is where a merge is accepted or rejected (M-3, M-4,
  * S-7) and the only place a mapping is recorded (L-2). The traversal decides nothing: a field
  * that lost to another occurrence of itself is still on the list, so a play whose seed makes it
- * fit takes it. That is what makes `queryFromPlan(plan, select)` the same query, and the same
- * mappings, as `queryFromInfo` walked with `select` as its `initial`.
+ * fit takes it. That is what makes `plan.query(select)` the same query, and the same mappings, as
+ * a plan walked with `select` as its `initial`.
  */
 import { PothosValidationError } from '@pothos/core';
-import type { GraphQLNamedType, GraphQLResolveInfo } from 'graphql';
+import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import type { Adapter, NodeBase } from './adapter.js';
 import { type Mapping, type Mappings, setLoaderMappings, unionMappings } from './loader-map.js';
-import { modelOf, resolveType } from './matches.js';
+import {
+  findMatches,
+  type IndirectPathSegment,
+  includeOf,
+  matchesForModel,
+  modelOf,
+  type PathSegment,
+  resolveType,
+} from './matches.js';
 import type { Node } from './tree.js';
-import type { MergeOptions, Position, WalkedType } from './types.js';
+import type { EntryOptions, MergeOptions, Position, WalkedType } from './types.js';
+import { type Branch, walkBranches, walkField } from './walk.js';
 
 /** E-3, which carries nothing per merge. */
 const AS_QUERY: MergeOptions = Object.freeze({ asQuery: true });
@@ -86,6 +96,108 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * of its own, so a caller may merge into what it gets back.
    */
   private played?: PlayedPlan<Model, Query, NodeType>;
+
+  /**
+   * E-1: the plan for the field `info` resolves, settled (A-3), or undefined when paths are given
+   * and nothing is selected under them. Declared synchronous (A-7): the result is a promise only
+   * when a select function returned one, and must then be awaited. The plan is handed out rather
+   * than played, so a plugin that must give a resolver a synchronous query builder settles this
+   * first and plays it behind the resolver's own selection with `plan.query(select)` once the
+   * resolver asks for it.
+   *
+   * A static carries its own type parameters — a static cannot use its class's — which is why
+   * `NodeType` is spelled out again here.
+   */
+  static fromInfo<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
+    adapter: Adapter<Model, Query, NodeType>,
+    options: EntryOptions<Query>,
+  ): Plan<Model, Query, NodeType> | undefined {
+    const { info, typeName, path, paths } = options;
+    const returnType = getNamedType(info.returnType);
+    const target = typeName ? info.schema.getType(typeName)! : returnType;
+
+    // graphql merges every occurrence of the field's response key into `info.fieldNodes`; each is
+    // planned into the one root, so the query answers whichever occurrence a resolver runs for.
+    let rootType = target;
+    let branches: Branch[];
+
+    if (paths?.length || path?.length) {
+      const includePaths = normalizePaths(paths?.length ? paths : [path!]);
+      const prefix = includeOf(returnType)?.path;
+      const matches = matchesForModel(
+        adapter,
+        info.schema,
+        info.fieldNodes.flatMap((fieldNode) =>
+          findMatches(info, returnType, fieldNode, includePaths, { prefix }),
+        ),
+        target,
+      );
+
+      if (matches.length === 0) {
+        return undefined;
+      }
+
+      rootType = typeName ? target : matches[0].type;
+      // Every match is planned into the one root, entered under its own type first (W-11).
+      branches = matches.map((match) => ({
+        // A matched type with its own model (including variants of the target model) is walked
+        // with its own model. Types without a model (interfaces, wrappers) are walked as the
+        // requested type so its fields can be found.
+        type: typeName && !modelOf(adapter, info.schema, match.type) ? target : match.type,
+        fieldNodes: [match.field],
+        indirectPath: match.path,
+        deferred: match.deferred,
+      }));
+    } else {
+      branches = [{ type: target, fieldNodes: info.fieldNodes, indirectPath: [], deferred: false }];
+    }
+
+    const plan = new Plan(
+      adapter,
+      options,
+      rootType,
+      positionForResolvedField(info),
+      options.initial,
+    );
+
+    try {
+      walkBranches(plan, branches);
+    } catch (error) {
+      plan.abandon();
+      throw error;
+    }
+
+    return plan.finish(plan.settle);
+  }
+
+  /**
+   * E-2: the plan loading the field `info` resolves for its parent row, played (A-3). The loaded
+   * row replaces the parent the field resolver sees, so besides the field's own selection it
+   * carries the parent type's type-level selection. The field is what the row is loaded for, so
+   * it is merged first and a type-level relation whose arguments conflict with it is left out.
+   */
+  static forParentRow<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
+    adapter: Adapter<Model, Query, NodeType>,
+    context: object,
+    info: GraphQLResolveInfo,
+    skipDeferredFragments?: boolean,
+  ): PlayedPlan<Model, Query, NodeType> {
+    const type = info.parentType;
+    const plan = new Plan(adapter, { context, info, skipDeferredFragments }, type);
+
+    try {
+      // Every node selecting the field (one per fragment it appears under) plans into the same
+      // row, so the loaded row satisfies each of them.
+      for (const fieldNode of info.fieldNodes) {
+        walkField(plan, type, fieldNode, []);
+      }
+    } catch (error) {
+      plan.abandon();
+      throw error;
+    }
+
+    return plan.finish(plan.enterParentType, type);
+  }
 
   /**
    * `source` is an entry point's options for a root plan and the parent plan for a nested one
@@ -326,6 +438,24 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
     this.adapter.merge(node, selection);
   }
+}
+
+/**
+ * D-7: where the field being resolved is, which every position beneath it links back to, so a
+ * select function can tell where in the query its field sits. Undefined when `info` does not name
+ * the field it resolves (a caller building one by hand): the plan then starts at its own fields.
+ */
+function positionForResolvedField(info: GraphQLResolveInfo): Position | undefined {
+  const node = info.fieldNodes[0];
+  const field = info.parentType?.getFields()[node.name.value];
+
+  return field && { parent: undefined, type: info.parentType, field, node };
+}
+
+function normalizePaths(paths: PathSegment[][]): IndirectPathSegment[][] {
+  return paths.map((path) =>
+    path.map((segment) => (typeof segment === 'string' ? { name: segment } : segment)),
+  );
 }
 
 function noop() {}

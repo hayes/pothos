@@ -1,14 +1,15 @@
 import { completeValue, isThenable } from '@pothos/core';
 import type { GraphQLObjectType } from 'graphql';
 import { describe, expect, it } from 'vitest';
+import { getLoaderMapping, Plan } from '../src';
 import {
-  getLoaderMapping,
-  planFromInfo,
+  type FakeAdapter,
+  type FakeMap,
+  mappingOf,
+  mappingsOf,
   queryFromInfo,
-  queryFromPlan,
-  rowPlanFromInfo,
-} from '../src';
-import { type FakeAdapter, type FakeMap, mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
+  resolveInfo,
+} from './fake-adapter';
 import { countPromises } from './promise-spy';
 import { createTestAdapter, createTestSchema, type Wrap, withSelects, withWraps } from './schema';
 
@@ -301,13 +302,13 @@ describe('async callbacks', () => {
     );
   });
 
-  it('settles planFromInfo, then queryFromPlan emits synchronously', async () => {
+  it('settles Plan.fromInfo, then plan.query emits synchronously', async () => {
     const source = '{ user { posts(take: 2) { id author(x: 1) { name } } } }';
     const info = await resolveInfo(schema, source);
     const syncContext = {};
     const expected = queryFromInfo(adapter, { context: syncContext, info, initial: { take: 1 } });
     const context = {};
-    const pending = planFromInfo(
+    const pending = Plan.fromInfo(
       withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
       { context, info },
     );
@@ -316,7 +317,7 @@ describe('async callbacks', () => {
 
     const plan = (await pending)!;
     // A resolver handed the settled plan emits without creating a promise.
-    const { result, promises } = countPromises(() => queryFromPlan(plan, { take: 1 }));
+    const { result, promises } = countPromises(() => plan.query({ take: 1 }));
 
     expect(promises).toBe(0);
     expect(result).toEqual(expected);
@@ -329,7 +330,7 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
-    const plan = await rowPlanFromInfo(withSelects(['posts'], deferred), {}, info);
+    const plan = await Plan.forParentRow(withSelects(['posts'], deferred), {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
     expect(adapter.emit(plan.root)).toEqual({
@@ -337,7 +338,7 @@ describe('async callbacks', () => {
     });
     expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
 
-    const direct = (await planFromInfo(withSelects(['posts'], deferred), {
+    const direct = (await Plan.fromInfo(withSelects(['posts'], deferred), {
       context: {},
       info: await resolveInfo(schema, '{ user { posts { id } } }'),
       typeName: 'User',
@@ -458,7 +459,7 @@ describe('a plan that throws after a callback started (M-2)', () => {
       const info = await resolveInfo(schema, '{ user { posts { id } profile { bio } } }');
 
       expect(() => queryFromInfo(failing, { context: {}, info })).toThrow('sync');
-      expect(() => planFromInfo(failing, { context: {}, info, typeName: 'User' })).toThrow('sync');
+      expect(() => Plan.fromInfo(failing, { context: {}, info, typeName: 'User' })).toThrow('sync');
 
       const paths = await resolveInfo(
         schema,
@@ -495,7 +496,7 @@ describe('a plan that throws after a callback started (M-2)', () => {
         { at: ['Viewer', 'posts'] },
       );
 
-      expect(() => rowPlanFromInfo(failing, {}, info)).toThrow('sync');
+      expect(() => Plan.forParentRow(failing, {}, info)).toThrow('sync');
       expect(calls).toBe(2);
     });
   });
@@ -548,10 +549,10 @@ describe('the synchronous path (A-1)', () => {
       at: ['Viewer', 'posts'],
     });
 
-    expect(countPromises(() => rowPlanFromInfo(adapter, {}, info)).promises).toBe(0);
+    expect(countPromises(() => Plan.forParentRow(adapter, {}, info)).promises).toBe(0);
     expect(
       countPromises(() =>
-        planFromInfo(adapter, {
+        Plan.fromInfo(adapter, {
           context: {},
           info,
           typeName: 'Post',
@@ -567,11 +568,11 @@ describe('the synchronous path (A-1)', () => {
     const expectedContext = {};
     const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
     const context = {};
-    const plan = (await planFromInfo(
+    const plan = (await Plan.fromInfo(
       withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
       { context, info },
     ))!;
-    const { result, promises } = countPromises(() => queryFromPlan(plan, select));
+    const { result, promises } = countPromises(() => plan.query(select));
 
     expect(promises).toBe(0);
     expect(result).toEqual(expected);
@@ -582,7 +583,7 @@ describe('the synchronous path (A-1)', () => {
     const context = {};
     const info = await resolveInfo(schema, source);
     const { result, promises } = countPromises(() =>
-      queryFromPlan(planFromInfo(adapter, { context, info })!, { take: 1 }),
+      Plan.fromInfo(adapter, { context, info })!.query({ take: 1 }),
     );
 
     expect(promises).toBe(0);

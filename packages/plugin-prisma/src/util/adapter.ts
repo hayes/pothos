@@ -1,7 +1,6 @@
 import {
   deepEqual,
   type EntryVisitor,
-  hasKeys,
   type Node,
   type Plan,
   type PlayedPlan,
@@ -117,6 +116,15 @@ class PrismaAdapter extends TreeAdapter<FieldMap, SelectionMap> {
 }
 
 export const prismaAdapter = new PrismaAdapter();
+
+/**
+ * Whether an object has any own enumerable key. `emit` writes `true` rather than an empty map for
+ * a relation nothing was selected under, and `{ ...args }` rather than an empty `include`, so it
+ * must tell an empty selection from a populated one.
+ */
+function hasKeys(value: object) {
+  return Object.keys(value).length > 0;
+}
 
 /** M-1, M-2: the entries of a `select` or `include` map, classified against the model. */
 function readKeys(map: IncludeMap | undefined, model: FieldMap, visit: PrismaVisitor) {

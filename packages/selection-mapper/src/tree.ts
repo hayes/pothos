@@ -323,6 +323,6 @@ class Checker<Model, Query> implements EntryVisitor<Model, Query> {
 }
 
 /** Whether an object has any own enumerable key. */
-export function hasKeys(value: object) {
+function hasKeys(value: object) {
   return Object.keys(value).length > 0;
 }

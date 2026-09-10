@@ -1,17 +1,17 @@
 /**
- * The property the two entry points claim: for the same document and the same caller selection,
- * `queryFromPlan(plan, select)` is what `queryFromInfo` produces with `select` as its `initial` —
- * the same query and the same loader mappings. `planFromInfo` collects merges without deciding
+ * The property the two ways of using a plan claim: for the same document and the same caller
+ * selection, `plan.query(select)` is what a fresh plan produces with `select` as its `initial` —
+ * the same query and the same loader mappings. `Plan.fromInfo` collects merges without deciding
  * any of them, so a play behind `select` reaches every decision a fresh walk would.
  */
 import { completeValue } from '@pothos/core';
 import { describe, expect, it, vi } from 'vitest';
-import type { EntryOptions } from '../src';
-import { planFromInfo, queryFromInfo, queryFromPlan } from '../src';
+import { Plan } from '../src';
 import type { Mappings } from '../src/loader-map';
 import * as loaderMap from '../src/loader-map';
-import type { FakeAdapter, FakeMap } from './fake-adapter';
-import { mappingsOf, resolveInfo } from './fake-adapter';
+import type { EntryOptions } from '../src/types';
+import type { FakeAdapter, FakeMap, FakePlan } from './fake-adapter';
+import { mappingsOf, queryFromInfo, resolveInfo } from './fake-adapter';
 import { createTestAdapter, createTestSchema, type Wrap, withWraps } from './schema';
 
 const schema = createTestSchema();
@@ -70,9 +70,9 @@ async function diff(
     queryFromInfo(adapter, { ...options, context: {}, initial: select }),
   );
   const played = await attempt(async () => {
-    const plan = await planFromInfo(adapter, { ...options, context: {} });
+    const plan = await Plan.fromInfo(adapter, { ...options, context: {} });
 
-    return plan ? queryFromPlan(plan as never, select) : ((select ?? {}) as FakeMap);
+    return plan ? (plan as FakePlan).query(select) : ((select ?? {}) as FakeMap);
   });
 
   return { fresh, played };
@@ -271,7 +271,7 @@ const cases: Case[] = [
   },
 ];
 
-describe('queryFromPlan(plan, select) is queryFromInfo with select as initial', () => {
+describe('plan.query(select) is a fresh plan with select as its initial', () => {
   for (const testCase of cases) {
     it(testCase.name, async () => {
       const { source, select, at, typeName, paths, adapter = sync } = testCase;

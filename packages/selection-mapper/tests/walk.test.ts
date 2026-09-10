@@ -1,14 +1,15 @@
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import type { Position, SelectFn, WalkedType } from '../src';
+import { getLoaderMapping, Plan } from '../src';
 import {
-  getLoaderMapping,
-  planFromInfo,
+  FakeAdapter,
+  type FakeMap,
+  mappingOf,
+  mappingsOf,
   queryFromInfo,
-  queryFromPlan,
-  rowPlanFromInfo,
-} from '../src';
-import { FakeAdapter, type FakeMap, mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
+  resolveInfo,
+} from './fake-adapter';
 import { createTestAdapter, createTestSchema, models, withSelects } from './schema';
 
 const schema = createTestSchema();
@@ -236,19 +237,6 @@ describe('queryFromInfo', () => {
         initial: { select: { id: true } },
       }),
     ).toEqual({ select: { id: true } });
-
-    // The initial selection comes back as the caller's own object: nothing was planned into it.
-    const initial = { select: { id: true, name: true } };
-
-    expect(
-      queryFromInfo(adapter, {
-        context,
-        info,
-        typeName: 'User',
-        paths: [['appointment']],
-        initial,
-      }),
-    ).toBe(initial);
   });
 
   it('walks every path match as its own type into one query (W-11)', async () => {
@@ -674,13 +662,13 @@ describe('a field selected more than once (W-1)', () => {
   });
 });
 
-describe('rowPlanFromInfo (E-2)', () => {
+describe('Plan.forParentRow (E-2)', () => {
   it("merges the field first, then the parent type's selection without conflicts", async () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
 
-    const plan = rowPlanFromInfo(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
     expect(adapter.emit(plan.root)).toEqual({
@@ -703,7 +691,7 @@ describe('rowPlanFromInfo (E-2)', () => {
 
     expect(info.fieldNodes).toHaveLength(2);
 
-    const plan = rowPlanFromInfo(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, {}, info);
 
     expect(adapter.emit(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
@@ -722,7 +710,7 @@ describe('rowPlanFromInfo (E-2)', () => {
       },
     );
 
-    const plan = rowPlanFromInfo(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, {}, info);
 
     expect(adapter.emit(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
@@ -794,12 +782,12 @@ describe('adapter contract details', () => {
   });
 });
 
-describe('planFromInfo', () => {
+describe('Plan.fromInfo', () => {
   it('returns the plan without recording anything', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
-    const played = planFromInfo(adapter, { context, info, typeName: 'User' })!.play();
+    const played = Plan.fromInfo(adapter, { context, info, typeName: 'User' })!.play();
 
     expect(adapter.emit(played.root)).toEqual({ select: { posts: true } });
     expect(mappingsOf(played.mappings)).toEqual({ 'User@posts': { nested: {} } });
@@ -813,7 +801,7 @@ describe('planFromInfo', () => {
 
     const empty = await resolveInfo(schema, '{ user { postsConnection { totalCount } } }', { at });
 
-    expect(planFromInfo(adapter, { ...options, info: empty })).toBeUndefined();
+    expect(Plan.fromInfo(adapter, { ...options, info: empty })).toBeUndefined();
 
     const nodes = await resolveInfo(
       schema,
@@ -822,13 +810,13 @@ describe('planFromInfo', () => {
         at,
       },
     );
-    const plan = planFromInfo(adapter, { ...options, info: nodes })!;
+    const plan = Plan.fromInfo(adapter, { ...options, info: nodes })!;
 
     expect(adapter.emit(plan.play().root)).toEqual({ select: { author: true } });
   });
 });
 
-describe('queryFromPlan', () => {
+describe('plan.query(select)', () => {
   it('emits what queryFromInfo emits with the selection as initial, and records the mappings', async () => {
     const info = await resolveInfo(
       schema,
@@ -838,11 +826,11 @@ describe('queryFromPlan', () => {
     const expectedContext = {};
     const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
     const context = {};
-    const plan = planFromInfo(adapter, { context, info })!;
+    const plan = Plan.fromInfo(adapter, { context, info })!;
 
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
 
-    const query = queryFromPlan(plan, select);
+    const query = plan.query(select);
 
     expect(query).toEqual(expected);
     // The caller's selection comes first, as `initial` does (E-1), so the query is the same
@@ -859,21 +847,21 @@ describe('queryFromPlan', () => {
     const expectedContext = {};
     const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
     const context = {};
-    const plan = planFromInfo(adapter, { context, info })!;
+    const plan = Plan.fromInfo(adapter, { context, info })!;
 
-    expect(queryFromPlan(plan, select)).toEqual(expected);
+    expect(plan.query(select)).toEqual(expected);
     // The document's `posts(take: 2)` lost the conflict: no mapping, it loads on its own.
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
     expect(getLoaderMapping(expectedContext, pathOf('user', 'posts'), 'User')).toBe(null);
     // The plan itself is untouched: emitting it again without a selection gives the plan.
-    expect(queryFromPlan(plan)).toEqual(queryFromInfo(adapter, { context: {}, info }));
+    expect(plan.query()).toEqual(queryFromInfo(adapter, { context: {}, info }));
   });
 
   it('emits the walked plan alone without a selection', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
 
-    expect(queryFromPlan(planFromInfo(adapter, { context, info })!)).toEqual(
+    expect(Plan.fromInfo(adapter, { context, info })!.query()).toEqual(
       queryFromInfo(adapter, { context: {}, info }),
     );
     expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({

@@ -1,14 +1,7 @@
 import { buildSchema, type GraphQLField, type GraphQLNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import {
-  getLoaderMapping,
-  type IndirectInclude,
-  planFromInfo,
-  queryFromInfo,
-  queryFromPlan,
-  rowPlanFromInfo,
-} from '../../src';
-import { mappingOf, resolveInfo } from '../fake-adapter';
+import { getLoaderMapping, type IndirectInclude, Plan } from '../../src';
+import { mappingOf, queryFromInfo, resolveInfo } from '../fake-adapter';
 import { countPromises } from '../promise-spy';
 import {
   emit,
@@ -483,11 +476,11 @@ describe('entry points', () => {
     ]);
   });
 
-  it('rowPlanFromInfo plans the field into a row carrying the parent type select (E-2)', async () => {
+  it('Plan.forParentRow plans the field into a row carrying the parent type select (E-2)', async () => {
     const info = await resolveInfo(schema, '{ admin { posts(take: 1) { id } } }', {
       at: ['AdminUser', 'posts'],
     });
-    const plan = rowPlanFromInfo(pnAdapter, {}, info);
+    const plan = Plan.forParentRow(pnAdapter, {}, info);
 
     expect(chain(pnAdapter.emit(plan.root))).toEqual([
       'select(id, email)',
@@ -498,10 +491,10 @@ describe('entry points', () => {
     expect(Object.keys(plan.mappings)).toEqual(['AdminUser@posts']);
   });
 
-  it('queryFromPlan emits the plan over a caller selection, and round-trips a serialized spec', async () => {
+  it('plan.query emits the plan over a caller selection, and round-trips a serialized spec', async () => {
     const source = '{ user { recent: posts(take: 1) { id } n: postCount } }';
     const context = {};
-    const plan = planFromInfo(pnAdapter, { context, info: await resolveInfo(schema, source) })!;
+    const plan = Plan.fromInfo(pnAdapter, { context, info: await resolveInfo(schema, source) })!;
     const select: PnSpec = { columns: ['name'] };
     const expected = queryFromInfo(pnAdapter, {
       context: {},
@@ -511,7 +504,7 @@ describe('entry points', () => {
 
     expect(getLoaderMapping(context, pathOf('user', 'recent'), 'User')).toBe(null);
 
-    const query = queryFromPlan(plan, select);
+    const query = plan.query(select);
 
     expect(chain(query)).toEqual(chain(expected));
     expect(chain(query)).toEqual([
@@ -523,6 +516,6 @@ describe('entry points', () => {
       nested: { 'Post@id': { nested: {} } },
     });
     // A serialized spec merges back without a key: every entry carries its alias.
-    expect(chain(queryFromPlan(plan))).toEqual(chain(pnAdapter.emit(plan.play().root)));
+    expect(chain(plan.query())).toEqual(chain(pnAdapter.emit(plan.play().root)));
   });
 });

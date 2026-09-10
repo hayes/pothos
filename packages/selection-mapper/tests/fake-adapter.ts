@@ -1,3 +1,4 @@
+import { isThenable, type MaybePromise } from '@pothos/core';
 import { execute } from '@pothos/test-utils';
 import {
   buildSchema,
@@ -8,8 +9,37 @@ import {
   type GraphQLResolveInfo,
   parse,
 } from 'graphql';
-import type { EntryVisitor, Mapping, Mappings, Node, SelectFn, WalkedType } from '../src';
-import { hasKeys, TreeAdapter } from '../src';
+import type { Adapter, EntryVisitor, Mappings, Node, SelectFn, WalkedType } from '../src';
+import { Plan, TreeAdapter } from '../src';
+import type { NodeBase } from '../src/adapter';
+import type { Mapping } from '../src/loader-map';
+import type { EntryOptions } from '../src/types';
+
+/** The plan type the fake adapter builds. */
+export type FakePlan = Plan<FakeModel, FakeMap>;
+
+/**
+ * What a plugin's own entry point does with a plan: plan the field, play it, and hand back the
+ * caller's own selection when the paths matched nothing. The package exported this as
+ * `queryFromInfo` until prisma took it over — drizzle and prisma-next each override the rule, so
+ * it is prisma's — and the tests that drive a whole walk keep a copy of it here.
+ */
+export function queryFromInfo<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
+  adapter: Adapter<Model, Query, NodeType>,
+  options: EntryOptions<Query>,
+): Query {
+  const plan = Plan.fromInfo(adapter, options) as
+    | MaybePromise<Plan<Model, Query, NodeType>>
+    | undefined;
+
+  return (
+    plan
+      ? isThenable(plan)
+        ? plan.then((settled) => settled.query())
+        : plan.query()
+      : (options.initial ?? {})
+  ) as Query;
+}
 
 /** A model: one object per name, so identity is model identity. */
 export interface FakeModel {
@@ -213,4 +243,9 @@ export async function resolveInfo(
 
 export function fieldNodeOf(info: GraphQLResolveInfo): FieldNode {
   return info.fieldNodes[0];
+}
+
+/** Whether an object has any own enumerable key: `emit` writes `true` for an empty selection. */
+function hasKeys(value: object) {
+  return Object.keys(value).length > 0;
 }

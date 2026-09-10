@@ -1,10 +1,8 @@
 import { isThenable } from '@pothos/core';
-// The plugin's own entry points wrap the mapper's, so the mapper is reached through its namespace
-// rather than through same-named imports.
-import * as mapper from '@pothos/selection-mapper';
 import {
   type IndirectInclude,
   type PathSegment,
+  Plan,
   selectedFieldNames,
 } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -30,7 +28,7 @@ export function queryFromInfo<T extends SelectionMap>({
   select,
   ...options
 }: QueryFromInfoOptions<T>): T {
-  const plan = mapper.planFromInfo(drizzleAdapter(config), {
+  const plan = Plan.fromInfo(drizzleAdapter(config), {
     ...options,
     // A `select` without `columns` merges as "no columns yet", not "every column".
     initial: select ? { columns: {}, ...select } : undefined,
@@ -42,9 +40,7 @@ export function queryFromInfo<T extends SelectionMap>({
   }
 
   return (
-    isThenable(plan)
-      ? plan.then((settled) => mapper.queryFromPlan(settled as DrizzlePlan))
-      : mapper.queryFromPlan(plan)
+    isThenable(plan) ? plan.then((settled) => (settled as DrizzlePlan).query()) : plan.query()
   ) as T;
 }
 
@@ -58,7 +54,7 @@ export function planFromInfo({
   config,
   ...options
 }: Omit<QueryFromInfoOptions<SelectionMap>, 'select'>): DrizzlePlan | undefined {
-  return mapper.planFromInfo(drizzleAdapter(config), options);
+  return Plan.fromInfo(drizzleAdapter(config), options);
 }
 
 /**
@@ -78,7 +74,7 @@ export function queryFromPlan<T extends SelectionMap>(
   }
 
   // A `select` without `columns` merges as "no columns yet", not "every column".
-  return mapper.queryFromPlan(plan, select ? { columns: {}, ...select } : undefined) as T;
+  return plan.query(select ? { columns: {}, ...select } : undefined) as T;
 }
 
 /**
@@ -90,5 +86,5 @@ export function rowPlanFromInfo(
   context: object,
   info: GraphQLResolveInfo,
 ): DrizzlePlayedPlan {
-  return mapper.rowPlanFromInfo(drizzleAdapter(config), context, info);
+  return Plan.forParentRow(drizzleAdapter(config), context, info);
 }

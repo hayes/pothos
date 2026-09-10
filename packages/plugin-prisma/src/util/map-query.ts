@@ -1,11 +1,8 @@
-import { isThenable } from '@pothos/core';
-// The plugin's own entry points wrap the mapper's, so the mapper is reached through its namespace
-// rather than through a same-named import.
-import * as mapper from '@pothos/selection-mapper';
-import { type PathSegment, selectedFieldNames } from '@pothos/selection-mapper';
+import { isThenable, type MaybePromise } from '@pothos/core';
+import { type PathSegment, Plan, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
-import { type PrismaPlayedPlan, prismaAdapter } from './adapter.js';
+import { type PrismaPlan, type PrismaPlayedPlan, prismaAdapter } from './adapter.js';
 import { wrapWithUsageCheck } from './usage.js';
 
 export { selectedFieldNames };
@@ -25,6 +22,10 @@ export type QueryFromInfoResult<Include> = undefined extends Include
  * The query for the field `info` resolves. A given `select` is merged as the initial selection;
  * for a type in include mode the plan still produces `include`, with the columns of that
  * `select` implied by the row.
+ *
+ * This is prisma's rule for turning a plan into a query, and it lives here because it is only
+ * prisma's: drizzle seeds its plan with `{ columns: {}, ...select }` and hands back the caller's
+ * bare `select`, and prisma-next emits onto a collection instead.
  */
 export function queryFromInfo<
   Select extends SelectionMap['select'] | undefined = undefined,
@@ -51,15 +52,24 @@ export function queryFromInfo<
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
 )): QueryFromInfoResult<Include> {
-  const query = mapper.queryFromInfo(prismaAdapter, {
+  const initial = select ? { select } : include ? { include } : undefined;
+  const plan = Plan.fromInfo(prismaAdapter, {
     context,
     info,
     typeName,
     path,
     paths,
     skipDeferredFragments,
-    initial: select ? { select } : include ? { include } : undefined,
-  });
+    initial,
+  }) as MaybePromise<PrismaPlan> | undefined;
+
+  // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
+  // caller gets back the selection it gave.
+  const query = plan
+    ? isThenable(plan)
+      ? plan.then((settled) => settled.query())
+      : plan.query()
+    : (initial ?? {});
 
   if (!withUsageCheck) {
     return query as never;
@@ -83,5 +93,5 @@ export function rowPlanFromInfo(
   info: GraphQLResolveInfo,
   skipDeferredFragments: boolean,
 ): PrismaPlayedPlan {
-  return mapper.rowPlanFromInfo(prismaAdapter, context, info, skipDeferredFragments);
+  return Plan.forParentRow(prismaAdapter, context, info, skipDeferredFragments);
 }
