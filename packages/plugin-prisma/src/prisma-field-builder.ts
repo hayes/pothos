@@ -17,6 +17,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
+import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
@@ -39,7 +40,6 @@ import {
 } from './util/cursors.js';
 import { getRefFromModel, getRelation } from './util/datamodel.js';
 import { getFieldDescription } from './util/description.js';
-import { selectedFieldNames } from './util/map-query.js';
 
 import type { FieldMap } from './util/relation-map.js';
 
@@ -256,10 +256,8 @@ export class PrismaObjectFieldBuilder<
       totalCountOnly: boolean,
     ) => {
       const countSelect =
-        this.builder.options.prisma.filterConnectionTotalCount !== false
-          ? nested.where
-            ? { where: nested.where }
-            : true
+        this.builder.options.prisma.filterConnectionTotalCount !== false && nested.where
+          ? { where: nested.where }
           : true;
 
       return {
@@ -267,7 +265,7 @@ export class PrismaObjectFieldBuilder<
           ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
           [name]: totalCountOnly
             ? undefined
-            : nested?.select
+            : nested.select
               ? {
                   ...nested,
                   select: {
@@ -708,30 +706,19 @@ function mergeConnectionQuery<Q extends { take: number; skip: number; cursor?: u
   } as Q;
 }
 
-function addScopes(
-  scopes: unknown,
-  builder: { createField: (options: Record<string, unknown>) => unknown },
-) {
+/** A field builder of the same type whose fields all carry `scopes`. */
+function withAuth(this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, {}>, scopes: {}) {
+  const builder = new PrismaObjectFieldBuilder(
+    this.typename,
+    this.builder,
+    this.model,
+    this.prismaFieldMap,
+  ) as unknown as { createField: (options: Record<string, unknown>) => unknown };
   const originalCreateField = builder.createField;
 
   builder.createField = function createField(options) {
-    return originalCreateField.call(this, {
-      authScopes: scopes,
-      ...options,
-    });
+    return originalCreateField.call(this, { authScopes: scopes, ...options });
   };
 
   return builder as never;
-}
-
-function withAuth(this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, {}>, scopes: {}) {
-  return addScopes(
-    scopes,
-    new PrismaObjectFieldBuilder(
-      this.typename,
-      this.builder,
-      this.model,
-      this.prismaFieldMap,
-    ) as never,
-  );
 }

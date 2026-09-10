@@ -1,19 +1,10 @@
-import { type ObjectRef, PothosSchemaError, type SchemaTypes } from '@pothos/core';
+import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
 import { PrismaInterfaceRef, type PrismaRef } from '../interface-ref.js';
 import { PrismaObjectRef } from '../object-ref.js';
 import type { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types.js';
 import { getDMMF } from './get-client.js';
 
 export const refMap = new WeakMap<object, Map<string, PrismaRef<never, PrismaModelTypes>>>();
-export const findUniqueMap = new WeakMap<
-  object,
-  Map<ObjectRef<SchemaTypes, unknown>, ((args: unknown, ctx: {}) => unknown) | null>
->();
-
-export const includeForRefMap = new WeakMap<
-  object,
-  Map<ObjectRef<SchemaTypes, unknown>, Record<string, unknown> | null>
->();
 
 export function getRefFromModel<Types extends SchemaTypes>(
   name: string,

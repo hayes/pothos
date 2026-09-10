@@ -7,12 +7,11 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { cacheKey, setRowMappings } from '@pothos/selection-mapper';
+import { cacheKey, Plan, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
 import { getClient } from './util/get-client.js';
-import { rowPlanFromInfo } from './util/map-query.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -57,7 +56,7 @@ export class ModelLoader {
   static forRef<Types extends SchemaTypes>(
     ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
-    findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | undefined,
+    findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | null | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
     return createContextCache(
@@ -70,7 +69,8 @@ export class ModelLoader {
             ? () => {
                 throw new PothosSchemaError(`Missing findUnique for ${ref.name}`);
               }
-            : (findUnique ?? ModelLoader.getDefaultFindUnique(ref, modelName, builder)),
+            : (findUnique ??
+                ModelLoader.getFindUnique(ModelLoader.getDefaultFindBy(ref, modelName, builder))),
         ),
     );
   }
@@ -135,16 +135,6 @@ export class ModelLoader {
     }
 
     return findBy;
-  }
-
-  static getDefaultFindUnique<Types extends SchemaTypes>(
-    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
-    modelName: string,
-    builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  ): (model: Record<string, unknown>) => {} {
-    const findBy = ModelLoader.getDefaultFindBy(ref, modelName, builder);
-
-    return ModelLoader.getFindUnique(findBy);
   }
 
   static getDefaultIDSelection<Types extends SchemaTypes>(
@@ -239,7 +229,8 @@ export class ModelLoader {
     if (!this.queryCache.has(key)) {
       this.queryCache.set(
         key,
-        rowPlanFromInfo(
+        Plan.forParentRow(
+          prismaAdapter,
           this.context,
           info,
           this.builder.options.prisma.skipDeferredFragments ?? true,

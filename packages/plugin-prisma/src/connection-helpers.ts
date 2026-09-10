@@ -27,8 +27,6 @@ import { getRefFromModel } from './util/datamodel.js';
 import { getDMMF } from './util/get-client.js';
 import { getRelationMap } from './util/relation-map.js';
 
-export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
-
 function wrapSelect(selected: unknown) {
   return { select: selected };
 }
@@ -131,6 +129,8 @@ export function prismaConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
+    // Resolved here rather than left to `prismaCursorConnectionQuery`: the helper's callbacks
+    // also see the extra args, which that signature does not carry.
     return prismaCursorConnectionQuery({
       args,
       ctx,
@@ -203,9 +203,7 @@ export function prismaConnectionHelpers<
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;
 
   return {
-    ref: (typeof refOrType === 'string'
-      ? getRefFromModel(refOrType, builder)
-      : refOrType) as PrismaRef<Types, Model, Model['Shape']>,
+    ref: ref as PrismaRef<Types, Model, Model['Shape']>,
     resolve,
     select: select ?? {},
     getQuery,

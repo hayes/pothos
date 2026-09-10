@@ -33,32 +33,63 @@ const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFi
   FieldKind
 >;
 
-fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options }) {
+type PrismaFieldType = ObjectRef<SchemaTypes, unknown> | [ObjectRef<SchemaTypes, unknown> | string];
+
+/** The `type` of a `prismaField`, with a model name resolved to its ref, list-ness kept. */
+function refForType(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  type: PrismaFieldType | string,
+) {
   const modelOrRef = Array.isArray(type) ? type[0] : type;
   const typeRef =
     typeof modelOrRef === 'string'
-      ? getRefFromModel(modelOrRef, this.builder)
+      ? getRefFromModel(modelOrRef, builder)
       : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
-  const typeParam = Array.isArray(type)
-    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
-    : typeRef;
+
+  return Array.isArray(type) ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>]) : typeRef;
+}
+
+/**
+ * The resolver of a `prismaField`: the planned query for the field, then the user's resolver with
+ * it. Built once per field, so a synchronous plan allocates nothing beyond this closure.
+ */
+function queryResolver(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  resolve: (...args: unknown[]) => unknown,
+) {
+  const run = (
+    query: unknown,
+    parent: unknown,
+    args: unknown,
+    context: {},
+    info: GraphQLResolveInfo,
+  ) =>
+    checkIfQueryIsUsed(
+      builder,
+      query as object,
+      info,
+      resolve(query, parent, args, context, info) as never,
+    );
+
+  return (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+    const query = queryFromInfo({
+      context,
+      info,
+      withUsageCheck: !!builder.options.prisma?.onUnusedQuery,
+      skipDeferredFragments: builder.options.prisma?.skipDeferredFragments,
+    });
+
+    return isThenable(query)
+      ? query.then((resolved) => run(resolved, parent, args, context, info))
+      : run(query, parent, args, context, info);
+  };
+}
+
+fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options }) {
   return this.field({
     ...(options as {}),
-    type: typeParam,
-    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({
-        context,
-        info,
-        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
-        skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
-      });
-
-      return isThenable(query)
-        ? query.then((resolved) =>
-            resolveWithQuery(this.builder, resolve as never, resolved, parent, args, context, info),
-          )
-        : resolveWithQuery(this.builder, resolve as never, query, parent, args, context, info);
-    },
+    type: refForType(this.builder, type as PrismaFieldType),
+    resolve: queryResolver(this.builder, resolve as never),
   }) as never;
 };
 
@@ -68,55 +99,16 @@ fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
     type,
     resolve,
     ...options
-  }: { type: ObjectRef<SchemaTypes, unknown> | [string]; resolve: (...args: unknown[]) => unknown },
+  }: { type: PrismaFieldType; resolve: (...args: unknown[]) => unknown },
 ) {
-  const modelOrRef = Array.isArray(type) ? type[0] : type;
-  const typeRef =
-    typeof modelOrRef === 'string'
-      ? getRefFromModel(modelOrRef, this.builder)
-      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
-  const typeParam = Array.isArray(type)
-    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
-    : typeRef;
   return (
     this as typeof fieldBuilderProto & { fieldWithInput: typeof fieldBuilderProto.field }
   ).fieldWithInput({
     ...(options as {}),
-    type: typeParam,
-    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({
-        context,
-        info,
-        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
-        skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
-      });
-
-      return isThenable(query)
-        ? query.then((resolved) =>
-            resolveWithQuery(this.builder, resolve, resolved, parent, args, context, info),
-          )
-        : resolveWithQuery(this.builder, resolve, query, parent, args, context, info);
-    },
+    type: refForType(this.builder, type),
+    resolve: queryResolver(this.builder, resolve),
   }) as never;
 } as never;
-
-/** Runs a `prismaField` resolver with its planned query; built once so a sync call allocates nothing. */
-function resolveWithQuery(
-  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  resolve: (...args: unknown[]) => unknown,
-  query: unknown,
-  parent: unknown,
-  args: unknown,
-  context: {},
-  info: GraphQLResolveInfo,
-) {
-  return checkIfQueryIsUsed(
-    builder,
-    query as object,
-    info,
-    resolve(query, parent, args, context, info) as never,
-  );
-}
 
 fieldBuilderProto.prismaConnection = function prismaConnection<
   Type extends keyof SchemaTypes['PrismaTypes'],
@@ -149,8 +141,8 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
   edgeOptions: {} = {},
 ) {
   const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
-  const typeName = this.builder.configStore.getTypeConfig(ref).name;
-  const model = this.builder.configStore.getTypeConfig(ref).extensions?.pothosPrismaModel as string;
+  const { name: typeName, extensions } = this.builder.configStore.getTypeConfig(ref);
+  const model = extensions?.pothosPrismaModel as string;
   const formatCursor = getCursorFormatter(model, this.builder, cursor);
   const parseCursor = getCursorParser(model, this.builder, cursor);
   const cursorSelection = ModelLoader.getCursorSelection(ref, model, cursor, this.builder);
@@ -258,9 +250,6 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
                 ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
               })
             : (connectionOptions as { fields: undefined }).fields,
-          extensions: {
-            ...(connectionOptions as Record<string, object> | undefined)?.extensions,
-          },
         },
     edgeOptions,
   );

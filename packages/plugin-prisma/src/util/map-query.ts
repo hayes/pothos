@@ -1,11 +1,9 @@
 import { isThenable, type MaybePromise } from '@pothos/core';
-import { cacheKey, type PathSegment, Plan, selectedFieldNames } from '@pothos/selection-mapper';
+import { cacheKey, type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
-import { type PrismaPlan, type PrismaPlayedPlan, prismaAdapter } from './adapter.js';
+import { type PrismaPlan, prismaAdapter } from './adapter.js';
 import { wrapWithUsageCheck } from './usage.js';
-
-export { selectedFieldNames };
 
 /**
  * What `queryFromInfo` returns. A given `include` puts the query in include mode, so the result
@@ -115,16 +113,4 @@ export function fallbackQueryFromInfo(
   }
 
   return isThenable(plan) ? plan.then((settled) => settled.query()) : plan.query();
-}
-
-/**
- * The plan loading the field `info` resolves for its parent row (the model loader's query),
- * already played: an E-2 plan is never played behind another selection.
- */
-export function rowPlanFromInfo(
-  context: object,
-  info: GraphQLResolveInfo,
-  skipDeferredFragments: boolean,
-): PrismaPlayedPlan {
-  return Plan.forParentRow(prismaAdapter, context, info, skipDeferredFragments);
 }

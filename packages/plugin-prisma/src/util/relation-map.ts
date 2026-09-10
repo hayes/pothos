@@ -1,8 +1,7 @@
 import { createContextCache } from '@pothos/core';
-import type { DMMF, RuntimeDataModel } from './get-client.js';
+import type { DMMF, DMMFField, RuntimeDataModel } from './get-client.js';
 
 export interface FieldMap {
-  model: string;
   relations: Map<string, FieldMap>;
   /** The relations `_count` can count, so `_count: true` can be spelled out when it has to be. */
   listRelations: Set<string>;
@@ -10,41 +9,22 @@ export interface FieldMap {
 
 export type RelationMap = Map<string, FieldMap>;
 
+/**
+ * Every model's relations, by name. Built once per datamodel, from either shape prisma hands us:
+ * the DMMF's array of models or the runtime datamodel's record of them.
+ */
 export const getRelationMap = createContextCache(
-  (datamodel: DMMF['datamodel'] | RuntimeDataModel) => createRelationMap(datamodel),
-);
+  ({ models }: DMMF['datamodel'] | RuntimeDataModel) => {
+    const entries: [string, { fields: DMMFField[] }][] = Array.isArray(models)
+      ? models.map((model) => [model.name, model])
+      : Object.entries(models);
+    const relationMap: RelationMap = new Map();
 
-export function createRelationMap({ models }: DMMF['datamodel'] | RuntimeDataModel) {
-  const relationMap: RelationMap = new Map();
-
-  if (Array.isArray(models)) {
-    for (const model of models) {
-      relationMap.set(model.name, {
-        model: model.name,
-        relations: new Map(),
-        listRelations: new Set(),
-      });
+    for (const [name] of entries) {
+      relationMap.set(name, { relations: new Map(), listRelations: new Set() });
     }
 
-    for (const model of models) {
-      const map = relationMap.get(model.name)!;
-
-      for (const field of model.fields) {
-        if (field.kind === 'object' && relationMap.has(field.type)) {
-          map.relations.set(field.name, relationMap.get(field.type)!);
-
-          if (field.isList) {
-            map.listRelations.add(field.name);
-          }
-        }
-      }
-    }
-  } else {
-    for (const name of Object.keys(models)) {
-      relationMap.set(name, { model: name, relations: new Map(), listRelations: new Set() });
-    }
-
-    for (const [name, model] of Object.entries(models)) {
+    for (const [name, model] of entries) {
       const map = relationMap.get(name)!;
 
       for (const field of model.fields) {
@@ -57,7 +37,7 @@ export function createRelationMap({ models }: DMMF['datamodel'] | RuntimeDataMod
         }
       }
     }
-  }
 
-  return relationMap;
-}
+    return relationMap;
+  },
+);
