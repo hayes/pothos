@@ -155,6 +155,19 @@ const SyncPost = syncBuilder.prismaObject('Post', {
   }),
 });
 
+// The shapes an async selection can arrive in, declared away from the option so the check reads
+// each callback's own type rather than a literal the option contextually typed.
+type UserSelect = { email: true };
+type AsyncUserSelect = () => Promise<UserSelect>;
+
+declare const declaredAsyncSelect: AsyncUserSelect;
+declare const declaredMaybeAsyncSelect: () => Promise<UserSelect> | UserSelect;
+declare const declaredSyncUnionSelect: () => { email: true } | { name: true };
+
+declare function genericAsyncSelect<T extends UserSelect>(): Promise<T>;
+declare function genericMaybeAsyncSelect<T extends UserSelect>(): Promise<T> | T;
+declare function genericSyncSelect<T extends UserSelect>(): T;
+
 syncBuilder.prismaObject('User', {
   select: { id: true },
   fields: (t) => ({
@@ -193,6 +206,59 @@ syncBuilder.prismaObject('User', {
         posts: await nestedSelection({ select: { title: true } }),
       }),
       resolve: () => [],
+    }),
+    // The check reads the callback's return type, so its parameter list is beside the point.
+    asyncWithoutArgs: t.string({
+      // @ts-expect-error an async field `select` needs `AsyncSelections: true`
+      select: async () => ({ email: true }),
+      resolve: () => '',
+    }),
+    // A promise returned without the `async` keyword is the same selection to the check.
+    promisedWithoutAsync: t.string({
+      // @ts-expect-error a promised field `select` needs `AsyncSelections: true`
+      select: () => Promise.resolve({ email: true }),
+      resolve: () => '',
+    }),
+    // A callback written elsewhere against a standalone alias, then passed in.
+    declaredAsync: t.string({
+      // @ts-expect-error an async field `select` needs `AsyncSelections: true`
+      select: declaredAsyncSelect,
+      resolve: () => '',
+    }),
+    // A generic whose return type keeps the promise through instantiation.
+    genericAsync: t.string({
+      // @ts-expect-error an async field `select` needs `AsyncSelections: true`
+      select: genericAsyncSelect,
+      resolve: () => '',
+    }),
+    // A literal widened to the alias by `satisfies` before it reaches the option.
+    satisfiesAsync: t.string({
+      // @ts-expect-error an async field `select` needs `AsyncSelections: true`
+      select: (async () => ({ email: true })) satisfies AsyncUserSelect,
+      resolve: () => '',
+    }),
+    // A callback whose return type is a union with a promise in it is async on one of its paths.
+    // Asking whether the callback as a whole returns a promise would let this through.
+    unionAsync: t.string({
+      // @ts-expect-error a field `select` that may return a promise needs `AsyncSelections: true`
+      select: declaredMaybeAsyncSelect,
+      resolve: () => '',
+    }),
+    // ...including when a generic is what erases to that union.
+    genericUnionAsync: t.string({
+      // @ts-expect-error a field `select` that may return a promise needs `AsyncSelections: true`
+      select: genericMaybeAsyncSelect,
+      resolve: () => '',
+    }),
+    // A union of two synchronous selections has no promise in it, and must still compile.
+    syncUnion: t.string({
+      select: declaredSyncUnionSelect,
+      resolve: () => '',
+    }),
+    // So must a generic return type that instantiates to something synchronous.
+    genericSync: t.string({
+      select: genericSyncSelect,
+      resolve: () => '',
     }),
     awaitedPosts: t.field({
       type: [SyncPost],

@@ -57,8 +57,17 @@ export type CheckAsyncSelection<
 > = true extends Types['AsyncSelections']
   ? unknown
   : // biome-ignore lint/suspicious/noExplicitAny: matching against any callback
-    Select extends (...args: any[]) => PromiseLike<unknown>
-    ? 'An async selection requires `AsyncSelections: true` in the schema types'
+    Select extends (...args: any[]) => infer Selection
+    ? // The callback as a whole returning a promise is not the only async shape: a callback
+      // whose return type is a union with a promise in it — `Selection | Promise<Selection>`,
+      // which a generic can also erase to — is async on some path, and is not assignable to
+      // `(...args: any[]) => PromiseLike<unknown>`. Ask whether any member of the return type
+      // is promise-like instead, so a union with one async member is rejected too. Wrapping
+      // both sides in a tuple keeps `never` — a return type with no promise member — from
+      // distributing the conditional away.
+      [Extract<Selection, PromiseLike<unknown>>] extends [never]
+      ? unknown
+      : 'An async selection requires `AsyncSelections: true` in the schema types'
     : unknown;
 
 export type MergedScalars<PartialTypes extends Partial<PothosSchemaTypes.UserSchemaTypes>> = (
