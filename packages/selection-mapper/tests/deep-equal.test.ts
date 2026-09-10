@@ -16,12 +16,6 @@ describe('deepEqual', () => {
     expect(deepEqual({}, { orderBy: undefined, limit: 1 })).toBe(false);
   });
 
-  it('skips ignored keys on both sides', () => {
-    expect(
-      deepEqual({ take: 1, where: { a: 1 } }, { take: 2, where: { a: 1 } }, new Set(['take'])),
-    ).toBe(true);
-  });
-
   it('compares boxed and date values by their primitive value', () => {
     expect(deepEqual(new Date(1), new Date(1))).toBe(true);
     expect(deepEqual(new Date(1), new Date(2))).toBe(false);

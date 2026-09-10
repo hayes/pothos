@@ -1,9 +1,9 @@
 /**
  * Structural equality for query arguments (`where`, `orderBy`, `take`, ...). Keys holding
  * `undefined` are treated as absent, so `{ where: cond ? filter : undefined }` compares equal to
- * `{}` when the condition is false. Ignored keys are skipped on both sides.
+ * `{}` when the condition is false.
  */
-export function deepEqual(left: unknown, right: unknown, ignore?: Set<string>): boolean {
+export function deepEqual(left: unknown, right: unknown): boolean {
   if (left === right) {
     return true;
   }
@@ -36,9 +36,9 @@ export function deepEqual(left: unknown, right: unknown, ignore?: Set<string>): 
       return lValue === rValue;
     }
 
-    const keys = comparedKeys(left as Record<string, unknown>, ignore);
+    const keys = comparedKeys(left as Record<string, unknown>);
 
-    if (keys.length !== comparedKeys(right as Record<string, unknown>, ignore).length) {
+    if (keys.length !== comparedKeys(right as Record<string, unknown>).length) {
       return false;
     }
 
@@ -56,6 +56,6 @@ export function deepEqual(left: unknown, right: unknown, ignore?: Set<string>): 
   return false;
 }
 
-function comparedKeys(value: Record<string, unknown>, ignore?: Set<string>) {
-  return Object.keys(value).filter((key) => value[key] !== undefined && !ignore?.has(key));
+function comparedKeys(value: Record<string, unknown>) {
+  return Object.keys(value).filter((key) => value[key] !== undefined);
 }
