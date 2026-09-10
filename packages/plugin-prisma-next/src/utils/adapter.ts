@@ -7,10 +7,10 @@
  * `.include(rel, ...)` / `.combine({...})` calls on the resolver's collection.
  *
  * Every relation consumer gets its own combine slot (`<alias>:<slot>`, or
- * `:object:<Type>:<slot>` for a type-level select), so nothing ever conflicts: `compatible`
- * answers true and `typeLevelConflict` never reports one. Rows are read back through the
- * per-resolve overlay in the plugin index, so the loader mappings the plan records are never
- * looked up.
+ * `:object:<Type>:<slot>` for a type-level select), so nothing ever conflicts: the accumulator
+ * is the three required members and nothing else, and the package answers the rest. Rows are
+ * read back through the per-resolve overlay in the plugin index, so the loader mappings the plan
+ * records are never looked up.
  */
 import { isThenable, PothosValidationError } from '@pothos/core';
 import {
@@ -699,7 +699,6 @@ export function prismaNextAdapter(contract: AnyContract): PrismaNextAdapter {
   adapter = {
     skipDeferredFragments: true,
     modelFor,
-    createNode: createPrismaNextNode,
     typeSelection(type) {
       let spec = typeSelections.get(type);
 
@@ -721,35 +720,32 @@ export function prismaNextAdapter(contract: AnyContract): PrismaNextAdapter {
 
       return selection ?? undefined;
     },
-    // The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field
-    // alias) or the response key of the field the walker is merging.
-    merge(node, spec, _key, alias) {
-      mergeSpec(node, spec, spec.alias ?? alias);
+    /**
+     * Every relation consumer gets its own combine slot, so there is nothing to compare and
+     * nothing to leave out: `accepts`, `conflict`, `absorb` and `acceptsFrom` are omitted, and
+     * the package answers "nothing ever conflicts" for them.
+     */
+    accumulator: {
+      create: createPrismaNextNode,
+      // The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field
+      // alias) or the response key of the field the traversal is merging. E-3: a relation query
+      // is the branch's refine and slot; its columns (a connection's cursor) are read on the
+      // relation.
+      merge(node, spec, options) {
+        if (options?.asQuery) {
+          if (spec.refine) {
+            node.refine = spec.refine;
+          }
+
+          if (spec.slot) {
+            node.slot = spec.slot;
+          }
+        }
+
+        mergeSpec(node, spec, spec.alias ?? options?.alias);
+      },
+      emit: serializeNode,
     },
-    // M-3: every consumer gets its own slot, so nothing ever conflicts.
-    compatible: () => true,
-    // E-3: the relation query is the branch's refine and slot; its columns (a connection's
-    // cursor) are read on the relation.
-    mergeQuery(node, query) {
-      if (!query) {
-        return;
-      }
-
-      if (query.refine) {
-        node.refine = query.refine;
-      }
-
-      if (query.slot) {
-        node.slot = query.slot;
-      }
-
-      mergeSpec(node, query, query.alias);
-    },
-    // S-7: type-level selects never conflict either.
-    typeLevelConflict: () => undefined,
-    // E-2: nothing to leave out.
-    withoutConflicts: (_node, spec) => spec,
-    serialize: serializeNode,
   };
 
   adapters.set(contract, adapter);
