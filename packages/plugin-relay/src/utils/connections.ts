@@ -211,8 +211,14 @@ export function parseCursorConnectionArgs(options: ResolveOffsetConnectionOption
     throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
+  // `first`/`last` are checked for presence rather than truthiness so that a page size of 0
+  // (which the validation above allows) is treated as a requested page size, and not as an
+  // omitted argument.
+  const hasFirst = first != null;
+  const hasLast = last != null;
+
   const limit = Math.min(first ?? last ?? defaultSize, maxSize) + 1;
-  const inverted = after ? !!last && !first : (!!before && !first) || (!first && !!last);
+  const inverted = after ? hasLast && !hasFirst : (!!before && !hasFirst) || (!hasFirst && hasLast);
 
   return {
     before: before ?? undefined,
