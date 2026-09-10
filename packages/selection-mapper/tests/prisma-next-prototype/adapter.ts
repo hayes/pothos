@@ -19,7 +19,7 @@
  *     `emitRelation` / `emitBranch`, ~915-1001).
  */
 import type { GraphQLNamedType } from 'graphql';
-import type { Adapter, Plan, SelectFn } from '../../src';
+import type { Accumulator, Adapter, Plan, SelectFn } from '../../src';
 
 // ---------------------------------------------------------------------------------------------
 // The builder surface (apply-selection.ts ~74-104).
@@ -341,42 +341,39 @@ function typeSelectionOf(type: GraphQLNamedType): PnSpec | undefined {
   return spec ?? undefined;
 }
 
+/**
+ * The traversal layer only: every consumer of a relation gets its own combine slot, so there is
+ * nothing to compare and nothing to leave out. `accepts`, `conflict`, `absorb` and `acceptsFrom`
+ * are omitted, and the package answers "nothing ever conflicts" for them.
+ */
+const pnAccumulator: Accumulator<PnModel, PnSpec, PnNode> = {
+  create: createPnNode,
+  // The slot namespace is the spec's own (`:object:<Type>`) or the response key of the field the
+  // traversal is merging. E-3: a relation query is the branch's refine; its columns (a
+  // connection's cursor) are read on the relation.
+  merge(node, spec, options) {
+    if (options?.asQuery) {
+      if (spec.refine) {
+        node.refine = spec.refine;
+      }
+
+      if (spec.args) {
+        node.args = spec.args;
+      }
+    }
+
+    mergeSpec(node, spec, spec.alias ?? options?.alias);
+  },
+  emit: serializeNode,
+};
+
 export const pnAdapter: PnAdapter = {
   skipDeferredFragments: true,
   modelFor: (type) => type.extensions?.[PN_MODEL] as PnModel | undefined,
-  createNode: createPnNode,
   typeSelection: typeSelectionOf,
   // S-4..S-6: a static spec or a select function, precompiled onto the field by the schema.
   fieldSelection: (field) => field.extensions?.[PN_SELECT] as PnSpec | PnSelectFn | undefined,
-  // The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field alias)
-  // or the response key of the field the walker is merging.
-  merge(node, spec, _key, alias) {
-    mergeSpec(node, spec, spec.alias ?? alias);
-  },
-  // M-3: every consumer gets its own slot, so nothing ever conflicts.
-  compatible: () => true,
-  // E-3: the relation query is the branch's refine; its columns (a connection's cursor) are
-  // read on the relation.
-  mergeQuery(node, query) {
-    if (!query) {
-      return;
-    }
-
-    if (query.refine) {
-      node.refine = query.refine;
-    }
-
-    if (query.args) {
-      node.args = query.args;
-    }
-
-    mergeSpec(node, query, query.alias);
-  },
-  // S-7: type-level selects never conflict either.
-  typeLevelConflict: () => undefined,
-  // E-2: nothing to leave out.
-  withoutConflicts: (_node, spec) => spec,
-  serialize: serializeNode,
+  accumulator: pnAccumulator,
 };
 
 // ---------------------------------------------------------------------------------------------
