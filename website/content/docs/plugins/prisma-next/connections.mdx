@@ -136,7 +136,7 @@ builder.prismaObject('User', {
       args: userPostsHelpers.getArgs(),
       resolve: async (user, args, ctx, info) => {
         const { collection, totalCountPromise, wrap } =
-          userPostsHelpers.applyPagination(
+          await userPostsHelpers.applyPagination(
             ctx.db.orm.Post.where((p) => p.authorId.eq(user.id)),
             args,
             info,
@@ -156,6 +156,8 @@ The returned object exposes:
 - `getArgs()`: the connection args (idempotent — call once per field).
 - `applyPagination(coll, args, info, ctx)`: applies cursor pagination
   + auto-include and returns `{ collection, totalCountPromise, wrap }`.
+  `await` it — the result is a promise whenever a `select` callback
+  beneath the connection returned one.
 - `connectionOptions(options)`: injects the synthetic `totalCount`
   field onto the connection type's options.
 

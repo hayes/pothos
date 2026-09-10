@@ -1,4 +1,10 @@
-import type { InputFieldMap, InputShapeFromFields, MaybePromise, SchemaTypes } from '@pothos/core';
+import {
+  type InputFieldMap,
+  type InputShapeFromFields,
+  isThenable,
+  type MaybePromise,
+  type SchemaTypes,
+} from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { AnyContract, CollectionFor, CursorSpec, ModelName, Row } from './types.js';
@@ -28,20 +34,23 @@ export interface PrismaConnectionHelpers<
    * Pass `info` whenever possible — without it, the auto-include
    * mapper can't descend into `edges.node` and nested `t.relation`
    * fields under the connection won't preload.
+   *
+   * A promise only when a `select` callback beneath the connection returned one (A-7), so
+   * `await` it: the collection is not usable until the selection it carries has settled.
    */
   applyPagination(
     collection: CollectionFor<Types, M>,
     args: InputShapeFromFields<Args> & import('@pothos/plugin-relay').DefaultConnectionArguments,
     info: GraphQLResolveInfo | undefined,
     ctx: Types['Context'],
-  ): {
+  ): MaybePromise<{
     collection: CollectionFor<Types, M>;
     totalCountPromise: Promise<number> | undefined;
     wrap<WrapRow extends Record<string, unknown>>(
       rows: readonly WrapRow[],
       totalCount?: number,
     ): ConnectionPage<WrapRow>;
-  };
+  }>;
   getArgs(): Args;
   connectionOptions<T extends object>(connectionOptions: T): T;
 }
@@ -141,6 +150,8 @@ export function prismaConnectionHelpers<
         ...(maxSize !== undefined ? { maxSize } : {}),
       });
 
+      // A promise here only when a `select` callback beneath the connection returned one (A-7);
+      // the awaited collection is what the caller gets, never the promise dressed as one.
       const prepared =
         info && pluginOpts
           ? (applySelectionToCollection(
@@ -153,7 +164,7 @@ export function prismaConnectionHelpers<
                 extraColumns: cursorCols,
                 ...mapperOpts,
               },
-            ) as unknown as CollectionFor<Types, M>)
+            ) as unknown as MaybePromise<CollectionFor<Types, M>>)
           : (pagination.collection as unknown as CollectionFor<Types, M>);
 
       // Auto-aggregate runs against `filteredBase` (post-where, pre-
@@ -172,8 +183,8 @@ export function prismaConnectionHelpers<
         totalCountPromise.catch(() => undefined);
       }
 
-      return {
-        collection: prepared,
+      const withCollection = (collection: CollectionFor<Types, M>) => ({
+        collection,
         totalCountPromise,
         wrap<WrapRow extends Record<string, unknown>>(
           rows: readonly WrapRow[],
@@ -193,7 +204,9 @@ export function prismaConnectionHelpers<
           }
           return page;
         },
-      };
+      });
+
+      return isThenable(prepared) ? prepared.then(withCollection) : withCollection(prepared);
     },
   };
 }

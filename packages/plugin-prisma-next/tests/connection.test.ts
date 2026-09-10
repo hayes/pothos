@@ -165,7 +165,7 @@ function buildSchema() {
         type: userSearch.ref,
         args: { ...userSearch.getArgs(), search: t.arg.string({ required: true }) },
         resolve: async (_parent, args, _ctx, info) => {
-          const { collection, wrap } = userSearch.applyPagination(
+          const { collection, wrap } = await userSearch.applyPagination(
             ctx.ormClient.User,
             args,
             info,
@@ -184,12 +184,8 @@ function buildSchema() {
           type: userSearchWithCount.ref,
           args: userSearchWithCount.getArgs(),
           resolve: async (_parent, args, _ctx, info) => {
-            const { collection, wrap, totalCountPromise } = userSearchWithCount.applyPagination(
-              ctx.ormClient.User,
-              args,
-              info,
-              _ctx,
-            );
+            const { collection, wrap, totalCountPromise } =
+              await userSearchWithCount.applyPagination(ctx.ormClient.User, args, info, _ctx);
             const [rows, total] = await Promise.all([
               collection.all(),
               totalCountPromise ?? Promise.resolve(undefined),
@@ -207,7 +203,7 @@ function buildSchema() {
           type: aliceOnly.ref,
           args: aliceOnly.getArgs(),
           resolve: async (_p, args, _ctx, info) => {
-            const { collection, wrap, totalCountPromise } = aliceOnly.applyPagination(
+            const { collection, wrap, totalCountPromise } = await aliceOnly.applyPagination(
               ctx.ormClient.User,
               args,
               info,
@@ -227,7 +223,7 @@ function buildSchema() {
         type: namesOnly.ref,
         args: namesOnly.getArgs(),
         resolve: async (_p, args, _ctx, info) => {
-          const { collection, wrap } = namesOnly.applyPagination(
+          const { collection, wrap } = await namesOnly.applyPagination(
             ctx.ormClient.User,
             args,
             info,
@@ -244,12 +240,8 @@ function buildSchema() {
           type: userSearchCustomCount.ref,
           args: userSearchCustomCount.getArgs(),
           resolve: async (_parent, args, _ctx, info) => {
-            const { collection, wrap, totalCountPromise } = userSearchCustomCount.applyPagination(
-              ctx.ormClient.User,
-              args,
-              info,
-              _ctx,
-            );
+            const { collection, wrap, totalCountPromise } =
+              await userSearchCustomCount.applyPagination(ctx.ormClient.User, args, info, _ctx);
             const [rows, total] = await Promise.all([
               collection.all(),
               totalCountPromise ?? Promise.resolve(undefined),
@@ -264,7 +256,7 @@ function buildSchema() {
         type: userSearchThunkArgs.ref,
         args: userSearchThunkArgs.getArgs(),
         resolve: async (_parent, args, _ctx, info) => {
-          const { collection, wrap } = userSearchThunkArgs.applyPagination(
+          const { collection, wrap } = await userSearchThunkArgs.applyPagination(
             ctx.ormClient.User,
             args,
             info,
@@ -1076,5 +1068,55 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     for (const e of data.users.edges) {
       expect(e.node.postsConnectionWithCallableCount.totalCount).toBe(999);
     }
+  });
+});
+
+// `applyPagination` answers a promise when a `select` callback beneath the connection returned
+// one (A-7). Handing that promise back dressed as a collection failed with
+// `collection.all is not a function`, so the helper resolves it before the caller sees it.
+describe('prismaConnectionHelpers with an async select beneath the connection', () => {
+  it('hands back a usable collection', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin, RelayPlugin],
+      relay: { clientMutationId: 'omit', cursorType: 'String' },
+      prismaNext: { contract: ctx.contract },
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        firstName: t.exposeString('firstName'),
+        asyncName: t.string({
+          select: (async () => ({ lastName: true })) as never,
+          resolve: (parent) => (parent as { lastName?: string }).lastName ?? '',
+        }),
+      }),
+    });
+    const helpers = prismaConnectionHelpers(builder, 'User', { cursor: 'id' });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.connection({
+          type: helpers.ref,
+          args: helpers.getArgs(),
+          resolve: async (_parent, args, context, info) => {
+            const { collection, wrap } = await helpers.applyPagination(
+              ctx.ormClient.User as never,
+              args as never,
+              info,
+              context,
+            );
+            return wrap(await collection.all()) as never;
+          },
+        }),
+      }),
+    });
+    const result = await execute({
+      schema: builder.toSchema(),
+      contextValue: {},
+      document: parse('{ users { edges { node { firstName asyncName } } } }'),
+    });
+    expect(result.errors).toBeUndefined();
+    const data = result.data as {
+      users: { edges: Array<{ node: { firstName: string; asyncName: string } }> };
+    };
+    expect(data.users.edges[0]?.node).toEqual({ firstName: 'Alice', asyncName: 'Andrews' });
   });
 });
