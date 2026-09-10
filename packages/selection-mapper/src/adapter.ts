@@ -22,10 +22,11 @@ export interface NodeBase<Model> {
  * which the traversal reads only `model`.
  *
  * Six members must be answered: three translate a schema into queries (`modelFor`,
- * `typeSelection`, `fieldSelection`) and three accumulate them (`create`, `merge`, `emit`). The
- * four below those are the merge rules, and each has the answer here that an adapter with no
- * conflicts to report wants: nothing ever conflicts, and node-to-node work round-trips through
- * `emit`. An adapter that gives every consumer of a relation its own slot inherits all four.
+ * `typeSelection`, `fieldSelection`) and three accumulate them (`createNode`, `mergeQuery`,
+ * `toQuery`). The four below those are the merge rules, and each has the answer here that an
+ * adapter with no conflicts to report wants: nothing ever conflicts, and node-to-node work
+ * round-trips through `toQuery`. An adapter that gives every consumer of a relation its own slot
+ * inherits all four.
  *
  * `NodeAdapter` in node.ts overrides all four over a concrete query tree, and is what the prisma
  * and drizzle adapters extend; an adapter whose query is not such a tree extends this directly.
@@ -57,37 +58,41 @@ export abstract class Adapter<Model, Query, NodeType extends NodeBase<Model>> {
   ): Query | SelectFn<Query> | undefined;
 
   /** A fresh, empty node for `model`. */
-  abstract create(model: Model): NodeType;
+  abstract createNode(model: Model): NodeType;
 
   /** M-1, M-2, S-9, E-2, E-3, in place. Never mutates `query`. */
-  abstract merge(node: NodeType, query: Query, options?: MergeOptions): void;
+  abstract mergeQuery(node: NodeType, query: Query, options?: MergeOptions): void;
 
   /** M-6: the node as a query of this ORM's format. */
-  abstract emit(node: NodeType): Query;
+  abstract toQuery(node: NodeType): Query;
 
   /**
-   * M-3: whether `query` can be merged into `node` without changing what is already selected.
-   * Inherited: nothing ever conflicts.
+   * M-3: whether merging `query` into `node` would leave everything already selected as it is.
+   * A yes or no; `firstConflict` is the version that names an entry. Inherited: nothing ever
+   * conflicts.
    */
-  accepts(_node: NodeType, _query: Query, _options?: MergeOptions): boolean {
+  canMergeQuery(_node: NodeType, _query: Query, _options?: MergeOptions): boolean {
     return true;
   }
 
   /**
-   * S-7: the first entry of a type-level `query` that conflicts with what `node` holds.
-   * Inherited: none.
+   * S-7: the first entry of a type-level `query` that conflicts with what `node` holds, for the
+   * error message that names it. Inherited: none.
    */
-  conflict(_node: NodeType, _query: Query): TypeLevelConflict | undefined {
+  firstConflict(_node: NodeType, _query: Query): TypeLevelConflict | undefined {
     return undefined;
   }
 
-  /** Everything `from` holds, merged into `node`. Inherited: the round trip through `emit`. */
-  absorb(node: NodeType, from: NodeType): void {
-    this.merge(node, this.emit(from));
+  /**
+   * `mergeQuery` from another node: everything `from` holds, merged into `node`. Inherited: the
+   * round trip through `toQuery`.
+   */
+  mergeNode(node: NodeType, from: NodeType): void {
+    this.mergeQuery(node, this.toQuery(from));
   }
 
-  /** M-3 node to node. Inherited: the round trip through `emit`. */
-  acceptsFrom(node: NodeType, from: NodeType): boolean {
-    return this.accepts(node, this.emit(from));
+  /** `canMergeQuery` node to node. Inherited: the round trip through `toQuery`. */
+  canMergeNode(node: NodeType, from: NodeType): boolean {
+    return this.canMergeQuery(node, this.toQuery(from));
   }
 }

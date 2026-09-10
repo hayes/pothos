@@ -482,7 +482,7 @@ describe('entry points', () => {
     });
     const plan = Plan.forParentRow(pnAdapter, {}, info);
 
-    expect(chain(pnAdapter.emit(plan.root))).toEqual([
+    expect(chain(pnAdapter.toQuery(plan.root))).toEqual([
       'select(id, email)',
       'include(posts){ combine(posts:posts=[take(1) select(id)], :object:AdminUser:total=count[]) }',
     ]);
@@ -516,6 +516,6 @@ describe('entry points', () => {
       nested: { 'Post@id': { nested: {} } },
     });
     // A serialized spec merges back without a key: every entry carries its alias.
-    expect(chain(plan.query())).toEqual(chain(pnAdapter.emit(plan.play().root)));
+    expect(chain(plan.query())).toEqual(chain(pnAdapter.toQuery(plan.play().root)));
   });
 });

@@ -584,7 +584,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
     // A promise behind the declared synchronous type, as `finish` returns one (A-7).
     return child.pending
       ? (awaitNested(child, mapping) as Query)
-      : adapter.emit(playNested(child, mapping).root);
+      : adapter.toQuery(playNested(child, mapping).root);
   };
 }
 
@@ -601,7 +601,7 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
 ) {
   mapping.pending = (mapping.pending ?? 0) + 1;
 
-  const result = child.pending!.then(() => child.adapter.emit(playNested(child, mapping).root));
+  const result = child.pending!.then(() => child.adapter.toQuery(playNested(child, mapping).root));
 
   result.then(() => {
     if (mapping.pending === 1) {
@@ -654,8 +654,8 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
  * wrapper's inner node.
  *
  * S-8: a node selected only under a `@defer` is returned like any other, whatever the plan's
- * deferred setting says — an adapter gating an extra on this over-reports rather than under-;
- * `eachSelectedField` in matches.ts says why that direction is the safe one.
+ * deferred setting says — an adapter gating a computed value on this over-reports rather than
+ * under-; `eachSelectedField` in matches.ts says why that direction is the safe one.
  */
 function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,

@@ -181,8 +181,8 @@ export class ModelLoader {
   stageQuery(played: DrizzlePlayedPlan, model: object) {
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
-      if (this.adapter.acceptsFrom(entry.root, played.root)) {
-        this.adapter.absorb(entry.root, played.root);
+      if (this.adapter.canMergeNode(entry.root, played.root)) {
+        this.adapter.mergeNode(entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -197,9 +197,9 @@ export class ModelLoader {
 
   initLoad(played: DrizzlePlayedPlan, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
-    const root = this.adapter.create(played.root.model);
+    const root = this.adapter.createNode(played.root.model);
 
-    this.adapter.absorb(root, played.root);
+    this.adapter.mergeNode(root, played.root);
 
     const entry = {
       root,
@@ -221,7 +221,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...this.adapter.emit(entry.root),
+          ...this.adapter.toQuery(entry.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(

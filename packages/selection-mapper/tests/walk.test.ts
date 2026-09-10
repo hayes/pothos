@@ -743,7 +743,7 @@ describe('Plan.forParentRow (E-2)', () => {
     const plan = Plan.forParentRow(adapter, {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
-    expect(adapter.emit(plan.root)).toEqual({
+    expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 2 }, id: true },
     });
     expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
@@ -765,7 +765,7 @@ describe('Plan.forParentRow (E-2)', () => {
 
     const plan = Plan.forParentRow(adapter, {}, info);
 
-    expect(adapter.emit(plan.root)).toEqual({
+    expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
     expect(mappingsOf(plan.mappings['User@posts'].nested)).toEqual({
@@ -784,7 +784,7 @@ describe('Plan.forParentRow (E-2)', () => {
 
     const plan = Plan.forParentRow(adapter, {}, info);
 
-    expect(adapter.emit(plan.root)).toEqual({
+    expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
     expect(Object.keys(plan.mappings)).toEqual(['User@latest']);
@@ -861,7 +861,7 @@ describe('Plan.fromInfo', () => {
 
     const played = Plan.fromInfo(adapter, { context, info, typeName: 'User' })!.play();
 
-    expect(adapter.emit(played.root)).toEqual({ select: { posts: true } });
+    expect(adapter.toQuery(played.root)).toEqual({ select: { posts: true } });
     expect(mappingsOf(played.mappings)).toEqual({ 'User@posts': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
   });
@@ -884,7 +884,7 @@ describe('Plan.fromInfo', () => {
     );
     const plan = Plan.fromInfo(adapter, { ...options, info: nodes })!;
 
-    expect(adapter.emit(plan.play().root)).toEqual({ select: { author: true } });
+    expect(adapter.toQuery(plan.play().root)).toEqual({ select: { author: true } });
   });
 });
 

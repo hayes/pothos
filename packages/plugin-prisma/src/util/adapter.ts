@@ -20,8 +20,8 @@ type PrismaVisitor = EntryVisitor<FieldMap, SelectionMap>;
 export const INCLUDE_ALL: SelectionMap = Object.freeze({});
 
 /**
- * The extras key standing for `_count: true` (every list relation counted). No relation can be
- * named `*`, so it never collides with a named count.
+ * The computed-value key standing for `_count: true` (every list relation counted). No relation
+ * can be named `*`, so it never collides with a named count.
  */
 const COUNT_ALL = '*';
 
@@ -29,10 +29,11 @@ const COUNT_ALL = '*';
  * How prisma selections (`{ select, include, ...args }`) read onto the shared query tree, and how
  * a node is written back. A node in named-column mode serializes to `select`; a node whose
  * columns are `null` (include mode, the default for a type without a type-level `select`)
- * serializes to `include`. `_count` entries live in the node's extras, keyed by relation name.
+ * serializes to `include`. `_count` entries are the node's computed values, keyed by relation
+ * name.
  *
  * The merge, compare and conflict rules are `NodeAdapter`'s: this is the schema side, the key
- * loop and `emit`.
+ * loop and `toQuery`.
  */
 class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
   // Set by prismaObject/prismaInterface and propagated to implementing types by onTypeConfig.
@@ -57,7 +58,7 @@ class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
       : { select: selection };
   }
 
-  read({ select, include, ...args }: SelectionMap, model: FieldMap, visit: PrismaVisitor) {
+  eachEntry({ select, include, ...args }: SelectionMap, model: FieldMap, visit: PrismaVisitor) {
     // A map without `select` is an include-mode map, and include mode is final (S-9).
     if (!select) {
       visit.allColumns();
@@ -72,9 +73,9 @@ class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
    * M-3 for one count: a named count already on the node must be equal, and `_count: true` only
    * agrees with unfiltered counts.
    */
-  override extraConflicts(extras: ReadonlyMap<string, unknown>, name: string, value: unknown) {
+  override computedConflicts(computed: ReadonlyMap<string, unknown>, name: string, value: unknown) {
     if (name === COUNT_ALL) {
-      for (const [count, filter] of extras) {
+      for (const [count, filter] of computed) {
         if (count !== COUNT_ALL && filter !== true) {
           return true;
         }
@@ -83,23 +84,23 @@ class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
       return false;
     }
 
-    if (extras.has(name)) {
-      return !deepEqual(extras.get(name), value);
+    if (computed.has(name)) {
+      return !deepEqual(computed.get(name), value);
     }
 
-    return extras.has(COUNT_ALL) && value !== true;
+    return computed.has(COUNT_ALL) && value !== true;
   }
 
-  emit(node: PrismaNode): SelectionMap {
+  toQuery(node: PrismaNode): SelectionMap {
     const nested: Record<string, SelectionMap | boolean> = {};
 
     for (const [name, child] of node.relations) {
-      const query = this.emit(child);
+      const query = this.toQuery(child);
 
       nested[name] = hasKeys(query) ? query : true;
     }
 
-    if (node.extras.size > 0) {
+    if (node.computed.size > 0) {
       nested._count = serializeCounts(node);
     }
 
@@ -118,9 +119,9 @@ class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
 export const prismaAdapter = new PrismaAdapter();
 
 /**
- * Whether an object has any own enumerable key. `emit` writes `true` rather than an empty map for
- * a relation nothing was selected under, and `{ ...args }` rather than an empty `include`, so it
- * must tell an empty selection from a populated one.
+ * Whether an object has any own enumerable key. `toQuery` writes `true` rather than an empty map
+ * for a relation nothing was selected under, and `{ ...args }` rather than an empty `include`, so
+ * it must tell an empty selection from a populated one.
  */
 function hasKeys(value: object) {
   return Object.keys(value).length > 0;
@@ -156,13 +157,13 @@ function readKeys(map: IncludeMap | undefined, model: FieldMap, visit: PrismaVis
 }
 
 /**
- * Counts are extras, one entry per counted relation, so a conflicting count leaves the others in
- * (E-2). A type-level conflict on one is reported as a relation conflict: it is a relation's
- * arguments that clash, not a computed value defined twice.
+ * Counts are computed values, one entry per counted relation, so a conflicting count leaves the
+ * others in (E-2). A type-level conflict on one is reported as a relation conflict: it is a
+ * relation's arguments that clash, not a computed value defined twice.
  */
 function readCounts(value: SelectionMap | true, visit: PrismaVisitor) {
   if (value === true) {
-    visit.extra(COUNT_ALL, true, 'relation');
+    visit.computed(COUNT_ALL, true, 'relation');
 
     return;
   }
@@ -170,7 +171,7 @@ function readCounts(value: SelectionMap | true, visit: PrismaVisitor) {
   const counts = (value as { select?: Record<string, unknown> }).select ?? {};
 
   for (const count of Object.keys(counts)) {
-    visit.extra(count, counts[count], 'relation');
+    visit.computed(count, counts[count], 'relation');
   }
 }
 
@@ -182,14 +183,14 @@ function serializeCounts(node: PrismaNode): SelectionMap | true {
   const counts: Record<string, unknown> = {};
   let plain = true;
 
-  for (const [name, count] of node.extras) {
+  for (const [name, count] of node.computed) {
     if (name !== COUNT_ALL) {
       counts[name] = count;
       plain &&= count === true;
     }
   }
 
-  if (!node.extras.has(COUNT_ALL)) {
+  if (!node.computed.has(COUNT_ALL)) {
     return { select: counts as IncludeMap };
   }
 

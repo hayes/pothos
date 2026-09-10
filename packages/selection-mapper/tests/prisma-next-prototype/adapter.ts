@@ -320,8 +320,8 @@ function serializeNode(node: PnNode): PnSpec {
 
 /**
  * The traversal layer only: every consumer of a relation gets its own combine slot, so there is
- * nothing to compare and nothing to leave out. `accepts`, `conflict`, `absorb` and `acceptsFrom`
- * are inherited, and the package answers "nothing ever conflicts" for them.
+ * nothing to compare and nothing to leave out. `canMergeQuery`, `firstConflict`, `mergeNode` and
+ * `canMergeNode` are inherited, and the package answers "nothing ever conflicts" for them.
  */
 export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
   /** S-1: each type's compiled selection, built once. */
@@ -357,7 +357,7 @@ export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
     return field.extensions?.[PN_SELECT] as PnSpec | PnSelectFn | undefined;
   }
 
-  create(model: PnModel): PnNode {
+  createNode(model: PnModel): PnNode {
     return createPnNode(model);
   }
 
@@ -366,7 +366,7 @@ export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
    * traversal is merging. E-3: a relation query is the branch's refine; its columns (a
    * connection's cursor) are read on the relation.
    */
-  merge(node: PnNode, spec: PnSpec, options?: MergeOptions) {
+  mergeQuery(node: PnNode, spec: PnSpec, options?: MergeOptions) {
     if (options?.asQuery) {
       if (spec.refine) {
         node.refine = spec.refine;
@@ -380,7 +380,7 @@ export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
     mergeSpec(node, spec, spec.alias ?? options?.alias);
   }
 
-  emit(node: PnNode): PnSpec {
+  toQuery(node: PnNode): PnSpec {
     return serializeNode(node);
   }
 }

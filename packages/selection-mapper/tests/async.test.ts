@@ -352,7 +352,7 @@ describe('async callbacks', () => {
     const plan = await Plan.forParentRow(withSelects(['posts'], deferred), {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
-    expect(adapter.emit(plan.root)).toEqual({
+    expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 2 }, id: true },
     });
     expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
@@ -363,7 +363,7 @@ describe('async callbacks', () => {
       typeName: 'User',
     }))!;
 
-    expect(adapter.emit(direct.play().root)).toEqual({ select: { posts: true } });
+    expect(adapter.toQuery(direct.play().root)).toEqual({ select: { posts: true } });
   });
 });
 

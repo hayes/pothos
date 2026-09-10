@@ -296,30 +296,30 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /**
    * A fresh node with this plan's merges folded into it, and the mappings of the merges it took.
    * `seed` takes the place of the plan's own `initial`: it is merged before anything the traversal
-   * collected, so a relation or extra the document plans with other arguments loses (M-4) and its
-   * field loads on its own (L-3).
+   * collected, so a relation or computed value the document plans with other arguments loses
+   * (M-4) and its field loads on its own (L-3).
    *
    * Synchronous, and runs no user callback: the queries are the ones the traversal already
    * collected, so a play of an async plan costs no more than a play of a synchronous one.
    */
   play(seed?: Query): PlayedPlan<Model, Query, NodeType> {
     const { adapter } = this;
-    const root = adapter.create(this.model);
+    const root = adapter.createNode(this.model);
     const settled = this.reusable(seed);
     // E-1: merged before anything else, so on a conflict it wins. A settled play already holds
     // the plan's own `initial`, so reusing one merges the seed standing beside it and nothing
-    // else: `merge` is not required to be idempotent, and merging the same query twice is a
+    // else: `mergeQuery` is not required to be idempotent, and merging the same query twice is a
     // question this package has no business asking an adapter.
     const first = settled ? seed : (seed ?? this.initial);
 
     if (first) {
-      adapter.merge(root, first);
+      adapter.mergeQuery(root, first);
     }
 
     if (settled) {
       // Every merge that play took still fits, and every merge it left out still does not, so the
       // list has nothing left to decide: the node it built is taken whole.
-      adapter.absorb(root, settled.root);
+      adapter.mergeNode(root, settled.root);
 
       return { plan: this, root, mappings: settled.mappings };
     }
@@ -329,24 +329,24 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     for (const merge of this.merges) {
       switch (merge.kind) {
         case 'type':
-          adapter.merge(root, merge.query);
+          adapter.mergeQuery(root, merge.query);
           break;
         case 'query':
-          adapter.merge(root, merge.query, AS_QUERY);
+          adapter.mergeQuery(root, merge.query, AS_QUERY);
           break;
         case 'variant':
           this.mergeVariant(root, merge.type, merge.variant, merge.query);
           break;
         case 'field': {
-          // One options object for the pair: `merge` reads only the alias, and `accepts` only the
-          // `ignoreArgs` beside it.
+          // One options object for the pair: `mergeQuery` reads only the alias, and
+          // `canMergeQuery` only the `ignoreArgs` beside it.
           const options: MergeOptions = { ignoreArgs: true, alias: merge.alias };
 
           // M-3, M-4, L-2: a field's selection is merged, and its mapping recorded, only while it
           // fits what is already in the node; otherwise it is left out and its resolver loads its
           // own data (L-3).
-          if (adapter.accepts(root, merge.query, options)) {
-            adapter.merge(root, merge.query, options);
+          if (adapter.canMergeQuery(root, merge.query, options)) {
+            adapter.mergeQuery(root, merge.query, options);
             mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
           }
 
@@ -371,14 +371,14 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * whose resolvers read a loaded row another way simply never looks them up.
    */
   query(seed?: Query): Query {
-    // Nothing to seed and a play already settled: that node is what a fresh play would absorb
-    // into a copy of itself, so emit it directly. `emit` does not mutate, and a later seeded play
-    // still absorbs from it.
+    // Nothing to seed and a play already settled: that node is what a fresh play would merge
+    // into a copy of itself, so hand it straight over. `toQuery` does not mutate, and a later
+    // seeded play still merges from it.
     const { root, mappings } = seed === undefined && this.played ? this.played : this.play(seed);
 
     setLoaderMappings(this.context, this.info, mappings);
 
-    return this.adapter.emit(root);
+    return this.adapter.toQuery(root);
   }
 
   /**
@@ -403,7 +403,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     const selection = this.adapter.typeSelection(type);
 
     if (selection) {
-      this.adapter.merge(played.root, selection, LENIENT);
+      this.adapter.mergeQuery(played.root, selection, LENIENT);
     }
 
     return played;
@@ -421,18 +421,18 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       return undefined;
     }
 
-    return seed === undefined || !this.adapter.conflict(this.played.root, seed)
+    return seed === undefined || !this.adapter.firstConflict(this.played.root, seed)
       ? this.played
       : undefined;
   }
 
   /**
    * S-7 for one variant selection. Unlike a field-level select, a type-level selection has no
-   * per-field fallback, so a relation argument or an extra that conflicts with what is already in
-   * the node is an error rather than a rejection.
+   * per-field fallback, so a relation argument or a computed value that conflicts with what is
+   * already in the node is an error rather than a rejection.
    */
   private mergeVariant(node: NodeType, type: WalkedType, variant: WalkedType, selection: Query) {
-    const conflict = this.adapter.conflict(node, selection);
+    const conflict = this.adapter.firstConflict(node, selection);
 
     if (conflict) {
       switch (conflict.kind) {
@@ -452,7 +452,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       }
     }
 
-    this.adapter.merge(node, selection);
+    this.adapter.mergeQuery(node, selection);
   }
 }
 

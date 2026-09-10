@@ -36,28 +36,28 @@ describe('selections', () => {
     'limit',
     'offset',
   ])('omits an undefined %s from merged selections', (key) => {
-    const node = adapter.create(fakeTable);
+    const node = adapter.createNode(fakeTable);
 
-    adapter.merge(node, { [key]: undefined });
+    adapter.mergeQuery(node, { [key]: undefined });
 
-    expect(adapter.emit(node)).not.toHaveProperty(key);
+    expect(adapter.toQuery(node)).not.toHaveProperty(key);
   });
 
   it('treats an undefined property as equivalent to an absent one when merging', () => {
-    const withUndefined = adapter.create(fakeTable);
-    adapter.merge(withUndefined, { orderBy: undefined, where: undefined });
+    const withUndefined = adapter.createNode(fakeTable);
+    adapter.mergeQuery(withUndefined, { orderBy: undefined, where: undefined });
 
-    const withoutKeys = adapter.create(fakeTable);
-    adapter.merge(withoutKeys, {});
+    const withoutKeys = adapter.createNode(fakeTable);
+    adapter.mergeQuery(withoutKeys, {});
 
-    expect(adapter.accepts(withUndefined, {})).toBe(true);
-    expect(adapter.accepts(withUndefined, adapter.emit(withoutKeys))).toBe(true);
+    expect(adapter.canMergeQuery(withUndefined, {})).toBe(true);
+    expect(adapter.canMergeQuery(withUndefined, adapter.toQuery(withoutKeys))).toBe(true);
   });
 
   it('ignores columns set to false instead of adding them to the selection', () => {
-    const node = adapter.create(fakeTable);
+    const node = adapter.createNode(fakeTable);
 
-    adapter.merge(node, {
+    adapter.mergeQuery(node, {
       columns: {
         firstName: true,
         passwordHash: false,
@@ -65,7 +65,7 @@ describe('selections', () => {
     });
 
     expect(node.columns).toEqual(new Set(['firstName']));
-    expect(adapter.emit(node)).toEqual({
+    expect(adapter.toQuery(node)).toEqual({
       columns: { firstName: true },
       with: {},
       extras: {},
@@ -73,15 +73,15 @@ describe('selections', () => {
   });
 
   it('still allows a column to be added later if another field requests it', () => {
-    const node = adapter.create(fakeTable);
+    const node = adapter.createNode(fakeTable);
 
-    adapter.merge(node, {
+    adapter.mergeQuery(node, {
       columns: {
         passwordHash: false,
       },
     });
 
-    adapter.merge(node, {
+    adapter.mergeQuery(node, {
       columns: {
         passwordHash: true,
       },
@@ -91,9 +91,9 @@ describe('selections', () => {
   });
 
   it('treats columns object with only falsy entries as an empty selection', () => {
-    const node = adapter.create(fakeTable);
+    const node = adapter.createNode(fakeTable);
 
-    adapter.merge(node, {
+    adapter.mergeQuery(node, {
       columns: {
         passwordHash: false,
       },

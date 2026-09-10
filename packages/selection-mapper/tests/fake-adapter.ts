@@ -95,7 +95,7 @@ export class FakeAdapter extends NodeAdapter<FakeModel, FakeMap> {
     return field.extensions?.select as FakeMap | SelectFn<FakeMap> | undefined;
   }
 
-  read({ select, extras, ...args }: FakeMap, model: FakeModel, visit: FakeVisitor) {
+  eachEntry({ select, extras, ...args }: FakeMap, model: FakeModel, visit: FakeVisitor) {
     // No `select` means every column, which is final (S-9).
     if (!select) {
       visit.allColumns();
@@ -118,24 +118,24 @@ export class FakeAdapter extends NodeAdapter<FakeModel, FakeMap> {
     }
 
     for (const key of Object.keys(extras ?? {})) {
-      visit.extra(key, extras![key]);
+      visit.computed(key, extras![key]);
     }
 
     visit.args(args);
   }
 
-  emit(node: Node<FakeModel>): FakeMap {
+  toQuery(node: Node<FakeModel>): FakeMap {
     const select: Record<string, boolean | FakeMap> = {};
     const query: FakeMap = { ...node.args };
 
     for (const [name, child] of node.relations) {
-      const nested = this.emit(child);
+      const nested = this.toQuery(child);
 
       select[name] = hasKeys(nested) ? nested : true;
     }
 
-    if (node.extras.size > 0) {
-      query.extras = Object.fromEntries(node.extras);
+    if (node.computed.size > 0) {
+      query.extras = Object.fromEntries(node.computed);
     }
 
     if (node.columns) {
@@ -245,7 +245,7 @@ export function fieldNodeOf(info: GraphQLResolveInfo): FieldNode {
   return info.fieldNodes[0];
 }
 
-/** Whether an object has any own enumerable key: `emit` writes `true` for an empty selection. */
+/** Whether an object has any own enumerable key: `toQuery` writes `true` for an empty selection. */
 function hasKeys(value: object) {
   return Object.keys(value).length > 0;
 }

@@ -185,18 +185,18 @@ export function prismaConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
-    const node = prismaAdapter.create(fieldMap);
+    const node = prismaAdapter.createNode(fieldMap);
 
-    prismaAdapter.merge(node, { select: cursorSelection });
+    prismaAdapter.mergeQuery(node, { select: cursorSelection });
 
     if (typeof nestedSelect === 'object' && nestedSelect) {
-      prismaAdapter.merge(node, nestedSelect);
+      prismaAdapter.mergeQuery(node, nestedSelect);
     }
 
     return {
       ...baseQuery,
       ...getQueryArgs(args, ctx),
-      ...prismaAdapter.emit(node),
+      ...prismaAdapter.toQuery(node),
     };
   }
 

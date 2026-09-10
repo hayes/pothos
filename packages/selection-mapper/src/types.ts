@@ -105,7 +105,11 @@ export interface MergeOptions {
   alias?: string;
 }
 
-/** A type-level selection entry that cannot be merged with what a node already holds. */
+/**
+ * A type-level selection entry that cannot be merged with what a node already holds. `kind`
+ * chooses the error message, so it is the ORM's own word for the entry rather than this package's:
+ * prisma reports a conflicting `_count` as a `relation`, since that is what a user wrote.
+ */
 export interface TypeLevelConflict {
   kind: 'extra' | 'relation';
   name: string;

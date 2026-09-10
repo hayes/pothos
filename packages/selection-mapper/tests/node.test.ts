@@ -17,9 +17,9 @@ models.Post.relations = { comments: models.Comment };
 class RecordingAdapter extends FakeAdapter {
   readonly visitors: FakeVisitor[] = [];
 
-  override read(query: FakeMap, model: FakeModel, visit: FakeVisitor) {
+  override eachEntry(query: FakeMap, model: FakeModel, visit: FakeVisitor) {
     this.visitors.push(visit);
-    super.read(query, model, visit);
+    super.eachEntry(query, model, visit);
   }
 }
 
@@ -32,16 +32,16 @@ const NESTED: FakeMap = {
 
 describe('node', () => {
   it('starts in named-column mode with no relations', () => {
-    const node = new FakeAdapter().create(models.User);
+    const node = new FakeAdapter().createNode(models.User);
 
     expect(node.columns).toEqual(new Set());
     expect(node.relations.size).toBe(0);
-    expect(node.extras.size).toBe(0);
+    expect(node.computed.size).toBe(0);
     expect(node.args).toEqual({});
   });
 
   it('creates a relation node once and returns it afterwards', () => {
-    const node = new FakeAdapter().create(models.User);
+    const node = new FakeAdapter().createNode(models.User);
     const posts = relation(node, 'posts', models.Post, {});
 
     expect(posts.model).toBe(models.Post);
@@ -50,7 +50,7 @@ describe('node', () => {
   });
 
   it('rejects a promise as a relation value (A-6)', () => {
-    const node = new FakeAdapter().create(models.User);
+    const node = new FakeAdapter().createNode(models.User);
 
     expect(() => relation(node, 'posts', models.Post, Promise.resolve({}))).toThrow(
       'Relation "posts" was given a promise. Await nestedSelection()',
@@ -68,9 +68,9 @@ describe('NodeAdapter', () => {
   it('reads every level of a merge with one visitor, and reuses it across merges', () => {
     const adapter = new RecordingAdapter();
     const { visitors } = adapter;
-    const node = adapter.create(models.User);
+    const node = adapter.createNode(models.User);
 
-    adapter.merge(node, NESTED);
+    adapter.mergeQuery(node, NESTED);
 
     // Three levels deep, one visitor.
     expect(visitors.length).toBe(3);
@@ -78,7 +78,7 @@ describe('NodeAdapter', () => {
 
     const [merger] = visitors;
 
-    adapter.merge(adapter.create(models.User), NESTED);
+    adapter.mergeQuery(adapter.createNode(models.User), NESTED);
 
     expect(new Set(visitors).size).toBe(1);
     expect(visitors[3]).toBe(merger);
@@ -87,14 +87,14 @@ describe('NodeAdapter', () => {
   it('reads every level of a check with one visitor, and a different one from the merge', () => {
     const adapter = new RecordingAdapter();
     const { visitors } = adapter;
-    const node = adapter.create(models.User);
+    const node = adapter.createNode(models.User);
 
-    adapter.merge(node, NESTED);
+    adapter.mergeQuery(node, NESTED);
 
     const merger = visitors[0];
 
     visitors.length = 0;
-    expect(adapter.accepts(node, NESTED)).toBe(true);
+    expect(adapter.canMergeQuery(node, NESTED)).toBe(true);
 
     // Every level, because every relation is already on the node.
     expect(visitors.length).toBe(3);
@@ -104,41 +104,41 @@ describe('NodeAdapter', () => {
 
   it('leaves a conflicting relation out of a lenient merge and keeps the rest (E-2)', () => {
     const adapter = new FakeAdapter();
-    const node = adapter.create(models.User);
+    const node = adapter.createNode(models.User);
 
-    adapter.merge(node, { select: { posts: { take: 2, select: { id: true } } } });
-    adapter.merge(
+    adapter.mergeQuery(node, { select: { posts: { take: 2, select: { id: true } } } });
+    adapter.mergeQuery(
       node,
       { select: { id: true, posts: { take: 5, select: { id: true } } } },
       { lenient: true },
     );
 
-    expect(adapter.emit(node)).toEqual({
+    expect(adapter.toQuery(node)).toEqual({
       select: { id: true, posts: { take: 2, select: { id: true } } },
     });
   });
 
   it('adds no columns for a relation query without a selection of its own (E-3)', () => {
     const adapter = new FakeAdapter();
-    const node = adapter.create(models.User);
+    const node = adapter.createNode(models.User);
 
-    adapter.merge(node, { take: 2 }, { asQuery: true });
+    adapter.mergeQuery(node, { take: 2 }, { asQuery: true });
 
     expect(node.columns).toEqual(new Set());
-    expect(adapter.emit(node)).toEqual({ take: 2, select: {} });
+    expect(adapter.toQuery(node)).toEqual({ take: 2, select: {} });
   });
 
-  it('absorbs a node without serializing it', () => {
+  it('merges one node into another without serializing it', () => {
     const adapter = new FakeAdapter();
-    const into = adapter.create(models.User);
-    const from = adapter.create(models.User);
+    const into = adapter.createNode(models.User);
+    const from = adapter.createNode(models.User);
 
-    adapter.merge(into, { select: { id: true } });
-    adapter.merge(from, NESTED);
+    adapter.mergeQuery(into, { select: { id: true } });
+    adapter.mergeQuery(from, NESTED);
 
-    expect(adapter.acceptsFrom(into, from)).toBe(true);
-    adapter.absorb(into, from);
+    expect(adapter.canMergeNode(into, from)).toBe(true);
+    adapter.mergeNode(into, from);
 
-    expect(adapter.emit(into)).toEqual(adapter.emit(from));
+    expect(adapter.toQuery(into)).toEqual(adapter.toQuery(from));
   });
 });

@@ -274,8 +274,8 @@ export class ModelLoader {
   stageQuery(played: PrismaPlayedPlan, model: object) {
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
-      if (prismaAdapter.acceptsFrom(entry.root, played.root)) {
-        prismaAdapter.absorb(entry.root, played.root);
+      if (prismaAdapter.canMergeNode(entry.root, played.root)) {
+        prismaAdapter.mergeNode(entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -299,9 +299,9 @@ export class ModelLoader {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     models.set(initialModel, promise);
 
-    const root = prismaAdapter.create(played.root.model);
+    const root = prismaAdapter.createNode(played.root.model);
 
-    prismaAdapter.absorb(root, played.root);
+    prismaAdapter.mergeNode(root, played.root);
 
     const entry = {
       models,
@@ -314,7 +314,7 @@ export class ModelLoader {
     this.tick.then(() => {
       this.staged.delete(entry);
 
-      // A throw here — `emit`, `findUnique`, or the delegate call itself — would otherwise abort
+      // A throw here — `toQuery`, `findUnique`, or the delegate call itself — would otherwise abort
       // the loop, leaving every model it had not reached pending forever and the request with it.
       // The whole batch rejects instead, the way drizzle's loader does; a promise the loop already
       // settled ignores it. Caught rather than chained so the tick still allocates no promise of
@@ -324,7 +324,7 @@ export class ModelLoader {
           if (delegate.findUniqueOrThrow) {
             delegate
               .findUniqueOrThrow({
-                ...prismaAdapter.emit(entry.root),
+                ...prismaAdapter.toQuery(entry.root),
                 where: {
                   ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
                 },
@@ -334,7 +334,7 @@ export class ModelLoader {
             delegate
               .findUnique({
                 rejectOnNotFound: true,
-                ...prismaAdapter.emit(entry.root),
+                ...prismaAdapter.toQuery(entry.root),
                 where: {
                   ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
                 },

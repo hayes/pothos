@@ -28,7 +28,7 @@ const ALL: SelectionMap = Object.freeze({});
  * matched back to their parent.
  *
  * The merge, compare and conflict rules are `NodeAdapter`'s: this is the schema side, the key
- * loop and `emit`. The schema config every one of them needs is the adapter's own state.
+ * loop and `toQuery`. The schema config every one of them needs is the adapter's own state.
  */
 export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, SelectionMap> {
   override skipDeferredFragments: boolean;
@@ -55,7 +55,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       undefined) as SelectionMap | SelectFn<SelectionMap> | undefined;
   }
 
-  read(
+  eachEntry(
     { columns, with: withSelection, extras, ...args }: SelectionMap,
     model: TableRelationalConfig,
     visit: DrizzleVisitor,
@@ -64,7 +64,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
     visit.args(omitUndefinedKeys(args));
 
     for (const key of Object.keys(extras ?? {})) {
-      visit.extra(key, extras![key]);
+      visit.computed(key, extras![key]);
     }
 
     if (!columns) {
@@ -82,14 +82,14 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
   }
 
   /**
-   * Extras are functions, compared by identity: the inherited deep-equal would let two different
-   * functions computing the same shape merge.
+   * Drizzle's `extras` are functions, compared by identity: the inherited deep-equal would let
+   * two different functions computing the same shape merge.
    */
-  override extraConflicts(extras: ReadonlyMap<string, unknown>, name: string, value: unknown) {
-    return extras.has(name) && extras.get(name) !== value;
+  override computedConflicts(computed: ReadonlyMap<string, unknown>, name: string, value: unknown) {
+    return computed.has(name) && computed.get(name) !== value;
   }
 
-  emit(node: DrizzleNode): SelectionMap {
+  toQuery(node: DrizzleNode): SelectionMap {
     // `columns` stays present (as undefined) for an every-column node: it is what callers
     // spreading or comparing the query have always seen.
     const query: SelectionMap & {
@@ -109,12 +109,12 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       }
     }
 
-    for (const [key, value] of node.extras) {
+    for (const [key, value] of node.computed) {
       query.extras[key] = value as never;
     }
 
     for (const [key, child] of node.relations) {
-      query.with[key] = this.emit(child);
+      query.with[key] = this.toQuery(child);
     }
 
     return query;
