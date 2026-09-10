@@ -371,7 +371,10 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * whose resolvers read a loaded row another way simply never looks them up.
    */
   query(seed?: Query): Query {
-    const { root, mappings } = this.play(seed);
+    // Nothing to seed and a play already settled: that node is what a fresh play would absorb
+    // into a copy of itself, so emit it directly. `emit` does not mutate, and a later seeded play
+    // still absorbs from it.
+    const { root, mappings } = seed === undefined && this.played ? this.played : this.play(seed);
 
     setLoaderMappings(this.context, this.info, mappings);
 
