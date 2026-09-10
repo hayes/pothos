@@ -114,8 +114,8 @@ export interface PrismaNextSpec {
 export type PrismaNextRelationEntry = true | PrismaNextSpec | PrismaNextSpecFn | PrismaNextFnEntry;
 
 export type PrismaNextSelectFn = SelectFn<PrismaNextSpec>;
-export type PrismaNextAdapter = Adapter<PrismaNextModel, PrismaNextSpec, undefined, PrismaNextNode>;
-export type PrismaNextWalk = Walk<PrismaNextModel, PrismaNextSpec, undefined, PrismaNextNode>;
+export type PrismaNextAdapter = Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
+export type PrismaNextWalk = Walk<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
 
 // ---------------------------------------------------------------------------------------------
 // Node: the accumulator.

@@ -95,27 +95,17 @@ without walking beneath it" pins it.
   (With `NestedSelection` typed to say a function query is not called in that case, or called
   and returned.)
 
-### A-2: `rootExtra` dereferences `info.parentType.getFields()` with no `callbackExtra`
+### A-2: the root seed dereferences `info.parentType.getFields()`
 
-**Fixed upstream in 098a01fa.** The `parentType` given to the regression fake is reverted.
+**Fixed upstream in 098a01fa, then settled for good.** The adapter hook the first fix keyed on
+(`Adapter.callbackExtra`) no longer exists: the walker owns the walk position itself and seeds it
+for the resolved field, reading `info.parentType?.getFields()`. A hand-built `info` without a
+`parentType` plans the same query, only without a position for the field being resolved. The
+`parentType` given to the regression fake is reverted.
 
-- Where: `entry.ts:245-253`. Plugin: `tests/regressions.test.ts` "applySelectionToCollection
-  accepts a typeName override" (a hand-built `info` without `parentType`, now given one).
-- The adapter defines no `callbackExtra`, yet every entry point reads
-  `info.parentType.getFields()[node.name.value]` before checking. A partial `info` (the plugin's
-  public escape hatch is documented as taking one) throws `Cannot read properties of undefined`.
-- Smallest upstream change:
-  ```diff
-   function rootExtra({ adapter, info }) {
-  +  if (!adapter.callbackExtra) {
-  +    return undefined;
-  +  }
-     const node = info.fieldNodes[0];
-     const field = info.parentType.getFields()[node.name.value];
-  -  return field && adapter.callbackExtra ? adapter.callbackExtra(...) : undefined;
-  +  return field ? adapter.callbackExtra(undefined, info.parentType, field, node) : undefined;
-   }
-  ```
+- Where: `entry.ts`, `positionForResolvedField`. Plugin: `tests/regressions.test.ts`
+  "applySelectionToCollection accepts a typeName override" (a hand-built `info` without
+  `parentType`, now given one).
 
 ### A-3: the context must be an object
 
