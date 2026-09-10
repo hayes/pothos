@@ -163,6 +163,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
         info,
         typeName,
         skipDeferredFragments: this.options.prisma?.skipDeferredFragments,
+        awaitSelections: true,
       });
 
       return isThenable(query)

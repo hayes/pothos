@@ -1,18 +1,22 @@
+import type { MaybePromise } from '@pothos/core';
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf, it } from 'vitest';
 import PrismaPlugin, {
+  type PathSegment,
   type PrismaTypesFromClient,
   prismaConnectionHelpers,
   queryFromInfo,
+  type SelectionMap,
 } from '../src';
 import type { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
-// The async model widens INPUTS only: a relation `query`, a count `where`, a field `select`
-// and the connection helpers' callbacks may return promises, while what a resolver is handed
-// (`queryFromInfo`, `nestedSelection`, `getQuery`) keeps its synchronous declared type and is
-// awaited by the schema that opted in.
+// The async model widens INPUTS freely: a relation `query`, a count `where`, a field `select` and
+// the connection helpers' callbacks may return promises. What a resolver is handed is synchronous
+// unless it asks otherwise: `queryFromInfo` and `getQuery` return a query, and only return a
+// promise for a caller that passed `awaitSelections`.
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: { tenantId: () => Promise<number> };
@@ -70,7 +74,9 @@ const User = builder.prismaObject('User', {
     comments: t.connection({
       type: Post,
       select: async (args, ctx, nestedSelection) => ({
-        comments: await commentHelpers.getQuery(args, ctx, nestedSelection),
+        comments: await commentHelpers.getQuery(args, ctx, nestedSelection, {
+          awaitSelections: true,
+        }),
       }),
       resolve: (user, args, ctx) => commentHelpers.resolve(user.comments, args, ctx),
     }),
@@ -90,6 +96,49 @@ builder.queryType({
   }),
 });
 
-it('keeps the declared return of queryFromInfo synchronous', () => {
-  expectTypeOf(queryFromInfo).returns.not.toMatchTypeOf<PromiseLike<unknown>>();
+declare const info: GraphQLResolveInfo;
+declare const flag: boolean;
+
+it('returns a synchronous query from queryFromInfo by default', () => {
+  expectTypeOf(queryFromInfo({ context: {}, info })).not.toMatchTypeOf<PromiseLike<unknown>>();
+});
+
+it('returns a MaybePromise from queryFromInfo with awaitSelections', () => {
+  const query = queryFromInfo({ context: {}, info });
+
+  expectTypeOf(queryFromInfo({ context: {}, info, awaitSelections: true })).toEqualTypeOf<
+    MaybePromise<typeof query>
+  >();
+});
+
+// A `boolean` that is neither literal infers as `boolean`, which `[Await] extends [false]` sends
+// to the promise. The naive `Await extends true` would hand back the synchronous type instead.
+it('returns a MaybePromise when awaitSelections is not a literal', () => {
+  const query = queryFromInfo({ context: {}, info });
+
+  expectTypeOf(queryFromInfo({ context: {}, info, awaitSelections: flag })).toEqualTypeOf<
+    MaybePromise<typeof query>
+  >();
+});
+
+declare const connectionArgs: PothosSchemaTypes.DefaultConnectionArguments;
+declare const nodeSelection: (selection?: SelectionMap | true, path?: PathSegment[]) => unknown;
+
+it('returns a synchronous query from getQuery by default', () => {
+  expectTypeOf(
+    commentHelpers.getQuery(connectionArgs, { tenantId: async () => 1 }, nodeSelection),
+  ).not.toMatchTypeOf<PromiseLike<unknown>>();
+});
+
+it('returns a MaybePromise from getQuery with awaitSelections', () => {
+  const ctx = { tenantId: async () => 1 };
+  const query = commentHelpers.getQuery(connectionArgs, ctx, nodeSelection);
+
+  expectTypeOf(
+    commentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: true }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
+
+  expectTypeOf(
+    commentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: flag }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
 });

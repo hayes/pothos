@@ -18,6 +18,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type { QueryForDrizzleConnection } from './types.js';
 import { drizzleAdapter } from './utils/adapter.js';
+import { checkAwaitSelections } from './utils/await-selections.js';
 import { getSchemaConfig } from './utils/config.js';
 import {
   type DrizzleCursorConnectionQueryOptions,
@@ -200,11 +201,42 @@ export function drizzleConnectionHelpers<
   // The `nestedSelection` of the field's `select`, whatever table its type names.
   type NestedSelection = (selection?: SelectionMap | true, path?: PathSegment[]) => unknown;
 
-  function getQuery(
+  /** The drizzle query `getQuery` builds: the node selection, with the connection's own arguments. */
+  type ConnectionQuery = Omit<Selection, 'orderBy'> & {
+    orderBy: {
+      [K in TableConfig['table']['_'] extends { columns: infer Columns } ? keyof Columns : never]?:
+        | 'asc'
+        | 'desc'
+        | undefined;
+    };
+    where: RelationsFilter<TableConfig, Types['DrizzleRelations']>;
+  };
+
+  /**
+   * What `getQuery` returns for a given `awaitSelections`. `[Await] extends [false]` rather than
+   * `Await extends true`, so a caller passing a `boolean` variable — which infers `Await` as
+   * `boolean`, neither literal — is handed the promise to deal with, rather than a synchronous
+   * type it cannot rely on.
+   */
+  type ConnectionQueryReturn<Await extends boolean> = [Await] extends [false]
+    ? ConnectionQuery
+    : MaybePromise<ConnectionQuery>;
+
+  /**
+   * The connection's query, built from the helper's own `select` and `query` and the selection
+   * beneath the field. Synchronous unless `awaitSelections` says otherwise: an async `select` or
+   * `query`, or an async selection beneath the connection, throws rather than returning a promise
+   * the declared type denies.
+   */
+  function getQuery<Await extends boolean = false>(
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     nestedSelectionOrInfo: NestedSelection | GraphQLResolveInfo,
-  ) {
+    options?: {
+      /** Whether the caller will await the query. */
+      awaitSelections?: Await;
+    },
+  ): ConnectionQueryReturn<Await> {
     const nestedSelection: NestedSelection =
       typeof nestedSelectionOrInfo === 'function'
         ? nestedSelectionOrInfo
@@ -216,25 +248,25 @@ export function drizzleConnectionHelpers<
               select: select as SelectionMap,
               path,
             });
-    // Both callbacks start now; the query waits for whichever of them is async. The declared
-    // type stays synchronous, so an async schema awaits the result.
+    // Both callbacks start now; the query waits for whichever of them is async.
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? select((sel) => nestedSelection(sel as SelectionMap, ['edges', 'node']) as never, args, ctx)
       : (nestedSelection(true, ['edges', 'node']) as never);
     const baseQuery = baseQueryFor(args, ctx);
 
-    return (isThenable(nestedSelect) || isThenable(baseQuery)
-      ? Promise.all([nestedSelect, baseQuery]).then(([nested, base]) =>
-          buildQuery(nested, base, args, ctx),
-        )
-      : buildQuery(nestedSelect, baseQuery, args, ctx)) as unknown as Omit<Selection, 'orderBy'> & {
-      orderBy: {
-        [K in TableConfig['table']['_'] extends { columns: infer Columns }
-          ? keyof Columns
-          : never]?: 'asc' | 'desc' | undefined;
-      };
-      where: RelationsFilter<TableConfig, Types['DrizzleRelations']>;
-    };
+    const built: MaybePromise<object> =
+      isThenable(nestedSelect) || isThenable(baseQuery)
+        ? Promise.all([nestedSelect, baseQuery]).then(([nested, base]) =>
+            buildQuery(nested, base, args, ctx),
+          )
+        : buildQuery(nestedSelect, baseQuery, args, ctx);
+
+    return checkAwaitSelections(
+      built,
+      options?.awaitSelections,
+      'getQuery',
+      `the ${String(tableName)} connection`,
+    ) as ConnectionQueryReturn<Await>;
   }
 
   // Built once per helper, so a synchronous `getQuery` allocates nothing beyond the query.

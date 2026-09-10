@@ -17,6 +17,7 @@ import type {
   UniqueFieldsFromWhereUnique,
 } from './types.js';
 import { prismaAdapter } from './util/adapter.js';
+import { checkAwaitSelections } from './util/await-selections.js';
 import {
   getCursorFormatter,
   getCursorParser,
@@ -140,14 +141,42 @@ export function prismaConnectionHelpers<
     });
   }
 
-  function getQuery(
+  /** The prisma query `getQuery` builds: the node selection, with the connection's own arguments. */
+  type ConnectionQuery = (Model['Select'] extends Select ? {} : { select: Select }) & {
+    where?: Model['Where'];
+    orderBy?: Model['OrderBy'];
+    skip?: number;
+    take?: number;
+    cursor?: Model['WhereUnique'];
+  };
+
+  /**
+   * What `getQuery` returns for a given `awaitSelections`. `[Await] extends [false]` rather than
+   * `Await extends true`, so a caller passing a `boolean` variable — which infers `Await` as
+   * `boolean`, neither literal — is handed the promise to deal with, rather than a synchronous
+   * type it cannot rely on.
+   */
+  type ConnectionQueryReturn<Await extends boolean> = [Await] extends [false]
+    ? ConnectionQuery
+    : MaybePromise<ConnectionQuery>;
+
+  /**
+   * The connection's query, built from the helper's own `select` and `query` and the selection
+   * beneath the field. Synchronous unless `awaitSelections` says otherwise: an async `select` or
+   * `query`, or an async selection beneath the connection, throws rather than returning a promise
+   * the declared type denies.
+   */
+  function getQuery<Await extends boolean = false>(
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     // The `nestedSelection` of the field's `select`, whatever model its type names.
     nestedSelection: (selection?: SelectionMap | true, path?: PathSegment[]) => unknown,
-  ) {
-    // Both callbacks start now; the query waits for whichever of them is async. The declared
-    // type stays synchronous, so an async schema awaits the result.
+    options?: {
+      /** Whether the caller will await the query. */
+      awaitSelections?: Await;
+    },
+  ): ConnectionQueryReturn<Await> {
+    // Both callbacks start now; the query waits for whichever of them is async.
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? completeValue(
           select(
@@ -160,22 +189,19 @@ export function prismaConnectionHelpers<
       : (nestedSelection(true, ['edges', 'node']) as never);
     const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
 
-    return (isThenable(nestedSelect) || isThenable(baseQuery)
-      ? Promise.all([nestedSelect, baseQuery]).then(([nested, base]) =>
-          buildQuery(nested, base, args, ctx),
-        )
-      : buildQuery(
-          nestedSelect,
-          baseQuery,
-          args,
-          ctx,
-        )) as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
-      where?: Model['Where'];
-      orderBy?: Model['OrderBy'];
-      skip?: number;
-      take?: number;
-      cursor?: Model['WhereUnique'];
-    };
+    const built: MaybePromise<object> =
+      isThenable(nestedSelect) || isThenable(baseQuery)
+        ? Promise.all([nestedSelect, baseQuery]).then(([nested, base]) =>
+            buildQuery(nested, base, args, ctx),
+          )
+        : buildQuery(nestedSelect, baseQuery, args, ctx);
+
+    return checkAwaitSelections(
+      built,
+      options?.awaitSelections,
+      'getQuery',
+      `the ${modelName} connection`,
+    ) as ConnectionQueryReturn<Await>;
   }
 
   // Built once per helper, so a synchronous `getQuery` allocates nothing beyond the query.

@@ -77,6 +77,7 @@ function queryResolver(
       info,
       withUsageCheck: !!builder.options.prisma?.onUnusedQuery,
       skipDeferredFragments: builder.options.prisma?.skipDeferredFragments,
+      awaitSelections: true,
     });
 
     return isThenable(query)
@@ -220,6 +221,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           typeName,
           withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
           skipDeferredFragments: this.builder.options.prisma?.skipDeferredFragments,
+          awaitSelections: true,
         });
 
         return isThenable(query)

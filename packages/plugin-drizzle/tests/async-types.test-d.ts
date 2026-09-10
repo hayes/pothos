@@ -1,6 +1,8 @@
+import type { MaybePromise } from '@pothos/core';
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+import type { PathSegment } from '@pothos/selection-mapper';
 import { eq } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { expectTypeOf, it } from 'vitest';
@@ -8,10 +10,10 @@ import DrizzlePlugin, { drizzleConnectionHelpers } from '../src';
 import { type DrizzleRelations, db, relations } from './example/db';
 import { posts } from './example/db/schema';
 
-// The async model widens INPUTS only: a relation `query`, a count `where`, a field or
-// related-field `select` and the connection helpers' callbacks may return promises, while what a
-// resolver is handed (the `query()` builder, `nestedSelection`, `getQuery`) keeps its synchronous
-// declared type and is awaited by the schema that opted in.
+// The async model widens INPUTS freely: a relation `query`, a count `where`, a field or
+// related-field `select` and the connection helpers' callbacks may return promises. What a
+// resolver is handed is synchronous unless it asks otherwise: the `query()` builder is settled
+// before the resolver runs, and `getQuery` only returns a promise with `awaitSelections`.
 const builder = new SchemaBuilder<{
   DrizzleRelations: DrizzleRelations;
   Context: { tenantId: () => Promise<number> };
@@ -88,7 +90,11 @@ const User = builder.drizzleObject('users', {
     comments: t.connection({
       type: Comment,
       select: async (args, ctx, nestedSelection) => ({
-        with: { comments: await commentHelpers.getQuery(args, ctx, nestedSelection) },
+        with: {
+          comments: await commentHelpers.getQuery(args, ctx, nestedSelection, {
+            awaitSelections: true,
+          }),
+        },
       }),
       resolve: (user, args, ctx) => commentHelpers.resolve(user.comments, args, ctx),
     }),
@@ -108,6 +114,31 @@ builder.queryType({
   }),
 });
 
-it('keeps the declared return of the query builder synchronous', () => {
-  expectTypeOf(builder).not.toBeAny();
+declare const connectionArgs: PothosSchemaTypes.DefaultConnectionArguments;
+declare const ctx: { tenantId: () => Promise<number> };
+declare const nodeSelection: (selection?: {} | true, path?: PathSegment[]) => unknown;
+declare const flag: boolean;
+
+it('returns a synchronous query from getQuery by default', () => {
+  expectTypeOf(commentHelpers.getQuery(connectionArgs, ctx, nodeSelection)).not.toMatchTypeOf<
+    PromiseLike<unknown>
+  >();
+});
+
+it('returns a MaybePromise from getQuery with awaitSelections', () => {
+  const query = commentHelpers.getQuery(connectionArgs, ctx, nodeSelection);
+
+  expectTypeOf(
+    commentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: true }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
+});
+
+// A `boolean` that is neither literal infers as `boolean`, which `[Await] extends [false]` sends
+// to the promise. The naive `Await extends true` would hand back the synchronous type instead.
+it('returns a MaybePromise when awaitSelections is not a literal', () => {
+  const query = commentHelpers.getQuery(connectionArgs, ctx, nodeSelection);
+
+  expectTypeOf(
+    commentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: flag }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
 });

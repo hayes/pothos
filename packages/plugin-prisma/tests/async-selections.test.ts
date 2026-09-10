@@ -202,7 +202,17 @@ const User = builder.prismaObject('User', {
     asyncCommentsConnection: t.connection({
       type: Comment,
       select: async (args, ctx, nestedSelection) => ({
-        comments: await asyncCommentHelpers.getQuery(args, ctx, nestedSelection),
+        comments: await asyncCommentHelpers.getQuery(args, ctx, nestedSelection, {
+          awaitSelections: true,
+        }),
+      }),
+      resolve: (user, args, ctx) => asyncCommentHelpers.resolve(user.comments, args, ctx),
+    }),
+    // Asks for the query without saying it will await it, while the helper's own `query` is async.
+    unawaitedCommentsConnection: t.connection({
+      type: Comment,
+      select: (args, ctx, nestedSelection) => ({
+        comments: asyncCommentHelpers.getQuery(args, ctx, nestedSelection),
       }),
       resolve: (user, args, ctx) => asyncCommentHelpers.resolve(user.comments, args, ctx),
     }),
@@ -368,6 +378,16 @@ describe('async selections', () => {
     expect(queries[0]).toMatchObject({
       args: { include: { comments: { take: 3, orderBy: { id: 'asc' } } } },
     });
+  });
+
+  it('rejects a connection helper query that was asked for synchronously', async () => {
+    const { result } = await run(
+      gql`{ user { unawaitedCommentsConnection(first: 2) { edges { node { id } } } } }`,
+    );
+
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'getQuery could not build the query for the Comment connection synchronously, because a selection beneath it is async. Pass awaitSelections: true and await the result.',
+    ]);
   });
 
   it('merges an awaited nested selection whose walk is async', async () => {

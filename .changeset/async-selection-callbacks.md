@@ -14,11 +14,11 @@ The callbacks that build a selection may be async.
   merged after every synchronous selection, in document order. Schemas without async callbacks are
   unaffected: until a callback returns a promise, planning and resolving create no promise and no
   closure they did not create before.
-- Inside an async `select`, `await` the result of `nestedSelection` (and of `getQuery` from the
-  connection helpers) before adding it to the selection; a `select` that returns while a nested
-  selection it started is still pending throws with a message naming the field. `queryFromInfo` returns a
-  promise when a callback beneath the field is async, and must then be awaited; its declared type
-  stays synchronous. The `query()` builder handed to a `drizzleField` or `drizzleConnection`
+- Inside an async `select`, `await` the result of `nestedSelection` before adding it to the
+  selection; a `select` that returns while a nested selection it started is still pending throws
+  with a message naming the field. `queryFromInfo` and the connection helpers' `getQuery` build the
+  query synchronously, and take an `awaitSelections` option for a caller that will await it. The
+  `query()` builder handed to a `drizzleField` or `drizzleConnection`
   resolver never returns a promise: the plan is settled before the resolver runs. A selection
   passed to `query()` comes first, as for `queryFromInfo`: a relation the document also plans
   with other arguments loads on its own, whether or not a selection beneath the field is async.

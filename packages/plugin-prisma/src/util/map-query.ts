@@ -3,6 +3,7 @@ import { cacheKey, type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
 import { type PrismaPlan, prismaAdapter } from './adapter.js';
+import { checkAwaitSelections } from './await-selections.js';
 import { wrapWithUsageCheck } from './usage.js';
 
 /**
@@ -28,6 +29,16 @@ export type QueryFromInfoResult<Select, Include> = undefined extends Include
   : { include: Include };
 
 /**
+ * What `queryFromInfo` returns for a given `awaitSelections`. `[Await] extends [false]` rather than
+ * `Await extends true`, so a caller passing a `boolean` variable — which infers `Await` as
+ * `boolean`, neither literal — is handed the promise to deal with, rather than a synchronous type
+ * it cannot rely on.
+ */
+export type QueryFromInfoReturn<Select, Include, Await extends boolean> = [Await] extends [false]
+  ? QueryFromInfoResult<Select, Include>
+  : MaybePromise<QueryFromInfoResult<Select, Include>>;
+
+/**
  * The query for the field `info` resolves. A given `select` is merged as the initial selection;
  * for a type in include mode the plan still produces `include`, with the columns of that
  * `select` implied by the row.
@@ -35,10 +46,14 @@ export type QueryFromInfoResult<Select, Include> = undefined extends Include
  * This is prisma's rule for turning a plan into a query, and it lives here because it is only
  * prisma's: drizzle seeds its plan with `{ columns: {}, ...select }` and hands back the caller's
  * bare `select`, and prisma-next emits onto a collection instead.
+ *
+ * The query is synchronous unless `awaitSelections` says otherwise, and a subtree that plans
+ * asynchronously throws rather than returning a promise the declared type denies.
  */
 export function queryFromInfo<
   Select extends SelectionMap['select'] | undefined = undefined,
   Include extends SelectionMap['include'] | undefined = undefined,
+  Await extends boolean = false,
 >({
   context,
   info,
@@ -49,6 +64,7 @@ export function queryFromInfo<
   paths = [],
   withUsageCheck = false,
   skipDeferredFragments = true,
+  awaitSelections,
 }: {
   context: object;
   info: GraphQLResolveInfo;
@@ -57,10 +73,15 @@ export function queryFromInfo<
   paths?: PathSegment[][];
   withUsageCheck?: boolean;
   skipDeferredFragments?: boolean;
+  /**
+   * Whether the caller will await the query. Without it, a field with an async selection beneath
+   * it throws instead of returning a promise.
+   */
+  awaitSelections?: Await;
 } & (
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
-)): QueryFromInfoResult<Select, Include> {
+)): QueryFromInfoReturn<Select, Include, Await> {
   const initial = select ? { select } : include ? { include } : undefined;
   const plan = Plan.fromInfo(prismaAdapter, {
     context,
@@ -74,23 +95,29 @@ export function queryFromInfo<
 
   // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
   // caller gets back the selection it gave.
-  const query = plan
-    ? isThenable(plan)
-      ? plan.then((settled) => settled.query())
-      : plan.query()
-    : (initial ?? {});
-
-  if (!withUsageCheck) {
-    return query as never;
-  }
+  const query = checkAwaitSelections(
+    plan
+      ? isThenable(plan)
+        ? plan.then((settled) => settled.query())
+        : plan.query()
+      : (initial ?? {}),
+    awaitSelections,
+    'queryFromInfo',
+    `${info.parentType.name}.${info.fieldName}`,
+  );
 
   // `onUnusedQuery`: the query is wrapped so reads on it can be observed; a promise is wrapped
   // once it settles.
-  return (
-    isThenable(query)
+  const result: MaybePromise<object> = !withUsageCheck
+    ? query
+    : isThenable(query)
       ? query.then((settled) => wrapWithUsageCheck(settled as object))
-      : wrapWithUsageCheck(query)
-  ) as never;
+      : wrapWithUsageCheck(query);
+
+  // The one cast, and it hides nothing about promises: the guard above has already refused any a
+  // caller did not ask for. It only stands in for the unresolved conditional, which typescript
+  // cannot check a return against while `Await` is still a parameter.
+  return result as QueryFromInfoReturn<Select, Include, Await>;
 }
 
 /**

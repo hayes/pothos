@@ -229,7 +229,19 @@ const User = builder.drizzleObject('users', {
     asyncCommentsConnection: t.connection({
       type: Comment,
       select: async (args, ctx, nestedSelection) => ({
-        with: { comments: await asyncCommentHelpers.getQuery(args, ctx, nestedSelection) },
+        with: {
+          comments: await asyncCommentHelpers.getQuery(args, ctx, nestedSelection, {
+            awaitSelections: true,
+          }),
+        },
+      }),
+      resolve: (user, args, ctx) => asyncCommentHelpers.resolve(user.comments, args, ctx),
+    }),
+    // Asks for the query without saying it will await it, while the helper's own `query` is async.
+    unawaitedCommentsConnection: t.connection({
+      type: Comment,
+      select: (args, ctx, nestedSelection) => ({
+        with: { comments: asyncCommentHelpers.getQuery(args, ctx, nestedSelection) },
       }),
       resolve: (user, args, ctx) => asyncCommentHelpers.resolve(user.comments, args, ctx),
     }),
@@ -403,6 +415,16 @@ describe('async selections', () => {
       gql`{ user { commentsConnection(first: 2) { edges { node { id } } } } }`,
       gql`{ user { commentsConnection: asyncCommentsConnection(first: 2) { edges { node { id } } } } }`,
     );
+  });
+
+  it('rejects a connection helper query that was asked for synchronously', async () => {
+    const { result } = await run(
+      gql`{ user { unawaitedCommentsConnection(first: 2) { edges { node { id } } } } }`,
+    );
+
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'getQuery could not build the query for the comments connection synchronously, because a selection beneath it is async. Pass awaitSelections: true and await the result.',
+    ]);
   });
 
   it('merges an awaited nested selection whose walk is async', async () => {
