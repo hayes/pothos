@@ -585,6 +585,17 @@ function runSelect<M, Map, N extends NodeBase<M>>(
 }
 
 /**
+ * A field the way the document names it, for an error message: the type it was walked on and its
+ * own name, with its alias when the document renamed it. The mapping key cannot say this — it
+ * holds the alias in place of the name, under the alias path of any indirect include above it.
+ */
+function fieldName({ type, node }: Position) {
+  const name = `${type.name}.${node.name.value}`;
+
+  return node.alias ? `${name} (selected as "${node.alias.value}")` : name;
+}
+
+/**
  * S-5, M-3, M-4, L-2: merges an accepted map and records its mapping, or does neither. A
  * rejected or falsy map records nothing, so the resolver loads its own data (L-3). This is the
  * only place a mapping is recorded.
@@ -610,8 +621,9 @@ function mergeField<M, Map, N extends NodeBase<M>>(
   walk.adapter.merge(node, map, key, alias);
 
   if (mapping.pending) {
+    // Only a select invocation can be pending, and every one of those has a position.
     throw new PothosValidationError(
-      `The selection function of ${key.replace('@', '.')} returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.`,
+      `The selection function of ${fieldName(mapping.position!)} returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.`,
     );
   }
 
