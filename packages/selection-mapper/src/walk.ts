@@ -11,6 +11,7 @@ import {
 import {
   type FieldNode,
   type FragmentDefinitionNode,
+  type FragmentSpreadNode,
   type GraphQLNamedType,
   type GraphQLSchema,
   getNamedType,
@@ -179,7 +180,7 @@ function enterVariant<Model, Query, NodeType extends NodeBase<Model>>(
  * One selection to walk into a plan, before any indirect include on `type` is followed: the
  * selection sets of `fieldNodes` (every node selecting one field), walked as `type`.
  */
-interface Branch {
+export interface Branch {
   type: GraphQLNamedType;
   fieldNodes: readonly FieldNode[];
   indirectPath: string[];
@@ -398,27 +399,13 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
  */
 function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
   { info, skipDeferred }: Plan<Model, Query, NodeType>,
-  selection: SelectionNode,
+  selection: FragmentSpreadNode | InlineFragmentNode,
 ): Fragment | undefined {
-  let fragment: Fragment;
-
-  switch (selection.kind) {
-    case Kind.FRAGMENT_SPREAD:
-      fragment = info.fragments[selection.name.value];
-      break;
-    case Kind.INLINE_FRAGMENT:
-      fragment = selection;
-      break;
-    // A field: the callers plan those themselves and never reach here.
-    default:
-      throw new PothosValidationError(`Unsupported selection kind ${selection.kind}`);
-  }
-
   if (isSkipped(info, selection) || (skipDeferred && isDeferred(info, selection))) {
     return undefined;
   }
 
-  return fragment;
+  return selection.kind === Kind.FRAGMENT_SPREAD ? info.fragments[selection.name.value] : selection;
 }
 
 /**

@@ -72,7 +72,7 @@ export function treeAccumulator<Model, Query>(
     accepts: checker.run.bind(checker),
     conflict: (node, query) => firstConflict(format, node, query),
     absorb: absorbNode,
-    acceptsFrom: (node, from) => acceptsNode(format, node, from, false),
+    acceptsFrom: (node, from) => acceptsNode(format, node, from),
     emit: (node) => format.serialize(node),
   };
 }
@@ -127,7 +127,7 @@ class Merger<Model, Query> implements EntryVisitor<Model, Query> {
       const existing = parent.relations.get(name);
 
       // The subtree is checked whole, so once the relation is accepted it merges whole.
-      if (existing && !acceptsQuery(this.format, existing, query, false)) {
+      if (existing && !acceptsQuery(this.format, existing, query)) {
         return;
       }
     }
@@ -215,14 +215,13 @@ class Checker<Model, Query> implements EntryVisitor<Model, Query> {
   }
 }
 
-/** M-3 with a throwaway checker, for the recursive calls a lenient merge makes. */
+/** M-3 with a throwaway checker, for the nested checks a lenient merge and a conflict make. */
 function acceptsQuery<Model, Query>(
   format: QueryFormat<Model, Query>,
   node: Node<Model>,
   query: Query,
-  ignoreArgs: boolean,
 ) {
-  return new Checker(format).run(node, query, { ignoreArgs });
+  return new Checker(format).run(node, query);
 }
 
 /**
@@ -242,7 +241,7 @@ function firstConflict<Model, Query>(
     relation(name, _model, nested) {
       const child = node.relations.get(name);
 
-      if (!found && child && !acceptsQuery(format, child, nested, false)) {
+      if (!found && child && !acceptsQuery(format, child, nested)) {
         found = { kind: 'relation', name };
       }
     },
@@ -289,9 +288,8 @@ function acceptsNode<Model, Query>(
   format: QueryFormat<Model, Query>,
   into: Node<Model>,
   from: Node<Model>,
-  ignoreArgs: boolean,
 ): boolean {
-  if (!ignoreArgs && !deepEqual(into.args, from.args)) {
+  if (!deepEqual(into.args, from.args)) {
     return false;
   }
 
@@ -304,7 +302,7 @@ function acceptsNode<Model, Query>(
   for (const [name, child] of from.relations) {
     const existing = into.relations.get(name);
 
-    if (existing && !acceptsNode(format, existing, child, false)) {
+    if (existing && !acceptsNode(format, existing, child)) {
       return false;
     }
   }
