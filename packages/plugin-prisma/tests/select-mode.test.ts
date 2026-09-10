@@ -126,13 +126,13 @@ describe('select mode', () => {
           "withCompositeConnection": {
             "edges": [
               {
-                "cursor": "R1BDOko6WyIyIiwiMiJd",
+                "cursor": "R1BDOlQ6WyJTOjIiLCJTOjIiXQ==",
                 "node": {
                   "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGVTZWxlY3Q6WyIyIiwiMiJd",
                 },
               },
               {
-                "cursor": "R1BDOko6WyIzIiwiMyJd",
+                "cursor": "R1BDOlQ6WyJTOjMiLCJTOjMiXQ==",
                 "node": {
                   "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGVTZWxlY3Q6WyIzIiwiMyJd",
                 },

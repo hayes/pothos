@@ -1,6 +1,9 @@
 import {
   decodeBase64,
+  decodeCursorChunk,
   encodeBase64,
+  encodeCursorChunk,
+  encodeCursorTuple,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
@@ -12,34 +15,22 @@ import { extendWithUsage } from './usage.js';
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
 
-export function formatCursorChunk(value: unknown) {
-  if (value instanceof Date) {
-    return `D:${String(Number(value))}`;
-  }
-
-  switch (typeof value) {
-    case 'number':
-      return `N:${value}`;
-    case 'string':
-      return `S:${value}`;
-    case 'bigint':
-      return `I:${value}`;
-    default:
-      throw new PothosValidationError(`Unsupported cursor type ${typeof value}`);
-  }
-}
-
 export function formatPrismaCursor(record: Record<string, unknown>, fields: string[] | string) {
   return cursorFormatter(fields)(record);
 }
 
+// `GPC:` is this plugin's namespace and stays; what follows it is `@pothos/core`'s tagged chunk
+// encoding, shared with the drizzle plugin so the two can't drift apart again.
 export function cursorFormatter(fields: string[] | string) {
   return (value: Record<string, unknown>) => {
     if (typeof fields === 'string') {
-      return encodeBase64(`GPC:${formatCursorChunk(value[fields])}`);
+      return encodeBase64(`GPC:${encodeCursorChunk(value[fields])}`);
     }
 
-    return encodeBase64(`GPC:J:${JSON.stringify(fields.map((name) => value[name]))}`);
+    // A compound cursor tags each part. It used to be a bare `JSON.stringify` of the raw
+    // values, which read a Date back as a string and threw outright on a bigint, so a
+    // `@@unique` containing a bigint column failed on every edge.
+    return encodeBase64(`GPC:${encodeCursorTuple(fields.map((name) => value[name]))}`);
   };
 }
 
@@ -50,24 +41,12 @@ export function parsePrismaCursor(cursor: unknown) {
 
   try {
     const decoded = decodeBase64(cursor);
-    const [, type, value] = decoded.match(/^GPC:(\w):(.*)/) as [string, string, string];
 
-    switch (type) {
-      case 'S':
-        return value;
-      // `Number`, not `parseInt`: a cursor on a float column holds `N:1.75`, which `parseInt`
-      // truncates to `1`, and a large number's `N:1e+21`, which it reads as `1`.
-      case 'N':
-        return Number(value);
-      case 'D':
-        return new Date(Number.parseInt(value, 10));
-      case 'J':
-        return JSON.parse(value) as unknown;
-      case 'I':
-        return BigInt(value);
-      default:
-        throw new PothosValidationError(`Invalid cursor type ${type}`);
+    if (!decoded.startsWith('GPC:')) {
+      throw new PothosValidationError('Invalid cursor');
     }
+
+    return decodeCursorChunk(decoded.slice(4));
   } catch {
     throw new PothosValidationError(`Invalid cursor: ${cursor}`);
   }
@@ -201,6 +180,9 @@ export function serializeID(id: unknown, dataType: string) {
 
 export function parseCompositeCursor(fields: readonly string[]) {
   return (cursor: unknown) => {
+    // A `T:` cursor hands back the values with their types intact. A cursor issued before this
+    // release is a `J:` chunk, whose array holds whatever plain JSON preserved -- see the
+    // deprecated `J:` case in `@pothos/core`'s `decodeCursorChunk`.
     const parsed = parsePrismaCursor(cursor) as unknown[];
 
     if (!Array.isArray(parsed)) {

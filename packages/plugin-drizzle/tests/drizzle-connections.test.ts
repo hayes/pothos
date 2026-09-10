@@ -1179,4 +1179,62 @@ describe('drizzle connections', () => {
       posts: { edges: [], pageInfo: { hasNextPage: true, hasPreviousPage: false } },
     });
   });
+
+  // With a cursor both flags fall out of `before`/`after` alone, so these two do not tell a
+  // backward page from a forward one the way the two above do. They are here because a zero
+  // sized page beside a cursor had no coverage at all, and the four combinations should not be
+  // free to move independently.
+  it('last: 0 with before', async () => {
+    const context = await createContext({ userId: '1' });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          posts(last: 0, before: "REM6Tjoy") {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+            }
+            edges {
+              cursor
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      posts: { edges: [], pageInfo: { hasNextPage: true, hasPreviousPage: true } },
+    });
+  });
+
+  it('first: 0 with after', async () => {
+    const context = await createContext({ userId: '1' });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          posts(first: 0, after: "REM6TjoxNTA=") {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+            }
+            edges {
+              cursor
+            }
+          }
+        }
+      `,
+      contextValue: context,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      posts: { edges: [], pageInfo: { hasNextPage: true, hasPreviousPage: true } },
+    });
+  });
 });

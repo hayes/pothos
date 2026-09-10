@@ -57,11 +57,57 @@ describe('cursor values', () => {
     expect(getCursorParser(['seq', 'id'])(cursor)).toEqual({ seq: null, id: BigInt(2) });
   });
 
+  it('round trips bytes that are not valid UTF-8 through a compound cursor', () => {
+    const key = new Uint8Array([0, 1, 2, 250, 255]);
+    const cursor = getCursorFormatter(['key', 'seq'], config)({ key, seq: 5 });
+    const parsed = getCursorParser(['key', 'seq'])(cursor) as { key: Uint8Array; seq: number };
+
+    expect([...parsed.key]).toEqual([...key]);
+    expect(parsed.seq).toBe(5);
+  });
+
+  // A decimal comes back as its exact digits rather than as the ORM's class; drizzle's own
+  // decimal mode already hands them over as a string.
+  it('round trips a high precision decimal through a compound cursor', () => {
+    const digits = '0.1234567890123456789012345';
+    const decimal = { toFixed: () => digits };
+    const cursor = getCursorFormatter(['amount', 'seq'], config)({ amount: decimal, seq: 5 });
+
+    expect(getCursorParser(['amount', 'seq'])(cursor)).toEqual({ amount: digits, seq: 5 });
+  });
+
+  it('round trips a JSON value through a compound cursor', () => {
+    const meta = { nested: [1, 'two'] };
+    const cursor = getCursorFormatter(['meta', 'seq'], config)({ meta, seq: 5 });
+
+    expect(getCursorParser(['meta', 'seq'])(cursor)).toEqual({ meta, seq: 5 });
+  });
+
   it('still reads compound cursors written before values were tagged', () => {
     // DC:J:[7,5], the format compound cursors used previously
     const legacy = Buffer.from('DC:J:[7,5]').toString('base64');
 
     expect(getCursorParser(['seq', 'id'])(legacy)).toEqual({ seq: 7, id: 5 });
+  });
+
+  // Every single value form the plugin could write before this release, which is unchanged.
+  it.each([
+    ['a string', 'DC:S:hello', 'hello'],
+    ['an empty string', 'DC:S:', ''],
+    ['a number', 'DC:N:1.75', 1.75],
+    ['a number too large to write in full', 'DC:N:1e+21', 1e21],
+    ['a date', 'DC:D:1700000000123', new Date(1_700_000_000_123)],
+    ['a bigint', 'DC:I:9007199254740993', BigInt('9007199254740993')],
+  ])('still reads %s issued before this release', (_name, decoded, expected) => {
+    expect(getCursorParser(['seq'])(Buffer.from(decoded).toString('base64'))).toEqual({
+      seq: expected,
+    });
+  });
+
+  it('still reads a legacy compound cursor covering only a prefix of the ordering', () => {
+    const legacy = Buffer.from('DC:J:[7]').toString('base64');
+
+    expect(getCursorParser(['seq', 'id'])(legacy)).toEqual({ seq: 7 });
   });
 
   it('rejects a cursor with no values', () => {

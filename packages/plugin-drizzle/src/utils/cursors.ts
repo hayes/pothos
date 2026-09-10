@@ -1,6 +1,9 @@
 import {
   decodeBase64,
+  decodeCursorChunk,
   encodeBase64,
+  encodeCursorChunk,
+  encodeCursorTuple,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
@@ -29,26 +32,11 @@ import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
 
-export function formatCursorChunk(value: unknown) {
-  if (value == null) {
-    return null;
-  }
-
-  if (value instanceof Date) {
-    return `D:${String(Number(value))}`;
-  }
-
-  switch (typeof value) {
-    case 'number':
-      return `N:${value}`;
-    case 'string':
-      return `S:${value}`;
-    case 'bigint':
-      return `I:${value}`;
-    default:
-      throw new PothosValidationError(`Unsupported cursor type ${typeof value}`);
-  }
-}
+// The tagging is `@pothos/core`'s `encodeCursorChunk`, shared with the prisma plugins so the
+// three can't drift apart again. A nullish ordering value is a position this plugin compares
+// against with `is null`, and it now writes as a `Z:` chunk: it used to interpolate as the string
+// `null`, which is not a chunk, so the cursor came back out as "Invalid cursor" on the next page.
+export const formatCursorChunk = encodeCursorChunk;
 
 export function formatDrizzleCursor(
   record: Record<string, unknown>,
@@ -108,9 +96,7 @@ export function getColumnSerializer(
     if (fields.length > 1) {
       // each value carries its own type tag, the same ones a single value gets.
       // Plain JSON would turn a Date into a string and refuse a bigint outright.
-      return `T:${JSON.stringify(
-        fields.map((field) => formatCursorChunk(value[cursorFieldKey(field, config)])),
-      )}`;
+      return encodeCursorTuple(fields.map((field) => value[cursorFieldKey(field, config)]));
     }
 
     return formatCursorChunk(value[cursorFieldKey(fields[0], config)]);
@@ -155,30 +141,9 @@ export function parseSerializedDrizzleColumn(value: unknown): unknown {
   }
 
   try {
-    const [, type, rawValue] = value.match(/^(S|N|D|J|I|T):(.*)/) as [string, string, string];
-
-    switch (type) {
-      case 'S':
-        return rawValue;
-      case 'N':
-        // `Number`, not `parseInt`: a cursor on a real column holds `N:1.75`, which `parseInt`
-        // reads as 1, and a large one holds `N:1e+21`, which it reads as 1.
-        return Number(rawValue);
-      case 'D':
-        return new Date(Number.parseInt(rawValue, 10));
-      case 'J':
-        // compound values from before each one carried a tag: whatever JSON
-        // preserved is the best that can be recovered
-        return JSON.parse(rawValue) as unknown;
-      case 'T':
-        return (JSON.parse(rawValue) as (string | null)[]).map((chunk) =>
-          chunk === null ? null : parseSerializedDrizzleColumn(chunk),
-        );
-      case 'I':
-        return BigInt(rawValue);
-      default:
-        throw new PothosValidationError(`Invalid cursor type ${type}`);
-    }
+    // `@pothos/core`'s `decodeCursorChunk` reads every tag, including the `J:` a compound cursor
+    // used before each part carried one -- see `getCursorParser` for what happens to that array.
+    return decodeCursorChunk(value);
   } catch {
     throw new PothosValidationError(`Invalid serialized data: ${value}`);
   }
@@ -312,6 +277,10 @@ export function getCursorParser(keys: readonly string[]) {
     // the columns that came before it. Those still describe a position, just a
     // less precise one, so the page is keyed off the prefix the cursor covers
     // rather than rejected. Cursors returned by that page carry every column.
+    //
+    // The array is a `T:` chunk's values, each still its own type. A cursor issued before this
+    // release decodes from a `J:` chunk instead, whose parts arrive as whatever plain JSON
+    // preserved -- see the deprecated `J:` case in `@pothos/core`'s `decodeCursorChunk`.
     const values = Array.isArray(parsed) ? parsed : [parsed];
 
     if (values.length === 0) {
