@@ -86,6 +86,8 @@ export type PrismaNextSpecFn = (sub: MapperCollection, ctx: object) => Record<st
 export interface PrismaNextFnEntry {
   fn: PrismaNextSpecFn;
   alias?: string;
+  /** The field arguments the function was bound to, so two selections under one alias compare. */
+  args?: PrismaNextArgs;
 }
 
 /**
@@ -133,6 +135,7 @@ export interface PrismaNextBranch {
 export interface PrismaNextFn {
   alias: string;
   fn: PrismaNextSpecFn;
+  args: PrismaNextArgs;
 }
 
 export interface PrismaNextRelationAcc {
@@ -265,9 +268,29 @@ function addBranch(
   mergeSpec(branch.node, spec, alias);
 }
 
-function addFunction(relation: PrismaNextRelationAcc, alias: string, fn: PrismaNextSpecFn) {
-  if (!relation.functions.has(alias)) {
-    relation.functions.set(alias, { alias, fn });
+/**
+ * M-3 for a function-form entry. `options.fn` binds the field's arguments into a fresh closure
+ * per compile, so one relation selected twice under the same alias (under `nodes` and under
+ * `edges { node }` of a connection, say) arrives as two different functions. Comparing the
+ * arguments they were bound to is what tells a duplicate of one selection from a conflict; a
+ * conflict is reported the way `addBranch` reports its own, rather than silently keeping the
+ * first function for both paths.
+ */
+function addFunction(
+  relation: PrismaNextRelationAcc,
+  name: string,
+  alias: string,
+  fn: PrismaNextSpecFn,
+  args: PrismaNextArgs,
+) {
+  const existing = relation.functions.get(alias);
+
+  if (!existing) {
+    relation.functions.set(alias, { alias, fn, args });
+  } else if (!deepEqual(existing.args, args)) {
+    throw new PothosValidationError(
+      `Relation "${name}" is selected twice under alias "${alias}" with different arguments. Alias one of the selections.`,
+    );
   }
 }
 
@@ -297,9 +320,15 @@ function mergeSpec(node: PrismaNextNode, spec: PrismaNextSpec, alias: string | u
       if (entry === true) {
         addBranch(relation, name, requireAlias(name, alias), {});
       } else if (typeof entry === 'function') {
-        addFunction(relation, requireAlias(name, alias), entry);
+        addFunction(relation, name, requireAlias(name, alias), entry, {});
       } else if ('fn' in entry) {
-        addFunction(relation, requireAlias(name, entry.alias ?? alias), entry.fn);
+        addFunction(
+          relation,
+          name,
+          requireAlias(name, entry.alias ?? alias),
+          entry.fn,
+          entry.args ?? {},
+        );
       } else {
         addBranch(relation, name, requireAlias(name, entry.alias ?? alias), entry);
       }
@@ -352,7 +381,7 @@ function serializeNode(node: PrismaNextNode): PrismaNextSpec {
     }
 
     for (const fn of relation.functions.values()) {
-      entries.push({ alias: fn.alias, fn: fn.fn });
+      entries.push({ alias: fn.alias, fn: fn.fn, args: fn.args });
     }
 
     spec.relations[name] = entries.length === 1 ? entries[0] : entries;
@@ -500,7 +529,7 @@ export function compileSelect(raw: RawSelect, options: CompileOptions): PrismaNe
       }
 
       relations[key] = options.fn
-        ? options.fn(value as (...args: unknown[]) => unknown)
+        ? { fn: options.fn(value as (...args: unknown[]) => unknown), args: options.args ?? {} }
         : (value as PrismaNextSpecFn);
       hasRelations = true;
     } else if (isDeclarativeRefineSpec(value)) {

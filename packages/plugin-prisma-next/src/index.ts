@@ -321,7 +321,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       selectOpt !== undefined &&
       ((typeof selectOpt === 'object' && selectOpt !== null && !Array.isArray(selectOpt)) ||
         typeof selectOpt === 'function');
-    if (!isObjectOrCallableSelect && !ext[PRISMA_NEXT_FIELD_SELECT]) {
+    // `t.variant` routes through `pothosIndirectInclude` and carries no object `select` of its
+    // own, but the type it descends into may have one, whose entries land in that type's
+    // object-level combine slots. Without the wrap, `normalizeRowsForType` never lifts them.
+    const isVariantDescent = ext.pothosIndirectInclude !== undefined;
+
+    if (!isObjectOrCallableSelect && !ext[PRISMA_NEXT_FIELD_SELECT] && !isVariantDescent) {
       return resolver;
     }
     const baseResolver = resolver;
