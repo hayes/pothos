@@ -3,23 +3,12 @@
  * emitted onto its collection.
  */
 import { isThenable } from '@pothos/core';
-import {
-  type IndirectInclude,
-  type PathSegment,
-  Plan,
-  selectedFieldNames,
-} from '@pothos/selection-mapper';
+import { type IndirectInclude, type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { AnyContract } from '../types.js';
 import { emit, type MapperCollection, type PrismaNextPlan, prismaNextAdapter } from './adapter.js';
 
 export type { IndirectInclude };
-export { selectedFieldNames };
-
-export interface PothosPrismaNextConfig {
-  contract: AnyContract;
-  skipDeferredFragments: boolean;
-}
 
 export interface ApplySelectionOptions {
   /** Descend through these paths from the field's return type (`[['edges', 'node'], ['nodes']]`). */

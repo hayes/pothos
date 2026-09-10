@@ -171,7 +171,7 @@ export function buildPaginationParams(
   };
 }
 
-export function applyToCollection<C extends MapperCollection>(
+function applyToCollection<C extends MapperCollection>(
   baseCollection: C,
   params: CursorPaginationParams,
 ): C {

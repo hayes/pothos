@@ -16,7 +16,6 @@ import {
   isListType,
 } from 'graphql';
 import {
-  PRISMA_NEXT_COLUMNS,
   PRISMA_NEXT_FIELD_SELECT,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_PREPARED,
@@ -25,9 +24,10 @@ import {
 } from './constants.js';
 import type { PreparedFieldExtension } from './extensions.js';
 import type { AnyContract } from './types.js';
+import { fieldAliasPrefix, objectLevelFieldAlias } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
 import { resolveContractModel } from './utils/contract.js';
-import { buildColumnSet, buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
+import { buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
 
 export type {
@@ -73,7 +73,6 @@ export {
   type ApplySelectionOptions,
   applySelectionToCollection,
   type IndirectInclude,
-  type PothosPrismaNextConfig,
 } from './utils/map-query.js';
 export type {
   PrismaNextModel,
@@ -171,10 +170,9 @@ function normalizeRowsForType(
   if (entries.length === 0) {
     return value;
   }
-  // Per-type prefix: e.g. `:object:User:` for the User prismaObject.
-  // `:` is GraphQL-forbidden so the prefix never collides with user
-  // aliases.
-  const prefix = `:object:${typeConfig.name}:`;
+  // The prefix the adapter wrote these slots under: e.g. `:object:User:` for the User
+  // prismaObject. Per-type, so variants sharing a row route to distinct slots.
+  const prefix = fieldAliasPrefix(objectLevelFieldAlias(typeConfig.name));
 
   const normalize = (row: unknown): unknown => {
     if (row == null || typeof row !== 'object' || Array.isArray(row)) {
@@ -240,16 +238,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const relations: Record<string, PrismaNextRelationMeta> | undefined = opts?.contract
       ? buildRelationMeta(model, opts.contract, typeConfig.name)
       : undefined;
-    const columns: ReadonlySet<string> | undefined = opts?.contract
-      ? buildColumnSet(model, opts.contract)
-      : undefined;
     return {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
         [PRISMA_NEXT_MODEL]: model,
         ...(relations !== undefined ? { [PRISMA_NEXT_RELATIONS]: relations } : {}),
-        ...(columns !== undefined ? { [PRISMA_NEXT_COLUMNS]: columns } : {}),
       },
     };
   }
@@ -365,27 +359,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (parent == null || typeof parent !== 'object') {
         return baseResolver(parent, args, context, info);
       }
-      const alias = info.fieldNodes[0]?.alias?.value ?? info.fieldName;
-      // `:` is GraphQL-forbidden, so the prefix can't collide with any
-      // user-defined GraphQL alias or relation name.
-      const prefix = `${alias}:`;
+      // The prefix the adapter wrote the combine slot under. `:` is GraphQL-forbidden, so it
+      // cannot collide with a user-defined alias or relation name.
+      const prefix = fieldAliasPrefix(info.fieldNodes[0]?.alias?.value ?? info.fieldName);
       const p = parent as Record<string, unknown>;
       // Object.create(parent) preserves the prototype chain so variant
       // re-brands (which use Object.create to attach a type brand)
       // still surface their inherited row props via overlay. Adding a
       // top-level property on the overlay shadows that level only.
       const overlay = Object.create(p) as Record<string, unknown>;
-      // `for...in` over `p` walks the prototype chain so we still find
-      // combine slots when `parent` is a variant wrapper from
-      // `rebrandForVariant` (which puts the row on the prototype). A
-      // visited set guards against re-processing the same key visible
-      // at multiple levels.
-      const seen = new Set<string>();
+      // `for...in` over `p` walks the prototype chain so we still find combine slots when
+      // `parent` is a variant wrapper from `rebrandForVariant` (which puts the row on the
+      // prototype). It never yields a shadowed name twice, so no visited set is needed.
       for (const key in p) {
-        if (seen.has(key)) {
-          continue;
-        }
-        seen.add(key);
         const slot = p[key];
         if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
           for (const k of Object.keys(slot)) {

@@ -16,7 +16,7 @@ import {
   resolveSizeOption,
 } from './utils/options.js';
 import { getRefFromContractModel } from './utils/refs.js';
-import { wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
+import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 export interface PrismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -163,17 +163,7 @@ export function prismaConnectionHelpers<
       const totalCountPromise: Promise<number> | undefined = totalCountResolver
         ? Promise.resolve().then(() => Promise.resolve(totalCountResolver(args, ctx, info)))
         : totalCountFlag
-          ? Promise.resolve().then(() =>
-              (
-                filteredBase as unknown as {
-                  aggregate: (
-                    fn: (a: { count: () => unknown }) => Record<string, unknown>,
-                  ) => Promise<Record<string, number>>;
-                }
-              )
-                .aggregate((a) => ({ total: a.count() }))
-                .then((r) => r.total),
-            )
+          ? aggregateCount(filteredBase)
           : undefined;
       // Tap a noop catch so a rejection here doesn't surface as
       // unhandledRejection when the caller's Promise.all short-circuits

@@ -26,32 +26,40 @@ import {
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-schemaBuilderProto.prismaObject = function prismaObject<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
->(
-  this: PothosSchemaTypes.SchemaBuilder<Types>,
+/**
+ * The body of `prismaObject` and `prismaInterface`. The two build the same ref, extensions and
+ * field builder; only the ref class, the ref cache and which of `objectType`/`interfaceType`
+ * registers it differ.
+ *
+ * `variant` wins over legacy `name`; both claim a variant identity (a second registration for the
+ * same model under a different GraphQL type name). Variants get a fresh ref; a default
+ * registration reuses the cached one, so sibling `t.relation` and string-form helpers resolve to
+ * the same instance.
+ */
+function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Types>>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   modelName: M,
   options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
+  kind: 'interface' | 'object',
 ) {
-  // `variant` wins over legacy `name`; both claim a variant identity
-  // (a second prismaObject for the same model under a different GraphQL
-  // type name).
-  const variantName = (options as { variant?: string }).variant;
-  const typeName = variantName ?? options.name ?? (modelName as string);
+  const isInterface = kind === 'interface';
+  const typeName =
+    (options as { variant?: string }).variant ?? options.name ?? (modelName as string);
   const isVariant = typeName !== (modelName as string);
-  // Variants get a fresh ref; default registration reuses the cached
-  // ref so sibling `t.relation` / string-form helpers resolve to the
-  // same instance.
   const ref = isVariant
-    ? new PrismaNextObjectRef<Types, M>(typeName, modelName)
-    : getRefFromContractModel<Types, M>(modelName, this);
-  if (!isVariant) {
-    assertSameKindRegistration(this, modelName as string, 'object');
-  }
-  const contract = readPluginOptions<Types['PrismaNextContract']>(this)?.contract;
+    ? isInterface
+      ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
+      : new PrismaNextObjectRef<Types, M>(typeName, modelName)
+    : isInterface
+      ? getInterfaceRefFromContractModel<Types, M>(modelName, builder)
+      : getRefFromContractModel<Types, M>(modelName, builder);
 
-  this.objectType(ref, {
+  if (!isVariant) {
+    assertSameKindRegistration(builder, modelName as string, kind);
+  }
+
+  const contract = readPluginOptions<Types['PrismaNextContract']>(builder)?.contract;
+  const config = {
     ...(options as object),
     extensions: {
       ...(options.extensions as Record<string, unknown> | undefined),
@@ -63,20 +71,35 @@ schemaBuilderProto.prismaObject = function prismaObject<
       ? () => {
           if (!contract) {
             throw new PothosSchemaError(
-              `builder.prismaObject('${modelName as string}', ...) requires builder.options.prismaNext.contract to be set.`,
+              `builder.prisma${isInterface ? 'Interface' : 'Object'}('${modelName as string}', ...) requires builder.options.prismaNext.contract to be set.`,
             );
           }
-          const fieldBuilder = new PrismaNextObjectFieldBuilder<Types, M>(
-            this as PothosSchemaTypes.SchemaBuilder<Types>,
-            modelName,
-            contract,
+
+          return options.fields!(
+            new PrismaNextObjectFieldBuilder<Types, M>(builder, modelName, contract) as never,
           );
-          return options.fields!(fieldBuilder as never);
         }
       : undefined,
-  } as never);
+  } as never;
 
-  return ref as never;
+  if (isInterface) {
+    builder.interfaceType(ref as never, config);
+  } else {
+    builder.objectType(ref as never, config);
+  }
+
+  return ref;
+}
+
+schemaBuilderProto.prismaObject = function prismaObject<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+>(
+  this: PothosSchemaTypes.SchemaBuilder<Types>,
+  modelName: M,
+  options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
+) {
+  return definePrismaNextType(this, modelName, options, 'object') as never;
 } as never;
 
 schemaBuilderProto.prismaInterface = function prismaInterface<
@@ -87,69 +110,46 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
   modelName: M,
   options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
 ) {
-  const variantName = (options as { variant?: string }).variant;
-  const typeName = variantName ?? options.name ?? (modelName as string);
-  const isVariant = typeName !== (modelName as string);
-  // Variants get a fresh ref; default registration reuses the cached
-  // ref so sibling string-form helpers merge fields into the same
-  // declaration.
-  const ref = isVariant
-    ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
-    : getInterfaceRefFromContractModel<Types, M>(modelName, this);
-  if (!isVariant) {
-    assertSameKindRegistration(this, modelName as string, 'interface');
-  }
-  const contract = readPluginOptions<Types['PrismaNextContract']>(this)?.contract;
-
-  this.interfaceType(
-    ref as never,
-    {
-      ...(options as object),
-      extensions: {
-        ...(options.extensions as Record<string, unknown> | undefined),
-        [PRISMA_NEXT_MODEL]: modelName,
-        ...(options.select !== undefined ? { [PRISMA_NEXT_SELECT]: options.select } : {}),
-      },
-      name: typeName,
-      fields: options.fields
-        ? () => {
-            if (!contract) {
-              throw new PothosSchemaError(
-                `builder.prismaInterface('${modelName as string}', ...) requires builder.options.prismaNext.contract to be set.`,
-              );
-            }
-            const fieldBuilder = new PrismaNextObjectFieldBuilder<Types, M>(
-              this as PothosSchemaTypes.SchemaBuilder<Types>,
-              modelName,
-              contract,
-            );
-            return options.fields!(fieldBuilder as never);
-          }
-        : undefined,
-    } as never,
-  );
-
-  return ref as never;
+  return definePrismaNextType(this, modelName, options, 'interface') as never;
 } as never;
 
-function resolveModelName<Types extends SchemaTypes, M extends ModelName<Types>>(
+/**
+ * The ref and field builder behind the four cross-file field helpers, which differ only in kind
+ * and in whether they add one field or a map of them.
+ */
+function fieldsFor<Types extends SchemaTypes, M extends ModelName<Types>>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: M | { modelName: M },
-): M {
-  return typeof type === 'string' ? type : type.modelName;
+  kind: 'interface' | 'object',
+  build: (t: PrismaNextObjectFieldBuilder<Types, M>) => unknown,
+) {
+  const modelName = typeof type === 'string' ? type : type.modelName;
+  const ref =
+    typeof type === 'string'
+      ? kind === 'interface'
+        ? getInterfaceRefFromContractModel<Types, M>(modelName, builder)
+        : getRefFromContractModel<Types, M>(modelName, builder)
+      : type;
+
+  return {
+    ref: ref as never,
+    fields: () => {
+      const contract = readPluginOptions<Types['PrismaNextContract']>(builder)?.contract;
+
+      if (!contract) {
+        throw new PothosSchemaError(
+          'cross-file field helpers require builder.options.prismaNext.contract.',
+        );
+      }
+
+      return build(new PrismaNextObjectFieldBuilder<Types, M>(builder, modelName, contract));
+    },
+  };
 }
 
-function makeFieldBuilder<Types extends SchemaTypes, M extends ModelName<Types>>(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: M,
-): PrismaNextObjectFieldBuilder<Types, M> {
-  const contract = readPluginOptions<Types['PrismaNextContract']>(builder)?.contract;
-  if (!contract) {
-    throw new PothosSchemaError(
-      'cross-file field helpers require builder.options.prismaNext.contract.',
-    );
-  }
-  return new PrismaNextObjectFieldBuilder<Types, M>(builder, modelName, contract);
-}
+type FieldHelper<Types extends SchemaTypes, M extends ModelName<Types>> = (
+  t: PrismaNextObjectFieldBuilder<Types, M>,
+) => unknown;
 
 schemaBuilderProto.prismaObjectField = function prismaObjectField<
   Types extends SchemaTypes,
@@ -158,17 +158,11 @@ schemaBuilderProto.prismaObjectField = function prismaObjectField<
   this: PothosSchemaTypes.SchemaBuilder<Types>,
   type: M | PrismaNextObjectRef<Types, M, unknown>,
   fieldName: string,
-  field: (
-    t: PrismaNextObjectFieldBuilder<Types, M>,
-  ) => import('@pothos/core').FieldRef<Types, unknown>,
+  field: FieldHelper<Types, M>,
 ) {
-  const modelName = resolveModelName(type as never) as M;
-  const ref = typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
-  this.objectField(
-    ref as never,
-    fieldName,
-    () => field(makeFieldBuilder(this, modelName)) as never,
-  );
+  const { ref, fields } = fieldsFor(this, type as never, 'object', field);
+
+  this.objectField(ref, fieldName, fields as never);
 } as never;
 
 schemaBuilderProto.prismaObjectFields = function prismaObjectFields<
@@ -177,11 +171,11 @@ schemaBuilderProto.prismaObjectFields = function prismaObjectFields<
 >(
   this: PothosSchemaTypes.SchemaBuilder<Types>,
   type: M | PrismaNextObjectRef<Types, M, unknown>,
-  fields: (t: PrismaNextObjectFieldBuilder<Types, M>) => import('@pothos/core').FieldMap,
+  fields: FieldHelper<Types, M>,
 ) {
-  const modelName = resolveModelName(type as never) as M;
-  const ref = typeof type === 'string' ? getRefFromContractModel<Types, M>(modelName, this) : type;
-  this.objectFields(ref as never, () => fields(makeFieldBuilder(this, modelName)) as never);
+  const built = fieldsFor(this, type as never, 'object', fields);
+
+  this.objectFields(built.ref, built.fields as never);
 } as never;
 
 schemaBuilderProto.prismaInterfaceField = function prismaInterfaceField<
@@ -191,18 +185,11 @@ schemaBuilderProto.prismaInterfaceField = function prismaInterfaceField<
   this: PothosSchemaTypes.SchemaBuilder<Types>,
   type: M | PrismaNextInterfaceRef<Types, M, unknown>,
   fieldName: string,
-  field: (
-    t: PrismaNextObjectFieldBuilder<Types, M>,
-  ) => import('@pothos/core').FieldRef<Types, unknown>,
+  field: FieldHelper<Types, M>,
 ) {
-  const modelName = resolveModelName(type as never) as M;
-  const ref =
-    typeof type === 'string' ? getInterfaceRefFromContractModel<Types, M>(type as M, this) : type;
-  this.interfaceField(
-    ref as never,
-    fieldName,
-    () => field(makeFieldBuilder(this, modelName)) as never,
-  );
+  const { ref, fields } = fieldsFor(this, type as never, 'interface', field);
+
+  this.interfaceField(ref, fieldName, fields as never);
 } as never;
 
 schemaBuilderProto.prismaInterfaceFields = function prismaInterfaceFields<
@@ -211,12 +198,11 @@ schemaBuilderProto.prismaInterfaceFields = function prismaInterfaceFields<
 >(
   this: PothosSchemaTypes.SchemaBuilder<Types>,
   type: M | PrismaNextInterfaceRef<Types, M, unknown>,
-  fields: (t: PrismaNextObjectFieldBuilder<Types, M>) => import('@pothos/core').FieldMap,
+  fields: FieldHelper<Types, M>,
 ) {
-  const modelName = resolveModelName(type as never) as M;
-  const ref =
-    typeof type === 'string' ? getInterfaceRefFromContractModel<Types, M>(type as M, this) : type;
-  this.interfaceFields(ref as never, () => fields(makeFieldBuilder(this, modelName)) as never);
+  const built = fieldsFor(this, type as never, 'interface', fields);
+
+  this.interfaceFields(built.ref, built.fields as never);
 } as never;
 
 schemaBuilderProto.prismaNode = function prismaNode<

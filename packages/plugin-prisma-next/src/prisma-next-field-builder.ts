@@ -38,18 +38,17 @@ function resolveModelAndRef(
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as unknown as Record<string, unknown>;
 
-rootFieldBuilderProto.prismaField = function prismaField(
-  this: {
-    field: (cfg: unknown) => unknown;
-    builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-  },
+/** The field config `prismaField` and `prismaFieldWithInput` build; they differ only in target. */
+function preparedFieldConfig(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   options: PrismaFieldInternalOptions,
 ) {
   const { type, resolve, extensions, ...rest } = options as PrismaFieldInternalOptions & {
     extensions?: Record<string, unknown>;
   };
-  const { modelName, typeName, typeParam } = resolveModelAndRef(this.builder, type);
-  return this.field({
+  const { modelName, typeName, typeParam } = resolveModelAndRef(builder, type);
+
+  return {
     ...rest,
     type: typeParam,
     resolve: resolve as never,
@@ -57,7 +56,17 @@ rootFieldBuilderProto.prismaField = function prismaField(
       ...(extensions ?? {}),
       [PRISMA_NEXT_PREPARED]: { modelName, typeName } satisfies PreparedFieldExtension,
     },
-  });
+  };
+}
+
+rootFieldBuilderProto.prismaField = function prismaField(
+  this: {
+    field: (cfg: unknown) => unknown;
+    builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
+  },
+  options: PrismaFieldInternalOptions,
+) {
+  return this.field(preparedFieldConfig(this.builder, options));
 };
 
 rootFieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
@@ -67,17 +76,5 @@ rootFieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
   },
   options: PrismaFieldInternalOptions,
 ) {
-  const { type, resolve, extensions, ...rest } = options as PrismaFieldInternalOptions & {
-    extensions?: Record<string, unknown>;
-  };
-  const { modelName, typeName, typeParam } = resolveModelAndRef(this.builder, type);
-  return this.fieldWithInput({
-    ...rest,
-    type: typeParam,
-    resolve: resolve as never,
-    extensions: {
-      ...(extensions ?? {}),
-      [PRISMA_NEXT_PREPARED]: { modelName, typeName } satisfies PreparedFieldExtension,
-    },
-  });
+  return this.fieldWithInput(preparedFieldConfig(this.builder, options));
 };

@@ -35,9 +35,20 @@ export function buildTotalCountPromise(
       () => resolver(parent, args, context, info) as number | Promise<number>,
     );
   }
+
+  return aggregateCount(baseCollection);
+}
+
+/**
+ * The row count of `collection`, through the orm-client's aggregate builder. Deferred the same
+ * way `buildTotalCountPromise` defers a callback, so a synchronous throw becomes a rejection.
+ *
+ * @internal
+ */
+export function aggregateCount(collection: unknown): Promise<number> {
   return Promise.resolve().then(() =>
     (
-      baseCollection as {
+      collection as {
         aggregate: (
           fn: (a: { count: () => unknown }) => Record<string, unknown>,
         ) => Promise<Record<string, number>>;

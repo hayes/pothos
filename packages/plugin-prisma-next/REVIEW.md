@@ -31,9 +31,9 @@ ran 2026-05-13 and the agreed execution order.
    once at `onTypeConfig`, cache `{ isToMany, localFields, targetTypeName }`
    per relation on the type extension. Walker stops touching the
    contract in the hot path; M:N validation fail-fasts at schema build.
-6. **Drop `t.relatedField` / `t.relationCount` / `t.relationAggregate`.**
-   All three are achievable with `t.field({ select, resolve })`. Three
-   methods + ~200 LOC removed.
+6. **Drop `t.relatedField`.** Achievable with `t.field({ select, resolve })`.
+   (`t.relationCount` and `t.relationAggregate` were proposed alongside it
+   but kept; only `t.relatedField` was removed.)
 7. **Collection-as-return-type for `t.prismaField`.** Eliminate the
    `apply` callback. Resolver signature becomes the standard
    `(parent, args, ctx, info) => Collection`. Plugin's `wrapResolve`
@@ -84,7 +84,7 @@ machinery, three fewer methods, and no quirky `apply` callback.
 3. Switch combine-key separator.
 4. Drizzle-shape refs.
 5. Precompute relation metadata in type extension.
-6. Drop `t.relatedField` / `t.relationCount` / `t.relationAggregate`.
+6. Drop `t.relatedField`.
 7. Collection-as-return-type for `t.prismaField`.
 
 Test infrastructure (the `RecordingCollection` mock in

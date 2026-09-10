@@ -147,7 +147,7 @@ export interface PrismaNextNode {
   model: PrismaNextModel;
   columns: Set<string>;
   relations: Map<string, PrismaNextRelationAcc>;
-  /** Set by `mergeQuery` on the root of a nested plan; the parent's branch takes them. */
+  /** Set by `merge` under `options.asQuery` on a nested plan's root; the parent's branch takes them. */
   slot?: string;
   refine?: PrismaNextRefine;
 }
@@ -175,16 +175,12 @@ export function objectLevelFieldAlias(typeName: string): string {
   return `${OBJECT_LEVEL_PREFIX}${typeName}`;
 }
 
-export function objectLevelBranchAlias(typeName: string, specKey: string): string {
-  return `${objectLevelFieldAlias(typeName)}${COMBINE_SEPARATOR}${specKey}`;
-}
-
 /** Combine slot key = `<graphqlFieldAlias>:<specKey>`; the per-field overlay reads it back. */
 export function selectBranchAlias(fieldAlias: string, specKey: string): string {
   return `${fieldAlias}${COMBINE_SEPARATOR}${specKey}`;
 }
 
-/** @internal — also used by the per-field overlay in the plugin index. */
+/** The prefix a combine slot carries for one field alias. */
 export function fieldAliasPrefix(fieldAlias: string): string {
   return `${fieldAlias}${COMBINE_SEPARATOR}`;
 }

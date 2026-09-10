@@ -6,10 +6,13 @@ in the package), `wart` (works but awkward, unclear, or costs more than it shoul
 (fit well). Package paths are under `packages/selection-mapper/src/`, plugin paths under
 `packages/plugin-prisma-next/src/`.
 
-The `diff` blocks below show the package as it stood when each finding was reported. The package
-has since folded `Env` into `Walk` (`walk.env.adapter` is `walk.adapter`, `env.modelOf(type)` is
-`modelOf(adapter, schema, type)`) and dropped `Adapter.recordsMappings` and
-`EntryOptions.replayable`, so read them as proposals rather than as current line references.
+The `diff` blocks below show the package as it stood when each finding was reported. Read them as
+proposals rather than as current line references: several names in them no longer exist. The
+package has since folded `Env` into `Walk` (`walk.env.adapter` is `walk.adapter`, `env.modelOf(type)`
+is `modelOf(adapter, schema, type)`), dropped `Adapter.recordsMappings` and `EntryOptions.replayable`,
+renamed `getSelectedNode` to `selectedFieldNode`, moved the entry points from `entry.ts` into
+`plan.ts`, and no longer has `queryFromWalk`, `queryFromInfo`, `createWalk` or a `mergeQuery` the
+plugin can name.
 
 ## Blockers
 
