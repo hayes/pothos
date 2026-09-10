@@ -80,32 +80,10 @@ builder.prismaObject('User', {
 });
 ```
 
-### Selections on `t.prismaField`
-
-A `t.prismaField` defined on a prisma object can also take a `select`. The selection is planned
-into the parent row like any other field-level `select`, and the resolver still receives the
-`query` for the field's own model:
-
-```typescript
-builder.prismaObject('User', {
-  select: { email: true },
-  fields: (t) => ({
-    email: t.exposeString('email'),
-    latestPost: t.prismaField({
-      type: 'Post',
-      nullable: true,
-      // loaded with the user row, so the resolver can filter on it
-      select: { id: true },
-      resolve: (query, user) =>
-        prisma.post.findFirst({
-          ...query,
-          where: { authorId: user.id },
-          orderBy: { createdAt: 'desc' },
-        }),
-    }),
-  }),
-});
-```
+A field-level `select` always adds to the row of the model the field is defined on, whatever type
+the field itself returns. That is true of every field on a prisma object, so a `select` on a
+`t.prismaField` defined on `User` adds columns to the user the resolver receives as its parent, and
+not to the model that field returns.
 
 ## Using arguments or context in your selections
 

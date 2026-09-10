@@ -49,7 +49,7 @@ New and widened types:
   carries every column.
 
 The docs for both plugins now cover how a field gets its data, and when it costs a query of its
-own. Also newly documented: prisma `findUnique: null`, `onNull`, `select` on `t.prismaField`,
+own. Also newly documented: prisma `findUnique: null`, `onNull`,
 `nestedSelection`'s typed segments and third argument, `skipDeferredFragments`,
 `prismaFieldWithInput`/`drizzleFieldWithInput`, drizzle
 `drizzleInterface`/`drizzleInterfaceField(s)`, `t.variant(Ref, { select })`, connection size
