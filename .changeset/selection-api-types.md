@@ -1,5 +1,4 @@
 ---
-'@pothos/selection-mapper': patch
 '@pothos/plugin-prisma': minor
 '@pothos/plugin-drizzle': minor
 ---
