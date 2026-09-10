@@ -705,7 +705,7 @@ function compileTypeSelection(
 
 /**
  * Every relation consumer gets its own combine slot, so there is nothing to compare and nothing
- * to leave out: `accepts`, `conflict`, `absorb` and `acceptsFrom` are inherited, and the package
+ * to leave out: `canMergeQuery`, `firstConflict`, `mergeNode` and `canMergeNode` are inherited, and the package
  * answers "nothing ever conflicts" for them. The contract the models come from, and the compiled
  * selections cached against the schema's types and fields, are this object's own state.
  */
@@ -749,7 +749,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     return selection ?? undefined;
   }
 
-  create(model: PrismaNextModel): PrismaNextNode {
+  createNode(model: PrismaNextModel): PrismaNextNode {
     return createPrismaNextNode(model);
   }
 
@@ -758,7 +758,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
    * or the response key of the field the traversal is merging. E-3: a relation query is the
    * branch's refine and slot; its columns (a connection's cursor) are read on the relation.
    */
-  merge(node: PrismaNextNode, spec: PrismaNextSpec, options?: MergeOptions) {
+  mergeQuery(node: PrismaNextNode, spec: PrismaNextSpec, options?: MergeOptions) {
     if (options?.asQuery) {
       if (spec.refine) {
         node.refine = spec.refine;
@@ -772,7 +772,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     mergeSpec(node, spec, spec.alias ?? options?.alias);
   }
 
-  emit(node: PrismaNextNode): PrismaNextSpec {
+  toQuery(node: PrismaNextNode): PrismaNextSpec {
     return serializeNode(node);
   }
 }
