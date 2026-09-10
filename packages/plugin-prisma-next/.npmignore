@@ -4,3 +4,6 @@ tests
 babel.config.js
 *.tsbuildinfo
 tsconfig.*
+ARCHITECTURE.md
+REVIEW.md
+feedback
