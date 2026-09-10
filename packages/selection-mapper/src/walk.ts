@@ -573,7 +573,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
 /**
  * A-8: the promise of a nested selection whose plan is async, counted against its invocation
  * until it resolves. It is handled here, so a nested selection the invocation discards is never
- * an unhandled rejection: `mergeField` refuses the invocation instead. A rejection keeps the
+ * an unhandled rejection: `collectField` refuses the invocation instead. A rejection keeps the
  * count, since the invocation did not wait for it either; one that was awaited surfaces through
  * the invocation's own promise.
  */
