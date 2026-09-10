@@ -248,7 +248,7 @@ export class DrizzleObjectFieldBuilder<
     }
 
     // The field's `query` may be async, so the result is a promise when it is (A-5). The
-    // `PathInfo` is built from the walk position here, and only for a callback that takes one.
+    // `PathInfo` is built from the position here, and only for a callback that takes one.
     const resolveFieldQuery = (
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: {},
@@ -361,7 +361,7 @@ export class DrizzleObjectFieldBuilder<
       const hasPageInfo = !!getSelection(['pageInfo']);
       const totalCountOnly = hasTotalCount && !hasEdges && !hasNodes && !hasPageInfo;
       const fieldQuery = resolveFieldQuery(args, context, position);
-      // The nested walk starts now, with a query that waits for the field's `query` when that is
+      // The nested plan starts now, with a query that waits for the field's `query` when that is
       // async, so every callback beneath the connection runs in the same tick (A-3).
       const nested = totalCountOnly
         ? undefined

@@ -22,7 +22,7 @@ const whereXQuery = (args: Args): FakeMap => (args.x === undefined ? {} : { wher
 /** `t.relatedConnection`-style: nodes and edges.node planned for the target model. */
 const connectionSelect =
   (name: string, target: string): Select =>
-  (args, _ctx, nested, getSelectedNode) => {
+  (args, _ctx, nested, selectedFieldNode) => {
     const include: IndirectInclude = {
       getType: () => target,
       paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
@@ -31,7 +31,7 @@ const connectionSelect =
 
     return {
       select: { [name]: nested(first === undefined ? {} : { take: first }, include) },
-      ...(getSelectedNode(['totalCount']) ? { extras: { [`${name}Count`]: true } } : {}),
+      ...(selectedFieldNode(['totalCount']) ? { extras: { [`${name}Count`]: true } } : {}),
     };
   };
 

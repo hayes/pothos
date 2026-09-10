@@ -11,10 +11,10 @@ import type { GraphQLResolveInfo } from 'graphql';
 import { isInterfaceType, isObjectType, Kind } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type { DrizzleConnectionFieldOptions } from './types.js';
-import type { DrizzleWalk } from './utils/adapter.js';
+import type { DrizzlePlan } from './utils/adapter.js';
 import { getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
 import { resolveDrizzleCursorConnection } from './utils/cursors.js';
-import { queryFromWalk, walkFromInfo } from './utils/map-query.js';
+import { planFromInfo, queryFromPlan } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';
 
@@ -40,21 +40,21 @@ fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...optio
       const config = getSchemaConfig(this.builder);
       // A promise while a selection beneath the field is async: the resolver runs once it has
       // settled, so the builder it is handed never returns one.
-      const walk = walkFromInfo({ config, context, info });
+      const plan = planFromInfo({ config, context, info });
 
-      return isThenable(walk)
-        ? walk.then((settled) =>
+      return isThenable(plan)
+        ? plan.then((settled) =>
             resolveWithWalk(
               config,
               resolve as never,
-              settled as DrizzleWalk | undefined,
+              settled as DrizzlePlan | undefined,
               parent,
               args,
               context,
               info,
             ),
           )
-        : resolveWithWalk(config, resolve as never, walk, parent, args, context, info);
+        : resolveWithWalk(config, resolve as never, plan, parent, args, context, info);
     },
   }) as never;
 };
@@ -83,21 +83,21 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
     type: typeParam,
     resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
       const config = getSchemaConfig(this.builder);
-      const walk = walkFromInfo({ config, context, info });
+      const plan = planFromInfo({ config, context, info });
 
-      return isThenable(walk)
-        ? walk.then((settled) =>
+      return isThenable(plan)
+        ? plan.then((settled) =>
             resolveWithWalk(
               config,
               resolve,
-              settled as DrizzleWalk | undefined,
+              settled as DrizzlePlan | undefined,
               parent,
               args,
               context,
               info,
             ),
           )
-        : resolveWithWalk(config, resolve, walk, parent, args, context, info);
+        : resolveWithWalk(config, resolve, plan, parent, args, context, info);
     },
   }) as never;
 } as never;
@@ -109,7 +109,7 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
 function resolveWithWalk(
   config: PothosDrizzleSchemaConfig,
   resolve: (...args: unknown[]) => unknown,
-  walk: DrizzleWalk | undefined,
+  plan: DrizzlePlan | undefined,
   parent: unknown,
   args: unknown,
   context: {},
@@ -117,7 +117,7 @@ function resolveWithWalk(
 ) {
   return resolve(
     (select?: SelectionMap) =>
-      queryFromWalk(walk, {
+      queryFromPlan(plan, {
         config,
         context,
         select,
@@ -166,7 +166,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
   // Built once per field: resolving with a synchronous plan allocates nothing beyond the
   // callback `resolveDrizzleCursorConnection` was already handed.
   const resolveConnection = (
-    walk: DrizzleWalk | undefined,
+    plan: DrizzlePlan | undefined,
     parent: unknown,
     args: PothosSchemaTypes.DefaultConnectionArguments,
     context: {},
@@ -176,7 +176,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
     resolveDrizzleCursorConnection(
       tableName,
       info,
-      walk,
+      plan,
       typeName,
       getSchemaConfig(this.builder),
       {
@@ -232,7 +232,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
 
         // Planned before the resolver runs, so the builder it is handed is synchronous even when
         // a selection beneath the connection is async.
-        const walk = walkFromInfo({
+        const plan = planFromInfo({
           config: getSchemaConfig(this.builder),
           context,
           info,
@@ -240,10 +240,10 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
           typeName,
         });
 
-        return isThenable(walk)
-          ? walk.then((settled) =>
+        return isThenable(plan)
+          ? plan.then((settled) =>
               resolveConnection(
-                settled as DrizzleWalk | undefined,
+                settled as DrizzlePlan | undefined,
                 parent,
                 args,
                 context,
@@ -251,7 +251,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
                 totalCountOnly,
               ),
             )
-          : resolveConnection(walk, parent, args, context, info, totalCountOnly);
+          : resolveConnection(plan, parent, args, context, info, totalCountOnly);
       },
     },
     connectionOptions instanceof ObjectRef

@@ -118,7 +118,7 @@ describe('findMatches', () => {
     ]);
   });
 
-  it('expands a fragment spread more than once at one point of the walk once (W-2)', async () => {
+  it('expands a fragment spread more than once at one point of the traversal once (W-2)', async () => {
     // F1 spreads F2 twice, F2 spreads F3 twice, and so on: 2^11 spreads reach F12.
     const fragments: string[] = [];
 

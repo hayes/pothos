@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   getLoaderMapping,
   type IndirectInclude,
+  planFromInfo,
   queryFromInfo,
-  queryFromWalk,
-  selectionStateFromInfo,
-  walkFromInfo,
+  queryFromPlan,
+  rowPlanFromInfo,
 } from '../../src';
 import { mappingOf, resolveInfo } from '../fake-adapter';
 import { countPromises } from '../promise-spy';
@@ -117,7 +117,7 @@ const relationCount =
  */
 const relatedConnection =
   (name: string, target: string, cursor: string): PnSelectFn =>
-  (args, _ctx, nested, getSelectedNode) => {
+  (args, _ctx, nested, selectedFieldNode) => {
     const first = ((args as { first?: number }).first ?? 20) + 1;
     const include: IndirectInclude = {
       getType: () => target,
@@ -130,7 +130,7 @@ const relatedConnection =
 
     return {
       relations: {
-        [name]: getSelectedNode(['totalCount'])
+        [name]: selectedFieldNode(['totalCount'])
           ? [{ ...rows, slot: 'rows' }, (sub: MapperCollection) => ({ count: sub.count() })]
           : { ...rows, slot: 'rows' },
       },
@@ -140,7 +140,7 @@ const relatedConnection =
 /**
  * `t.variant(type, { select })` (~279-305): the field-level `pothosIndirectInclude` without a
  * path, which the walker does not read, so the descent into the variant's selection set on the
- * same row is a nested walk whose plan is merged back into this level.
+ * same row is a nested plan whose query is merged back into this level.
  */
 const variant =
   (select: readonly string[] = []): PnSelectFn =>
@@ -429,7 +429,7 @@ describe('variants', () => {
     ]);
   });
 
-  it('merges a t.variant field as a nested walk of the same row', async () => {
+  it('merges a t.variant field as a nested plan of the same row', async () => {
     expect(await plan('{ user { id admin { permissions posts(take: 3) { title } } } }')).toEqual([
       'select(id, name, email, permissions)',
       'include(posts){ combine(posts:posts=[take(3) select(title)], :object:AdminUser:total=count[]) }',
@@ -483,25 +483,25 @@ describe('entry points', () => {
     ]);
   });
 
-  it('selectionStateFromInfo plans the field into a row carrying the parent type select (E-2)', async () => {
+  it('rowPlanFromInfo plans the field into a row carrying the parent type select (E-2)', async () => {
     const info = await resolveInfo(schema, '{ admin { posts(take: 1) { id } } }', {
       at: ['AdminUser', 'posts'],
     });
-    const walk = selectionStateFromInfo(pnAdapter, {}, info);
+    const plan = rowPlanFromInfo(pnAdapter, {}, info);
 
-    expect(chain(pnAdapter.serialize(walk.root))).toEqual([
+    expect(chain(pnAdapter.serialize(plan.root))).toEqual([
       'select(id, email)',
       'include(posts){ combine(posts:posts=[take(1) select(id)], :object:AdminUser:total=count[]) }',
     ]);
-    // The walk records its mappings whatever the adapter does with them; this one reads rows
+    // The plan records its mappings whatever the adapter does with them; this one reads rows
     // back through the per-resolve overlay and never looks them up.
-    expect(Object.keys(walk.mappings)).toEqual(['AdminUser@posts']);
+    expect(Object.keys(plan.mappings)).toEqual(['AdminUser@posts']);
   });
 
-  it('queryFromWalk emits the walk over a caller selection, and round-trips a serialized spec', async () => {
+  it('queryFromPlan emits the plan over a caller selection, and round-trips a serialized spec', async () => {
     const source = '{ user { recent: posts(take: 1) { id } n: postCount } }';
     const context = {};
-    const walk = walkFromInfo(pnAdapter, { context, info: await resolveInfo(schema, source) })!;
+    const plan = planFromInfo(pnAdapter, { context, info: await resolveInfo(schema, source) })!;
     const select: PnSpec = { columns: ['name'] };
     const expected = queryFromInfo(pnAdapter, {
       context: {},
@@ -511,7 +511,7 @@ describe('entry points', () => {
 
     expect(getLoaderMapping(context, pathOf('user', 'recent'), 'User')).toBe(null);
 
-    const query = queryFromWalk(walk, select);
+    const query = queryFromPlan(plan, select);
 
     expect(chain(query)).toEqual(chain(expected));
     expect(chain(query)).toEqual([
@@ -523,6 +523,6 @@ describe('entry points', () => {
       nested: { 'Post@id': { nested: {} } },
     });
     // A serialized spec merges back without a key: every entry carries its alias.
-    expect(chain(queryFromWalk(walk))).toEqual(chain(pnAdapter.serialize(walk.root)));
+    expect(chain(queryFromPlan(plan))).toEqual(chain(pnAdapter.serialize(plan.root)));
   });
 });

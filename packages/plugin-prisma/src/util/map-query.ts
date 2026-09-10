@@ -1,13 +1,11 @@
 import { isThenable } from '@pothos/core';
-import {
-  type PathSegment,
-  selectedFieldNames,
-  queryFromInfo as walkQueryFromInfo,
-  selectionStateFromInfo as walkSelectionStateFromInfo,
-} from '@pothos/selection-mapper';
+// The plugin's own entry points wrap the mapper's, so the mapper is reached through its namespace
+// rather than through a same-named import.
+import * as mapper from '@pothos/selection-mapper';
+import { type PathSegment, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
-import { type PrismaWalk, prismaAdapter } from './adapter.js';
+import { type PrismaPlan, prismaAdapter } from './adapter.js';
 import { wrapWithUsageCheck } from './usage.js';
 
 export { selectedFieldNames };
@@ -25,7 +23,7 @@ export type QueryFromInfoResult<Include> = undefined extends Include
 
 /**
  * The query for the field `info` resolves. A given `select` is merged as the initial selection;
- * for a type in include mode the walk still produces `include`, with the columns of that
+ * for a type in include mode the plan still produces `include`, with the columns of that
  * `select` implied by the row.
  */
 export function queryFromInfo<
@@ -53,7 +51,7 @@ export function queryFromInfo<
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
 )): QueryFromInfoResult<Include> {
-  const query = walkQueryFromInfo(prismaAdapter, {
+  const query = mapper.queryFromInfo(prismaAdapter, {
     context,
     info,
     typeName,
@@ -76,11 +74,11 @@ export function queryFromInfo<
   ) as never;
 }
 
-/** The walk loading the field `info` resolves for its parent row (the model loader's query). */
-export function selectionStateFromInfo(
+/** The plan loading the field `info` resolves for its parent row (the model loader's query). */
+export function rowPlanFromInfo(
   context: object,
   info: GraphQLResolveInfo,
   skipDeferredFragments: boolean,
-): PrismaWalk {
-  return walkSelectionStateFromInfo(prismaAdapter, context, info, skipDeferredFragments);
+): PrismaPlan {
+  return mapper.rowPlanFromInfo(prismaAdapter, context, info, skipDeferredFragments);
 }

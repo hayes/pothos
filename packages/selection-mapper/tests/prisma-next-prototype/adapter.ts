@@ -19,7 +19,7 @@
  *     `emitRelation` / `emitBranch`, ~915-1001).
  */
 import type { GraphQLNamedType } from 'graphql';
-import type { Adapter, SelectFn, Walk } from '../../src';
+import type { Adapter, Plan, SelectFn } from '../../src';
 
 // ---------------------------------------------------------------------------------------------
 // The builder surface (apply-selection.ts ~74-104).
@@ -145,14 +145,14 @@ export interface PnNode {
   model: PnModel;
   columns: Set<string>;
   relations: Map<string, PnRelation>;
-  /** Set by `mergeQuery` on the root of a nested walk; the parent's branch takes them. */
+  /** Set by `mergeQuery` on the root of a nested plan; the parent's branch takes them. */
   refine?: PnRefine;
   args?: PnArgs;
 }
 
 export type PnSelectFn = SelectFn<PnSpec>;
 export type PnAdapter = Adapter<PnModel, PnSpec, PnNode>;
-export type PnWalk = Walk<PnModel, PnSpec, PnNode>;
+export type PnWalk = Plan<PnModel, PnSpec, PnNode>;
 
 /** The extension keys the adapter reads; the test schema sets them. */
 export const PN_MODEL = 'pnModel';

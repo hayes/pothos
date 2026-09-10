@@ -3,15 +3,15 @@ import {
   createNode,
   deepEqual,
   type Node,
+  type Plan,
   relation,
   type SelectFn,
-  type Walk,
 } from '@pothos/selection-mapper';
 import type { FieldSelection, IncludeMap, SelectionMap } from '../types.js';
 import type { FieldMap } from './relation-map.js';
 
 export type PrismaNode = Node<FieldMap>;
-export type PrismaWalk = Walk<FieldMap, SelectionMap>;
+export type PrismaPlan = Plan<FieldMap, SelectionMap>;
 
 /** A map without `select`: include mode, every column. Shared and never mutated. */
 export const INCLUDE_ALL: SelectionMap = Object.freeze({});

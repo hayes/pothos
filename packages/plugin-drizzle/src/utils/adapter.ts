@@ -4,9 +4,9 @@ import {
   createNode,
   deepEqual,
   type Node,
+  type Plan,
   relation,
   type SelectFn,
-  type Walk,
 } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLNamedType } from 'graphql';
@@ -15,7 +15,7 @@ import type { PothosDrizzleSchemaConfig } from './config.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
 export type DrizzleNode = Node<TableRelationalConfig>;
-export type DrizzleWalk = Walk<TableRelationalConfig, SelectionMap>;
+export type DrizzlePlan = Plan<TableRelationalConfig, SelectionMap>;
 export type DrizzleAdapter = Adapter<TableRelationalConfig, SelectionMap>;
 
 /** A map without `columns`: every column. Shared and never mutated. */

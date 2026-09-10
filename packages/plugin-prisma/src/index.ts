@@ -90,7 +90,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         pothosPrismaModel: model,
         pothosPrismaFieldMap: fieldMap,
         // The type-level selection merged whenever the type is walked (S-1), built once so the
-        // walk allocates nothing per type: a model type without a `select` is include mode.
+        // plan allocates nothing per type: a model type without a `select` is include mode.
         pothosPrismaTypeSelection:
           select || include ? Object.freeze({ select, include }) : model ? INCLUDE_ALL : undefined,
       },

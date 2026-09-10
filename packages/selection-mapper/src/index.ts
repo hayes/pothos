@@ -4,7 +4,7 @@
  * Everything else is module-private; see the README.
  */
 export { deepEqual } from './deep-equal.js';
-export { queryFromInfo, queryFromWalk, selectionStateFromInfo, walkFromInfo } from './entry.js';
+export { planFromInfo, queryFromInfo, queryFromPlan, rowPlanFromInfo } from './entry.js';
 export {
   cacheKey,
   getLoaderMapping,
@@ -24,10 +24,10 @@ export type {
   Adapter,
   EntryOptions,
   NestedSelection,
+  Plan,
   Position,
   RootMerge,
   SelectFn,
   TypeLevelConflict,
-  Walk,
   WalkedType,
 } from './types.js';

@@ -3,7 +3,7 @@ import { type GraphQLOutputType, isListType, isNonNullType } from 'graphql';
 import type { FieldPathInfo, PathInfo } from '../types.js';
 
 /**
- * The public `PathInfo` of a walk position: `path` as `Type.field` from the field the query was
+ * The public `PathInfo` of a position: `path` as `Type.field` from the field the query was
  * planned for down to the field being planned, and one segment per step with the alias the
  * document used and whether the field is a list.
  *

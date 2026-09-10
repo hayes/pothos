@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import type { Adapter, SelectFn } from '../src';
 import {
   getLoaderMapping,
+  planFromInfo,
   queryFromInfo,
-  queryFromWalk,
-  selectionStateFromInfo,
-  walkFromInfo,
+  queryFromPlan,
+  rowPlanFromInfo,
 } from '../src';
 import { type FakeMap, type FakeModel, mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
 import { countPromises } from './promise-spy';
@@ -105,7 +105,7 @@ async function sameAs(
 
   for (const [type, path] of keys) {
     // Positions aside: a key accepted from two occurrences records the position of whichever was
-    // accepted first, which the async walk may reach in the other order.
+    // accepted first, which the async plan may reach in the other order.
     expect(mappingOf(getLoaderMapping(context, pathOf(...path), type))).toEqual(
       mappingOf(getLoaderMapping(syncContext, pathOf(...path), type)),
     );
@@ -128,7 +128,7 @@ describe('async callbacks', () => {
     );
   });
 
-  it('propagates a nested async walk through a plugin-owned select (A-6)', async () => {
+  it('propagates a nested async plan through a plugin-owned select (A-6)', async () => {
     await sameAs(
       '{ user { posts(take: 2) { id author(x: 1) { name } } } }',
       withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
@@ -207,7 +207,7 @@ describe('async callbacks', () => {
     }
   });
 
-  it('starts every callback of a walk in the same tick (A-3)', async () => {
+  it('starts every callback of a plan in the same tick (A-3)', async () => {
     const started: string[] = [];
     const async = withSelects(['posts', 'profile'], (select, name) => async (...args) => {
       started.push(name);
@@ -263,14 +263,14 @@ describe('async callbacks', () => {
     expect(getLoaderMapping(ordered, pathOf('user', 'second'), 'User')).toBe(null);
   });
 
-  it('unions the mappings of a key accepted from an async and a sync walk', async () => {
+  it('unions the mappings of a key accepted from an async and a sync plan', async () => {
     const source = /* GraphQL */ `{
       user {
         ... on User { posts { author { name } } }
         ... on User { posts { comments { id } } }
       }
     }`;
-    // The first `posts` walk is async (its `author` is), the second is sync.
+    // The first `posts` plan is async (its `author` is), the second is sync.
     const mixed = withWraps({ posts: pluginRelation(), author: asyncRelation(undefined, 1) });
 
     await sameAs(source, mixed, [['User', ['user', 'posts']]]);
@@ -279,13 +279,13 @@ describe('async callbacks', () => {
 
     await queryFromInfo(mixed, { context, info: await resolveInfo(schema, source) });
 
-    // The sync walk was merged first (D-5); the async one unioned into its mapping.
+    // The sync plan was merged first (D-5); the async one unioned into its mapping.
     expect(Object.keys(getLoaderMapping(context, pathOf('user', 'posts'), 'User')!.nested)).toEqual(
       ['Post@comments', 'Post@author'],
     );
   });
 
-  it('rejects the walk when a callback rejects', async () => {
+  it('rejects the plan when a callback rejects', async () => {
     const failing = withWraps({
       posts: pluginRelation(),
       author: () => () => Promise.reject(new Error('no author')),
@@ -327,22 +327,22 @@ describe('async callbacks', () => {
     );
   });
 
-  it('settles walkFromInfo, then queryFromWalk emits synchronously', async () => {
+  it('settles planFromInfo, then queryFromPlan emits synchronously', async () => {
     const source = '{ user { posts(take: 2) { id author(x: 1) { name } } } }';
     const info = await resolveInfo(schema, source);
     const syncContext = {};
     const expected = queryFromInfo(adapter, { context: syncContext, info, initial: { take: 1 } });
     const context = {};
-    const pending = walkFromInfo(
+    const pending = planFromInfo(
       withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
       { context, info },
     );
 
     expect(isThenable(pending)).toBe(true);
 
-    const walk = (await pending)!;
+    const plan = (await pending)!;
     // A resolver handed the settled plan emits without creating a promise.
-    const { result, promises } = countPromises(() => queryFromWalk(walk, { take: 1 }));
+    const { result, promises } = countPromises(() => queryFromPlan(plan, { take: 1 }));
 
     expect(promises).toBe(0);
     expect(result).toEqual(expected);
@@ -351,17 +351,17 @@ describe('async callbacks', () => {
     );
   });
 
-  it('returns the loader walk after its async select, then enters the parent type (E-2)', async () => {
+  it('returns the loader plan after its async select, then enters the parent type (E-2)', async () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
-    const walk = await selectionStateFromInfo(withSelects(['posts'], deferred), {}, info);
+    const plan = await rowPlanFromInfo(withSelects(['posts'], deferred), {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
-    expect(adapter.serialize(walk.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
-    expect(mappingsOf(walk.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
+    expect(adapter.serialize(plan.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
+    expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
 
-    const direct = (await walkFromInfo(withSelects(['posts'], deferred), {
+    const direct = (await planFromInfo(withSelects(['posts'], deferred), {
       context: {},
       info: await resolveInfo(schema, '{ user { posts { id } } }'),
       typeName: 'User',
@@ -418,7 +418,7 @@ describe('a nested selection that was not awaited (A-8)', () => {
 
   const source = '{ user { posts { author { name } } } }';
 
-  it('refuses a sync select whose discarded nested walk rejects, without an unhandled rejection', async () => {
+  it('refuses a sync select whose discarded nested plan rejects, without an unhandled rejection', async () => {
     await withoutUnhandledRejection(async () => {
       const context = {};
       const info = await resolveInfo(schema, source);
@@ -430,7 +430,7 @@ describe('a nested selection that was not awaited (A-8)', () => {
     });
   });
 
-  it('refuses an async select whose discarded nested walk rejected before it returned', async () => {
+  it('refuses an async select whose discarded nested plan rejected before it returned', async () => {
     await withoutUnhandledRejection(async () => {
       const context = {};
       const info = await resolveInfo(schema, source);
@@ -445,7 +445,7 @@ describe('a nested selection that was not awaited (A-8)', () => {
     });
   });
 
-  it('refuses an async select whose discarded nested walk resolves late, recording nothing', async () => {
+  it('refuses an async select whose discarded nested plan resolves late, recording nothing', async () => {
     await withoutUnhandledRejection(async () => {
       const context = {};
       const info = await resolveInfo(schema, source);
@@ -454,14 +454,14 @@ describe('a nested selection that was not awaited (A-8)', () => {
       await expect(queryFromInfo(late, { context, info })).rejects.toThrow(message);
       expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
 
-      // The discarded walk completes after the invocation was refused: still nothing recorded.
+      // The discarded plan completes after the invocation was refused: still nothing recorded.
       await sleep(25);
 
       expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
     });
   });
 
-  it('accepts a nested selection that was awaited, and records the same mapping as the sync walk', async () => {
+  it('accepts a nested selection that was awaited, and records the same mapping as the sync plan', async () => {
     await sameAs(
       source,
       withWraps({ posts: asyncRelation(), author: asyncRelation(undefined, 1) }),
@@ -470,7 +470,7 @@ describe('a nested selection that was not awaited (A-8)', () => {
   });
 });
 
-describe('a walk that throws after a callback started (M-2)', () => {
+describe('a plan that throws after a callback started (M-2)', () => {
   const rejecting: Wrap = () => () => Promise.reject(new Error('late'));
   const throwing: Wrap = () => () => {
     throw new Error('sync');
@@ -482,7 +482,7 @@ describe('a walk that throws after a callback started (M-2)', () => {
       const info = await resolveInfo(schema, '{ user { posts { id } profile { bio } } }');
 
       expect(() => queryFromInfo(failing, { context: {}, info })).toThrow('sync');
-      expect(() => walkFromInfo(failing, { context: {}, info, typeName: 'User' })).toThrow('sync');
+      expect(() => planFromInfo(failing, { context: {}, info, typeName: 'User' })).toThrow('sync');
 
       const paths = await resolveInfo(
         schema,
@@ -500,7 +500,7 @@ describe('a walk that throws after a callback started (M-2)', () => {
     });
   });
 
-  it('handles the pending merge of a loader walk whose second field node throws', async () => {
+  it('handles the pending merge of a loader plan whose second field node throws', async () => {
     await withoutUnhandledRejection(async () => {
       let calls = 0;
       const failing = withSelects(['posts'], () => () => {
@@ -512,19 +512,19 @@ describe('a walk that throws after a callback started (M-2)', () => {
 
         throw new Error('sync');
       });
-      // Two nodes select the field, so the loader walk applies two selects to the one row.
+      // Two nodes select the field, so the loader plan applies two selects to the one row.
       const info = await resolveInfo(
         schema,
         '{ viewer { ... on Viewer { posts { id } } ... on Viewer { posts { title } } } }',
         { at: ['Viewer', 'posts'] },
       );
 
-      expect(() => selectionStateFromInfo(failing, {}, info)).toThrow('sync');
+      expect(() => rowPlanFromInfo(failing, {}, info)).toThrow('sync');
       expect(calls).toBe(2);
     });
   });
 
-  it('handles the pending merge of a nested walk that throws', async () => {
+  it('handles the pending merge of a nested plan that throws', async () => {
     await withoutUnhandledRejection(async () => {
       const failing = withWraps({ author: rejecting, comments: throwing });
       const info = await resolveInfo(
@@ -572,10 +572,10 @@ describe('the synchronous path (A-1)', () => {
       at: ['Viewer', 'posts'],
     });
 
-    expect(countPromises(() => selectionStateFromInfo(adapter, {}, info)).promises).toBe(0);
+    expect(countPromises(() => rowPlanFromInfo(adapter, {}, info)).promises).toBe(0);
     expect(
       countPromises(() =>
-        walkFromInfo(adapter, {
+        planFromInfo(adapter, {
           context: {},
           info,
           typeName: 'Post',
@@ -591,11 +591,11 @@ describe('the synchronous path (A-1)', () => {
     const expectedContext = {};
     const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
     const context = {};
-    const walk = (await walkFromInfo(
+    const plan = (await planFromInfo(
       withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
       { context, info },
     ))!;
-    const { result, promises } = countPromises(() => queryFromWalk(walk, select));
+    const { result, promises } = countPromises(() => queryFromPlan(plan, select));
 
     expect(promises).toBe(0);
     expect(result).toEqual(expected);
@@ -606,7 +606,7 @@ describe('the synchronous path (A-1)', () => {
     const context = {};
     const info = await resolveInfo(schema, source);
     const { result, promises } = countPromises(() =>
-      queryFromWalk(walkFromInfo(adapter, { context, info })!, { take: 1 }),
+      queryFromPlan(planFromInfo(adapter, { context, info })!, { take: 1 }),
     );
 
     expect(promises).toBe(0);

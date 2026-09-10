@@ -10,13 +10,13 @@ it('exports only what the plugins use', () => {
     'createNode',
     'deepEqual',
     'getLoaderMapping',
+    'planFromInfo',
     'queryFromInfo',
-    'queryFromWalk',
+    'queryFromPlan',
     'relation',
+    'rowPlanFromInfo',
     'selectedFieldNames',
-    'selectionStateFromInfo',
     'setFieldMapping',
     'setLoaderMappings',
-    'walkFromInfo',
   ]);
 });

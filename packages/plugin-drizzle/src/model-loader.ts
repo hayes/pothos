@@ -16,9 +16,9 @@ import {
   type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { type DrizzleAdapter, type DrizzleWalk, drizzleAdapter } from './utils/adapter.js';
+import { type DrizzleAdapter, type DrizzlePlan, drizzleAdapter } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
-import { selectionStateFromInfo, walkFromInfo } from './utils/map-query.js';
+import { planFromInfo, rowPlanFromInfo } from './utils/map-query.js';
 import type { SelectionMap } from './utils/selections.js';
 
 interface ResolvablePromise<T> {
@@ -27,9 +27,9 @@ interface ResolvablePromise<T> {
   reject: (err: unknown) => void;
 }
 
-/** A field's loader walk and the query it serializes to. */
+/** A field's loader plan and the query it serializes to. */
 interface Selection {
-  walk: DrizzleWalk;
+  plan: DrizzlePlan;
   query: SelectionMap;
 }
 
@@ -44,7 +44,7 @@ export class ModelLoader {
   queryCache = new Map<string, MaybePromise<Selection>>();
 
   staged = new Set<{
-    walk: DrizzleWalk;
+    plan: DrizzlePlan;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
@@ -107,7 +107,7 @@ export class ModelLoader {
     if (!this.queryCache.has(key)) {
       this.queryCache.set(
         key,
-        completeValue(selectionStateFromInfo(this.config, this.context, info), selectionOf),
+        completeValue(rowPlanFromInfo(this.config, this.context, info), selectionOf),
       );
     }
 
@@ -120,8 +120,8 @@ export class ModelLoader {
       this.queryCache.set(
         key,
         completeValue(
-          // Walked without paths, so there is always a walk.
-          walkFromInfo({ config: this.config, context: this.context, info, typeName })!,
+          // Walked without paths, so there is always a plan.
+          planFromInfo({ config: this.config, context: this.context, info, typeName })!,
           selectionOf,
         ),
       );
@@ -143,10 +143,10 @@ export class ModelLoader {
       : this.loadWith(selection, info, model);
   }
 
-  private loadWith({ walk, query }: Selection, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(walk, query, model).then((result) => {
+  private loadWith({ plan, query }: Selection, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(plan, query, model).then((result) => {
       if (result) {
-        const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
+        const mapping = plan.mappings[`${info.parentType.name}@${info.path.key}`];
 
         if (mapping) {
           // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
@@ -172,20 +172,20 @@ export class ModelLoader {
       : this.loadFieldWith(selection, info, model);
   }
 
-  private loadFieldWith({ walk, query }: Selection, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(walk, query, model).then((result) => {
+  private loadFieldWith({ plan, query }: Selection, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(plan, query, model).then((result) => {
       if (result) {
-        setLoaderMappings(this.context, info, walk.mappings);
+        setLoaderMappings(this.context, info, plan.mappings);
       }
 
       return result;
     });
   }
 
-  stageQuery(walk: DrizzleWalk, query: SelectionMap, model: object) {
+  stageQuery(plan: DrizzlePlan, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
-      if (this.adapter.compatible(entry.walk.root, query, false)) {
-        this.adapter.merge(entry.walk.root, query);
+      if (this.adapter.compatible(entry.plan.root, query, false)) {
+        this.adapter.merge(entry.plan.root, query);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -195,13 +195,13 @@ export class ModelLoader {
       }
     }
 
-    return this.initLoad(walk, model);
+    return this.initLoad(plan, model);
   }
 
-  initLoad(walk: DrizzleWalk, model: object) {
+  initLoad(plan: DrizzlePlan, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     const entry = {
-      walk,
+      plan,
       models: new Map([[model, promise]]),
     };
     this.staged.add(entry);
@@ -220,7 +220,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...this.adapter.serialize(walk.root),
+          ...this.adapter.serialize(plan.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(
@@ -269,9 +269,9 @@ export class ModelLoader {
   }
 }
 
-/** The walk carries the adapter it was built with, so no loader instance is needed here. */
-function selectionOf(walk: DrizzleWalk): Selection {
-  return { walk, query: walk.adapter.serialize(walk.root) };
+/** The plan carries the adapter it was built with, so no loader instance is needed here. */
+function selectionOf(plan: DrizzlePlan): Selection {
+  return { plan, query: plan.adapter.serialize(plan.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

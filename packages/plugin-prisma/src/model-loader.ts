@@ -11,10 +11,10 @@ import {
 import { cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from './types.js';
-import { type PrismaWalk, prismaAdapter } from './util/adapter.js';
+import { type PrismaPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
 import { getClient } from './util/get-client.js';
-import { selectionStateFromInfo } from './util/map-query.js';
+import { rowPlanFromInfo } from './util/map-query.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -22,9 +22,9 @@ interface ResolvablePromise<T> {
   reject: (err: unknown) => void;
 }
 
-/** A field's loader walk and the query it serializes to. */
+/** A field's loader plan and the query it serializes to. */
 interface Selection {
-  walk: PrismaWalk;
+  plan: PrismaPlan;
   query: SelectionMap;
 }
 
@@ -41,7 +41,7 @@ export class ModelLoader {
   queryCache = new Map<string, MaybePromise<Selection>>();
 
   staged = new Set<{
-    walk: PrismaWalk;
+    plan: PrismaPlan;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
@@ -245,7 +245,7 @@ export class ModelLoader {
       this.queryCache.set(
         key,
         completeValue(
-          selectionStateFromInfo(
+          rowPlanFromInfo(
             this.context,
             info,
             this.builder.options.prisma.skipDeferredFragments ?? true,
@@ -271,10 +271,10 @@ export class ModelLoader {
       : this.loadWith(selection, info, model);
   }
 
-  private loadWith({ walk, query }: Selection, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(walk, query, model).then((result) => {
+  private loadWith({ plan, query }: Selection, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(plan, query, model).then((result) => {
       if (result) {
-        const mapping = walk.mappings[`${info.parentType.name}@${info.path.key}`];
+        const mapping = plan.mappings[`${info.parentType.name}@${info.path.key}`];
 
         if (mapping) {
           setLoaderMappings(this.context, info, mapping.nested);
@@ -285,10 +285,10 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(walk: PrismaWalk, query: SelectionMap, model: object) {
+  stageQuery(plan: PrismaPlan, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
-      if (prismaAdapter.compatible(entry.walk.root, query, false)) {
-        prismaAdapter.merge(entry.walk.root, query);
+      if (prismaAdapter.compatible(entry.plan.root, query, false)) {
+        prismaAdapter.merge(entry.plan.root, query);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -298,10 +298,10 @@ export class ModelLoader {
       }
     }
 
-    return this.initLoad(walk, model);
+    return this.initLoad(plan, model);
   }
 
-  initLoad(walk: PrismaWalk, initialModel: {}) {
+  initLoad(plan: PrismaPlan, initialModel: {}) {
     const delegate = getDelegateFromModel(
       getClient(this.builder, this.context as never),
       this.modelName,
@@ -314,7 +314,7 @@ export class ModelLoader {
 
     const entry = {
       models,
-      walk,
+      plan,
     };
 
     this.staged.add(entry);
@@ -327,7 +327,7 @@ export class ModelLoader {
         if (delegate.findUniqueOrThrow) {
           delegate
             .findUniqueOrThrow({
-              ...prismaAdapter.serialize(walk.root),
+              ...prismaAdapter.serialize(plan.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -335,7 +335,7 @@ export class ModelLoader {
           delegate
             .findUnique({
               rejectOnNotFound: true,
-              ...prismaAdapter.serialize(walk.root),
+              ...prismaAdapter.serialize(plan.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -349,8 +349,8 @@ export class ModelLoader {
   }
 }
 
-function selectionOf(walk: PrismaWalk) {
-  return { walk, query: prismaAdapter.serialize(walk.root) };
+function selectionOf(plan: PrismaPlan) {
+  return { plan, query: prismaAdapter.serialize(plan.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

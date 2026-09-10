@@ -22,9 +22,9 @@ import {
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types.js';
-import type { DrizzleWalk } from './adapter.js';
+import type { DrizzlePlan } from './adapter.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
-import { queryFromWalk } from './map-query.js';
+import { queryFromPlan } from './map-query.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
 const DEFAULT_MAX_SIZE = 100;
@@ -674,7 +674,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
   tableName: string,
   info: GraphQLResolveInfo,
   // The settled plan of the connection's rows; the builder handed to `resolve` merges into it.
-  walk: DrizzleWalk | undefined,
+  plan: DrizzlePlan | undefined,
   typeName: string,
   config: PothosDrizzleSchemaConfig,
   options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'> & {
@@ -700,7 +700,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     });
     formatter = getCursorFormatter(cursorFields, config);
 
-    query = queryFromWalk(walk, {
+    query = queryFromPlan(plan, {
       context: options.ctx,
       info,
       select: omitUndefinedKeys({

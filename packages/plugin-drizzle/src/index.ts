@@ -134,7 +134,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
                   _resolveSelection: unknown,
                   position: Position,
                 ) => {
-                  // The walk position, formatted as the `PathInfo` a `t.field` select reads off
+                  // The position, formatted as the `PathInfo` a `t.field` select reads off
                   // its `nestedQuery`, which is where this plugin has always carried it.
                   const nestedQueryWithPath = Object.assign(nestedQuery, pathInfoFor(position));
                   return completeValue(

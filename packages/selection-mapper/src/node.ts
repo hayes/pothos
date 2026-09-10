@@ -1,12 +1,12 @@
 import { isThenable, PothosValidationError } from '@pothos/core';
 
 /**
- * What the walker requires of a node: the model it loads. `M` is the adapter's model
+ * What the walker requires of a node: the model it loads. `Model` is the adapter's model
  * description: whatever it needs to look a relation's target up by name. One object per model,
  * so model identity is the same as model equality.
  */
-export interface NodeBase<M> {
-  model: M;
+export interface NodeBase<Model> {
+  model: Model;
 }
 
 /**
@@ -16,14 +16,14 @@ export interface NodeBase<M> {
  * entries, drizzle `extras`). An adapter whose query is not a tree of this shape supplies its
  * own node type through `Adapter.createNode`.
  */
-export interface Node<M> extends NodeBase<M> {
+export interface Node<Model> extends NodeBase<Model> {
   args: object;
   columns: Set<string> | null;
-  relations: Map<string, Node<M>>;
+  relations: Map<string, Node<Model>>;
   extras: Map<string, unknown>;
 }
 
-export function createNode<M>(model: M): Node<M> {
+export function createNode<Model>(model: Model): Node<Model> {
   return { model, args: {}, columns: new Set(), relations: new Map(), extras: new Map() };
 }
 
@@ -32,7 +32,12 @@ export function createNode<M>(model: M): Node<M> {
  * map holds for the relation, checked here because a thenable there is an un-awaited
  * `nestedSelection()` that would otherwise be spread as an empty object.
  */
-export function relation<M>(node: Node<M>, name: string, model: M, value: unknown): Node<M> {
+export function relation<Model>(
+  node: Node<Model>,
+  name: string,
+  model: Model,
+  value: unknown,
+): Node<Model> {
   if (isThenable(value)) {
     throw new PothosValidationError(
       `Relation "${name}" was given a promise. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.`,

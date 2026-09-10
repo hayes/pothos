@@ -3,7 +3,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { Position } from './types.js';
 
 /**
- * What a walk records for one field whose selection was merged: the mappings of the fields walked
+ * What a plan records for one field whose selection was merged: the mappings of the fields walked
  * beneath it, and, for a field a select function planned, the position it was planned at, so a
  * resolver can ask the same question of it that the select path asked. A static selection records
  * the shared empty mapping and has no position: it ran no callback that could have read one.
@@ -16,7 +16,7 @@ export interface Mapping {
 /**
  * Mappings keyed by `${Type}@${relative.path}`, where the relative path is the aliased field path
  * from the walked field to the mapped field (`Post@edges.node.author`). A resolver beneath the
- * walked field finds a mapping iff the walk that would have loaded its data was merged.
+ * walked field finds a mapping iff the plan that would have loaded its data was merged.
  */
 export type Mappings = Record<string, Mapping>;
 
@@ -41,7 +41,7 @@ export function cacheKey(type: string, path: GraphQLResolveInfo['path']) {
   return `${type}@${responsePath(path)}`;
 }
 
-/** Records the mappings of a walk rooted at the field `info` resolves, under that field's path. */
+/** Records the mappings of a plan rooted at the field `info` resolves, under that field's path. */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
   const map = cache(ctx);
   const prefix = responsePath(info.path);

@@ -1,6 +1,6 @@
 /**
- * The entry points: E-1 (`queryFromInfo`, `walkFromInfo`, `queryFromWalk`) and E-2
- * (`selectionStateFromInfo`).
+ * The entry points: E-1 (`queryFromInfo`, `planFromInfo`, `queryFromPlan`) and E-2
+ * (`rowPlanFromInfo`).
  */
 import { PothosValidationError } from '@pothos/core';
 import { type GraphQLResolveInfo, getNamedType } from 'graphql';
@@ -15,99 +15,99 @@ import {
   type PathSegment,
 } from './matches.js';
 import type { Node, NodeBase } from './node.js';
-import type { Adapter, EntryOptions, Position, RootMerge, Walk } from './types.js';
+import type { Adapter, EntryOptions, Plan, Position, RootMerge } from './types.js';
 import {
-  applyField,
-  createWalk,
-  enterLoaded,
+  createPlan,
+  enterParentType,
   mergeVariant,
   unionMappings,
-  walkFieldWalks,
+  walkBranches,
+  walkField,
 } from './walk.js';
 
 /**
  * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
  * Declared synchronous (A-7): a promise is returned only when a callback returned one.
  */
-export function queryFromInfo<M, Map, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, N>,
-  options: EntryOptions<Map>,
-): Map {
+export function queryFromInfo<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
+  adapter: Adapter<Model, Query, NodeType>,
+  options: EntryOptions<Query>,
+): Query {
   // Emitted here and now, so the merges a replay would need are never recorded.
-  const walk = buildWalk(adapter, options, false);
+  const plan = buildWalk(adapter, options, false);
 
-  if (!walk) {
+  if (!plan) {
     // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
     // caller gets back its own selection.
-    return options.initial ?? ({} as Map);
+    return options.initial ?? ({} as Query);
   }
 
-  return finish(walk, emit);
+  return finish(plan, emit);
 }
 
 /**
- * E-1 without emitting: the walk itself, nothing recorded, or undefined when paths are given and
+ * E-1 without emitting: the plan itself, nothing recorded, or undefined when paths are given and
  * nothing is selected under them. Declared synchronous like `queryFromInfo` (A-7). A plugin that
  * must hand a resolver a synchronous query builder settles this first, then emits the query with
- * `queryFromWalk` once the resolver asks for it. The walk records its merges into the root, which
- * is what lets `queryFromWalk` put the resolver's own selection first.
+ * `queryFromPlan` once the resolver asks for it. The plan records its merges into the root, which
+ * is what lets `queryFromPlan` put the resolver's own selection first.
  */
-export function walkFromInfo<M, Map, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, N>,
-  options: EntryOptions<Map>,
-): Walk<M, Map, N> | undefined {
-  const walk = buildWalk(adapter, options, true);
+export function planFromInfo<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
+  adapter: Adapter<Model, Query, NodeType>,
+  options: EntryOptions<Query>,
+): Plan<Model, Query, NodeType> | undefined {
+  const plan = buildWalk(adapter, options, true);
 
-  return walk && finish(walk, identity);
+  return plan && finish(plan, identity);
 }
 
 /**
- * E-1 from a settled walk: the loader mappings recorded (L-2) and the query serialized (M-6,
- * L-5). Synchronous: the walk must be one `walkFromInfo` returned, and when that was a promise,
- * the walk it resolved to. `select` takes the place of `initial`: it comes first, so a relation
+ * E-1 from a settled plan: the loader mappings recorded (L-2) and the query serialized (M-6,
+ * L-5). Synchronous: the plan must be one `planFromInfo` returned, and when that was a promise,
+ * the plan it resolved to. `select` takes the place of `initial`: it comes first, so a relation
  * or extra the walked plan holds with other arguments loses (M-4) and its field loads on its own.
  * When `select` conflicts with nothing, merging it under the settled plan gives that same query;
- * otherwise the plan is replayed from the merges the walk recorded, which runs no user callback
+ * otherwise the plan is replayed from the merges the plan recorded, which runs no user callback
  * again, so it is synchronous whether or not the plan was async.
  */
-export function queryFromWalk<M, Map, N extends NodeBase<M> = Node<M>>(
-  walk: Walk<M, Map, N>,
-  select?: Map,
-): Map {
-  const { adapter } = walk;
+export function queryFromPlan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
+  plan: Plan<Model, Query, NodeType>,
+  select?: Query,
+): Query {
+  const { adapter } = plan;
 
   if (!select) {
-    return emit(walk);
+    return emit(plan);
   }
 
-  const root = adapter.createNode(walk.root.model);
+  const root = adapter.createNode(plan.root.model);
 
   adapter.merge(root, select);
 
-  if (!adapter.typeLevelConflict(walk.root, select)) {
-    adapter.merge(root, adapter.serialize(walk.root));
-    setLoaderMappings(walk.context, walk.info, walk.mappings);
+  if (!adapter.typeLevelConflict(plan.root, select)) {
+    adapter.merge(root, adapter.serialize(plan.root));
+    setLoaderMappings(plan.context, plan.info, plan.mappings);
 
     return adapter.serialize(root);
   }
 
   const mappings: Mappings = {};
 
-  // Only `walkFromInfo` records merges, and only its walks are emitted through here.
-  for (const merge of walk.merges!) {
+  // Only `planFromInfo` records merges, and only its plans are emitted through here.
+  for (const merge of plan.merges!) {
     switch (merge.kind) {
       case 'type':
-        adapter.merge(root, merge.map);
+        adapter.merge(root, merge.query);
         break;
       case 'variant':
-        mergeVariant(adapter, root, merge.type, merge.variant, merge.map);
+        mergeVariant(adapter, root, merge.type, merge.variant, merge.query);
         break;
       case 'field':
         // M-3, M-4: a field's selection is merged, and its mapping recorded, only while it still
         // fits the root the caller's selection went into first; otherwise the field is skipped
         // here and its resolver loads its own data (L-3).
-        if (adapter.compatible(root, merge.map, true, merge.key, merge.alias)) {
-          adapter.merge(root, merge.map, merge.key, merge.alias);
+        if (adapter.compatible(root, merge.query, true, merge.key, merge.alias)) {
+          adapter.merge(root, merge.query, merge.key, merge.alias);
           mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
         }
         break;
@@ -115,64 +115,68 @@ export function queryFromWalk<M, Map, N extends NodeBase<M> = Node<M>>(
         const unknown: never = merge;
 
         throw new PothosValidationError(
-          `Unknown root merge ${String((unknown as RootMerge<Map>).kind)}`,
+          `Unknown root merge ${String((unknown as RootMerge<Query>).kind)}`,
         );
       }
     }
   }
 
-  setLoaderMappings(walk.context, walk.info, mappings);
+  setLoaderMappings(plan.context, plan.info, mappings);
 
   return adapter.serialize(root);
 }
 
 /**
- * E-2: the walk loading the field `info` resolves for its parent row. The loaded row replaces the
+ * E-2: the plan loading the field `info` resolves for its parent row. The loaded row replaces the
  * parent the field resolver sees, so besides the field's own selection it carries the parent
  * type's type-level selection. The field is what the row is loaded for, so it is merged first
  * and a type-level relation whose arguments conflict with it is left out.
  */
-export function selectionStateFromInfo<M, Map, N extends NodeBase<M> = Node<M>>(
-  adapter: Adapter<M, Map, N>,
+export function rowPlanFromInfo<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
+  adapter: Adapter<Model, Query, NodeType>,
   context: object,
   info: GraphQLResolveInfo,
   skipDeferredFragments?: boolean,
-): Walk<M, Map, N> {
+): Plan<Model, Query, NodeType> {
   const type = info.parentType;
-  const walk = createWalk(adapter, { context, info, skipDeferredFragments }, type);
+  const plan = createPlan(adapter, { context, info, skipDeferredFragments }, type);
 
   try {
     // Every node selecting the field (one per fragment it appears under) plans into the same
     // row, so the loaded row satisfies each of them.
     for (const fieldNode of info.fieldNodes) {
-      applyField(walk, walk.root, type, fieldNode, []);
+      walkField(plan, plan.root, type, fieldNode, []);
     }
   } catch (error) {
-    abandon(walk);
+    abandon(plan);
     throw error;
   }
 
-  return finish(walk, enterLoaded, type);
+  return finish(plan, enterParentType, type);
 }
 
-/** L-2, M-6: the walk's mappings recorded for the resolvers beneath it, and its query serialized. */
-function emit<M, Map, N extends NodeBase<M>>(walk: Walk<M, Map, N>): Map {
-  setLoaderMappings(walk.context, walk.info, walk.mappings);
+/** L-2, M-6: the plan's mappings recorded for the resolvers beneath it, and its query serialized. */
+function emit<Model, Query, NodeType extends NodeBase<Model>>(
+  plan: Plan<Model, Query, NodeType>,
+): Query {
+  setLoaderMappings(plan.context, plan.info, plan.mappings);
 
-  return walk.adapter.serialize(walk.root);
+  return plan.adapter.serialize(plan.root);
 }
 
-/** `finish` needs something to run once the walk has settled; `walkFromInfo` wants the walk. */
-function identity<M, Map, N extends NodeBase<M>>(walk: Walk<M, Map, N>) {
-  return walk;
+/** `finish` needs something to run once the plan has settled; `planFromInfo` wants the plan. */
+function identity<Model, Query, NodeType extends NodeBase<Model>>(
+  plan: Plan<Model, Query, NodeType>,
+) {
+  return plan;
 }
 
 /** E-1: undefined when paths are given and nothing is selected under them. */
-function buildWalk<M, Map, N extends NodeBase<M>>(
-  adapter: Adapter<M, Map, N>,
-  options: EntryOptions<Map>,
+function buildWalk<Model, Query, NodeType extends NodeBase<Model>>(
+  adapter: Adapter<Model, Query, NodeType>,
+  options: EntryOptions<Query>,
   replayable: boolean,
-): Walk<M, Map, N> | undefined {
+): Plan<Model, Query, NodeType> | undefined {
   const { info, typeName, path, paths } = options;
   const returnType = getNamedType(info.returnType);
   const target = typeName ? info.schema.getType(typeName)! : returnType;
@@ -196,7 +200,7 @@ function buildWalk<M, Map, N extends NodeBase<M>>(
       return undefined;
     }
 
-    const walk = createWalk(
+    const plan = createPlan(
       adapter,
       options,
       typeName ? target : matches[0].type,
@@ -206,9 +210,9 @@ function buildWalk<M, Map, N extends NodeBase<M>>(
 
     try {
       // Every match is planned into the one root, entered under its own type first (W-11).
-      walkFieldWalks(
-        walk,
-        walk.root,
+      walkBranches(
+        plan,
+        plan.root,
         matches.map((match) => ({
           // A matched type with its own model (including variants of the target model) is walked
           // with its own model. Types without a model (interfaces, wrappers) are walked as the
@@ -220,31 +224,31 @@ function buildWalk<M, Map, N extends NodeBase<M>>(
         })),
       );
     } catch (error) {
-      abandon(walk);
+      abandon(plan);
       throw error;
     }
 
-    return walk;
+    return plan;
   }
 
-  const walk = createWalk(adapter, options, target, position, replayable);
+  const plan = createPlan(adapter, options, target, position, replayable);
 
   try {
-    walkFieldWalks(walk, walk.root, [
+    walkBranches(plan, plan.root, [
       { type: target, fieldNodes: info.fieldNodes, indirectPath: [], deferred: false },
     ]);
   } catch (error) {
-    abandon(walk);
+    abandon(plan);
     throw error;
   }
 
-  return walk;
+  return plan;
 }
 
 /**
  * D-7: where the field being resolved is, which every position beneath it links back to, so a
  * select function can tell where in the query its field sits. Undefined when `info` does not name
- * the field it resolves (a caller building one by hand): the walk then starts at its own fields.
+ * the field it resolves (a caller building one by hand): the plan then starts at its own fields.
  */
 function positionForResolvedField(info: GraphQLResolveInfo): Position | undefined {
   const node = info.fieldNodes[0];

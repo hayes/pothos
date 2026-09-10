@@ -287,7 +287,7 @@ export class PrismaObjectFieldBuilder<
       getSelection: (path: string[]) => FieldNode | null,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
-      // A maybe-promise query starts the nested walk now; its merge waits for the query.
+      // A maybe-promise query starts the nested plan now; its merge waits for the query.
       const nested = nestedQuery(getQuery(args, context), {
         getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],

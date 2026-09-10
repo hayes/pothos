@@ -54,8 +54,8 @@ export interface MatchOptions {
 }
 
 /** Just enough of an `Adapter` to look a type's model up. */
-export interface ModelLookup<M> {
-  modelFor: (type: GraphQLNamedType) => M | undefined;
+export interface ModelLookup<Model> {
+  modelFor: (type: GraphQLNamedType) => Model | undefined;
 }
 
 /** The include a type carries, if any. */
@@ -78,13 +78,13 @@ export function resolveType(schema: GraphQLSchema, type: GraphQLNamedType): Grap
 
 /**
  * The model of a type, following indirect includes, which `Adapter.modelFor` does not. Every
- * model question the walk asks goes through here.
+ * model question the plan asks goes through here.
  */
-export function modelOf<M>(
-  adapter: ModelLookup<M>,
+export function modelOf<Model>(
+  adapter: ModelLookup<Model>,
   schema: GraphQLSchema,
   type: GraphQLNamedType,
-): M | undefined {
+): Model | undefined {
   return adapter.modelFor(resolveType(schema, type));
 }
 
@@ -94,8 +94,8 @@ export function modelOf<M>(
  * their selections must never be merged into the same query. Types without a model always match,
  * and a target without one filters nothing.
  */
-export function matchesForModel<M>(
-  adapter: ModelLookup<M>,
+export function matchesForModel<Model>(
+  adapter: ModelLookup<Model>,
   schema: GraphQLSchema,
   matches: Match[],
   targetType: GraphQLNamedType,
@@ -292,7 +292,8 @@ function collectFieldNames(
  * prevents a same-named field under an unrelated fragment from matching.
  *
  * `visited` records the named fragments walked with each state (everything above but `matches`),
- * so a fragment spread more than once at one point of the walk is expanded once: walking it again
+ * so a fragment spread more than once at one point of the traversal is expanded once: walking it
+ * again
  * could only repeat the same matches, and a valid fragment DAG can spread the same fragment at
  * every level, which makes expanding every spread exponential in its depth.
  */

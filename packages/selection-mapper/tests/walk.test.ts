@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { Position } from '../src';
 import {
   getLoaderMapping,
+  planFromInfo,
   queryFromInfo,
-  queryFromWalk,
-  selectionStateFromInfo,
-  walkFromInfo,
+  queryFromPlan,
+  rowPlanFromInfo,
 } from '../src';
 import { mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
 import { createTestAdapter, createTestSchema } from './schema';
@@ -236,7 +236,7 @@ describe('queryFromInfo', () => {
       }`,
     );
 
-    // Viewer's type-level `posts: { take: 5 }` merges into the node the User walk created.
+    // Viewer's type-level `posts: { take: 5 }` merges into the node the User plan created.
     expect(
       queryFromInfo(adapter, { context, info, typeName: 'User', path: ['appointment'] }),
     ).toEqual({ select: { posts: { take: 5 }, profile: true } });
@@ -651,17 +651,17 @@ describe('a field selected more than once (W-1)', () => {
   });
 });
 
-describe('selectionStateFromInfo (E-2)', () => {
+describe('rowPlanFromInfo (E-2)', () => {
   it("merges the field first, then the parent type's selection without conflicts", async () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
 
-    const walk = selectionStateFromInfo(adapter, {}, info);
+    const plan = rowPlanFromInfo(adapter, {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
-    expect(adapter.serialize(walk.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
-    expect(mappingsOf(walk.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
+    expect(adapter.serialize(plan.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
+    expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
   });
 
   it('plans every node selecting the field into the same row', async () => {
@@ -678,12 +678,12 @@ describe('selectionStateFromInfo (E-2)', () => {
 
     expect(info.fieldNodes).toHaveLength(2);
 
-    const walk = selectionStateFromInfo(adapter, {}, info);
+    const plan = rowPlanFromInfo(adapter, {}, info);
 
-    expect(adapter.serialize(walk.root)).toEqual({
+    expect(adapter.serialize(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
-    expect(mappingsOf(walk.mappings['User@posts'].nested)).toEqual({
+    expect(mappingsOf(plan.mappings['User@posts'].nested)).toEqual({
       'Post@author': { nested: {} },
     });
   });
@@ -697,13 +697,13 @@ describe('selectionStateFromInfo (E-2)', () => {
       },
     );
 
-    const walk = selectionStateFromInfo(adapter, {}, info);
+    const plan = rowPlanFromInfo(adapter, {}, info);
 
-    expect(adapter.serialize(walk.root)).toEqual({
+    expect(adapter.serialize(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
-    expect(Object.keys(walk.mappings)).toEqual(['User@latest']);
-    expect(mappingsOf(walk.mappings['User@latest'].nested)).toEqual({
+    expect(Object.keys(plan.mappings)).toEqual(['User@latest']);
+    expect(mappingsOf(plan.mappings['User@latest'].nested)).toEqual({
       'Post@author': { nested: {} },
     });
   });
@@ -746,7 +746,7 @@ describe('adapter contract details', () => {
     const info = await resolveInfo(schema, '{ user { posts { title } } }');
     const query = queryFromInfo(scalar, { context, info });
 
-    // No walk beneath a String field: the query given is the query returned, unchanged, and the
+    // No plan beneath a String field: the query given is the query returned, unchanged, and the
     // field's own map is merged as any other (Post is in all-columns mode here, so no change).
     expect(nested).toEqual({ select: { comments: true } });
     expect(query).toEqual(queryFromInfo(adapter, { context: {}, info }));
@@ -760,7 +760,7 @@ describe('adapter contract details', () => {
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
     const partial = { ...info, parentType: undefined } as unknown as typeof info;
 
-    // Only the position of the resolved field is lost: the walk starts at its own fields.
+    // Only the position of the resolved field is lost: the plan starts at its own fields.
     expect(queryFromInfo(adapter, { context, info: partial })).toEqual(
       queryFromInfo(adapter, { context: {}, info }),
     );
@@ -770,15 +770,15 @@ describe('adapter contract details', () => {
   });
 });
 
-describe('walkFromInfo', () => {
-  it('returns the walk without recording anything', async () => {
+describe('planFromInfo', () => {
+  it('returns the plan without recording anything', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
-    const walk = walkFromInfo(adapter, { context, info, typeName: 'User' })!;
+    const plan = planFromInfo(adapter, { context, info, typeName: 'User' })!;
 
-    expect(adapter.serialize(walk.root)).toEqual({ select: { posts: true } });
-    expect(mappingsOf(walk.mappings)).toEqual({ 'User@posts': { nested: {} } });
+    expect(adapter.serialize(plan.root)).toEqual({ select: { posts: true } });
+    expect(mappingsOf(plan.mappings)).toEqual({ 'User@posts': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
   });
 
@@ -789,7 +789,7 @@ describe('walkFromInfo', () => {
 
     const empty = await resolveInfo(schema, '{ user { postsConnection { totalCount } } }', { at });
 
-    expect(walkFromInfo(adapter, { ...options, info: empty })).toBeUndefined();
+    expect(planFromInfo(adapter, { ...options, info: empty })).toBeUndefined();
 
     const nodes = await resolveInfo(
       schema,
@@ -798,13 +798,13 @@ describe('walkFromInfo', () => {
         at,
       },
     );
-    const walk = walkFromInfo(adapter, { ...options, info: nodes })!;
+    const plan = planFromInfo(adapter, { ...options, info: nodes })!;
 
-    expect(adapter.serialize(walk.root)).toEqual({ select: { author: true } });
+    expect(adapter.serialize(plan.root)).toEqual({ select: { author: true } });
   });
 });
 
-describe('queryFromWalk', () => {
+describe('queryFromPlan', () => {
   it('emits what queryFromInfo emits with the selection as initial, and records the mappings', async () => {
     const info = await resolveInfo(
       schema,
@@ -814,11 +814,11 @@ describe('queryFromWalk', () => {
     const expectedContext = {};
     const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
     const context = {};
-    const walk = walkFromInfo(adapter, { context, info })!;
+    const plan = planFromInfo(adapter, { context, info })!;
 
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
 
-    const query = queryFromWalk(walk, select);
+    const query = queryFromPlan(plan, select);
 
     expect(query).toEqual(expected);
     // The caller's selection comes first, as `initial` does (E-1), so the query is the same
@@ -835,21 +835,21 @@ describe('queryFromWalk', () => {
     const expectedContext = {};
     const expected = queryFromInfo(adapter, { context: expectedContext, info, initial: select });
     const context = {};
-    const walk = walkFromInfo(adapter, { context, info })!;
+    const plan = planFromInfo(adapter, { context, info })!;
 
-    expect(queryFromWalk(walk, select)).toEqual(expected);
+    expect(queryFromPlan(plan, select)).toEqual(expected);
     // The document's `posts(take: 2)` lost the conflict: no mapping, it loads on its own.
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
     expect(getLoaderMapping(expectedContext, pathOf('user', 'posts'), 'User')).toBe(null);
-    // The walk itself is untouched: emitting it again without a selection gives the plan.
-    expect(queryFromWalk(walk)).toEqual(queryFromInfo(adapter, { context: {}, info }));
+    // The plan itself is untouched: emitting it again without a selection gives the plan.
+    expect(queryFromPlan(plan)).toEqual(queryFromInfo(adapter, { context: {}, info }));
   });
 
   it('emits the walked plan alone without a selection', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
 
-    expect(queryFromWalk(walkFromInfo(adapter, { context, info })!)).toEqual(
+    expect(queryFromPlan(planFromInfo(adapter, { context, info })!)).toEqual(
       queryFromInfo(adapter, { context: {}, info }),
     );
     expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
