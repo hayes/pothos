@@ -149,12 +149,10 @@ export interface MergeOptions {
    */
   lenient?: boolean;
   /**
-   * The field the query came from (`Type@alias`, or `Type@path.alias` beneath an indirect
-   * include) and the field's response key alone, so an accumulator that keeps one slot per
-   * selected field can key it. Both absent for a type-level selection, an initial selection and
-   * a staged query.
+   * The response key of the field the query came from, so an accumulator that keeps one slot per
+   * selected field can name it. Absent for a type-level selection, an initial selection and a
+   * staged query.
    */
-  key?: string;
   alias?: string;
 }
 

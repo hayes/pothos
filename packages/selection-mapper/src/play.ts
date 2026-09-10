@@ -63,9 +63,9 @@ export function play<Model, Query, NodeType extends NodeBase<Model>>(
         mergeVariant(adapter, root, merge.type, merge.variant, merge.query);
         break;
       case 'field': {
-        // One options object for the pair: `merge` reads only the key and the alias, and
-        // `accepts` the `ignoreArgs` alongside them.
-        const options: MergeOptions = { ignoreArgs: true, key: merge.key, alias: merge.alias };
+        // One options object for the pair: `merge` reads only the alias, and `accepts` only the
+        // `ignoreArgs` beside it.
+        const options: MergeOptions = { ignoreArgs: true, alias: merge.alias };
 
         // M-3, M-4, L-2: a field's selection is merged, and its mapping recorded, only while it
         // fits what is already in the node; otherwise it is left out and its resolver loads its

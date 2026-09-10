@@ -68,9 +68,9 @@ an answer for an accumulator that omits it: `accepts` (M-3) is true, `conflict` 
 and `absorb` and `acceptsFrom` round-trip through `emit`. An accumulator that gives every
 consumer its own slot therefore implements three members and nothing more. `MergeOptions` says
 how one merge differs from a plain one: `asQuery` (E-3, a relation query adds no columns),
-`lenient` (E-2, conflicting entries are left out), `ignoreArgs` (M-3), and the `key`/`alias` the
-query came from, so an accumulator may merge same-named relations into one node (prisma,
-drizzle) or keep one slot per selected field.
+`lenient` (E-2, conflicting entries are left out), `ignoreArgs` (M-3), and the `alias` the query
+came from, so an accumulator may merge same-named relations into one node (prisma, drizzle) or
+keep one slot per selected field.
 
 `treeAccumulator(format)` is the accumulator the prisma and drizzle adapters use: the node tree
 of `node.ts` (columns, relations, extras, arguments) with every merge rule this package owns. An

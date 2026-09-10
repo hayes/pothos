@@ -14,7 +14,7 @@ export interface NodeBase<Model> {
  * model, its arguments, the columns it selects (`null` = every column, which is final: a node
  * never goes back to named columns), its relations and adapter-specific extras (prisma `_count`
  * entries, drizzle `extras`). An adapter whose query is not a tree of this shape supplies its
- * own node type through `Adapter.createNode`.
+ * own accumulator, whose `create` builds a node type of its own.
  */
 export interface Node<Model> extends NodeBase<Model> {
   args: object;
