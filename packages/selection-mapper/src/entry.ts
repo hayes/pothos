@@ -4,6 +4,7 @@
  */
 import { PothosValidationError } from '@pothos/core';
 import { type GraphQLResolveInfo, getNamedType } from 'graphql';
+import { absorb, accepts, accumulatorOf, conflictOf } from './accumulate.js';
 import { abandon, finish } from './async.js';
 import { type Mappings, setLoaderMappings } from './loader-map.js';
 import {
@@ -75,20 +76,22 @@ export function queryFromPlan<Model, Query, NodeType extends NodeBase<Model> = N
   select?: Query,
 ): Query {
   const { adapter } = plan;
+  const accumulator = accumulatorOf(adapter);
 
   if (!select) {
     return emit(plan);
   }
 
-  const root = adapter.createNode(plan.root.model);
+  const root = accumulator.create(plan.root.model);
 
-  adapter.merge(root, select);
+  accumulator.merge(root, select);
 
-  if (!adapter.typeLevelConflict(plan.root, select)) {
-    adapter.merge(root, adapter.serialize(plan.root));
+  if (!conflictOf(accumulator, plan.root, select)) {
+    // Node to node: the walked plan is merged as it stands, never serialized to be re-read.
+    absorb(accumulator, root, plan.root);
     setLoaderMappings(plan.context, plan.info, plan.mappings);
 
-    return adapter.serialize(root);
+    return accumulator.emit(root);
   }
 
   const mappings: Mappings = {};
@@ -97,7 +100,7 @@ export function queryFromPlan<Model, Query, NodeType extends NodeBase<Model> = N
   for (const merge of plan.merges!) {
     switch (merge.kind) {
       case 'type':
-        adapter.merge(root, merge.query);
+        accumulator.merge(root, merge.query);
         break;
       case 'variant':
         mergeVariant(adapter, root, merge.type, merge.variant, merge.query);
@@ -106,8 +109,14 @@ export function queryFromPlan<Model, Query, NodeType extends NodeBase<Model> = N
         // M-3, M-4: a field's selection is merged, and its mapping recorded, only while it still
         // fits the root the caller's selection went into first; otherwise the field is skipped
         // here and its resolver loads its own data (L-3).
-        if (adapter.compatible(root, merge.query, true, merge.key, merge.alias)) {
-          adapter.merge(root, merge.query, merge.key, merge.alias);
+        if (
+          accepts(accumulator, root, merge.query, {
+            ignoreArgs: true,
+            key: merge.key,
+            alias: merge.alias,
+          })
+        ) {
+          accumulator.merge(root, merge.query, { key: merge.key, alias: merge.alias });
           mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
         }
         break;
@@ -123,7 +132,7 @@ export function queryFromPlan<Model, Query, NodeType extends NodeBase<Model> = N
 
   setLoaderMappings(plan.context, plan.info, mappings);
 
-  return adapter.serialize(root);
+  return accumulator.emit(root);
 }
 
 /**
@@ -161,7 +170,7 @@ function emit<Model, Query, NodeType extends NodeBase<Model>>(
 ): Query {
   setLoaderMappings(plan.context, plan.info, plan.mappings);
 
-  return plan.adapter.serialize(plan.root);
+  return accumulatorOf(plan.adapter).emit(plan.root);
 }
 
 /** `finish` needs something to run once the plan has settled; `planFromInfo` wants the plan. */

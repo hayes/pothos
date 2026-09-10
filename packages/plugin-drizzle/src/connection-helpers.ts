@@ -6,7 +6,7 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import { createNode, type PathSegment } from '@pothos/selection-mapper';
+import { accumulatorOf, type PathSegment } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
@@ -244,17 +244,18 @@ export function drizzleConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
-    const node = createNode(config.relations[tableName]);
+    const accumulator = accumulatorOf(adapter);
+    const node = accumulator.create(config.relations[tableName]);
 
-    adapter.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);
+    accumulator.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);
 
     if (typeof nestedSelect === 'object' && nestedSelect) {
-      adapter.merge(node, nestedSelect);
+      accumulator.merge(node, nestedSelect);
     }
 
     return omitUndefinedKeys({
       ...baseQuery,
-      ...adapter.serialize(node),
+      ...accumulator.emit(node),
     });
   }
 

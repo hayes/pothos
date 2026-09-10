@@ -8,7 +8,7 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
+import { accepts, accumulatorOf, cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from './types.js';
 import { type PrismaPlan, prismaAdapter } from './util/adapter.js';
@@ -286,9 +286,11 @@ export class ModelLoader {
   }
 
   stageQuery(plan: PrismaPlan, query: SelectionMap, model: object) {
+    const accumulator = accumulatorOf(prismaAdapter);
+
     for (const entry of this.staged) {
-      if (prismaAdapter.compatible(entry.plan.root, query, false)) {
-        prismaAdapter.merge(entry.plan.root, query);
+      if (accepts(accumulator, entry.plan.root, query)) {
+        accumulator.merge(entry.plan.root, query);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -327,7 +329,7 @@ export class ModelLoader {
         if (delegate.findUniqueOrThrow) {
           delegate
             .findUniqueOrThrow({
-              ...prismaAdapter.serialize(plan.root),
+              ...accumulatorOf(prismaAdapter).emit(plan.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -335,7 +337,7 @@ export class ModelLoader {
           delegate
             .findUnique({
               rejectOnNotFound: true,
-              ...prismaAdapter.serialize(plan.root),
+              ...accumulatorOf(prismaAdapter).emit(plan.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -350,7 +352,7 @@ export class ModelLoader {
 }
 
 function selectionOf(plan: PrismaPlan) {
-  return { plan, query: prismaAdapter.serialize(plan.root) };
+  return { plan, query: accumulatorOf(prismaAdapter).emit(plan.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

@@ -7,7 +7,7 @@ import {
   type ObjectRef,
   type SchemaTypes,
 } from '@pothos/core';
-import { createNode, type PathSegment } from '@pothos/selection-mapper';
+import { accumulatorOf, type PathSegment } from '@pothos/selection-mapper';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -185,18 +185,19 @@ export function prismaConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
-    const node = createNode(fieldMap);
+    const accumulator = accumulatorOf(prismaAdapter);
+    const node = accumulator.create(fieldMap);
 
-    prismaAdapter.merge(node, { select: cursorSelection });
+    accumulator.merge(node, { select: cursorSelection });
 
     if (typeof nestedSelect === 'object' && nestedSelect) {
-      prismaAdapter.merge(node, nestedSelect);
+      accumulator.merge(node, nestedSelect);
     }
 
     return {
       ...baseQuery,
       ...getQueryArgs(args, ctx),
-      ...prismaAdapter.serialize(node),
+      ...accumulator.emit(node),
     };
   }
 

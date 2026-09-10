@@ -5,7 +5,13 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import { cacheKey, setFieldMapping, setLoaderMappings } from '@pothos/selection-mapper';
+import {
+  accepts,
+  accumulatorOf,
+  cacheKey,
+  setFieldMapping,
+  setLoaderMappings,
+} from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -183,9 +189,11 @@ export class ModelLoader {
   }
 
   stageQuery(plan: DrizzlePlan, query: SelectionMap, model: object) {
+    const accumulator = accumulatorOf(this.adapter);
+
     for (const entry of this.staged) {
-      if (this.adapter.compatible(entry.plan.root, query, false)) {
-        this.adapter.merge(entry.plan.root, query);
+      if (accepts(accumulator, entry.plan.root, query)) {
+        accumulator.merge(entry.plan.root, query);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -220,7 +228,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...this.adapter.serialize(plan.root),
+          ...accumulatorOf(this.adapter).emit(plan.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(
@@ -271,7 +279,7 @@ export class ModelLoader {
 
 /** The plan carries the adapter it was built with, so no loader instance is needed here. */
 function selectionOf(plan: DrizzlePlan): Selection {
-  return { plan, query: plan.adapter.serialize(plan.root) };
+  return { plan, query: accumulatorOf(plan.adapter).emit(plan.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

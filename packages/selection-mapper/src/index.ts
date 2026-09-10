@@ -3,7 +3,7 @@
  * and the loader-map, node, usage, and equality helpers their adapters and loaders call.
  * Everything else is module-private; see the README.
  */
-export { absorb, accepts, acceptsFrom, conflictOf } from './accumulate.js';
+export { absorb, accepts, acceptsFrom, accumulatorOf, conflictOf } from './accumulate.js';
 export { deepEqual } from './deep-equal.js';
 export { planFromInfo, queryFromInfo, queryFromPlan, rowPlanFromInfo } from './entry.js';
 export {

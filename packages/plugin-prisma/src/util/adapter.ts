@@ -63,7 +63,7 @@ export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
   // named-column mode with no columns, so it never means "every column".
   mergeQuery(node, query) {
     if (query && hasKeys(query)) {
-      prismaAdapter.merge(node, { select: {}, ...query });
+      prismaAdapter.merge!(node, { select: {}, ...query });
     }
   },
   compatible(node, { select, include, ...args }, ignoreArgs) {
@@ -90,7 +90,7 @@ export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
     const nested: Record<string, SelectionMap | boolean> = {};
 
     for (const [name, child] of node.relations) {
-      const query = prismaAdapter.serialize(child);
+      const query = prismaAdapter.serialize!(child);
 
       nested[name] = hasKeys(query) ? query : true;
     }
@@ -133,7 +133,7 @@ function mergeKeys(node: PrismaNode, map: IncludeMap | undefined) {
     const child = node.model.relations.get(key);
 
     if (child) {
-      prismaAdapter.merge(relation(node, key, child, value), value === true ? INCLUDE_ALL : value);
+      prismaAdapter.merge!(relation(node, key, child, value), value === true ? INCLUDE_ALL : value);
     } else {
       node.columns?.add(key);
     }
@@ -206,7 +206,7 @@ function keyCompatible(node: PrismaNode, key: string, value: SelectionMap | bool
 
   const child = node.relations.get(key);
 
-  return !child || prismaAdapter.compatible(child, value === true ? INCLUDE_ALL : value, false);
+  return !child || prismaAdapter.compatible!(child, value === true ? INCLUDE_ALL : value, false);
 }
 
 function countsCompatible(node: PrismaNode, value: SelectionMap | true) {

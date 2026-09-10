@@ -121,13 +121,15 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
   accumulator?: Accumulator<Model, Query, NodeType>;
   // ---------------------------------------------------------------------------------------------
   // TEMPORARY: the members `accumulator` replaces, kept while the adapters are ported one at a
-  // time. They go away together, and `accumulator` becomes required.
+  // time. Nothing in the package calls them any more: an adapter that still spells them out gets
+  // an accumulator built from them. Exactly one of `accumulator` or the whole legacy set must be
+  // supplied; the set goes away, and `accumulator` becomes required.
   // ---------------------------------------------------------------------------------------------
   /**
    * A fresh, empty node of the query tree for `model`. `createNode` from this package builds the
    * default tree (columns, relations, extras, arguments) the prisma and drizzle adapters use.
    */
-  createNode(model: Model): NodeType;
+  createNode?(model: Model): NodeType;
   /**
    * M-1, M-2, S-9, in place. Never mutates `query`. `key` is the field the query came from
    * (`Type@alias`, or `Type@path.alias` beneath an indirect include) when the query is a field's
@@ -135,7 +137,7 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
    * selected field can key it; both are absent for a type-level selection, an initial selection,
    * and a loader's staged query.
    */
-  merge(node: NodeType, query: Query, key?: string, alias?: string): void;
+  merge?(node: NodeType, query: Query, key?: string, alias?: string): void;
   /**
    * M-3: whether `query` can be merged into `node` without changing what is already selected:
    * relations present in both are compatible recursively (arguments deep-equal below the top),
@@ -143,7 +145,7 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
    * compared. `key` and `alias` as for `merge`. An adapter that never shares a node between two fields
    * answers true.
    */
-  compatible(
+  compatible?(
     node: NodeType,
     query: Query,
     ignoreArgs: boolean,
@@ -156,16 +158,16 @@ export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<M
    * selection must add no columns: the plan beneath it adds the columns it needs. `null` or
    * `undefined` means no query.
    */
-  mergeQuery(node: NodeType, query: Query | null | undefined): void;
+  mergeQuery?(node: NodeType, query: Query | null | undefined): void;
   /**
    * S-7: the first relation (arguments compared by value) or extra (compared as the adapter
    * compares extras) of a type-level `query` that conflicts with what `node` already holds.
    */
-  typeLevelConflict(node: NodeType, query: Query): TypeLevelConflict | undefined;
+  typeLevelConflict?(node: NodeType, query: Query): TypeLevelConflict | undefined;
   /** E-2: `query` without the relations and extras whose arguments conflict with `node`. */
-  withoutConflicts(node: NodeType, query: Query): Query;
+  withoutConflicts?(node: NodeType, query: Query): Query;
   /** M-6. */
-  serialize(node: NodeType): Query;
+  serialize?(node: NodeType): Query;
 }
 
 /** How one merge into an accumulator differs from a plain one. */

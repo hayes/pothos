@@ -56,9 +56,10 @@ export function acceptsFrom<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * TEMPORARY: the accumulator of an adapter that still spells its merge rules out as the legacy
- * members of `Adapter`. Removed, with those members, once every adapter supplies an
- * `accumulator`; one shim per adapter, so the lookup costs nothing per merge.
+ * TEMPORARY: the accumulator of an adapter, built from the legacy members of `Adapter` when it
+ * has no accumulator of its own. Every call site goes through here while the adapters are ported
+ * one at a time; when the last of them is, this becomes `adapter.accumulator` and goes away with
+ * the legacy members. One shim per adapter, so the lookup costs nothing per merge.
  */
 const shims = new WeakMap<object, Accumulator<never, never, never>>();
 
@@ -83,24 +84,24 @@ function legacyAccumulator<Model, Query, NodeType extends NodeBase<Model>>(
   adapter: Adapter<Model, Query, NodeType>,
 ): Accumulator<Model, Query, NodeType> {
   return {
-    create: (model) => adapter.createNode(model),
+    create: (model) => adapter.createNode!(model),
     merge(node, query, options) {
       if (options?.asQuery) {
-        adapter.mergeQuery(node, query);
+        adapter.mergeQuery!(node, query);
 
         return;
       }
 
-      adapter.merge(
+      adapter.merge!(
         node,
-        options?.lenient ? adapter.withoutConflicts(node, query) : query,
+        options?.lenient ? adapter.withoutConflicts!(node, query) : query,
         options?.key,
         options?.alias,
       );
     },
     accepts: (node, query, options) =>
-      adapter.compatible(node, query, options?.ignoreArgs ?? false, options?.key, options?.alias),
-    conflict: (node, query) => adapter.typeLevelConflict(node, query),
-    emit: (node) => adapter.serialize(node),
+      adapter.compatible!(node, query, options?.ignoreArgs ?? false, options?.key, options?.alias),
+    conflict: (node, query) => adapter.typeLevelConflict!(node, query),
+    emit: (node) => adapter.serialize!(node),
   };
 }

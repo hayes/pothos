@@ -46,7 +46,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
     createNode,
     mergeQuery(node, query) {
       if (query && Object.keys(query).length > 0) {
-        adapter.merge(node, { select: {}, ...query });
+        adapter.merge!(node, { select: {}, ...query });
       }
     },
     typeSelection: (type) =>
@@ -67,7 +67,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
         const child = node.model.relations[key];
 
         if (child) {
-          adapter.merge(relation(node, key, child, value), value === true ? ALL : value);
+          adapter.merge!(relation(node, key, child, value), value === true ? ALL : value);
         } else {
           node.columns?.add(key);
         }
@@ -86,7 +86,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
         const value = select![key];
         const child = node.relations.get(key);
 
-        if (value && child && !adapter.compatible(child, value === true ? ALL : value, false)) {
+        if (value && child && !adapter.compatible!(child, value === true ? ALL : value, false)) {
           return false;
         }
       }
@@ -101,7 +101,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
     },
     typeLevelConflict(node, { select, extras }) {
       const relation = Object.keys(select ?? {}).find(
-        (key) => !adapter.compatible(node, { select: { [key]: select![key] } }, true),
+        (key) => !adapter.compatible!(node, { select: { [key]: select![key] } }, true),
       );
 
       if (relation) {
@@ -109,7 +109,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
       }
 
       const extra = Object.keys(extras ?? {}).find(
-        (key) => !adapter.compatible(node, { extras: { [key]: extras![key] } }, true),
+        (key) => !adapter.compatible!(node, { extras: { [key]: extras![key] } }, true),
       );
 
       return extra ? { kind: 'extra', name: extra } : undefined;
@@ -121,7 +121,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
         kept.select = {};
 
         for (const key of Object.keys(select)) {
-          if (adapter.compatible(node, { select: { [key]: select[key] } }, true)) {
+          if (adapter.compatible!(node, { select: { [key]: select[key] } }, true)) {
             kept.select[key] = select[key];
           }
         }
@@ -131,7 +131,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
         kept.extras = {};
 
         for (const key of Object.keys(extras)) {
-          if (adapter.compatible(node, { extras: { [key]: extras[key] } }, true)) {
+          if (adapter.compatible!(node, { extras: { [key]: extras[key] } }, true)) {
             kept.extras[key] = extras[key];
           }
         }
@@ -144,7 +144,7 @@ export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<Fa
       const query: FakeMap = { ...node.args };
 
       for (const [name, child] of node.relations) {
-        const nested = adapter.serialize(child);
+        const nested = adapter.serialize!(child);
 
         select[name] = Object.keys(nested).length > 0 ? nested : true;
       }

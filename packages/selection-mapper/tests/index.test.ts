@@ -10,6 +10,7 @@ it('exports only what the plugins use', () => {
       'absorb',
       'accepts',
       'acceptsFrom',
+      'accumulatorOf',
       'cacheKey',
       'conflictOf',
       'createNode',

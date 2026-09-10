@@ -1,6 +1,7 @@
 import { buildSchema, type GraphQLField, type GraphQLNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import {
+  accumulatorOf,
   getLoaderMapping,
   type IndirectInclude,
   planFromInfo,
@@ -489,7 +490,7 @@ describe('entry points', () => {
     });
     const plan = rowPlanFromInfo(pnAdapter, {}, info);
 
-    expect(chain(pnAdapter.serialize(plan.root))).toEqual([
+    expect(chain(accumulatorOf(pnAdapter).emit(plan.root))).toEqual([
       'select(id, email)',
       'include(posts){ combine(posts:posts=[take(1) select(id)], :object:AdminUser:total=count[]) }',
     ]);
@@ -523,6 +524,6 @@ describe('entry points', () => {
       nested: { 'Post@id': { nested: {} } },
     });
     // A serialized spec merges back without a key: every entry carries its alias.
-    expect(chain(queryFromPlan(plan))).toEqual(chain(pnAdapter.serialize(plan.root)));
+    expect(chain(queryFromPlan(plan))).toEqual(chain(accumulatorOf(pnAdapter).emit(plan.root)));
   });
 });

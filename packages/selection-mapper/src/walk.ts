@@ -20,6 +20,7 @@ import {
   Kind,
   type SelectionNode,
 } from 'graphql';
+import { accepts, accumulatorOf, conflictOf } from './accumulate.js';
 import { abandon, chain, noop } from './async.js';
 import type { Mapping, Mappings } from './loader-map.js';
 import {
@@ -65,7 +66,7 @@ export function enterParentType<Model, Query, NodeType extends NodeBase<Model>>(
   const selection = adapter.typeSelection(type);
 
   if (selection) {
-    adapter.merge(plan.root, adapter.withoutConflicts(plan.root, selection));
+    accumulatorOf(adapter).merge(plan.root, selection, { lenient: true });
   }
 
   return plan;
@@ -83,7 +84,7 @@ function rootNode<Model, Query, NodeType extends NodeBase<Model>>(
     throw new PothosValidationError(`Expected ${resolveType(schema, type).name} to have a model`);
   }
 
-  return adapter.createNode(model);
+  return accumulatorOf(adapter).create(model);
 }
 
 /**
@@ -114,7 +115,7 @@ export function createPlan<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   if (initial) {
-    adapter.merge(plan.root, initial);
+    accumulatorOf(adapter).merge(plan.root, initial);
   }
 
   // Not entered: a type is entered when its selection set is walked (S-1).
@@ -160,7 +161,7 @@ function enter<Model, Query, NodeType extends NodeBase<Model>>(
   const selection = plan.adapter.typeSelection(type);
 
   if (selection) {
-    plan.adapter.merge(node, selection);
+    accumulatorOf(plan.adapter).merge(node, selection);
     plan.merges?.push({ kind: 'type', query: selection });
   }
 }
@@ -195,7 +196,8 @@ export function mergeVariant<Model, Query, NodeType extends NodeBase<Model>>(
   variant: WalkedType,
   selection: Query,
 ) {
-  const conflict = adapter.typeLevelConflict(node, selection);
+  const accumulator = accumulatorOf(adapter);
+  const conflict = conflictOf(accumulator, node, selection);
 
   if (conflict) {
     switch (conflict.kind) {
@@ -215,7 +217,7 @@ export function mergeVariant<Model, Query, NodeType extends NodeBase<Model>>(
     }
   }
 
-  adapter.merge(node, selection);
+  accumulator.merge(node, selection);
 }
 
 /**
@@ -614,11 +616,13 @@ function mergeField<Model, Query, NodeType extends NodeBase<Model>>(
   query: Query | false | null | undefined,
   mapping: Invocation,
 ) {
-  if (!(query && plan.adapter.compatible(node, query, true, key, alias))) {
+  const accumulator = accumulatorOf(plan.adapter);
+
+  if (!(query && accepts(accumulator, node, query, { ignoreArgs: true, key, alias }))) {
     return;
   }
 
-  plan.adapter.merge(node, query, key, alias);
+  accumulator.merge(node, query, { key, alias });
 
   if (mapping.pending) {
     // Only a select invocation can be pending, and every one of those has a position.
@@ -748,7 +752,9 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
     }
 
     // A promise behind the declared synchronous type, as `finish` returns one (A-7).
-    return child.pending ? (awaitNested(child, mapping) as Query) : adapter.serialize(child.root);
+    return child.pending
+      ? (awaitNested(child, mapping) as Query)
+      : accumulatorOf(adapter).emit(child.root);
   };
 }
 
@@ -765,7 +771,7 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
 ) {
   mapping.pending = (mapping.pending ?? 0) + 1;
 
-  const result = child.pending!.then(() => child.adapter.serialize(child.root));
+  const result = child.pending!.then(() => accumulatorOf(child.adapter).emit(child.root));
 
   result.then(() => {
     if (mapping.pending === 1) {
@@ -778,12 +784,14 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
   return result;
 }
 
-/** E-3: the relation query of a nested selection, merged into the child's root by the adapter. */
+/** E-3: the relation query of a nested selection, merged into the child's root as a query. */
 function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
   query: Query | null | undefined,
 ) {
-  child.adapter.mergeQuery(child.root, query);
+  if (query) {
+    accumulatorOf(child.adapter).merge(child.root, query, { asQuery: true });
+  }
 }
 
 /**

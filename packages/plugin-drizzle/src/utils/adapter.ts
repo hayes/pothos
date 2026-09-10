@@ -57,7 +57,7 @@ export const drizzleAdapter = createContextCache(
             throw new PothosValidationError(`Relation ${key} does not exist on ${node.model.name}`);
           }
 
-          adapter.merge(
+          adapter.merge!(
             relation(node, key, config.relations[relationConfig.targetTableName], value),
             value === true ? ALL : (value as SelectionMap),
           );
@@ -92,7 +92,7 @@ export const drizzleAdapter = createContextCache(
       // columns, so it never means "every column".
       mergeQuery(node, query) {
         if (query && Object.keys(query).length > 0) {
-          adapter.merge(node, { columns: {}, ...query });
+          adapter.merge!(node, { columns: {}, ...query });
         }
       },
       compatible(node, { with: withSelection, extras, columns: _columns, ...args }, ignoreArgs) {
@@ -103,7 +103,7 @@ export const drizzleAdapter = createContextCache(
           if (
             value &&
             child &&
-            !adapter.compatible(child, value === true ? ALL : (value as SelectionMap), false)
+            !adapter.compatible!(child, value === true ? ALL : (value as SelectionMap), false)
           ) {
             return false;
           }
@@ -121,7 +121,7 @@ export const drizzleAdapter = createContextCache(
       typeLevelConflict(node, { with: withSelection, extras }) {
         const relationName = Object.keys(withSelection ?? {}).find(
           (key) =>
-            !adapter.compatible(node, { columns: {}, with: { [key]: withSelection![key] } }, true),
+            !adapter.compatible!(node, { columns: {}, with: { [key]: withSelection![key] } }, true),
         );
 
         if (relationName !== undefined) {
@@ -130,7 +130,7 @@ export const drizzleAdapter = createContextCache(
 
         const extra = Object.keys(extras ?? {}).find(
           (key) =>
-            !adapter.compatible(node, { columns: {}, extras: { [key]: extras![key] } }, true),
+            !adapter.compatible!(node, { columns: {}, extras: { [key]: extras![key] } }, true),
         );
 
         return extra === undefined ? undefined : { kind: 'extra', name: extra };
@@ -141,12 +141,12 @@ export const drizzleAdapter = createContextCache(
           with:
             withSelection &&
             compatibleEntries(withSelection, (entry) =>
-              adapter.compatible(node, { columns: {}, with: entry }, true),
+              adapter.compatible!(node, { columns: {}, with: entry }, true),
             ),
           extras:
             extras &&
             compatibleEntries(extras, (entry) =>
-              adapter.compatible(node, { columns: {}, extras: entry }, true),
+              adapter.compatible!(node, { columns: {}, extras: entry }, true),
             ),
         };
       },
@@ -175,7 +175,7 @@ export const drizzleAdapter = createContextCache(
         }
 
         for (const [key, child] of node.relations) {
-          query.with[key] = adapter.serialize(child);
+          query.with[key] = adapter.serialize!(child);
         }
 
         return query;

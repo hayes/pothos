@@ -3,6 +3,7 @@ import type { GraphQLObjectType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import type { Adapter, SelectFn } from '../src';
 import {
+  accumulatorOf,
   getLoaderMapping,
   planFromInfo,
   queryFromInfo,
@@ -358,7 +359,9 @@ describe('async callbacks', () => {
     const plan = await rowPlanFromInfo(withSelects(['posts'], deferred), {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
-    expect(adapter.serialize(plan.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
+    expect(accumulatorOf(adapter).emit(plan.root)).toEqual({
+      select: { posts: { take: 2 }, id: true },
+    });
     expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
 
     const direct = (await planFromInfo(withSelects(['posts'], deferred), {
@@ -367,7 +370,7 @@ describe('async callbacks', () => {
       typeName: 'User',
     }))!;
 
-    expect(adapter.serialize(direct.root)).toEqual({ select: { posts: true } });
+    expect(accumulatorOf(adapter).emit(direct.root)).toEqual({ select: { posts: true } });
   });
 });
 
