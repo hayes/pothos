@@ -138,7 +138,7 @@ describe('a field selected more than once', () => {
     expect(logs[1]).toEqual(logs[0]);
     expect(logs[0]).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", ((select count(*) from "posts" where "posts"."author_id" = "d0"."id")) as "_posts_count", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" order by "d1"."id" asc limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [3, 1, 1]",
+        "Query: select "d0"."id" as "id", ((select count(*) from "posts" where "d0"."id" = "posts"."author_id")) as "_posts_count", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" order by "d1"."id" asc limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [3, 1, 1]",
       ]
     `);
   });

@@ -821,6 +821,11 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
+Whatever the relation itself declares always applies to the count, whether or not the filter does:
+a `where` on the relation, and the junction table of a many-to-many relation defined with
+`.through(...)`, which the count joins in the same way the rows do (so a row that matches the
+junction twice counts twice, as it also appears twice in the connection).
+
 ## Ordering and cursors
 
 Connections page with a cursor that records where in the ordering the previous page ended. Two things

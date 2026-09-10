@@ -99,7 +99,7 @@ describe('relatedConnection wrapped by the errors plugin', () => {
     expect(drizzleLogs[0]).toContain('count(*)');
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", ((select count(*) from "posts" where "posts"."author_id" = "d0"."id")) as "_posts_count" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        "Query: select "d0"."id" as "id", "d0"."username" as "username", "d0"."first_name" as "firstName", "d0"."last_name" as "lastName", ((select count(*) from "posts" where "d0"."id" = "posts"."author_id")) as "_posts_count" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
       ]
     `);
   });

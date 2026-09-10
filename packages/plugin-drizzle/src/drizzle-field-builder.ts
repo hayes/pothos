@@ -22,11 +22,10 @@ import { getLoaderMapping, type Position, selectedFieldNames } from '@pothos/sel
 import {
   and,
   type BuildQueryResult,
-  type Column,
   type DBQueryConfig,
-  eq,
   type InferSelectModel,
   Many,
+  type Relation,
   relationsFilterToSQL,
   type SQL,
   type Table,
@@ -56,6 +55,7 @@ import {
 } from './utils/cursors.js';
 import { pathInfoFor } from './utils/path-info.js';
 import { getRefFromModel } from './utils/refs.js';
+import { buildRelationFilter } from './utils/relation-filter.js';
 import type { SelectionMap } from './utils/selections.js';
 
 // Workaround for FieldKind not being extended on Builder classes
@@ -214,31 +214,31 @@ export class DrizzleObjectFieldBuilder<
 
     const filterTotalCount = this.builder.options.drizzle?.filterConnectionTotalCount !== false;
 
-    // The count for `totalCount` matches the connection's own filter: the relation columns plus
-    // the `where` from the field's `query`, so the count agrees with the rows being paginated.
-    const buildCountFilter = (parentTable: TableConfig['table'], where?: unknown): SQL => {
-      const { sourceColumns, targetColumns } = relationField;
-      // Read off the parent by typescript name: `postId: integer('id')` lands on the row (and on
-      // the aliased table) as `postId`, and `sourceCol.name` is the database's `id`.
-      const relationFilter = and(
-        ...sourceColumns.map((sourceCol: Column, i: number) =>
-          eq(targetColumns[i], parentTable[schemaConfig.columnToTsName(sourceCol) as never]),
-        ),
-      )!;
+    // The count for `totalCount` matches the connection's own filter: what the relation selects
+    // (including a `through` join and the relation's own `where`) plus the `where` from the
+    // field's `query`, so the count agrees with the rows being paginated.
+    const buildCount = (
+      parentTable: TableConfig['table'],
+      where?: unknown,
+    ): { source: Table | SQL; filter: SQL } => {
+      const { count } = buildRelationFilter(relationField as Relation, parentTable as Table);
 
       if (!where || !filterTotalCount) {
-        return relationFilter;
+        return count;
       }
 
-      return and(
-        relationFilter,
-        (relationsFilterToSQL as RelationsFilterToSQL)(
-          relatedTable.table as Table,
-          where,
-          relatedTable.relations,
-          schemaConfig.relations,
-        ),
-      )!;
+      return {
+        source: count.source,
+        filter: and(
+          count.filter,
+          (relationsFilterToSQL as RelationsFilterToSQL)(
+            relatedTable.table as Table,
+            where,
+            relatedTable.relations,
+            schemaConfig.relations,
+          ),
+        )!,
+      };
     };
 
     interface ConnectionFieldQuery {
@@ -324,11 +324,11 @@ export class DrizzleObjectFieldBuilder<
       totalCountOnly: boolean,
     ) => {
       const countSelection = {
-        [countKey]: (parent: TableConfig['table']) =>
-          getClient(this.builder, context).$count(
-            relatedTable.table as Table,
-            buildCountFilter(parent, fieldQuery.where),
-          ),
+        [countKey]: (parent: TableConfig['table']) => {
+          const { source, filter } = buildCount(parent, fieldQuery.where);
+
+          return getClient(this.builder, context).$count(source as Table, filter);
+        },
       };
 
       if (totalCountOnly) {
@@ -668,15 +668,8 @@ export class DrizzleObjectFieldBuilder<
       );
     }
 
-    const buildFilter = (parentTable: TableConfig['table']): SQL => {
-      const { sourceColumns, targetColumns } = relationField;
-
-      return and(
-        ...sourceColumns.map((sourceCol, i) =>
-          eq(targetColumns[i], parentTable[schemaConfig.columnToTsName(sourceCol) as never]),
-        ),
-      )!;
-    };
+    const buildFilter = (parentTable: TableConfig['table']): SQL =>
+      buildRelationFilter(relationField as Relation, parentTable as Table).filter;
 
     const relationSelect = (
       args: object,
