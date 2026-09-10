@@ -61,7 +61,7 @@ describe('findMatches', () => {
     ]);
   });
 
-  it('matchesForModel drops matches returning a different model than the target (W-10)', async () => {
+  it('matchesForModel drops matches returning a different model than the target', async () => {
     const info = await resolveInfo(
       schema,
       /* GraphQL */ `{
@@ -140,7 +140,7 @@ describe('findMatches', () => {
     ]);
   });
 
-  it('expands a fragment spread more than once at one point of the traversal once (W-2)', async () => {
+  it('expands a fragment spread more than once at one point of the traversal once', async () => {
     // F1 spreads F2 twice, F2 spreads F3 twice, and so on: 2^11 spreads reach F12.
     const fragments: string[] = [];
 
@@ -179,7 +179,7 @@ describe('findMatches', () => {
     ]);
   });
 
-  it('ignores fragments under @skip and @include (S-2)', async () => {
+  it('ignores fragments under @skip and @include', async () => {
     const info = await resolveInfo(
       schema,
       /* GraphQL */ `{
@@ -240,8 +240,8 @@ describe('firstMatch', () => {
 });
 
 /**
- * S-8: the two sources the plugins gate on — `selectedFieldNames` and the `selectedFieldNode`
- * built on `firstMatch` — both report a deferred selection as selected, while `findMatches`
+ * The two sources the plugins gate on — `selectedFieldNames` and the `selectedFieldNode` built
+ * on `firstMatch` — both report a deferred selection as selected, while `findMatches`
  * reports the flag so that branch resolution can skip it. They may only ever disagree in that
  * direction: a gate that over-reports loads a column or a count nothing reads, while one that
  * under-reports loses rows. See `eachSelectedField` in matches.ts.
@@ -306,7 +306,7 @@ describe('selectedFieldNames', () => {
     expect([...selectedFieldNames({}, success)]).toEqual(['posts', 'profile']);
   });
 
-  it('reads the selection once per execution for the same field nodes (W-3)', async () => {
+  it('reads the selection once per execution for the same field nodes', async () => {
     const info = await resolveInfo(schema, '{ user { postsConnection { totalCount } } }', {
       at: ['User', 'postsConnection'],
     });

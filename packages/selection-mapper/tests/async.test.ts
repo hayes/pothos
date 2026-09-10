@@ -35,7 +35,7 @@ function sleep(ms: number) {
 const takeQuery = (args: Args): FakeMap => (args.take === undefined ? {} : { take: args.take });
 const whereXQuery = (args: Args): FakeMap => (args.x === undefined ? {} : { where: { x: args.x } });
 
-/** An async `t.relation`-style select: it awaits its nested selection (A-6). */
+/** An async `t.relation`-style select: it awaits its nested selection. */
 const asyncRelation =
   (query?: (args: Args) => FakeMap, delay = 0): Wrap =>
   (_select, name) =>
@@ -70,7 +70,7 @@ async function sameAs(source: string, async: FakeAdapter, keys: [string, (string
 
   expect(isThenable(result)).toBe(true);
 
-  // L-2: nothing is recorded until every pending merge has run.
+  // Nothing is recorded until every pending merge has run.
   for (const [type, path] of keys) {
     expect(getLoaderMapping(context, pathOf(...path), type)).toBe(null);
   }
@@ -102,7 +102,7 @@ describe('async callbacks', () => {
     );
   });
 
-  it('propagates a nested async plan through a plugin-owned select (A-6)', async () => {
+  it('propagates a nested async plan through a plugin-owned select', async () => {
     await sameAs(
       '{ user { posts(take: 2) { id author(x: 1) { name } } } }',
       withWraps({ posts: pluginRelation(takeQuery), author: asyncRelation(whereXQuery, 1) }),
@@ -116,8 +116,8 @@ describe('async callbacks', () => {
     }));
 
     // A relation query that returns a promise makes the nested selection a promise, which a
-    // synchronous select cannot embed (A-6): the invocation returned while its nested selection
-    // was still pending, which is what it is refused for (A-8)...
+    // synchronous select cannot embed: the invocation returned while its nested selection
+    // was still pending, which is what it is refused for...
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
@@ -134,7 +134,7 @@ describe('async callbacks', () => {
     );
   });
 
-  it('merges a relation query before the fields walked beneath it, async or not (E-3, A-4)', async () => {
+  it('merges a relation query before the fields walked beneath it, async or not', async () => {
     const relationQuery = (): FakeMap => ({ select: { author: { where: { x: 1 } } } });
     const sync = withSelects(['posts'], (_select, name) => (_args, _ctx, nested) => ({
       select: { [name]: nested(relationQuery) },
@@ -164,7 +164,7 @@ describe('async callbacks', () => {
     );
   });
 
-  it('runs a select as soon as its async arguments resolve (S-6)', async () => {
+  it('runs a select as soon as its async arguments resolve', async () => {
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
     const field = (schema.getType('User') as GraphQLObjectType).getFields().posts;
     const seen: string[] = [];
@@ -201,7 +201,7 @@ describe('async callbacks', () => {
     }
   });
 
-  it('starts every callback of a plan in the same tick (A-3)', async () => {
+  it('starts every callback of a plan in the same tick', async () => {
     const started: string[] = [];
     const async = withSelects(['posts', 'profile'], (select, name) => async (...args) => {
       started.push(name);
@@ -217,7 +217,7 @@ describe('async callbacks', () => {
     expect(await result).toEqual({ select: { posts: true, profile: true } });
   });
 
-  it('merges sync selections first, then async ones in document order (A-4, D-5)', async () => {
+  it('merges sync selections first, then async ones in document order', async () => {
     // `first` takes 1 and is async; `second` takes 2 and is sync. They conflict on `take`.
     const syncWins = withSelects(['posts'], (select) => (args, ...rest) => {
       const map = select(args, ...rest);
@@ -273,7 +273,7 @@ describe('async callbacks', () => {
 
     await queryFromInfo(mixed, { context, info: await resolveInfo(schema, source) });
 
-    // The sync plan was merged first (D-5); the async one unioned into its mapping.
+    // The sync plan was merged first; the async one unioned into its mapping.
     expect(Object.keys(getLoaderMapping(context, pathOf('user', 'posts'), 'User')!.nested)).toEqual(
       ['Post@comments', 'Post@author'],
     );
@@ -345,7 +345,7 @@ describe('async callbacks', () => {
     );
   });
 
-  it('returns the loader plan after its async select, then enters the parent type (E-2)', async () => {
+  it('returns the loader plan after its async select, then enters the parent type', async () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
@@ -389,7 +389,7 @@ async function withoutUnhandledRejection(run: () => Promise<void>) {
   }
 }
 
-describe('a nested selection that was not awaited (A-8)', () => {
+describe('a nested selection that was not awaited', () => {
   const message =
     'The selection function of User.posts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.';
   const rejecting: Wrap = () => () => Promise.reject(new Error('no author'));
@@ -466,7 +466,7 @@ describe('a nested selection that was not awaited (A-8)', () => {
   });
 });
 
-describe('a plan that throws after a callback started (M-2)', () => {
+describe('a plan that throws after a callback started', () => {
   const rejecting: Wrap = () => () => Promise.reject(new Error('late'));
   const throwing: Wrap = () => () => {
     throw new Error('sync');
@@ -533,7 +533,7 @@ describe('a plan that throws after a callback started (M-2)', () => {
   });
 });
 
-describe('the synchronous path (A-1)', () => {
+describe('the synchronous path', () => {
   const source = /* GraphQL */ `{
     user {
       id

@@ -89,7 +89,7 @@ export function modelOf<Model>(
 }
 
 /**
- * W-10: `matches` without the ones whose field returns a model other than `targetType`'s. Several
+ * `matches` without the ones whose field returns a model other than `targetType`'s. Several
  * implementations of an interface may share a field name while returning different models, and
  * their selections must never be merged into the same query. Types without a model always match,
  * and a target without one filters nothing.
@@ -125,7 +125,7 @@ export interface SelectionLevel {
   expectedType: GraphQLNamedType;
   /** Aliased field names from the starting selection down to this level. */
   path: string[];
-  /** S-8: a `@defer` was crossed on the way to this level. */
+  /** Whether a `@defer` was crossed on the way to this level. */
   deferred: boolean;
 }
 
@@ -137,13 +137,13 @@ export type FieldVisitor = (field: FieldNode, level: SelectionLevel) => boolean 
 
 /**
  * The one selection traversal this package owns. It reads the selections of `selection` at
- * `level`: drops what a directive removes (S-2), classifies every fragment
- * (`resolveFragmentTypes`), notes whether a `@defer` was crossed (S-8), descends into the
- * fragments that apply, expands a named fragment once per state (`memo`), and calls `visit` at
- * every field that applies to `level.type`. What happens at a field is the caller's alone, which
- * is the whole of the difference between its consumers: `matchPath` matches one path segment's
- * name and descends with the rest of the path, `collectSelectedFieldNames` adds every name and
- * descends no further, and `firstMatch` takes the first match and stops.
+ * `level`: drops what `@skip`/`@include` removes, classifies every fragment
+ * (`resolveFragmentTypes`), notes whether a `@defer` was crossed, descends into the fragments
+ * that apply, expands a named fragment once per state (`memo`), and calls `visit` at every field
+ * that applies to `level.type`. What happens at a field is the caller's alone, which is the whole
+ * of the difference between its consumers: `matchPath` matches one path segment's name and
+ * descends with the rest of the path, `collectSelectedFieldNames` adds every name and descends no
+ * further, and `firstMatch` takes the first match and stops.
  *
  * `segment` is the indirect-include path segment the caller is looking for, when it has one; only
  * its `type` is read, to pin the type a fragment is expected on.
@@ -151,28 +151,23 @@ export type FieldVisitor = (field: FieldNode, level: SelectionLevel) => boolean 
  * `memo` records the named fragments already expanded, keyed on the fragment, the two types, the
  * deferred flag, and `memoKey` — whatever else the caller varies as it descends (`matchPath`
  * passes its remaining path length and its alias path). A fragment spread more than once at one
- * point of the traversal is expanded once: walking it again could only repeat the same work, and
- * a valid fragment DAG can spread the same fragment at every level, which makes expanding every
- * spread exponential in its depth. A caller that varies nothing passes no `memoKey`, and its memo
- * is then finer than it needs to be by the deferred flag alone — at most twice as fine, which
- * costs a little time and never correctness for a caller that accumulates.
+ * point of the traversal is expanded once: a valid fragment DAG can spread the same fragment at
+ * every level, which makes expanding every spread exponential in its depth. A caller that varies
+ * nothing passes no `memoKey`, leaving its memo finer than it needs to be by the deferred flag —
+ * a little time, never correctness, for a caller that accumulates.
  *
- * S-8, the defer asymmetry, which lives here because this is the only place the flag is computed:
- * this traversal decides nothing about `@defer`. It reports `level.deferred` and the visitor
- * chooses, and the consumers do not choose alike.
+ * This traversal decides nothing about `@defer`: it reports `level.deferred` and the visitor
+ * chooses, and the consumers do not choose alike. `findMatches` reports the flag and
+ * `walkBranches` honours it, so a deferred branch is entered but its fields are not walked while
+ * `skipDeferredFragments` is set; `firstMatch` (the `selectedFieldNode` a select function is
+ * handed) and `selectedFieldNames` both discard it.
  *
- * - `findMatches` reports the flag, and `walkBranches` honours it: a deferred branch is entered
- *   but, when `skipDeferredFragments` is set, its fields are not walked.
- * - `firstMatch` (E-5, the `selectedFieldNode` a select function is handed) discards it.
- * - `selectedFieldNames` discards it.
- *
- * So the last two over-report: they answer "yes, the document selects this" for a selection that
- * the branch resolution will skip. That direction is what makes the divergence safe. The plugins
- * use both as gates — does the document ask for `totalCount`, is this column selected — and a
- * gate computed from an over-reporting source can only be wrongly true, which loads a column or a
- * count nothing reads. It can never be wrongly false, so no row goes missing, and anything
- * genuinely under-fetched elsewhere falls through to the model loader, which re-queries. Make
- * either of them honour the flag and the gates start under-reporting instead, which loses data;
+ * The last two therefore over-report — they answer "yes, the document selects this" for a
+ * selection branch resolution will skip — and that direction is what makes the divergence safe.
+ * The plugins use both as gates, and a gate computed from an over-reporting source can only be
+ * wrongly true, which loads a column or a count nothing reads; it can never be wrongly false, so
+ * no row goes missing and anything under-fetched falls through to the model loader, which
+ * re-queries. Make either honour the flag and the gates start under-reporting, which loses data;
  * `matches.test.ts` pins the direction.
  */
 function eachSelectedField(
@@ -280,8 +275,8 @@ function fieldOn(type: GraphQLNamedType, name: string): GraphQLField<unknown, un
  * Follows `includePath` from `level`, starting at segment `at`, to the fields selected at its end,
  * reporting each to `onMatch` in document order and stopping when `onMatch` says to. Every step is
  * one `eachSelectedField` whose visitor matches that segment by name and follows the rest of the
- * path beneath it; the end of the path is the match itself. The path is walked by index so that a
- * step allocates nothing but the alias path it grew.
+ * path beneath it. The path is walked by index, so a step allocates nothing but the alias path it
+ * grew.
  */
 function matchPath(
   info: GraphQLResolveInfo,
@@ -392,8 +387,8 @@ export function findMatches(
 }
 
 /**
- * E-5: the first field selected at the end of `path`, in document order, or undefined. The
- * traversal stops at it. The match's `deferred` flag is reported but this function's caller — the
+ * The first field selected at the end of `path`, in document order, or undefined. The traversal
+ * stops at it. The match's `deferred` flag is reported but this function's caller — the
  * `selectedFieldNode` handed to a select function — discards it; see `eachSelectedField` for why
  * over-reporting a deferred selection there is safe.
  */
@@ -431,20 +426,16 @@ const selectedFieldNamesCache = createContextCache(
 
 /**
  * The names of the fields the document selects directly beneath the field being resolved, seen
- * through any wrapper on its return type: `selectsPath(info, [name])` for every top-level name in
- * one traversal. Every row of a list resolves the field with the same field nodes, so the result
- * is memoised on them for the execution, which is what a resolver called per row wants. The memo
- * is keyed on the nodes rather than on `info.fieldNodes`: graphql-js 17 builds that array anew
- * for every resolve, while the nodes are the document's own. Beneath that it is keyed on
- * `info.variableValues` (one object per execution) and on the return type.
+ * through any wrapper on its return type. Every row of a list resolves the field with the same
+ * field nodes, so the result is memoised on them for the execution — on the nodes rather than on
+ * `info.fieldNodes`, which graphql-js 17 builds anew for every resolve, and beneath that on
+ * `info.variableValues` (one object per execution) and the return type.
  *
- * S-8: `@skip` and `@include` are honoured, `@defer` is not — a name selected only under a
- * deferred fragment is reported as selected, even when the plan that loads the row is set to skip
- * deferred fragments and will not walk it. `findMatches`, and so the plan's own branch
- * resolution, does honour it, so the two disagree; `eachSelectedField` states which consumers see
- * a deferred selection and why this set, being the over-reporting side, is the safe one for a
- * plugin to gate a column or a count on. A caller that needs to know what the plan will actually
- * load must ask the plan, not this.
+ * `@skip` and `@include` are honoured, `@defer` is not: a name selected only under a deferred
+ * fragment is reported as selected even when the plan that loads the row will not walk it. This
+ * is the over-reporting side of the divergence `eachSelectedField` describes, which is the safe
+ * side to gate a column or a count on. A caller that needs to know what the plan will actually
+ * load must ask the plan.
  */
 export function selectedFieldNames(context: object, info: GraphQLResolveInfo): ReadonlySet<string> {
   const byExecution = selectedFieldNamesCache(context);
@@ -512,11 +503,9 @@ function collectSelectedFieldNames(info: GraphQLResolveInfo): ReadonlySet<string
 }
 
 /**
- * Determines the type to walk and the type the next segment is expected on when descending into a
- * fragment.
- *
+ * The type to walk and the type the next segment is expected on, when descending into a fragment.
  * `expected` arrives pinned: `eachSelectedField` resolved any `type` on the segment before it
- * classified a single selection, so nothing here has to ask again.
+ * classified a single selection.
  *
  * - A fragment on the expected type, or on an abstract type the expected type belongs to, walks as
  *   the expected type: every field selectable there also exists on it.
@@ -645,7 +634,7 @@ export function normalizeInclude(
 }
 
 /**
- * S-2: a field or fragment under `@skip(if: true)` or `@include(if: false)`. Asked of every
+ * Whether a field or fragment is under `@skip(if: true)` or `@include(if: false)`. Asked of every
  * selection the traversal reads, so it answers a selection carrying no directive at all — nearly
  * every one — without building a directive's argument values twice.
  */
@@ -670,7 +659,7 @@ export function isSkipped(
   return false;
 }
 
-/** S-8: a fragment under `@defer` (when the schema declares the directive). */
+/** Whether a fragment is under `@defer` (when the schema declares the directive). */
 export function isDeferred(
   info: GraphQLResolveInfo,
   node: FragmentSpreadNode | InlineFragmentNode,

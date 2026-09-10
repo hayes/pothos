@@ -1,8 +1,8 @@
 /**
- * The traversal itself: S-1..S-9 (types, variants, fields, fragments), M-1..M-6 through the adapter,
- * E-3 nested selections, L-2 mapping records. The entry points that drive it are the statics of
- * `Plan` in plan.ts, which imports this module; the `Plan` import below is a type import, so
- * nothing here runs at import time and the pair is not a runtime cycle.
+ * The traversal: types, variants, fields and fragments read into a plan's merge list. The entry
+ * points that drive it are the statics of `Plan` in plan.ts, which imports this module; the
+ * `Plan` import below is a type import, so nothing here runs at import time and the pair is not a
+ * runtime cycle.
  */
 import {
   getMappedArgumentValues,
@@ -40,9 +40,8 @@ import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js
 
 /**
  * One select invocation's mapping record while the invocation runs: `pending` counts the nested
- * selections it started whose plan is async and which have not resolved (A-8). Set only when a
- * nested plan is async, and removed once every one has resolved, so a recorded `Mapping` never
- * carries it and a synchronous invocation never touches it.
+ * selections it started whose plan is async and has not resolved. Removed once every one has,
+ * so a recorded `Mapping` never carries it and a synchronous invocation never touches it.
  */
 interface Invocation extends Mapping {
   pending?: number;
@@ -50,7 +49,7 @@ interface Invocation extends Mapping {
 
 function noop() {}
 
-/** S-1. */
+/** Collects a type's type-level selection, once, before its fields are walked. */
 function enter<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: GraphQLNamedType,
@@ -63,8 +62,8 @@ function enter<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * S-7: collects the type-level selection of `variant` when a fragment moves the plan from `type`
- * to another type of the same model, so the variant's resolvers find what its selection promises.
+ * Collects the type-level selection of `variant` when a fragment moves the plan from `type` to
+ * another type of the same model, so the variant's resolvers find what its selection promises.
  * Whether the two selections can live in one node is decided when the plan is played.
  */
 function enterVariant<Model, Query, NodeType extends NodeBase<Model>>(
@@ -101,10 +100,10 @@ interface ResolvedBranch {
 }
 
 /**
- * E-4, S-1, S-8: walks every branch into `plan`. The types the selections are walked as, and the
- * variants their fragments move to, are all collected before any field is, so type-level
- * selections come first in the merge list and the plan does not depend on which selection came
- * first in the document: neither the occurrence of a field (W-1) nor the path match (W-11).
+ * Walks every branch into `plan`. The types the selections are walked as, and the variants their
+ * fragments move to, are all collected before any field is, so type-level selections come first
+ * in the merge list and the plan does not depend on which occurrence of a field, or which path
+ * match, came first in the document.
  */
 export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -115,7 +114,7 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   let firstType: WalkedType | undefined;
 
   for (const { type, selectionSets } of resolved) {
-    // S-7: the plan is entered as the first type a match landed on, and every other one as a
+    // The plan is entered as the first type a match landed on, and every other one as a
     // same-model variant of it, so two type-level selections that conflict are reported here
     // exactly as they are when a fragment moves the plan between the same two types. A type two
     // matches share is entered once.
@@ -147,9 +146,9 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * E-4: the selections `branch` stands for once its type's indirect include is followed, in the
- * order they are walked. A type-level path yields one per match beneath the wrapper; a plain
- * include re-types the plan; anything but an object or interface type yields nothing.
+ * The selections `branch` stands for once its type's indirect include is followed, in the order
+ * they are walked. A type-level path yields one per match beneath the wrapper; a plain include
+ * re-types the plan; anything but an object or interface type yields nothing.
  */
 function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -217,8 +216,7 @@ type Fragment = FragmentDefinitionNode | InlineFragmentNode;
 
 /**
  * Whether `fragment` was already expanded under `key` in the pass `visited` belongs to, recording
- * it if not. A named fragment spread more than once under the same type does the same work each
- * time, and a valid fragment DAG can spread the same fragment at every level, so expanding every
+ * it if not. A valid fragment DAG can spread the same fragment at every level, so expanding every
  * spread is exponential in its depth. Inline fragments cannot repeat.
  */
 function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): boolean {
@@ -238,9 +236,9 @@ function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): 
 }
 
 /**
- * S-7 first pass: enters every same-model variant a fragment under `selections` moves the plan to,
- * before any field at `node` is merged, so a conflict between two type-level selections is
- * reported whichever order the fragments appear in and never depends on a field-level select.
+ * First pass: enters every same-model variant a fragment under `selections` moves the plan to,
+ * before any field is merged, so a conflict between two type-level selections is reported
+ * whichever order the fragments appear in and never depends on a field-level select.
  */
 function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -270,9 +268,9 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * S-7 second pass: walks `selections` in document order, a fragment's fields where the fragment
- * appears. Fields apply to `node` unless the enclosing fragment cannot apply to `type`; nested
- * fragments are always classified against `type`, so one may narrow back to it.
+ * Second pass: walks `selections` in document order, a fragment's fields where the fragment
+ * appears. Fields apply unless the enclosing fragment cannot apply to `type`; nested fragments
+ * are always classified against `type`, so one may narrow back to it.
  */
 function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -313,7 +311,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
 
 /**
  * The fragment a non-field selection stands for, or undefined when it does not apply: skipped by
- * a directive (S-2), or deferred (S-8).
+ * a directive, or deferred while the plan skips deferred fragments.
  */
 function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
   { info, skipDeferredFragments }: Plan<Model, Query, NodeType>,
@@ -327,14 +325,13 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * S-7: the type to walk `fragment` as while walking `type`, or undefined when the fragment cannot
+ * The type to walk `fragment` as while walking `type`, or undefined when the fragment cannot
  * apply to `type` (its fields are suppressed; nested fragments are still classified against
  * `type`). An untyped fragment inherits `type`. An object type accepts a fragment on itself or on
  * an interface it implements, walked as itself: a plan on an object type is a plan on rows of that
- * type (the field's own type, a pinned `typeName`, a node load), so a fragment on any other object
- * type cannot apply to them. An interface accepts a fragment on another type of the same model,
- * object or interface, walked as that type, so that type's own selection is planned for the rows
- * that resolve to it.
+ * type, so a fragment on any other object type cannot apply to them. An interface accepts a
+ * fragment on another type of the same model, walked as that type, so that type's own selection
+ * is planned for the rows that resolve to it.
  */
 function fragmentTypeOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -366,7 +363,7 @@ function fragmentTypeOf<Model, Query, NodeType extends NodeBase<Model>>(
   return undefined;
 }
 
-/** S-2..S-6: collects what `fieldNode` (a field of `type`) selects. */
+/** Collects what `fieldNode` (a field of `type`) selects. */
 export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
@@ -401,8 +398,8 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
     return;
   }
 
-  // D-7: where this field is, linked to where the plan it was found in hangs. One link, built
-  // once per select invocation; nothing walks it unless the adapter's callback asks.
+  // Where this field is, linked to where the plan it was found in hangs. One link, built once per
+  // select invocation; nothing walks it unless the adapter's callback asks.
   const position: Position = { parent: plan.position, type, field, node: fieldNode };
   // This invocation's mapping; every nested plan it makes records into `mapping.nested`, which
   // stays invisible to the plan until the invocation's query is accepted.
@@ -410,7 +407,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   const args = getMappedArgumentValues(field, fieldNode, context, info);
   const select = selection as SelectFn<Query>;
 
-  // S-6: the select runs as soon as its own arguments are known; only its merge waits (A-3).
+  // The select runs as soon as its own arguments are known; only its merge waits.
   const query = isThenable(args)
     ? args.then((mapped) => runSelect(plan, select, mapped, position, mapping))
     : runSelect(plan, select, args, position, mapping);
@@ -441,9 +438,8 @@ function runSelect<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * A field the way the document names it, for an error message: the type it was walked on and its
- * own name, with its alias when the document renamed it. The mapping key cannot say this — it
- * holds the alias in place of the name, under the alias path of any indirect include above it.
+ * A field the way the document names it, for an error message. The mapping key cannot say this:
+ * it holds the alias in place of the name, under the alias path of any indirect include above it.
  */
 function fieldName({ type, node }: Position) {
   const name = `${type.name}.${node.name.value}`;
@@ -452,14 +448,14 @@ function fieldName({ type, node }: Position) {
 }
 
 /**
- * S-5: collects a field's query with the mapping to record if a play takes it. A falsy query is
- * collected as nothing, so the resolver loads its own data (L-3). Whether the query fits, and
- * therefore whether the mapping is ever recorded, is decided by `play`.
+ * Collects a field's query with the mapping to record if a play takes it. A falsy query is
+ * collected as nothing, so the resolver loads its own data; whether the query fits, and so
+ * whether the mapping is ever recorded, is `play`'s decision.
  *
- * A-8: an invocation whose nested selection is still pending returned without awaiting it. Its
- * query cannot hold what the nested plan will select, so recording its mapping would claim data
- * the query never loads: the invocation is refused instead, and the pending plans (already
- * handled, see `awaitNested`) are left to settle unobserved.
+ * An invocation whose nested selection is still pending returned without awaiting it, so its
+ * query cannot hold what the nested plan will select and recording its mapping would claim data
+ * the query never loads. It is refused instead, and the pending plans (already handled, see
+ * `awaitNested`) are left to settle unobserved.
  */
 function collectField<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -482,7 +478,7 @@ function collectField<Model, Query, NodeType extends NodeBase<Model>>(
   plan.collect({ kind: 'field', key, alias, query, mapping });
 }
 
-/** E-3: the nested selection callback of one select invocation. */
+/** The nested selection callback of one select invocation. */
 function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   args: object,
@@ -541,7 +537,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
           : undefined;
 
       if (paths) {
-        // Each match is walked as its own type (W-11); the wrapper's selection set is not walked.
+        // Each match is walked as its own type; the wrapper's selection set is not walked.
         const matches = matchesForModel(
           adapter,
           info.schema,
@@ -554,9 +550,9 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
         walkBranches(
           child,
           matches.map((match) => ({
-            // As E-1's own path branch does: a matched type with a model is walked with it, and
-            // one without (an interface, a wrapper) as the type asked for, so its fields are
-            // found and a fragment narrowing to it applies.
+            // As `Plan.fromInfo` does for its own paths: a matched type with a model is walked
+            // with it, and one without (an interface, a wrapper) as the type asked for, so its
+            // fields are found and a fragment narrowing to it applies.
             type: modelOf(adapter, info.schema, match.type) ? match.type : target,
             fieldNodes: [match.field],
             indirectPath: match.path,
@@ -581,7 +577,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
       throw error;
     }
 
-    // A promise behind the declared synchronous type, as `finish` returns one (A-7).
+    // A promise behind the declared synchronous type, as `finish` returns one.
     return child.pending
       ? (awaitNested(child, mapping) as Query)
       : adapter.toQuery(playNested(child, mapping).root);
@@ -589,11 +585,11 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * A-8: the promise of a nested selection whose plan is async, counted against its invocation
- * until it resolves. It is handled here, so a nested selection the invocation discards is never
- * an unhandled rejection: `collectField` refuses the invocation instead. A rejection keeps the
- * count, since the invocation did not wait for it either; one that was awaited surfaces through
- * the invocation's own promise.
+ * The promise of a nested selection whose plan is async, counted against its invocation until it
+ * resolves. Handled here, so a nested selection the invocation discards is never an unhandled
+ * rejection — `collectField` refuses the invocation instead. A rejection keeps the count, since
+ * the invocation did not wait for it either; one that was awaited surfaces through the
+ * invocation's own promise.
  */
 function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
@@ -615,9 +611,9 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * E-3: the nested plan played where the callback needs it serialized, with the mappings it
- * recorded folded into the invocation that started it. Every nested plan of one invocation
- * records into the same `mapping.nested`, so two that map the same key union.
+ * The nested plan played where the callback needs it serialized, with the mappings it recorded
+ * folded into the invocation that started it. Every nested plan of one invocation records into
+ * the same `mapping.nested`, so two that map the same key union.
  */
 function playNested<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
@@ -633,7 +629,7 @@ function playNested<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * E-3: the relation query of a nested selection, merged before the walk beneath it whether the
+ * The relation query of a nested selection, merged before the walk beneath it whether the
  * callback answered at once or resolved after that walk had already collected its fields — see
  * `collectQuery`. A field of the document that conflicts with the query therefore loses to it
  * either way, and is never mapped to a relation the query loaded with other arguments.
@@ -648,14 +644,14 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * E-5: the first field node selected at `path` beneath the field, seen through any wrapper on
- * the field's return type (an errors plugin result, for instance), whose own path leads to the
- * type the caller's path starts from. An empty path yields the field node itself, or the
- * wrapper's inner node.
+ * The first field node selected at `path` beneath the field, seen through any wrapper on the
+ * field's return type (an errors plugin result, for instance), whose own path leads to the type
+ * the caller's path starts from. An empty path yields the field node itself, or the wrapper's
+ * inner node.
  *
- * S-8: a node selected only under a `@defer` is returned like any other, whatever the plan's
- * deferred setting says — an adapter gating a computed value on this over-reports rather than
- * under-; `eachSelectedField` in matches.ts says why that direction is the safe one.
+ * A node selected only under a `@defer` is returned like any other, whatever the plan's deferred
+ * setting says — an adapter gating a computed value on this over-reports rather than under-;
+ * `eachSelectedField` in matches.ts says why that direction is the safe one.
  */
 function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,

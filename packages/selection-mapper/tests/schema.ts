@@ -149,7 +149,7 @@ export function createTestAdapter() {
 export type Wrap = (select: Select, field: string) => Select;
 
 /**
- * The test adapter with the select functions of the named fields wrapped (S-6): a subclass, so
+ * The test adapter with the select functions of the named fields wrapped: a subclass, so
  * the prototype the walker calls through is the one the wrapping is on.
  */
 class WrappedAdapter extends FakeAdapter {

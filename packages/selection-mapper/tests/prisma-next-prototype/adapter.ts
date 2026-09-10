@@ -49,7 +49,7 @@ export interface MapperCollection {
 /** `PRISMA_NEXT_RELATIONS` metadata (index.ts ~101-119) with the target resolved to a model. */
 export interface PnRelationMeta {
   isToMany: boolean;
-  /** Parent-side FK columns added to the parent's select when the relation is included (W-1). */
+  /** Parent-side FK columns added to the parent's select when the relation is included. */
   localFields: readonly string[];
   target: PnModel;
 }
@@ -182,7 +182,7 @@ function getOrCreateRelation(node: PnNode, name: string): PnRelation {
     relation = { meta, branches: new Map(), functions: new Map() };
     node.relations.set(name, relation);
 
-    // W-1 (apply-selection ~371-378, ~629-631): including a relation reads its FK columns.
+    // apply-selection ~371-378, ~629-631: including a relation reads its FK columns.
     for (const column of meta.localFields) {
       node.columns.add(column);
     }
@@ -194,7 +194,7 @@ function getOrCreateRelation(node: PnNode, name: string): PnRelation {
 /**
  * apply-selection's `addBranch` (~1044-1068), except that a slot already present is unioned
  * with the new selection instead of rejected: the walker applies one field once per node that
- * selects it (W-1: every `info.fieldNodes` node; two fragments selecting the same field), and
+ * selects it (every `info.fieldNodes` node; two fragments selecting the same field), and
  * those are the same field with the same arguments by GraphQL's own merge rules.
  */
 function addBranch(relation: PnRelation, name: string, alias: string, spec: PnSpec) {
@@ -234,7 +234,7 @@ function addFunction(relation: PnRelation, alias: string, args: PnArgs, fn: PnSp
   }
 }
 
-/** M-1, M-2: `spec` into `node`, relation values slotted under `alias` unless they carry one. */
+/** `spec` into `node`, relation values slotted under `alias` unless they carry one. */
 function mergeSpec(node: PnNode, spec: PnSpec, alias: string | undefined) {
   if (spec.columns) {
     for (const column of spec.columns) {
@@ -324,7 +324,7 @@ function serializeNode(node: PnNode): PnSpec {
  * `canMergeNode` are inherited, and the package answers "nothing ever conflicts" for them.
  */
 export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
-  /** S-1: each type's compiled selection, built once. */
+  /** Each type's compiled selection, built once. */
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PnSpec | null>();
 
   modelFor(type: GraphQLNamedType) {
@@ -332,7 +332,7 @@ export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
   }
 
   /**
-   * S-1: the type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation values
+   * The type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation values
    * (apply-selection ~795-878), compiled once to a spec slotted under `:object:<Type>`.
    */
   typeSelection(type: GraphQLNamedType): PnSpec | undefined {
@@ -352,7 +352,7 @@ export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
     return spec ?? undefined;
   }
 
-  /** S-4..S-6: a static spec or a select function, precompiled onto the field by the schema. */
+  /** A static spec or a select function, precompiled onto the field by the schema. */
   fieldSelection(field: GraphQLField<unknown, unknown>) {
     return field.extensions?.[PN_SELECT] as PnSpec | PnSelectFn | undefined;
   }
@@ -363,7 +363,7 @@ export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
 
   /**
    * The slot namespace is the spec's own (`:object:<Type>`) or the response key of the field the
-   * traversal is merging. E-3: a relation query is the branch's refine; its columns (a
+   * traversal is merging. A relation query is the branch's refine; its columns (a
    * connection's cursor) are read on the relation.
    */
   mergeQuery(node: PnNode, spec: PnSpec, options?: MergeOptions) {

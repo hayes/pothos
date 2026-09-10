@@ -404,7 +404,7 @@ describe('async selections', () => {
     expect(getLoaderMapping(context, pathOf('user', 'discardedPosts'), 'User')).toBe(null);
   });
 
-  it('merges the sync sibling first when it conflicts with an async one (D-5)', async () => {
+  it('merges the sync sibling first when it conflicts with an async one', async () => {
     for (const document of [
       gql`{ user { posts(limit: 1) { id } asyncPosts(limit: 2) { id } } }`,
       gql`{ user { asyncPosts(limit: 2) { id } posts(limit: 1) { id } } }`,
@@ -536,7 +536,7 @@ describe('async selections', () => {
     }
   });
 
-  it('creates no promise while planning and resolving a synchronous document (A-1)', async () => {
+  it('creates no promise while planning and resolving a synchronous document', async () => {
     const selection = /* GraphQL */ `{
       id
       ... on User { publishedCount }

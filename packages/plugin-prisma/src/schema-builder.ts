@@ -157,7 +157,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
       resolve: (parent: never, _args: object, context: object) => resolve(parent, context),
     },
     loadWithoutCache: (id: string, context: SchemaTypes['Context'], info: GraphQLResolveInfo) => {
-      // A promise while a select beneath the node is async (A-7); the query waits only then.
+      // A promise while a select beneath the node is async; the query waits only then.
       const query = queryFromInfo({
         context,
         info,

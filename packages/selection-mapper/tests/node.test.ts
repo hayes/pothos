@@ -49,7 +49,7 @@ describe('node', () => {
     expect([...node.relations.keys()]).toEqual(['posts']);
   });
 
-  it('rejects a promise as a relation value (A-6)', () => {
+  it('rejects a promise as a relation value', () => {
     const node = new FakeAdapter().createNode(models.User);
 
     expect(() => relation(node, 'posts', models.Post, Promise.resolve({}))).toThrow(
@@ -102,7 +102,7 @@ describe('NodeAdapter', () => {
     expect(visitors[0]).not.toBe(merger);
   });
 
-  it('leaves a conflicting relation out of a lenient merge and keeps the rest (E-2)', () => {
+  it('leaves a conflicting relation out of a lenient merge and keeps the rest', () => {
     const adapter = new FakeAdapter();
     const node = adapter.createNode(models.User);
 
@@ -118,7 +118,7 @@ describe('NodeAdapter', () => {
     });
   });
 
-  it('adds no columns for a relation query without a selection of its own (E-3)', () => {
+  it('adds no columns for a relation query without a selection of its own', () => {
     const adapter = new FakeAdapter();
     const node = adapter.createNode(models.User);
 

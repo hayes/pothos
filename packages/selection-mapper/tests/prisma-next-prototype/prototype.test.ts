@@ -297,7 +297,7 @@ describe('columns', () => {
     expect(await plan('{ user { id name } }')).toEqual(['select(id, name)']);
   });
 
-  it('honours @skip and @include on fields (S-2)', async () => {
+  it('honours @skip and @include on fields', async () => {
     expect(await plan('{ user { id name @skip(if: true) email @include(if: false) } }')).toEqual([
       'select(id)',
     ]);
@@ -321,7 +321,7 @@ describe('columns', () => {
 });
 
 describe('relations', () => {
-  it('includes a relation with its query as a refine and reads the parent FK columns (W-1)', async () => {
+  it('includes a relation with its query as a refine and reads the parent FK columns', async () => {
     expect(
       await plan('{ user { name posts(published: true, take: 2) { title author { name } } } }'),
     ).toEqual([
@@ -347,7 +347,7 @@ describe('relations', () => {
     ).toEqual(['select(id)', 'include(posts){ select(id, title) }']);
   });
 
-  it('plans every node selecting the field into one root (W-1)', async () => {
+  it('plans every node selecting the field into one root', async () => {
     const source = /* GraphQL */ `
       query { user { posts(take: 1) { id } } ...More }
       fragment More on Query { user { posts(take: 1) { title } } }
@@ -372,7 +372,7 @@ describe('relations', () => {
     );
   });
 
-  it('awaits an async relation select (A-6)', async () => {
+  it('awaits an async relation select', async () => {
     const asyncSchema = createPrototypeSchema({ asyncPosts: true });
     const info = await resolveInfo(asyncSchema, '{ user { id posts(take: 2) { title } } }');
     const spec = queryFromInfo(pnAdapter, { context: {}, info });
@@ -383,7 +383,7 @@ describe('relations', () => {
 });
 
 describe('type-level selects', () => {
-  it('applies a type-level column select on every level it enters (S-1)', async () => {
+  it('applies a type-level column select on every level it enters', async () => {
     expect(await plan('{ user { posts { comments { body } } } }')).toEqual([
       'select(id)',
       'include(posts){ select(id) include(comments){ select(id, body) } }',
@@ -415,7 +415,7 @@ describe('counts', () => {
 });
 
 describe('variants', () => {
-  it('enters a variant through a fragment on a same-model interface before any field (S-7)', async () => {
+  it('enters a variant through a fragment on a same-model interface before any field', async () => {
     expect(await plan('{ viewer { id ... on AdminUser { permissions } } }')).toEqual([
       'select(email, id, permissions)',
       'include(posts){ combine(:object:AdminUser:total=count[]) }',
@@ -462,7 +462,7 @@ describe('connections', () => {
 });
 
 describe('entry points', () => {
-  it('plans a typed entry for a node query, as node batching does (E-1 with typeName)', async () => {
+  it('plans a typed entry for a node query, as node batching does', async () => {
     expect(
       await plan('{ node(id: "1") { id ... on User { name } ... on Post { title } } }', {
         typeName: 'User',
@@ -470,13 +470,13 @@ describe('entry points', () => {
     ).toEqual(['select(id, name)']);
   });
 
-  it('merges an initial selection first (E-1), as extraColumns would', async () => {
+  it('merges an initial selection first, as extraColumns would', async () => {
     expect(await plan('{ user { name } }', { initial: { columns: ['id'] } })).toEqual([
       'select(id, name)',
     ]);
   });
 
-  it('Plan.forParentRow plans the field into a row carrying the parent type select (E-2)', async () => {
+  it('Plan.forParentRow plans the field into a row carrying the parent type select', async () => {
     const info = await resolveInfo(schema, '{ admin { posts(take: 1) { id } } }', {
       at: ['AdminUser', 'posts'],
     });

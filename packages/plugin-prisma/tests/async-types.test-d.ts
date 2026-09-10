@@ -9,7 +9,7 @@ import PrismaPlugin, {
 import type { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
-// The async model widens INPUTS only (A-7): a relation `query`, a count `where`, a field `select`
+// The async model widens INPUTS only: a relation `query`, a count `where`, a field `select`
 // and the connection helpers' callbacks may return promises, while what a resolver is handed
 // (`queryFromInfo`, `nestedSelection`, `getQuery`) keeps its synchronous declared type and is
 // awaited by the schema that opted in.

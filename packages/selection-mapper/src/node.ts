@@ -1,13 +1,11 @@
 /**
  * The node one root accumulates into — a model, its arguments, its columns, its relations and its
- * computed values — and the merge rules over a tree of them (M-1..M-4, S-7, S-9, E-2, E-3),
- * shared by every adapter whose query is a tree of that shape.
+ * computed values — and the merge, compare and conflict rules over a tree of them, shared by every
+ * adapter whose query is a tree of that shape.
  *
- * Those rules are what this module replaced: each ORM plugin used to write its own merge, compare
- * and conflict logic over its own accumulator, and `NodeAdapter` is that logic written once. A
- * subclass supplies the only format-specific part left: `visitQuery`, the key loop of the ORM's
- * own query, and `toQuery`, the node written back. The traversal never reaches in here — it
- * drives the `Adapter` contract, of which this implements everything but those two.
+ * A subclass supplies the only format-specific parts: `visitQuery`, the key loop of the ORM's own
+ * query, and `toQuery`, the node written back. The traversal never reaches in here — it drives the
+ * `Adapter` contract, of which this implements everything but those two.
  */
 import { isThenable, PothosValidationError } from '@pothos/core';
 import { Adapter, type NodeBase } from './adapter.js';
@@ -17,9 +15,8 @@ import type { MergeOptions, TypeLevelConflict } from './types.js';
 /**
  * One level of the query being built, used by the prisma and drizzle adapters: the model, its
  * arguments, the columns it selects (`null` = every column, which is final: a node never goes
- * back to named columns), its relations and its computed values (prisma `_count` keys,
- * drizzle `extras`). An adapter whose query is not a tree of this shape extends `Adapter`
- * directly and accumulates into a node of its own.
+ * back to named columns), its relations and its computed values (prisma `_count` keys, drizzle
+ * `extras`). An adapter whose query is not a tree of this shape extends `Adapter` directly.
  */
 export interface Node<Model> extends NodeBase<Model> {
   args: object;
@@ -34,7 +31,7 @@ export function createNode<Model>(model: Model): Node<Model> {
 
 /**
  * The only way to obtain a child node: get the relation's node or create it. `value` is what the
- * map holds for the relation, checked here because a thenable there is an un-awaited
+ * map holds for the relation, checked here because a thenable is an un-awaited
  * `nestedSelection()` that would otherwise be spread as an empty object.
  */
 export function relation<Model>(
@@ -61,8 +58,8 @@ export function relation<Model>(
 
 /**
  * What an adapter reports for one key of its query. Called by `NodeAdapter.visitQuery`; the
- * visitor decides what to do with the key, so the four rules (merge, merge check, conflict,
- * lenient merge) share one key loop per adapter instead of one each.
+ * visitor decides what to do with the key, so merging, checking and conflict-finding share one
+ * key loop per adapter instead of one each.
  *
  * A visitor is re-entrant: `relation` reads the nested query with the same visitor, so a
  * `visitQuery` must hold no state of its own across a callback.
@@ -70,7 +67,7 @@ export function relation<Model>(
 export interface QueryVisitor<Model, Query> {
   /** A named column of the model. */
   column(name: string): void;
-  /** S-9: every column. Final — a node never goes back to named columns. */
+  /** Every column. Final — a node never goes back to named columns. */
   allColumns(): void;
   /** A relation, with the model it targets and the query selected beneath it. */
   relation(name: string, model: Model, query: Query): void;
@@ -81,9 +78,9 @@ export interface QueryVisitor<Model, Query> {
    */
   computed(name: string, value: unknown, kind?: TypeLevelConflict['kind']): void;
   /**
-   * The query arguments, normalized. M-4: a non-empty set replaces whatever the node holds.
-   * Reported on every pass, empty or not: M-3 compares a query's arguments to the node's whether
-   * or not the query has any.
+   * The query arguments, normalized. A non-empty set replaces whatever the node holds. Reported
+   * on every pass, empty or not, since a merge check compares a query's arguments to the node's
+   * whether or not the query has any.
    */
   args(args: object): void;
 }
@@ -97,8 +94,8 @@ export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, No
   /**
    * One merger and one merge check per adapter, re-used down the tree: each saves and restores
    * the node it is at rather than allocating a visitor per level, so a merge allocates only what
-   * the subclass's own `visitQuery` does. They cannot be this object — a merge runs a check
-   * inside itself (E-2), so one `this` could not hold both cursors.
+   * the subclass's own `visitQuery` does. They cannot be this object — a lenient merge runs a
+   * check inside itself, so one `this` could not hold both cursors.
    */
   private readonly merger: Merger<Model, Query> = new Merger(this);
   private readonly mergeCheck: MergeCheck<Model, Query> = new MergeCheck(this);
@@ -119,18 +116,17 @@ export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, No
   }
 
   /**
-   * M-3 for one computed value: whether `value` cannot join `computed` under `name`. A
-   * `deepEqual` against the value already there, which is what an adapter whose computed values
-   * are plain values wants; drizzle compares its `extras` by identity, and prisma overrides it
-   * for the `_count: true` wildcard.
+   * Whether `value` cannot join `computed` under `name`. A `deepEqual` against the value already
+   * there, which is what an adapter whose computed values are plain values wants; drizzle
+   * compares its `extras` by identity, and prisma overrides it for the `_count: true` wildcard.
    */
   computedConflicts(computed: ReadonlyMap<string, unknown>, name: string, value: unknown): boolean {
     return computed.has(name) && !deepEqual(computed.get(name), value);
   }
 
   /**
-   * S-7: the first top-level key of `query` that conflicts with `node`. Top-level only, so the
-   * error names the key a user wrote rather than something nested beneath it.
+   * The first top-level key of `query` that conflicts with `node`. Top-level only, so the error
+   * names the key a user wrote rather than something nested beneath it.
    */
   override firstConflict(node: Node<Model>, query: Query): TypeLevelConflict | undefined {
     let found: TypeLevelConflict | undefined;
@@ -179,7 +175,7 @@ export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, No
     }
   }
 
-  /** M-3 node to node, likewise. */
+  /** `canMergeQuery` node to node, likewise. */
   override canMergeNode(into: Node<Model>, from: Node<Model>): boolean {
     if (!deepEqual(into.args, from.args)) {
       return false;
@@ -203,12 +199,12 @@ export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, No
   }
 }
 
-/** M-1, M-2, S-9, E-2, E-3 in place. */
+/** One query folded into a node, in place. */
 class Merger<Model, Query> implements QueryVisitor<Model, Query> {
   private node!: Node<Model>;
-  /** E-3: a relation query must add no columns; the plan beneath it adds the ones it needs. */
+  /** A relation query must add no columns; the plan beneath it adds the ones it needs. */
   private asQuery = false;
-  /** E-2: a conflicting relation or computed value is left out, not merged. Top level only. */
+  /** A conflicting relation or computed value is left out, not merged. Top level only. */
   private lenient = false;
 
   constructor(private readonly adapter: NodeAdapter<Model, Query>) {}
@@ -270,9 +266,9 @@ class Merger<Model, Query> implements QueryVisitor<Model, Query> {
 }
 
 /**
- * M-3: whether a query merges into a node without changing what is already selected. Runs the
- * whole query even after the first failure (a rejection is the rare path) so a `visitQuery` stays
- * a plain loop.
+ * Whether a query merges into a node without changing what is already selected. Runs the whole
+ * query even after the first failure (a rejection is the rare path) so a `visitQuery` stays a
+ * plain loop.
  */
 class MergeCheck<Model, Query> implements QueryVisitor<Model, Query> {
   private node!: Node<Model>;
@@ -304,7 +300,7 @@ class MergeCheck<Model, Query> implements QueryVisitor<Model, Query> {
     const parent = this.node;
     const { ignoreArgs } = this;
 
-    // Below the top, a relation's own arguments are part of what is already selected (M-3).
+    // Below the top, a relation's own arguments are part of what is already selected.
     this.node = child;
     this.ignoreArgs = false;
     this.adapter.visitQuery(query, model, this);

@@ -91,8 +91,8 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         ...typeConfig.extensions,
         pothosPrismaModel: model,
         pothosPrismaFieldMap: fieldMap,
-        // The type-level selection merged whenever the type is walked (S-1), built once so the
-        // plan allocates nothing per type: a model type without a `select` is include mode.
+        // The type-level selection merged whenever the type is walked, built once so the plan
+        // allocates nothing per type: a model type without a `select` is include mode.
         pothosPrismaTypeSelection:
           select || include ? Object.freeze({ select, include }) : model ? INCLUDE_ALL : undefined,
       },
@@ -151,10 +151,10 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       | ((query: {}, parent: unknown, args: {}, context: {}, info: {}) => unknown)
       | undefined;
 
-    // L-4: the fallback with one settled plan per `Type@path` per request beside it, since it
-    // plans this field again for every row of the list its parent came from. Allocated only for
-    // a field that has a fallback, and scoped to the field config, so the plans of a request go
-    // with the request and the builder's own `skipDeferredFragments` is the one that applies.
+    // The fallback with one settled plan per `Type@path` per request beside it, since it plans
+    // this field again for every row of the list its parent came from. Allocated only for a field
+    // that has a fallback, and scoped to the field config, so the plans of a request go with the
+    // request and the builder's own `skipDeferredFragments` is the one that applies.
     const fallback = resolveFallback && {
       resolve: resolveFallback,
       plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),

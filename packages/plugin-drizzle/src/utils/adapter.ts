@@ -68,7 +68,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
     }
 
     if (!columns) {
-      // No `columns` means every column, which is final (S-9).
+      // No `columns` means every column, which a node never goes back from.
       visit.allColumns();
 
       return;
@@ -120,7 +120,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
     return query;
   }
 
-  /** M-1: the keys of a `with` map, resolved to the tables they target. */
+  /** The keys of a `with` map, resolved to the tables they target. */
   private readRelations(
     withSelection: Record<string, unknown> | undefined,
     model: TableRelationalConfig,

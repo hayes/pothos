@@ -106,7 +106,7 @@ export function drizzleConnectionHelpers<
     extras?: DrizzleCursorConnectionQueryOptions['extras'];
   }
 
-  /** The user's `query`, a promise when its callback is async (A-7: awaited by the caller). */
+  /** The user's `query`, a promise when its callback is async, which the caller awaits. */
   const baseQueryFor = (
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
@@ -216,8 +216,8 @@ export function drizzleConnectionHelpers<
               select: select as SelectionMap,
               path,
             });
-    // Both callbacks start now; the query waits for whichever of them is async (A-3, A-7: the
-    // declared type stays synchronous, so an async schema awaits the result).
+    // Both callbacks start now; the query waits for whichever of them is async. The declared
+    // type stays synchronous, so an async schema awaits the result.
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? select((sel) => nestedSelection(sel as SelectionMap, ['edges', 'node']) as never, args, ctx)
       : (nestedSelection(true, ['edges', 'node']) as never);

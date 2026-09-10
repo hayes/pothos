@@ -90,7 +90,7 @@ describe('queryFromInfo', () => {
     });
   });
 
-  it('keys mappings by the full relative path, so both connection paths are recorded (L-1)', async () => {
+  it('keys mappings by the full relative path, so both connection paths are recorded', async () => {
     const context = {};
     const info = await resolveInfo(
       schema,
@@ -115,7 +115,7 @@ describe('queryFromInfo', () => {
     expect(Object.keys(mapping!.nested)).toEqual(['Post@nodes.author', 'Post@edges.node.comments']);
   });
 
-  it('leaves a child root un-entered when no path matches (E-3)', async () => {
+  it('leaves a child root un-entered when no path matches', async () => {
     const info = await resolveInfo(
       schema,
       '{ user { postsConnection(first: 2) { pageInfo { hasNextPage } } } }',
@@ -126,7 +126,7 @@ describe('queryFromInfo', () => {
     });
   });
 
-  it('records a mapping only when the field is accepted, so a conflict loads separately (M-4)', async () => {
+  it('records a mapping only when the field is accepted, so a conflict loads separately', async () => {
     const context = {};
     const info = await resolveInfo(
       schema,
@@ -166,7 +166,7 @@ describe('queryFromInfo', () => {
     );
   });
 
-  it('neither merges nor maps a field whose select returns nothing (S-5)', async () => {
+  it('neither merges nor maps a field whose select returns nothing', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
     const nothing = withSelects(['posts'], () => () => null);
@@ -175,7 +175,7 @@ describe('queryFromInfo', () => {
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
   });
 
-  it('skips fields under @skip and deferred fragments by default (S-2, S-8)', async () => {
+  it('skips fields under @skip and deferred fragments by default', async () => {
     const info = await resolveInfo(
       schema,
       /* GraphQL */ `{
@@ -192,7 +192,7 @@ describe('queryFromInfo', () => {
     });
   });
 
-  it('still answers a select function asking for a deferred field node (S-8, E-5)', async () => {
+  it('still answers a select function asking for a deferred field node', async () => {
     // The connection's select gates its count extra on `selectedFieldNode(['totalCount'])`, which
     // does not read the deferred flag while the branch resolution does. The gate therefore
     // over-reports: the count is loaded even though the deferred branch's fields are not walked.
@@ -221,7 +221,7 @@ describe('queryFromInfo', () => {
     });
   });
 
-  it('returns the initial selection when paths match nothing (E-1)', async () => {
+  it('returns the initial selection when paths match nothing', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ entries { kind } }');
 
@@ -239,7 +239,7 @@ describe('queryFromInfo', () => {
     ).toEqual({ select: { id: true } });
   });
 
-  it('walks every path match as its own type into one query (W-11)', async () => {
+  it('walks every path match as its own type into one query', async () => {
     const context = {};
     const info = await resolveInfo(
       schema,
@@ -268,7 +268,7 @@ describe('queryFromInfo', () => {
     });
   });
 
-  it('enters every path match before merging any field, whichever match comes first (W-11)', async () => {
+  it('enters every path match before merging any field, whichever match comes first', async () => {
     const appointmentFirst = /* GraphQL */ `{
       entries {
         ... on AppointmentEntry { appointment { posts(take: 2) { id } } }
@@ -298,7 +298,7 @@ describe('queryFromInfo', () => {
     }
   });
 
-  it('rejects two path matches whose type-level selections conflict (S-7, W-11)', async () => {
+  it('rejects two path matches whose type-level selections conflict', async () => {
     const info = await resolveInfo(
       schema,
       /* GraphQL */ `{
@@ -316,7 +316,7 @@ describe('queryFromInfo', () => {
     ).toThrow('Type-level selections of Viewer and Admin conflict on relation "posts"');
   });
 
-  it('keeps only the matches of the model the root loads, with no typeName (W-10)', async () => {
+  it('keeps only the matches of the model the root loads, with no typeName', async () => {
     const info = await resolveInfo(
       schema,
       /* GraphQL */ `{
@@ -337,7 +337,7 @@ describe('queryFromInfo', () => {
     expect(seen.map(([name]) => name)).toEqual(['posts']);
   });
 
-  it('walks a model-less nested path match as the type asked for (W-11)', async () => {
+  it('walks a model-less nested path match as the type asked for', async () => {
     const viaNode = withSelects(['author'], (_select, name) => (_args, _ctx, nested) => ({
       select: {
         [name]: nested(
@@ -364,13 +364,13 @@ describe('queryFromInfo', () => {
 
     // The path ends on Node, which carries no model. Walked as Node the fragment on User cannot
     // apply and `profile` is never planned; walked as the type the include asked for, it is —
-    // which is what E-1's own path branch does with a match that has no model of its own.
+    // which is what `Plan.fromInfo` does with a match that has no model of its own.
     expect(queryFromInfo(viaNode, { context: {}, info })).toEqual({
       select: { posts: { select: { author: { select: { profile: true } } } } },
     });
   });
 
-  it('plans through a wrapper with a type-level path (E-4, E-5)', async () => {
+  it('plans through a wrapper with a type-level path', async () => {
     const context = {};
     const info = await resolveInfo(
       schema,
@@ -385,7 +385,7 @@ describe('queryFromInfo', () => {
     );
   });
 
-  it('hands every select function the position of its field (D-7)', async () => {
+  it('hands every select function the position of its field', async () => {
     const context = {};
     const { adapter: watched, seen } = watchPositions();
     const info = await resolveInfo(schema, '{ user { myPosts: posts { author { name } } } }');
@@ -431,7 +431,7 @@ describe('queryFromInfo', () => {
     expect(Object.isFrozen(email)).toBe(true);
   });
 
-  it('rejects a promise handed to a relation (A-6)', async () => {
+  it('rejects a promise handed to a relation', async () => {
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
     const async = withSelects(['posts'], () => () => ({
       select: { posts: Promise.resolve({}) as never },
@@ -443,7 +443,7 @@ describe('queryFromInfo', () => {
   });
 });
 
-describe('fragments (S-7)', () => {
+describe('fragments', () => {
   it("merges a variant's type-level selection when a fragment enters it", async () => {
     const info = await resolveInfo(schema, '{ person { id ... on User { name } } }');
 
@@ -516,7 +516,7 @@ describe('fragments (S-7)', () => {
     expect(getLoaderMapping(context, pathOf('person', 'posts'), 'Person')).toBe(null);
   });
 
-  it('walks fields and fragment fields in document order, so the first selection of a relation wins (E-1)', async () => {
+  it('walks fields and fragment fields in document order, so the first selection of a relation wins', async () => {
     const fragmentFirst = {};
     const info = await resolveInfo(
       schema,
@@ -593,7 +593,7 @@ describe('fragments (S-7)', () => {
   });
 });
 
-describe('repeated fragment spreads (W-2)', () => {
+describe('repeated fragment spreads', () => {
   /** F1 spreads F2 twice, F2 spreads F3 twice, and so on; the last fragment selects `leaf`. */
   function fragmentChain(depth: number, leaf: string) {
     const fragments: string[] = [];
@@ -665,7 +665,7 @@ describe('repeated fragment spreads (W-2)', () => {
   });
 });
 
-describe('a field selected more than once (W-1)', () => {
+describe('a field selected more than once', () => {
   // graphql merges every occurrence of a response key into `info.fieldNodes`.
   const variantLater = /* GraphQL */ `
     query { person { id } ...More }
@@ -734,7 +734,7 @@ describe('a field selected more than once (W-1)', () => {
   });
 });
 
-describe('Plan.forParentRow (E-2)', () => {
+describe('Plan.forParentRow', () => {
   it("merges the field first, then the parent type's selection without conflicts", async () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
@@ -795,7 +795,7 @@ describe('Plan.forParentRow (E-2)', () => {
 });
 
 describe('adapter contract details', () => {
-  it('hands fieldSelection the type the field is walked on (W-1)', async () => {
+  it('hands fieldSelection the type the field is walked on', async () => {
     const seen: string[] = [];
     const spied = new (class extends FakeAdapter {
       override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
@@ -812,7 +812,7 @@ describe('adapter contract details', () => {
     expect(seen).toEqual(['User.posts', 'Post.title']);
   });
 
-  it('hands back the query alone for a nested selection on a model-less field (A-1)', async () => {
+  it('hands back the query alone for a nested selection on a model-less field', async () => {
     let nested: unknown;
     const scalar = new (class extends FakeAdapter {
       override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
@@ -839,7 +839,7 @@ describe('adapter contract details', () => {
     });
   });
 
-  it('plans the same query for an info that names no parent type (A-2)', async () => {
+  it('plans the same query for an info that names no parent type', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
     const partial = { ...info, parentType: undefined } as unknown as typeof info;
@@ -905,7 +905,7 @@ describe('plan.query(select)', () => {
     const query = plan.query(select);
 
     expect(query).toEqual(expected);
-    // The caller's selection comes first, as `initial` does (E-1), so the query is the same
+    // The caller's selection comes first, as `initial` does, so the query is the same
     // object key for key.
     expect(Object.keys(query.select!)).toEqual(Object.keys(expected.select!));
     expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual(

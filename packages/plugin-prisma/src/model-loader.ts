@@ -28,8 +28,8 @@ export class ModelLoader {
 
   modelName: string;
 
-  // L-4: one E-2 plan per `Type@path`, played where it is made (it is never played behind
-  // another selection); a promise while a select beneath the field is async.
+  // One parent-row plan per `Type@path`, played where it is made since it is never played behind
+  // another selection; a promise while a select beneath the field is async.
   queryCache = new Map<string, MaybePromise<PrismaPlayedPlan>>();
 
   // Each batch owns the node it accumulates into, so nothing a cached play holds is changed by a
@@ -242,9 +242,9 @@ export class ModelLoader {
   }
 
   /**
-   * L-3: `model` reloaded with the selection of the field `info` resolves. A synchronous
-   * selection stages synchronously, so every row resolved in a tick joins the same batch; only a
-   * selection with an async select beneath the field waits for it.
+   * `model` reloaded with the selection of the field `info` resolves. A synchronous selection
+   * stages synchronously, so every row resolved in a tick joins the same batch; only a selection
+   * with an async select beneath the field waits for it.
    */
   loadSelection(info: GraphQLResolveInfo, model: object): Promise<Record<string, unknown> | null> {
     const selection = this.getSelection(info);

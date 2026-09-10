@@ -33,9 +33,9 @@ export class ModelLoader {
 
   modelName: string;
 
-  // L-4: one plan per `Type@path`, a promise while a select beneath the field is async. The E-2
-  // plan of a row is played where it is made (it is never played behind another selection); the
-  // plan of a field is played per load, so no two loads share a node.
+  // One plan per `Type@path`, a promise while a select beneath the field is async. A parent-row
+  // plan is played where it is made, since it is never played behind another selection; a field's
+  // plan is played per load, so no two loads share a node.
   rowCache = new Map<string, MaybePromise<DrizzlePlayedPlan>>();
 
   planCache = new Map<string, MaybePromise<DrizzlePlan>>();
@@ -124,9 +124,9 @@ export class ModelLoader {
   }
 
   /**
-   * L-3: `model` reloaded with the selection of the field `info` resolves. A synchronous
-   * selection stages synchronously, so every row resolved in a tick joins the same batch; only a
-   * selection with an async select beneath the field waits for it.
+   * `model` reloaded with the selection of the field `info` resolves. A synchronous selection
+   * stages synchronously, so every row resolved in a tick joins the same batch; only a selection
+   * with an async select beneath the field waits for it.
    */
   loadSelection(info: GraphQLResolveInfo, model: object): Promise<Record<string, unknown> | null> {
     const selection = this.getSelection(info);

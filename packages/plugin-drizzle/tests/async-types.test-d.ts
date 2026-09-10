@@ -8,7 +8,7 @@ import DrizzlePlugin, { drizzleConnectionHelpers } from '../src';
 import { type DrizzleRelations, db, relations } from './example/db';
 import { posts } from './example/db/schema';
 
-// The async model widens INPUTS only (A-7): a relation `query`, a count `where`, a field or
+// The async model widens INPUTS only: a relation `query`, a count `where`, a field or
 // related-field `select` and the connection helpers' callbacks may return promises, while what a
 // resolver is handed (the `query()` builder, `nestedSelection`, `getQuery`) keeps its synchronous
 // declared type and is awaited by the schema that opted in.

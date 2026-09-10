@@ -23,18 +23,17 @@ export interface NodeBase<Model> {
  *
  * Six members must be answered: three translate a schema into queries (`modelFor`,
  * `typeSelection`, `fieldSelection`) and three accumulate them (`createNode`, `mergeQuery`,
- * `toQuery`). The four below those are the merge rules, and each has the answer here that an
- * adapter with no conflicts to report wants: nothing ever conflicts, and node-to-node work
- * round-trips through `toQuery`. An adapter that gives every consumer of a relation its own slot
- * inherits all four.
+ * `toQuery`). The four below those are the merge rules, inherited with the answer an adapter with
+ * no conflicts to report wants: nothing ever conflicts, and node-to-node work round-trips through
+ * `toQuery`. An adapter that gives every consumer of a relation its own slot inherits all four.
  *
  * `NodeAdapter` in node.ts overrides all four over a concrete query tree, and is what the prisma
  * and drizzle adapters extend; an adapter whose query is not such a tree extends this directly.
  */
 export abstract class Adapter<Model, Query, NodeType extends NodeBase<Model>> {
   /**
-   * S-8: whether a fragment under `@defer` is walked. `EntryOptions.skipDeferredFragments`
-   * overrides it for one entry point.
+   * Whether a fragment under `@defer` is walked. `EntryOptions.skipDeferredFragments` overrides
+   * it for one entry point.
    */
   skipDeferredFragments = true;
 
@@ -44,13 +43,13 @@ export abstract class Adapter<Model, Query, NodeType extends NodeBase<Model>> {
    */
   abstract modelFor(type: GraphQLNamedType): Model | undefined;
 
-  /** S-1: what the type always needs, or undefined. */
+  /** What the type always needs, merged whenever the type is entered, or undefined. */
   abstract typeSelection(type: GraphQLNamedType): Query | undefined;
 
   /**
-   * S-4..S-6: a static query, a select function, or nothing. `type` is the type the field is being
-   * walked on (its parent type, or a same-model type the plan moved to), for an adapter that
-   * classifies a selection's keys against the parent model.
+   * What the field selects: a static query, a select function, or nothing. `type` is the type the
+   * field is being walked on (its parent type, or a same-model type the plan moved to), for an
+   * adapter that classifies a selection's keys against the parent model.
    */
   abstract fieldSelection(
     field: GraphQLField<unknown, unknown>,
@@ -60,24 +59,23 @@ export abstract class Adapter<Model, Query, NodeType extends NodeBase<Model>> {
   /** A fresh, empty node for `model`. */
   abstract createNode(model: Model): NodeType;
 
-  /** M-1, M-2, S-9, E-2, E-3, in place. Never mutates `query`. */
+  /** Folds `query` into `node`, in place. Never mutates `query`. */
   abstract mergeQuery(node: NodeType, query: Query, options?: MergeOptions): void;
 
-  /** M-6: the node as a query of this ORM's format. */
+  /** The node as a query of this ORM's format. */
   abstract toQuery(node: NodeType): Query;
 
   /**
-   * M-3: whether merging `query` into `node` would leave everything already selected as it is.
-   * A yes or no; `firstConflict` is the version that names a key. Inherited: nothing ever
-   * conflicts.
+   * Whether merging `query` into `node` would leave everything already selected as it is. A yes
+   * or no; `firstConflict` is the version that names a key. Inherited: nothing ever conflicts.
    */
   canMergeQuery(_node: NodeType, _query: Query, _options?: MergeOptions): boolean {
     return true;
   }
 
   /**
-   * S-7: the first key of a type-level `query` that conflicts with what `node` holds, for the
-   * error message that names it. Inherited: none.
+   * The first key of a type-level `query` that conflicts with what `node` holds, for the error
+   * message that names it. Inherited: none.
    */
   firstConflict(_node: NodeType, _query: Query): TypeLevelConflict | undefined {
     return undefined;

@@ -33,7 +33,7 @@ describe('loader map', () => {
     expect(cacheKey('Post', pathOf('user', 'posts', 3))).toBe('Post@user.posts');
   });
 
-  it('records mappings under the walked field, keyed by type and full relative path (L-1)', () => {
+  it('records mappings under the walked field, keyed by type and full relative path', () => {
     const ctx = {};
     const author: Mapping = { nested: {} };
     const comments: Mapping = { nested: {} };

@@ -84,8 +84,8 @@ export function queryFromInfo<
     return query as never;
   }
 
-  // `onUnusedQuery`: the query is wrapped so reads on it can be observed; a promise (A-7) is
-  // wrapped once it settles.
+  // `onUnusedQuery`: the query is wrapped so reads on it can be observed; a promise is wrapped
+  // once it settles.
   return (
     isThenable(query)
       ? query.then((settled) => wrapWithUsageCheck(settled as object))
@@ -94,15 +94,11 @@ export function queryFromInfo<
 }
 
 /**
- * L-4: the query for the field `info` resolves, from a plan `plans` holds per `Type@path`. The
- * fallback path in `wrapResolve` runs once per row of the list its parent came from and asked
- * for a fresh walk every time; `ModelLoader.queryCache` caches its own entry point this way and
- * under this key, and this is the same cache for the same reason.
- *
- * What is written is unchanged. The plan is settled once and played per call, so each caller
- * still gets a query of its own and each call still records the plan's mappings on the shared
- * tier — under the same keys, since `responsePath` drops list indices and every row of a list
- * therefore writes under the path the first row wrote under. All that goes away is the re-walk.
+ * The query for the field `info` resolves, from a plan `plans` holds per `Type@path`. The
+ * fallback in `wrapResolve` runs once per row of the list its parent came from, so the plan is
+ * walked and settled once and played per call: each caller still gets a query of its own, and
+ * every row of a list records under the same mapping keys, since `responsePath` drops list
+ * indices.
  */
 export function fallbackQueryFromInfo(
   plans: Map<string, MaybePromise<PrismaPlan>>,

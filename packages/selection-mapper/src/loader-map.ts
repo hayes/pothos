@@ -43,19 +43,15 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
 
 /**
  * Per request context: the mappings recorded so far, and the keys they were recorded under, by
- * the path prefix that rehomed them. A field resolved for each of N rows of a list records the
- * same mappings under the same keys every time — `responsePath` drops the list index, so every
- * row rebuilds the same strings — so a prefix builds its keys once and the rows after the first
- * find what they would have written already there.
+ * the path prefix that rehomed them. `responsePath` drops list indices, so every row of a list
+ * rebuilds the same key strings; a prefix builds them once.
  *
  * `mappings` holds what a plan recorded for a whole field: every row of that field was loaded by
- * it, so one mapping per path answers for all of them. `rows` holds a mapping only where a second
- * one turned up at a key the first had claimed, which is to say only where rows of one list
- * disagree about which plan loaded them. A mapping carries the position a connection pages with,
- * so a row that answered from a mapping recorded for a differently loaded row pages with
- * arguments its own data was never fetched with. `disagreed` stays false for a request where
- * that never happened, which is every request whose rows were all loaded the same way, and the
- * whole row tier costs those nothing.
+ * it, so one mapping per path answers for all of them. `rows` holds a mapping only where rows of
+ * one list disagree about which plan loaded them — a mapping carries the position a connection
+ * pages with, so a row answering from another row's mapping would page with arguments its own
+ * data was never fetched with. `disagreed` stays false when that never happened, so a request
+ * whose rows were all loaded the same way pays nothing for the row tier.
  */
 const cache = createContextCache(() => ({
   mappings: new Map<string, Mapping>(),
@@ -67,11 +63,9 @@ const cache = createContextCache(() => ({
 type Cache = ReturnType<typeof cache>;
 
 /**
- * Memoised per path link. A path link is created once per field per row and never mutated, and
- * graphql-js shares the links above a list between every row of it, so the prefix of a field
- * resolved for each of N rows is computed once rather than N times. Every consumer of a mapping
- * asks for a path this way, several times per resolve, so the cost is otherwise paid repeatedly
- * for a string that cannot change. Weak, so the links go with the request.
+ * Memoised per path link, which is created once per field per row and never mutated. graphql-js
+ * shares the links above a list between every row of it, so the prefix of a field resolved for
+ * each of N rows is built once rather than N times. Weak, so the links go with the request.
  */
 const pathKeys = new WeakMap<object, string>();
 
@@ -134,12 +128,10 @@ function ownerOf(row: unknown): object | null {
 }
 
 /**
- * Records `mapping` at `key` for `row`. An unclaimed key takes it, and so does a key that
- * already holds this very mapping: a field resolved for each of N rows of one list is handed the
- * mapping its plan recorded, so the rows after the first write nothing at all. A key holding a
- * different mapping is one two plans disagree about, and only there does the row get a mapping of
- * its own — or, with no row to hang it off, nothing: the resolvers beneath fall back and load
- * their own data, which is the answer for a row nothing can be told about.
+ * Records `mapping` at `key` for `row`. An unclaimed key takes it, and a key already holding this
+ * very mapping needs no write, so the rows after the first write nothing. Only a key two plans
+ * disagree about gives the row a mapping of its own — or, with no row to hang it off, nothing, so
+ * the resolvers beneath fall back and load their own data.
  */
 function claim(cached: Cache, key: string, mapping: Mapping, row: object | null) {
   const held = cached.mappings.get(key);
@@ -180,10 +172,9 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
  * a key with a different mapping, these are recorded against the row instead of replacing it, so
  * a row the planned query did not load never re-answers for a sibling it did.
  *
- * A row mapping is found by the resolvers whose parent is `row` itself. Deeper down, the parent
- * is something `row`'s own resolvers produced, which nothing here has seen, and those resolvers
- * read the plan's mapping — the answer they had before any of this, and the one their siblings
- * read.
+ * A row mapping is found by the resolvers whose parent is `row` itself. Deeper down the parent is
+ * something `row`'s own resolvers produced, which nothing here has seen, so those resolvers read
+ * the plan's mapping, as their siblings do.
  */
 export function setRowMappings(
   ctx: object,

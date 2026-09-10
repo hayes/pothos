@@ -58,7 +58,8 @@ class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
   }
 
   visitQuery({ select, include, ...args }: SelectionMap, model: FieldMap, visit: PrismaVisitor) {
-    // A map without `select` is an include-mode map, and include mode is final (S-9).
+    // A map without `select` is an include-mode map: every column, which a node never goes back
+    // from.
     if (!select) {
       visit.allColumns();
     }
@@ -69,8 +70,8 @@ class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
   }
 
   /**
-   * M-3 for one count: a named count already on the node must be equal, and `_count: true` only
-   * agrees with unfiltered counts.
+   * A named count already on the node must be equal, and `_count: true` only agrees with
+   * unfiltered counts.
    */
   override computedConflicts(computed: ReadonlyMap<string, unknown>, name: string, value: unknown) {
     if (name === COUNT_ALL) {
@@ -126,7 +127,7 @@ function hasKeys(value: object) {
   return Object.keys(value).length > 0;
 }
 
-/** M-1, M-2: the keys of a `select` or `include` map, classified against the model. */
+/** The keys of a `select` or `include` map, classified against the model. */
 function readKeys(map: IncludeMap | undefined, model: FieldMap, visit: PrismaVisitor) {
   if (!map) {
     return;
@@ -156,9 +157,9 @@ function readKeys(map: IncludeMap | undefined, model: FieldMap, visit: PrismaVis
 }
 
 /**
- * Counts are computed values, one key per counted relation, so a conflicting count leaves the
- * others in (E-2). A type-level conflict on one is reported as a relation conflict: it is a
- * relation's arguments that clash, not a computed value defined twice.
+ * Counts are computed values, one key per counted relation, so a lenient merge that drops a
+ * conflicting count keeps the others. A type-level conflict on one is reported as a relation
+ * conflict: it is a relation's arguments that clash, not a computed value defined twice.
  */
 function readCounts(value: SelectionMap | true, visit: PrismaVisitor) {
   if (value === true) {

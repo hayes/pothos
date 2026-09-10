@@ -209,7 +209,7 @@ export class PrismaObjectFieldBuilder<
     const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
     const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
 
-    // The field's `query` may be async, so the result is a promise when it is (A-5).
+    // The field's `query` may be async, so the result is a promise when it is.
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
       const connectionQuery = prismaCursorConnectionQuery({
         parseCursor,

@@ -146,8 +146,8 @@ export function prismaConnectionHelpers<
     // The `nestedSelection` of the field's `select`, whatever model its type names.
     nestedSelection: (selection?: SelectionMap | true, path?: PathSegment[]) => unknown,
   ) {
-    // Both callbacks start now; the query waits for whichever of them is async (A-3, A-7: the
-    // declared type stays synchronous, so an async schema awaits the result).
+    // Both callbacks start now; the query waits for whichever of them is async. The declared
+    // type stays synchronous, so an async schema awaits the result.
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? completeValue(
           select(

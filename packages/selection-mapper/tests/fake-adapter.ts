@@ -96,7 +96,7 @@ export class FakeAdapter extends NodeAdapter<FakeModel, FakeMap> {
   }
 
   visitQuery({ select, extras, ...args }: FakeMap, model: FakeModel, visit: FakeVisitor) {
-    // No `select` means every column, which is final (S-9).
+    // No `select` means every column, which is final.
     if (!select) {
       visit.allColumns();
     }
@@ -152,7 +152,7 @@ export class FakeAdapter extends NodeAdapter<FakeModel, FakeMap> {
 
 /**
  * A recorded mapping without the position the walker records with it, so a test can compare what
- * was mapped beneath a field on its own. Positions are asserted where they are the subject (D-7).
+ * was mapped beneath a field on its own. Positions are asserted where they are the subject.
  */
 export function mappingOf(mapping: Mapping | null | undefined) {
   return mapping ? { nested: mappingsOf(mapping.nested) } : mapping;
