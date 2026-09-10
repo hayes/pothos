@@ -523,6 +523,40 @@ describe('prisma', () => {
     `);
   });
 
+  // `last: 0` is a backward page of zero rows, which three coordinated null checks make it: the
+  // `take` negation and both `pageInfo` flags. This pins the two flags — the response of a
+  // backward page rather than a forward one. The `take` sign is not observable here, since a
+  // page of zero rows trims to no edges whichever way the single row was read.
+  it('last: 0', async () => {
+    const query = gql`
+      query {
+        userConnection(last: 0) {
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+          }
+          edges {
+            cursor
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      userConnection: {
+        edges: [],
+        pageInfo: { hasNextPage: false, hasPreviousPage: true },
+      },
+    });
+  });
+
   it('last without before', async () => {
     const query = gql`
       query {
