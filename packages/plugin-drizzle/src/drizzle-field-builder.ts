@@ -22,6 +22,7 @@ import { getLoaderMapping, type Position, selectedFieldNames } from '@pothos/sel
 import {
   and,
   type BuildQueryResult,
+  type Column,
   type DBQueryConfig,
   eq,
   type InferSelectModel,
@@ -217,9 +218,11 @@ export class DrizzleObjectFieldBuilder<
     // the `where` from the field's `query`, so the count agrees with the rows being paginated.
     const buildCountFilter = (parentTable: TableConfig['table'], where?: unknown): SQL => {
       const { sourceColumns, targetColumns } = relationField;
+      // Read off the parent by typescript name: `postId: integer('id')` lands on the row (and on
+      // the aliased table) as `postId`, and `sourceCol.name` is the database's `id`.
       const relationFilter = and(
-        ...sourceColumns.map((sourceCol: { name: string }, i: number) =>
-          eq(targetColumns[i], parentTable[sourceCol.name as never]),
+        ...sourceColumns.map((sourceCol: Column, i: number) =>
+          eq(targetColumns[i], parentTable[schemaConfig.columnToTsName(sourceCol) as never]),
         ),
       )!;
 
@@ -670,7 +673,7 @@ export class DrizzleObjectFieldBuilder<
 
       return and(
         ...sourceColumns.map((sourceCol, i) =>
-          eq(targetColumns[i], parentTable[sourceCol.name as never]),
+          eq(targetColumns[i], parentTable[schemaConfig.columnToTsName(sourceCol) as never]),
         ),
       )!;
     };

@@ -161,7 +161,9 @@ export function parseSerializedDrizzleColumn(value: unknown): unknown {
       case 'S':
         return rawValue;
       case 'N':
-        return Number.parseInt(rawValue, 10);
+        // `Number`, not `parseInt`: a cursor on a real column holds `N:1.75`, which `parseInt`
+        // reads as 1, and a large one holds `N:1e+21`, which it reads as 1.
+        return Number(rawValue);
       case 'D':
         return new Date(Number.parseInt(rawValue, 10));
       case 'J':
@@ -201,7 +203,9 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
     }
 
     if (field.dataType === 'object date') {
-      return new Date(id);
+      // `formatIDChunk` writes the epoch milliseconds; `new Date` of that string is an Invalid
+      // Date, since it is not a date format `Date` parses.
+      return new Date(Number(id));
     }
 
     throw new PothosValidationError(`Unsupported ID type ${field.dataType}`);

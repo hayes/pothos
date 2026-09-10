@@ -32,7 +32,26 @@ builder.drizzleNode('userProfile', {
   fields: (t) => ({ bio: t.exposeString('bio', { nullable: true }) }),
 });
 
-builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+// `posts.postId` is `id` in the database, and it is the source column of the `comments` relation.
+// A count filter reads it off the parent, which carries it under its typescript name.
+const CountPost = builder.drizzleObject('posts', {
+  name: 'CountPost',
+  select: { columns: { postId: true } },
+  fields: (t) => ({
+    id: t.exposeID('postId'),
+    commentsCount: t.relatedCount('comments'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    ok: t.boolean({ resolve: () => true }),
+    post: t.drizzleField({
+      type: CountPost,
+      resolve: (query) => db.query.posts.findFirst(query({})) as never,
+    }),
+  }),
+});
 
 const schema = builder.toSchema({});
 
@@ -99,4 +118,25 @@ it('loads a node by a column whose name differs from its typescript name', async
       bio: profile.bio,
     },
   });
+});
+
+it('counts a relation whose source column is named differently in the database', async () => {
+  const result = await execute({
+    schema,
+    document: gql`
+      query {
+        post {
+          id
+          commentsCount
+        }
+      }
+    `,
+    contextValue: {},
+  });
+
+  // Read by database name, the count filter bound `undefined` and the driver rejected the query.
+  expect(result.errors).toBeUndefined();
+  expect((result.data as { post: { commentsCount: number } }).post.commentsCount).toBeTypeOf(
+    'number',
+  );
 });

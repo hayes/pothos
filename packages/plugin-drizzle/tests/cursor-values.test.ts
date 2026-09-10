@@ -226,4 +226,14 @@ describe('keyset filters', () => {
 
     expect(sql).toMatch(/"created_at" is null.*"id" < \$/s);
   });
+
+  // A cursor value is read back with `Number`: `parseInt` truncated a real column's `1.75` to 1,
+  // and read a large number's exponent form as 1, both of which resume from the wrong row.
+  it('round trips a fractional and a very large number', () => {
+    const format = getCursorFormatter([events.seq], config);
+    const parse = getCursorParser(['seq']);
+
+    expect(parse(format({ seq: 1.75 }))).toEqual({ seq: 1.75 });
+    expect(parse(format({ seq: 1e21 }))).toEqual({ seq: 1e21 });
+  });
 });
