@@ -67,8 +67,9 @@ export interface EntryOptions<Query> {
   path?: PathSegment[];
   paths?: PathSegment[][];
   /**
-   * Merged into the root before anything is walked (E-1), so on a conflict it wins; returned as
-   * is when paths are given and nothing is selected under them.
+   * Merged into the root before anything is walked (E-1), so on a conflict it wins.
+   * `Plan.fromInfo` answers undefined when paths are given and nothing is selected under them;
+   * what a caller hands its resolver then is the caller's own rule, not this package's.
    */
   initial?: Query;
   /**

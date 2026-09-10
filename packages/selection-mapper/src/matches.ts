@@ -230,7 +230,6 @@ function eachSelectedField(
       fragment.typeCondition ? info.schema.getType(fragment.typeCondition.name.value)! : undefined,
       type,
       expectedType,
-      segment,
     );
     const deferredHere = deferred || isDeferred(info, sel);
 
@@ -516,7 +515,9 @@ function collectSelectedFieldNames(info: GraphQLResolveInfo): ReadonlySet<string
  * Determines the type to walk and the type the next segment is expected on when descending into a
  * fragment.
  *
- * - A segment with an explicit `type` pins the expected type.
+ * `expected` arrives pinned: `eachSelectedField` resolved any `type` on the segment before it
+ * classified a single selection, so nothing here has to ask again.
+ *
  * - A fragment on the expected type, or on an abstract type the expected type belongs to, walks as
  *   the expected type: every field selectable there also exists on it.
  * - A fragment that narrows an abstract expected type to an implementation or member, or to an
@@ -529,11 +530,8 @@ function resolveFragmentTypes(
   info: GraphQLResolveInfo,
   fragmentType: GraphQLNamedType | undefined,
   type: GraphQLNamedType,
-  expectedType: GraphQLNamedType,
-  include?: IndirectPathSegment,
+  expected: GraphQLNamedType,
 ) {
-  const expected = pinnedType(info, include) ?? expectedType;
-
   if (!fragmentType || fragmentType.name === expected.name) {
     return { type: fragmentType ?? type, expectedType: expected };
   }
