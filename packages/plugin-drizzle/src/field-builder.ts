@@ -8,7 +8,7 @@ import {
 } from '@pothos/core';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { isInterfaceType, isObjectType, Kind } from 'graphql';
+import { getNamedType, isInterfaceType, isObjectType, Kind } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type { DrizzleConnectionFieldOptions } from './types.js';
 import type { DrizzlePlan } from './utils/adapter.js';
@@ -177,7 +177,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
-        const returnType = info.returnType;
+        const returnType = getNamedType(info.returnType);
         const fields =
           isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
 
