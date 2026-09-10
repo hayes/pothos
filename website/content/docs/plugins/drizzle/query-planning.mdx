@@ -161,8 +161,10 @@ The two opt-ins are independent. The schema flag says whether a callback may be 
 `awaitSelections` says whether a particular `getQuery` call will await the query it builds, and
 stays a per-call decision either way.
 
-The throw is loud, and names the field and the option to pass. The alternative is a promise handed
-back where the declared type says there is a query, which surfaces much further from its cause.
+The throw is loud, and names the option to pass along with what the call was building: `getQuery`
+names the connection's table (`the comments connection`), which is as much as it is given. The
+alternative is a promise handed back where the declared type says there is a query, which surfaces
+much further from its cause.
 
 ## Conflicting selections between variants
 

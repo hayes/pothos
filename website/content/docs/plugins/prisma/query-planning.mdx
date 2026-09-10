@@ -120,7 +120,9 @@ The two opt-ins are independent. The schema flag says whether a callback may be 
 `awaitSelections` says whether a particular `queryFromInfo` or `getQuery` call will await the query
 it builds, and stays a per-call decision either way.
 
-The throw is loud, and names the field and the option to pass. The alternative is a promise handed
+The throw is loud, and names the option to pass along with what the call was building: a
+`queryFromInfo` names the field (`Query.post`), and a `getQuery` names the connection's model
+(`the Comment connection`), which is as much as it is given. The alternative is a promise handed
 back where the declared type says there is a query, which surfaces much further from its cause.
 
 ## Optimized queries without `t.prismaField`
