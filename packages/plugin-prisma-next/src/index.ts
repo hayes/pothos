@@ -324,7 +324,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // `t.variant` routes through `pothosIndirectInclude` and carries no object `select` of its
     // own, but the type it descends into may have one, whose entries land in that type's
     // object-level combine slots. Without the wrap, `normalizeRowsForType` never lifts them.
-    const isVariantDescent = ext.pothosIndirectInclude !== undefined;
+    //
+    // Only the pathless marker is a variant: `t.relatedConnection` sets one carrying `paths`, and
+    // it needs no wrap of its own -- giving it one would hand its resolver a cloned parent whose
+    // own properties differ from the row it was passed.
+    const indirect = ext.pothosIndirectInclude as
+      | { path?: unknown[]; paths?: unknown[][] }
+      | undefined;
+    const isVariantDescent =
+      indirect !== undefined && indirect.path === undefined && indirect.paths === undefined;
 
     if (!isObjectOrCallableSelect && !ext[PRISMA_NEXT_FIELD_SELECT] && !isVariantDescent) {
       return resolver;

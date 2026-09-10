@@ -102,6 +102,24 @@ export function decodeCursor(cursor: string): Record<string, unknown> {
   return out;
 }
 
+/**
+ * The cursor's values for exactly `cols`. A cursor minted for a different ordering decodes fine
+ * but names other columns, and the predicates below would then compare against `undefined` (or
+ * hand the ORM a `cursor()` boundary it cannot use), so it is rejected here instead.
+ */
+function boundaryFor(cols: readonly string[], cursor: string): Record<string, unknown> {
+  const values = decodeCursor(cursor);
+  const keys = Object.keys(values);
+
+  if (keys.length !== cols.length || cols.some((col) => !(col in values))) {
+    throw new PothosValidationError(
+      `Invalid cursor: expected values for ${cols.join(', ')}, got ${keys.join(', ') || 'none'}.`,
+    );
+  }
+
+  return values;
+}
+
 // Lexicographic "row > cursor" (or < for `lt`) as an OR-chain of
 // equality-prefixed comparisons. Single-column case collapses to one
 // comparison.
@@ -202,7 +220,7 @@ function applyToCollection<C extends MapperCollection>(
     // `hasOrderBy` type gate). The decoded boundary is the same column→
     // value map the hand-rolled predicate consumes; native builds the
     // strict seek predicate internally.
-    const boundary = decodeCursor(nativeAfter ? after! : before!);
+    const boundary = boundaryFor(cols, nativeAfter ? after! : before!);
     return baseCollection.orderBy(orderByArg).cursor(boundary).take(limit) as C;
   }
 
@@ -210,10 +228,14 @@ function applyToCollection<C extends MapperCollection>(
   // bound whose direction doesn't match the active order.
   let collection: MapperCollection = baseCollection;
   if (after) {
-    collection = collection.where(buildLexicographicPredicate(cols, decodeCursor(after), 'gt'));
+    collection = collection.where(
+      buildLexicographicPredicate(cols, boundaryFor(cols, after), 'gt'),
+    );
   }
   if (before) {
-    collection = collection.where(buildLexicographicPredicate(cols, decodeCursor(before), 'lt'));
+    collection = collection.where(
+      buildLexicographicPredicate(cols, boundaryFor(cols, before), 'lt'),
+    );
   }
   collection = collection.orderBy(orderByArg);
   return collection.take(limit) as C;
