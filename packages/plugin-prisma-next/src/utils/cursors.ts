@@ -1,4 +1,11 @@
-import { decodeBase64, encodeBase64, PothosValidationError } from '@pothos/core';
+import {
+  decodeBase64,
+  decodeCursorChunk,
+  encodeBase64,
+  encodeCursorChunk,
+  encodeCursorTuple,
+  PothosValidationError,
+} from '@pothos/core';
 import { parseCursorConnectionArgs } from '@pothos/plugin-relay';
 import { and, or } from '@prisma-next/sql-orm-client';
 import type { MapperCollection } from './adapter.js';
@@ -18,45 +25,26 @@ export function normalizeCursor(cursor: string | readonly string[]): readonly st
   return typeof cursor === 'string' ? [cursor] : cursor;
 }
 
-// `$bigint` envelope so `JSON.stringify` doesn't throw on bigint cursor
-// values. Dates serialize via toJSON (ISO string) and round-trip via
-// `reviveValue` below.
-export function encodeCursor(value: object): string {
-  return encodeBase64(
-    JSON.stringify(value, (_key, v) =>
-      typeof v === 'bigint' ? { $bigint: v.toString() } : (v as unknown),
-    ),
-  );
-}
+/**
+ * `PNC:` namespaces this plugin's cursors the way `GPC:` and `DC:` namespace the prisma and
+ * drizzle plugins'. What follows it is `@pothos/core`'s tagged chunk encoding, which all three
+ * plugins share: a cursor over one column is that column's chunk (`I:42`, `D:1700000000123`),
+ * and one over several is a `T:` tuple of chunks, positional, in the order `cols` gives.
+ *
+ * Nothing is inferred from the payload's shape. The previous encoding was `JSON.stringify` of a
+ * column-keyed object, which cannot hold a bigint (hence a `$bigint` envelope) and turns a Date
+ * into a string that had to be guessed back with a regex over every string value -- so an
+ * ordinary string column holding something ISO-8601 shaped came back as a Date.
+ */
+const CURSOR_PREFIX = 'PNC:';
 
-// Heuristic re-hydration of ISO-8601 strings to Date — needed so SQL
-// codecs that call `.toISOString()` on the input get a real Date.
-const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+export function encodeCursor(cols: readonly string[], row: Record<string, unknown>): string {
+  const payload =
+    cols.length === 1
+      ? encodeCursorChunk(row[cols[0]!])
+      : encodeCursorTuple(cols.map((col) => row[col]));
 
-function reviveValue(value: unknown): unknown {
-  if (typeof value === 'string' && ISO_DATETIME_RE.test(value)) {
-    return new Date(value);
-  }
-  if (
-    value !== null &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    // Object.hasOwn (not `in`) so a polluted Object.prototype.$bigint
-    // can't redirect every object through the BigInt branch.
-    Object.hasOwn(value, '$bigint') &&
-    typeof (value as { $bigint: unknown }).$bigint === 'string'
-  ) {
-    // BigInt('garbage') throws SyntaxError — wrap as validation error
-    // so a malicious cursor doesn't surface raw to the client.
-    try {
-      return BigInt((value as { $bigint: string }).$bigint);
-    } catch {
-      throw new PothosValidationError(
-        'Invalid cursor: $bigint envelope contained a non-numeric string.',
-      );
-    }
-  }
-  return value;
+  return encodeBase64(`${CURSOR_PREFIX}${payload}`);
 }
 
 /**
@@ -68,56 +56,64 @@ function reviveValue(value: unknown): unknown {
  */
 export const CURSOR_PAYLOAD_MAX_BYTES = 2 * 1024;
 
-export function decodeCursor(cursor: string): Record<string, unknown> {
+/**
+ * The cursor's values, keyed by `cols`.
+ *
+ * The keys come from `cols`, never from the cursor, so a `__proto__` or `constructor` key cannot
+ * reach the output or the predicate builder below: the payload is positional and carries no keys
+ * of its own. The result still has a null prototype as a second line of defence.
+ *
+ * A cursor of the wrong width is rejected rather than left to compare a column against
+ * `undefined` (or to hand the ORM a `cursor()` boundary it cannot use). A cursor minted for a
+ * different ordering of the same width reads as a position in this one, which is what the prisma
+ * and drizzle plugins do with theirs.
+ */
+export function decodeCursor(cols: readonly string[], cursor: string): Record<string, unknown> {
   if (cursor.length > CURSOR_PAYLOAD_MAX_BYTES) {
     throw new PothosValidationError(
       `Invalid cursor: payload exceeds ${CURSOR_PAYLOAD_MAX_BYTES} bytes.`,
     );
   }
-  let raw: unknown;
+
+  let payload: string;
   try {
-    raw = JSON.parse(decodeBase64(cursor));
-  } catch (_err) {
+    payload = decodeBase64(cursor);
+  } catch {
     // Don't interpolate the cursor into the message — log-aggregation
     // systems often capture error.message verbatim.
-    throw new PothosValidationError('Invalid cursor: not valid base64-encoded JSON.');
+    throw new PothosValidationError('Invalid cursor: not valid base64.');
   }
-  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+
+  if (!payload.startsWith(CURSOR_PREFIX)) {
+    throw new PothosValidationError('Invalid cursor: not a cursor from this plugin.');
+  }
+
+  let decoded: unknown;
+  try {
+    decoded = decodeCursorChunk(payload.slice(CURSOR_PREFIX.length));
+  } catch {
+    throw new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.');
+  }
+
+  // Dispatched on `cols`, not on what came back: a single column holding a JSON value decodes to
+  // an array too, and that is one value rather than a tuple.
+  const values = cols.length === 1 ? [decoded] : decoded;
+
+  if (!Array.isArray(values) || values.length !== cols.length) {
     throw new PothosValidationError(
-      `Invalid cursor: expected an object payload, got ${
-        raw === null ? 'null' : Array.isArray(raw) ? 'array' : typeof raw
+      `Invalid cursor: expected ${cols.length} value(s) for ${cols.join(', ')}, got ${
+        Array.isArray(values) ? values.length : 1
       }.`,
     );
   }
-  // Object.create(null) + key filter so a `__proto__`/`constructor`
-  // key in the parsed payload can't pollute the output or downstream
-  // predicate builder.
+
   const out = Object.create(null) as Record<string, unknown>;
-  for (const k of Object.keys(raw)) {
-    if (k === '__proto__' || k === 'constructor' || k === 'prototype') {
-      continue;
-    }
-    out[k] = reviveValue((raw as Record<string, unknown>)[k]);
-  }
+
+  cols.forEach((col, i) => {
+    out[col] = values[i];
+  });
+
   return out;
-}
-
-/**
- * The cursor's values for exactly `cols`. A cursor minted for a different ordering decodes fine
- * but names other columns, and the predicates below would then compare against `undefined` (or
- * hand the ORM a `cursor()` boundary it cannot use), so it is rejected here instead.
- */
-function boundaryFor(cols: readonly string[], cursor: string): Record<string, unknown> {
-  const values = decodeCursor(cursor);
-  const keys = Object.keys(values);
-
-  if (keys.length !== cols.length || cols.some((col) => !(col in values))) {
-    throw new PothosValidationError(
-      `Invalid cursor: expected values for ${cols.join(', ')}, got ${keys.join(', ') || 'none'}.`,
-    );
-  }
-
-  return values;
 }
 
 // Lexicographic "row > cursor" (or < for `lt`) as an OR-chain of
@@ -179,13 +175,7 @@ export function buildPaginationParams(
     inverted,
     hasPreviousPage,
     hasNextPage,
-    encodeRowCursor: (row) => {
-      const value: Record<string, unknown> = {};
-      for (const col of cols) {
-        value[col] = row[col];
-      }
-      return encodeCursor(value);
-    },
+    encodeRowCursor: (row) => encodeCursor(cols, row),
   };
 }
 
@@ -220,7 +210,7 @@ function applyToCollection<C extends MapperCollection>(
     // `hasOrderBy` type gate). The decoded boundary is the same column→
     // value map the hand-rolled predicate consumes; native builds the
     // strict seek predicate internally.
-    const boundary = boundaryFor(cols, nativeAfter ? after! : before!);
+    const boundary = decodeCursor(cols, nativeAfter ? after! : before!);
     return baseCollection.orderBy(orderByArg).cursor(boundary).take(limit) as C;
   }
 
@@ -229,12 +219,12 @@ function applyToCollection<C extends MapperCollection>(
   let collection: MapperCollection = baseCollection;
   if (after) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, boundaryFor(cols, after), 'gt'),
+      buildLexicographicPredicate(cols, decodeCursor(cols, after), 'gt'),
     );
   }
   if (before) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, boundaryFor(cols, before), 'lt'),
+      buildLexicographicPredicate(cols, decodeCursor(cols, before), 'lt'),
     );
   }
   collection = collection.orderBy(orderByArg);

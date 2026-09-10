@@ -1,161 +1,184 @@
+import { encodeCursorChunk, encodeCursorTuple } from '@pothos/core';
 import { describe, expect, it } from 'vitest';
 import {
   parsePrismaNextCursor as decodeCursor,
   formatPrismaNextCursor as encodeCursor,
 } from '../src';
 
-describe('cursors — encode/decode unit tests', () => {
-  it('BigInt cursor round-trips through encode → decode (envelope)', () => {
-    // Without the BigInt envelope, `JSON.stringify({ id: 42n })` throws
-    // TypeError. The encoder wraps in `{ $bigint: '42' }`; the decoder
-    // reconstructs the bigint. (Using `BigInt(42)` instead of the
-    // literal `42n` because the test tsconfig targets ES2019.)
-    const big = BigInt(42);
-    const encoded = encodeCursor({ id: big });
-    const decoded = decodeCursor(encoded);
-    expect(decoded.id).toBe(big);
-    expect(typeof decoded.id).toBe('bigint');
+/**
+ * This plugin writes the cursor encoding `@pothos/core` defines, the same one the prisma and
+ * drizzle plugins write: `base64('PNC:' + chunk)`, where a cursor over one column is that
+ * column's tagged chunk and one over several is a `T:` tuple of chunks, positional in `cols`
+ * order. Being unreleased, it has no older form to keep reading.
+ *
+ * The previous encoding was `JSON.stringify` of a column-keyed object, which needed a `$bigint`
+ * envelope to hold a bigint at all and a regex over every decoded string to guess Dates back.
+ */
+class FakeDecimal {
+  constructor(private readonly digits: string) {}
+
+  toFixed() {
+    return this.digits;
+  }
+}
+
+const payload = (cursor: string) => Buffer.from(cursor, 'base64').toString();
+
+describe('the cursor encoding', () => {
+  it.each([
+    ['a string', 'hello', 'S:hello'],
+    ['an integer', 42, 'N:42'],
+    ['a fractional number', 1.75, 'N:1.75'],
+    ['a bigint', BigInt('9007199254740993'), 'I:9007199254740993'],
+    ['a date carrying milliseconds', new Date('2026-08-19T21:50:45.086Z'), 'D:1787176245086'],
+    ['bytes', new Uint8Array([0, 1, 2, 250, 255]), 'B:AAEC+v8='],
+    ['a JSON value', { a: 1, b: [2, 3] }, 'O:{"a":1,"b":[2,3]}'],
+    ['null', null, 'Z:'],
+  ])('writes %s as its own tagged chunk', (_name, value, chunk) => {
+    expect(payload(encodeCursor(['id'], { id: value }))).toBe(`PNC:${chunk}`);
+    expect(payload(encodeCursor(['id'], { id: value }))).toBe(`PNC:${encodeCursorChunk(value)}`);
   });
 
-  it('Date cursor round-trips via ISO heuristic', () => {
-    const d = new Date('2025-03-15T12:00:00.000Z');
-    const encoded = encodeCursor({ createdAt: d });
-    const decoded = decodeCursor(encoded);
+  it.each([
+    ['a string', 'hello'],
+    ['an integer', 42],
+    ['a fractional number', 1.75],
+    ['a number too large to write in full', 1e21],
+    ['a bigint', BigInt('9007199254740993')],
+    ['a date carrying milliseconds', new Date('2026-08-19T21:50:45.086Z')],
+    ['a JSON value', { a: 1, b: [2, 3] }],
+    ['null', null],
+  ])('round trips %s', (_name, value) => {
+    expect(decodeCursor(['id'], encodeCursor(['id'], { id: value })).id).toEqual(value);
+  });
+
+  it('round trips bytes that are not valid UTF-8', () => {
+    const key = new Uint8Array([0, 1, 2, 250, 255]);
+    const decoded = decodeCursor(['key'], encodeCursor(['key'], { key })).key as Uint8Array;
+
+    expect([...decoded]).toEqual([...key]);
+  });
+
+  // Comes back as its exact digits: the orm takes a decimal string wherever it takes a decimal,
+  // and none of them fits in a `number`.
+  it('round trips a high precision decimal', () => {
+    const digits = '0.1234567890123456789012345';
+    const cursor = encodeCursor(['amount'], { amount: new FakeDecimal(digits) });
+
+    expect(payload(cursor)).toBe(`PNC:M:${digits}`);
+    expect(decodeCursor(['amount'], cursor).amount).toBe(digits);
+  });
+
+  // Previously a string column whose value happened to look ISO-8601 shaped was revived as a
+  // Date, because the format carried no type and the decoder had to guess from the text.
+  it('leaves an ISO-8601 shaped string a string', () => {
+    const value = '2025-03-15T12:00:00.000Z';
+
+    expect(decodeCursor(['ref'], encodeCursor(['ref'], { ref: value })).ref).toBe(value);
+  });
+});
+
+describe('compound cursors', () => {
+  const cols = ['createdAt', 'id'];
+  const row = { createdAt: new Date('2026-08-19T21:50:45.086Z'), id: BigInt(42) };
+
+  it('writes a T: tuple with a tag per part', () => {
+    expect(payload(encodeCursor(cols, row))).toBe('PNC:T:["D:1787176245086","I:42"]');
+    expect(payload(encodeCursor(cols, row))).toBe(
+      `PNC:${encodeCursorTuple(cols.map((col) => (row as Record<string, unknown>)[col]))}`,
+    );
+  });
+
+  it('reads every part back with its type', () => {
+    const decoded = decodeCursor(cols, encodeCursor(cols, row));
+
     expect(decoded.createdAt).toBeInstanceOf(Date);
-    expect((decoded.createdAt as Date).toISOString()).toBe(d.toISOString());
+    expect(decoded.createdAt).toEqual(row.createdAt);
+    expect(decoded.id).toBe(BigInt(42));
   });
 
-  it('decodeCursor rejects non-base64 / non-JSON cursors', () => {
-    expect(() => decodeCursor('!!!')).toThrow(/Invalid cursor/);
+  it('keys the result from cols, in cols order', () => {
+    expect(Object.keys(decodeCursor(cols, encodeCursor(cols, row)))).toEqual(cols);
   });
 
-  it('decodeCursor rejects JSON-array payload', () => {
-    const cursor = Buffer.from(JSON.stringify([1, 2])).toString('base64');
-    expect(() => decodeCursor(cursor)).toThrow(/expected an object payload, got array/);
+  it('keeps a null part null', () => {
+    const decoded = decodeCursor(cols, encodeCursor(cols, { createdAt: null, id: BigInt(1) }));
+
+    expect(decoded).toEqual({ createdAt: null, id: BigInt(1) });
+  });
+});
+
+describe('rejecting a cursor', () => {
+  it('rejects one that is not base64', () => {
+    expect(() => decodeCursor(['id'], '!!!')).toThrow(/Invalid cursor/);
   });
 
-  it('decodeCursor rejects JSON-number payload', () => {
-    const cursor = Buffer.from('42').toString('base64');
-    expect(() => decodeCursor(cursor)).toThrow(/expected an object payload, got number/);
+  it('rejects one that carries another plugin prefix', () => {
+    const other = Buffer.from('GPC:N:1').toString('base64');
+
+    expect(() => decodeCursor(['id'], other)).toThrow(/not a cursor from this plugin/);
   });
 
-  it('decodeCursor rejects JSON-null payload', () => {
-    const cursor = Buffer.from('null').toString('base64');
-    expect(() => decodeCursor(cursor)).toThrow(/expected an object payload, got null/);
+  it('rejects a payload that is not a tagged chunk', () => {
+    const untagged = Buffer.from('PNC:{"id":1}').toString('base64');
+
+    expect(() => decodeCursor(['id'], untagged)).toThrow(/not a tagged cursor chunk/);
   });
 
-  it('aliased exports `formatPrismaNextCursor` / `parsePrismaNextCursor` work', () => {
-    const enc = encodeCursor({ id: 'x' });
-    expect(decodeCursor(enc)).toEqual({ id: 'x' });
+  // A cursor of the wrong width would leave a column compared against `undefined`.
+  it('rejects one whose width does not match cols', () => {
+    const wide = encodeCursor(['a', 'b', 'c'], { a: 1, b: 2, c: 3 });
+
+    expect(() => decodeCursor(['a', 'b'], wide)).toThrow(/expected 2 value\(s\) for a, b, got 3/);
   });
 
-  it('rejects a cursor payload exceeding the size cap (DoS guard)', () => {
-    // Construct a base64 string > 8 KiB. Decode shouldn't allocate
-    // the parsed object.
-    const huge = Buffer.from(JSON.stringify({ pad: 'x'.repeat(10_000) })).toString('base64');
-    expect(() => decodeCursor(huge)).toThrow(/payload exceeds/);
+  it('rejects a single value cursor where a compound one is expected', () => {
+    const single = encodeCursor(['a'], { a: 1 });
+
+    expect(() => decodeCursor(['a', 'b'], single)).toThrow(/expected 2 value\(s\)/);
   });
 
-  it('does NOT pollute Object.prototype via a __proto__ key in the cursor', () => {
-    // Pre-flight: confirm baseline.
+  it('rejects a payload exceeding the size cap (DoS guard)', () => {
+    const huge = encodeCursor(['pad'], { pad: 'x'.repeat(10_000) });
+
+    expect(() => decodeCursor(['pad'], huge)).toThrow(/payload exceeds/);
+  });
+
+  it('decodes a near-cap legitimate cursor without rejecting', () => {
+    const longString = 'a'.repeat(900);
+    const cursor = encodeCursor(['id'], { id: longString });
+
+    expect(cursor.length).toBeGreaterThan(1200);
+    expect(cursor.length).toBeLessThan(2048);
+    expect(decodeCursor(['id'], cursor).id).toBe(longString);
+  });
+
+  // Log-aggregation hygiene: a caller can otherwise stash arbitrary text in operator logs
+  // through error.message.
+  it('does not echo the client supplied cursor in the message', () => {
+    expect(() => decodeCursor(['id'], 'XSS-PAYLOAD-MARKER')).toThrow(
+      /^(?!.*XSS-PAYLOAD-MARKER).*Invalid cursor/,
+    );
+  });
+});
+
+describe('a cursor cannot reach the output as a key', () => {
+  // The payload is positional and carries no keys of its own, so a `__proto__` or `constructor`
+  // key has nowhere to come from: the result is keyed by `cols`, which the schema supplies. The
+  // previous format was a column-keyed JSON object and had to filter those keys out by hand.
+  it('leaves Object.prototype alone whatever the payload holds', () => {
     const probe = {} as Record<string, unknown>;
-    expect(probe.polluted).toBeUndefined();
+    const malicious = Buffer.from('PNC:O:{"__proto__":{"polluted":1}}').toString('base64');
 
-    // Craft a payload whose JSON.parse would produce a `__proto__`
-    // own-property. Direct encoder route doesn't surface it (the
-    // encoder serializes plain objects), so build the base64 payload
-    // by hand.
-    const malicious = Buffer.from(JSON.stringify({ __proto__: { polluted: 1 } })).toString(
-      'base64',
-    );
-    decodeCursor(malicious);
-
-    // Object.prototype must still be clean.
+    expect(decodeCursor(['id'], malicious).id).toBeDefined();
     expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
     expect(probe.polluted).toBeUndefined();
   });
 
-  it('skips reserved keys (__proto__ / constructor / prototype) when reviving cursor payloads', () => {
-    const cursor = Buffer.from(
-      JSON.stringify({ id: 'real', __proto__: { x: 1 }, constructor: 1, prototype: 1 }),
-    ).toString('base64');
-    const out = decodeCursor(cursor);
-    expect(out.id).toBe('real');
-    // Reserved keys are skipped from the output entirely.
-    expect((out as Record<string, unknown>).__proto__).toBeUndefined();
-    expect((out as Record<string, unknown>).constructor).toBeUndefined();
-    expect((out as Record<string, unknown>).prototype).toBeUndefined();
-  });
+  it('keys a reserved name only when cols asks for it, on a null prototype object', () => {
+    const decoded = decodeCursor(['id'], encodeCursor(['id'], { id: 'x' }));
 
-  it('decoded cursor is a null-prototype object', () => {
-    // Pin the null-prototype invariant — if a future refactor flips it
-    // back to `{}`, the reserved-key skip still prevents pollution but
-    // the second line of defense is gone.
-    const enc = encodeCursor({ id: 'x' });
-    expect(Object.getPrototypeOf(decodeCursor(enc))).toBeNull();
-  });
-
-  it('Object.keys works on a decoded cursor (null-proto + cursor key)', () => {
-    const enc = encodeCursor({ id: 'x', createdAt: 'y' });
-    expect(Object.keys(decodeCursor(enc)).sort()).toEqual(['createdAt', 'id']);
-  });
-
-  it('decode error message does not echo the client-supplied cursor', () => {
-    // Log-aggregation hygiene: a malicious caller can otherwise stash
-    // arbitrary text in operator logs via error.message.
-    const malicious = 'XSS-PAYLOAD-MARKER';
-    expect(() => decodeCursor(malicious)).toThrow(
-      /^(?!.*XSS-PAYLOAD-MARKER).*Invalid cursor: not valid base64-encoded JSON\.$/,
-    );
-  });
-
-  it('rejects a $bigint envelope whose payload is not a numeric string (PothosValidationError, not raw SyntaxError)', () => {
-    // Without the try/catch in reviveValue, `BigInt('garbage')` would
-    // surface as a raw `SyntaxError` to the client.
-    const cursor = Buffer.from(JSON.stringify({ id: { $bigint: 'garbage' } })).toString('base64');
-    expect(() => decodeCursor(cursor)).toThrow(
-      /Invalid cursor: \$bigint envelope contained a non-numeric string/,
-    );
-  });
-
-  it('polluted Object.prototype.$bigint does not redirect every revived value', () => {
-    // Regression for the `Object.hasOwn` hardening: with `in` semantics,
-    // a polluted Object.prototype would force every revived object
-    // through the BigInt branch.
-    const proto = Object.prototype as Record<string, unknown>;
-    const previous = '$bigint' in proto;
-    proto.$bigint = '999';
-    try {
-      const cursor = Buffer.from(JSON.stringify({ id: { other: 'value' } })).toString('base64');
-      const out = decodeCursor(cursor);
-      // `id` came back as the original object literal, not as BigInt(999).
-      expect(out.id).toEqual({ other: 'value' });
-    } finally {
-      if (!previous) {
-        delete proto.$bigint;
-      }
-    }
-  });
-
-  it('rejects a cursor with reserved keys whose values would trigger pollution if assigned', () => {
-    // Sanity: the skip filter holds even when the key's value is an
-    // attacker-supplied prototype-mutating object.
-    const malicious = Buffer.from(JSON.stringify({ __proto__: { polluted: 1 } })).toString(
-      'base64',
-    );
-    decodeCursor(malicious);
-    expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
-  });
-
-  it('decodes a near-cap legitimate cursor (1.5 KiB) without rejecting', () => {
-    // Pin the 2 KiB cap as the rejection boundary, not 1 KiB or 4 KiB.
-    // Build a realistic-looking large cursor (~1500 chars base64) and
-    // confirm it decodes cleanly.
-    const longString = 'a'.repeat(900); // ~900 chars → ~1200 base64
-    const enc = encodeCursor({ id: longString });
-    expect(enc.length).toBeGreaterThan(1200);
-    expect(enc.length).toBeLessThan(2048);
-    const out = decodeCursor(enc);
-    expect(out.id).toBe(longString);
+    expect(Object.getPrototypeOf(decoded)).toBeNull();
+    expect(Object.keys(decoded)).toEqual(['id']);
   });
 });
