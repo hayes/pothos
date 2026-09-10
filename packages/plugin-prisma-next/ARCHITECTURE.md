@@ -29,7 +29,7 @@ around those two steps.
 | `src/prisma-next-object-field-builder.ts` | `PrismaNextObjectFieldBuilder`: `t.relation` / `t.relatedConnection` / `t.variant` / `t.expose*` / `t.withAuth`. |
 | `src/connection-helpers.ts` | `prismaConnectionHelpers` — public composable for custom paginators. |
 | `src/utils/adapter.ts` | The `@pothos/selection-mapper` adapter: the node, the spec map, the compile of `select` shapes, and `emit` (spec → builder chain). |
-| `src/utils/map-query.ts` | Public entry: `applySelectionToCollection` over `planFromInfo` / `queryFromPlan`. |
+| `src/utils/map-query.ts` | Public entry: `applySelectionToCollection` over `Plan.fromInfo` / `plan.query()`. |
 | `src/utils/model.ts` | One `PrismaNextModel` per contract model (relations with resolved targets, column set), built from the contract. |
 | `src/utils/branding.ts` | `rebrandForVariant` (used by `t.variant` only). |
 | `src/utils/refs.ts` | Per-builder ref cache (drizzle shape). |
@@ -90,7 +90,7 @@ supplies a `PrismaNextAdapter`, a subclass of the walker's `Adapter`,
 for prisma-next's builder-chain query format
 (`src/utils/adapter.ts`). `applySelectionToCollection(baseCollection,
 info, contract, ctx, opts)` (`src/utils/map-query.ts`) runs
-`planFromInfo`, serializes the root with `queryFromPlan`, and emits the
+`Plan.fromInfo`, serializes the root with `plan.query()`, and emits the
 result onto the collection. The plan is synchronous unless a `select`
 callback returned a promise, in which case the augmented collection is
 a promise the plugin's own consumers await.

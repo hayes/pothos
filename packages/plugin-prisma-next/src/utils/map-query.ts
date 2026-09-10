@@ -6,8 +6,7 @@ import { isThenable } from '@pothos/core';
 import {
   type IndirectInclude,
   type PathSegment,
-  planFromInfo,
-  queryFromPlan,
+  Plan,
   selectedFieldNames,
 } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -48,7 +47,7 @@ export function applySelectionToCollection(
   // The adapter records no loader mappings, so the walker never touches the context.
   const ctx = context as object;
   const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
-  const plan = planFromInfo(prismaNextAdapter(contract), {
+  const plan = Plan.fromInfo(prismaNextAdapter(contract), {
     context: ctx,
     info,
     typeName: options.typeName,
@@ -64,7 +63,7 @@ export function applySelectionToCollection(
   }
 
   const finish = (settled: PrismaNextPlan) =>
-    emit(baseCollection, queryFromPlan(settled), settled.model, ctx);
+    emit(baseCollection, settled.query(), settled.model, ctx);
 
   return isThenable(plan)
     ? (plan.then((settled) => finish(settled as PrismaNextPlan)) as unknown as MapperCollection)
