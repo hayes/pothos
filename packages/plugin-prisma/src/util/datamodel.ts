@@ -23,7 +23,21 @@ export function getRefFromModel<Types extends SchemaTypes>(
     );
   }
 
-  return cache.get(name)! as never;
+  const ref = cache.get(name)!;
+
+  // The cache is keyed by model name alone, so the first caller decides the ref's kind. Handing
+  // a later caller the other kind under its own type would silently register the model as both;
+  // a model that needs both an object and an interface names one of them with `variant`.
+  if (
+    (type === 'interface' && !(ref instanceof PrismaInterfaceRef)) ||
+    (type === 'object' && !(ref instanceof PrismaObjectRef))
+  ) {
+    throw new PothosSchemaError(
+      `Prisma model ${name} was created as both an object and interface.  Use 'variant' instead of 'name' in one of the implementations`,
+    );
+  }
+
+  return ref as never;
 }
 
 export function getRelation<Types extends SchemaTypes>(

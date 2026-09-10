@@ -314,22 +314,37 @@ export class ModelLoader {
     this.tick.then(() => {
       this.staged.delete(entry);
 
-      for (const [model, { resolve, reject }] of entry.models) {
-        if (delegate.findUniqueOrThrow) {
-          delegate
-            .findUniqueOrThrow({
-              ...prismaAdapter.emit(entry.root),
-              where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
-            } as never)
-            .then(resolve as () => {}, reject);
-        } else {
-          delegate
-            .findUnique({
-              rejectOnNotFound: true,
-              ...prismaAdapter.emit(entry.root),
-              where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
-            } as never)
-            .then(resolve as () => {}, reject);
+      // A throw here — `emit`, `findUnique`, or the delegate call itself — would otherwise abort
+      // the loop, leaving every model it had not reached pending forever and the request with it.
+      // The whole batch rejects instead, the way drizzle's loader does; a promise the loop already
+      // settled ignores it. Caught rather than chained so the tick still allocates no promise of
+      // its own.
+      try {
+        for (const [model, { resolve, reject }] of entry.models) {
+          if (delegate.findUniqueOrThrow) {
+            delegate
+              .findUniqueOrThrow({
+                ...prismaAdapter.emit(entry.root),
+                where: {
+                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
+                },
+              } as never)
+              .then(resolve as () => {}, reject);
+          } else {
+            delegate
+              .findUnique({
+                rejectOnNotFound: true,
+                ...prismaAdapter.emit(entry.root),
+                where: {
+                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
+                },
+              } as never)
+              .then(resolve as () => {}, reject);
+          }
+        }
+      } catch (error) {
+        for (const { reject } of entry.models.values()) {
+          reject(error);
         }
       }
     });

@@ -183,7 +183,11 @@ function addPrismaFields(
   fields: (t: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes>) => {},
   graphqlKind?: 'Interface',
 ) {
-  const ref = typeof type === 'string' ? getRefFromModel(type, builder) : type;
+  // A model name names the interface registered under it, as `prismaInterface` registers one.
+  const ref =
+    typeof type === 'string'
+      ? getRefFromModel(type, builder, graphqlKind ? 'interface' : 'object')
+      : type;
 
   builder.configStore.onTypeConfig(ref, ({ name }) => {
     builder.configStore.addFields(ref, () =>
