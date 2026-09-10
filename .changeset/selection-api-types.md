@@ -6,7 +6,8 @@
 
 The selection API is typed by what it does, and everything it does is documented.
 
-Two changes can stop existing code from compiling; in both cases that code failed at runtime before:
+Three changes can stop existing code from compiling; in the first two cases that code failed at
+runtime before:
 
 - `t.relationCount` (prisma) and `t.relatedCount` (drizzle) accept only list relations. Calling
   either on a to-one relation built a count query prisma or drizzle rejected.
@@ -15,6 +16,10 @@ Two changes can stop existing code from compiling; in both cases that code faile
   It used to claim `{ select: Select }` for every call without `include`, which was wrong for a
   type in include mode, so code reading `.select` off that result now sees it as possibly
   undefined. Every form spreads into a prisma call as before.
+- `LoaderMappings` (prisma) is a deprecated alias of the shared `Mappings` type. The record it
+  names is internal to the plugin, and the plugin no longer builds the `{ field, type, mappings,
+  indirectPath }` entries the old declaration described, so code that reads those keys off it no
+  longer compiles. Nothing in the plugin's API hands one to a schema.
 
 New and widened types:
 
