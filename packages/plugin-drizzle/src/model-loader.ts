@@ -1,5 +1,5 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
-import { cacheKey, setFieldMapping, setLoaderMappings } from '@pothos/selection-mapper';
+import { cacheKey, setFieldMapping, setRowMappings } from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -143,8 +143,10 @@ export class ModelLoader {
 
         if (mapping) {
           // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
-          // with, along with the mappings of the fields beneath it.
-          setFieldMapping(this.context, info, mapping);
+          // with, along with the mappings of the fields beneath it. Against `result`, the row
+          // this plan loaded and the one the resolver is handed: a sibling row of the same list
+          // that the planned query did load must keep answering from the plan.
+          setFieldMapping(this.context, info, mapping, result);
         }
       }
 
@@ -168,7 +170,8 @@ export class ModelLoader {
   private loadFieldWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
     return this.stageQuery(played, model).then((result) => {
       if (result) {
-        setLoaderMappings(this.context, info, played.mappings);
+        // This plan loaded `result` alone, so its mappings are the row's, not the field's.
+        setRowMappings(this.context, info, played.mappings, result);
       }
 
       return result;

@@ -7,6 +7,7 @@ import {
   responsePath,
   setFieldMapping,
   setLoaderMappings,
+  setRowMappings,
 } from '../src/loader-map.js';
 
 type Path = GraphQLResolveInfo['path'];
@@ -61,12 +62,85 @@ describe('loader map', () => {
 
   it("records a field's own mapping under its parent type along with its children", () => {
     const ctx = {};
+    const row = {};
     const author: Mapping = { nested: {} };
     const posts: Mapping = { nested: { 'Post@author': author } };
 
-    setFieldMapping(ctx, infoAt('User', 'user', 'posts'), posts);
+    setFieldMapping(ctx, infoAt('User', 'user', 'posts'), posts, row);
 
+    expect(getLoaderMapping(ctx, pathOf('user', 'posts'), 'User', row)).toBe(posts);
+    expect(getLoaderMapping(ctx, pathOf('user', 'posts', 2, 'author'), 'Post', row)).toBe(author);
+    // Nothing else has claimed the keys, so the rows that ask without one still find them.
     expect(getLoaderMapping(ctx, pathOf('user', 'posts'), 'User')).toBe(posts);
-    expect(getLoaderMapping(ctx, pathOf('user', 'posts', 2, 'author'), 'Post')).toBe(author);
+  });
+
+  it('answers a row from the mapping recorded for it, over the plan for the field', () => {
+    const ctx = {};
+    const info = infoAt('User', 'users', 'posts');
+    const planned: Mapping = { nested: {} };
+    const loaded: Mapping = { nested: {} };
+    const plannedRow = {};
+    const loadedRow = {};
+
+    setLoaderMappings(ctx, infoAt('Query', 'users'), { 'User@posts': planned });
+    setFieldMapping(ctx, info, loaded, loadedRow);
+
+    expect(getLoaderMapping(ctx, info.path, 'User', loadedRow)).toBe(loaded);
+    expect(getLoaderMapping(ctx, info.path, 'User', plannedRow)).toBe(planned);
+    expect(getLoaderMapping(ctx, info.path, 'User')).toBe(planned);
+  });
+
+  it("does not let one row's mappings displace the plan's beneath it", () => {
+    const ctx = {};
+    const planned: Mapping = { nested: {} };
+    const loaded: Mapping = { nested: {} };
+    const row = {};
+
+    setLoaderMappings(ctx, infoAt('Query', 'users'), { 'Post@posts.author': planned });
+    setRowMappings(ctx, infoAt('User', 'users', 'posts'), { 'Post@author': loaded }, row);
+
+    expect(getLoaderMapping(ctx, pathOf('users', 1, 'posts', 0, 'author'), 'Post', row)).toBe(
+      loaded,
+    );
+    expect(getLoaderMapping(ctx, pathOf('users', 1, 'posts', 0, 'author'), 'Post')).toBe(planned);
+  });
+
+  it('records nothing per row while the rows of a list agree', () => {
+    const ctx = {};
+    const info = infoAt('User', 'users', 'posts');
+    const planned: Mapping = { nested: { 'Post@author': { nested: {} } } };
+    const rows = [{}, {}, {}, {}];
+
+    setLoaderMappings(ctx, infoAt('Query', 'users'), { 'User@posts': planned });
+
+    // What every row of the list is handed: the mapping already at its key.
+    for (const row of rows) {
+      setFieldMapping(ctx, info, planned, row);
+    }
+
+    expect(getLoaderMapping(ctx, info.path, 'User', {})).toBe(planned);
+    expect(getLoaderMapping(ctx, info.path, 'User')).toBe(planned);
+    for (const row of rows) {
+      expect(getLoaderMapping(ctx, info.path, 'User', row)).toBe(planned);
+    }
+
+    // Not one of them claimed a mapping of its own: replanning the field moves all of them at
+    // once. A row holding an entry of its own would keep reading the mapping it claimed.
+    const replanned: Mapping = { nested: {} };
+
+    setLoaderMappings(ctx, infoAt('Query', 'users'), { 'User@posts': replanned });
+
+    for (const row of rows) {
+      expect(getLoaderMapping(ctx, info.path, 'User', row)).toBe(replanned);
+    }
+  });
+
+  it('records against no row when there is none to hang a mapping off', () => {
+    const ctx = {};
+    const mapping: Mapping = { nested: {} };
+
+    setRowMappings(ctx, infoAt('User', 'user', 'posts'), { 'Post@author': mapping }, undefined);
+
+    expect(getLoaderMapping(ctx, pathOf('user', 'posts', 'author'), 'Post')).toBe(mapping);
   });
 });

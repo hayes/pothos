@@ -46,12 +46,25 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * the path prefix that rehomed them. A field resolved for each of N rows of a list records the
  * same mappings under the same keys every time — `responsePath` drops the list index, so every
  * row rebuilds the same strings — so a prefix builds its keys once and the rows after the first
- * only write.
+ * find what they would have written already there.
+ *
+ * `mappings` holds what a plan recorded for a whole field: every row of that field was loaded by
+ * it, so one entry per path answers for all of them. `rows` holds a mapping only where a second
+ * one turned up at a key the first had claimed, which is to say only where rows of one list
+ * disagree about which plan loaded them. A mapping carries the position a connection pages with,
+ * so a row that answered from a mapping recorded for a differently loaded row pages with
+ * arguments its own data was never fetched with. `disagreed` stays false for a request where
+ * that never happened, which is every request whose rows were all loaded the same way, and the
+ * whole row tier costs those nothing.
  */
 const cache = createContextCache(() => ({
   mappings: new Map<string, Mapping>(),
   rehomed: new Map<string, Map<string, string>>(),
+  rows: new WeakMap<object, Map<string, Mapping>>(),
+  disagreed: false,
 }));
+
+type Cache = ReturnType<typeof cache>;
 
 /**
  * Memoised per path link. A path link is created once per field per row and never mutated, and
@@ -85,45 +98,155 @@ export function cacheKey(type: string, path: GraphQLResolveInfo['path']) {
   return `${type}@${responsePath(path)}`;
 }
 
-/** Records the mappings of a plan rooted at the field `info` resolves, under that field's path. */
-export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  const { mappings: map, rehomed } = cache(ctx);
-  const prefix = responsePath(info.path);
-  let keys = rehomed.get(prefix);
+/**
+ * The keys `mappings` is recorded under when it is rehomed beneath `prefix`. Built once per
+ * prefix and shared by both tiers: the strings depend on the path and the plan's own keys, never
+ * on which row is being recorded for.
+ */
+function rehomedKeys(entry: Cache, prefix: string) {
+  let keys = entry.rehomed.get(prefix);
 
   if (!keys) {
     keys = new Map();
-    rehomed.set(prefix, keys);
+    entry.rehomed.set(prefix, keys);
   }
 
-  for (const key of Object.keys(mappings)) {
-    let under = keys.get(key);
+  return keys;
+}
 
-    if (under === undefined) {
-      const at = key.indexOf('@');
+/** `key`, a plan's own `Type@relative.path`, moved beneath `prefix`. Built once per prefix. */
+function rehome(keys: Map<string, string>, key: string, prefix: string) {
+  let under = keys.get(key);
 
-      under = `${key.slice(0, at)}@${prefix}.${key.slice(at + 1)}`;
-      keys.set(key, under);
+  if (under === undefined) {
+    const at = key.indexOf('@');
+
+    under = `${key.slice(0, at)}@${prefix}.${key.slice(at + 1)}`;
+    keys.set(key, under);
+  }
+
+  return under;
+}
+
+/** `row` if a mapping can be hung off it. A root field resolves with no parent value at all. */
+function ownerOf(row: unknown): object | null {
+  return typeof row === 'object' && row !== null ? row : null;
+}
+
+/**
+ * Records `mapping` at `key` for `row`. An unclaimed key takes it, and so does a key that
+ * already holds this very mapping: a field resolved for each of N rows of one list is handed the
+ * mapping its plan recorded, so the rows after the first write nothing at all. A key holding a
+ * different mapping is one two plans disagree about, and only there does the row get an entry of
+ * its own — or, with no row to hang it off, nothing: the resolvers beneath fall back and load
+ * their own data, which is the answer for a row nothing can be told about.
+ */
+function claim(entry: Cache, key: string, mapping: Mapping, row: object | null) {
+  const held = entry.mappings.get(key);
+
+  if (held === undefined) {
+    entry.mappings.set(key, mapping);
+  } else if (held !== mapping && row) {
+    let own = entry.rows.get(row);
+
+    if (!own) {
+      own = new Map();
+      entry.rows.set(row, own);
+      entry.disagreed = true;
     }
 
-    map.set(under, mappings[key]);
+    own.set(key, mapping);
+  }
+}
+
+/**
+ * Records the mappings of a plan rooted at the field `info` resolves, under that field's path.
+ * The plan loaded the whole field, so its mappings answer for every row of it: they go to the
+ * shared tier, and a later plan for the same field replaces them.
+ */
+export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
+  const entry = cache(ctx);
+  const prefix = responsePath(info.path);
+  const keys = rehomedKeys(entry, prefix);
+
+  for (const key of Object.keys(mappings)) {
+    entry.mappings.set(rehome(keys, key, prefix), mappings[key]);
+  }
+}
+
+/**
+ * Records the mappings of a plan that loaded `row` alone — the fallback loader's, or the one a
+ * resolver was handed for the row it is about to resolve with. Where a plan has already claimed
+ * a key with a different mapping, these are recorded against the row instead of replacing it, so
+ * a row the planned query did not load never re-answers for a sibling it did.
+ *
+ * A row entry is found by the resolvers whose parent is `row` itself. Deeper down, the parent is
+ * something `row`'s own resolvers produced, which nothing here has seen, and those resolvers read
+ * the plan's entry — the answer they had before any of this, and the one their siblings read.
+ */
+export function setRowMappings(
+  ctx: object,
+  info: GraphQLResolveInfo,
+  mappings: Mappings,
+  row: unknown,
+) {
+  writeRowMappings(cache(ctx), info, mappings, ownerOf(row));
+}
+
+function writeRowMappings(
+  entry: Cache,
+  info: GraphQLResolveInfo,
+  mappings: Mappings,
+  row: object | null,
+) {
+  const prefix = responsePath(info.path);
+  const keys = rehomedKeys(entry, prefix);
+
+  for (const key of Object.keys(mappings)) {
+    claim(entry, rehome(keys, key, prefix), mappings[key], row);
   }
 }
 
 /**
  * Records the mapping of the field `info` resolves (under its own parent type) along with the
  * mappings beneath it, so both the field's resolver and the resolvers below it can look
- * themselves up.
+ * themselves up. `row` is the value the field is about to resolve with: the parent row when it
+ * was loaded by the planned query, and the reloaded row when the fallback loader fetched it.
  */
-export function setFieldMapping(ctx: object, info: GraphQLResolveInfo, mapping: Mapping) {
-  cache(ctx).mappings.set(cacheKey(info.parentType.name, info.path), mapping);
-  setLoaderMappings(ctx, info, mapping.nested);
+export function setFieldMapping(
+  ctx: object,
+  info: GraphQLResolveInfo,
+  mapping: Mapping,
+  row: unknown,
+) {
+  const entry = cache(ctx);
+  const owner = ownerOf(row);
+
+  claim(entry, cacheKey(info.parentType.name, info.path), mapping, owner);
+  writeRowMappings(entry, info, mapping.nested, owner);
 }
 
+/**
+ * The mapping recorded for the field at `path` on `row`, preferring one recorded for that row
+ * over the plan's. `row` is the value whose data the mapping describes — the resolver's parent.
+ */
 export function getLoaderMapping(
   ctx: object,
   path: GraphQLResolveInfo['path'],
   type: string,
+  row?: unknown,
 ): Mapping | null {
-  return cache(ctx).mappings.get(cacheKey(type, path)) ?? null;
+  const entry = cache(ctx);
+  const key = cacheKey(type, path);
+
+  if (entry.disagreed) {
+    const owner = ownerOf(row);
+    const own = owner && entry.rows.get(owner)?.get(key);
+
+    if (own) {
+      return own;
+    }
+  }
+
+  return entry.mappings.get(key) ?? null;
 }

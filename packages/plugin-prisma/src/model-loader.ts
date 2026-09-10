@@ -7,7 +7,7 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
+import { cacheKey, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
@@ -269,7 +269,10 @@ export class ModelLoader {
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
 
         if (mapping) {
-          setLoaderMappings(this.context, info, mapping.nested);
+          // This plan loaded `result` alone, so its mappings are the row's, not the field's: a
+          // sibling row of the same list that the planned query did load must keep answering
+          // from the plan.
+          setRowMappings(this.context, info, mapping.nested, result);
         }
       }
 

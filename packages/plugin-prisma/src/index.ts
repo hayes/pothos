@@ -11,7 +11,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setLoaderMappings } from '@pothos/selection-mapper';
+import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -161,11 +161,13 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     }
 
     return (parent, args, context, info) => {
-      let mapping = getLoaderMapping(context, info.path, info.parentType.name);
+      // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
+      // for the rows the planned query loaded.
+      let mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
 
       if (!mapping) {
         for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType);
+          mapping = getLoaderMapping(context, info.path, parentType, parent);
           if (mapping) {
             break;
           }
@@ -173,7 +175,9 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
-        setLoaderMappings(context, info, mapping.nested);
+        // Against the row it resolves with: a sibling row of the same list may have been loaded
+        // by another plan, and must keep answering from that one.
+        setRowMappings(context, info, mapping.nested, parent);
 
         return resolver(parent, args, context, info);
       }

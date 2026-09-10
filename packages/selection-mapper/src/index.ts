@@ -13,6 +13,7 @@ export {
   type Mappings,
   setFieldMapping,
   setLoaderMappings,
+  setRowMappings,
 } from './loader-map.js';
 export {
   type IndirectInclude,

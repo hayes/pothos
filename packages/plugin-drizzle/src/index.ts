@@ -196,11 +196,13 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     }
 
     return (parent, args, context, info) => {
-      let mapping = getLoaderMapping(context, info.path, info.parentType.name);
+      // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
+      // for the rows the planned query loaded.
+      let mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
 
       if (!mapping) {
         for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType);
+          mapping = getLoaderMapping(context, info.path, parentType, parent);
           if (mapping) {
             break;
           }
@@ -209,8 +211,9 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         // Recorded under the field's own parent type as well, so its resolver finds the pathInfo
-        // it was planned with, whichever same-model type the plan was made for.
-        setFieldMapping(context, info, mapping);
+        // it was planned with, whichever same-model type the plan was made for. Against the row
+        // it resolves with: a sibling row of the same list may have been loaded by another plan.
+        setFieldMapping(context, info, mapping, parent);
 
         return resolver(parent, args, context, info);
       }
