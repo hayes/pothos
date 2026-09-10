@@ -118,7 +118,7 @@ export interface PrismaRelationQuery<Model extends PrismaModelTypes> {
  * selection, or `true`, it is the relation query itself. A field whose type has no model keeps
  * the selection it was given.
  */
-export type NestedSelectionResult<Selection, Model extends PrismaModelTypes> = [Model] extends [
+export type NestedSelectionResult<Model extends PrismaModelTypes, Selection> = [Model] extends [
   never,
 ]
   ? Selection
@@ -132,10 +132,10 @@ export type NestedSelectionResult<Selection, Model extends PrismaModelTypes> = [
  * typed by the query either way; it is a promise at runtime only when a promise or an async
  * callback was given, or a selection beneath it is async, and must then be awaited.
  */
-export type NestedSelectionArg<Selection, Args extends InputFieldMap, Context> =
+export type NestedSelectionArg<Types extends SchemaTypes, Selection, Args extends InputFieldMap> =
   | Selection
   | PromiseLike<Selection>
-  | ((args: InputShapeFromFields<Args>, ctx: Context) => MaybePromise<Selection>);
+  | ((args: InputShapeFromFields<Args>, ctx: Types['Context']) => MaybePromise<Selection>);
 
 /**
  * The callback a field's `select` function plans the selection beneath the field with: `path`
@@ -144,16 +144,16 @@ export type NestedSelectionArg<Selection, Args extends InputFieldMap, Context> =
  * keeps its literal `true`.
  */
 export type NestedSelectionFn<
+  Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Args extends InputFieldMap = {},
-  Context = object,
 > = <
   Selection extends boolean | ([Model] extends [never] ? {} : PrismaRelationQuery<Model>) = true,
 >(
-  selection?: NestedSelectionArg<Selection, Args, Context>,
+  selection?: NestedSelectionArg<Types, Selection, Args>,
   path?: PathSegment[],
   type?: string,
-) => NestedSelectionResult<Selection, Model>;
+) => NestedSelectionResult<Model, Selection>;
 
 export type PrismaObjectFieldOptions<
   Types extends SchemaTypes,
@@ -192,11 +192,7 @@ export type PrismaObjectFieldOptions<
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: NestedSelectionFn<
-              ModelForTypeParam<Types, Type>,
-              Args,
-              Types['Context']
-            >,
+            nestedSelection: NestedSelectionFn<Types, ModelForTypeParam<Types, Type>, Args>,
           ) => MaybePromise<ExtractModel<Types, ParentShape>['Select']>)
       );
   };

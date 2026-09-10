@@ -387,7 +387,7 @@ export type QueryForTypeParam<Types extends SchemaTypes, Type> =
  * With no selection, or `true`, it is the config itself. A field whose type has no table keeps
  * the selection it was given.
  */
-export type NestedSelectionResult<Types extends SchemaTypes, Selection, Type> = [
+export type NestedSelectionResult<Types extends SchemaTypes, Type, Selection> = [
   QueryForTypeParam<Types, Type>,
 ] extends [never]
   ? Selection
@@ -411,7 +411,7 @@ export type NestedSelectionFn<Types extends SchemaTypes, Type, Args extends Inpu
   selection?: NestedSelectionArg<Types, Selection, Args>,
   path?: PathSegment[],
   type?: string,
-) => NestedSelectionResult<Types, Selection, Type>) &
+) => NestedSelectionResult<Types, Type, Selection>) &
   PathInfo;
 
 /**
