@@ -612,7 +612,7 @@ export class PrismaNextObjectFieldBuilder<
     // cursor pagination, reading the cursor columns so every row can encode its cursor. The
     // combine slots are `<alias>:rows` and `<alias>:count`; the per-field overlay lifts them
     // onto `parent.rows` / `parent.count` for the resolver.
-    const select: PrismaNextSelectFn = (args, ctx, nested, getSelectedNode) => {
+    const select: PrismaNextSelectFn = (args, ctx, nested, selectedFieldNode) => {
       const filter = (rel: MapperCollection) =>
         refine != null ? (refine(rel, args, ctx) as MapperCollection) : rel;
       const resolvedDefault = resolveSizeOption(defaultSize, args, ctx) ?? fallbackDefault;
@@ -642,7 +642,7 @@ export class PrismaNextObjectFieldBuilder<
       // Synthetic count fires only when the client selected totalCount AND
       // the user opted in via `totalCount: true`. Callable totalCount stays
       // in the resolver — no extra DB round-trip in the spec.
-      const wantsTotalCount = totalCountFlag && getSelectedNode(['totalCount']) !== null;
+      const wantsTotalCount = totalCountFlag && selectedFieldNode(['totalCount']) !== null;
 
       return {
         relations: {

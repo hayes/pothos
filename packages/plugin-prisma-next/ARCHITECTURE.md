@@ -29,7 +29,7 @@ around those two steps.
 | `src/prisma-next-object-field-builder.ts` | `PrismaNextObjectFieldBuilder`: `t.relation` / `t.relatedConnection` / `t.variant` / `t.expose*` / `t.withAuth`. |
 | `src/connection-helpers.ts` | `prismaConnectionHelpers` — public composable for custom paginators. |
 | `src/utils/adapter.ts` | The `@pothos/selection-mapper` adapter: the node, the spec map, the compile of `select` shapes, and `emit` (spec → builder chain). |
-| `src/utils/map-query.ts` | Public entry: `applySelectionToCollection` over `walkFromInfo` / `queryFromWalk`. |
+| `src/utils/map-query.ts` | Public entry: `applySelectionToCollection` over `planFromInfo` / `queryFromPlan`. |
 | `src/utils/model.ts` | One `PrismaNextModel` per contract model (relations with resolved targets, column set), built from the contract. |
 | `src/utils/branding.ts` | `rebrandForVariant` (used by `t.variant` only). |
 | `src/utils/refs.ts` | Per-builder ref cache (drizzle shape). |
@@ -89,8 +89,8 @@ The selection walk is `@pothos/selection-mapper` (the walker shared with
 supplies an `Adapter` for prisma-next's builder-chain query format
 (`src/utils/adapter.ts`). `applySelectionToCollection(baseCollection,
 info, contract, ctx, opts)` (`src/utils/map-query.ts`) runs
-`walkFromInfo`, serializes the root with `queryFromWalk`, and emits the
-result onto the collection. The walk is synchronous unless a `select`
+`planFromInfo`, serializes the root with `queryFromPlan`, and emits the
+result onto the collection. The plan is synchronous unless a `select`
 callback returned a promise, in which case the augmented collection is
 a promise the plugin's own consumers await.
 
@@ -262,14 +262,14 @@ include refinement, so the parent + the page rows ship as one SQL plan
 whenever prisma-next can collapse it:
 
 ```
-select: (args, ctx, nested, getSelectedNode) => {
+select: (args, ctx, nested, selectedFieldNode) => {
   const rows = nested(
     { slot: 'rows', columns: cursorCols,
       refine: (rel) => applyCursorPagination(userWhere?.(rel) ?? rel, cursor, args, sizes).collection },
     { getType: () => relatedType, paths: [['edges','node'], ['nodes']] },
   )
   return { relations: { [relationName]:
-    totalCount && getSelectedNode(['totalCount'])
+    totalCount && selectedFieldNode(['totalCount'])
       ? [rows, { fn: (sub) => ({ count: (userWhere?.(sub) ?? sub).count() }) }]
       : rows } }
 }

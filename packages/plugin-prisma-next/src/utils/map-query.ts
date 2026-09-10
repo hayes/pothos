@@ -1,18 +1,18 @@
 /**
- * The plugin's entry points into `@pothos/selection-mapper`: the walk of a resolver's `info`
+ * The plugin's entry points into `@pothos/selection-mapper`: the plan of a resolver's `info`
  * emitted onto its collection.
  */
 import { isThenable } from '@pothos/core';
 import {
   type IndirectInclude,
   type PathSegment,
-  queryFromWalk,
+  planFromInfo,
+  queryFromPlan,
   selectedFieldNames,
-  walkFromInfo,
 } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { AnyContract } from '../types.js';
-import { emit, type MapperCollection, type PrismaNextWalk, prismaNextAdapter } from './adapter.js';
+import { emit, type MapperCollection, type PrismaNextPlan, prismaNextAdapter } from './adapter.js';
 
 export type { IndirectInclude };
 export { selectedFieldNames };
@@ -48,7 +48,7 @@ export function applySelectionToCollection(
   // The adapter records no loader mappings, so the walker never touches the context.
   const ctx = context as object;
   const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
-  const walk = walkFromInfo(prismaNextAdapter(contract), {
+  const plan = planFromInfo(prismaNextAdapter(contract), {
     context: ctx,
     info,
     typeName: options.typeName,
@@ -58,15 +58,15 @@ export function applySelectionToCollection(
     skipDeferredFragments: options.skipDeferredFragments,
   });
 
-  if (!walk) {
+  if (!plan) {
     // Nothing is selected under the paths: only the caller's own columns are read.
     return emit(baseCollection, initial ?? {}, undefined, ctx);
   }
 
-  const finish = (settled: PrismaNextWalk) =>
-    emit(baseCollection, queryFromWalk(settled), settled.root.model, ctx);
+  const finish = (settled: PrismaNextPlan) =>
+    emit(baseCollection, queryFromPlan(settled), settled.root.model, ctx);
 
-  return isThenable(walk)
-    ? (walk.then((settled) => finish(settled as PrismaNextWalk)) as unknown as MapperCollection)
-    : finish(walk);
+  return isThenable(plan)
+    ? (plan.then((settled) => finish(settled as PrismaNextPlan)) as unknown as MapperCollection)
+    : finish(plan);
 }

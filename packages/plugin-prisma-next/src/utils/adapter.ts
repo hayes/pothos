@@ -9,7 +9,7 @@
  * Every relation consumer gets its own combine slot (`<alias>:<slot>`, or
  * `:object:<Type>:<slot>` for a type-level select), so nothing ever conflicts: `compatible`
  * answers true and `typeLevelConflict` never reports one. Rows are read back through the
- * per-resolve overlay in the plugin index, so the loader mappings the walk records are never
+ * per-resolve overlay in the plugin index, so the loader mappings the plan records are never
  * looked up.
  */
 import { isThenable, PothosValidationError } from '@pothos/core';
@@ -17,8 +17,8 @@ import {
   type Adapter,
   deepEqual,
   type NestedSelection,
+  type Plan,
   type SelectFn,
-  type Walk,
 } from '@pothos/selection-mapper';
 import { type GraphQLField, type GraphQLNamedType, getNamedType } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from '../constants.js';
@@ -66,7 +66,7 @@ export interface MapperCollection {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Spec: the `Map` the walker passes around.
+// Spec: the `Query` the walker passes around.
 // ---------------------------------------------------------------------------------------------
 
 export type PrismaNextArgs = Record<string, unknown>;
@@ -115,7 +115,7 @@ export type PrismaNextRelationEntry = true | PrismaNextSpec | PrismaNextSpecFn |
 
 export type PrismaNextSelectFn = SelectFn<PrismaNextSpec>;
 export type PrismaNextAdapter = Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
-export type PrismaNextWalk = Walk<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
+export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
 
 // ---------------------------------------------------------------------------------------------
 // Node: the accumulator.
@@ -146,7 +146,7 @@ export interface PrismaNextNode {
   model: PrismaNextModel;
   columns: Set<string>;
   relations: Map<string, PrismaNextRelationAcc>;
-  /** Set by `mergeQuery` on the root of a nested walk; the parent's branch takes them. */
+  /** Set by `mergeQuery` on the root of a nested plan; the parent's branch takes them. */
   slot?: string;
   refine?: PrismaNextRefine;
 }
