@@ -86,8 +86,8 @@ only runs step 4 — the auto-include step is skipped. This makes
 
 The selection walk is `@pothos/selection-mapper` (the walker shared with
 `@pothos/plugin-prisma` and `@pothos/plugin-drizzle`); this plugin
-supplies an `Adapter` and an `Accumulator` for prisma-next's
-builder-chain query format
+supplies a `PrismaNextAdapter`, a subclass of the walker's `Adapter`,
+for prisma-next's builder-chain query format
 (`src/utils/adapter.ts`). `applySelectionToCollection(baseCollection,
 info, contract, ctx, opts)` (`src/utils/map-query.ts`) runs
 `planFromInfo`, serializes the root with `queryFromPlan`, and emits the
@@ -147,11 +147,11 @@ arrive with different arguments), function entries by alias. Getting a
 relation for the first time runs **FK augmentation**: the relation's
 `localFields` (the parent-side join columns) go into the node's columns,
 the workaround for prisma-next's nested-stitch plan needing the parent's
-FK on depth-2+ includes. The adapter's
-`accumulator` is `create`, `merge` and `emit` and nothing more: every
-consumer has its own slot, so nothing conflicts, and the package answers
-the optional members ("nothing conflicts", "nothing to leave out") on its
-behalf. Rows are read back through the per-resolve overlay, so the loader
+FK on depth-2+ includes. The adapter extends `Adapter` directly and
+answers its six members and no more: every consumer has its own slot, so
+nothing conflicts, and the four merge rules are inherited from the base
+class ("nothing conflicts", "nothing to leave out"). Rows are read back
+through the per-resolve overlay, so the loader
 mappings the plan records are never looked up.
 
 Then **emission** (`emit`, from the serialized root):

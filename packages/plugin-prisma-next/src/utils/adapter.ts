@@ -7,18 +7,20 @@
  * `.include(rel, ...)` / `.combine({...})` calls on the resolver's collection.
  *
  * Every relation consumer gets its own combine slot (`<alias>:<slot>`, or
- * `:object:<Type>:<slot>` for a type-level select), so nothing ever conflicts: the accumulator
- * is the three required members and nothing else, and the package answers the rest. Rows are
- * read back through the per-resolve overlay in the plugin index, so the loader mappings the plan
- * records are never looked up.
+ * `:object:<Type>:<slot>` for a type-level select), so nothing ever conflicts: the adapter
+ * extends `Adapter` directly, answers its six members and implements no no-op — the four merge
+ * rules are inherited. Rows are read back through the per-resolve overlay in the plugin index,
+ * so the loader mappings the plan records are never looked up.
  */
 import { isThenable, PothosValidationError } from '@pothos/core';
 import {
-  type Adapter,
+  Adapter,
   deepEqual,
+  type MergeOptions,
   type NestedSelection,
   type Plan,
   type SelectFn,
+  type WalkedType,
 } from '@pothos/selection-mapper';
 import { type GraphQLField, type GraphQLNamedType, getNamedType } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from '../constants.js';
@@ -114,7 +116,6 @@ export interface PrismaNextSpec {
 export type PrismaNextRelationEntry = true | PrismaNextSpec | PrismaNextSpecFn | PrismaNextFnEntry;
 
 export type PrismaNextSelectFn = SelectFn<PrismaNextSpec>;
-export type PrismaNextAdapter = Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
 export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
 
 // ---------------------------------------------------------------------------------------------
@@ -552,12 +553,6 @@ function isStaticColumns(raw: Record<string, unknown>, model: PrismaNextModel | 
   );
 }
 
-const typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
-const fieldSelections = new WeakMap<
-  GraphQLField<unknown, unknown>,
-  PrismaNextSpec | PrismaNextSelectFn | null
->();
-
 interface FieldSelectExtensions {
   pothosExposedField?: unknown;
   pothosOptions?: { select?: unknown };
@@ -574,8 +569,10 @@ interface FieldSelectExtensions {
 function compileFieldSelection(
   field: GraphQLField<unknown, unknown>,
   parentModel: PrismaNextModel | undefined,
-  modelFor: (type: GraphQLNamedType) => PrismaNextModel | undefined,
+  adapter: PrismaNextAdapter,
 ): PrismaNextSpec | PrismaNextSelectFn | undefined {
+  const modelFor = (type: GraphQLNamedType) => adapter.modelFor(type);
+
   const ext = (field.extensions ?? {}) as FieldSelectExtensions;
 
   if (ext[PRISMA_NEXT_FIELD_SELECT]) {
@@ -681,74 +678,89 @@ function compileTypeSelection(
 // The adapter, one per contract.
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * Every relation consumer gets its own combine slot, so there is nothing to compare and nothing
+ * to leave out: `accepts`, `conflict`, `absorb` and `acceptsFrom` are inherited, and the package
+ * answers "nothing ever conflicts" for them. The contract the models come from, and the compiled
+ * selections cached against the schema's types and fields, are this object's own state.
+ */
+export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode> {
+  private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
+  private readonly fieldSelections = new WeakMap<
+    GraphQLField<unknown, unknown>,
+    PrismaNextSpec | PrismaNextSelectFn | null
+  >();
+
+  constructor(private readonly contract: AnyContract) {
+    super();
+  }
+
+  modelFor(type: GraphQLNamedType): PrismaNextModel | undefined {
+    const name = type.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+
+    return name === undefined ? undefined : getModel(this.contract, name);
+  }
+
+  typeSelection(type: GraphQLNamedType): PrismaNextSpec | undefined {
+    let spec = this.typeSelections.get(type);
+
+    if (spec === undefined) {
+      spec = compileTypeSelection(type, this.modelFor(type)) ?? null;
+      this.typeSelections.set(type, spec);
+    }
+
+    return spec ?? undefined;
+  }
+
+  // A `GraphQLField` belongs to one type (`type.getFields()`), so the compile is cached on it.
+  fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+    let selection = this.fieldSelections.get(field);
+
+    if (selection === undefined) {
+      selection = compileFieldSelection(field, this.modelFor(type), this) ?? null;
+      this.fieldSelections.set(field, selection);
+    }
+
+    return selection ?? undefined;
+  }
+
+  create(model: PrismaNextModel): PrismaNextNode {
+    return createPrismaNextNode(model);
+  }
+
+  /**
+   * The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field alias)
+   * or the response key of the field the traversal is merging. E-3: a relation query is the
+   * branch's refine and slot; its columns (a connection's cursor) are read on the relation.
+   */
+  merge(node: PrismaNextNode, spec: PrismaNextSpec, options?: MergeOptions) {
+    if (options?.asQuery) {
+      if (spec.refine) {
+        node.refine = spec.refine;
+      }
+
+      if (spec.slot) {
+        node.slot = spec.slot;
+      }
+    }
+
+    mergeSpec(node, spec, spec.alias ?? options?.alias);
+  }
+
+  emit(node: PrismaNextNode): PrismaNextSpec {
+    return serializeNode(node);
+  }
+}
+
 const adapters = new WeakMap<AnyContract, PrismaNextAdapter>();
 
 export function prismaNextAdapter(contract: AnyContract): PrismaNextAdapter {
   let adapter = adapters.get(contract);
 
-  if (adapter) {
-    return adapter;
+  if (!adapter) {
+    adapter = new PrismaNextAdapter(contract);
+    adapters.set(contract, adapter);
   }
-
-  const modelFor = (type: GraphQLNamedType) => {
-    const name = type.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-
-    return name === undefined ? undefined : getModel(contract, name);
-  };
-
-  adapter = {
-    skipDeferredFragments: true,
-    modelFor,
-    typeSelection(type) {
-      let spec = typeSelections.get(type);
-
-      if (spec === undefined) {
-        spec = compileTypeSelection(type, modelFor(type)) ?? null;
-        typeSelections.set(type, spec);
-      }
-
-      return spec ?? undefined;
-    },
-    // A `GraphQLField` belongs to one type (`type.getFields()`), so the compile is cached on it.
-    fieldSelection(field, type) {
-      let selection = fieldSelections.get(field);
-
-      if (selection === undefined) {
-        selection = compileFieldSelection(field, modelFor(type), modelFor) ?? null;
-        fieldSelections.set(field, selection);
-      }
-
-      return selection ?? undefined;
-    },
-    /**
-     * Every relation consumer gets its own combine slot, so there is nothing to compare and
-     * nothing to leave out: `accepts`, `conflict`, `absorb` and `acceptsFrom` are omitted, and
-     * the package answers "nothing ever conflicts" for them.
-     */
-    accumulator: {
-      create: createPrismaNextNode,
-      // The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field
-      // alias) or the response key of the field the traversal is merging. E-3: a relation query
-      // is the branch's refine and slot; its columns (a connection's cursor) are read on the
-      // relation.
-      merge(node, spec, options) {
-        if (options?.asQuery) {
-          if (spec.refine) {
-            node.refine = spec.refine;
-          }
-
-          if (spec.slot) {
-            node.slot = spec.slot;
-          }
-        }
-
-        mergeSpec(node, spec, spec.alias ?? options?.alias);
-      },
-      emit: serializeNode,
-    },
-  };
-
-  adapters.set(contract, adapter);
 
   return adapter;
 }
