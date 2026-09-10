@@ -82,6 +82,7 @@ export const sdl = /* GraphQL */ `
   interface Entry { kind: String }
   type AppointmentEntry implements Entry { kind: String, appointment: User }
   type VariantEntry implements Entry { kind: String, appointment: Viewer }
+  type AdminEntry implements Entry { kind: String, appointment: Admin }
   type OtherEntry implements Entry { kind: String, appointment: Post }
 
   union UserResult = UserSuccess | Failure

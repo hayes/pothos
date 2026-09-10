@@ -298,6 +298,24 @@ describe('queryFromInfo', () => {
     }
   });
 
+  it('rejects two path matches whose type-level selections conflict (S-7, W-11)', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        entries {
+          ... on VariantEntry { appointment { id } }
+          ... on AdminEntry { appointment { id } }
+        }
+      }`,
+    );
+
+    // The same pair of type-level selections a fragment brings together, brought together by two
+    // path matches instead: one rule, one answer.
+    expect(() =>
+      queryFromInfo(adapter, { context: {}, info, typeName: 'User', path: ['appointment'] }),
+    ).toThrow('Type-level selections of Viewer and Admin conflict on relation "posts"');
+  });
+
   it('plans through a wrapper with a type-level path (E-4, E-5)', async () => {
     const context = {};
     const info = await resolveInfo(

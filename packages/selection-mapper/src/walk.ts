@@ -111,9 +111,24 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   branches: Branch[],
 ) {
   const resolved = branches.flatMap((branch) => resolveBranch(plan, branch));
+  const enteredTypes = new Set<WalkedType>();
+  let entryType: WalkedType | undefined;
 
   for (const { type, selectionSets } of resolved) {
-    enter(plan, type);
+    // S-7: the plan is entered as the first type a match landed on, and every other one as a
+    // same-model variant of it, so two type-level selections that conflict are reported here
+    // exactly as they are when a fragment moves the plan between the same two types. A type two
+    // matches share is entered once.
+    if (!enteredTypes.has(type)) {
+      enteredTypes.add(type);
+
+      if (entryType) {
+        enterVariant(plan, entryType, type);
+      } else {
+        entryType = type;
+        enter(plan, type);
+      }
+    }
 
     const entered = new Set<string>();
 
