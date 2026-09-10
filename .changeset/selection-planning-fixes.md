@@ -1,0 +1,59 @@
+---
+'@pothos/plugin-prisma': patch
+'@pothos/plugin-drizzle': patch
+---
+
+Fix how selections are found through fragments, paths and wrapper types, in both plugins. Each of
+these left a field to load its own data per row, or planned the wrong selection for it.
+
+- A path segment selected behind a fragment that narrows an interface or union
+  (`... on Impl { field }`), or a fragment on an interface that overlaps the list type, is now
+  found without needing to pin the type on the segment. Previously the field was skipped and the
+  plugin fell back to a separate query per row. Drizzle crashed on a fragment spread that narrows
+  an interface.
+- When the same field is selected in several places (multiple fragments, several `paths`, or the
+  same response key under several fragments), every selection is merged into one query. Previously
+  `queryFromInfo` kept only the last one, and a field loaded through the fallback planned only its
+  first occurrence.
+- A relation selected under both `nodes` and `edges { node }` of a connection is answered from the
+  loaded rows in both places. The loader mappings used to be keyed by field alias alone, so the
+  second path fell back to a query of its own.
+- A `nestedSelection` path into a field selected through a fragment on the same type
+  (`... on Type { field }` or `...Fragment`) now merges the nested selection instead of producing
+  an empty selection.
+- Fragment spreads and inline fragments left out by `@skip` / `@include` are no longer planned, so
+  they neither enter a variant nor add fields to the query.
+- `queryFromInfo`'s `path` and `paths` accept `{ name, type }` segments alongside strings, in the
+  types and the docs as well as at runtime. A segment `type` pins the fragment type condition the
+  field must be found under, which is useful when several implementations share a field name. The
+  pin is applied wherever the field is looked for, not only where a fragment was crossed to reach
+  it: a field of the same name selected directly on a level that is not the pinned type is no
+  longer taken as the segment's, so the match no longer carries that level's return type instead
+  of the pinned type's. A segment `type` that does not exist in the schema is a validation error,
+  rather than a `TypeError` (prisma) or a path that silently matches nothing (drizzle).
+- When several implementations share a field name, matches whose field returns a different model or
+  table than the one the query is being built for are ignored, so their selections are never merged
+  into the wrong query. Variants of the target model are walked with their own fields.
+- A type carrying `pothosIndirectInclude` with `paths` only contributes its own selection when it
+  is backed by the model being queried. A plain wrapper, or a wrapper backed by another model, no
+  longer merges its selection into the target model's query.
+- `queryFromInfo` with `path`/`paths` that select nothing now returns the `select`/`include`
+  (prisma) or `select` (drizzle) it was given, or `{}`, instead of an empty `select` (which prisma
+  rejects) or a query that dropped the caller's selection.
+- The selection lookup handed to a field's `select` callback (the fourth argument) now looks
+  through wrappers on the field's return type and returns the first match. A `relatedConnection`
+  with `totalCount: true` wrapped by `@pothos/plugin-errors` now selects the count, and its
+  totalCount-only handling agrees with what was planned.
+- A field `select` callback returning `false`, `null` or `undefined` is treated as selecting
+  nothing: the field is not answered from the parent row and loads its own data when resolved.
+  `false` used to switch the query to include mode and still record the field as loaded, so it
+  resolved from a row that held nothing for it; `null` and `undefined` threw.
+- Relation arguments compare the same way whichever of two selections was planned first. The
+  structural equality both plugins use decided whether a value was an array, or a boxed value such
+  as a `Date`, by looking only at its left-hand argument: `{}` and `[]` compared equal one way
+  round and unequal the other, and so did `{}` and a `Date`. That helper answers whether two
+  selections of one relation ask for the same arguments, so an answer that depended on argument
+  order could let an incompatible selection merge and replace the arguments already planned, or
+  refuse a compatible one and issue a separate query for the field. Both guards now read both
+  sides. `orderBy` is the argument where this is easiest to hit, since prisma accepts an object and
+  an array there for the same meaning.

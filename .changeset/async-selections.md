@@ -4,38 +4,38 @@
 '@pothos/plugin-drizzle': minor
 ---
 
-The callbacks that build a selection may be async when the schema opts in, and the query is still
-built synchronously unless the caller asks otherwise.
+Selections can be built by async callbacks. New `AsyncSelections` flag in the schema types, off by
+default.
 
-- Async selections require `AsyncSelections: true` in the schema types. Without it a field's
-  `select` function, a relation `query` callback, a `relationCount` / `relatedCount` `where`
-  callback, and the `select` / `query` callbacks of `prismaConnectionHelpers` and
-  `drizzleConnectionHelpers` are typed as synchronous, and an async callback is a type error. With
-  it, all of them may return promises. Nothing the plugins generate changes either way: the flag
-  only widens what those callbacks accept.
-- Async argument mappers (such as the validation plugin's) are awaited before the field's `select`
-  runs. Prisma previously accepted an async `select` and silently dropped it.
-- The plugin still builds one query: callbacks start in the same tick, and what they return is
-  merged after every synchronous selection, in document order. Schemas without async callbacks are
-  unaffected: until a callback returns a promise, planning and resolving create no promise and no
-  closure they did not create before.
+- `AsyncSelections: true` widens what the selection callbacks accept: a field's `select` function,
+  a relation `query` callback, a `relationCount` / `relatedCount` `where` callback, and the
+  `select` / `query` callbacks of `prismaConnectionHelpers` and `drizzleConnectionHelpers` may all
+  return promises. Without the flag they are typed as synchronous and an async callback is a type
+  error, which is what the prisma plugin needed: it accepted an async `select` and silently
+  dropped the selection it resolved to.
+- The plugins still build one query. Callbacks start in the same tick, and what they return is
+  merged after every synchronous selection, in document order. Async argument mappers (such as the
+  validation plugin's) are awaited before the field's `select` runs. A schema with no async
+  callbacks is unaffected either way: until a callback returns a promise, planning and resolving
+  create no promise and no closure they did not create before.
 - Inside an async `select`, `await` the result of `nestedSelection` before adding it to the
-  selection; a `select` that returns while a nested selection it started is still pending throws
-  with a message naming the field.
-- `queryFromInfo` (prisma) and a connection helper's `getQuery` (both plugins) take an
-  `awaitSelections` option and build the query synchronously without it. Whether it can be built
+  selection. A `select` that returns while a nested selection it started is still pending throws,
+  naming the field.
+- Everything the plugins generate settles its plan before your resolver runs, so a schema built
+  only from `t.relation`, `t.relationCount` / `t.relatedCount`, `t.prismaField` /
+  `t.drizzleField`, `t.prismaConnection` / `t.drizzleConnection` and `t.relatedConnection` can
+  turn the flag on and change nothing else. The `query()` builder handed to a `drizzleField` or
+  `drizzleConnection` resolver never returns a promise for the same reason.
+- The places where your own code asks for a query or a selection are the ones to audit:
+  `queryFromInfo` (prisma), a connection helper's `getQuery` (both plugins), `nestedSelection`,
+  and `mergeNestedSelection`. `queryFromInfo` and `getQuery` build the query synchronously and
+  take an `awaitSelections` option; pass `awaitSelections: true` to get a `MaybePromise` and
+  `await` it. A call that did not ask for a promise throws, naming the field and the option,
+  rather than returning one where the declared type said there was none — a promise spread into a
+  prisma or drizzle call is one unusable key and no type error. Whether the query can be built
   synchronously turns on whether any selection beneath the field is async, which is a property of
-  the document rather than of the call: the subtree is not visible where the query is asked for. A
-  call that did not ask for a promise throws, naming the field and the option, rather than
-  returning one where the declared type said there was none — a promise spread into a prisma or
-  drizzle call is one unusable key and no type error. Pass `awaitSelections: true` to get the query
-  as a `MaybePromise` and `await` it. The return type follows the option's literal type, so the
-  default keeps the plain query; a non-literal `boolean` gets the `MaybePromise`, since the call
-  cannot rely on the synchronous type either.
-- The `query()` builder handed to a `drizzleField` or `drizzleConnection` resolver never returns a
-  promise: the plan is settled before the resolver runs. A selection passed to `query()` comes
-  first, as for `queryFromInfo`: a relation the document also plans with other arguments loads on
-  its own, whether or not a selection beneath the field is async.
-
-Async selection callbacks have not been released, and the opt-in is off by default, so no published
-schema can reach the throw and nothing here is a migration.
+  the document rather than of the call site. The return type follows the option's literal type, so
+  the default keeps the plain query; a non-literal `boolean` gets the `MaybePromise`, since the
+  call cannot rely on the synchronous type either.
+- A selection passed to drizzle's `query()` comes first, as it does for `queryFromInfo`: a
+  relation the document also plans with other arguments loads on its own.

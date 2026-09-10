@@ -3,8 +3,7 @@
 '@pothos/plugin-drizzle': minor
 ---
 
-The selection API is now typed to match what it actually does, and the behaviour it describes is
-documented.
+The selection API is now typed to match what it actually does.
 
 Two changes can stop existing code from compiling. In the first case that code already failed at
 runtime:
@@ -35,20 +34,22 @@ New and widened types:
   whose `path`/`paths` still take only `IndirectPathSegment` objects. A `{ name, type }` segment
   given to `nestedSelection` now pins the implementation the field is found under at runtime, as
   it already did for `queryFromInfo`.
-- The `query` a `t.relation` fallback `resolve` receives (prisma) carries the relation's own
-  arguments (`where`, `orderBy`, `take`, ...) alongside the planned `select`/`include`, so it
-  spreads into a prisma call without a cast. Exported as `QueryFromRelation`.
+- The `query` a `t.relation` fallback `resolve` receives (prisma) — the relation's own arguments
+  (`where`, `orderBy`, `take`, ...) alongside the planned `select`/`include` — has a name:
+  `QueryFromRelation`.
 - `t.relatedField` (drizzle) accepts the ordinary field options (`deprecationReason`,
-  `extensions`, `authScopes`, ...); its `resolve` may be async and receives the resolve `info`.
-  Exported as `RelatedSelectionFieldOptions`.
+  `extensions`, `authScopes`, ...), and forwards every one of them to the field it builds, merging
+  `extensions` rather than dropping them; `t.relatedCount`, which is built on it, gets the same.
+  Its `resolve` may be async and receives the resolve `info`. Exported as
+  `RelatedSelectionFieldOptions`.
 - A query whose `select` key is optional but names columns (`{ select?: { email: true } }`)
   narrows the row to those columns, rather than to no columns at all as `ShapeFromSelection` did
   before: the columns are on the row whether or not the `select` is applied, since a row loaded
   without a `select` carries every column.
 
 The docs for both plugins now cover how a field gets its data, and when it costs a query of its
-own. Also newly documented: prisma `findUnique: null`, `onNull`,
-`nestedSelection`'s typed segments and third argument, `skipDeferredFragments`,
+own. Also newly documented: prisma `findUnique: null`, `onNull`, `nestedSelection`'s typed
+segments and third argument, `skipDeferredFragments`,
 `prismaFieldWithInput`/`drizzleFieldWithInput`, drizzle
 `drizzleInterface`/`drizzleInterfaceField(s)`, `t.variant(Ref, { select })`, connection size
 options, the drizzle fallback loader, and the error two variants raise when their selections

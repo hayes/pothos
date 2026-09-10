@@ -3,7 +3,10 @@
 '@pothos/plugin-drizzle': minor
 ---
 
-Entering another type of the same model through a fragment (a variant under a model interface or union) now merges that type's type-level selection, so resolvers relying on it find their data in the same query. This can change the shape of queries a schema with variants issues, and it adds one validation error.
+Entering another type of the same model through a fragment (a variant under a model interface or
+union) now merges that type's type-level selection, so resolvers relying on it find their data in
+the same query. This can change the shape of queries a schema with variants issues, and it adds one
+validation error.
 
 - A variant without a type-level `select` switches the query to include mode (prisma) or every
   column (drizzle).
@@ -25,5 +28,5 @@ Entering another type of the same model through a fragment (a variant under a mo
   entered while walking an interface, where rows may resolve to it. Prisma previously entered it
   whenever the field's declared type was abstract, planning a sibling variant's selection for
   rows that could never be it.
-- In both plugins, a fragment that does not apply to the type still lets a nested fragment narrow
-  back to it (drizzle previously stopped at the outer fragment).
+- A fragment that does not apply to the type still lets a nested fragment narrow back to it.
+  Drizzle previously stopped at the outer fragment and discarded what was nested inside it.
