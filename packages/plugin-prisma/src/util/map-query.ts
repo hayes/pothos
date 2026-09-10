@@ -1,5 +1,5 @@
 import { isThenable, type MaybePromise } from '@pothos/core';
-import { type PathSegment, Plan, selectedFieldNames } from '@pothos/selection-mapper';
+import { cacheKey, type PathSegment, Plan, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
 import { type PrismaPlan, type PrismaPlayedPlan, prismaAdapter } from './adapter.js';
@@ -82,6 +82,39 @@ export function queryFromInfo<
       ? query.then((settled) => wrapWithUsageCheck(settled as object))
       : wrapWithUsageCheck(query)
   ) as never;
+}
+
+/**
+ * L-4: the query for the field `info` resolves, from a plan `plans` holds per `Type@path`. The
+ * fallback path in `wrapResolve` runs once per row of the list its parent came from and asked
+ * for a fresh walk every time; `ModelLoader.queryCache` caches its own entry point this way and
+ * under this key, and this is the same cache for the same reason.
+ *
+ * What is written is unchanged. The plan is settled once and played per call, so each caller
+ * still gets a query of its own and each call still records the plan's mappings on the shared
+ * tier — under the same keys, since `responsePath` drops list indices and every row of a list
+ * therefore writes under the path the first row wrote under. All that goes away is the re-walk.
+ */
+export function fallbackQueryFromInfo(
+  plans: Map<string, MaybePromise<PrismaPlan>>,
+  context: object,
+  info: GraphQLResolveInfo,
+  skipDeferredFragments = true,
+): MaybePromise<SelectionMap> {
+  const key = cacheKey(info.parentType.name, info.path);
+  let plan = plans.get(key);
+
+  if (!plan) {
+    plan = Plan.fromInfo(prismaAdapter, {
+      context,
+      info,
+      skipDeferredFragments,
+    }) as MaybePromise<PrismaPlan>;
+
+    plans.set(key, plan);
+  }
+
+  return isThenable(plan) ? plan.then((settled) => settled.query()) : plan.query();
 }
 
 /**

@@ -5,7 +5,9 @@ import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
   completeValue,
+  createContextCache,
   isThenable,
+  type MaybePromise,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
@@ -16,10 +18,10 @@ import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
 import type { IncludeMap, PrismaModelTypes } from './types.js';
-import { INCLUDE_ALL } from './util/adapter.js';
+import { INCLUDE_ALL, type PrismaPlan } from './util/adapter.js';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors.js';
 import { getModel, getRefFromModel } from './util/datamodel.js';
-import { queryFromInfo } from './util/map-query.js';
+import { fallbackQueryFromInfo, queryFromInfo } from './util/map-query.js';
 import type { FieldMap } from './util/relation-map.js';
 
 export { prismaConnectionHelpers } from './connection-helpers.js';
@@ -145,9 +147,18 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       model: unknown,
     ) => ModelLoader;
 
-    const fallback = fieldConfig.extensions?.pothosPrismaFallback as
+    const resolveFallback = fieldConfig.extensions?.pothosPrismaFallback as
       | ((query: {}, parent: unknown, args: {}, context: {}, info: {}) => unknown)
       | undefined;
+
+    // L-4: the fallback with one settled plan per `Type@path` per request beside it, since it
+    // plans this field again for every row of the list its parent came from. Allocated only for
+    // a field that has a fallback, and scoped to the field config, so the plans of a request go
+    // with the request and the builder's own `skipDeferredFragments` is the one that applies.
+    const fallback = resolveFallback && {
+      resolve: resolveFallback,
+      plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),
+    };
 
     const parentTypes = new Set([fieldConfig.parentType]);
 
@@ -183,15 +194,16 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if (fallback) {
-        const query = queryFromInfo({
+        const query = fallbackQueryFromInfo(
+          fallback.plans(context),
           context,
           info,
-          skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments,
-        });
+          this.builder.options.prisma.skipDeferredFragments,
+        );
 
         return isThenable(query)
-          ? query.then((resolved) => fallback(resolved as {}, parent, args, context, info))
-          : fallback(query, parent, args, context, info);
+          ? query.then((resolved) => fallback.resolve(resolved as {}, parent, args, context, info))
+          : fallback.resolve(query, parent, args, context, info);
       }
 
       return loaderCache(context)
