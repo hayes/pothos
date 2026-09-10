@@ -232,7 +232,6 @@ builder.drizzleObjectFields('users', (t) => ({
   }),
 }));
 
-
 it('types the nested selection as the query it returns', () => {
   expectTypeOf(builder).not.toBeAny();
 });

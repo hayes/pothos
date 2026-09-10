@@ -256,7 +256,6 @@ export type ShapeFromSelection<
 /** The `_count` entry of a `select` or `include` map, or `undefined` when there is none. */
 type CountSelection<Map> = Map extends { _count?: infer Count } ? Count : undefined;
 
-
 /**
  * What a `_count` selection adds to a row, as prisma returns it: `_count: true` counts every list
  * relation of `Model`, `_count: { select }` the selected ones, and each count is a number.

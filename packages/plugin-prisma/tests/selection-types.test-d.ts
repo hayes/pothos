@@ -6,13 +6,13 @@ import PrismaPlugin, {
   type IndirectInclude,
   type IndirectPathSegment,
   type PathSegment,
-  type ShapeFromSelection,
   type PrismaRelationQuery,
   type PrismaTypesFromClient,
   prismaConnectionHelpers,
   type QueryFromRelation,
   queryFromInfo,
   type SelectionMap,
+  type ShapeFromSelection,
 } from '../src';
 import type { Prisma } from './client/client';
 import { prisma } from './example/builder';
@@ -316,10 +316,16 @@ it('names the shape of a row loaded with a query', () => {
   type Types = typeof builder.$inferSchemaTypes;
 
   expectTypeOf<
-    ShapeFromSelection<Types, PrismaTypes['User'], { select: { id: true; posts: { select: { title: true } } } }>
+    ShapeFromSelection<
+      Types,
+      PrismaTypes['User'],
+      { select: { id: true; posts: { select: { title: true } } } }
+    >
   >().toEqualTypeOf<{ id: number; posts: { title: string }[] }>();
 
-  expectTypeOf<ShapeFromSelection<Types, PrismaTypes['User'], { include: { profile: true } }>>().toEqualTypeOf<{
+  expectTypeOf<
+    ShapeFromSelection<Types, PrismaTypes['User'], { include: { profile: true } }>
+  >().toEqualTypeOf<{
     id: number;
     email: string;
     name: string | null;
@@ -345,10 +351,18 @@ it('names the shape of a row loaded with a query', () => {
     };
   }>();
   expectTypeOf<
-    ShapeFromSelection<Types, PrismaTypes['User'], { select: { _count: { select: { posts: true } } } }>
+    ShapeFromSelection<
+      Types,
+      PrismaTypes['User'],
+      { select: { _count: { select: { posts: true } } } }
+    >
   >().toEqualTypeOf<{ _count: { posts: number } }>();
   expectTypeOf<
-    ShapeFromSelection<Types, PrismaTypes['User'], { include: { _count: { select: { posts: true } } } }>
+    ShapeFromSelection<
+      Types,
+      PrismaTypes['User'],
+      { include: { _count: { select: { posts: true } } } }
+    >
   >().toEqualTypeOf<{
     id: number;
     email: string;
@@ -368,11 +382,10 @@ it('names the shape of a row loaded with a query', () => {
   expectTypeOf<
     ShapeFromSelection<
       Types,
-      'User',
+      PrismaTypes['User'],
       { select: { _count: { select: { posts: { where: { published: true } } } } } }
     >
   >().toEqualTypeOf<{ _count: { posts: number } }>();
-
 });
 
 // Whether a `select` narrows the row turns on whether it names a column, not on whether the
