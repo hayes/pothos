@@ -188,7 +188,10 @@ function eachSelectedField(
     return false;
   }
 
-  const { type, expectedType, path, deferred } = level;
+  const { type, path, deferred } = level;
+  // A segment that pins a type condition pins it here too: its field must be found under a
+  // fragment on that type, never taken from a level that merely has a field of the same name.
+  const expectedType = pinnedType(info, segment) ?? level.expectedType;
   const fieldsApply =
     expectedType.name === type.name && (isObjectType(type) || isInterfaceType(type));
 
@@ -529,19 +532,7 @@ function resolveFragmentTypes(
   expectedType: GraphQLNamedType,
   include?: IndirectPathSegment,
 ) {
-  let expected = expectedType;
-
-  if (include?.type) {
-    const pinned = info.schema.getType(include.type);
-
-    if (!pinned) {
-      throw new PothosValidationError(
-        `Unknown type ${include.type} in indirect include path segment ${include.name}`,
-      );
-    }
-
-    expected = pinned;
-  }
+  const expected = pinnedType(info, include) ?? expectedType;
 
   if (!fragmentType || fragmentType.name === expected.name) {
     return { type: fragmentType ?? type, expectedType: expected };
@@ -569,6 +560,28 @@ function resolveFragmentTypes(
   }
 
   return { type: fragmentType, expectedType: expected };
+}
+
+/**
+ * The type an indirect-include segment pins its field to, or undefined when it pins none. A
+ * pinned segment names the fragment type condition the field must be found under, so the pin
+ * decides both which fragments are descended into and whether a field selected directly at a
+ * level counts as the segment's.
+ */
+function pinnedType(info: GraphQLResolveInfo, segment: IndirectPathSegment | undefined) {
+  if (!segment?.type) {
+    return undefined;
+  }
+
+  const pinned = info.schema.getType(segment.type);
+
+  if (!pinned) {
+    throw new PothosValidationError(
+      `Unknown type ${segment.type} in indirect include path segment ${segment.name}`,
+    );
+  }
+
+  return pinned;
 }
 
 /**

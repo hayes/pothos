@@ -18,6 +18,26 @@ const schema = createTestSchema();
 const adapter = createTestAdapter();
 
 describe('findMatches', () => {
+  it('takes a pinned segment only from under a fragment on the type it pins', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        person {
+          direct: posts { id }
+          ... on Viewer { pinned: posts { id } }
+        }
+      }`,
+    );
+
+    const matches = findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [
+      [{ name: 'posts', type: 'Viewer' }],
+    ]);
+
+    // Person has a `posts` of its own, but the segment pins Viewer, so only the one selected
+    // under the fragment on Viewer is the segment's field.
+    expect(matches.map((match) => match.path)).toEqual([['pinned']]);
+  });
+
   it('finds the field at the end of a path under every fragment, in document order', async () => {
     const info = await resolveInfo(
       schema,
