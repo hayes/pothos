@@ -41,18 +41,41 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
   return into.position === undefined ? { nested } : { nested, position: into.position };
 }
 
-const cache = createContextCache(() => new Map<string, Mapping>());
+/**
+ * Per request context: the mappings recorded so far, and the keys they were recorded under, by
+ * the path prefix that rehomed them. A field resolved for each of N rows of a list records the
+ * same mappings under the same keys every time — `responsePath` drops the list index, so every
+ * row rebuilds the same strings — so a prefix builds its keys once and the rows after the first
+ * only write.
+ */
+const cache = createContextCache(() => ({
+  mappings: new Map<string, Mapping>(),
+  rehomed: new Map<string, Map<string, string>>(),
+}));
+
+/**
+ * Memoised per path link. A path link is created once per field per row and never mutated, and
+ * graphql-js shares the links above a list between every row of it, so the prefix of a field
+ * resolved for each of N rows is computed once rather than N times. Every consumer of a mapping
+ * asks for a path this way, several times per resolve, so the cost is otherwise paid repeatedly
+ * for a string that cannot change. Weak, so the links go with the request.
+ */
+const pathKeys = new WeakMap<object, string>();
 
 /** The string keys of a response path joined by `.`; list indices are dropped. */
 export function responsePath(path: GraphQLResolveInfo['path'] | undefined): string {
-  let key = '';
-  let current = path;
+  if (!path) {
+    return '';
+  }
 
-  while (current) {
-    if (typeof current.key === 'string') {
-      key = key ? `${current.key}.${key}` : current.key;
-    }
-    current = current.prev;
+  let key = pathKeys.get(path);
+
+  if (key === undefined) {
+    const prefix = responsePath(path.prev);
+
+    // A list index contributes nothing, so the link's key is its prefix's.
+    key = typeof path.key === 'string' ? (prefix ? `${prefix}.${path.key}` : path.key) : prefix;
+    pathKeys.set(path, key);
   }
 
   return key;
@@ -64,13 +87,26 @@ export function cacheKey(type: string, path: GraphQLResolveInfo['path']) {
 
 /** Records the mappings of a plan rooted at the field `info` resolves, under that field's path. */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  const map = cache(ctx);
+  const { mappings: map, rehomed } = cache(ctx);
   const prefix = responsePath(info.path);
+  let keys = rehomed.get(prefix);
+
+  if (!keys) {
+    keys = new Map();
+    rehomed.set(prefix, keys);
+  }
 
   for (const key of Object.keys(mappings)) {
-    const at = key.indexOf('@');
+    let under = keys.get(key);
 
-    map.set(`${key.slice(0, at)}@${prefix}.${key.slice(at + 1)}`, mappings[key]);
+    if (under === undefined) {
+      const at = key.indexOf('@');
+
+      under = `${key.slice(0, at)}@${prefix}.${key.slice(at + 1)}`;
+      keys.set(key, under);
+    }
+
+    map.set(under, mappings[key]);
   }
 }
 
@@ -80,7 +116,7 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
  * themselves up.
  */
 export function setFieldMapping(ctx: object, info: GraphQLResolveInfo, mapping: Mapping) {
-  cache(ctx).set(cacheKey(info.parentType.name, info.path), mapping);
+  cache(ctx).mappings.set(cacheKey(info.parentType.name, info.path), mapping);
   setLoaderMappings(ctx, info, mapping.nested);
 }
 
@@ -89,5 +125,5 @@ export function getLoaderMapping(
   path: GraphQLResolveInfo['path'],
   type: string,
 ): Mapping | null {
-  return cache(ctx).get(cacheKey(type, path)) ?? null;
+  return cache(ctx).mappings.get(cacheKey(type, path)) ?? null;
 }
