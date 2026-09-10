@@ -53,7 +53,6 @@ builder.prismaObject('Post', {
     latestComments: t.field({
       type: [Comment],
       select: async (args, ctx, nestedSelection) => ({
-        // A promise when a selection beneath it is async, so it must be awaited
         comments: await nestedSelection({ take: await ctx.previewSize() }),
       }),
       resolve: (post) => post.comments,
@@ -63,12 +62,21 @@ builder.prismaObject('Post', {
 ```
 
 Inside an async `select`, `await` the result of `nestedSelection` before adding it to the selection.
-The same applies to helpers built on it, like `getQuery` from `prismaConnectionHelpers`. A
-selection that contains the promise itself will throw, and so will a `select` that returns while a
-nested selection it started is still pending. Calling `nestedSelection` and discarding a
+A selection that contains the promise itself will throw, and so will a `select` that returns while
+a nested selection it started is still pending. Calling `nestedSelection` and discarding a
 synchronous result is not detected, and the nested selection will not be loaded with the parent, so
-the field falls back to its own query. `queryFromInfo` returns a promise when a callback beneath
-the field is async, so `await` it in resolvers that call it directly.
+the field falls back to its own query.
+
+`queryFromInfo` and a helper's `getQuery` build the query synchronously, and throw when a selection
+beneath the field is async. Which selections are beneath the field depends on the document, so pass
+`awaitSelections: true` in schemas that use async selections, and `await` what you get back:
+
+```typescript
+const post = await prisma.post.findUniqueOrThrow({
+  where: { id: args.id },
+  ...(await queryFromInfo({ context, info, awaitSelections: true })),
+});
+```
 
 ## Optimized queries without `t.prismaField`
 
@@ -113,8 +121,7 @@ builder.mutationField(
       }
 
       const post = prisma.post.create({
-        // A promise when a callback beneath the field is async, so it is awaited
-        ...(await queryFromInfo({
+        ...queryFromInfo({
           context,
           info,
           // nested path where the selections for this type can be found
@@ -124,7 +131,7 @@ builder.mutationField(
           select: {
             comments: true,
           },
-        })),
+        }),
         data: {
           title: args.input.title,
           ...
@@ -142,7 +149,8 @@ builder.mutationField(
 
 Spread the result into your prisma call, the way the example above does. The columns and relations
 the query selected come back on the rows, along with anything you passed in as `select`, and the
-rows are typed to match.
+rows are typed to match. The query is built synchronously; a field with an
+[async selection](#async-selections) beneath it throws unless the call passes `awaitSelections`.
 
 The `path` is followed through fragments in the query, including inline fragments and fragment
 spreads that narrow an interface or union to one of its implementations. Every selection of the
@@ -154,13 +162,13 @@ when it is selected directly, or under a fragment on that type or one of its sub
 ```typescript
 const user = await prisma.user.findUniqueOrThrow({
   where: { id: args.id },
-  ...(await queryFromInfo({
+  ...queryFromInfo({
     context,
     info,
     typeName: 'User',
     // only match `appointment` when selected inside `... on AppointmentEntry`
     path: [{ name: 'appointment', type: 'AppointmentEntry' }],
-  })),
+  }),
 });
 
 // user.appointments is loaded with the selections from `... on AppointmentEntry`,

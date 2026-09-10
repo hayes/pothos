@@ -82,7 +82,6 @@ builder.drizzleObject('users', {
     latestPosts: t.field({
       type: [Post],
       select: async (args, ctx, nestedSelection) => ({
-        // A promise when a selection beneath it is async, so it must be awaited
         with: { posts: await nestedSelection({ limit: await ctx.previewSize() }) },
       }),
       resolve: (user) => user.posts,
@@ -101,10 +100,23 @@ builder.queryField('me', (t) =>
 ```
 
 Inside an async `select`, `await` the result of `nestedSelection` before adding it to the selection.
-The same applies to helpers built on it, like `getQuery` from `drizzleConnectionHelpers`. A
-selection that contains the promise itself will throw, and so will a `select` that returns while a
-nested selection it started is still pending. Calling `nestedSelection` and discarding a
+A selection that contains the promise itself will throw, and so will a `select` that returns while
+a nested selection it started is still pending. Calling `nestedSelection` and discarding a
 synchronous result is not detected, and the nested selection will not be loaded with the parent.
+
+A helper's `getQuery` builds the query synchronously, and throws when a selection beneath the field
+is async. Which selections are beneath the field depends on the document, so pass
+`awaitSelections: true` in schemas that use async selections, and `await` what you get back:
+
+```ts
+select: async (args, ctx, nestedSelection) => ({
+  with: {
+    comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
+      awaitSelections: true,
+    }),
+  },
+}),
+```
 
 ## Conflicting selections between variants
 
