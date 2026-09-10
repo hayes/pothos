@@ -124,20 +124,20 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     if (paths?.length || path?.length) {
       const includePaths = normalizePaths(paths?.length ? paths : [path!]);
       const prefix = includeOf(returnType)?.path;
-      const matches = matchesForModel(
-        adapter,
-        info.schema,
-        info.fieldNodes.flatMap((fieldNode) =>
-          findMatches(info, returnType, fieldNode, includePaths, { prefix }),
-        ),
-        target,
+      const found = info.fieldNodes.flatMap((fieldNode) =>
+        findMatches(info, returnType, fieldNode, includePaths, { prefix }),
       );
 
-      if (matches.length === 0) {
+      if (found.length === 0) {
         return undefined;
       }
 
-      rootType = typeName ? target : matches[0].type;
+      // W-10 filters against the model the root loads, which is the first match's own when no
+      // `typeName` names it: the return type is then a wrapper with no model of its own, and
+      // filtering by it would keep every match whatever model it returns.
+      rootType = typeName ? target : found[0].type;
+
+      const matches = matchesForModel(adapter, info.schema, found, rootType);
       // Every match is planned into the one root, entered under its own type first (W-11).
       branches = matches.map((match) => ({
         // A matched type with its own model (including variants of the target model) is walked
@@ -247,6 +247,16 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   }
 
   /**
+   * E-3: the relation query of the nested selection this plan was made for. It takes the head of
+   * the list rather than its tail, so it is merged before the fields walked beneath it whether the
+   * callback that produced it answered at once or resolved after the walk (A-4). A nested plan is
+   * made per `nestedSelection()` call and has at most one, so the head is its own.
+   */
+  collectQuery(query: Query) {
+    this.merges.unshift({ kind: 'query', query });
+  }
+
+  /**
    * A-2: appends the merge of `value` to the plan's pending chain. Only merges are chained, never
    * user code, so a link can never append another and the chain needs no loop. Each link waits on
    * the previous one, so async merges run in the order they were appended (A-4). Both promises get
@@ -295,10 +305,13 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   play(seed?: Query): PlayedPlan<Model, Query, NodeType> {
     const { adapter } = this;
     const root = adapter.create(this.model);
-    const first = seed ?? this.initial;
     const settled = this.reusable(seed);
+    // E-1: merged before anything else, so on a conflict it wins. A settled play already holds
+    // the plan's own `initial`, so reusing one merges the seed standing beside it and nothing
+    // else: `merge` is not required to be idempotent, and merging the same query twice is a
+    // question this package has no business asking an adapter.
+    const first = settled ? seed : (seed ?? this.initial);
 
-    // E-1: merged before anything else, so on a conflict it wins.
     if (first) {
       adapter.merge(root, first);
     }

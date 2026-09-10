@@ -554,7 +554,10 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
         walkBranches(
           child,
           matches.map((match) => ({
-            type: match.type,
+            // As E-1's own path branch does: a matched type with a model is walked with it, and
+            // one without (an interface, a wrapper) as the type asked for, so its fields are
+            // found and a fragment narrowing to it applies.
+            type: modelOf(adapter, info.schema, match.type) ? match.type : target,
             fieldNodes: [match.field],
             indirectPath: match.path,
             deferred: match.deferred,
@@ -630,16 +633,17 @@ function playNested<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * E-3: the relation query of a nested selection, collected where it happens — before the walk
- * beneath it when the query is synchronous and after it when it is not, which is exactly where
- * merging it into a live root put it.
+ * E-3: the relation query of a nested selection, merged before the walk beneath it whether the
+ * callback answered at once or resolved after that walk had already collected its fields — see
+ * `collectQuery`. A field of the document that conflicts with the query therefore loses to it
+ * either way, and is never mapped to a relation the query loaded with other arguments.
  */
 function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
   query: Query | null | undefined,
 ) {
   if (query) {
-    child.collect({ kind: 'query', query });
+    child.collectQuery(query);
   }
 }
 

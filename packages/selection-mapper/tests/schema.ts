@@ -57,6 +57,7 @@ export const sdl = /* GraphQL */ `
     posts(take: Int): [Post]
     profile: Profile
     postsConnection(first: Int): PostConnection
+    nodeEdges: [NodeEdge]
   }
 
   type Viewer implements Node & Person {
@@ -72,6 +73,7 @@ export const sdl = /* GraphQL */ `
   }
 
   type Post { id: ID, title: String, author(x: Int): User, comments: [Comment] }
+  type NodeEdge { node: Node }
   type Comment { id: ID, author: User }
   type Profile { bio: String }
 

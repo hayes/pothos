@@ -247,7 +247,7 @@ describe('queryFromInfo', () => {
         entries {
           ... on AppointmentEntry { appointment { id posts(take: 5) { id } } }
           ... on VariantEntry { appointment { id email profile { bio } } }
-          ... on OtherEntry { appointment { title } }
+          ... on OtherEntry { appointment { comments { id } } }
         }
       }`,
     );
@@ -314,6 +314,60 @@ describe('queryFromInfo', () => {
     expect(() =>
       queryFromInfo(adapter, { context: {}, info, typeName: 'User', path: ['appointment'] }),
     ).toThrow('Type-level selections of Viewer and Admin conflict on relation "posts"');
+  });
+
+  it('keeps only the matches of the model the root loads, with no typeName (W-10)', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        entries {
+          ... on AppointmentEntry { appointment { posts(take: 2) { id } } }
+          ... on OtherEntry { appointment { comments { id } } }
+        }
+      }`,
+    );
+
+    // Entry carries no model, so there is nothing on the return type to filter the matches by:
+    // the model to keep is the one the root ends up loading. OtherEntry.appointment is a Post,
+    // so its selections must never be planned into the User node the root is.
+    const { adapter: watched, seen } = watchPositions();
+
+    queryFromInfo(watched, { context: {}, info, path: ['appointment'] });
+
+    expect(seen.map(([name]) => name)).toEqual(['posts']);
+  });
+
+  it('walks a model-less nested path match as the type asked for (W-11)', async () => {
+    const viaNode = withSelects(['author'], (_select, name) => (_args, _ctx, nested) => ({
+      select: {
+        [name]: nested(
+          {},
+          {
+            getType: () => 'User',
+            paths: [[{ name: 'nodeEdges' }, { name: 'node' }]],
+          },
+        ),
+      },
+    }));
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        user {
+          posts {
+            author(x: 1) {
+              nodeEdges { node { ... on User { profile { bio } } } }
+            }
+          }
+        }
+      }`,
+    );
+
+    // The path ends on Node, which carries no model. Walked as Node the fragment on User cannot
+    // apply and `profile` is never planned; walked as the type the include asked for, it is —
+    // which is what E-1's own path branch does with a match that has no model of its own.
+    expect(queryFromInfo(viaNode, { context: {}, info })).toEqual({
+      select: { posts: { select: { author: { select: { profile: true } } } } },
+    });
   });
 
   it('plans through a wrapper with a type-level path (E-4, E-5)', async () => {

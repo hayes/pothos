@@ -134,6 +134,25 @@ describe('async callbacks', () => {
     );
   });
 
+  it('merges a relation query before the fields walked beneath it, async or not (E-3, A-4)', async () => {
+    const relationQuery = (): FakeMap => ({ select: { author: { where: { x: 1 } } } });
+    const sync = withSelects(['posts'], (_select, name) => (_args, _ctx, nested) => ({
+      select: { [name]: nested(relationQuery) },
+    }));
+    const async = withSelects(['posts'], (_select, name) => async (_args, _ctx, nested) => ({
+      select: { [name]: await nested(async () => relationQuery()) },
+    }));
+    const info = await resolveInfo(schema, '{ user { posts { author(x: 2) { name } } } }');
+    const syncPlan = Plan.fromInfo(sync, { context: {}, info })!;
+    const asyncPlan = await Plan.fromInfo(async, { context: {}, info })!;
+
+    // The relation query asks for `author(where: { x: 1 })` and the document for `x: 2`. The
+    // query is merged before the fields walked beneath it either way, so the document's field
+    // loses and nothing beneath the relation is mapped to it.
+    expect(mappingsOf(asyncPlan.play().mappings)).toEqual(mappingsOf(syncPlan.play().mappings));
+    expect(mappingsOf(syncPlan.play().mappings)).toEqual({ 'User@posts': { nested: {} } });
+  });
+
   it('rejects an async select that embeds a nested selection without awaiting it', async () => {
     const async = withSelects(['posts'], (_select, name) => async (_args, _ctx, nested) => ({
       select: { [name]: nested(async () => ({ take: 1 })) },
