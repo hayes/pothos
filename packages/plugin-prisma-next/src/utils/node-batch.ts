@@ -85,7 +85,6 @@ export interface NodeBatchRunner<IDShape> {
   buildApply: (info: GraphQLResolveInfo) => Apply;
   idFields: readonly string[];
   brandRow?: (row: object) => void;
-  typeName: string;
 }
 
 export function enqueueNodeLoad<IDShape>(

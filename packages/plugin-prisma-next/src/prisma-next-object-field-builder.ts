@@ -396,7 +396,7 @@ export class PrismaNextObjectFieldBuilder<
    * Result is non-nullable `number` (a count over an empty set is 0).
    */
   relationCount<
-    RelName extends RelationKeys<Types, M>,
+    RelName extends ToManyRelationKeys<Types, M>,
     Nullable extends boolean = false,
     Args extends InputFieldMap = {},
   >(
@@ -422,7 +422,7 @@ export class PrismaNextObjectFieldBuilder<
    * those fields are exposed nullable by default.
    */
   relationAggregate<
-    RelName extends RelationKeys<Types, M>,
+    RelName extends ToManyRelationKeys<Types, M>,
     Op extends 'count' | 'sum' | 'avg' | 'min' | 'max',
     Nullable extends boolean = Op extends 'count' ? false : true,
     Args extends InputFieldMap = {},

@@ -822,12 +822,12 @@ export function emit(
   return acc;
 }
 
-// Single-consumer fast path: `.include(rel, cb => …)` direct — to-one
-// relations and to-many with exactly one branch and no function-form
-// entry. Multi-consumer or any function-form entry goes through
-// `.combine({...})` for collision-free aliasing — prisma-next's
-// planner falls back to multi-query for any include with combine
-// (painpoint #3), so we keep the single-consumer path for perf.
+// Single-consumer fast path: `.include(rel, cb => …)` direct — at most one branch and no
+// function-form entry. Several branches or any function-form entry goes through
+// `.combine({...})` for collision-free aliasing — prisma-next's planner falls back to
+// multi-query for any include with combine (painpoint #3), so we keep the single-consumer
+// path for perf. The combine is emitted on a to-one relation too, where the orm rejects it:
+// a function-form entry the emitter dropped instead would answer that field with nothing.
 function emitRelation(
   parent: MapperCollection,
   name: string,
@@ -847,11 +847,10 @@ function emitRelation(
     (entry): entry is PrismaNextFnEntry | PrismaNextSpecFn => !isBranch(entry) && entry !== true,
   );
 
-  if (!(meta.isToMany && (branches.length > 1 || functions.length > 0))) {
+  if (branches.length <= 1 && functions.length === 0) {
     const branch = branches[0];
 
-    // No branches at all (only a function-form entry on a to-one relation): a no-refine include
-    // so the relation still preloads.
+    // No branch (a bare `true` entry): a no-refine include so the relation still preloads.
     return branch
       ? parent.include(name, (rel) => emitBranch(branch, rel, meta.target, ctx))
       : parent.include(name);

@@ -179,6 +179,47 @@ describe('prismaNode batching — id fan-out by id-field equality', () => {
   });
 });
 
+describe('prismaNode batching — two variants of one model stay separate', () => {
+  it('a variant registration gets its own batch, selection and brand', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin, relayPlugin],
+      relay: { clientMutationId: 'omit', cursorType: 'String' },
+      prismaNext: { contract: ctx.contract },
+    });
+    builder.prismaNode('User', {
+      id: { field: 'id' },
+      collection: ctx.ormClient.User,
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.prismaNode('User', {
+      variant: 'AdminUser',
+      id: { field: 'id' },
+      collection: ctx.ormClient.User,
+      fields: (t) => ({ lastName: t.exposeString('lastName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }),
+    });
+    const result = await execute({
+      schema: builder.toSchema(),
+      contextValue: {},
+      document: parse(`{
+        nodes(ids: [
+          "${encodeNodeId('User', 'u-alice')}",
+          "${encodeNodeId('AdminUser', 'u-bob')}"
+        ]) { __typename ... on User { firstName } ... on AdminUser { lastName } }
+      }`),
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      nodes: [
+        { __typename: 'User', firstName: 'Alice' },
+        { __typename: 'AdminUser', lastName: 'Brown' },
+      ],
+    });
+  });
+});
+
 describe('prismaNode — missing collection throws at schema-build time', () => {
   it('omitting collection surfaces a clear PothosSchemaError', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({

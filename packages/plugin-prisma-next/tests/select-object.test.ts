@@ -239,3 +239,33 @@ describe('object-form select on t.field', () => {
     expect(alice?.firstPostTitle).toBe(alice?.posts[0]?.title);
   });
 });
+
+// A function-form entry on a to-one relation is emitted as a combine the orm rejects, rather
+// than dropped: dropping it answered the field with nothing at all.
+describe('function-form select on a to-one relation', () => {
+  it('reports the unsupported combine instead of resolving to undefined', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: ctx.contract },
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        title: t.exposeString('title'),
+        // `t.relationCount` no longer accepts a to-one key; cast past the gate to reach the
+        // emitter, which is what a hand-written function-form select would also hit.
+        authorCount: t.relationCount('author' as never),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({ type: ['Post'], resolve: (() => ctx.ormClient.Post) as never }),
+      }),
+    });
+    const result = await execute({
+      schema: builder.toSchema(),
+      contextValue: {},
+      document: parse('{ posts { title authorCount } }'),
+    });
+    expect(result.errors?.[0]?.message).toMatch(/combine\(\) is only supported for to-many/);
+  });
+});

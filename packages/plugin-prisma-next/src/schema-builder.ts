@@ -380,7 +380,10 @@ schemaBuilderProto.prismaNode = function prismaNode<
       // one representative info per group (all entries share a
       // selection set by GraphQL semantics).
       const normalized = normalizeId(id);
-      const groupKey = `${nodeModelName}:${pathKey(info.path)}`;
+      // Keyed on the GraphQL type, not the model: two variants of one model are two
+      // registrations with their own selection and brand, and sharing a batch would hand one
+      // variant's rows to the other.
+      const groupKey = `${typeName}:${pathKey(info.path)}`;
       return enqueueNodeLoad(context as object, groupKey, normalized, info, {
         collection: (ctx) => collection(ctx as Types['Context']) as never,
         buildIdPredicate: (ids) => {
@@ -418,7 +421,6 @@ schemaBuilderProto.prismaNode = function prismaNode<
           }),
         idFields,
         brandRow: (row) => brandWithType(row, typeName as unknown as OutputType<Types>),
-        typeName: nodeModelName,
       });
     },
   });
