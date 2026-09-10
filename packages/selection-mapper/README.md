@@ -32,7 +32,12 @@ their own. Use the plugins.
   be played any number of times, behind a different seed each time; a play owns its node
   (`PlayedPlan`), so a caller may merge into what it gets back.
 - **Walk** — only ever the verb: to read a selection into a plan (`walkBranches`, `walkField`,
-  `walkSelections`, `walkIndirectPath`). Never a noun.
+  `walkSelections`). Never a noun.
+- **Level** — one selection set as the shared traversal reads it: the type it is read as, the type
+  the next field is expected on, the alias path that reached it, and whether a `@defer` was
+  crossed. `eachSelectedField` reads one level, descends into the fragments beneath it, and hands
+  every field that applies to a visitor; matching an indirect-include path, collecting the
+  selected field names, and finding one field node are all that one traversal with three visitors.
 - **Branch** — one selection set (or several, for one field selected under several fragments) with
   the type to walk it as: the unit `walkBranches` takes.
 - **Merge (verb)** — to fold a query into a node, through the accumulator.

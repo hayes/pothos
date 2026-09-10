@@ -7,6 +7,7 @@ import {
   type GraphQLField,
   GraphQLIncludeDirective,
   type GraphQLNamedType,
+  type GraphQLObjectType,
   type GraphQLResolveInfo,
   type GraphQLSchema,
   GraphQLSkipDirective,
@@ -114,9 +115,224 @@ export function matchesForModel<Model>(
 }
 
 /**
+ * One selection set being read, as `eachSelectedField` hands it to a visitor.
+ *
+ * `type` is the type of the selection set. `expectedType` is the type a field must be selected on
+ * for it to count: a field applies only while the two are the same, which is what stops a
+ * same-named field under an unrelated fragment from being seen. `resolveFragmentTypes` moves both.
+ */
+export interface SelectionLevel {
+  type: GraphQLNamedType;
+  expectedType: GraphQLNamedType;
+  /** Aliased field names from the starting selection down to this level. */
+  path: string[];
+  /** S-8: a `@defer` was crossed on the way to this level. */
+  deferred: boolean;
+}
+
+/**
+ * What `eachSelectedField` calls at every field that applies. Returning `true` stops the
+ * traversal; anything else continues it.
+ */
+export type FieldVisitor = (field: FieldNode, level: SelectionLevel) => boolean | void;
+
+/**
+ * The one selection traversal this package owns. It reads the selections of `selection` at
+ * `level`: drops what a directive removes (S-2), classifies every fragment
+ * (`resolveFragmentTypes`), notes whether a `@defer` was crossed (S-8), descends into the
+ * fragments that apply, expands a named fragment once per state (`memo`), and calls `visit` at
+ * every field that applies to `level.type`. What happens at a field is the caller's alone, which
+ * is the whole of the difference between its consumers: `matchPath` matches one path segment's
+ * name and descends with the rest of the path, `collectSelectedFieldNames` adds every name and
+ * descends no further, and `firstMatch` takes the first match and stops.
+ *
+ * `segment` is the indirect-include path segment the caller is looking for, when it has one; only
+ * its `type` is read, to pin the type a fragment is expected on.
+ *
+ * `memo` records the named fragments already expanded, keyed on the fragment, the two types, the
+ * deferred flag, and `memoKey` — whatever else the caller varies as it descends (`matchPath`
+ * passes its remaining path length and its alias path). A fragment spread more than once at one
+ * point of the traversal is expanded once: walking it again could only repeat the same work, and
+ * a valid fragment DAG can spread the same fragment at every level, which makes expanding every
+ * spread exponential in its depth. A caller that varies nothing passes no `memoKey`, and its memo
+ * is then finer than it needs to be by the deferred flag alone — at most twice as fine, which
+ * costs a little time and never correctness for a caller that accumulates.
+ *
+ * S-8, the defer asymmetry, which lives here because this is the only place the flag is computed:
+ * this traversal decides nothing about `@defer`. It reports `level.deferred` and the visitor
+ * chooses, and the consumers do not choose alike.
+ *
+ * - `findMatches` reports the flag, and `walkBranches` honours it: a deferred branch is entered
+ *   but, when `skipDeferredFragments` is set, its fields are not walked.
+ * - `firstMatch` (E-5, the `selectedFieldNode` a select function is handed) discards it.
+ * - `selectedFieldNames` discards it.
+ *
+ * So the last two over-report: they answer "yes, the document selects this" for a selection that
+ * the branch resolution will skip. That direction is what makes the divergence safe. The plugins
+ * use both as gates — does the document ask for `totalCount`, is this column selected — and a
+ * gate computed from an over-reporting source can only be wrongly true, which loads a column or a
+ * count nothing reads. It can never be wrongly false, so no row goes missing, and anything
+ * genuinely under-fetched elsewhere falls through to the model loader, which re-queries. Make
+ * either of them honour the flag and the gates start under-reporting instead, which loses data;
+ * `matches.test.ts` pins the direction.
+ */
+function eachSelectedField(
+  info: GraphQLResolveInfo,
+  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
+  level: SelectionLevel,
+  segment: IndirectPathSegment | undefined,
+  visit: FieldVisitor,
+  memo: Set<string>,
+  memoKey = '',
+): boolean {
+  if (!selection.selectionSet) {
+    return false;
+  }
+
+  const { type, expectedType, path, deferred } = level;
+  const fieldsApply =
+    expectedType.name === type.name && (isObjectType(type) || isInterfaceType(type));
+
+  for (const sel of selection.selectionSet.selections) {
+    if (isSkipped(info, sel)) {
+      continue;
+    }
+
+    let fragment: FragmentDefinitionNode | InlineFragmentNode;
+
+    switch (sel.kind) {
+      case Kind.FIELD: {
+        if (fieldsApply && visit(sel, level) === true) {
+          return true;
+        }
+
+        continue;
+      }
+      case Kind.FRAGMENT_SPREAD:
+        fragment = info.fragments[sel.name.value];
+        break;
+      case Kind.INLINE_FRAGMENT:
+        fragment = sel;
+        break;
+      default: {
+        const unsupported: never = sel;
+
+        throw new PothosValidationError(
+          `Unsupported selection kind ${(unsupported as { kind: string }).kind}`,
+        );
+      }
+    }
+
+    const next = resolveFragmentTypes(
+      info,
+      fragment.typeCondition ? info.schema.getType(fragment.typeCondition.name.value)! : undefined,
+      type,
+      expectedType,
+      segment,
+    );
+    const deferredHere = deferred || isDeferred(info, sel);
+
+    if (fragment.kind === Kind.FRAGMENT_DEFINITION) {
+      const state = `${fragment.name.value}|${next.type.name}|${next.expectedType.name}|${deferredHere}|${memoKey}`;
+
+      if (memo.has(state)) {
+        continue;
+      }
+
+      memo.add(state);
+    }
+
+    const stopped = eachSelectedField(
+      info,
+      fragment,
+      { type: next.type, expectedType: next.expectedType, path, deferred: deferredHere },
+      segment,
+      visit,
+      memo,
+      memoKey,
+    );
+
+    if (stopped) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/** The field `name` of `type`. Only ever asked of the type a visitor was handed a field on. */
+function fieldOn(type: GraphQLNamedType, name: string): GraphQLField<unknown, unknown> {
+  return (type as GraphQLObjectType).getFields()[name];
+}
+
+/**
+ * Follows `includePath` from `level`, starting at segment `at`, to the fields selected at its end,
+ * reporting each to `onMatch` in document order and stopping when `onMatch` says to. Every step is
+ * one `eachSelectedField` whose visitor matches that segment by name and follows the rest of the
+ * path beneath it; the end of the path is the match itself. The path is walked by index so that a
+ * step allocates nothing but the alias path it grew.
+ */
+function matchPath(
+  info: GraphQLResolveInfo,
+  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
+  level: SelectionLevel,
+  includePath: IndirectPathSegment[],
+  at: number,
+  onMatch: (match: Match) => boolean | void,
+  memo: Set<string>,
+): boolean {
+  const remaining = includePath.length - at;
+
+  if (remaining === 0) {
+    return (
+      onMatch({
+        type: level.type,
+        field: selection as FieldNode,
+        path: level.path,
+        deferred: level.deferred,
+      }) === true
+    );
+  }
+
+  const segment = includePath[at];
+
+  return eachSelectedField(
+    info,
+    selection,
+    level,
+    segment,
+    (field, on) => {
+      if (field.name.value !== segment.name) {
+        return false;
+      }
+
+      const returnType = getNamedType(fieldOn(on.type, field.name.value).type);
+
+      return matchPath(
+        info,
+        field,
+        {
+          type: returnType,
+          expectedType: returnType,
+          path: [...on.path, field.alias?.value ?? field.name.value],
+          deferred: on.deferred,
+        },
+        includePath,
+        at + 1,
+        onMatch,
+        memo,
+      );
+    },
+    memo,
+    `${remaining}|${level.path.join('.')}`,
+  );
+}
+
+/**
  * Finds every field selected at the end of one of `paths`, starting from `selection` (which is
  * expected to be a selection on `type`). Paths are followed through fragments; see
- * `resolveFragmentTypes` for the rules. Matches are returned in path order, then document order.
+ * `resolveFragmentTypes` for the rules. Matches are returned in path order, then document order,
+ * each with the `deferred` flag `eachSelectedField` computed for it.
  */
 export function findMatches(
   info: GraphQLResolveInfo,
@@ -126,22 +342,55 @@ export function findMatches(
   { prefix, path = [], deferred = false }: MatchOptions = {},
 ): Match[] {
   const matches: Match[] = [];
+  const collect = (match: Match) => {
+    matches.push(match);
+  };
 
   for (const includePath of paths) {
-    walkIndirectPath(
-      type,
-      type,
+    matchPath(
       info,
       selection,
+      { type, expectedType: type, path, deferred },
       prefix && prefix.length > 0 ? [...prefix, ...includePath] : includePath,
-      path,
-      deferred,
-      matches,
+      0,
+      collect,
       new Set(),
     );
   }
 
   return matches;
+}
+
+/**
+ * E-5: the first field selected at the end of `path`, in document order, or undefined. The
+ * traversal stops at it. The match's `deferred` flag is reported but this function's caller — the
+ * `selectedFieldNode` handed to a select function — discards it; see `eachSelectedField` for why
+ * over-reporting a deferred selection there is safe.
+ */
+export function firstMatch(
+  info: GraphQLResolveInfo,
+  type: GraphQLNamedType,
+  selection: FieldNode,
+  path: IndirectPathSegment[],
+  { prefix }: Pick<MatchOptions, 'prefix'> = {},
+): Match | undefined {
+  let first: Match | undefined;
+
+  matchPath(
+    info,
+    selection,
+    { type, expectedType: type, path: [], deferred: false },
+    prefix && prefix.length > 0 ? [...prefix, ...path] : path,
+    0,
+    (match) => {
+      first = match;
+
+      return true;
+    },
+    new Set(),
+  );
+
+  return first;
 }
 
 /** One node of the memo trie: the names for the field nodes on the path to it, if computed. */
@@ -166,6 +415,14 @@ const selectedFieldNamesCache = createContextCache(
  * is keyed on the nodes rather than on `info.fieldNodes`: graphql-js 17 builds that array anew
  * for every resolve, while the nodes are the document's own. Beneath that it is keyed on
  * `info.variableValues` (one object per execution) and on the return type.
+ *
+ * S-8: `@skip` and `@include` are honoured, `@defer` is not — a name selected only under a
+ * deferred fragment is reported as selected, even when the plan that loads the row is set to skip
+ * deferred fragments and will not walk it. `findMatches`, and so the plan's own branch
+ * resolution, does honour it, so the two disagree; `eachSelectedField` states which consumers see
+ * a deferred selection and why this set, being the over-reporting side, is the safe one for a
+ * plugin to gate a column or a count on. A caller that needs to know what the plan will actually
+ * load must ask the plan, not this.
  */
 export function selectedFieldNames(context: object, info: GraphQLResolveInfo): ReadonlySet<string> {
   const byExecution = selectedFieldNamesCache(context);
@@ -205,214 +462,31 @@ function collectSelectedFieldNames(info: GraphQLResolveInfo): ReadonlySet<string
   const returnType = getNamedType(info.returnType);
   const prefix = includeOf(returnType)?.path;
   const names = new Set<string>();
+  // Every name at one level: `eachSelectedField`'s last step for all of them at once. The level's
+  // `deferred` flag is never read, which is the asymmetry `eachSelectedField` documents.
+  const addName: FieldVisitor = (field) => {
+    names.add(field.name.value);
+  };
 
   for (const node of info.fieldNodes) {
     // Through a wrapper, the fields are those beneath its inner field.
-    const roots = prefix?.length
+    const roots: { type: GraphQLNamedType; field: FieldNode; deferred: boolean }[] = prefix?.length
       ? findMatches(info, returnType, node, [prefix])
-      : [{ type: returnType, field: node }];
+      : [{ type: returnType, field: node, deferred: false }];
 
     for (const root of roots) {
-      collectFieldNames(info, root.type, root.type, root.field, names, new Set());
+      eachSelectedField(
+        info,
+        root.field,
+        { type: root.type, expectedType: root.type, path: [], deferred: root.deferred },
+        undefined,
+        addName,
+        new Set(),
+      );
     }
   }
 
   return names;
-}
-
-/** The last step of `walkIndirectPath` for every field name at once. */
-function collectFieldNames(
-  info: GraphQLResolveInfo,
-  type: GraphQLNamedType,
-  expectedType: GraphQLNamedType,
-  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  names: Set<string>,
-  visited: Set<string>,
-) {
-  if (!selection.selectionSet) {
-    return;
-  }
-
-  for (const sel of selection.selectionSet.selections) {
-    if (isSkipped(info, sel)) {
-      continue;
-    }
-
-    let fragment: FragmentDefinitionNode | InlineFragmentNode;
-
-    switch (sel.kind) {
-      case Kind.FIELD: {
-        if (expectedType.name === type.name && (isObjectType(type) || isInterfaceType(type))) {
-          names.add(sel.name.value);
-        }
-
-        continue;
-      }
-      case Kind.FRAGMENT_SPREAD:
-        fragment = info.fragments[sel.name.value];
-        break;
-      case Kind.INLINE_FRAGMENT:
-        fragment = sel;
-        break;
-      default: {
-        const unsupported: never = sel;
-
-        throw new PothosValidationError(
-          `Unsupported selection kind ${(unsupported as { kind: string }).kind}`,
-        );
-      }
-    }
-
-    const next = resolveFragmentTypes(
-      info,
-      fragment.typeCondition ? info.schema.getType(fragment.typeCondition.name.value)! : undefined,
-      type,
-      expectedType,
-    );
-
-    if (fragment.kind === Kind.FRAGMENT_DEFINITION) {
-      const state = `${fragment.name.value}|${next.type.name}|${next.expectedType.name}`;
-
-      if (visited.has(state)) {
-        continue;
-      }
-
-      visited.add(state);
-    }
-
-    collectFieldNames(info, next.type, next.expectedType, fragment, names, visited);
-  }
-}
-
-/**
- * Recursive step of `findMatches`.
- *
- * `type` is the type of the selection set being walked. `expectedType` is the type the next path
- * segment must be selected on: a field only matches while the two are the same, which is what
- * prevents a same-named field under an unrelated fragment from matching.
- *
- * `visited` records the named fragments walked with each state (everything above but `matches`),
- * so a fragment spread more than once at one point of the traversal is expanded once: walking it
- * again
- * could only repeat the same matches, and a valid fragment DAG can spread the same fragment at
- * every level, which makes expanding every spread exponential in its depth.
- */
-function walkIndirectPath(
-  type: GraphQLNamedType,
-  expectedType: GraphQLNamedType,
-  info: GraphQLResolveInfo,
-  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  includePath: IndirectPathSegment[],
-  path: string[],
-  deferred: boolean,
-  matches: Match[],
-  visited: Set<string>,
-) {
-  if (includePath.length === 0) {
-    matches.push({ type, field: selection as FieldNode, path, deferred });
-    return;
-  }
-
-  if (!selection.selectionSet) {
-    return;
-  }
-
-  const [include, ...rest] = includePath;
-
-  for (const sel of selection.selectionSet.selections) {
-    switch (sel.kind) {
-      case Kind.FIELD: {
-        if (
-          expectedType.name === type.name &&
-          sel.name.value === include.name &&
-          (isObjectType(type) || isInterfaceType(type)) &&
-          !isSkipped(info, sel)
-        ) {
-          const returnType = getNamedType(type.getFields()[sel.name.value].type);
-
-          walkIndirectPath(
-            returnType,
-            returnType,
-            info,
-            sel,
-            rest,
-            [...path, sel.alias?.value ?? sel.name.value],
-            deferred,
-            matches,
-            visited,
-          );
-        }
-        continue;
-      }
-      case Kind.FRAGMENT_SPREAD: {
-        if (isSkipped(info, sel)) {
-          continue;
-        }
-
-        const fragment = info.fragments[sel.name.value];
-        const next = resolveFragmentTypes(
-          info,
-          info.schema.getType(fragment.typeCondition.name.value)!,
-          type,
-          expectedType,
-          include,
-        );
-        const isDeferredHere = deferred || isDeferred(info, sel);
-        const state = `${fragment.name.value}|${next.type.name}|${next.expectedType.name}|${includePath.length}|${path.join('.')}|${isDeferredHere}`;
-
-        if (visited.has(state)) {
-          continue;
-        }
-
-        visited.add(state);
-        walkIndirectPath(
-          next.type,
-          next.expectedType,
-          info,
-          fragment,
-          includePath,
-          path,
-          isDeferredHere,
-          matches,
-          visited,
-        );
-        continue;
-      }
-      case Kind.INLINE_FRAGMENT: {
-        if (isSkipped(info, sel)) {
-          continue;
-        }
-
-        const next = resolveFragmentTypes(
-          info,
-          sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : undefined,
-          type,
-          expectedType,
-          include,
-        );
-
-        walkIndirectPath(
-          next.type,
-          next.expectedType,
-          info,
-          sel,
-          includePath,
-          path,
-          deferred || isDeferred(info, sel),
-          matches,
-          visited,
-        );
-        continue;
-      }
-      default: {
-        const unsupported: never = sel;
-
-        throw new PothosValidationError(
-          `Unsupported selection kind ${(unsupported as { kind: string }).kind}`,
-        );
-      }
-    }
-  }
 }
 
 /**
@@ -539,11 +613,19 @@ export function normalizeInclude(
   };
 }
 
-/** S-2: a field or fragment under `@skip(if: true)` or `@include(if: false)`. */
+/**
+ * S-2: a field or fragment under `@skip(if: true)` or `@include(if: false)`. Asked of every
+ * selection the traversal reads, so it answers a selection carrying no directive at all — nearly
+ * every one — without building a directive's argument values twice.
+ */
 export function isSkipped(
   info: GraphQLResolveInfo,
   selection: FieldNode | FragmentSpreadNode | InlineFragmentNode,
 ) {
+  if (!selection.directives?.length) {
+    return false;
+  }
+
   const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
   if (skip?.if === true) {
     return true;
@@ -562,6 +644,10 @@ export function isDeferred(
   info: GraphQLResolveInfo,
   node: FragmentSpreadNode | InlineFragmentNode,
 ) {
+  if (!node.directives?.length) {
+    return false;
+  }
+
   const deferDirective = info.schema.getDirective('defer');
   if (!deferDirective) {
     return false;

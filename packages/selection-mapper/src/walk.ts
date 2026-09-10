@@ -24,6 +24,7 @@ import { abandon, chain, noop } from './async.js';
 import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
   findMatches,
+  firstMatch,
   includeOf,
   isDeferred,
   isSkipped,
@@ -744,6 +745,10 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
  * the field's return type (an errors plugin result, for instance), whose own path leads to the
  * type the caller's path starts from. An empty path yields the field node itself, or the
  * wrapper's inner node.
+ *
+ * S-8: a node selected only under a `@defer` is returned like any other, whatever the plan's
+ * deferred setting says — an adapter gating an extra on this over-reports rather than under-;
+ * `eachSelectedField` in matches.ts says why that direction is the safe one.
  */
 function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -753,10 +758,14 @@ function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
 
   return (path: string[]) => {
     const returnType = getNamedType(field.type);
-    const matches = findMatches(info, returnType, fieldNode, [path.map((name) => ({ name }))], {
-      prefix: includeOf(returnType)?.path,
-    });
+    const match = firstMatch(
+      info,
+      returnType,
+      fieldNode,
+      path.map((name) => ({ name })),
+      { prefix: includeOf(returnType)?.path },
+    );
 
-    return matches[0]?.field ?? null;
+    return match?.field ?? null;
   };
 }

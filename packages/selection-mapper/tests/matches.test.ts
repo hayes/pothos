@@ -2,6 +2,7 @@ import { getNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import {
   findMatches,
+  firstMatch,
   includeOf,
   matchesForModel,
   modelOf,
@@ -175,6 +176,65 @@ describe('findMatches', () => {
     ]);
 
     expect(matches.map((match) => match.type.name)).toEqual(['Post']);
+  });
+});
+
+describe('firstMatch', () => {
+  it('stops at the first field selected at the end of the path', async () => {
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        user {
+          postsConnection {
+            ...Nodes
+            nodes { title }
+          }
+        }
+      }
+      fragment Nodes on PostConnection { first: nodes { id } }`,
+      { at: ['User', 'postsConnection'] },
+    );
+    const connection = getNamedType(info.returnType);
+    const node = fieldNodeOf(info);
+
+    expect(firstMatch(info, connection, node, [{ name: 'nodes' }])?.path).toEqual(['first']);
+    expect(firstMatch(info, connection, node, [{ name: 'edges' }])).toBeUndefined();
+    // The same first match `findMatches` would report, without walking on to the rest.
+    expect(findMatches(info, connection, node, [[{ name: 'nodes' }]])[0].path).toEqual(['first']);
+  });
+});
+
+/**
+ * S-8: the two sources the plugins gate on — `selectedFieldNames` and the `selectedFieldNode`
+ * built on `firstMatch` — both report a deferred selection as selected, while `findMatches`
+ * reports the flag so that branch resolution can skip it. They may only ever disagree in that
+ * direction: a gate that over-reports loads a column or a count nothing reads, while one that
+ * under-reports loses rows. See `eachSelectedField` in matches.ts.
+ */
+describe('the defer asymmetry', () => {
+  const deferred = /* GraphQL */ `
+    {
+      user {
+        postsConnection {
+          ... @defer { totalCount nodes { id } }
+        }
+      }
+    }
+  `;
+
+  it('reports a deferred selection to both gates, and as deferred to findMatches', async () => {
+    const info = await resolveInfo(schema, deferred, { at: ['User', 'postsConnection'] });
+    const connection = getNamedType(info.returnType);
+    const node = fieldNodeOf(info);
+
+    // The gates over-report: neither reads the flag.
+    expect([...selectedFieldNames({}, info)]).toEqual(['totalCount', 'nodes']);
+    expect(firstMatch(info, connection, node, [{ name: 'nodes' }])?.field.name.value).toBe('nodes');
+
+    // The plan's own source reports the flag, so `walkBranches` can skip the branch.
+    expect(
+      findMatches(info, connection, node, [[{ name: 'nodes' }]]).map((match) => match.deferred),
+    ).toEqual([true]);
   });
 });
 

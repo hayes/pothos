@@ -193,6 +193,35 @@ describe('queryFromInfo', () => {
     });
   });
 
+  it('still answers a select function asking for a deferred field node (S-8, E-5)', async () => {
+    // The connection's select gates its count extra on `selectedFieldNode(['totalCount'])`, which
+    // does not read the deferred flag while the branch resolution does. The gate therefore
+    // over-reports: the count is loaded even though the deferred branch's fields are not walked.
+    // That is the only direction the two may disagree in — a gate that under-reported would drop
+    // a column the resolver needs. See `eachSelectedField` in matches.ts.
+    const info = await resolveInfo(
+      schema,
+      /* GraphQL */ `{
+        user {
+          postsConnection(first: 2) {
+            ... @defer { totalCount nodes { comments { id } } }
+          }
+        }
+      }`,
+    );
+
+    // The deferred branch's fields are not walked, so the relation beneath it is not selected...
+    expect(queryFromInfo(adapter, { context: {}, info })).toEqual({
+      extras: { postsCount: true },
+      select: { posts: { take: 2 } },
+    });
+    // ...but the count the gate turned on is loaded either way.
+    expect(queryFromInfo(adapter, { context: {}, info, skipDeferredFragments: false })).toEqual({
+      extras: { postsCount: true },
+      select: { posts: { take: 2, select: { comments: true } } },
+    });
+  });
+
   it('returns the initial selection when paths match nothing (E-1)', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ entries { kind } }');
