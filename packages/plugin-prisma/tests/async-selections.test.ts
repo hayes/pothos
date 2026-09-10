@@ -50,6 +50,7 @@ interface Context {
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: Context;
+  AsyncSelections: true;
 }>({
   plugins: [PrismaPlugin, RelayPlugin, 'asyncArgs'],
   prisma: {

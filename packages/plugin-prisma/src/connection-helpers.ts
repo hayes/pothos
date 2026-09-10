@@ -3,6 +3,7 @@ import {
   type InputFieldMap,
   type InputShapeFromFields,
   isThenable,
+  type MaybeAsyncSelection,
   type MaybePromise,
   type ObjectRef,
   type SchemaTypes,
@@ -63,15 +64,18 @@ export function prismaConnectionHelpers<
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
-    ) => MaybePromise<Select>;
+    ) => MaybeAsyncSelection<Types, Select>;
     query?:
       | ((
           args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
           ctx: Types['Context'],
-        ) => MaybePromise<{
-          where?: Model['Where'];
-          orderBy?: Model['OrderBy'];
-        }>)
+        ) => MaybeAsyncSelection<
+          Types,
+          {
+            where?: Model['Where'];
+            orderBy?: Model['OrderBy'];
+          }
+        >)
       | {
           where?: Model['Where'];
           orderBy?: Model['OrderBy'];

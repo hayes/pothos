@@ -13,13 +13,16 @@ import PrismaPlugin, {
 import type { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
-// The async model widens INPUTS freely: a relation `query`, a count `where`, a field `select` and
+type PrismaTypes = PrismaTypesFromClient<typeof prisma>;
+
+// `AsyncSelections: true` widens INPUTS: a relation `query`, a count `where`, a field `select` and
 // the connection helpers' callbacks may return promises. What a resolver is handed is synchronous
 // unless it asks otherwise: `queryFromInfo` and `getQuery` return a query, and only return a
 // promise for a caller that passed `awaitSelections`.
 const builder = new SchemaBuilder<{
-  PrismaTypes: PrismaTypesFromClient<typeof prisma>;
+  PrismaTypes: PrismaTypes;
   Context: { tenantId: () => Promise<number> };
+  AsyncSelections: true;
 }>({
   plugins: [PrismaPlugin, RelayPlugin],
   prisma: {
@@ -71,6 +74,24 @@ const User = builder.prismaObject('User', {
         return user.posts.map((post) => post.title);
       },
     }),
+    // A promise and an async callback are both selections `nestedSelection` accepts.
+    awaitedPosts: t.field({
+      type: [Post],
+      select: async (_args, _ctx, nestedSelection) => {
+        const query = await nestedSelection(Promise.resolve({ take: 1 }));
+        const fromAsyncCallback = await nestedSelection(async () => ({ skip: 1 }));
+
+        expectTypeOf(query.take).toEqualTypeOf<number>();
+        expectTypeOf(query.include).toEqualTypeOf<PrismaTypes['Post']['Include'] | undefined>();
+        expectTypeOf(fromAsyncCallback.skip).toEqualTypeOf<number>();
+        expectTypeOf(fromAsyncCallback.select).toEqualTypeOf<
+          PrismaTypes['Post']['Select'] | undefined
+        >();
+
+        return { posts: query };
+      },
+      resolve: (user) => user.posts,
+    }),
     comments: t.connection({
       type: Post,
       select: async (args, ctx, nestedSelection) => ({
@@ -92,6 +113,94 @@ builder.queryType({
 
         return null as never;
       },
+    }),
+  }),
+});
+
+// Without the opt-in the same callbacks are synchronous, and an async one is a type error rather
+// than a promise the declared type denies.
+const syncBuilder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Context: { tenantId: () => Promise<number> };
+}>({
+  plugins: [PrismaPlugin, RelayPlugin],
+  prisma: {
+    client: () => null as never,
+    dmmf: getDatamodel(),
+  },
+});
+
+const syncCommentHelpers = prismaConnectionHelpers(syncBuilder, 'Comment', {
+  cursor: 'id',
+  select: (nodeSelection) => ({ id: true, post: nodeSelection({}) }),
+  query: (_args, _ctx) => ({ where: { authorId: 1 } }),
+  resolveNode: (comment) => comment.post,
+});
+
+prismaConnectionHelpers(syncBuilder, 'Comment', {
+  cursor: 'id',
+  // @ts-expect-error an async `select` needs `AsyncSelections: true`
+  select: async (nodeSelection) => ({ id: true, post: nodeSelection({}) }),
+});
+
+prismaConnectionHelpers(syncBuilder, 'Comment', {
+  cursor: 'id',
+  // @ts-expect-error an async `query` needs `AsyncSelections: true`
+  query: async (_args, ctx) => ({ where: { authorId: await ctx.tenantId() } }),
+});
+
+const SyncPost = syncBuilder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+syncBuilder.prismaObject('User', {
+  select: { id: true },
+  fields: (t) => ({
+    posts: t.relation('posts', {
+      query: (_args, _ctx) => ({ where: { authorId: 1 } }),
+    }),
+    asyncPosts: t.relation('posts', {
+      // @ts-expect-error an async relation `query` needs `AsyncSelections: true`
+      query: async (_args, ctx) => ({ where: { authorId: await ctx.tenantId() } }),
+    }),
+    postCount: t.relationCount('posts', {
+      where: (_args, _ctx) => ({ authorId: 1 }),
+    }),
+    asyncPostCount: t.relationCount('posts', {
+      // @ts-expect-error an async count `where` needs `AsyncSelections: true`
+      where: async (_args, ctx) => ({ authorId: await ctx.tenantId() }),
+    }),
+    postsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error an async connection `query` needs `AsyncSelections: true`
+      query: async (_args, ctx) => ({ where: { authorId: await ctx.tenantId() } }),
+    }),
+    titles: t.stringList({
+      select: (_args, _ctx, nestedSelection) => ({
+        posts: nestedSelection({ select: { title: true } }),
+      }),
+      resolve: (user) => {
+        expectTypeOf(user.posts[0].title).toEqualTypeOf<string>();
+
+        return user.posts.map((post) => post.title);
+      },
+    }),
+    asyncTitles: t.stringList({
+      // @ts-expect-error an async field `select` needs `AsyncSelections: true`
+      select: async (_args, _ctx, nestedSelection) => ({
+        posts: await nestedSelection({ select: { title: true } }),
+      }),
+      resolve: () => [],
+    }),
+    awaitedPosts: t.field({
+      type: [SyncPost],
+      select: (_args, _ctx, nestedSelection) => ({
+        // @ts-expect-error a promised selection needs `AsyncSelections: true`
+        posts: nestedSelection(Promise.resolve({ take: 1 })),
+      }),
+      resolve: (user) => user.posts,
     }),
   }),
 });
@@ -128,6 +237,10 @@ it('returns a synchronous query from getQuery by default', () => {
   expectTypeOf(
     commentHelpers.getQuery(connectionArgs, { tenantId: async () => 1 }, nodeSelection),
   ).not.toMatchTypeOf<PromiseLike<unknown>>();
+
+  expectTypeOf(
+    syncCommentHelpers.getQuery(connectionArgs, { tenantId: async () => 1 }, nodeSelection),
+  ).not.toMatchTypeOf<PromiseLike<unknown>>();
 });
 
 it('returns a MaybePromise from getQuery with awaitSelections', () => {
@@ -140,5 +253,20 @@ it('returns a MaybePromise from getQuery with awaitSelections', () => {
 
   expectTypeOf(
     commentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: flag }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
+});
+
+// `awaitSelections` is orthogonal to the opt-in: it still governs the query boundary of a schema
+// whose selections are synchronous.
+it('returns a MaybePromise from getQuery with awaitSelections without the opt-in', () => {
+  const ctx = { tenantId: async () => 1 };
+  const query = syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection);
+
+  expectTypeOf(
+    syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: true }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
+
+  expectTypeOf(
+    syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: flag }),
   ).toEqualTypeOf<MaybePromise<typeof query>>();
 });

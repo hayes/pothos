@@ -12,6 +12,7 @@ import { getDatamodel } from './generated.js';
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: { user: { id: number } };
+  AsyncSelections: true;
 }>({
   plugins: [PrismaPlugin],
   prisma: {

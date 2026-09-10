@@ -52,6 +52,7 @@ interface Context {
 const builder = new SchemaBuilder<{
   DrizzleRelations: DrizzleRelations;
   Context: Context;
+  AsyncSelections: true;
 }>({
   plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin, 'asyncArgs'],
   drizzle: {

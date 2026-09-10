@@ -3,6 +3,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import type { PathSegment } from '@pothos/selection-mapper';
+import type { DBQueryConfig } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { expectTypeOf, it } from 'vitest';
@@ -10,13 +11,16 @@ import DrizzlePlugin, { drizzleConnectionHelpers } from '../src';
 import { type DrizzleRelations, db, relations } from './example/db';
 import { posts } from './example/db/schema';
 
-// The async model widens INPUTS freely: a relation `query`, a count `where`, a field or
+type PostsQuery = DBQueryConfig<'many', DrizzleRelations, DrizzleRelations['posts']>;
+
+// `AsyncSelections: true` widens INPUTS: a relation `query`, a count `where`, a field or
 // related-field `select` and the connection helpers' callbacks may return promises. What a
 // resolver is handed is synchronous unless it asks otherwise: the `query()` builder is settled
 // before the resolver runs, and `getQuery` only returns a promise with `awaitSelections`.
 const builder = new SchemaBuilder<{
   DrizzleRelations: DrizzleRelations;
   Context: { tenantId: () => Promise<number> };
+  AsyncSelections: true;
 }>({
   plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin],
   drizzle: {
@@ -87,6 +91,22 @@ const User = builder.drizzleObject('users', {
       }),
       resolve: (user) => user.posts,
     }),
+    // A promise and an async callback are both selections `nestedSelection` accepts.
+    awaitedPosts: t.field({
+      type: [Post],
+      select: async (_args, _ctx, nestedSelection) => {
+        const query = await nestedSelection(Promise.resolve({ limit: 1 }));
+        const fromAsyncCallback = await nestedSelection(async () => ({ offset: 1 }));
+
+        expectTypeOf(query.limit).toEqualTypeOf<number>();
+        expectTypeOf(query.with).toEqualTypeOf<PostsQuery['with']>();
+        expectTypeOf(fromAsyncCallback.offset).toEqualTypeOf<number>();
+        expectTypeOf(fromAsyncCallback.columns).toEqualTypeOf<PostsQuery['columns']>();
+
+        return { with: { posts: query } };
+      },
+      resolve: (user) => user.posts,
+    }),
     comments: t.connection({
       type: Comment,
       select: async (args, ctx, nestedSelection) => ({
@@ -114,6 +134,109 @@ builder.queryType({
   }),
 });
 
+// Without the opt-in the same callbacks are synchronous, and an async one is a type error rather
+// than a promise the declared type denies.
+const syncBuilder = new SchemaBuilder<{
+  DrizzleRelations: DrizzleRelations;
+  Context: { tenantId: () => Promise<number> };
+}>({
+  plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin],
+  drizzle: {
+    client: () => db,
+    getTableConfig,
+    relations,
+  },
+  scopeAuth: {
+    authScopes: () => ({}),
+  },
+});
+
+const syncCommentHelpers = drizzleConnectionHelpers(syncBuilder, 'comments', {
+  select: (nodeSelection) => ({ with: { post: nodeSelection() } }),
+  query: (_args, _ctx) => ({ where: { authorId: 1 } }),
+});
+
+drizzleConnectionHelpers(syncBuilder, 'comments', {
+  // @ts-expect-error an async `select` needs `AsyncSelections: true`
+  select: async (nodeSelection) => ({ with: { post: nodeSelection() } }),
+});
+
+drizzleConnectionHelpers(syncBuilder, 'comments', {
+  // @ts-expect-error an async `query` needs `AsyncSelections: true`
+  query: async (_args, ctx) => ({ where: { authorId: await ctx.tenantId() } }),
+});
+
+const SyncPost = syncBuilder.drizzleObject('posts', {
+  name: 'SyncPost',
+  fields: (t) => ({
+    id: t.exposeID('postId'),
+  }),
+});
+
+syncBuilder.drizzleObject('users', {
+  name: 'SyncUser',
+  fields: (t) => ({
+    posts: t.relation('posts', {
+      query: (_args, _ctx) => ({ where: { authorId: 1 } }),
+    }),
+    asyncPosts: t.relation('posts', {
+      // @ts-expect-error an async relation `query` needs `AsyncSelections: true`
+      query: async (_args, ctx) => ({ where: { authorId: await ctx.tenantId() } }),
+    }),
+    postCount: t.relatedCount('posts', {
+      where: (_args, _ctx) => eq(posts.authorId, 1),
+    }),
+    asyncPostCount: t.relatedCount('posts', {
+      // @ts-expect-error an async count `where` needs `AsyncSelections: true`
+      where: async (_args, ctx) => eq(posts.authorId, await ctx.tenantId()),
+    }),
+    postsTotal: t.relatedField('posts', {
+      type: 'Int',
+      select: (buildFilter) => ({
+        extras: { postsTotal: (parent) => db.$count(posts, buildFilter(parent)) },
+      }),
+      resolve: (user) => {
+        expectTypeOf(user.postsTotal).toEqualTypeOf<number>();
+
+        return user.postsTotal;
+      },
+    }),
+    asyncPostsTotal: t.relatedField('posts', {
+      type: 'Int',
+      // @ts-expect-error an async related-field `select` needs `AsyncSelections: true`
+      select: async (buildFilter) => ({
+        extras: { asyncPostsTotal: (parent) => db.$count(posts, buildFilter(parent)) },
+      }),
+      resolve: () => 0,
+    }),
+    postsConnection: t.relatedConnection('posts', {
+      // @ts-expect-error an async connection `query` needs `AsyncSelections: true`
+      query: async (_args, ctx) => ({ where: { authorId: await ctx.tenantId() } }),
+    }),
+    titles: t.stringList({
+      select: () => ({ with: { posts: { columns: { title: true } } } }),
+      resolve: (user) => {
+        expectTypeOf(user.posts[0].title).toEqualTypeOf<string>();
+
+        return user.posts.map((post) => post.title);
+      },
+    }),
+    asyncTitles: t.stringList({
+      // @ts-expect-error an async field `select` needs `AsyncSelections: true`
+      select: async () => ({ with: { posts: { columns: { title: true } } } }),
+      resolve: () => [],
+    }),
+    latestPosts: t.field({
+      type: [SyncPost],
+      select: (_args, _ctx, nestedSelection) => ({
+        // @ts-expect-error a promised selection needs `AsyncSelections: true`
+        with: { posts: nestedSelection(Promise.resolve({ limit: 1 })) },
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+
 declare const connectionArgs: PothosSchemaTypes.DefaultConnectionArguments;
 declare const ctx: { tenantId: () => Promise<number> };
 declare const nodeSelection: (selection?: {} | true, path?: PathSegment[]) => unknown;
@@ -121,6 +244,10 @@ declare const flag: boolean;
 
 it('returns a synchronous query from getQuery by default', () => {
   expectTypeOf(commentHelpers.getQuery(connectionArgs, ctx, nodeSelection)).not.toMatchTypeOf<
+    PromiseLike<unknown>
+  >();
+
+  expectTypeOf(syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection)).not.toMatchTypeOf<
     PromiseLike<unknown>
   >();
 });
@@ -140,5 +267,19 @@ it('returns a MaybePromise when awaitSelections is not a literal', () => {
 
   expectTypeOf(
     commentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: flag }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
+});
+
+// `awaitSelections` is orthogonal to the opt-in: it still governs the query boundary of a schema
+// whose selections are synchronous.
+it('returns a MaybePromise from getQuery with awaitSelections without the opt-in', () => {
+  const query = syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection);
+
+  expectTypeOf(
+    syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: true }),
+  ).toEqualTypeOf<MaybePromise<typeof query>>();
+
+  expectTypeOf(
+    syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: flag }),
   ).toEqualTypeOf<MaybePromise<typeof query>>();
 });

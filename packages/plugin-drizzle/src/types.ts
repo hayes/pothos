@@ -1,5 +1,6 @@
 import {
   type ArgumentRef,
+  type CheckAsyncSelection,
   type DistributeOmit,
   type FieldKind,
   type FieldMap,
@@ -14,6 +15,7 @@ import {
   type InterfaceRef,
   type InterfaceTypeOptions,
   type ListResolveValue,
+  type MaybeAsyncSelection,
   type MaybePromise,
   type Merge,
   type Normalize,
@@ -342,17 +344,20 @@ export type DrizzleObjectFieldOptions<
     ResolveReturnShape
   > & {
     /**
-     * What the field needs from its parent row. A function may be async; `nestedSelection` is
-     * then a promise when a selection beneath it is async, and must be awaited.
+     * What the field needs from its parent row. With `AsyncSelections: true` the function may be
+     * async, and `nestedSelection` is then a promise when a selection beneath it is async, and
+     * must be awaited.
      */
     select?: Select &
+      CheckAsyncSelection<Types, Select> &
       (
         | DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
             nestedSelection: NestedSelectionFn<Types, Type, Args>,
-          ) => MaybePromise<
+          ) => MaybeAsyncSelection<
+            Types,
             DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
           >)
       );
@@ -415,20 +420,20 @@ export type NestedSelectionFn<Types extends SchemaTypes, Type, Args extends Inpu
   PathInfo;
 
 /**
- * The selection given to `nestedSelection`: the query config itself, a promise of it, or a
- * callback building it from the field's arguments, the context, and the field's `PathInfo`
- * (which may be async). The result is typed by the query either way; it is a promise at runtime
- * only when a promise or an async callback was given, or a selection beneath it is async, and
- * must then be awaited.
+ * The selection given to `nestedSelection`: the query config itself, or a callback building it
+ * from the field's arguments, the context, and the field's `PathInfo`. A schema with
+ * `AsyncSelections: true` may also give a promise of the config, or an async callback; the result
+ * is typed by the query either way, and is a promise at runtime only when a promise or an async
+ * callback was given, or a selection beneath it is async, and must then be awaited.
  */
 export type NestedSelectionArg<Types extends SchemaTypes, Selection, Args extends InputFieldMap> =
   | Selection
-  | PromiseLike<Selection>
+  | (true extends Types['AsyncSelections'] ? PromiseLike<Selection> : never)
   | ((
       args: InputShapeFromFields<Args>,
       ctx: Types['Context'],
       pathInfo: PathInfo,
-    ) => MaybePromise<Selection>);
+    ) => MaybeAsyncSelection<Types, Selection>);
 
 export type DrizzleFieldSelection =
   | DBQueryConfig<'one'>
@@ -548,7 +553,10 @@ export type RelatedCountOptions<
 > & {
   where?:
     | Where
-    | ((args: InputShapeFromFields<Args>, context: Types['Context']) => MaybePromise<Where>);
+    | ((
+        args: InputShapeFromFields<Args>,
+        context: Types['Context'],
+      ) => MaybeAsyncSelection<Types, Where>);
 };
 
 /**
@@ -569,16 +577,18 @@ export type RelatedSelectionFieldOptions<
 > & {
   /**
    * The query planned on the parent row for this field: `buildFilter` filters the related table
-   * to the parent's rows, `nestedQuery` plans the field's own selection beneath a query.
+   * to the parent's rows, `nestedQuery` plans the field's own selection beneath a query. With
+   * `AsyncSelections: true` the function may be async.
    */
-  select: (
+  select: ((
     buildFilter: (parentTable: TableConfig['table']) => SQL,
     args: InputShapeFromFields<Args>,
     ctx: Types['Context'],
     nestedQuery: (
       query: DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
     ) => DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
-  ) => MaybePromise<Select>;
+  ) => MaybeAsyncSelection<Types, Select>) &
+    CheckAsyncSelection<Types, Select>;
   resolve: (
     parent: ShapeWithSelection,
     args: InputShapeFromFields<Args>,
@@ -624,7 +634,7 @@ export type QueryForField<
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           pathInfo: PathInfo,
-        ) => MaybePromise<QueryConfig>)
+        ) => MaybeAsyncSelection<Types, QueryConfig>)
   : never;
 
 export type QueryForDrizzleField<
@@ -649,7 +659,11 @@ export type QueryForRelatedConnection<
 } extends infer QueryConfig
   ?
       | QueryConfig
-      | ((args: Args, context: Types['Context'], pathInfo: PathInfo) => MaybePromise<QueryConfig>)
+      | ((
+          args: Args,
+          context: Types['Context'],
+          pathInfo: PathInfo,
+        ) => MaybeAsyncSelection<Types, QueryConfig>)
   : never;
 
 export type QueryForDrizzleConnection<

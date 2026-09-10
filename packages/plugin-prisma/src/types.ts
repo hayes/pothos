@@ -1,5 +1,6 @@
 import {
   type ArgumentRef,
+  type CheckAsyncSelection,
   type FieldKind,
   type FieldMap,
   type FieldNullability,
@@ -11,6 +12,7 @@ import {
   type InputShapeFromFields,
   type InterfaceParam,
   type ListResolveValue,
+  type MaybeAsyncSelection,
   type MaybePromise,
   type Merge,
   type Normalize,
@@ -127,15 +129,19 @@ export type NestedSelectionResult<Model extends PrismaModelTypes, Selection> = [
     : Normalize<Omit<PrismaRelationQuery<Model>, keyof Selection> & Selection>;
 
 /**
- * The selection given to `nestedSelection`: the query itself, a promise of it, or a callback
- * building it from the field's arguments and the context (which may be async). The result is
- * typed by the query either way; it is a promise at runtime only when a promise or an async
- * callback was given, or a selection beneath it is async, and must then be awaited.
+ * The selection given to `nestedSelection`: the query itself, or a callback building it from the
+ * field's arguments and the context. A schema with `AsyncSelections: true` may also give a
+ * promise of the query, or an async callback; the result is typed by the query either way, and is
+ * a promise at runtime only when a promise or an async callback was given, or a selection beneath
+ * it is async, and must then be awaited.
  */
 export type NestedSelectionArg<Types extends SchemaTypes, Selection, Args extends InputFieldMap> =
   | Selection
-  | PromiseLike<Selection>
-  | ((args: InputShapeFromFields<Args>, ctx: Types['Context']) => MaybePromise<Selection>);
+  | (true extends Types['AsyncSelections'] ? PromiseLike<Selection> : never)
+  | ((
+      args: InputShapeFromFields<Args>,
+      ctx: Types['Context'],
+    ) => MaybeAsyncSelection<Types, Selection>);
 
 /**
  * The callback a field's `select` function plans the selection beneath the field with: `path`
@@ -183,17 +189,19 @@ export type PrismaObjectFieldOptions<
     ResolveReturnShape
   > & {
     /**
-     * What the field needs from its parent row. A function may be async; `nestedSelection` is
-     * then a promise when a selection beneath it is async, and must be awaited.
+     * What the field needs from its parent row. With `AsyncSelections: true` the function may be
+     * async, and `nestedSelection` is then a promise when a selection beneath it is async, and
+     * must be awaited.
      */
     select?: Select &
+      CheckAsyncSelection<Types, Select> &
       (
         | ExtractModel<Types, ParentShape>['Select']
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
             nestedSelection: NestedSelectionFn<Types, ModelForTypeParam<Types, Type>, Args>,
-          ) => MaybePromise<ExtractModel<Types, ParentShape>['Select']>)
+          ) => MaybeAsyncSelection<Types, ExtractModel<Types, ParentShape>['Select']>)
       );
   };
 
@@ -482,7 +490,7 @@ type QueryForField<
       | ((
           args: InputShapeFromFields<Args>,
           ctx: Types['Context'],
-        ) => MaybePromise<Omit<Include, 'include' | 'select'>>)
+        ) => MaybeAsyncSelection<Types, Omit<Include, 'include' | 'select'>>)
   : never;
 
 /**
@@ -616,7 +624,10 @@ export type RelationCountOptions<
   ) => MaybePromise<number>;
   where?:
     | Where
-    | ((args: InputShapeFromFields<Args>, context: Types['Context']) => MaybePromise<Where>);
+    | ((
+        args: InputShapeFromFields<Args>,
+        context: Types['Context'],
+      ) => MaybeAsyncSelection<Types, Where>);
 };
 
 export type PrismaFieldOptions<

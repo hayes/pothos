@@ -3,6 +3,7 @@ import {
   type InputFieldMap,
   type InputShapeFromFields,
   isThenable,
+  type MaybeAsyncSelection,
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
@@ -70,14 +71,14 @@ export function drizzleConnectionHelpers<
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
-    ) => MaybePromise<Selection>;
+    ) => MaybeAsyncSelection<Types, Selection>;
     query?: QueryForDrizzleConnection<Types, TableConfig> extends infer QueryConfig
       ?
           | QueryConfig
           | ((
               args: InputShapeFromFields<ExtraArgs>,
               context: Types['Context'],
-            ) => MaybePromise<QueryConfig>)
+            ) => MaybeAsyncSelection<Types, QueryConfig>)
       : never;
     defaultSize?:
       | number
