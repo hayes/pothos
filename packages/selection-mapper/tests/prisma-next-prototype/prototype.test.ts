@@ -4,7 +4,6 @@ import {
   getLoaderMapping,
   type IndirectInclude,
   planFromInfo,
-  play,
   queryFromInfo,
   queryFromPlan,
   rowPlanFromInfo,
@@ -490,7 +489,7 @@ describe('entry points', () => {
     });
     const plan = rowPlanFromInfo(pnAdapter, {}, info);
 
-    expect(chain(pnAdapter.accumulator.emit(plan.root))).toEqual([
+    expect(chain(pnAdapter.emit(plan.root))).toEqual([
       'select(id, email)',
       'include(posts){ combine(posts:posts=[take(1) select(id)], :object:AdminUser:total=count[]) }',
     ]);
@@ -524,6 +523,6 @@ describe('entry points', () => {
       nested: { 'Post@id': { nested: {} } },
     });
     // A serialized spec merges back without a key: every entry carries its alias.
-    expect(chain(queryFromPlan(plan))).toEqual(chain(pnAdapter.accumulator.emit(play(plan).root)));
+    expect(chain(queryFromPlan(plan))).toEqual(chain(pnAdapter.emit(plan.play().root)));
   });
 });

@@ -6,20 +6,18 @@
  */
 import { completeValue } from '@pothos/core';
 import { describe, expect, it, vi } from 'vitest';
-import type { Adapter, EntryOptions, SelectFn } from '../src';
+import type { EntryOptions } from '../src';
 import { planFromInfo, queryFromInfo, queryFromPlan } from '../src';
 import type { Mappings } from '../src/loader-map';
 import * as loaderMap from '../src/loader-map';
-import type { FakeMap, FakeModel } from './fake-adapter';
+import type { FakeAdapter, FakeMap } from './fake-adapter';
 import { mappingsOf, resolveInfo } from './fake-adapter';
-import { createTestAdapter, createTestSchema } from './schema';
+import { createTestAdapter, createTestSchema, type Wrap, withWraps } from './schema';
 
 const schema = createTestSchema();
 const sync = createTestAdapter();
 
-type Select = SelectFn<FakeMap>;
 type Args = Record<string, unknown>;
-type Wrap = (select: Select, field: string) => Select;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -64,7 +62,7 @@ async function attempt(run: () => unknown): Promise<Side> {
 
 /** The reference beside the mechanism: one fresh walk, one plan played behind `select`. */
 async function diff(
-  adapter: Adapter<FakeModel, FakeMap>,
+  adapter: FakeAdapter,
   options: Omit<EntryOptions<FakeMap>, 'context'>,
   select: FakeMap | undefined,
 ) {
@@ -78,21 +76,6 @@ async function diff(
   });
 
   return { fresh, played };
-}
-
-function withSelects(fields: string[], wrap: Wrap): Adapter<FakeModel, FakeMap> {
-  const wrapped = createTestAdapter();
-  const { fieldSelection } = wrapped;
-
-  wrapped.fieldSelection = (field, type) => {
-    const selection = fieldSelection(field, type);
-
-    return typeof selection === 'function' && fields.includes(field.name)
-      ? wrap(selection, field.name)
-      : selection;
-  };
-
-  return wrapped;
 }
 
 const takeQuery = (args: Args): FakeMap => (args.take === undefined ? {} : { take: args.take });
@@ -123,10 +106,6 @@ const deferredSelect: Wrap = (select) => async (args, ctx, nested, getNode, posi
   return select(args, ctx, nested, getNode, position);
 };
 
-function withWraps(wraps: Record<string, Wrap>) {
-  return withSelects(Object.keys(wraps), (select, name) => wraps[name](select, name));
-}
-
 const asyncAdapter = withWraps({
   posts: asyncRelation(takeQuery, 1),
   author: asyncRelation(whereXQuery, 1),
@@ -145,7 +124,7 @@ interface Case {
   at?: [string, string];
   typeName?: string;
   paths?: string[][];
-  adapter?: Adapter<FakeModel, FakeMap>;
+  adapter?: FakeAdapter;
 }
 
 const cases: Case[] = [

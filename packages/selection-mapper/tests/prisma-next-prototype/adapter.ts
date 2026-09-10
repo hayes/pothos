@@ -18,8 +18,9 @@
  *   - `emit`: turns a serialized spec into builder calls (apply-selection's `emitLevel` /
  *     `emitRelation` / `emitBranch`, ~915-1001).
  */
-import type { GraphQLNamedType } from 'graphql';
-import type { Accumulator, Adapter, Plan, SelectFn } from '../../src';
+import type { GraphQLField, GraphQLNamedType } from 'graphql';
+import type { MergeOptions, Plan, SelectFn } from '../../src';
+import { Adapter } from '../../src';
 
 // ---------------------------------------------------------------------------------------------
 // The builder surface (apply-selection.ts ~74-104).
@@ -151,7 +152,6 @@ export interface PnNode {
 }
 
 export type PnSelectFn = SelectFn<PnSpec>;
-export type PnAdapter = Adapter<PnModel, PnSpec, PnNode>;
 export type PnWalk = Plan<PnModel, PnSpec, PnNode>;
 
 /** The extension keys the adapter reads; the test schema sets them. */
@@ -318,40 +318,55 @@ function serializeNode(node: PnNode): PnSpec {
   return spec;
 }
 
-const typeSelections = new WeakMap<GraphQLNamedType, PnSpec | null>();
-
-/**
- * S-1: the type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation entries
- * (apply-selection ~795-878), compiled once to a spec slotted under `:object:<Type>`.
- */
-function typeSelectionOf(type: GraphQLNamedType): PnSpec | undefined {
-  let spec = typeSelections.get(type);
-
-  if (spec === undefined) {
-    const raw = type.extensions?.[PN_SELECT] as readonly string[] | PnSpec | undefined;
-
-    spec = !raw
-      ? null
-      : Array.isArray(raw)
-        ? { columns: raw }
-        : { ...(raw as PnSpec), alias: objectLevelAlias(type.name) };
-    typeSelections.set(type, spec);
-  }
-
-  return spec ?? undefined;
-}
-
 /**
  * The traversal layer only: every consumer of a relation gets its own combine slot, so there is
  * nothing to compare and nothing to leave out. `accepts`, `conflict`, `absorb` and `acceptsFrom`
- * are omitted, and the package answers "nothing ever conflicts" for them.
+ * are inherited, and the package answers "nothing ever conflicts" for them.
  */
-const pnAccumulator: Accumulator<PnModel, PnSpec, PnNode> = {
-  create: createPnNode,
-  // The slot namespace is the spec's own (`:object:<Type>`) or the response key of the field the
-  // traversal is merging. E-3: a relation query is the branch's refine; its columns (a
-  // connection's cursor) are read on the relation.
-  merge(node, spec, options) {
+export class PnAdapter extends Adapter<PnModel, PnSpec, PnNode> {
+  /** S-1: each type's compiled selection, built once. */
+  private readonly typeSelections = new WeakMap<GraphQLNamedType, PnSpec | null>();
+
+  modelFor(type: GraphQLNamedType) {
+    return type.extensions?.[PN_MODEL] as PnModel | undefined;
+  }
+
+  /**
+   * S-1: the type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation entries
+   * (apply-selection ~795-878), compiled once to a spec slotted under `:object:<Type>`.
+   */
+  typeSelection(type: GraphQLNamedType): PnSpec | undefined {
+    let spec = this.typeSelections.get(type);
+
+    if (spec === undefined) {
+      const raw = type.extensions?.[PN_SELECT] as readonly string[] | PnSpec | undefined;
+
+      spec = !raw
+        ? null
+        : Array.isArray(raw)
+          ? { columns: raw }
+          : { ...(raw as PnSpec), alias: objectLevelAlias(type.name) };
+      this.typeSelections.set(type, spec);
+    }
+
+    return spec ?? undefined;
+  }
+
+  /** S-4..S-6: a static spec or a select function, precompiled onto the field by the schema. */
+  fieldSelection(field: GraphQLField<unknown, unknown>) {
+    return field.extensions?.[PN_SELECT] as PnSpec | PnSelectFn | undefined;
+  }
+
+  create(model: PnModel): PnNode {
+    return createPnNode(model);
+  }
+
+  /**
+   * The slot namespace is the spec's own (`:object:<Type>`) or the response key of the field the
+   * traversal is merging. E-3: a relation query is the branch's refine; its columns (a
+   * connection's cursor) are read on the relation.
+   */
+  merge(node: PnNode, spec: PnSpec, options?: MergeOptions) {
     if (options?.asQuery) {
       if (spec.refine) {
         node.refine = spec.refine;
@@ -363,18 +378,14 @@ const pnAccumulator: Accumulator<PnModel, PnSpec, PnNode> = {
     }
 
     mergeSpec(node, spec, spec.alias ?? options?.alias);
-  },
-  emit: serializeNode,
-};
+  }
 
-export const pnAdapter: PnAdapter = {
-  skipDeferredFragments: true,
-  modelFor: (type) => type.extensions?.[PN_MODEL] as PnModel | undefined,
-  typeSelection: typeSelectionOf,
-  // S-4..S-6: a static spec or a select function, precompiled onto the field by the schema.
-  fieldSelection: (field) => field.extensions?.[PN_SELECT] as PnSpec | PnSelectFn | undefined,
-  accumulator: pnAccumulator,
-};
+  emit(node: PnNode): PnSpec {
+    return serializeNode(node);
+  }
+}
+
+export const pnAdapter = new PnAdapter();
 
 // ---------------------------------------------------------------------------------------------
 // Emission (apply-selection ~915-1019).

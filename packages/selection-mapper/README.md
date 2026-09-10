@@ -21,13 +21,13 @@ their own. Use the plugins.
 - **Node** — one level of the query tree being built (a model, its columns, its relations, its
   extras). The adapter owns the shape; the walker reads only `node.model`.
 - **Plan** — what a traversal collected for one root: the model it loads, the selection it starts
-  from, and the merges it collected, in order. A plan holds no node. Entry points return plans; a
-  nested selection makes a child plan.
+  from, and the merges it collected, in order. A plan holds no node, and owns its own fold and
+  its own pending chain (`Plan`). Entry points return plans; `plan.nested()` makes a child plan.
 - **Merge (noun)** — one entry of a plan's list: a type's selection, a variant's, a nested
   selection's relation query, or a field's, each with the query the adapter produced for it and,
   for a field, the mapping to record if it is taken (`RootMerge`).
 - **Play** — to fold a plan's merges into a fresh node, in order, behind a seed selection
-  (`play`). Every merge is offered to the node being built, so this is where one is accepted or
+  (`plan.play()`). Every merge is offered to the node being built, so this is where one is accepted or
   rejected and the only place a mapping is recorded — the traversal decides none of it. A plan can
   be played any number of times, behind a different seed each time; a play owns its node
   (`PlayedPlan`), so a caller may merge into what it gets back.
@@ -40,11 +40,9 @@ their own. Use the plugins.
   selected field names, and finding one field node are all that one traversal with three visitors.
 - **Branch** — one selection set (or several, for one field selected under several fragments) with
   the type to walk it as: the unit `walkBranches` takes.
-- **Merge (verb)** — to fold a query into a node, through the accumulator.
-- **Accumulate** — what a plan's selections do: the accumulator holds the merge rules the
-  adapter's translation feeds. `Adapter.accumulator`.
-- **Format** — the format-specific half of a tree accumulator: how to read an ORM's query and
-  how to write one back (`QueryFormat`).
+- **Merge (verb)** — to fold a query into a node, through the adapter.
+- **Adapter** — the ORM boundary, one class: how to find a type's model and what a type and a
+  field select, and how those selections accumulate into a node (`Adapter`, `TreeAdapter`).
 - **Mapping** — what a play records for a field whose merge it took, so the field's resolver can
   find its data in the loaded row; absent means the resolver loads its own data.
 - **Position** — where a field is: a link of `{ parent, type, field, node }` running back to the
@@ -56,29 +54,29 @@ their own. Use the plugins.
 
 ## The adapter contract
 
-An ORM plugin supplies an `Adapter<Model, Query, NodeType>`: how to find a type's model (`Model`),
-what a type and a field select in the ORM's own format (`Query`), and an `Accumulator` — where
-those selections accumulate. Translation and accumulation are the two halves, and the adapter
-owns only the first: the traversal reads nothing of a node but its `model`, and nothing of a
-query at all.
+An ORM plugin subclasses `Adapter<Model, Query, NodeType>`. Six members must be answered: three
+translate the schema — `modelFor` (a type's `Model`), `typeSelection` and `fieldSelection` (what
+a type and a field select, in the ORM's own `Query` format) — and three accumulate — `create` a
+node for a model, `merge` a query into one, `emit` the node as a query. The traversal reads
+nothing of a node but its `model`, and nothing of a query at all.
 
-An `Accumulator<Model, Query, NodeType>` must answer three questions — `create` a node for a
-model, `merge` a query into one, `emit` the node as a query. Everything else is optional and has
-an answer for an accumulator that omits it: `accepts` (M-3) is true, `conflict` (S-7) is none,
-and `absorb` and `acceptsFrom` round-trip through `emit`. An accumulator that gives every
-consumer its own slot therefore implements three members and nothing more. `MergeOptions` says
+The four members below those are the merge rules, and each is inherited with the answer an
+adapter that never shares a slot between two consumers wants: `accepts` (M-3) is true, `conflict`
+(S-7) is none, and `absorb` and `acceptsFrom` round-trip through `emit`. An adapter that gives
+every consumer its own slot therefore writes six methods and nothing more. `MergeOptions` says
 how one merge differs from a plain one: `asQuery` (E-3, a relation query adds no columns),
 `lenient` (E-2, conflicting entries are left out), `ignoreArgs` (M-3), and the `alias` the query
-came from, so an accumulator may merge same-named relations into one node (prisma, drizzle) or
-keep one slot per selected field.
+came from, so an adapter may merge same-named relations into one node (prisma, drizzle) or keep
+one slot per selected field. `skipDeferredFragments` (S-8) defaults to true.
 
-`treeAccumulator(format)` is the accumulator the prisma and drizzle adapters use: the node tree
-of `node.ts` (columns, relations, extras, arguments) with every merge rule this package owns. An
-adapter supplies only a `QueryFormat` — `read`, the key loop of its own query, reported entry by
-entry to an `EntryVisitor`; `serialize`, the node written back; and optionally `extraConflicts`
-when its extras are not compared by value. The visitor is reused down the tree, so a merge
-allocates only what the format's own key loop already allocated. An ORM whose query is not a
-tree of columns, relations and extras writes its own accumulator instead.
+`TreeAdapter<Model, Query>` is what the prisma and drizzle adapters extend: the node tree of
+`tree.ts` (columns, relations, extras, arguments) with every merge rule this package owns. A
+subclass writes `read`, the key loop of its own query, reported entry by entry to an
+`EntryVisitor`; `emit`, the node written back; and optionally `extraConflicts` when its extras
+are not compared by value — three methods on top of the three translation ones. The visitor is
+reused down the tree, so a merge allocates only what the subclass's own key loop already
+allocated. An ORM whose query is not a tree of columns, relations and extras extends `Adapter`
+directly.
 
 Every select function is handed the `Position` of the field it plans: the field's node, the type
 it was walked on, and a link to the position of the field the plan hangs beneath, running back to
@@ -93,7 +91,7 @@ object; an adapter whose resolvers read a loaded row another way simply never lo
 A merge holds the query the adapter produced for it by reference, and a play merges that same
 object however many times the plan is played. A select function that returns a query and then
 mutates it changes what a later play builds; nothing copies it, because a query is opaque to this
-package and could only be copied by round-tripping it through the accumulator on every field.
+package and could only be copied by round-tripping it through the adapter on every field.
 
 ## Rule tags
 

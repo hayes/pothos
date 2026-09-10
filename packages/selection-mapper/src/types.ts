@@ -1,19 +1,16 @@
 /**
- * The public types of the walker: what an entry point takes, the `Adapter` an ORM plugin supplies,
- * and the `Plan` it runs with.
+ * The types the adapter contract and the entry points mention: where a field is, what a select
+ * function is handed, what an entry point takes, and how one merge differs from a plain one.
  */
 import type { MaybePromise } from '@pothos/core';
 import type {
   FieldNode,
   GraphQLField,
   GraphQLInterfaceType,
-  GraphQLNamedType,
   GraphQLObjectType,
   GraphQLResolveInfo,
 } from 'graphql';
-import type { Mapping, Mappings } from './loader-map.js';
 import type { IndirectInclude, PathSegment } from './matches.js';
-import type { Node, NodeBase } from './node.js';
 
 export type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
 
@@ -82,56 +79,7 @@ export interface EntryOptions<Query> {
   skipDeferredFragments?: boolean;
 }
 
-/**
- * One merge a traversal collected, in the order it happened: a type's selection (S-1), a
- * same-model variant's (S-7), a nested selection's relation query (E-3), or a field's (S-4..S-6).
- * `play` folds the list into a node; nothing is merged, accepted or rejected before then.
- *
- * A record holds its query by reference, so a select function that mutates the query it returned
- * after returning it changes what a later play builds. Nothing copies it: a query is opaque to
- * this package, which could only copy one by round-tripping it through the accumulator on every
- * field. Returning a query and then mutating it is a bug in the select function.
- */
-export type RootMerge<Query> =
-  | { kind: 'type'; query: Query }
-  | { kind: 'query'; query: Query }
-  | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query }
-  | { kind: 'field'; key: string; alias: string; query: Query; mapping: Mapping };
-
-/**
- * The ORM boundary, translation only. `Model` is the model description a node carries, `Query`
- * the ORM's own selection format (prisma `{ select, include, ...args }`, drizzle
- * `DBQueryConfig`), opaque to the traversal, and `NodeType` what selections accumulate into, of
- * which the traversal reads only `model`.
- */
-export interface Adapter<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
-  /** S-8: whether a fragment under `@defer` is walked. `EntryOptions` may override it. */
-  skipDeferredFragments: boolean;
-  /**
-   * The model a type carries, or undefined. Does not follow indirect includes (the walker's own
-   * `modelOf` does). One object per model: identity is model identity.
-   */
-  modelFor(type: GraphQLNamedType): Model | undefined;
-  /** S-1: what the type always needs, or undefined. */
-  typeSelection(type: GraphQLNamedType): Query | undefined;
-  /**
-   * S-4..S-6: a static query, a select function, or nothing. `type` is the type the field is being
-   * walked on (its parent type, or a same-model type the plan moved to), for an adapter that
-   * classifies a selection's keys against the parent model.
-   */
-  fieldSelection(
-    field: GraphQLField<unknown, unknown>,
-    type: WalkedType,
-  ): Query | SelectFn<Query> | undefined;
-  /**
-   * How selections accumulate into a query. `treeAccumulator` from this package builds the one
-   * the prisma and drizzle adapters use, from a `QueryFormat` describing their query; an adapter
-   * whose query is not a tree of columns, relations and extras supplies its own.
-   */
-  accumulator: Accumulator<Model, Query, NodeType>;
-}
-
-/** How one merge into an accumulator differs from a plain one. */
+/** How one merge into an adapter's node differs from a plain one. */
 export interface MergeOptions {
   /**
    * M-3: the node's own top-level arguments are not compared. A field's selection is merged into
@@ -144,96 +92,20 @@ export interface MergeOptions {
    */
   asQuery?: boolean;
   /**
-   * E-2: entries that conflict with what the accumulator holds are left out, one at a time,
-   * instead of the merge being refused or throwing.
+   * E-2: entries that conflict with what the node holds are left out, one at a time, instead of
+   * the merge being refused or throwing.
    */
   lenient?: boolean;
   /**
-   * The response key of the field the query came from, so an accumulator that keeps one slot per
+   * The response key of the field the query came from, so an adapter that keeps one slot per
    * selected field can name it. Absent for a type-level selection, an initial selection and a
    * staged query.
    */
   alias?: string;
 }
 
-/**
- * Where a plan's selections accumulate. The traversal creates one per root and merges into it;
- * only `create`, `merge` and `emit` are required, and an accumulator that never shares a slot
- * between two consumers needs nothing else. The optional members are the merge rules: an
- * accumulator that omits one gets the trivial answer (`accepts` true, `conflict` none) or the
- * round trip through `emit` (`absorb`, `acceptsFrom`).
- */
-export interface Accumulator<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
-  /** A fresh, empty accumulator for `model`. */
-  create(model: Model): NodeType;
-  /** M-1, M-2, S-9, E-2, E-3, in place. Never mutates `query`. */
-  merge(node: NodeType, query: Query, options?: MergeOptions): void;
-  /** M-6. */
-  emit(node: NodeType): Query;
-  /**
-   * M-3: whether `query` can be merged into `node` without changing what is already selected.
-   * Absent means nothing ever conflicts.
-   */
-  accepts?(node: NodeType, query: Query, options?: MergeOptions): boolean;
-  /** S-7: the first entry of a type-level `query` that conflicts with what `node` holds. */
-  conflict?(node: NodeType, query: Query): TypeLevelConflict | undefined;
-  /** Everything `from` holds, merged into `node`. Defaults to `merge(node, emit(from))`. */
-  absorb?(node: NodeType, from: NodeType): void;
-  /** M-3 node to node. Defaults to `accepts(node, emit(from))`. */
-  acceptsFrom?(node: NodeType, from: NodeType): boolean;
-}
-
 /** A type-level selection entry that cannot be merged with what a node already holds. */
 export interface TypeLevelConflict {
   kind: 'extra' | 'relation';
   name: string;
-}
-
-/**
- * One root being planned: the model it loads, the selection it starts from, the merges the
- * traversal collected for it, and what the traversal runs with. A plan holds no node — `play`
- * builds one from `merges` — so the same plan can be played more than once, behind a different
- * seed each time. An entry point creates one; every nested selection creates a child plan that
- * copies `adapter`, `context`, `info` and `skipDeferred` from it.
- */
-export interface Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
-  adapter: Adapter<Model, Query, NodeType>;
-  context: object;
-  info: GraphQLResolveInfo;
-  /** S-8: `EntryOptions.skipDeferredFragments`, or the adapter's own setting. */
-  skipDeferred: boolean;
-  /** What the plan loads. A node is created for it once per play. */
-  model: Model;
-  /** E-1: `EntryOptions.initial`, merged first by a play a caller gives no seed of its own. */
-  initial?: Query;
-  /** The traversal's whole output: every merge it collected, in the order it collected them. */
-  merges: RootMerge<Query>[];
-  /**
-   * D-7: where the field this plan hangs beneath is, which the position of every field walked
-   * into it links back to. Undefined when there is no field above the plan: the model loader
-   * plans a field for its own parent row, so its plan starts at that field.
-   */
-  position?: Position;
-  /**
-   * The merges waiting on a user callback that returned a promise, in the order they were
-   * appended (A-2, A-4). Absent until the first one: a synchronous plan never creates a promise.
-   */
-  pending?: Promise<void>;
-  /**
-   * The play `planFromInfo` ran to settle the plan's own errors, which a later play takes whole
-   * when the seed conflicts with none of it. Never handed out: a play that reuses it copies it
-   * into a node of its own, so a caller may merge into what it gets back.
-   */
-  played?: PlayedPlan<Model, Query, NodeType>;
-}
-
-/**
- * A plan played: the node its merges built and the mappings the merges that were accepted
- * recorded (L-2). A play owns its node, so a caller may merge into one without disturbing the
- * plan or another play of it.
- */
-export interface PlayedPlan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> {
-  plan: Plan<Model, Query, NodeType>;
-  root: NodeType;
-  mappings: Mappings;
 }

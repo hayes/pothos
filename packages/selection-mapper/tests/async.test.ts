@@ -1,25 +1,21 @@
 import { completeValue, isThenable } from '@pothos/core';
 import type { GraphQLObjectType } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import type { Adapter, SelectFn } from '../src';
 import {
   getLoaderMapping,
   planFromInfo,
-  play,
   queryFromInfo,
   queryFromPlan,
   rowPlanFromInfo,
 } from '../src';
-import { type FakeMap, type FakeModel, mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
+import { type FakeAdapter, type FakeMap, mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
 import { countPromises } from './promise-spy';
-import { createTestAdapter, createTestSchema } from './schema';
+import { createTestAdapter, createTestSchema, type Wrap, withSelects, withWraps } from './schema';
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
 
-type Select = SelectFn<FakeMap>;
 type Args = Record<string, unknown>;
-type Wrap = (select: Select, field: string) => Select;
 
 function pathOf(...keys: (string | number)[]) {
   let path: { prev: unknown; key: string | number; typename: undefined } | undefined;
@@ -33,22 +29,6 @@ function pathOf(...keys: (string | number)[]) {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/** The test adapter with the select functions of `fields` wrapped by `wrap`. */
-function withSelects(fields: string[], wrap: Wrap): Adapter<FakeModel, FakeMap> {
-  const wrapped = createTestAdapter();
-  const { fieldSelection } = wrapped;
-
-  wrapped.fieldSelection = (field, type) => {
-    const selection = fieldSelection(field, type);
-
-    return typeof selection === 'function' && fields.includes(field.name)
-      ? wrap(selection, field.name)
-      : selection;
-  };
-
-  return wrapped;
 }
 
 const takeQuery = (args: Args): FakeMap => (args.take === undefined ? {} : { take: args.take });
@@ -80,15 +60,7 @@ const deferred: Wrap = (select) => async (args, ctx, nested, getNode, extra) => 
   return select(args, ctx, nested, getNode, extra);
 };
 
-function withWraps(wraps: Record<string, Wrap>) {
-  return withSelects(Object.keys(wraps), (select, name) => wraps[name](select, name));
-}
-
-async function sameAs(
-  source: string,
-  async: Adapter<FakeModel, FakeMap>,
-  keys: [string, (string | number)[]][],
-) {
+async function sameAs(source: string, async: FakeAdapter, keys: [string, (string | number)[]][]) {
   const info = await resolveInfo(schema, source);
   const syncContext = {};
   const expected = queryFromInfo(adapter, { context: syncContext, info });
@@ -360,7 +332,7 @@ describe('async callbacks', () => {
     const plan = await rowPlanFromInfo(withSelects(['posts'], deferred), {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
-    expect(adapter.accumulator.emit(plan.root)).toEqual({
+    expect(adapter.emit(plan.root)).toEqual({
       select: { posts: { take: 2 }, id: true },
     });
     expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
@@ -371,7 +343,7 @@ describe('async callbacks', () => {
       typeName: 'User',
     }))!;
 
-    expect(adapter.accumulator.emit(play(direct).root)).toEqual({ select: { posts: true } });
+    expect(adapter.emit(direct.play().root)).toEqual({ select: { posts: true } });
   });
 });
 

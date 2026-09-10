@@ -1,21 +1,21 @@
 import {
-  type Adapter,
   deepEqual,
   type EntryVisitor,
   hasKeys,
   type Node,
   type Plan,
   type PlayedPlan,
-  type QueryFormat,
   type SelectFn,
-  treeAccumulator,
+  TreeAdapter,
 } from '@pothos/selection-mapper';
+import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import type { FieldSelection, IncludeMap, SelectionMap } from '../types.js';
 import type { FieldMap } from './relation-map.js';
 
 export type PrismaNode = Node<FieldMap>;
 export type PrismaPlan = Plan<FieldMap, SelectionMap>;
 export type PrismaPlayedPlan = PlayedPlan<FieldMap, SelectionMap>;
+type PrismaVisitor = EntryVisitor<FieldMap, SelectionMap>;
 
 /** A map without `select`: include mode, every column. Shared and never mutated. */
 export const INCLUDE_ALL: SelectionMap = Object.freeze({});
@@ -32,10 +32,33 @@ const COUNT_ALL = '*';
  * columns are `null` (include mode, the default for a type without a type-level `select`)
  * serializes to `include`. `_count` entries live in the node's extras, keyed by relation name.
  *
- * The merge, compare and conflict rules are the package's: this is the key loop and `serialize`.
+ * The merge, compare and conflict rules are `TreeAdapter`'s: this is the schema side, the key
+ * loop and `emit`.
  */
-export const prismaFormat: QueryFormat<FieldMap, SelectionMap> = {
-  read({ select, include, ...args }, model, visit) {
+class PrismaAdapter extends TreeAdapter<FieldMap, SelectionMap> {
+  // Set by prismaObject/prismaInterface and propagated to implementing types by onTypeConfig.
+  modelFor(type: GraphQLNamedType) {
+    return type.extensions?.pothosPrismaFieldMap as FieldMap | undefined;
+  }
+
+  // Precomputed once per type by onTypeConfig: `{ select, include }`, INCLUDE_ALL, or undefined.
+  typeSelection(type: GraphQLNamedType) {
+    return type.extensions?.pothosPrismaTypeSelection as SelectionMap | undefined;
+  }
+
+  fieldSelection(field: GraphQLField<unknown, unknown>) {
+    const selection = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
+
+    if (!selection) {
+      return undefined;
+    }
+
+    return typeof selection === 'function'
+      ? (selection as unknown as SelectFn<SelectionMap>)
+      : { select: selection };
+  }
+
+  read({ select, include, ...args }: SelectionMap, model: FieldMap, visit: PrismaVisitor) {
     // A map without `select` is an include-mode map, and include mode is final (S-9).
     if (!select) {
       visit.allColumns();
@@ -44,12 +67,13 @@ export const prismaFormat: QueryFormat<FieldMap, SelectionMap> = {
     readKeys(include, model, visit);
     readKeys(select, model, visit);
     visit.args(args);
-  },
+  }
+
   /**
    * M-3 for one count: a named count already on the node must be equal, and `_count: true` only
    * agrees with unfiltered counts.
    */
-  extraConflicts(extras, name, value) {
+  override extraConflicts(extras: ReadonlyMap<string, unknown>, name: string, value: unknown) {
     if (name === COUNT_ALL) {
       for (const [count, filter] of extras) {
         if (count !== COUNT_ALL && filter !== true) {
@@ -65,12 +89,13 @@ export const prismaFormat: QueryFormat<FieldMap, SelectionMap> = {
     }
 
     return extras.has(COUNT_ALL) && value !== true;
-  },
-  serialize(node) {
+  }
+
+  emit(node: PrismaNode): SelectionMap {
     const nested: Record<string, SelectionMap | boolean> = {};
 
     for (const [name, child] of node.relations) {
-      const query = prismaFormat.serialize(child);
+      const query = this.emit(child);
 
       nested[name] = hasKeys(query) ? query : true;
     }
@@ -88,35 +113,13 @@ export const prismaFormat: QueryFormat<FieldMap, SelectionMap> = {
     }
 
     return hasKeys(nested) ? { ...node.args, include: nested } : { ...node.args };
-  },
-};
+  }
+}
 
-export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
-  skipDeferredFragments: true,
-  // Set by prismaObject/prismaInterface and propagated to implementing types by onTypeConfig.
-  modelFor: (type) => type.extensions?.pothosPrismaFieldMap as FieldMap | undefined,
-  // Precomputed once per type by onTypeConfig: `{ select, include }`, INCLUDE_ALL, or undefined.
-  typeSelection: (type) => type.extensions?.pothosPrismaTypeSelection as SelectionMap | undefined,
-  fieldSelection(field) {
-    const selection = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
-
-    if (!selection) {
-      return undefined;
-    }
-
-    return typeof selection === 'function'
-      ? (selection as unknown as SelectFn<SelectionMap>)
-      : { select: selection };
-  },
-  accumulator: treeAccumulator(prismaFormat),
-};
+export const prismaAdapter = new PrismaAdapter();
 
 /** M-1, M-2: the entries of a `select` or `include` map, classified against the model. */
-function readKeys(
-  map: IncludeMap | undefined,
-  model: FieldMap,
-  visit: EntryVisitor<FieldMap, SelectionMap>,
-) {
+function readKeys(map: IncludeMap | undefined, model: FieldMap, visit: PrismaVisitor) {
   if (!map) {
     return;
   }
@@ -149,7 +152,7 @@ function readKeys(
  * (E-2). A type-level conflict on one is reported as a relation conflict: it is a relation's
  * arguments that clash, not a computed value defined twice.
  */
-function readCounts(value: SelectionMap | true, visit: EntryVisitor<FieldMap, SelectionMap>) {
+function readCounts(value: SelectionMap | true, visit: PrismaVisitor) {
   if (value === true) {
     visit.extra(COUNT_ALL, true, 'relation');
 

@@ -1,4 +1,3 @@
-import { accepts } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import { drizzleAdapter } from '../src/utils/adapter';
 import type { PothosDrizzleSchemaConfig } from '../src/utils/config';
@@ -11,7 +10,7 @@ const fakeConfig = {
   skipDeferredFragments: true,
   relations: {},
 } as unknown as PothosDrizzleSchemaConfig;
-const { accumulator } = drizzleAdapter(fakeConfig);
+const adapter = drizzleAdapter(fakeConfig);
 
 describe('selections', () => {
   it('omits undefined properties without mutating the source query', () => {
@@ -37,28 +36,28 @@ describe('selections', () => {
     'limit',
     'offset',
   ])('omits an undefined %s from merged selections', (key) => {
-    const node = accumulator.create(fakeTable);
+    const node = adapter.create(fakeTable);
 
-    accumulator.merge(node, { [key]: undefined });
+    adapter.merge(node, { [key]: undefined });
 
-    expect(accumulator.emit(node)).not.toHaveProperty(key);
+    expect(adapter.emit(node)).not.toHaveProperty(key);
   });
 
   it('treats an undefined property as equivalent to an absent one when merging', () => {
-    const withUndefined = accumulator.create(fakeTable);
-    accumulator.merge(withUndefined, { orderBy: undefined, where: undefined });
+    const withUndefined = adapter.create(fakeTable);
+    adapter.merge(withUndefined, { orderBy: undefined, where: undefined });
 
-    const withoutKeys = accumulator.create(fakeTable);
-    accumulator.merge(withoutKeys, {});
+    const withoutKeys = adapter.create(fakeTable);
+    adapter.merge(withoutKeys, {});
 
-    expect(accepts(accumulator, withUndefined, {})).toBe(true);
-    expect(accepts(accumulator, withUndefined, accumulator.emit(withoutKeys))).toBe(true);
+    expect(adapter.accepts(withUndefined, {})).toBe(true);
+    expect(adapter.accepts(withUndefined, adapter.emit(withoutKeys))).toBe(true);
   });
 
   it('ignores columns set to false instead of adding them to the selection', () => {
-    const node = accumulator.create(fakeTable);
+    const node = adapter.create(fakeTable);
 
-    accumulator.merge(node, {
+    adapter.merge(node, {
       columns: {
         firstName: true,
         passwordHash: false,
@@ -66,7 +65,7 @@ describe('selections', () => {
     });
 
     expect(node.columns).toEqual(new Set(['firstName']));
-    expect(accumulator.emit(node)).toEqual({
+    expect(adapter.emit(node)).toEqual({
       columns: { firstName: true },
       with: {},
       extras: {},
@@ -74,15 +73,15 @@ describe('selections', () => {
   });
 
   it('still allows a column to be added later if another field requests it', () => {
-    const node = accumulator.create(fakeTable);
+    const node = adapter.create(fakeTable);
 
-    accumulator.merge(node, {
+    adapter.merge(node, {
       columns: {
         passwordHash: false,
       },
     });
 
-    accumulator.merge(node, {
+    adapter.merge(node, {
       columns: {
         passwordHash: true,
       },
@@ -92,9 +91,9 @@ describe('selections', () => {
   });
 
   it('treats columns object with only falsy entries as an empty selection', () => {
-    const node = accumulator.create(fakeTable);
+    const node = adapter.create(fakeTable);
 
-    accumulator.merge(node, {
+    adapter.merge(node, {
       columns: {
         passwordHash: false,
       },

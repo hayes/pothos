@@ -8,8 +8,8 @@ import {
   type GraphQLResolveInfo,
   parse,
 } from 'graphql';
-import type { Adapter, Mapping, Mappings, QueryFormat, SelectFn } from '../src';
-import { hasKeys, treeAccumulator } from '../src';
+import type { EntryVisitor, Mapping, Mappings, Node, SelectFn, WalkedType } from '../src';
+import { hasKeys, TreeAdapter } from '../src';
 
 /** A model: one object per name, so identity is model identity. */
 export interface FakeModel {
@@ -39,75 +39,85 @@ export function createModels(...names: string[]) {
   return models;
 }
 
-/** How the fake map reads onto the shared query tree: the key loop, and how to write one back. */
-export function createFakeFormat(): QueryFormat<FakeModel, FakeMap> {
-  const format: QueryFormat<FakeModel, FakeMap> = {
-    read({ select, extras, ...args }, model, visit) {
-      // No `select` means every column, which is final (S-9).
-      if (!select) {
-        visit.allColumns();
+export type FakeVisitor = EntryVisitor<FakeModel, FakeMap>;
+
+/**
+ * How the fake map reads onto the shared query tree, and how a node is written back. The models
+ * are the whole of the schema side, so a test that only needs the tree rules builds one with no
+ * models at all.
+ */
+export class FakeAdapter extends TreeAdapter<FakeModel, FakeMap> {
+  constructor(private readonly models: Record<string, FakeModel> = {}) {
+    super();
+  }
+
+  modelFor(type: GraphQLNamedType) {
+    return this.models[type.extensions?.model as string];
+  }
+
+  typeSelection(type: GraphQLNamedType) {
+    return type.extensions?.model
+      ? ((type.extensions.select as FakeMap | undefined) ?? ALL)
+      : undefined;
+  }
+
+  fieldSelection(field: GraphQLField<unknown, unknown>, _type: WalkedType) {
+    return field.extensions?.select as FakeMap | SelectFn<FakeMap> | undefined;
+  }
+
+  read({ select, extras, ...args }: FakeMap, model: FakeModel, visit: FakeVisitor) {
+    // No `select` means every column, which is final (S-9).
+    if (!select) {
+      visit.allColumns();
+    }
+
+    for (const key of Object.keys(select ?? {})) {
+      const value = select![key];
+
+      if (!value) {
+        continue;
       }
 
-      for (const key of Object.keys(select ?? {})) {
-        const value = select![key];
+      const target = model.relations[key];
 
-        if (!value) {
-          continue;
-        }
+      if (target) {
+        visit.relation(key, target, value === true ? ALL : value);
+      } else {
+        visit.column(key);
+      }
+    }
 
-        const target = model.relations[key];
+    for (const key of Object.keys(extras ?? {})) {
+      visit.extra(key, extras![key]);
+    }
 
-        if (target) {
-          visit.relation(key, target, value === true ? ALL : value);
-        } else {
-          visit.column(key);
-        }
+    visit.args(args);
+  }
+
+  emit(node: Node<FakeModel>): FakeMap {
+    const select: Record<string, boolean | FakeMap> = {};
+    const query: FakeMap = { ...node.args };
+
+    for (const [name, child] of node.relations) {
+      const nested = this.emit(child);
+
+      select[name] = hasKeys(nested) ? nested : true;
+    }
+
+    if (node.extras.size > 0) {
+      query.extras = Object.fromEntries(node.extras);
+    }
+
+    if (node.columns) {
+      for (const column of node.columns) {
+        select[column] = true;
       }
 
-      for (const key of Object.keys(extras ?? {})) {
-        visit.extra(key, extras![key]);
-      }
+      return { ...query, select };
+    }
 
-      visit.args(args);
-    },
-    serialize(node) {
-      const select: Record<string, boolean | FakeMap> = {};
-      const query: FakeMap = { ...node.args };
-
-      for (const [name, child] of node.relations) {
-        const nested = format.serialize(child);
-
-        select[name] = hasKeys(nested) ? nested : true;
-      }
-
-      if (node.extras.size > 0) {
-        query.extras = Object.fromEntries(node.extras);
-      }
-
-      if (node.columns) {
-        for (const column of node.columns) {
-          select[column] = true;
-        }
-
-        return { ...query, select };
-      }
-
-      return hasKeys(select) ? { ...query, select } : query;
-    },
-  };
-
-  return format;
-}
-
-export function createFakeAdapter(models: Record<string, FakeModel>): Adapter<FakeModel, FakeMap> {
-  return {
-    skipDeferredFragments: true,
-    modelFor: (type) => models[type.extensions?.model as string],
-    typeSelection: (type) =>
-      type.extensions?.model ? ((type.extensions.select as FakeMap | undefined) ?? ALL) : undefined,
-    fieldSelection: (field) => field.extensions?.select as FakeMap | SelectFn<FakeMap> | undefined,
-    accumulator: treeAccumulator(createFakeFormat()),
-  };
+    return hasKeys(select) ? { ...query, select } : query;
+  }
 }
 
 /**

@@ -1,5 +1,6 @@
-import type { IndirectInclude, SelectFn } from '../src';
-import { createFakeAdapter, createModels, createSchema, type FakeMap } from './fake-adapter';
+import type { GraphQLField } from 'graphql';
+import type { IndirectInclude, SelectFn, WalkedType } from '../src';
+import { createModels, createSchema, FakeAdapter, type FakeMap } from './fake-adapter';
 
 export const models = createModels('User', 'Post', 'Comment', 'Profile');
 
@@ -139,5 +140,36 @@ export function createTestSchema() {
 }
 
 export function createTestAdapter() {
-  return createFakeAdapter(models);
+  return new FakeAdapter(models);
+}
+
+export type Wrap = (select: Select, field: string) => Select;
+
+/**
+ * The test adapter with the select functions of the named fields wrapped (S-6): a subclass, so
+ * the prototype the walker calls through is the one the wrapping is on.
+ */
+class WrappedAdapter extends FakeAdapter {
+  constructor(
+    private readonly fields: string[],
+    private readonly wrap: Wrap,
+  ) {
+    super(models);
+  }
+
+  override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+    const selection = super.fieldSelection(field, type);
+
+    return typeof selection === 'function' && this.fields.includes(field.name)
+      ? this.wrap(selection as Select, field.name)
+      : selection;
+  }
+}
+
+export function withSelects(fields: string[], wrap: Wrap): FakeAdapter {
+  return new WrappedAdapter(fields, wrap);
+}
+
+export function withWraps(wraps: Record<string, Wrap>): FakeAdapter {
+  return withSelects(Object.keys(wraps), (select, name) => wraps[name](select, name));
 }

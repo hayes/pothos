@@ -1,12 +1,5 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
-import {
-  absorb,
-  acceptsFrom,
-  cacheKey,
-  play,
-  setFieldMapping,
-  setLoaderMappings,
-} from '@pothos/selection-mapper';
+import { cacheKey, setFieldMapping, setLoaderMappings } from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -168,8 +161,8 @@ export class ModelLoader {
     const selection = this.getSelectionForField(info, returnType);
 
     return isThenable(selection)
-      ? selection.then((settled) => this.loadFieldWith(play(settled), info, model))
-      : this.loadFieldWith(play(selection), info, model);
+      ? selection.then((settled) => this.loadFieldWith(settled.play(), info, model))
+      : this.loadFieldWith(selection.play(), info, model);
   }
 
   private loadFieldWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
@@ -183,12 +176,10 @@ export class ModelLoader {
   }
 
   stageQuery(played: DrizzlePlayedPlan, model: object) {
-    const accumulator = this.adapter.accumulator;
-
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
-      if (acceptsFrom(accumulator, entry.root, played.root)) {
-        absorb(accumulator, entry.root, played.root);
+      if (this.adapter.acceptsFrom(entry.root, played.root)) {
+        this.adapter.absorb(entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -203,9 +194,9 @@ export class ModelLoader {
 
   initLoad(played: DrizzlePlayedPlan, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
-    const root = this.adapter.accumulator.create(played.root.model);
+    const root = this.adapter.create(played.root.model);
 
-    absorb(this.adapter.accumulator, root, played.root);
+    this.adapter.absorb(root, played.root);
 
     const entry = {
       root,
@@ -227,7 +218,7 @@ export class ModelLoader {
         )[this.modelName];
 
         const query = api.findMany({
-          ...this.adapter.accumulator.emit(entry.root),
+          ...this.adapter.emit(entry.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(

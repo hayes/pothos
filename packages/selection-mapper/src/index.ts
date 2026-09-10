@@ -1,9 +1,9 @@
 /**
- * What the ORM plugins use: the entry points, the `Adapter` contract with the types it mentions,
- * and the loader-map, node, usage, and equality helpers their adapters and loaders call.
- * Everything else is module-private; see the README.
+ * What the ORM plugins use: the entry points, the `Adapter` classes their own adapters extend,
+ * and the loader-map, usage and equality helpers their adapters and loaders call. Everything
+ * else is module-private; see the README.
  */
-export { absorb, accepts, acceptsFrom, conflictOf } from './accumulate.js';
+export { Adapter, type NodeBase } from './adapter.js';
 export { deepEqual } from './deep-equal.js';
 export { planFromInfo, queryFromInfo, queryFromPlan, rowPlanFromInfo } from './entry.js';
 export {
@@ -20,19 +20,13 @@ export {
   type PathSegment,
   selectedFieldNames,
 } from './matches.js';
-export { createNode, type Node, type NodeBase, relation } from './node.js';
-export { play } from './play.js';
-export { type EntryVisitor, hasKeys, type QueryFormat, treeAccumulator } from './tree.js';
+export type { Plan, PlayedPlan } from './plan.js';
+export { type EntryVisitor, hasKeys, type Node, TreeAdapter } from './tree.js';
 export type {
-  Accumulator,
-  Adapter,
   EntryOptions,
   MergeOptions,
   NestedSelection,
-  Plan,
-  PlayedPlan,
   Position,
-  RootMerge,
   SelectFn,
   TypeLevelConflict,
   WalkedType,

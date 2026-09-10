@@ -244,18 +244,17 @@ export function drizzleConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
-    const accumulator = adapter.accumulator;
-    const node = accumulator.create(config.relations[tableName]);
+    const node = adapter.create(config.relations[tableName]);
 
-    accumulator.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);
+    adapter.merge(node, getQueryArgs(args, ctx, baseQuery).select as SelectionMap);
 
     if (typeof nestedSelect === 'object' && nestedSelect) {
-      accumulator.merge(node, nestedSelect);
+      adapter.merge(node, nestedSelect);
     }
 
     return omitUndefinedKeys({
       ...baseQuery,
-      ...accumulator.emit(node),
+      ...adapter.emit(node),
     });
   }
 

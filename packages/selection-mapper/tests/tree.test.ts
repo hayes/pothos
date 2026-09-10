@@ -1,31 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import type { EntryVisitor, QueryFormat } from '../src';
-import { treeAccumulator } from '../src';
-import { createFakeFormat, createModels, type FakeMap, type FakeModel } from './fake-adapter';
+import { relation } from '../src/tree.js';
+import {
+  createModels,
+  FakeAdapter,
+  type FakeMap,
+  type FakeModel,
+  type FakeVisitor,
+} from './fake-adapter';
 
 const models = createModels('User', 'Post', 'Comment');
 
 models.User.relations = { posts: models.Post };
 models.Post.relations = { comments: models.Comment };
 
-/** The fake format, with every visitor it is handed recorded. */
-function recordingFormat(): {
-  format: QueryFormat<FakeModel, FakeMap>;
-  visitors: EntryVisitor<FakeModel, FakeMap>[];
-} {
-  const fake = createFakeFormat();
-  const visitors: EntryVisitor<FakeModel, FakeMap>[] = [];
+/** The fake adapter, with every visitor its key loop is handed recorded. */
+class RecordingAdapter extends FakeAdapter {
+  readonly visitors: FakeVisitor[] = [];
 
-  return {
-    visitors,
-    format: {
-      ...fake,
-      read(query, model, visit) {
-        visitors.push(visit);
-        fake.read(query, model, visit);
-      },
-    },
-  };
+  override read(query: FakeMap, model: FakeModel, visit: FakeVisitor) {
+    this.visitors.push(visit);
+    super.read(query, model, visit);
+  }
 }
 
 const NESTED: FakeMap = {
@@ -35,18 +30,47 @@ const NESTED: FakeMap = {
   },
 };
 
-describe('treeAccumulator', () => {
+describe('node', () => {
+  it('starts in named-column mode with no relations', () => {
+    const node = new FakeAdapter().create(models.User);
+
+    expect(node.columns).toEqual(new Set());
+    expect(node.relations.size).toBe(0);
+    expect(node.extras.size).toBe(0);
+    expect(node.args).toEqual({});
+  });
+
+  it('creates a relation node once and returns it afterwards', () => {
+    const node = new FakeAdapter().create(models.User);
+    const posts = relation(node, 'posts', models.Post, {});
+
+    expect(posts.model).toBe(models.Post);
+    expect(relation(node, 'posts', models.Post, true)).toBe(posts);
+    expect([...node.relations.keys()]).toEqual(['posts']);
+  });
+
+  it('rejects a promise as a relation value (A-6)', () => {
+    const node = new FakeAdapter().create(models.User);
+
+    expect(() => relation(node, 'posts', models.Post, Promise.resolve({}))).toThrow(
+      'Relation "posts" was given a promise. Await nestedSelection()',
+    );
+    expect(node.relations.size).toBe(0);
+  });
+});
+
+describe('TreeAdapter', () => {
   /**
-   * The classifier is a visitor, not a parse: one visitor per accumulator, re-used down the tree
-   * by saving and restoring its cursor, so a merge allocates only what the format's own key loop
+   * The classifier is a visitor, not a parse: one visitor per adapter, re-used down the tree by
+   * saving and restoring its cursor, so a merge allocates only what the adapter's own key loop
    * already allocated.
    */
   it('reads every level of a merge with one visitor, and reuses it across merges', () => {
-    const { format, visitors } = recordingFormat();
-    const accumulator = treeAccumulator(format);
-    const node = accumulator.create(models.User);
+    const adapter = new RecordingAdapter();
+    const { visitors } = adapter;
+    const node = adapter.create(models.User);
 
-    accumulator.merge(node, NESTED);
+    adapter.merge(node, NESTED);
 
     // Three levels deep, one visitor.
     expect(visitors.length).toBe(3);
@@ -54,23 +78,23 @@ describe('treeAccumulator', () => {
 
     const [merger] = visitors;
 
-    accumulator.merge(accumulator.create(models.User), NESTED);
+    adapter.merge(adapter.create(models.User), NESTED);
 
     expect(new Set(visitors).size).toBe(1);
     expect(visitors[3]).toBe(merger);
   });
 
   it('reads every level of a check with one visitor, and a different one from the merge', () => {
-    const { format, visitors } = recordingFormat();
-    const accumulator = treeAccumulator(format);
-    const node = accumulator.create(models.User);
+    const adapter = new RecordingAdapter();
+    const { visitors } = adapter;
+    const node = adapter.create(models.User);
 
-    accumulator.merge(node, NESTED);
+    adapter.merge(node, NESTED);
 
     const merger = visitors[0];
 
     visitors.length = 0;
-    expect(accumulator.accepts!(node, NESTED)).toBe(true);
+    expect(adapter.accepts(node, NESTED)).toBe(true);
 
     // Every level, because every relation is already on the node.
     expect(visitors.length).toBe(3);
@@ -79,42 +103,42 @@ describe('treeAccumulator', () => {
   });
 
   it('leaves a conflicting relation out of a lenient merge and keeps the rest (E-2)', () => {
-    const accumulator = treeAccumulator(createFakeFormat());
-    const node = accumulator.create(models.User);
+    const adapter = new FakeAdapter();
+    const node = adapter.create(models.User);
 
-    accumulator.merge(node, { select: { posts: { take: 2, select: { id: true } } } });
-    accumulator.merge(
+    adapter.merge(node, { select: { posts: { take: 2, select: { id: true } } } });
+    adapter.merge(
       node,
       { select: { id: true, posts: { take: 5, select: { id: true } } } },
       { lenient: true },
     );
 
-    expect(accumulator.emit(node)).toEqual({
+    expect(adapter.emit(node)).toEqual({
       select: { id: true, posts: { take: 2, select: { id: true } } },
     });
   });
 
   it('adds no columns for a relation query without a selection of its own (E-3)', () => {
-    const accumulator = treeAccumulator(createFakeFormat());
-    const node = accumulator.create(models.User);
+    const adapter = new FakeAdapter();
+    const node = adapter.create(models.User);
 
-    accumulator.merge(node, { take: 2 }, { asQuery: true });
+    adapter.merge(node, { take: 2 }, { asQuery: true });
 
     expect(node.columns).toEqual(new Set());
-    expect(accumulator.emit(node)).toEqual({ take: 2, select: {} });
+    expect(adapter.emit(node)).toEqual({ take: 2, select: {} });
   });
 
   it('absorbs a node without serializing it', () => {
-    const accumulator = treeAccumulator(createFakeFormat());
-    const into = accumulator.create(models.User);
-    const from = accumulator.create(models.User);
+    const adapter = new FakeAdapter();
+    const into = adapter.create(models.User);
+    const from = adapter.create(models.User);
 
-    accumulator.merge(into, { select: { id: true } });
-    accumulator.merge(from, NESTED);
+    adapter.merge(into, { select: { id: true } });
+    adapter.merge(from, NESTED);
 
-    expect(accumulator.acceptsFrom!(into, from)).toBe(true);
-    accumulator.absorb!(into, from);
+    expect(adapter.acceptsFrom(into, from)).toBe(true);
+    adapter.absorb(into, from);
 
-    expect(accumulator.emit(into)).toEqual(accumulator.emit(from));
+    expect(adapter.emit(into)).toEqual(adapter.emit(from));
   });
 });

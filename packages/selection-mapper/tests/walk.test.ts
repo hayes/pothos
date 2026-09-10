@@ -1,38 +1,38 @@
+import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import type { Position } from '../src';
+import type { Position, SelectFn, WalkedType } from '../src';
 import {
   getLoaderMapping,
   planFromInfo,
-  play,
   queryFromInfo,
   queryFromPlan,
   rowPlanFromInfo,
 } from '../src';
-import { mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
-import { createTestAdapter, createTestSchema } from './schema';
+import { FakeAdapter, type FakeMap, mappingOf, mappingsOf, resolveInfo } from './fake-adapter';
+import { createTestAdapter, createTestSchema, models, withSelects } from './schema';
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
 
 /** The test adapter, recording the position handed to every select function it runs. */
 function watchPositions() {
-  const adapter = createTestAdapter();
   const seen: [string, Position][] = [];
-  const { fieldSelection } = adapter;
 
-  adapter.fieldSelection = (field, type) => {
-    const selection = fieldSelection(field, type);
+  class WatchingAdapter extends FakeAdapter {
+    override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+      const selection = super.fieldSelection(field, type);
 
-    return typeof selection === 'function'
-      ? (...args) => {
-          seen.push([field.name, args[4]]);
+      return typeof selection === 'function'
+        ? (((...args) => {
+            seen.push([field.name, args[4]]);
 
-          return selection(...args);
-        }
-      : selection;
-  };
+            return selection(...args);
+          }) as SelectFn<FakeMap>)
+        : selection;
+    }
+  }
 
-  return { adapter, seen };
+  return { adapter: new WatchingAdapter(models), seen };
 }
 
 /** What a caller that wants a path builds from a position: `Type.field` from the top down. */
@@ -168,9 +168,7 @@ describe('queryFromInfo', () => {
   it('neither merges nor maps a field whose select returns nothing (S-5)', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
-    const nothing = createTestAdapter();
-
-    nothing.fieldSelection = () => () => null;
+    const nothing = withSelects(['posts'], () => () => null);
 
     expect(queryFromInfo(nothing, { context, info })).toEqual({});
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
@@ -375,9 +373,9 @@ describe('queryFromInfo', () => {
 
   it('rejects a promise handed to a relation (A-6)', async () => {
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
-    const async = createTestAdapter();
-
-    async.fieldSelection = () => () => ({ select: { posts: Promise.resolve({}) as never } });
+    const async = withSelects(['posts'], () => () => ({
+      select: { posts: Promise.resolve({}) as never },
+    }));
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
       'Relation "posts" was given a promise',
@@ -414,25 +412,20 @@ describe('fragments (S-7)', () => {
   });
 
   it('rejects a variant whose type-level extras conflict', async () => {
-    const withExtras = createTestAdapter();
-    const { typeSelection } = withExtras;
     const count = () => 1;
-
-    withExtras.typeSelection = (type) => {
-      if (type.name === 'Person') {
-        return { select: { id: true }, extras: { total: count } };
+    const withExtras = new (class extends FakeAdapter {
+      override typeSelection(type: GraphQLNamedType) {
+        switch (type.name) {
+          case 'Person':
+          case 'Admin':
+            return { select: { id: true }, extras: { total: count } };
+          case 'Viewer':
+            return { select: { id: true }, extras: { total: () => 2 } };
+          default:
+            return super.typeSelection(type);
+        }
       }
-
-      if (type.name === 'Viewer') {
-        return { select: { id: true }, extras: { total: () => 2 } };
-      }
-
-      if (type.name === 'Admin') {
-        return { select: { id: true }, extras: { total: count } };
-      }
-
-      return typeSelection(type);
-    };
+    })(models);
 
     const same = await resolveInfo(schema, '{ person { id ... on Admin { id } } }');
 
@@ -555,24 +548,24 @@ describe('repeated fragment spreads (W-2)', () => {
   }
 
   it('expands a fragment spread more than once under a type once per pass', async () => {
-    const counting = createTestAdapter();
     const calls = { typeSelection: 0, fieldSelection: 0 };
-    const { typeSelection, fieldSelection } = counting;
+    const counting = new (class extends FakeAdapter {
+      override typeSelection(type: GraphQLNamedType) {
+        if (type.name === 'Viewer') {
+          calls.typeSelection += 1;
+        }
 
-    counting.typeSelection = (type) => {
-      if (type.name === 'Viewer') {
-        calls.typeSelection += 1;
+        return super.typeSelection(type);
       }
 
-      return typeSelection(type);
-    };
-    counting.fieldSelection = (field, type) => {
-      if (field.name === 'email') {
-        calls.fieldSelection += 1;
-      }
+      override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+        if (field.name === 'email') {
+          calls.fieldSelection += 1;
+        }
 
-      return fieldSelection(field, type);
-    };
+        return super.fieldSelection(field, type);
+      }
+    })(models);
 
     const info = await resolveInfo(
       schema,
@@ -690,7 +683,7 @@ describe('rowPlanFromInfo (E-2)', () => {
     const plan = rowPlanFromInfo(adapter, {}, info);
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
-    expect(adapter.accumulator.emit(plan.root)).toEqual({
+    expect(adapter.emit(plan.root)).toEqual({
       select: { posts: { take: 2 }, id: true },
     });
     expect(mappingsOf(plan.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
@@ -712,7 +705,7 @@ describe('rowPlanFromInfo (E-2)', () => {
 
     const plan = rowPlanFromInfo(adapter, {}, info);
 
-    expect(adapter.accumulator.emit(plan.root)).toEqual({
+    expect(adapter.emit(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
     expect(mappingsOf(plan.mappings['User@posts'].nested)).toEqual({
@@ -731,7 +724,7 @@ describe('rowPlanFromInfo (E-2)', () => {
 
     const plan = rowPlanFromInfo(adapter, {}, info);
 
-    expect(adapter.accumulator.emit(plan.root)).toEqual({
+    expect(adapter.emit(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
     });
     expect(Object.keys(plan.mappings)).toEqual(['User@latest']);
@@ -744,14 +737,13 @@ describe('rowPlanFromInfo (E-2)', () => {
 describe('adapter contract details', () => {
   it('hands fieldSelection the type the field is walked on (W-1)', async () => {
     const seen: string[] = [];
-    const spied = createTestAdapter();
-    const { fieldSelection } = spied;
+    const spied = new (class extends FakeAdapter {
+      override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+        seen.push(`${type.name}.${field.name}`);
 
-    spied.fieldSelection = (field, type) => {
-      seen.push(`${type.name}.${field.name}`);
-
-      return fieldSelection(field, type);
-    };
+        return super.fieldSelection(field, type);
+      }
+    })(models);
 
     const info = await resolveInfo(schema, '{ user { posts { title } } }');
 
@@ -761,18 +753,18 @@ describe('adapter contract details', () => {
   });
 
   it('hands back the query alone for a nested selection on a model-less field (A-1)', async () => {
-    const scalar = createTestAdapter();
-    const { fieldSelection } = scalar;
     let nested: unknown;
+    const scalar = new (class extends FakeAdapter {
+      override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+        return field.name === 'title'
+          ? (((_args, _ctx, nestedSelection) => {
+              nested = nestedSelection({ select: { comments: true } });
 
-    scalar.fieldSelection = (field, type) =>
-      field.name === 'title'
-        ? (_args, _ctx, nestedSelection) => {
-            nested = nestedSelection({ select: { comments: true } });
-
-            return { select: { title: true } };
-          }
-        : fieldSelection(field, type);
+              return { select: { title: true } };
+            }) as SelectFn<FakeMap>)
+          : super.fieldSelection(field, type);
+      }
+    })(models);
 
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { title } } }');
@@ -807,9 +799,9 @@ describe('planFromInfo', () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
-    const played = play(planFromInfo(adapter, { context, info, typeName: 'User' })!);
+    const played = planFromInfo(adapter, { context, info, typeName: 'User' })!.play();
 
-    expect(adapter.accumulator.emit(played.root)).toEqual({ select: { posts: true } });
+    expect(adapter.emit(played.root)).toEqual({ select: { posts: true } });
     expect(mappingsOf(played.mappings)).toEqual({ 'User@posts': { nested: {} } });
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
   });
@@ -832,7 +824,7 @@ describe('planFromInfo', () => {
     );
     const plan = planFromInfo(adapter, { ...options, info: nodes })!;
 
-    expect(adapter.accumulator.emit(play(plan).root)).toEqual({ select: { author: true } });
+    expect(adapter.emit(plan.play().root)).toEqual({ select: { author: true } });
   });
 });
 

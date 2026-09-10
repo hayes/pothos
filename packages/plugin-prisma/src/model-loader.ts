@@ -7,7 +7,7 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { absorb, acceptsFrom, cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
+import { cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
@@ -278,12 +278,10 @@ export class ModelLoader {
   }
 
   stageQuery(played: PrismaPlayedPlan, model: object) {
-    const accumulator = prismaAdapter.accumulator;
-
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
-      if (acceptsFrom(accumulator, entry.root, played.root)) {
-        absorb(accumulator, entry.root, played.root);
+      if (prismaAdapter.acceptsFrom(entry.root, played.root)) {
+        prismaAdapter.absorb(entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -307,9 +305,9 @@ export class ModelLoader {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     models.set(initialModel, promise);
 
-    const root = prismaAdapter.accumulator.create(played.root.model);
+    const root = prismaAdapter.create(played.root.model);
 
-    absorb(prismaAdapter.accumulator, root, played.root);
+    prismaAdapter.absorb(root, played.root);
 
     const entry = {
       models,
@@ -326,7 +324,7 @@ export class ModelLoader {
         if (delegate.findUniqueOrThrow) {
           delegate
             .findUniqueOrThrow({
-              ...prismaAdapter.accumulator.emit(entry.root),
+              ...prismaAdapter.emit(entry.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
@@ -334,7 +332,7 @@ export class ModelLoader {
           delegate
             .findUnique({
               rejectOnNotFound: true,
-              ...prismaAdapter.accumulator.emit(entry.root),
+              ...prismaAdapter.emit(entry.root),
               where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
             } as never)
             .then(resolve as () => {}, reject);
