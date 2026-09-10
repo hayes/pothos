@@ -1,16 +1,20 @@
 ---
+'@pothos/core': minor
 '@pothos/plugin-prisma': minor
 '@pothos/plugin-drizzle': minor
 ---
 
-The callbacks that build a selection may be async, and the query is still built synchronously
-unless the caller asks otherwise.
+The callbacks that build a selection may be async when the schema opts in, and the query is still
+built synchronously unless the caller asks otherwise.
 
-- A field's `select` function, a relation `query` callback, a `relationCount` / `relatedCount`
-  `where` callback, and the `select` / `query` callbacks of `prismaConnectionHelpers` and
-  `drizzleConnectionHelpers` may return promises. Async argument mappers (such as the validation
-  plugin's) are awaited before the field's `select` runs. Prisma previously accepted an async
-  `select` and silently dropped it.
+- Async selections require `AsyncSelections: true` in the schema types. Without it a field's
+  `select` function, a relation `query` callback, a `relationCount` / `relatedCount` `where`
+  callback, and the `select` / `query` callbacks of `prismaConnectionHelpers` and
+  `drizzleConnectionHelpers` are typed as synchronous, and an async callback is a type error. With
+  it, all of them may return promises. Nothing the plugins generate changes either way: the flag
+  only widens what those callbacks accept.
+- Async argument mappers (such as the validation plugin's) are awaited before the field's `select`
+  runs. Prisma previously accepted an async `select` and silently dropped it.
 - The plugin still builds one query: callbacks start in the same tick, and what they return is
   merged after every synchronous selection, in document order. Schemas without async callbacks are
   unaffected: until a callback returns a promise, planning and resolving create no promise and no
@@ -33,5 +37,5 @@ unless the caller asks otherwise.
   first, as for `queryFromInfo`: a relation the document also plans with other arguments loads on
   its own, whether or not a selection beneath the field is async.
 
-Async selection callbacks have not been released, so no published schema can reach the throw and
-nothing here is a migration.
+Async selection callbacks have not been released, and the opt-in is off by default, so no published
+schema can reach the throw and nothing here is a migration.

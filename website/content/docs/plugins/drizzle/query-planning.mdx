@@ -66,11 +66,29 @@ which are described under [Relation queries](./relations#relation-queries).
 
 ## Async selections
 
-`select` functions, relation `query` callbacks, `relatedCount` `where` callbacks, and the `select`
-and `query` callbacks of `drizzleConnectionHelpers` may be async. The plugin still builds a single
-query. It waits for the callbacks, and merges what they return after every synchronous selection,
-in document order. Schemas that do not use async callbacks are unaffected, since no promise is
-created until a callback returns one.
+Selections are synchronous unless the schema opts in with `AsyncSelections: true`:
+
+```ts
+const builder = new SchemaBuilder<{
+  DrizzleRelations: typeof relations;
+  AsyncSelections: true;
+}>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+  },
+});
+```
+
+With the opt-in, `select` functions, relation `query` callbacks, `relatedCount` `where` callbacks,
+and the `select` and `query` callbacks of `drizzleConnectionHelpers` may be async. Without it they
+are typed as synchronous, and an async callback is a type error.
+
+The plugin still builds a single query. It waits for the callbacks, and merges what they return
+after every synchronous selection, in document order. Schemas that do not use async callbacks are
+unaffected, since no promise is created until a callback returns one.
 
 ```ts
 builder.drizzleObject('users', {
@@ -117,6 +135,34 @@ select: async (args, ctx, nestedSelection) => ({
   },
 }),
 ```
+
+### What the opt-in asks of a schema
+
+Anything the plugin builds for you keeps working with no changes. `t.relation`, `t.relatedCount`,
+`t.drizzleField`, `t.drizzleConnection`, `t.relatedConnection` and the resolvers they generate
+settle the plan before your resolver runs, so a schema built entirely from them can turn the opt-in
+on and change nothing else.
+
+The cost lands on the places where your own code asks the plugin for a query or a selection:
+
+- `drizzleConnectionHelpers(...).getQuery`
+- `nestedSelection`, the third argument of a field's `select`
+- `nestedQuery`, the fourth argument of a `t.relatedField` `select`
+- `mergeNestedSelection`, what a `pothosDrizzleSelect` field extension is handed
+
+Once the opt-in is on, each of those either has to be updated — pass `awaitSelections: true` and
+`await` the query, or `await` the nested selection — or it may throw. Which of them are affected
+depends on whether any selection beneath that field is async, and that is a property of the
+incoming document rather than of the call site, so reading the call site does not settle it.
+Turning the opt-in on is a commitment to audit every one of them, and a schema that has none has
+nothing to audit.
+
+The two opt-ins are independent. The schema flag says whether a callback may be async;
+`awaitSelections` says whether a particular `getQuery` call will await the query it builds, and
+stays a per-call decision either way.
+
+The throw is loud, and names the field and the option to pass. The alternative is a promise handed
+back where the declared type says there is a query, which surfaces much further from its cause.
 
 ## Conflicting selections between variants
 
