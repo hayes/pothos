@@ -16,7 +16,7 @@ import {
 import type { Node, NodeBase } from './node.js';
 import { play } from './play.js';
 import type { Adapter, EntryOptions, Plan, PlayedPlan, Position } from './types.js';
-import { createPlan, enterParentType, walkBranches, walkField } from './walk.js';
+import { type Branch, createPlan, enterParentType, walkBranches, walkField } from './walk.js';
 
 /**
  * E-1: the query for the field `info` resolves, with its loader mappings recorded (L-2).
@@ -141,10 +141,12 @@ function buildPlan<Model, Query, NodeType extends NodeBase<Model>>(
   const { info, typeName, path, paths } = options;
   const returnType = getNamedType(info.returnType);
   const target = typeName ? info.schema.getType(typeName)! : returnType;
-  const position = positionForResolvedField(info);
 
   // graphql merges every occurrence of the field's response key into `info.fieldNodes`; each is
   // planned into the one root, so the query answers whichever occurrence a resolver runs for.
+  let rootType = target;
+  let branches: Branch[];
+
   if (paths?.length || path?.length) {
     const includePaths = normalizePaths(paths?.length ? paths : [path!]);
     const prefix = includeOf(returnType)?.path;
@@ -161,36 +163,25 @@ function buildPlan<Model, Query, NodeType extends NodeBase<Model>>(
       return undefined;
     }
 
-    const plan = createPlan(adapter, options, typeName ? target : matches[0].type, position);
-
-    try {
-      // Every match is planned into the one root, entered under its own type first (W-11).
-      walkBranches(
-        plan,
-        matches.map((match) => ({
-          // A matched type with its own model (including variants of the target model) is walked
-          // with its own model. Types without a model (interfaces, wrappers) are walked as the
-          // requested type so its fields can be found.
-          type: typeName && !modelOf(adapter, info.schema, match.type) ? target : match.type,
-          fieldNodes: [match.field],
-          indirectPath: match.path,
-          deferred: match.deferred,
-        })),
-      );
-    } catch (error) {
-      abandon(plan);
-      throw error;
-    }
-
-    return plan;
+    rootType = typeName ? target : matches[0].type;
+    // Every match is planned into the one root, entered under its own type first (W-11).
+    branches = matches.map((match) => ({
+      // A matched type with its own model (including variants of the target model) is walked
+      // with its own model. Types without a model (interfaces, wrappers) are walked as the
+      // requested type so its fields can be found.
+      type: typeName && !modelOf(adapter, info.schema, match.type) ? target : match.type,
+      fieldNodes: [match.field],
+      indirectPath: match.path,
+      deferred: match.deferred,
+    }));
+  } else {
+    branches = [{ type: target, fieldNodes: info.fieldNodes, indirectPath: [], deferred: false }];
   }
 
-  const plan = createPlan(adapter, options, target, position);
+  const plan = createPlan(adapter, options, rootType, positionForResolvedField(info));
 
   try {
-    walkBranches(plan, [
-      { type: target, fieldNodes: info.fieldNodes, indirectPath: [], deferred: false },
-    ]);
+    walkBranches(plan, branches);
   } catch (error) {
     abandon(plan);
     throw error;

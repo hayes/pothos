@@ -338,34 +338,53 @@ function matchPath(
 }
 
 /**
- * Finds every field selected at the end of one of `paths`, starting from `selection` (which is
- * expected to be a selection on `type`). Paths are followed through fragments; see
- * `resolveFragmentTypes` for the rules. Matches are returned in path order, then document order,
- * each with the `deferred` flag `eachSelectedField` computed for it.
+ * Follows each of `paths`, prefixed by any type-level `prefix`, from `selection` (which is expected
+ * to be a selection on `type`), reporting the fields at their ends to `onMatch` in path order then
+ * document order, and stopping when `onMatch` says to. Paths are followed through fragments; see
+ * `resolveFragmentTypes` for the rules. Each path gets its own memo: what one path expanded says
+ * nothing about the next.
+ */
+function eachMatch(
+  info: GraphQLResolveInfo,
+  type: GraphQLNamedType,
+  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
+  paths: IndirectPathSegment[][],
+  { prefix, path = [], deferred = false }: MatchOptions,
+  onMatch: (match: Match) => boolean | void,
+): void {
+  for (const includePath of paths) {
+    const stopped = matchPath(
+      info,
+      selection,
+      { type, expectedType: type, path, deferred },
+      prefix?.length ? [...prefix, ...includePath] : includePath,
+      0,
+      onMatch,
+      new Set(),
+    );
+
+    if (stopped) {
+      return;
+    }
+  }
+}
+
+/**
+ * Every field selected at the end of one of `paths`, each with the `deferred` flag
+ * `eachSelectedField` computed for it.
  */
 export function findMatches(
   info: GraphQLResolveInfo,
   type: GraphQLNamedType,
   selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
   paths: IndirectPathSegment[][],
-  { prefix, path = [], deferred = false }: MatchOptions = {},
+  options: MatchOptions = {},
 ): Match[] {
   const matches: Match[] = [];
-  const collect = (match: Match) => {
-    matches.push(match);
-  };
 
-  for (const includePath of paths) {
-    matchPath(
-      info,
-      selection,
-      { type, expectedType: type, path, deferred },
-      prefix && prefix.length > 0 ? [...prefix, ...includePath] : includePath,
-      0,
-      collect,
-      new Set(),
-    );
-  }
+  eachMatch(info, type, selection, paths, options, (match) => {
+    matches.push(match);
+  });
 
   return matches;
 }
@@ -385,19 +404,11 @@ export function firstMatch(
 ): Match | undefined {
   let first: Match | undefined;
 
-  matchPath(
-    info,
-    selection,
-    { type, expectedType: type, path: [], deferred: false },
-    prefix && prefix.length > 0 ? [...prefix, ...path] : path,
-    0,
-    (match) => {
-      first = match;
+  eachMatch(info, type, selection, [path], { prefix }, (match) => {
+    first = match;
 
-      return true;
-    },
-    new Set(),
-  );
+    return true;
+  });
 
   return first;
 }
