@@ -1,5 +1,4 @@
 import {
-  completeValue,
   createContextCache,
   type InterfaceRef,
   isThenable,
@@ -8,9 +7,14 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { accepts, accumulatorOf, cacheKey, setLoaderMappings } from '@pothos/selection-mapper';
+import {
+  absorb,
+  acceptsFrom,
+  accumulatorOf,
+  cacheKey,
+  setLoaderMappings,
+} from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { SelectionMap } from './types.js';
 import { type PrismaPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
 import { getClient } from './util/get-client.js';
@@ -22,12 +26,6 @@ interface ResolvablePromise<T> {
   reject: (err: unknown) => void;
 }
 
-/** A field's loader plan and the query it serializes to. */
-interface Selection {
-  plan: PrismaPlan;
-  query: SelectionMap;
-}
-
 export class ModelLoader {
   context: object;
 
@@ -37,8 +35,8 @@ export class ModelLoader {
 
   modelName: string;
 
-  // L-4: one selection per `Type@path`, a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<Selection>>();
+  // L-4: one plan per `Type@path`, a promise while a select beneath the field is async.
+  queryCache = new Map<string, MaybePromise<PrismaPlan>>();
 
   staged = new Set<{
     plan: PrismaPlan;
@@ -244,13 +242,10 @@ export class ModelLoader {
     if (!this.queryCache.has(key)) {
       this.queryCache.set(
         key,
-        completeValue(
-          rowPlanFromInfo(
-            this.context,
-            info,
-            this.builder.options.prisma.skipDeferredFragments ?? true,
-          ),
-          selectionOf,
+        rowPlanFromInfo(
+          this.context,
+          info,
+          this.builder.options.prisma.skipDeferredFragments ?? true,
         ),
       );
     }
@@ -267,12 +262,12 @@ export class ModelLoader {
     const selection = this.getSelection(info);
 
     return isThenable(selection)
-      ? selection.then((settled) => this.loadWith(settled as Selection, info, model))
+      ? selection.then((settled) => this.loadWith(settled as PrismaPlan, info, model))
       : this.loadWith(selection, info, model);
   }
 
-  private loadWith({ plan, query }: Selection, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(plan, query, model).then((result) => {
+  private loadWith(plan: PrismaPlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(plan, model).then((result) => {
       if (result) {
         const mapping = plan.mappings[`${info.parentType.name}@${info.path.key}`];
 
@@ -285,12 +280,13 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(plan: PrismaPlan, query: SelectionMap, model: object) {
+  stageQuery(plan: PrismaPlan, model: object) {
     const accumulator = accumulatorOf(prismaAdapter);
 
     for (const entry of this.staged) {
-      if (accepts(accumulator, entry.plan.root, query)) {
-        accumulator.merge(entry.plan.root, query);
+      // Node to node: the staged plan takes the field's plan whole, never through a query.
+      if (acceptsFrom(accumulator, entry.plan.root, plan.root)) {
+        absorb(accumulator, entry.plan.root, plan.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -349,10 +345,6 @@ export class ModelLoader {
 
     return promise.promise;
   }
-}
-
-function selectionOf(plan: PrismaPlan) {
-  return { plan, query: accumulatorOf(prismaAdapter).emit(plan.root) };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

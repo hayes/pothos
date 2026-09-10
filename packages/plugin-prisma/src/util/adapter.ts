@@ -1,11 +1,13 @@
 import {
   type Adapter,
-  createNode,
   deepEqual,
+  type EntryVisitor,
+  hasKeys,
   type Node,
   type Plan,
-  relation,
+  type QueryFormat,
   type SelectFn,
+  treeAccumulator,
 } from '@pothos/selection-mapper';
 import type { FieldSelection, IncludeMap, SelectionMap } from '../types.js';
 import type { FieldMap } from './relation-map.js';
@@ -23,74 +25,50 @@ export const INCLUDE_ALL: SelectionMap = Object.freeze({});
 const COUNT_ALL = '*';
 
 /**
- * How prisma selections (`{ select, include, ...args }`) map onto the shared query tree. A node
- * in named-column mode serializes to `select`; a node whose columns are `null` (include mode, the
- * default for a type without a type-level `select`) serializes to `include`. `_count` entries
- * live in the node's extras, keyed by relation name.
+ * How prisma selections (`{ select, include, ...args }`) read onto the shared query tree, and how
+ * a node is written back. A node in named-column mode serializes to `select`; a node whose
+ * columns are `null` (include mode, the default for a type without a type-level `select`)
+ * serializes to `include`. `_count` entries live in the node's extras, keyed by relation name.
+ *
+ * The merge, compare and conflict rules are the package's: this is the key loop and `serialize`.
  */
-export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
-  skipDeferredFragments: true,
-  // Set by prismaObject/prismaInterface and propagated to implementing types by onTypeConfig.
-  modelFor: (type) => type.extensions?.pothosPrismaFieldMap as FieldMap | undefined,
-  createNode,
-  // Precomputed once per type by onTypeConfig: `{ select, include }`, INCLUDE_ALL, or undefined.
-  typeSelection: (type) => type.extensions?.pothosPrismaTypeSelection as SelectionMap | undefined,
-  fieldSelection(field) {
-    const selection = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
-
-    if (!selection) {
-      return undefined;
-    }
-
-    return typeof selection === 'function'
-      ? (selection as unknown as SelectFn<SelectionMap>)
-      : { select: selection };
-  },
-  merge(node, { select, include, ...args }) {
+export const prismaFormat: QueryFormat<FieldMap, SelectionMap> = {
+  read({ select, include, ...args }, model, visit) {
     // A map without `select` is an include-mode map, and include mode is final (S-9).
     if (!select) {
-      node.columns = null;
+      visit.allColumns();
     }
 
-    mergeKeys(node, include);
-    mergeKeys(node, select);
+    readKeys(include, model, visit);
+    readKeys(select, model, visit);
+    visit.args(args);
+  },
+  /**
+   * M-3 for one count: a named count already on the node must be equal, and `_count: true` only
+   * agrees with unfiltered counts.
+   */
+  extraConflicts(extras, name, value) {
+    if (name === COUNT_ALL) {
+      for (const [count, filter] of extras) {
+        if (count !== COUNT_ALL && filter !== true) {
+          return true;
+        }
+      }
 
-    if (hasKeys(args)) {
-      node.args = args;
+      return false;
     }
-  },
-  // A relation query merges over `{ select: {} }`: without a `select` of its own it stays in
-  // named-column mode with no columns, so it never means "every column".
-  mergeQuery(node, query) {
-    if (query && hasKeys(query)) {
-      prismaAdapter.merge!(node, { select: {}, ...query });
-    }
-  },
-  compatible(node, { select, include, ...args }, ignoreArgs) {
-    return (
-      keysCompatible(node, select) &&
-      keysCompatible(node, include) &&
-      (ignoreArgs || deepEqual(node.args, args))
-    );
-  },
-  typeLevelConflict(node, { select, include }) {
-    const name =
-      Object.keys(select ?? {}).find((key) => !keyCompatible(node, key, select![key])) ??
-      Object.keys(include ?? {}).find((key) => !keyCompatible(node, key, include![key]));
 
-    return name === undefined ? undefined : { kind: 'relation', name };
-  },
-  withoutConflicts(node, { select, include }) {
-    return {
-      select: select && compatibleEntries(node, select),
-      include: include && compatibleEntries(node, include),
-    };
+    if (extras.has(name)) {
+      return !deepEqual(extras.get(name), value);
+    }
+
+    return extras.has(COUNT_ALL) && value !== true;
   },
   serialize(node) {
     const nested: Record<string, SelectionMap | boolean> = {};
 
     for (const [name, child] of node.relations) {
-      const query = prismaAdapter.serialize!(child);
+      const query = prismaFormat.serialize(child);
 
       nested[name] = hasKeys(query) ? query : true;
     }
@@ -111,8 +89,32 @@ export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
   },
 };
 
-/** M-1, M-2: merges the entries of a `select` or `include` map into `node`. */
-function mergeKeys(node: PrismaNode, map: IncludeMap | undefined) {
+export const prismaAdapter: Adapter<FieldMap, SelectionMap> = {
+  skipDeferredFragments: true,
+  // Set by prismaObject/prismaInterface and propagated to implementing types by onTypeConfig.
+  modelFor: (type) => type.extensions?.pothosPrismaFieldMap as FieldMap | undefined,
+  // Precomputed once per type by onTypeConfig: `{ select, include }`, INCLUDE_ALL, or undefined.
+  typeSelection: (type) => type.extensions?.pothosPrismaTypeSelection as SelectionMap | undefined,
+  fieldSelection(field) {
+    const selection = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
+
+    if (!selection) {
+      return undefined;
+    }
+
+    return typeof selection === 'function'
+      ? (selection as unknown as SelectFn<SelectionMap>)
+      : { select: selection };
+  },
+  accumulator: treeAccumulator(prismaFormat),
+};
+
+/** M-1, M-2: the entries of a `select` or `include` map, classified against the model. */
+function readKeys(
+  map: IncludeMap | undefined,
+  model: FieldMap,
+  visit: EntryVisitor<FieldMap, SelectionMap>,
+) {
   if (!map) {
     return;
   }
@@ -125,24 +127,29 @@ function mergeKeys(node: PrismaNode, map: IncludeMap | undefined) {
     }
 
     if (key === '_count') {
-      mergeCounts(node, value);
+      readCounts(value, visit);
 
       continue;
     }
 
-    const child = node.model.relations.get(key);
+    const target = model.relations.get(key);
 
-    if (child) {
-      prismaAdapter.merge!(relation(node, key, child, value), value === true ? INCLUDE_ALL : value);
+    if (target) {
+      visit.relation(key, target, value === true ? INCLUDE_ALL : value);
     } else {
-      node.columns?.add(key);
+      visit.column(key);
     }
   }
 }
 
-function mergeCounts(node: PrismaNode, value: SelectionMap | true) {
+/**
+ * Counts are extras, one entry per counted relation, so a conflicting count leaves the others in
+ * (E-2). A type-level conflict on one is reported as a relation conflict: it is a relation's
+ * arguments that clash, not a computed value defined twice.
+ */
+function readCounts(value: SelectionMap | true, visit: EntryVisitor<FieldMap, SelectionMap>) {
   if (value === true) {
-    node.extras.set(COUNT_ALL, true);
+    visit.extra(COUNT_ALL, true, 'relation');
 
     return;
   }
@@ -150,7 +157,7 @@ function mergeCounts(node: PrismaNode, value: SelectionMap | true) {
   const counts = (value as { select?: Record<string, unknown> }).select ?? {};
 
   for (const count of Object.keys(counts)) {
-    node.extras.set(count, counts[count]);
+    visit.extra(count, counts[count], 'relation');
   }
 }
 
@@ -184,85 +191,4 @@ function serializeCounts(node: PrismaNode): SelectionMap | true {
   }
 
   return { select: { ...all, ...counts } as IncludeMap };
-}
-
-function keysCompatible(node: PrismaNode, map: IncludeMap | undefined) {
-  return !map || Object.keys(map).every((key) => keyCompatible(node, key, map[key]));
-}
-
-/**
- * M-3 for one entry: a relation already on the node must be compatible with the entry's value
- * (`true` is compatible iff the node's relation has no arguments); a count already on the node
- * must be equal, and `_count: true` only agrees with unfiltered counts.
- */
-function keyCompatible(node: PrismaNode, key: string, value: SelectionMap | boolean) {
-  if (!value) {
-    return true;
-  }
-
-  if (key === '_count') {
-    return countsCompatible(node, value);
-  }
-
-  const child = node.relations.get(key);
-
-  return !child || prismaAdapter.compatible!(child, value === true ? INCLUDE_ALL : value, false);
-}
-
-function countsCompatible(node: PrismaNode, value: SelectionMap | true) {
-  if (value === true) {
-    for (const [name, count] of node.extras) {
-      if (name !== COUNT_ALL && count !== true) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  const counts = (value as { select?: Record<string, unknown> }).select;
-
-  if (!counts) {
-    return true;
-  }
-
-  const countAll = node.extras.has(COUNT_ALL);
-
-  return Object.keys(counts).every((count) =>
-    node.extras.has(count)
-      ? deepEqual(node.extras.get(count), counts[count])
-      : !countAll || counts[count] === true,
-  );
-}
-
-/**
- * E-2: the entries of a type-level map that can be merged into `node`. Counts are checked one at
- * a time, so one conflicting count leaves the others in.
- */
-function compatibleEntries(node: PrismaNode, map: IncludeMap): IncludeMap {
-  const entries: IncludeMap = {};
-
-  for (const [key, value] of Object.entries(map)) {
-    if (key === '_count' && typeof value === 'object' && value.select) {
-      const kept: IncludeMap = {};
-
-      for (const [name, count] of Object.entries(value.select)) {
-        if (countsCompatible(node, { select: { [name]: count } })) {
-          kept[name] = count;
-        }
-      }
-
-      if (hasKeys(kept)) {
-        entries._count = { select: kept };
-      }
-    } else if (keyCompatible(node, key, value)) {
-      entries[key] = value;
-    }
-  }
-
-  return entries;
-}
-
-function hasKeys(value: object) {
-  return Object.keys(value).length > 0;
 }
