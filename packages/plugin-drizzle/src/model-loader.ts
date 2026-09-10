@@ -243,7 +243,7 @@ export class ModelLoader {
               );
 
               if (result) {
-                promise.resolve(result ?? null);
+                promise.resolve(result);
               } else {
                 promise.reject(
                   new Error(`Model ${this.modelName}(${this.sqlForModel(model)}) not found`),
