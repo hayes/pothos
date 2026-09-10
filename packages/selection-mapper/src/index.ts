@@ -19,8 +19,8 @@ export {
   type PathSegment,
   selectedFieldNames,
 } from './matches.js';
+export { type EntryVisitor, type Node, NodeAdapter } from './node.js';
 export { Plan, type PlayedPlan } from './plan.js';
-export { type EntryVisitor, type Node, TreeAdapter } from './tree.js';
 export type {
   MergeOptions,
   NestedSelection,

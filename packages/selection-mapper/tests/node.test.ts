@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { relation } from '../src/tree.js';
+import { relation } from '../src/node.js';
 import {
   createModels,
   FakeAdapter,
@@ -59,7 +59,7 @@ describe('node', () => {
   });
 });
 
-describe('TreeAdapter', () => {
+describe('NodeAdapter', () => {
   /**
    * The classifier is a visitor, not a parse: one visitor per adapter, re-used down the tree by
    * saving and restoring its cursor, so a merge allocates only what the adapter's own key loop

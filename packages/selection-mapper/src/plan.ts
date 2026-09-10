@@ -23,7 +23,7 @@ import {
   type PathSegment,
   resolveType,
 } from './matches.js';
-import type { Node } from './tree.js';
+import type { Node } from './node.js';
 import type { EntryOptions, MergeOptions, Position, WalkedType } from './types.js';
 import { type Branch, walkBranches, walkField } from './walk.js';
 

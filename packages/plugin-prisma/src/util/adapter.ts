@@ -2,10 +2,10 @@ import {
   deepEqual,
   type EntryVisitor,
   type Node,
+  NodeAdapter,
   type Plan,
   type PlayedPlan,
   type SelectFn,
-  TreeAdapter,
 } from '@pothos/selection-mapper';
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import type { FieldSelection, IncludeMap, SelectionMap } from '../types.js';
@@ -31,10 +31,10 @@ const COUNT_ALL = '*';
  * columns are `null` (include mode, the default for a type without a type-level `select`)
  * serializes to `include`. `_count` entries live in the node's extras, keyed by relation name.
  *
- * The merge, compare and conflict rules are `TreeAdapter`'s: this is the schema side, the key
+ * The merge, compare and conflict rules are `NodeAdapter`'s: this is the schema side, the key
  * loop and `emit`.
  */
-class PrismaAdapter extends TreeAdapter<FieldMap, SelectionMap> {
+class PrismaAdapter extends NodeAdapter<FieldMap, SelectionMap> {
   // Set by prismaObject/prismaInterface and propagated to implementing types by onTypeConfig.
   modelFor(type: GraphQLNamedType) {
     return type.extensions?.pothosPrismaFieldMap as FieldMap | undefined;

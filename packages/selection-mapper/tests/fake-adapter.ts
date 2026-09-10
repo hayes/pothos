@@ -10,7 +10,7 @@ import {
   parse,
 } from 'graphql';
 import type { Adapter, EntryVisitor, Mappings, Node, SelectFn, WalkedType } from '../src';
-import { Plan, TreeAdapter } from '../src';
+import { NodeAdapter, Plan } from '../src';
 import type { NodeBase } from '../src/adapter';
 import type { Mapping } from '../src/loader-map';
 import type { EntryOptions } from '../src/types';
@@ -76,7 +76,7 @@ export type FakeVisitor = EntryVisitor<FakeModel, FakeMap>;
  * are the whole of the schema side, so a test that only needs the tree rules builds one with no
  * models at all.
  */
-export class FakeAdapter extends TreeAdapter<FakeModel, FakeMap> {
+export class FakeAdapter extends NodeAdapter<FakeModel, FakeMap> {
   constructor(private readonly models: Record<string, FakeModel> = {}) {
     super();
   }

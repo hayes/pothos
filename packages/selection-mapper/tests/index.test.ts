@@ -9,7 +9,7 @@ it('exports only what the plugins use', () => {
     [
       'Adapter',
       'Plan',
-      'TreeAdapter',
+      'NodeAdapter',
       'cacheKey',
       'deepEqual',
       'getLoaderMapping',

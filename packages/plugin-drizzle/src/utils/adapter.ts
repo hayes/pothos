@@ -2,10 +2,10 @@ import { createContextCache, PothosValidationError } from '@pothos/core';
 import {
   type EntryVisitor,
   type Node,
+  NodeAdapter,
   type Plan,
   type PlayedPlan,
   type SelectFn,
-  TreeAdapter,
 } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
@@ -27,10 +27,10 @@ const ALL: SelectionMap = Object.freeze({});
  * selects every column; a named-column node always adds the table's primary key so rows can be
  * matched back to their parent.
  *
- * The merge, compare and conflict rules are `TreeAdapter`'s: this is the schema side, the key
+ * The merge, compare and conflict rules are `NodeAdapter`'s: this is the schema side, the key
  * loop and `emit`. The schema config every one of them needs is the adapter's own state.
  */
-export class DrizzleAdapter extends TreeAdapter<TableRelationalConfig, SelectionMap> {
+export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, SelectionMap> {
   override skipDeferredFragments: boolean;
 
   constructor(private readonly config: PothosDrizzleSchemaConfig) {

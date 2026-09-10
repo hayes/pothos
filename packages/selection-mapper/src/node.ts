@@ -1,8 +1,11 @@
 /**
- * The concrete query tree, its node, and the merge rules over it (M-1..M-4, S-7, S-9, E-2, E-3),
- * shared by every adapter whose query is a tree of columns, relations, extras and arguments.
+ * The node one root accumulates into — a model, its arguments, its columns, its relations and its
+ * extras — and the merge rules over a tree of them (M-1..M-4, S-7, S-9, E-2, E-3), shared by
+ * every adapter whose query is a tree of that shape.
  *
- * A subclass supplies the only format-specific part left: `read`, the key loop of the ORM's own
+ * Those rules are what this module replaced: each ORM plugin used to write its own merge, compare
+ * and conflict logic over its own accumulator, and `NodeAdapter` is that logic written once. A
+ * subclass supplies the only format-specific part left: `read`, the key loop of the ORM's own
  * query, and `emit`, the node written back. The traversal never reaches in here — it drives the
  * `Adapter` contract, of which this implements everything but those two.
  */
@@ -57,7 +60,7 @@ export function relation<Model>(
 }
 
 /**
- * What an adapter reports for one entry of its query. Called by `TreeAdapter.read`; the visitor
+ * What an adapter reports for one entry of its query. Called by `NodeAdapter.read`; the visitor
  * decides what to do with the entry, so the four rules (merge, accept, conflict, lenient merge)
  * share one key loop per adapter instead of one each.
  *
@@ -90,7 +93,7 @@ export interface EntryVisitor<Model, Query> {
  * compare and conflict rule this package owns. A subclass answers `read` and `emit`, plus the
  * three translation members of `Adapter`.
  */
-export abstract class TreeAdapter<Model, Query> extends Adapter<Model, Query, Node<Model>> {
+export abstract class NodeAdapter<Model, Query> extends Adapter<Model, Query, Node<Model>> {
   /**
    * One merger and one checker per adapter, re-used down the tree: each saves and restores the
    * node it is at rather than allocating a visitor per level, so a merge allocates only what the
@@ -208,7 +211,7 @@ class Merger<Model, Query> implements EntryVisitor<Model, Query> {
   /** E-2: a conflicting relation or extra is left out instead of merged. Top level only. */
   private lenient = false;
 
-  constructor(private readonly adapter: TreeAdapter<Model, Query>) {}
+  constructor(private readonly adapter: NodeAdapter<Model, Query>) {}
 
   run(node: Node<Model>, query: Query, options?: MergeOptions): void {
     this.node = node;
@@ -276,7 +279,7 @@ class Checker<Model, Query> implements EntryVisitor<Model, Query> {
   private ignoreArgs = false;
   private ok = true;
 
-  constructor(private readonly adapter: TreeAdapter<Model, Query>) {}
+  constructor(private readonly adapter: NodeAdapter<Model, Query>) {}
 
   run(node: Node<Model>, query: Query, options?: MergeOptions) {
     this.node = node;

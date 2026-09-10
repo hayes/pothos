@@ -27,7 +27,7 @@ export interface NodeBase<Model> {
  * conflicts to report wants: nothing ever conflicts, and node-to-node work round-trips through
  * `emit`. An adapter that gives every consumer of a relation its own slot inherits all four.
  *
- * `TreeAdapter` in tree.ts overrides all four over a concrete query tree, and is what the prisma
+ * `NodeAdapter` in node.ts overrides all four over a concrete query tree, and is what the prisma
  * and drizzle adapters extend; an adapter whose query is not such a tree extends this directly.
  */
 export abstract class Adapter<Model, Query, NodeType extends NodeBase<Model>> {

@@ -6,8 +6,8 @@ An ORM adapter is now a class rather than a pair of objects wired together. `Ada
 whole contract — `modelFor`, `typeSelection` and `fieldSelection` to translate a schema, `create`,
 `merge` and `emit` to accumulate — and the four merge rules that used to be optional members of a
 separate `Accumulator` are inherited method bodies holding the answers the package used to supply
-on their behalf. `TreeAdapter` replaces `treeAccumulator(format)`: it implements those four over
-the shared query tree and leaves `read` and `emit` to the subclass, so `QueryFormat` and
+on their behalf. `NodeAdapter` replaces `treeAccumulator(format)`: it implements those four over
+the shared node tree and leaves `read` and `emit` to the subclass, so `QueryFormat` and
 `Accumulator` are gone, as are the `absorb`, `accepts`, `acceptsFrom` and `conflictOf`
 pass-throughs, `treeAccumulator`, `createNode`, `relation` and `play`.
 

@@ -10,7 +10,7 @@ with them: it is not a supported public API, and its versions carry no compatibi
 their own. Use the plugins.
 
 The surface is what the three plugins import and nothing more: `Plan` (with `Plan.fromInfo` and
-`Plan.forParentRow` on it), `Adapter` and `TreeAdapter`, the loader-map helpers (`cacheKey`,
+`Plan.forParentRow` on it), `Adapter` and `NodeAdapter`, the loader-map helpers (`cacheKey`,
 `getLoaderMapping`, `setFieldMapping`, `setLoaderMappings`, `setRowMappings`), `selectedFieldNames`
 and `deepEqual`. A rule only one plugin wants belongs to that plugin: turning a plan into the
 query a resolver is handed is prisma's `queryFromInfo`, drizzle's, and prisma-next's, each
@@ -25,8 +25,11 @@ different, so none of them is here.
   to the adapter and returns what the adapter serializes. The `Query` type parameter everywhere.
 - **Model** — the adapter's description of one table or prisma model, one object per model, so
   model identity is model equality.
-- **Node** — one level of the query tree being built (a model, its columns, its relations, its
-  extras). The adapter owns the shape; the walker reads only `node.model`.
+- **Node** — one level of the query being built (a model, its columns, its relations, its
+  extras), and the tree of them one root accumulates into (`Node`, `node.ts`). The adapter owns
+  the shape; the walker reads only `node.model`. `NodeAdapter` is the adapter over that tree: it
+  holds every merge, compare and conflict rule the two ORM plugins used to write out for
+  themselves.
 - **Plan** — what a traversal collected for one root: the model it loads, the selection it starts
   from, and the merges it collected, in order. A plan holds no node, and owns its own fold and
   its own pending chain (`Plan`), and the two entry points as statics: `Plan.fromInfo` (E-1, the
@@ -51,7 +54,7 @@ different, so none of them is here.
   the type to walk it as: the unit `walkBranches` takes.
 - **Merge (verb)** — to fold a query into a node, through the adapter.
 - **Adapter** — the ORM boundary, one class: how to find a type's model and what a type and a
-  field select, and how those selections accumulate into a node (`Adapter`, `TreeAdapter`).
+  field select, and how those selections accumulate into a node (`Adapter`, `NodeAdapter`).
 - **Mapping** — what a play records for a field whose merge it took, so the field's resolver can
   find its data in the loaded row; absent means the resolver loads its own data.
 - **Position** — where a field is: a link of `{ parent, type, field, node }` running back to the
@@ -78,8 +81,8 @@ how one merge differs from a plain one: `asQuery` (E-3, a relation query adds no
 came from, so an adapter may merge same-named relations into one node (prisma, drizzle) or keep
 one slot per selected field. `skipDeferredFragments` (S-8) defaults to true.
 
-`TreeAdapter<Model, Query>` is what the prisma and drizzle adapters extend: the node tree of
-`tree.ts` (columns, relations, extras, arguments) with every merge rule this package owns. A
+`NodeAdapter<Model, Query>` is what the prisma and drizzle adapters extend: the node tree of
+`node.ts` (columns, relations, extras, arguments) with every merge rule this package owns. A
 subclass writes `read`, the key loop of its own query, reported entry by entry to an
 `EntryVisitor`; `emit`, the node written back; and optionally `extraConflicts` when its extras
 are not compared by value — three methods on top of the three translation ones. The visitor is
