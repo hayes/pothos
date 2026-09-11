@@ -123,3 +123,14 @@ format does not, and will skip rows.
 
 Ordering by an expression cannot use an index on the underlying column. If the table is large enough
 to need one, add an index on the expression.
+
+## Tied timestamps in a feed
+
+All three published posts in the [publishing schema](./connections#page-through-published-posts)
+share one timestamp. Its connection orders by `createdAt: 'desc'`, so Pothos appends the primary
+key in descending order. The first page returns “Watering through summer” and “A guide to
+composting”; continuing from its end cursor returns “Starting a seed library” exactly once.
+
+This example uses fixed-width UTC text with millisecond precision. It demonstrates ordering ties
+without introducing a driver precision conversion; the Postgres precision guidance above still
+applies when using timestamp columns.

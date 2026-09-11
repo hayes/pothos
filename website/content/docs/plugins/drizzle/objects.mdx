@@ -100,3 +100,13 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+## A nullable author lookup
+
+An author page can use a nullable `t.drizzleField` so an unknown ID returns null. Pass the
+selection function's result to `findFirst`; nested fields then contribute their requirements to
+that query. This field uses the public User type from the [publishing schema](./relations#published-posts-and-profiles):
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/schema.ts#author-query</include>
+
+`author(id: 1) { fullName }` returns Maya Chen. `author(id: 999) { fullName }` returns null.

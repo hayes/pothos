@@ -214,3 +214,27 @@ Both variants describe one row, so their type-level selections are merged into a
 To fix this, keep the relation with its arguments in the `select` of the field that needs it, on
 one of the variants. A field-level selection that conflicts with what the row already holds falls
 back to a query of its own, rather than failing the request.
+
+## Compare two orderings of one relation
+
+A client may need both the newest and oldest published posts on one author page:
+
+```graphql
+query CompareOrderings {
+  author(id: 1) {
+    newest: posts { title }
+    oldest: posts(oldestFirst: true) { title }
+  }
+}
+```
+
+The [published-posts field](./relations#published-posts-and-profiles) translates those arguments
+into different database orderings. Both results must retain their own order: “A guide to
+composting” comes first in `newest`, and “Starting a seed library” comes first in `oldest`.
+They cannot reuse the same loaded relation. The additional ordering is loaded through a fallback
+query. The publishing example checks both results and the emitted SQL; a response alone would not
+establish how the relation was loaded.
+
+Prisma client calls and SQL statements are different measures: a single Prisma query can issue
+several SQL statements to load related tables. Compare the emitted SQL without assuming one
+statement per Prisma call.

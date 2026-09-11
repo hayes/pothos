@@ -17,6 +17,7 @@ import * as ComplexityModule from '@pothos/plugin-complexity';
 // Pothos refs keep working.
 import * as DataloaderModule from '@pothos/plugin-dataloader';
 import * as DirectivesModule from '@pothos/plugin-directives';
+import * as DrizzleModule from '@pothos/plugin-drizzle';
 import * as ErrorsModule from '@pothos/plugin-errors';
 import * as MocksModule from '@pothos/plugin-mocks';
 import * as RelayModule from '@pothos/plugin-relay';
@@ -28,8 +29,15 @@ import * as TracingModule from '@pothos/plugin-tracing';
 import * as ValidationModule from '@pothos/plugin-validation';
 import * as WithInputModule from '@pothos/plugin-with-input';
 import * as ZodModule from '@pothos/plugin-zod';
+import * as DrizzleOrm from 'drizzle-orm';
+import * as DrizzleSqliteCore from 'drizzle-orm/sqlite-core';
+import * as DrizzleSqliteProxy from 'drizzle-orm/sqlite-proxy';
 
 export const pluginModules = {
+  '@pothos/plugin-drizzle': DrizzleModule,
+  'drizzle-orm': DrizzleOrm,
+  'drizzle-orm/sqlite-core': DrizzleSqliteCore,
+  'drizzle-orm/sqlite-proxy': DrizzleSqliteProxy,
   '@pothos/plugin-tracing': TracingModule,
   '@pothos/plugin-zod': ZodModule,
   '@pothos/plugin-simple-objects': SimpleObjectsModule,

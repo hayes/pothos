@@ -385,3 +385,27 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+## Page through published posts
+
+These queries use `nodes` on connections. Enable `relay: { nodesOnConnection: true }` in the
+builder options, or select `edges { node { title } }` with the default Relay configuration.
+
+A public post connection applies the same `published` filter as author pages. The publishing
+schema uses this root connection alongside its private viewer:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ posts(first: 2) { nodes { title } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-drizzle/schema.ts#queries</include>
+
+```graphql
+query PublishedPosts {
+  posts(first: 2) {
+    nodes { title }
+    pageInfo { endCursor hasNextPage }
+  }
+}
+```
+
+There are three published posts and two drafts in the seed data. The first page contains two
+published posts and has a next page. Passing its `endCursor` as `after` returns the remaining
+published post. The related author connection uses the same filter for its nodes and `totalCount`,
+so Maya's count is two, including when the client requests only the count.

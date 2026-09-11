@@ -1,0 +1,143 @@
+{
+  "01-author.graphql": {
+    "data": {
+      "author": {
+        "id": "VXNlcjox",
+        "fullName": "Maya Chen",
+        "bio": "Writes about community gardens.",
+        "postCount": 2,
+        "posts": [
+          {
+            "title": "A guide to composting",
+            "author": {
+              "fullName": "Maya Chen"
+            }
+          },
+          {
+            "title": "Starting a seed library",
+            "author": {
+              "fullName": "Maya Chen"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "02-aliases.graphql": {
+    "data": {
+      "author": {
+        "newest": [
+          {
+            "title": "A guide to composting"
+          },
+          {
+            "title": "Starting a seed library"
+          }
+        ],
+        "oldest": [
+          {
+            "title": "Starting a seed library"
+          },
+          {
+            "title": "A guide to composting"
+          }
+        ]
+      }
+    }
+  },
+  "03-viewer.graphql": {
+    "data": {
+      "me": {
+        "__typename": "EditorViewer",
+        "email": "maya@example.com",
+        "user": {
+          "fullName": "Maya Chen"
+        },
+        "drafts": [
+          {
+            "title": "Planning the spring exchange"
+          }
+        ],
+        "canReviewSubmissions": true
+      }
+    }
+  },
+  "04-pagination.graphql": {
+    "data": {
+      "posts": {
+        "nodes": [
+          {
+            "title": "Watering through summer",
+            "media": []
+          },
+          {
+            "title": "A guide to composting",
+            "media": [
+              {
+                "url": "https://images.example.com/seed-library.jpg",
+                "uploadedBy": {
+                  "fullName": "Leo Silva"
+                }
+              }
+            ]
+          }
+        ],
+        "pageInfo": {
+          "endCursor": "REM6VDpbIlM6MjAyNi0wMS0xNVQwOTowMDowMC4wMDBaIiwiTjoyIl0=",
+          "hasNextPage": true,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  "05-missing.graphql": {
+    "data": {
+      "author": {
+        "bio": null,
+        "posts": [],
+        "postCount": 0
+      },
+      "missing": null
+    }
+  },
+  "06-related-pages.graphql": {
+    "data": {
+      "author": {
+        "postsConnection": {
+          "totalCount": 2,
+          "nodes": [
+            {
+              "title": "A guide to composting",
+              "mediaConnection": {
+                "totalCount": 1,
+                "nodes": [
+                  {
+                    "url": "https://images.example.com/seed-library.jpg"
+                  }
+                ]
+              }
+            }
+          ],
+          "pageInfo": {
+            "hasNextPage": true
+          }
+        }
+      }
+    }
+  },
+  "07-node.graphql": {
+    "data": {
+      "node": {
+        "fullName": "Maya Chen",
+        "posts": [
+          {
+            "title": "A guide to composting"
+          },
+          {
+            "title": "Starting a seed library"
+          }
+        ]
+      }
+    }
+  }
+}

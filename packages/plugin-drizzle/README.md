@@ -151,6 +151,85 @@ const builder = new SchemaBuilder<PothosTypes>({
   by default, and the fragment's fields are loaded through [fallback queries](https://pothos-graphql.dev/docs/plugins/drizzle/relations#fallback-queries)
   when it resolves. Set this to `false` to plan deferred selections with the rest of the query.
 
+### Tables for a publishing API
+
+The same table definitions support author profiles, published posts, private drafts, and shared
+media. The join table prevents duplicate attachments:
+
+```typescript
+import { defineRelations } from 'drizzle-orm';
+import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+
+export const users = sqliteTable('users', {
+  id: integer().primaryKey(),
+  firstName: text().notNull(),
+  lastName: text().notNull(),
+  email: text().notNull().unique(),
+  role: text({ enum: ['editor', 'author'] }).notNull(),
+});
+export const profiles = sqliteTable('profiles', {
+  id: integer().primaryKey(),
+  userId: integer()
+    .notNull()
+    .unique()
+    .references(() => users.id),
+  bio: text(),
+});
+export const posts = sqliteTable('posts', {
+  id: integer().primaryKey(),
+  authorId: integer()
+    .notNull()
+    .references(() => users.id),
+  title: text().notNull(),
+  content: text().notNull(),
+  published: integer({ mode: 'boolean' }).notNull(),
+  createdAt: text().notNull(),
+});
+export const media = sqliteTable('media', {
+  id: integer().primaryKey(),
+  url: text().notNull(),
+  uploadedById: integer()
+    .notNull()
+    .references(() => users.id),
+});
+export const postMedia = sqliteTable(
+  'postMedia',
+  {
+    id: integer().primaryKey(),
+    postId: integer()
+      .notNull()
+      .references(() => posts.id),
+    mediaId: integer()
+      .notNull()
+      .references(() => media.id),
+  },
+  (table) => [unique().on(table.postId, table.mediaId)],
+);
+```
+
+Relations explicitly connect their source and target columns. `media` crosses the join table,
+while `profile` can be absent:
+
+```typescript
+export const relations = defineRelations({ users, profiles, posts, media, postMedia }, (r) => ({
+  users: {
+    profile: r.one.profiles({ from: r.users.id, to: r.profiles.userId }),
+    posts: r.many.posts({ from: r.users.id, to: r.posts.authorId }),
+  },
+  profiles: { user: r.one.users({ from: r.profiles.userId, to: r.users.id, optional: false }) },
+  posts: {
+    author: r.one.users({ from: r.posts.authorId, to: r.users.id, optional: false }),
+    media: r.many.media({
+      from: r.posts.id.through(r.postMedia.postId),
+      to: r.media.id.through(r.postMedia.mediaId),
+    }),
+  },
+  media: {
+    uploadedBy: r.one.users({ from: r.media.uploadedById, to: r.users.id, optional: false }),
+  },
+}));
+```
+
 ## Drizzle Objects
 
 Use the builder and database client from [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup). The examples below use a `users` table
@@ -250,6 +329,26 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+### A nullable author lookup
+
+An author page can use a nullable `t.drizzleField` so an unknown ID returns null. Pass the
+selection function's result to `findFirst`; nested fields then contribute their requirements to
+that query. This field uses the public User type from the [publishing schema](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles):
+
+```typescript
+builder.queryType({});
+builder.queryField('author', (t) =>
+  t.drizzleField({
+    type: 'users',
+    nullable: true,
+    args: { id: t.arg.int({ required: true }) },
+    resolve: (query, _root, args) => db.query.users.findFirst(query({ where: { id: args.id } })),
+  }),
+);
+```
+
+`author(id: 1) { fullName }` returns Maya Chen. `author(id: 999) { fullName }` returns null.
 
 ## Relations
 
@@ -459,6 +558,86 @@ related rows, so a row reachable through two junction rows counts once. A `t.rel
 `totalCount` counts the rows the connection pages over instead, which is one per junction row,
 since that is what the relational query builder returns for the relation.
 
+### Published posts and profiles
+
+In a publishing API, a public author page exposes published posts and an optional profile.
+Drafts belong on the [private viewer](https://pothos-graphql.dev/docs/plugins/drizzle/variants#the-authors-writing-desk). Filtering the list and
+its count consistently prevents the count from revealing unpublished posts. Sorting by both the
+timestamp and ID makes the order deterministic when two posts share a timestamp.
+
+The following type is used by the nullable `author` lookup in [Objects](https://pothos-graphql.dev/docs/plugins/drizzle/objects#a-nullable-author-lookup):
+
+```typescript
+builder.drizzleNode('users', {
+  name: 'User',
+  id: { column: (user) => user.id },
+  select: {},
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    fullName: t.string({
+      select: { columns: { firstName: true, lastName: true } },
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
+    }),
+    bio: t.string({
+      nullable: true,
+      select: { with: { profile: true } },
+      resolve: (user) => user.profile?.bio,
+    }),
+    posts: t.relation('posts', {
+      args: { oldestFirst: t.arg.boolean() },
+      query: (args) => ({
+        where: { published: true },
+        orderBy: {
+          createdAt: args.oldestFirst ? 'asc' : 'desc',
+          id: args.oldestFirst ? 'asc' : 'desc',
+        },
+      }),
+    }),
+    postCount: t.relatedCount('posts', { where: eq(posts.published, true) }),
+    postsConnection: t.relatedConnection('posts', {
+      query: { where: { published: true }, orderBy: { createdAt: 'desc' } },
+      totalCount: true,
+    }),
+  }),
+});
+```
+
+`author(id: 1) { fullName bio postCount posts { title } }` returns Maya's profile and two
+published posts. Nora (`id: 3`) has no profile or posts, so `bio` is null, `posts` is empty, and
+`postCount` is zero. A missing relation is represented as missing data, without manufacturing a
+profile record.
+
+#### Shared media
+
+A post can expose its attached media directly even though the database stores attachments in a
+join table. The `media` relation in [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup#publishing-tables) uses `through` to connect those
+tables. Both the list and connection use that relation, so their selections also load the uploader:
+
+```typescript
+builder.drizzleObject('posts', {
+  name: 'Post',
+  select: {},
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+    media: t.relation('media'),
+    mediaConnection: t.relatedConnection('media', {
+      query: { orderBy: { id: 'asc' } },
+      totalCount: true,
+    }),
+  }),
+});
+builder.drizzleObject('media', {
+  name: 'Media',
+  fields: (t) => ({ url: t.exposeString('url'), uploadedBy: t.relation('uploadedBy') }),
+});
+```
+
+“Starting a seed library” and “A guide to composting” share one image uploaded by Leo.
+The attachment uniqueness constraint prevents the same image being attached to a post twice;
+the connection's count measures related media rather than an unrelated global table count.
+
 ## Selections
 
 ### Type selections
@@ -535,6 +714,16 @@ const User = builder.drizzleObject('users', {
   }),
 });
 ```
+
+### Only load a profile when requested
+
+The [public author type](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) keeps its default selection
+small. Its `bio` field declares the profile relation it needs, so a query for the author's name
+alone does not load a profile. Adding `bio` adds that relation to the database query; the resolver
+then reads the selected row. A nullable profile still produces a nullable biography.
+
+This distinction matters for computed fields: a resolver accessing related data must declare that
+data in its selection, even when the GraphQL field itself is just a string.
 
 ## Connections
 
@@ -921,6 +1110,51 @@ builder.queryFields((t) => ({
 }));
 ```
 
+### Page through published posts
+
+These queries use `nodes` on connections. Enable `relay: { nodesOnConnection: true }` in the
+builder options, or select `edges { node { title } }` with the default Relay configuration.
+
+A public post connection applies the same `published` filter as author pages. The publishing
+schema uses this root connection alongside its private viewer:
+
+```typescript
+builder.queryFields((t) => ({
+  me: t.drizzleField({
+    type: Viewer,
+    nullable: true,
+    resolve: (query, _root, _args, ctx) =>
+      db.query.users.findFirst(query({ where: { id: ctx.userId } })),
+  }),
+  posts: t.drizzleConnection({
+    type: 'posts',
+    resolve: (query) =>
+      db.query.posts.findMany(
+        query({
+          where: { published: true },
+          // Three posts share this timestamp. Pothos adds the primary key
+          // to the cursor ordering, so traversing pages still visits each once.
+          orderBy: { createdAt: 'desc' },
+        }),
+      ),
+  }),
+}));
+```
+
+```graphql
+query PublishedPosts {
+  posts(first: 2) {
+    nodes { title }
+    pageInfo { endCursor hasNextPage }
+  }
+}
+```
+
+There are three published posts and two drafts in this dataset. The first page contains two
+published posts and has a next page. Passing its `endCursor` as `after` returns the remaining
+published post. The related author connection uses the same filter for its nodes and `totalCount`,
+so Maya's count is two, including when the client requests only the count.
+
 ## Ordering and cursors
 
 ### Ordering and cursors
@@ -1044,6 +1278,17 @@ format does not, and will skip rows.
 Ordering by an expression cannot use an index on the underlying column. If the table is large enough
 to need one, add an index on the expression.
 
+### Tied timestamps in a feed
+
+All three published posts in the [publishing schema](https://pothos-graphql.dev/docs/plugins/drizzle/connections#page-through-published-posts)
+share one timestamp. Its connection orders by `createdAt: 'desc'`, so Pothos appends the primary
+key in descending order. The first page returns “Watering through summer” and “A guide to
+composting”; continuing from its end cursor returns “Starting a seed library” exactly once.
+
+This example uses fixed-width UTC text with millisecond precision. It demonstrates ordering ties
+without introducing a driver precision conversion; the Postgres precision guidance above still
+applies when using timestamp columns.
+
 ## Relay
 
 ### Relay integration
@@ -1072,6 +1317,26 @@ builder.drizzleNode('users', {
 ```
 
 The id column can also be set to a list of columns for types with a composite primary key.
+
+### Refetch a public author
+
+The schema defines User as a Relay node. Its returned ID can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User { fullName posts { title } }
+  }
+}
+```
+
+The ID identifies User 1. The node returns the same public fields as the author lookup, including
+only published posts. A node lookup does not route through a custom root resolver, so any
+access restrictions on an entity must also hold when it is loaded as a node.
+
+Post is an ordinary object in this schema. It is reachable through the published feed or the
+current author's private drafts, and is not registered as a globally refetchable node.
 
 ## Type variants
 
@@ -1163,6 +1428,45 @@ Two variants of one table selected for the same row have their type-level select
 single query, which can fail if they disagree. See
 [Conflicting selections between variants](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning#conflicting-selections-between-variants).
 
+### The author’s writing desk
+
+A public User and a private Viewer can represent the same row. The Viewer exposes the current
+author's email and drafts, and its `user` field returns the public representation. The root `me`
+resolver uses the authenticated context ID; it does not accept an arbitrary author's ID.
+
+This version makes Viewer an interface so editor and author accounts can expose different fields:
+
+```typescript
+const Viewer = builder.drizzleInterface('users', {
+  variant: 'Viewer',
+  select: { columns: { id: true, role: true } },
+  resolveType: (user) => (user.role === 'editor' ? 'EditorViewer' : 'AuthorViewer'),
+  fields: (t) => ({
+    user: t.variant('users'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', {
+      query: { where: { published: false }, orderBy: { id: 'asc' } },
+    }),
+  }),
+});
+builder.drizzleObject('users', {
+  variant: 'EditorViewer',
+  interfaces: [Viewer],
+  select: { columns: { id: true, role: true } },
+  fields: (t) => ({ canReviewSubmissions: t.boolean({ resolve: () => true }) }),
+});
+builder.drizzleObject('users', {
+  variant: 'AuthorViewer',
+  interfaces: [Viewer],
+  select: { columns: { id: true, role: true } },
+});
+```
+
+With Maya's context (`userId: 1`), `me` is an EditorViewer with the draft “Planning the spring
+exchange.” With Leo's context (`userId: 2`), it is an AuthorViewer with “Saving rainwater.”
+The interface describes the result shape; the root lookup supplies the ownership restriction.
+Neither public author fields nor public post connections return those drafts.
+
 ## Interfaces
 
 ### Interfaces
@@ -1213,6 +1517,28 @@ builder.drizzleInterfaceFields(Viewer, (t) => ({
 An object type implementing a drizzle interface must be based on the same table. A plain object
 type that implements one is planned with the interface's table, so fragments on it will select the
 relations it inherits.
+
+### Selecting a viewer implementation
+
+The [writing desk](https://pothos-graphql.dev/docs/plugins/drizzle/variants#the-authors-writing-desk) uses a Viewer interface for the signed-in
+author and two object variants for account capabilities. Its type-level selection includes the
+discriminator (`role`) used by `resolveType`. Each implementation also selects the fields
+required by that interface; configuring a selection on the interface does not replace the
+implementation's selection.
+
+```graphql
+query WritingDesk {
+  me {
+    __typename
+    drafts { title }
+    ... on EditorViewer { canReviewSubmissions }
+  }
+}
+```
+
+The editor result includes `canReviewSubmissions: true`. An author result has no field from that
+fragment, while retaining the interface's `drafts` field. This keeps the public User type separate
+from account-specific capabilities.
 
 ## Query planning
 
@@ -1368,3 +1694,25 @@ options are merged into a single query.
 To fix this, move the relation with its arguments, or the extra, into the `select` of the field
 that needs it on one of the variants. A field-level selection that conflicts with what the row
 already holds falls back to a query for that field, rather than failing the request.
+
+### Compare two orderings of one relation
+
+A client may need both the newest and oldest published posts on one author page:
+
+```graphql
+query CompareOrderings {
+  author(id: 1) {
+    newest: posts { title }
+    oldest: posts(oldestFirst: true) { title }
+  }
+}
+```
+
+The [published-posts field](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) translates those arguments
+into different database orderings. Both results must retain their own order: “A guide to
+composting” comes first in `newest`, and “Starting a seed library” comes first in `oldest`.
+They cannot reuse the same loaded relation. The additional ordering is loaded through a fallback
+query. Compare both results and the emitted SQL; a response alone does not establish how the relation was loaded.
+
+For Drizzle, the author query with one ordering executes one SQL statement. Selecting both
+orderings executes two. This is different from counting GraphQL resolver calls.

@@ -328,3 +328,29 @@ You can find an example
 This generator exports a class that can be used to dynamically create input types for your builder
 as shown
 [here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20)
+
+## Filters and draft inputs in one API
+
+The publishing schema uses these helpers to expose a small, intentional input surface. A title
+filter and ordering input support public post search:
+
+<include cwd lang="typescript">local-examples/prisma/schema.ts#filters</include>
+
+The `searchPosts` resolver combines the caller's filter with `published: true` using `AND`.
+A caller can narrow the public result set, but cannot expand it to drafts. The selected ordering
+also gets an ID tie breaker for deterministic results.
+
+Draft creation and editing expose only title and content. The resolver supplies ownership from
+the authenticated context and keeps publication state outside the input:
+
+<include cwd lang="typescript">local-examples/prisma/schema.ts#mutations</include>
+
+Creating “Mulching paths” returns an unpublished post owned by the current author, including its
+requested author relation. Updating another author's draft fails and leaves its title unchanged.
+`createDraftWithPayload` returns a post inside a result object, so `queryFromInfo` uses `path:
+['post']` to plan the nested selection. These are application decisions; input generation does not
+provide authorization by itself.
+
+The [local setup](./setup#run-the-publishing-api) generates Prisma Utils types alongside the client
+and runs these operations against SQLite. Scalar-list filters remain an alternative for databases
+that support Prisma scalar lists.

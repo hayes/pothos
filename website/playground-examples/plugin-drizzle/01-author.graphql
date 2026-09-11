@@ -1,0 +1,14 @@
+query Author {
+  author(id: 1) {
+    id
+    fullName
+    bio
+    postCount
+    posts {
+      title
+      author {
+        fullName
+      }
+    }
+  }
+}

@@ -60,3 +60,23 @@ builder.prismaNode('Post', {
 });
 ```
 
+## Refetch a public author
+
+The publishing schema defines User as a Relay node. Its returned ID can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User { name posts { title } }
+  }
+}
+```
+
+The ID identifies User 1. The node returns the same public fields as the author lookup, including
+only published posts. A node lookup does not route through a custom root resolver, so any
+access restrictions on an entity must also hold when it is loaded as a node.
+
+Post node lookups additionally restrict rows to published posts or the requesting author's own
+drafts. With `nullable: true`, a missing or inaccessible Post returns null. Merely hiding a draft
+from the public connection would not prevent a client from refetching it by a known node ID.

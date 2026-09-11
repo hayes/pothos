@@ -1,0 +1,9 @@
+{
+  "id": "plugin-drizzle",
+  "title": "A publishing API with Drizzle",
+  "description": "Start with 01-author. Compare the orderings in 02-aliases and their SQL in Console. In 03-viewer, change Context userId to 2 to see Leo's drafts. In 04-pagination, copy endCursor into Variables.after to continue. Edit a name in database.ts, then reset to restore the seed.",
+  "category": "plugins",
+  "difficulty": "intermediate",
+  "relatedDocs": ["/docs/plugins/drizzle"],
+  "defaultActiveFile": "schema.ts"
+}

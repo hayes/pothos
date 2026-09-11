@@ -157,3 +157,30 @@ usual.
 
 Set `skipDeferredFragments: false` in the plugin options to plan deferred selections with the rest
 of the query. `queryFromInfo` accepts the same option per call.
+
+## Run the publishing API
+
+The [publishing example](https://github.com/hayes/pothos/tree/main/website/local-examples/prisma)
+uses this SQLite adapter and generated client with one schema for author pages, private drafts,
+media attachments, and pagination. Prisma Utils adds filters and draft inputs to that same schema.
+The example's `schema.prisma` defines User, Profile, Post, Comment, Media, and PostMedia, including
+the foreign keys and unique constraints needed by their relations.
+
+From a checkout of the Pothos repository, with Node.js 22 or newer:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --dir website check:local
+npm --prefix website/local-examples run prisma -- author
+```
+
+The setup generates both clients and SQLite DDL from the Prisma schema. Each run creates a fresh
+temporary database and removes it afterward. The output contains the GraphQL response and emitted
+SQL. The [example guide](https://github.com/hayes/pothos/blob/main/website/local-examples/prisma/README.md)
+lists the operations and suggested edits. Applications should use Prisma migrations for their
+persistent databases.
+
+The request's `userId` comes from authentication in an application. The local runner supplies it as
+a fixture. Public author fields return published posts; private viewer fields return only the
+current author's drafts. Ownership and publication checks also apply to draft updates and node
+refetches. Selecting a GraphQL type does not by itself enforce those restrictions.

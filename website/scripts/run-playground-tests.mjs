@@ -28,6 +28,7 @@ try {
   }
   for (const script of [
     'check-playground.mjs',
+    'check-database-browser.mjs',
     'check-landing-playground.mjs',
     'check-doc-links.mjs',
   ]) {

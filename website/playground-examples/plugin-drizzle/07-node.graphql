@@ -1,0 +1,10 @@
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User {
+      fullName
+      posts {
+        title
+      }
+    }
+  }
+}

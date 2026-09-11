@@ -1,0 +1,18 @@
+query Pagination($after: String) {
+  posts(first: 2, after: $after) {
+    nodes {
+      title
+      media {
+        url
+        uploadedBy {
+          fullName
+        }
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+      hasPreviousPage
+    }
+  }
+}

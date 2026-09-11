@@ -29,3 +29,23 @@ builder.drizzleNode('users', {
 ```
 
 The id column can also be set to a list of columns for types with a composite primary key.
+
+## Refetch a public author
+
+The publishing schema defines User as a Relay node. Its returned ID can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User { fullName posts { title } }
+  }
+}
+```
+
+The ID identifies User 1. The node returns the same public fields as the author lookup, including
+only published posts. A node lookup does not route through a custom root resolver, so any
+access restrictions on an entity must also hold when it is loaded as a node.
+
+Post is an ordinary object in this schema. It is reachable through the published feed or the
+current author's private drafts, and is not registered as a globally refetchable node.

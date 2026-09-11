@@ -105,3 +105,14 @@ using selections, or exposing fields not in the default selection. To use these 
 use
 
 `builder.prismaObjectField` or `builder.prismaObjectFields` instead.
+
+## A nullable author lookup
+
+An author page should return null when the requested author does not exist. A `t.prismaField`
+passes the requested selections into `findUnique`; its GraphQL nullability matches that method's
+result. This field uses the publishing schema described in [Setup](./setup#run-the-publishing-api):
+
+<include cwd lang="typescript">local-examples/prisma/schema.ts#author-query</include>
+
+`author(id: 1) { name }` returns Maya Chen. `author(id: 999) { name }` returns null.
+The type's relations can be requested through the same field without changing the resolver.

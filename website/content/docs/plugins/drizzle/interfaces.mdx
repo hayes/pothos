@@ -51,3 +51,25 @@ builder.drizzleInterfaceFields(Viewer, (t) => ({
 An object type implementing a drizzle interface must be based on the same table. A plain object
 type that implements one is planned with the interface's table, so fragments on it will select the
 relations it inherits.
+
+## Selecting a viewer implementation
+
+The [writing desk](./variants#the-authors-writing-desk) uses a Viewer interface for the signed-in
+author and two object variants for account capabilities. Its type-level selection includes the
+discriminator (`role`) used by `resolveType`. Each implementation also selects the fields
+required by that interface; configuring a selection on the interface does not replace the
+implementation's selection.
+
+```graphql
+query WritingDesk {
+  me {
+    __typename
+    drafts { title }
+    ... on EditorViewer { canReviewSubmissions }
+  }
+}
+```
+
+The editor result includes `canReviewSubmissions: true`. An author result has no field from that
+fragment, while retaining the interface's `drafts` field. This keeps the public User type separate
+from account-specific capabilities.

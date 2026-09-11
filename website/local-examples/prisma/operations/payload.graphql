@@ -1,0 +1,10 @@
+mutation CreateDraftWithPayload {
+  createDraftWithPayload(title: "Growing herbs", content: "Start with mint.") {
+    post {
+      title
+      author {
+        name
+      }
+    }
+  }
+}

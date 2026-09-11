@@ -2,18 +2,27 @@
   "name": "pothos-local-plugin-docs",
   "private": true,
   "scripts": {
-    "test": "npm run type && tsx smart-subscriptions/check.ts && tsx grafast/check.ts && tsx federation/check.ts",
-    "type": "tsc -p smart-subscriptions/tsconfig.json && tsc -p grafast/tsconfig.json && tsc -p federation/tsconfig.json"
+    "test": "npm run type && tsx smart-subscriptions/check.ts && tsx grafast/check.ts && tsx federation/check.ts && tsx prisma/check.ts && tsx prisma/plain-check.ts",
+    "type": "tsc -p smart-subscriptions/tsconfig.json && tsc -p grafast/tsconfig.json && tsc -p federation/tsconfig.json && tsc -p prisma/tsconfig.json && tsc -p prisma/tsconfig.plain.json",
+    "generate": "prisma generate --schema prisma/schema.prisma && prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output prisma/generated/schema.sql",
+    "prisma": "tsx prisma/run.ts"
   },
   "dependencies": {
-    "@pothos/core": "file:../../packages/core",
-    "@pothos/plugin-smart-subscriptions": "file:../../packages/plugin-smart-subscriptions",
-    "@pothos/plugin-grafast": "file:../../packages/plugin-grafast",
+    "@pothos/core": "file:.packages/core",
+    "@pothos/plugin-smart-subscriptions": "file:.packages/plugin-smart-subscriptions",
+    "@pothos/plugin-grafast": "file:.packages/plugin-grafast",
     "grafast": "1.0.0",
     "graphql": "16.13.2",
-    "@pothos/plugin-federation": "file:../../packages/plugin-federation",
-    "@pothos/plugin-directives": "file:../../packages/plugin-directives",
-    "@apollo/subgraph": "2.13.3"
+    "@pothos/plugin-federation": "file:.packages/plugin-federation",
+    "@pothos/plugin-directives": "file:.packages/plugin-directives",
+    "@apollo/subgraph": "2.13.3",
+    "@pothos/plugin-prisma": "file:.packages/plugin-prisma",
+    "@pothos/plugin-prisma-utils": "file:.packages/plugin-prisma-utils",
+    "@pothos/plugin-relay": "file:.packages/plugin-relay",
+    "@pothos/selection-mapper": "file:.packages/selection-mapper",
+    "@prisma/client": "7.7.0",
+    "@prisma/adapter-better-sqlite3": "7.7.0",
+    "prisma": "7.7.0"
   },
   "devDependencies": {
     "tsx": "4.21.0",

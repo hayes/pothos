@@ -36,6 +36,8 @@ let flushScheduled = false;
 const versionedAliases = new Map<string, Set<string>>();
 
 const SKIP_PATH = /^\/node_modules\/(?:@pothos\/|graphql(?:\/|$))/;
+let databaseTypesBundled = false;
+const DATABASE_PATH = /^\/node_modules\/(?:drizzle-orm|sql\.js)(?:\/|$)/;
 
 // Imports we never want ATA to ask jsdelivr about: @pothos/* is
 // bundled into Monaco directly via setup-monaco, and `readline` is
@@ -44,11 +46,13 @@ const SKIP_PATH = /^\/node_modules\/(?:@pothos\/|graphql(?:\/|$))/;
 // receivedFile filters the result, so we strip them at the
 // source-rewrite stage.
 const ATA_SKIP_BARE = /^(?:@pothos\/[^/'"]+|readline)/;
+const DATABASE_IMPORT = /^(?:drizzle-orm(?:\/|$)|sql\.js$)/;
 
 function stripBundledImportsForAta(source: string): string {
   return source.replace(
     /^[ \t]*import\s+(?:[^'"]*?\s+from\s+)?(['"])([^'"]+)\1[ \t]*;?[ \t]*$/gm,
-    (match, _q, spec: string) => (ATA_SKIP_BARE.test(spec) ? '' : match),
+    (match, _q, spec: string) =>
+      ATA_SKIP_BARE.test(spec) || (databaseTypesBundled && DATABASE_IMPORT.test(spec)) ? '' : match,
   );
 }
 
@@ -121,7 +125,7 @@ async function buildATA(monaco: Monaco): Promise<((source: string) => Promise<vo
     typescript: ts,
     delegate: {
       receivedFile(code, path) {
-        if (SKIP_PATH.test(path)) {
+        if (SKIP_PATH.test(path) || (databaseTypesBundled && DATABASE_PATH.test(path))) {
           return;
         }
         queueLib(code, path);
@@ -223,6 +227,7 @@ export async function feedATA(monaco: Monaco, source: string): Promise<void> {
   if (!source.trim()) {
     return;
   }
+  databaseTypesBundled = source.includes('@pothos/plugin-drizzle');
   monacoRef = monaco;
   if (!runATAPromise) {
     runATAPromise = buildATA(monaco).catch(() => null);

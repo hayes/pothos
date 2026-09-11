@@ -389,6 +389,27 @@ use
 
 `builder.prismaObjectField` or `builder.prismaObjectFields` instead.
 
+### A nullable author lookup
+
+An author page should return null when the requested author does not exist. A `t.prismaField`
+passes the requested selections into `findUnique`; its GraphQL nullability matches that method's
+result. This field uses the generated models and client from [Setup](https://pothos-graphql.dev/docs/plugins/prisma/setup):
+
+```typescript
+builder.queryType({});
+builder.queryField('author', (t) =>
+  t.prismaField({
+    type: 'User',
+    nullable: true,
+    args: { id: t.arg.int({ required: true }) },
+    resolve: (query, _root, args) => prisma.user.findUnique({ ...query, where: { id: args.id } }),
+  }),
+);
+```
+
+`author(id: 1) { name }` returns Maya Chen. `author(id: 999) { name }` returns null.
+The type's relations can be requested through the same field without changing the resolver.
+
 ## Relations
 
 Use `t.relation` to expose relations between models. This example uses the client and authenticated
@@ -573,6 +594,51 @@ builder.prismaObject('User', {
 });
 ```
 
+### Published posts and profiles
+
+In a publishing API, a public author page exposes published posts and an optional profile.
+Drafts belong on the [private viewer](https://pothos-graphql.dev/docs/plugins/prisma/variants#the-authors-writing-desk). Filtering the list and
+its count consistently prevents the count from revealing unpublished posts. Sorting by both the
+timestamp and ID makes the order deterministic when two posts share a timestamp.
+
+The following type is used by the nullable `author` lookup in [Objects](https://pothos-graphql.dev/docs/plugins/prisma/objects#a-nullable-author-lookup):
+
+```typescript
+builder.prismaNode('User', {
+  id: { field: 'id' },
+  select: { id: true },
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    bio: t.string({
+      nullable: true,
+      select: { profile: { select: { bio: true } } },
+      resolve: (user) => user.profile?.bio,
+    }),
+    posts: t.relation('posts', {
+      args: { oldestFirst: t.arg.boolean() },
+      query: (args) => ({
+        where: { published: true },
+        orderBy: [
+          { createdAt: args.oldestFirst ? 'asc' : 'desc' },
+          { id: args.oldestFirst ? 'asc' : 'desc' },
+        ],
+      }),
+    }),
+    postCount: t.relationCount('posts', { where: { published: true } }),
+    postsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+      query: { where: { published: true }, orderBy: { id: 'asc' } },
+      totalCount: true,
+    }),
+  }),
+});
+```
+
+`author(id: 1) { name bio postCount posts { title } }` returns Maya's profile and two
+published posts. Nora (`id: 3`) has no profile or posts, so `bio` is null, `posts` is empty, and
+`postCount` is zero. A missing relation is represented as missing data, without manufacturing a
+profile record.
+
 ## Selections
 
 ### Includes on types
@@ -688,6 +754,16 @@ const Post = builder.prismaObject('Post', {
 });
 ```
 
+### Only load a profile when requested
+
+The [public author type](https://pothos-graphql.dev/docs/plugins/prisma/relations#published-posts-and-profiles) keeps its default selection
+small. Its `bio` field declares the profile relation it needs, so a query for the author's name
+alone does not load a profile. Adding `bio` adds that relation to the database query; the resolver
+then reads the selected row. A nullable profile still produces a nullable biography.
+
+This distinction matters for computed fields: a resolver accessing related data must declare that
+data in its selection, even when the GraphQL field itself is just a string.
+
 ## Relay
 
 This plugin has extensive integration with the
@@ -746,6 +822,27 @@ builder.prismaNode('Post', {
   }),
 });
 ```
+
+### Refetch a public author
+
+The schema defines User as a Relay node. Its returned ID can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User { name posts { title } }
+  }
+}
+```
+
+The ID identifies User 1. The node returns the same public fields as the author lookup, including
+only published posts. A node lookup does not route through a custom root resolver, so any
+access restrictions on an entity must also hold when it is loaded as a node.
+
+Post node lookups additionally restrict rows to published posts or the requesting author's own
+drafts. With `nullable: true`, a missing or inaccessible Post returns null. Merely hiding a draft
+from the public connection would not prevent a client from refetching it by a known node ID.
 
 ## Connections
 
@@ -1168,6 +1265,56 @@ Parsing a cursor will return the value from the column used for the cursor (ofte
 value may be an array or object when a compound index is used as the cursor. Similarly, to format a
 cursor, you must provide the column(s) that make up the cursor.
 
+### Page through published posts
+
+These queries use `nodes` on connections. Enable `relay: { nodesOnConnection: true }` in the
+builder options, or select `edges { node { title } }` with the default Relay configuration.
+
+A public post connection applies the same `published` filter as author pages. The publishing
+schema uses this root connection alongside its private viewer:
+
+```typescript
+builder.queryFields((t) => ({
+  me: t.prismaField({
+    type: Viewer,
+    resolve: (query, _root, _args, ctx) =>
+      prisma.user.findUniqueOrThrow({ ...query, where: { id: ctx.userId } }),
+  }),
+  posts: t.prismaConnection({
+    type: 'Post',
+    cursor: 'id',
+    resolve: (query) =>
+      prisma.post.findMany({ ...query, where: { published: true }, orderBy: { id: 'asc' } }),
+    totalCount: () => prisma.post.count({ where: { published: true } }),
+  }),
+  searchPosts: t.prismaField({
+    type: ['Post'],
+    args: { where: t.arg({ type: PostWhere }), orderBy: t.arg({ type: PostOrderBy }) },
+    resolve: (query, _root, args) =>
+      prisma.post.findMany({
+        ...query,
+        // Caller filters can narrow this scope, but cannot expose drafts.
+        where: { AND: [{ published: true }, args.where ?? {}] },
+        orderBy: args.orderBy ? [args.orderBy, { id: 'asc' }] : { id: 'asc' },
+      }),
+  }),
+}));
+```
+
+```graphql
+query PublishedPosts {
+  posts(first: 2) {
+    nodes { title }
+    pageInfo { endCursor hasNextPage }
+  }
+}
+```
+
+There are three published posts and two drafts in this dataset. The first page contains two
+published posts and has a next page. Passing its `endCursor` as `after` returns the remaining
+published post. The related author connection uses the same filter for its nodes and `totalCount`,
+so Maya's count is two, including when the client requests only the count.
+
 ## Type variants
 
 The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
@@ -1267,6 +1414,45 @@ This same workaround applies when defining relations using variants.
 Two variants of one model selected for the same row have their type-level selections merged into a
 single query, which can fail if they disagree. See
 [Conflicting selections between variants](https://pothos-graphql.dev/docs/plugins/prisma/query-planning#conflicting-selections-between-variants).
+
+### The author’s writing desk
+
+A public User and a private Viewer can represent the same row. The Viewer exposes the current
+author's email and drafts, and its `user` field returns the public representation. The root `me`
+resolver uses the authenticated context ID; it does not accept an arbitrary author's ID.
+
+This version makes Viewer an interface so editor and author accounts can expose different fields:
+
+```typescript
+const Viewer = builder.prismaInterface('User', {
+  variant: 'Viewer',
+  select: { id: true, isAdmin: true },
+  resolveType: (user) => (user.isAdmin ? 'EditorViewer' : 'AuthorViewer'),
+  fields: (t) => ({
+    user: t.variant('User'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', {
+      query: { where: { published: false }, orderBy: { id: 'asc' } },
+    }),
+  }),
+});
+builder.prismaObject('User', {
+  variant: 'EditorViewer',
+  interfaces: [Viewer],
+  select: { id: true, isAdmin: true },
+  fields: (t) => ({ canReviewSubmissions: t.boolean({ resolve: () => true }) }),
+});
+builder.prismaObject('User', {
+  variant: 'AuthorViewer',
+  interfaces: [Viewer],
+  select: { id: true, isAdmin: true },
+});
+```
+
+With Maya's context (`userId: 1`), `me` is an EditorViewer with the draft “Planning the spring
+exchange.” With Leo's context (`userId: 2`), it is an AuthorViewer with “Saving rainwater.”
+The interface describes the result shape; the root lookup supplies the ownership restriction.
+Neither public author fields nor public post connections return those drafts.
 
 ## Indirect relations
 
@@ -1450,6 +1636,43 @@ const Media = builder.prismaObject('Media', {
 });
 ```
 
+### Shared media on published posts
+
+The schema stores attachment rows in PostMedia, but clients request Media objects.
+`nestedSelection` follows the media field's selection through that join, including the uploader
+when requested:
+
+```typescript
+const Post = builder.prismaNode('Post', {
+  nullable: true,
+  id: { field: 'id' },
+  select: { id: true },
+  // Node refetches must apply the same visibility rule as root fields.
+  findUnique: (id, context) => ({
+    id: Number(id),
+    OR: [{ published: true }, { authorId: context.userId }],
+  }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    published: t.exposeBoolean('published'),
+    author: t.relation('author'),
+    comments: t.relation('comments', { query: { orderBy: { id: 'asc' } } }),
+    media: t.field({
+      type: [Media],
+      select: (_args, _ctx, nestedSelection) => ({
+        media: { orderBy: { id: 'asc' }, select: { media: nestedSelection(true) } },
+      }),
+      resolve: (post) => post.media.map(({ media }) => media),
+    }),
+  }),
+});
+```
+
+Both “Starting a seed library” and “A guide to composting” attach the same image, uploaded by Leo.
+Querying `posts { title media { url uploadedBy { name } } }` through Maya's author page returns
+that uploader for both posts. The GraphQL shape need not expose the join table just because the
+database uses one.
+
 ## Interfaces
 
 `builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
@@ -1493,6 +1716,28 @@ which includes all scalar columns.
 
 You will not be able to extend an interface for a different prisma model, doing so will result in an
 error at build time.
+
+### Selecting a viewer implementation
+
+The [writing desk](https://pothos-graphql.dev/docs/plugins/prisma/variants#the-authors-writing-desk) uses a Viewer interface for the signed-in
+author and two object variants for account capabilities. Its type-level selection includes the
+discriminator (`isAdmin`) used by `resolveType`. Each implementation also selects the fields
+required by that interface; configuring a selection on the interface does not replace the
+implementation's selection.
+
+```graphql
+query WritingDesk {
+  me {
+    __typename
+    drafts { title }
+    ... on EditorViewer { canReviewSubmissions }
+  }
+}
+```
+
+The editor result includes `canReviewSubmissions: true`. An author result has no field from that
+fragment, while retaining the interface's `drafts` field. This keeps the public User type separate
+from account-specific capabilities.
 
 ## Prisma Utils
 
@@ -1820,6 +2065,87 @@ This generator exports a class that can be used to dynamically create input type
 as shown
 [here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20)
 
+### Filters and draft inputs in one API
+
+The schema uses these helpers to expose a small, intentional input surface. A title
+filter and ordering input support public post search:
+
+```typescript
+const TitleFilter = builder.prismaFilter('String', { ops: ['contains', 'equals'] });
+const PostWhere = builder.prismaWhere('Post', {
+  fields: { title: TitleFilter },
+});
+const PostOrderBy = builder.prismaOrderBy('Post', { fields: { title: true, id: true } });
+```
+
+The `searchPosts` resolver combines the caller's filter with `published: true` using `AND`.
+A caller can narrow the public result set, but cannot expand it to drafts. The selected ordering
+also gets an ID tie breaker for deterministic results.
+
+Draft creation and editing expose only title and content. The resolver supplies ownership from
+the authenticated context and keeps publication state outside the input:
+
+```typescript
+const DraftInput = builder.prismaCreate('Post', {
+  name: 'DraftInput',
+  fields: { title: 'String', content: 'String' },
+});
+const DraftUpdate = builder.prismaUpdate('Post', {
+  name: 'DraftUpdate',
+  fields: { title: 'String', content: 'String' },
+});
+const CreateDraftResult = builder.objectRef<{ post: PostRow }>('CreateDraftResult').implement({
+  fields: (t) => ({ post: t.field({ type: Post, resolve: (result) => result.post }) }),
+});
+builder.mutationType({
+  fields: (t) => ({
+    createDraft: t.prismaField({
+      type: 'Post',
+      args: { input: t.arg({ type: DraftInput, required: true }) },
+      resolve: (query, _root, args, ctx) =>
+        prisma.post.create({
+          ...query,
+          data: { ...args.input, author: { connect: { id: ctx.userId } } },
+        }),
+    }),
+    updateDraft: t.prismaField({
+      type: 'Post',
+      args: {
+        id: t.arg.int({ required: true }),
+        input: t.arg({ type: DraftUpdate, required: true }),
+      },
+      resolve: (query, _root, args, ctx) =>
+        prisma.post.update({
+          ...query,
+          where: { id: args.id, authorId: ctx.userId, published: false },
+          data: args.input,
+        }),
+    }),
+    createDraftWithPayload: t.field({
+      type: CreateDraftResult,
+      args: {
+        title: t.arg.string({ required: true }),
+        content: t.arg.string({ required: true }),
+      },
+      resolve: async (_root, args, context, info) => ({
+        post: await prisma.post.create({
+          ...queryFromInfo({ context, info, path: ['post'] }),
+          data: { ...args, authorId: context.userId },
+        }),
+      }),
+    }),
+  }),
+});
+```
+
+Creating “Mulching paths” returns an unpublished post owned by the current author, including its
+requested author relation. Updating another author's draft fails and leaves its title unchanged.
+`createDraftWithPayload` returns a post inside a result object, so `queryFromInfo` uses `path:
+['post']` to plan the nested selection. These are application decisions; input generation does not
+provide authorization by itself.
+
+Scalar-list filters require a database that supports Prisma scalar lists.
+
 ## Prisma without a plugin
 
 Use `builder.objectRef` with the generated Prisma model types and write resolvers that query your client.
@@ -1954,6 +2280,55 @@ With this setup, a parent resolver has the option to include the author, but we 
 in case it does not.
 
 The [Dataloader plugin](https://pothos-graphql.dev/docs/plugins/dataloader) provides another way to batch loads across resolvers.
+
+### Compare the same author page
+
+A publishing API can also define the author lookup with ordinary object refs, using the same
+Prisma models and database. The refs describe the backing rows; each relation resolver
+queries Prisma explicitly:
+
+```typescript
+const builder = new SchemaBuilder({});
+const Author = builder.objectRef<User>('Author');
+const Article = builder.objectRef<Post>('Article');
+Author.implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    posts: t.field({
+      type: [Article],
+      resolve: (author) =>
+        prisma.post.findMany({
+          where: { authorId: author.id, published: true },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+    }),
+  }),
+});
+Article.implement({
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.field({
+      type: Author,
+      resolve: (post) => prisma.user.findUniqueOrThrow({ where: { id: post.authorId } }),
+    }),
+  }),
+});
+builder.queryType({
+  fields: (t) => ({
+    author: t.field({
+      type: Author,
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (_root, args) => prisma.user.findUnique({ where: { id: args.id } }),
+    }),
+  }),
+});
+```
+
+`author(id: 1) { name posts { title author { name } } }` returns the same published posts as the
+plugin-backed lookup. The plugin version plans relation selections into the root query; this
+version makes those calls in its field resolvers. The selection, eager-loading, and fallback
+alternatives above remain useful when choosing how to manage those calls yourself.
 
 ## Query planning
 
@@ -2168,3 +2543,26 @@ Both variants describe one row, so their type-level selections are merged into a
 To fix this, keep the relation with its arguments in the `select` of the field that needs it, on
 one of the variants. A field-level selection that conflicts with what the row already holds falls
 back to a query of its own, rather than failing the request.
+
+### Compare two orderings of one relation
+
+A client may need both the newest and oldest published posts on one author page:
+
+```graphql
+query CompareOrderings {
+  author(id: 1) {
+    newest: posts { title }
+    oldest: posts(oldestFirst: true) { title }
+  }
+}
+```
+
+The [published-posts field](https://pothos-graphql.dev/docs/plugins/prisma/relations#published-posts-and-profiles) translates those arguments
+into different database orderings. Both results must retain their own order: “A guide to
+composting” comes first in `newest`, and “Starting a seed library” comes first in `oldest`.
+They cannot reuse the same loaded relation. The additional ordering is loaded through a fallback
+query. Compare both results and the emitted SQL; a response alone does not establish how the relation was loaded.
+
+Prisma client calls and SQL statements are different measures: a single Prisma query can issue
+several SQL statements to load related tables. Compare the emitted SQL without assuming one
+statement per Prisma call.

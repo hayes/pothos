@@ -115,3 +115,13 @@ const Post = builder.prismaObject('Post', {
   }),
 });
 ```
+
+## Only load a profile when requested
+
+The [public author type](./relations#published-posts-and-profiles) keeps its default selection
+small. Its `bio` field declares the profile relation it needs, so a query for the author's name
+alone does not load a profile. Adding `bio` adds that relation to the database query; the resolver
+then reads the selected row. A nullable profile still produces a nullable biography.
+
+This distinction matters for computed fields: a resolver accessing related data must declare that
+data in its selection, even when the GraphQL field itself is just a string.

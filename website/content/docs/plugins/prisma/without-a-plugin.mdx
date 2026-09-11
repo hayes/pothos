@@ -135,3 +135,16 @@ With this setup, a parent resolver has the option to include the author, but we 
 in case it does not.
 
 The [Dataloader plugin](/docs/plugins/dataloader) provides another way to batch loads across resolvers.
+
+## Compare the same author page
+
+The publishing schema also defines the author lookup with ordinary object refs, using the same
+Prisma models and seeded database. The refs describe the backing rows; each relation resolver
+queries Prisma explicitly:
+
+<include cwd lang="typescript">local-examples/prisma/plain-schema.ts#plain-schema</include>
+
+`author(id: 1) { name posts { title author { name } } }` returns the same published posts as the
+plugin-backed lookup. The plugin version plans relation selections into the root query; this
+version makes those calls in its field resolvers. The selection, eager-loading, and fallback
+alternatives above remain useful when choosing how to manage those calls yourself.

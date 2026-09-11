@@ -90,3 +90,18 @@ builder.drizzleNode('users', {
 Two variants of one table selected for the same row have their type-level selections merged into a
 single query, which can fail if they disagree. See
 [Conflicting selections between variants](./query-planning#conflicting-selections-between-variants).
+
+## The author’s writing desk
+
+A public User and a private Viewer can represent the same row. The Viewer exposes the current
+author's email and drafts, and its `user` field returns the public representation. The root `me`
+resolver uses the authenticated context ID; it does not accept an arbitrary author's ID.
+
+This version makes Viewer an interface so editor and author accounts can expose different fields:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ me { __typename email drafts { title } ... on EditorViewer { canReviewSubmissions } } }"'>playground-examples/plugin-drizzle/schema.ts#viewer</include>
+
+With Maya's context (`userId: 1`), `me` is an EditorViewer with the draft “Planning the spring
+exchange.” With Leo's context (`userId: 2`), it is an AuthorViewer with “Saving rainwater.”
+The interface describes the result shape; the root lookup supplies the ownership restriction.
+Neither public author fields nor public post connections return those drafts.

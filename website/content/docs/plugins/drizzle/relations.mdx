@@ -208,3 +208,31 @@ For a many-to-many relation (one defined with `.through(...)`), `t.relatedCount`
 related rows, so a row reachable through two junction rows counts once. A `t.relatedConnection`'s
 `totalCount` counts the rows the connection pages over instead, which is one per junction row,
 since that is what the relational query builder returns for the relation.
+
+## Published posts and profiles
+
+In a publishing API, a public author page exposes published posts and an optional profile.
+Drafts belong on the [private viewer](./variants#the-authors-writing-desk). Filtering the list and
+its count consistently prevents the count from revealing unpublished posts. Sorting by both the
+timestamp and ID makes the order deterministic when two posts share a timestamp.
+
+The following type is used by the nullable `author` lookup in [Objects](./objects#a-nullable-author-lookup):
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/schema.ts#user</include>
+
+`author(id: 1) { fullName bio postCount posts { title } }` returns Maya's profile and two
+published posts. Nora (`id: 3`) has no profile or posts, so `bio` is null, `posts` is empty, and
+`postCount` is zero. A missing relation is represented as missing data, without manufacturing a
+profile record.
+
+### Shared media
+
+A post can expose its attached media directly even though the database stores attachments in a
+join table. The `media` relation in [Setup](./setup#publishing-tables) uses `through` to connect those
+tables. Both the list and connection use that relation, so their selections also load the uploader:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { posts { title media { url uploadedBy { fullName } } mediaConnection(first: 2) { totalCount nodes { url } } } } }"'>playground-examples/plugin-drizzle/schema.ts#post</include>
+
+“Starting a seed library” and “A guide to composting” share one image uploaded by Leo.
+The attachment uniqueness constraint prevents the same image being attached to a post twice;
+the connection's count measures related media rather than an unrelated global table count.
