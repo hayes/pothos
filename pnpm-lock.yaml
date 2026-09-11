@@ -984,7 +984,7 @@ importers:
         version: 2.12.6(graphql@17.0.1)
       pg:
         specifier: ^8.20.0
-        version: 8.20.0
+        version: 8.22.0
       prettier:
         specifier: ^3.8.2
         version: 3.8.2
