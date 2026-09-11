@@ -1,0 +1,226 @@
+---
+title: Connection helpers
+description: Custom connections when edges and nodes have different backing rows
+---
+
+Use `t.relatedConnection` for the publishing API's ordinary [media relation](./relations#shared-media).
+`drizzleConnectionHelpers` is for connections whose pagination row differs from their GraphQL node,
+or whose query cannot be expressed as a normal relation.
+
+The alternatives below use a separate membership model: User has `userRoles`; each UserRole has
+`userId`, `roleId`, `accepted`, and `createdAt`, and a `role` relation to Role (`id`, `name`).
+Define those tables and Drizzle relations before these snippets, and use the [Relay builder](./setup#integration-with-other-plugins).
+Import `drizzleConnectionHelpers` from `@pothos/plugin-drizzle`. Each alternative replaces the
+preceding helper or field of the same name.
+
+## Indirect relations as connections
+
+In many cases, you can define many to many connections via drizzle relations, allowing the `relatedConnection` API to work across
+more complex relations. In some cases you may want to define a connection for a relation not expressed directly as a relation in
+your drizzle schema.  For these cases, you can use the `drizzleConnectionHelpers`, which allows you to define connection with the `t.connection` API.
+
+```typescript
+// Create a drizzle object for the node type of your connection
+const Role = builder.drizzleObject('roles', {
+  name: 'Role',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+
+
+// Create connection helpers for the userRoles join table.  This will allow you
+// to use the normal t.connection with a drizzle type
+const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+  // select the data needed for the nodes
+  select: (nestedSelection) => ({
+    with: {
+      // use nestedSelection to create the correct selection for the node
+      role: nestedSelection(),
+    },
+  }),
+  // resolve the node from the returned list item
+  resolveNode: (userRole) => userRole.role,
+});
+
+builder.drizzleObjectField('users', 'rolesConnection', (t) =>
+  t.connection({
+    // The type for the Node
+    type: Role,
+    nodeNullable: true,
+    // since we are not using t.relatedConnection we need to manually
+    // include the selections for our connection
+    select: (args, ctx, nestedSelection) => ({
+      with: {
+        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+      },
+    }),
+    // This helper takes a list of nodes and formats them for the connection
+    resolve: (user, args, ctx) => {
+      return rolesConnection.resolve(user.userRoles, args, ctx, user);
+    },
+  }),
+);
+```
+
+The above example assumes that you are paginating a relation to a join table, where the pagination
+args are applied based on the relation to that join table, but the nodes themselves are nested
+deeper.
+
+`drizzleConnectionHelpers` can also be used to manually create a connection where the edge and
+connections share the same model, and pagination happens directly on a relation to nodes type (even
+if that relation is nested).
+
+This alternative assumes Post has a `comments` relation and a registered Comment type.
+It paginates Comment rows directly, instead of membership join rows.
+
+```ts
+const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'comments');
+
+const SelectPost = builder.drizzleObject('posts', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    comments: t.connection({
+      type: commentConnectionHelpers.ref,
+      select: (args, ctx, nestedSelection) => ({
+        with: {
+          comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        },
+      }),
+      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+    }),
+  }),
+});
+```
+
+Replace the preceding `rolesConnection` helper and field to add filtering and ordering:
+
+```ts
+const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+  // define additional arguments
+  args: (t) => ({}),
+  query: (args) => ({
+    // define an order
+    orderBy: {
+      roleId: 'asc',
+    },
+    // define a filter
+    where: {
+      accepted: true,
+    }
+  }),
+  // select the data needed for the nodes
+  select: (nestedSelection) => ({
+    with: {
+      // use nestedSelection to create the correct selection for the node
+      role: nestedSelection(),
+    },
+  }),
+  // resolve the node from the returned list item
+  resolveNode: (userRole) => userRole.role,
+});
+
+
+builder.drizzleObjectField('users', 'rolesConnection', (t) =>
+  t.connection({
+    type: Role,
+    nodeNullable: true,
+    // add the args from the connection helper to the field
+    args: rolesConnection.getArgs(),
+    select: (args, ctx, nestedSelection) => ({
+      with: {
+        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+      },
+    }),
+    resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
+  }),
+);
+```
+
+## Extending connection edges
+
+This alternative exposes the join row’s `createdAt` on each edge. It assumes a registered
+`DateTime` scalar whose output type is `Date`.
+
+```typescript
+const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+  select: (nestedSelection) => ({
+    with: {
+      role: nestedSelection(),
+    },
+  }),
+  resolveNode: (userRole) => userRole.role,
+});
+
+builder.drizzleObjectFields('users', (t) => ({
+  rolesConnection: t.connection(
+    {
+      type: Role,
+      nodeNullable: true,
+      select: (args, ctx, nestedSelection) => ({
+        with: {
+          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+        },
+      }),
+      resolve: (user, args, ctx) =>
+        rolesConnection.resolve(
+          user.userRoles,
+          args,
+          ctx,
+          user,
+        ),
+    },
+    {},
+    // options for the edge object
+    {
+      // define the additional fields on the edge object
+      fields: (edge) => ({
+        createdAt: edge.field({
+          type: 'DateTime',
+          // the parent shape for edge fields is inferred from the connections resolve function
+          resolve: (role) => role.createdAt,
+        }),
+      }),
+    },
+  ),
+}));
+```
+
+## Non-relation connections
+
+You can also use `drizzleConnectionHelpers` for non-relation connections where you want a connection where your edges and nodes are not the same type.
+
+Note that when doing this, you need to be careful to properly merge the `where` clause generated by the connection helper with any additional `where` clause you need to apply to your query
+
+```typescript
+const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+  select: (nestedSelection) => ({
+    with: {
+      role: nestedSelection(),
+    },
+  }),
+  resolveNode: (userRole) => userRole.role,
+});
+
+builder.queryFields((t) => ({
+  roles: t.connection({
+    type: Role,
+    nodeNullable: true,
+    args: {
+      userId: t.arg.int({ required: true }),
+    },
+    resolve: async (_, args, ctx, info) => {
+      const query = rolesConnection.getQuery(args, ctx, info);
+      const userRoles = await db.query.userRoles.findMany({
+        ...query,
+        where: {
+          AND: [query.where ?? {}, { userId: args.userId }],
+        },
+      });
+      return rolesConnection.resolve(userRoles, args, ctx);
+    },
+  }),
+}));
+```

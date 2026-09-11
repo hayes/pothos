@@ -3,11 +3,37 @@ title: Selections
 description: Selecting the columns and relations your fields need
 ---
 
+Selections describe the database data a GraphQL field needs. The publishing User starts with
+`select: {}` so requesting one field does not load unrelated columns or a profile.
+
+## Field selections
+
+An exposed column, such as `t.exposeString('firstName')`, contributes its own selection. A custom
+resolver must declare the columns it reads:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { fullName } }"'>playground-examples/plugin-drizzle/types/user.ts#user-full-name</include>
+
+## Only load a profile when requested
+
+A biography is a string in GraphQL, but it comes from the optional profile relation. The field
+selects that relation only when requested:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { fullName bio } missingProfile: author(id: 3) { fullName bio } }"'>playground-examples/plugin-drizzle/types/user.ts#user-bio</include>
+
+Maya has a biography; Nora has no profile, so her biography is null. A name-only query does not
+load either author's profile. Adding `bio` adds the relation to the database query, and the
+resolver reads the selected row.
+
+The same mechanism supports SQL expressions through `extras`. For example, a field can select
+`lowercaseName` only when the GraphQL operation requests it:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { fullName lowercaseName } }"'>playground-examples/plugin-drizzle/types/user.ts#user-lowercase-name</include>
+
 ## Type selections
 
 By default, a `drizzleObject` gives its resolvers access to all columns of the table. For tables
-with many columns, it can be more efficient to only select the needed columns. You can configure the
-selected columns, and relations by passing a `select` option when defining the type:
+with many columns, it can be more efficient to only select the needed columns. This alternative User definition always loads the name, profile, and expression together
+by putting them in the type’s `select`:
 
 ```ts
 const User = builder.drizzleObject('users', {
@@ -42,48 +68,7 @@ const User = builder.drizzleObject('users', {
 Any selections added to the type will be available to consume in all resolvers. Columns that are not
 selected can still be exposed as before.
 
-## Field selections
 
-The previous example allows you to control what gets selected by default, but you often want to only
-select the columns that are required to fulfill a specific field. You can do this by adding the
-appropriate selections on each field. Replace the preceding User definition with:
-
-```ts
-const User = builder.drizzleObject('users', {
-  name: 'User',
-  select: {},
-  fields: (t) => ({
-    fullName: t.string({
-      select: {
-        columns: { firstName: true, lastName: true },
-      },
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
-    }),
-    bio: t.string({
-      nullable: true,
-      select: {
-        with: { profile: true },
-      },
-      resolve: (user) => user.profile?.bio,
-    }),
-    lowercaseName: t.string({
-      select: {
-        extras: {
-          lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
-        },
-      },
-      resolve: (user) => user.lowercaseName,
-    }),
-  }),
-});
-```
-
-## Only load a profile when requested
-
-The [public author type](./relations#published-posts-and-profiles) keeps its default selection
-small. Its `bio` field declares the profile relation it needs, so a query for the author's name
-alone does not load a profile. Adding `bio` adds that relation to the database query; the resolver
-then reads the selected row. A nullable profile still produces a nullable biography.
-
-This distinction matters for computed fields: a resolver accessing related data must declare that
-data in its selection, even when the GraphQL field itself is just a string.
+Use type selections for data required whenever the type is loaded, and field selections for data
+needed by a particular field. Both are merged into the parent query; they do not make each field
+an independent database query. See [Query planning](./query-planning).

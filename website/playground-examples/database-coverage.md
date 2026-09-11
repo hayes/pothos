@@ -84,7 +84,7 @@ It targets Prisma Next 0.14/0.16, rather than the current private ORM8 RC9 plugi
 runtime requires separate compatibility, contract-generation and lifecycle work; it is not included
 in this batch.
 
-## Validation evidence
+## Initial batch validation evidence
 
 - Production `build-ci` passed, including generated bundles, reference checks and website types.
 - `type:examples`: 89 source files across 72 isolated programs passed.
@@ -106,3 +106,38 @@ in this batch.
   reconstruction, and rejection of an unknown Drizzle column by the TypeScript worker.
 
 Logs for this run are under `/tmp/pothos-database-*.log` and `/tmp/pothos-drizzle-*.log`.
+
+## Guide coverage and layout follow-up
+
+The initial batch left most original Drizzle examples disconnected from the shared app. The core
+guides now explain the publishing schema directly, with 18 source actions across the overview,
+objects, relations, selections, variants, interfaces, connections, ordering, and query planning.
+Relay links to the node-refetch operation. The app is split into builder, query, and type modules;
+source actions open and highlight the relevant file, including dedented field excerpts.
+Computed SQL selections and the ownership-checked User.viewer variant have dedicated operations.
+
+Advanced connection helpers and async selections have separate guide pages. Supported alternatives
+and original headings remain available at their original routes. The preservation comparison used
+original main a966a6e6f and immediate parent 2f1ed1c5c; independent review restored missing headings,
+explicit ownership selections, and a concrete relation-variant example. Package README excerpts
+and explanations were synchronized without project-running instructions.
+
+The playground toolbar shares its row with the popup close control. Guide links wrap alongside
+instructions, steps omit the repeated example title, and small screens use numbered steps with
+the active title in the guide. The console height is capped relative to the viewport. Sidebar
+visibility is independent of embedded branding: the homepage requests sidebar=0, while the popup
+and full playground show Files/Explorer on desktop and a source selector on mobile.
+
+Follow-up checks include all nine database operations, reverse-context variant ownership,
+18 rendered actions with source-file selection and specific response assertions, desktop/mobile
+Run and Close overlap checks, file editing, SDL, previous/next steps, homepage behavior, and rendered
+links across 79 documentation pages. The dedented source-navigation regression has unit coverage.
+
+Final follow-up results: production build and website types passed; 94 source files across 72
+isolated example programs passed; 40 unit tests passed. All nine Drizzle operations and all
+18 rendered actions passed, including correct active source files, SQL counts, privacy, pagination,
+editing, sharing, reset, and unknown-column diagnostics. Popup controls passed at 320/390/1024px;
+mobile source editing and step navigation passed at 320/390px. Homepage checks passed. All 79
+rendered documentation pages passed internal link/anchor checks, and all 20 expanded Drizzle
+source excerpts matched the package README. Desktop/mobile step and console screenshots were
+inspected. Formatting and git diff checks passed.

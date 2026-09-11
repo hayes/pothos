@@ -44,7 +44,7 @@ export function LandingPlayground() {
     <figure className="m-0 rounded-xl border border-bm-line overflow-hidden bg-bm-editor-bg">
       <iframe
         onLoad={(event) => connectScrolling(event.currentTarget)}
-        src={`/playground?embed=1&theme=${encodeURIComponent(resolvedTheme)}`}
+        src={`/playground?embed=1&sidebar=0&theme=${encodeURIComponent(resolvedTheme)}`}
         aria-describedby="landing-playground-caption"
         title="Pothos playground: edit a schema and run GraphQL queries"
         className="block w-full h-[900px] md:h-[680px] border-0"

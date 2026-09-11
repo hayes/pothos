@@ -5,30 +5,25 @@ description: Using the Drizzle and Relay plugins together
 
 ## Relay integration
 
-Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it
-easy to comply with these best practices, the drizzle plugin has built in support for defining relay
-`nodes` and `connections`.
+The Relay plugin supplies node IDs and cursor connections. Register it with Drizzle as shown in
+[Setup](./setup#integration-with-other-plugins); [Connections](./connections) covers pagination.
 
 ## Relay Nodes
 
-Defining relay nodes works just like defining normal `drizzleObject`s, but requires specifying a
-column to use as the node's `id` field.
+`builder.drizzleNode` uses the same fields and selections as `builder.drizzleObject`, and adds
+an ID and a root node lookup. The publishing User uses its integer primary key:
 
 ```ts
 builder.drizzleNode('users', {
   name: 'User',
-  id: {
-    column: (user) => user.id,
-    // other options for the ID field can be passed here
-  },
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
-  }),
+  id: { column: (user) => user.id },
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 ```
 
-The id column can also be set to a list of columns for types with a composite primary key.
+This minimal alternative shows the node options. The publishing User adds full name, profile,
+and published posts to the same type. Other ID field options can be passed alongside `column`;
+for a composite primary key, `column` can return a list of columns.
 
 ## Refetch a public author
 
@@ -43,9 +38,12 @@ query RefetchAuthor {
 }
 ```
 
-The ID identifies User 1. The node returns the same public fields as the author lookup, including
+The [refetch operation](/playground?example=plugin-drizzle&op=7) uses the ID of User 1. The node returns the same public fields as the author lookup, including
 only published posts. A node lookup does not route through a custom root resolver, so any
 access restrictions on an entity must also hold when it is loaded as a node.
 
 Post is an ordinary object in this schema. It is reachable through the published feed or the
 current author's private drafts, and is not registered as a globally refetchable node.
+
+The [public author definition](./relations#published-posts-and-profiles) applies its publication
+filter on the relation itself, so it also holds when User is reached through `node`.

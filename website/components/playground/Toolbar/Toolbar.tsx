@@ -16,6 +16,7 @@ interface Props {
    * "Load example" picker and the editable sketch name.
    */
   embed?: boolean;
+  overlay?: boolean;
 
   /**
    * Whether any example bundles are available. The example content is
@@ -52,6 +53,7 @@ interface Props {
 
 export function Toolbar({
   embed = false,
+  overlay = false,
   hasExamples = true,
   sketchName,
   onSketchRename,
@@ -92,24 +94,32 @@ export function Toolbar({
   );
 
   return (
-    <div className="relative z-[5] flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 md:px-6 py-3 bg-bm-bg border-b border-bm-line">
-      {wordmarkSlot}
-      {/* The wordmark is brand enough on its own — a separate
+    <div
+      className={`relative z-[5] flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 pl-4 py-2 bg-bm-bg border-b border-bm-line ${overlay ? 'pr-24' : 'pr-4 md:px-6'}`}
+    >
+      <div
+        className={`flex min-w-0 items-center gap-3 ${embed ? 'max-sm:w-full max-sm:min-h-8 max-sm:pr-8' : ''}`}
+      >
+        <span className={embed && sketchName ? 'hidden sm:flex' : 'flex'}>{wordmarkSlot}</span>
+        {/* The wordmark is brand enough on its own — a separate
           "Playground" label was redundant. Keep the divider only when
           a sketch name renders to its right, otherwise drop it. */}
-      <div className="flex min-w-0 max-w-full items-baseline gap-2.5">
-        {sketchName && <span className="h-5 w-px bg-bm-line self-center" aria-hidden="true" />}
-        {/* In embed mode the sketch is read-only — show the loaded
+        <div className="flex min-w-0 max-w-full items-baseline gap-2.5">
+          {sketchName && (
+            <span className="hidden sm:block h-5 w-px bg-bm-line self-center" aria-hidden="true" />
+          )}
+          {/* In embed mode the sketch is read-only — show the loaded
             example's title (or nothing if no example). In standalone
             mode the user can rename, but skip the input when there's
             no name yet so we don't render an empty button. */}
-        {embed
-          ? sketchName && (
-              <span className="break-words font-serif text-[13px] italic text-bm-ink-muted">
-                {sketchName}
-              </span>
-            )
-          : sketchName && <SketchName value={sketchName} onChange={onSketchRename} />}
+          {embed
+            ? sketchName && (
+                <span className="break-words font-serif text-[13px] italic text-bm-ink-muted">
+                  {sketchName}
+                </span>
+              )
+            : sketchName && <SketchName value={sketchName} onChange={onSketchRename} />}
+        </div>
       </div>
 
       {!embed && hasExamples && (
@@ -132,38 +142,42 @@ export function Toolbar({
 
       <div className="flex-1" />
 
-      <StatusPill status={status} />
+      <div className={`flex flex-wrap items-center gap-2 ${overlay ? 'max-sm:-mr-20' : ''}`}>
+        <StatusPill status={status} />
 
-      <Button variant="ghost" active={consoleOpen} onClick={onToggleConsole}>
-        Console
-        <span
-          className={`rounded-full text-[10px] font-semibold leading-none px-1.5 min-w-[14px] text-center text-bm-bg ${
-            consoleHasErrors ? 'bg-bm-danger' : 'bg-bm-ink-muted'
-          }`}
-          style={{ paddingTop: 2, paddingBottom: 2 }}
+        <Button variant="ghost" active={consoleOpen} onClick={onToggleConsole}>
+          Console
+          <span
+            className={`rounded-full text-[10px] font-semibold leading-none px-1.5 min-w-[14px] text-center text-bm-bg ${
+              consoleHasErrors ? 'bg-bm-danger' : 'bg-bm-ink-muted'
+            }`}
+            style={{ paddingTop: 2, paddingBottom: 2 }}
+          >
+            {consoleCount}
+          </span>
+        </Button>
+
+        <Button variant="ghost" onClick={onShare}>
+          {shareLabel}
+        </Button>
+
+        <RunButton running={running} onRun={onRun} />
+
+        {!embed && <ThemeToggle className="size-7" />}
+
+        <div
+          className={`relative max-sm:absolute max-sm:top-2 ${overlay ? 'max-sm:right-24' : 'max-sm:right-4'}`}
         >
-          {consoleCount}
-        </span>
-      </Button>
-
-      <Button variant="ghost" onClick={onShare}>
-        {shareLabel}
-      </Button>
-
-      <RunButton running={running} onRun={onRun} />
-
-      {!embed && <ThemeToggle className="size-7" />}
-
-      <div className="relative">
-        <button
-          type="button"
-          onClick={onToggleOverflow}
-          aria-label="More"
-          className="p-1 text-bm-ink-soft hover:text-bm-ink text-[18px] leading-none cursor-pointer"
-        >
-          ⋯
-        </button>
-        <OverflowMenu open={overflowOpen} onClose={onToggleOverflow} items={overflowItems} />
+          <button
+            type="button"
+            onClick={onToggleOverflow}
+            aria-label="More"
+            className="p-1 text-bm-ink-soft hover:text-bm-ink text-[18px] leading-none cursor-pointer"
+          >
+            ⋯
+          </button>
+          <OverflowMenu open={overflowOpen} onClose={onToggleOverflow} items={overflowItems} />
+        </div>
       </div>
     </div>
   );

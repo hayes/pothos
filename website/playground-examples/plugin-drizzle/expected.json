@@ -139,5 +139,30 @@
         ]
       }
     }
+  },
+  "08-computed.graphql": {
+    "data": {
+      "author": {
+        "fullName": "Maya Chen",
+        "lowercaseName": "maya"
+      }
+    }
+  },
+  "09-variant.graphql": {
+    "data": {
+      "own": {
+        "viewer": {
+          "email": "maya@example.com",
+          "drafts": [
+            {
+              "title": "Planning the spring exchange"
+            }
+          ]
+        }
+      },
+      "other": {
+        "viewer": null
+      }
+    }
   }
 }

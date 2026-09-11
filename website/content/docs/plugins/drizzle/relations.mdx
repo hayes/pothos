@@ -5,76 +5,43 @@ description: Adding relations to drizzle objects
 
 ## Relations
 
-Drizzles relational query builder allows you to define the relationships between your tables. The
-`t.relation` method makes it easy to add fields to your GraphQL API that implement those
-relations:
+Relations connect the [publishing tables](./setup#publishing-tables): each post has an author,
+an author has posts and an optional profile, and posts share media through an attachment table.
+`t.relation` turns a Drizzle relation into a GraphQL field with its target type and cardinality.
+Register the target GraphQL type as well as the relation.
 
-```ts
-builder.drizzleObject('profiles', {
-  name: 'Profile',
-  fields: (t) => ({
-    bio: t.exposeString('bio'),
-  }),
-});
+## Published posts and profiles
 
-builder.drizzleObject('posts', {
-  name: 'Post',
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
-  }),
-});
+The public author page returns published posts. Drafts belong on the [private Viewer](./variants),
+so the filter belongs on the relation wherever User can be reached:
 
-builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    profile: t.relation('profile'),
-    posts: t.relation('posts'),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/types/user.ts#user-posts</include>
 
-The relation will automatically define GraphQL fields of the appropriate type based on the relation
-defined in your drizzle schema.
+Maya's author page returns two published posts. Her draft is absent. Nora has no posts and gets
+an empty list. The `oldestFirst` argument switches ordering; an ID tie breaker makes equal
+timestamps deterministic.
+
+The optional profile is exposed as a nullable `bio` field with a field-level selection; see
+[Selections](./selections#only-load-a-profile-when-requested). An application that wants to expose
+the Profile object instead can register a `profiles` type and use `profile: t.relation('profile')`.
+Its `bio` column is nullable, so an exposed biography should set `nullable: true`.
 
 ## Relation queries
 
-For some cases, exposing relations as fields without any customization works great, but in some
-cases you may want to apply some filtering or ordering to your relations. This can be done by
-specifying a `query` option on the relation:
+`query` accepts a static object or a callback that converts field arguments into Drizzle query
+options. Alongside filters and ordering, a relation may use `limit` and `offset`. For example,
+this alternative adds offset pagination to the public posts field:
 
 ```ts
-builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    posts: t.relation('posts', {
-      args: {
-        limit: t.arg.int(),
-        offset: t.arg.int(),
-      },
-      // query callback receives (args, ctx, pathInfo)
-      query: (args) => ({
-        limit: args.limit ?? 10,
-        offset: args.offset ?? 0,
-        where: {
-          published: true,
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      }),
-    }),
-    drafts: t.relation('posts', {
-      query: {
-        where: {
-          published: false,
-        },
-      },
-    }),
+posts: t.relation('posts', {
+  args: { limit: t.arg.int(), offset: t.arg.int() },
+  query: (args) => ({
+    limit: args.limit ?? 10,
+    offset: args.offset ?? 0,
+    where: { published: true },
+    orderBy: { createdAt: 'desc', id: 'desc' },
   }),
-});
+}),
 ```
 
 The query API enables you to define args and convert them into parameters that will be passed into
@@ -108,6 +75,52 @@ not return a row for a parent, because it was deleted since it was loaded, or ne
 table, that field rejects with `Model users(1) not found`, where the value in parentheses is the
 key that was looked up.
 
+The publishing [alias query](./query-planning#compare-two-orderings-of-one-relation) demonstrates
+this fallback: newest and oldest cannot share one loaded posts list.
+
+## Related count
+
+An author’s count must use the same publication filter as the list. Otherwise the number can
+reveal that unpublished posts exist:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { postCount posts { title } } empty: author(id: 3) { postCount } }"'>playground-examples/plugin-drizzle/types/user.ts#user-post-count</include>
+
+`t.relatedCount` returns the number of related rows without loading them. Maya's count is two,
+and Nora's is zero. Without a `where`, it counts all rows in the relation.
+
+The `where` option accepts either a static SQL filter or a function that receives the field arguments
+and context:
+
+```ts
+publishedPostsCount: t.relatedCount('posts', {
+  args: {
+    title: t.arg.string(),
+  },
+  where: (args, ctx) => args.title
+    ? and(eq(posts.published, true), eq(posts.title, args.title))
+    : eq(posts.published, true),
+});
+```
+
+For a many-to-many relation (one defined with `.through(...)`), `t.relatedCount` counts distinct
+related rows, so a row reachable through two junction rows counts once. A `t.relatedConnection`'s
+`totalCount` counts the rows the connection pages over instead, which is one per junction row,
+since that is what the relational query builder returns for the relation.
+
+
+The callback example uses `and` and `eq` from `drizzle-orm`, and the `posts` table from Setup.
+
+## Shared media
+
+A post exposes attached Media objects even though the database stores an attachment row. The
+`through` relation in [Setup](./setup#publishing-tables) handles that join:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { posts { title media { url uploadedBy { fullName } } mediaConnection(first: 2) { totalCount nodes { url } } } } }"'>playground-examples/plugin-drizzle/types/post.ts#post</include>
+
+“Starting a seed library” and “A guide to composting” share one image uploaded by Leo. The
+attachment uniqueness constraint prevents attaching the same image to a post twice. The connection
+counts its related media, rather than the entire media table.
+
 ## Related field
 
 The `t.relatedField` method allows you to define a field based on a relation that uses custom
@@ -119,20 +132,21 @@ from a relation without loading the full related records.
 One common use case is adding a count field that efficiently counts related records:
 
 ```ts
-import { count } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { posts } from './tables';
 
 builder.drizzleNode('users', {
   name: 'User',
   id: { column: (user) => user.id },
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
-    // Add a count of related posts
+    // Count only this author’s published posts
     postsCount: t.relatedField('posts', {
       type: 'Int',
       // buildFilter creates the correct WHERE clause for the relation
       select: (buildFilter) => ({
         extras: {
-          postsCount: (parent) => db.$count(posts, buildFilter(parent)),
+          postsCount: (parent) => db.$count(posts, and(buildFilter(parent), eq(posts.published, true))),
         },
       }),
       resolve: (user) => user.postsCount,
@@ -168,71 +182,3 @@ original target table, such as ``RAW: sql`${posts.published} = true` ``, is pass
 and can still force SQLite to scan the target table. The same applies to a callback that ignores
 its table argument and references `posts` directly. Object filters such as
 `where: { published: true }` also use the supplied alias.
-
-## Related count
-
-For the common case of counting related records, there's a simpler `t.relatedCount` method that handles
-all the boilerplate for you:
-
-```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    // Simple count of all related comments
-    commentsCount: t.relatedCount('comments'),
-    // Count with a where filter
-    publishedPostsCount: t.relatedCount('posts', {
-      where: eq(posts.published, true),
-    }),
-  }),
-});
-```
-
-The `where` option accepts either a static SQL filter or a function that receives the field arguments
-and context:
-
-```ts
-publishedPostsCount: t.relatedCount('posts', {
-  args: {
-    category: t.arg.string(),
-  },
-  where: (args, ctx) => args.category
-    ? and(eq(posts.published, true), eq(posts.category, args.category))
-    : eq(posts.published, true),
-});
-```
-
-For a many-to-many relation (one defined with `.through(...)`), `t.relatedCount` counts distinct
-related rows, so a row reachable through two junction rows counts once. A `t.relatedConnection`'s
-`totalCount` counts the rows the connection pages over instead, which is one per junction row,
-since that is what the relational query builder returns for the relation.
-
-## Published posts and profiles
-
-In a publishing API, a public author page exposes published posts and an optional profile.
-Drafts belong on the [private viewer](./variants#the-authors-writing-desk). Filtering the list and
-its count consistently prevents the count from revealing unpublished posts. Sorting by both the
-timestamp and ID makes the order deterministic when two posts share a timestamp.
-
-The following type is used by the nullable `author` lookup in [Objects](./objects#a-nullable-author-lookup):
-
-<include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/schema.ts#user</include>
-
-`author(id: 1) { fullName bio postCount posts { title } }` returns Maya's profile and two
-published posts. Nora (`id: 3`) has no profile or posts, so `bio` is null, `posts` is empty, and
-`postCount` is zero. A missing relation is represented as missing data, without manufacturing a
-profile record.
-
-### Shared media
-
-A post can expose its attached media directly even though the database stores attachments in a
-join table. The `media` relation in [Setup](./setup#publishing-tables) uses `through` to connect those
-tables. Both the list and connection use that relation, so their selections also load the uploader:
-
-<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { posts { title media { url uploadedBy { fullName } } mediaConnection(first: 2) { totalCount nodes { url } } } } }"'>playground-examples/plugin-drizzle/schema.ts#post</include>
-
-“Starting a seed library” and “A guide to composting” share one image uploaded by Leo.
-The attachment uniqueness constraint prevents the same image being attached to a post twice;
-the connection's count measures related media rather than an unrelated global table count.

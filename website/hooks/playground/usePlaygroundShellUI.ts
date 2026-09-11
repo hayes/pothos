@@ -62,6 +62,8 @@ export interface PlaygroundShellUI {
   allowExecution: () => void;
   // Toolbar inputs
   embed: boolean;
+  hideSidebar: boolean;
+  overlay: boolean;
   sketchName: string;
   setSketchName: (next: string) => void;
   status: SchemaStatus;
@@ -251,7 +253,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
     [filesState, opsState, runner, captureFromExample],
   );
 
-  const { embed } = useUrlBootstrap({
+  const { embed, hideSidebar, overlay } = useUrlBootstrap({
     filesState,
     opsState,
     exampleLoader,
@@ -599,6 +601,8 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
     executionBlocked: !executionAllowed,
     allowExecution,
     embed,
+    hideSidebar,
+    overlay,
     sketchName,
     setSketchName,
     status,

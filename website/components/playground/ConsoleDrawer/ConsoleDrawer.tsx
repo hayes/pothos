@@ -71,13 +71,13 @@ export function ConsoleDrawer({ logs, onClear, onClose }: Props) {
     <section
       ref={rootRef}
       className="grid grid-rows-[auto_1fr] border-t border-bm-line bg-bm-bg"
-      style={{ height: 156 }}
+      style={{ height: 'min(156px, 24dvh)' }}
       aria-label="Console"
     >
       <div
         role="tablist"
         aria-label="Console filters"
-        className="flex items-center px-6 h-8 border-b border-bm-line gap-4"
+        className="flex items-center px-4 h-8 border-b border-bm-line gap-3"
       >
         <span className="text-[11px] uppercase tracking-[0.08em] text-bm-ink">Console</span>
         {FILTERS.map((f, i) => {

@@ -191,6 +191,11 @@ try {
   assert.deepEqual(leo.data.me.drafts, [{ title: 'Saving rainwater' }]);
   await pane('Context', '{"userId":999}');
   assert.deepEqual((await run()).data, { me: null });
+  await operation('09-variant');
+  await pane('Context', '{"userId":2}');
+  const variant = await run();
+  assert.equal(variant.data.own.viewer, null);
+  assert.equal(variant.data.other.viewer.email, 'leo@example.com');
   await operation('01-author');
   const database = bundle.files.find((file) => file.filename === 'database.ts').content;
   await page.getByRole('button', { name: 'database.ts', exact: true }).click();
@@ -225,15 +230,15 @@ try {
   console.log(
     'PASS cursor continuation, backward/empty pages, count-only SQL, viewer isolation, seed edit and reset',
   );
-  await page.getByRole('button', { name: 'schema.ts', exact: true }).click();
-  const schemaSource = bundle.files.find((file) => file.filename === 'schema.ts').content;
+  await page.getByRole('button', { name: 'types/user.ts', exact: true }).click();
+  const schemaSource = bundle.files.find((file) => file.filename === 'types/user.ts').content;
   await edit(
-    'schema.ts',
+    'types/user.ts',
     schemaSource.replace("t.exposeString('firstName')", "t.exposeString('notAColumn')"),
   );
   await page.waitForFunction(async () => {
     const monaco = window.monaco;
-    const uri = monaco.Uri.parse('file:///playground/schema.ts');
+    const uri = monaco.Uri.parse('file:///playground/types/user.ts');
     const worker = await (await monaco.languages.typescript.getTypeScriptWorker())(uri);
     return (await worker.getSemanticDiagnostics(uri.toString())).some(
       (diagnostic) => diagnostic.code === 2345 || diagnostic.code === 2322,
@@ -245,15 +250,30 @@ try {
   console.log('PASS shared edited database and unknown-column type rejection');
   await page.screenshot({ path: '/tmp/pothos-drizzle-browser.png' });
   for (const [route, checks] of [
-    ['objects', ['author']],
-    ['relations', ['author', 'media']],
-    ['variants', ['viewer']],
-    ['connections', ['posts']],
+    ['', ['author']],
+    ['objects', ['author', 'author']],
+    ['selections', ['author', 'profile', 'computed']],
+    ['relations', ['author', 'count', 'media']],
+    ['variants', ['viewer', 'viewer', 'variant']],
+    ['interfaces', ['viewer', 'editor']],
+    ['query-planning', ['aliases']],
+    ['connections', ['posts', 'related']],
+    ['ordering-and-cursors', ['posts']],
   ]) {
     const docs = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     docs.setDefaultTimeout(60000);
     try {
-      await docs.goto(`${origin}/docs/plugins/drizzle/${route}`);
+      const source = await readFile(
+        new URL(`../content/docs/plugins/drizzle/${route || 'index'}.mdx`, import.meta.url),
+        'utf8',
+      );
+      const excerpts = [
+        ...source.matchAll(
+          /<include[^>]*meta='[^']*playground[^']*'[^>]*>playground-examples\/plugin-drizzle\/([^<#]+)#[^<]+<\/include>/g,
+        ),
+      ].map((match) => match[1]);
+      assert.equal(excerpts.length, checks.length, `${route}: check every rendered action`);
+      await docs.goto(`${origin}/docs/plugins/drizzle${route ? `/${route}` : ''}`);
       for (const [index, check] of checks.entries()) {
         await docs
           .getByRole('button', { name: 'Open in Playground', exact: true })
@@ -261,13 +281,49 @@ try {
           .click();
         const frame = docs.frameLocator('iframe[title="Pothos Playground"]');
         await frame.getByRole('button', { name: /schema synced/ }).waitFor();
+        const runtime = docs.frames().find((candidate) => candidate.url().includes('/playground?'));
+        await runtime.waitForFunction(
+          (filename) =>
+            window.monaco.editor
+              .getEditors()
+              .some(
+                (editor) =>
+                  editor.getModel()?.uri.path === `/playground/${filename}` &&
+                  editor.getDomNode()?.offsetParent !== null,
+              ),
+          excerpts[index],
+        );
         await frame.getByRole('button', { name: /^Run query/ }).click();
         const output = frame.getByLabel('GraphQL result').first();
         await output
-          .filter({ hasText: /Maya|composting|EditorViewer/ })
+          .filter({ hasText: /Maya|composting|EditorViewer|maya/ })
           .waitFor({ state: 'attached' });
         const result = JSON.parse(await output.textContent());
         assert.equal(result.errors, undefined);
+        if (check === 'computed') {
+          assert.equal(result.data.author.lowercaseName, 'maya');
+        }
+        if (check === 'profile') {
+          assert.equal(result.data.missingProfile.bio, null);
+        }
+        if (check === 'count') {
+          assert.equal(result.data.author.postCount, 2);
+          assert.equal(result.data.empty.postCount, 0);
+        }
+        if (check === 'variant') {
+          assert.equal(result.data.other.viewer, null);
+          assert.equal(result.data.own.viewer.email, 'maya@example.com');
+        }
+        if (check === 'editor') {
+          assert.equal(result.data.me.canReviewSubmissions, true);
+        }
+        if (check === 'related') {
+          assert.equal(result.data.author.postsConnection.totalCount, 2);
+          assert.equal(result.data.author.postsConnection.nodes.length, 1);
+        }
+        if (check === 'aliases') {
+          assert.deepEqual(result.data.author.newest, [...result.data.author.oldest].reverse());
+        }
         if (check === 'viewer') {
           assert.equal(result.data.me.__typename, 'EditorViewer');
         }
@@ -293,7 +349,7 @@ try {
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${origin}/docs/plugins/drizzle/objects`);
-  await page.getByRole('button', { name: 'Open in Playground', exact: true }).click();
+  await page.getByRole('button', { name: 'Open in Playground', exact: true }).first().click();
   const mobile = page.frameLocator('iframe[title="Pothos Playground"]');
   await mobile.getByRole('button', { name: /schema synced/ }).waitFor();
   const runButton = mobile.getByRole('button', { name: /^Run query/ });

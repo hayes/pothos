@@ -23,11 +23,25 @@ export async function checkPlaygroundMobile(browser, origin) {
         .waitFor({ state: 'attached' });
       const close = page.getByRole('button', { name: 'Close playground', exact: true });
       const closeBounds = await close.boundingBox();
-      const frameBounds = await page.locator('iframe[title="Pothos Playground"]').boundingBox();
-      assert.ok(
-        closeBounds && frameBounds && closeBounds.y + closeBounds.height <= frameBounds.y,
-        'Close must not cover playground content',
-      );
+      assert.ok(closeBounds && closeBounds.x >= 0 && closeBounds.x + closeBounds.width <= width);
+      for (const control of await frame
+        .locator('button:visible, a:visible, select:visible')
+        .all()) {
+        const box = await control.boundingBox();
+        if (!box) {
+          continue;
+        }
+        assert.ok(
+          box.x + box.width <= closeBounds.x ||
+            box.x >= closeBounds.x + closeBounds.width ||
+            box.y + box.height <= closeBounds.y ||
+            box.y >= closeBounds.y + closeBounds.height,
+          `Close must not cover ${(await control.getAttribute('aria-label')) ?? (await control.textContent())}`,
+        );
+      }
+      if (width >= 768) {
+        assert.ok(await frame.getByRole('button', { name: 'Files', exact: true }).isVisible());
+      }
       await close.click();
       await page.getByRole('dialog', { name: 'Pothos Playground' }).waitFor({ state: 'detached' });
       console.log(`PASS ${width}px embedded Run, result, and Close`);

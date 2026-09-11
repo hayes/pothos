@@ -5,38 +5,33 @@ description: Creating interfaces for drizzle tables that can be shared by varian
 
 ## Interfaces
 
-`builder.drizzleInterface` works just like `builder.drizzleObject`, and can be used to define
-either the primary type or a variant of a table as an interface that other variants implement. The
-interface's `select` is planned whenever a field returns the interface, and an implementation's own
-`select` is planned when a fragment narrows to it. Selections are not inherited, so an
-implementation that exposes more columns will need a `select` of its own.
+The publishing API returns a Viewer for the signed-in account. Editors and authors share email,
+drafts, and a public User representation; editor accounts also expose a review capability.
 
-```ts
-export const Viewer = builder.drizzleInterface('users', {
-  variant: 'Viewer',
-  select: { columns: { id: true, role: true } },
-  resolveType: (user) => (user.role === 'admin' ? 'AdminViewer' : 'MemberViewer'),
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    user: t.variant('users'),
-  }),
-});
+`builder.drizzleInterface` works like `builder.drizzleObject`. It can define the primary type
+or a variant of a table. Here Viewer is a variant, leaving User as the public primary type.
 
-builder.drizzleObject('users', {
-  variant: 'AdminViewer',
-  interfaces: [Viewer],
-  select: { columns: { permissions: true } },
-  fields: (t) => ({
-    permissions: t.exposeStringList('permissions'),
-  }),
-});
+## Define the interface
 
-builder.drizzleObject('users', {
-  variant: 'MemberViewer',
-  interfaces: [Viewer],
-  select: { columns: { id: true } },
-});
-```
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ me { __typename email drafts { title } } }"'>playground-examples/plugin-drizzle/types/viewer.ts#viewer-interface</include>
+
+`resolveType` uses the selected `role` discriminator and returns GraphQL type names. Returning
+names avoids a circular reference between the interface and its implementations.
+
+## Selecting a viewer implementation
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ me { __typename drafts { title } ... on EditorViewer { canReviewSubmissions } } }"'>playground-examples/plugin-drizzle/types/viewer.ts#viewer-implementations</include>
+
+The interface's `select` is planned whenever a field returns the interface. An implementation's
+own selection is planned when a fragment narrows to it. Selections are not inherited; put data
+required by an implementation in its selection as well. An implementation may select additional
+columns or expressions for fields that do not belong on the interface.
+
+Maya (`userId: 1`) resolves to EditorViewer with `canReviewSubmissions: true`. Leo (`userId: 2`)
+resolves to AuthorViewer, so the editor fragment contributes no field. The interface describes
+those result shapes; the authenticated root lookup enforces whose drafts are returned.
+
+## Extending an interface
 
 Fields can be added to an interface later with `builder.drizzleInterfaceField` and
 `builder.drizzleInterfaceFields`, which take the interface ref (or the table name) like their
@@ -44,32 +39,10 @@ Fields can be added to an interface later with `builder.drizzleInterfaceField` a
 
 ```ts
 builder.drizzleInterfaceFields(Viewer, (t) => ({
-  posts: t.relatedConnection('posts'),
+  publishedPosts: t.relatedConnection('posts', { query: { where: { published: true } } }),
 }));
 ```
 
 An object type implementing a drizzle interface must be based on the same table. A plain object
 type that implements one is planned with the interface's table, so fragments on it will select the
 relations it inherits.
-
-## Selecting a viewer implementation
-
-The [writing desk](./variants#the-authors-writing-desk) uses a Viewer interface for the signed-in
-author and two object variants for account capabilities. Its type-level selection includes the
-discriminator (`role`) used by `resolveType`. Each implementation also selects the fields
-required by that interface; configuring a selection on the interface does not replace the
-implementation's selection.
-
-```graphql
-query WritingDesk {
-  me {
-    __typename
-    drafts { title }
-    ... on EditorViewer { canReviewSubmissions }
-  }
-}
-```
-
-The editor result includes `canReviewSubmissions: true`. An author result has no field from that
-fragment, while retaining the interface's `drafts` field. This keeps the public User type separate
-from account-specific capabilities.

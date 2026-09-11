@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Operation } from '@/components/playground/OperationPane/types';
 import type { PlaygroundFile } from '@/components/playground/types';
+import { findSnippetLine } from '@/lib/playground/snippet';
 import type { ExampleLoaderState } from './useExampleLoader';
 import type { OperationsState } from './useOperations';
 import type { PlaygroundFilesState } from './usePlaygroundFiles';
@@ -20,6 +21,8 @@ import { useUrlInit } from './useUrlSync';
  */
 function readSearchParamsOnce(): {
   embed: boolean;
+  hideSidebar: boolean;
+  overlay: boolean;
   exampleId: string | null;
   query: string | null;
   step: number | null;
@@ -27,7 +30,15 @@ function readSearchParamsOnce(): {
   op: number | null;
 } {
   if (typeof window === 'undefined') {
-    return { embed: false, exampleId: null, query: null, step: null, op: null };
+    return {
+      hideSidebar: false,
+      overlay: false,
+      embed: false,
+      exampleId: null,
+      query: null,
+      step: null,
+      op: null,
+    };
   }
   const params = new URLSearchParams(window.location.search);
   const exampleId = params.get('example');
@@ -74,7 +85,15 @@ function readSearchParamsOnce(): {
       op = parsed;
     }
   }
-  return { embed: params.get('embed') === '1', exampleId, query, step, op };
+  return {
+    embed: params.get('embed') === '1',
+    hideSidebar: params.get('sidebar') === '0',
+    overlay: params.get('overlay') === '1',
+    exampleId,
+    query,
+    step,
+    op,
+  };
 }
 
 interface ApplyExampleResultInput {
@@ -110,6 +129,8 @@ interface UseUrlBootstrapArgs {
 
 interface UseUrlBootstrapResult {
   embed: boolean;
+  hideSidebar: boolean;
+  overlay: boolean;
 }
 
 /**
@@ -138,6 +159,8 @@ export function useUrlBootstrap({
 }: UseUrlBootstrapArgs): UseUrlBootstrapResult {
   // Read URL search params (?embed, ?example, ?query) once after mount.
   const [embed, setEmbed] = useState(false);
+  const [hideSidebar, setHideSidebar] = useState(false);
+  const [overlay, setOverlay] = useState(false);
   const searchInitRef = useRef(false);
 
   // Pending step to apply once an example finishes loading. Set by the
@@ -200,6 +223,8 @@ export function useUrlBootstrap({
     }
     searchInitRef.current = true;
     const search = readSearchParamsOnce();
+    setHideSidebar(search.hideSidebar);
+    setOverlay(search.overlay);
     if (search.embed) {
       setEmbed(true);
       // Clear the standalone-mode placeholder so the toolbar renders
@@ -259,10 +284,10 @@ export function useUrlBootstrap({
           // capture, so the URL stays at the short form until edited.
           const snippet = new URLSearchParams(window.location.search).get('snippet')?.trim();
           if (snippet) {
-            const index = final.files.findIndex((file) => file.content.includes(snippet));
+            const positions = final.files.map((file) => findSnippetLine(file.content, snippet));
+            const index = positions.findIndex((line) => line >= 0);
             if (index >= 0) {
-              const file = final.files[index];
-              const start = file.content.slice(0, file.content.indexOf(snippet)).split('\n').length;
+              const start = positions[index] + 1;
               final = {
                 ...final,
                 defaultActive: index,
@@ -296,5 +321,5 @@ export function useUrlBootstrap({
     }
   }, [exampleLoader, applyExampleResult, urlHashApplied, setSketchName, captureBaseline, opsState]);
 
-  return { embed };
+  return { embed, hideSidebar, overlay };
 }

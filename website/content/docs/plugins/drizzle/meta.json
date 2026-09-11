@@ -11,6 +11,8 @@
     "variants",
     "interfaces",
     "query-planning",
+    "connection-helpers",
+    "async-selections",
     "..."
   ]
 }

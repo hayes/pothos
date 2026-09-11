@@ -3,8 +3,9 @@ title: Drizzle Objects
 description: Defining GraphQL object types based on drizzle tables
 ---
 
-Use the builder and database client from [Setup](./setup). The examples below use a `users` table
-with an integer `id` and string `firstName` and `lastName` columns.
+The publishing API uses the tables and builder from [Setup](./setup). Its public User describes
+an author; Post describes an article. Defining a type registers its fields, while a root lookup
+makes those fields queryable.
 
 ## Defining Objects
 
@@ -25,88 +26,59 @@ You will be able to "expose" any column in the table, and GraphQL fields do not 
 names of the columns in your database. The returned `User` can be used like any other `ObjectRef`
 in Pothos.
 
+The publishing User uses `builder.drizzleNode`, which adds a Relay ID and node refetching to the
+same object API. See [Relay](./relay) for that choice. Its public fields omit email and drafts;
+those belong on the current author's [Viewer](./variants).
+
 ## Custom fields
 
-You will often want to define fields in your API that do not correspond to a specific database
-column. For example, replace the object definition above with a computed full name:
+A GraphQL field can combine several columns. The author’s full name declares both columns in
+its selection and computes the string from the loaded row:
 
-```ts
-const User = builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { fullName } }"'>playground-examples/plugin-drizzle/types/user.ts#user-full-name</include>
+
+This field belongs in User's `fields` callback. With the default type selection, all scalar
+columns are available; with `select: {}`, computed fields must declare what they read.
+[Selections](./selections) explains when those columns and relations are loaded.
 
 ## Drizzle Fields
 
-Drizzle objects and relations allow you to define parts of your schema backed by your drizzle
-schema, but don't provide a clear entry point into this Graph of data. To make your drizzle objects
-queryable, we will need to add fields that return our drizzle objects. This can be done using the
-`t.drizzleField` method. This can be used to define fields on the root `Query` type, or any other
-object type in your schema:
+`t.drizzleField` can return a Drizzle object from Query or from any other object type. Its
+resolver receives a `query` function before the usual resolver arguments. Call that function and
+pass its result to `findFirst` or `findMany`: it merges your filters and ordering with the
+requirements of the GraphQL selection.
 
-```ts
-builder.queryType({
-  fields: (t) => ({
-    user: t.drizzleField({
-      type: 'users',
-      nullable: true,
-      args: {
-        id: t.arg.id({ required: true }),
-      },
-      resolve: (query, root, args, ctx) =>
-        db.query.users.findFirst(
-          query({
-            where: {
-              id: Number.parseInt(args.id, 10),
-            },
-          }),
-        ),
-    }),
-    users: t.drizzleField({
-      type: ['users'],
-      resolve: (query, root, args, ctx) => db.query.users.findMany(query()),
-    }),
-  }),
-});
-```
+## A nullable author lookup
 
-The `resolve` function of a `drizzleField` receives a `query` function. Call it and pass its result
-to a Drizzle `findFirst` or `findMany` query. The `query` function optionally accepts any
-arguments that are normally passed into the query, and will merge these options with the selection
-used to resolve data for the nested GraphQL selections.
+The author page accepts an integer ID. A missing author returns null, matching the result of
+`findFirst` and the field's `nullable: true` option:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/queries.ts#author-query</include>
+
+`author(id: 1) { fullName }` returns Maya Chen. `author(id: 999) { fullName }` returns null.
+Adding `posts { title }` loads the public posts through the same root resolver.
+
+For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
+without arguments can pass no options to `query`; fields with filters pass those options to it.
 
 ### `drizzleFieldWithInput`
 
 With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
 `t.drizzleFieldWithInput` combines `t.drizzleField` with `t.fieldWithInput`. The `input` fields
 become an input object argument, and the resolver still receives the `query` function as its first
-argument. This replaces the `user` field above:
+argument. This alternative adds an `authorWithInput` lookup to the same public User type.
+Install and register WithInputPlugin as described in [Setup](./setup#integration-with-other-plugins):
 
 ```ts
 builder.queryFields((t) => ({
-  user: t.drizzleFieldWithInput({
+  authorWithInput: t.drizzleFieldWithInput({
     type: 'users',
     nullable: true,
     input: {
-      id: t.input.id({ required: true }),
+      id: t.input.int({ required: true }),
     },
     resolve: (query, root, args, ctx) =>
-      db.query.users.findFirst(query({ where: { id: Number.parseInt(args.input.id, 10) } })),
+      db.query.users.findFirst(query({ where: { id: args.input.id } })),
   }),
 }));
 ```
-
-## A nullable author lookup
-
-An author page can use a nullable `t.drizzleField` so an unknown ID returns null. Pass the
-selection function's result to `findFirst`; nested fields then contribute their requirements to
-that query. This field uses the public User type from the [publishing schema](./relations#published-posts-and-profiles):
-
-<include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/schema.ts#author-query</include>
-
-`author(id: 1) { fullName }` returns Maya Chen. `author(id: 999) { fullName }` returns null.
