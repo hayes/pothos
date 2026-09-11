@@ -60,6 +60,12 @@ const builder = new SchemaBuilder<{
   Objects: { Giraffe: { name: string } };
 }>({});
 
+builder.objectType('Giraffe', {
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     giraffe: t.field({
@@ -77,28 +83,19 @@ builder method that created them in the `type` parameter. For types created usin
 \([Objects](./objects) or [Interfaces](./interfaces)\) or [Enums](./enums) created using a typescript
 enum, you can also use the `class` or `enum` that was used to define them.
 
+Here we add an enum field to the `Giraffe` type defined above:
+
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-builder.objectType('Giraffe', {
-  fields: (t) => ({
-    preferredNeckLengthUnit: t.field({
-      type: LengthUnit,
-      resolve: () => 'Feet' as const,
-    }),
+builder.objectField('Giraffe', 'preferredNeckLengthUnit', (t) =>
+  t.field({
+    type: LengthUnit,
+    resolve: () => 'Feet',
   }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: 'Giraffe',
-      resolve: () => ({ name: 'Gina' }),
-    }),
-  }),
-});
+);
 ```
 
 ## Lists
