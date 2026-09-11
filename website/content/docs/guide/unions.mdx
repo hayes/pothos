@@ -14,23 +14,24 @@ This example uses two kinds of giraffe facts. Each has a backing model and an
 ```typescript
 import SchemaBuilder from '@pothos/core';
 
-type GiraffeStringFact = { factKind: 'string'; fact: string };
-type GiraffeNumericFact = { factKind: 'number'; fact: string; value: number };
-
 const builder = new SchemaBuilder({});
 
-const GiraffeStringFactRef = builder.objectRef<GiraffeStringFact>('GiraffeStringFact').implement({
-  fields: (t) => ({
-    fact: t.exposeString('fact'),
-  }),
-});
+const GiraffeStringFactRef = builder
+  .objectRef<{ factKind: 'string'; fact: string }>('GiraffeStringFact')
+  .implement({
+    fields: (t) => ({
+      fact: t.exposeString('fact'),
+    }),
+  });
 
-const GiraffeNumericFactRef = builder.objectRef<GiraffeNumericFact>('GiraffeNumericFact').implement({
-  fields: (t) => ({
-    fact: t.exposeString('fact'),
-    value: t.exposeFloat('value'),
-  }),
-});
+const GiraffeNumericFactRef = builder
+  .objectRef<{ factKind: 'number'; fact: string; value: number }>('GiraffeNumericFact')
+  .implement({
+    fields: (t) => ({
+      fact: t.exposeString('fact'),
+      value: t.exposeFloat('value'),
+    }),
+  });
 
 const GiraffeFactRef = builder.unionType('GiraffeFact', {
   types: [GiraffeStringFactRef, GiraffeNumericFactRef],
@@ -46,7 +47,7 @@ const GiraffeFactRef = builder.unionType('GiraffeFact', {
 ```
 
 The `types` array lists the union's object types. Pothos infers the union's backing type from these
-members, so `fact` in `resolveType` is a `GiraffeStringFact | GiraffeNumericFact`.
+members, so `fact` in `resolveType` can have either backing shape.
 
 The `resolveType` function selects a member object type for each returned value. Here, the
 `factKind` property distinguishes the two shapes. It is part of the backing data, but isn't exposed
@@ -57,10 +58,11 @@ array. See the [Objects guide](./objects#different-ways-to-define-object-types) 
 
 ## Using Union Types
 
-Use the union reference as a field's return type. A list can contain values for any of its members:
+Use the union reference as a field's return type. A list can contain values for any of its members.
+`$inferType` gives us the union's backing type for the data array:
 
 ```typescript
-const facts: (GiraffeStringFact | GiraffeNumericFact)[] = [
+const facts: typeof GiraffeFactRef.$inferType[] = [
   {
     factKind: 'string',
     fact: 'Each giraffe has a unique pattern of spots.',
