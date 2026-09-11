@@ -54,7 +54,11 @@ function preparedFieldConfig(
     resolve: resolve as never,
     extensions: {
       ...(extensions ?? {}),
-      [PRISMA_NEXT_PREPARED]: { modelName, typeName } satisfies PreparedFieldExtension,
+      [PRISMA_NEXT_PREPARED]: {
+        modelName,
+        typeName,
+        isList: Array.isArray(type),
+      } satisfies PreparedFieldExtension,
     },
   };
 }

@@ -15,7 +15,14 @@ import type {
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
-import { applyCursorPagination, buildConnectionPage, normalizeCursor } from './utils/cursors.js';
+import {
+  applyCursorPagination,
+  assertUnpaginatedCollection,
+  buildConnectionPage,
+  type CursorInput,
+  normalizeCursor,
+  validateCursor,
+} from './utils/cursors.js';
 import {
   mapperOptionsFromPluginOpts,
   readPluginOptions,
@@ -24,6 +31,7 @@ import {
 import { getRefFromContractModel } from './utils/refs.js';
 import {
   buildTotalCountPromise,
+  connectionNeedsRows,
   wrapConnectionOptionsWithTotalCount,
 } from './utils/total-count.js';
 
@@ -109,8 +117,9 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     );
   }
   const mapperOpts = mapperOptionsFromPluginOpts(opts);
-  const cursorCols = normalizeCursor(cursor as string | readonly string[]);
+  const cursorCols = normalizeCursor(cursor as CursorInput);
   const contract = opts.contract;
+  const cursorSpec = validateCursor(contract, ref.modelName, cursor as CursorInput);
 
   return this.connection(
     {
@@ -151,6 +160,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           )(parent, args, context, info),
         )) as MapperCollection;
 
+        assertUnpaginatedCollection(userCollection);
+        const needsRows = connectionNeedsRows(context as object, info);
         const apply = createApply({
           info,
           contract,
@@ -160,18 +171,27 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           extraColumns: cursorCols,
         });
         // A promise only when a select callback beneath the field was async.
-        const applied = (await apply(userCollection)) as MapperCollection;
+        const applied = (
+          needsRows ? await apply(userCollection) : userCollection
+        ) as MapperCollection;
 
-        const pagination = applyCursorPagination(applied, cursor as never, relayArgs, {
+        const sizes = {
           ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
           ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
-        });
+        };
+        // Validate supplied ordering even for count-only selections. Preparing the
+        // page Collection is lazy; no rows are fetched unless they were requested.
+        const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, sizes);
 
-        const rowsPromise = (
-          pagination.collection as unknown as {
-            all: () => Promise<readonly Record<string, unknown>[]>;
-          }
-        ).all();
+        const rowsPromise = needsRows
+          ? Promise.resolve().then(() =>
+              (
+                pagination.collection as unknown as {
+                  all(): Promise<readonly Record<string, unknown>[]>;
+                }
+              ).all(),
+            )
+          : Promise.resolve([]);
 
         // totalCount runs against the user-returned collection (post-
         // apply, pre-pagination) — apply only adds includes/selects,

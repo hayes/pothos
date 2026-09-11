@@ -52,7 +52,7 @@ function buildSchema() {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        resolve: () => [],
+        resolve: () => null,
       }),
       userById: t.prismaField({
         type: 'User',

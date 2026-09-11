@@ -4,7 +4,7 @@
  * plugin's M:N rejection in `buildRelationMeta`.
  *
  * As of prisma-next 0.14.0 (ADR-221 contract restructure) junction-table
- * support has LANDED upstream in `@prisma-next/sql-orm-client`:
+ * support has LANDED upstream in `@prisma/orm-family-sql/orm-client`:
  *
  *   - `parseRelationCardinality` now accepts `'N:M'` (dist/index.mjs
  *     ~line 267) — it is no longer dropped.
@@ -36,7 +36,7 @@
  * the resolved `through` descriptor flips back, prisma-next has regressed
  * N:M support and the plugin's assumptions break.
  */
-import { Collection } from '@prisma-next/sql-orm-client';
+import { Collection } from '@prisma/orm-family-sql/orm-client';
 import { describe, expect, it } from 'vitest';
 
 describe('prisma-next orm-client M:N (upstream canary)', () => {
@@ -123,7 +123,9 @@ describe('prisma-next orm-client M:N (upstream canary)', () => {
     const fakeRuntime = {} as never;
     // 0.14.0's Collection ctx wraps everything under `context`, and the
     // contract is read off `ctx.context.contract`.
-    const ctx = { context: { contract, runtime: fakeRuntime, scope: {} } } as never;
+    const ctx = {
+      context: { contract, runtime: fakeRuntime, scope: {}, aggregateDescriptors: new Map() },
+    } as never;
 
     // 0.14.0's Collection constructor is `(ctx, modelName, options)`; the
     // options object now requires `namespaceId`.

@@ -415,7 +415,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
 
   it('hoists relatedConnection into the parent prismaField via include', async () => {
     // Per-user paginated posts via t.relatedConnection. The mapper
-    // emits .include('posts', cb => cb.orderBy(id).take(N+1)) on the
+    // emits .include('posts', cb => cb.orderBy(id).limit(N+1)) on the
     // User collection so this still resolves in one query (modulo
     // upstream multi-query fallback for include refinements).
     const result = await runQuery(`{
@@ -1017,7 +1017,7 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
       }
     }`);
     const msg = result.errors?.[0]?.message ?? '';
-    expect(msg).toMatch(/composite ID is not a valid JSON array/);
+    expect(msg).toMatch(/ID payload is invalid/);
     expect(msg).not.toContain(marker);
   });
 

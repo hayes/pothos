@@ -5,6 +5,7 @@
  * registry, so a cycle (`User.posts` → `Post.author` → `User`) closes on the same objects.
  */
 import { PothosSchemaError } from '@pothos/core';
+import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import type { AnyContract } from '../types.js';
 import { resolveContractModel } from './contract.js';
 
@@ -122,6 +123,52 @@ export function buildColumnSet(
 }
 
 const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
+
+/** Non-null unique keys in model field names, primary key first; undefined without SQL storage. */
+export function getModelUniqueKeys(
+  contract: AnyContract,
+  modelName: string,
+): string[][] | undefined {
+  const model = resolveContractModel(contract, modelName);
+  const storage = model?.storage as
+    | {
+        table?: string;
+        namespaceId?: string;
+        fields?: Record<string, { column?: string }>;
+      }
+    | undefined;
+  const table = storage?.table
+    ? resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table
+    : undefined;
+  if (!model || !table) {
+    return undefined;
+  }
+  const keys = [
+    ...(table.primaryKey ? [table.primaryKey.columns] : []),
+    ...(table.uniques ?? []).map((key) => key.columns),
+    ...(table.indexes ?? []).flatMap((index) =>
+      index.unique && !index.where && index.columns ? [index.columns] : [],
+    ),
+  ];
+  const uniqueKeys: string[][] = [];
+  for (const columns of keys) {
+    const fields = columns.map((column) =>
+      Object.keys(model.fields).find(
+        (field) =>
+          (storage?.fields?.[field]?.column ?? field) === column && !model.fields[field].nullable,
+      ),
+    );
+    if (fields.length && fields.every((field) => field !== undefined)) {
+      uniqueKeys.push(fields as string[]);
+    }
+  }
+  return uniqueKeys;
+}
+
+/** Prefer the primary key, then the first non-null unique key. */
+export function getIdentityFields(contract: AnyContract, modelName: string): string[] {
+  return getModelUniqueKeys(contract, modelName)?.[0] ?? [];
+}
 
 /** The one `PrismaNextModel` for `name` under `contract`. */
 export function getModel(contract: AnyContract, name: string): PrismaNextModel {

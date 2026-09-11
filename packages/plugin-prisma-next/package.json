@@ -1,8 +1,7 @@
 {
   "name": "@pothos/plugin-prisma-next",
-  "version": "0.1.0",
-  "private": true,
-  "description": "A Pothos plugin for the new prisma-next client",
+  "version": "0.0.0",
+  "description": "Pothos integration for the Prisma ORM 8 SQL collection client",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
@@ -16,7 +15,7 @@
     }
   },
   "scripts": {
-    "type": "tsc --project tsconfig.type.json",
+    "type": "tsc --project tsconfig.type.json && tsc --project tsconfig.scope-auth.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
@@ -48,13 +47,12 @@
     "@pothos/selection-mapper": "workspace:*"
   },
   "peerDependencies": {
-    "@pothos/core": "*",
+    "@pothos/core": "workspace:^",
     "@pothos/plugin-relay": "*",
     "@pothos/plugin-with-input": "*",
-    "@prisma-next/contract": "^0.16.0",
-    "@prisma-next/sql-contract": "^0.16.0",
-    "@prisma-next/sql-orm-client": "^0.16.0",
-    "graphql": "^16.10.0 || ^17.0.0"
+    "graphql": "^16.10.0 || ^17.0.0",
+    "@prisma/orm-framework": "8.0.0-rc.9",
+    "@prisma/orm-family-sql": "8.0.0-rc.9"
   },
   "peerDependenciesMeta": {
     "@pothos/plugin-relay": {
@@ -70,16 +68,16 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma-next/adapter-sqlite": "^0.16.0",
-    "@prisma-next/contract": "^0.16.0",
-    "@prisma-next/driver-sqlite": "^0.16.0",
-    "@prisma-next/framework-components": "^0.16.0",
-    "@prisma-next/sql-builder": "^0.16.0",
-    "@prisma-next/sql-contract": "^0.16.0",
-    "@prisma-next/sql-orm-client": "^0.16.0",
-    "@prisma-next/sql-relational-core": "^0.16.0",
-    "@prisma-next/sql-runtime": "^0.16.0",
-    "@prisma-next/sqlite": "^0.16.0",
-    "@prisma-next/target-sqlite": "^0.16.0"
+    "@prisma/orm-framework": "8.0.0-rc.9",
+    "@prisma/orm-family-sql": "8.0.0-rc.9",
+    "@prisma/orm-sqlite": "8.0.0-rc.9",
+    "@prisma/orm-postgres": "8.0.0-rc.9",
+    "pg": "8.22.0",
+    "@types/pg": "8.20.4",
+    "@js-temporal/polyfill": "^0.5.1",
+    "@pothos/plugin-scope-auth": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

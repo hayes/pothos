@@ -58,23 +58,52 @@ builder.queryType({
    `['User']`).
 2. The resolver can return a `Collection` directly. The plugin layers
    `.select(...)` / `.include(...)` onto it from the GraphQL selection
-   set, then calls `.all()` (with `.take(1)` injected for single-row
+   set, then calls `.all()` (with `.limit(1)` injected for single-row
    fields).
 
-If you need post-processing in the resolver, return the materialized
-rows yourself — the plugin's auto-detect only fires for actual orm-client
-collections.
+Return the Collection before calling `.all()` or `.first()`. Materialized rows
+are rejected at the type and runtime interfaces: the plugin must apply the
+actual GraphQL selection before execution. Use selected fields on the model
+for derived values, and a nullable field when an empty Collection should
+resolve to null.
 
 ```ts
 me: t.prismaField({
   type: 'User',
-  resolve: async (_root, _args, ctx) => {
-    const user = await ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)).first();
-    if (!user) throw new Error('Not found');
-    return user;
-  },
+  nullable: true,
+  resolve: (_root, _args, ctx) =>
+    ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
 }),
 ```
+
+For mutations, perform the write and return a Collection identifying the
+resulting rows while the same transaction remains active:
+
+```ts
+builder.mutationType({
+  fields: (t) => ({
+    renameUser: t.prismaField({
+      type: 'User',
+      args: {
+        id: t.arg.id({ required: true }),
+        firstName: t.arg.string({ required: true }),
+      },
+      resolve: async (_parent, args, ctx) => {
+        const user = ctx.db.orm.User.where({ id: String(args.id) });
+        await user.update({ firstName: args.firstName });
+        return user;
+      },
+    }),
+  }),
+});
+```
+
+Nested fields are selected from the returned Collection after the write. Use a
+request transaction when the write and those reads must share a transaction;
+keep it active for the entire GraphQL execution, including fallback reads. See
+[Selection and transaction lifetime](./setup#selection-and-transaction-lifetime).
+For a deleted row or a custom non-model result, return a normal Pothos payload
+such as the deleted ID or an affected-row count.
 
 ### With an input object — `t.prismaFieldWithInput`
 
@@ -121,9 +150,9 @@ builder.prismaObject('User', {
 
 - `{ col: true }` — column read.
 - `{ rel: true }` — simple include; the relation rows attach to the row.
-- `{ rel: { where, orderBy, take, skip } }` — declarative refine.
-- `{ rel: (sub) => ({...}) }` — function-form select for counts,
-  aggregates, or multiple variants. The inner keys land on the row as
+- `{ rel: { where, orderBy, limit, offset } }` — declarative refine.
+- `{ rel: (sub) => ({...}) }` — function-form select on a to-many relation for
+  counts, aggregates, or multiple variants. The inner keys land on the row as
   flat properties (namespaced per type so variants don't collide).
 
 ## Per-field selections — `t.field({ select })`
@@ -157,6 +186,34 @@ The walker collects every field's `select` declaration and emits one
 `.include('posts', cb => …)` per relation. Sibling consumers (a plain
 `posts` list, a `published` filter, and a count) land in one
 `cb.combine({...})` call with each consumer in its own namespaced slot.
+
+### Conflicting selections
+
+With a `collections` provider, a field whose relation filter conflicts with a
+type-level selection loads separately in a batch. For that field, its own filter
+wins; compatible type-level columns and relations remain available. Sibling
+fields keep their own selection values. For example, a field can override a
+type's `author` filter without changing the author seen by other fields.
+
+Separate `t.variant` fields can also load different type prerequisites in
+independent batches. An object and its implemented interface must still have
+compatible type-level prerequisites: conflicting filters required on that same
+type are rejected before SQL. Move those filters to field-level `select`
+declarations or the `query` option on `t.relation` so the loader can resolve them
+independently.
+
+Function-form relation selections require the ORM's `combine()` API and work
+only for to-many relations. For a to-one relation, use a declarative selection:
+
+```ts
+authorName: t.string({
+  nullable: true,
+  select: { author: { where: { firstName: 'Alice' } } },
+  resolve: (post) => post.author?.firstName ?? null,
+}),
+```
+
+A filtered to-one selection can return null even when the foreign key is required.
 
 ## Extending prisma objects
 

@@ -1,21 +1,24 @@
 import SchemaBuilder, {
   brandWithType,
+  decodeCursorChunk,
+  encodeCursorChunk,
+  encodeCursorTuple,
   type InterfaceRef,
   type OutputType,
   PothosSchemaError,
   PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
-import { and, or } from '@prisma-next/sql-orm-client';
+import { and, or } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from './constants.js';
+import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from './constants.js';
 import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextNodeRef } from './node-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import { createApply } from './utils/apply.js';
-import { CURSOR_PAYLOAD_MAX_BYTES } from './utils/cursors.js';
+import { CURSOR_PAYLOAD_MAX_BYTES, type CursorValueCodec } from './utils/cursors.js';
 import { enqueueNodeLoad, pathKey } from './utils/node-batch.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
 import {
@@ -219,6 +222,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
           parse?: (id: string, ctx: Types['Context']) => IDShape;
           resolve: (parent: unknown, args: object, ctx: Types['Context']) => unknown;
           description?: string;
+          extensions?: Record<string, unknown>;
         };
         loadWithoutCache: (
           id: IDShape,
@@ -233,6 +237,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
     id: {
       field: string | readonly string[];
       description?: string;
+      codecs?: Record<string, CursorValueCodec>;
       parse?: (id: string, ctx: Types['Context']) => IDShape;
       resolve?: (parent: unknown, ctx: Types['Context']) => string | number;
     };
@@ -279,46 +284,48 @@ schemaBuilderProto.prismaNode = function prismaNode<
 
   const pluginOpts = readPluginOptions<Types['PrismaNextContract']>(this);
 
-  // User `isTypeOf` runs first (handles polymorphic discriminators);
-  // brand check is the fallback. `isTypeOf` may return Promise<boolean>
-  // — `userResult || brandCheck` would short-circuit on a truthy
-  // Promise<false>, so branch on the return type and chain via .then.
-  type IsTypeOfFn = (value: unknown, context: unknown, info: unknown) => boolean | Promise<boolean>;
-  const userIsTypeOf = (rest as { isTypeOf?: IsTypeOfFn }).isTypeOf;
-  const brandCheck = (value: unknown): boolean =>
-    typeof value === 'object' && value !== null && nodeRef.hasBrand(value);
-  const objectRef = this.prismaObject(
-    modelName as never,
-    {
-      ...(rest as object),
-      isTypeOf: userIsTypeOf
-        ? (value: unknown, context: unknown, info: unknown) => {
-            const userResult = userIsTypeOf(value, context, info);
-            if (
-              userResult !== null &&
-              typeof userResult === 'object' &&
-              'then' in userResult &&
-              typeof (userResult as Promise<boolean>).then === 'function'
-            ) {
-              return (userResult as Promise<boolean>).then((r) => r || brandCheck(value));
-            }
-            return userResult || brandCheck(value);
-          }
-        : brandCheck,
-    } as never,
-  );
+  // The Relay loader brands its results for abstract Node resolution. Concrete
+  // fields and relations do not need brands; a default brand-only isTypeOf would
+  // reject the ordinary ORM rows returned by those paths. Preserve a user's
+  // discriminator predicate exactly, matching the Prisma and Drizzle plugins.
+  const objectRef = this.prismaObject(modelName as never, rest as never);
 
   this.configStore.associateParamWithRef(nodeRef as never, objectRef as never);
 
-  // Single-column ids return the raw value; composite ids JSON-encode
-  // the tuple (matches drizzle's getIDSerializer for cross-plugin parity).
-  const serializeId = (parent: unknown): string | number => {
+  // Tagged chunks preserve bigint/date/bytes within compound IDs. Plain
+  // string IDs remain readable; escape the reserved prefix when necessary.
+  const serializeId = (parent: unknown): string => {
     const row = parent as Record<string, unknown>;
-    if (!isComposite) {
-      const v = row[idFields[0]!];
-      return v as string | number;
+    const values = idFields.map((field) => {
+      const value = row[field];
+      const codec = idOpts.codecs?.[field];
+      if (codec) {
+        return codec.encode(value);
+      }
+      if (
+        !idOpts.parse &&
+        value !== null &&
+        typeof value === 'object' &&
+        !(value instanceof Date) &&
+        !(value instanceof Uint8Array)
+      ) {
+        throw new PothosSchemaError(
+          `prismaNode '${modelName as string}' requires an id.codecs entry for custom scalar field '${field}'.`,
+        );
+      }
+      return value;
+    });
+    if (idOpts.parse) {
+      // A custom parser owns its wire format; preserve the previous raw scalar / JSON tuple form.
+      return isComposite ? JSON.stringify(values) : String(values[0]);
     }
-    return JSON.stringify(idFields.map((f) => row[f]));
+    if (isComposite) {
+      return `PNI:${encodeCursorTuple(values)}`;
+    }
+    const value = values[0];
+    return typeof value === 'string' && !value.startsWith('PNI:')
+      ? value
+      : `PNI:${encodeCursorChunk(value)}`;
   };
 
   if (!pluginOpts) {
@@ -328,47 +335,55 @@ schemaBuilderProto.prismaNode = function prismaNode<
   const nodeModelName = modelName as string;
   const contract = pluginOpts.contract;
 
-  // Without a user `id.parse`, composite ids arrive as the serialized
-  // JSON string — decode with a length cap to deny oversized DoS.
-  // Validation errors map to PothosValidationError (client) rather than
-  // PothosSchemaError (server config).
   const normalizeId = (id: IDShape): IDShape => {
-    if (!isComposite) {
-      return id;
+    let parsed: unknown = id;
+    if (!idOpts.parse && typeof id === 'string') {
+      if (id.length > CURSOR_PAYLOAD_MAX_BYTES) {
+        throw new PothosValidationError(
+          `prismaNode '${nodeModelName}' ID payload exceeds ${CURSOR_PAYLOAD_MAX_BYTES} bytes.`,
+        );
+      }
+      try {
+        parsed = id.startsWith('PNI:')
+          ? decodeCursorChunk(id.slice(4))
+          : isComposite
+            ? JSON.parse(id)
+            : id;
+      } catch {
+        throw new PothosValidationError(`prismaNode '${nodeModelName}' ID payload is invalid.`);
+      }
     }
-    if (Array.isArray(id)) {
-      return id as IDShape;
-    }
-    const raw = id as unknown as string;
-    if (typeof raw === 'string' && raw.length > CURSOR_PAYLOAD_MAX_BYTES) {
+    if (isComposite && (!Array.isArray(parsed) || parsed.length !== idFields.length)) {
       throw new PothosValidationError(
-        `prismaNode '${nodeModelName}' composite ID payload exceeds ${CURSOR_PAYLOAD_MAX_BYTES} bytes.`,
+        `prismaNode '${nodeModelName}' composite ID expected ${idFields.length} values, got ${Array.isArray(parsed) ? parsed.length : 'a non-array value'}.`,
       );
     }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw) as unknown;
-    } catch {
-      throw new PothosValidationError(
-        `prismaNode '${nodeModelName}' composite ID is not a valid JSON array.`,
-      );
-    }
-    if (!Array.isArray(parsed)) {
-      const got = parsed === null ? 'null' : typeof parsed;
-      throw new PothosValidationError(
-        `prismaNode '${nodeModelName}' composite ID expected a JSON array, got ${got}.`,
-      );
-    }
-    if (parsed.length !== idFields.length) {
-      throw new PothosValidationError(
-        `prismaNode '${nodeModelName}' composite ID expected ${idFields.length} values, got ${parsed.length}.`,
-      );
+    if (!idOpts.parse && idOpts.codecs) {
+      const values = isComposite ? (parsed as unknown[]) : [parsed];
+      const decoded = idFields.map((field, i) => {
+        const codec = idOpts.codecs?.[field];
+        if (!codec) {
+          return values[i];
+        }
+        try {
+          if (typeof values[i] !== 'string') {
+            throw new Error('Expected encoded string');
+          }
+          return codec.decode(values[i]);
+        } catch {
+          throw new PothosValidationError(
+            `prismaNode '${nodeModelName}' ID has an invalid ${field} value.`,
+          );
+        }
+      });
+      parsed = isComposite ? decoded : decoded[0];
     }
     return parsed as IDShape;
   };
 
   this.nodeRef(objectRef as never, {
     id: {
+      extensions: { [PRISMA_NEXT_FIELD_SELECT]: { columns: idFields } },
       ...(idOpts.description !== undefined ? { description: idOpts.description } : {}),
       ...(idOpts.parse ? { parse: idOpts.parse } : {}),
       resolve: (parent: unknown, _args: object, ctx: Types['Context']) =>
@@ -420,6 +435,16 @@ schemaBuilderProto.prismaNode = function prismaNode<
             extraColumns: idFields,
           }),
         idFields,
+        ...(idOpts.codecs
+          ? {
+              keyForValues: (values: readonly unknown[]) =>
+                encodeCursorTuple(
+                  idFields.map(
+                    (field, i) => idOpts.codecs?.[field]?.encode(values[i]) ?? values[i],
+                  ),
+                ),
+            }
+          : {}),
         brandRow: (row) => brandWithType(row, typeName as unknown as OutputType<Types>),
       });
     },

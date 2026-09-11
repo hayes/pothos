@@ -27,9 +27,9 @@ it('preserves filtered aliases alongside object-level relation rows', async () =
     fields: (t) => ({
       id: t.exposeID('id'),
       total: t.int({ resolve: (p) => p.posts.length }),
-      latest: t.relation('posts', { query: { orderBy: (p) => p.createdAt.desc(), take: 1 } }),
+      latest: t.relation('posts', { query: { orderBy: (p) => p.createdAt.desc(), limit: 1 } }),
       posts: t.relation('posts', {
-        query: { where: { published: 1 }, orderBy: (p) => p.id.desc(), take: 1 },
+        query: { where: { published: 1 }, orderBy: (p) => p.id.desc(), limit: 1 },
       }),
     }),
   });

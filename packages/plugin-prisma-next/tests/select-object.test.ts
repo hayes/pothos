@@ -240,8 +240,7 @@ describe('object-form select on t.field', () => {
   });
 });
 
-// A function-form entry on a to-one relation is emitted as a combine the orm rejects, rather
-// than dropped: dropping it answered the field with nothing at all.
+// Function-form to-one entries are rejected before emission rather than silently dropped.
 describe('function-form select on a to-one relation', () => {
   it('reports the unsupported combine instead of resolving to undefined', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
@@ -266,6 +265,8 @@ describe('function-form select on a to-one relation', () => {
       contextValue: {},
       document: parse('{ posts { title authorCount } }'),
     });
-    expect(result.errors?.[0]?.message).toMatch(/combine\(\) is only supported for to-many/);
+    expect(result.errors?.[0]?.message).toMatch(
+      /Function-form selection on to-one relation "author"/,
+    );
   });
 });

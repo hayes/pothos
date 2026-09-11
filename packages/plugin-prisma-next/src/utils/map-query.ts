@@ -2,7 +2,7 @@
  * The plugin's entry points into `@pothos/selection-mapper`: the plan of a resolver's `info`
  * emitted onto its collection.
  */
-import { isThenable } from '@pothos/core';
+import { isThenable, type MaybePromise, PothosSchemaError } from '@pothos/core';
 import { type IndirectInclude, type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { AnyContract } from '../types.js';
@@ -11,12 +11,14 @@ import { emit, type MapperCollection, type PrismaNextPlan, prismaNextAdapter } f
 export type { IndirectInclude };
 
 export interface ApplySelectionOptions {
+  skipDeferredFragments?: boolean;
+  /** @internal Set when the builder has a Collection provider for fallback loads. */
+  fallback?: boolean;
   /** Descend through these paths from the field's return type (`[['edges', 'node'], ['nodes']]`). */
   paths?: PathSegment[][];
   path?: PathSegment[];
   /** Columns always read on the root, ahead of anything the selection adds (cursor and id columns). */
   extraColumns?: readonly string[];
-  skipDeferredFragments?: boolean;
   /** Walk as this type instead of `info.returnType` (a `node(id:)` load of a concrete type). */
   typeName?: string;
 }
@@ -32,11 +34,16 @@ export function applySelectionToCollection(
   contract: AnyContract,
   context: unknown,
   options: ApplySelectionOptions = {},
-): MapperCollection {
-  // Next passes the original context to callbacks and does not use loader mapping caches.
+): MaybePromise<MapperCollection> {
+  if (options.skipDeferredFragments && !options.fallback) {
+    throw new PothosSchemaError(
+      'skipDeferredFragments requires a Collection provider for fallback loading.',
+    );
+  }
+  // Selection callbacks receive the application's original context.
   const ctx = context as object;
   const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
-  const adapter = prismaNextAdapter(contract);
+  const adapter = prismaNextAdapter(contract, options.fallback);
   const plan = Plan.fromInfo(adapter, {
     context: ctx,
     info,
@@ -44,7 +51,7 @@ export function applySelectionToCollection(
     path: options.path,
     paths: options.paths,
     initial,
-    skipDeferredFragments: options.skipDeferredFragments,
+    skipDeferredFragments: options.skipDeferredFragments ?? options.fallback ?? false,
   });
 
   if (!plan) {
@@ -52,12 +59,17 @@ export function applySelectionToCollection(
     return emit(baseCollection, initial ?? {}, undefined, ctx);
   }
 
-  // Serialize the play directly: query() also publishes mappings to an object-context cache,
-  // but Next resolves selected rows through its own overlay.
+  // Publish coverage for manual helper callers too. Context-free eager helpers
+  // retain their original behavior; fallback loading requires an object context.
   const finish = (settled: PrismaNextPlan) =>
-    emit(baseCollection, adapter.toQuery(settled.play().root), settled.model, ctx);
+    emit(
+      baseCollection,
+      ctx && typeof ctx === 'object' ? settled.query() : adapter.toQuery(settled.play().root),
+      settled.model,
+      ctx,
+    );
 
   return isThenable(plan)
-    ? (plan.then((settled) => finish(settled as PrismaNextPlan)) as unknown as MapperCollection)
+    ? Promise.resolve(plan).then((settled) => finish(settled as PrismaNextPlan))
     : finish(plan);
 }

@@ -4,19 +4,15 @@ import './prisma-next-field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  createContextCache,
   isThenable,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import {
-  type GraphQLFieldResolver,
-  type GraphQLResolveInfo,
-  getNamedType,
-  getNullableType,
-  isListType,
-} from 'graphql';
+import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
+import { type GraphQLFieldResolver, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECT,
   PRISMA_NEXT_MODEL,
@@ -24,8 +20,10 @@ import {
   PRISMA_NEXT_RELATIONS,
   PRISMA_NEXT_SELECT,
 } from './constants.js';
+import type { PreparedFieldExtension } from './extensions.js';
+import { ModelLoader } from './model-loader.js';
 import type { AnyContract } from './types.js';
-import { fieldAliasPrefix, objectLevelFieldAlias } from './utils/adapter.js';
+import { fieldAliasPrefix, objectLevelFieldAlias, prismaNextAdapter } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
 import { resolveContractModel } from './utils/contract.js';
 import { buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
@@ -43,12 +41,12 @@ export type {
   RelationPredicate,
   ShorthandWhereFilter,
   UniqueConstraintCriterion,
-} from '@prisma-next/sql-orm-client';
+} from '@prisma/orm-family-sql/orm-client';
 // `IncludeRefinementCollection` and `IsToManyRelation` are re-exported via
 // `export * from './types'` below — orm-client made them internal in 0.14.0,
 // so the plugin owns reconstructed copies. `IncludeRefinementResult` was
 // dropped (see the note in ./types).
-export { all, and, not, or } from '@prisma-next/sql-orm-client';
+export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';
 export type { PrismaConnectionHelpers } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
 export { PRISMA_NEXT_MODEL, PRISMA_NEXT_PREPARED, PRISMA_NEXT_SELECT } from './constants.js';
@@ -67,6 +65,7 @@ export type { Apply } from './utils/apply.js';
 export { createApply } from './utils/apply.js';
 export { rebrandForVariant } from './utils/branding.js';
 export {
+  type CursorValueCodec,
   decodeCursor as parsePrismaNextCursor,
   encodeCursor as formatPrismaNextCursor,
 } from './utils/cursors.js';
@@ -112,20 +111,19 @@ async function materializeCollection(
   contract: AnyContract,
   context: unknown,
   mapperOpts: ReturnType<typeof mapperOptionsFromPluginOpts>,
+  wantsList: boolean,
 ): Promise<unknown> {
   const apply = createApply({ info, contract, context, mapperOpts });
   // A promise only when a select callback beneath the field was async.
   let applied = (await apply(collection)) as {
     all: () => Promise<readonly unknown[]>;
-    take?: (n: number) => unknown;
+    limit?: (n: number) => unknown;
   };
-  // Single-row fields: inject `.take(1)` so we don't pull the whole
+  // Single-row fields: inject `.limit(1)` so we don't pull the whole
   // collection just to read row 0. List fields take whatever the user
   // returned.
-  const inner = getNullableType(info.returnType);
-  const wantsList = isListType(inner);
-  if (!wantsList && typeof applied.take === 'function') {
-    applied = applied.take(1) as typeof applied;
+  if (!wantsList && typeof applied.limit === 'function') {
+    applied = applied.limit(1) as typeof applied;
   }
   // `.all()` resolves to a real array on every orm-client adapter
   // we target — no async-iterable fallback path.
@@ -197,6 +195,8 @@ function normalizeParentForType(
 }
 
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  private readonly loaders = createContextCache(() => new Map<string, ModelLoader>());
+
   override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
     if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
       return typeConfig;
@@ -244,6 +244,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const ext = (fieldConfig.extensions ?? {}) as Record<string | symbol, unknown>;
 
     if (ext[PRISMA_NEXT_PREPARED]) {
+      const prepared = ext[PRISMA_NEXT_PREPARED] as PreparedFieldExtension;
       // Resolve plugin options once at schema-build time — `wrapResolve`
       // runs per field; the returned closure runs per request.
       const opts = readPluginOptions<AnyContract>(this.builder);
@@ -266,15 +267,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             ? await (raw as Promise<unknown>)
             : raw;
 
-        // Auto-wrap: if the resolver returned a Collection (duck-typed
-        // via `.select` + `.all`), apply selection and materialize.
-        // Anything else (null, array, raw row) passes through unchanged.
-        const materialized =
-          result != null && !Array.isArray(result) && isOrmCollection(result)
-            ? await materializeCollection(result, info, contract, context, mapperOpts)
-            : result;
-
-        return materialized;
+        if (result == null) {
+          return result;
+        }
+        if (!isOrmCollection(result)) {
+          throw new PothosSchemaError(
+            `t.prismaField '${info.parentType.name}.${info.fieldName}' must return an ORM Collection or null. ` +
+              'Return the collection before executing it so the complete GraphQL selection can be applied.',
+          );
+        }
+        return materializeCollection(result, info, contract, context, mapperOpts, prepared.isList);
       };
     }
 
@@ -297,7 +299,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const parentTypeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
     const typeSelect = parentTypeConfig.extensions?.[PRISMA_NEXT_SELECT];
     const modelName = parentTypeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    const contract = readPluginOptions<AnyContract>(this.builder)?.contract;
+    const pluginOptions = readPluginOptions<AnyContract>(this.builder);
+    const contract = pluginOptions?.contract;
+    const collections = pluginOptions?.collections;
     const modelRelations =
       contract && modelName ? resolveContractModel(contract, modelName)?.relations : undefined;
     const toOneRelations = Object.entries(modelRelations ?? {})
@@ -314,13 +318,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       | { path?: unknown[]; paths?: unknown[] }
       | undefined;
     const isSameRow = !!indirect && !indirect.path?.length && !indirect.paths?.length;
-    if (!hasTypeSelect && !hasFieldSelect && !isSameRow) {
+    const needsNormalization = hasTypeSelect || hasFieldSelect || isSameRow;
+    if (!needsNormalization && !(modelName && collections)) {
       return resolver;
     }
     const baseResolver = resolver;
 
-    return (parent, args, context, info) => {
-      if (parent == null || typeof parent !== 'object') {
+    const resolveLoaded: GraphQLFieldResolver<unknown, Types['Context'], object> = (
+      parent,
+      args,
+      context,
+      info,
+    ) => {
+      if (!needsNormalization || parent == null || typeof parent !== 'object') {
         return baseResolver(parent, args, context, info);
       }
       // The prefix the adapter wrote the combine slot under. `:` is GraphQL-forbidden, so it
@@ -383,6 +393,49 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return value;
       };
       return isThenable(result) ? Promise.resolve(result).then(finish) : finish(result);
+    };
+    if (!modelName || !collections || !contract) {
+      return resolveLoaded;
+    }
+    const hasFieldDependencies =
+      isSameRow ||
+      !!ext[PRISMA_NEXT_FIELD_SELECT] ||
+      typeof ext.pothosExposedField === 'string' ||
+      typeof selectOpt === 'function' ||
+      (selectOpt != null && typeof selectOpt === 'object' && Object.keys(selectOpt).length > 0);
+    // Use the eager adapter so its type selection includes inherited prerequisites,
+    // but not the identity columns added solely to make fallback loading possible.
+    const dependencyAdapter = prismaNextAdapter(contract);
+    return (parent, args, context, info) => {
+      if (!parent || typeof parent !== 'object') {
+        return resolveLoaded(parent, args, context, info);
+      }
+      if (!hasFieldDependencies) {
+        const dependencies = dependencyAdapter.typeSelection(info.parentType);
+        if (!dependencies?.columns?.length && !Object.keys(dependencies?.relations ?? {}).length) {
+          return resolveLoaded(parent, args, context, info);
+        }
+      }
+      const mapping = getLoaderMapping(context as object, info.path, info.parentType.name, parent);
+      if (mapping) {
+        setRowMappings(context as object, info, mapping.nested);
+        return resolveLoaded(parent, args, context, info);
+      }
+      const loaders = this.loaders(context as object);
+      let loader = loaders.get(modelName);
+      if (!loader) {
+        loader = new ModelLoader(
+          context as object,
+          contract,
+          modelName,
+          () => (typeof collections === 'function' ? collections(context) : collections)[modelName],
+          pluginOptions.skipDeferredFragments ?? true,
+        );
+        loaders.set(modelName, loader);
+      }
+      return loader
+        .loadSelection(info, parent)
+        .then((row) => resolveLoaded(row, args, context, info));
     };
   }
 }

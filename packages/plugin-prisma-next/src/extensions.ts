@@ -9,4 +9,5 @@ export type RefineCallback = (rel: unknown, args: unknown, ctx: unknown) => unkn
 export interface PreparedFieldExtension {
   readonly modelName: string;
   readonly typeName: string;
+  readonly isList: boolean;
 }

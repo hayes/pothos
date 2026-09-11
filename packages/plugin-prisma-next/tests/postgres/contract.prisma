@@ -1,0 +1,21 @@
+namespace public {
+  model Account {
+    id String @id
+    name String
+    entries Entry[]
+    @@map("pothos_next_account")
+  }
+
+  model Entry {
+    id String @id
+    accountId String
+    amount Float
+    wide BigInt
+    exact Decimal
+    payload Bytes
+    createdAt Timestamptz
+    sortLabel String?
+    account Account @relation(fields: [accountId], references: [id])
+    @@map("pothos_next_entry")
+  }
+}

@@ -101,12 +101,12 @@ class RecordingCollection implements MapperCollection {
     return this.chain('cursor', values);
   }
 
-  take(n: number) {
-    return this.chain('take', n);
+  limit(n: number) {
+    return this.chain('limit', n);
   }
 
-  skip(n: number) {
-    return this.chain('skip', n);
+  offset(n: number) {
+    return this.chain('offset', n);
   }
 }
 
@@ -235,13 +235,13 @@ function createSchema({ asyncSelect = false } = {}) {
       publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
       // An args-dependent query: resolved once per field occurrence, with the request context.
       filteredPosts: t.relation('posts', {
-        args: { published: t.arg.int(), take: t.arg.int() },
+        args: { published: t.arg.int(), limit: t.arg.int() },
         query: (args, ctx) => {
           captured.push({ args, ctx });
 
           return {
             where: args.published == null ? undefined : { published: args.published },
-            take: args.take ?? undefined,
+            limit: args.limit ?? undefined,
           } as never;
         },
       }),
@@ -251,10 +251,10 @@ function createSchema({ asyncSelect = false } = {}) {
         type: [Post],
         select: asyncSelect
           ? ((async () => ({
-              posts: (sub: MapperCollection) => ({ rows: sub.take(3), count: sub.count() }),
+              posts: (sub: MapperCollection) => ({ rows: sub.limit(3), count: sub.count() }),
             })) as never)
           : ({
-              posts: (sub: MapperCollection) => ({ rows: sub.take(3), count: sub.count() }),
+              posts: (sub: MapperCollection) => ({ rows: sub.limit(3), count: sub.count() }),
             } as never),
         resolve: (user) => (user as { rows: never[] }).rows,
       }),
@@ -382,10 +382,10 @@ describe('columns', () => {
     expect(
       await plan(
         /* GraphQL */ `
-        query ($skip: Boolean!) { users { id ... on User @skip(if: $skip) { firstName } ...F @include(if: false) } }
+        query ($offset: Boolean!) { users { id ... on User @skip(if: $offset) { firstName } ...F @include(if: false) } }
         fragment F on User { lastName }
       `,
-        { variableValues: { skip: true } },
+        { variableValues: { offset: true } },
       ),
     ).toEqual(['select(id)']);
   });
@@ -432,12 +432,12 @@ describe('relations', () => {
     captured.length = 0;
 
     expect(
-      await plan('{ users { filteredPosts(published: 1, take: 2) { id } } }', {
+      await plan('{ users { filteredPosts(published: 1, limit: 2) { id } } }', {
         context: { tenantId: 'tenant-42' },
       }),
-    ).toEqual(['select(id)', 'include(posts){ where({"published":1}) take(2) select(id) }']);
+    ).toEqual(['select(id)', 'include(posts){ where({"published":1}) limit(2) select(id) }']);
     expect(captured).toHaveLength(1);
-    expect(captured[0].args).toEqual({ published: 1, take: 2 });
+    expect(captured[0].args).toEqual({ published: 1, limit: 2 });
     expect(captured[0].ctx).toEqual({ tenantId: 'tenant-42' });
   });
 
@@ -492,7 +492,7 @@ describe('counts and function-form entries', () => {
   it('namespaces every key a function-form entry returns under <alias>:', async () => {
     expect(await plan('{ users { page: postsPage { id } } }')).toEqual([
       'select(id)',
-      'include(posts){ combine(page:count=count[], page:rows=[take(3)]) }',
+      'include(posts){ combine(page:count=count[], page:rows=[limit(3)]) }',
     ]);
   });
 
@@ -578,29 +578,25 @@ describe('entry options', () => {
     ]);
   });
 
-  it('honours skipDeferredFragments', async () => {
+  it('plans deferred selections with the initial query', async () => {
     const source = '{ users { id ... @defer { lastName } } }';
     const { infoFor: deferInfo } = createDeferSchema();
     const info = await deferInfo(source);
-
     expect(
       render(
-        applySelectionToCollection(new RecordingCollection(), info, sampleContract as never, {}),
-      ),
-    ).toEqual(['select(id)']);
-    expect(
-      render(
-        applySelectionToCollection(
+        await applySelectionToCollection(
           new RecordingCollection(),
           info,
           sampleContract as never,
           {},
-          {
-            skipDeferredFragments: false,
-          },
         ),
       ),
     ).toEqual(['select(id, lastName)']);
+    expect(() =>
+      applySelectionToCollection(new RecordingCollection(), info, sampleContract as never, {}, {
+        skipDeferredFragments: true,
+      } as never),
+    ).toThrow(/requires a Collection provider/);
   });
 
   it.each([
@@ -627,7 +623,7 @@ describe('entry options', () => {
       '{ users { postsConnection { totalCount edges { node { asyncTitle } } } } }',
       [
         'select(id)',
-        'include(posts){ combine(postsConnection:count=count[], postsConnection:rows=[orderBy(fn) take(3) select(id, title)]) }',
+        'include(posts){ combine(postsConnection:count=count[], postsConnection:rows=[orderBy(fn) limit(3) select(id, title)]) }',
       ],
     ],
   ])('awaits nested async selections in %s', async (source, expected) => {
@@ -647,7 +643,7 @@ describe('entry options', () => {
     expect(applied).toBeInstanceOf(Promise);
     expect(render(await applied)).toEqual([
       'select(id)',
-      'include(posts){ combine(postsPage:count=count[], postsPage:rows=[take(3)]) }',
+      'include(posts){ combine(postsPage:count=count[], postsPage:rows=[limit(3)]) }',
     ]);
   });
 });
@@ -714,7 +710,7 @@ describe('execution context', () => {
     );
 
     expect(result).not.toBeInstanceOf(Promise);
-    expect(render(result)).toEqual([
+    expect(render(await result)).toEqual([
       'select(id)',
       'include(posts){ where({"published":1}) select(id) }',
     ]);

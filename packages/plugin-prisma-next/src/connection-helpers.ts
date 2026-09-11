@@ -5,15 +5,26 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
+import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
-import type { AnyContract, CollectionFor, CursorSpec, ModelName, Row } from './types.js';
+import type {
+  AnyContract,
+  CollectionFor,
+  ConnectionCollection,
+  CursorSpec,
+  ModelName,
+  NamespaceOf,
+  Row,
+} from './types.js';
 import { compileWhere } from './utils/compile-query.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
   type ConnectionPage,
+  type CursorInput,
   normalizeCursor,
+  validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import {
@@ -39,7 +50,7 @@ export interface PrismaConnectionHelpers<
    * `await` it: the collection is not usable until the selection it carries has settled.
    */
   applyPagination(
-    collection: CollectionFor<Types, M>,
+    collection: ConnectionCollection<Types, M>,
     args: InputShapeFromFields<Args> & import('@pothos/plugin-relay').DefaultConnectionArguments,
     info: GraphQLResolveInfo | undefined,
     ctx: Types['Context'],
@@ -87,9 +98,13 @@ export function prismaConnectionHelpers<
           info: GraphQLResolveInfo | undefined,
         ) => MaybePromise<number>);
     where?:
-      | import('@prisma-next/sql-orm-client').ShorthandWhereFilter<Types['PrismaNextContract'], M>
+      | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
+          Types['PrismaNextContract'],
+          NamespaceOf<Types, M>,
+          M
+        >
       | ((
-          accessor: import('@prisma-next/sql-orm-client').ModelAccessor<
+          accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
             Types['PrismaNextContract'],
             M
           >,
@@ -124,9 +139,12 @@ export function prismaConnectionHelpers<
 
   // Hoist out of per-resolve closure — cursorCols depend on the static
   // option; pluginOpts/mapperOpts depend on the immutable builder.options.
-  const cursorCols = normalizeCursor(options.cursor as string | readonly string[]);
+  const cursorCols = normalizeCursor(options.cursor as CursorInput);
   const pluginOpts = readPluginOptions<AnyContract>(builder);
   const mapperOpts = mapperOptionsFromPluginOpts(pluginOpts);
+  const cursorSpec = pluginOpts
+    ? validateCursor(pluginOpts.contract, modelName, options.cursor)
+    : options.cursor;
 
   return {
     ref,
@@ -145,7 +163,7 @@ export function prismaConnectionHelpers<
       const filteredBase = whereRefine
         ? (whereRefine(collection, args, ctx) as CollectionFor<Types, M>)
         : collection;
-      const pagination = applyCursorPagination(filteredBase as never, options.cursor, args, {
+      const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
         ...(defaultSize !== undefined ? { defaultSize } : {}),
         ...(maxSize !== undefined ? { maxSize } : {}),
       });
@@ -171,21 +189,28 @@ export function prismaConnectionHelpers<
       // pagination) so the count and the page rows come from the same
       // filtered set. Counting `collection` would produce a "N of M"
       // mismatch when `where` narrows the result.
-      const totalCountPromise: Promise<number> | undefined = totalCountResolver
-        ? Promise.resolve().then(() => Promise.resolve(totalCountResolver(args, ctx, info)))
-        : totalCountFlag
-          ? aggregateCount(filteredBase)
-          : undefined;
-      // Tap a noop catch so a rejection here doesn't surface as
-      // unhandledRejection when the caller's Promise.all short-circuits
-      // on the rows side.
-      if (totalCountPromise) {
+      let totalCountPromise: Promise<number> | undefined;
+      const getTotalCountPromise = () => {
+        if (
+          !totalCountFlag ||
+          (info && !selectedFieldNames(ctx as object, info).has('totalCount'))
+        ) {
+          return undefined;
+        }
+        totalCountPromise ??= totalCountResolver
+          ? Promise.resolve().then(() => totalCountResolver(args, ctx, info))
+          : aggregateCount(filteredBase);
+        // Helpers can start row and count work independently. Attach a rejection
+        // handler immediately while retaining rejection for the consumer.
         totalCountPromise.catch(() => undefined);
-      }
+        return totalCountPromise;
+      };
 
       const withCollection = (collection: CollectionFor<Types, M>) => ({
         collection,
-        totalCountPromise,
+        get totalCountPromise() {
+          return getTotalCountPromise();
+        },
         wrap<WrapRow extends Record<string, unknown>>(
           rows: readonly WrapRow[],
           totalCount?: number,

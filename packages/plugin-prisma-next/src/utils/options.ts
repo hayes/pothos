@@ -1,3 +1,6 @@
+import { PothosSchemaError } from '@pothos/core';
+import type { MapperCollection } from './adapter.js';
+
 /** @internal */
 export function resolveSizeOption<Args, Ctx>(
   opt: number | ((args: Args, ctx: Ctx) => number) | undefined,
@@ -10,23 +13,35 @@ export function resolveSizeOption<Args, Ctx>(
   return typeof opt === 'function' ? opt(args, ctx) : opt;
 }
 
-/** @internal */
+/** Options used by the public selection application helpers. */
 export interface MapperPluginOptions {
   defaultConnectionSize?: number;
   maxConnectionSize?: number;
   skipDeferredFragments?: boolean;
+  /** @internal Whether selection conflicts can be serviced by a loader. */
+  fallback?: boolean;
 }
 
 /** @internal */
 export interface FullPrismaNextPluginOptions<Contract = unknown> extends MapperPluginOptions {
   contract: Contract;
+  collections?:
+    | Record<string, MapperCollection | undefined>
+    | ((context: unknown) => Record<string, MapperCollection | undefined>);
 }
 
 /** @internal */
 export function readPluginOptions<Contract = unknown>(builder: {
   options: unknown;
 }): FullPrismaNextPluginOptions<Contract> | undefined {
-  return (builder.options as { prismaNext?: FullPrismaNextPluginOptions<Contract> }).prismaNext;
+  const options = (builder.options as { prismaNext?: FullPrismaNextPluginOptions<Contract> })
+    .prismaNext;
+  if (options?.skipDeferredFragments && !options.collections) {
+    throw new PothosSchemaError(
+      'prismaNext.skipDeferredFragments requires prismaNext.collections for fallback loading.',
+    );
+  }
+  return options;
 }
 
 /** @internal */
@@ -43,8 +58,7 @@ export function mapperOptionsFromPluginOpts(
   if (opts.maxConnectionSize !== undefined) {
     out.maxConnectionSize = opts.maxConnectionSize;
   }
-  if (opts.skipDeferredFragments !== undefined) {
-    out.skipDeferredFragments = opts.skipDeferredFragments;
-  }
+  out.fallback = opts.fallback ?? !!(opts as FullPrismaNextPluginOptions).collections;
+  out.skipDeferredFragments = opts.skipDeferredFragments ?? out.fallback;
   return out;
 }

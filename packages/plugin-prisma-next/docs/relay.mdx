@@ -44,17 +44,21 @@ interface, along with the standard global-ID encoding/decoding.
 ### Options
 
 - **`id.field`**: column name (string) or non-empty tuple for composite
-  primary keys. Composite IDs JSON-encode the tuple before being passed
-  to Relay's `toGlobalID`.
+  primary keys. Composite IDs use tagged scalar encoding, preserving bigint
+  and Date values, before being passed to Relay's `toGlobalID`.
 - **`id.parse`** / **`id.resolve`**: optional overrides for ID parsing
   (string → IDShape) and serialization (parent → string|number).
+- **`id.codecs`**: optional codecs keyed by ID column. Each provides
+  `encode(value): string` and `decode(value): Value`, for example to restore
+  Temporal identifiers. Nonstandard object IDs require a codec unless an
+  explicit `id.parse` owns their format. Use the same scalar representation as the ORM.
 - **`collection`**: the base orm-client `Collection` to load from.
   Accepts either a static `Collection` or a `(ctx) => Collection`
   callback. The callback form is what you'll usually want — it lets
   you scope the query to the per-request context.
 - **`fields`**, **`isTypeOf`**, **`interfaces`**, …: same options as
-  `prismaObject`. A user-provided `isTypeOf` is combined with the
-  plugin's brand check; Relay's node-interface resolver calls into it.
+  `prismaObject`. A user-provided `isTypeOf` is respected without overriding a false result.
+  The plugin does not install a brand-only predicate on concrete model types.
 
 ### Loading
 
@@ -101,7 +105,6 @@ builder.prismaNode('Post', {
 });
 ```
 
-Both nodes back the `Post` model but resolve as different GraphQL types
-based on the row. The plugin's brand fallback only fires when the
-user-provided `isTypeOf` returns false — so user-supplied predicates
-win for polymorphic discrimination.
+Both nodes back the `Post` model but resolve as different GraphQL types based
+on the row. Node loads are branded for abstract type resolution; a custom
+`isTypeOf` still determines whether the returned row belongs to that type.

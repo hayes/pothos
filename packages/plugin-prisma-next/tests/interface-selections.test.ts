@@ -25,10 +25,13 @@ afterAll(async () => {
   await ctx?.cleanup();
 });
 
-it('loads inherited interface selections through concrete and interface roots', async () => {
+it.each([
+  false,
+  true,
+])('loads inherited interface selections through concrete and interface roots (provider: %s)', async (provider) => {
   const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
     plugins: [prismaNextPlugin],
-    prismaNext: { contract: ctx.contract },
+    prismaNext: { contract: ctx.contract, ...(provider ? { collections: ctx.ormClient } : {}) },
   });
   const base = builder.prismaInterface('User', {
     name: 'UserTotals',

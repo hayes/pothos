@@ -10,6 +10,8 @@
       "!**/examples/**/prisma/**/*",
       "!**/packages/**/prisma/**/*",
       "!**/packages/plugin-prisma-next/tests/fixtures/**/*",
+      "!**/packages/plugin-prisma-next/tests/postgres/contract.d.ts",
+      "!**/packages/plugin-prisma-next/tests/postgres/contract.json",
       "!**/packages/plugin-prisma/**/client/**/*",
       "!**/packages/plugin-prisma-utils/**/client/**/*",
       "!**/packages/**/*/lib/**/*",

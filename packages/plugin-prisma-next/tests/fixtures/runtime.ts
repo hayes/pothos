@@ -8,15 +8,28 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
-import sqlite from '@prisma-next/sqlite/runtime';
-import type { AfterExecuteResult } from '@prisma-next/framework-components/runtime';
-import type { SqlExecutionPlan } from '@prisma-next/sql-relational-core/plan';
-import type { Runtime, SqlMiddleware } from '@prisma-next/sql-runtime';
+import sqlite from '@prisma/orm-sqlite/runtime';
+import type { AfterQueryResult } from '@prisma/orm-framework/components/runtime';
+import type { SqlExecutionPlan } from '@prisma/orm-family-sql/relational-core/plan';
+import type { Runtime, SqlMiddleware } from '@prisma/orm-family-sql/runtime';
 import type { Contract as SampleContractType } from './sample-contract';
 
 const sampleContractJson = JSON.parse(
   readFileSync(fileURLToPath(new URL('./sample-contract.json', import.meta.url)), 'utf8'),
 ) as SampleContractType;
+
+// RC9's serializer omits default-valued index flags and empty unique arrays,
+// while its runtime validates those properties before hydrating the contract.
+// Restore only those defaults when consuming the emitted fixture.
+for (const namespace of Object.values(sampleContractJson.storage.namespaces)) {
+  for (const table of Object.values(namespace.entries.table ?? {})) {
+    const serialized = table as unknown as { uniques?: unknown[]; foreignKeys?: unknown[]; indexes?: { unique?: boolean }[] };
+    serialized.uniques ??= [];
+    serialized.foreignKeys ??= [];
+    serialized.indexes ??= [];
+    for (const index of serialized.indexes ?? []) index.unique ??= false;
+  }
+}
 
 export type SampleContract = SampleContractType;
 
@@ -39,12 +52,12 @@ export function withCapture<T>(
 const captureMiddleware: SqlMiddleware = {
   name: 'pothos-test-capture',
   familyId: 'sql',
-  async beforeExecute(plan: SqlExecutionPlan) {
+  async beforeQuery(plan: SqlExecutionPlan) {
     const captures = captureStore.getStore();
     if (!captures) return;
     captures.push({ sql: plan.sql, params: plan.params });
   },
-  async afterExecute(_plan: SqlExecutionPlan, result: AfterExecuteResult) {
+  async afterQuery(_plan: SqlExecutionPlan, result: AfterQueryResult) {
     const captures = captureStore.getStore();
     if (!captures || captures.length === 0) return;
     const last = captures[captures.length - 1];
@@ -99,7 +112,7 @@ export async function createTestRuntime(): Promise<TestRuntimeContext> {
  */
 function createSchema(db: DatabaseSync, contract: SampleContract): void {
   // Marker table shape mirrors prisma-next 0.16.0's sqlite control adapter
-  // (`_prisma_marker` defined in @prisma-next/adapter-sqlite). The adapter
+  // (`_prisma_marker` defined in @prisma/orm-sqlite/adapter). The adapter
   // reads `WHERE space = 'app'` selecting core_hash/profile_hash/
   // contract_json/canonical_version/updated_at/app_tag/meta/invariants, so
   // the `space` column (and a row with space='app') is required — without it
@@ -140,6 +153,7 @@ function createSchema(db: DatabaseSync, contract: SampleContract): void {
       title TEXT NOT NULL,
       content TEXT NOT NULL,
       published INTEGER NOT NULL DEFAULT 0,
+      score REAL,
       authorId TEXT NOT NULL,
       createdAt TEXT NOT NULL,
       FOREIGN KEY (authorId) REFERENCES user(id)
@@ -170,11 +184,11 @@ function seedData(db: DatabaseSync): void {
       ('u-bob', 'Bob', 'Brown', 'bob@example.com')
   `);
   db.exec(`
-    INSERT INTO post (id, title, content, published, authorId, createdAt) VALUES
-      ('p-hello', 'Hello, Pothos', 'Welcome.', 1, 'u-alice', '2026-04-01T10:00:00.000Z'),
-      ('p-draft1', 'Draft #1', 'WIP', 0, 'u-alice', '2026-04-02T10:00:00.000Z'),
-      ('p-bob1', 'Bob writes', 'My experience.', 1, 'u-bob', '2026-04-03T10:00:00.000Z'),
-      ('p-bob-draft', 'Bob draft', 'Polishing.', 0, 'u-bob', '2026-04-04T10:00:00.000Z')
+    INSERT INTO post (id, title, content, published, score, authorId, createdAt) VALUES
+      ('p-hello', 'Hello, Pothos', 'Welcome.', 1, 1.5, 'u-alice', '2026-04-01T10:00:00.000Z'),
+      ('p-draft1', 'Draft #1', 'WIP', 0, 2.25, 'u-alice', '2026-04-02T10:00:00.000Z'),
+      ('p-bob1', 'Bob writes', 'My experience.', 1, 3.5, 'u-bob', '2026-04-03T10:00:00.000Z'),
+      ('p-bob-draft', 'Bob draft', 'Polishing.', 0, 4.75, 'u-bob', '2026-04-04T10:00:00.000Z')
   `);
   db.exec(`
     INSERT INTO comment (id, body, authorId, postId, createdAt) VALUES

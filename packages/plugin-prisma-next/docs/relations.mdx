@@ -69,9 +69,9 @@ ctx.db.orm.User
   .all();
 ```
 
-This is one orm-client call. Depth-2+ nested includes currently fall back
-to a multi-query plan in prisma-next's SQL planner; the plugin emits FK
-columns into the parent SELECT so the fallback stitching is correct.
+The plugin supplies one complete include plan. Prisma chooses its SQL execution
+strategy. Nested relations can execute in one statement; the number of statements
+depends on the Collection, target capabilities, and upstream planner.
 
 ## Cardinality and nullability
 
@@ -103,7 +103,7 @@ builder.prismaObject('User', {
 });
 ```
 
-`query` accepts either a literal `{ where, orderBy, take, skip }` or a
+`query` accepts either a literal `{ where, orderBy, limit, offset }` or a
 function returning one. The function receives the field's resolved args
 and the request context — it can't read the parent because the relation
 hasn't loaded yet.
@@ -115,7 +115,7 @@ one field touches the relation.
 ## Counts, aggregates, custom mappings
 
 For the common cases — counting a relation or reducing it to a scalar —
-use the `t.relationCount` and `t.relationAggregate` sugars. Both compile
+use `t.relationCount` and `t.relationAggregate`. Both compile
 to a function-form `select` (the lower-level primitive shown further
 down), so the SQL path and `where` refinement are identical; they just
 save you the boilerplate:
@@ -141,6 +141,24 @@ builder.prismaObject('User', {
   }),
 });
 ```
+
+Aggregate operations and compatible fields come from the emitted contract's
+`AggregateTypes`. `count` defaults to GraphQL Int; other numeric reducers default
+to Float, so fractional sum/min/max results are not truncated or rejected as Int.
+Pass `type` to choose a compatible scalar. Non-number results require it:
+
+```ts
+largeCount: t.relationAggregate('posts', { op: 'countBigInt', type: 'BigInt' }),
+smallestTitle: t.relationAggregate('posts', {
+  op: 'min', field: 'title', type: 'String',
+}),
+```
+
+Register custom scalars such as `BigInt` with their matching Pothos input/output
+types. Available operations vary with the contract, not Pothos dialect branches:
+for example PostgreSQL contracts can provide `avgDecimal`. `count`/`countBigInt`
+may also receive a field to count its non-null values. Use a lossless operation
+and scalar when values could exceed GraphQL Int or JavaScript number precision.
 
 When you need something the sugars don't cover — multiple aggregate
 slots in one combine, or a custom mapping over the loaded rows — drop to
@@ -220,9 +238,19 @@ the explicit junction model when you need its attributes.
 
 ## Reaching a relation without a prismaField
 
-If a `t.relation` field's parent wasn't loaded by `t.prismaField` (e.g.
-you `t.field({ resolve: () => ({ id: 1 }) })` returning a raw row that
-the auto-include never saw), the relation resolver throws a clear
-validation error pointing you back at `t.prismaField`. Use `t.prismaField`
-as the entry point, or build your include chain manually inside a custom
-resolver.
+With `prismaNext.collections` configured, a model row reached through a regular
+`t.field` can load missing selections when it carries its primary or unique key.
+The loader batches requests across parents. Prefer `t.prismaField` for root
+collections so the plugin can preload compatible fields together. Without a
+provider, relation data must already be present; otherwise the resolver reports
+that the relation was not loaded.
+
+## Independent to-one refinements
+
+Compatible selections of the same to-one relation share an include. Prisma ORM
+RC9 rejects `combine()` on to-one includes (`ORM.INCLUDE_UNSUPPORTED`). Configure
+`prismaNext.collections` to handle incompatible filters: the initial query loads
+one compatible group, and a multi-row fallback query loads each remaining group
+with its own nested selections. Aliases receive independent values, including
+filtered `null` results. Without a provider, incompatible refinements are rejected
+before SQL. Independent to-many consumers continue to use combine slots.
