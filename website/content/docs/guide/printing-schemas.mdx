@@ -7,8 +7,8 @@ Sometimes it's useful to have an SDL version of your schema. To do this, you can
 the `graphql` package to write your schema out as SDL to a file.
 
 ```typescript
-import { writeFileSync } from 'fs';
-import { printSchema, lexicographicSortSchema } from 'graphql';
+import { writeFileSync } from 'node:fs';
+import { printSchema } from 'graphql';
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
@@ -25,10 +25,30 @@ builder.queryType({
 });
 
 const schema = builder.toSchema();
-const schemaAsString = printSchema(lexicographicSortSchema(schema));
+const schemaAsString = printSchema(schema);
 
-writeFileSync('/path/to/schema.graphql', schemaAsString);
+writeFileSync('./schema.graphql', `${schemaAsString}\n`);
 ```
+
+`builder.toSchema()` sorts the schema by default.
+
+Save the example as `print-schema.ts` and run it with a TypeScript runner:
+
+```package-install
+npm install --save-dev tsx
+```
+
+```sh
+npx tsx print-schema.ts
+```
+
+In an existing application, import your exported `schema` instead of creating another builder. Keep
+schema construction separate from starting your server so this script does not open a listening port.
+The generated SDL can be checked into source control for schema reviews or read by client tooling.
+
+`printSchema` prints type definitions, not resolver functions or backing data. It also does not
+preserve applied custom directives; use a printer that supports those directives if downstream tools
+need them, such as when exporting a federation subgraph.
 
 ## Using graphql-code-generator
 
