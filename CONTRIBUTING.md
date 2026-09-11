@@ -46,7 +46,28 @@ behavior.
 
 ## Docs
 
-Documentation lives in the `/docs` directory, but the contents of the plugin docs are duplicated in
+Documentation lives in the `website/content/docs` directory, but the contents of the plugin docs are duplicated in
 the README.md of each plugin so that each package has a useful readme when published to npm. If you
 are editing documentation for a plugin, keeping those changes in sync with the packages README files
 is usually required. This is a temporary workaround until a better solution can be found.
+
+
+### Reviewing documentation changes
+
+Review both the resulting page and the documentation at the PR's base commit. For stacked PRs,
+also compare the complete rewrite with the original base before the stack.
+
+For each substantive removed explanation, setup step, option, caveat, or example, record where its
+useful information is now covered. A review may accept consolidation, a linked replacement that
+supports the same task, or removal of obsolete behavior verified against current source or upstream
+documentation. Record the reason and evidence for each removal without a replacement. Shorter prose,
+passing examples, and successful builds alone do not establish that coverage was preserved.
+
+Check complete reader workflows: installation and initialization, connected examples, alternative
+configurations, error handling, resource cleanup, and relevant limitations. Verify that shared
+examples define the imports, models, and setup needed by the sections that refer to them. Treat an
+unaccounted loss of useful coverage as a review finding and resolve it before approving the rewrite.
+
+Keep the coverage mapping with the review results, alongside correctness and style findings. After
+fixes, recheck the affected workflows and synchronize the plugin README. Large reductions deserve
+extra scrutiny, but the same preservation check applies to small deletions.
