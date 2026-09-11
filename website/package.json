@@ -6,7 +6,9 @@
     "next-build": "next build",
     "build-ci": "next build",
     "start": "next start",
-    "postinstall": "fumadocs-mdx"
+    "postinstall": "fumadocs-mdx",
+    "check:examples": "node scripts/check-doc-examples.mjs",
+    "check:links": "node scripts/check-doc-links.mjs"
   },
   "engines": {
     "pnpm": ">=9.0.0"
