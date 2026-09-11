@@ -1,4 +1,4 @@
-query {
+query Echo {
   echo(input: { id: "1" })
   lookup(criteria: { id: "2" })
   omitted: optional

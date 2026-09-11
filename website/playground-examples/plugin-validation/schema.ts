@@ -33,9 +33,7 @@ builder.queryType({ fields: (t) => ({ savedNames: t.stringList({ resolve: () => 
 // #region mutation
 const Registration = builder.inputType('Registration', {
   fields: (t) => ({
-    name: t
-      .string({ required: true })
-      .validate(z.string().trim().min(3, 'Name is too short')),
+    name: t.string({ required: true }).validate(z.string().trim().min(3, 'Name is too short')),
     email: t.string({ required: true, validate: z.email('Enter a valid email') }),
   }),
 });

@@ -1,3 +1,3 @@
-mutation {
+mutation SetRoster {
   setRoster(emails: ["invalid"])
 }

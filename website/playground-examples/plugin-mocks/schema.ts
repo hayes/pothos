@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import MocksPlugin from '@pothos/plugin-mocks';
+
 const builder = new SchemaBuilder({ plugins: [MocksPlugin] });
 // #region fields
 builder.queryType({

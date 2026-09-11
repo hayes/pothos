@@ -15,9 +15,7 @@ its in-memory data before repeating the sequence.
 ```typescript
 const Registration = builder.inputType('Registration', {
   fields: (t) => ({
-    name: t
-      .string({ required: true })
-      .validate(z.string().trim().min(3, 'Name is too short')),
+    name: t.string({ required: true }).validate(z.string().trim().min(3, 'Name is too short')),
     email: t.string({ required: true, validate: z.email('Enter a valid email') }),
   }),
 });

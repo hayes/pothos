@@ -1,4 +1,4 @@
-query {
+query User {
   user(id: "1") {
     id
     firstName

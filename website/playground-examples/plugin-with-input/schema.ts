@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import WithInputPlugin from '@pothos/plugin-with-input';
+
 const builder = new SchemaBuilder({ plugins: [WithInputPlugin] });
 builder.queryType({
   fields: (t) => ({

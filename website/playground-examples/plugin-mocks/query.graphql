@@ -1,4 +1,4 @@
-query {
+query Greeting {
   greeting
   untouched
 }

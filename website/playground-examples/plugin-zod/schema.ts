@@ -1,6 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import ZodPlugin from '@pothos/plugin-zod';
 import type { ZodError } from 'zod';
+
 // #region setup
 const builder = new SchemaBuilder({
   plugins: [ZodPlugin],

@@ -28,8 +28,12 @@ builder.queryType({
       args: { name: t.arg.string({ required: true }), simulateFailure: t.arg.boolean() },
       errors: { types: [NameTooShort] },
       resolve: (_, { name, simulateFailure }) => {
-        if (simulateFailure) throw new Error('Service unavailable');
-        if (name.length < 3) throw new NameTooShort();
+        if (simulateFailure) {
+          throw new Error('Service unavailable');
+        }
+        if (name.length < 3) {
+          throw new NameTooShort();
+        }
         return `Hello, ${name}`;
       },
     }),
@@ -372,9 +376,7 @@ builder.objectType(InputValidationError, {
 
 const Registration = builder.inputType('Registration', {
   fields: (t) => ({
-    name: t
-      .string({ required: true })
-      .validate(z.string().trim().min(3, 'Name is too short')),
+    name: t.string({ required: true }).validate(z.string().trim().min(3, 'Name is too short')),
     email: t.string({ required: true, validate: z.email('Enter a valid email') }),
   }),
 });

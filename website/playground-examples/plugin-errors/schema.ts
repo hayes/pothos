@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
+
 const builder = new SchemaBuilder({ plugins: [ErrorsPlugin] });
 // #region error
 class NameTooShort extends Error {
@@ -20,8 +21,12 @@ builder.queryType({
       args: { name: t.arg.string({ required: true }), simulateFailure: t.arg.boolean() },
       errors: { types: [NameTooShort] },
       resolve: (_, { name, simulateFailure }) => {
-        if (simulateFailure) throw new Error('Service unavailable');
-        if (name.length < 3) throw new NameTooShort();
+        if (simulateFailure) {
+          throw new Error('Service unavailable');
+        }
+        if (name.length < 3) {
+          throw new NameTooShort();
+        }
         return `Hello, ${name}`;
       },
     }),

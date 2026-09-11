@@ -73,7 +73,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (parent, { id }) => {
+      resolve: (_parent, { id }) => {
         return {
           id: String(id),
           firstName: 'Leia',

@@ -1,4 +1,4 @@
-mutation {
+mutation Register {
   register(input: { name: "Li", email: "invalid" }) {
     __typename
     ... on MutationRegisterSuccess {
