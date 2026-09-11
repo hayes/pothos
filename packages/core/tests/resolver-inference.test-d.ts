@@ -36,7 +36,7 @@ builder.objectType(TaggedModel, {
   fields: (t) => ({ tags: t.exposeStringList('tags') }),
 });
 
-test('preserves synchronous literal resolver results and existing promise returns', () => {
+test('preserves literal resolver results and existing promise returns', () => {
   builder.objectType('Giraffe', {
     fields: (t) => ({
       unit: t.field({
@@ -61,7 +61,7 @@ test('preserves synchronous literal resolver results and existing promise return
       }),
       asyncUnit: t.field({
         type: LengthUnit,
-        resolve: () => Promise.resolve<'Feet' | 'Meters'>('Meters'),
+        resolve: async () => 'Meters',
       }),
       arrayUnit: t.field({
         type: ArrayUnit,
@@ -81,6 +81,25 @@ test('preserves synchronous literal resolver results and existing promise return
           { kind: 'giraffe', heightInMeters: 5.2 },
           { kind: 'lion', hasMane: true },
         ],
+      }),
+      animal: t.field({
+        type: AnimalRef,
+        resolve: () => ({ kind: 'giraffe', heightInMeters: 5.2 }),
+      }),
+      asyncAnimal: t.field({
+        type: AnimalRef,
+        resolve: async () => ({ kind: 'lion', hasMane: true }),
+      }),
+      asyncAnimals: t.field({
+        type: [AnimalRef],
+        resolve: async () => [
+          { kind: 'giraffe', heightInMeters: 5.2 },
+          { kind: 'lion', hasMane: true },
+        ],
+      }),
+      asyncTaggedAnimal: t.field({
+        type: TaggedAnimal,
+        resolve: async () => ({ kind: 'giraffe', tags: ['a'] }),
       }),
       classInstance: t.field({
         type: TaggedModel,
@@ -117,7 +136,7 @@ test('preserves synchronous literal resolver results and existing promise return
         type: [TaggedAnimal],
         resolve: () => [{ kind: 'giraffe', tags: ['a'] }],
       }),
-      asyncAnimals: t.field({
+      promisedAnimals: t.field({
         type: [AnimalRef],
         resolve: () =>
           Promise.resolve<Animal[]>([
@@ -135,6 +154,16 @@ test('rejects values that do not match the field type', () => {
       type: WithTags,
       // @ts-expect-error readonly arrays cannot satisfy mutable backing properties
       resolve: () => ({ tags: readonlyTags }),
+    }),
+    asyncReadonlyBackingArray: t.field({
+      type: WithTags,
+      // @ts-expect-error async returns cannot make readonly backing arrays mutable
+      resolve: async () => ({ tags: readonlyTags }),
+    }),
+    invalidAsyncAnimal: t.field({
+      type: AnimalRef,
+      // @ts-expect-error async union members must have the required backing properties
+      resolve: async () => ({ kind: 'giraffe' }),
     }),
     invalidUnit: t.field({
       type: LengthUnit,
@@ -204,4 +233,13 @@ test('keeps generic backing values and exported resolver contracts', () => {
   // @ts-expect-error the inference signature cannot bypass scalar validation
   const invalidScalar: AnyInferredReturn = () => 123;
   expectTypeOf(invalidScalar).toMatchTypeOf<Resolver<unknown, {}, {}, string>>();
+  expectTypeOf<ReturnType<AnyInferredReturn>>().toMatchTypeOf<MaybePromise<string>>();
+});
+
+test('keeps extracted inferred resolver return types constrained', () => {
+  type Inferred = ResolverWithInferredReturn<unknown, {}, {}, 'Feet' | 'Meters', unknown>;
+  expectTypeOf<ReturnType<Inferred>>().toMatchTypeOf<MaybePromise<'Feet' | 'Meters'>>();
+  // @ts-expect-error extracting the return type cannot expose an unconstrained inference signature
+  const invalid: ReturnType<Inferred> = 'Yards';
+  expectTypeOf(invalid).toMatchTypeOf<MaybePromise<'Feet' | 'Meters'>>();
 });

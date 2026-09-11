@@ -42,19 +42,22 @@ export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNev
 >;
 
 // Preserve literal resolver results without introducing readonly array properties.
-type Narrow<T> = T extends []
-  ? []
-  : T extends
-        | string
-        | number
-        | boolean
-        | bigint
-        | symbol
-        | null
-        | undefined
-        | ((...args: never[]) => unknown)
-    ? T
-    : { [K in keyof T]: Narrow<T[K]> };
+// Exclude any from the inference branch so it cannot erase the validation constraint.
+type Narrow<T> = 0 extends 1 & T
+  ? never
+  : T extends []
+    ? []
+    : T extends
+          | string
+          | number
+          | boolean
+          | bigint
+          | symbol
+          | null
+          | undefined
+          | ((...args: never[]) => unknown)
+      ? T
+      : { [K in keyof T]: Narrow<T[K]> };
 
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   parent: Parent,
@@ -65,8 +68,8 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   ? ListResolveValue<Type, Item, Return>
   : MaybePromise<Type>;
 
-// Keep the callable/validation signature unchanged. The second signature supplies
-// literal inference and accepts every existing resolver result through its fallback.
+// Preserve the original call signature for generic wrappers. The inference signature
+// also constrains its return type so ReturnType cannot bypass resolver validation.
 export type ResolverWithInferredReturn<Parent, Args, Context, Type, Return> = Resolver<
   Parent,
   Args,
@@ -79,7 +82,23 @@ export type ResolverWithInferredReturn<Parent, Args, Context, Type, Return> = Re
     args: Args,
     context: Context,
     info: GraphQLResolveInfo,
-  ) => Narrow<Return> | ReturnType<Resolver<Parent, Args, Context, Type, Return>>);
+  ) => ReturnType<Resolver<Parent, Args, Context, Type, Return>> &
+    (Narrow<Return> | ReturnType<Resolver<Parent, Args, Context, Type, Return>>));
+
+export type FieldResolver<Options> = Extract<
+  Options extends { resolve?: infer R } ? R : never,
+  (...args: never[]) => unknown
+>;
+
+// Promise-shaped context preserves async literals. Narrow<Return> also supplies
+// context for sync callbacks considered by the first field overload, without const inference.
+export type AsyncResolverOptions<Options, Return> = {
+  resolve: (
+    ...args: Parameters<FieldResolver<Options>>
+  ) => Promise<Narrow<Return>> &
+    (Narrow<Return> | object) &
+    Promise<Awaited<ReturnType<FieldResolver<Options>>>>;
+};
 
 export type ListResolveValue<Type, Item, Return> =
   unknown extends AsyncIterable<unknown> // hack for target:<es2018

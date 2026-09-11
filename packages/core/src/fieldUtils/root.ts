@@ -1,10 +1,13 @@
+import type { FieldRef } from '../refs/field.js';
 import { ListRef } from '../refs/list.js';
 import type {
   ArgBuilder,
+  AsyncResolverOptions,
   DistributeOmit,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
+  FieldResolver,
   InputFieldMap,
   NormalizeArgs,
   SchemaTypes,
@@ -385,6 +388,53 @@ export class RootFieldBuilder<
    * create a new field for the current type
    * @param {PothosSchemaTypes.FieldOptions} options - options for this field
    */
+  // This overload supplies contextual typing before the general resolver overload.
+  field<
+    Type extends TypeParam<Types>,
+    ResolveShape,
+    ResolveReturnShape,
+    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
+  >(
+    options: {
+      type: Type;
+      nullable?: Nullable;
+      args?: Args;
+    } & AsyncResolverOptions<
+      FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, unknown>,
+      ResolveReturnShape
+    > &
+      DistributeOmit<
+        FieldOptionsFromKind<
+          Types,
+          ParentShape,
+          Type,
+          Nullable,
+          Args,
+          Kind,
+          ResolveShape,
+          Promise<ResolveReturnShape>
+        >,
+        'resolve'
+      >,
+    // Preserve the original contract, including plugin-specific return constraints.
+    ...check: Promise<ResolveReturnShape> extends ReturnType<
+      FieldResolver<
+        FieldOptionsFromKind<
+          Types,
+          ParentShape,
+          Type,
+          Nullable,
+          Args,
+          Kind,
+          ResolveShape,
+          Promise<ResolveReturnShape>
+        >
+      >
+    >
+      ? []
+      : [never]
+  ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
   field<
     Type extends TypeParam<Types>,
     ResolveShape,
@@ -402,8 +452,9 @@ export class RootFieldBuilder<
       ResolveShape,
       ResolveReturnShape
     >,
-  ) {
-    return this.createField<Type, Nullable, Args>(options as never);
+  ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
+  field(options: { type: TypeParam<Types> }, ..._check: unknown[]): FieldRef<Types, unknown, Kind> {
+    return this.createField(options as never);
   }
 
   listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(
