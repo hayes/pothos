@@ -409,7 +409,19 @@ async function buildExamples() {
 
   // Read all example directories. readdir order is filesystem-dependent,
   // so sort to keep output deterministic across machines / CI.
-  const entries = await readdir(EXAMPLES_SOURCE_DIR, { withFileTypes: true });
+  //
+  // A missing `playground-examples/` is not an error: the example content
+  // is authored on its own branch, so a checkout can legitimately carry the
+  // playground feature with zero bundles. Build an empty index instead of
+  // failing — the UI hides its example affordances when the index is empty
+  // (see components/playground/examples/index.ts).
+  const entries = await readdir(EXAMPLES_SOURCE_DIR, { withFileTypes: true }).catch((err) => {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.log(`[Build Examples] No ${EXAMPLES_SOURCE_DIR} directory; building an empty index.`);
+      return [];
+    }
+    throw err;
+  });
   const exampleDirs = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)

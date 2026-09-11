@@ -53,6 +53,7 @@ export default function PlaygroundPage() {
         examplesOpen={ui.examplesOpen}
         onToggleExamples={ui.toggleExamples}
         examplesPicker={ui.examplesPicker}
+        hasExamples={ui.hasExamples}
         overflowOpen={ui.overflowOpen}
         onToggleOverflow={ui.toggleOverflow}
         overflowItems={ui.overflowItems}

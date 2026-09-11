@@ -68,8 +68,8 @@ non-adjacent regions with the local `<includeregions>` element:
 <includeregions cwd lang="typescript" meta='playground example="fundamentals-objects"'>playground-examples/fundamentals-objects/schema.ts#race-model,race-ref,race-implement</includeregions>
 ```
 
-The `tests/playground-docs-validation.test.ts` suite resolves every region
-against its target file, so a renamed or deleted marker fails CI.
+`pnpm check-playground-refs` resolves every `example="<id>"` reference in the
+docs against a bundle directory here, so a renamed or deleted bundle fails CI.
 
 ## Multi-step tutorials
 
@@ -110,7 +110,7 @@ fundamentals-objects/
     schema.ts
 ```
 
-In docs, each variant is its own fence with a `tab="<Label>"` attribute; consecutive tabbed fences merge into a single switchable code block via fumadocs' built-in code-block tabs (see [`content/docs/playground.mdx`](../content/docs/playground.mdx)). Each fence's `example` is the exact bundle it opens (`<base>` for the default, `<base>-variant-<slug>` for the rest). Variant bundles do **not** appear as separate entries in the ExamplesPicker — only the base example does. A bundle may use steps **or** variants, never both.
+In docs, each variant is its own fence with a `tab="<Label>"` attribute; consecutive tabbed fences merge into a single switchable code block via fumadocs' built-in code-block tabs. Each fence's `example` is the exact bundle it opens (`<base>` for the default, `<base>-variant-<slug>` for the rest). Variant bundles do **not** appear as separate entries in the ExamplesPicker — only the base example does. A bundle may use steps **or** variants, never both.
 
 ## Categories
 
@@ -124,8 +124,15 @@ In docs, each variant is its own fence with a `tab="<Label>"` attribute; consecu
 ## Commands
 
 ```bash
-pnpm build-examples    # Build all examples
-pnpm test:examples     # Type-check examples
+pnpm build-examples          # Build all examples
+pnpm test:examples           # Type-check examples
+pnpm check-playground-refs   # Verify docs references resolve to a bundle
 ```
 
-See full documentation in this file.
+## No bundles checked in?
+
+The example content is authored on its own branch, so this directory may hold
+nothing but this README. That is a supported state: `build-examples` emits an
+empty index, `test:examples` reports nothing to check, and the playground
+toolbar hides its "Load example" button. Adding a bundle directory is all it
+takes to light the picker back up.

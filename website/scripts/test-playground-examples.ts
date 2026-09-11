@@ -24,7 +24,15 @@ import { getCoreTypeDefinitions, getPluginTypeDefinitions } from '../lib/playgro
 //   IDs are `${metadata.id}` (default) and `${metadata.id}-variant-<slug>`.
 async function loadExamples() {
   const examplesDir = path.join(__dirname, '../playground-examples');
-  const entries = await readdir(examplesDir, { withFileTypes: true });
+  // The example content lives on its own branch, so a checkout can carry the
+  // playground feature with no bundles at all. Nothing to type-check then —
+  // report zero examples rather than failing the suite.
+  const entries = await readdir(examplesDir, { withFileTypes: true }).catch((err) => {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+    throw err;
+  });
   const exampleDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
   const examples = [];
@@ -607,6 +615,11 @@ async function main() {
   console.log('Type-checking playground examples...\n');
 
   const examples = await loadExamples();
+
+  if (examples.length === 0) {
+    console.log('No playground example bundles found; nothing to type-check.');
+    return;
+  }
 
   let passedCount = 0;
   let failedCount = 0;

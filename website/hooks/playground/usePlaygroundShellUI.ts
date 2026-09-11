@@ -73,6 +73,7 @@ export interface PlaygroundShellUI {
   examplesOpen: boolean;
   toggleExamples: () => void;
   examplesPicker: ReactNode;
+  hasExamples: boolean;
   overflowOpen: boolean;
   toggleOverflow: () => void;
   overflowItems: OverflowItem[];
@@ -558,14 +559,19 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
     [opsState],
   );
 
+  // With no bundles in the generated index there is nothing to pick, so
+  // the toolbar drops the affordance entirely (see Toolbar's hasExamples).
+  const hasExamples = exampleMetadata.length > 0;
+
   // Render the picker once so page.tsx doesn't duplicate the JSX glue.
-  const examplesPicker = examplesOpen
-    ? createElement(ExamplesPicker, {
-        examples: exampleMetadata,
-        onPick: handlePickExample,
-        onClose: () => setExamplesOpen(false),
-      })
-    : null;
+  const examplesPicker =
+    examplesOpen && hasExamples
+      ? createElement(ExamplesPicker, {
+          examples: exampleMetadata,
+          onPick: handlePickExample,
+          onClose: () => setExamplesOpen(false),
+        })
+      : null;
 
   return {
     embed,
@@ -583,6 +589,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
     examplesOpen,
     toggleExamples: () => setExamplesOpen((s) => !s),
     examplesPicker,
+    hasExamples,
     overflowOpen,
     toggleOverflow: () => setOverflowOpen((s) => !s),
     overflowItems,

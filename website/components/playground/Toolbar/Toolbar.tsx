@@ -17,6 +17,14 @@ interface Props {
    */
   embed?: boolean;
 
+  /**
+   * Whether any example bundles are available. The example content is
+   * authored on its own branch, so a build can legitimately ship the
+   * playground with an empty index — hide the "Load example" button
+   * rather than opening a picker with nothing in it.
+   */
+  hasExamples?: boolean;
+
   sketchName: string;
   onSketchRename: (next: string) => void;
 
@@ -44,6 +52,7 @@ interface Props {
 
 export function Toolbar({
   embed = false,
+  hasExamples = true,
   sketchName,
   onSketchRename,
   status,
@@ -101,7 +110,7 @@ export function Toolbar({
           : sketchName && <SketchName value={sketchName} onChange={onSketchRename} />}
       </div>
 
-      {!embed && (
+      {!embed && hasExamples && (
         <div className="relative">
           <button
             type="button"
