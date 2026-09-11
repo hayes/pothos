@@ -68,8 +68,24 @@ export type DrizzleClient<TCountSource = Table | SQL | SQLWrapper> = {
   readonly _: {
     readonly relations: AnyRelations;
   };
-  query: {};
+  query: Record<
+    string,
+    {
+      // Each table accepts its own schema-specific config. The loader supplies that config.
+      findMany: (config: never) => PromiseLike<Record<string, unknown>[]>;
+    }
+  >;
   $count: (source: TCountSource, filter?: SQL) => SQL<number>;
+  /** Core SQL construction used for relation predicates and counts; it does not execute a query. */
+  select: (fields: Record<string, SQL>) => {
+    from(table: Extract<TCountSource, Table>): {
+      innerJoin(
+        table: Extract<TCountSource, Table>,
+        on: SQL,
+      ): { where: (filter?: SQL) => SQLWrapper };
+      where: (filter?: SQL) => SQLWrapper;
+    };
+  };
 };
 
 type GetTableConfigFn<TTable = Table> = (table: TTable) => {
@@ -444,7 +460,11 @@ export type DrizzleFieldSelection =
         selection:
           | SelectionMap
           | boolean
-          | ((args: object, context: object) => MaybePromise<DBQueryConfig<'one'>>),
+          | ((
+              args: object,
+              context: object,
+              pathInfo: PathInfo,
+            ) => MaybePromise<DBQueryConfig<'one'>>),
         path?: IndirectInclude | PathSegment[],
         type?: string,
       ) => DBQueryConfig<'one'> | boolean,

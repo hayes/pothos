@@ -263,7 +263,7 @@ export class ModelLoader {
           // This plan loaded `result` alone, so its mappings are the row's, not the field's: a
           // sibling row of the same list that the planned query did load must keep answering
           // from the plan.
-          setRowMappings(this.context, info, mapping.nested, result);
+          setRowMappings(this.context, info, mapping.nested);
         }
       }
 

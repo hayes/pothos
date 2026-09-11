@@ -128,6 +128,10 @@ select: async (args, ctx, nestedSelection) => ({
 `awaitSelections` is a per-call option, and is available whether or not the schema sets
 `AsyncSelections`.
 
+When `AsyncSelections: true`, also `await` a connection helper's `resolve()` before inspecting or
+spreading its result: an async `query` callback makes resolution asynchronous. Returning its
+result directly from a GraphQL resolver remains supported.
+
 ## Conflicting selections between variants
 
 When a query selects two variants of one table for the same row, either with a fragment on each

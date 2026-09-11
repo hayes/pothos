@@ -147,7 +147,8 @@ describe('many-to-many target identity lookup', () => {
     });
   });
   it('falls back to EXISTS when the only identity allows nulls', async () => {
-    expect(await query('relatedLabelCount unrelatedLabelCount')).toEqual({
+    expect(await query('labelCount relatedLabelCount unrelatedLabelCount')).toEqual({
+      labelCount: 2,
       relatedLabelCount: 2,
       unrelatedLabelCount: 1,
     });
@@ -155,7 +156,7 @@ describe('many-to-many target identity lookup', () => {
   });
   it('does not shadow a parent alias when creating the matched-target alias', async () => {
     const parent = aliasedTable(posts, '_pothos_related');
-    const filter = buildRelationFilter(db as never, relations.posts.relations.tags, parent, [
+    const filter = buildRelationFilter(db, relations.posts.relations.tags, parent, [
       tags.id,
     ]).filter;
     const result = await db

@@ -30,11 +30,17 @@ builder.objectType(Error, {
 const User = builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    postsConnection: t.relatedConnection('posts', {
-      cursor: 'id',
-      totalCount: true,
-      errors: { types: [Error] },
-    }),
+    postsConnection: t.relatedConnection(
+      'posts',
+      {
+        cursor: 'id',
+        totalCount: true,
+        errors: { types: [Error] },
+      },
+      {
+        fields: (c) => ({ pageSize: c.int({ resolve: (connection) => connection.edges.length }) }),
+      },
+    ),
   }),
 });
 
@@ -167,4 +173,31 @@ describe('relatedConnection wrapped by the errors plugin', () => {
       ]
     `);
   });
+});
+
+it.each([
+  true,
+  false,
+])('plans custom connection fields through repeated wrapped fragments (rows=%s)', async (rows) => {
+  queries.length = 0;
+  const result = await execute({
+    schema,
+    document: gql`query ($rows: Boolean!) {
+      user {
+        postsConnection(first: 1) {
+          ... on UserPostsConnectionSuccess { data { count: totalCount } }
+          ... on UserPostsConnectionSuccess { data { pageSize @include(if: $rows) } }
+        }
+      }
+    }`,
+    variableValues: { rows },
+    contextValue: { user: { id: 1 } },
+  });
+  expect(result.errors).toBeUndefined();
+  const connection = (result.data?.user as { postsConnection: { data: { pageSize?: number } } })
+    .postsConnection.data;
+  expect(connection.pageSize).toBe(rows ? 1 : undefined);
+  const query = queries[0] as { args: { include: { posts?: unknown } } };
+  expect(query.args.include.posts !== undefined).toBe(rows);
+  expect(queries).toHaveLength(1);
 });

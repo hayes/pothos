@@ -9,8 +9,9 @@ import {
 } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
-import type { DrizzleFieldSelection } from '../types.js';
+import type { DrizzleFieldSelection, PathInfo } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
+import { pathInfoFor } from './path-info.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
 export type DrizzleNode = Node<TableRelationalConfig>;
@@ -33,6 +34,11 @@ const ALL: SelectionMap = Object.freeze({});
 export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, SelectionMap> {
   override skipDeferredFragments: boolean;
 
+  private readonly fieldSelections = new WeakMap<
+    GraphQLField<unknown, unknown>,
+    SelectFn<SelectionMap>
+  >();
+
   constructor(private readonly config: PothosDrizzleSchemaConfig) {
     super();
     this.skipDeferredFragments = config.skipDeferredFragments;
@@ -51,8 +57,46 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
   }
 
   fieldSelection(field: GraphQLField<unknown, unknown>) {
-    return ((field.extensions?.pothosDrizzleSelect as DrizzleFieldSelection | false | undefined) ||
-      undefined) as SelectionMap | SelectFn<SelectionMap> | undefined;
+    const selection = field.extensions?.pothosDrizzleSelect as DrizzleFieldSelection | undefined;
+    if (typeof selection !== 'function') {
+      return selection || undefined;
+    }
+
+    let compiled = this.fieldSelections.get(field);
+    if (!compiled) {
+      compiled = (args, context, nested, selected, position) => {
+        // Keep the public metadata at the adapter boundary. Static query objects do not need
+        // either path array; callbacks that inspect metadata build them once per invocation.
+        let resolvedPath: PathInfo | undefined;
+        const pathInfo: PathInfo = {
+          get path() {
+            resolvedPath ??= pathInfoFor(position)!;
+            return resolvedPath.path;
+          },
+          get segments() {
+            resolvedPath ??= pathInfoFor(position)!;
+            return resolvedPath.segments;
+          },
+        };
+        return selection(
+          args,
+          context,
+          (query, path, type) =>
+            nested(
+              // The public API also accepts false, which the walker treats as an empty seed.
+              (typeof query === 'function' ? query(args, context, pathInfo) : query) as Parameters<
+                typeof nested
+              >[0],
+              path,
+              type,
+            ),
+          selected,
+          pathInfo,
+        );
+      };
+      this.fieldSelections.set(field, compiled);
+    }
+    return compiled;
   }
 
   visitQuery(

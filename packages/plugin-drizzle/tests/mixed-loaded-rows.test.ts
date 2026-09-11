@@ -35,7 +35,8 @@ builder.drizzleObject('users', {
     id: t.exposeID('id'),
     postsConnection: t.relatedConnection('posts', {
       // Two pages that cannot be mistaken for one another: the planned path selects the first
-      // two posts, and every other path selects a much larger page in the opposite order.
+      // two posts, and every other path selects four in the opposite order. Both pages include
+      // a sentinel row, so using the wrong limit changes edges and hasNextPage.
       query: ((_args: {}, _ctx: {}, pathInfo: PathInfo | undefined) => {
         const path = pathInfo?.path ?? [];
 
@@ -43,7 +44,7 @@ builder.drizzleObject('users', {
 
         const planned = path[0]?.startsWith('Query.') ?? false;
 
-        return { orderBy: { postId: planned ? 'asc' : 'desc' }, limit: planned ? 2 : 20 };
+        return { orderBy: { postId: planned ? 'asc' : 'desc' }, limit: planned ? 2 : 4 };
       }) as never,
     }),
   }),
@@ -177,6 +178,7 @@ describe('rows of one list with mixed loaded state', () => {
 
     // The two states have to be told apart for any of this to mean anything.
     expect(plannedPage).not.toEqual(fallbackPage);
+    expect(fallbackPage).toEqual({ ids: ['15', '14', '13'], hasNextPage: true });
     expect(planned.pages).toEqual([plannedPage, plannedPage, plannedPage]);
     expect(fallback.pages).toEqual([fallbackPage, fallbackPage, fallbackPage]);
     // Rows that agree are planned and loaded together, however many of them there are: one
@@ -203,9 +205,10 @@ describe('rows of one list with mixed loaded state', () => {
     // its own mapping for the same response path.
     expect(pages).toEqual([fallbackPage, plannedPage, plannedPage]);
     expect(pages[1]).toEqual(pages[2]);
-    // One position off the planned path: the fallback row's. A planned row that read the
-    // fallback's mapping would show up as a second.
+    // The fallback position is used twice: once to plan its query and once to paginate its
+    // loaded rows. Planned siblings must never use it.
     expect(paths.filter((path) => !path.startsWith('Query.'))).toEqual([
+      'Post.author > User.postsConnection',
       'Post.author > User.postsConnection',
     ]);
     expect(queries).toBe(2);

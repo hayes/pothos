@@ -345,15 +345,16 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /**
    * The plan played behind `seed`, its mappings recorded for the resolvers beneath it, and its
-   * node serialized. Every play records its mappings on the request context; an adapter whose
+   * node serialized. A cached plan accepts the current resolver info to scope each execution.
+   * Every play records its mappings on the request context; an adapter whose
    * resolvers read a loaded row another way simply never looks them up.
    */
-  query(seed?: Query): Query {
+  query(seed?: Query, info = this.info): Query {
     // With no seed, a settled play's node is what a fresh play would build, so hand it straight
     // over: `toQuery` does not mutate, and a later seeded play still merges from it.
     const { root, mappings } = seed === undefined && this.played ? this.played : this.play(seed);
 
-    setLoaderMappings(this.context, this.info, mappings);
+    setLoaderMappings(this.context, info, mappings);
 
     return this.adapter.toQuery(root);
   }

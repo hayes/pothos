@@ -18,20 +18,10 @@ import {
 } from 'drizzle-orm';
 import { SQLiteTable } from 'drizzle-orm/sqlite-core';
 
-/**
- * The part of a drizzle client this module needs: enough of the core query builder to describe a
- * `select` over one table, optionally joined to a junction table. Every dialect's client has it.
- * It is narrowed here rather than added to the plugin's `DrizzleClient` option type because
- * nothing a user writes has to satisfy it beyond passing a real drizzle client.
- */
-export interface RelationQueryBuilder {
-  select: (fields: Record<string, SQL>) => {
-    from: (table: Table) => {
-      innerJoin: (table: Table, on: SQL) => { where: (filter?: SQL) => SQLWrapper };
-      where: (filter?: SQL) => SQLWrapper;
-    };
-  };
-}
+import type { DrizzleClient } from '../types.js';
+
+/** The public client's SQL construction capability. */
+export type RelationQueryBuilder = Pick<DrizzleClient, 'select'>;
 
 export interface RelationFilter {
   /**
@@ -54,7 +44,7 @@ export interface RelationFilter {
   /**
    * Counts the distinct target rows the relation reaches, for the callers that count a related
    * row once however many junction rows lead to it. `key` identifies a target row, so it has to
-   * be a single column the database guarantees is unique.
+   * be a single column the database guarantees is unique and non-null.
    *
    * This counts off the junction rather than counting the target table filtered by `filter`,
    * which says the same thing the long way round: the join reads the junction rows the parent

@@ -62,6 +62,8 @@ export function encodeCursorChunk(value: unknown): string {
       return `S:${value}`;
     case 'bigint':
       return `I:${value}`;
+    case 'boolean':
+      return `O:${value}`;
     case 'object':
       if (isDecimalLike(value)) {
         return `M:${value.toFixed()}`;

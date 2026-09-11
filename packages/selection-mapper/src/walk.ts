@@ -25,6 +25,7 @@ import {
 import type { NodeBase } from './adapter.js';
 import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
+  collectSelectedFieldNames,
   findMatches,
   firstMatch,
   includeOf,
@@ -46,8 +47,6 @@ import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js
 interface Invocation extends Mapping {
   pending?: number;
 }
-
-function noop() {}
 
 /** Collects a type's type-level selection, once, before its fields are walked. */
 function enter<Model, Query, NodeType extends NodeBase<Model>>(
@@ -489,107 +488,118 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
   const { node: fieldNode } = position;
 
   return (rawQuery, pathOrInclude, typeName) => {
-    const returnType = getNamedType(position.field.type);
-    const include = Array.isArray(pathOrInclude)
-      ? normalizeInclude(
-          pathOrInclude,
-          resolveType(info.schema, returnType),
-          typeName ? info.schema.getType(typeName) : undefined,
-          info.schema,
-        )
-      : pathOrInclude;
-    const target = include ? info.schema.getType(include.getType())! : returnType;
-    // `true` is the public "no query"; it never reaches an adapter.
-    const query: MaybePromise<Query | null | undefined> =
-      rawQuery === true
-        ? undefined
-        : typeof rawQuery === 'function'
-          ? (
-              rawQuery as (
-                args: object,
-                ctx: object,
-                position: Position,
-              ) => MaybePromise<Query | null | undefined>
-            )(args, context, position)
-          : rawQuery;
-
-    if (!modelOf(adapter, info.schema, target)) {
-      // A model-less field (a scalar, a type without a model) has nothing beneath it to plan:
-      // the nested selection is the query alone, and nothing is recorded for it.
-      return (query ?? ({} as Query)) as Query;
-    }
-
-    const child = plan.nested(target, position);
+    // A caller may already have started this promise before path/type validation runs.
+    let query: MaybePromise<Query | null | undefined> =
+      typeof rawQuery === 'function' || rawQuery === true ? undefined : rawQuery;
 
     try {
-      if (isThenable(query)) {
-        child.chain(query as PromiseLike<Query | null | undefined>, (resolved) =>
-          mergeQuery(child, resolved),
-        );
-      } else {
-        mergeQuery(child, query);
+      const returnType = getNamedType(position.field.type);
+      const include = Array.isArray(pathOrInclude)
+        ? normalizeInclude(
+            pathOrInclude,
+            resolveType(info.schema, returnType),
+            typeName ? info.schema.getType(typeName) : undefined,
+            info.schema,
+          )
+        : pathOrInclude;
+      const target = include ? info.schema.getType(include.getType())! : returnType;
+      // `true` is the public "no query"; it never reaches an adapter.
+      query =
+        rawQuery === true
+          ? undefined
+          : typeof rawQuery === 'function'
+            ? (
+                rawQuery as (
+                  args: object,
+                  ctx: object,
+                  position: Position,
+                ) => MaybePromise<Query | null | undefined>
+              )(args, context, position)
+            : rawQuery;
+
+      if (!modelOf(adapter, info.schema, target)) {
+        // A model-less field (a scalar, a type without a model) has nothing beneath it to plan:
+        // the nested selection is the query alone, and nothing is recorded for it.
+        return (query ?? ({} as Query)) as Query;
       }
 
-      const paths = include?.paths?.length
-        ? include.paths
-        : include?.path?.length
-          ? [include.path]
-          : undefined;
+      const child = plan.nested(target, position);
 
-      if (paths) {
-        // Each match is walked as its own type; the wrapper's selection set is not walked.
-        const matches = matchesForModel(
-          adapter,
-          info.schema,
-          findMatches(info, returnType, fieldNode, paths, {
-            prefix: includeOf(returnType)?.path,
-          }),
-          target,
-        );
+      try {
+        if (isThenable(query)) {
+          child.chain(query as PromiseLike<Query | null | undefined>, (resolved) =>
+            mergeQuery(child, resolved),
+          );
+        } else {
+          mergeQuery(child, query);
+        }
 
-        walkBranches(
-          child,
-          matches.map((match) => ({
-            // As `Plan.fromInfo` does for its own paths: a matched type with a model is walked
-            // with it, and one without (an interface, a wrapper) as the type asked for, so its
-            // fields are found and a fragment narrowing to it applies.
-            type: modelOf(adapter, info.schema, match.type) ? match.type : target,
-            fieldNodes: [match.field],
-            indirectPath: match.path,
-            deferred: match.deferred,
-          })),
-        );
-      } else {
-        const asType = (type: GraphQLNamedType): Branch => ({
-          type,
-          fieldNodes: [fieldNode],
-          indirectPath: [],
-          deferred: false,
-        });
+        const paths = include?.paths?.length
+          ? include.paths
+          : include?.path?.length
+            ? [include.path]
+            : undefined;
 
-        walkBranches(child, [
-          ...(target === returnType ? [] : [asType(target)]),
-          asType(returnType),
-        ]);
+        if (paths) {
+          // Each match is walked as its own type; the wrapper's selection set is not walked.
+          const matches = matchesForModel(
+            adapter,
+            info.schema,
+            findMatches(info, returnType, fieldNode, paths, {
+              prefix: includeOf(returnType)?.path,
+            }),
+            target,
+          );
+
+          walkBranches(
+            child,
+            matches.map((match) => ({
+              // As `Plan.fromInfo` does for its own paths: a matched type with a model is walked
+              // with it, and one without (an interface, a wrapper) as the type asked for, so its
+              // fields are found and a fragment narrowing to it applies.
+              type: modelOf(adapter, info.schema, match.type) ? match.type : target,
+              fieldNodes: [match.field],
+              indirectPath: match.path,
+              deferred: match.deferred,
+            })),
+          );
+        } else {
+          const asType = (type: GraphQLNamedType): Branch => ({
+            type,
+            fieldNodes: [fieldNode],
+            indirectPath: [],
+            deferred: false,
+          });
+
+          walkBranches(child, [
+            ...(target === returnType ? [] : [asType(target)]),
+            asType(returnType),
+          ]);
+        }
+      } catch (error) {
+        child.abandon();
+        throw error;
       }
+
+      // A promise behind the declared synchronous type, as `finish` returns one.
+      return child.pending ? (awaitNested(child, mapping) as Query) : queryNested(child, mapping);
     } catch (error) {
-      child.abandon();
+      if (isThenable(query)) {
+        query.then(
+          () => {},
+          () => {},
+        );
+      }
       throw error;
     }
-
-    // A promise behind the declared synchronous type, as `finish` returns one.
-    return child.pending
-      ? (awaitNested(child, mapping) as Query)
-      : adapter.toQuery(playNested(child, mapping).root);
   };
 }
 
 /**
  * The promise of a nested selection whose plan is async, counted against its invocation until it
- * resolves. Handled here, so a nested selection the invocation discards is never an unhandled
- * rejection — `collectField` refuses the invocation instead. A rejection keeps the count, since
- * the invocation did not wait for it either; one that was awaited surfaces through the
- * invocation's own promise.
+ * settles. Both outcomes clear the count, so an invocation can catch a failure and retry.
+ * Rejections are handled here so a discarded selection does not create an unhandled rejection.
+ * A failed child publishes no mappings; fields it did not load can fall back independently.
  */
 function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
@@ -597,15 +607,16 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
 ) {
   mapping.pending = (mapping.pending ?? 0) + 1;
 
-  const result = child.pending!.then(() => child.adapter.toQuery(playNested(child, mapping).root));
+  const result = child.pending!.then(() => queryNested(child, mapping));
 
-  result.then(() => {
+  const settled = () => {
     if (mapping.pending === 1) {
       delete mapping.pending;
     } else {
       mapping.pending! -= 1;
     }
-  }, noop);
+  };
+  result.then(settled, settled);
 
   return result;
 }
@@ -615,17 +626,19 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
  * folded into the invocation that started it. Every nested plan of one invocation records into
  * the same `mapping.nested`, so two that map the same key union.
  */
-function playNested<Model, Query, NodeType extends NodeBase<Model>>(
+function queryNested<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
   mapping: Invocation,
 ) {
   const played = child.play();
+  // Serialization can throw. Publish mappings only once the caller can use the query.
+  const query = child.adapter.toQuery(played.root);
 
   for (const key of Object.keys(played.mappings)) {
     mapping.nested[key] = unionMappings(mapping.nested[key], played.mappings[key]);
   }
 
-  return played;
+  return query;
 }
 
 /**
@@ -658,8 +671,15 @@ function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   { field, node: fieldNode }: Position,
 ) {
   const { info } = plan;
+  let names: ReadonlySet<string> | undefined;
 
-  return (path: string[]) => {
+  function getSelection(): ReadonlySet<string>;
+  function getSelection(path: string[]): FieldNode | null;
+  function getSelection(path?: string[]): ReadonlySet<string> | FieldNode | null {
+    if (path === undefined) {
+      names ??= collectSelectedFieldNames(info, getNamedType(field.type), [fieldNode]);
+      return names;
+    }
     const returnType = getNamedType(field.type);
     const match = firstMatch(
       info,
@@ -670,5 +690,7 @@ function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
     );
 
     return match?.field ?? null;
-  };
+  }
+
+  return getSelection;
 }

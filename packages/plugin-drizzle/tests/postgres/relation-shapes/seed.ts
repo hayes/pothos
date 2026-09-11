@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { comments, groups, posts, profileInfo, users, usersToGroups } from '../db/schema';
 
@@ -16,6 +18,14 @@ export interface RelationShapesFixture {
  * assertions compare against are the ones written here rather than faker's.
  */
 export async function seedRelationShapes(): Promise<RelationShapesFixture> {
+  // Replay the fixture's idempotent DDL so a fresh CI database needs no manual schema push.
+  const ddl = await readFile(
+    new URL('../drizzle/0000_mysterious_rage.sql', import.meta.url),
+    'utf8',
+  );
+  for (const statement of ddl.split('--> statement-breakpoint')) {
+    await db.execute(sql.raw(statement));
+  }
   await db.delete(usersToGroups);
   await db.delete(groups);
   await db.delete(comments);

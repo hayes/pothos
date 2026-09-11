@@ -57,8 +57,9 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
 const cache = createContextCache(() => ({
   mappings: new Map<string, Mapping>(),
   rehomed: new Map<string, Map<string, string>>(),
-  rows: new WeakMap<object, Map<string, Mapping>>(),
+  rows: new WeakMap<object, WeakMap<object, Map<string, Mapping>>>(),
   rowScoped: false,
+  scopes: new WeakMap<object, Mappings>(),
 }));
 
 type Cache = ReturnType<typeof cache>;
@@ -134,44 +135,62 @@ function ownerOf(row: unknown): object | null {
  * disagree about gives the row a mapping of its own — or, with no row to hang it off, nothing, so
  * the resolvers beneath fall back and load their own data.
  */
-function claim(cached: Cache, key: string, mapping: Mapping, row: object | null) {
+function claim(
+  cached: Cache,
+  key: string,
+  mapping: Mapping,
+  row: object | null,
+  path: GraphQLResolveInfo['path'],
+) {
   const held = cached.mappings.get(key);
 
   if (held === undefined) {
     cached.mappings.set(key, mapping);
   } else if (held !== mapping && row) {
-    claimForRow(cached, key, mapping, row);
+    claimForRow(cached, key.slice(0, key.indexOf('@')), mapping, row, path);
   }
 }
 
 /**
- * Records `mapping` at `key` against `row` alone, never in the shared tier. The caller loaded
+ * Records `mapping` for this field execution against `row` alone, never in the shared tier. The caller loaded
  * `row` by itself, so an unclaimed key is not the caller's to take: the shared tier answers for
  * every row of a field, and a sibling that was never loaded would read the entry as proof that
  * it had been. With no row to hang it off there is nothing to record, and the resolvers beneath
  * fall back and load their own data.
  */
-function claimForRow(cached: Cache, key: string, mapping: Mapping, row: object) {
-  let own = cached.rows.get(row);
-
-  if (!own) {
-    own = new Map();
-    cached.rows.set(row, own);
+function claimForRow(
+  cached: Cache,
+  type: string,
+  mapping: Mapping,
+  row: object,
+  path: GraphQLResolveInfo['path'],
+) {
+  let byPath = cached.rows.get(row);
+  if (!byPath) {
+    byPath = new WeakMap();
+    cached.rows.set(row, byPath);
     cached.rowScoped = true;
   }
-
-  own.set(key, mapping);
+  let own = byPath.get(path);
+  if (!own) {
+    own = new Map();
+    byPath.set(path, own);
+  }
+  own.set(type, mapping);
 }
 
 /**
  * Records the mappings of a plan rooted at the field `info` resolves, under that field's path.
  * The plan loaded the whole field, so its mappings answer for every row of it: they go to the
- * shared tier, and a later plan for the same field replaces them.
+ * shared tier. Multiple plans can contribute to one field (Relay nodes of different model
+ * types share the list's path), so later contributions replace matching keys and retain others.
  */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
   const cached = cache(ctx);
   const prefix = responsePath(info.path);
   const keys = rehomedKeys(cached, prefix);
+  const previous = cached.scopes.get(info.path);
+  cached.scopes.set(info.path, previous ? { ...previous, ...mappings } : mappings);
 
   for (const key of Object.keys(mappings)) {
     cached.mappings.set(rehome(keys, key, prefix), mappings[key]);
@@ -179,36 +198,12 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
 }
 
 /**
- * Records the mappings of a plan that loaded `row` alone — the fallback loader's, or the one a
- * resolver was handed for the row it is about to resolve with. Where a plan has already claimed
- * a key with a different mapping, these are recorded against the row instead of replacing it, so
- * a row the planned query did not load never re-answers for a sibling it did.
- *
- * A row mapping is found by the resolvers whose parent is `row` itself. Deeper down the parent is
- * something `row`'s own resolvers produced, which nothing here has seen, so those resolvers read
- * the plan's mapping, as their siblings do.
+ * Records a row's mappings and scopes its descendants to this concrete field execution. A
+ * descendant's parent is a different object, so row identity alone cannot carry its plan through
+ * a relation, connection wrapper, or list. The execution path retains indices to isolate siblings.
  */
-export function setRowMappings(
-  ctx: object,
-  info: GraphQLResolveInfo,
-  mappings: Mappings,
-  row: unknown,
-) {
-  writeRowMappings(cache(ctx), info, mappings, ownerOf(row));
-}
-
-function writeRowMappings(
-  cached: Cache,
-  info: GraphQLResolveInfo,
-  mappings: Mappings,
-  row: object | null,
-) {
-  const prefix = responsePath(info.path);
-  const keys = rehomedKeys(cached, prefix);
-
-  for (const key of Object.keys(mappings)) {
-    claim(cached, rehome(keys, key, prefix), mappings[key], row);
-  }
+export function setRowMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
+  cache(ctx).scopes.set(info.path, mappings);
 }
 
 /**
@@ -226,8 +221,8 @@ export function setFieldMapping(
   const cached = cache(ctx);
   const owner = ownerOf(row);
 
-  claim(cached, cacheKey(info.parentType.name, info.path), mapping, owner);
-  writeRowMappings(cached, info, mapping.nested, owner);
+  claim(cached, cacheKey(info.parentType.name, info.path), mapping, owner, info.path);
+  cached.scopes.set(info.path, mapping.nested);
 }
 
 /**
@@ -235,8 +230,8 @@ export function setFieldMapping(
  * against `row` rather than claimed for the whole field, so a sibling row the plan never loaded
  * keeps falling back instead of reading the entry and resolving against data it does not carry.
  *
- * The mappings beneath the field are recorded as `setRowMappings` records them — the resolvers
- * that read those are the ones `row`'s own data feeds, so their parents came from this same load.
+ * Descendants inherit the mapping through this field's execution scope, even when their parent
+ * is a child object or a connection wrapper rather than the row that was reloaded.
  */
 export function setRowFieldMapping(
   ctx: object,
@@ -248,10 +243,10 @@ export function setRowFieldMapping(
   const owner = ownerOf(row);
 
   if (owner) {
-    claimForRow(cached, cacheKey(info.parentType.name, info.path), mapping, owner);
+    claimForRow(cached, info.parentType.name, mapping, owner, info.path);
   }
 
-  writeRowMappings(cached, info, mapping.nested, owner);
+  cached.scopes.set(info.path, mapping.nested);
 }
 
 /**
@@ -269,10 +264,22 @@ export function getLoaderMapping(
 
   if (cached.rowScoped) {
     const owner = ownerOf(row);
-    const own = owner && cached.rows.get(owner)?.get(key);
+    const own = owner && cached.rows.get(owner)?.get(path)?.get(type);
 
     if (own) {
       return own;
+    }
+  }
+
+  for (let ancestor = path.prev; ancestor; ancestor = ancestor.prev) {
+    const scope = cached.scopes.get(ancestor);
+
+    if (scope) {
+      // A different plan may have omitted this field. Do not treat a sibling's shared mapping
+      // as proof that this execution loaded it.
+      return (
+        scope[`${type}@${responsePath(path).slice(responsePath(ancestor).length + 1)}`] ?? null
+      );
     }
   }
 

@@ -45,6 +45,13 @@ const User = builder.drizzleObject('users', {
   fields: (t) => ({
     id: t.exposeID('id'),
     postsConnection: t.relatedConnection('posts', { totalCount: true }),
+    customConnection: t.relatedConnection(
+      'posts',
+      { totalCount: true },
+      {
+        fields: (c) => ({ pageSize: c.int({ resolve: (connection) => connection.edges.length }) }),
+      },
+    ),
   }),
 });
 
@@ -75,6 +82,19 @@ describe('connection selection facts', () => {
   afterEach(() => {
     clearDrizzleLogs();
     selectedFieldNames.mockClear();
+  });
+
+  it('retains rows for custom fields alongside totalCount', async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ users { customConnection(first: 1) { ... { count: totalCount } pageSize } } }`,
+      contextValue: {},
+    });
+    expect(result.errors).toBeUndefined();
+    const rows = result.data?.users as { customConnection: { count: number; pageSize: number } }[];
+    expect(rows.map((row) => row.customConnection.pageSize)).toEqual([1, 1, 1]);
+    expect(rows.every((row) => row.customConnection.count > 0)).toBe(true);
+    expect(drizzleLogs).toHaveLength(1);
   });
 
   it('reads the selection once and shares it with every parent row', async () => {

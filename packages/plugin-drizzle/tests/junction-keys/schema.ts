@@ -2,16 +2,25 @@ import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { not } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import DrizzlePlugin from '../../src';
+import DrizzlePlugin, { type DrizzleClient } from '../../src';
 import { type DrizzleRelations, db, editions, labels, relations, tags } from './db';
 
 interface Types {
   DrizzleRelations: DrizzleRelations;
 }
 
+// Exercise the exported contract through a minimal wrapper, as Effect adapters do. A full
+// database object would silently supply any method the plugin forgot to declare.
+const client: DrizzleClient = {
+  _: db._,
+  query: db.query,
+  $count: (source, filter) => db.$count(source, filter),
+  select: (fields) => db.select(fields),
+};
+
 const builder = new SchemaBuilder<Types>({
   plugins: [ScopeAuthPlugin, DrizzlePlugin],
-  drizzle: { client: db, getTableConfig, relations },
+  drizzle: { client, getTableConfig, relations },
   scopeAuth: { authScopes: () => ({}) },
 });
 
@@ -74,6 +83,7 @@ builder.drizzleObject('posts', {
       }),
       resolve: (post) => post.unrelatedNumericCodeCount,
     }),
+    labelCount: t.relatedCount('labels'),
     editionCount: t.relatedCount('editions'),
     editionCodeCount: t.relatedCount('editionCodes'),
     editionSlotCount: t.relatedCount('editionSlots'),
