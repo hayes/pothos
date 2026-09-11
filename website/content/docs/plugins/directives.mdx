@@ -18,32 +18,7 @@ npm install --save @pothos/plugin-directives
 The `Directives` schema type declares each directive's allowed locations and argument shape.
 This example records a `rateLimit` directive on the `hello` field:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import DirectivesPlugin from '@pothos/plugin-directives';
-
-const builder = new SchemaBuilder<{
-  Directives: {
-    rateLimit: {
-      locations: 'FIELD_DEFINITION';
-      args: { limit: number; duration: number };
-    };
-  };
-}>({
-  plugins: [DirectivesPlugin],
-});
-
-builder.queryType({
-  fields: (t) => ({
-    hello: t.string({
-      directives: [{ name: 'rateLimit', args: { limit: 5, duration: 60 } }],
-      resolve: () => 'world',
-    }),
-  }),
-});
-
-const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="plugin-directives"'>playground-examples/plugin-directives/schema.ts#annotation</include>
 
 The schema still returns `world` on every request until a consumer applies the rate limit.
 The generic checks your Pothos definitions; it does not register a GraphQL directive definition.
@@ -101,7 +76,7 @@ on `toSchema()` accepts GraphQL directive definitions; it does not attach direct
 ## Apply directive behavior
 
 Pass the built schema to the transformer supplied by your directive library. For example, with
-`graphql-rate-limit-directive` installed, replace the final `toSchema()` call in the setup with:
+`graphql-rate-limit-directive` installed:
 
 ```typescript
 import { rateLimitDirective } from 'graphql-rate-limit-directive';

@@ -126,6 +126,38 @@ builder.queryType({
 });
 ```
 
+### Input arguments and resolver values
+
+These field definitions belong in a query type's `fields` callback. The default argument is named
+`input`, while `argOptions.name` changes both the GraphQL argument name and the resolver's argument
+property. `typeOptions.name` changes the generated input object's name.
+
+An optional input may be omitted or explicitly `null`. The optional field uses a nullish fallback
+for both cases; required inputs are rejected by GraphQL validation when omitted.
+
+```typescript
+    echo: t.fieldWithInput({
+      type: 'ID',
+      input: { id: t.input.id({ required: true }) },
+      resolve: (_, { input }) => input.id,
+    }),
+
+    lookup: t.fieldWithInput({
+      type: 'ID',
+      typeOptions: { name: 'LookupInput' },
+      argOptions: { name: 'criteria' },
+      input: { id: t.input.id({ required: true }) },
+      resolve: (_, { criteria }) => criteria.id,
+    }),
+
+    optional: t.fieldWithInput({
+      type: 'String',
+      argOptions: { required: false },
+      input: { name: t.input.string() },
+      resolve: (_, { input }) => input?.name ?? 'Anonymous',
+    }),
+```
+
 ### Prisma plugin integration
 
 If you are using the prisma plugin you can use `t.prismaFieldWithInput` to add prisma fields with

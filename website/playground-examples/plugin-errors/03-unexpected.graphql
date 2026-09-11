@@ -1,0 +1,5 @@
+query Greeting {
+  greeting(name: "Leia", simulateFailure: true) {
+    __typename
+  }
+}

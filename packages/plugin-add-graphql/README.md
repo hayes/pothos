@@ -51,7 +51,7 @@ builder.queryFields((t) => ({
   }),
 }));
 
-const schema = builder.toSchema();
+export const schema = builder.toSchema();
 ```
 
 Both `{ user { name } }` and `{ otherUser { name } }` work on the resulting schema. The imported
@@ -109,7 +109,7 @@ builder.queryType({
 });
 ```
 
-Query this version with `{ user { displayName } }`. A `null` entry removes an imported field;
+The resulting field accepts `{ user { displayName } }`. A `null` entry removes an imported field;
 a field ref adds or replaces one. Fields not mentioned in the callback retain their imported definitions.
 
 | Method | Source type | Returned ref |
@@ -191,9 +191,7 @@ builder.queryType({
         order: t.arg({ type: Order }),
       },
       resolve: (_parent, { filter, order }) => {
-        const matches = members.filter((member) =>
-          !filter?.name || member.name === filter.name,
-        );
+        const matches = members.filter((member) => !filter?.name || member.name === filter.name);
         return order === 'desc' ? matches.reverse() : matches;
       },
     }),

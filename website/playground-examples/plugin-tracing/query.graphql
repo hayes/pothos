@@ -1,0 +1,3 @@
+query Greeting {
+  hello(name: "Pothos")
+}

@@ -1,0 +1,33 @@
+{
+  "01-product.graphql": {
+    "data": {
+      "product": {
+        "name": "Notebook"
+      }
+    }
+  },
+  "02-fields.graphql": {
+    "data": {
+      "__type": {
+        "fields": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "internalNotes"
+          },
+          {
+            "name": "name"
+          }
+        ]
+      }
+    }
+  },
+  "03-notes.graphql": {
+    "data": {
+      "product": {
+        "internalNotes": "Restock next week"
+      }
+    }
+  }
+}

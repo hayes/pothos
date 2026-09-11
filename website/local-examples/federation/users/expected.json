@@ -1,0 +1,23 @@
+{
+  "01-user.graphql": {
+    "data": {
+      "user": {
+        "id": "1",
+        "name": "Leia",
+        "username": "leia"
+      }
+    }
+  },
+  "02-entities.graphql": {
+    "data": {
+      "_entities": [
+        {
+          "id": "1",
+          "name": "Leia",
+          "username": "leia"
+        },
+        null
+      ]
+    }
+  }
+}

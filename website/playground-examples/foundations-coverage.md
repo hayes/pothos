@@ -1,10 +1,10 @@
-# Foundations companion coverage
+# Foundations example coverage
 
 Base: `1beb40708` (the reviewed playground pilot on main). This pass covers the overview and six foundational guide pages, preserving the renewed explanations while replacing runnable fences with excerpts from complete, checked examples.
 
 ## Page and example mapping
 
-| Page | Executable companion | Preserved coverage |
+| Page | Executable example | Preserved coverage |
 | --- | --- | --- |
 | Overview | `foundations-overview` | Gina's backing height in meters, computed feet, inferred resolver types, standard `GraphQLSchema`, core peer dependency and all plugin cards. One file and one query. |
 | Getting started | `foundations-getting-started` | Optional `name`, nullish fallback, the same schema/query/response, installation, strict NodeNext config, Yoga server, separate type checking, execution and Ctrl+C cleanup. One file and one query. |
@@ -22,7 +22,7 @@ The page examples keep their existing data and behavior. To make the Fields snip
 
 Three TypeScript fences intentionally remain local server examples: Getting started's Yoga server, Context's Yoga/auth context factory, and the subscription schema with an application-supplied event provider. Shell commands, configuration, expected JSON and live subscription operations remain documentation rather than playground actions. Their existing installation, ownership, transport and cleanup guidance is retained.
 
-The context transport companion executes the WebSocket-shaped JSON branch. Its guide and playground instructions explicitly distinguish that fixture from an actual connection and explain why the HTTP branch needs a real server-created `Request`. Context's primary companion checks both signed-in and signed-out data. No runtime, provider or HTTP transport was added to the playground.
+The context transport example executes the WebSocket-shaped JSON branch. Its guide and playground instructions explicitly distinguish that fixture from an actual connection and explain why the HTTP branch needs a real server-created `Request`. Context's primary example checks both signed-in and signed-out data. No runtime, provider or HTTP transport was added to the playground.
 
 ## Acceptance
 

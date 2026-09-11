@@ -1,0 +1,18 @@
+{
+  "query.graphql": {
+    "data": {
+      "_entities": [
+        {
+          "upc": "1",
+          "inStock": true,
+          "shippingEstimate": 2
+        },
+        {
+          "upc": "1",
+          "inStock": true,
+          "shippingEstimate": 0
+        }
+      ]
+    }
+  }
+}

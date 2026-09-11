@@ -1,5 +1,6 @@
 # Grafast plugin
 
+
 > This package is experimental.
 
 
@@ -103,13 +104,11 @@ interface AnimalData {
   kind: 'Dog' | 'Cat';
 }
 
-export const Animal = builder
-  .interfaceRef<AnimalData>('Animal')
-  .withPlan({
-    planType: ($record) => ({
-      $__typename: get($record, 'kind'),
-    }),
-  });
+export const Animal = builder.interfaceRef<AnimalData>('Animal').withPlan({
+  planType: ($record) => ({
+    $__typename: get($record, 'kind'),
+  }),
+});
 
 export const Dog = builder.objectRef<AnimalData>('Dog').implement({
   interfaces: [Animal],
@@ -117,7 +116,6 @@ export const Dog = builder.objectRef<AnimalData>('Dog').implement({
 export const Cat = builder.objectRef<AnimalData>('Cat').implement({
   interfaces: [Animal],
 });
-
 
 Animal.implement({
   fields: (t) => ({
@@ -226,4 +224,20 @@ builder.queryFields((t) => ({
     plan: (_, $args) => $args.$id,
   }),
 }));
+```
+
+## Executing plans
+
+Use `grafast()` to execute a schema with Grafast plans:
+
+```typescript
+import { grafast } from 'grafast';
+import { schema } from './schema';
+
+const result = await grafast({
+  schema,
+  source: '{ addTwoNumbers(a: 2, b: 3) }',
+  contextValue: { requestId: 'example' },
+});
+console.log(result); // { data: { addTwoNumbers: 5 } }
 ```

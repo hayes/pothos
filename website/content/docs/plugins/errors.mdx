@@ -95,6 +95,15 @@ of an object type for each error type defined for the field, and a Success objec
 the returned data. If the fields resolver throws an instance of one of the defined errors, the
 errors plugin will automatically resolve to the corresponding error object type.
 
+### Expected and unexpected errors
+
+Only errors matching a field's registered classes become typed results. With the imports and
+builder setup above, this alternative query definition catches `NameTooShort` and exposes its
+`message` and `minimum` fields. Successful greetings use `QueryGreetingSuccess`; a plain `Error`
+remains a GraphQL error because this field does not register that class.
+
+<includeregions cwd lang="typescript" meta='playground example="plugin-errors"'>playground-examples/plugin-errors/schema.ts#error,field</includeregions>
+
 ### Builder options
 
 - `defaultTypes`: An array of Error classes to include in every field with error handling.
@@ -312,6 +321,13 @@ query {
   }
 }
 ```
+
+Validation also protects writes inside a mutation resolver. This alternative builder stores
+accepted names and returns structured issues for invalid input without changing the stored data.
+It uses the same imports as the validation example above and requires
+`@pothos/plugin-validation` and `zod` alongside the errors plugin.
+
+<includeregions cwd lang="typescript" meta='playground example="plugin-validation"'>playground-examples/plugin-validation/schema.ts#setup,issues,mutation</includeregions>
 
 ### With the dataloader plugin
 

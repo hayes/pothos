@@ -1,0 +1,13 @@
+query User {
+  user(id: "1") {
+    id
+    firstName
+    lastName
+    fullName
+    initials
+    contactInfo {
+      email
+      phoneNumber
+    }
+  }
+}

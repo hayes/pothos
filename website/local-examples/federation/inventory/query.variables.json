@@ -1,0 +1,16 @@
+{
+  "representations": [
+    {
+      "__typename": "Product",
+      "upc": "1",
+      "price": 20,
+      "weight": 4
+    },
+    {
+      "__typename": "Product",
+      "upc": "1",
+      "price": 1200,
+      "weight": 4
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "user": {
+    "id": "reader",
+    "permissions": ["readArticle"]
+  }
+}

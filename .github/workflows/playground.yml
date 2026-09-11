@@ -22,6 +22,7 @@ jobs:
       - run: pnpm --filter '@pothos/website^...' build
       - run: pnpm --dir website test
       - run: pnpm --dir website check:examples
+      - run: pnpm --dir website check:local
       - run: pnpm --dir website exec playwright install --with-deps chromium
       - run: pnpm --dir website build-ci
       - run: pnpm --dir website test:browser

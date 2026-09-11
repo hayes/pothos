@@ -1,0 +1,8 @@
+{
+  "id": "plugin-relay-nodes",
+  "title": "Refetch Relay nodes",
+  "description": "Run the query and compare global IDs across users, node and nodes. Change the single node ID from VXNlcjox to VXNlcjoz to refetch Katherine instead of Ada. The missing node remains null and nodes keeps requested order. Reset example restores the query.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/relay"],
+  "defaultActiveFile": "schema.ts"
+}

@@ -1,0 +1,3 @@
+mutation Rename {
+  renameArticle(title: "Rejected change")
+}

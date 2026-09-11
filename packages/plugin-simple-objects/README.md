@@ -14,6 +14,10 @@ npm install --save @pothos/plugin-simple-objects
 
 ### Example
 
+`User` inherits `id` from the simple `Node` interface and contains nested `ContactInfo` data.
+Its resolver returns those fields directly. The additional `fullName` field computes a value from
+`firstName` and `lastName` instead of requiring a `fullName` property on the returned object.
+
 ```typescript
 import SchemaBuilder from '@pothos/core';
 import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
@@ -69,7 +73,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (parent, { id }) => {
+      resolve: (_parent, { id }) => {
         return {
           id: String(id),
           firstName: 'Leia',

@@ -1,0 +1,4 @@
+query State {
+  savedTitle
+  writes
+}

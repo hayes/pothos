@@ -1,0 +1,32 @@
+{
+  "01-valid.graphql": {
+    "data": {
+      "register": {
+        "__typename": "MutationRegisterSuccess",
+        "data": "Leia"
+      }
+    }
+  },
+  "02-invalid.graphql": {
+    "data": {
+      "register": {
+        "__typename": "InputValidationError",
+        "issues": [
+          {
+            "message": "Name is too short",
+            "path": ["input", "name"]
+          },
+          {
+            "message": "Enter a valid email",
+            "path": ["input", "email"]
+          }
+        ]
+      }
+    }
+  },
+  "03-no-rejected-write.graphql": {
+    "data": {
+      "savedNames": ["Leia"]
+    }
+  }
+}

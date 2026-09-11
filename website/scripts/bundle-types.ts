@@ -32,6 +32,8 @@ const PLUGIN_PACKAGES: string[] = [
   'plugin-mocks',
   'plugin-sub-graph',
   'plugin-add-graphql',
+  'plugin-tracing',
+  'plugin-zod',
 ];
 
 function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[] {

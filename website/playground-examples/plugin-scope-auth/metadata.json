@@ -1,0 +1,8 @@
+{
+  "id": "plugin-scope-auth",
+  "title": "Request permissions and protected writes",
+  "description": "Compare signed-out, reader and editor contexts. Add editArticle in Context to allow editPreview. Run the write/read operations in order: rejected writes leave state unchanged; permitted writes update it. Context is fixture data, not authentication. Reset example restores the article.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/scope-auth"],
+  "defaultActiveFile": "schema.ts"
+}

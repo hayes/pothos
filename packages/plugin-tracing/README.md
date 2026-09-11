@@ -25,7 +25,7 @@ const builder = new SchemaBuilder({
   plugins: [TracingPlugin],
   tracing: {
     default: (config) => isRootField(config),
-    wrap: (resolver, options, config) =>
+    wrap: (resolver, _options, config) =>
       wrapResolver(resolver, (error, duration) => {
         console.log(`${config.parentType}.${config.name}: ${duration}ms`, error);
       }),
@@ -36,12 +36,12 @@ builder.queryType({
   fields: (t) => ({
     hello: t.string({
       args: { name: t.arg.string() },
-      resolve: (parent, { name }) => `hello, ${name ?? 'World'}`,
+      resolve: (_parent, { name }) => `hello, ${name ?? 'World'}`,
     }),
   }),
 });
 
-const schema = builder.toSchema();
+export const schema = builder.toSchema();
 ```
 
 `wrapResolver` calls its completion callback for a synchronous result, fulfilled promise, thrown
@@ -82,9 +82,8 @@ const builder = new SchemaBuilder<{
     default: (config) => isRootField(config),
     wrap: (resolver, options, config) =>
       wrapResolver(resolver, (error, duration) => {
-        const label = typeof options === 'object'
-          ? options.label
-          : `${config.parentType}.${config.name}`;
+        const label =
+          typeof options === 'object' ? options.label : `${config.parentType}.${config.name}`;
         console.log(`${label}: ${duration}ms`, error);
       }),
   },
@@ -95,10 +94,12 @@ builder.queryType({
     hello: t.string({
       tracing: { label: 'greeting' },
       args: { name: t.arg.string() },
-      resolve: (parent, { name }) => `hello, ${name ?? 'World'}`,
+      resolve: (_parent, { name }) => `hello, ${name ?? 'World'}`,
     }),
   }),
 });
+
+export const schema = builder.toSchema();
 ```
 
 A field can also compute its tracing options from resolver arguments. Replace the `tracing` option

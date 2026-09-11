@@ -1,0 +1,9 @@
+query TooDeep {
+  posts(limit: 1) {
+    related {
+      related {
+        title
+      }
+    }
+  }
+}

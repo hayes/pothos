@@ -67,6 +67,11 @@ returned from a database or other data source can be tricky, so this plugin has 
 option (described below) to simplify the sorting process. For more details on how the load function
 works, see the [dataloader docs](https://github.com/graphql/dataloader#batch-function).
 
+Within one request, repeated keys share the same loader entry. For example, requesting
+`["3", "1", "3"]` can load keys `"3"` and `"1"` once while returning three results in the
+requested order. Later loads of the same key reuse the cached result. Pass a fresh context object
+for each request to keep those cached records separate.
+
 When defining fields that return `User`s, you will now be able to return either a `string` (based on the
 ids param of `load`), or a User object (type based on the return type of `loadUsersById`).
 
@@ -511,6 +516,9 @@ of IDs. Doing this correctly can be a little complicated, so this plugin include
 For any type or field that creates a dataloader, you can also provide a `sort` option which will
 correctly map your results into the correct order based on their ids. To do this, you will need to
 provide a function that accepts a result object, and returns its id.
+
+The `loadUsersById` function can return records in storage order. `sort` uses each user's ID to
+put them in the requested order:
 
 ```typescript
 const User = builder.loadableObject('User', {

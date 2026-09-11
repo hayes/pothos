@@ -38,8 +38,6 @@ builder.queryType({
     }),
   }),
 });
-
-const schema = builder.toSchema();
 ```
 
 The schema still returns `world` on every request until a consumer applies the rate limit.
@@ -98,7 +96,7 @@ on `toSchema()` accepts GraphQL directive definitions; it does not attach direct
 ## Apply directive behavior
 
 Pass the built schema to the transformer supplied by your directive library. For example, with
-`graphql-rate-limit-directive` installed, replace the final `toSchema()` call in the setup with:
+`graphql-rate-limit-directive` installed:
 
 ```typescript
 import { rateLimitDirective } from 'graphql-rate-limit-directive';

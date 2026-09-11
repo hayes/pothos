@@ -18,50 +18,20 @@ npm install --save @pothos/plugin-sub-graph
 Declare the sub-graph names in `SubGraphs`. In this example, types and fields belong to both variants
 by default, while `internalNotes` is available only in the internal API:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import SubGraphPlugin from '@pothos/plugin-sub-graph';
+<include cwd lang="typescript" meta='playground example="plugin-sub-graph"'>playground-examples/plugin-sub-graph/schema.ts#definitions</include>
 
-const builder = new SchemaBuilder<{
-  SubGraphs: 'Public' | 'Internal';
-}>({
-  plugins: [SubGraphPlugin],
-  subGraphs: {
-    defaultForTypes: ['Public', 'Internal'],
-    fieldsInheritFromTypes: true,
-  },
-});
+The `subGraph` option selects which types and fields appear in the built schema:
 
-const Product = builder.objectRef<{
-  id: string;
-  name: string;
-  internalNotes: string;
-}>('Product').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    internalNotes: t.exposeString('internalNotes', {
-      subGraphs: ['Internal'],
-    }),
-  }),
-});
+<include cwd lang="typescript" meta='playground example="plugin-sub-graph" tab="Public"'>playground-examples/plugin-sub-graph/schema.ts#selection</include>
 
-builder.queryType({
-  fields: (t) => ({
-    product: t.field({
-      type: Product,
-      resolve: () => ({ id: '1', name: 'Notebook', internalNotes: 'Restock next week' }),
-    }),
-  }),
-});
+<include cwd lang="typescript" meta='playground example="plugin-sub-graph-variant-internal" tab="Internal"'>playground-examples/plugin-sub-graph/variant-internal/schema.ts#selection</include>
 
-const schema = builder.toSchema();
-const publicSchema = builder.toSchema({ subGraph: 'Public' });
-const internalSchema = builder.toSchema({ subGraph: 'Internal' });
-```
+<include cwd lang="typescript" meta='playground example="plugin-sub-graph-variant-combined" tab="Combined"'>playground-examples/plugin-sub-graph/variant-combined/schema.ts#selection</include>
+
+<include cwd lang="typescript" meta='playground example="plugin-sub-graph-variant-shared" tab="Shared"'>playground-examples/plugin-sub-graph/variant-shared/schema.ts#selection</include>
 
 `{ product { name } }` works in either variant. `{ product { internalNotes } }` fails GraphQL
-validation against `publicSchema`. Calling `toSchema()` without a sub-graph retains the full schema.
+validation against the Public variant. Calling `toSchema()` without a sub-graph retains the full schema.
 
 ## Combine variants
 

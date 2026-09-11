@@ -1,0 +1,14 @@
+mutation Register {
+  register(input: { name: "  Leia  ", email: "leia@example.com" }) {
+    __typename
+    ... on MutationRegisterSuccess {
+      data
+    }
+    ... on InputValidationError {
+      issues {
+        message
+        path
+      }
+    }
+  }
+}

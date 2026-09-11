@@ -150,6 +150,23 @@ builder.queryFields((t) => ({
 }));
 ```
 
+### Example: a bounded list
+
+This configuration caps query cost at `20`, depth at `3`, and breadth at `5`:
+
+<include cwd lang="typescript" meta='playground example="plugin-complexity"'>playground-examples/plugin-complexity/schema.ts#limits</include>
+
+For a `Post` object with a `title` field, the list's base cost is `5` and its `limit` argument
+sets the multiplier. Here, `posts` is an array of records and `resolverCalls` is a counter used
+to observe whether the resolver is invoked:
+
+<include cwd lang="typescript" meta='playground example="plugin-complexity"'>playground-examples/plugin-complexity/schema.ts#field-cost</include>
+
+The selection `{ posts(limit: 2) { title } }` costs `5 + 2 × 1 = 7`. A limit of `16` costs `21`,
+so the budget rejects that query before invoking the resolver. A limit of `15` costs exactly
+`20` and is accepted. The multiplier follows the requested limit even when fewer records exist;
+query cost estimates the operation rather than measuring the records actually returned.
+
 ## Utilities
 
 ### `complexityFromQuery(query, options)`
@@ -164,7 +181,7 @@ const complexity = complexityFromQuery(query, {
   // Complexity can be calculated based on the context and arguments,
   // so you may need to provide valid values for the context and arguments.
   // Both are optional, and will default to empty objects.
-  context: {},
+  ctx: {},
   variables: {},
 });
 ```

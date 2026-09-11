@@ -1,0 +1,8 @@
+{
+  "id": "plugin-directives",
+  "title": "Inspect directive annotations",
+  "description": "Run Annotations: both hello aliases return world, and recordedDirectives shows limit 5. Change the source limit to 1 and rerun: the recorded metadata changes, but both greetings still succeed because no rate-limit transformer is installed. Reset example restores limit 5.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/directives"],
+  "defaultActiveFile": "schema.ts"
+}

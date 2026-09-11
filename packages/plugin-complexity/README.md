@@ -147,6 +147,42 @@ builder.queryFields((t) => ({
 }));
 ```
 
+### Example: a bounded list
+
+This configuration caps query cost at `20`, depth at `3`, and breadth at `5`:
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [ComplexityPlugin],
+  complexity: {
+    defaultComplexity: 1,
+    defaultListMultiplier: 10,
+    limit: { complexity: 20, depth: 3, breadth: 5 },
+  },
+});
+```
+
+For a `Post` object with a `title` field, the list's base cost is `5` and its `limit` argument
+sets the multiplier. Here, `posts` is an array of records and `resolverCalls` is a counter used
+to observe whether the resolver is invoked:
+
+```typescript
+posts: t.field({
+      type: [Post],
+      args: { limit: t.arg.int({ defaultValue: 2 }) },
+      complexity: (args) => ({ field: 5, multiplier: Math.max(0, args.limit ?? 2) }),
+      resolve: (_parent, args) => {
+        resolverCalls += 1;
+        return posts.slice(0, Math.max(0, args.limit ?? 2));
+      },
+    }),
+```
+
+The selection `{ posts(limit: 2) { title } }` costs `5 + 2 × 1 = 7`. A limit of `16` costs `21`,
+so the budget rejects that query before invoking the resolver. A limit of `15` costs exactly
+`20` and is accepted. The multiplier follows the requested limit even when fewer records exist;
+query cost estimates the operation rather than measuring the records actually returned.
+
 ## Utilities
 
 ### `complexityFromQuery(query, options)`
@@ -161,7 +197,7 @@ const complexity = complexityFromQuery(query, {
   // Complexity can be calculated based on the context and arguments,
   // so you may need to provide valid values for the context and arguments.
   // Both are optional, and will default to empty objects.
-  context: {},
+  ctx: {},
   variables: {},
 });
 ```

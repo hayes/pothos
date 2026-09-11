@@ -1,0 +1,17 @@
+{
+  "query.graphql": {
+    "data": {
+      "user": {
+        "id": "1",
+        "firstName": "Leia",
+        "lastName": "Organa",
+        "fullName": "Leia Organa",
+        "initials": "LO",
+        "contactInfo": {
+          "email": "leia@example.com",
+          "phoneNumber": null
+        }
+      }
+    }
+  }
+}

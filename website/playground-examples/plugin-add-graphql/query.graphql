@@ -1,0 +1,8 @@
+query ImportedAndNew {
+  user {
+    name
+  }
+  otherUser {
+    name
+  }
+}

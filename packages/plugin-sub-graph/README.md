@@ -29,19 +29,21 @@ const builder = new SchemaBuilder<{
   },
 });
 
-const Product = builder.objectRef<{
-  id: string;
-  name: string;
-  internalNotes: string;
-}>('Product').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    internalNotes: t.exposeString('internalNotes', {
-      subGraphs: ['Internal'],
+const Product = builder
+  .objectRef<{
+    id: string;
+    name: string;
+    internalNotes: string;
+  }>('Product')
+  .implement({
+    fields: (t) => ({
+      id: t.exposeID('id'),
+      name: t.exposeString('name'),
+      internalNotes: t.exposeString('internalNotes', {
+        subGraphs: ['Internal'],
+      }),
     }),
-  }),
-});
+  });
 
 builder.queryType({
   fields: (t) => ({
@@ -51,14 +53,36 @@ builder.queryType({
     }),
   }),
 });
+```
 
-const schema = builder.toSchema();
-const publicSchema = builder.toSchema({ subGraph: 'Public' });
-const internalSchema = builder.toSchema({ subGraph: 'Internal' });
+The `subGraph` option selects which types and fields appear in the built schema:
+
+**Public**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: 'Public' });
+```
+
+**Internal**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: 'Internal' });
+```
+
+**Combined**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
+```
+
+**Shared**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
 ```
 
 `{ product { name } }` works in either variant. `{ product { internalNotes } }` fails GraphQL
-validation against `publicSchema`. Calling `toSchema()` without a sub-graph retains the full schema.
+validation against the Public variant. Calling `toSchema()` without a sub-graph retains the full schema.
 
 ## Combine variants
 

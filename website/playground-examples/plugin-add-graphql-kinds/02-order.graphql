@@ -1,0 +1,7 @@
+query Descending {
+  search(order: DESC) {
+    ... on Member {
+      name
+    }
+  }
+}

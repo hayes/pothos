@@ -1,0 +1,8 @@
+{
+  "id": "plugin-validation",
+  "title": "Validate before writing",
+  "description": "Run the valid, invalid, and saved-names operations in order: the name is trimmed to Leia, and rejected input adds nothing. Change the minimum name length from 3 to 5 to reject the valid input. Reset clears saved data before repeating.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/validation", "/docs/plugins/errors"],
+  "defaultActiveFile": "schema.ts"
+}

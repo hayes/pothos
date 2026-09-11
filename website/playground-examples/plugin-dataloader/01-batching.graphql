@@ -1,0 +1,10 @@
+query Batching {
+  batching(ids: ["3", "1", "3", "missing"]) {
+    users {
+      id
+      username
+    }
+    batchKeys
+    cachedAgain
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "plugin-dataloader",
+  "title": "Batching and request caching",
+  "description": "Run the batching report, then the key-resolver query. Compare requested users with batchKeys: duplicates share a load and missing records return null. Change keys to [\"2\", \"1\", \"2\"] and compare order and cachedAgain. Each run gets a fresh context; Reset example restores the query.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/dataloader"],
+  "defaultActiveFile": "schema.ts"
+}

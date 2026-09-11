@@ -1,0 +1,9 @@
+query InvalidSize {
+  users(first: -1) {
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}

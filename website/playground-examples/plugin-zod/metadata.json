@@ -1,0 +1,8 @@
+{
+  "id": "plugin-zod",
+  "title": "Maintain legacy Zod validation",
+  "description": "Run valid, invalid-email, oversized-roster, and saved-email operations in order; rejected mutations leave both saved addresses unchanged. Change maxLength from 2 to 1 to reject the valid roster. Reset clears saved data.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/zod"],
+  "defaultActiveFile": "schema.ts"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "plugin-add-graphql",
+  "title": "Import an executable schema",
+  "description": "Run ImportedAndNew: user returns Leia from the imported resolver, while otherUser returns Luke from Pothos. Change Leia in the imported resolver and rerun to see only user change. Reset example restores the original source.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/add-graphql"],
+  "defaultActiveFile": "schema.ts"
+}

@@ -264,6 +264,29 @@ const UserInput = builder.inputType('UserInput', {
 ```
 
 
+### Validation before mutation side effects
+
+Validation finishes before a mutation resolver runs. A rejected input therefore cannot trigger
+writes placed inside that resolver. The following example trims accepted names and stores them in
+an in-memory array; invalid names or email addresses produce typed validation issues.
+
+This separate builder uses the [errors plugin integration](./errors#with-validation-plugin).
+Install `@pothos/plugin-errors` alongside the validation plugin and Zod. Setting
+`unsafelyHandleInputErrors: true` allows validation details to be returned before field authorization
+hooks run, so only enable it when those details may be public.
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import ValidationPlugin, {
+  InputValidationError,
+  type StandardSchemaV1,
+} from '@pothos/plugin-validation';
+import { z } from 'zod';
+```
+
+<includeregions cwd lang="typescript" meta='playground example="plugin-validation"'>playground-examples/plugin-validation/schema.ts#setup,issues,mutation</includeregions>
+
 ## Plugin Options
 
 ### 'validationError'

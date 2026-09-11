@@ -1,0 +1,8 @@
+{
+  "query.graphql": {
+    "data": {
+      "greeting": "Mock result!",
+      "untouched": "Original resolver"
+    }
+  }
+}

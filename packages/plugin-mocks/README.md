@@ -29,29 +29,33 @@ You can mock any field by adding a mock in the options passed to `builder.toSche
 ```typescript
 builder.queryType({
   fields: (t) => ({
-    someField: t.string({
+    greeting: t.string({
       resolve: () => {
         throw new Error('Not implemented');
       },
     }),
+    untouched: t.string({ resolve: () => 'Original resolver' }),
   }),
 });
 
-builder.toSchema({
+export const schema = builder.toSchema({
   mocks: {
     Query: {
-      someField: (parent, args, context, info) => 'Mock result!',
+      greeting: () => 'Mock result!',
     },
   },
 });
 ```
 
-Mocks will replace the resolve functions any time a mocked field is executed. A schema can be built
-multiple times with different mocks.
+A mock resolver receives the usual `parent`, `args`, `context`, and `info` arguments. Configured
+mocks replace their field resolvers whenever those fields execute; unlisted fields keep their
+original resolvers. Without a `mocks` option, the original `greeting` resolver throws its error.
+A schema can be built multiple times with different mocks.
 
 ### Adding mocks for subscribe functions
 
-To add a mock for a subscriber you can nest the mocks for subscribe and resolve in an object:
+To add a mock for a subscriber you can nest the mocks for subscribe and resolve in an object.
+Subscription execution uses GraphQL's `subscribe()` in a server or test:
 
 ```typescript
 builder.subscriptionType({

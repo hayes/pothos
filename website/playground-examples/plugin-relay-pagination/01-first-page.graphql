@@ -1,0 +1,17 @@
+query FirstPage($first: Int!) {
+  users(first: $first) {
+    edges {
+      cursor
+      node {
+        id
+        name
+      }
+    }
+    pageInfo {
+      startCursor
+      endCursor
+      hasNextPage
+      hasPreviousPage
+    }
+  }
+}

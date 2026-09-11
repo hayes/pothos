@@ -261,6 +261,69 @@ const UserInput = builder.inputType('UserInput', {
 ```
 
 
+### Validation before mutation side effects
+
+Validation finishes before a mutation resolver runs. A rejected input therefore cannot trigger
+writes placed inside that resolver. The following example trims accepted names and stores them in
+an in-memory array; invalid names or email addresses produce typed validation issues.
+
+This separate builder uses the [errors plugin integration](https://pothos-graphql.dev/docs/plugins/errors#with-validation-plugin).
+Install `@pothos/plugin-errors` alongside the validation plugin and Zod. Setting
+`unsafelyHandleInputErrors: true` allows validation details to be returned before field authorization
+hooks run, so only enable it when those details may be public.
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import ValidationPlugin, {
+  InputValidationError,
+  type StandardSchemaV1,
+} from '@pothos/plugin-validation';
+import { z } from 'zod';
+```
+
+```typescript
+// This public example deliberately exposes validation details before authorization.
+const builder = new SchemaBuilder({
+  plugins: [ErrorsPlugin, ValidationPlugin],
+  errors: { unsafelyHandleInputErrors: true },
+});
+const names: string[] = [];
+
+const Issue = builder.objectRef<StandardSchemaV1.Issue>('ValidationIssue').implement({
+  fields: (t) => ({
+    message: t.exposeString('message'),
+    path: t.stringList({
+      resolve: (issue) =>
+        issue.path?.map((part) => String(typeof part === 'object' ? part.key : part)) ?? [],
+    }),
+  }),
+});
+builder.objectType(InputValidationError, {
+  name: 'InputValidationError',
+  fields: (t) => ({ issues: t.field({ type: [Issue], resolve: (error) => error.issues }) }),
+});
+
+const Registration = builder.inputType('Registration', {
+  fields: (t) => ({
+    name: t.string({ required: true }).validate(z.string().trim().min(3, 'Name is too short')),
+    email: t.string({ required: true, validate: z.email('Enter a valid email') }),
+  }),
+});
+builder.mutationType({
+  fields: (t) => ({
+    register: t.string({
+      args: { input: t.arg({ type: Registration, required: true }) },
+      errors: { types: [InputValidationError] },
+      resolve: (_, { input }) => {
+        names.push(input.name);
+        return input.name;
+      },
+    }),
+  }),
+});
+```
+
 ## Plugin Options
 
 ### 'validationError'

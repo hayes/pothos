@@ -1,0 +1,8 @@
+{
+  "id": "plugin-add-graphql-kinds",
+  "title": "Imported interface, union, enum and input",
+  "description": "Run Filter to read Leia through the imported interface and filtered union. Run Descending to read Luke before Leia. Change the first query filter to Luke and compare its result. Reset example restores the original queries.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/add-graphql"],
+  "defaultActiveFile": "schema.ts"
+}

@@ -313,10 +313,11 @@ export function loadPluginTypes(code: string): void {
   }, 500); // 500ms debounce
 }
 
-function extractPluginImports(code: string): Set<string> {
+export function extractPluginImports(code: string): Set<string> {
   const imports = new Set<string>();
-  // Match: import ... from '@pothos/plugin-...'
-  const importRegex = /import\s+.*?\s+from\s+['"](@pothos\/plugin-[^'"]+)['"]/g;
+  // Match formatted import clauses and side-effect imports without crossing
+  // another module string or a statement terminator.
+  const importRegex = /\bimport\s+(?:[^'";]*?\s+from\s*)?['"](@pothos\/plugin-[^'"]+)['"]/g;
 
   let match = importRegex.exec(code);
   while (match !== null) {

@@ -1,0 +1,23 @@
+{
+  "name": "pothos-local-plugin-docs",
+  "private": true,
+  "scripts": {
+    "test": "npm run type && tsx smart-subscriptions/check.ts && tsx grafast/check.ts && tsx federation/check.ts",
+    "type": "tsc -p smart-subscriptions/tsconfig.json && tsc -p grafast/tsconfig.json && tsc -p federation/tsconfig.json"
+  },
+  "dependencies": {
+    "@pothos/core": "file:../../packages/core",
+    "@pothos/plugin-smart-subscriptions": "file:../../packages/plugin-smart-subscriptions",
+    "@pothos/plugin-grafast": "file:../../packages/plugin-grafast",
+    "grafast": "1.0.0",
+    "graphql": "16.13.2",
+    "@pothos/plugin-federation": "file:../../packages/plugin-federation",
+    "@pothos/plugin-directives": "file:../../packages/plugin-directives",
+    "@apollo/subgraph": "2.13.3"
+  },
+  "devDependencies": {
+    "tsx": "4.21.0",
+    "typescript": "6.0.2",
+    "@types/node": "25.6.0"
+  }
+}

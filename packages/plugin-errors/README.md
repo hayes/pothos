@@ -92,6 +92,44 @@ of an object type for each error type defined for the field, and a Success objec
 the returned data. If the fields resolver throws an instance of one of the defined errors, the
 errors plugin will automatically resolve to the corresponding error object type.
 
+### Expected and unexpected errors
+
+Only errors matching a field's registered classes become typed results. With the imports and
+builder setup above, this alternative query definition catches `NameTooShort` and exposes its
+`message` and `minimum` fields. Successful greetings use `QueryGreetingSuccess`; a plain `Error`
+remains a GraphQL error because this field does not register that class.
+
+```typescript
+class NameTooShort extends Error {
+  minimum = 3;
+  constructor() {
+    super('Use at least three characters');
+  }
+}
+builder.objectType(NameTooShort, {
+  name: 'NameTooShort',
+  fields: (t) => ({ message: t.exposeString('message'), minimum: t.exposeInt('minimum') }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    greeting: t.string({
+      args: { name: t.arg.string({ required: true }), simulateFailure: t.arg.boolean() },
+      errors: { types: [NameTooShort] },
+      resolve: (_, { name, simulateFailure }) => {
+        if (simulateFailure) {
+          throw new Error('Service unavailable');
+        }
+        if (name.length < 3) {
+          throw new NameTooShort();
+        }
+        return `Hello, ${name}`;
+      },
+    }),
+  }),
+});
+```
+
 ### Builder options
 
 - `defaultTypes`: An array of Error classes to include in every field with error handling.
@@ -308,6 +346,53 @@ query {
     }
   }
 }
+```
+
+Validation also protects writes inside a mutation resolver. This alternative builder stores
+accepted names and returns structured issues for invalid input without changing the stored data.
+It uses the same imports as the validation example above and requires
+`@pothos/plugin-validation` and `zod` alongside the errors plugin.
+
+```typescript
+// This public example deliberately exposes validation details before authorization.
+const builder = new SchemaBuilder({
+  plugins: [ErrorsPlugin, ValidationPlugin],
+  errors: { unsafelyHandleInputErrors: true },
+});
+const names: string[] = [];
+
+const Issue = builder.objectRef<StandardSchemaV1.Issue>('ValidationIssue').implement({
+  fields: (t) => ({
+    message: t.exposeString('message'),
+    path: t.stringList({
+      resolve: (issue) =>
+        issue.path?.map((part) => String(typeof part === 'object' ? part.key : part)) ?? [],
+    }),
+  }),
+});
+builder.objectType(InputValidationError, {
+  name: 'InputValidationError',
+  fields: (t) => ({ issues: t.field({ type: [Issue], resolve: (error) => error.issues }) }),
+});
+
+const Registration = builder.inputType('Registration', {
+  fields: (t) => ({
+    name: t.string({ required: true }).validate(z.string().trim().min(3, 'Name is too short')),
+    email: t.string({ required: true, validate: z.email('Enter a valid email') }),
+  }),
+});
+builder.mutationType({
+  fields: (t) => ({
+    register: t.string({
+      args: { input: t.arg({ type: Registration, required: true }) },
+      errors: { types: [InputValidationError] },
+      resolve: (_, { input }) => {
+        names.push(input.name);
+        return input.name;
+      },
+    }),
+  }),
+});
 ```
 
 ### With the dataloader plugin

@@ -23,16 +23,16 @@ import { EventEmitter } from 'node:events';
 import SchemaBuilder from '@pothos/core';
 import SmartSubscriptionsPlugin from '@pothos/plugin-smart-subscriptions';
 
-type Context = {
+export type Context = {
   listeners: Map<string, (value: unknown) => void>;
 };
 
-const events = new EventEmitter();
+export const events = new EventEmitter();
 
 const builder = new SchemaBuilder<{ Context: Context }>({
   plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
-    debounceDelay: 10,
+    debounceDelay: null,
     subscribe: (name, context, callback) => {
       const listener = (value: unknown) => callback(null, value);
       context.listeners.set(name, listener);
@@ -85,9 +85,7 @@ field and per-poll events on the object type:
 
 ```typescript
 type Poll = { id: string; question: string; votes: number };
-const polls = new Map<string, Poll>([
-  ['1', { id: '1', question: 'Tea or coffee?', votes: 0 }],
-]);
+const polls = new Map<string, Poll>([['1', { id: '1', question: 'Tea or coffee?', votes: 0 }]]);
 
 const PollType = builder.objectRef<Poll>('Poll').implement({
   subscribe: (subscriptions, poll) => {
@@ -115,7 +113,7 @@ builder.queryType({
 });
 
 builder.subscriptionType();
-const schema = builder.toSchema();
+export const schema = builder.toSchema();
 ```
 
 ```graphql
@@ -132,9 +130,11 @@ The subscription first sends the current polls. After updating stored data, emit
 event to send a new result:
 
 ```typescript
-function vote(pollId: string) {
+export function vote(pollId: string) {
   const poll = polls.get(pollId);
-  if (!poll) throw new Error('Poll not found');
+  if (!poll) {
+    throw new Error('Poll not found');
+  }
   polls.set(pollId, { ...poll, votes: poll.votes + 1 });
   events.emit(`poll/${pollId}`, { kind: 'vote' });
 }
@@ -186,3 +186,33 @@ taking a separate `refetch` callback.
 ## Limitations
 
 Smart subscriptions do not support list fields implemented with async generators for `@stream`.
+
+## Consuming a subscription
+
+Use GraphQL's `subscribe()` to consume subscription results. Pass a new listener map for each
+operation and close the iterator when the client disconnects to remove its listeners:
+
+```typescript
+import { parse, subscribe } from 'graphql';
+import { schema, vote } from './schema';
+
+const result = await subscribe({
+  schema,
+  document: parse('subscription { polls { id votes } }'),
+  contextValue: { listeners: new Map() },
+});
+
+if (Symbol.asyncIterator in result) {
+  const iterator = result[Symbol.asyncIterator]();
+  try {
+    console.log((await iterator.next()).value); // Initial polls
+    const update = iterator.next();
+    vote('1');
+    console.log((await update).value); // Incremented votes
+  } finally {
+    await iterator.return?.(); // Unsubscribe this operation's listeners
+  }
+} else {
+  console.error(result.errors);
+}
+```

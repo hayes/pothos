@@ -105,25 +105,14 @@ t.arg.int({
 
 List arguments validate the list and its items in one options object. Constraints like `minLength` / `maxLength` / `length` apply to the array; `items` carries the constraints for each element.
 
+The following resolver replaces an in-memory roster only after both the list length and each
+email address pass validation. A failed constraint leaves the previous roster unchanged.
+
 ```typescript
-builder.mutationType({
-  fields: (t) => ({
-    setRoster: t.boolean({
-      args: {
-        emails: t.arg.stringList({
-          validate: {
-            maxLength: 12,
-            items: {
-              email: true,
-            },
-          },
-        }),
-      },
-      resolve: () => true,
-    }),
-  }),
-});
+let emails: string[] = [];
 ```
+
+<include cwd lang="typescript" meta='playground example="plugin-zod"'>playground-examples/plugin-zod/schema.ts#roster</include>
 
 `items` also accepts a refinement function or a `[function, { message }]` pair. For example,
 inside a field's arguments:

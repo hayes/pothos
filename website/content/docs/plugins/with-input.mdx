@@ -129,6 +129,17 @@ builder.queryType({
 });
 ```
 
+### Input arguments and resolver values
+
+These field definitions belong in a query type's `fields` callback. The default argument is named
+`input`, while `argOptions.name` changes both the GraphQL argument name and the resolver's argument
+property. `typeOptions.name` changes the generated input object's name.
+
+An optional input may be omitted or explicitly `null`. The optional field uses a nullish fallback
+for both cases; required inputs are rejected by GraphQL validation when omitted.
+
+<includeregions cwd lang="typescript" meta='playground example="plugin-with-input"'>playground-examples/plugin-with-input/schema.ts#default-input,custom-input,optional-input</includeregions>
+
 ### Prisma plugin integration
 
 If you are using the prisma plugin you can use `t.prismaFieldWithInput` to add prisma fields with

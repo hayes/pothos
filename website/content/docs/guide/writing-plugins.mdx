@@ -142,7 +142,7 @@ optional \(`newProp?: TypeOfProp`\) is recommended for most use cases.
 
 ### Run a complete plugin
 
-The companion adds a `logLabel` builder option, registers a local plugin, and wraps each resolver. Run the query and open **Console** to see two field resolutions. Run it again: the request counter starts at one because each execution receives a fresh context. Change `logLabel` in `schema.ts` to label the messages.
+The example adds a `logLabel` builder option, registers a local plugin, and wraps each resolver. Run the query and open **Console** to see two field resolutions. Run it again: the request counter starts at one because each execution receives a fresh context. Change `logLabel` in `schema.ts` to label the messages.
 
 <include cwd lang="typescript" meta='playground example="architecture-writing-plugin"'>playground-examples/architecture-writing-plugin/plugin.ts#plugin</include>
 
@@ -152,7 +152,7 @@ The plugin is registered before it is passed to the builder:
 
 Open `global-types.ts` to see the plugin name and `logLabel` option added to `PothosSchemaTypes`. The query includes synchronous and asynchronous resolvers; the wrapper returns their values unchanged.
 
-The sections below link runnable hooks to complete companions. Interface declarations describe the types to merge into `PothosSchemaTypes`; they are reference fragments rather than independent schemas. Subscription hooks need a runtime that executes subscriptions.
+The sections below link runnable hooks to complete examples. Interface declarations describe the types to merge into `PothosSchemaTypes`; they are reference fragments rather than independent schemas. Subscription hooks need a runtime that executes subscriptions.
 
 ### Life cycle hooks
 
@@ -202,7 +202,7 @@ builder\), even if multiple instances of the plugin are created. To help with th
 `runUnique` helper on the base plugin class, which accepts a key, and a callback, and will only run
 a callback once per builder for the given key, even across multiple `toSchema` calls.
 
-The companion calls `toSchema()` twice. Open **Console** to see the preparation callback run once:
+The example calls `toSchema()` twice. Open **Console** to see the preparation callback run once:
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-hooks"'>playground-examples/architecture-plugin-hooks/plugin.ts#before-build</include>
 
@@ -425,7 +425,7 @@ utility functions that can make this easier:
 - `createInputValueMapper`: Creates a mapping function that uses the result of `mapInputFields` to
   map inputs in an args object to new values.
 
-The relay plugin uses these methods to decode `globalID` inputs. This companion uses the same utilities to trim marked strings, including strings inside a nested input list. Remove a `trimInput` extension in `schema.ts` and run again to compare the result:
+The relay plugin uses these methods to decode `globalID` inputs. This example uses the same utilities to trim marked strings, including strings inside a nested input list. Remove a `trimInput` extension in `schema.ts` and run again to compare the result:
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-inputs"'>playground-examples/architecture-plugin-inputs/plugin.ts#mapping</include>
 

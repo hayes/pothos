@@ -21,36 +21,7 @@ Provide callbacks that subscribe and unsubscribe by event name. This example use
 event emitter. The listener map belongs to one subscription operation's context, so cleaning up one
 operation does not remove another operation's listeners.
 
-```typescript
-import { EventEmitter } from 'node:events';
-import SchemaBuilder from '@pothos/core';
-import SmartSubscriptionsPlugin from '@pothos/plugin-smart-subscriptions';
-
-type Context = {
-  listeners: Map<string, (value: unknown) => void>;
-};
-
-const events = new EventEmitter();
-
-const builder = new SchemaBuilder<{ Context: Context }>({
-  plugins: [SmartSubscriptionsPlugin],
-  smartSubscriptions: {
-    debounceDelay: 10,
-    subscribe: (name, context, callback) => {
-      const listener = (value: unknown) => callback(null, value);
-      context.listeners.set(name, listener);
-      events.on(name, listener);
-    },
-    unsubscribe: (name, context) => {
-      const listener = context.listeners.get(name);
-      if (listener) {
-        events.off(name, listener);
-        context.listeners.delete(name);
-      }
-    },
-  },
-});
-```
+<include cwd lang="typescript">local-examples/smart-subscriptions/schema.ts#setup</include>
 
 Pass a fresh `{ listeners: new Map() }` context for each subscription operation. A distributed
 application can connect the same callbacks to its shared event service instead. Call `callback`
@@ -86,40 +57,7 @@ The examples below continue with the event-emitter builder.
 The same `polls` field is available on `Query` and `Subscription`. Register collection events on the
 field and per-poll events on the object type:
 
-```typescript
-type Poll = { id: string; question: string; votes: number };
-const polls = new Map<string, Poll>([
-  ['1', { id: '1', question: 'Tea or coffee?', votes: 0 }],
-]);
-
-const PollType = builder.objectRef<Poll>('Poll').implement({
-  subscribe: (subscriptions, poll) => {
-    subscriptions.register(`poll/${poll.id}`);
-  },
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    question: t.exposeString('question'),
-    votes: t.exposeInt('votes'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    polls: t.field({
-      type: [PollType],
-      smartSubscription: true,
-      subscribe: (subscriptions) => {
-        subscriptions.register('poll-added');
-        subscriptions.register('poll-deleted');
-      },
-      resolve: () => [...polls.values()],
-    }),
-  }),
-});
-
-builder.subscriptionType();
-const schema = builder.toSchema();
-```
+<include cwd lang="typescript">local-examples/smart-subscriptions/schema.ts#schema</include>
 
 ```graphql
 subscription {
@@ -134,14 +72,7 @@ subscription {
 The subscription first sends the current polls. After updating stored data, emit the corresponding
 event to send a new result:
 
-```typescript
-function vote(pollId: string) {
-  const poll = polls.get(pollId);
-  if (!poll) throw new Error('Poll not found');
-  polls.set(pollId, { ...poll, votes: poll.votes + 1 });
-  events.emit(`poll/${pollId}`, { kind: 'vote' });
-}
-```
+<include cwd lang="typescript">local-examples/smart-subscriptions/schema.ts#vote</include>
 
 Calling `vote('1')` updates `votes` in the next result. Adding or deleting a poll should emit
 `poll-added` or `poll-deleted` after updating the map. Each execution registers the events for its
@@ -189,3 +120,53 @@ taking a separate `refetch` callback.
 ## Limitations
 
 Smart subscriptions do not support list fields implemented with async generators for `@stream`.
+
+## Run a live subscription locally
+
+The browser playground runs queries and mutations; it does not consume subscription iterators.
+The [complete local example](https://github.com/hayes/pothos/tree/main/website/local-examples/smart-subscriptions)
+uses GraphQL's `subscribe()` with the schema and event source above. No database or external event
+service is required.
+
+With Node.js 22 or newer, run from a checkout of the [Pothos repository](https://github.com/hayes/pothos):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --dir website check:local
+```
+
+The local examples use the checkout's built Pothos packages. Their separate locked installation
+uses GraphQL 16, as required by Grafast 1.0; it does not change the repository's GraphQL version.
+
+`smart-subscriptions/check.ts` opens two subscriptions with separate contexts, checks their initial
+results, calls `vote('1')`, and checks both updates. It closes the first iterator and verifies that
+the second still receives events, then closes the second and verifies that no listeners remain.
+To change the example, adjust the poll's starting votes in `schema.ts` and update the expected results.
+
+When using this schema in a server, pass a new listener map for each operation and arrange for the
+transport to close its iterator on disconnect. The local check makes that lifecycle explicit:
+
+```typescript
+import { parse, subscribe } from 'graphql';
+import { schema, vote } from './schema';
+
+const result = await subscribe({
+  schema,
+  document: parse('subscription { polls { id votes } }'),
+  contextValue: { listeners: new Map() },
+});
+
+if (Symbol.asyncIterator in result) {
+  const iterator = result[Symbol.asyncIterator]();
+  try {
+    console.log((await iterator.next()).value); // Initial polls
+    const update = iterator.next();
+    vote('1');
+    console.log((await update).value); // Incremented votes
+  } finally {
+    await iterator.return?.(); // Unsubscribe this operation's listeners
+  }
+} else {
+  console.error(result.errors);
+}
+```

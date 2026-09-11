@@ -115,6 +115,11 @@ builder.queryType({
 });
 ```
 
+For this nullable field, an unauthenticated request receives `message: null` and a GraphQL error;
+an authenticated request receives `"hi"`. Other fields that pass their own checks can still return
+data. The application must authenticate the user before constructing the context: checking a
+scope authorizes access using that context, but does not establish the user's identity.
+
 Set `authorizeOnSubscribe: true` to check authorization when a subscription is created. Without
 this option, checks run when subscription events resolve.
 
@@ -176,6 +181,10 @@ If your application already uses an `Article` class, you can pass it to `builder
 instead, with `name: 'Article'`, and return class instances from resolvers.
 
 ### Top level auth on queries and mutations
+
+Authorization runs before the field resolver. A denied mutation therefore cannot perform the
+writes inside that resolver; an authorized mutation can. Put writes in the protected resolver,
+not in the scope initializer or permission loader.
 
 To add an auth check to root level queries or mutations, add authScopes to the field options:
 
@@ -571,7 +580,7 @@ builder.queryField('viewerId', (t) =>
 #### Using `withAuth` with Prisma fields
 
 `withAuth` preserves plugin-specific field methods while refining their context. This alternative
-builder uses the client `prisma` and generated types from [Prisma setup](https://pothos-graphql.dev/docs/plugins/prisma/setup), with a
+builder uses the client `prisma` and generated types from [Prisma setup](./prisma/setup), with a
 User model containing an integer `id`. The request context contains either the
 signed-in user's ID or `null`:
 
@@ -647,6 +656,11 @@ You can use the built in `$any` and `$all` scope loaders to combine requirements
 above example requires a request to have either the `employee` or `canReadArticles` scopes, and the
 `loggedIn` scope. `$any` and `$all` each take a scope map as their parameters, and can be nested
 inside each other.
+
+The same pattern can require both login and a permission:
+`{ $all: { loggedIn: true, customPerm: 'editArticle' } }`. A user with only `readArticle` access
+can read a field requiring that permission but cannot pass the edit check. A user with
+`editArticle` access passes it only when `loggedIn` also succeeds.
 
 You can change the default strategy used for top level auth scopes by setting the `defaultStrategy`
 option in the builder (defaults to `any`):

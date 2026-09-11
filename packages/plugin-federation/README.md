@@ -63,6 +63,9 @@ builder.asEntity(User, {
 });
 ```
 
+The reference resolver looks up users by ID. An unknown ID produces a `null` entity in the
+`_entities` response.
+
 `keys` are defined using `builder.selection`. This method _MUST_ be called with a generic argument
 that defines the types for any fields that are part of the key. `key` may also be an array.
 `resolveReference` will be called with the type used by the `key` selection.
@@ -127,6 +130,9 @@ Product.implement({
   }),
 });
 ```
+
+A gateway supplies the required `price` and `weight` fields from the originating service when
+resolving `shippingEstimate`.
 
 ### Selections with inline fragments
 
@@ -223,6 +229,9 @@ builder.queryType({
 });
 ```
 
+The review's author reference includes `username`, allowing the gateway to use that provided
+value without fetching it from the users service.
+
 ### Building your schema and starting a server
 
 Each service builds and serves its own schema:
@@ -251,9 +260,6 @@ startStandaloneServer(server, { listen: { port: 4000 } })
     throw error;
   });
 ```
-
-For a functional example that combines multiple graphs built with Pothos into a single schema see
-[https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example)
 
 ### Printing the schema
 

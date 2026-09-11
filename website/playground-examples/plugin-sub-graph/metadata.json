@@ -1,0 +1,27 @@
+{
+  "id": "plugin-sub-graph",
+  "title": "Select an API variant",
+  "description": "Run ProductName, ProductFields, then InternalNotes. Public and Shared omit internalNotes and reject its query; Internal and Combined expose it. Edit the subGraph selection in schema.ts to compare the filtered fields. Reset example restores the selected variant.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/sub-graph"],
+  "defaultActiveFile": "schema.ts",
+  "variants": [
+    {
+      "id": "public",
+      "title": "Public",
+      "default": true
+    },
+    {
+      "id": "internal",
+      "title": "Internal"
+    },
+    {
+      "id": "combined",
+      "title": "Combined"
+    },
+    {
+      "id": "shared",
+      "title": "Shared"
+    }
+  ]
+}

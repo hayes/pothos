@@ -1,0 +1,4 @@
+query Estimate {
+  accepted: estimatedCost(limit: 2)
+  rejected: estimatedCost(limit: 16)
+}

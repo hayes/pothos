@@ -17,76 +17,11 @@ npm install --save @pothos/plugin-simple-objects
 
 ### Example
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
+`User` inherits `id` from the simple `Node` interface and contains nested `ContactInfo` data.
+Its resolver returns those fields directly. The additional `fullName` field computes a value from
+`firstName` and `lastName` instead of requiring a `fullName` property on the returned object.
 
-const builder = new SchemaBuilder({
-  plugins: [SimpleObjectsPlugin],
-});
-
-const ContactInfo = builder.simpleObject('ContactInfo', {
-  fields: (t) => ({
-    email: t.string({
-      nullable: false,
-    }),
-    phoneNumber: t.string({
-      nullable: true,
-    }),
-  }),
-});
-
-const Node = builder.simpleInterface('Node', {
-  fields: (t) => ({
-    id: t.id({
-      nullable: false,
-    }),
-  }),
-});
-
-const User = builder.simpleObject(
-  'User',
-  {
-    interfaces: [Node],
-    fields: (t) => ({
-      firstName: t.string({ nullable: false }),
-      lastName: t.string({ nullable: false }),
-      contactInfo: t.field({
-        type: ContactInfo,
-        nullable: false,
-      }),
-    }),
-  },
-  // You can add additional fields with resolvers with a third fields argument
-  (t) => ({
-    fullName: t.string({
-      resolve: (user) => `${user.firstName} ${user.lastName}`,
-    }),
-  }),
-);
-
-builder.queryType({
-  fields: (t) => ({
-    user: t.field({
-      type: User,
-      args: {
-        id: t.arg.id({ required: true }),
-      },
-      resolve: (parent, { id }) => {
-        return {
-          id: String(id),
-          firstName: 'Leia',
-          lastName: 'Organa',
-          contactInfo: {
-            email: 'leia@example.com',
-            phoneNumber: null,
-          },
-        };
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="plugin-simple-objects"'>playground-examples/plugin-simple-objects/schema.ts#example</include>
 
 ## Extending simple objects
 
@@ -96,13 +31,7 @@ just passed down from the parent.
 In these cases, you can either add the field in the 3rd arg (fields) as shown above, or you can add
 additional fields with `builder.objectFields`. This adds a different computed field to `User`:
 
-```typescript
-builder.objectFields(User, (t) => ({
-  initials: t.string({
-    resolve: (user) => `${user.firstName.slice(0, 1)}${user.lastName.slice(0, 1)}`,
-  }),
-}));
-```
+<include cwd lang="typescript" meta='playground example="plugin-simple-objects"'>playground-examples/plugin-simple-objects/schema.ts#extension</include>
 
 ## Limitations
 

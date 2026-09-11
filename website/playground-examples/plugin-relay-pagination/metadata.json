@@ -1,0 +1,8 @@
+{
+  "id": "plugin-relay-pagination",
+  "title": "Page through a deterministic connection",
+  "description": "Run the first page, then copy endCursor into the next page Variables. Compare backward, empty and invalid-size operations. Change first from 2 to 1 and follow the new endCursor: the next page starts at Grace. Reset example restores the queries and variables.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/relay"],
+  "defaultActiveFile": "schema.ts"
+}

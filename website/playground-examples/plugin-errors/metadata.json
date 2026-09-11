@@ -1,0 +1,8 @@
+{
+  "id": "plugin-errors",
+  "title": "Expected and unexpected failures",
+  "description": "Run success, handled failure, and unexpected failure to compare a success member, NameTooShort details, and a GraphQL error. Change Li to Leia in the handled-failure operation to get success. Reset restores the example.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/errors"],
+  "defaultActiveFile": "schema.ts"
+}

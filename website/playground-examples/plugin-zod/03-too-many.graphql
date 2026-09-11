@@ -1,0 +1,3 @@
+mutation SetRoster {
+  setRoster(emails: ["a@example.com", "b@example.com", "c@example.com"])
+}

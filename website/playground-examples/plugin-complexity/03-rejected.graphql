@@ -1,0 +1,5 @@
+query Rejected {
+  posts(limit: 16) {
+    title
+  }
+}

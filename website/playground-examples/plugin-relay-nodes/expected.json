@@ -1,0 +1,35 @@
+{
+  "01-refetch.graphql": {
+    "data": {
+      "users": [
+        {
+          "id": "VXNlcjox",
+          "name": "Ada"
+        },
+        {
+          "id": "VXNlcjoy",
+          "name": "Grace"
+        },
+        {
+          "id": "VXNlcjoz",
+          "name": "Katherine"
+        }
+      ],
+      "node": {
+        "id": "VXNlcjox",
+        "name": "Ada"
+      },
+      "nodes": [
+        {
+          "id": "VXNlcjoy",
+          "name": "Grace"
+        },
+        {
+          "id": "VXNlcjox",
+          "name": "Ada"
+        },
+        null
+      ]
+    }
+  }
+}

@@ -24,10 +24,14 @@ import * as ScopeAuthModule from '@pothos/plugin-scope-auth';
 // Import the full plugin modules (includes default export and all named exports)
 import * as SimpleObjectsModule from '@pothos/plugin-simple-objects';
 import * as SubGraphModule from '@pothos/plugin-sub-graph';
+import * as TracingModule from '@pothos/plugin-tracing';
 import * as ValidationModule from '@pothos/plugin-validation';
 import * as WithInputModule from '@pothos/plugin-with-input';
+import * as ZodModule from '@pothos/plugin-zod';
 
 export const pluginModules = {
+  '@pothos/plugin-tracing': TracingModule,
+  '@pothos/plugin-zod': ZodModule,
   '@pothos/plugin-simple-objects': SimpleObjectsModule,
   '@pothos/plugin-relay': RelayModule,
   '@pothos/plugin-with-input': WithInputModule,

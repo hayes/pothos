@@ -1,0 +1,5 @@
+query Allowed {
+  posts(limit: 2) {
+    title
+  }
+}
