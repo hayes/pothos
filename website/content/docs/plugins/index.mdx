@@ -3,6 +3,9 @@ title: Plugins
 description: List of plugins for Pothos
 ---
 
+Plugins extend the builder with fields, options, and methods for specific tasks. See
+[Using plugins](/docs/guide/using-plugins) for installation and builder configuration.
+
 <Cards>
   <Card
     title="Add GraphQL"
@@ -12,42 +15,43 @@ description: List of plugins for Pothos
   <Card
     title="Auth"
     href="/docs/plugins/scope-auth"
-    description={'Add global, type level, or field level authorization checks to your schema'}
+    description={'Authorize access to fields and types using request data'}
   />
 
   <Card
     title="Complexity"
     href="/docs/plugins/complexity"
-    description={'A plugin for defining and limiting complexity of queries'}
+    description={'Define field costs and limit query complexity'}
   />
   <Card
     title="Dataloader"
     href="/docs/plugins/dataloader"
-    description={'Quickly define data-loaders for your types and fields to avoid n+1 queries.'}
+    description={'Batch and cache data loading for types and fields'}
   />
   <Card
     title="Directives"
     href="/docs/plugins/directives"
-    description={'Integrate with existing schema graphql directives in a type-safe way.'}
+    description={'Attach directive metadata to your schema'}
   />
   <Card
     title="Drizzle"
     href="/docs/plugins/drizzle"
-    description={
-      'A plugin to support efficient queries through drizzles relational query builder API'
-    }
+    description={'Build queries from GraphQL selections using Drizzle’s relational query builder'}
   />
   <Card
     title="Errors"
     href="/docs/plugins/errors"
-    description={
-      'A plugin for easily including error types in your GraphQL schema and hooking up error types to resolvers.'
-    }
+    description={'Expose expected resolver errors as typed GraphQL results'}
+  />
+  <Card
+    title="Federation"
+    href="/docs/plugins/federation"
+    description={'Build subgraphs for Apollo Federation'}
   />
   <Card
     title="Grafast"
     href="/docs/plugins/grafast"
-    description={'A plugin for using grafast plans instead of resolvers in your schema'}
+    description={'Define Grafast plans for your schema'}
   />
   <Card
     title="Mocks"
@@ -57,45 +61,39 @@ description: List of plugins for Pothos
   <Card
     title="Prisma"
     href="/docs/plugins/prisma"
-    description={
-      'A plugin for more efficient integration with prisma that can help solve n+1 issues and more efficiently resolve queries'
-    }
+    description={'Build Prisma queries from GraphQL selections'}
   />
   <Card
     title="Relay"
     href="/docs/plugins/relay"
-    description={
-      'Easy to use builder methods for defining relay style nodes and connections, and helpful utilities for cursor based pagination.'
-    }
+    description={'Define Relay nodes, global IDs, and paginated connections'}
   />
   <Card
     title="Simple Objects"
     href="/docs/plugins/simple-objects"
-    description={'Define simple object types without resolvers or manual type definitions.'}
+    description={'Infer backing types from fields that expose data properties'}
   />
   <Card
     title="Smart Subscriptions"
     href="/docs/plugins/smart-subscriptions"
-    description={'Make any part of your graph subscribable to get live updates as your data changes.'}
+    description={'Update query results when subscribed data changes'}
   />
   <Card
     title="Sub-Graph"
     href="/docs/plugins/sub-graph"
-    description={
-      'Build multiple subsets of your graph to easily share code between internal and external APIs.'
-    }
+    description={'Build separate schemas from subsets of your types and fields'}
   />
   <Card
     title="Tracing"
     href="/docs/plugins/tracing"
     description={
-      'Add tracing for resolver execution, with support for opentelemetry, newrelic, sentry, logging, and custom tracers'
+      'Trace resolver execution with OpenTelemetry, New Relic, Sentry, or custom tracers'
     }
   />
   <Card
     title="Validation"
     href="/docs/plugins/validation"
-    description={'Validation using StandardSchemaV1 compatible libraries like Zod, Valibot, and ArkType'}
+    description={'Validate inputs with Standard Schema libraries such as Zod, Valibot, and ArkType'}
   />
   <Card
     title="With-Input"
@@ -103,3 +101,6 @@ description: List of plugins for Pothos
     description={'Define fields with inline input objects'}
   />
 </Cards>
+
+The [Zod plugin](/docs/plugins/zod) documents the older Zod-specific API. For new validation fields,
+start with the [Validation plugin](/docs/plugins/validation).
