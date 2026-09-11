@@ -239,20 +239,20 @@ html article#nd-page h3 {
   color: var(--bm-ink);
 }
 html article#nd-page h1 {
-  font-size: 42px;
+  font-size: 2.625rem;
   line-height: 1.08;
   letter-spacing: -0.02em;
   margin-bottom: 0;
 }
 html article#nd-page h2 {
-  font-size: 32px;
+  font-size: 2rem;
   line-height: 1.15;
   letter-spacing: -0.02em;
   margin-top: 1.6em;
   margin-bottom: 0.4em;
 }
 html article#nd-page h3 {
-  font-size: 22px;
+  font-size: 1.5rem;
   line-height: 1.25;
   letter-spacing: -0.015em;
   margin-top: 1.5em;
@@ -262,9 +262,28 @@ html article#nd-page h3 {
 article#nd-page p,
 article#nd-page ul li,
 article#nd-page ol li {
-  font-size: 16px;
+  font-size: 1.0625rem;
   line-height: 1.7;
   color: var(--bm-ink-soft);
+}
+
+/* Smaller article headings remain distinct from body copy without relying
+   on tiny labels. Tables share the reading size; code stays a little denser. */
+html article#nd-page h4,
+html article#nd-page h5,
+html article#nd-page h6 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+article#nd-page table {
+  font-size: 1.0625rem;
+}
+article#nd-page pre {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+article#nd-page [role="tab"] {
+  font-size: 0.9375rem;
 }
 
 /* Body copy fills the full content column, matching the code blocks,
@@ -301,7 +320,7 @@ article#nd-page > div:first-child > span,
 article#nd-page > div:first-child > a {
   color: var(--bm-accent);
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   line-height: 1.2;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -399,18 +418,6 @@ article#nd-page .fd-scroll-container {
   max-height: none;
 }
 
-/* Toolbar. For untitled blocks fumadocs floats the actions as an absolute
-   overlay in the top-right and reserves a horizontal gutter on each code line
-   (`--padding-right`, 2rem by default). The small icons tuck into that gutter
-   on the first line — NO vertical band is reserved, so the code starts on
-   line 1 and one-liners stay compact. Playground blocks carry a second icon
-   next to Copy, so widen the gutter just enough that neither icon ever sits
-   over code text. */
-article#nd-page figure.shiki.has-playground .fd-scroll-container[style*="--padding-right"] {
-  /* biome-ignore lint/complexity/noImportantStyles: beats fumadocs' inline `--padding-right` custom property */
-  --padding-right: 8.5rem !important;
-}
-
 /* Sidebar — uppercase section heads, accent left rule on active items.
    The sidebar and TOC selectors below have lower specificity than the
    article heading/link rules above, but they never match the same
@@ -422,13 +429,13 @@ article#nd-page figure.shiki.has-playground .fd-scroll-container[style*="--paddi
 #nd-sidebar [data-radix-scroll-area-viewport] > div > div > p,
 #nd-sidebar h3,
 #nd-sidebar [data-section-heading] {
-  font-size: 11px;
+  font-size: 0.875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--bm-ink-muted);
 }
 #nd-sidebar a {
-  font-size: 14px;
+  font-size: 1rem;
   color: var(--bm-ink-soft);
   border-left: 2px solid transparent;
   padding-left: 12px;
@@ -450,13 +457,13 @@ article#nd-page figure.shiki.has-playground .fd-scroll-container[style*="--paddi
 }
 [class*="[grid-area:toc]"] h3,
 [class*="[grid-area:toc]"] [data-toc-heading] {
-  font-size: 11px;
+  font-size: 0.875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--bm-ink-muted);
 }
 [class*="[grid-area:toc]"] a {
-  font-size: 13px;
+  font-size: 0.9375rem;
   color: var(--bm-ink-muted);
   transition: color 120ms ease;
 }
@@ -511,4 +518,37 @@ article#nd-page figure.shiki.has-playground .fd-scroll-container[style*="--paddi
 }
 .playground-shell *::-webkit-scrollbar-thumb:hover {
   background: var(--bm-ink-muted);
+}
+
+/* Search keeps its comfortable 18px input. Scope supporting text to this
+   dialog rather than changing other dialogs or the playground UI. */
+[role="dialog"]:has(input):has(button[aria-selected]) button[aria-selected] {
+  font-size: 0.9375rem;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: portaled search is disjoint from article */
+[role="dialog"]:has(input):has(button[aria-selected]) button[aria-selected] > div:first-child {
+  font-size: 0.875rem;
+}
+
+/* Header navigation responds to available space in units of its own text,
+   including when readers enlarge their default font size. */
+.bm-site-header {
+  container-type: inline-size;
+}
+@container (min-width: 64em) {
+  .bm-header-desktop-nav {
+    display: flex;
+  }
+  .bm-header-menu,
+  .bm-header-mobile-nav {
+    display: none;
+  }
+}
+
+/* An action row prevents long source lines sliding beneath the wider
+   Playground label, including on phones and at enlarged text sizes. */
+article#nd-page figure.has-playground > div:has(> button[aria-label="Open in Playground"]) {
+  position: static;
+  justify-content: flex-end;
+  padding: 0.375rem 0.5rem 0;
 }

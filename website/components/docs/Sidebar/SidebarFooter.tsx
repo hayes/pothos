@@ -36,7 +36,7 @@ export function SidebarFooter({ collapsed, onToggleCollapsed, onCloseMobile, isM
             href="https://github.com/sponsors/hayes"
             target="_blank"
             rel="noreferrer"
-            className="text-[12px] text-bm-ink-muted hover:text-bm-ink transition-colors"
+            className="text-sm text-bm-ink-muted hover:text-bm-ink transition-colors"
           >
             Sponsor →
           </a>

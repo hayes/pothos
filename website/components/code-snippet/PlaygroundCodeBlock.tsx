@@ -72,24 +72,16 @@ export function PlaygroundCodeBlock({
     <>
       <CodeBlock
         {...props}
-        // Mark blocks that carry the wide "Open in Playground" chip so the
-        // toolbar band (which pushes code below the chip) is reserved ONLY for
-        // them. Copy-only blocks skip the band and stay compact (global.css).
+        // Give source-linked blocks a separate action row so enlarged text
+        // and horizontally scrolled code never overlap the controls.
         className={[props.className, playground && 'has-playground'].filter(Boolean).join(' ')}
         Actions={({ className, children: copyButton }) => (
-          // Both actions are icon-only and share the top-right overlay
-          // (`className` carries fumadocs' absolute positioning + backdrop, or
-          // the header slot on titled blocks). Keeping the playground trigger
-          // icon-sized — same weight as Copy — lets it tuck into the code's
-          // right gutter instead of reserving a toolbar band that pushes the
-          // code down. global.css widens that gutter on `has-playground`
-          // blocks so neither icon ever sits over code text.
           <div className={`flex items-center gap-1 ${className || ''}`}>
             {playground && (
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+                className="inline-flex min-h-7 items-center gap-1 rounded-md px-1.5 text-fd-muted-foreground text-sm transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
                 title="Open in Playground"
                 aria-label="Open in Playground"
               >
