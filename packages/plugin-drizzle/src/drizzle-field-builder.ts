@@ -329,7 +329,7 @@ export class DrizzleObjectFieldBuilder<
     ) => {
       const countSelection = {
         [countKey]: (parent: TableConfig['table']) =>
-          buildCount(getClient(this.builder, context) as never, parent, fieldQuery.where),
+          buildCount(getClient(this.builder, context), parent, fieldQuery.where),
       };
 
       if (totalCountOnly) {
@@ -684,7 +684,7 @@ export class DrizzleObjectFieldBuilder<
     ) => {
       const buildFilter = (parentTable: TableConfig['table']): SQL =>
         buildRelationFilter(
-          getClient(this.builder, context) as never,
+          getClient(this.builder, context),
           relationField as Relation,
           parentTable as Table,
           targetKey,
@@ -727,7 +727,7 @@ export class DrizzleObjectFieldBuilder<
     // column identifying a target row to say. Without one it falls back to counting the target
     // table filtered by the relation, which says the same thing more slowly.
     const targetKey = schemaConfig.findPrimaryKey(relationField.targetTableName);
-    const distinctBy = targetKey?.length === 1 ? targetKey[0] : undefined;
+    const distinctBy = targetKey?.length === 1 && targetKey[0].notNull ? targetKey[0] : undefined;
 
     // Built once per field; the `extras` function it returns is what the plan carried before.
     const countExtras = (
@@ -748,7 +748,7 @@ export class DrizzleObjectFieldBuilder<
             }
 
             return buildRelationFilter(
-              client as never,
+              client,
               relationField as Relation,
               parent as Table,
             ).countDistinctRows(distinctBy, whereClause);

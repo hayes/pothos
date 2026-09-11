@@ -9,7 +9,7 @@ export const refMap = new WeakMap<object, Map<string, PrismaRef<never, PrismaMod
 export function getRefFromModel<Types extends SchemaTypes>(
   name: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  type: 'interface' | 'object' = 'object',
+  type?: 'interface' | 'object',
 ): PrismaRef<Types, PrismaModelTypes> {
   if (!refMap.has(builder)) {
     refMap.set(builder, new Map());
@@ -19,13 +19,13 @@ export function getRefFromModel<Types extends SchemaTypes>(
   if (!cache.has(name)) {
     cache.set(
       name,
-      type === 'object' ? new PrismaObjectRef(name, name) : new PrismaInterfaceRef(name, name),
+      type === 'interface' ? new PrismaInterfaceRef(name, name) : new PrismaObjectRef(name, name),
     );
   }
 
   const ref = cache.get(name)!;
 
-  // The cache is keyed by model name alone, so the first caller decides the ref's kind. Handing
+  // An explicit kind declares a type; an omitted kind only looks up the model. Handing
   // a later caller the other kind under its own type would silently register the model as both;
   // a model that needs both an object and an interface names one of them with `variant`.
   if (

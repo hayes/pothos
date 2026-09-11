@@ -34,6 +34,13 @@ const User = builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
     postsConnection: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
+    customConnection: t.relatedConnection(
+      'posts',
+      { cursor: 'id', totalCount: true },
+      {
+        fields: (c) => ({ pageSize: c.int({ resolve: (connection) => connection.edges.length }) }),
+      },
+    ),
   }),
 });
 
@@ -62,6 +69,36 @@ describe('connection selection facts', () => {
 
   afterAll(async () => {
     await prisma.$disconnect();
+  });
+
+  it('preserves rows for custom fields when totalCount is selected through a fragment', async () => {
+    const run = (selection: string) =>
+      execute({
+        schema,
+        document: gql(`{ users { customConnection(first: 1) { ${selection} } } }`),
+        contextValue: {},
+      });
+    const plain = await run('pageSize');
+    queries.length = 0;
+    const counted = await run('pageSize ... { count: totalCount }');
+
+    expect(plain.errors).toBeUndefined();
+    expect(counted.errors).toBeUndefined();
+    const rows = counted.data?.users as { customConnection: { pageSize: number; count: number } }[];
+    expect(rows.map((row) => row.customConnection.pageSize)).toEqual([1, 1, 1]);
+    expect(
+      rows.map((row) => ({ customConnection: { pageSize: row.customConnection.pageSize } })),
+    ).toEqual(plain.data?.users);
+    expect(queries).toMatchObject([
+      {
+        args: {
+          include: {
+            posts: { take: 2 },
+            _count: { select: { posts: true } },
+          },
+        },
+      },
+    ]);
   });
 
   it('reads the selection once and shares it with every parent row', async () => {

@@ -188,7 +188,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         // Against the row it resolves with: a sibling row of the same list may have been loaded
         // by another plan, and must keep answering from that one.
-        setRowMappings(context, info, mapping.nested, parent);
+        setRowMappings(context, info, mapping.nested);
 
         return resolver(parent, args, context, info);
       }

@@ -17,8 +17,8 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { selectedFieldNames } from '@pothos/selection-mapper';
-import type { FieldNode, GraphQLResolveInfo } from 'graphql';
+import { type IndirectInclude, type Position, selectedFieldNames } from '@pothos/selection-mapper';
+import { type FieldNode, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -244,7 +244,7 @@ export class PrismaObjectFieldBuilder<
     const connectionSelection = (context: object, info: GraphQLResolveInfo) => {
       const selected = selectedFieldNames(context, info);
       const hasTotalCount = !!totalCount && selected.has('totalCount');
-      const hasRows = selected.has('edges') || selected.has('nodes') || selected.has('pageInfo');
+      const hasRows = [...selected].some((name) => name !== 'totalCount' && name !== '__typename');
 
       return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
     };
@@ -283,6 +283,7 @@ export class PrismaObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown, path?: unknown) => { select?: object },
       getSelection: (path: string[]) => FieldNode | null,
+      position: Position,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
       // A maybe-promise query starts the nested plan now; its merge waits for the query.
@@ -295,8 +296,20 @@ export class PrismaObjectFieldBuilder<
       // success type may split totalCount and edges across two of them), so the plan agrees with
       // what `connectionSelection` reads at resolve time.
       const hasTotalCount = !!totalCount && !!getSelection(['totalCount']);
-      const hasRows =
-        !!getSelection(['edges']) || !!getSelection(['nodes']) || !!getSelection(['pageInfo']);
+      // Custom connection fields can consume rows too. Inspect the connection's complete field
+      // set, including fields added through shared refs or plugins, and use the same fragment-
+      // aware lookup as the built-in fields. A wrapper's single indirect path leads to it.
+      const returnType = getNamedType(position.field.type);
+      let connectionType = returnType.name;
+      let include = returnType.extensions.pothosIndirectInclude as IndirectInclude | undefined;
+      while (include?.path) {
+        connectionType = include.getType();
+        include = this.builder.configStore.getTypeConfig(connectionType).extensions
+          ?.pothosIndirectInclude as IndirectInclude | undefined;
+      }
+      const hasRows = [...this.builder.configStore.getFields(connectionType).keys()].some(
+        (field) => field !== 'totalCount' && !!getSelection([field]),
+      );
       const totalCountOnly = hasTotalCount && !hasRows;
 
       return isThenable(nested)

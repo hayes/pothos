@@ -67,6 +67,34 @@ describe('model ref kinds', () => {
     ).not.toThrow();
   });
 
+  it('looks up an existing interface through root and relation model names', () => {
+    const builder = createBuilder();
+    const User = builder.prismaInterface('User', {
+      resolveType: () => 'ConcreteUser',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('User', {
+      variant: 'ConcreteUser',
+      interfaces: [User],
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({ author: t.relation('author') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          nullable: true,
+          resolve: () => null,
+        }),
+      }),
+    });
+
+    expect(getRefFromModel('User', builder)).toBe(User);
+    expect(() => builder.toSchema()).not.toThrow();
+  });
+
   it('keeps handing back the same ref for repeated calls of one kind', () => {
     const builder = createBuilder();
 

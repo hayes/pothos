@@ -1,5 +1,5 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
-import { cacheKey, Plan, setRowFieldMapping, setRowMappings } from '@pothos/selection-mapper';
+import { cacheKey, Plan, setLoaderMappings, setRowFieldMapping } from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -171,8 +171,9 @@ export class ModelLoader {
   private loadFieldWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
     return this.stageQuery(played, model).then((result) => {
       if (result) {
-        // This plan loaded `result` alone, so its mappings are the row's, not the field's.
-        setRowMappings(this.context, info, played.mappings, result);
+        // Relay nodes of different types share this field path. Each node plan contributes
+        // its type-qualified mappings, as a queryFromInfo plan would.
+        setLoaderMappings(this.context, info, played.mappings);
       }
 
       return result;
@@ -214,12 +215,7 @@ export class ModelLoader {
     nextTick.promise
       .then(() => {
         this.staged.delete(entry);
-        const api = (
-          client.query as Record<
-            string,
-            { findMany: (...args: unknown[]) => Promise<Record<string, unknown>[]> }
-          >
-        )[this.modelName];
+        const api = client.query[this.modelName];
 
         const query = api.findMany({
           ...this.adapter.toQuery(entry.root),
@@ -230,7 +226,7 @@ export class ModelLoader {
                 [...entry.models.keys()].map((model) => this.sqlForModel(model)),
               ),
           },
-        });
+        } as never);
 
         query.then(
           (results) => {

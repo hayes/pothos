@@ -825,3 +825,166 @@ builder.queryFields((t) => ({
     },
   }),
 }));
+
+
+## Query planning
+
+This page describes how the plugin turns a GraphQL query into drizzle queries, which is worth
+knowing when a schema issues more queries than you expect.
+
+### How fields get their data
+
+A field either reads its data from a row that has already been loaded, or runs a query of its own.
+
+A field's `select` is planned into the query of the nearest ancestor that runs one: a
+`t.drizzleField`, a `t.relation`, a connection, or a [fallback query](https://pothos-graphql.dev/docs/plugins/drizzle/relations#fallback-queries). The field
+then reads what it needs off the loaded row, without a query of its own. A field runs its own query
+when its `resolve` queries drizzle directly, and when the plugin issues a fallback query for a
+relation that is missing from the row.
+
+A field can do both. A `t.drizzleField`, or any other field with a `select`, nested under one of
+those ancestors has its `select` planned into the parent's row, and still runs its own query when
+it resolves.
+
+A field-level `select` is merged into the same query as its siblings and the type-level selection,
+rather than being kept separate for that field. Two selections of the same relation share a place
+in that query only when their arguments (`where`, `orderBy`, `limit`, ...) match. When they differ,
+the first one planned wins, and the other is loaded with a query of its own. A type-level `select`
+is planned before any field's selection, no matter where they appear in the document, and fields
+are planned in the order they are selected.
+
+### Nested selections
+
+A `select` function receives `nestedSelection`, which plans the selection beneath the field for the
+field's own type. It returns the query config for that table, or a `many` config for a list field.
+Any keys you pass in are kept as they were given, so `columns` passed to `nestedSelection` will
+still narrow the parent shape:
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    latestPosts: t.field({
+      type: [Post],
+      select: (args, ctx, nestedSelection) => ({
+        // what the query selects on the posts, limited to one
+        with: { posts: nestedSelection({ limit: 1 }) },
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+`nestedSelection(query, path, type)` takes two more arguments:
+
+- `path`: a list of field names, for selecting a field nested under the field's type. A segment can
+  also be written as `{ name, type }` to pin the implementation the field must be found under.
+- `type`: a member of an interface or union, to read the selection as that type.
+
+The `nestedSelection` function also carries the `path` and `segments` of the field being planned,
+which are described under [Relation queries](https://pothos-graphql.dev/docs/plugins/drizzle/relations#relation-queries).
+
+### Async selections
+
+Selections are synchronous unless the schema opts in with `AsyncSelections: true`:
+
+```ts
+const builder = new SchemaBuilder<{
+  DrizzleRelations: typeof relations;
+  AsyncSelections: true;
+}>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+  },
+});
+```
+
+With the opt-in, `select` functions, relation `query` callbacks, `relatedCount` `where` callbacks,
+and the `select` and `query` callbacks of `drizzleConnectionHelpers` may be async. Without it they
+are typed as synchronous, and an async callback is a type error.
+
+The plugin still builds a single query. It waits for the callbacks, and merges what they return
+after every synchronous selection, in document order. `t.relation`, `t.relatedCount`,
+`t.drizzleField`, `t.drizzleConnection` and `t.relatedConnection` settle their plan before the
+resolver runs, and need no changes.
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    posts: t.relation('posts', {
+      query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
+    }),
+    latestPosts: t.field({
+      type: [Post],
+      select: async (args, ctx, nestedSelection) => ({
+        with: { posts: await nestedSelection({ limit: await ctx.previewSize() }) },
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+`await` what `nestedSelection` returns before putting it in the selection, and the same for the
+`nestedQuery` passed as the fourth argument of a `t.relatedField` `select`. A selection that
+contains the promise itself will throw, and so will a `select` that returns while a nested
+selection it started is still pending. Calling `nestedSelection` and discarding a synchronous
+result is not detected, and the nested selection will not be loaded with the parent.
+
+Pass `awaitSelections: true` to `drizzleConnectionHelpers(...).getQuery`, and `await` the query it
+returns. Without it, an async selection beneath the field throws, and whether there is one
+depends on the incoming document rather than on the callback you wrote. A connection helper also
+throws when its own `select` or `query` is async, whatever the document asked for:
+
+```ts
+select: async (args, ctx, nestedSelection) => ({
+  with: {
+    comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
+      awaitSelections: true,
+    }),
+  },
+}),
+```
+
+`awaitSelections` is a per-call option, and is available whether or not the schema sets
+`AsyncSelections`.
+
+### Conflicting selections between variants
+
+When a query selects two variants of one table for the same row, either with a fragment on each
+under one field, or through a `t.variant` field, the plugin will throw a `PothosValidationError` if
+their `select` options ask for the same relation with different arguments:
+
+```
+PothosValidationError: Type-level selections of Viewer and Admin conflict on relation "posts".
+Move the relation arguments to a field-level select on one of the types.
+```
+
+The same applies to two variants defining the same `extras` key with different functions
+(`... conflict on extra "lowercaseName"`). Both variants describe one row, so their `select`
+options are merged into a single query.
+
+To fix this, move the relation with its arguments, or the extra, into the `select` of the field
+that needs it on one of the variants. A field-level selection that conflicts with what the row
+already holds falls back to a query for that field, rather than failing the request.
+
+### Custom client adapters
+
+The exported `DrizzleClient` type describes the methods the plugin calls: relation metadata in
+`_.relations`, `query.<table>.findMany()` for fallback loading, `$count()`, and `select()` for
+relation predicates and counts. Full Drizzle clients provide these methods. Custom wrappers
+must forward them too; wrappers exposing only `query` and `$count` need to add `select` when
+upgrading.
+
+`select` constructs SQL synchronously. Forward its builder, including `from`, `innerJoin`,
+`where`, and `getSQL`, rather than executing it or wrapping it in a promise or Effect. For a
+request-scoped database, this can be `select: (fields) => getDatabase().select(fields)`.
+A dynamic query proxy should expose `DrizzleClient<CountSource>['query']`, where `CountSource`
+is `Parameters<typeof db.$count>[0]`; each table's `findMany` returns a promise-like array of rows.
+The query input is erased in this minimal contract because each table accepts its own
+schema-specific configuration. Keep the concrete database types in application resolvers.

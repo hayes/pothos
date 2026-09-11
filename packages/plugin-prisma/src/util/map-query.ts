@@ -146,5 +146,7 @@ export function fallbackQueryFromInfo(
     plans.set(key, plan);
   }
 
-  return isThenable(plan) ? plan.then((settled) => settled.query()) : plan.query();
+  return isThenable(plan)
+    ? plan.then((settled) => settled.query(undefined, info))
+    : plan.query(undefined, info);
 }
