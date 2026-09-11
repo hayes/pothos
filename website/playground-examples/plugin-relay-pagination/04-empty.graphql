@@ -1,0 +1,14 @@
+query Empty {
+  users(first: 2, after: "T2Zmc2V0Q29ubmVjdGlvbjoz") {
+    edges {
+      node {
+        id
+      }
+    }
+    pageInfo {
+      startCursor
+      endCursor
+      hasNextPage
+    }
+  }
+}

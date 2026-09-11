@@ -5,6 +5,46 @@ Use nodes when clients need to refetch an object by ID, and connections when cli
 through a collection. A connection can return ordinary object types; its items do not have to
 implement the `Node` interface.
 
+## Run node identity, then pagination
+
+Start with the node companion. Its query returns the users list and refetches Ada through
+`node(id: "VXNlcjox")`. The same global ID appears in both results. The `nodes` field returns
+Grace, Ada, and a missing node in the requested order; the missing node is `null`.
+Change the single node ID to `VXNlcjoz` to refetch Katherine.
+
+[Open the node companion](https://pothos-graphql.dev/playground?example=plugin-relay-nodes). Its source is shown under
+[Creating Nodes](#creating-nodes).
+
+Global IDs encode the type and local ID. They are identifiers, not authorization checks.
+The node loader must still enforce the application's access rules when needed.
+
+Next, use the connection companion. Its four users stay in a fixed order, and they are ordinary
+objects rather than nodes: connection cursors and node IDs serve different purposes.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    users: t.connection({
+      type: User,
+      resolve: (_parent, args) => resolveArrayConnection({ args }, users),
+    }),
+  }),
+});
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-relay-pagination)
+
+Run `01-first-page` with `first: 2`: it returns Ada and Grace with `hasNextPage: true`.
+Copy `endCursor` into the **Variables** input for `02-next-page` (the fixture starts with that
+value). The next page returns Katherine and Dorothy with `hasNextPage: false`.
+`03-backward` reads the two records before Dorothy, and `04-empty` reads after the final cursor.
+`05-invalid-size` shows the error for a negative page size.
+
+Change `first` to `1`, run the first page again, and use its new `endCursor` for the next page:
+that page now starts at Grace. Treat cursors as opaque values returned by the connection.
+`resolveArrayConnection` paginates an array already in memory; the offset and cursor helpers
+below explain how to fetch only the needed records from a larger data source.
+
 ## Usage
 
 ### Install
@@ -95,27 +135,27 @@ Both options support all standard type options including `name`, `description`, 
 
 ### Creating Nodes
 
-To create objects that extend the `Node` interface, you can use the new `builder.node` method.
+To create objects that extend the `Node` interface, use `builder.node`. This is the node
+companion from the walkthrough above; its complete source also defines the `users` query.
 
 ```typescript
 type UserShape = { id: string; name: string };
-
 const users: UserShape[] = [
   { id: '1', name: 'Ada' },
   { id: '2', name: 'Grace' },
   { id: '3', name: 'Katherine' },
 ];
-
 const User = builder.objectRef<UserShape>('User');
-
 builder.node(User, {
   id: { resolve: (user) => user.id },
   loadOne: (id) => users.find((user) => user.id === id) ?? null,
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
+  fields: (t) => ({ name: t.exposeString('name') }),
 });
+```
 
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-relay-nodes)
+
+```typescript
 builder.queryType({});
 ```
 

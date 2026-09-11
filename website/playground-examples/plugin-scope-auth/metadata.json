@@ -1,0 +1,8 @@
+{
+  "id": "plugin-scope-auth",
+  "title": "Request permissions and protected writes",
+  "description": "Run the same query signed out, as a reader, and as an editor. Then run the rejected write and inspect state before the permitted write. Edit Context permissions to change access; reset restores the article.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/scope-auth"],
+  "defaultActiveFile": "schema.ts"
+}

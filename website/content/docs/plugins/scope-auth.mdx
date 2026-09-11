@@ -7,6 +7,32 @@ The scope auth plugin checks authorization before a field resolver runs. Define 
 roles, permissions, or ownership checks, then require those scopes on fields and types. Checks and
 scope loaders are cached for the current request.
 
+## Run a permission check
+
+The companion runs the same query with three request contexts. In `01-signed-out`, all three
+protected fields return `null` with `Not authorized` errors. In `02-reader`, `message` and
+`article` succeed while `editPreview` is denied. In `03-editor`, all three succeed.
+Open each operation's **Context** input to inspect the user and permissions passed to the schema.
+These JSON fixtures stand in for a server's authenticated context; they do not authenticate a user.
+
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth"'>playground-examples/plugin-scope-auth/schema.ts#scopes</include>
+
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth"'>playground-examples/plugin-scope-auth/schema.ts#protected-fields</include>
+
+`$all` requires both a logged-in user and the named permission. Add `"editArticle"` to the
+reader's permissions and rerun `02-reader`: `editPreview` now succeeds. Restore the original
+context with **Reset example** before following the write sequence.
+
+Run `04-rejected-write`, then `05-after-rejection`: the title stays `Getting started` and
+`writes` remains `0`. Run `06-permitted-write`, then `07-after-write`: the title becomes
+`Updated guide` and `writes` becomes `1`. A denied request never reaches the mutation resolver.
+The public state fields are fixture instrumentation so this skipped effect is visible.
+
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth"'>playground-examples/plugin-scope-auth/schema.ts#protected-write</include>
+
+Mutation data persists between operations while this example remains loaded. Resetting reloads
+the original article; rerunning an allowed mutation increments `writes` again.
+
 ## Usage
 
 ### Install

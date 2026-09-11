@@ -1,0 +1,6 @@
+{
+  "user": {
+    "id": "editor",
+    "permissions": ["readArticle", "editArticle"]
+  }
+}

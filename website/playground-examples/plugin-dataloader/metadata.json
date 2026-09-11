@@ -1,0 +1,8 @@
+{
+  "id": "plugin-dataloader",
+  "title": "Batching and request caching",
+  "description": "Run the batching report: repeated keys share one load and sorting restores requested order. Change the requested keys and compare batchKeys with users. Each run gets a fresh context.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/dataloader"],
+  "defaultActiveFile": "schema.ts"
+}

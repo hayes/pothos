@@ -1,0 +1,18 @@
+query Refetch {
+  users {
+    id
+    name
+  }
+  node(id: "VXNlcjox") {
+    id
+    ... on User {
+      name
+    }
+  }
+  nodes(ids: ["VXNlcjoy", "VXNlcjox", "VXNlcjo5OQ=="]) {
+    id
+    ... on User {
+      name
+    }
+  }
+}

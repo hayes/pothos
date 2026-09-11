@@ -4,6 +4,72 @@ The scope auth plugin checks authorization before a field resolver runs. Define 
 roles, permissions, or ownership checks, then require those scopes on fields and types. Checks and
 scope loaders are cached for the current request.
 
+## Run a permission check
+
+The companion runs the same query with three request contexts. In `01-signed-out`, all three
+protected fields return `null` with `Not authorized` errors. In `02-reader`, `message` and
+`article` succeed while `editPreview` is denied. In `03-editor`, all three succeed.
+Open each operation's **Context** input to inspect the user and permissions passed to the schema.
+These JSON fixtures stand in for a server's authenticated context; they do not authenticate a user.
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: { loggedIn: boolean; permission: Permission };
+}>({
+  plugins: [ScopeAuthPlugin],
+  scopeAuth: {
+    authScopes: (context) => ({
+      loggedIn: !!context.user,
+      permission: (permission) => context.user?.permissions.includes(permission) ?? false,
+    }),
+    unauthorizedError: () => new Error('Not authorized'),
+  },
+});
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-scope-auth)
+
+```typescript
+    message: t.string({ authScopes: { loggedIn: true }, resolve: () => 'hi' }),
+    article: t.string({
+      authScopes: { $all: { loggedIn: true, permission: 'readArticle' } },
+      resolve: () => article.title,
+    }),
+    editPreview: t.string({
+      authScopes: { $all: { loggedIn: true, permission: 'editArticle' } },
+      resolve: () => 'You can edit this article',
+    }),
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-scope-auth)
+
+`$all` requires both a logged-in user and the named permission. Add `"editArticle"` to the
+reader's permissions and rerun `02-reader`: `editPreview` now succeeds. Restore the original
+context with **Reset example** before following the write sequence.
+
+Run `04-rejected-write`, then `05-after-rejection`: the title stays `Getting started` and
+`writes` remains `0`. Run `06-permitted-write`, then `07-after-write`: the title becomes
+`Updated guide` and `writes` becomes `1`. A denied request never reaches the mutation resolver.
+The public state fields are fixture instrumentation so this skipped effect is visible.
+
+```typescript
+    renameArticle: t.string({
+      authScopes: { $all: { loggedIn: true, permission: 'editArticle' } },
+      args: { title: t.arg.string({ required: true }) },
+      resolve: (_parent, { title }) => {
+        article.writes += 1;
+        article.title = title;
+        return article.title;
+      },
+    }),
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-scope-auth)
+
+Mutation data persists between operations while this example remains loaded. Resetting reloads
+the original article; rerunning an allowed mutation increments `writes` again.
+
 ## Usage
 
 ### Install

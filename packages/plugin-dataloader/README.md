@@ -4,6 +4,64 @@ The dataloader plugin batches loads for fields and object types. Resolvers retur
 and the plugin loads those records through a DataLoader shared within the request. This reduces
 repeated database calls when a query selects the same relation for many objects.
 
+## Run batching and caching
+
+This companion uses three in-memory users. Run `01-batching`: the requested keys are
+`["3", "1", "3", "missing"]`, but `batchKeys` contains only `["3", "1", "missing"]`.
+The duplicate key shares its load, `cachedAgain` confirms that a later load adds no batch,
+and the returned users keep the requested order. The missing user is `null` because this
+example permits nullable list items.
+
+```typescript
+const User = builder.loadableObject('User', {
+  load: async (ids: string[], context: Context) => {
+    context.batches ??= [];
+    context.batches.push([...ids]);
+    // This source deliberately returns storage order, not requested order.
+    return users.filter((user) => ids.includes(user.id));
+  },
+  sort: (user) => user.id,
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    username: t.exposeString('username'),
+  }),
+});
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-dataloader)
+
+The source returns storage order deliberately. `sort` maps each record back to its requested
+key. The companion also has a `users` field whose resolver returns only keys; run
+`02-key-resolvers` to see the plugin load those records automatically.
+
+```typescript
+    batching: t.field({
+      type: BatchReport,
+      args: { ids: t.arg.stringList({ required: true }) },
+      resolve: async (_parent, { ids }, context) => {
+        const loader = User.getDataloader(context);
+        const loaded = await Promise.all(ids.map((id) => loader.load(id)));
+        const before = context.batches?.length ?? 0;
+        if (ids.length) {
+          await loader.load(ids[0]);
+        }
+        return {
+          users: loaded,
+          batchKeys: context.batches ?? [],
+          cachedAgain: (context.batches?.length ?? 0) === before,
+        };
+      },
+    }),
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-dataloader)
+
+Change the first operation's keys to `["2", "1", "2"]`: expect Grace, Ada, Grace, and one batch
+containing only `"2"` and `"1"`. Each run receives a fresh context, so caches do not cross
+requests. The report awaits its loads before returning its counters; a sibling query field
+would not reliably observe completed batches. This small source makes batching visible without
+a database; the data access and relation alternatives below apply to real request loaders.
+
 ## Usage
 
 ### Install
@@ -512,15 +570,25 @@ For any type or field that creates a dataloader, you can also provide a `sort` o
 correctly map your results into the correct order based on their ids. To do this, you will need to
 provide a function that accepts a result object, and returns its id.
 
+The batching companion deliberately returns records in storage order to demonstrate this mapping:
+
 ```typescript
 const User = builder.loadableObject('User', {
-  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
-  sort: user => user.id,
+  load: async (ids: string[], context: Context) => {
+    context.batches ??= [];
+    context.batches.push([...ids]);
+    // This source deliberately returns storage order, not requested order.
+    return users.filter((user) => ids.includes(user.id));
+  },
+  sort: (user) => user.id,
   fields: (t) => ({
-    id: t.exposeID('id', {}),
+    id: t.exposeID('id'),
+    username: t.exposeString('username'),
   }),
 });
 ```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-dataloader)
 
 This also works with loadable nodes, interfaces, unions, and fields. Missing keys become `null`
 after sorting. Choose field and list-item nullability to match that behavior; a missing record in

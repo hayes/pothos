@@ -1,0 +1,8 @@
+{
+  "id": "plugin-relay-nodes",
+  "title": "Refetch Relay nodes",
+  "description": "Run the node query and compare IDs with the users list. Change a global ID to VXNlcjoz to load Katherine; the missing node stays null. Global IDs identify a type and local key, not an authorization decision.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/relay"],
+  "defaultActiveFile": "schema.ts"
+}

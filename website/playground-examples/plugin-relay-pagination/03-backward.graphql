@@ -1,0 +1,14 @@
+query Backward {
+  users(last: 2, before: "T2Zmc2V0Q29ubmVjdGlvbjoz") {
+    edges {
+      node {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+  }
+}

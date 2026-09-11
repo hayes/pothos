@@ -1,0 +1,105 @@
+{
+  "01-first-page.graphql": {
+    "data": {
+      "users": {
+        "edges": [
+          {
+            "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+            "node": {
+              "id": "1",
+              "name": "Ada"
+            }
+          },
+          {
+            "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+            "node": {
+              "id": "2",
+              "name": "Grace"
+            }
+          }
+        ],
+        "pageInfo": {
+          "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "hasNextPage": true,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  "02-next-page.graphql": {
+    "data": {
+      "users": {
+        "edges": [
+          {
+            "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+            "node": {
+              "id": "3",
+              "name": "Katherine"
+            }
+          },
+          {
+            "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+            "node": {
+              "id": "4",
+              "name": "Dorothy"
+            }
+          }
+        ],
+        "pageInfo": {
+          "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "hasNextPage": false,
+          "hasPreviousPage": true
+        }
+      }
+    }
+  },
+  "03-backward.graphql": {
+    "data": {
+      "users": {
+        "edges": [
+          {
+            "node": {
+              "id": "2",
+              "name": "Grace"
+            }
+          },
+          {
+            "node": {
+              "id": "3",
+              "name": "Katherine"
+            }
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": true,
+          "hasPreviousPage": true
+        }
+      }
+    }
+  },
+  "04-empty.graphql": {
+    "data": {
+      "users": {
+        "edges": [],
+        "pageInfo": {
+          "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "hasNextPage": false
+        }
+      }
+    }
+  },
+  "05-invalid-size.graphql": {
+    "errors": [
+      {
+        "message": "Argument \"first\" must be a non-negative integer",
+        "path": ["users"]
+      }
+    ],
+    "data": {
+      "users": null
+    }
+  }
+}

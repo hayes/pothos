@@ -1,0 +1,40 @@
+{
+  "01-batching.graphql": {
+    "data": {
+      "batching": {
+        "users": [
+          {
+            "id": "3",
+            "username": "Katherine"
+          },
+          {
+            "id": "1",
+            "username": "Ada"
+          },
+          {
+            "id": "3",
+            "username": "Katherine"
+          },
+          null
+        ],
+        "batchKeys": [["3", "1", "missing"]],
+        "cachedAgain": true
+      }
+    }
+  },
+  "02-key-resolvers.graphql": {
+    "data": {
+      "users": [
+        {
+          "id": "2",
+          "username": "Grace"
+        },
+        {
+          "id": "1",
+          "username": "Ada"
+        },
+        null
+      ]
+    }
+  }
+}

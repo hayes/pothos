@@ -1,0 +1,6 @@
+query KeyResolvers {
+  users(ids: ["2", "1", "missing"]) {
+    id
+    username
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "01-signed-out.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["message"]
+      },
+      {
+        "message": "Not authorized",
+        "path": ["article"]
+      },
+      {
+        "message": "Not authorized",
+        "path": ["editPreview"]
+      }
+    ],
+    "data": {
+      "message": null,
+      "article": null,
+      "editPreview": null
+    }
+  },
+  "02-reader.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["editPreview"]
+      }
+    ],
+    "data": {
+      "message": "hi",
+      "article": "Getting started",
+      "editPreview": null
+    }
+  },
+  "03-editor.graphql": {
+    "data": {
+      "message": "hi",
+      "article": "Getting started",
+      "editPreview": "You can edit this article"
+    }
+  },
+  "04-rejected-write.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["renameArticle"]
+      }
+    ],
+    "data": {
+      "renameArticle": null
+    }
+  },
+  "05-after-rejection.graphql": {
+    "data": {
+      "savedTitle": "Getting started",
+      "writes": 0
+    }
+  },
+  "06-permitted-write.graphql": {
+    "data": {
+      "renameArticle": "Updated guide"
+    }
+  },
+  "07-after-write.graphql": {
+    "data": {
+      "savedTitle": "Updated guide",
+      "writes": 1
+    }
+  }
+}
