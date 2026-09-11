@@ -62,6 +62,7 @@ If your event service already returns async iterators, use `subscribeOptionsFrom
 alternative to the manual callbacks. It manages each iterator's lifetime:
 
 ```typescript
+import { subscribeOptionsFromIterator } from '@pothos/plugin-smart-subscriptions';
 
 type IteratorContext = {
   eventsFor: (name: string) => AsyncIterableIterator<unknown>;
@@ -212,6 +213,8 @@ When using this schema in a server, pass a new listener map for each operation a
 transport to close its iterator on disconnect. The local check makes that lifecycle explicit:
 
 ```typescript
+import { parse, subscribe } from 'graphql';
+import { schema, vote } from './schema';
 
 const result = await subscribe({
   schema,

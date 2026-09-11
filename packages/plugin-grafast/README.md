@@ -249,6 +249,8 @@ To try your own values, edit the query or `variableValues` in that file and upda
 The execution call has this form:
 
 ```typescript
+import { grafast } from 'grafast';
+import { schema } from './schema';
 
 const result = await grafast({
   schema,
