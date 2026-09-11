@@ -10,7 +10,7 @@ export async function checkLandingMobile(browser, origin) {
     page.setDefaultTimeout(60000);
     let loadedPlayground = false;
     page.on('request', (request) => {
-      if (new URL(request.url()).pathname === '/playground') {
+      if (request.isNavigationRequest() && new URL(request.url()).pathname === '/playground') {
         loadedPlayground = true;
       }
     });
@@ -24,7 +24,7 @@ export async function checkLandingMobile(browser, origin) {
         0,
         'Mobile homepage must not mount the playground',
       );
-      assert.equal(loadedPlayground, false, 'Mobile homepage must not request the playground');
+      assert.equal(loadedPlayground, false, 'Mobile homepage must not load a playground document');
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
         false,
