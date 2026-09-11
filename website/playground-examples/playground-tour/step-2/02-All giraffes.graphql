@@ -1,5 +1,4 @@
-query Visit($name: String!, $minimumHeight: Float!) {
-  greeting(name: $name)
+query Visit($minimumHeight: Float!) {
   giraffes(minimumHeight: $minimumHeight) {
     name
     height

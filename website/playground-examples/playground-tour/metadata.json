@@ -1,7 +1,7 @@
 {
   "id": "playground-tour",
   "title": "Using the playground",
-  "description": "Run a greeting, then query a small herd using variables and request context.",
+  "description": "Run and edit a greeting, then use variables to query a small herd.",
   "category": "core",
   "order": 1,
   "relatedDocs": ["/docs/guide/playground"],
@@ -9,9 +9,9 @@
     {
       "id": "step-1",
       "title": "Run and edit",
-      "description": "Run English greeting, then French greeting. Change the name in Variables and run again. Change Hello in lib/greeting.ts to Welcome to edit the resolver behavior.",
+      "description": "Run the greeting query. Change Sam in the query to your name and run again. In schema.ts, change Hello to Welcome to edit the response.",
       "order": 1,
-      "defaultActiveFile": "lib/greeting.ts"
+      "defaultActiveFile": "schema.ts"
     },
     {
       "id": "step-2",

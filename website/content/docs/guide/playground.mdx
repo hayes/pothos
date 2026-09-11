@@ -1,23 +1,21 @@
 ---
 title: Using the playground
-description: Run a Pothos schema, edit its source, and try queries with variables and context.
+description: Run a Pothos schema, edit its source, and use variables to explore your data.
 ---
 
 The playground runs Pothos schemas in your browser. You can edit the TypeScript source, inspect the generated GraphQL schema, and execute queries without starting a server.
 
 ## Run and edit a greeting
 
-[Open the greeting example](/playground?example=playground-tour&step=1). Select **01-English greeting** and click **Run**. The response contains `"Hello, Sam!"`.
+[Open the greeting example](/playground?example=playground-tour&step=1) and click **Run**. The response contains `"Hello, Sam!"`.
 
-Open **Variables**, change `name` to your name, and run again. Then select **02-French greeting**: its **Context** contains `{"locale":"fr"}`, so the same resolver returns a French greeting.
+Change `Sam` in the query to your name and run again. This example has one source file and one query.
 
-<include cwd lang="typescript" meta='playground example="playground-tour-step-1"'>playground-examples/playground-tour/step-1/lib/greeting.ts#greeting</include>
-
-In the source editor, change `Hello` to `Welcome`. Run **01-English greeting** again to see the edited response. **Reset example** restores the original source and operation inputs.
-
-The schema connects the GraphQL argument and request context to that function:
+The resolver in `schema.ts` uses the `name` argument to build the greeting:
 
 <include cwd lang="typescript" meta='playground example="playground-tour-step-1"'>playground-examples/playground-tour/step-1/schema.ts#query</include>
+
+In `schema.ts`, change `Hello` to `Welcome`. Run the query again to see the edited response. **Reset example** restores the original source and query.
 
 ## Explore fields and arguments
 

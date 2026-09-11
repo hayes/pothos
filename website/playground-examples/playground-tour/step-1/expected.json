@@ -1,12 +1,7 @@
 {
-  "01-English greeting.graphql": {
+  "Greeting.graphql": {
     "data": {
       "greeting": "Hello, Sam!"
-    }
-  },
-  "02-French greeting.graphql": {
-    "data": {
-      "greeting": "Bonjour, Camille!"
     }
   }
 }

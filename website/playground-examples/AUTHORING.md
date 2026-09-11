@@ -1,6 +1,6 @@
 # Authoring docs and playground examples
 
-Read this before adding playground links, writing a guide, changing an example, or choosing between code tabs, variants, steps, and multiple files. These tools are available by choice: use the combination that helps the reader perform the guide's task. The Objects pilot is the first acceptance target; broader content work starts after its rendered and runtime review.
+Read this before adding playground links, writing a guide, changing an example, or choosing between code tabs, variants, steps, and multiple files. These tools are available by choice: use the combination that helps the reader perform the guide's task. Objects and Using the playground provide reviewed patterns for variants and steps.
 
 ## Author workflow
 
@@ -11,6 +11,8 @@ Read this before adding playground links, writing a guide, changing an example, 
 5. Obtain independent content/correctness and preservation review before fanout or publication. Compare against the original pre-rewrite page as well as the immediate parent when changes are stacked. Every removed workflow needs retained/replacement coverage or a source-backed retirement reason.
 
 Completion means the reader can follow the explanation, run the corresponding code, make the suggested edit, and observe the promised effect. A compiling schema, valid query, working URL, or shorter page alone does not establish that.
+
+Start introductory examples with one source file and one useful query. Add variables, context, helper files, steps, or variants when they teach the page's concept, not to demonstrate the toolkit. Keep trivial resolvers inline. Choose `defaultActiveFile` so a step opens on the code the reader needs; verify the initial file in the actual playground. Follow the full step sequence, including moving backward and resetting, rather than checking only isolated step URLs.
 
 ## Files and metadata
 
@@ -176,7 +178,7 @@ Schema code executes with browser capabilities; a TypeScript compiler worker is 
 
 ## Validation commands and review evidence
 
-From the repository root, after the pilot's scripts have landed:
+From the repository root:
 
 ```sh
 pnpm --dir website codegen
@@ -187,7 +189,7 @@ pnpm --dir website check:examples
 pnpm --dir website build-ci
 ```
 
-`check:playground` requires a running website at the supplied URL. Check `website/package.json` for current commands. `test:examples` builds bundles, requires an expectation for every operation, and type-checks source. `test:browser` starts the production website, runs the browser matrix and rendered link checks, then stops its server; the Documentation playground CI workflow runs both. A reference check confirms bundle destinations, while MDX compilation checks source includes. Neither alone proves correct tab targets, useful initial queries, contextual inputs, matching source excerpts or mobile usability.
+`check:playground` requires a running website at the supplied URL. Check `website/package.json` for current commands. `test:examples` builds bundles, requires an expectation for every operation, and type-checks source. `test:browser` starts the production website, checks editor TypeScript diagnostics and every operation, exercises step-file removal, and checks rendered links, then stops its server; the Documentation playground CI workflow runs both. A reference check confirms bundle destinations, while MDX compilation checks source includes. Neither alone proves correct tab targets, useful initial queries, contextual inputs, matching source excerpts or mobile usability.
 
 Record the owning page, changed region/variant/step, actual operation and inputs, expected outcome, browser result, suggested reader edit, preservation mapping and remaining limits. If a capability is missing, report the gap and keep the example honest; do not invent metadata, silently add runtime scope, or attach a button that loads an unrelated demo.
 

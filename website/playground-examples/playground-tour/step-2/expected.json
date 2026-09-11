@@ -1,7 +1,6 @@
 {
   "01-Tall giraffes.graphql": {
     "data": {
-      "greeting": "Hello, Sam!",
       "giraffes": [
         {
           "name": "James",
@@ -12,7 +11,6 @@
   },
   "02-All giraffes.graphql": {
     "data": {
-      "greeting": "Bonjour, Camille!",
       "giraffes": [
         {
           "name": "James",

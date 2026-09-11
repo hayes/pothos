@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { checkPlaygroundProject } from './check-playground-project.mjs';
 import { loadPlaygroundCases } from './playground-cases.mjs';
 
 const origin = process.argv[2] ?? 'http://localhost:3000';
@@ -77,6 +78,7 @@ try {
       await page.close();
     }
   }
+  await checkPlaygroundProject(browser, origin);
 } finally {
   await browser.close();
 }

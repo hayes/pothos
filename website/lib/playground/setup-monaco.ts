@@ -16,6 +16,7 @@ let monaco: Monaco | null = null;
 // examples (e.g. scope-auth → validation).
 const pluginDisposables = new Map<string, MonacoDisposable[]>();
 const projectLibraries = new Map<string, { content: string; disposable: MonacoDisposable }>();
+const pendingModelDisposals = new Map<string, MonacoDisposable>();
 
 // Cache getAllPluginNames result (static list)
 let cachedPluginNames: string[] | null = null;
@@ -176,6 +177,38 @@ export function registerPlaygroundFiles(files: Array<{ filename: string; content
     return;
   }
 
+  const modelPaths = new Set(files.map((file) => `file:///playground/${file.filename}`));
+  for (const [path, listener] of pendingModelDisposals) {
+    if (modelPaths.has(path)) {
+      listener.dispose();
+      pendingModelDisposals.delete(path);
+    }
+  }
+  for (const model of monaco.editor.getModels()) {
+    const path = model.uri.toString();
+    if (!path.startsWith('file:///playground/') || modelPaths.has(path)) {
+      continue;
+    }
+    if (model.isAttachedToEditor()) {
+      // React's editor may still be completing its path change. Wait for
+      // detachment rather than disposing the model underneath that editor.
+      if (!pendingModelDisposals.has(path)) {
+        const listener = model.onDidChangeAttached(() => {
+          if (!model.isAttachedToEditor()) {
+            listener.dispose();
+            pendingModelDisposals.delete(path);
+            model.dispose();
+          }
+        });
+        pendingModelDisposals.set(path, listener);
+      }
+    } else {
+      pendingModelDisposals.get(path)?.dispose();
+      pendingModelDisposals.delete(path);
+      model.dispose();
+    }
+  }
+
   // Register the complete TypeScript project before creating editor models.
   // Creating a sibling model alone does not invalidate diagnostics already
   // computed for its importers. Extra-lib changes notify Monaco to revalidate
@@ -295,6 +328,10 @@ function extractPluginImports(code: string): Set<string> {
 }
 
 export function resetMonacoSetup(): void {
+  for (const listener of pendingModelDisposals.values()) {
+    listener.dispose();
+  }
+  pendingModelDisposals.clear();
   initialized = false;
   monaco = null;
   for (const disposables of pluginDisposables.values()) {

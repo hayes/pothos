@@ -1,5 +1,6 @@
-import { builder } from './builder';
-import { greet } from './lib/greeting';
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
 
 // #region query
 builder.queryType({
@@ -7,7 +8,7 @@ builder.queryType({
     greeting: t.string({
       nullable: false,
       args: { name: t.arg.string({ required: true }) },
-      resolve: (_parent, args, context) => greet(args.name, context.locale),
+      resolve: (_parent, args) => `Hello, ${args.name}!`,
     }),
   }),
 });

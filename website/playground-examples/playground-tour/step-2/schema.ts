@@ -1,6 +1,7 @@
-import { builder } from './builder';
-import { greet } from './lib/greeting';
+import SchemaBuilder from '@pothos/core';
 import { type Giraffe as GiraffeModel, giraffes } from './models/giraffe';
+
+const builder = new SchemaBuilder({});
 
 // #region object
 const Giraffe = builder.objectRef<GiraffeModel>('Giraffe');
@@ -15,11 +16,6 @@ Giraffe.implement({
 // #region query
 builder.queryType({
   fields: (t) => ({
-    greeting: t.string({
-      nullable: false,
-      args: { name: t.arg.string({ required: true }) },
-      resolve: (_parent, args, context) => greet(args.name, context.locale),
-    }),
     giraffes: t.field({
       type: [Giraffe],
       nullable: false,
