@@ -29,6 +29,5 @@ Drizzle plugin fixes.
 - Custom connection fields retain their rows when `totalCount` is selected.
 - Connection helper `resolve()` returns a maybe-promise for async-enabled schemas; await it
   before inspecting or spreading connection fields.
-
-- Selection extension callbacks and nested query callbacks receive the public `PathInfo`, including
-  field paths, aliases, and list segments, rather than internal planner positions.
+- Nested query callbacks passed to `nestedSelection` now receive `PathInfo` as their third
+  argument, after the field arguments and context.
