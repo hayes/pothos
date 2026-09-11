@@ -137,3 +137,20 @@ mutation tests verify two serial updates each complete a two-parent fallback bat
 before the next result, uncommitted visibility, application-driven rollback on
 GraphQL errors, and rejection of expired transaction Collections. SQLite conflict
 tests preserve four-parent batching and independent field/variant prerequisites.
+
+Final release verification at `f954fa8be` reran all 113 monorepo tasks without
+cache hits: 42 build/generate tasks followed by 71 test/type tasks. Running the
+phases separately ensures package-import tests cannot race their own build cleanup.
+All passed, including Prisma, Drizzle, and the 376 Prisma Next tests. Biome passed
+on all 1,045 tracked files; generated files left no tracked diff.
+
+A fresh external consumer installed tarballs of the current core, selection mapper,
+Relay, with-input, and Prisma Next packages. On Node 24.15.0, ESM and CommonJS
+imports passed even with the optional plugins physically absent. TypeScript 5.9.3
+strict declaration checks passed without skipLibCheck for both SQL facades and
+both module formats, including declarative relation parents, nullable cursor codec
+inference, and connection helpers. The packed SQLite consumer executed nullable
+pagination across pages and conflicting to-one fallback selections successfully.
+The tarball manifest has public access, exact RC9 ORM peers, and resolved workspace
+dependency specifiers. This verifies the staged 0.0.0 package; the earlier isolated
+0.1.0 version simulation remains a separate check. No package was published.
