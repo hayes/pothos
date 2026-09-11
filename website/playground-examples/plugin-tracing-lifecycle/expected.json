@@ -1,0 +1,32 @@
+{
+  "query.graphql": {
+    "data": {
+      "reset": true,
+      "sync": "sync",
+      "async": "async",
+      "throws": null,
+      "rejects": null,
+      "quiet": "untraced",
+      "events": [
+        "start sync",
+        "end sync: ok",
+        "start async",
+        "end async: ok",
+        "start throws",
+        "end throws: error",
+        "start rejects",
+        "end rejects: error"
+      ]
+    },
+    "errors": [
+      {
+        "message": "sync failure",
+        "path": ["throws"]
+      },
+      {
+        "message": "async failure",
+        "path": ["rejects"]
+      }
+    ]
+  }
+}

@@ -25,7 +25,7 @@ const builder = new SchemaBuilder({
   plugins: [TracingPlugin],
   tracing: {
     default: (config) => isRootField(config),
-    wrap: (resolver, options, config) =>
+    wrap: (resolver, _options, config) =>
       wrapResolver(resolver, (error, duration) => {
         console.log(`${config.parentType}.${config.name}: ${duration}ms`, error);
       }),
@@ -36,13 +36,18 @@ builder.queryType({
   fields: (t) => ({
     hello: t.string({
       args: { name: t.arg.string() },
-      resolve: (parent, { name }) => `hello, ${name ?? 'World'}`,
+      resolve: (_parent, { name }) => `hello, ${name ?? 'World'}`,
     }),
   }),
 });
 
-const schema = builder.toSchema();
+export const schema = builder.toSchema();
 ```
+
+[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing)
+
+Run the example and open **Console** to see `Query.hello` and its duration. Change the query’s
+`name` argument and run again. Duration varies between runs.
 
 `wrapResolver` calls its completion callback for a synchronous result, fulfilled promise, thrown
 error, or rejected promise. It preserves the resolver's result or error. The callback receives
@@ -82,9 +87,8 @@ const builder = new SchemaBuilder<{
     default: (config) => isRootField(config),
     wrap: (resolver, options, config) =>
       wrapResolver(resolver, (error, duration) => {
-        const label = typeof options === 'object'
-          ? options.label
-          : `${config.parentType}.${config.name}`;
+        const label =
+          typeof options === 'object' ? options.label : `${config.parentType}.${config.name}`;
         console.log(`${label}: ${duration}ms`, error);
       }),
   },
@@ -95,11 +99,15 @@ builder.queryType({
     hello: t.string({
       tracing: { label: 'greeting' },
       args: { name: t.arg.string() },
-      resolve: (parent, { name }) => `hello, ${name ?? 'World'}`,
+      resolve: (_parent, { name }) => `hello, ${name ?? 'World'}`,
     }),
   }),
 });
+
+export const schema = builder.toSchema();
 ```
+
+[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing-options)
 
 A field can also compute its tracing options from resolver arguments. Replace the `tracing` option
 above with this expression to use a different label for named greetings:
@@ -122,8 +130,6 @@ before calling the resolver and observe its completion, including failures. For 
 alternative setup logs the start and end of each root resolver:
 
 ```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField, runFunction } from '@pothos/plugin-tracing';
 
 const builder = new SchemaBuilder({
   plugins: [TracingPlugin],
@@ -147,6 +153,71 @@ and `createSpanWithParent(context, info, createSpan)`. The latter caches a span 
 context and passes the closest cached parent span to your callback. Use a fresh context for each
 operation so this cache belongs to that operation.
 
+### Try success, failure, and disabled tracing
+
+This companion uses `runFunction` to record start and completion events. Its mutation fields run
+serially: reset the event list, resolve a value and a promise, throw and reject, then read the events.
+The failing fields are nullable so the remaining fields still execute.
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [TracingPlugin],
+  tracing: {
+    default: (config) => isRootField(config),
+    wrap: (resolver) => (parent, args, context, info) => {
+      events.push(`start ${info.fieldName}`);
+      console.log(`Starting ${info.parentType.name}.${info.fieldName}`);
+      return runFunction(
+        () => resolver(parent, args, context, info),
+        (error, duration) => {
+          events.push(`end ${info.fieldName}: ${error === null ? 'ok' : 'error'}`);
+          console.log(`Finished ${info.parentType.name}.${info.fieldName}: ${duration}ms`, error);
+        },
+      );
+    },
+  },
+});
+```
+
+[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing-lifecycle)
+
+```typescript
+builder.mutationType({
+  fields: (t) => ({
+    reset: t.boolean({
+      tracing: false,
+      resolve: () => {
+        events.length = 0;
+        return true;
+      },
+    }),
+    sync: t.string({ resolve: () => 'sync' }),
+    async: t.string({ resolve: async () => 'async' }),
+    throws: t.string({
+      nullable: true,
+      resolve: () => {
+        throw new Error('sync failure');
+      },
+    }),
+    rejects: t.string({
+      nullable: true,
+      resolve: async () => {
+        throw new Error('async failure');
+      },
+    }),
+    quiet: t.string({ tracing: false, resolve: () => 'untraced' }),
+    events: t.stringList({ tracing: false, resolve: () => [...events] }),
+  }),
+});
+```
+
+[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing-lifecycle)
+
+Run the mutation. `throws` and `rejects` return errors while both record their completion; `quiet`
+returns a value without a trace. Change `quiet` to `tracing: true` and run again to see its two events.
+The reset field makes the comparison repeatable. These are in-memory resolver events; the provider
+setups below send spans through their respective SDKs in your application.
+
 ## Tracing integrations
 
 Provider packages implement `tracing.wrap` for common tracing systems. Initialize the provider SDK
@@ -168,9 +239,6 @@ npm install @opentelemetry/sdk-trace-node @opentelemetry/sdk-trace-base
 ```
 
 ```typescript
-import { trace } from '@opentelemetry/api';
-import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
 export const provider = new NodeTracerProvider({
   spanProcessors: [new SimpleSpanProcessor(new ConsoleSpanExporter())],
@@ -187,10 +255,6 @@ for SDK configuration beyond this example.
 Save the following schema as `schema.ts`. Importing `tracer` connects Pothos to the configured provider:
 
 ```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
-import { createOpenTelemetryWrapper } from '@pothos/tracing-opentelemetry';
-import { tracer } from './tracer';
 
 const createSpan = createOpenTelemetryWrapper(tracer);
 
@@ -229,10 +293,6 @@ Use the `Tracing` schema type and `onSpan` callback together. This replaces the 
 builder above and accepts a static category on each field:
 
 ```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
-import { createOpenTelemetryWrapper } from '@pothos/tracing-opentelemetry';
-import { tracer } from './tracer';
 
 type TracingOptions = boolean | { category: string };
 
@@ -272,11 +332,6 @@ npm install graphql-yoga
 ```
 
 ```typescript
-import { SpanStatusCode } from '@opentelemetry/api';
-import { getOperationAST, print } from 'graphql';
-import type { Plugin } from 'graphql-yoga';
-import { AttributeNames, SpanNames } from '@pothos/tracing-opentelemetry';
-import { tracer } from './tracer';
 
 export const tracingPlugin: Plugin = {
   onExecute({ executeFn, setExecuteFn }) {
@@ -320,10 +375,6 @@ lifecycles, such as the Envelop alternative below.
 Register the plugin in `server.ts`:
 
 ```typescript
-import { createServer } from 'node:http';
-import { createYoga } from 'graphql-yoga';
-import { tracingPlugin } from './tracing';
-import { schema } from './schema';
 
 const yoga = createYoga({ schema, plugins: [tracingPlugin] });
 createServer(yoga).listen(4000);
@@ -343,8 +394,6 @@ npm install @envelop/opentelemetry
 ```
 
 ```typescript
-import { useOpenTelemetry } from '@envelop/opentelemetry';
-import { provider } from './tracer';
 
 export const tracingPlugin = useOpenTelemetry(
   { resolvers: false, variables: false, result: false },
@@ -363,8 +412,6 @@ npm install @opentelemetry/instrumentation @opentelemetry/instrumentation-http
 Add this to `tracer.ts` after creating `provider`. It also works with the Datadog provider below:
 
 ```typescript
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 
 registerInstrumentations({
   tracerProvider: provider,
@@ -389,11 +436,6 @@ npm install @opentelemetry/exporter-trace-otlp-http @opentelemetry/resources
 ```
 
 ```typescript
-import { trace } from '@opentelemetry/api';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
 export const provider = new NodeTracerProvider({
   resource: resourceFromAttributes({ 'service.name': 'pothos-api' }),
@@ -436,9 +478,6 @@ npm install --save-dev @types/newrelic
 Save this schema as `schema.ts`. The operation setup below loads the New Relic agent before the application:
 
 ```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
-import { createNewrelicWrapper } from '@pothos/tracing-newrelic';
 
 const createSegment = createNewrelicWrapper();
 const builder = new SchemaBuilder({
@@ -475,10 +514,6 @@ Save the following Yoga plugin as `tracing.ts` to add GraphQL operation attribut
 wrapper above adds the individual resolver segments; this hook does not start another transaction.
 
 ```typescript
-import newrelic from 'newrelic';
-import { getOperationAST, print } from 'graphql';
-import type { Plugin } from 'graphql-yoga';
-import { AttributeNames } from '@pothos/tracing-newrelic';
 
 export const tracingPlugin: Plugin = {
   onExecute: ({ args }) => {
@@ -501,7 +536,6 @@ agent 7–11; use the direct hook above with agent 13.
 For a compatible installation, replace the manual hook with:
 
 ```typescript
-import { useNewRelic } from '@envelop/newrelic';
 
 export const tracingPlugin = useNewRelic({
   trackResolvers: false,
@@ -525,9 +559,6 @@ Without an active parent span, the wrapper calls the resolver without creating a
 Save this schema as `schema.ts`:
 
 ```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
-import { createSentryWrapper } from '@pothos/tracing-sentry';
 
 const createSpan = createSentryWrapper();
 const builder = new SchemaBuilder({
@@ -556,7 +587,6 @@ Pass options at wrapper creation or as the third argument to `createSpan`.
 Save the initialization below as `instrumentation.ts`:
 
 ```typescript
-import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -568,11 +598,6 @@ For Sentry, replace the shared `server.ts` with this entry point so initializati
 loading the schema and tracing plugin:
 
 ```typescript
-import './instrumentation';
-import { createServer } from 'node:http';
-import { createYoga } from 'graphql-yoga';
-import { tracingPlugin } from './tracing';
-import { schema } from './schema';
 
 const yoga = createYoga({ schema, plugins: [tracingPlugin] });
 createServer(yoga).listen(4000);
@@ -583,10 +608,6 @@ children of it. This wrapper handles ordinary query and mutation results; stream
 subscriptions need a lifecycle wrapper that keeps the span open while the iterator is consumed.
 
 ```typescript
-import * as Sentry from '@sentry/node';
-import { getOperationAST, print } from 'graphql';
-import type { Plugin } from 'graphql-yoga';
-import { AttributeNames, SpanNames } from '@pothos/tracing-sentry';
 
 export const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {
@@ -631,7 +652,6 @@ npm install @envelop/sentry
 ```
 
 ```typescript
-import { useSentry } from '@envelop/sentry';
 
 export const tracingPlugin = useSentry({});
 ```
@@ -652,9 +672,6 @@ that segment, or calls the resolver without a subsegment when no parent segment 
 Save this schema as `schema.ts`:
 
 ```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
-import { createXRayWrapper } from '@pothos/tracing-xray';
 
 const createSegment = createXRayWrapper();
 const builder = new SchemaBuilder({
@@ -685,10 +702,6 @@ subsegment within it. It makes the execution subsegment active so the Pothos wra
 resolver subsegments. The SDK uses automatic context mode by default.
 
 ```typescript
-import AWSXRay from 'aws-xray-sdk-core';
-import { getOperationAST, print } from 'graphql';
-import type { Plugin } from 'graphql-yoga';
-import { AttributeNames, SpanNames } from '@pothos/tracing-xray';
 
 export const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {

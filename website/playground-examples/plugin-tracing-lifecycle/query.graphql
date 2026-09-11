@@ -1,0 +1,9 @@
+mutation Lifecycle {
+  reset
+  sync
+  async
+  throws
+  rejects
+  quiet
+  events
+}

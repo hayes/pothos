@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 import { checkPlaygroundMobile, checkPlaygroundMobileFiles } from './check-playground-mobile.mjs';
 import { checkPlaygroundProject } from './check-playground-project.mjs';
 import { checkPlaygroundTabs } from './check-playground-tabs.mjs';
+import { checkPlaygroundTracing } from './check-playground-tracing.mjs';
 import { loadPlaygroundCases } from './playground-cases.mjs';
 
 const origin = process.argv[2] ?? 'http://localhost:3000';
@@ -80,6 +81,7 @@ try {
       await page.close();
     }
   }
+  await checkPlaygroundTracing(browser, origin);
   await checkPlaygroundMobile(browser, origin);
   await checkPlaygroundMobileFiles(browser, origin);
   await checkPlaygroundProject(browser, origin);

@@ -1,5 +1,6 @@
 # Grafast plugin
 
+
 > This package is experimental.
 
 
@@ -103,13 +104,11 @@ interface AnimalData {
   kind: 'Dog' | 'Cat';
 }
 
-export const Animal = builder
-  .interfaceRef<AnimalData>('Animal')
-  .withPlan({
-    planType: ($record) => ({
-      $__typename: get($record, 'kind'),
-    }),
-  });
+export const Animal = builder.interfaceRef<AnimalData>('Animal').withPlan({
+  planType: ($record) => ({
+    $__typename: get($record, 'kind'),
+  }),
+});
 
 export const Dog = builder.objectRef<AnimalData>('Dog').implement({
   interfaces: [Animal],
@@ -117,7 +116,6 @@ export const Dog = builder.objectRef<AnimalData>('Dog').implement({
 export const Cat = builder.objectRef<AnimalData>('Cat').implement({
   interfaces: [Animal],
 });
-
 
 Animal.implement({
   fields: (t) => ({
@@ -226,4 +224,36 @@ builder.queryFields((t) => ({
     plan: (_, $args) => $args.$id,
   }),
 }));
+```
+
+## Run the plans locally
+
+The browser playground executes GraphQL resolvers with `graphql()`. This example requires the
+Grafast executor to run its plans. The complete [local example](https://github.com/hayes/pothos/tree/main/website/local-examples/grafast)
+combines the setup, addition query, animal interface, and `planForType` union shown above.
+
+With Node.js 22 or newer, run from a checkout of the [Pothos repository](https://github.com/hayes/pothos):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --dir website check:local
+```
+
+The local examples use the checkout's built Pothos packages. Their separate locked installation
+uses GraphQL 16, as required by Grafast 1.0; it does not change the repository's GraphQL version.
+
+`grafast/check.ts` executes the schema with `grafast()` and checks addition, both animal types,
+the alien union member, and a missing entity. It also changes the arguments and checks the new sum.
+To try your own values, edit the query or `variableValues` in that file and update its expected result.
+
+The execution call has this form:
+
+```typescript
+
+const result = await grafast({
+  schema,
+  source: '{ addTwoNumbers(a: 2, b: 3) }',
+  contextValue: { requestId: 'example' },
+});
+console.log(result); // { data: { addTwoNumbers: 5 } }
 ```

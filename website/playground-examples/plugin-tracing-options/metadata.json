@@ -1,0 +1,8 @@
+{
+  "id": "plugin-tracing-options",
+  "title": "Choose tracing labels",
+  "description": "Run the greeting and inspect its greeting label in Console. Change the label in schema.ts and run again.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/tracing"],
+  "defaultActiveFile": "schema.ts"
+}

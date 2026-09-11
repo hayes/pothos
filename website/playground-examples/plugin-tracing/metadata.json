@@ -1,0 +1,8 @@
+{
+  "id": "plugin-tracing",
+  "title": "Trace a resolver",
+  "description": "Run the greeting and open Console to see its resolver duration. Change the name in the query and run again.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/tracing"],
+  "defaultActiveFile": "schema.ts"
+}

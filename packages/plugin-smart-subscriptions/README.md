@@ -23,16 +23,16 @@ import { EventEmitter } from 'node:events';
 import SchemaBuilder from '@pothos/core';
 import SmartSubscriptionsPlugin from '@pothos/plugin-smart-subscriptions';
 
-type Context = {
+export type Context = {
   listeners: Map<string, (value: unknown) => void>;
 };
 
-const events = new EventEmitter();
+export const events = new EventEmitter();
 
 const builder = new SchemaBuilder<{ Context: Context }>({
   plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
-    debounceDelay: 10,
+    debounceDelay: null,
     subscribe: (name, context, callback) => {
       const listener = (value: unknown) => callback(null, value);
       context.listeners.set(name, listener);
@@ -62,7 +62,6 @@ If your event service already returns async iterators, use `subscribeOptionsFrom
 alternative to the manual callbacks. It manages each iterator's lifetime:
 
 ```typescript
-import { subscribeOptionsFromIterator } from '@pothos/plugin-smart-subscriptions';
 
 type IteratorContext = {
   eventsFor: (name: string) => AsyncIterableIterator<unknown>;
@@ -85,9 +84,7 @@ field and per-poll events on the object type:
 
 ```typescript
 type Poll = { id: string; question: string; votes: number };
-const polls = new Map<string, Poll>([
-  ['1', { id: '1', question: 'Tea or coffee?', votes: 0 }],
-]);
+const polls = new Map<string, Poll>([['1', { id: '1', question: 'Tea or coffee?', votes: 0 }]]);
 
 const PollType = builder.objectRef<Poll>('Poll').implement({
   subscribe: (subscriptions, poll) => {
@@ -115,7 +112,7 @@ builder.queryType({
 });
 
 builder.subscriptionType();
-const schema = builder.toSchema();
+export const schema = builder.toSchema();
 ```
 
 ```graphql
@@ -132,9 +129,11 @@ The subscription first sends the current polls. After updating stored data, emit
 event to send a new result:
 
 ```typescript
-function vote(pollId: string) {
+export function vote(pollId: string) {
   const poll = polls.get(pollId);
-  if (!poll) throw new Error('Poll not found');
+  if (!poll) {
+    throw new Error('Poll not found');
+  }
   polls.set(pollId, { ...poll, votes: poll.votes + 1 });
   events.emit(`poll/${pollId}`, { kind: 'vote' });
 }
@@ -186,3 +185,51 @@ taking a separate `refetch` callback.
 ## Limitations
 
 Smart subscriptions do not support list fields implemented with async generators for `@stream`.
+
+## Run a live subscription locally
+
+The browser playground runs queries and mutations; it does not consume subscription iterators.
+The [complete local example](https://github.com/hayes/pothos/tree/main/website/local-examples/smart-subscriptions)
+uses GraphQL's `subscribe()` with the schema and event source above. No database or external event
+service is required.
+
+With Node.js 22 or newer, run from a checkout of the [Pothos repository](https://github.com/hayes/pothos):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --dir website check:local
+```
+
+The local examples use the checkout's built Pothos packages. Their separate locked installation
+uses GraphQL 16, as required by Grafast 1.0; it does not change the repository's GraphQL version.
+
+`smart-subscriptions/check.ts` opens two subscriptions with separate contexts, checks their initial
+results, calls `vote('1')`, and checks both updates. It closes the first iterator and verifies that
+the second still receives events, then closes the second and verifies that no listeners remain.
+To change the example, adjust the poll's starting votes in `schema.ts` and update the expected results.
+
+When using this schema in a server, pass a new listener map for each operation and arrange for the
+transport to close its iterator on disconnect. The local check makes that lifecycle explicit:
+
+```typescript
+
+const result = await subscribe({
+  schema,
+  document: parse('subscription { polls { id votes } }'),
+  contextValue: { listeners: new Map() },
+});
+
+if (Symbol.asyncIterator in result) {
+  const iterator = result[Symbol.asyncIterator]();
+  try {
+    console.log((await iterator.next()).value); // Initial polls
+    const update = iterator.next();
+    vote('1');
+    console.log((await update).value); // Incremented votes
+  } finally {
+    await iterator.return?.(); // Unsubscribe this operation's listeners
+  }
+} else {
+  console.error(result.errors);
+}
+```

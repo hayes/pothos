@@ -20,32 +20,10 @@ npm install --save @pothos/plugin-tracing
 
 This schema traces root fields by default and logs the time spent resolving `hello`:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField, wrapResolver } from '@pothos/plugin-tracing';
+<include cwd lang="typescript" meta='playground example="plugin-tracing"'>playground-examples/plugin-tracing/schema.ts#schema</include>
 
-const builder = new SchemaBuilder({
-  plugins: [TracingPlugin],
-  tracing: {
-    default: (config) => isRootField(config),
-    wrap: (resolver, options, config) =>
-      wrapResolver(resolver, (error, duration) => {
-        console.log(`${config.parentType}.${config.name}: ${duration}ms`, error);
-      }),
-  },
-});
-
-builder.queryType({
-  fields: (t) => ({
-    hello: t.string({
-      args: { name: t.arg.string() },
-      resolve: (parent, { name }) => `hello, ${name ?? 'World'}`,
-    }),
-  }),
-});
-
-const schema = builder.toSchema();
-```
+Run the example and open **Console** to see `Query.hello` and its duration. Change the query’s
+`name` argument and run again. Duration varies between runs.
 
 `wrapResolver` calls its completion callback for a synchronous result, fulfilled promise, thrown
 error, or rejected promise. It preserves the resolver's result or error. The callback receives
@@ -73,36 +51,7 @@ work you need to inspect. If you use custom root type names, match those names i
 Declare `Tracing` in the builder's schema types to accept your own field options. This is an
 alternative builder and query definition to the first example:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import TracingPlugin, { isRootField, wrapResolver } from '@pothos/plugin-tracing';
-
-const builder = new SchemaBuilder<{
-  Tracing: boolean | { label: string };
-}>({
-  plugins: [TracingPlugin],
-  tracing: {
-    default: (config) => isRootField(config),
-    wrap: (resolver, options, config) =>
-      wrapResolver(resolver, (error, duration) => {
-        const label = typeof options === 'object'
-          ? options.label
-          : `${config.parentType}.${config.name}`;
-        console.log(`${label}: ${duration}ms`, error);
-      }),
-  },
-});
-
-builder.queryType({
-  fields: (t) => ({
-    hello: t.string({
-      tracing: { label: 'greeting' },
-      args: { name: t.arg.string() },
-      resolve: (parent, { name }) => `hello, ${name ?? 'World'}`,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="plugin-tracing-options"'>playground-examples/plugin-tracing-options/schema.ts#schema</include>
 
 A field can also compute its tracing options from resolver arguments. Replace the `tracing` option
 above with this expression to use a different label for named greetings:
@@ -149,6 +98,21 @@ For custom span hierarchies, the plugin exports `pathToString(info)`, `getParent
 and `createSpanWithParent(context, info, createSpan)`. The latter caches a span on the request
 context and passes the closest cached parent span to your callback. Use a fresh context for each
 operation so this cache belongs to that operation.
+
+### Try success, failure, and disabled tracing
+
+This companion uses `runFunction` to record start and completion events. Its mutation fields run
+serially: reset the event list, resolve a value and a promise, throw and reject, then read the events.
+The failing fields are nullable so the remaining fields still execute.
+
+<include cwd lang="typescript" meta='playground example="plugin-tracing-lifecycle"'>playground-examples/plugin-tracing-lifecycle/schema.ts#tracer</include>
+
+<include cwd lang="typescript" meta='playground example="plugin-tracing-lifecycle"'>playground-examples/plugin-tracing-lifecycle/schema.ts#lifecycle</include>
+
+Run the mutation. `throws` and `rejects` return errors while both record their completion; `quiet`
+returns a value without a trace. Change `quiet` to `tracing: true` and run again to see its two events.
+The reset field makes the comparison repeatable. These are in-memory resolver events; the provider
+setups below send spans through their respective SDKs in your application.
 
 ## Tracing integrations
 

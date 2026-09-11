@@ -24,30 +24,7 @@ Grafast 1.0 requires GraphQL 16. Use a GraphQL version supported by your Grafast
 
 ## Setup
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import GrafastPlugin from '@pothos/plugin-grafast';
-import { get, inhibitOnNull, lambda, loadOne, type Step } from 'grafast';
-
-type RequestContext = { requestId: string };
-
-declare global {
-  namespace Grafast {
-    // Define the Context type used by grafast
-    interface Context extends RequestContext {}
-  }
-}
-
-type BuilderTypes = {
-  // This tells the builder to expect plans instead of resolvers
-  InferredFieldOptionsKind: 'Grafast';
-  Context: RequestContext;
-};
-
-const builder = new SchemaBuilder<BuilderTypes>({
-  plugins: [GrafastPlugin],
-});
-```
+<include cwd lang="typescript">local-examples/grafast/schema.ts#setup</include>
 
 ## Usage
 
@@ -55,21 +32,7 @@ For documentation on how to write plans, see the [Grafast documentation](https:/
 
 ### Adding plans to fields
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    addTwoNumbers: t.int({
-      args: {
-        a: t.arg.int({ required: true }),
-        b: t.arg.int({ required: true }),
-      },
-      plan: (_, { $a, $b }) => {
-        return lambda([$a, $b], ([a, b]) => a + b);
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript">local-examples/grafast/schema.ts#query</include>
 
 ### Using resolvers
 
@@ -106,63 +69,11 @@ For more details on how polymorphic types work in Grafast, see the [Grafast docu
 To implement an interface, you can implement it as you normally would in Pothos, and then call the
 `.withPlan` method on the interface ref to provide a plan for resolving the correct type.
 
-```typescript
-interface AnimalData {
-  id: string;
-  kind: 'Dog' | 'Cat';
-}
-
-export const Animal = builder
-  .interfaceRef<AnimalData>('Animal')
-  .withPlan({
-    planType: ($record) => ({
-      $__typename: get($record, 'kind'),
-    }),
-  });
-
-export const Dog = builder.objectRef<AnimalData>('Dog').implement({
-  interfaces: [Animal],
-});
-export const Cat = builder.objectRef<AnimalData>('Cat').implement({
-  interfaces: [Animal],
-});
-
-
-Animal.implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-  }),
-});
-```
+<include cwd lang="typescript">local-examples/grafast/schema.ts#interface-type</include>
 
 You can now define a query to resolve this interface:
 
-```typescript
-export const Animals = [
-  {
-    id: '1',
-    kind: 'Dog',
-  },
-  {
-    id: '2',
-    kind: 'Cat',
-  },
-] satisfies AnimalData[];
-
-function getAnimalsById(ids: readonly string[]): (AnimalData | null)[] {
-  return ids.map((id) => Animals.find((entity) => entity.id === id) ?? null);
-}
-
-builder.queryFields((t) => ({
-  animal: t.field({
-    type: Animal,
-    args: {
-      id: t.arg.string({ required: true }),
-    },
-    plan: (_, $args) => loadOne($args.$id, getAnimalsById),
-  }),
-}));
-```
+<include cwd lang="typescript">local-examples/grafast/schema.ts#interface-query</include>
 
 ### Unions
 
@@ -205,37 +116,38 @@ This also enables changing the type of plan required for fields that return the 
 
 This replaces the previous `Entity` definition. The lookup uses the same animals and one alien:
 
+<include cwd lang="typescript">local-examples/grafast/schema.ts#union</include>
+
+## Run the plans locally
+
+The browser playground executes GraphQL resolvers with `graphql()`. This example requires the
+Grafast executor to run its plans. The complete [local example](https://github.com/hayes/pothos/tree/main/website/local-examples/grafast)
+combines the setup, addition query, animal interface, and `planForType` union shown above.
+
+With Node.js 22 or newer, run from a checkout of the [Pothos repository](https://github.com/hayes/pothos):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --dir website check:local
+```
+
+The local examples use the checkout's built Pothos packages. Their separate locked installation
+uses GraphQL 16, as required by Grafast 1.0; it does not change the repository's GraphQL version.
+
+`grafast/check.ts` executes the schema with `grafast()` and checks addition, both animal types,
+the alien union member, and a missing entity. It also changes the arguments and checks the new sum.
+To try your own values, edit the query or `variableValues` in that file and update its expected result.
+
+The execution call has this form:
+
 ```typescript
-function getEntitiesById(ids: readonly string[]): (AnimalData | AlienData | null)[] {
-  const entities: (AnimalData | AlienData)[] = [...Animals, { id: '3', kind: 'Alien' }];
-  return ids.map((id) => entities.find((entity) => entity.id === id) ?? null);
-}
+import { grafast } from 'grafast';
+import { schema } from './schema';
 
-export const Entity = builder
-  .unionType('Entity', {
-    types: [Cat, Dog, Alien],
-  })
-  .withPlan({
-    planType: (
-      // Provide an explicit type so that the query field only needs to return the ID
-      $specifier: Step<string>,
-    ) => {
-      const $record = inhibitOnNull(loadOne($specifier, getEntitiesById));
-      return {
-        $__typename: get($record, 'kind'),
-        planForType: () => $record,
-      };
-    },
-  });
-
-builder.queryFields((t) => ({
-  entity: t.field({
-    type: Entity,
-    args: {
-      id: t.arg.string({ required: true }),
-    },
-    // Because our Entity plan loads the record, we can just return the ID here
-    plan: (_, $args) => $args.$id,
-  }),
-}));
+const result = await grafast({
+  schema,
+  source: '{ addTwoNumbers(a: 2, b: 3) }',
+  contextValue: { requestId: 'example' },
+});
+console.log(result); // { data: { addTwoNumbers: 5 } }
 ```
