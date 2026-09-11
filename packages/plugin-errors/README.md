@@ -1,27 +1,21 @@
-# Errors Plugin
----
-title: Errors plugin
-description: Errors plugin docs for Pothos
----
+# Errors plugin
 
-A plugin for easily including error types in your GraphQL schema and hooking up error types to
-resolvers
+Represent expected failures as GraphQL result unions. Register error classes as object types, then
+list them in a field's `errors` option. The plugin catches matching errors and returns an error
+object that clients can query with fragments. Errors that do not match still become GraphQL errors.
 
 ## Usage
 
 ### Install
 
-```bash
+```package-install
 npm install --save @pothos/plugin-errors
 ```
-
-### Setup
-
-Ensure that the target in your `tsconfig.json` is set to `es6` or higher (default is `es3`).
 
 ### Example Usage
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
@@ -48,7 +42,7 @@ builder.queryType({
         name: t.arg.string({ required: false }),
       },
       resolve: (parent, { name }) => {
-        if (name.slice(0, 1) !== name.slice(0, 1).toUpperCase()) {
+        if (name && name.slice(0, 1) !== name.slice(0, 1).toUpperCase()) {
           throw new Error('name must be capitalized');
         }
 
@@ -67,7 +61,7 @@ type Error {
 }
 
 type Query {
-  hello(name: String!): QueryHelloResult
+  hello(name: String): QueryHelloResult
 }
 
 union QueryHelloResult = Error | QueryHelloSuccess
@@ -104,38 +98,30 @@ errors plugin will automatically resolve to the corresponding error object type.
 - `directResult`: Sets the default for `directResult` option on fields (only affects non-list
   fields)
 - `onResolvedError`: A callback function that is called when an error is handled by the plugin
-- `defaultResultOptions`: Sets the defaults for `result` option on fields.
-  - `name`: Function to generate a custom name on the generated result types.
-    ```ts
-    export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
-      plugins: [ErrorPlugin, ValidationPlugin],
-      errors: {
-        defaultTypes: [Error],
-        defaultResultOptions: {
-          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
-        },
-        defaultUnionOptions: {
-          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
-        },
-      },
-    });
-    ```
-- `defaultUnionOptions`: Sets the defaults for `result` option on fields.
-  - `name`: Function to generate a custom name on the generated union types.
-    ```ts
-    export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
-      plugins: [ErrorPlugin, ValidationPlugin],
-      errors: {
-        defaultTypes: [Error],
-        defaultResultOptions: {
-          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
-        },
-        defaultUnionOptions: {
-          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
-        },
-      },
-    });
-    ```
+- `defaultResultOptions`: Defaults for generated success object types.
+- `defaultUnionOptions`: Defaults for generated result union types.
+- `defaultItemResultOptions`: Defaults for per-item success object types.
+- `defaultItemUnionOptions`: Defaults for per-item result union types.
+- `unsafelyHandleInputErrors`: Also catch input mapping and validation errors; see
+  [With validation plugin](#with-validation-plugin).
+
+The four type-options objects accept a `name` function receiving `{ parentTypeName, fieldName }`.
+Use distinct names for success objects and unions:
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [ErrorsPlugin],
+  errors: {
+    defaultTypes: [Error],
+    defaultResultOptions: {
+      name: ({ parentTypeName, fieldName }) => `${parentTypeName}_${fieldName}_Success`,
+    },
+    defaultUnionOptions: {
+      name: ({ parentTypeName, fieldName }) => `${parentTypeName}_${fieldName}_Result`,
+    },
+  },
+});
+```
 
 ### Options on Fields
 
@@ -146,12 +132,12 @@ errors plugin will automatically resolve to the corresponding error object type.
 - `result`: An options object for result object type. Can include any normal object type options,
   and `name` option for setting a custom name for the result type.
 - `dataField`: An options object for the data field on the result object. This field will be named
-  `data` by default, but can be written by passing a custom `name` option.
+  `data` by default, but can be renamed by passing a custom `name` option.
 - `directResult`: Boolean, can only be set to true for non-list fields. This will directly include
   the fields type in the union rather than creating an intermediate Result object type. This will
   throw at build time if the type is not an object type.
 
-### Recommended Usage
+### A shared Error interface
 
 1. Set up an Error interface
 2. Create a BaseError object type
@@ -164,9 +150,10 @@ more specialized error types, they can just add a fragment for the errors it car
 pattern should also make it easier to make future changes without unexpected breaking changes for
 your clients.
 
-The following is a small example of this pattern:
+This is a separate setup from the first example:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
@@ -243,31 +230,42 @@ builder.queryType({
 
 ### With validation plugin
 
-To handle validation errors you will need to enable the `unsafelyHandleInputErrors` option in the
-errors plugin options. This will allow the errors plugin to catch errors thrown by the validation plugin.
-This setting is unsafe because it wraps and catches errors at a higher level which will allow you to
-bypass other plugin hooks like the `auth` plugin.  This enables you to return structured error responses for
-validation issues which happen BEFORE auth checks are executed, but this also means that those auth checks won't be run.
+The validation plugin runs before field resolution. Set `unsafelyHandleInputErrors: true` to
+return its failures as typed results. A validation failure then returns without running field
+authorization hooks, so only enable this when those error details may be returned before authorization.
 
-Once you enable the `unsafelyHandleInputErrors` option, you can define types for an InputValidationError
-(or any custom error you use in the validation plugin), the same way you would for any other error type. Below
-is a simple example of how this can be done, but the specifics of how you structure your error types are left up to you.
+This standalone example registers the validation error and its issues. Valid input reaches the
+resolver; invalid input returns `InputValidationError`.
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import ValidationPlugin, {
+  InputValidationError,
+  type StandardSchemaV1,
+} from '@pothos/plugin-validation';
+import { z } from 'zod';
+
+const builder = new SchemaBuilder({
+  plugins: [ErrorsPlugin, ValidationPlugin],
+  errors: { unsafelyHandleInputErrors: true },
+});
+
 const InputValidationIssue = builder
   .objectRef<StandardSchemaV1.Issue>('InputValidationIssue')
   .implement({
     fields: (t) => ({
       message: t.exposeString('message'),
       path: t.stringList({
-        resolve: (issue) => issue.path?.map((p) => String(p)),
+        resolve: (issue) => issue.path?.map((part) =>
+          String(typeof part === 'object' ? part.key : part),
+        ) ?? [],
       }),
     }),
   });
 
 builder.objectType(InputValidationError, {
   name: 'InputValidationError',
-  interfaces: [ErrorInterface],
   fields: (t) => ({
     issues: t.field({
       type: [InputValidationIssue],
@@ -276,6 +274,7 @@ builder.objectType(InputValidationError, {
   }),
 });
 
+builder.queryType();
 builder.queryField('fieldWithValidation', (t) =>
   t.boolean({
     errors: {
@@ -283,6 +282,7 @@ builder.queryField('fieldWithValidation', (t) =>
     },
     args: {
       string: t.arg.string({
+        required: true,
         validate: z.string().min(3, 'Too short'),
       }),
     },
@@ -295,9 +295,9 @@ Example query:
 
 ```graphql
 query {
-  validation(string: "a") {
+  fieldWithValidation(string: "a") {
     __typename
-    ... on QueryValidationSuccess {
+    ... on QueryFieldWithValidationSuccess {
       data
     }
     ... on InputValidationError {
@@ -318,11 +318,10 @@ BEFORE the dataloader plugin in your plugin list.
 If a field with `errors` returns a `loadableObject`, or `loadableNode` the errors plugin will now
 catch errors thrown when loading ids returned by the `resolve` function.
 
-If the field is a `List` field, errors that occur when resolving objects from `ids` will not be
-handled by the errors plugin. This is because those errors are associated with each item in the list
-rather than the list field itself. In the future, the dataloader plugin may have an option to throw
-an error at the field level if any items can not be loaded, which would allow the error plugin to
-handle these types of errors.
+For a list of loadable IDs, loading happens per item. A load failure is not a whole-field failure,
+so the field's `errors` option does not catch it. Use explicit error unions when you need typed
+results for individual loads; see [List item errors](#list-item-errors) for the separate
+`itemErrors` handling of errors returned or thrown while iterating the resolver's list.
 
 ### With the prisma plugin
 
@@ -338,102 +337,88 @@ plugin
 
 ### List item errors
 
-For fields that return lists, you can specify `itemErrors` to wrap the list items in a union type so
-that errors can be handled per-item rather than replacing the whole list with an error.
-
-The `itemErrors` options are exactly the same as the `errors` options, but they are applied to each
-item in the list rather than the whole list.
+Use `itemErrors` on a list field to wrap each item in its own result union. It accepts the same
+options as `errors`. The following addition to the shared Error interface example yields one success, then throws an error. The plugin returns that error as the final item:
 
 ```typescript
-builder.queryType({
-  fields: (t) => ({
-    listWithErrors: t.string({
-      itemErrors: {},
-      resolve: (parent, { name }) => {
-        return [
-          1,
-          2,
-          new Error('Boom'),
-          3,
-        ]
-      },
-    }),
+builder.queryField('listWithErrors', (t) =>
+  t.intList({
+    nullable: false,
+    itemErrors: {},
+    resolve: function* () {
+      yield 1;
+      throw new Error('Boom');
+    },
   }),
-});
+);
 ```
-
-This will produce a GraphQL schema that looks like:
 
 ```graphql
 type Query {
   listWithErrors: [QueryListWithErrorsItemResult!]!
 }
 
-union QueryListWithErrorsItemResult = Error | QueryListWithErrorsItemSuccess
+union QueryListWithErrorsItemResult = BaseError | QueryListWithErrorsItemSuccess
 
 type QueryListWithErrorsItemSuccess {
   data: Int!
 }
 ```
 
-Item errors also works with both sync and async iterators (in graphql@>=17, or other executors that support the @stream directive):
+At runtime, `itemErrors` also handles returned error instances. If the resolver's ordinary return
+type does not include errors, use an explicit error union for a list that mixes returned data and errors.
+
+The plugin also wraps sync and async iterators. A yielded error becomes an error item; a thrown
+error becomes the final item and closes the iterator. Async iterable execution requires an executor
+that supports it, such as GraphQL 17.
+
+Combine `errors: {}` with `itemErrors: {}` to handle a whole-field failure as well. The outer
+`QueryListWithErrorsResult` union contains `BaseError` and `QueryListWithErrorsSuccess`; the latter's
+`data` field contains the list of `QueryListWithErrorsItemResult` items.
+
+For an async source, the same field can use an async generator. Replace its resolver with:
 
 ```typescript
-builder.queryType({
-  fields: (t) => ({
-    asyncListWithErrors: t.string({
-      itemErrors: {},
-      resolve: async function* () {
+resolve: async function* () {
+  yield 1;
+  throw new Error('The next item could not be loaded');
+},
+```
+
+This requires an executor that supports async iterables. A thrown error ends the iterator;
+use an explicit error union when the source needs to return an error item and continue.
+
+To handle both a failure before the list is returned and a failure during iteration, replace
+`listWithErrors` with:
+
+```typescript
+builder.queryField('listWithErrors', (t) =>
+  t.intList({
+    nullable: false,
+    errors: {},
+    itemErrors: {},
+    args: { failBeforeLoad: t.arg.boolean() },
+    resolve: (_parent, { failBeforeLoad }) => {
+      if (failBeforeLoad) throw new Error('Could not load the list');
+      return (function* () {
         yield 1;
-        yield 2;
-        yield new Error('Boom');
-        yield 4;
-        throw new Error('Boom');
-      },
-    }),
+        throw new Error('Could not load the next item');
+      })();
+    },
   }),
-});
+);
 ```
 
-When an error is yielded, an error result will be added into the list, if the generator throws an error,
-the error will be added to the list, and no more results will be returned for that field
-
-
-You can also use the `errors` and `itemErrors` options together:
-
-```typescript
-
-builder.queryType({
-  fields: (t) => ({
-    listWithErrors: t.string({
-      itemErrors: {},
-      errors: {},
-      resolve: (parent, { name }) => {
-        return [
-          1,
-          new Error('Boom'),
-          3,
-        ]
-    }),
-  }),
-});
-```
-
-This will produce a GraphQL schema that looks like:
+The generated result types are:
 
 ```graphql
-
-type Query {
-  listWithErrors: [QueryListWithErrorsResult!]!
-}
-
-union QueryListWithErrorsResult = Error | QueryListWithErrorsSuccess
+union QueryListWithErrorsResult = BaseError | QueryListWithErrorsSuccess
 
 type QueryListWithErrorsSuccess {
   data: [QueryListWithErrorsItemResult!]!
 }
 
-union QueryListWithErrorsItemResult = Error | QueryListWithErrorsItemSuccess
+union QueryListWithErrorsItemResult = BaseError | QueryListWithErrorsItemSuccess
 
 type QueryListWithErrorsItemSuccess {
   data: Int!
@@ -445,17 +430,22 @@ type QueryListWithErrorsItemSuccess {
 Use `t.errorUnionField` and `t.errorUnionListField` to directly specify all members of the returned union type,
 including multiple success types and error types.
 
+The following additions use the `Error` class registered as `BaseError` in the shared-interface
+example. Each success shape has an `isTypeOf` check so Pothos can distinguish plain objects.
+The resolver bodies simulate create and update outcomes to demonstrate the union branches;
+replace them with your application's persistence logic.
+
 ```typescript
-const CreateResult = builder.objectRef<{ id: string; created: true }>('CreateResult').implement({
-  isTypeOf: (obj) => 'created' in obj,
+const CreateResult = builder.objectRef<{ id: string; created: boolean }>('CreateResult').implement({
+  isTypeOf: (obj) => typeof obj === 'object' && obj !== null && 'created' in obj,
   fields: (t) => ({
     id: t.exposeString('id'),
     created: t.exposeBoolean('created'),
   }),
 });
 
-const UpdateResult = builder.objectRef<{ id: string; updated: true }>('UpdateResult').implement({
-  isTypeOf: (obj) => 'updated' in obj,
+const UpdateResult = builder.objectRef<{ id: string; updated: boolean }>('UpdateResult').implement({
+  isTypeOf: (obj) => typeof obj === 'object' && obj !== null && 'updated' in obj,
   fields: (t) => ({
     id: t.exposeString('id'),
     updated: t.exposeBoolean('updated'),
@@ -465,21 +455,23 @@ const UpdateResult = builder.objectRef<{ id: string; updated: true }>('UpdateRes
 builder.mutationType({
   fields: (t) => ({
     modifyUser: t.errorUnionField({
-      types: [CreateResult, UpdateResult, ValidationError],
-      resolve: (parent, { action, name }) => {
-        if (name.length < 3) return new ValidationError('Name too short');
-        if (action === 'create') return { id: '123', created: true };
-        return { id: '123', updated: true };
+      types: [CreateResult, UpdateResult, Error],
+      args: {
+        id: t.arg.id({ required: true }),
+        name: t.arg.string({ required: true }),
+        create: t.arg.boolean({ required: true }),
+      },
+      resolve: (parent, { id, name, create }) => {
+        if (name.length < 3) return new Error('Name too short');
+        return create ? { id: String(id), created: true } : { id: String(id), updated: true };
       },
     }),
     processUsers: t.errorUnionListField({
-      types: [CreateResult, UpdateResult, ValidationError],
-      resolve: (parent, { operations }) =>
-        operations.map(op =>
-          op.invalid ? new ValidationError('Invalid') :
-          op.action === 'create' ? { id: op.id, created: true } :
-          { id: op.id, updated: true }
-        ),
+      types: [CreateResult, UpdateResult, Error],
+      args: { ids: t.arg.idList({ required: true }) },
+      resolve: (parent, { ids }) => ids.map((id) =>
+        id === 'unknown' ? new Error('User not found') : { id: String(id), updated: true },
+      ),
     }),
   }),
 });
@@ -487,43 +479,48 @@ builder.mutationType({
 
 #### Type resolution
 
-Union members are resolved using standard Pothos type resolution. You have three options:
+Union members use standard Pothos type resolution. Registering an error class with
+`builder.objectType` provides an `instanceof` check. Plain object types can supply `isTypeOf`, as
+above, or you can pass a custom `resolveType` in the field's `union` options. Error instances matched
+by the plugin are resolved before that custom callback.
 
-**Class-based types** (most error types) - automatically resolved via `instanceof` checks:
-```typescript
-class ValidationError extends Error { ... }
-builder.objectType(ValidationError, { name: 'ValidationError', fields: ... });
-// No isTypeOf needed - uses instanceof ValidationError
-```
+For example, this alternative field resolves its success branches explicitly using the
+`CreateResult` and `UpdateResult` types above:
 
-**`isTypeOf` function** - for plain object types:
 ```typescript
-const CreateResult = builder.objectRef<{ id: string }>('CreateResult').implement({
-  isTypeOf: (obj) => 'created' in obj,
-  fields: ...
-});
-```
-
-**Custom `resolveType` on union** - for complex resolution logic:
-```typescript
-t.errorUnionField({
-  types: [CreateResult, UpdateResult, ValidationError],
-  union: {
-    resolveType: (value) => {
-      if (value instanceof ValidationError) return 'ValidationError';
-      if ('created' in value) return 'CreateResult';
-      return 'UpdateResult';
+builder.mutationField('previewUserChange', (t) =>
+  t.errorUnionField({
+    types: [CreateResult, UpdateResult, Error],
+    args: { create: t.arg.boolean({ required: true }) },
+    union: {
+      resolveType: (value) => 'created' in value ? 'CreateResult' : 'UpdateResult',
     },
-  },
-  resolve: ...
-});
+    resolve: (_parent, { create }) =>
+      create ? { id: '1', created: true } : { id: '1', updated: true },
+  }),
+);
 ```
+
+Matched error instances use the plugin's error map, so this callback only needs to distinguish
+the success values.
 
 ### Using `builder.errorUnion`
 
 You can use `builder.errorUnion` to manually construct an error union type that can be used with any field.  Fields returning an error union will automatically handle returned or thrown errors.
 
+This addition to the shared-interface example distinguishes a missing user from invalid input.
+Both error types implement the shared `Error` interface, and validation failures expose the field
+that needs correction:
+
 ```typescript
+class NotFoundError extends Error {}
+
+class ValidationError extends Error {
+  constructor(message: string, public field: string) {
+    super(message);
+  }
+}
+
 builder.objectType(NotFoundError, {
   name: 'NotFoundError',
   interfaces: [ErrorInterface],
@@ -532,14 +529,11 @@ builder.objectType(NotFoundError, {
 builder.objectType(ValidationError, {
   name: 'ValidationError',
   interfaces: [ErrorInterface],
-  isTypeOf: (value) => value instanceof ValidationError,
-  fields: (t) => ({
-    field: t.exposeString('field'),
-  }),
+  fields: (t) => ({ field: t.exposeString('field') }),
 });
 
-const UserType = builder.objectRef<{ id: string; name: string }>('User').implement({
-  isTypeOf: (obj) => 'id' in obj && 'name' in obj,
+const User = builder.objectRef<{ id: string; name: string }>('User').implement({
+  isTypeOf: (obj) => typeof obj === 'object' && obj !== null && 'id' in obj && 'name' in obj,
   fields: (t) => ({
     id: t.exposeString('id'),
     name: t.exposeString('name'),
@@ -547,7 +541,7 @@ const UserType = builder.objectRef<{ id: string; name: string }>('User').impleme
 });
 
 const UserResult = builder.errorUnion('UserResult', {
-  types: [UserType, NotFoundError, ValidationError],
+  types: [User, NotFoundError, ValidationError],
 });
 
 builder.queryField('getUser', (t) =>
@@ -555,15 +549,24 @@ builder.queryField('getUser', (t) =>
     type: UserResult,
     args: { id: t.arg.string({ required: true }) },
     resolve: (_, { id }) => {
-      // Handles thrown errors
       if (!id) throw new ValidationError('ID required', 'id');
-      // Handles returned errors
       if (id === 'unknown') return new NotFoundError('User not found');
-
       return { id, name: 'User' };
     },
-  })
+  }),
 );
+```
+
+Clients can select the common message or the details of a particular failure:
+
+```graphql
+query {
+  getUser(id: "") {
+    ... on User { id name }
+    ... on Error { message }
+    ... on ValidationError { field }
+  }
+}
 ```
 
 #### Options
