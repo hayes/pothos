@@ -61,12 +61,12 @@ const builder = new SchemaBuilder<{
 }>({});
 
 builder.queryType({
-  fields: t => ({
+  fields: (t) => ({
     giraffe: t.field({
-      description: 'A giraffe'
+      description: 'A giraffe',
       type: 'Giraffe',
       resolve: () => ({ name: 'Gina' }),
-    }),:
+    }),
   }),
 });
 ```
@@ -86,7 +86,7 @@ builder.objectType('Giraffe', {
   fields: (t) => ({
     preferredNeckLengthUnit: t.field({
       type: LengthUnit,
-      resolve: () => 'Feet',
+      resolve: () => 'Feet' as const,
     }),
   }),
 });
@@ -107,16 +107,16 @@ To create a list field, you can wrap the type in an array
 
 ```typescript
 builder.queryType({
-  fields: t => ({
+  fields: (t) => ({
     giraffes: t.field({
-      description: 'multiple giraffes'
+      description: 'multiple giraffes',
       type: ['Giraffe'],
       resolve: () => [{ name: 'Gina' }, { name: 'James' }],
     }),
     giraffeNames: t.field({
       type: ['String'],
       resolve: () => ['Gina', 'James'],
-    })
+    }),
   }),
 });
 ```
@@ -133,16 +133,16 @@ builder.queryType({
     nonNullableField: t.field({
       type: 'String',
       nullable: false,
-      resolve: () => null,
+      resolve: () => 'Gina',
     }),
     nonNullableString: t.string({
       nullable: false,
-      resolve: () => null,
+      resolve: () => 'Gina',
     }),
     nonNullableList: t.field({
       type: ['String'],
       nullable: false,
-      resolve: () => null,
+      resolve: () => ['Gina', 'James'],
     }),
     sparseList: t.field({
       type: ['String'],
@@ -207,7 +207,7 @@ builder.queryType({
       },
       resolve: (root, args) => {
         if (args.name !== 'Gina') {
-          throw new NotFoundError(`Unknown Giraffe ${name}`);
+          throw new Error(`Unknown Giraffe ${args.name}`);
         }
 
         return { name: 'Gina' };
@@ -229,19 +229,19 @@ where the type is defined\).
 ```typescript
 builder.queryFields((t) => ({
   giraffe: t.field({
-    type: Giraffe,
-    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
+    type: 'Giraffe',
+    resolve: () => ({ name: 'James' }),
   }),
 }));
 
-builder.objectField(Giraffe, 'ageInDogYears', (t) =>
+builder.objectField('Giraffe', 'nameLength', (t) =>
   t.int({
-    resolve: (parent) => parent.age * 7,
+    resolve: (parent) => parent.name.length,
   }),
 );
 ```
 
-To see all the methods available for defining fields see the [SchemaBuilder API](./schema-builder)
+To see all the methods available for defining fields see the [SchemaBuilder API](../api/schema-builder)
 
 ## Nested Lists
 
