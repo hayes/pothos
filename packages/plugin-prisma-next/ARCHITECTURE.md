@@ -29,7 +29,7 @@ around those two steps.
 | `src/prisma-next-object-field-builder.ts` | `PrismaNextObjectFieldBuilder`: `t.relation` / `t.relatedConnection` / `t.variant` / `t.expose*` / `t.withAuth`. |
 | `src/connection-helpers.ts` | `prismaConnectionHelpers` — public composable for custom paginators. |
 | `src/utils/adapter.ts` | The `@pothos/selection-mapper` adapter: the node, the spec map, the compile of `select` shapes, and `emit` (spec → builder chain). |
-| `src/utils/map-query.ts` | Public entry: `applySelectionToCollection` over `Plan.fromInfo` / `plan.query()`. |
+| `src/utils/map-query.ts` | Public entry: `applySelectionToCollection` over `Plan.fromInfo` / `adapter.toQuery(plan.play().root)`. |
 | `src/utils/model.ts` | One `PrismaNextModel` per contract model (relations with resolved targets, column set), built from the contract. |
 | `src/utils/branding.ts` | `rebrandForVariant` (used by `t.variant` only). |
 | `src/utils/refs.ts` | Per-builder ref cache (drizzle shape). |
@@ -74,13 +74,13 @@ The wrap runs in this order:
         await augmented.all() → rows
         return rows[0] ?? null  OR  rows  (based on isListType(returnType))
    if no: pass through (raw rows / null)
-4. normalizeRowsForType(rows): lift object-level combine slots to flat
-   row props (per-type-namespaced; see Combine slots below).
 ```
 
-If the user returned rows directly (already materialized), the plugin
-only runs step 4 — the auto-include step is skipped. This makes
-`t.prismaField({ resolve: () => null })` work as expected.
+Materialized rows pass through unchanged, including rows returned directly
+by the user. Model field resolvers lift their type-level and field-level
+combine slots into immutable parent overlays as each field resolves. This
+also covers rows reached through connections and nested relations without
+mutating shared source rows.
 
 ## The walker
 
@@ -90,8 +90,9 @@ supplies a `PrismaNextAdapter`, a subclass of the walker's `Adapter`,
 for prisma-next's builder-chain query format
 (`src/utils/adapter.ts`). `applySelectionToCollection(baseCollection,
 info, contract, ctx, opts)` (`src/utils/map-query.ts`) runs
-`Plan.fromInfo`, serializes the root with `plan.query()`, and emits the
-result onto the collection. The plan is synchronous unless a `select`
+`Plan.fromInfo`, waits for any pending selections, serializes the settled
+root with `adapter.toQuery(plan.play().root)`, and emits the result onto
+the collection. It does not publish unused loader mappings. The plan is synchronous unless a `select`
 callback returned a promise, in which case the augmented collection is
 a promise the plugin's own consumers await.
 
@@ -133,7 +134,8 @@ first walk, by `fieldSelection(field, type)`:
 - `t.variant` writes a field-level `pothosIndirectInclude { getType }`
   (no path) → a select function returning `nested(true)`, the variant
   type's selection set walked on the same row, plus the forced columns
-  of its `select` option.
+  of its `select` option. Its relation consumers receive a distinct
+  namespace for the variant field alias.
 - `t.relatedConnection` precompiles its own select function into
   `pothosPrismaNextFieldSelect` (see Connections).
 - Type-level `pothosPrismaNextSelect` (`prismaObject({ select })`) is
@@ -148,9 +150,10 @@ relation for the first time runs **FK augmentation**: the relation's
 `localFields` (the parent-side join columns) go into the node's columns,
 the workaround for prisma-next's nested-stitch plan needing the parent's
 FK on depth-2+ includes. The adapter extends `Adapter` directly and
-answers its six members and no more: every consumer has its own slot, so
-nothing conflicts, and the four merge rules are inherited from the base
-class ("nothing conflicts", "nothing to leave out"). Rows are read back
+answers its six members. To-many consumers have separate slots; shared
+to-one consumers must have compatible arguments and refinements. The
+adapter checks that compatibility when adding branches, while inheriting
+the base adapter's merge-policy hooks. Rows are read back
 through the per-resolve overlay, so the loader
 mappings the plan records are never looked up.
 
@@ -159,7 +162,10 @@ Then **emission** (`emit`, from the serialized root):
 ```
 acc = base.select(...columns)
 for each relation:
-  if single consumer (to-one, or one branch and no function entry):
+  if compatible to-one consumers:
+      merge child selections with distinct consumer scopes
+      acc = acc.include(name, cb => emitMergedChildren(cb))
+  else if single consumer (one branch and no function entry):
       acc = acc.include(name, cb => emitBranch(cb))   // fast path
   else:
       acc = acc.include(name, cb => cb.combine(specObject))  // multi-consumer
@@ -233,9 +239,9 @@ So inside `t.relation('posts').resolve` the parent's
 `posts['drafts:posts']` lifts to `overlay.posts` for the `drafts` field
 specifically. Each field sees its own slot under unprefixed keys.
 
-Object-level selects use a similar lift inside `normalizeRowsForType`,
-runs once per row on the result of `t.prismaField` rather than per
-field.
+Type-level relation slots are lifted into each model field's immutable
+parent overlay. The field's own slots are then read from the original
+source row, preserving independent type-level and field-level filters.
 
 ## Connections
 
@@ -351,3 +357,10 @@ See `feedback/prisma-next-painpoints.md` for the live list. Highlights:
 - N:M relations are emitted like any to-many include; prisma-next
   resolves the junction from the contract's `through` (painpoint #7,
   resolved upstream in 0.14).
+
+Type prerequisites and field selections read from the original source row
+into separate overlays. Shared to-one includes and same-row variants carry
+consumer scopes on these overlays so identical child field aliases remain
+independent. To-many includes own their rows and restart local scopes.
+Scopes are attached before downstream resolver wrappers run, preserving
+selection routing through errors-plugin result wrappers.

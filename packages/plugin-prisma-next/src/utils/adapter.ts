@@ -7,7 +7,7 @@
  * `.include(rel, ...)` / `.combine({...})` calls on the resolver's collection.
  *
  * Every relation consumer gets its own combine slot (`<alias>:<slot>`, or
- * `:object:<Type>:<slot>` for a type-level select), so nothing ever conflicts: the adapter
+ * `:object:<Type>:<slot>` for a type-level select), while compatible to-one consumers share one include. The adapter
  * extends `Adapter` directly, answers its six members and implements no no-op — the four merge
  * rules are inherited. Rows are read back through the per-resolve overlay in the plugin index,
  * so the loader mappings the plan records are never looked up.
@@ -235,20 +235,19 @@ function addBranch(
   const args = spec.args ?? {};
   let branch = relation.branches.get(id);
 
-  if (!branch) {
-    // To-one relations can't carry multiple branches — the orm returns
-    // one row, so sibling aliases would each want their own refined view
-    // of the same row.
-    if (!relation.meta.isToMany && relation.branches.size > 0) {
-      throw new PothosValidationError(
-        `Relation "${name}" is to-one — only one branch allowed, got alias "${id}" plus ${[
-          ...relation.branches.keys(),
-        ]
-          .map((key) => `"${key}"`)
-          .join(', ')}.`,
-      );
+  // The ORM supports one include for a to-one relation. Keep every consumer's
+  // selection namespace, but only share the include when its query agrees.
+  if (!relation.meta.isToMany) {
+    for (const existing of relation.branches.values()) {
+      if (!deepEqual(existing.args, args) || !sameRefine(existing.refine, spec.refine)) {
+        throw new PothosValidationError(
+          `Relation "${name}" is to-one and has incompatible queries under aliases "${selectBranchAlias(existing.alias, existing.slot)}" and "${id}".`,
+        );
+      }
     }
+  }
 
+  if (!branch) {
     branch = {
       alias,
       slot,
@@ -439,8 +438,23 @@ function isDeclarativeRefineSpec(value: unknown): value is DeclarativeRefineSpec
  * model accessor; static `where` objects pass through to `.where()`
  * directly.
  */
+const declarativeRefines = new WeakMap<PrismaNextRefine, DeclarativeRefineSpec>();
+
+function sameRefine(a: PrismaNextRefine | undefined, b: PrismaNextRefine | undefined): boolean {
+  return (
+    a === b ||
+    !!(
+      a &&
+      b &&
+      declarativeRefines.has(a) &&
+      declarativeRefines.has(b) &&
+      deepEqual(declarativeRefines.get(a), declarativeRefines.get(b))
+    )
+  );
+}
+
 export function compileDeclarativeRefine(spec: DeclarativeRefineSpec): PrismaNextRefine {
-  return (rel) => {
+  const refine: PrismaNextRefine = (rel) => {
     let r = rel;
     if (spec.where !== undefined) {
       r = r.where(spec.where);
@@ -456,6 +470,8 @@ export function compileDeclarativeRefine(spec: DeclarativeRefineSpec): PrismaNex
     }
     return r;
   };
+  declarativeRefines.set(refine, spec);
+  return refine;
 }
 
 interface CompileOptions {
@@ -624,11 +640,17 @@ function compileFieldSelection(
   if (indirect && !indirect.path?.length && !indirect.paths?.length) {
     const forced = Array.isArray(raw) ? (raw as readonly string[]) : [];
 
-    return (_args, _ctx, nested) => {
+    return (_args, _ctx, nested, _selected, position) => {
       const selection = nested(true) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
-      return isThenable(selection)
-        ? Promise.resolve(selection).then((spec) => withColumns(spec, [...exposed, ...forced]))
-        : withColumns(selection, [...exposed, ...forced]);
+      const finish = (spec: PrismaNextSpec) =>
+        withColumns(
+          scopeChildConsumers({
+            ...spec,
+            alias: position.node.alias?.value ?? position.node.name.value,
+          }),
+          [...exposed, ...forced],
+        );
+      return isThenable(selection) ? Promise.resolve(selection).then(finish) : finish(selection);
     };
   }
 
@@ -721,20 +743,43 @@ function compileTypeSelection(
   type: GraphQLNamedType,
   model: PrismaNextModel | undefined,
 ): PrismaNextSpec | undefined {
-  const raw = type.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
-
-  if (!raw) {
+  if (!model) {
     return undefined;
   }
 
-  return compileSelect(raw, {
-    model,
-    owner: type.name,
-    label: 'prismaObject select',
-    alias: objectLevelFieldAlias(type.name),
-    // A type-level function entry runs with no field arguments.
-    fn: (value) => (sub, ctx) => value(sub, {}, ctx) as Record<string, unknown>,
-  });
+  const node = createPrismaNextNode(model);
+  const visited = new Set<GraphQLNamedType>();
+  let hasSelection = false;
+  const collect = (current: GraphQLNamedType) => {
+    if (visited.has(current)) {
+      return;
+    }
+    visited.add(current);
+    // Inherited fields retain their defining interface's resolver and slot namespace.
+    // Load those prerequisites even when the GraphQL return type is concrete.
+    if ('getInterfaces' in current) {
+      for (const iface of current.getInterfaces()) {
+        collect(iface);
+      }
+    }
+    const raw = current.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
+    if (!raw) {
+      return;
+    }
+    hasSelection = true;
+    const alias = objectLevelFieldAlias(current.name);
+    const spec = compileSelect(raw, {
+      model,
+      owner: current.name,
+      label: 'prismaObject select',
+      alias,
+      // A type-level function entry runs with no field arguments.
+      fn: (value) => (sub, ctx) => value(sub, {}, ctx) as Record<string, unknown>,
+    });
+    mergeSpec(node, spec, alias);
+  };
+  collect(type);
+  return hasSelection ? serializeNode(node) : undefined;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -742,9 +787,9 @@ function compileTypeSelection(
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Every relation consumer gets its own combine slot, so there is nothing to compare and nothing
- * to leave out: `canMergeQuery`, `firstConflict`, `mergeNode` and `canMergeNode` are inherited, and the package
- * answers "nothing ever conflicts" for them. The contract the models come from, and the compiled
+ * To-many consumers get separate combine slots; to-one consumers share a compatible query
+ * or fail validation while merging. There is no fallback loader: `canMergeQuery`, `firstConflict`, `mergeNode` and `canMergeNode` are inherited, and the package
+ * does not route conflicts to a fallback. The contract the models come from, and the compiled
  * selections cached against the schema's types and fields, are this object's own state.
  */
 export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode> {
@@ -860,6 +905,26 @@ export function emit(
   return acc;
 }
 
+/**
+ * Sharing a to-one row must not also share its consumers' child queries. Scope
+ * the immediate child slots by their parent consumer; a further shared to-one
+ * include adds another level when it is emitted. A to-many include owns its
+ * rows, so its descendants keep their local namespaces.
+ */
+function scopeChildConsumers(branch: PrismaNextSpec): PrismaNextSpec {
+  if (!branch.relations) {
+    return branch;
+  }
+  const relations: NonNullable<PrismaNextSpec['relations']> = {};
+  for (const [name, entries] of Object.entries(branch.relations)) {
+    relations[name] = (Array.isArray(entries) ? entries : [entries]).map((entry) => {
+      const child = entry === true ? {} : typeof entry === 'function' ? { fn: entry } : entry;
+      return { ...child, alias: selectBranchAlias(branch.alias!, child.alias ?? branch.alias!) };
+    });
+  }
+  return { ...branch, relations };
+}
+
 // Single-consumer fast path: `.include(rel, cb => …)` direct — at most one branch and no
 // function-form entry. Several branches or any function-form entry goes through
 // `.combine({...})` for collision-free aliasing — prisma-next's planner falls back to
@@ -884,6 +949,16 @@ function emitRelation(
   const functions = list.filter(
     (entry): entry is PrismaNextFnEntry | PrismaNextSpecFn => !isBranch(entry) && entry !== true,
   );
+
+  if (!meta.isToMany && branches.length > 1 && functions.length === 0) {
+    const shared = createPrismaNextNode(meta.target);
+    for (const branch of branches) {
+      mergeSpec(shared, scopeChildConsumers(branch), branch.alias);
+    }
+    return parent.include(name, (rel) =>
+      emitBranch({ ...serializeNode(shared), refine: branches[0].refine }, rel, meta.target, ctx),
+    );
+  }
 
   if (branches.length <= 1 && functions.length === 0) {
     const branch = branches[0];

@@ -5,8 +5,8 @@ import {
   encodeCursorChunk,
   encodeCursorTuple,
   PothosValidationError,
+  parseCursorConnectionArgs,
 } from '@pothos/core';
-import { parseCursorConnectionArgs } from '@pothos/plugin-relay';
 import { and, or } from '@prisma-next/sql-orm-client';
 import type { MapperCollection } from './adapter.js';
 

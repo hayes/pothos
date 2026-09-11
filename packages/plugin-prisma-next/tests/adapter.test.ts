@@ -441,12 +441,11 @@ describe('relations', () => {
     expect(captured[0].ctx).toEqual({ tenantId: 'tenant-42' });
   });
 
-  it('refuses a second alias on a to-one relation', async () => {
-    await expect(
-      plan('{ users { posts { a: author { id } b: author { firstName } } } }'),
-    ).rejects.toThrow(
-      'Relation "author" is to-one — only one branch allowed, got alias "b:author" plus "a:author".',
-    );
+  it('shares one include for compatible to-one aliases', async () => {
+    expect(await plan('{ users { posts { a: author { id } b: author { firstName } } } }')).toEqual([
+      'select(id)',
+      'include(posts){ select(authorId) include(author){ select(firstName, id) } }',
+    ]);
   });
 
   it('unions one relation selected under two fragments into one slot', async () => {
@@ -544,7 +543,7 @@ describe('type-level selects and variants', () => {
   it('walks a t.variant on the same row with its forced columns and the variant type select', async () => {
     expect(await plan('{ users { id asAdmin { lastName posts { title } } } }')).toEqual([
       'select(email, firstName, id, lastName)',
-      'include(posts){ combine(:object:AdminUser:total=count[], posts:posts=[select(title)]) }',
+      'include(posts){ combine(asAdmin::object:AdminUser:total=count[], asAdmin:posts:posts=[select(title)]) }',
     ]);
   });
 
@@ -614,14 +613,14 @@ describe('entry options', () => {
       '{ users { asAdmin { asyncLastName } } }',
       [
         'select(email, firstName, id, lastName)',
-        'include(posts){ combine(:object:AdminUser:total=count[]) }',
+        'include(posts){ combine(asAdmin::object:AdminUser:total=count[]) }',
       ],
     ],
     [
       '{ users { asAdmin { posts { asyncTitle } } } }',
       [
         'select(email, firstName, id)',
-        'include(posts){ combine(:object:AdminUser:total=count[], posts:posts=[select(title)]) }',
+        'include(posts){ combine(asAdmin::object:AdminUser:total=count[], asAdmin:posts:posts=[select(title)]) }',
       ],
     ],
     [

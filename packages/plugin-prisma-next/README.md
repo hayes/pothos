@@ -6,8 +6,10 @@ prisma-next, makes it easier to define types backed by your contract, helps
 solve N+1 queries for relations, and ships Relay integrations for nodes and
 connections.
 
-> **Experimental.** `prisma-next` isn't on npm yet; this package is `private:
-> true` in the workspace until prisma-next publishes.
+> **Experimental.** This plugin tracks prisma-next `^0.16.0` (the `@prisma-next/*`
+> client packages, published on npm). Both prisma-next and this plugin are pre-1.0
+> and their APIs may still change. Pending a stable npm release, the plugin is
+> available as a PR preview via [pkg.pr.new](https://pkg.pr.new).
 
 ## Features
 

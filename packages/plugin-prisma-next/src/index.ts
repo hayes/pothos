@@ -4,6 +4,7 @@ import './prisma-next-field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  isThenable,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
@@ -12,6 +13,7 @@ import SchemaBuilder, {
 import {
   type GraphQLFieldResolver,
   type GraphQLResolveInfo,
+  getNamedType,
   getNullableType,
   isListType,
 } from 'graphql';
@@ -22,7 +24,6 @@ import {
   PRISMA_NEXT_RELATIONS,
   PRISMA_NEXT_SELECT,
 } from './constants.js';
-import type { PreparedFieldExtension } from './extensions.js';
 import type { AnyContract } from './types.js';
 import { fieldAliasPrefix, objectLevelFieldAlias } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
@@ -132,79 +133,67 @@ async function materializeCollection(
   return wantsList ? rows : (rows[0] ?? null);
 }
 
-/**
- * Source-row normalize: lift object-level select entries from their
- * per-type namespaced combine slots (`row[rel][':object:<TypeName>:<key>']`)
- * up to top-level properties on each row. Runs at the t.prismaField
- * boundary so plain `t.field` resolvers on the type see the expected
- * flat shape.
- *
- * Per-type prefix means variants that share a row but declare distinct
- * object-level selects route to distinct slots without collision —
- * each variant's normalize uses its own type-name prefix.
- */
-function normalizeRowsForType(
-  value: unknown,
-  typeConfig: PothosTypeConfig | undefined,
-  contract: AnyContract | undefined,
-): unknown {
-  if (!typeConfig || !contract) {
-    return value;
-  }
-  const ext = (typeConfig.extensions ?? {}) as Record<string, unknown>;
-  const spec = ext[PRISMA_NEXT_SELECT];
-  if (!spec || Array.isArray(spec) || typeof spec !== 'object') {
-    return value;
-  }
-  const modelName = ext[PRISMA_NEXT_MODEL] as string | undefined;
-  if (!modelName) {
-    return value;
-  }
-  const relations = resolveContractModel(contract, modelName)?.relations;
-  if (!relations) {
-    return value;
-  }
-  const entries = Object.entries(spec as Record<string, unknown>).filter(
-    ([k]) => relations[k] !== undefined,
-  );
-  if (entries.length === 0) {
-    return value;
-  }
-  // The prefix the adapter wrote these slots under: e.g. `:object:User:` for the User
-  // prismaObject. Per-type, so variants sharing a row route to distinct slots.
-  const prefix = fieldAliasPrefix(objectLevelFieldAlias(typeConfig.name));
+// Inherited by variant wrappers so later resolvers can still read the original combine maps.
+const sourceRow = Symbol('prismaNextSourceRow');
 
-  const normalize = (row: unknown): unknown => {
-    if (row == null || typeof row !== 'object' || Array.isArray(row)) {
-      return row;
-    }
-    const r = row as Record<string, unknown>;
-    for (const [rel] of entries) {
-      const slot = r[rel];
-      if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
-        const slotMap = slot as Record<string, unknown>;
-        for (const k of Object.keys(slotMap)) {
-          if (k.startsWith(prefix)) {
-            r[k.slice(prefix.length)] = slotMap[k];
-          }
-        }
-      }
-    }
-    return r;
-  };
+// A shared to-one include scopes child consumers, while the single-include fast
+// path keeps them local. Candidates record those explicit planner alternatives;
+// they are carried with the row, never reconstructed from a GraphQL response path.
+const rowScopes = Symbol('prismaNextRowScopes');
+type ScopedRow = { [sourceRow]?: object; [rowScopes]?: readonly string[] };
 
-  if (
-    value &&
-    typeof value === 'object' &&
-    'then' in value &&
-    typeof (value as { then?: unknown }).then === 'function'
-  ) {
-    return (value as Promise<unknown>).then((v) => normalizeRowsForType(v, typeConfig, contract));
+function childScopes(parent: object, alias: string): string[] {
+  return [...((parent as ScopedRow)[rowScopes] ?? []).map((scope) => `${scope}:${alias}`), alias];
+}
+
+function scopedRow(row: object, scopes: readonly string[]): object {
+  const wrapper = Object.create(row) as object;
+  Object.defineProperties(wrapper, {
+    [sourceRow]: { value: (row as ScopedRow)[sourceRow] ?? row },
+    [rowScopes]: { value: scopes },
+  });
+  return wrapper;
+}
+
+function selectedPrefix(slot: object, scopes: readonly string[]): string | undefined {
+  const keys = Object.keys(slot);
+  return scopes.map(fieldAliasPrefix).find((prefix) => keys.some((key) => key.startsWith(prefix)));
+}
+
+function liftSlots(overlay: object, slot: object, scopes: readonly string[]) {
+  const prefix = selectedPrefix(slot, scopes);
+  if (!prefix) {
+    return;
   }
-  if (Array.isArray(value)) {
-    return value.map(normalize);
+  for (const key of Object.keys(slot)) {
+    if (key.startsWith(prefix)) {
+      Object.defineProperty(overlay, key.slice(prefix.length), {
+        value: (slot as Record<string, unknown>)[key],
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
   }
-  return normalize(value);
+}
+
+/** Present type-level selections without modifying the shared ORM row or its combine maps. */
+function normalizeParentForType(
+  parent: object,
+  relations: readonly string[],
+  alias: string,
+): Record<string, unknown> {
+  const overlay = Object.create(parent) as Record<string, unknown>;
+  const source = (parent as ScopedRow)[sourceRow] ?? parent;
+  Object.defineProperty(overlay, sourceRow, { value: source });
+  const scopes = childScopes(parent, alias);
+  for (const relation of relations) {
+    const slot = (source as Record<string, unknown>)[relation];
+    if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
+      liftSlots(overlay, slot, scopes);
+    }
+  }
+  return overlay;
 }
 
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -255,8 +244,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const ext = (fieldConfig.extensions ?? {}) as Record<string | symbol, unknown>;
 
     if (ext[PRISMA_NEXT_PREPARED]) {
-      const prepared = ext[PRISMA_NEXT_PREPARED] as PreparedFieldExtension;
-      const { typeName } = prepared;
       // Resolve plugin options once at schema-build time — `wrapResolve`
       // runs per field; the returned closure runs per request.
       const opts = readPluginOptions<AnyContract>(this.builder);
@@ -265,19 +252,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
       const mapperOpts = mapperOptionsFromPluginOpts(opts);
       const contract = opts.contract;
-      // Resolve the return type's config once so the per-resolve
-      // normalize step has a stable handle to the object-level select
-      // manifest. `getTypeConfig` walks buildCache — cheap on first
-      // call, hashed on subsequent.
-      let returnTypeConfig: PothosTypeConfig | undefined;
-      try {
-        returnTypeConfig = this.buildCache.getTypeConfig(typeName);
-      } catch {
-        // typeName might be an interface or union — normalize is
-        // skipped in that case (object-level select isn't defined on
-        // those abstract types).
-        returnTypeConfig = undefined;
-      }
       return async (parent, args, context, info) => {
         const raw = (
           resolver as unknown as (
@@ -294,14 +268,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
         // Auto-wrap: if the resolver returned a Collection (duck-typed
         // via `.select` + `.all`), apply selection and materialize.
-        // Anything else (null, array, raw row) passes through to the
-        // row normalizer.
+        // Anything else (null, array, raw row) passes through unchanged.
         const materialized =
           result != null && !Array.isArray(result) && isOrmCollection(result)
             ? await materializeCollection(result, info, contract, context, mapperOpts)
             : result;
 
-        return normalizeRowsForType(materialized, returnTypeConfig, contract);
+        return materialized;
       };
     }
 
@@ -321,52 +294,30 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       selectOpt !== undefined &&
       ((typeof selectOpt === 'object' && selectOpt !== null && !Array.isArray(selectOpt)) ||
         typeof selectOpt === 'function');
-    // `t.variant` routes through `pothosIndirectInclude` and carries no object `select` of its
-    // own, but the type it descends into may have one, whose entries land in that type's
-    // object-level combine slots. Without the wrap, `normalizeRowsForType` never lifts them.
-    //
-    // Only the pathless marker is a variant: `t.relatedConnection` sets one carrying `paths`, and
-    // it needs no wrap of its own -- giving it one would hand its resolver a cloned parent whose
-    // own properties differ from the row it was passed.
+    const parentTypeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
+    const typeSelect = parentTypeConfig.extensions?.[PRISMA_NEXT_SELECT];
+    const modelName = parentTypeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    const contract = readPluginOptions<AnyContract>(this.builder)?.contract;
+    const modelRelations =
+      contract && modelName ? resolveContractModel(contract, modelName)?.relations : undefined;
+    const toOneRelations = Object.entries(modelRelations ?? {})
+      .filter(([, relation]) => relation.cardinality !== '1:N' && relation.cardinality !== 'N:M')
+      .map(([name]) => name);
+    const typeRelations =
+      typeSelect && !Array.isArray(typeSelect) && typeof typeSelect === 'object'
+        ? Object.keys(typeSelect).filter((key) => modelRelations?.[key] !== undefined)
+        : [];
+    const typeAlias = objectLevelFieldAlias(parentTypeConfig.name);
+    const hasTypeSelect = typeRelations.length > 0;
+    const hasFieldSelect = isObjectOrCallableSelect || !!ext[PRISMA_NEXT_FIELD_SELECT];
     const indirect = ext.pothosIndirectInclude as
-      | { path?: unknown[]; paths?: unknown[][] }
+      | { path?: unknown[]; paths?: unknown[] }
       | undefined;
-    const isVariantDescent =
-      indirect !== undefined && indirect.path === undefined && indirect.paths === undefined;
-
-    if (!isObjectOrCallableSelect && !ext[PRISMA_NEXT_FIELD_SELECT] && !isVariantDescent) {
+    const isSameRow = !!indirect && !indirect.path?.length && !indirect.paths?.length;
+    if (!hasTypeSelect && !hasFieldSelect && !isSameRow) {
       return resolver;
     }
     const baseResolver = resolver;
-    // Resolve the field's return type config once at schema-build so
-    // the per-resolve normalize step can apply object-level select
-    // entries from the returned type. Per-boundary local rewrap: each
-    // field returning rows normalizes them before downstream resolvers
-    // run.
-    const builderForCapture = this.builder;
-    const buildCacheForCapture = this.buildCache;
-    let returnTypeConfig: PothosTypeConfig | undefined;
-    try {
-      const fieldType = (
-        fieldConfig as unknown as {
-          type: {
-            kind?: string;
-            type?: { ref?: string; name?: string };
-            ref?: string;
-            name?: string;
-          };
-        }
-      ).type;
-      const inner = fieldType?.type ?? fieldType;
-      const refName =
-        (inner as { ref?: string; name?: string })?.name ?? (inner as { ref?: string })?.ref;
-      if (typeof refName === 'string') {
-        returnTypeConfig = buildCacheForCapture.getTypeConfig(refName);
-      }
-    } catch {
-      returnTypeConfig = undefined;
-    }
-    const contractForCapture = readPluginOptions<AnyContract>(builderForCapture)?.contract;
 
     return (parent, args, context, info) => {
       if (parent == null || typeof parent !== 'object') {
@@ -374,29 +325,64 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
       // The prefix the adapter wrote the combine slot under. `:` is GraphQL-forbidden, so it
       // cannot collide with a user-defined alias or relation name.
-      const prefix = fieldAliasPrefix(info.fieldNodes[0]?.alias?.value ?? info.fieldName);
-      const p = parent as Record<string, unknown>;
+      const alias = info.fieldNodes[0]?.alias?.value ?? info.fieldName;
+      const scopes = childScopes(parent, alias);
+      const p = ((parent as { [sourceRow]?: object })[sourceRow] ?? parent) as Record<
+        string,
+        unknown
+      >;
       // Object.create(parent) preserves the prototype chain so variant
       // re-brands (which use Object.create to attach a type brand)
       // still surface their inherited row props via overlay. Adding a
       // top-level property on the overlay shadows that level only.
-      const overlay = Object.create(p) as Record<string, unknown>;
+      const overlay = normalizeParentForType(parent, typeRelations, typeAlias);
       // `for...in` over `p` walks the prototype chain so we still find combine slots when
       // `parent` is a variant wrapper from `rebrandForVariant` (which puts the row on the
       // prototype). It never yields a shadowed name twice, so no visited set is needed.
-      for (const key in p) {
+      for (const key in hasFieldSelect ? p : {}) {
         const slot = p[key];
         if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
-          for (const k of Object.keys(slot)) {
-            if (k.startsWith(prefix)) {
-              const innerKey = k.slice(prefix.length);
-              overlay[innerKey] = (slot as Record<string, unknown>)[k];
-            }
+          liftSlots(overlay, slot, scopes);
+        }
+      }
+      // Scope model rows before other plugins transform the field's return shape.
+      // Errors success wrappers, for example, expose this same row via a data
+      // field even though their declared GraphQL return type is a union.
+      if (hasFieldSelect) {
+        for (const name of toOneRelations) {
+          const value = overlay[name];
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            Object.defineProperty(overlay, name, {
+              value: scopedRow(value, scopes),
+              enumerable: true,
+              configurable: true,
+              writable: true,
+            });
           }
         }
       }
       const result = baseResolver(overlay, args, context, info);
-      return normalizeRowsForType(result, returnTypeConfig, contractForCapture);
+      const finish = (value: unknown) => {
+        if (!value || typeof value !== 'object' || value instanceof Error) {
+          return value;
+        }
+        if (Array.isArray(value)) {
+          // To-many branches own their rows; descendants use local namespaces.
+          return value.some(
+            (row) => row && typeof row === 'object' && (row as ScopedRow)[rowScopes],
+          )
+            ? value.map((row) => (row && typeof row === 'object' ? scopedRow(row, []) : row))
+            : value;
+        }
+        if (isSameRow) {
+          return scopedRow(value, scopes);
+        }
+        if (getNamedType(info.returnType).extensions?.[PRISMA_NEXT_MODEL]) {
+          return (value as ScopedRow)[rowScopes] === scopes ? value : scopedRow(value, scopes);
+        }
+        return value;
+      };
+      return isThenable(result) ? Promise.resolve(result).then(finish) : finish(result);
     };
   }
 }

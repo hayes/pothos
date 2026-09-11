@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
 import { GraphQLInt, GraphQLObjectType, printSchema } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, {
@@ -469,7 +470,7 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
     // same suffix value.
     const make = () => {
       const b = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-        plugins: [prismaNextPlugin],
+        plugins: [prismaNextPlugin, RelayPlugin],
         prismaNext: { contract: ctx.contract },
       });
       b.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -598,7 +599,7 @@ describe('prismaInterface → prismaObject model propagation', () => {
 describe('prismaNode — user isTypeOf merged with brand check', () => {
   it('honors a user-supplied isTypeOf while still keeping the brand fallback', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin, require('@pothos/plugin-relay').default],
+      plugins: [prismaNextPlugin, RelayPlugin],
       relay: { clientMutationId: 'omit', cursorType: 'String' },
       prismaNext: { contract: ctx.contract },
     } as never);
@@ -634,7 +635,7 @@ describe('prismaNode — user isTypeOf merged with brand check', () => {
     // on a truthy Promise<false>. The merge must detect the Promise
     // return and chain through .then so the brand check still runs.
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin, require('@pothos/plugin-relay').default],
+      plugins: [prismaNextPlugin, RelayPlugin],
       relay: { clientMutationId: 'omit', cursorType: 'String' },
       prismaNext: { contract: ctx.contract },
     } as never);
