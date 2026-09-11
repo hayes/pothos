@@ -164,6 +164,7 @@ For the exact function signature, see the `index.ts` of the example plugin.
 - `wrapResolve`: Invoked when creating the resolver for each field
 - `wrapSubscribe`: Invoked for each field in the `Subscriptions` object.
 - `wrapResolveType`: Invoked for each Union and Interface.
+- `wrapIsTypeOf`: Invoked for each Object, including objects without an `isTypeOf` function.
 
 Each of the lifecycle methods above \(except `beforeBuild`\) expect a return value that matches
 their first argument \(either a config object, or the resolve/subscribe/resolveType function\). If
@@ -183,9 +184,9 @@ If your plugin needs to add additional types or fields to the schema it should d
 `beforeBuild` hook. Any types added to the schema after this, may not be included correctly. Plugins
 should also account for the fact that a new instance of the plugin will be created each time the
 schema is called, so any types or fields added to the schema should only be applied once \(per
-schema\), even if multiple instances of the plugin are created. To help with this, there is a
+builder\), even if multiple instances of the plugin are created. To help with this, there is a
 `runUnique` helper on the base plugin class, which accepts a key, and a callback, and will only run
-a callback once per schema for the given key.
+a callback once per builder for the given key, even across multiple `toSchema` calls.
 
 ## Use cases
 
@@ -220,10 +221,11 @@ correctly typed:
 ```typescript
 export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   onTypeConfig(typeConfig: PothosTypeConfig) {
-    console.log(this.builder.options.optionInRootOfConfig)
+    console.log(this.builder.options.optionInRootOfConfig);
 
     return typeConfig;
   }
+}
 ```
 
 ### Adding options when building a schema \(`toSchema`\)
@@ -244,10 +246,11 @@ These options can be accessed through `this.options` in your plugin:
 ```typescript
 export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   onTypeConfig(typeConfig: PothosTypeConfig) {
-    console.log(this.options.customBuildTimeOptions)
+    console.log(this.options.customBuildTimeOptions);
 
     return typeConfig;
   }
+}
 ```
 
 ### Adding options to types
@@ -272,6 +275,7 @@ export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
     return typeConfig;
   }
+}
 ```
 
 In the example above, we need to check `typeConfig.kind` to ensure that the type config is for an
@@ -328,7 +332,7 @@ exist, even though they are not defined on the original classes.
 
 ```typescript
 export interface SchemaBuilder<Types extends SchemaTypes> {
-  buildCustomObject: () => ObjectRef<{ custom: 'shape' }>;
+  buildCustomObject: () => ObjectRef<Types, { custom: 'shape' }>;
 }
 ```
 
@@ -341,7 +345,9 @@ const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBu
 
 schemaBuilderProto.buildCustomObject = function buildCustomObject() {
   return this.objectRef<{ custom: 'shape' }>('CustomObject').implement({
-    fields: () => ({}),
+    fields: (t) => ({
+      custom: t.exposeString('custom'),
+    }),
   });
 };
 ```
@@ -437,8 +443,11 @@ cases your plugin can define a `createRequestData` method, and use the `requestD
 the data for the current request.
 
 ```typescript
-export class PothosExamplePlugin<Types extends SchemaTypes, { resolveCount: number }> extends BasePlugin<Types> {
-  createRequestData(context: Types['Context']): T {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<
+  Types,
+  { resolveCount: number }
+> {
+  createRequestData(context: Types['Context']): { resolveCount: number } {
     return { resolveCount: 0 };
   }
 
@@ -527,9 +536,9 @@ with the following shape:
 interface InputFieldMapping<Types extends SchemaTypes, T> {
   kind: 'Enum' | 'Scalar' | 'InputObject';
   isList: boolean;
+  listDepth: number;
   config: PothosInputFieldConfig<Types>;
-  value: T; // the value returned by the mapping function (if it was not null).
-  // The value may still be for `InputObject` mappings if there are nested fields with non-null mappings
+  value: T | null; // null is possible for an InputObject with mapped descendants.
 }
 ```
 
@@ -543,8 +552,8 @@ interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
 }
 ```
 
-Both the root level map, and the `fields.map` maps will only contain entries for fields where the
-mapping function did not return null. If the mapping function returned null for all fields, the
+Both the root map and nested `fields.map` maps contain fields with non-null mappings and
+input objects with mapped descendants. If the mapping function returned null for all fields, the
 `mapInputFields` will return null instead of returning a map to indicate no wrapping should occur
 
 ### Removing fields and enum values

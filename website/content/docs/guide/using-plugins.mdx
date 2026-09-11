@@ -32,6 +32,9 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 
 const builder = new SchemaBuilder({
   plugins: [ScopeAuthPlugin],
+  scopeAuth: {
+    authScopes: () => ({}),
+  },
 });
 ```
 
@@ -48,17 +51,22 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [ScopeAuthPlugin],
+  scopeAuth: {
+    authScopes: () => ({
+      example: (value) => value === 'allowed',
+    }),
+  },
 });
 ```
 
-This types can then be used in other parts of the API \(eg. defining the scopes on a field\), but
+These types can then be used in other parts of the API \(eg. defining the scopes on a field\), but
 the details of how these types are used will be specific to each plugin, and should be covered in
 the documentation for the plugin.
 
 ## Ordering
 
-In some cases, it may be important to understand the order in which plugins are applied. All plugin
-lifecycle hooks are applied in REVERSE order. This is done to ensure that the most important
+Config hooks, resolver wrappers, and `afterBuild` are applied in reverse plugin order.
+`beforeBuild` runs in list order. This is done to ensure that the most important
 \(first\) plugins are applied after all other effects have been applied. For plugins that wrap
 resolvers, because the first plugins are applied last, they will be the outermost layer of wrapping
 and executed first. This means it is important to have plugins like `scope-auth` listed
