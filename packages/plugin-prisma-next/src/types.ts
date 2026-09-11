@@ -220,8 +220,23 @@ export type ConnectionCollection<
   M extends ModelName<Types>,
 > = ResolverCollection<Types, M>;
 
-export interface PrismaNextPluginOptions<TContract extends AnyContract> {
+export type PrismaNextCollections<TContract extends AnyContract> = {
+  [M in CollectionModelName<TContract>]?: Collection<
+    TContract,
+    M,
+    DefaultModelRow<TContract, M, NsIdOf<TContract, M>>,
+    WithNsId<DefaultCollectionTypeState, NsIdOf<TContract, M>>
+  >;
+};
+
+export interface PrismaNextPluginOptions<TContract extends AnyContract, Context = object> {
   readonly contract: TContract;
+  /** Base model collections for batched fallback loads, including request filters/transactions. */
+  readonly collections?:
+    | PrismaNextCollections<TContract>
+    | ((context: Context) => PrismaNextCollections<TContract>);
+  /** Defaults to true when collections are configured; otherwise selections are loaded eagerly. */
+  readonly skipDeferredFragments?: boolean;
   readonly defaultConnectionSize?: number;
   readonly maxConnectionSize?: number;
 }

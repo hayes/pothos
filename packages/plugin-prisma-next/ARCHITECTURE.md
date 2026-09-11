@@ -4,17 +4,39 @@ Production code targets `@prisma/orm-framework` and `@prisma/orm-family-sql`.
 It does not construct a SQLite/PostgreSQL client, inspect a dialect, or choose a
 driver. Applications supply Collections and own connections and transactions.
 
-## Complete selections
+## Selection planning and loading
 
-Every supported model field resolves from a complete selection plan.
+Every supported model field resolves from a selection-aware query.
 `prismaField` and `prismaFieldWithInput` require an unexecuted, model-scoped
 Collection. The plugin adds the GraphQL selection, waits for async selections,
 then calls `.all()`. Singular fields add `.limit(1)`; nullable fields can return
 null. Materialized row/array returns are rejected.
 
-There is no general fallback loader. Deferred fragments remain in the initial
-plan; GraphQL can defer delivery without a later database fetch. Explicitly
-skipping deferred fragments is unsupported.
+A configured `prismaNext.collections` provider enables a request-local model
+loader, following the Prisma and Drizzle plugins. The shared mapper records which
+fields an eager plan accepted. Unmapped fields compile a `Plan.forParentRow`,
+including their dependencies and compatible type prerequisites. Compatible plans
+merge into one batch; incompatible refinements get separate batches. Each batch
+queries all parent identities using `IN` or compound `OR` predicates and fans rows
+back by tagged identity. Per-row/path mappings prevent one fallback result from
+claiming another parent's selection coverage.
+
+Fields without declared dependencies resolve directly. Loaded scalar fields keep
+their original parent identity; overlays are only used where selection routing
+requires them.
+
+Provider-enabled planning selects a non-null primary or unique key on model rows.
+Providers supply unpaginated model Collections, preserving application filters
+and transaction bindings. Missing identities, excluded rows, missing providers,
+and batch errors reject the affected fields. Scalar, Date, bytes, and Decimal
+identity values are supported; opaque object identities require a separate codec
+integration and are rejected.
+
+With a provider, deferred fragments are omitted by default and load when GraphQL
+executes them. `skipDeferredFragments: false` keeps eager loading. Without a
+provider, deferred fields remain in the initial plan and explicit skipping is
+rejected. Incremental execution must register the `@defer` directive and keep
+any transaction alive through consumption of subsequent results.
 
 The shared selection-mapper handles fragments, aliases, variants, prerequisites
 and indirect wrapper paths. This plugin compiles its plan to Collection
@@ -27,8 +49,9 @@ plugin selects parent join columns even when GraphQL did not ask for them.
 Prisma resolves N:M junctions from the contract's `through` metadata.
 
 Independent to-many consumers use combine slots. Compatible to-one consumers
-merge. RC9 rejects incompatible to-one combinations (`ORM.INCLUDE_UNSUPPORTED`);
-the adapter reports this before SQL instead of dropping a consumer.
+merge. RC9 rejects incompatible to-one combinations (`ORM.INCLUDE_UNSUPPORTED`).
+With a provider, compatibility checks leave conflicting consumers for separate
+multi-parent loads; without a provider the adapter rejects the plan before SQL.
 
 Combine keys use `:`, forbidden in GraphQL names. Type prerequisites and field
 selections have independent namespaces. Immutable overlays route each resolver

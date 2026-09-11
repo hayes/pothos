@@ -11,6 +11,9 @@ import { emit, type MapperCollection, type PrismaNextPlan, prismaNextAdapter } f
 export type { IndirectInclude };
 
 export interface ApplySelectionOptions {
+  skipDeferredFragments?: boolean;
+  /** @internal Set when the builder has a Collection provider for fallback loads. */
+  fallback?: boolean;
   /** Descend through these paths from the field's return type (`[['edges', 'node'], ['nodes']]`). */
   paths?: PathSegment[][];
   path?: PathSegment[];
@@ -32,15 +35,15 @@ export function applySelectionToCollection(
   context: unknown,
   options: ApplySelectionOptions = {},
 ): MaybePromise<MapperCollection> {
-  if ((options as { skipDeferredFragments?: boolean }).skipDeferredFragments) {
+  if (options.skipDeferredFragments && !options.fallback) {
     throw new PothosSchemaError(
-      'skipDeferredFragments is not supported: deferred selections must be loaded with the initial query.',
+      'skipDeferredFragments requires a Collection provider for fallback loading.',
     );
   }
-  // Next passes the original context to callbacks and does not use loader mapping caches.
+  // Selection callbacks receive the application's original context.
   const ctx = context as object;
   const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
-  const adapter = prismaNextAdapter(contract);
+  const adapter = prismaNextAdapter(contract, options.fallback);
   const plan = Plan.fromInfo(adapter, {
     context: ctx,
     info,
@@ -48,7 +51,7 @@ export function applySelectionToCollection(
     path: options.path,
     paths: options.paths,
     initial,
-    skipDeferredFragments: false,
+    skipDeferredFragments: options.skipDeferredFragments ?? options.fallback ?? false,
   });
 
   if (!plan) {
@@ -56,10 +59,15 @@ export function applySelectionToCollection(
     return emit(baseCollection, initial ?? {}, undefined, ctx);
   }
 
-  // Serialize the play directly: query() also publishes mappings to an object-context cache,
-  // but Next resolves selected rows through its own overlay.
+  // Publish coverage for manual helper callers too. Context-free eager helpers
+  // retain their original behavior; fallback loading requires an object context.
   const finish = (settled: PrismaNextPlan) =>
-    emit(baseCollection, adapter.toQuery(settled.play().root), settled.model, ctx);
+    emit(
+      baseCollection,
+      ctx && typeof ctx === 'object' ? settled.query() : adapter.toQuery(settled.play().root),
+      settled.model,
+      ctx,
+    );
 
   return isThenable(plan)
     ? Promise.resolve(plan).then((settled) => finish(settled as PrismaNextPlan))

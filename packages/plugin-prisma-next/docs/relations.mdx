@@ -238,19 +238,19 @@ the explicit junction model when you need its attributes.
 
 ## Reaching a relation without a prismaField
 
-If a `t.relation` field's parent wasn't loaded by `t.prismaField` (e.g.
-you `t.field({ resolve: () => ({ id: 1 }) })` returning a raw row that
-the auto-include never saw), the relation resolver throws a clear
-validation error pointing you back at `t.prismaField`. Use `t.prismaField`
-as the entry point, or build your include chain manually inside a custom
-resolver.
-
+With `prismaNext.collections` configured, a model row reached through a regular
+`t.field` can load missing selections when it carries its primary or unique key.
+The loader batches requests across parents. Prefer `t.prismaField` for root
+collections so the plugin can preload compatible fields together. Without a
+provider, relation data must already be present; otherwise the resolver reports
+that the relation was not loaded.
 
 ## Independent to-one refinements
 
-Compatible selections of the same to-one relation are merged. Prisma ORM rc9
-rejects `combine()` on to-one includes (`ORM.INCLUDE_UNSUPPORTED`), so two aliases
-requiring incompatible filters cannot currently share the complete include plan.
-The plugin rejects that plan before executing SQL. Independently filtered to-many
-aliases remain supported. This is an upstream composition limit, not a reason
-to load unselected relations later through fallback resolvers.
+Compatible selections of the same to-one relation share an include. Prisma ORM
+RC9 rejects `combine()` on to-one includes (`ORM.INCLUDE_UNSUPPORTED`). Configure
+`prismaNext.collections` to handle incompatible filters: the initial query loads
+one compatible group, and a multi-row fallback query loads each remaining group
+with its own nested selections. Aliases receive independent values, including
+filtered `null` results. Without a provider, incompatible refinements are rejected
+before SQL. Independent to-many consumers continue to use combine slots.

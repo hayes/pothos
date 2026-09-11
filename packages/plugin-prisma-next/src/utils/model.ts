@@ -5,6 +5,7 @@
  * registry, so a cycle (`User.posts` → `Post.author` → `User`) closes on the same objects.
  */
 import { PothosSchemaError } from '@pothos/core';
+import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import type { AnyContract } from '../types.js';
 import { resolveContractModel } from './contract.js';
 
@@ -122,6 +123,40 @@ export function buildColumnSet(
 }
 
 const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
+
+/** Prefer the primary key, then a non-null unique key, using model field names. */
+export function getIdentityFields(contract: AnyContract, modelName: string): string[] {
+  const model = resolveContractModel(contract, modelName);
+  const storage = model?.storage as
+    | {
+        table?: string;
+        namespaceId?: string;
+        fields?: Record<string, { column?: string }>;
+      }
+    | undefined;
+  const table = storage?.table
+    ? resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table
+    : undefined;
+  const keys = [
+    ...(table?.primaryKey ? [table.primaryKey.columns] : []),
+    ...(table?.uniques ?? []).map((key) => key.columns),
+    ...(table?.indexes ?? []).flatMap((index) =>
+      index.unique && !index.where && index.columns ? [index.columns] : [],
+    ),
+  ];
+  for (const columns of keys) {
+    const fields = columns.map((column) =>
+      Object.keys(model!.fields).find(
+        (field) =>
+          (storage?.fields?.[field]?.column ?? field) === column && !model!.fields[field].nullable,
+      ),
+    );
+    if (fields.length && fields.every((field) => field !== undefined)) {
+      return fields as string[];
+    }
+  }
+  return [];
+}
 
 /** The one `PrismaNextModel` for `name` under `contract`. */
 export function getModel(contract: AnyContract, name: string): PrismaNextModel {

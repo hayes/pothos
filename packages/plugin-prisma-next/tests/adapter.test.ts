@@ -596,7 +596,7 @@ describe('entry options', () => {
       applySelectionToCollection(new RecordingCollection(), info, sampleContract as never, {}, {
         skipDeferredFragments: true,
       } as never),
-    ).toThrow(/deferred selections must be loaded/);
+    ).toThrow(/requires a Collection provider/);
   });
 
   it.each([

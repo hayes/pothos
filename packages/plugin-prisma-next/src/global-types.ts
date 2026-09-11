@@ -64,7 +64,7 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      prismaNext: PrismaNextPluginOptions<Types['PrismaNextContract']>;
+      prismaNext: PrismaNextPluginOptions<Types['PrismaNextContract'], Types['Context']>;
     }
 
     export interface UserSchemaTypes {

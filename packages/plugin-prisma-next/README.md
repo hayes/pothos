@@ -15,10 +15,11 @@ application supplies its Collection and owns the driver, connection, and
 transaction. PostgreSQL and SQLite use the same Pothos configuration. MongoDB
 uses a different upstream query API and is not supported in 0.1.
 
-The plugin applies the complete GraphQL selection before executing a returned
-Collection. Resolvers must return a Collection (or null for a nullable field),
-not materialized rows. This contract makes fallback relation loading unnecessary.
-Deferred fragments are included in the selection plan.
+The plugin applies GraphQL selections before executing a returned Collection.
+Root resolvers return a Collection (or null for a nullable field). Configure
+`prismaNext.collections` to enable batched fallback loading for conflicting
+to-one selections and deferred fragments. Without it, deferred data loads eagerly
+and conflicting to-one refinements are rejected.
 
 ## Features
 
@@ -49,7 +50,10 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: contractJson as Contract },
+  prismaNext: {
+    contract: contractJson as Contract,
+    collections: (ctx) => ctx.db.orm,
+  },
 });
 
 builder.prismaObject('User', {

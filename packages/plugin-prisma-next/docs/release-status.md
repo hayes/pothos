@@ -1,7 +1,7 @@
 # Initial 0.1.0 release status
 
-This implementation follows two constraints: selections are complete without
-fallback model loading, and Pothos has no SQLite/PostgreSQL-specific behavior.
+This implementation combines eager selection planning with optional multi-row
+fallback loading. Pothos has no SQLite/PostgreSQL-specific behavior.
 Production dependencies are the Prisma ORM 8 framework and SQL family, pinned
 to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
 
@@ -16,7 +16,8 @@ to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
 | Contract-derived aggregates | Operations/fields/results derive from AggregateTypes; type tests cover lossless operations, field counts, text min and required scalar choices |
 | Fractional aggregates incorrectly use Int | Numeric non-count reducers default to Float; explicit output scalar supported; SQLite/PostgreSQL regressions |
 | Raw rows bypass selection application | Root/with-input return types require Collections (or nullable null); runtime rejects bypasses |
-| Deferred fragments omitted | Included in complete plan; real incremental GraphQL test verifies no later SQL |
+| Deferred fragments omitted | A configured Collection provider enables batched deferred loading; incremental tests verify initial SQL omits deferred-only data and one later batch loads it. Eager mode remains supported |
+| Conflicting to-one refinements | Compatible groups preload; provider-backed multi-parent loads service remaining branches, preserving aliases, nulls, nested mappings and transactions |
 | Default node isTypeOf rejects normal rows | Removed brand-only concrete predicate; preserve explicit user predicate and node-loader brands |
 | ID-only node selection misses ID columns | Node ID field declares its selected columns; regression for direct concrete node access |
 | Errors-wrapped root lists materialize one row | Original list shape is retained in prepared field metadata; errors-wrapper regression |
@@ -38,9 +39,12 @@ to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
 - **MongoDB:** unsupported. Its Collection/contract family cannot execute the SQL
   adapter's refinement/combine operations. Shared GraphQL planning is reusable,
   but a real Mongo implementation and tests are required.
-- **Incompatible to-one refinements:** rejected before execution. Upstream RC9
-  rejects to-one combine with ORM.INCLUDE_UNSUPPORTED. Compatible consumers merge;
-  independent to-many consumers work. This does not imply a fallback loader.
+- **Fallback configuration:** requires application-supplied unpaginated model
+  Collections and non-null primary/unique identities. Opaque object identities
+  require a future codec integration; scalar/Date/bytes/Decimal keys work.
+  Without a provider, incompatible to-one refinements are rejected before SQL.
+  Conflicting type-level prerequisites and function-form to-one combine queries
+  remain subject to planner/upstream restrictions.
 - **Native ORM inheritance and duplicate namespace model names:** not exposed as
   dedicated Pothos concepts. GraphQL variants are same-model views. A qualified
   model identity and inheritance-specific contract design need separate work.
@@ -61,7 +65,7 @@ contract-derived extensibility rather than enumerate database capabilities.
 ## Upstream compatibility debt
 
 Include-refinement helper types remain internal upstream and are reconstructed
-from public Collection/aggregate types. Connection validation reads the pinned
+from public Collection/aggregate types. Connection and fallback pagination validation read the pinned
 Collection state because orderBy appends and has no public reset API. These are
 centralized compatibility seams, not database-dialect checks.
 
@@ -99,8 +103,16 @@ where applicable; runtime imports do not require those optional plugins. The
 consumer also executes an actual SQLite GraphQL query on Node 24.15.0.
 
 
-Final local integration run: 33 test files / 318 tests passed, both type projects
-passed, and all 113 monorepo build/generate/type/test tasks passed. The root Biome
+The pre-loader integration run passed 33 test files / 318 tests, both type projects,
+and all 113 monorepo build/generate/type/test tasks. The loader additions have
+separate multi-row, compound-key, deferred, transaction, wrapper, and type coverage. The root Biome
 command encountered an unrelated nested worktree configuration; checking all
 Git-tracked files explicitly passed. A release simulation produced public 0.1.0
 with core peer ^4.14.0, without modifying this checkout's release versions.
+
+The loader update passes the plugin build, both type projects, all 36 test files /
+341 tests, and Biome checks of every changed TypeScript file. This includes real
+SQLite query-count assertions and PostgreSQL transaction rollback coverage.
+Review regressions verify that dependency-free fields need no identity or query,
+preloaded scalar parents retain object identity, and inherited type prerequisites
+still load. Connection and fallback pagination checks share one state inspection.

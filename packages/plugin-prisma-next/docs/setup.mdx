@@ -87,6 +87,8 @@ Set on `builder.options.prismaNext`:
 ```ts
 prismaNext: {
   contract,                    // required
+  collections: (ctx) => ctx.db.orm, // enables batched fallback loading
+  skipDeferredFragments: true, // default with collections; false keeps eager loading
   defaultConnectionSize: 20,   // default `first:` for all connections
   maxConnectionSize: 100,      // hard cap on connection page size
 }
@@ -112,15 +114,37 @@ Pothos itself does not load Temporal or select database codecs.
 ## Selection and transaction lifetime
 
 Return the unexecuted Collection from `t.prismaField` and
-`t.prismaFieldWithInput`. The plugin applies all requested fields and relations
-before executing it. Already-materialized rows are rejected because their types
-cannot prove that the runtime GraphQL selection was loaded. Deferred fragments
-are included; skipping them is unsupported.
+`t.prismaFieldWithInput`. The plugin applies the initial selection plan before
+executing it. Already-materialized root results are rejected because their
+types cannot prove that the runtime GraphQL selection was loaded.
+
+Configure `collections` with a model-name map or a context callback returning that
+map. A partial map is allowed, but every model that needs a fallback must have an
+entry. For example, `collections: (ctx) => ({ User: ctx.db.orm.User, Post:
+ctx.db.orm.Post.where({ tenantId: ctx.tenantId }) })` preserves application filters.
+For a namespaced client, map bare model names explicitly, such as
+`{ User: ctx.db.orm.public.User }`. Model names must be globally unique.
+
+The loader reloads parent rows in batches using their primary key, or a non-null
+unique key when no primary key is available. Identity columns are selected
+automatically. Provider Collections must be unpaginated: no `limit`, `offset`, or
+`cursor`. If application filters exclude a parent, its field receives a loading
+error. Opaque object identity codecs are not yet supported; built-in scalar,
+Date, byte-array, and Decimal identities are supported.
+
+With `collections`, incompatible to-one selections load in separate compatible
+batches and deferred fields load when executed. Set `skipDeferredFragments:
+false` to retain eager deferred loading. Without `collections`, deferred data
+loads eagerly and incompatible to-one selections fail during planning. Register
+the `@defer` directive on the schema and use an incremental GraphQL executor to
+receive deferred payloads.
 
 Execute GraphQL while a transaction-bound client is still active when you want
 queries, related selections, node loads, and counts in that transaction. Do not
 return an unexecuted Collection from a transaction callback and then execute it
-after the callback has ended. Pothos does not create transactions or change their
+after the callback has ended. The `collections` provider must return Collections
+bound to that same live transaction. Consume incremental results before ending
+the transaction as well. Pothos does not create transactions or change their
 isolation policy.
 
 ## Loading the orm-client per request

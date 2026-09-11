@@ -240,4 +240,67 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     const result = await raw.query('SELECT name FROM pothos_next_account WHERE id = $1', ['a']);
     expect(result.rows[0].name).toBe('Alice');
   });
+
+  it('batch-loads conflicting to-one selections through the context transaction', async () => {
+    let providerCalls = 0;
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: Contract;
+      Context: { orm: typeof client.orm };
+    }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: {
+        contract,
+        collections: (context) => {
+          providerCalls += 1;
+          return { Account: context.orm.public.Account, Entry: context.orm.public.Entry };
+        },
+      },
+    });
+    builder.prismaObject('Account', {
+      fields: (t) => ({ name: t.exposeString('name') }),
+    });
+    builder.prismaObject('Entry', {
+      fields: (t) => ({
+        original: t.relation('account', {
+          nullable: true,
+          query: { where: { name: 'Alice' } },
+        }),
+        current: t.relation('account', {
+          nullable: true,
+          query: { where: { name: 'In transaction' } },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        entries: t.prismaField({
+          type: ['Entry'],
+          resolve: (_parent, _args, context) => context.orm.public.Entry,
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const rollback = new Error('rollback fallback fixture');
+    await expect(
+      client.transaction(async (tx) => {
+        await tx.orm.public.Account.where({ id: 'a' }).update({ name: 'In transaction' });
+        const result = await graphql({
+          schema,
+          source: '{ entries { original { name } current { name } } }',
+          contextValue: { orm: tx.orm },
+        });
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual({
+          entries: [
+            { original: null, current: { name: 'In transaction' } },
+            { original: null, current: { name: 'In transaction' } },
+          ],
+        });
+        expect(providerCalls).toBeGreaterThan(0);
+        throw rollback;
+      }),
+    ).rejects.toBe(rollback);
+    const result = await raw.query('SELECT name FROM pothos_next_account WHERE id = $1', ['a']);
+    expect(result.rows[0].name).toBe('Alice');
+  });
 });

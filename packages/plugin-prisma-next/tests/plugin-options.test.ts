@@ -215,14 +215,14 @@ describe('plugin-options end-to-end', () => {
     expect(data.users.edges).toHaveLength(1);
   });
 
-  it('rejects skipping deferred selections because there is no later loader', () => {
+  it('requires a Collection provider before skipping deferred selections', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract, skipDeferredFragments: true } as never,
     });
     expect(() =>
       builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) }),
-    ).toThrow(/deferred selections must be loaded/);
+    ).toThrow(/requires prismaNext.collections/);
   });
 });
 

@@ -1,4 +1,5 @@
 import { PothosSchemaError } from '@pothos/core';
+import type { MapperCollection } from './adapter.js';
 
 /** @internal */
 export function resolveSizeOption<Args, Ctx>(
@@ -16,11 +17,17 @@ export function resolveSizeOption<Args, Ctx>(
 export interface MapperPluginOptions {
   defaultConnectionSize?: number;
   maxConnectionSize?: number;
+  skipDeferredFragments?: boolean;
+  /** @internal Whether selection conflicts can be serviced by a loader. */
+  fallback?: boolean;
 }
 
 /** @internal */
 export interface FullPrismaNextPluginOptions<Contract = unknown> extends MapperPluginOptions {
   contract: Contract;
+  collections?:
+    | Record<string, MapperCollection | undefined>
+    | ((context: unknown) => Record<string, MapperCollection | undefined>);
 }
 
 /** @internal */
@@ -29,9 +36,9 @@ export function readPluginOptions<Contract = unknown>(builder: {
 }): FullPrismaNextPluginOptions<Contract> | undefined {
   const options = (builder.options as { prismaNext?: FullPrismaNextPluginOptions<Contract> })
     .prismaNext;
-  if ((options as { skipDeferredFragments?: boolean } | undefined)?.skipDeferredFragments) {
+  if (options?.skipDeferredFragments && !options.collections) {
     throw new PothosSchemaError(
-      'prismaNext.skipDeferredFragments is not supported: deferred selections must be loaded with the initial query.',
+      'prismaNext.skipDeferredFragments requires prismaNext.collections for fallback loading.',
     );
   }
   return options;
@@ -51,10 +58,7 @@ export function mapperOptionsFromPluginOpts(
   if (opts.maxConnectionSize !== undefined) {
     out.maxConnectionSize = opts.maxConnectionSize;
   }
-  if ((opts as { skipDeferredFragments?: boolean }).skipDeferredFragments) {
-    throw new PothosSchemaError(
-      'skipDeferredFragments is not supported: deferred selections must be loaded with the initial query.',
-    );
-  }
+  out.fallback = opts.fallback ?? !!(opts as FullPrismaNextPluginOptions).collections;
+  out.skipDeferredFragments = opts.skipDeferredFragments ?? out.fallback;
   return out;
 }

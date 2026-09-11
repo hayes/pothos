@@ -12,6 +12,7 @@ import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-sto
 import { and, or } from '@prisma/orm-family-sql/orm-client';
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
+import { getCollectionPaginationState } from './collection-state.js';
 import { resolveContractModel } from './contract.js';
 
 // Per-column accessor shape. orm-client's `ModelAccessor` exposes the
@@ -281,29 +282,10 @@ export function buildPaginationParams(
   };
 }
 
-/**
- * rc.9 has no public method to replace ordering. Its readonly state is inspected
- * only to reject unsupported bases, never modified. Keep this compatibility
- * check next to pagination when upgrading the exactly pinned ORM dependency.
- */
+/** Connections own ordering and pagination, so their supplied base must have neither. */
 export function assertUnpaginatedCollection(collection: unknown): void {
-  const state = (
-    collection as {
-      state?: {
-        orderBy?: readonly unknown[];
-        cursor?: unknown;
-        limit?: number;
-        offset?: number;
-      };
-    }
-  ).state;
-  if (
-    state &&
-    (state.orderBy?.length ||
-      state.cursor != null ||
-      state.limit !== undefined ||
-      state.offset !== undefined)
-  ) {
+  const { ordered, paginated } = getCollectionPaginationState(collection);
+  if (ordered || paginated) {
     throw new PothosValidationError(
       'Connection resolvers must return an unordered, unpaginated Collection. Configure ordering through cursor fields and direction instead of orderBy(), cursor(), limit(), or offset().',
     );
