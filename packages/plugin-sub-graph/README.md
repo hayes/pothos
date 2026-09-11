@@ -1,116 +1,119 @@
-# SubGraph Plugin for Pothos
+# SubGraph plugin
 
-A plugin for creating sub-selections of your graph. This allows you to use the same code/types for
-multiple variants of your API.
+Use one set of type definitions to build several API variants. Tag types and fields with named
+sub-graphs, then pass `subGraph` to `builder.toSchema()` to select a variant. This is separate from
+Apollo Federation: a sub-graph here is a filtered view of your own schema.
 
-One common use case for this is to share implementations between your public and internal APIs, by
-only exposing a subset of your graph publicly.
+## Install
 
-## Usage
-
-### Install
-
-```bash
-yarn add @pothos/plugin-sub-graph
+```package-install
+npm install --save @pothos/plugin-sub-graph
 ```
 
-### Setup
+## Build public and internal schemas
+
+Declare the sub-graph names in `SubGraphs`. In this example, types and fields belong to both variants
+by default, while `internalNotes` is available only in the internal API:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import SubGraphPlugin from '@pothos/plugin-sub-graph';
+
 const builder = new SchemaBuilder<{
   SubGraphs: 'Public' | 'Internal';
 }>({
   plugins: [SubGraphPlugin],
   subGraphs: {
-    defaultForTypes: [],
+    defaultForTypes: ['Public', 'Internal'],
     fieldsInheritFromTypes: true,
   },
 });
 
-//in another file:
+const Product = builder.objectRef<{
+  id: string;
+  name: string;
+  internalNotes: string;
+}>('Product').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    internalNotes: t.exposeString('internalNotes', {
+      subGraphs: ['Internal'],
+    }),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    product: t.field({
+      type: Product,
+      resolve: () => ({ id: '1', name: 'Notebook', internalNotes: 'Restock next week' }),
+    }),
+  }),
+});
 
 const schema = builder.toSchema();
 const publicSchema = builder.toSchema({ subGraph: 'Public' });
 const internalSchema = builder.toSchema({ subGraph: 'Internal' });
+```
 
-// You can also build a graph containing multiple subgraphs:
+`{ product { name } }` works in either variant. `{ product { internalNotes } }` fails GraphQL
+validation against `publicSchema`. Calling `toSchema()` without a sub-graph retains the full schema.
+
+## Combine variants
+
+An array includes types and fields belonging to any listed sub-graph:
+
+```typescript
 const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
-
-// Or create a graph of the intersection between multiple subgraphs:
-const allSchema = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
 ```
 
-### Options on Types
-
-- `subGraphs`: An optional array of sub-graph the type should be included in.
-
-### Object and Interface types:
-
-- `defaultSubGraphsForFields`: Default sub-graph for fields of the type to be included in.
-
-## Options on Fields
-
-- `subGraphs`: An optional array of sub-graph the field to be included in. If not provided, will
-
-  fallback to:
-
-  - `defaultSubGraphsForFields` if set on type
-  - `subGraphs` of the type if `subGraphs.fieldsInheritFromTypes` was set in the builder
-  - an empty array
-
-### Options on Builder
-
-- `subGraphs.defaultForTypes`: Specifies what sub-graph a type is part of by default.
-- `subGraphs.fieldsInheritFromTypes`: defaults to `false`. When true, fields on a type will default
-  to being part of the same sub-graph as their parent type. Only applies when type does not have
-  `defaultSubGraphsForFields` set.
-
-### Usage
+The `all` form includes only membership shared by every listed sub-graph:
 
 ```typescript
-builder.queryType({
-  // Query type will be available in default, Public, and Internal schemas
-  subGraphs: ['Public', 'Internal'],
-  // Fields on the Query object will now default to not being a part of any subgraph
-  defaultSubGraphsForFields: [];
-  fields: (t) => ({
-    someField: t.string({
-      // someField will be in the default schema and "Internal" sub graph, but
-      // not present in the Public sub graph
-      subGraphs: ['Internal']
-      resolve: () => {
-        throw new Error('Not implemented');
-      },
-    }),
-  }),
-});
+const sharedSchema = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
 ```
 
-### Missing types
+For the example above, the combined schema includes `internalNotes`; the shared schema omits it.
 
-When creating a sub-graph, the plugin will only copy in types that are included in the sub-graph,
-either by explicitly setting it on the type, or because the sub-graph is included in the default
-list. Like types, output fields that are not included in a sub-graph will also be omitted. Arguments
-and fields on Input types can not be removed because that would break assumptions about argument
-types in resolvers.
+## Membership options
 
-If a type that is not included in the sub-graph is referenced by another part of the graph that is
-included in the graph, a runtime error will be thrown when the sub graph is constructed. This can
-happen in a number of cases including cases where a removed type is used in the interfaces of an
-object, a member of a union, or the type of a field argument.
+Set `subGraphs` on a type or field to override its defaults. A type without this option uses
+`subGraphs.defaultForTypes` from the builder.
 
-### Explicitly including types
+A field's membership is determined in this order:
 
-You can use the `explicitlyIncludeType` option to explicitly include types in a sub-graph that are
-unreachable.  This isn't normally required, but there are some edge cases where this may be useful.
+1. Its own `subGraphs` option.
+2. Its parent type's `defaultSubGraphsForFields` option.
+3. Its parent type's membership, when `subGraphs.fieldsInheritFromTypes` is `true`.
+4. The builder's `subGraphs.defaultForFields` option.
+5. An empty array.
 
-For instance, when extending external references with the federation plugin, the externalRef may
-not be reachable directly through your schema, but you may still want to include it when building the
-schema.  To work around this, we can explicitly include any types that have a `key` directive:
+`fieldsInheritFromTypes` defaults to `false`. An explicit empty array overrides the fallback, so
+`defaultSubGraphsForFields: []` on a type makes its fields opt in individually.
 
+## Inputs and missing types
+
+Nullable arguments and input fields can also have `subGraphs`. Required arguments and input fields
+cannot be removed from a retained field or input object: resolvers may depend on them being present.
+The plugin rejects a schema that tries to remove one.
+
+An output field is omitted when its return type is excluded. Other references can make a filtered
+schema invalid, such as a retained union containing an excluded member or a required argument using
+an excluded input type. Include those dependencies in the variant or exclude the referring field or
+type as well. Build and validate each variant you intend to serve.
+
+## Include unreachable types
+
+Types that remain unreachable after filtering are normally omitted. The
+`subGraphs.explicitlyIncludeType` callback retains matching types that already belong to the selected
+sub-graph, even when no field reaches them.
+
+For federation entities, `hasResolvableKey` can retain an otherwise unreachable external reference.
+Use this as a separate builder setup with both plugins:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import FederationPlugin, { hasResolvableKey } from '@pothos/plugin-federation';
 import SubGraphPlugin from '@pothos/plugin-sub-graph';
 
@@ -119,7 +122,9 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [SubGraphPlugin, FederationPlugin],
   subGraphs: {
-    explicitlyIncludeType: (type, subGraphs) => hasResolvableKey(type)
+    defaultForTypes: ['Public', 'Internal'],
+    fieldsInheritFromTypes: true,
+    explicitlyIncludeType: (type) => hasResolvableKey(type),
   },
 });
 ```
