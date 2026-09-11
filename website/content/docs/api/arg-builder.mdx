@@ -3,6 +3,10 @@ title: ArgBuilder
 description: API docs for Pothos ArgBuilder
 ---
 
+This reference describes the options for an argument. For examples, see [Arguments](../guide/args).
+
+The option types below are summaries; Pothos infers their concrete types from your schema.
+
 ## `arg(options)`
 
 - `options`: \[`FieldOptions`\]
@@ -11,19 +15,23 @@ description: API docs for Pothos ArgBuilder
 
 ```typescript
 type FieldOptions = {
-  type: ReturnType;
-  required?: boolean;
+  type: InputType;
+  required?: boolean | { list: boolean; items: boolean };
+  defaultValue?: DefaultValue;
   description?: string;
   deprecationReason?: string;
+  extensions?: Readonly<Record<string, unknown>>;
 };
 ```
 
 - `type`: [Type Parameter](./arg-builder#type-parameter)
-- `required`: boolean, defaults to `false`, unless overwritten in SchemaBuilder see
+- `required`: defaults to `false`, unless overwritten in SchemaBuilder see
 
   [Changing Default Nullability](../guide/changing-default-nullability).
 
 - `description`: string
+- `deprecationReason`: marks the input as deprecated.
+- `extensions`: metadata for tools and plugins.
 - `defaultValue`: default value for field, type based on `type` option.
 
 ### Type Parameter
@@ -33,9 +41,14 @@ A Type Parameter for a Field can be any `InputTypeRef` returned by one of the
 enum used to define a graphql enum type, or a string that corresponds to one of the keys of the
 `Scalars` object defined in `SchemaTypes`.
 
+For lists, wrap the type in an array, for example `['ID']`. A boolean `required` controls
+the list itself; items are required by default. Use `{ list: false, items: false }` to allow both
+an omitted or null list and null items. Input object names declared in `SchemaTypes.Inputs`
+can also be used as strings.
+
 ## helpers
 
-A set of helpers for creating scalar fields. This work the same as ArgBuilder, but omit the `type`
+A set of helpers for creating scalar fields. These work the same as ArgBuilder, but omit the `type`
 field from options.
 
 ### Scalars
@@ -50,4 +63,10 @@ field from options.
 - `arg.booleanList(options)`
 - `arg.intList(options)`
 - `arg.floatList(options)`
-- `arg.listRef(type, options)`
+
+
+### `arg.listRef(type, options?)`
+
+Creates a list type reference, including nested lists. `options.required` controls the items
+and defaults to `true`; the field or argument options control the outer list. See
+[Arguments](../guide/args) for a nested-list example.
