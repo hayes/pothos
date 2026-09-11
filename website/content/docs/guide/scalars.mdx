@@ -1,122 +1,158 @@
 ---
 title: Scalars
-description: Guide for defining Scalar types in Pothos
+description: Register custom scalars and define their input and output behavior.
 ---
 
-## Adding Custom GraphQL Scalars
+Pothos includes GraphQL's `String`, `Boolean`, `Int`, `Float`, and `ID` scalars. Use their names as
+field and argument types, or the shorthand builders shown in [Fields](./fields).
 
-To add a custom scalar that has been implemented as GraphQLScalar from
-[graphql-js](https://github.com/graphql/graphql-js) you need to provide some type information in
-SchemaTypes generic parameter of the builder:
+A custom scalar needs both a TypeScript declaration in `SchemaTypes` and a runtime implementation.
+The declaration describes the values your resolvers work with:
+
+- `Input` is the value a resolver receives after GraphQL parses an argument or input field.
+- `Output` is the value a resolver returns, before GraphQL serializes it for the response.
+
+These are application types, not necessarily the JSON types sent by clients. A date scalar can
+receive a string from a client, parse it into a `Date`, and serialize a resolver's `Date` back to a
+string. In that case both `Input` and `Output` are `Date`.
+
+## Defining a scalar
+
+This scalar accepts positive integers and checks both input values and resolver results:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
+import { GraphQLError, Kind } from 'graphql';
+
 const builder = new SchemaBuilder<{
   Scalars: {
-    Date: {
-      Input: Date;
-      Output: Date;
-    };
+    PositiveInt: { Input: number; Output: number };
   };
 }>({});
 
-builder.addScalarType('Date', CustomDateScalar);
+function positiveInt(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    throw new GraphQLError('PositiveInt must be a positive safe integer');
+  }
+
+  return value;
+}
+
+builder.scalarType('PositiveInt', {
+  serialize: positiveInt,
+  parseValue: positiveInt,
+  parseLiteral: (node) => {
+    if (node.kind !== Kind.INT) {
+      throw new GraphQLError('PositiveInt must be an integer literal');
+    }
+
+    return positiveInt(Number(node.value));
+  },
+});
+
+builder.queryType({
+  fields: (t) => ({
+    double: t.field({
+      type: 'PositiveInt',
+      args: { value: t.arg({ type: 'PositiveInt', required: true }) },
+      resolve: (_parent, { value }) => value * 2,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
 ```
 
-The Input type is the type that will be used when the type is used in an argument or `InputObject`.
-The Output type is used to validate the resolvers return the correct value when using the scalar in
-their return type.
+`parseValue` handles variables, `parseLiteral` handles inline GraphQL literals, and `serialize`
+handles output. Validate each path: TypeScript declarations alone do not validate values at runtime.
+This example explicitly rejects string and float literals, even when they represent whole numbers.
 
-For many scalars `Input` and `Output` will be the same, but they do not always need to match. The
-Scalars generic can be used to change types for the built-in scalars.
-
-For example, the defaults for the ID scalar might not be exactly what you want, you can customize
-the values like so:
-
-```typescript
-const builder = new SchemaBuilder<{
-  Scalars: {
-    ID: {
-      // type all ID arguments and input values as string
-      Input: string;
-      // Allow resolvers for ID fields to return strings, numbers, or bigints
-      Output: string | number | bigint;
-    };
-  };
-}>({});
+```graphql
+{
+  double(value: 3)
+}
 ```
 
-## Adding Scalars from `graphql-scalars`
+```json
+{
+  "data": {
+    "double": 6
+  }
+}
+```
 
-Similarly to adding your own custom scalars, you can utilize scalars from the
-[graphql-scalars](https://the-guild.dev/graphql/scalars/docs) library by also providing the types
-through the SchemaTypes generic parameter.
+Passing `0`, `-1`, `1.5`, or `"3"` is an error. An output outside the scalar's accepted range is
+also an error; GraphQL applies the field's nullability rules when reporting it.
 
-Note that when implementing the graphql-scalars library, the best types to use for `Input` and
-`Output` types are _not_ always intuitive. For example, you might assume that the `JSON` type from
-graphql-scalars would utilize the global `JSON` type, or another JSON type imported from a library
-that tries to enumerate potential JSON values, but it is usually better to just use `unknown`. A
-good place to start if you are unsure what type to use is to check the `codegenScalarType` inside the
-file where the scalar is defined by `graphql-scalars`
-([BigInt scalar definition, for reference](https://github.com/Urigo/graphql-scalars/blob/6bdccebb27a7f9be7b5d01dfb052a3e9c17432fc/src/scalars/BigInt.ts#L92)).
-This isn't defined for all scalars, and some scalars use `any` in which case `unknown` might be a
-better option.
+## Adding an existing scalar
+
+Use `builder.addScalarType` to register an existing graphql-js `GraphQLScalarType`. Declare its
+application types in the builder first. For example, with `graphql-scalars` installed:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import { DateResolver, JSONResolver } from 'graphql-scalars';
 
 const builder = new SchemaBuilder<{
   Scalars: {
-    JSON: {
-      Input: unknown;
-      Output: unknown;
-    };
-    Date: {
-      Input: Date;
-      Output: Date;
-    };
+    JSON: { Input: unknown; Output: unknown };
+    Date: { Input: Date; Output: Date };
   };
 }>({});
 
 builder.addScalarType('JSON', JSONResolver);
 builder.addScalarType('Date', DateResolver);
+
+builder.queryType({
+  fields: (t) => ({
+    date: t.field({ type: 'Date', resolve: () => new Date('2026-01-01T00:00:00Z') }),
+  }),
+});
+
+export const schema = builder.toSchema();
 ```
 
-## Defining your own scalars
+The same method accepts your own `GraphQLScalarType` instance. Check an implementation's parsing
+and serialization contracts when choosing its `Input` and `Output` types; Pothos does not infer
+those types from the scalar instance. The two types can differ, and an implementation may accept
+more output types than your application needs to return.
+
+For a general JSON scalar, `unknown` lets resolvers check an input's structure before using it.
+The global TypeScript `JSON` type describes the `JSON.parse` and `JSON.stringify` API, not JSON data.
+
+## Customizing built-in scalar types
+
+You can override the TypeScript types of built-in scalars through `Scalars` too. This changes
+resolver checking; it does not replace GraphQL's parsing or serialization behavior. For example,
+to restrict your application to string IDs:
 
 ```typescript
 const builder = new SchemaBuilder<{
   Scalars: {
-    PositiveInt: {
-      Input: number;
-      Output: number;
-    };
+    ID: { Input: string; Output: string };
   };
 }>({});
-
-builder.scalarType('PositiveInt', {
-  serialize: (n) => n,
-  parseValue: (n) => {
-    if (n >= 0) {
-      return n;
-    }
-
-    throw new Error('Value must be positive');
-  },
-});
 ```
 
-## Using scalars
+GraphQL still accepts integer ID inputs and parses them to strings. Use `scalarType` or
+`addScalarType` if you also need to replace a scalar's runtime implementation.
 
-```typescript
-builder.queryFields((t) => ({
-  date: t.field({
-    type: 'Date',
-    resolve: () => new Date(),
-  }),
+## GraphQL 17 coercion hooks
 
-  positive: t.field({
-    type: 'PositiveInt',
-    resolve: () => 5,
-  }),
-}));
-```
+Starting with Pothos 4.13, `scalarType` also accepts GraphQL 17's coercion hooks:
+
+| Hook | Purpose |
+| --- | --- |
+| `coerceOutputValue` | Serialize a resolver result. |
+| `coerceInputValue` | Parse an external input value. |
+| `coerceInputLiteral` | Parse a constant AST value, with variables already substituted. |
+| `valueToLiteral` | Convert an external value to a constant AST value. |
+
+These hooks are used on GraphQL 17. GraphQL 16 ignores them, so keep `serialize`, `parseValue`, and
+`parseLiteral` for implementations that also run on GraphQL 16. The earlier example works on both
+versions.
+
+On GraphQL 17, you can provide `coerceOutputValue` instead of `serialize`. If both are present,
+GraphQL uses `serialize`. A `coerceInputLiteral` implementation must be paired with
+`coerceInputValue`; otherwise schema construction throws. `addScalarType` preserves these hooks
+when registering an existing scalar that provides them.
