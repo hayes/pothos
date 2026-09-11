@@ -51,7 +51,7 @@ export const PLUGIN_CATEGORIES: Record<
   },
 };
 
-export const PLUGINS: PluginEntry[] = [
+const allPlugins: PluginEntry[] = [
   // ── Data ──────────────────────────────────────────────────────────
   {
     slug: 'prisma',
@@ -217,6 +217,9 @@ export const PLUGINS: PluginEntry[] = [
     order: 2,
   },
 ];
+
+// Keep the unreleased plugin's catalog entry for when its docs are published.
+export const PLUGINS = allPlugins.filter((plugin) => plugin.slug !== 'prisma-next');
 
 /** Canonical docs URL for a plugin's page. */
 export function pluginDocsHref(slug: string): string {

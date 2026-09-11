@@ -10,7 +10,10 @@ import { remarkMultiRegion } from './lib/remark-multi-region';
 
 export const { docs, meta } = defineDocs({
   dir: 'content/docs',
+  meta: { files: ['**/*.json', '!plugins/prisma-next/**'] },
   docs: {
+    // Keep the unreleased plugin's content in git without publishing its pages.
+    files: ['**/*.{md,mdx}', '!plugins/prisma-next/**'],
     postprocess: {
       includeProcessedMarkdown: true,
     },
