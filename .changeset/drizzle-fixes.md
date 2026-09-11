@@ -21,3 +21,7 @@ Drizzle plugin fixes.
 - The error for a `drizzleObject` and a `drizzleInterface` it implements being built on different
   tables names drizzle rather than prisma. It read "must be based on the same prisma model as any
   DrizzleInterfaces they extend"; it now says "the same drizzle table".
+- Custom client adapters must now provide `select()` and its SQL builder chain, plus
+  `query.<table>.findMany()`, alongside relation metadata and `$count()`. Forward SQL construction
+  synchronously; do not wrap `select` in a promise or Effect. Full Drizzle clients already
+  provide these methods.
