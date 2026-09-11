@@ -46,8 +46,19 @@ builder.queryType({
 });
 ```
 
-The resolver's `context` parameter has the type we provided to the builder. The query returns `null`
-when there is no signed-in user.
+The resolver's `context` parameter has the type we provided to the builder. Clients can query the
+current user with:
+
+```graphql
+query {
+  currentUser {
+    id
+    username
+  }
+}
+```
+
+When there is no signed-in user, the response is `{ "data": { "currentUser": null } }`.
 
 Your GraphQL server creates the context for each request. Here is an example using GraphQL Yoga,
 where `getUserFromAuthHeader` is an application function that looks up a user and returns `User | null`:
@@ -72,22 +83,19 @@ server.listen(3000);
 
 ## Initialize context cache
 
-Several Pothos plugins cache data for the current request, including dataloaders and auth scopes.
-Create a new context object for each request and share it across that request's resolvers.
+Create a new context object for each request. Plugins such as dataloader and scope-auth use the
+context object's identity to cache data for that request's resolvers.
 
-`initContextCache()` creates a cache key that is carried with the context when a server copies or
-extends it. Spreading its return value into your context, as shown above, lets plugins share their
-request cache across those copies. Call it inside the context factory so each request gets its own
-cache key.
+`initContextCache()` lets those plugins share their cache when a server copies or extends the
+context. Call it inside the context factory so each request gets a separate cache key. If your server
+passes the same context object to every resolver, plugins can cache by its identity without this
+helper.
 
 ## Context when using multiple protocols
 
-Your HTTP and WebSocket handlers can create the same context shape for your resolvers. If they need
-to provide different properties, you can describe those shapes with a
-[discriminated union](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions).
-
-For example, an HTTP handler might provide the request while a WebSocket handler provides connection
-parameters:
+If your HTTP and WebSocket handlers provide different context properties, a
+[discriminated union](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions)
+lets resolvers check which properties are available:
 
 ```typescript
 type Context =

@@ -102,7 +102,5 @@ Classes and types registered on `SchemaTypes` are also supported. See the
 
 ## Co-locating queries
 
-In bigger graphs, having all your queries/entry points defined in one place can become hard to
-manage. Instead, I prefer to define queries alongside the types they return. For example, queries
-for a `User` type would be defined in the same file that contains the definition for the `User`
-type, rather than in a central `queries.ts` file \(using `builder.queryField`\).
+The `user` query above lives alongside the `User` type. Other schema modules can add queries with
+`builder.queryField` in the same way.
