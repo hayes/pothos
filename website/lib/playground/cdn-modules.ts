@@ -78,4 +78,3 @@ export function fetchCdnModule(name: string): Promise<unknown> {
 export function clearCdnCache(): void {
   cache.clear();
 }
-

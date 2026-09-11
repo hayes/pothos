@@ -24,12 +24,17 @@ export function HeroBody() {
           Where the types come from.
         </h2>
         <p className="text-bm-ink-soft text-[16px] leading-[1.6] mt-0 mb-7">
-          Pothos types are plain TypeScript types. You pass your context, backing models, and
-          scalars to the builder as generics, and the compiler infers and checks each
-          resolver&apos;s arguments, parent, and return type from them. Nothing scans or reflects
-          over your code; there&apos;s no codegen step and no{' '}
-          <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">any</code>{' '}
-          escape hatch.
+          You write two type annotations here: your context on the builder, and the model backing{' '}
+          <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">
+            User
+          </code>
+          . Everything downstream follows from them. In that last resolver,{' '}
+          <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">
+            user
+          </code>{' '}
+          is the object you declared and{' '}
+          <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">ctx</code>{' '}
+          is your context — neither is annotated, and both are checked.
         </p>
         <StatsRow />
       </div>

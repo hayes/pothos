@@ -41,4 +41,3 @@ export const pluginModules = {
   '@pothos/plugin-sub-graph': SubGraphModule,
   '@pothos/plugin-add-graphql': AddGraphQLModule,
 };
-

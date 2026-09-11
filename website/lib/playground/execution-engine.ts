@@ -177,9 +177,11 @@ export async function executeAndBuildSchema(
       ),
     );
     await Promise.all(
-      [...imports].filter((name) => !Object.hasOwn(moduleMap, name)).map(async (name) => {
-        moduleMap[name] = await fetchCdnModule(name);
-      }),
+      [...imports]
+        .filter((name) => !Object.hasOwn(moduleMap, name))
+        .map(async (name) => {
+          moduleMap[name] = await fetchCdnModule(name);
+        }),
     );
     const { result } = captureConsole(() => {
       const requireModule = (name: string) => {
@@ -286,17 +288,23 @@ async function bundleFiles(files: Array<{ filename: string; content: string }>):
         {
           name: 'virtual-files',
           setup(build) {
-            // Resolve relative imports to our virtual file system.
-            // Known data-file extensions (`.json`, `.sql`) pass through
-            // unchanged so the loader below can pick the right
-            // esbuild loader; everything else gets the implicit `.ts`.
+            // Resolve from the importing file, including nested directories,
+            // extensionless modules, and TypeScript's explicit .js imports.
             build.onResolve({ filter: /^\./ }, (args) => {
-              let path = args.path.replace(/^\.\//, '');
-              const isDataFile = path.endsWith('.json') || path.endsWith('.sql');
-              if (!isDataFile && !path.endsWith('.ts') && !path.endsWith('.tsx')) {
-                path += '.ts';
-              }
-              return { path: `/playground/${path}`, namespace: 'virtual' };
+              const directory = args.resolveDir || '/playground';
+              const path = new URL(args.path, `file://${directory}/`).pathname;
+              const candidates = [
+                path,
+                path.replace(/\.js$/, '.ts'),
+                `${path}.ts`,
+                `${path}.tsx`,
+                `${path}/index.ts`,
+                `${path}/index.tsx`,
+              ];
+              return {
+                path: candidates.find((candidate) => fileMap.has(candidate)) ?? path,
+                namespace: 'virtual',
+              };
             });
 
             // Bare specifiers (everything not starting with `.` or `/`)
@@ -321,12 +329,18 @@ async function bundleFiles(files: Array<{ filename: string; content: string }>):
               if (contents === undefined) {
                 return { errors: [{ text: `File not found: ${args.path}` }] };
               }
-              const loader: 'json' | 'text' | 'ts' = args.path.endsWith('.json')
+              const loader: 'json' | 'text' | 'ts' | 'tsx' = args.path.endsWith('.json')
                 ? 'json'
                 : args.path.endsWith('.sql')
                   ? 'text'
-                  : 'ts';
-              return { contents, loader };
+                  : args.path.endsWith('.tsx')
+                    ? 'tsx'
+                    : 'ts';
+              return {
+                contents,
+                loader,
+                resolveDir: args.path.slice(0, args.path.lastIndexOf('/')),
+              };
             });
           },
         },
