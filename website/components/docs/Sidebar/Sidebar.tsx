@@ -115,6 +115,12 @@ export function Sidebar({ tree }: Props) {
     } catch {}
   };
 
+  // The collapsed rail is a desktop-only affordance, but `collapsed` is one
+  // flag shared across breakpoints via localStorage. Without gating it on
+  // `mobileOpen`, anyone who collapsed the rail on a wide screen opens the
+  // mobile drawer to a 260px panel with no nav in it at all.
+  const railCollapsed = collapsed && !mobileOpen;
+
   return (
     <>
       {/* Mobile open trigger — sits below the header on narrow viewports */}
@@ -139,18 +145,24 @@ export function Sidebar({ tree }: Props) {
         />
       )}
 
+      {/* `position` and `top` are set in exactly one branch below, never in the
+          shared prefix. Tailwind resolves competing utilities by its own CSS
+          ordering, not by the order they appear in `class`, so a base
+          `sticky top-[72px]` with `fixed top-0` appended for the drawer loses:
+          the aside stays sticky at 72px and hangs 72px past the bottom of the
+          viewport instead of overlaying it. */}
       <aside
         ref={asideRef}
         aria-label="Documentation"
-        className={`border-r border-bm-line bg-bm-bg sticky top-[72px] flex flex-col transition-[width] duration-200 z-40 ${
-          mobileOpen ? 'fixed top-0 left-0 min-h-dvh w-[260px]' : 'hidden md:flex'
-        } ${collapsed ? 'md:w-[56px]' : 'md:w-[260px]'}`}
-        style={{ height: mobileOpen ? '100dvh' : 'calc(100vh - 72px)' }}
+        className={`border-r border-bm-line bg-bm-bg flex flex-col transition-[width] duration-200 z-40 ${
+          mobileOpen ? 'fixed inset-y-0 left-0 w-[260px]' : 'hidden md:flex sticky top-[72px]'
+        } ${railCollapsed ? 'md:w-[56px]' : 'md:w-[260px]'}`}
+        style={mobileOpen ? undefined : { height: 'calc(100vh - 72px)' }}
       >
         {/* When collapsed, show a single prominent expand button at the
             top so the rail is obviously re-openable — putting it at the
             top keeps it above floating UI like Next dev tools. */}
-        {collapsed && (
+        {railCollapsed && (
           <div className="flex justify-center py-3 border-b border-bm-line">
             <button
               type="button"
@@ -163,7 +175,7 @@ export function Sidebar({ tree }: Props) {
             </button>
           </div>
         )}
-        {!collapsed && (
+        {!railCollapsed && (
           <nav
             ref={navRef}
             className="flex-1 min-h-0 overflow-y-auto py-6 px-4 flex flex-col gap-5"
@@ -173,9 +185,9 @@ export function Sidebar({ tree }: Props) {
             ))}
           </nav>
         )}
-        {collapsed && <div className="flex-1" />}
+        {railCollapsed && <div className="flex-1" />}
         <SidebarFooter
-          collapsed={collapsed}
+          collapsed={railCollapsed}
           onToggleCollapsed={() => setAndPersist(!collapsed)}
           onCloseMobile={() => setMobileOpen(false)}
           isMobile={mobileOpen}
