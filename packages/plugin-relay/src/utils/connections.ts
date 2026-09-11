@@ -4,6 +4,7 @@ import {
   type MaybePromise,
   type Merge,
   PothosValidationError,
+  parseCursorConnectionArgs,
   type SchemaTypes,
 } from '@pothos/core';
 import type { ArrayConnectionShape, DefaultConnectionArguments } from '../types.js';
@@ -197,39 +198,7 @@ export function resolveArrayConnection<T>(
   };
 }
 
-export function parseCursorConnectionArgs(options: ResolveOffsetConnectionOptions) {
-  const { before, after, first, last } = options.args;
-
-  const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
-  const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
-
-  if (first != null && first < 0) {
-    throw new PothosValidationError('Argument "first" must be a non-negative integer');
-  }
-
-  if (last != null && last < 0) {
-    throw new PothosValidationError('Argument "last" must be a non-negative integer');
-  }
-
-  // `first`/`last` are checked for presence rather than truthiness so that a page size of 0
-  // (which the validation above allows) is treated as a requested page size, and not as an
-  // omitted argument.
-  const hasFirst = first != null;
-  const hasLast = last != null;
-
-  const limit = Math.min(first ?? last ?? defaultSize, maxSize) + 1;
-  const inverted = after ? hasLast && !hasFirst : (!!before && !hasFirst) || (!hasFirst && hasLast);
-
-  return {
-    before: before ?? undefined,
-    after: after ?? undefined,
-    limit,
-    expectedSize: limit - 1,
-    inverted,
-    hasPreviousPage: (resultSize: number) => (inverted ? resultSize >= limit : !!after),
-    hasNextPage: (resultSize: number) => (inverted ? !!before : resultSize >= limit),
-  };
-}
+export { parseCursorConnectionArgs } from '@pothos/core';
 
 type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 
