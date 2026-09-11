@@ -34,7 +34,9 @@ and initialization, and executes queries against SQLite in the browser.
 query AuthorPage {
   author(id: 1) {
     fullName
-    posts { title }
+    posts {
+      title
+    }
   }
 }
 ```

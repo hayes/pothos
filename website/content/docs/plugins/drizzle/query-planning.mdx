@@ -34,8 +34,12 @@ A client may need both the newest and oldest published posts on one author page:
 ```graphql
 query CompareOrderings {
   author(id: 1) {
-    newest: posts { title }
-    oldest: posts(oldestFirst: true) { title }
+    newest: posts {
+      title
+    }
+    oldest: posts(oldestFirst: true) {
+      title
+    }
   }
 }
 ```

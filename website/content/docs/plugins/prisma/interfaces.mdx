@@ -57,8 +57,12 @@ implementation's selection.
 query WritingDesk {
   me {
     __typename
-    drafts { title }
-    ... on EditorViewer { canReviewSubmissions }
+    drafts {
+      title
+    }
+    ... on EditorViewer {
+      canReviewSubmissions
+    }
   }
 }
 ```

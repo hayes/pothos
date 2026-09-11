@@ -68,7 +68,12 @@ The publishing schema defines User as a Relay node. Its returned ID can be passe
 ```graphql
 query RefetchAuthor {
   node(id: "VXNlcjox") {
-    ... on User { name posts { title } }
+    ... on User {
+      name
+      posts {
+        title
+      }
+    }
   }
 }
 ```

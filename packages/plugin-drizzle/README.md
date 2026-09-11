@@ -44,7 +44,9 @@ builder.queryType({
 query AuthorPage {
   author(id: 1) {
     fullName
-    posts { title }
+    posts {
+      title
+    }
   }
 }
 ```
@@ -821,7 +823,12 @@ The ID returned by User can be passed back to
 ```graphql
 query RefetchAuthor {
   node(id: "VXNlcjox") {
-    ... on User { fullName posts { title } }
+    ... on User {
+      fullName
+      posts {
+        title
+      }
+    }
   }
 }
 ```
@@ -1059,8 +1066,12 @@ A client may need both the newest and oldest published posts on one author page:
 ```graphql
 query CompareOrderings {
   author(id: 1) {
-    newest: posts { title }
-    oldest: posts(oldestFirst: true) { title }
+    newest: posts {
+      title
+    }
+    oldest: posts(oldestFirst: true) {
+      title
+    }
   }
 }
 ```

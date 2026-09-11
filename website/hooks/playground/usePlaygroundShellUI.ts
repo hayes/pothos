@@ -19,6 +19,7 @@ import type { OverflowItem } from '@/components/playground/Toolbar/OverflowMenu'
 import type { SchemaStatus } from '@/components/playground/Toolbar/StatusPill';
 import type { PlaygroundFile } from '@/components/playground/types';
 import { copyToClipboard } from '@/lib/clipboard';
+import { formatLinkedQuery } from '@/lib/playground/format-linked-query';
 import type { ExtensionPanel } from '@/lib/playground/playground-panels';
 import { createShareableURL } from '@/lib/playground/url-state';
 import { useConsoleLogs } from './useConsoleLogs';
@@ -241,7 +242,9 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
       filesState.setActiveIndex(activeIndex);
       const operations =
         queryOverride !== undefined && result.operations.length > 0
-          ? result.operations.map((op, i) => (i === 0 ? { ...op, query: queryOverride } : op))
+          ? result.operations.map((op, i) =>
+              i === 0 ? { ...op, query: formatLinkedQuery(queryOverride) } : op,
+            )
           : result.operations;
       opsState.setOperations(operations);
       opsState.setActiveIndex(0);

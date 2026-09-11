@@ -841,7 +841,12 @@ The schema defines User as a Relay node. Its returned ID can be passed back to
 ```graphql
 query RefetchAuthor {
   node(id: "VXNlcjox") {
-    ... on User { name posts { title } }
+    ... on User {
+      name
+      posts {
+        title
+      }
+    }
   }
 }
 ```
@@ -1342,8 +1347,13 @@ builder.queryFields((t) => ({
 ```graphql
 query PublishedPosts {
   posts(first: 2) {
-    nodes { title }
-    pageInfo { endCursor hasNextPage }
+    nodes {
+      title
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
   }
 }
 ```
@@ -1773,8 +1783,12 @@ implementation's selection.
 query WritingDesk {
   me {
     __typename
-    drafts { title }
-    ... on EditorViewer { canReviewSubmissions }
+    drafts {
+      title
+    }
+    ... on EditorViewer {
+      canReviewSubmissions
+    }
   }
 }
 ```
@@ -2618,8 +2632,12 @@ A client may need both the newest and oldest published posts on one author page:
 ```graphql
 query CompareOrderings {
   author(id: 1) {
-    newest: posts { title }
-    oldest: posts(oldestFirst: true) { title }
+    newest: posts {
+      title
+    }
+    oldest: posts(oldestFirst: true) {
+      title
+    }
   }
 }
 ```

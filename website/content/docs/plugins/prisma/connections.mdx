@@ -449,8 +449,13 @@ schema uses this root connection alongside its private viewer:
 ```graphql
 query PublishedPosts {
   posts(first: 2) {
-    nodes { title }
-    pageInfo { endCursor hasNextPage }
+    nodes {
+      title
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
   }
 }
 ```

@@ -33,7 +33,12 @@ The ID returned by User can be passed back to
 ```graphql
 query RefetchAuthor {
   node(id: "VXNlcjox") {
-    ... on User { fullName posts { title } }
+    ... on User {
+      fullName
+      posts {
+        title
+      }
+    }
   }
 }
 ```
