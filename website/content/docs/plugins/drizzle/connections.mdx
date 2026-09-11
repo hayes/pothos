@@ -1,102 +1,109 @@
 ---
 title: Connections
-description: Creating relay connections with the Drizzle plugin
+description: Paginate Drizzle queries and relations using GraphQL selections
 ---
 
-Use `t.drizzleConnection` for a queried list and `t.relatedConnection` for a Drizzle relation.
-Both require the [Relay plugin](./setup#integration-with-other-plugins).
-The examples use `relay: { nodesOnConnection: true }`; with the default Relay configuration,
-select `edges { node { title } }` instead of `nodes { title }`.
+Connection fields combine cursor pagination with Pothos's selection planning. Define the rows a
+field may return; Pothos adds pagination constraints and selects the columns and relations
+requested under each node. The same field supports forward and backward pagination.
+
+Use `t.drizzleConnection` when your resolver queries the rows and `t.relatedConnection` for a
+Drizzle relation. Both require the [Relay plugin](./setup#integration-with-other-plugins).
 
 ## Page through published posts
 
-`t.drizzleConnection` adds a root connection. Its resolver receives a selection function just
-like `t.drizzleField`, including the cursor and page-size requirements:
+The feed returns published posts ordered by creation time. Its resolver passes the result of
+`query()` to Drizzle, just as a `t.drizzleField` does:
 
-<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ posts(first: 2) { nodes { title } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-drizzle/queries.ts#posts-query</include>
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ posts(first: 2) { totalCount edges { cursor node { title author { fullName } } } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-drizzle/queries.ts#posts-query</include>
 
-There are three published posts and two drafts. The first page returns two published posts and
-`hasNextPage: true`; a request with that `endCursor` as `after` returns the remaining post.
-The feed orders by `createdAt`, and the plugin adds a primary-key tie breaker as described in
-[Ordering and cursors](./ordering-and-cursors).
+Pothos uses the selected node fields to plan the database query, including the nested author.
+It also adds the ordering columns needed for cursors, even when the client does not select them.
+When creation times tie, Pothos appends a primary-key tie breaker so posts have distinct positions.
+See [Ordering and cursors](./ordering-and-cursors) for other orderings and column requirements.
+
+A client requests the first page with `first`:
+
+```graphql
+query PostFeed($after: String) {
+  posts(first: 2, after: $after) {
+    totalCount
+    edges {
+      cursor
+      node {
+        title
+        author {
+          fullName
+        }
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+```
+
+For the next page, pass the previous `endCursor` as `after`. To paginate backward, use `last`
+and `before`, taking `before` from a page's `startCursor`:
+
+```graphql
+query PreviousPosts($before: String) {
+  posts(last: 2, before: $before) {
+    nodes {
+      title
+    }
+    pageInfo {
+      startCursor
+      hasPreviousPage
+    }
+  }
+}
+```
+
+Backward pagination retains the connection's declared ordering; it selects the preceding rows
+rather than reversing the response. `nodes` is a convenience field enabled by
+`relay: { nodesOnConnection: true }`. With the default Relay configuration, use `edges { node }`.
 
 ## Related connections
 
-`t.relatedConnection` exposes a relation as a connection instead of a list. The author’s
-`postsConnection` uses the same publication filter as `posts`:
+An author's `postsConnection` applies the same publication filter as the feed. `t.relatedConnection`
+plans that relation from the parent selection without a custom resolver:
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { postsConnection(first: 1) { totalCount nodes { title } pageInfo { hasNextPage endCursor } } } }"'>playground-examples/plugin-drizzle/types/user.ts#user-posts-connection</include>
 
-This will automatically define the `Connection`, and `Edge` types, and their respective fields. To
-customize the Connection and Edge types, options for these types can be passed as additional
-arguments to `t.relatedConnection`, just like `t.connection` from the relay plugin. See the
-[relay plugin docs](https://pothos-graphql.dev/docs/plugins/relay) for more details.
+The `query` option accepts an object or a callback receiving field arguments and context, as it
+does on `t.relation`. Connection `orderBy` accepts column names with `'asc'` or `'desc'`, or a
+column or array of columns for ascending order. Pothos can invert these orderings when fetching
+a backward page. The default ordering uses the table's primary key.
 
-You can also define a `query` like with `t.relation`. The only difference with `t.relatedConnection`
-is that the `orderBy` format is slightly changed.
-
-To comply with the relay spec and efficiently support backwards pagination, some queries need to be
-performed in reverse order, which requires inverting the orderBy clause. To do this automatically,
-the `t.relatedConnection` method accepts orderBy as an object keyed by column name with `'asc'` or
-`'desc'` values, like `{ createdAt: 'desc' }`, rather than using the `asc(column)` and
-`desc(column)` helpers from drizzle. orderBy can also be returned as a single column, or an array of
-columns when ordering by multiple columns, which orders ascending.
-
-Ordering defaults to using the table `primaryKey`, and the orderBy columns will also be used to
-derive the connections cursor.
+Both connection methods create Connection and Edge types. Pass additional options to customize
+those types, as with the [Relay plugin's connection fields](../relay).
 
 ## Connection totalCount
 
-The author's `totalCount: true` counts both published posts even when the page contains only one.
-A query asking for only `totalCount` still applies the publication filter.
+`totalCount` describes the matching rows across all pages. The author's `totalCount: true`
+counts both published posts even when `first: 1` returns only one. Pothos loads the count only
+when it is selected; a query for only `totalCount` does not load the related posts.
 
-This will automatically add a `totalCount` field to the connection type. The count query is only
-executed when the `totalCount` field is actually requested in the GraphQL query, and it's included
-as a subquery in the main database query for efficiency.
+For `t.relatedConnection`, Pothos derives the count from the relation and its filter. For a root
+`t.drizzleConnection`, supply a `totalCount` resolver, as the feed does above. Its filter must
+match the rows returned by the connection. This resolver receives the usual
+`parent`, `args`, `context`, and `info` arguments. A count-only root query skips the main resolver.
 
-The count applies the `where` returned by the field's `query`, so it counts the same rows the
-connection paginates (only published posts in the example above). To count every related row
-regardless of the filter, set `filterConnectionTotalCount: false` in the `drizzle` plugin options:
+By default, a related count includes the `where` returned by the connection's `query`. Setting
+`filterConnectionTotalCount: false` in the builder's `drizzle` options ignores that field filter
+for counts. A filter on the Drizzle relation itself still applies. Keep the default for the
+public author field: counting drafts would reveal data excluded by its publication filter.
 
-```ts
-const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [RelayPlugin, DrizzlePlugin],
-  drizzle: {
-    client: db,
-    getTableConfig,
-    relations,
-    // count every related row for totalCount, ignoring the where from query (defaults to true)
-    filterConnectionTotalCount: false,
-  },
-});
-```
+For a many-to-many relation defined with `through`, the count matches the rows being paginated.
+If two junction rows reach the same target, that target appears and is counted twice. This differs
+from [`t.relatedCount`](./relations#related-count), which counts distinct related targets.
 
-A `where` on the relation itself always applies to the count, as does the junction table of a
-many-to-many relation defined with `.through(...)`. The count joins the junction table the same way
-the rows do, so a row that matches the junction twice counts twice, and appears twice in the
-connection.
+## Connections with custom edges
 
-The publishing API keeps the default filter behavior: disabling it would reveal an author's
-unpublished post count through this public field.
-
-## Root connection totalCount
-
-For a root `totalCount`, supply a resolver rather than `true`. Add this option to the
-`t.drizzleConnection` configuration above; its filter must match the connection's visibility:
-
-```ts
-// Imports: eq from 'drizzle-orm', posts from your table definitions.
-totalCount: () => {
-  return db.$count(posts, eq(posts.published, true));
-},
-```
-
-The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.
-
-When only the `totalCount` field is requested (without `edges` or `nodes`), the main query is skipped entirely and only the count query is executed for efficiency.
-
-## Custom connections
-
-Use [Connection helpers](./connection-helpers) when the connection needs to expose data from a
-join row on its edges, return nodes from a different table, or query rows manually. Ordinary
-many-to-many relations defined with `through` work with `t.relatedConnection`.
+A direct many-to-many relation works with `t.relatedConnection`. When the attachment itself has
+fields, such as a caption, the edge needs data from the junction row while its node represents
+Media. [Connection helpers](./connection-helpers) shows how to combine that mapping with selection
+planning, pagination, and custom edge fields in one connection.

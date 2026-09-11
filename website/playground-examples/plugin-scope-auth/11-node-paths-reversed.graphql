@@ -1,0 +1,12 @@
+query ReversedArticleAccessPaths {
+  node(id: "QXJ0aWNsZTox") {
+    ... on Article {
+      id
+      title
+    }
+  }
+  featuredArticle {
+    id
+    title
+  }
+}

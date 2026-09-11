@@ -15,7 +15,7 @@ builder.drizzleObject('posts', {
     }),
   }),
 });
-builder.drizzleObject('media', {
+export const Media = builder.drizzleObject('media', {
   name: 'Media',
   fields: (t) => ({ url: t.exposeString('url'), uploadedBy: t.relation('uploadedBy') }),
 });

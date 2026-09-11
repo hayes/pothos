@@ -1,0 +1,129 @@
+---
+title: Relay node authorization
+description: Protect direct node lookups and use scopes to distinguish refetchable access from access granted through a parent field.
+---
+
+Registering a Relay node creates another way to reach an object: `Query.node` and `Query.nodes`
+can load it from its global ID. A filter or authorization check on `Query.articles`, a connection,
+or a parent relationship does not run when a client uses that lookup. Global IDs identify objects;
+they are not proof that a caller may read them.
+
+This applies to `builder.node`, `builder.prismaNode`, and `builder.drizzleNode`. Decide which
+objects should be refetchable and what access a direct lookup should allow. A type can participate
+in a [connection](/docs/plugins/relay#creating-connections) without implementing `Node`.
+
+## Apply a policy to the returned object
+
+Type `authScopes` let the same policy protect fields whether the object came from a root field,
+a relationship, a connection, or a node lookup. Parameterized scopes are useful for checks such as
+ownership, project membership, or permission to read a particular article. Their results are cached
+by scope name and parameter for the request.
+
+In this example, readers with the `readArticle` permission may read articles through any path.
+Other readers can read the featured article through a field that explicitly grants access.
+The builder defines a `permission` scope using the current user:
+
+<include cwd lang="typescript">playground-examples/plugin-scope-auth/builder.ts#scopes</include>
+
+The node accepts either the read permission or a grant from its parent field:
+
+<include cwd lang="typescript">playground-examples/plugin-scope-auth/nodes.ts#article-node</include>
+
+`$any` makes this an explicit choice between two authorization paths. For policies requiring both
+membership and a resource permission, use `$all` instead. A scope parameter should identify the
+resource or permission being checked; include every value that changes the decision in its cache
+key when using object parameters.
+
+The loader retrieves the article before scopes run. By default, type scopes run before the
+object's individual field resolvers. Those fields are protected, but `__typename` does not use a
+Pothos field resolver. The [existence-check operation](/playground?example=plugin-scope-auth&op=10)
+therefore returns `Article` even for an anonymous reader. Field-level checks do not hide existence.
+
+For an ordinary, path-independent policy, `runScopesOnType: true` moves type checks to GraphQL
+object completion, including selections containing only `__typename`. Denial then produces an error
+at the field returning the object. It still does not prevent the loader from running. Review its
+[execution compatibility and override limitations](/docs/plugins/scope-auth#running-scopes-on-types-rather-than-fields).
+Keep the parent-grant pattern below on the default field-level execution: parent grants are not
+resolved at the same response path when scopes run through `isTypeOf`.
+
+## Grant access through a particular path
+
+A featured-article field can deliberately allow a reader to view one selected article without
+making every article available through node lookups:
+
+<include cwd lang="typescript">playground-examples/plugin-scope-auth/nodes.ts#featured-article</include>
+
+`grantScopes` applies to the returned object's response path. It does not add an ordinary scope to
+the request, and it does not turn the returned ID into a transferable permission. An anonymous
+reader can receive the featured article and still be denied when refetching the same ID:
+
+```graphql
+query ArticleAccessPaths {
+  featuredArticle {
+    id
+    title
+  }
+  node(id: "QXJ0aWNsZTox") {
+    ... on Article {
+      id
+      title
+    }
+  }
+}
+```
+
+[Run both access paths](/playground?example=plugin-scope-auth&op=8). The featured article resolves,
+while `node` is `null` with a `Not authorized` error at `node.id`. The Relay ID is non-null, so
+its denied field check nulls the containing node. A reader with the `readArticle` permission can
+refetch it directly. This distinction can be useful for previews or access granted by a parent
+resource, but clients must not assume every ID they receive can be refetched successfully.
+
+Grants are not inherited by nested children. A grant on a connection field does not automatically
+reach objects beneath `edges.node`; put the policy on the returned entity, or deliberately propagate
+the grant through the intervening fields. Likewise, a grant on one alias does not authorize another
+alias or a separate `node` / `nodes` selection. The underlying object or permission result may be
+cached while its response paths still have different granted scopes.
+
+When access should follow the entity across all paths, use an ordinary scope such as `canReadArticle`
+with the article ID, and use that same permission policy on the object regardless of its parent. Reserve parent-field
+grants for access that is intentionally tied to that path. Field scopes can then add stricter permissions for
+sensitive fields, such as an article's editorial notes, without restricting its public title.
+
+Use a static type scope map for this parent-grant pattern, as above. An `authScopes` function on
+a type caches its evaluated result for the returned object instance, so it is not suitable for
+combining a path-dependent grant with an object-dependent check. Field `authScopes` functions are
+another option when a check needs the current field's arguments or parent data. Avoid deriving
+path-dependent permissions in a cached type callback.
+
+## Decide what node loading may reveal
+
+If an unauthorized entity should behave like a missing one, enforce visibility in the node loader
+or the data-access layer it uses. Return `null` for both cases if that is the API's policy. Do not
+rely on a type scope to prevent a database read, an eager relationship load, or side effects in a
+loader. With `loadMany`, check every requested ID and preserve the input order, including missing
+or inaccessible entries.
+
+The database integrations supply their own node loaders. A `where` clause in an unrelated list
+resolver does not configure them. See [Prisma Relay nodes](/docs/plugins/prisma/relay) and
+[Drizzle Relay nodes](/docs/plugins/drizzle/relay) for integration-specific guidance.
+Keep an entity as an
+ordinary object if its direct lookup policy is not implemented.
+
+A failed scope normally produces a GraphQL error; a loader returning `null` can represent absence
+without an authorization error. Null propagation still follows the configured field and list-item
+nullability, so a non-null node field or item can affect a larger part of the response. Returning
+`null` alone is not a guarantee against every form of information disclosure, such as differences
+in errors or timing.
+
+## Keep authorization tied to the request
+
+Relay's `loadOne` and `loadMany` cache node loads on the context, and Scope Auth caches scope
+initialization and permission decisions for that context. Use a fresh context for each request and
+keep its authenticated identity stable. A cache hit is not a new permission check; do not reuse a
+context between users or expect changing its user midway through an operation to invalidate caches.
+Database plugin loaders can have additional request caches of their own.
+
+Exercise the direct path as well as the intended parent path: an allowed user, a denied user, a
+missing ID, a mixed `nodes` request, and a selection containing only `__typename`. For grant-based
+policies, request the same object through both a granted path and a direct lookup in one operation.
+This catches accidental assumptions that receiving an ID or loading an object grants access to it.

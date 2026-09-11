@@ -1,5 +1,7 @@
+import { eq } from 'drizzle-orm';
 import { builder } from './builder';
 import { db } from './database';
+import { posts } from './tables';
 import { Viewer } from './types/viewer';
 
 // #region author-query
@@ -39,6 +41,9 @@ builder.queryFields((t) => ({
   // #region posts-query
   posts: t.drizzleConnection({
     type: 'posts',
+    totalCount: () => {
+      return db.$count(posts, eq(posts.published, true));
+    },
     resolve: (query) => {
       return db.query.posts.findMany(
         query({

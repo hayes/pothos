@@ -1,0 +1,12 @@
+query ArticleAccessPaths {
+  featuredArticle {
+    id
+    title
+  }
+  node(id: "QXJ0aWNsZTox") {
+    ... on Article {
+      id
+      title
+    }
+  }
+}

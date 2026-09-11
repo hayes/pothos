@@ -184,6 +184,67 @@ try {
     sql.length > 0 && sql.some((statement) => /count\(/i.test(statement)),
     'count-only selection reaches SQL',
   );
+  await pane('Query', '{ posts { totalCount } }');
+  sql.length = 0;
+  assert.deepEqual((await run()).data, { posts: { totalCount: 3 } });
+  assert.equal(sql.length, 1, 'root count-only selection skips the row query');
+  assert.match(sql[0], /count\(/i);
+
+  await operation('10-attachments');
+  const attachments =
+    results['10-attachments.graphql'].data.author.postsConnection.nodes[0].attachments;
+  assert.equal(attachments.edges.length, 2);
+  assert.equal(attachments.pageInfo.hasNextPage, true);
+  assert.equal(attachments.edges[0].node.uploadedBy.fullName, 'Leo Silva');
+  await pane('Variables', JSON.stringify({ after: attachments.pageInfo.endCursor }));
+  const attachmentNext = (await run()).data.author.postsConnection.nodes[0].attachments;
+  assert.equal(attachmentNext.edges.length, 1);
+  assert.equal(attachmentNext.edges[0].caption, null);
+  assert.equal(attachmentNext.pageInfo.hasNextPage, false);
+  await pane('Variables', JSON.stringify({ hasCaption: true }));
+  const captioned = (await run()).data.author.postsConnection.nodes[0].attachments;
+  assert.equal(captioned.edges.length, 2);
+  assert.equal(captioned.pageInfo.hasNextPage, false);
+  assert.ok(captioned.edges.every((edge) => typeof edge.caption === 'string'));
+  await pane(
+    'Query',
+    `{
+    author(id: 1) {
+      postsConnection(first: 1) {
+        nodes {
+          attachments(last: 1, before: "${attachmentNext.pageInfo.startCursor}") {
+            edges { caption node { url } }
+          }
+        }
+      }
+    }
+  }`,
+  );
+  const previousAttachment = (await run()).data.author.postsConnection.nodes[0].attachments;
+  assert.equal(previousAttachment.edges[0].caption, attachments.edges[1].caption);
+  await pane(
+    'Query',
+    `{
+    author(id: 1) {
+      postsConnection(first: 1) {
+        nodes {
+          attachments(first: 2) {
+            edges {
+              caption
+            }
+          }
+        }
+      }
+    }
+  }`,
+  );
+  const edgeOnly = await run();
+  assert.equal(edgeOnly.errors, undefined);
+  assert.deepEqual(
+    edgeOnly.data.author.postsConnection.nodes[0].attachments.edges,
+    attachments.edges.map(({ caption }) => ({ caption })),
+  );
+  console.log('PASS root count-only and attachment forward/backward/filtered pagination');
   await operation('03-viewer');
   await pane('Context', '{"userId":2}');
   const leo = await run();
@@ -257,7 +318,8 @@ try {
     ['variants', ['viewer', 'viewer', 'variant']],
     ['interfaces', ['viewer', 'editor']],
     ['query-planning', ['aliases']],
-    ['connections', ['posts', 'related']],
+    ['connections', ['feed', 'related']],
+    ['connection-helpers', ['attachments', 'captioned-attachments']],
     ['ordering-and-cursors', ['posts']],
   ]) {
     const docs = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -339,6 +401,19 @@ try {
         if (check === 'viewer') {
           assert.equal(result.data.me.__typename, 'EditorViewer');
         }
+        if (check === 'feed') {
+          assert.equal(result.data.posts.totalCount, 3);
+          assert.equal(result.data.posts.edges.length, 2);
+          assert.ok(
+            result.data.posts.edges.every((edge) => edge.cursor && edge.node.author.fullName),
+          );
+        }
+        if (check === 'attachments' || check === 'captioned-attachments') {
+          const connection = result.data.author.postsConnection.nodes[0].attachments;
+          assert.equal(connection.edges.length, 2);
+          assert.equal(connection.pageInfo.hasNextPage, check === 'attachments');
+          assert.ok(connection.edges.every((edge) => edge.caption));
+        }
         if (check === 'posts') {
           assert.equal(result.data.posts.nodes.length, 2);
         }
@@ -349,7 +424,10 @@ try {
           assert.equal(result.data.author.posts.length, 2);
           for (const post of result.data.author.posts) {
             assert.equal(post.media[0].uploadedBy.fullName, 'Leo Silva');
-            assert.equal(post.mediaConnection.totalCount, 1);
+            assert.equal(
+              post.mediaConnection.totalCount,
+              post.title === 'A guide to composting' ? 3 : 1,
+            );
           }
         }
         await docs.getByRole('button', { name: 'Close playground', exact: true }).click();

@@ -79,13 +79,17 @@ export async function createDatabase() {
     await prisma.comment.create({
       data: { authorId: 2, postId: 1, content: 'Our library would love to host this.', createdAt },
     });
-    await prisma.media.create({
-      data: { id: 1, url: 'https://images.example.com/seed-library.jpg', uploadedById: 2 },
+    await prisma.media.createMany({
+      data: [
+        { id: 1, url: 'https://images.example.com/seed-library.jpg', uploadedById: 2 },
+        { id: 2, url: 'https://images.example.com/seed-packets.jpg', uploadedById: 1 },
+      ],
     });
     await prisma.postMedia.createMany({
       data: [
-        { postId: 1, mediaId: 1 },
-        { postId: 2, mediaId: 1 },
+        { id: 1, postId: 1, mediaId: 1, caption: 'The neighborhood seed library' },
+        { id: 2, postId: 2, mediaId: 1, caption: 'Compost helps the seed library grow' },
+        { id: 3, postId: 1, mediaId: 2, caption: 'Label packets before sharing' },
       ],
     });
     statements.length = 0;

@@ -78,7 +78,7 @@ throws when its own `select` or `query` is async, whatever the document asked fo
 select: async (args, ctx, nestedSelection) => {
   return {
     with: {
-      comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
+      attachments: await attachments.getQuery(args, ctx, nestedSelection, {
         awaitSelections: true,
       }),
     },
@@ -93,6 +93,6 @@ When `AsyncSelections: true`, also `await` a connection helper's `resolve()` bef
 spreading its result: an async `query` callback makes resolution asynchronous. Returning its
 result directly from a GraphQL resolver remains supported.
 
-The connection-helper excerpt assumes a registered comments relation and
-`commentConnectionHelpers` from [Connection helpers](./connection-helpers). Request-context
+The connection-helper excerpt uses the Post attachments relation and `attachments` helper from
+[Connection helpers](./connection-helpers). Request-context
 methods must be supplied by the application; they are not created by declaring the Context type.

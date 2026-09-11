@@ -65,6 +65,7 @@
   "04-pagination.graphql": {
     "data": {
       "posts": {
+        "totalCount": 3,
         "nodes": [
           {
             "title": "Watering through summer",
@@ -78,11 +79,24 @@
                 "uploadedBy": {
                   "fullName": "Leo Silva"
                 }
+              },
+              {
+                "url": "https://images.example.com/compost.jpg",
+                "uploadedBy": {
+                  "fullName": "Maya Chen"
+                }
+              },
+              {
+                "url": "https://images.example.com/mulch.jpg",
+                "uploadedBy": {
+                  "fullName": "Maya Chen"
+                }
               }
             ]
           }
         ],
         "pageInfo": {
+          "startCursor": "REM6VDpbIlM6MjAyNi0wMS0xNVQwOTowMDowMC4wMDBaIiwiTjozIl0=",
           "endCursor": "REM6VDpbIlM6MjAyNi0wMS0xNVQwOTowMDowMC4wMDBaIiwiTjoyIl0=",
           "hasNextPage": true,
           "hasPreviousPage": false
@@ -109,7 +123,7 @@
             {
               "title": "A guide to composting",
               "mediaConnection": {
-                "totalCount": 1,
+                "totalCount": 3,
                 "nodes": [
                   {
                     "url": "https://images.example.com/seed-library.jpg"
@@ -162,6 +176,47 @@
       },
       "other": {
         "viewer": null
+      }
+    }
+  },
+  "10-attachments.graphql": {
+    "data": {
+      "author": {
+        "postsConnection": {
+          "nodes": [
+            {
+              "title": "A guide to composting",
+              "attachments": {
+                "edges": [
+                  {
+                    "caption": "Seeds and soil at the community garden",
+                    "node": {
+                      "url": "https://images.example.com/seed-library.jpg",
+                      "uploadedBy": {
+                        "fullName": "Leo Silva"
+                      }
+                    }
+                  },
+                  {
+                    "caption": "Finished compost ready for planting",
+                    "node": {
+                      "url": "https://images.example.com/compost.jpg",
+                      "uploadedBy": {
+                        "fullName": "Maya Chen"
+                      }
+                    }
+                  }
+                ],
+                "pageInfo": {
+                  "startCursor": "REM6Tjoy",
+                  "endCursor": "REM6Tjoz",
+                  "hasNextPage": true,
+                  "hasPreviousPage": false
+                }
+              }
+            }
+          ]
+        }
       }
     }
   }

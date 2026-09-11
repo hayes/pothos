@@ -23,6 +23,7 @@ Choose an operation from `operations/`:
 | `author` | Maya's public profile, two published posts, and their author. Remove `bio` or `posts` and compare the SQL. |
 | `aliases` | Newest and oldest posts use incompatible orderings and require a fallback query. |
 | `viewer` | Maya's private email and draft. Pass `2` after the operation name to see Leo's separate draft and the other interface implementation. |
+| `media` | Attachment captions belong to edges while shared images belong to nodes. The seed-library post has two attachments; use its cursor to fetch the second page. |
 | `pages` | Two of three published posts, a cursor, and shared media with its uploader. Add `after` using that cursor to continue. |
 | `search` | The generated title filter finds the composting post. Search for `spring` to confirm drafts stay outside the public search. |
 | `create-draft` | A new unpublished post belongs to the request's author. Add a nested author field to exercise mutation selection planning. |
@@ -39,7 +40,8 @@ After changing `schema.prisma`, regenerate the client, Pothos types and DDL with
 Edit the operation files and rerun the same command. The runner prints the result and emitted SQL;
 SQL statement counts are different from Prisma client call counts. Each invocation starts from the
 same data, so a mutation does not affect the next invocation. `check.ts` also checks changes within
-one database lifetime, denied writes, node visibility, and forward/backward pagination.
+one database lifetime, denied writes, node visibility, and forward/backward pagination for both
+the post feed and attachment connections.
 
 `userId` represents an already-authenticated request. The command's user argument is a test fixture,
 not an authentication mechanism. Public queries filter to published posts. Only the private viewer

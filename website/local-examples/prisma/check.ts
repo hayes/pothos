@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { graphql } from 'graphql';
 import { createDatabase } from './db';
 import { createSchema } from './schema';
+import { checkMediaConnections } from './connections-check';
 
 async function check() {
   const { prisma, statements, close } = await createDatabase();
@@ -67,6 +68,7 @@ async function check() {
       await run('query($id: ID!) { node(id: $id) { ... on Post { title } } }', 2, { id }),
       { node: { title: 'Saving rainwater' } },
     );
+    await checkMediaConnections(schema);
     const first = await run(
       '{ posts(first: 2) { totalCount pageInfo { endCursor hasNextPage } nodes { title } } }',
     );

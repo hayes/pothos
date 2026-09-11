@@ -1,14 +1,12 @@
 ---
-title: Relay
-description: Using the Drizzle and Relay plugins together
+title: Relay nodes
+description: Defining refetchable nodes with the Drizzle plugin
 ---
-
-## Relay integration
 
 The Relay plugin supplies node IDs and cursor connections. Register it with Drizzle as shown in
 [Setup](./setup#integration-with-other-plugins); [Connections](./connections) covers pagination.
 
-## Relay Nodes
+## Define a node
 
 `builder.drizzleNode` uses the same fields and selections as `builder.drizzleObject`, and adds
 an ID and a root node lookup. The example User uses its integer primary key:
@@ -43,9 +41,21 @@ query RefetchAuthor {
 }
 ```
 
-The [refetch operation](/playground?example=plugin-drizzle&op=7) uses the ID of User 1. The node returns the same public fields as the author lookup, including
-only published posts. A node lookup does not route through a custom root resolver, so any
-access restrictions on an entity must also hold when it is loaded as a node.
+The [refetch operation](/playground?example=plugin-drizzle&op=7) uses the ID of User 1. The node
+returns the same public fields as the author lookup, including only published posts.
 
-The [public author definition](./relations#published-posts-and-profiles) applies its publication
-filter on the relation itself, so it also holds when User is reached through `node`.
+## Authorize the node load path
+
+Registering a node makes its rows directly reachable through the root `node` and `nodes` fields.
+Those loads do not call your custom `author`, `me`, or other root resolvers. A permission check or
+visibility filter on one of those resolvers therefore does not protect node lookups.
+
+Apply authorization to the node type or its fields as appropriate. The
+[Scope Auth guide to Relay nodes](/docs/plugins/scope-auth/relay-nodes) explains how to enforce
+authorization on this separate load path. An encoded global ID is an identifier, not proof of
+permission to access the row.
+
+The public User type here can be refetched by anyone. Its
+[published-posts relation](./relations#published-posts-and-profiles) applies the publication filter
+wherever User is reached, including through `node`. Post stays an ordinary Drizzle object;
+defining a public feed does not also make individual drafts globally refetchable.

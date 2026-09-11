@@ -1,5 +1,6 @@
 query Pagination($after: String) {
   posts(first: 2, after: $after) {
+    totalCount
     nodes {
       title
       media {
@@ -10,6 +11,7 @@ query Pagination($after: String) {
       }
     }
     pageInfo {
+      startCursor
       endCursor
       hasNextPage
       hasPreviousPage

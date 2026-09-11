@@ -7,6 +7,7 @@ Viewer fields expose only the current user's drafts.
 - `tables.ts` defines the SQLite tables and Drizzle relations.
 - `database.ts` initializes deterministic data using SQL.js and a SQLite proxy driver.
 - `builder.ts` registers the Pothos plugins and request context type.
+- `types/attachments.ts` maps attachment rows to Media nodes with per-post caption edges.
 - `types/` defines GraphQL types; `queries.ts` defines root lookups.
 - `schema.ts` registers the modules and exports the schema.
 
@@ -17,4 +18,4 @@ or reloading the schema creates fresh state. Application databases should use a 
 driver and their normal migration workflow instead of this playground bridge.
 
 The operation fixtures cover author lookups, aliased relation queries, viewer context, pagination,
-missing rows, related counts, node refetching, computed selections, and conditional variants.
+missing rows, related counts, node refetching, computed selections, conditional variants, and attachment edges with filtered cursor pagination.

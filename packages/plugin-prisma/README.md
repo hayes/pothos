@@ -774,11 +774,15 @@ then reads the selected row. A nullable profile still produces a nullable biogra
 This distinction matters for computed fields: a resolver accessing related data must declare that
 data in its selection, even when the GraphQL field itself is just a string.
 
-## Relay
+## Relay nodes
 
-This plugin has extensive integration with the
-[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
-connections very easy.
+`prismaNode` adds Relay IDs and root node lookups to Prisma objects. Register the
+[Relay plugin](https://pothos-graphql.dev/docs/plugins/relay); see [Connections](https://pothos-graphql.dev/docs/plugins/prisma/connections) for pagination.
+
+Defining a node creates a direct lookup for that entity through `node` and `nodes`. These fields
+bypass custom root resolvers, so checks on an author lookup or a filtered feed do not protect
+node refetches. Apply the same access rules to node loading or type authorization; see
+[Authorizing Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes).
 
 #### `prismaNode`
 
@@ -835,7 +839,7 @@ builder.prismaNode('Post', {
 
 ### Refetch a public author
 
-The schema defines User as a Relay node. Its returned ID can be passed back to
+The publishing schema defines User as a Relay node. Its returned ID can be passed back to
 `node` to fetch the author with a new selection:
 
 ```graphql
@@ -975,72 +979,96 @@ builder.prismaNode('User', {
 
 #### Indirect relations as connections
 
-Creating connections from indirect relations is a little more involved, but can be achieved using
-`prismaConnectionHelpers` with a normal `t.connection` field. Import it from
-`@pothos/plugin-prisma`. The examples below use a Post.media relation to a PostMedia join model,
-whose media relation points to Media. Register Post before adding its connection fields.
+`prismaConnectionHelpers` connects join rows to a different GraphQL node type. The example uses
+Post.media → PostMedia.media → Media: pagination follows attachment IDs, while each node is an
+image. A caption belongs to the attachment, so the same image can have different captions on two
+posts. Import the helper from `@pothos/plugin-prisma` and register Post and Media first.
 
 ```typescript
-// Create a prisma object for the node type of your connection
-const Media = builder.prismaObject('Media', {
-  select: {
-    id: true,
-  },
-  fields: (t) => ({
-    url: t.exposeString('url'),
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  query: { orderBy: { id: 'asc' } },
+  select: (nodeSelection) => ({
+    caption: true,
+    media: nodeSelection({ select: { id: true } }),
   }),
+  resolveNode: (attachment) => attachment.media,
 });
+```
 
-// Create connection helpers for the media type.  This will allow you
-// to use the normal t.connection with a prisma type
-const mediaConnectionHelpers = prismaConnectionHelpers(
-  builder,
-  'PostMedia', // this should be the join table
-  {
-    cursor: 'id',
-    select: (nodeSelection) => ({
-      // select the relation to the media node using the nodeSelection function
-      media: nodeSelection({
-        // optionally specify fields to select by default for the node
-        select: {
-          id: true,
-          posts: true,
-        },
-      }),
-    }),
-    // resolve the node from the edge
-    resolveNode: (postMedia) => postMedia.media,
-    // additional/optional options
-    maxSize: 100,
-    defaultSize: 20,
-  },
-);
+`select` adds the join data used by the edge and plans the Media fields requested beneath `node`.
+`resolveNode` maps each attachment to its selected image. The helper also accepts `defaultSize`
+and `maxSize` (defaults 20 and 100). Selecting the node ID also keeps the Prisma selection nonempty
+when the operation requests only an edge caption or connection count. Other default node fields
+can be added through the same `nodeSelection` argument.
 
+Use `t.connection` to expose the result. It does not load the relation automatically: its field
+selection includes `getQuery`, and its resolver passes the loaded attachments to the helper:
+
+```typescript
 builder.prismaObjectField('Post', 'mediaConnection', (t) =>
-  t.connection({
-    // The type for the Node
-    type: Media,
-    // since we are not using t.relatedConnection we need to manually
-    // include the selections for our connection
-    select: (args, ctx, nestedSelection) => ({
-      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
-    }),
-    resolve: (post, args, ctx) => {
-      // This helper takes a list of nodes and formats them for the connection
-      return mediaConnectionHelpers.resolve(
-        // map results to the list of edges
-        post.media,
-        args,
-        ctx,
-      );
+  t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        _count: { select: { media: true } },
+        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (post, args, ctx) => {
+        return {
+          ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+          totalCount: post._count.media,
+        };
+      },
     },
-  }),
+    {
+      fields: (connection) => ({
+        totalCount: connection.int({ resolve: (result) => result.totalCount }),
+      }),
+    },
+    {
+      fields: (edge) => ({
+        caption: edge.string({ resolve: (attachment) => attachment.caption }),
+      }),
+    },
+  ),
 );
 ```
 
-The above example assumes that you are paginating a relation to a join table, where the pagination
-args are applied based on the relation to that join table, but the nodes themselves are nested
-deeper.
+The parent selection counts attachments separately from the page. The second configuration
+argument adds `totalCount` to the connection; the third adds fields to its edges. A page containing
+one attachment can therefore report two total attachments.
+
+```graphql
+query Attachments {
+  author(id: 1) {
+    posts(oldestFirst: true) {
+      title
+      mediaConnection(first: 1) {
+        totalCount
+        edges {
+          caption
+          node {
+            url
+            uploadedBy {
+              name
+            }
+          }
+        }
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+      }
+    }
+  }
+}
+```
+
+Both posts return the same first image, but with different captions. “Starting a seed library”
+has two attachments and a next page; the cursor advances through PostMedia rows, not Media IDs.
+The second page contains the seed-packets image. An attachment-free post has an empty edge list
+and a zero count.
 
 `prismaConnectionHelpers` can also be used to manually create a connection where the edge and
 connections share the same model, and pagination happens directly on a relation to nodes type (even
@@ -1177,60 +1205,27 @@ builder.prismaObject('Post', {
 
 #### Extending connection edges
 
-This alternative exposes `PostMedia.createdAt` on each edge. It assumes a registered `DateTime`
-scalar whose output type is `Date`.
+Edge fields can read data from the row paginated by the helper. In the attachment connection,
+`select` loads `caption` from PostMedia and the third `t.connection` argument exposes it:
 
 ```typescript
-const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
-  cursor: 'id',
-  select: (nodeSelection) => ({
-    // select the relation to the media node using the nodeSelection function
-    media: nodeSelection({}),
-    // Select additional fields from the join table
-    createdAt: true,
-  }),
-  // resolve the node from the edge
-  resolveNode: (postMedia) => postMedia.media,
-});
+fields: (edge) => ({
+  caption: edge.string({ resolve: (attachment) => attachment.caption }),
+}),
+```
 
-builder.prismaObjectFields('Post', (t) => ({
-  manualMediaConnection: t.connection(
-    {
-      type: Media,
-      select: (args, ctx, nestedSelection) => ({
-        // count the join table rows for totalCount
-        _count: {
-          select: {
-            media: true,
-          },
-        },
-        // select the join table rows, with the pagination and node selection from the helpers
-        media: {
-          ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
-        },
-      }),
+The edge parent is inferred from the helper's resolved rows. Its caption describes the attachment;
+`node.url` describes the shared Media record.
 
-      resolve: (post, args, ctx) => {
-        return {
-          totalCount: post._count.media,
-          ...mediaConnectionHelpers.resolve(post.media, args, ctx),
-        };
-      },
-    },
-    {},
-    // options for the edge object
-    {
-      // define the additional fields on the edge object
-      fields: (edge) => ({
-        createdAt: edge.field({
-          type: 'DateTime',
-          // the parent shape for edge fields is inferred from the connections resolve function
-          resolve: (media) => media.createdAt,
-        }),
-      }),
-    },
-  ),
-}));
+For a timestamp on the join model instead, select `createdAt: true` in the helper and add this
+edge field. This alternative requires a `PostMedia.createdAt` column and a registered `DateTime`
+scalar whose output is `Date`:
+
+```ts
+createdAt: edge.field({
+  type: 'DateTime',
+  resolve: (attachment) => attachment.createdAt,
+}),
 ```
 
 #### Total count on shared connection objects
@@ -1358,7 +1353,7 @@ query PublishedPosts {
 }
 ```
 
-There are three published posts and two drafts in this dataset. The first page contains two
+There are three published posts and two drafts in the seed data. The first page contains two
 published posts and has a next page. Passing its `endCursor` as `after` returns the remaining
 published post. The related author connection uses the same filter for its nodes and `totalCount`,
 so Maya's count is two, including when the client requests only the count.

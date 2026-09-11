@@ -7,6 +7,9 @@ The scope auth plugin checks authorization before a field resolver runs. Define 
 roles, permissions, or ownership checks, then require those scopes on fields and types. Checks and
 scope loaders are cached for the current request.
 
+For schemas using Relay, see [Relay node authorization](/docs/plugins/scope-auth/relay-nodes)
+for direct lookup policies and access granted through a parent field.
+
 ## Usage
 
 ### Install
@@ -583,7 +586,7 @@ builder.queryField('viewerId', (t) =>
 #### Using `withAuth` with Prisma fields
 
 `withAuth` preserves plugin-specific field methods while refining their context. This alternative
-builder uses the client `prisma` and generated types from [Prisma setup](./prisma/setup), with a
+builder uses the client `prisma` and generated types from [Prisma setup](/docs/plugins/prisma/setup), with a
 User model containing an integer `id`. The request context contains either the
 signed-in user's ID or `null`:
 

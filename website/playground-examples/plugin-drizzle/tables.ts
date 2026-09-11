@@ -37,6 +37,7 @@ export const media = sqliteTable('media', {
 export const postMedia = sqliteTable(
   'postMedia',
   {
+    caption: text(),
     id: integer().primaryKey(),
     postId: integer()
       .notNull()
@@ -57,11 +58,15 @@ export const relations = defineRelations({ users, profiles, posts, media, postMe
   },
   profiles: { user: r.one.users({ from: r.profiles.userId, to: r.users.id, optional: false }) },
   posts: {
+    attachments: r.many.postMedia({ from: r.posts.id, to: r.postMedia.postId }),
     author: r.one.users({ from: r.posts.authorId, to: r.users.id, optional: false }),
     media: r.many.media({
       from: r.posts.id.through(r.postMedia.postId),
       to: r.media.id.through(r.postMedia.mediaId),
     }),
+  },
+  postMedia: {
+    media: r.one.media({ from: r.postMedia.mediaId, to: r.media.id, optional: false }),
   },
   media: {
     uploadedBy: r.one.users({ from: r.media.uploadedById, to: r.users.id, optional: false }),

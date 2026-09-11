@@ -1,11 +1,15 @@
 ---
-title: Relay
+title: Relay nodes
 description: Using the Prisma and Relay plugins together
 ---
 
-This plugin has extensive integration with the
-[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
-connections very easy.
+`prismaNode` adds Relay IDs and root node lookups to Prisma objects. Register the
+[Relay plugin](/docs/plugins/relay); see [Connections](./connections) for pagination.
+
+Defining a node creates a direct lookup for that entity through `node` and `nodes`. These fields
+bypass custom root resolvers, so checks on an author lookup or a filtered feed do not protect
+node refetches. Apply the same access rules to node loading or type authorization; see
+[Authorizing Relay nodes](/docs/plugins/scope-auth/relay-nodes).
 
 ### `prismaNode`
 

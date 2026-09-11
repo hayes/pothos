@@ -1,0 +1,5 @@
+query NodeExistence {
+  node(id: "QXJ0aWNsZTox") {
+    __typename
+  }
+}

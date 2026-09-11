@@ -1,0 +1,8 @@
+query ReaderRefetch {
+  node(id: "QXJ0aWNsZTox") {
+    ... on Article {
+      id
+      title
+    }
+  }
+}

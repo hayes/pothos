@@ -1,0 +1,7 @@
+query MixedNodes {
+  nodes(ids: ["QXJ0aWNsZTox", "QXJ0aWNsZTo5OTk="]) {
+    ... on Article {
+      title
+    }
+  }
+}

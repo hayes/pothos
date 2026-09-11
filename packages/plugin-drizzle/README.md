@@ -382,7 +382,7 @@ builder.drizzleObject('posts', {
     }),
   }),
 });
-builder.drizzleObject('media', {
+export const Media = builder.drizzleObject('media', {
   name: 'Media',
   fields: (t) => ({ url: t.exposeString('url'), uploadedBy: t.relation('uploadedBy') }),
 });
@@ -533,19 +533,24 @@ an independent database query. See [Query planning](https://pothos-graphql.dev/d
 
 ## Connections
 
-Use `t.drizzleConnection` for a queried list and `t.relatedConnection` for a Drizzle relation.
-Both require the [Relay plugin](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins).
-The examples use `relay: { nodesOnConnection: true }`; with the default Relay configuration,
-select `edges { node { title } }` instead of `nodes { title }`.
+Connection fields combine cursor pagination with Pothos's selection planning. Define the rows a
+field may return; Pothos adds pagination constraints and selects the columns and relations
+requested under each node. The same field supports forward and backward pagination.
+
+Use `t.drizzleConnection` when your resolver queries the rows and `t.relatedConnection` for a
+Drizzle relation. Both require the [Relay plugin](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins).
 
 ### Page through published posts
 
-`t.drizzleConnection` adds a root connection. Its resolver receives a selection function just
-like `t.drizzleField`, including the cursor and page-size requirements:
+The feed returns published posts ordered by creation time. Its resolver passes the result of
+`query()` to Drizzle, just as a `t.drizzleField` does:
 
 ```typescript
 posts: t.drizzleConnection({
   type: 'posts',
+  totalCount: () => {
+    return db.$count(posts, eq(posts.published, true));
+  },
   resolve: (query) => {
     return db.query.posts.findMany(
       query({
@@ -559,15 +564,59 @@ posts: t.drizzleConnection({
 }),
 ```
 
-There are three published posts and two drafts. The first page returns two published posts and
-`hasNextPage: true`; a request with that `endCursor` as `after` returns the remaining post.
-The feed orders by `createdAt`, and the plugin adds a primary-key tie breaker as described in
-[Ordering and cursors](https://pothos-graphql.dev/docs/plugins/drizzle/ordering-and-cursors).
+Pothos uses the selected node fields to plan the database query, including the nested author.
+It also adds the ordering columns needed for cursors, even when the client does not select them.
+When creation times tie, Pothos appends a primary-key tie breaker so posts have distinct positions.
+See [Ordering and cursors](https://pothos-graphql.dev/docs/plugins/drizzle/ordering-and-cursors) for other orderings and column requirements.
+
+A client requests the first page with `first`:
+
+```graphql
+query PostFeed($after: String) {
+  posts(first: 2, after: $after) {
+    totalCount
+    edges {
+      cursor
+      node {
+        title
+        author {
+          fullName
+        }
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+```
+
+For the next page, pass the previous `endCursor` as `after`. To paginate backward, use `last`
+and `before`, taking `before` from a page's `startCursor`:
+
+```graphql
+query PreviousPosts($before: String) {
+  posts(last: 2, before: $before) {
+    nodes {
+      title
+    }
+    pageInfo {
+      startCursor
+      hasPreviousPage
+    }
+  }
+}
+```
+
+Backward pagination retains the connection's declared ordering; it selects the preceding rows
+rather than reversing the response. `nodes` is a convenience field enabled by
+`relay: { nodesOnConnection: true }`. With the default Relay configuration, use `edges { node }`.
 
 ### Related connections
 
-`t.relatedConnection` exposes a relation as a connection instead of a list. The author’s
-`postsConnection` uses the same publication filter as `posts`:
+An author's `postsConnection` applies the same publication filter as the feed. `t.relatedConnection`
+plans that relation from the parent selection without a custom resolver:
 
 ```typescript
 postsConnection: t.relatedConnection('posts', {
@@ -576,79 +625,40 @@ postsConnection: t.relatedConnection('posts', {
 }),
 ```
 
-This will automatically define the `Connection`, and `Edge` types, and their respective fields. To
-customize the Connection and Edge types, options for these types can be passed as additional
-arguments to `t.relatedConnection`, just like `t.connection` from the relay plugin. See the
-[relay plugin docs](https://pothos-graphql.dev/docs/plugins/relay) for more details.
+The `query` option accepts an object or a callback receiving field arguments and context, as it
+does on `t.relation`. Connection `orderBy` accepts column names with `'asc'` or `'desc'`, or a
+column or array of columns for ascending order. Pothos can invert these orderings when fetching
+a backward page. The default ordering uses the table's primary key.
 
-You can also define a `query` like with `t.relation`. The only difference with `t.relatedConnection`
-is that the `orderBy` format is slightly changed.
-
-To comply with the relay spec and efficiently support backwards pagination, some queries need to be
-performed in reverse order, which requires inverting the orderBy clause. To do this automatically,
-the `t.relatedConnection` method accepts orderBy as an object keyed by column name with `'asc'` or
-`'desc'` values, like `{ createdAt: 'desc' }`, rather than using the `asc(column)` and
-`desc(column)` helpers from drizzle. orderBy can also be returned as a single column, or an array of
-columns when ordering by multiple columns, which orders ascending.
-
-Ordering defaults to using the table `primaryKey`, and the orderBy columns will also be used to
-derive the connections cursor.
+Both connection methods create Connection and Edge types. Pass additional options to customize
+those types, as with the [Relay plugin's connection fields](https://pothos-graphql.dev/docs/plugins/relay).
 
 ### Connection totalCount
 
-The author's `totalCount: true` counts both published posts even when the page contains only one.
-A query asking for only `totalCount` still applies the publication filter.
+`totalCount` describes the matching rows across all pages. The author's `totalCount: true`
+counts both published posts even when `first: 1` returns only one. Pothos loads the count only
+when it is selected; a query for only `totalCount` does not load the related posts.
 
-This will automatically add a `totalCount` field to the connection type. The count query is only
-executed when the `totalCount` field is actually requested in the GraphQL query, and it's included
-as a subquery in the main database query for efficiency.
+For `t.relatedConnection`, Pothos derives the count from the relation and its filter. For a root
+`t.drizzleConnection`, supply a `totalCount` resolver, as the feed does above. Its filter must
+match the rows returned by the connection. This resolver receives the usual
+`parent`, `args`, `context`, and `info` arguments. A count-only root query skips the main resolver.
 
-The count applies the `where` returned by the field's `query`, so it counts the same rows the
-connection paginates (only published posts in the example above). To count every related row
-regardless of the filter, set `filterConnectionTotalCount: false` in the `drizzle` plugin options:
+By default, a related count includes the `where` returned by the connection's `query`. Setting
+`filterConnectionTotalCount: false` in the builder's `drizzle` options ignores that field filter
+for counts. A filter on the Drizzle relation itself still applies. Keep the default for the
+public author field: counting drafts would reveal data excluded by its publication filter.
 
-```ts
-const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [RelayPlugin, DrizzlePlugin],
-  drizzle: {
-    client: db,
-    getTableConfig,
-    relations,
-    // count every related row for totalCount, ignoring the where from query (defaults to true)
-    filterConnectionTotalCount: false,
-  },
-});
-```
+For a many-to-many relation defined with `through`, the count matches the rows being paginated.
+If two junction rows reach the same target, that target appears and is counted twice. This differs
+from [`t.relatedCount`](https://pothos-graphql.dev/docs/plugins/drizzle/relations#related-count), which counts distinct related targets.
 
-A `where` on the relation itself always applies to the count, as does the junction table of a
-many-to-many relation defined with `.through(...)`. The count joins the junction table the same way
-the rows do, so a row that matches the junction twice counts twice, and appears twice in the
-connection.
+### Connections with custom edges
 
-The publishing API keeps the default filter behavior: disabling it would reveal an author's
-unpublished post count through this public field.
-
-### Root connection totalCount
-
-For a root `totalCount`, supply a resolver rather than `true`. Add this option to the
-`t.drizzleConnection` configuration above; its filter must match the connection's visibility:
-
-```ts
-// Imports: eq from 'drizzle-orm', posts from your table definitions.
-totalCount: () => {
-  return db.$count(posts, eq(posts.published, true));
-},
-```
-
-The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.
-
-When only the `totalCount` field is requested (without `edges` or `nodes`), the main query is skipped entirely and only the count query is executed for efficiency.
-
-### Custom connections
-
-Use [Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers) when the connection needs to expose data from a
-join row on its edges, return nodes from a different table, or query rows manually. Ordinary
-many-to-many relations defined with `through` work with `t.relatedConnection`.
+A direct many-to-many relation works with `t.relatedConnection`. When the attachment itself has
+fields, such as a caption, the edge needs data from the junction row while its node represents
+Media. [Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers) shows how to combine that mapping with selection
+planning, pagination, and custom edge fields in one connection.
 
 ## Ordering and cursors
 
@@ -664,6 +674,9 @@ distinct position in the connection.
 ```typescript
 posts: t.drizzleConnection({
   type: 'posts',
+  totalCount: () => {
+    return db.$count(posts, eq(posts.published, true));
+  },
   resolve: (query) => {
     return db.query.posts.findMany(
       query({
@@ -791,14 +804,12 @@ The expression also needs to sort in the same order its values compare. A timest
 fixed width UTC text sorts the same way it does chronologically, but a local time or variable width
 format does not, and will skip rows.
 
-## Relay
-
-### Relay integration
+## Relay nodes
 
 The Relay plugin supplies node IDs and cursor connections. Register it with Drizzle as shown in
 [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins); [Connections](https://pothos-graphql.dev/docs/plugins/drizzle/connections) covers pagination.
 
-### Relay Nodes
+### Define a node
 
 `builder.drizzleNode` uses the same fields and selections as `builder.drizzleObject`, and adds
 an ID and a root node lookup. The example User uses its integer primary key:
@@ -833,12 +844,24 @@ query RefetchAuthor {
 }
 ```
 
-The operation uses the ID of User 1. The node returns the same public fields as the author lookup, including
-only published posts. A node lookup does not route through a custom root resolver, so any
-access restrictions on an entity must also hold when it is loaded as a node.
+The operation uses the ID of User 1. The node
+returns the same public fields as the author lookup, including only published posts.
 
-The [public author definition](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) applies its publication
-filter on the relation itself, so it also holds when User is reached through `node`.
+### Authorize the node load path
+
+Registering a node makes its rows directly reachable through the root `node` and `nodes` fields.
+Those loads do not call your custom `author`, `me`, or other root resolvers. A permission check or
+visibility filter on one of those resolvers therefore does not protect node lookups.
+
+Apply authorization to the node type or its fields as appropriate. The
+[Scope Auth guide to Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) explains how to enforce
+authorization on this separate load path. An encoded global ID is an identifier, not proof of
+permission to access the row.
+
+The public User type here can be refetched by anyone. Its
+[published-posts relation](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) applies the publication filter
+wherever User is reached, including through `node`. Post stays an ordinary Drizzle object;
+defining a public feed does not also make individual drafts globally refetchable.
 
 ## Type variants
 
@@ -1164,168 +1187,152 @@ already holds falls back to a query for that field, rather than failing the requ
 
 ## Connection helpers
 
-`drizzleConnectionHelpers` supplies selection, cursor, and result handling for a `t.connection`
-field. Use it when pagination rows differ from GraphQL nodes or when the resolver queries rows
-manually. For a relation exposed directly as a connection, use [t.relatedConnection](https://pothos-graphql.dev/docs/plugins/drizzle/connections#related-connections).
+An image can appear in several posts, with a different caption in each. The Media row describes
+the image; the PostMedia row describes its attachment to a post. A connection can expose the
+image as its node and the attachment's caption as an edge field:
 
-Import `drizzleConnectionHelpers` from `@pothos/plugin-drizzle` and register the
-[Relay plugin](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins). These snippets assume User has a `userRoles`
-relation; each UserRole has `userId`, `roleId`, `accepted`, and `createdAt`, and a `role` relation
-to Role (`id`, `name`). Alternatives replace the preceding helper or field of the same name.
+```graphql
+query PostAttachments {
+  author(id: 1) {
+    postsConnection(first: 1) {
+      nodes {
+        title
+        attachments(first: 2) {
+          edges {
+            caption
+            node {
+              url
+              uploadedBy {
+                fullName
+              }
+            }
+          }
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+        }
+      }
+    }
+  }
+}
+```
 
-### Indirect relations as connections
+`t.relatedConnection` handles a relation whose rows are the connection's nodes. Use
+`drizzleConnectionHelpers` with `t.connection` when the rows being paginated differ from those
+nodes, or when you need to load the rows yourself. The helper supplies the selection, cursor,
+and result handling that a normal Relay connection field does not have.
 
-Here the connection paginates UserRole rows but returns Role nodes. `select` plans the node's
-requested fields through the join relation, and `resolveNode` extracts that node from each row.
-Because this uses `t.connection`, its field must explicitly include the helper's selection and
-pass the loaded rows to its resolver.
+### Select the nodes through the attachment
+
+Import `drizzleConnectionHelpers` from `@pothos/plugin-drizzle` and use the builder configured
+with the Drizzle and Relay plugins. The helper targets `postMedia`. Its `select` uses
+`nestedSelection()` to request the Media fields
+selected beneath the connection's nodes; `resolveNode` returns that related Media row:
 
 ```typescript
-const Role = builder.drizzleObject('roles', {
-  name: 'Role',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
+const attachmentArgs = builder.args((t) => ({
+  hasCaption: t.boolean({ defaultValue: false }),
+}));
 
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
+const attachments = drizzleConnectionHelpers(builder, 'postMedia', {
+  args: () => attachmentArgs,
+  query: (args) => ({
+    orderBy: { id: 'asc' },
+    where: args.hasCaption ? { caption: { isNotNull: true } } : {},
+  }),
   select: (nestedSelection) => {
     return {
-      with: {
-        role: nestedSelection(),
-      },
+      columns: { caption: true },
+      with: { media: nestedSelection() },
     };
   },
-  resolveNode: (userRole) => userRole.role,
-});
-
-builder.drizzleObjectField('users', 'rolesConnection', (t) =>
-  t.connection({
-    type: Role,
-    nodeNullable: true,
-    select: (args, ctx, nestedSelection) => {
-      return {
-        with: {
-          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-        },
-      };
-    },
-    resolve: (user, args, ctx) => {
-      return rolesConnection.resolve(user.userRoles, args, ctx, user);
-    },
-  }),
-);
-```
-
-### Connections without a node mapping
-
-When edges and nodes use the same row, the helper supplies a node ref and needs no
-`resolveNode` mapping. This example assumes Post has a `comments` relation and a registered
-Comment type. For this simple case, `t.relatedConnection` would also work; use the helper when
-you need to customize how the selection is loaded or the result is resolved.
-
-```ts
-const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'comments');
-
-const SelectPost = builder.drizzleObject('posts', {
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    comments: t.connection({
-      type: commentConnectionHelpers.ref,
-      select: (args, ctx, nestedSelection) => {
-        return {
-          with: {
-            comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
-          },
-        };
-      },
-      resolve: (parent, args, ctx) => {
-        return commentConnectionHelpers.resolve(parent.comments, args, ctx);
-      },
-    }),
-  }),
+  resolveNode: (attachment) => attachment.media,
 });
 ```
 
-### Arguments, filters, and ordering
+The connection orders and creates cursors from attachment IDs, not Media IDs. An image shared
+by two posts can therefore have a different caption and connection position in each post.
+The nested uploader selection is still planned from the requested Media fields.
 
-Add `args` and `query` to the helper options to share argument handling with the connection
-field. For example, a caller can include pending memberships as well as accepted ones:
+The helper's `args` and `query` options define a `hasCaption` argument. When it is true, the
+connection includes only attachments with a caption. Its default, false, includes all attachments.
+`getArgs()` exposes that argument on the field, and `getQuery()` combines the filter and ordering
+with the requested page and node selection.
 
-```ts
-args: (t) => ({ includePending: t.boolean({ defaultValue: false }) }),
-query: (args) => ({
-  orderBy: { roleId: 'asc' },
-  where: args.includePending ? {} : { accepted: true },
-}),
-```
+### Add the connection and its edge fields
 
-Add `args: rolesConnection.getArgs()` to the `t.connection` options. The field's existing
-`getQuery` and `resolve` calls pass those arguments to the helper.
-
-### Extending connection edges
-
-Reuse the original `rolesConnection` helper and replace its field with this definition to
-expose the join row’s `createdAt` on each edge. It assumes a registered `DateTime` scalar whose
-output type is `Date`.
+`Media` below is the object ref returned by `builder.drizzleObject('media', ...)`.
+A normal `t.connection` needs an explicit `select` to load the helper's query on the parent.
+Its resolver passes the selected attachment rows to the helper's `resolve` method:
 
 ```typescript
-builder.drizzleObjectFields('users', (t) => ({
-  rolesConnection: t.connection(
+builder.drizzleObjectField('posts', 'attachments', (t) =>
+  t.connection(
     {
-      type: Role,
-      nodeNullable: true,
+      type: Media,
+      args: attachments.getArgs(),
       select: (args, ctx, nestedSelection) => {
         return {
           with: {
-            userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+            attachments: attachments.getQuery(args, ctx, nestedSelection),
           },
         };
       },
-      resolve: (user, args, ctx) => {
-        return rolesConnection.resolve(user.userRoles, args, ctx, user);
+      resolve: (post, args, ctx) => {
+        return attachments.resolve(post.attachments, args, ctx);
       },
     },
     {},
     {
       fields: (edge) => ({
-        createdAt: edge.field({
-          type: 'DateTime',
-          resolve: (role) => role.createdAt,
+        caption: edge.string({
+          nullable: true,
+          resolve: (attachment) => attachment.caption,
         }),
       }),
     },
   ),
-}));
+);
 ```
 
-### Non-relation connections
+The third argument to `t.connection` configures the Edge type. Each edge retains the selected
+attachment fields, so its `caption` resolver reads the attachment's caption, while `node` returns
+the Media selected by `resolveNode`. A missing caption returns null.
 
-A root resolver can also use the original `rolesConnection` helper to query pagination rows
-itself. Merge the helper's `where` with any additional filter using `AND`; replacing it would discard cursor constraints.
+The post has three attachments. Its first unfiltered page of two has `hasNextPage: true`;
+filtering to captioned attachments returns two and has no next page. Pagination uses the same
+`first`/`after` and `last`/`before` arguments as [other connections](https://pothos-graphql.dev/docs/plugins/drizzle/connections#page-through-published-posts).
 
-```typescript
-builder.queryFields((t) => ({
-  roles: t.connection({
-    type: Role,
-    nodeNullable: true,
-    args: {
-      userId: t.arg.int({ required: true }),
+### Querying the rows in a resolver
+
+The same helper can build a query for a resolver that fetches the attachment rows itself.
+Pass GraphQL resolve `info` to `getQuery`, merge any additional filter with its cursor filter,
+and pass the result to `resolve`:
+
+```ts
+// Alternative resolver for the Post.attachments connection above:
+resolve: async (post, args, ctx, info) => {
+  const query = attachments.getQuery(args, ctx, info);
+  const attachmentRows = await db.query.postMedia.findMany({
+    ...query,
+    where: {
+      AND: [query.where ?? {}, { postId: post.id }],
     },
-    resolve: async (_, args, ctx, info) => {
-      const query = rolesConnection.getQuery(args, ctx, info);
-      const userRoles = await db.query.userRoles.findMany({
-        ...query,
-        where: {
-          AND: [query.where ?? {}, { userId: args.userId }],
-        },
-      });
-      return rolesConnection.resolve(userRoles, args, ctx);
-    },
-  }),
-}));
+  });
+
+  return attachments.resolve(attachmentRows, args, ctx);
+},
 ```
+
+This alternative needs `db` imported from the application's database module and `id` selected
+on Post. Remove the field's relation `select` when using it, so the rows are not also loaded
+through the parent query. Replacing the helper's `where` rather than combining it would discard
+pagination constraints.
+
+If the rows and nodes are the same type, omit `resolveNode` and the node-mapping `select` when
+creating the helper. Its `ref` provides the node type for `t.connection`. Prefer
+`t.relatedConnection` when you can expose that relation directly without custom loading.
 
 ## Async selections
 
@@ -1404,7 +1411,7 @@ throws when its own `select` or `query` is async, whatever the document asked fo
 select: async (args, ctx, nestedSelection) => {
   return {
     with: {
-      comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
+      attachments: await attachments.getQuery(args, ctx, nestedSelection, {
         awaitSelections: true,
       }),
     },
@@ -1419,6 +1426,6 @@ When `AsyncSelections: true`, also `await` a connection helper's `resolve()` bef
 spreading its result: an async `query` callback makes resolution asynchronous. Returning its
 result directly from a GraphQL resolver remains supported.
 
-The connection-helper excerpt assumes a registered comments relation and
-`commentConnectionHelpers` from [Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers). Request-context
+The connection-helper excerpt uses the Post attachments relation and `attachments` helper from
+[Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers). Request-context
 methods must be supplied by the application; they are not created by declaring the Context type.

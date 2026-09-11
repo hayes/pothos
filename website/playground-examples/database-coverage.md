@@ -194,3 +194,19 @@ fixed. All 26 source-backed database excerpts match the package READMEs. Example
 (94 files/72 programs), Prisma and plain-ref behavior suites, production build, 147 reference
 checks, and rendered internal links across 79 pages pass. The browser suite verifies all nine
 Drizzle operations and all 18 source actions, including the newly formatted highlighted ranges.
+
+## GraphQL readability and connection coverage
+
+- Formatted literal GraphQL documentation fences and matching package READMEs without changing their parsed operations. All 127 standalone example GraphQL files already matched the formatter. Documentation query overrides now open with expanded selections; annotated or incomplete overrides remain intact. Unit suite: 42 tests passed; a production-browser check confirmed the linked query is formatted and executable.
+- Drizzle root feed now exposes a filtered totalCount. Existing attachment rows now carry nullable per-post captions; types/attachments.ts demonstrates helper argument/filter handling, join-row pagination, Media node selection, nested uploaders, and custom edge fields without adding another example project.
+- The connection guides use the publishing schema throughout, with focused source links for helpers, related connections, counts and cursor traversal. Database node guides are titled Relay nodes and warn that direct lookup bypasses unrelated list/root filters.
+- Drizzle browser validation passed all ten operations, forward/backward/empty pagination, caption filtering, root count-only SQL, viewer isolation, reset/share and invalid-column diagnostics, all twenty rendered documentation actions, and the mobile action. A separate populated edge-only request passed without requesting node fields. Expected responses were regenerated and inspected for the added count, caption rows and cursors.
+- Prisma local examples include attachment edges through a dedicated connection module. Local suite and Prisma checks passed, including distinct captions for shared Media nodes, forward/backward/empty pages, nested uploader selection, root counts and populated edge-only queries.
+
+## Relay node authorization
+
+- Added `/docs/plugins/scope-auth/relay-nodes`; the existing Scope Auth guide moved to an index without changing its URL or anchors. Drizzle and Prisma Relay nodes pages link the new guidance and warn that node loaders bypass unrelated root/list authorization.
+- Expanded the existing Scope Auth example with a static type scope map allowing `permission: 'readArticle'` or a parent `readFeaturedArticle` grant. Node source and builder are separate files. Operations demonstrate granted versus direct access to the same object in both selection orders, permission-based refetch, `__typename` visibility, and mixed denied/missing node lookups.
+- Browser experiments rejected two tempting alternatives: parent grants are not resolved at the returning-field path used by `runScopesOnType`, and evaluated type authorization callbacks are cached by object identity. The final example uses neither mechanism for its path-dependent policy. The guide explains these limitations, loader visibility, field null propagation, and request-scoped caches.
+- All twelve Scope Auth browser operations and Monaco diagnostics passed, independently reproduced by the guide reviewer. The targeted three-file typecheck passed. The guide opens the relevant node operations via explicit links instead of opening the example's unrelated default operation.
+- Final validation: production build passed; 97 source files passed across 72 isolated example programs; 149 playground references and internal links/anchors across 80 documentation pages passed. All 134 authored GraphQL operation files and 56 literal documentation fences matched formatting with preserved parsed meaning. The rendered authorization guide's op8 link opened and executed the expected granted/direct result in the rebuilt production site.

@@ -4,6 +4,9 @@ The scope auth plugin checks authorization before a field resolver runs. Define 
 roles, permissions, or ownership checks, then require those scopes on fields and types. Checks and
 scope loaders are cached for the current request.
 
+For schemas using Relay, see [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes)
+for direct lookup policies and access granted through a parent field.
+
 ## Usage
 
 ### Install

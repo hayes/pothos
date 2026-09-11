@@ -1,22 +1,10 @@
-import SchemaBuilder from '@pothos/core';
-import PrismaPlugin, { queryFromInfo } from '@pothos/plugin-prisma';
-import PrismaUtils from '@pothos/plugin-prisma-utils';
-import RelayPlugin from '@pothos/plugin-relay';
+import { queryFromInfo } from '@pothos/plugin-prisma';
 import type { Post as PostRow, PrismaClient } from './generated/client/client';
-import type PrismaTypes from './generated/pothos';
-import { getDatamodel } from './generated/pothos';
+import { createSchemaBuilder } from './builder';
+import { addMediaConnection, createMediaType } from './connections';
 
 export function createSchema(prisma: PrismaClient) {
-  // #region builder
-  const builder = new SchemaBuilder<{
-    PrismaTypes: PrismaTypes;
-    Context: { userId: number };
-  }>({
-    relay: { nodesOnConnection: true },
-    plugins: [RelayPlugin, PrismaPlugin, PrismaUtils],
-    prisma: { client: prisma, dmmf: getDatamodel(), onUnusedQuery: 'error' },
-  });
-  // #endregion builder
+  const builder = createSchemaBuilder(prisma);
 
   // #region user
   builder.prismaNode('User', {
@@ -49,10 +37,7 @@ export function createSchema(prisma: PrismaClient) {
   });
   // #endregion user
 
-  const Media = builder.prismaObject('Media', {
-    select: { id: true },
-    fields: (t) => ({ url: t.exposeString('url'), uploadedBy: t.relation('uploadedBy') }),
-  });
+  const Media = createMediaType(builder);
   builder.prismaObject('Comment', {
     fields: (t) => ({ content: t.exposeString('content'), author: t.relation('author') }),
   });
@@ -84,6 +69,8 @@ export function createSchema(prisma: PrismaClient) {
     }),
   });
   // #endregion post
+
+  addMediaConnection(builder, Media);
 
   // #region viewer
   const Viewer = builder.prismaInterface('User', {

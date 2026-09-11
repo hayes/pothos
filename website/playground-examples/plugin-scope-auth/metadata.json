@@ -1,8 +1,8 @@
 {
   "id": "plugin-scope-auth",
   "title": "Request permissions and protected writes",
-  "description": "Compare signed-out, reader and editor contexts. Add editArticle in Context to allow editPreview. Run the write/read operations in order: rejected writes leave state unchanged; permitted writes update it. Context is fixture data, not authentication. Reset example restores the article.",
+  "description": "Edit permissions in Context; run writes and reads in order, then reset to restore the article. Compare 08-node-paths with 09-reader-node: parent grants do not authorize direct reads. 10-node-typename shows field scopes do not hide existence. Context is fixture data.",
   "category": "plugins",
-  "relatedDocs": ["/docs/plugins/scope-auth"],
+  "relatedDocs": ["/docs/plugins/scope-auth", "/docs/plugins/scope-auth/relay-nodes"],
   "defaultActiveFile": "schema.ts"
 }

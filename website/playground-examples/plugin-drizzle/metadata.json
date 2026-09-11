@@ -1,7 +1,7 @@
 {
   "id": "plugin-drizzle",
   "title": "A publishing API with Drizzle",
-  "description": "Compare 02-aliases and its SQL in Console. Change Context userId to 2 in 03-viewer or 09-variant. Continue 04-pagination with endCursor as Variables.after. Edit a name in database.ts; reset restores the seed.",
+  "description": "Continue 04-pagination with endCursor as Variables.after. In 10-attachments, set hasCaption to true or use endCursor as after. Compare 02-aliases SQL in Console. Change Context userId to 2 in 03-viewer or 09-variant. Reset restores the seed.",
   "category": "plugins",
   "difficulty": "intermediate",
   "relatedDocs": ["/docs/plugins/drizzle"],

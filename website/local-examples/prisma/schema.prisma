@@ -67,6 +67,7 @@ model Media {
 }
 
 model PostMedia {
+  caption String
   id Int @id @default(autoincrement())
   postId Int
   mediaId Int

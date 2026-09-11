@@ -67,5 +67,66 @@
       "savedTitle": "Updated guide",
       "writes": 1
     }
+  },
+  "08-node-paths.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["node", "id"]
+      }
+    ],
+    "data": {
+      "featuredArticle": {
+        "id": "QXJ0aWNsZTox",
+        "title": "A field guide to GraphQL"
+      },
+      "node": null
+    }
+  },
+  "09-reader-node.graphql": {
+    "data": {
+      "node": {
+        "id": "QXJ0aWNsZTox",
+        "title": "A field guide to GraphQL"
+      }
+    }
+  },
+  "10-node-typename.graphql": {
+    "data": {
+      "node": {
+        "__typename": "Article"
+      }
+    }
+  },
+  "11-node-paths-reversed.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["node", "id"]
+      }
+    ],
+    "data": {
+      "featuredArticle": {
+        "id": "QXJ0aWNsZTox",
+        "title": "A field guide to GraphQL"
+      },
+      "node": null
+    }
+  },
+  "12-mixed-nodes.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["nodes", 0, "title"]
+      }
+    ],
+    "data": {
+      "nodes": [
+        {
+          "title": null
+        },
+        null
+      ]
+    }
   }
 }
