@@ -1,0 +1,5 @@
+query Annotations {
+  first: hello
+  second: hello
+  recordedDirectives
+}

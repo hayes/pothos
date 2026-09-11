@@ -38,9 +38,13 @@ builder.queryType({
     }),
   }),
 });
-
-const schema = builder.toSchema();
 ```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-directives)
+
+The companion adds `recordedDirectives` to inspect the stored field annotations. Run the two
+`hello` aliases, change `limit` to `1`, and run again: both still return `world`, while the
+recorded limit changes. This demonstrates metadata, not an installed rate-limit transformer.
 
 The schema still returns `world` on every request until a consumer applies the rate limit.
 The generic checks your Pothos definitions; it does not register a GraphQL directive definition.
@@ -98,7 +102,7 @@ on `toSchema()` accepts GraphQL directive definitions; it does not attach direct
 ## Apply directive behavior
 
 Pass the built schema to the transformer supplied by your directive library. For example, with
-`graphql-rate-limit-directive` installed, replace the final `toSchema()` call in the setup with:
+`graphql-rate-limit-directive` installed, replace the final `toSchema()` call in the companion with:
 
 ```typescript
 import { rateLimitDirective } from 'graphql-rate-limit-directive';

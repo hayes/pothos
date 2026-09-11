@@ -1,0 +1,10 @@
+query Filter {
+  member {
+    name
+  }
+  search(filter: { name: "Leia" }, order: ASC) {
+    ... on Member {
+      name
+    }
+  }
+}

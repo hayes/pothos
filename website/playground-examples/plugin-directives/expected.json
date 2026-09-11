@@ -1,0 +1,9 @@
+{
+  "query.graphql": {
+    "data": {
+      "first": "world",
+      "second": "world",
+      "recordedDirectives": "[{\"name\":\"rateLimit\",\"args\":{\"limit\":5,\"duration\":60}}]"
+    }
+  }
+}

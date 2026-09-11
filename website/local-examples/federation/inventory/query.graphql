@@ -1,0 +1,9 @@
+query Shipping($representations: [_Any!]!) {
+  _entities(representations: $representations) {
+    ... on Product {
+      upc
+      inStock
+      shippingEstimate
+    }
+  }
+}

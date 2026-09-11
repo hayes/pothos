@@ -1,0 +1,7 @@
+query ProductFields {
+  __type(name: "Product") {
+    fields {
+      name
+    }
+  }
+}

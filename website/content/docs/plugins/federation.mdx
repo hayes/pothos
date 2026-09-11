@@ -42,29 +42,38 @@ const builder = new SchemaBuilder({
 });
 ```
 
+### Run the local companions
+
+The complete users, inventory, and reviews companions live in
+[website/local-examples/federation](https://github.com/hayes/pothos/tree/main/website/local-examples/federation).
+From a repository checkout with Node.js 22 or newer, install dependencies and run the local suites:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --dir website check:local
+```
+
+This builds the required packages, installs the isolated local-example dependencies, and runs
+the federation, Grafast, and smart-subscription suites. The federation check executes each `.graphql` operation with its variable sidecar and asserts the checked-in
+expected response. Edit a representation in `users/02-entities.variables.json`, or the price and
+weight in `inventory/query.variables.json`, then update the corresponding expectation to test the
+changed result. These checks use in-process GraphQL execution. Serving each schema and composing
+a gateway are separate steps below. Apollo's schema tooling needs Node.js, so these companions
+run locally instead of in the browser playground.
+
 ### Defining entities
 
 Defining entities for your schema is a 2 step process. First you will need to define an object type
 as you would normally, then you can convert that object type to an entity by providing a `key` (or
 `keys`), and a method to load that entity.
 
-```typescript
-type UserRecord = { id: string; name: string; username: string };
-const users: UserRecord[] = [{ id: '1', name: 'Leia', username: 'leia' }];
+<include cwd lang="typescript" >local-examples/federation/users/schema.ts#entity</include>
 
-const User = builder.objectRef<UserRecord>('User').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    username: t.exposeString('username'),
-  }),
-});
-
-builder.asEntity(User, {
-  key: builder.selection<{ id: string }>('id'),
-  resolveReference: (user) => users.find(({ id }) => user.id === id),
-});
-```
+Run the local users companion's `Entities` operation. Its representations load Leia by ID and return `null`
+for a missing user. Change the first representation's ID to `missing` to see reference resolution
+change the response. This executes one subgraph's `_entities` field locally; composition,
+gateway planning, and cross-service `requires`/`provides` behavior still need the local services
+described below.
 
 `keys` are defined using `builder.selection`. This method _MUST_ be called with a generic argument
 that defines the types for any fields that are part of the key. `key` may also be an array.
@@ -90,46 +99,11 @@ implementing the `externalRef`.
 
 The inventory service uses a separate builder with the setup above:
 
-```typescript
-const inventory = [{ upc: '1', inStock: true }];
+<include cwd lang="typescript" >local-examples/federation/inventory/schema.ts#service</include>
 
-const Product = builder.externalRef(
-  'Product',
-  builder.selection<{ upc: string }>('upc'),
-  (entity) => {
-    const product = inventory.find(({ upc }) => upc === entity.upc);
-
-    // extends the entity ({upc: string}) with other product details available in this service
-    return product && { ...entity, ...product };
-  },
-);
-
-Product.implement({
-  // Additional external fields can be defined here which can be used by `requires` or `provides` directives
-  externalFields: (t) => ({
-    price: t.float(),
-    weight: t.float(),
-  }),
-  fields: (t) => ({
-    // exposes properties added during loading of the entity above
-    upc: t.exposeString('upc'),
-    inStock: t.exposeBoolean('inStock'),
-    shippingEstimate: t.float({
-      // fields can add a `requires` directive for any of the externalFields defined above
-      // which will be made available as part of the first arg in the resolver.
-      requires: builder.selection<{ weight?: number; price?: number }>('price weight'),
-      resolve: (data) => {
-        // free for expensive items
-        if ((data.price ?? 0) > 1000) {
-          return 0;
-        }
-        // estimate is based on weight
-        return (data.weight ?? 0) * 0.5;
-      },
-    }),
-  }),
-});
-```
+The inventory companion supplies `price` and `weight` explicitly in `_entities` representations.
+Run it to compare a shipping estimate of `2` with free shipping for an expensive item. A gateway
+would obtain the required fields from another service; this isolated local example does not perform that fetch.
 
 ### Selections with inline fragments
 
@@ -185,46 +159,10 @@ the field that will have the `@provides` directive. The provided field must be l
 The reviews service uses another separate builder. It returns a known username with a user
 reference, so the gateway does not need to fetch that field from the users service for this path:
 
-```typescript
-type ReviewRecord = { id: string; body: string; authorID: string; authorUsername: string };
-const reviews: ReviewRecord[] = [
-  { id: '1', body: 'Useful notebook', authorID: '1', authorUsername: 'leia' },
-];
+<include cwd lang="typescript" >local-examples/federation/reviews/schema.ts#service</include>
 
-const User = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
-  externalFields: (t) => ({
-    // The field that will be provided
-    username: t.string(),
-  }),
-  fields: (t) => ({
-    id: t.exposeID('id'),
-  }),
-});
-
-const Review = builder.objectRef<ReviewRecord>('Review');
-Review.implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    body: t.exposeString('body'),
-    author: t.field({
-      // using User.provides<...>(...) instead of just User adds the provide annotations
-      // and ensures the resolved value includes data for the provided field
-      // The generic in Type.provides works the same as the `builder.selection` method.
-      type: User.provides<{ username: string }>('username'),
-      resolve: (review) => ({
-        id: review.authorID,
-        username: review.authorUsername,
-      }),
-    }),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    reviews: t.field({ type: [Review], resolve: () => reviews }),
-  }),
-});
-```
+The reviews companion returns the provided username with the reference. Run it to observe the
+resolved value; proving that `@provides` saves a cross-service fetch requires a composed gateway.
 
 ### Building your schema and starting a server
 

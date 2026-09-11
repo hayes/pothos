@@ -1,0 +1,8 @@
+{
+  "id": "plugin-add-graphql-kinds",
+  "title": "Imported interface, union, enum and input",
+  "description": "Run both orders. Change the filter to Luke and compare the returned union member.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/add-graphql"],
+  "defaultActiveFile": "schema.ts"
+}

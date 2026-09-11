@@ -1,0 +1,27 @@
+{
+  "id": "plugin-sub-graph",
+  "title": "Select an API variant",
+  "description": "Inspect Product fields, then query internalNotes. Public and shared schemas reject it; internal and combined schemas expose it.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/sub-graph"],
+  "defaultActiveFile": "schema.ts",
+  "variants": [
+    {
+      "id": "public",
+      "title": "Public",
+      "default": true
+    },
+    {
+      "id": "internal",
+      "title": "Internal"
+    },
+    {
+      "id": "combined",
+      "title": "Combined"
+    },
+    {
+      "id": "shared",
+      "title": "Shared"
+    }
+  ]
+}

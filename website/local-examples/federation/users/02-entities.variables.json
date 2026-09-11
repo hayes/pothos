@@ -1,0 +1,12 @@
+{
+  "representations": [
+    {
+      "__typename": "User",
+      "id": "1"
+    },
+    {
+      "__typename": "User",
+      "id": "missing"
+    }
+  ]
+}

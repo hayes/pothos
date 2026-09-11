@@ -1,0 +1,8 @@
+{
+  "id": "plugin-complexity",
+  "title": "Enforce a query cost budget",
+  "description": "Run operations in order. The rejected request leaves resolverCalls at 1. Lower its limit to 15: cost 20 is allowed, and the resolver runs.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/complexity"],
+  "defaultActiveFile": "schema.ts"
+}

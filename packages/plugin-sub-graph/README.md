@@ -29,19 +29,21 @@ const builder = new SchemaBuilder<{
   },
 });
 
-const Product = builder.objectRef<{
-  id: string;
-  name: string;
-  internalNotes: string;
-}>('Product').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-    internalNotes: t.exposeString('internalNotes', {
-      subGraphs: ['Internal'],
+const Product = builder
+  .objectRef<{
+    id: string;
+    name: string;
+    internalNotes: string;
+  }>('Product')
+  .implement({
+    fields: (t) => ({
+      id: t.exposeID('id'),
+      name: t.exposeString('name'),
+      internalNotes: t.exposeString('internalNotes', {
+        subGraphs: ['Internal'],
+      }),
     }),
-  }),
-});
+  });
 
 builder.queryType({
   fields: (t) => ({
@@ -51,14 +53,46 @@ builder.queryType({
     }),
   }),
 });
-
-const schema = builder.toSchema();
-const publicSchema = builder.toSchema({ subGraph: 'Public' });
-const internalSchema = builder.toSchema({ subGraph: 'Internal' });
 ```
 
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph)
+
+Choose a build target, then run the field inspection and internal-notes operations:
+
+**Public**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: 'Public' });
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph)
+
+**Internal**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: 'Internal' });
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph-variant-internal)
+
+**Combined**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph-variant-combined)
+
+**Shared**
+
+```typescript
+export const schema = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
+```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph-variant-shared)
+
 `{ product { name } }` works in either variant. `{ product { internalNotes } }` fails GraphQL
-validation against `publicSchema`. Calling `toSchema()` without a sub-graph retains the full schema.
+validation against the Public variant. Calling `toSchema()` without a sub-graph retains the full schema.
 
 ## Combine variants
 

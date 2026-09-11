@@ -1,0 +1,58 @@
+{
+  "01-allowed.graphql": {
+    "data": {
+      "posts": [
+        {
+          "title": "First post"
+        },
+        {
+          "title": "Second post"
+        }
+      ]
+    }
+  },
+  "02-estimate.graphql": {
+    "data": {
+      "accepted": 7,
+      "rejected": 21
+    }
+  },
+  "03-rejected.graphql": {
+    "errors": [
+      {
+        "message": "Query exceeds maximum complexity (complexity: 21, max: 20)",
+        "path": ["posts"]
+      }
+    ],
+    "data": {
+      "posts": null
+    }
+  },
+  "04-depth.graphql": {
+    "errors": [
+      {
+        "message": "Query exceeds maximum depth (depth: 4, max: 3)",
+        "path": ["posts"]
+      }
+    ],
+    "data": {
+      "posts": null
+    }
+  },
+  "05-breadth.graphql": {
+    "errors": [
+      {
+        "message": "Query exceeds maximum breadth (breadth: 6, max: 5)",
+        "path": ["posts"]
+      }
+    ],
+    "data": {
+      "posts": null
+    }
+  },
+  "06-resolver-calls.graphql": {
+    "data": {
+      "resolverCalls": 1
+    }
+  }
+}

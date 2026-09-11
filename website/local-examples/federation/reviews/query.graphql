@@ -1,0 +1,9 @@
+query Reviews {
+  reviews {
+    body
+    author {
+      id
+      username
+    }
+  }
+}

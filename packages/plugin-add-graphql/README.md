@@ -51,8 +51,10 @@ builder.queryFields((t) => ({
   }),
 }));
 
-const schema = builder.toSchema();
+export const schema = builder.toSchema();
 ```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql)
 
 Both `{ user { name } }` and `{ otherUser { name } }` work on the resulting schema. The imported
 `user` field keeps its resolver, and the new field returns the same backing shape.
@@ -78,6 +80,8 @@ builder.queryType({
   }),
 });
 ```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql-types)
 
 This is an alternative to the schema-import builder above. Dependencies reached through fields,
 arguments, interfaces, and union members are imported recursively.
@@ -108,6 +112,8 @@ builder.queryType({
   }),
 });
 ```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql-ref)
 
 Query this version with `{ user { displayName } }`. A `null` entry removes an imported field;
 a field ref adds or replaces one. Fields not mentioned in the callback retain their imported definitions.
@@ -191,15 +197,15 @@ builder.queryType({
         order: t.arg({ type: Order }),
       },
       resolve: (_parent, { filter, order }) => {
-        const matches = members.filter((member) =>
-          !filter?.name || member.name === filter.name,
-        );
+        const matches = members.filter((member) => !filter?.name || member.name === filter.name);
         return order === 'desc' ? matches.reverse() : matches;
       },
     }),
   }),
 });
 ```
+
+[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql-kinds)
 
 The source interface and union keep their `resolveType` functions. The enum exposes `ASC` and
 `DESC` to GraphQL clients while resolvers receive `'asc'` and `'desc'`:
@@ -245,4 +251,4 @@ its field definitions do not identify all the types that implement it.
 
 Use core Pothos's `builder.addScalarType` for an existing `GraphQLScalarType`; this plugin does not
 add a scalar-specific method. Declare that scalar's input and output shapes in the builder's
-`Scalars` schema type, as described in [Scalars](https://pothos-graphql.dev/docs/guide/scalars).
+`Scalars` schema type, as described in [Scalars](/docs/guide/scalars).

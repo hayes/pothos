@@ -1,0 +1,15 @@
+{
+  "query.graphql": {
+    "data": {
+      "reviews": [
+        {
+          "body": "Useful notebook",
+          "author": {
+            "id": "1",
+            "username": "leia"
+          }
+        }
+      ]
+    }
+  }
+}

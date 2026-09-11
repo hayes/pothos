@@ -1,0 +1,8 @@
+{
+  "id": "plugin-add-graphql",
+  "title": "Import an executable schema",
+  "description": "Run both imported and Pothos fields. Change Leia in the imported resolver, then run again.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/add-graphql"],
+  "defaultActiveFile": "schema.ts"
+}

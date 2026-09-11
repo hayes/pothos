@@ -1,0 +1,26 @@
+{
+  "01-filter.graphql": {
+    "data": {
+      "member": {
+        "name": "Leia"
+      },
+      "search": [
+        {
+          "name": "Leia"
+        }
+      ]
+    }
+  },
+  "02-order.graphql": {
+    "data": {
+      "search": [
+        {
+          "name": "Luke"
+        },
+        {
+          "name": "Leia"
+        }
+      ]
+    }
+  }
+}

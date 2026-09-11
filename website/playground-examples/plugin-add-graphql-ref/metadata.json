@@ -1,0 +1,8 @@
+{
+  "id": "plugin-add-graphql-ref",
+  "title": "Customize an imported ref",
+  "description": "Run the imported type, then edit its resolver and compare the result.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/add-graphql"],
+  "defaultActiveFile": "schema.ts"
+}

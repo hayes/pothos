@@ -1,0 +1,9 @@
+query TooBroad {
+  posts(limit: 1) {
+    a: title
+    b: title
+    c: title
+    d: title
+    e: title
+  }
+}

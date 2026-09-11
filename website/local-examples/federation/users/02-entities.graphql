@@ -1,0 +1,9 @@
+query Entities($representations: [_Any!]!) {
+  _entities(representations: $representations) {
+    ... on User {
+      id
+      name
+      username
+    }
+  }
+}

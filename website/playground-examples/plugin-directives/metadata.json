@@ -1,0 +1,8 @@
+{
+  "id": "plugin-directives",
+  "title": "Inspect directive annotations",
+  "description": "Run repeated greetings: metadata alone does not enforce a rate limit. Change limit to 1 and inspect recordedDirectives.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/directives"],
+  "defaultActiveFile": "schema.ts"
+}
