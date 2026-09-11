@@ -77,7 +77,8 @@ export async function checkPlaygroundMobileFiles(browser, origin) {
           .getEditors()
           .some(
             (editor) =>
-              editor.getModel()?.getValue().startsWith('# Generated from schema.ts') &&
+              editor.getModel()?.getLanguageId() === 'graphql' &&
+              editor.getOption(window.monaco.editor.EditorOption.readOnly) &&
               editor.getModel()?.getValue().includes('type Giraffe'),
           ),
       );
