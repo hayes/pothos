@@ -235,11 +235,18 @@ export class ModelLoader {
               // `entry.models` carries: a node loaded by a column other than the primary key
               // has only that one.
               const result = results.find((row) =>
-                this.columns.every(
-                  (key) =>
-                    row[this.config.columnToTsName(key) as keyof typeof row] ===
-                    (model as Record<string, unknown>)[this.config.columnToTsName(key)],
-                ),
+                this.columns.every((key) => {
+                  const name = this.config.columnToTsName(key);
+                  const actual = row[name as keyof typeof row];
+                  const expected = (model as Record<string, unknown>)[name];
+
+                  return (
+                    actual === expected ||
+                    (actual instanceof Date &&
+                      expected instanceof Date &&
+                      actual.getTime() === expected.getTime())
+                  );
+                }),
               );
 
               if (result) {

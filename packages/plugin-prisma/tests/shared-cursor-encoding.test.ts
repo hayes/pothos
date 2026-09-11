@@ -118,3 +118,12 @@ describe('a null cursor value', () => {
     expect(parseCompositeCursor(['a', 'b'])(cursor)).toEqual({ a: null, b: 1 });
   });
 });
+
+// Boolean columns are valid members of a Prisma compound unique index.
+it.each([true, false])('preserves a Boolean in compound cursors (%s)', (active) => {
+  const fields = ['tenantId', 'active'];
+  const row = { tenantId: 1, active };
+  expect(parseCompositeCursor(fields)(formatPrismaCursor(row, fields))).toEqual(row);
+  const legacy = Buffer.from(`GPC:J:${JSON.stringify([1, active])}`).toString('base64');
+  expect(parseCompositeCursor(fields)(legacy)).toEqual(row);
+});

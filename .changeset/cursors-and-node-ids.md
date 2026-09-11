@@ -5,8 +5,8 @@
 ---
 
 Cursors and node ids round trip for the column types a key holds — numbers, strings, bigints,
-dates, decimals and byte arrays — and compound cursors are encoded with per-part type tags so
-every value in one keeps its type. A boolean is not a supported cursor value in either plugin.
+dates, booleans, decimals and byte arrays — and compound cursors are encoded with per-part type tags so
+every value in one keeps its type, including booleans in Prisma compound unique keys.
 
 A compound cursor was a plain JSON array of the raw values in the prisma plugin. That throws
 outright on a bigint, so a connection whose cursor is a `@@id` or `@@unique` containing a `BigInt`
