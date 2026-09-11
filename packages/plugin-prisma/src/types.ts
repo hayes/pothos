@@ -1,5 +1,6 @@
 import {
   type ArgumentRef,
+  type CheckAsyncSelection,
   type FieldKind,
   type FieldMap,
   type FieldNullability,
@@ -11,6 +12,7 @@ import {
   type InputShapeFromFields,
   type InterfaceParam,
   type ListResolveValue,
+  type MaybeAsyncSelection,
   type MaybePromise,
   type Merge,
   type Normalize,
@@ -23,6 +25,12 @@ import {
   type TypeParam,
   typeBrandKey,
 } from '@pothos/core';
+import type {
+  IndirectInclude,
+  IndirectPathSegment,
+  Mappings,
+  PathSegment,
+} from '@pothos/selection-mapper';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef, PrismaRef } from './interface-ref.js';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -73,6 +81,86 @@ type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends 
     : never
   : never;
 
+/**
+ * The model a field's type param names: a prisma ref, the name of a prisma object type (one
+ * registered under its model's name, as `prismaObject` does without `name` or `variant`, and so
+ * a key of `Types['PrismaTypes']`), or a list of either.
+ */
+export type ModelForTypeParam<Types extends SchemaTypes, Type> = Type extends [infer Item]
+  ? ModelForTypeParam<Types, Item>
+  : // biome-ignore lint/suspicious/noExplicitAny: matching against any ref
+    Type extends PrismaRef<any, infer Model>
+    ? Model
+    : Type extends keyof Types['PrismaTypes']
+      ? PrismaModelTypes & Types['PrismaTypes'][Type]
+      : never;
+
+/**
+ * The query a relation of `Model` is loaded with: the arguments prisma accepts on a list relation
+ * (the generated `Parent$relationArgs`, which `PrismaModelTypes` does not carry, so the keys are
+ * named here from what it does carry), and the `select` or `include` the planner adds beneath it.
+ * The scalar fields of the model are the keys of its `Shape`, so `omit` and `distinct` are typed
+ * by them.
+ */
+export interface PrismaRelationQuery<Model extends PrismaModelTypes> {
+  select?: Model['Select'];
+  include?: Model['Include'];
+  omit?: { [K in keyof Model['Shape']]?: boolean };
+  where?: Model['Where'];
+  orderBy?: Model['OrderBy'] | Model['OrderBy'][];
+  cursor?: Model['WhereUnique'];
+  take?: number;
+  skip?: number;
+  distinct?: (keyof Model['Shape'] & string) | (keyof Model['Shape'] & string)[];
+}
+
+/**
+ * What `nestedSelection` returns: the relation query for `Model`, keeping the keys of the given
+ * selection as they were given (so a `select` in it still narrows the parent shape). With no
+ * selection, or `true`, it is the relation query itself. A field whose type has no model keeps
+ * the selection it was given.
+ */
+export type NestedSelectionResult<Model extends PrismaModelTypes, Selection> = [Model] extends [
+  never,
+]
+  ? Selection
+  : Selection extends boolean
+    ? PrismaRelationQuery<Model>
+    : Normalize<Omit<PrismaRelationQuery<Model>, keyof Selection> & Selection>;
+
+/**
+ * The selection given to `nestedSelection`: the query itself, or a callback building it from the
+ * field's arguments and the context. A schema with `AsyncSelections: true` may also give a
+ * promise of the query, or an async callback; the result is typed by the query either way, and is
+ * a promise at runtime only when a promise or an async callback was given, or a selection beneath
+ * it is async, and must then be awaited.
+ */
+export type NestedSelectionArg<Types extends SchemaTypes, Selection, Args extends InputFieldMap> =
+  | Selection
+  | (true extends Types['AsyncSelections'] ? PromiseLike<Selection> : never)
+  | ((
+      args: InputShapeFromFields<Args>,
+      ctx: Types['Context'],
+    ) => MaybeAsyncSelection<Types, Selection>);
+
+/**
+ * The callback a field's `select` function plans the selection beneath the field with: `path`
+ * walks a field nested under the field's type, `type` names the type the selection is read as.
+ * The selection is typed by the field's model when it has one, so `select: { title: true }`
+ * keeps its literal `true`.
+ */
+export type NestedSelectionFn<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Args extends InputFieldMap = {},
+> = <
+  Selection extends boolean | ([Model] extends [never] ? {} : PrismaRelationQuery<Model>) = true,
+>(
+  selection?: NestedSelectionArg<Types, Selection, Args>,
+  path?: PathSegment[],
+  type?: string,
+) => NestedSelectionResult<Model, Selection>;
+
 export type PrismaObjectFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -88,7 +176,7 @@ export type PrismaObjectFieldOptions<
           Types,
           ExtractModel<Types, ParentShape>,
           // biome-ignore lint/suspicious/noExplicitAny: this is fine
-          { select: Select extends (...args: any[]) => infer S ? S : Select }
+          { select: Select extends (...args: any[]) => infer S ? Awaited<S> : Select }
         >,
 > = PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Nullable, Args, ResolveReturnShape> &
   InferredFieldOptionsByKind<
@@ -100,18 +188,20 @@ export type PrismaObjectFieldOptions<
     Args,
     ResolveReturnShape
   > & {
+    /**
+     * What the field needs from its parent row. With `AsyncSelections: true` the function may be
+     * async, and `nestedSelection` is then a promise when a selection beneath it is async, and
+     * must be awaited.
+     */
     select?: Select &
+      CheckAsyncSelection<Types, Select> &
       (
         | ExtractModel<Types, ParentShape>['Select']
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: <Selection extends boolean | {}>(
-              selection?: Selection,
-              path?: string[],
-              type?: string,
-            ) => Selection,
-          ) => ExtractModel<Types, ParentShape>['Select'])
+            nestedSelection: NestedSelectionFn<Types, ModelForTypeParam<Types, Type>, Args>,
+          ) => MaybeAsyncSelection<Types, ExtractModel<Types, ParentShape>['Select']>)
       );
   };
 
@@ -135,7 +225,23 @@ interface BaseSelection {
   select?: unknown;
 }
 
-export type SelectedKeys<T> = { [K in keyof T]: T[K] extends false ? never : K }[keyof T];
+export type SelectedKeys<T> = {
+  [K in keyof T]-?: {} extends Pick<T, K> ? never : T[K] extends false | undefined ? never : K;
+}[keyof T];
+
+/**
+ * An absent select loads all scalar columns. Keep Prisma's model-shape convention for an
+ * unconstrained generated query type, but do not apply it to an explicit empty or partial map.
+ */
+type HasNoSelect<Select, Model extends PrismaModelTypes> = unknown extends Select
+  ? true
+  : [NonNullable<Select>] extends [never]
+    ? true
+    : keyof Model['Select'] extends keyof NonNullable<Select>
+      ? Model['Select'] extends NonNullable<Select>
+        ? true
+        : false
+      : false;
 
 export type ShapeFromSelection<
   Types extends SchemaTypes,
@@ -143,21 +249,34 @@ export type ShapeFromSelection<
   Selection,
 > = Normalize<
   Selection extends BaseSelection
-    ? unknown extends Selection['select']
-      ? Model['Shape'] & RelationShapeFromInclude<Types, Model, Selection['include']>
-      : Pick<Model['Shape'], SelectedKeys<Selection['select']>> &
-          RelationShapeFromInclude<Types, Model, Selection['select']> &
-          ('_count' extends keyof Selection['select']
-            ? ShapeFromCount<Selection['select']['_count']>
-            : {})
+    ? HasNoSelect<Selection['select'], Model> extends true
+      ? Model['Shape'] &
+          RelationShapeFromInclude<Types, Model, Selection['include']> &
+          ShapeFromCount<CountSelection<Selection['include']>, Model>
+      : Pick<
+          Model['Shape'],
+          SelectedKeys<NonNullable<Selection['select']>> & keyof Model['Shape']
+        > &
+          RelationShapeFromInclude<Types, Model, NonNullable<Selection['select']>> &
+          ShapeFromCount<CountSelection<NonNullable<Selection['select']>>, Model>
     : Model['Shape']
 >;
 
-export type ShapeFromCount<Selection> = Selection extends true
-  ? { _count: number }
+/** The `_count` entry of a `select` or `include` map, or `undefined` when there is none. */
+type CountSelection<Map> = Map extends { _count: infer Count } ? Count : undefined;
+
+/**
+ * What a `_count` selection adds to a row, as prisma returns it: `_count: true` counts every list
+ * relation of `Model`, `_count: { select }` the selected ones, and each count is a number.
+ */
+export type ShapeFromCount<
+  Selection,
+  Model extends PrismaModelTypes = PrismaModelTypes,
+> = Selection extends true
+  ? { _count: { [K in Model['ListRelations']]: number } }
   : Selection extends { select: infer Counts }
-    ? { _count: { [K in keyof Counts]: number } }
-    : never;
+    ? { _count: { [K in SelectedKeys<Counts>]: number } }
+    : {};
 
 export type TypesForRelation<
   Types extends SchemaTypes,
@@ -372,10 +491,15 @@ type QueryForField<
       | ((
           args: InputShapeFromFields<Args>,
           ctx: Types['Context'],
-        ) => Omit<Include, 'include' | 'select'>)
+        ) => MaybeAsyncSelection<Types, Omit<Include, 'include' | 'select'>>)
   : never;
 
-type QueryFromRelation<
+/**
+ * The query a relation's fallback `resolve` is handed: the arguments prisma accepts on the
+ * relation (`where`, `orderBy`, `take`, ... for a list relation), with the planned `select` or
+ * `include` beneath it.
+ */
+export type QueryFromRelation<
   Model extends PrismaModelTypes,
   Field extends keyof Model['Include'],
 > = Model['Include'][Field] extends infer Include
@@ -383,7 +507,7 @@ type QueryFromRelation<
       include?: infer I;
       select?: infer S;
     }
-    ? {
+    ? Omit<Include, 'include' | 'select'> & {
         include?: NonNullable<I>;
         select?: NonNullable<S>;
       }
@@ -499,7 +623,12 @@ export type RelationCountOptions<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => MaybePromise<number>;
-  where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
+  where?:
+    | Where
+    | ((
+        args: InputShapeFromFields<Args>,
+        context: Types['Context'],
+      ) => MaybeAsyncSelection<Types, Where>);
 };
 
 export type PrismaFieldOptions<
@@ -771,34 +900,38 @@ export interface SelectionMap {
   where?: object;
 }
 
+/**
+ * A field's selection: a static map, or a function that may be async and whose nested-query
+ * callback may be too. What the function is handed (`mergeNestedSelection`) keeps its
+ * synchronous declared type: it is a promise only when a callback beneath it returned one.
+ */
 export type FieldSelection =
   | Record<string, SelectionMap | boolean>
   | ((
       args: object,
       context: object,
       mergeNestedSelection: (
-        selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
-        path?: IndirectInclude | string[],
+        selection:
+          | SelectionMap
+          | boolean
+          | ((args: object, context: object) => MaybePromise<SelectionMap>),
+        path?: IndirectInclude | PathSegment[],
         type?: string,
       ) => SelectionMap | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
-    ) => SelectionMap);
+    ) => MaybePromise<SelectionMap | false | null | undefined>);
 
-export type LoaderMappings = Record<
-  string,
-  {
-    field: string;
-    type: string;
-    mappings: LoaderMappings;
-    indirectPath: string[];
-  }
->;
+/**
+ * @deprecated kept for compatibility. The loader mapping record is internal to the plugin and
+ * not part of its public API.
+ */
+export type LoaderMappings = Mappings;
 
-export interface IndirectInclude {
-  getType: () => string;
-  path?: { type?: string; name: string }[];
-  paths?: { type?: string; name: string }[][];
-}
+/**
+ * A segment of a `path` given to `queryFromInfo` or `nestedSelection`: a field name, or
+ * `{ name, type }` to pin the type the field must be selected under (a fragment on it).
+ */
+export type { IndirectInclude, IndirectPathSegment, PathSegment };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
 

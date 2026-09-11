@@ -43,11 +43,17 @@ builder.queryType({
 
 The created connection queries currently support the following combinations of connection arguments:
 
-- `first`, `last`, or `before`
+- `first`, `last`, `before`, or `after` on their own
+- `first` and `after`
+- `last` and `before`
+
+The following combinations are not supported:
+
+- `before` and `after`
 - `first` and `before`
 - `last` and `after`
 
-Queries for other combinations are not as useful, and generally requiring loading all records
+Queries for these combinations are not as useful, and generally requiring loading all records
 between 2 cursors, or between a cursor and the end of the set. Generating query options for these
 cases is more complex and likely very inefficient, so they will currently throw an Error indicating
 the argument combinations are not supported.
@@ -98,8 +104,8 @@ builder.prismaNode('User', {
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
   filtering and sorting logic that will be merged into the query for the relation.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
-  `relationCount` above for more details. Note that this will not work when using a shared
-  connection object (see details below)
+  [`relationCount`](./relations#relationcount) for more details. Note that this will not work when
+  using a shared connection object (see details below)
 
 ### Indirect relations as connections
 
@@ -319,18 +325,22 @@ builder.prismaObjectFields('Post', (t) => ({
     {
       type: Media,
       select: (args, ctx, nestedSelection) => ({
-        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
-        select: {
-          media: nestedSelection({}, ['edges', 'node']),
+        // count the join table rows for totalCount
+        _count: {
+          select: {
+            media: true,
+          },
+        },
+        // select the join table rows, with the pagination and node selection from the helpers
+        media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
         },
       }),
 
-      resolve: (post, args, ctx) =>
-        mediaConnectionHelpers.resolve(
-          post.media.map(({ media }) => media),
-          args,
-          ctx,
-        ),
+      resolve: (post, args, ctx) => ({
+        totalCount: post._count.media,
+        ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+      }),
     },
     {},
     // options for the edge object

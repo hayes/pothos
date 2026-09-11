@@ -129,24 +129,18 @@ const Viewer = builder.prismaInterface('User', {
       type: PostRef,
       args: postConnectionHelpers.getArgs(),
       resolve: async (user, args, ctx, info) => {
+        // The nodes are posts reached through the viewer's comments: the post query is planned
+        // from the connection's `edges { node }` selection and nested under `post`.
         const comments = await prisma.comment.findMany({
-          ...(queryFromInfo({
-            context: ctx,
-            info,
-            path: ['edges', 'node'],
-            select: {
-              post: {
-                include: {
-                  author: true,
-                  comments: true,
-                },
-              },
-            },
-          }) as {
-            include: {
-              post: { include: { comments: { include: { author: true } } } };
-            };
-          }),
+          select: {
+            id: true,
+            post: queryFromInfo({
+              context: ctx,
+              info,
+              path: ['edges', 'node'],
+              include: { comments: { include: { author: true } } },
+            }),
+          },
           where: {
             authorId: user.id,
           },
@@ -306,7 +300,7 @@ const User = builder.prismaNode('User', {
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { ...(query as { where?: object }).where, authorId: user.id },
+          where: { ...query.where, authorId: user.id },
         }),
     }),
     postNodes: t.relation('posts', {
@@ -326,7 +320,7 @@ const User = builder.prismaNode('User', {
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { ...(query as { where?: object }).where, authorId: user.id },
+          where: { ...query.where, authorId: user.id },
         }),
     }),
     postsConnection: t.relatedConnection(

@@ -393,7 +393,6 @@ describe('abstract types', () => {
                 "select": {
                   "id": true,
                   "name": true,
-                  "profile": true,
                 },
               },
               "comments": {

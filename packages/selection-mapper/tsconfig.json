@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dts",
+    "rootDir": "src",
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "extends": "../../tsconfig.options.json"
+}

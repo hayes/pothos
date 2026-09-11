@@ -1,13 +1,20 @@
 import type { FieldRef, MaybePromise } from '@pothos/core';
-import { type FieldKind, ObjectRef, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
+import {
+  type FieldKind,
+  isThenable,
+  ObjectRef,
+  RootFieldBuilder,
+  type SchemaTypes,
+} from '@pothos/core';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { isInterfaceType, isObjectType, Kind } from 'graphql';
+import { getNamedType, isInterfaceType, isObjectType, Kind } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type { DrizzleConnectionFieldOptions } from './types.js';
+import type { DrizzlePlan } from './utils/adapter.js';
 import { getSchemaConfig } from './utils/config.js';
 import { resolveDrizzleCursorConnection } from './utils/cursors.js';
-import { queryFromInfo } from './utils/map-query.js';
+import { planFromInfo, queryFromPlan } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';
 
@@ -17,34 +24,56 @@ const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFi
   FieldKind
 >;
 
-fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...options }) {
+type DrizzleFieldType =
+  | ObjectRef<SchemaTypes, unknown>
+  | [ObjectRef<SchemaTypes, unknown> | string];
+
+/** The `type` of a `drizzleField`, with a table name resolved to its ref, list-ness kept. */
+function refForType(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  type: DrizzleFieldType | string,
+) {
   const modelOrRef = Array.isArray(type) ? type[0] : type;
   const typeRef =
     typeof modelOrRef === 'string'
-      ? getRefFromModel(modelOrRef, this.builder)
+      ? getRefFromModel(modelOrRef, builder)
       : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
-  const typeParam = Array.isArray(type)
-    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
-    : typeRef;
+
+  return Array.isArray(type) ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>]) : typeRef;
+}
+
+/**
+ * The resolver of a `drizzleField`: the plan for the field, then the user's resolver with a query
+ * builder over it. A promise while a selection beneath the field is async, so the resolver runs
+ * once the plan has settled and the builder it is handed never returns one. Built once per field,
+ * so a synchronous plan allocates nothing but the builder itself.
+ */
+function planResolver(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  resolve: (...args: unknown[]) => unknown,
+) {
+  const run = (
+    plan: DrizzlePlan | undefined,
+    parent: unknown,
+    args: unknown,
+    context: {},
+    info: GraphQLResolveInfo,
+  ) => resolve((select?: SelectionMap) => queryFromPlan(plan, select), parent, args, context, info);
+
+  return (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+    const plan = planFromInfo({ config: getSchemaConfig(builder), context, info });
+
+    return isThenable(plan)
+      ? plan.then((settled) => run(settled as DrizzlePlan | undefined, parent, args, context, info))
+      : run(plan, parent, args, context, info);
+  };
+}
+
+fieldBuilderProto.drizzleField = function drizzleField({ type, resolve, ...options }) {
   return this.field({
     ...(options as {}),
-    type: typeParam,
-    resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      return resolve(
-        (select) =>
-          queryFromInfo({
-            config: getSchemaConfig(this.builder),
-            context,
-            select,
-            info,
-            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-          }) as never,
-        parent,
-        args as never,
-        context,
-        info,
-      ) as never;
-    },
+    type: refForType(this.builder, type as DrizzleFieldType),
+    resolve: planResolver(this.builder, resolve as never),
   }) as never;
 };
 
@@ -54,38 +83,14 @@ fieldBuilderProto.drizzleFieldWithInput = function drizzleFieldWithInput(
     type,
     resolve,
     ...options
-  }: { type: ObjectRef<SchemaTypes, unknown> | [string]; resolve: (...args: unknown[]) => unknown },
+  }: { type: DrizzleFieldType; resolve: (...args: unknown[]) => unknown },
 ) {
-  const modelOrRef = Array.isArray(type) ? type[0] : type;
-  const typeRef =
-    typeof modelOrRef === 'string'
-      ? getRefFromModel(modelOrRef, this.builder)
-      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
-  const typeParam = Array.isArray(type)
-    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
-    : typeRef;
-
   return (
     this as typeof fieldBuilderProto & { fieldWithInput: typeof fieldBuilderProto.field }
   ).fieldWithInput({
     ...(options as {}),
-    type: typeParam,
-    resolve: (parent: unknown, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      return resolve(
-        (select: SelectionMap) =>
-          queryFromInfo({
-            config: getSchemaConfig(this.builder),
-            context,
-            select,
-            info,
-            // withUsageCheck: !!this.builder.options.drizzle?.onUnusedQuery,
-          }),
-        parent,
-        args as never,
-        context,
-        info,
-      ) as never;
-    },
+    type: refForType(this.builder, type),
+    resolve: planResolver(this.builder, resolve),
   }) as never;
 } as never;
 
@@ -121,6 +126,38 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
   const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
   const typeName = this.builder.configStore.getTypeConfig(ref).name;
   const tableName = typeof type === 'string' ? type : (ref as DrizzleRef<SchemaTypes>).tableName;
+
+  // Built once per field: resolving with a synchronous plan allocates nothing beyond the
+  // callback `resolveDrizzleCursorConnection` was already handed.
+  const resolveConnection = (
+    plan: DrizzlePlan | undefined,
+    parent: unknown,
+    args: PothosSchemaTypes.DefaultConnectionArguments,
+    context: {},
+    info: GraphQLResolveInfo,
+    totalCountOnly: boolean,
+  ) =>
+    resolveDrizzleCursorConnection(
+      tableName,
+      plan,
+      getSchemaConfig(this.builder),
+      {
+        ctx: context,
+        maxSize,
+        defaultSize,
+        args,
+        totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
+      },
+      (q) => {
+        if (totalCountOnly) {
+          return [];
+        }
+
+        return resolve(q as never, parent, args as never, context, info) as never;
+      },
+      parent,
+    );
+
   const fieldRef = (
     this as typeof fieldBuilderProto & {
       connection: (...args: unknown[]) => FieldRef<SchemaTypes, unknown>;
@@ -135,7 +172,7 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
         context: {},
         info: GraphQLResolveInfo,
       ) => {
-        const returnType = info.returnType;
+        const returnType = getNamedType(info.returnType);
         const fields =
           isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
 
@@ -150,32 +187,28 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
           ),
         );
 
-        return resolveDrizzleCursorConnection(
-          tableName,
+        // Planned before the resolver runs, so the builder it is handed is synchronous even when
+        // a selection beneath the connection is async.
+        const plan = planFromInfo({
+          config: getSchemaConfig(this.builder),
+          context,
           info,
+          paths: [['nodes'], ['edges', 'node']],
           typeName,
-          getSchemaConfig(this.builder),
-          {
-            ctx: context,
-            maxSize,
-            defaultSize,
-            args,
-            totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
-          },
-          (q) => {
-            if (totalCountOnly) {
-              return [];
-            }
+        });
 
-            // return checkIfQueryIsUsed(
-            //   this.builder,
-            //   query,
-            //   info,
-            return resolve(q as never, parent, args as never, context, info) as never;
-            // );
-          },
-          parent,
-        );
+        return isThenable(plan)
+          ? plan.then((settled) =>
+              resolveConnection(
+                settled as DrizzlePlan | undefined,
+                parent,
+                args,
+                context,
+                info,
+                totalCountOnly,
+              ),
+            )
+          : resolveConnection(plan, parent, args, context, info, totalCountOnly);
       },
     },
     connectionOptions instanceof ObjectRef

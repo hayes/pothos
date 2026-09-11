@@ -1,5 +1,6 @@
 import {
   type CompatibleTypes,
+  completeValue,
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
@@ -16,14 +17,8 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import {
-  type FieldNode,
-  Kind as GraphQLKind,
-  type GraphQLResolveInfo,
-  getNamedType,
-  isInterfaceType,
-  isObjectType,
-} from 'graphql';
+import { type SelectedFieldNode, selectedFieldNames } from '@pothos/selection-mapper';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -214,6 +209,7 @@ export class PrismaObjectFieldBuilder<
     const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
     const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
 
+    // The field's `query` may be async, so the result is a promise when it is.
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
       const connectionQuery = prismaCursorConnectionQuery({
         parseCursor,
@@ -223,21 +219,16 @@ export class PrismaObjectFieldBuilder<
         args,
       });
 
-      const {
-        take = connectionQuery.take,
-        skip = connectionQuery.skip,
-        cursor = connectionQuery.cursor,
-        ...fieldQuery
-      } = ((typeof query === 'function' ? query(args, ctx) : query) ??
-        {}) as typeof connectionQuery;
+      const userQuery = (typeof query === 'function' ? query(args, ctx) : query) as
+        | MaybePromise<typeof connectionQuery>
+        | null
+        | undefined;
 
-      return {
-        ...fieldQuery,
-        ...connectionQuery,
-        take,
-        skip,
-        ...(cursor ? { cursor } : {}),
-      };
+      return isThenable(userQuery)
+        ? (userQuery as PromiseLike<typeof connectionQuery | null | undefined>).then((resolved) =>
+            mergeConnectionQuery(resolved, connectionQuery),
+          )
+        : mergeConnectionQuery(userQuery, connectionQuery);
     };
 
     const cursorSelection = ModelLoader.getCursorSelection(
@@ -247,35 +238,32 @@ export class PrismaObjectFieldBuilder<
       this.builder,
     );
 
-    const relationSelect = (
-      args: object,
-      context: object,
-      nestedQuery: (query: unknown, path?: unknown) => { select?: object },
-      getSelection: (path: string[]) => FieldNode | null,
+    // What the document asks of this connection, read the way the planner reads it (through
+    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan. The
+    // selection is read once per request and shared by every parent row.
+    const connectionSelectionFromNames = (selected: ReadonlySet<string>) => {
+      const hasTotalCount = !!totalCount && selected.has('totalCount');
+      for (const field of selected) {
+        if (field !== 'totalCount' && field !== '__typename') {
+          return { hasTotalCount, totalCountOnly: false };
+        }
+      }
+      return { hasTotalCount, totalCountOnly: hasTotalCount };
+    };
+
+    const connectionSelection = (context: object, info: GraphQLResolveInfo) => {
+      return connectionSelectionFromNames(selectedFieldNames(context, info));
+    };
+
+    // Built once per field, so a synchronous plan allocates nothing beyond the map itself.
+    const selectConnection = (
+      nested: SelectionMap,
+      hasTotalCount: boolean,
+      totalCountOnly: boolean,
     ) => {
-      typeName ??= this.builder.configStore.getTypeConfig(ref).name;
-      const nested = nestedQuery(getQuery(args, context), {
-        getType: () => typeName!,
-        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
-      }) as SelectionMap;
-
-      const selection = getSelection([])!;
-      const hasTotalCount = totalCount && !!getSelection(['totalCount']);
-
-      const selections = selection.selectionSet?.selections.filter(
-        (sel) => !(sel.kind === GraphQLKind.FIELD && sel.name.value === '__typename'),
-      );
-      const totalCountOnly =
-        selections?.length === 1 &&
-        selections[0].kind === GraphQLKind.FIELD &&
-        selections[0].name.value === 'totalCount' &&
-        hasTotalCount;
-
       const countSelect =
-        this.builder.options.prisma.filterConnectionTotalCount !== false
-          ? nested.where
-            ? { where: nested.where }
-            : true
+        this.builder.options.prisma.filterConnectionTotalCount !== false && nested.where
+          ? { where: nested.where }
           : true;
 
       return {
@@ -283,7 +271,7 @@ export class PrismaObjectFieldBuilder<
           ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
           [name]: totalCountOnly
             ? undefined
-            : nested?.select
+            : nested.select
               ? {
                   ...nested,
                   select: {
@@ -295,6 +283,56 @@ export class PrismaObjectFieldBuilder<
         },
       };
     };
+
+    const relationSelect = (
+      args: object,
+      context: object,
+      nestedQuery: (query: unknown, path?: unknown) => { select?: object },
+      getSelection: SelectedFieldNode,
+    ) => {
+      typeName ??= this.builder.configStore.getTypeConfig(ref).name;
+      // A maybe-promise query starts the nested plan now; its merge waits for the query.
+      const nested = nestedQuery(getQuery(args, context), {
+        getType: () => typeName!,
+        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
+      }) as MaybePromise<SelectionMap>;
+
+      const { hasTotalCount, totalCountOnly } = connectionSelectionFromNames(getSelection());
+
+      return isThenable(nested)
+        ? nested.then((resolved) => selectConnection(resolved, hasTotalCount, totalCountOnly))
+        : selectConnection(nested, hasTotalCount, totalCountOnly);
+    };
+
+    // The loaded path, per parent row: the rows are on the parent, only the page size is needed.
+    const resolveLoaded = (
+      connectionQuery: { take: number },
+      parent: unknown,
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      totalCountOnly: boolean,
+    ) =>
+      wrapConnectionResult(
+        parent,
+        totalCountOnly ? [] : ((parent as Record<string, never>)[name] ?? []),
+        args,
+        connectionQuery.take,
+        formatCursor,
+        (parent as { _count?: Record<string, number> })._count?.[name],
+      );
+
+    const resolveFallback =
+      resolve &&
+      ((
+        connectionQuery: {},
+        q: { take: number },
+        parent: unknown,
+        args: PothosSchemaTypes.DefaultConnectionArguments,
+        context: {},
+        info: GraphQLResolveInfo,
+      ) =>
+        Promise.resolve(
+          resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
+        ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor)));
 
     const fieldRef = (
       this as unknown as {
@@ -308,47 +346,36 @@ export class PrismaObjectFieldBuilder<
           ...extensions,
           pothosPrismaRelationField: relationField,
           pothosPrismaSelect: relationSelect,
-          pothosPrismaLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
-            const returnType = getNamedType(info.returnType);
-            const fields =
-              isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+          pothosPrismaLoaded: (
+            value: Record<string, unknown>,
+            info: GraphQLResolveInfo,
+            context: object,
+          ) => {
+            const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
 
-            const selections = info.fieldNodes;
-
-            const totalCountOnly = selections.every((selection) =>
-              selection.selectionSet?.selections.every(
-                (s) =>
-                  s.kind === GraphQLKind.FIELD &&
-                  (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
-                    s.name.value === '__typename'),
-              ),
+            return (
+              (!hasTotalCount ||
+                (value as { _count?: Record<string, unknown> })._count?.[name] !== undefined) &&
+              (totalCountOnly || value[name] !== undefined)
             );
-
-            return totalCountOnly
-              ? (value as { _count?: Record<string, unknown> })._count?.[name] !== undefined
-              : value[name] !== undefined;
           },
           pothosPrismaFallback:
-            resolve &&
+            resolveFallback &&
             ((
               q: { take: number },
               parent: unknown,
               args: PothosSchemaTypes.DefaultConnectionArguments,
               context: {},
               info: GraphQLResolveInfo,
-            ) =>
-              Promise.resolve(
-                resolve(
-                  {
-                    ...q,
-                    ...getQuery(args, context),
-                  } as never,
-                  parent,
-                  args,
-                  context,
-                  info,
-                ),
-              ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor))),
+            ) => {
+              const connectionQuery = getQuery(args, context);
+
+              return isThenable(connectionQuery)
+                ? connectionQuery.then((resolved) =>
+                    resolveFallback(resolved as {}, q, parent, args, context, info),
+                  )
+                : resolveFallback(connectionQuery, q, parent, args, context, info);
+            }),
         },
         type: ref,
         resolve: (
@@ -357,28 +384,14 @@ export class PrismaObjectFieldBuilder<
           context: {},
           info: GraphQLResolveInfo,
         ) => {
-          const returnType = getNamedType(info.returnType);
-          const fields =
-            isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
-          const totalCountOnly = info.fieldNodes.every((selection) =>
-            selection.selectionSet?.selections.every(
-              (s) =>
-                s.kind === GraphQLKind.FIELD &&
-                (fields[s.name.value]?.extensions?.pothosPrismaTotalCount ||
-                  s.name.value === '__typename'),
-            ),
-          );
-
+          const { totalCountOnly } = connectionSelection(context, info);
           const connectionQuery = getQuery(args, context);
 
-          return wrapConnectionResult(
-            parent,
-            totalCountOnly ? [] : ((parent as Record<string, never>)[name] ?? []),
-            args,
-            connectionQuery.take,
-            formatCursor,
-            (parent as { _count?: Record<string, number> })._count?.[name],
-          );
+          return isThenable(connectionQuery)
+            ? connectionQuery.then((resolved) =>
+                resolveLoaded(resolved as { take: number }, parent, args, totalCountOnly),
+              )
+            : resolveLoaded(connectionQuery, parent, args, totalCountOnly);
         },
       },
       connectionOptions instanceof ObjectRef
@@ -440,11 +453,18 @@ export class PrismaObjectFieldBuilder<
 
     const { query = {}, resolve, extensions, onNull, ...rest } = options;
 
+    // Built once per field: the select allocates nothing when the nested selection is sync.
+    const selectRelation = (nested: unknown) => ({ select: { [name]: nested } });
     const relationSelect = (
       _args: object,
       _context: object,
       nestedQuery: (query: unknown) => unknown,
-    ) => ({ select: { [name]: nestedQuery(query) } });
+    ) => completeValue(nestedQuery(query), selectRelation);
+
+    const resolveWithQuery =
+      resolve &&
+      ((userQuery: {}, q: {}, parent: Shape, args: {}, context: {}, info: GraphQLResolveInfo) =>
+        resolve({ ...q, ...userQuery } as never, parent, args as never, context, info));
 
     return this.field({
       ...(rest as {}),
@@ -456,21 +476,22 @@ export class PrismaObjectFieldBuilder<
         pothosPrismaSelect: relationSelect as never,
         pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
         pothosPrismaFallback:
-          resolve &&
-          ((q: {}, parent: Shape, args: {}, context: {}, info: GraphQLResolveInfo) =>
-            resolve(
-              { ...q, ...(typeof query === 'function' ? query(args, context) : query) } as never,
-              parent,
-              args as never,
-              context,
-              info,
-            )),
+          resolveWithQuery &&
+          ((q: {}, parent: Shape, args: {}, context: {}, info: GraphQLResolveInfo) => {
+            const userQuery = typeof query === 'function' ? query(args, context) : query;
+
+            return isThenable(userQuery)
+              ? userQuery.then((resolved) =>
+                  resolveWithQuery(resolved as {}, q, parent, args, context, info),
+                )
+              : resolveWithQuery(userQuery, q, parent, args, context, info);
+          }),
       },
-      resolve: (parent) => {
+      resolve: (parent, args, context, info) => {
         const result = (parent as Record<string, never>)[name];
 
         if (typeof onNull === 'function' && result == null) {
-          return onNull(parent, {} as never, {} as never, {} as never) as never;
+          return onNull(parent, args as never, context, info) as never;
         }
 
         return result;
@@ -478,7 +499,7 @@ export class PrismaObjectFieldBuilder<
     }) as FieldRef<Types, Model['Relations'][Field]['Shape'], 'Object'>;
   }
 
-  relationCount<Field extends Model['RelationName'], Args extends InputFieldMap>(
+  relationCount<Field extends Model['ListRelations'], Args extends InputFieldMap>(
     name: Field,
     ...allArgs: NormalizeArgs<
       [
@@ -493,15 +514,14 @@ export class PrismaObjectFieldBuilder<
   ): FieldRef<Types, number, 'Object'> {
     const [{ where, ...options } = {} as never] = allArgs;
 
+    const selectCount = (where: {}) => ({ _count: { select: { [name]: { where } } } });
     const countSelect =
       typeof where === 'function'
-        ? (args: {}, context: {}) => ({
-            _count: {
-              select: {
-                [name]: { where: (where as (args: unknown, ctx: unknown) => {})(args, context) },
-              },
-            },
-          })
+        ? (args: {}, context: {}) =>
+            completeValue(
+              (where as (args: unknown, ctx: unknown) => MaybePromise<{}>)(args, context),
+              selectCount,
+            )
         : {
             _count: {
               select: { [name]: where ? { where } : true },
@@ -665,30 +685,40 @@ export class PrismaObjectFieldBuilder<
   }
 }
 
-function addScopes(
-  scopes: unknown,
-  builder: { createField: (options: Record<string, unknown>) => unknown },
-) {
+/** The field's `query` under the cursor arguments; its own `take`/`skip`/`cursor` win. */
+function mergeConnectionQuery<Q extends { take: number; skip: number; cursor?: unknown }>(
+  userQuery: Q | null | undefined,
+  connectionQuery: Q,
+): Q {
+  const {
+    take = connectionQuery.take,
+    skip = connectionQuery.skip,
+    cursor = connectionQuery.cursor,
+    ...fieldQuery
+  } = userQuery ?? ({} as Q);
+
+  return {
+    ...fieldQuery,
+    ...connectionQuery,
+    take,
+    skip,
+    ...(cursor ? { cursor } : {}),
+  } as Q;
+}
+
+/** A field builder of the same type whose fields all carry `scopes`. */
+function withAuth(this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, {}>, scopes: {}) {
+  const builder = new PrismaObjectFieldBuilder(
+    this.typename,
+    this.builder,
+    this.model,
+    this.prismaFieldMap,
+  ) as unknown as { createField: (options: Record<string, unknown>) => unknown };
   const originalCreateField = builder.createField;
 
   builder.createField = function createField(options) {
-    return originalCreateField.call(this, {
-      authScopes: scopes,
-      ...options,
-    });
+    return originalCreateField.call(this, { authScopes: scopes, ...options });
   };
 
   return builder as never;
-}
-
-function withAuth(this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, {}>, scopes: {}) {
-  return addScopes(
-    scopes,
-    new PrismaObjectFieldBuilder(
-      this.typename,
-      this.builder,
-      this.model,
-      this.prismaFieldMap,
-    ) as never,
-  );
 }

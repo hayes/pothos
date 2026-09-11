@@ -64,6 +64,7 @@
     "provenance": true
   },
   "dependencies": {
+    "@pothos/selection-mapper": "workspace:*",
     "@prisma/generator-helper": "^7.7.0"
   },
   "prisma": {

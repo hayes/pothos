@@ -1,0 +1,77 @@
+---
+title: Selections
+description: Selecting the columns and relations your fields need
+---
+
+## Type selections
+
+By default, a `drizzleObject` gives its resolvers access to all columns of the table. For tables
+with many columns, it can be more efficient to only select the needed columns. You can configure the
+selected columns, and relations by passing a `select` option when defining the type:
+
+```ts
+const UserRef = builder.drizzleObject('users', {
+  name: 'User',
+  select: {
+    columns: {
+      firstName: true,
+      lastName: true,
+    },
+    with: {
+      profile: true,
+    },
+    extras: {
+      lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
+    },
+  },
+  fields: (t) => ({
+    fullName: t.string({
+      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+    }),
+    bio: t.string({
+      resolve: (user) => user.profile.bio,
+    }),
+    email: t.string({
+      resolve: (user) => `${user.lowercaseName}@example.com`,
+    }),
+  }),
+});
+```
+
+Any selections added to the type will be available to consume in all resolvers. Columns that are not
+selected can still be exposed as before.
+
+## Field selections
+
+The previous example allows you to control what gets selected by default, but you often want to only
+select the columns that are required to fulfill a specific field. You can do this by adding the
+appropriate selections on each field:
+
+```ts
+const UserRef = builder.drizzleObject('users', {
+  name: 'User',
+  select: {},
+  fields: (t) => ({
+    fullName: t.string({
+      select: {
+        columns: { firstName: true, lastName: true },
+      },
+      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+    }),
+    bio: t.string({
+      select: {
+        with: { profile: true },
+      },
+      resolve: (user) => user.profile.bio,
+    }),
+    email: t.string({
+      select: {
+        extras: {
+          lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
+        },
+      },
+      resolve: (user) => `${user.lowercaseName}@example.com`,
+    }),
+  }),
+});
+```

@@ -1,24 +1,15 @@
-import { type ObjectRef, PothosSchemaError, type SchemaTypes } from '@pothos/core';
+import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
 import { PrismaInterfaceRef, type PrismaRef } from '../interface-ref.js';
 import { PrismaObjectRef } from '../object-ref.js';
 import type { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types.js';
 import { getDMMF } from './get-client.js';
 
 export const refMap = new WeakMap<object, Map<string, PrismaRef<never, PrismaModelTypes>>>();
-export const findUniqueMap = new WeakMap<
-  object,
-  Map<ObjectRef<SchemaTypes, unknown>, ((args: unknown, ctx: {}) => unknown) | null>
->();
-
-export const includeForRefMap = new WeakMap<
-  object,
-  Map<ObjectRef<SchemaTypes, unknown>, Record<string, unknown> | null>
->();
 
 export function getRefFromModel<Types extends SchemaTypes>(
   name: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  type: 'interface' | 'object' = 'object',
+  type?: 'interface' | 'object',
 ): PrismaRef<Types, PrismaModelTypes> {
   if (!refMap.has(builder)) {
     refMap.set(builder, new Map());
@@ -28,11 +19,25 @@ export function getRefFromModel<Types extends SchemaTypes>(
   if (!cache.has(name)) {
     cache.set(
       name,
-      type === 'object' ? new PrismaObjectRef(name, name) : new PrismaInterfaceRef(name, name),
+      type === 'interface' ? new PrismaInterfaceRef(name, name) : new PrismaObjectRef(name, name),
     );
   }
 
-  return cache.get(name)! as never;
+  const ref = cache.get(name)!;
+
+  // An explicit kind declares a type; an omitted kind only looks up the model. Handing
+  // a later caller the other kind under its own type would silently register the model as both;
+  // a model that needs both an object and an interface names one of them with `variant`.
+  if (
+    (type === 'interface' && !(ref instanceof PrismaInterfaceRef)) ||
+    (type === 'object' && !(ref instanceof PrismaObjectRef))
+  ) {
+    throw new PothosSchemaError(
+      `Prisma model ${name} was created as both an object and interface.  Use 'variant' instead of 'name' in one of the implementations`,
+    );
+  }
+
+  return ref as never;
 }
 
 export function getRelation<Types extends SchemaTypes>(

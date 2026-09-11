@@ -1,450 +1,59 @@
-import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
-import {
-  type FieldNode,
-  type FragmentDefinitionNode,
-  type FragmentSpreadNode,
-  type GraphQLField,
-  GraphQLIncludeDirective,
-  type GraphQLInterfaceType,
-  type GraphQLNamedType,
-  type GraphQLObjectType,
-  type GraphQLResolveInfo,
-  GraphQLSkipDirective,
-  getDirectiveValues,
-  getNamedType,
-  type InlineFragmentNode,
-  isInterfaceType,
-  isObjectType,
-  Kind,
-  type SelectionSetNode,
-} from 'graphql';
-import type {
-  FieldSelection,
-  IncludeMap,
-  IndirectInclude,
-  LoaderMappings,
-  SelectionMap,
-} from '../types.js';
-import { setLoaderMappings } from './loader-map.js';
-import type { FieldMap } from './relation-map.js';
-import {
-  createState,
-  mergeSelection,
-  type SelectionState,
-  selectionCompatible,
-  selectionToQuery,
-} from './selections.js';
+import { isThenable, type MaybePromise } from '@pothos/core';
+import { cacheKey, type PathSegment, Plan } from '@pothos/selection-mapper';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { SelectionMap } from '../types.js';
+import { type PrismaPlan, prismaAdapter } from './adapter.js';
+import { checkAwaitSelections } from './await-selections.js';
 import { wrapWithUsageCheck } from './usage.js';
 
-function addTypeSelectionsForField(
-  type: GraphQLNamedType,
-  context: object,
-  info: GraphQLResolveInfo,
-  state: SelectionState,
-  selection: FieldNode,
-  indirectPath: string[],
-  deferred?: boolean,
-) {
-  if (selection.name.value.startsWith('__')) {
-    return;
-  }
+/**
+ * What `queryFromInfo` returns, typed so the result round trips: spread it into a prisma call and
+ * the rows carry what was asked for, with types.
+ *
+ * A given `include` puts the query in include mode, so the result is `{ include }`. A given
+ * `select` keeps its literal type, so prisma narrows the rows to the selected columns. With
+ * neither, nothing narrows the rows and the result is whichever of the two the walked type's mode
+ * produced, both optional.
+ *
+ * `{ select: Select }` is what the rows hold, not always what the query is: only a type in select
+ * mode returns the `select` (widened by the walk, so the rows are a superset of `Select`). A type
+ * in include mode merges it into `include` instead, dropping the columns and keeping the
+ * relations, and an include-mode query loads every column — so the given columns and relations are
+ * on the rows there too. Reading `Select`'s keys off a row is therefore sound in both modes;
+ * reading `.select` off the query itself is not, since an include-mode type does not return one.
+ */
+export type QueryFromInfoResult<Select, Include> = undefined extends Include
+  ? undefined extends Select
+    ? { select?: SelectionMap['select']; include?: SelectionMap['include'] }
+    : { select: Select; include?: SelectionMap['include'] }
+  : { include: Include };
 
-  const { pothosPrismaInclude, pothosPrismaSelect, pothosIndirectInclude, pothosPrismaModel } =
-    (type.extensions ?? {}) as {
-      pothosPrismaModel?: string;
-      pothosPrismaInclude?: IncludeMap;
-      pothosPrismaSelect?: IncludeMap;
-      pothosIndirectInclude?: IndirectInclude;
-    };
+/**
+ * What `queryFromInfo` returns for a given `awaitSelections`. `[Await] extends [false]` rather than
+ * `Await extends true`, so a caller passing a `boolean` variable — which infers `Await` as
+ * `boolean`, neither literal — is handed the promise to deal with, rather than a synchronous type
+ * it cannot rely on.
+ */
+export type QueryFromInfoReturn<Select, Include, Await extends boolean> = [Await] extends [false]
+  ? QueryFromInfoResult<Select, Include>
+  : MaybePromise<QueryFromInfoResult<Select, Include>>;
 
-  if (
-    (!!pothosIndirectInclude?.path && pothosIndirectInclude.path.length > 0) ||
-    (!!pothosIndirectInclude?.paths && pothosIndirectInclude.paths.length === 0)
-  ) {
-    resolveIndirectIncludePaths(
-      type,
-      info,
-      selection,
-      [],
-      pothosIndirectInclude.paths ?? [pothosIndirectInclude.path!],
-      indirectPath,
-      (resolvedType, field, path, deferred) => {
-        addTypeSelectionsForField(resolvedType, context, info, state, field, path, deferred);
-      },
-    );
-  } else if (pothosIndirectInclude) {
-    addTypeSelectionsForField(
-      info.schema.getType(pothosIndirectInclude.getType())!,
-      context,
-      info,
-      state,
-      selection,
-      indirectPath,
-      deferred,
-    );
-    return;
-  }
-
-  if (!(isObjectType(type) || isInterfaceType(type))) {
-    return;
-  }
-
-  if (pothosPrismaModel && !pothosPrismaSelect) {
-    state.mode = 'include';
-  }
-
-  if (pothosPrismaInclude ?? pothosPrismaSelect) {
-    mergeSelection(state, {
-      select: pothosPrismaSelect ? { ...pothosPrismaSelect } : undefined,
-      include: pothosPrismaInclude ? { ...pothosPrismaInclude } : undefined,
-    });
-  }
-
-  if (selection.selectionSet && (!deferred || !state.skipDeferredFragments)) {
-    addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
-  }
-}
-
-function resolveIndirectIncludePaths(
-  type: GraphQLNamedType,
-  info: GraphQLResolveInfo,
-  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  pathPrefix: { type?: string; name: string }[],
-  includePaths: { type?: string; name: string }[][],
-  path: string[],
-  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
-  deferred = false,
-) {
-  for (const includePath of includePaths) {
-    if (pathPrefix.length > 0) {
-      resolveIndirectInclude(
-        type,
-        info,
-        selection,
-        [...pathPrefix, ...includePath],
-        path,
-        resolve,
-        deferred,
-      );
-    } else {
-      resolveIndirectInclude(type, info, selection, includePath, path, resolve, deferred);
-    }
-  }
-}
-
-function resolveIndirectInclude(
-  type: GraphQLNamedType,
-  info: GraphQLResolveInfo,
-  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  includePath: { type?: string; name: string }[],
-  path: string[],
-  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[], deferred: boolean) => void,
-  deferred = false,
-  expectedType = type,
-) {
-  if (includePath.length === 0) {
-    resolve(type, selection as FieldNode, path, deferred);
-    return;
-  }
-
-  const [include, ...rest] = includePath;
-  if (!selection.selectionSet || !include) {
-    return;
-  }
-
-  for (const sel of selection.selectionSet.selections) {
-    switch (sel.kind) {
-      case Kind.FIELD:
-        if (
-          expectedType.name === type.name &&
-          !fieldSkipped(info, sel) &&
-          sel.name.value === include.name &&
-          (isObjectType(type) || isInterfaceType(type))
-        ) {
-          const returnType = getNamedType(type.getFields()[sel.name.value].type);
-
-          resolveIndirectInclude(
-            returnType,
-            info,
-            sel,
-            rest,
-            [...path, sel.alias?.value ?? sel.name.value],
-            resolve,
-            deferred,
-          );
-        }
-        continue;
-      case Kind.FRAGMENT_SPREAD:
-        resolveIndirectInclude(
-          info.schema.getType(info.fragments[sel.name.value].typeCondition.name.value)!,
-          info,
-          info.fragments[sel.name.value],
-          includePath,
-          path,
-          resolve,
-          deferred || isDeferredFragment(sel, info),
-          include.type ? info.schema.getType(include.type)! : expectedType,
-        );
-
-        continue;
-
-      case Kind.INLINE_FRAGMENT:
-        if (!sel.typeCondition || !include.type || sel.typeCondition.name.value === include.type) {
-          resolveIndirectInclude(
-            sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : type,
-            info,
-            sel,
-            includePath,
-            path,
-            resolve,
-            deferred || isDeferredFragment(sel, info),
-            include.type ? info.schema.getType(include.type)! : expectedType,
-          );
-        }
-
-        continue;
-
-      default:
-        throw new PothosValidationError(
-          `Unsupported selection kind ${(selection as { kind: string }).kind}`,
-        );
-    }
-  }
-}
-
-function addNestedSelections(
-  type: GraphQLInterfaceType | GraphQLObjectType,
-  context: object,
-  info: GraphQLResolveInfo,
-  state: SelectionState,
-  selections: SelectionSetNode,
-  indirectPath: string[],
-  expectedType = type,
-) {
-  let parentType = type;
-  for (const selection of selections.selections) {
-    switch (selection.kind) {
-      case Kind.FIELD:
-        if (expectedType.name !== type.name) {
-          continue;
-        }
-        addFieldSelection(type, context, info, state, selection, indirectPath);
-
-        continue;
-      case Kind.FRAGMENT_SPREAD:
-        if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
-          continue;
-        }
-
-        parentType = info.schema.getType(
-          info.fragments[selection.name.value].typeCondition.name.value,
-        )! as GraphQLObjectType;
-
-        addNestedSelections(
-          parentType,
-          context,
-          info,
-          state,
-          info.fragments[selection.name.value].selectionSet,
-          indirectPath,
-          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
-            ? parentType
-            : expectedType,
-        );
-
-        continue;
-
-      case Kind.INLINE_FRAGMENT:
-        if (state.skipDeferredFragments && isDeferredFragment(selection, info)) {
-          continue;
-        }
-
-        parentType = selection.typeCondition
-          ? (info.schema.getType(selection.typeCondition.name.value) as GraphQLObjectType)
-          : type;
-
-        addNestedSelections(
-          parentType,
-          context,
-          info,
-          state,
-          selection.selectionSet,
-          indirectPath,
-          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
-            ? parentType
-            : expectedType,
-        );
-
-        continue;
-
-      default:
-        throw new PothosValidationError(
-          `Unsupported selection kind ${(selection as { kind: string }).kind}`,
-        );
-    }
-  }
-}
-
-function addFieldSelection(
-  type: GraphQLInterfaceType | GraphQLObjectType,
-  context: object,
-  info: GraphQLResolveInfo,
-  state: SelectionState,
-  selection: FieldNode,
-  indirectPath: string[],
-) {
-  if (selection.name.value.startsWith('__') || fieldSkipped(info, selection)) {
-    return;
-  }
-
-  const field = type.getFields()[selection.name.value];
-
-  if (!field) {
-    throw new PothosValidationError(`Unknown field ${selection.name.value} on ${type.name}`);
-  }
-
-  const fieldSelect = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
-
-  let fieldSelectionMap: SelectionMap;
-
-  let mappings: LoaderMappings = {};
-
-  if (typeof fieldSelect === 'function') {
-    const args = getMappedArgumentValues(field, selection, context, info) as Record<
-      string,
-      unknown
-    >;
-
-    fieldSelectionMap = fieldSelect(
-      args,
-      context,
-      (rawQuery, indirectInclude, expectedType) => {
-        const returnType = getNamedType(field.type);
-        const query = typeof rawQuery === 'function' ? rawQuery(args, context) : rawQuery;
-
-        const normalizedIndirectInclude = Array.isArray(indirectInclude)
-          ? normalizeInclude(
-              indirectInclude,
-              getIndirectType(returnType, info),
-              expectedType ? getNamedType(info.schema.getType(expectedType)) : undefined,
-            )
-          : indirectInclude;
-
-        const fieldState = createStateForType(
-          getIndirectType(
-            normalizedIndirectInclude
-              ? info.schema.getType(normalizedIndirectInclude.getType())!
-              : returnType,
-            info,
-          ),
-          info,
-          state.skipDeferredFragments,
-          state,
-        );
-
-        if (typeof query === 'object' && Object.keys(query).length > 0) {
-          mergeSelection(fieldState, { select: {}, ...query });
-        }
-
-        if (
-          (!!normalizedIndirectInclude?.path && normalizedIndirectInclude.path.length > 0) ||
-          (!!normalizedIndirectInclude?.paths && normalizedIndirectInclude.paths.length > 0)
-        ) {
-          resolveIndirectIncludePaths(
-            returnType,
-            info,
-            selection,
-            (returnType.extensions?.pothosIndirectInclude as { path: [] })?.path ?? [],
-            normalizedIndirectInclude?.paths ??
-              (normalizedIndirectInclude?.path ? [normalizedIndirectInclude.path] : []),
-            [],
-            (resolvedType, resolvedField, path, deferred) => {
-              addTypeSelectionsForField(
-                resolvedType,
-                context,
-                info,
-                fieldState,
-                resolvedField,
-                path,
-                deferred,
-              );
-            },
-          );
-        } else if (normalizedIndirectInclude) {
-          const targetType = info.schema.getType(normalizedIndirectInclude.getType())!;
-          if (targetType !== returnType) {
-            addTypeSelectionsForField(targetType, context, info, fieldState, selection, []);
-          }
-        }
-
-        addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
-
-        mappings = fieldState.mappings;
-
-        return selectionToQuery(fieldState);
-      },
-      (path) => {
-        if (path.length === 0) {
-          return selection;
-        }
-
-        const returnType = getNamedType(field.type);
-        let node: FieldNode | null = null;
-
-        resolveIndirectInclude(
-          returnType,
-          info,
-          selection,
-          path.map((name) => ({
-            name,
-          })),
-          [],
-          (_, resolvedField) => {
-            node = resolvedField;
-          },
-        );
-
-        return node;
-      },
-    );
-  } else {
-    fieldSelectionMap = { select: fieldSelect };
-  }
-
-  if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
-    mergeSelection(state, fieldSelectionMap);
-
-    state.mappings = mergeMappings(state.mappings, {
-      [selection.alias?.value ?? selection.name.value]: {
-        field: selection.name.value,
-        type: type.name,
-        mappings,
-        indirectPath,
-      },
-    });
-  }
-}
-
-function mergeMappings(existing: LoaderMappings, incoming: LoaderMappings): LoaderMappings {
-  const result: LoaderMappings = { ...existing };
-
-  for (const [key, value] of Object.entries(incoming)) {
-    if (result[key]) {
-      result[key] = {
-        ...result[key],
-        mappings: mergeMappings(result[key].mappings, value.mappings),
-      };
-    } else {
-      result[key] = value;
-    }
-  }
-
-  return result;
-}
-
+/**
+ * The query for the field `info` resolves. A given `select` is merged as the initial selection;
+ * for a type in include mode the plan still produces `include`, with the columns of that
+ * `select` implied by the row.
+ *
+ * This is prisma's rule for turning a plan into a query, and it lives here because it is only
+ * prisma's: drizzle seeds its plan with `{ columns: {}, ...select }` and hands back the caller's
+ * bare `select`, and prisma-next emits onto a collection instead.
+ *
+ * The query is synchronous unless `awaitSelections` says otherwise, and a subtree that plans
+ * asynchronously throws rather than returning a promise the declared type denies.
+ */
 export function queryFromInfo<
   Select extends SelectionMap['select'] | undefined = undefined,
-  Include extends SelectionMap['select'] | undefined = undefined,
+  Include extends SelectionMap['include'] | undefined = undefined,
+  Await extends boolean = false,
 >({
   context,
   info,
@@ -455,207 +64,89 @@ export function queryFromInfo<
   paths = [],
   withUsageCheck = false,
   skipDeferredFragments = true,
+  awaitSelections,
 }: {
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
-  path?: string[];
-  paths?: string[][];
+  path?: PathSegment[];
+  paths?: PathSegment[][];
   withUsageCheck?: boolean;
   skipDeferredFragments?: boolean;
+  /**
+   * Whether the caller will await the query. Without it, a field with an async selection beneath
+   * it throws instead of returning a promise.
+   */
+  awaitSelections?: Await;
 } & (
   | { include?: Include; select?: never }
   | { select?: Select; include?: never }
-)): undefined extends Include
-  ? {
-      select: Select;
-    }
-  : { include: Include } {
-  const returnType = getNamedType(info.returnType);
-  const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
-
-  let state: SelectionState | undefined;
-  const initialSelection = select ? { select } : include ? { include } : undefined;
-
-  if (path.length > 0 || paths.length > 0) {
-    const { pothosIndirectInclude } = (returnType.extensions ?? {}) as {
-      pothosIndirectInclude?: IndirectInclude;
-    };
-
-    resolveIndirectInclude(
-      returnType,
-      info,
-      info.fieldNodes[0],
-      pothosIndirectInclude?.path ?? [],
-      [],
-      (indirectType, indirectField, subPath, deferred) => {
-        resolveIndirectIncludePaths(
-          indirectType,
-          info,
-          indirectField,
-          [],
-          paths.length > 0
-            ? paths.map((p) => p.map((n) => (typeof n === 'string' ? { name: n } : n)))
-            : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
-          subPath,
-          (resolvedType, resolvedField, nested, deferred) => {
-            state = createStateForType(
-              typeName ? type : resolvedType,
-              info,
-              skipDeferredFragments,
-              undefined,
-              initialSelection,
-            );
-
-            addTypeSelectionsForField(
-              typeName ? type : resolvedType,
-              context,
-              info,
-              state,
-              resolvedField,
-              nested,
-              deferred,
-            );
-          },
-          deferred,
-        );
-      },
-    );
-  } else {
-    state = createStateForType(type, info, skipDeferredFragments, undefined, initialSelection);
-
-    addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
-  }
-
-  if (!state) {
-    state = createStateForType(type, info, skipDeferredFragments, undefined, initialSelection);
-  }
-
-  setLoaderMappings(context, info, state.mappings);
-
-  const query = selectionToQuery(state) as { select: Select; include: Include };
-
-  return withUsageCheck ? wrapWithUsageCheck(query) : query;
-}
-
-export function selectionStateFromInfo(
-  context: object,
-  info: GraphQLResolveInfo,
-  skipDeferredFragments: boolean,
-  typeName?: string,
-) {
-  const type = typeName ? info.schema.getTypeMap()[typeName] : info.parentType;
-
-  const state = createStateForType(type, info, skipDeferredFragments);
-
-  if (!(isObjectType(type) || isInterfaceType(type))) {
-    throw new PothosValidationError(
-      'Prisma plugin can only resolve includes for object and interface types',
-    );
-  }
-
-  addFieldSelection(type, context, info, state, info.fieldNodes[0], []);
-
-  return state;
-}
-
-function createStateForType(
-  type: GraphQLNamedType,
-  info: GraphQLResolveInfo,
-  skipDeferredFragments: boolean,
-  parent?: SelectionState,
-  initialSelections?: SelectionMap,
-) {
-  const targetType = getIndirectType(type, info);
-
-  const fieldMap = targetType.extensions?.pothosPrismaFieldMap as FieldMap;
-
-  const state = createState(
-    fieldMap,
-    targetType.extensions?.pothosPrismaSelect ? 'select' : 'include',
+)): QueryFromInfoReturn<Select, Include, Await> {
+  const initial = select ? { select } : include ? { include } : undefined;
+  const plan = Plan.fromInfo(prismaAdapter, {
+    context,
+    info,
+    typeName,
+    path,
+    paths,
     skipDeferredFragments,
-    parent,
+    initial,
+  }) as MaybePromise<PrismaPlan> | undefined;
+
+  // Nothing is selected under the paths: there is nothing to plan and nothing to map, so the
+  // caller gets back the selection it gave.
+  const query = checkAwaitSelections(
+    plan
+      ? isThenable(plan)
+        ? plan.then((settled) => settled.query())
+        : plan.query()
+      : (initial ?? {}),
+    awaitSelections,
+    'queryFromInfo',
+    `${info.parentType.name}.${info.fieldName}`,
   );
 
-  if (initialSelections) {
-    mergeSelection(state, initialSelections);
-  }
+  // `onUnusedQuery`: the query is wrapped so reads on it can be observed; a promise is wrapped
+  // once it settles.
+  const result: MaybePromise<object> = !withUsageCheck
+    ? query
+    : isThenable(query)
+      ? query.then((settled) => wrapWithUsageCheck(settled as object))
+      : wrapWithUsageCheck(query);
 
-  return state;
+  // The one cast, and it hides nothing about promises: the guard above has already refused any a
+  // caller did not ask for. It only stands in for the unresolved conditional, which typescript
+  // cannot check a return against while `Await` is still a parameter.
+  return result as QueryFromInfoReturn<Select, Include, Await>;
 }
 
-export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {
-  let targetType = type;
-
-  while (targetType.extensions?.pothosIndirectInclude) {
-    targetType = info.schema.getType(
-      (targetType.extensions.pothosIndirectInclude as IndirectInclude).getType(),
-    )!;
-  }
-
-  return targetType;
-}
-
-function normalizeInclude(
-  path: string[],
-  type: GraphQLNamedType,
-  expectedType?: GraphQLNamedType,
-): IndirectInclude {
-  let currentType = path.length > 0 ? type : (expectedType ?? type);
-
-  const normalized: { name: string; type: string }[] = [];
-
-  if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
-    throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
-  }
-
-  for (const fieldName of path) {
-    const field: GraphQLField<unknown, unknown> = currentType.getFields()[fieldName];
-
-    if (!field) {
-      throw new PothosValidationError(`Expected ${currentType} to have a field ${fieldName}`);
-    }
-
-    currentType = getNamedType(field.type);
-
-    if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
-      throw new PothosValidationError(`Expected ${currentType} to be an Object or Interface type`);
-    }
-
-    normalized.push({ name: fieldName, type: currentType.name });
-  }
-
-  return {
-    getType: () =>
-      expectedType?.name ??
-      (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
-    path: normalized,
-  };
-}
-
-function fieldSkipped(info: GraphQLResolveInfo, selection: FieldNode) {
-  const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
-  if (skip?.if === true) {
-    return true;
-  }
-
-  const include = getDirectiveValues(GraphQLIncludeDirective, selection, info.variableValues);
-  if (include?.if === false) {
-    return true;
-  }
-
-  return false;
-}
-
-function isDeferredFragment(
-  node: FragmentSpreadNode | InlineFragmentNode,
+/**
+ * The query for the field `info` resolves, from a plan `plans` holds per `Type@path`. The
+ * fallback in `wrapResolve` runs once per row of the list its parent came from, so the plan is
+ * walked and settled once and played per call: each caller still gets a query of its own, and
+ * every row of a list records under the same mapping keys, since `responsePath` drops list
+ * indices.
+ */
+export function fallbackQueryFromInfo(
+  plans: Map<string, MaybePromise<PrismaPlan>>,
+  context: object,
   info: GraphQLResolveInfo,
-) {
-  const deferDirective = info.schema.getDirective('defer');
-  if (!deferDirective) {
-    return false;
+  skipDeferredFragments = true,
+): MaybePromise<SelectionMap> {
+  const key = cacheKey(info.parentType.name, info.path);
+  let plan = plans.get(key);
+
+  if (!plan) {
+    plan = Plan.fromInfo(prismaAdapter, {
+      context,
+      info,
+      skipDeferredFragments,
+    }) as MaybePromise<PrismaPlan>;
+
+    plans.set(key, plan);
   }
 
-  const defer = getDirectiveValues(deferDirective, node, info.variableValues);
-  return !!defer && defer.if !== false;
+  return isThenable(plan)
+    ? plan.then((settled) => settled.query(undefined, info))
+    : plan.query(undefined, info);
 }

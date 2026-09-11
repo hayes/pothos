@@ -667,6 +667,9 @@ importers:
 
   packages/plugin-drizzle:
     dependencies:
+      '@pothos/selection-mapper':
+        specifier: workspace:*
+        version: link:../selection-mapper
       graphql:
         specifier: ^17.0.1
         version: 17.0.1
@@ -695,9 +698,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      drizzle-graphql:
-        specifier: ^0.8.5
-        version: 0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6))(graphql@17.0.1)
       drizzle-kit:
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
@@ -844,6 +844,9 @@ importers:
 
   packages/plugin-prisma:
     dependencies:
+      '@pothos/selection-mapper':
+        specifier: workspace:*
+        version: link:../selection-mapper
       '@prisma/generator-helper':
         specifier: ^7.7.0
         version: 7.7.0
@@ -1142,6 +1145,24 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+
+  packages/selection-mapper:
+    devDependencies:
+      '@pothos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@pothos/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      graphql:
+        specifier: ^17.0.1
+        version: 17.0.1
+      graphql-tag:
+        specifier: ^2.12.6
+        version: 2.12.6(graphql@17.0.1)
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/test-utils:
     dependencies:
@@ -6701,12 +6722,6 @@ packages:
     resolution: {integrity: sha512-ASRY5QhDk7FK+XrQtQyvhpDKanLluEEQtWl/J7Lxuf/b+i8RYh997QeXvL85xitrmRKVlx9c7eTrcRdq2GS4eA==}
     engines: {node: '>=10'}
 
-  drizzle-graphql@0.8.5:
-    resolution: {integrity: sha512-MAqBwmj/kSZWIUQdYCsYtoZWxxVRcXWkhsqt0b6fY1XC171WHBK/jZiVWepO04tDsdaDuTvzlufDHJqNl3VVWQ==}
-    peerDependencies:
-      drizzle-orm: '>=0.30.9'
-      graphql: ^17.0.1
-
   drizzle-kit@1.0.0-rc.2:
     resolution: {integrity: sha512-TRxUmj1wDA2QCt3GvuhfamvIa66wJ7+MzSxBMKkpRtYScjHTumT9BE+x6daSzuEacSrPEuUH5/cW1uo5RkoPIg==}
     hasBin: true
@@ -7710,12 +7725,6 @@ packages:
 
   graphql-middleware@6.1.35:
     resolution: {integrity: sha512-azawK7ApUYtcuPGRGBR9vDZu795pRuaFhO5fgomdJppdfKRt7jwncuh0b7+D3i574/4B+16CNWgVpnGVlg3ZCg==}
-    peerDependencies:
-      graphql: ^17.0.1
-
-  graphql-parse-resolve-info@4.14.1:
-    resolution: {integrity: sha512-WKHukfEuZamP1ZONR84b8iT+4sJgEhtXMDArm1jpXEsU2vTb5EgkCZ4Obfl+v09oNTKXm0CJjPfBUZ5jcJ2Ykg==}
-    engines: {node: '>=8.6'}
     peerDependencies:
       graphql: ^17.0.1
 
@@ -17293,14 +17302,6 @@ snapshots:
       p-event: 2.3.1
       pify: 4.0.1
 
-  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6))(graphql@17.0.1):
-    dependencies:
-      drizzle-orm: 1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6)
-      graphql: 17.0.1
-      graphql-parse-resolve-info: 4.14.1(graphql@17.0.1)
-    transitivePeerDependencies:
-      - supports-color
-
   drizzle-kit@1.0.0-rc.2:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
@@ -18459,14 +18460,6 @@ snapshots:
       '@graphql-tools/delegate': 8.8.1(graphql@17.0.1)
       '@graphql-tools/schema': 8.5.1(graphql@17.0.1)
       graphql: 17.0.1
-
-  graphql-parse-resolve-info@4.14.1(graphql@17.0.1):
-    dependencies:
-      debug: 4.4.3
-      graphql: 17.0.1
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - supports-color
 
   graphql-rate-limit@3.3.0(graphql-middleware@6.1.35(graphql@17.0.1))(graphql@17.0.1):
     dependencies:

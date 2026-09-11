@@ -1,9 +1,14 @@
 import {
   decodeBase64,
+  decodeCursorChunk,
   encodeBase64,
+  encodeCursorChunk,
+  encodeCursorTuple,
+  getConnectionPageSize,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
+  validateConnectionArguments,
 } from '@pothos/core';
 import {
   asc,
@@ -20,35 +25,17 @@ import {
   type Table,
   type TableRelationalConfig,
 } from 'drizzle-orm';
-import type { GraphQLResolveInfo } from 'graphql';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types.js';
+import type { DrizzlePlan } from './adapter.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
-import { queryFromInfo } from './map-query.js';
+import { queryFromPlan } from './map-query.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
-const DEFAULT_MAX_SIZE = 100;
-const DEFAULT_SIZE = 20;
-
-export function formatCursorChunk(value: unknown) {
-  if (value == null) {
-    return null;
-  }
-
-  if (value instanceof Date) {
-    return `D:${String(Number(value))}`;
-  }
-
-  switch (typeof value) {
-    case 'number':
-      return `N:${value}`;
-    case 'string':
-      return `S:${value}`;
-    case 'bigint':
-      return `I:${value}`;
-    default:
-      throw new PothosValidationError(`Unsupported cursor type ${typeof value}`);
-  }
-}
+// The tagging is `@pothos/core`'s `encodeCursorChunk`, shared with the prisma plugins so the
+// three can't drift apart again. A nullish ordering value is a position this plugin compares
+// against with `is null`, and it now writes as a `Z:` chunk: it used to interpolate as the string
+// `null`, which is not a chunk, so the cursor came back out as "Invalid cursor" on the next page.
+export const formatCursorChunk = encodeCursorChunk;
 
 export function formatDrizzleCursor(
   record: Record<string, unknown>,
@@ -80,7 +67,6 @@ export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaCon
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      fields.map((field) => field.keyAsName);
       return `${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
     }
 
@@ -109,9 +95,7 @@ export function getColumnSerializer(
     if (fields.length > 1) {
       // each value carries its own type tag, the same ones a single value gets.
       // Plain JSON would turn a Date into a string and refuse a bigint outright.
-      return `T:${JSON.stringify(
-        fields.map((field) => formatCursorChunk(value[cursorFieldKey(field, config)])),
-      )}`;
+      return encodeCursorTuple(fields.map((field) => value[cursorFieldKey(field, config)]));
     }
 
     return formatCursorChunk(value[cursorFieldKey(fields[0], config)]);
@@ -156,28 +140,9 @@ export function parseSerializedDrizzleColumn(value: unknown): unknown {
   }
 
   try {
-    const [, type, rawValue] = value.match(/^(S|N|D|J|I|T):(.*)/) as [string, string, string];
-
-    switch (type) {
-      case 'S':
-        return rawValue;
-      case 'N':
-        return Number.parseInt(rawValue, 10);
-      case 'D':
-        return new Date(Number.parseInt(rawValue, 10));
-      case 'J':
-        // compound values from before each one carried a tag: whatever JSON
-        // preserved is the best that can be recovered
-        return JSON.parse(rawValue) as unknown;
-      case 'T':
-        return (JSON.parse(rawValue) as (string | null)[]).map((chunk) =>
-          chunk === null ? null : parseSerializedDrizzleColumn(chunk),
-        );
-      case 'I':
-        return BigInt(rawValue);
-      default:
-        throw new PothosValidationError(`Invalid cursor type ${type}`);
-    }
+    // `@pothos/core`'s `decodeCursorChunk` reads every tag, including the `J:` a compound cursor
+    // used before each part carried one -- see `getCursorParser` for what happens to that array.
+    return decodeCursorChunk(value);
   } catch {
     throw new PothosValidationError(`Invalid serialized data: ${value}`);
   }
@@ -202,7 +167,9 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
     }
 
     if (field.dataType === 'object date') {
-      return new Date(id);
+      // `formatIDChunk` writes the epoch milliseconds; `new Date` of that string is an Invalid
+      // Date, since it is not a date format `Date` parses.
+      return new Date(Number(id));
     }
 
     throw new PothosValidationError(`Unsupported ID type ${field.dataType}`);
@@ -215,14 +182,16 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
   }
 }
 
-export function getIDParser(fields: readonly Column[]) {
+// Keyed by the typescript name, as `getIDSerializer` reads by: the record is a row of the table,
+// and every consumer (the node ref's `parseId`, the model loader) looks columns up that way.
+export function getIDParser(fields: readonly Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column parser must have at least one field');
   }
 
   return (value: string) => {
     if (fields.length === 1) {
-      return { [fields[0].name]: parseSerializedIDColumn(value, fields[0]) };
+      return { [config.columnToTsName(fields[0])]: parseSerializedIDColumn(value, fields[0]) };
     }
 
     try {
@@ -243,7 +212,7 @@ export function getIDParser(fields: readonly Column[]) {
       const record: Record<string, unknown> = {};
 
       fields.forEach((field, i) => {
-        record[field.name] = parsed[i];
+        record[config.columnToTsName(field)] = parsed[i];
       });
 
       return record;
@@ -307,6 +276,10 @@ export function getCursorParser(keys: readonly string[]) {
     // the columns that came before it. Those still describe a position, just a
     // less precise one, so the page is keyed off the prefix the cursor covers
     // rather than rejected. Cursors returned by that page carry every column.
+    //
+    // The array is a `T:` chunk's values, each still its own type. A cursor issued before this
+    // release decodes from a `J:` chunk instead, whose parts arrive as whatever plain JSON
+    // preserved -- see the deprecated `J:` case in `@pothos/core`'s `decodeCursorChunk`.
     const values = Array.isArray(parsed) ? parsed : [parsed];
 
     if (values.length === 0) {
@@ -553,8 +526,8 @@ function keysetFilter(entries: OrderByEntry[], cursor: string, paging: 'after' |
 export function drizzleCursorConnectionQuery({
   args,
   ctx,
-  maxSize = DEFAULT_MAX_SIZE,
-  defaultSize = DEFAULT_SIZE,
+  maxSize,
+  defaultSize,
   orderBy,
   extras,
   where,
@@ -562,13 +535,7 @@ export function drizzleCursorConnectionQuery({
   table,
 }: DrizzleCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
-  if (first != null && first < 0) {
-    throw new PothosValidationError('Argument "first" must be a non-negative integer');
-  }
-
-  if (last != null && last < 0) {
-    throw new PothosValidationError('Argument "last" must be a non-negative integer');
-  }
+  validateConnectionArguments(args);
 
   if (first != null && last != null) {
     throw new PothosValidationError(
@@ -580,8 +547,13 @@ export function drizzleCursorConnectionQuery({
   const defaultSizeForConnection =
     typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
 
-  const limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
-  const inverted = !first && !!last;
+  const { limit } = getConnectionPageSize({
+    args,
+    defaultSize: defaultSizeForConnection,
+    maxSize: maxSizeForConnection,
+  });
+  // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`.
+  const inverted = first == null && last != null;
 
   const parsedOrderBy = parseOrderBy(config, table, orderBy, inverted, extras);
 
@@ -624,8 +596,11 @@ export function wrapConnectionResult<T extends {}>(
   totalCount?: number | (() => MaybePromise<number>) | null,
 ) {
   const gotFullResults = results.length === Math.abs(limit);
-  const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : !args.first && !!args.last ? gotFullResults : false;
+  // `first`/`last` are compared against null rather than by truthiness, so `last: 0` reports the
+  // `pageInfo` of a backward page of zero rows rather than of a forward one.
+  const backward = args.first == null && args.last != null;
+  const hasNextPage = args.before ? true : args.last != null ? false : gotFullResults;
+  const hasPreviousPage = args.after ? true : backward ? gotFullResults : false;
   const nodes = gotFullResults ? results.slice(0, -1) : results;
 
   const connection = {
@@ -658,7 +633,7 @@ export function wrapConnectionResult<T extends {}>(
           },
   );
 
-  if (args.last && !args.first) {
+  if (backward) {
     edges.reverse();
   }
 
@@ -671,8 +646,8 @@ export function wrapConnectionResult<T extends {}>(
 
 export async function resolveDrizzleCursorConnection<T extends {}>(
   tableName: string,
-  info: GraphQLResolveInfo,
-  typeName: string,
+  // The settled plan of the connection's rows; the builder handed to `resolve` merges into it.
+  plan: DrizzlePlan | undefined,
   config: PothosDrizzleSchemaConfig,
   options: Omit<DrizzleCursorConnectionQueryOptions, 'orderBy' | 'config' | 'table'> & {
     totalCount?: () => MaybePromise<number>;
@@ -697,10 +672,9 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     });
     formatter = getCursorFormatter(cursorFields, config);
 
-    query = queryFromInfo({
-      context: options.ctx,
-      info,
-      select: omitUndefinedKeys({
+    query = queryFromPlan(
+      plan,
+      omitUndefinedKeys({
         ...connectionQuery,
         extras: q.extras,
         columns: {
@@ -714,11 +688,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
               }
             : q.where || connectionQuery.where,
       }) as never,
-      paths: [['nodes'], ['edges', 'node']],
-      typeName,
-      config,
-      // withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
-    });
+    );
 
     return query;
   });
@@ -743,10 +713,12 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
     };
   }
 
+  const { limit } = query;
+
   return wrapConnectionResult(
     results,
     options.args,
-    query.limit as number,
+    limit as number,
     formatter!,
     undefined,
     parent,

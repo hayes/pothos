@@ -8,7 +8,7 @@ import SchemaBuilder, {
   PothosError,
   type SchemaTypes,
 } from '@pothos/core';
-import type { Column } from 'drizzle-orm';
+import type { Column, TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import { DrizzleInterfaceRef } from './interface-ref.js';
@@ -22,61 +22,70 @@ import { getRefFromModel } from './utils/refs.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-schemaBuilderProto.drizzleObject = function drizzleObject(table, { select, fields, ...options }) {
-  const name = options.variant ?? options.name ?? table;
-
-  const ref = options.variant
-    ? new DrizzleObjectRef(options.variant, table)
-    : (getRefFromModel(table, this, 'object') as ObjectRef<SchemaTypes, unknown>);
-
-  ref.name = name;
-
-  this.objectType(ref, {
-    ...(options as {}),
-    extensions: {
-      ...options.extensions,
-      pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).relations[table],
-      pothosDrizzleSelect:
-        typeof select === 'object' ? { columns: {}, ...select } : (select ?? true),
-      pothosDrizzleLoader: ModelLoader.forModel(table, this),
-    },
-    name,
-    fields: fields ? () => fields(new DrizzleObjectFieldBuilder(ref.name, this, table)) : undefined,
-  });
-
-  return ref as never;
-};
-
-schemaBuilderProto.drizzleInterface = function drizzleInterface(
-  table,
-  { select, fields, ...options },
+/**
+ * The body of `drizzleObject` and `drizzleInterface`. The two build the same ref, extensions and
+ * field builder; only the ref class and which of `objectType`/`interfaceType` registers it differ.
+ */
+function defineDrizzleType(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  table: string,
+  {
+    select,
+    fields,
+    ...options
+  }: {
+    select?: {} | boolean;
+    fields?: (t: DrizzleObjectFieldBuilder<SchemaTypes, TableRelationalConfig, {}>) => {};
+    variant?: string;
+    name?: string;
+    extensions?: {};
+  },
+  kind: 'Interface' | 'Object',
 ) {
+  const isInterface = kind === 'Interface';
   const name = options.variant ?? options.name ?? table;
-
   const ref = options.variant
-    ? new DrizzleInterfaceRef(options.variant, table)
-    : (getRefFromModel(table, this, 'interface') as InterfaceRef<SchemaTypes, unknown>);
+    ? isInterface
+      ? new DrizzleInterfaceRef(options.variant, table)
+      : new DrizzleObjectRef(options.variant, table)
+    : (getRefFromModel(table, builder, isInterface ? 'interface' : 'object') as ObjectRef<
+        SchemaTypes,
+        unknown
+      >);
 
   ref.name = name;
 
-  this.interfaceType(ref, {
-    ...(options as {}),
+  const config = {
+    ...options,
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(this).relations[table],
+      pothosDrizzleTable: getSchemaConfig(builder).relations[table],
       pothosDrizzleSelect:
         typeof select === 'object' ? { columns: {}, ...select } : (select ?? true),
-      pothosDrizzleLoader: ModelLoader.forModel(table, this),
+      pothosDrizzleLoader: ModelLoader.forModel(table, builder),
     },
     name,
     fields: fields
-      ? () => fields(new DrizzleObjectFieldBuilder(ref.name, this, table, 'Interface'))
+      ? () => fields(new DrizzleObjectFieldBuilder(name, builder, table, kind) as never)
       : undefined,
-  });
+  };
 
-  return ref as never;
+  if (isInterface) {
+    builder.interfaceType(ref as never, config as never);
+  } else {
+    builder.objectType(ref as never, config as never);
+  }
+
+  return ref;
+}
+
+schemaBuilderProto.drizzleObject = function drizzleObject(table, options) {
+  return defineDrizzleType(this, table, options as never, 'Object') as never;
+};
+
+schemaBuilderProto.drizzleInterface = function drizzleInterface(table, options) {
+  return defineDrizzleType(this, table, options as never, 'Interface') as never;
 };
 
 schemaBuilderProto.drizzleNode = function drizzleNode(
@@ -104,7 +113,7 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   const idColumns = Array.isArray(idColumn) ? idColumn : [idColumn];
   const interfaceRef = this.nodeInterfaceRef?.();
   const resolve = getIDSerializer(idColumns, schemaConfig);
-  const idParser = getIDParser(idColumns);
+  const idParser = getIDParser(idColumns, schemaConfig);
   const typeName = variant ?? name ?? table;
   const nodeRef = new DrizzleNodeRef(typeName, table, {
     parseId: (id) => {
@@ -176,142 +185,40 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   return nodeRef;
 } as never;
 
-schemaBuilderProto.drizzleObjectField = function drizzleObjectField(type, fieldName, field) {
-  const ref = typeof type === 'string' ? getRefFromModel(type, this) : (type as never);
-  this.configStore.onTypeConfig(ref, ({ name }) => {
-    this.configStore.addFields(ref, () => ({
-      [fieldName]: field(new DrizzleObjectFieldBuilder(name, this, ref.tableName)),
-    }));
+/**
+ * The body of `drizzleObjectField(s)` and `drizzleInterfaceField(s)`: they differ only in kind.
+ * A table name names the interface registered under it, as `drizzleInterface` registers one.
+ */
+function addDrizzleFields(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  type: string | { tableName: string },
+  fields: (t: DrizzleObjectFieldBuilder<SchemaTypes, TableRelationalConfig, {}>) => {},
+  graphqlKind?: 'Interface',
+) {
+  const ref =
+    typeof type === 'string'
+      ? getRefFromModel(type, builder, graphqlKind ? 'interface' : 'object')
+      : (type as never);
+
+  builder.configStore.onTypeConfig(ref, ({ name }) => {
+    builder.configStore.addFields(ref, () =>
+      fields(new DrizzleObjectFieldBuilder(name, builder, ref.tableName, graphqlKind) as never),
+    );
   });
+}
+
+schemaBuilderProto.drizzleObjectField = function drizzleObjectField(type, fieldName, field) {
+  addDrizzleFields(this, type as never, (t) => ({ [fieldName]: field(t as never) }));
 };
 
 schemaBuilderProto.drizzleInterfaceField = function drizzleInterfaceField(type, fieldName, field) {
-  const ref = typeof type === 'string' ? getRefFromModel(type, this) : (type as never);
-  this.configStore.onTypeConfig(ref, ({ name }) => {
-    this.configStore.addFields(ref, () => ({
-      [fieldName]: field(new DrizzleObjectFieldBuilder(name, this, ref.tableName, 'Interface')),
-    }));
-  });
+  addDrizzleFields(this, type as never, (t) => ({ [fieldName]: field(t as never) }), 'Interface');
 };
 
 schemaBuilderProto.drizzleObjectFields = function drizzleObjectFields(type, fields) {
-  const ref = typeof type === 'string' ? getRefFromModel(type, this) : (type as never);
-  this.configStore.onTypeConfig(ref, ({ name }) => {
-    this.configStore.addFields(ref, () =>
-      fields(new DrizzleObjectFieldBuilder(name, this, ref.tableName)),
-    );
-  });
+  addDrizzleFields(this, type as never, fields as never);
 };
 
 schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type, fields) {
-  const ref = typeof type === 'string' ? getRefFromModel(type, this) : (type as never);
-  this.configStore.onTypeConfig(ref, ({ name }) => {
-    this.configStore.addFields(ref, () =>
-      fields(new DrizzleObjectFieldBuilder(name, this, ref.tableName, 'Interface')),
-    );
-  });
+  addDrizzleFields(this, type as never, fields as never, 'Interface');
 };
-
-// schemaBuilderProto.drizzleGraphQLOrderBy = function drizzleGraphQLOrderBy(
-//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-//   table: string,
-//   type: GraphQLInputObjectType,
-//   options?: { extensions?: object },
-// ) {
-//   return (
-//     this as typeof this & {
-//       addGraphQLInput: (
-//         type: GraphQLInputObjectType,
-//         options: Record<string, unknown>,
-//       ) => InputObjectRef<SchemaTypes, {}>;
-//     }
-//   ).addGraphQLInput(type, {
-//     ...options,
-//     extensions: {
-//       ...options?.extensions,
-//       drizzleGraphQL: {
-//         inputType: 'orderBy',
-//         table,
-//         tableConfig: getSchemaConfig(this).relations[table],
-//       } satisfies DrizzleGraphQLInputExtensions,
-//     },
-//   });
-// } as never;
-
-// schemaBuilderProto.drizzleGraphQLFilters = function drizzleGraphQLFilters(
-//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-//   table: string,
-//   type: GraphQLInputObjectType,
-//   options?: { extensions?: object },
-// ) {
-//   return (
-//     this as typeof this & {
-//       addGraphQLInput: (
-//         type: GraphQLInputObjectType,
-//         options: Record<string, unknown>,
-//       ) => InputObjectRef<SchemaTypes, {}>;
-//     }
-//   ).addGraphQLInput(type, {
-//     ...options,
-//     extensions: {
-//       ...options?.extensions,
-//       drizzleGraphQL: {
-//         inputType: 'filters',
-//         table,
-//         tableConfig: getSchemaConfig(this).relations[table],
-//       } satisfies DrizzleGraphQLInputExtensions,
-//     },
-//   });
-// } as never;
-
-// schemaBuilderProto.drizzleGraphQLInsert = function drizzleGraphQLInsert(
-//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-//   table: string,
-//   type: GraphQLInputObjectType,
-//   options?: { extensions?: object },
-// ) {
-//   return (
-//     this as typeof this & {
-//       addGraphQLInput: (
-//         type: GraphQLInputObjectType,
-//         options: Record<string, unknown>,
-//       ) => InputObjectRef<SchemaTypes, {}>;
-//     }
-//   ).addGraphQLInput(type, {
-//     ...options,
-//     extensions: {
-//       ...options?.extensions,
-//       drizzleGraphQL: {
-//         inputType: 'insert',
-//         table,
-//         tableConfig: getSchemaConfig(this).relations[table],
-//       } satisfies DrizzleGraphQLInputExtensions,
-//     },
-//   });
-// } as never;
-
-// schemaBuilderProto.drizzleGraphQLUpdate = function drizzleGraphQLUpdate(
-//   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-//   table: string,
-//   type: GraphQLInputObjectType,
-//   options?: { extensions?: object },
-// ) {
-//   return (
-//     this as typeof this & {
-//       addGraphQLInput: (
-//         type: GraphQLInputObjectType,
-//         options: Record<string, unknown>,
-//       ) => InputObjectRef<SchemaTypes, {}>;
-//     }
-//   ).addGraphQLInput(type, {
-//     ...options,
-//     extensions: {
-//       ...options?.extensions,
-//       drizzleGraphQL: {
-//         inputType: 'update',
-//         table,
-//         tableConfig: getSchemaConfig(this).relations[table],
-//       } satisfies DrizzleGraphQLInputExtensions,
-//     },
-//   });
-// } as never;

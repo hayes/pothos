@@ -1,5 +1,6 @@
 import {
   type ArgumentRef,
+  type CheckAsyncSelection,
   type DistributeOmit,
   type FieldKind,
   type FieldMap,
@@ -14,6 +15,7 @@ import {
   type InterfaceRef,
   type InterfaceTypeOptions,
   type ListResolveValue,
+  type MaybeAsyncSelection,
   type MaybePromise,
   type Merge,
   type Normalize,
@@ -26,6 +28,7 @@ import {
   type TypeParam,
   typeBrandKey,
 } from '@pothos/core';
+import type { IndirectInclude, IndirectPathSegment, PathSegment } from '@pothos/selection-mapper';
 import type {
   AnyRelations,
   BuildQueryResult,
@@ -41,8 +44,13 @@ import type {
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import type { DrizzleRef } from './interface-ref.js';
-import type { IndirectInclude } from './utils/map-query.js';
 import type { SelectionMap } from './utils/selections.js';
+
+/**
+ * A segment of a `path` given to `queryFromInfo` or `nestedSelection`: a field name, or
+ * `{ name, type }` to pin the type the field must be selected under (a fragment on it).
+ */
+export type { IndirectInclude, IndirectPathSegment, PathSegment };
 
 export interface FieldPathInfo {
   field: string;
@@ -60,8 +68,24 @@ export type DrizzleClient<TCountSource = Table | SQL | SQLWrapper> = {
   readonly _: {
     readonly relations: AnyRelations;
   };
-  query: {};
+  query: Record<
+    string,
+    {
+      // Each table accepts its own schema-specific config. The loader supplies that config.
+      findMany: (config: never) => PromiseLike<Record<string, unknown>[]>;
+    }
+  >;
   $count: (source: TCountSource, filter?: SQL) => SQL<number>;
+  /** Core SQL construction used for relation predicates and counts; it does not execute a query. */
+  select: (fields: Record<string, SQL>) => {
+    from(table: Extract<TCountSource, Table>): {
+      innerJoin(
+        table: Extract<TCountSource, Table>,
+        on: SQL,
+      ): { where: (filter?: SQL) => SQLWrapper };
+      where: (filter?: SQL) => SQLWrapper;
+    };
+  };
 };
 
 type GetTableConfigFn<TTable = Table> = (table: TTable) => {
@@ -85,6 +109,12 @@ type DrizzlePluginBaseOptions = {
   maxConnectionSize?: number;
   defaultConnectionSize?: number;
   skipDeferredFragments?: boolean;
+  /**
+   * When `true` (the default), the `totalCount` of a `relatedConnection` applies the `where`
+   * returned by the field's `query`, so it counts the same rows the connection paginates. Set to
+   * `false` to count every related row regardless of the filter.
+   */
+  filterConnectionTotalCount?: boolean;
 };
 
 export type DrizzlePluginOptions<Types extends SchemaTypes> = DrizzlePluginBaseOptions &
@@ -305,7 +335,7 @@ export type DrizzleObjectFieldOptions<
             Record<string, unknown> &
               // biome-ignore lint/suspicious/noExplicitAny: this is fine
               Select extends (...args: any[]) => infer R
-              ? R & { columns: {} }
+              ? Awaited<R> & { columns: {} }
               : Select & { columns: {} }
           > &
             ParentShape,
@@ -329,20 +359,97 @@ export type DrizzleObjectFieldOptions<
     Args,
     ResolveReturnShape
   > & {
+    /**
+     * What the field needs from its parent row. With `AsyncSelections: true` the function may be
+     * async, and `nestedSelection` is then a promise when a selection beneath it is async, and
+     * must be awaited.
+     */
     select?: Select &
+      CheckAsyncSelection<Types, Select> &
       (
         | DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
         | ((
             args: InputShapeFromFields<Args>,
             ctx: Types['Context'],
-            nestedSelection: (<Selection extends boolean | {}>(
-              selection?: Selection,
-              path?: string[],
-            ) => Selection) &
-              PathInfo,
-          ) => DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>)
+            nestedSelection: NestedSelectionFn<Types, Type, Args>,
+          ) => MaybeAsyncSelection<
+            Types,
+            DBQueryConfig<'one', Types['DrizzleRelations'], ExtractTable<Types, ParentShape>>
+          >)
       );
   };
+
+/** The table a field's type param names: a drizzle ref, or a list of one. */
+export type TableForTypeParam<Types extends SchemaTypes, Type> = Type extends [infer Item]
+  ? TableForTypeParam<Types, Item>
+  : // biome-ignore lint/suspicious/noExplicitAny: matching against any ref
+    Type extends DrizzleRef<any, infer Table>
+    ? Table & keyof Types['DrizzleRelations']
+    : never;
+
+/**
+ * The query config for the table a field's type param names (a `many` config for a list field),
+ * or never when the type has no table.
+ */
+export type QueryForTypeParam<Types extends SchemaTypes, Type> =
+  TableForTypeParam<Types, Type> extends infer Table
+    ? [Table] extends [never]
+      ? never
+      : DBQueryConfig<
+          Type extends [unknown] ? 'many' : 'one',
+          Types['DrizzleRelations'],
+          Types['DrizzleRelations'][Table & keyof Types['DrizzleRelations']]
+        >
+    : never;
+
+/**
+ * What `nestedSelection` returns: the query config for the field's table, keeping the keys of
+ * the given selection as they were given (so `columns` in it still narrow the parent shape).
+ * With no selection, or `true`, it is the config itself. A field whose type has no table keeps
+ * the selection it was given.
+ */
+export type NestedSelectionResult<Types extends SchemaTypes, Type, Selection> = [
+  QueryForTypeParam<Types, Type>,
+] extends [never]
+  ? Selection
+  : Selection extends boolean
+    ? QueryForTypeParam<Types, Type>
+    : Normalize<Omit<QueryForTypeParam<Types, Type>, keyof Selection> & Selection>;
+
+/**
+ * The callback a field's `select` function plans the selection beneath the field with: `path`
+ * walks a field nested under the field's type, `type` names the type the selection is read as.
+ * It also carries the `PathInfo` of the field being planned. The selection is typed by the
+ * field's table when it has one, so `columns: { title: true }` keeps its literal `true`.
+ */
+export type NestedSelectionFn<Types extends SchemaTypes, Type, Args extends InputFieldMap = {}> = (<
+  Selection extends
+    | boolean
+    | ([QueryForTypeParam<Types, Type>] extends [never]
+        ? {}
+        : QueryForTypeParam<Types, Type>) = true,
+>(
+  selection?: NestedSelectionArg<Types, Selection, Args>,
+  path?: PathSegment[],
+  type?: string,
+) => NestedSelectionResult<Types, Type, Selection>) &
+  PathInfo;
+
+/**
+ * The selection given to `nestedSelection`: the query config itself, or a callback building it
+ * from the field's arguments, the context, and the field's `PathInfo`. A schema with
+ * `AsyncSelections: true` may also give a promise of the config, or an async callback; the result
+ * is typed by the query either way, and is a promise at runtime only when a promise or an async
+ * callback was given, or a selection beneath it is async, and must then be awaited.
+ */
+export type NestedSelectionArg<Types extends SchemaTypes, Selection, Args extends InputFieldMap> =
+  | Selection
+  | (true extends Types['AsyncSelections'] ? PromiseLike<Selection> : never)
+  | ((
+      args: InputShapeFromFields<Args>,
+      ctx: Types['Context'],
+      pathInfo: PathInfo,
+    ) => MaybeAsyncSelection<Types, Selection>);
 
 export type DrizzleFieldSelection =
   | DBQueryConfig<'one'>
@@ -353,13 +460,17 @@ export type DrizzleFieldSelection =
         selection:
           | SelectionMap
           | boolean
-          | ((args: object, context: object) => DBQueryConfig<'one'>),
-        path?: IndirectInclude | string[],
+          | ((
+              args: object,
+              context: object,
+              pathInfo: PathInfo,
+            ) => MaybePromise<DBQueryConfig<'one'>>),
+        path?: IndirectInclude | PathSegment[],
         type?: string,
       ) => DBQueryConfig<'one'> | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
       pathInfo: PathInfo,
-    ) => SelectionMap);
+    ) => MaybePromise<SelectionMap | false | null | undefined>);
 
 export type ExtractTable<Types extends SchemaTypes, Shape> = Shape extends {
   [drizzleTableName]?: keyof Types['DrizzleRelations'];
@@ -460,7 +571,50 @@ export type RelatedCountOptions<
   PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>,
   'type' | InferredFieldOptionKeys
 > & {
-  where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
+  where?:
+    | Where
+    | ((
+        args: InputShapeFromFields<Args>,
+        context: Types['Context'],
+      ) => MaybeAsyncSelection<Types, Where>);
+};
+
+/**
+ * The options of `t.relatedField`: the ordinary object field options (description, deprecation,
+ * extensions, and what other plugins add), with a `select` that plans a query on the relation.
+ */
+export type RelatedSelectionFieldOptions<
+  Types extends SchemaTypes,
+  TableConfig extends TableRelationalConfig,
+  Type extends TypeParam<Types>,
+  Nullable extends boolean,
+  Args extends InputFieldMap,
+  Select,
+  ShapeWithSelection,
+> = Omit<
+  PothosSchemaTypes.ObjectFieldOptions<Types, ShapeWithSelection, Type, Nullable, Args, unknown>,
+  InferredFieldOptionKeys
+> & {
+  /**
+   * The query planned on the parent row for this field: `buildFilter` filters the related table
+   * to the parent's rows, `nestedQuery` plans the field's own selection beneath a query. With
+   * `AsyncSelections: true` the function may be async.
+   */
+  select: ((
+    buildFilter: (parentTable: TableConfig['table']) => SQL,
+    args: InputShapeFromFields<Args>,
+    ctx: Types['Context'],
+    nestedQuery: (
+      query: DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
+    ) => DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
+  ) => MaybeAsyncSelection<Types, Select>) &
+    CheckAsyncSelection<Types, Select>;
+  resolve: (
+    parent: ShapeWithSelection,
+    args: InputShapeFromFields<Args>,
+    ctx: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
 };
 
 export type TypesForRelation<Types extends SchemaTypes, Rel extends Relation> = BuildQueryResult<
@@ -500,7 +654,7 @@ export type QueryForField<
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           pathInfo: PathInfo,
-        ) => QueryConfig)
+        ) => MaybeAsyncSelection<Types, QueryConfig>)
   : never;
 
 export type QueryForDrizzleField<
@@ -523,7 +677,13 @@ export type QueryForRelatedConnection<
 > & {
   orderBy?: ConnectionOrderBy<Table> | ((table: Table) => ConnectionOrderBy<Table>);
 } extends infer QueryConfig
-  ? QueryConfig | ((args: Args, context: Types['Context'], pathInfo: PathInfo) => QueryConfig)
+  ?
+      | QueryConfig
+      | ((
+          args: Args,
+          context: Types['Context'],
+          pathInfo: PathInfo,
+        ) => MaybeAsyncSelection<Types, QueryConfig>)
   : never;
 
 export type QueryForDrizzleConnection<
@@ -655,18 +815,6 @@ export type RelatedConnectionOptions<
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
-        resolve?: (
-          parent: Shape,
-          args: ConnectionArgs,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<
-          ShapeFromTypeParam<
-            Types,
-            [ObjectRef<Types, TypesForRelation<Types, Table['relations'][Field]>>],
-            Nullable
-          >
-        >;
         query?: QueryForRelatedConnection<Types, NodeTable, ConnectionArgs>;
         // biome-ignore lint/suspicious/noExplicitAny: this is fine
         type?: Type & DrizzleRef<any, Table['relations'][Field]['targetTableName']>;
@@ -722,23 +870,6 @@ export type DrizzleConnectionShape<
     : never;
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };
-
-export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape extends {}>
-  extends Omit<
-    PothosSchemaTypes.InputObjectTypeOptions<
-      Types,
-      InputFieldsFromShape<Types, Shape, 'InputObject'>
-    >,
-    'fields'
-  > {
-  name?: string;
-}
-
-export interface DrizzleGraphQLInputExtensions {
-  table: string;
-  tableConfig: TableRelationalConfig;
-  inputType: 'insert' | 'filters' | 'orderBy' | 'update';
-}
 
 export { DrizzleInterfaceRef, type DrizzleRef } from './interface-ref.js';
 export { DrizzleObjectRef } from './object-ref.js';

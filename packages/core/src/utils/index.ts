@@ -21,7 +21,9 @@ import {
 } from '../types/index.js';
 
 export * from './base64.js';
+export * from './connection-args.js';
 export * from './context-cache.js';
+export * from './cursors.js';
 export * from './enums.js';
 export * from './input.js';
 export * from './params.js';

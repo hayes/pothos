@@ -15,6 +15,9 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.posts.id,
       to: r.comments.id,
     }),
+    // no `from`/`to`: drizzle reverses `users.publishedPosts`, so this relation inherits its
+    // `where`, and the inherited `where` reads off the source (posts) rather than the target
+    publishedAuthor: r.one.users({ alias: 'publishedPosts' }),
   },
   comments: {
     post: r.one.posts({
@@ -30,6 +33,13 @@ export const relations = defineRelations(schema, (r) => ({
     posts: r.many.posts({
       from: r.users.id,
       to: r.posts.authorId,
+    }),
+    // the relation carries its own `where`, which the count has to reproduce
+    publishedPosts: r.many.posts({
+      from: r.users.id,
+      to: r.posts.authorId,
+      where: { content: { like: 'published%' } },
+      alias: 'publishedPosts',
     }),
     profile: r.one.profileInfo({
       from: r.users.id,

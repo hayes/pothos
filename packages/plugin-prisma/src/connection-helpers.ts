@@ -1,7 +1,24 @@
-import type { InputFieldMap, InputShapeFromFields, ObjectRef, SchemaTypes } from '@pothos/core';
+import {
+  completeValue,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  isThenable,
+  type MaybeAsyncSelection,
+  type MaybePromise,
+  type ObjectRef,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { PathSegment } from '@pothos/selection-mapper';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
-import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types.js';
+import type {
+  PrismaModelTypes,
+  SelectionMap,
+  ShapeFromSelection,
+  UniqueFieldsFromWhereUnique,
+} from './types.js';
+import { prismaAdapter } from './util/adapter.js';
+import { checkAwaitSelections } from './util/await-selections.js';
 import {
   getCursorFormatter,
   getCursorParser,
@@ -11,9 +28,10 @@ import {
 import { getRefFromModel } from './util/datamodel.js';
 import { getDMMF } from './util/get-client.js';
 import { getRelationMap } from './util/relation-map.js';
-import { createState, mergeSelection, selectionToQuery } from './util/selections.js';
 
-export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
+function wrapSelect(selected: unknown) {
+  return { select: selected };
+}
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -42,18 +60,22 @@ export function prismaConnectionHelpers<
   }: {
     cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
     select?: (
+      // The node's selection: its model is the connection field's, which the helper does not know.
       nestedSelection: <T extends true | {}>(selection?: T) => T,
       args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
-    ) => Select;
+    ) => MaybeAsyncSelection<Types, Select>;
     query?:
       | ((
           args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
           ctx: Types['Context'],
-        ) => {
-          where?: Model['Where'];
-          orderBy?: Model['OrderBy'];
-        })
+        ) => MaybeAsyncSelection<
+          Types,
+          {
+            where?: Model['Where'];
+            orderBy?: Model['OrderBy'];
+          }
+        >)
       | {
           where?: Model['Where'];
           orderBy?: Model['OrderBy'];
@@ -112,6 +134,8 @@ export function prismaConnectionHelpers<
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
   ) {
+    // Resolved here rather than left to `prismaCursorConnectionQuery`: the helper's callbacks
+    // also see the extra args, which that signature does not carry.
     return prismaCursorConnectionQuery({
       args,
       ctx,
@@ -121,48 +145,110 @@ export function prismaConnectionHelpers<
     });
   }
 
-  function getQuery(
+  /** The prisma query `getQuery` builds: the node selection, with the connection's own arguments. */
+  type ConnectionQuery = (Model['Select'] extends Select ? {} : { select: Select }) & {
+    where?: Model['Where'];
+    orderBy?: Model['OrderBy'];
+    skip?: number;
+    take?: number;
+    cursor?: Model['WhereUnique'];
+  };
+
+  /**
+   * What `getQuery` returns for a given `awaitSelections`. `[Await] extends [false]` rather than
+   * `Await extends true`, so a caller passing a `boolean` variable — which infers `Await` as
+   * `boolean`, neither literal — is handed the promise to deal with, rather than a synchronous
+   * type it cannot rely on.
+   */
+  type ConnectionQueryReturn<Await extends boolean> = [Await] extends [false]
+    ? ConnectionQuery
+    : MaybePromise<ConnectionQuery>;
+
+  /**
+   * The connection's query, built from the helper's own `select` and `query` and the selection
+   * beneath the field. Synchronous unless `awaitSelections` says otherwise: an async `select` or
+   * `query`, or an async selection beneath the connection, throws rather than returning a promise
+   * the declared type denies.
+   */
+  function getQuery<Await extends boolean = false>(
     args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
-    nestedSelection: <T extends true | {}>(selection?: T, path?: string[]) => T,
-  ) {
-    const nestedSelect: Record<string, unknown> | true = select
-      ? { select: select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
-      : nestedSelection(true, ['edges', 'node']);
+    // The `nestedSelection` of the field's `select`, whatever model its type names.
+    nestedSelection: (selection?: SelectionMap | true, path?: PathSegment[]) => unknown,
+    options?: {
+      /** Whether the caller will await the query. */
+      awaitSelections?: Await;
+    },
+  ): ConnectionQueryReturn<Await> {
+    // Both callbacks start now; the query waits for whichever of them is async.
+    const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
+      ? completeValue(
+          select(
+            (sel) => nestedSelection(sel as SelectionMap, ['edges', 'node']) as never,
+            args,
+            ctx,
+          ),
+          wrapSelect,
+        )
+      : (nestedSelection(true, ['edges', 'node']) as never);
+    let baseQuery: MaybePromise<object>;
 
-    const selectState = createState(
-      fieldMap,
-      'select',
-      builder.options.prisma.skipDeferredFragments ?? true,
-    );
+    try {
+      baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
+    } catch (error) {
+      // The selection has already started. Preserve the query error while handling any
+      // later rejection from the selection that this invocation can no longer consume.
+      if (isThenable(nestedSelect)) {
+        nestedSelect.then(
+          () => {},
+          () => {},
+        );
+      }
 
-    mergeSelection(selectState, { select: cursorSelection });
-
-    if (typeof nestedSelect === 'object' && nestedSelect) {
-      mergeSelection(selectState, nestedSelect);
+      throw error;
     }
 
-    const baseQuery = typeof query === 'function' ? query(args, ctx) : (query ?? {});
+    const built: MaybePromise<object> =
+      isThenable(nestedSelect) || isThenable(baseQuery)
+        ? Promise.all([nestedSelect, baseQuery]).then(([nested, base]) =>
+            buildQuery(nested, base, args, ctx),
+          )
+        : buildQuery(nestedSelect, baseQuery, args, ctx);
+
+    return checkAwaitSelections(
+      built,
+      options?.awaitSelections,
+      'getQuery',
+      `the ${modelName} connection`,
+    ) as ConnectionQueryReturn<Await>;
+  }
+
+  // Built once per helper, so a synchronous `getQuery` allocates nothing beyond the query.
+  function buildQuery(
+    nestedSelect: Record<string, unknown> | true,
+    baseQuery: object,
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+    ctx: Types['Context'],
+  ) {
+    const node = prismaAdapter.createNode(fieldMap);
+
+    prismaAdapter.mergeQuery(node, { select: cursorSelection });
+
+    if (typeof nestedSelect === 'object' && nestedSelect) {
+      prismaAdapter.mergeQuery(node, nestedSelect);
+    }
 
     return {
       ...baseQuery,
       ...getQueryArgs(args, ctx),
-      ...selectionToQuery(selectState),
-    } as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
-      where?: Model['Where'];
-      orderBy?: Model['OrderBy'];
-      skip?: number;
-      take?: number;
-      cursor?: Model['WhereUnique'];
+      ...prismaAdapter.toQuery(node),
     };
   }
 
   const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;
 
   return {
-    ref: (typeof refOrType === 'string'
-      ? getRefFromModel(refOrType, builder)
-      : refOrType) as PrismaRef<Types, Model, Model['Shape']>,
+    ref: ref as PrismaRef<Types, Model, Model['Shape']>,
     resolve,
     select: select ?? {},
     getQuery,

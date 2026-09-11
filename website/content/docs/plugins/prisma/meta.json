@@ -12,6 +12,7 @@
     "interfaces",
     "prisma-utils",
     "without-a-plugin",
+    "query-planning",
     "..."
   ]
 }

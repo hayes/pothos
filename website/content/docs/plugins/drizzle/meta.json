@@ -1,0 +1,16 @@
+{
+  "title": "Drizzle",
+  "pages": [
+    "setup",
+    "objects",
+    "relations",
+    "selections",
+    "connections",
+    "ordering-and-cursors",
+    "relay",
+    "variants",
+    "interfaces",
+    "query-planning",
+    "..."
+  ]
+}

@@ -100,3 +100,7 @@ builder.prismaObjectField(Viewer, 'user', t.variant(User));
 ```
 
 This same workaround applies when defining relations using variants.
+
+Two variants of one model selected for the same row have their type-level selections merged into a
+single query, which can fail if they disagree. See
+[Conflicting selections between variants](./query-planning#conflicting-selections-between-variants).

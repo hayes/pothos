@@ -1,0 +1,47 @@
+---
+title: Interfaces
+description: Creating interfaces for drizzle tables that can be shared by variants
+---
+
+## Interfaces
+
+`builder.drizzleInterface` works just like `builder.drizzleObject`, and can be used to define
+either the primary type or a variant of a table as an interface that other variants implement. The
+interface's `select` is planned whenever a field returns the interface, and an implementation's own
+`select` is planned when a fragment narrows to it. Selections are not inherited, so an
+implementation that exposes more columns will need a `select` of its own.
+
+```ts
+export const Viewer = builder.drizzleInterface('users', {
+  variant: 'Viewer',
+  select: { columns: { id: true, role: true } },
+  resolveType: (user) => (user.role === 'admin' ? 'AdminViewer' : 'MemberViewer'),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    user: t.variant('users'),
+  }),
+});
+
+builder.drizzleObject('users', {
+  variant: 'AdminViewer',
+  interfaces: [Viewer],
+  select: { columns: { permissions: true } },
+  fields: (t) => ({
+    permissions: t.exposeStringList('permissions'),
+  }),
+});
+```
+
+Fields can be added to an interface later with `builder.drizzleInterfaceField` and
+`builder.drizzleInterfaceFields`, which take the interface ref (or the table name) like their
+`drizzleObjectField(s)` counterparts:
+
+```ts
+builder.drizzleInterfaceFields(Viewer, (t) => ({
+  posts: t.relatedConnection('posts'),
+}));
+```
+
+An object type implementing a drizzle interface must be based on the same table. A plain object
+type that implements one is planned with the interface's table, so fragments on it will select the
+relations it inherits.

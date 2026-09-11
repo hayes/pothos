@@ -1,11 +1,11 @@
 import {
   type CompatibleTypes,
+  completeValue,
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
   type InferredFieldOptionKeys,
   type InputFieldMap,
-  type InputShapeFromFields,
   type InterfaceParam,
   isThenable,
   type MaybePromise,
@@ -19,24 +19,24 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import {
+  getLoaderMapping,
+  type SelectedFieldNode,
+  selectedFieldNames,
+} from '@pothos/selection-mapper';
+import {
   and,
   type BuildQueryResult,
   type DBQueryConfig,
-  eq,
   type InferSelectModel,
   Many,
+  type Relation,
+  relationsFilterToSQL,
   type SQL,
   type Table,
   type TableRelationalConfig,
+  type TablesRelationalConfig,
 } from 'drizzle-orm';
-import {
-  type FieldNode,
-  Kind as GraphQLKind,
-  type GraphQLResolveInfo,
-  getNamedType,
-  isInterfaceType,
-  isObjectType,
-} from 'graphql';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type {
   DrizzleConnectionShape,
@@ -45,6 +45,7 @@ import type {
   RelatedConnectionOptions,
   RelatedCountOptions,
   RelatedFieldOptions,
+  RelatedSelectionFieldOptions,
   ShapeFromConnection,
   TypesForRelation,
   VariantFieldOptions,
@@ -56,8 +57,10 @@ import {
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors.js';
+import { pathInfoFor } from './utils/path-info.js';
 import { getRefFromModel } from './utils/refs.js';
-import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
+import { buildRelationFilter, type RelationQueryBuilder } from './utils/relation-filter.js';
+import type { SelectionMap } from './utils/selections.js';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -67,6 +70,15 @@ const RootBuilder: {
     graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
+
+// drizzle-orm declares two parameters, but the implementation also takes the table's relations
+// and the full relational config, which lets a `where` filter on related tables.
+type RelationsFilterToSQL = (
+  table: Table,
+  filter: unknown,
+  tableRelations?: TableRelationalConfig['relations'],
+  tablesRelations?: TablesRelationalConfig,
+) => SQL | undefined;
 
 export class DrizzleObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -175,7 +187,6 @@ export class DrizzleObjectFieldBuilder<
       maxSize = this.builder.options.drizzle?.maxConnectionSize,
       defaultSize = this.builder.options.drizzle?.defaultConnectionSize,
       query,
-      resolve: _,
       extensions,
       description,
       totalCount,
@@ -188,13 +199,6 @@ export class DrizzleObjectFieldBuilder<
       description?: string;
       query?: ((args: {}, ctx: {}) => {}) | {};
       totalCount?: boolean;
-      resolve?: (
-        query: {},
-        parent: unknown,
-        args: {},
-        ctx: {},
-        info: {},
-      ) => MaybePromise<readonly {}[]>;
     } = {},
     connectionOptions = {},
     edgeOptions = {},
@@ -212,34 +216,72 @@ export class DrizzleObjectFieldBuilder<
     const ref = options.type ?? getRefFromModel(relationField.targetTableName, this.builder);
     let typeName: string | undefined;
 
-    const buildCountFilter = (parentTable: TableConfig['table']): SQL => {
-      const { sourceColumns, targetColumns } = relationField;
-      return and(
-        ...sourceColumns.map((sourceCol: { name: string }, i: number) =>
-          eq(targetColumns[i], parentTable[sourceCol.name as never]),
+    const filterTotalCount = this.builder.options.drizzle?.filterConnectionTotalCount !== false;
+
+    // The count for `totalCount` matches the connection's own filter: what the relation selects
+    // (including a `through` join and the relation's own `where`) plus the `where` from the
+    // field's `query`, so the count agrees with the rows being paginated. The `where` goes
+    // through the same `relationsFilterToSQL` the relational query builder puts it through, and
+    // `countRows` combines the two in the same order, so the count's predicate is the page
+    // query's predicate less the limit and the keyset clauses.
+    const buildCount = (
+      client: RelationQueryBuilder,
+      parentTable: TableConfig['table'],
+      where?: unknown,
+    ): SQL<number> => {
+      const { countRows } = buildRelationFilter(
+        client,
+        relationField as Relation,
+        parentTable as Table,
+      );
+
+      if (!where || !filterTotalCount) {
+        return countRows();
+      }
+
+      return countRows(
+        (relationsFilterToSQL as RelationsFilterToSQL)(
+          relatedTable.table as Table,
+          where,
+          relatedTable.relations,
+          schemaConfig.relations,
         ),
-      )!;
+      );
     };
+
+    interface ConnectionFieldQuery {
+      limit?: number;
+      orderBy?: unknown;
+      where?: SQL;
+      columns?: Record<string, boolean>;
+      extras?: DrizzleCursorConnectionQueryOptions['extras'];
+    }
+
+    // The field's `query` may be async, so the result is a promise when it is. The `PathInfo` is
+    // provided by the adapter, and only read for a callback that takes one.
+    const resolveFieldQuery = (
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: {},
+      pathInfo?: PathInfo,
+    ): MaybePromise<ConnectionFieldQuery> =>
+      completeValue(
+        (typeof query === 'function'
+          ? (
+              query as (
+                args: {},
+                ctx: {},
+                pathInfo?: PathInfo,
+              ) => MaybePromise<{} | null | undefined>
+            )(args, ctx, pathInfo)
+          : query) as MaybePromise<ConnectionFieldQuery | null | undefined>,
+        orEmpty,
+      );
 
     const getQuery = (
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: {},
-      pathInfo?: import('./types').PathInfo,
+      { limit, orderBy, where, ...fieldQuery }: ConnectionFieldQuery,
     ) => {
-      const { limit, orderBy, where, ...fieldQuery } = ((typeof query === 'function'
-        ? (query as (args: {}, ctx: {}, pathInfo?: import('./types').PathInfo) => {})(
-            args,
-            ctx,
-            pathInfo,
-          )
-        : query) ?? {}) as {
-        limit?: number;
-        orderBy?: unknown;
-        where?: SQL;
-        columns?: Record<string, boolean>;
-        extras?: DrizzleCursorConnectionQueryOptions['extras'];
-      };
-
       const { cursorFields, columns, ...connectionQuery } = drizzleCursorConnectionQuery({
         ctx,
         maxSize,
@@ -268,26 +310,34 @@ export class DrizzleObjectFieldBuilder<
       };
     };
 
-    const relationSelect = (
-      args: object,
-      context: object,
-      nestedQuery: (query: unknown, path?: unknown) => { select?: object },
-      getSelection: (path: string[]) => FieldNode | null,
-      pathInfo: import('./types').PathInfo,
-    ) => {
-      typeName ??= this.builder.configStore.getTypeConfig(ref).name;
+    const countKey = `_${name as string}_count`;
 
-      const hasTotalCount = totalCount && !!getSelection(['totalCount']);
-      const hasEdges = !!getSelection(['edges']);
-      const hasNodes = !!getSelection(['nodes']);
-      const hasPageInfo = !!getSelection(['pageInfo']);
-      const totalCountOnly = hasTotalCount && !hasEdges && !hasNodes && !hasPageInfo;
+    // What the document asks of this connection, read the way the planner reads it (through
+    // fragments, directives, and a wrapping type), so the resolve side agrees with the plan. The
+    // selection is read once per request and shared by every parent row.
+    const connectionSelectionFromNames = (selected: ReadonlySet<string>) => {
+      const hasTotalCount = !!totalCount && selected.has('totalCount');
+      for (const field of selected) {
+        if (field !== 'totalCount' && field !== '__typename') {
+          return { hasTotalCount, totalCountOnly: false };
+        }
+      }
+      return { hasTotalCount, totalCountOnly: hasTotalCount };
+    };
+    const connectionSelection = (context: object, info: GraphQLResolveInfo) =>
+      connectionSelectionFromNames(selectedFieldNames(context, info));
+
+    // Built once per field, so a synchronous plan allocates nothing beyond the map itself.
+    const selectConnection = (
+      fieldQuery: ConnectionFieldQuery,
+      nested: SelectionMap | undefined,
+      context: object,
+      hasTotalCount: boolean,
+      totalCountOnly: boolean,
+    ) => {
       const countSelection = {
-        [`_${name as string}_count`]: (parent: TableConfig['table']) =>
-          getClient(this.builder, context).$count(
-            relatedTable.table as Table,
-            buildCountFilter(parent),
-          ),
+        [countKey]: (parent: TableConfig['table']) =>
+          buildCount(getClient(this.builder, context), parent, fieldQuery.where),
       };
 
       if (totalCountOnly) {
@@ -298,11 +348,6 @@ export class DrizzleObjectFieldBuilder<
         };
       }
 
-      const nested = nestedQuery(getQuery(args, context, pathInfo).select, {
-        getType: () => typeName!,
-        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
-      }) as SelectionMap;
-
       return {
         columns: {},
         with: {
@@ -310,6 +355,59 @@ export class DrizzleObjectFieldBuilder<
         },
         extras: hasTotalCount ? countSelection : {},
       };
+    };
+
+    const relationSelect = (
+      args: object,
+      context: object,
+      nestedQuery: (query: unknown, path?: unknown) => { select?: object },
+      getSelection: SelectedFieldNode,
+      pathInfo: PathInfo,
+    ) => {
+      typeName ??= this.builder.configStore.getTypeConfig(ref).name;
+
+      const { hasTotalCount, totalCountOnly } = connectionSelectionFromNames(getSelection());
+      const fieldQuery = resolveFieldQuery(args, context, pathInfo);
+      // The nested plan starts now, with a query that waits for the field's `query` when that is
+      // async, so every callback beneath the connection runs in the same tick.
+      const nested = totalCountOnly
+        ? undefined
+        : (nestedQuery(
+            isThenable(fieldQuery)
+              ? fieldQuery.then((resolved) => getQuery(args, context, resolved).select)
+              : getQuery(args, context, fieldQuery).select,
+            {
+              getType: () => typeName!,
+              paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
+            },
+          ) as MaybePromise<SelectionMap>);
+
+      return isThenable(fieldQuery) || isThenable(nested)
+        ? Promise.all([fieldQuery, nested]).then(([resolvedQuery, resolvedNested]) =>
+            selectConnection(resolvedQuery, resolvedNested, context, hasTotalCount, totalCountOnly),
+          )
+        : selectConnection(fieldQuery, nested, context, hasTotalCount, totalCountOnly);
+    };
+
+    // The loaded path, per parent row: the rows are on the parent, only the page is needed.
+    const resolveLoaded = (
+      fieldQuery: ConnectionFieldQuery,
+      parent: unknown,
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      context: {},
+      countValue: number | undefined,
+    ) => {
+      const { select, cursorFields } = getQuery(args, context, fieldQuery);
+
+      return wrapConnectionResult(
+        (parent as Record<string, unknown>)[name] as readonly {}[],
+        args,
+        select.limit,
+        getCursorFormatter(cursorFields, schemaConfig),
+        undefined,
+        parent,
+        countValue,
+      );
     };
     const fieldRef = (
       this as unknown as {
@@ -321,6 +419,18 @@ export class DrizzleObjectFieldBuilder<
         extensions: {
           ...extensions,
           pothosDrizzleSelect: relationSelect,
+          pothosDrizzleLoaded: (
+            value: Record<string, unknown>,
+            info: GraphQLResolveInfo,
+            context: object,
+          ) => {
+            const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
+
+            return (
+              (!hasTotalCount || value[countKey] !== undefined) &&
+              (totalCountOnly || value[name as string] !== undefined)
+            );
+          },
         },
         description,
         type: ref,
@@ -330,13 +440,13 @@ export class DrizzleObjectFieldBuilder<
           context: {},
           info: GraphQLResolveInfo,
         ) => {
-          const countKey = `_${name as string}_count`;
           const parentRecord = parent as Record<string, unknown>;
           const countValue = totalCount
             ? (parentRecord[countKey] as number | undefined)
             : undefined;
 
-          if (!(name in parentRecord)) {
+          // Only totalCount was requested: the relation was never selected, so skip the cursors.
+          if (connectionSelection(context, info).totalCountOnly) {
             return {
               parent,
               args,
@@ -351,45 +461,23 @@ export class DrizzleObjectFieldBuilder<
             };
           }
 
-          // Detect totalCountOnly to skip cursor computation when only totalCount is requested
-          const returnType = getNamedType(info.returnType);
-          const fields =
-            isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
-          const totalCountOnly = info.fieldNodes.every((selection) =>
-            selection.selectionSet?.selections.every(
-              (s) =>
-                s.kind === GraphQLKind.FIELD &&
-                (fields[s.name.value]?.extensions?.pothosDrizzleTotalCount ||
-                  s.name.value === '__typename'),
-            ),
-          );
-
-          if (totalCountOnly) {
-            return {
-              parent,
-              args,
-              totalCount: countValue,
-              edges: [],
-              pageInfo: {
-                startCursor: null,
-                endCursor: null,
-                hasPreviousPage: false,
-                hasNextPage: false,
-              },
-            };
-          }
-
-          const { select, cursorFields } = getQuery(args, context);
-
-          return wrapConnectionResult(
-            parentRecord[name] as readonly {}[],
-            args,
-            select.limit,
-            getCursorFormatter(cursorFields, schemaConfig),
-            undefined,
+          // The same position the select path planned this field at, recorded alongside its
+          // loader mapping, so a `query` that branches on its path pages the rows it selected.
+          // Asked of `parent`, because that is whose rows are being paged: a sibling row of the
+          // same list may have been loaded by a different plan, at a different position.
+          const position = getLoaderMapping(
+            context,
+            info.path,
+            info.parentType.name,
             parent,
-            countValue,
-          );
+          )?.position;
+          const fieldQuery = resolveFieldQuery(args, context, pathInfoFor(position));
+
+          return isThenable(fieldQuery)
+            ? fieldQuery.then((resolved) =>
+                resolveLoaded(resolved, parent, args, context, countValue),
+              )
+            : resolveLoaded(fieldQuery, parent, args, context, countValue);
         },
       },
       connectionOptions instanceof ObjectRef
@@ -519,31 +607,25 @@ export class DrizzleObjectFieldBuilder<
 
     const { query = {}, extensions, ...rest } = options;
 
+    // Built once per field: the select allocates nothing when the nested selection is sync. The
+    // nested selection already carries the field's `query` (it is merged into the child first),
+    // so nothing is spread over it.
+    const selectRelation = (nested: unknown) => ({ columns: {}, with: { [name]: nested } });
     const relationSelect = (
       args: object,
       context: object,
       nestedQuery: (query: unknown) => {},
       _resolveSelection: unknown,
       pathInfo: PathInfo,
-    ) => {
-      const relQuery = {
-        columns: {},
-        with: {
-          [name]: omitUndefinedKeys({
-            ...nestedQuery(query),
-            ...((typeof query === 'function'
-              ? (query as (args: {}, context: {}, pathInfo: PathInfo) => {})(
-                  args,
-                  context,
-                  pathInfo,
-                )
-              : query) as {}),
-          }),
-        },
-      };
-
-      return relQuery;
-    };
+    ) =>
+      completeValue(
+        nestedQuery(
+          typeof query === 'function'
+            ? (query as (args: {}, context: {}, pathInfo?: PathInfo) => {})(args, context, pathInfo)
+            : query,
+        ),
+        selectRelation,
+      );
 
     return this.field({
       ...(rest as {}),
@@ -551,6 +633,8 @@ export class DrizzleObjectFieldBuilder<
       extensions: {
         ...extensions,
         pothosDrizzleSelect: relationSelect as never,
+        pothosDrizzleLoaded: (value: Record<string, unknown>) =>
+          value[name as string] !== undefined,
       },
       resolve: (parent: Record<string, never>) => parent[name as string],
     } as never) as never;
@@ -566,26 +650,15 @@ export class DrizzleObjectFieldBuilder<
       BuildQueryResult<Types['DrizzleRelations'], TableConfig, Select & { columns: {} }>,
   >(
     relationName: Field,
-    options: {
-      type: Type;
-      nullable?: Nullable;
-      args?: Args;
-      description?: string;
-      select: (
-        buildFilter: (parentTable: TableConfig['table']) => SQL,
-        args: Args extends InputFieldMap ? InputShapeFromFields<Args> : {},
-        ctx: Types['Context'],
-        nestedQuery: (
-          query: DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
-        ) => DBQueryConfig<'many', Types['DrizzleRelations'], TableConfig>,
-      ) => Select;
-      resolve: (
-        parent: ShapeWithSelection,
-        args: Args extends InputFieldMap ? InputShapeFromFields<Args> : {},
-        ctx: Types['Context'],
-        info: unknown,
-      ) => ShapeFromTypeParam<Types, Type, Nullable>;
-    },
+    options: RelatedSelectionFieldOptions<
+      Types,
+      TableConfig,
+      Type,
+      Nullable,
+      Args,
+      Select,
+      ShapeWithSelection
+    >,
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'DrizzleObject'> {
     const schemaConfig = getSchemaConfig(this.builder);
     const relationField = schemaConfig.relations?.[this.table].relations[relationName as string];
@@ -596,40 +669,41 @@ export class DrizzleObjectFieldBuilder<
       );
     }
 
-    const buildFilter = (parentTable: TableConfig['table']): SQL => {
-      const { sourceColumns, targetColumns } = relationField;
-
-      return and(
-        ...sourceColumns.map((sourceCol, i) =>
-          eq(targetColumns[i], parentTable[sourceCol.name as never]),
-        ),
-      )!;
-    };
+    // Explicit NOT NULL is required even for primary keys: SQLite permits nullable text and
+    // composite primary keys. Without a total identity the relation filter keeps EXISTS.
+    const targetKey = relationField.throughTable
+      ? schemaConfig
+          .getUniqueConstraints(relationField.targetTableName)
+          .find((columns) => columns.every((column) => column.notNull))
+      : undefined;
 
     const relationSelect = (
       args: object,
       context: Types['Context'],
       nestedQuery: (query: unknown) => unknown,
     ) => {
-      const selection = options.select(
-        buildFilter as never,
-        args as never,
-        context,
-        nestedQuery as never,
-      ) as Select & { with?: unknown };
-      return {
-        columns: selection.columns ?? {},
-        extras: selection.extras,
-        with: selection.with,
-      };
+      const buildFilter = (parentTable: TableConfig['table']): SQL =>
+        buildRelationFilter(
+          getClient(this.builder, context),
+          relationField as Relation,
+          parentTable as Table,
+          targetKey,
+        ).filter;
+
+      return completeValue(
+        options.select(buildFilter as never, args as never, context, nestedQuery as never) as
+          | MaybePromise<Select & { with?: unknown }>
+          | undefined,
+        pickSelection,
+      );
     };
 
+    const { select: _select, extensions, ...fieldOptions } = options;
+
     return this.field({
-      type: options.type,
-      nullable: options.nullable,
-      args: options.args,
-      description: options.description,
+      ...fieldOptions,
       extensions: {
+        ...extensions,
         pothosDrizzleSelect: relationSelect as never,
       },
       resolve: options.resolve as never,
@@ -637,7 +711,7 @@ export class DrizzleObjectFieldBuilder<
   }
 
   relatedCount<
-    Field extends keyof TableConfig['relations'],
+    Field extends ListRelation<TableConfig>,
     Args extends InputFieldMap,
     Where extends SQL | undefined,
   >(
@@ -649,11 +723,47 @@ export class DrizzleObjectFieldBuilder<
     const schemaConfig = getSchemaConfig(this.builder);
     const relationField = schemaConfig.relations?.[this.table].relations[relationName as string];
     const relatedTable = schemaConfig.relations[relationField.targetTableName];
+    // A related row counts once however many junction rows lead to it, which the count needs a
+    // column identifying a target row to say. Without one it falls back to counting the target
+    // table filtered by the relation, which says the same thing more slowly.
+    const targetKey = schemaConfig.findPrimaryKey(relationField.targetTableName);
+    const distinctBy = targetKey?.length === 1 && targetKey[0].notNull ? targetKey[0] : undefined;
+
+    // Built once per field; the `extras` function it returns is what the plan carried before.
+    const countExtras = (
+      whereClause: SQL | undefined,
+      ctx: Types['Context'],
+      buildFilter: (parent: TableConfig['table']) => SQL,
+    ) =>
+      ({
+        extras: {
+          [countKey]: (parent: TableConfig['table']) => {
+            const client = getClient(this.builder, ctx);
+
+            if (!distinctBy) {
+              return client.$count(
+                relatedTable.table as Table,
+                whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
+              );
+            }
+
+            return buildRelationFilter(
+              client,
+              relationField as Relation,
+              parent as Table,
+            ).countDistinctRows(distinctBy, whereClause);
+          },
+        },
+      }) as never;
 
     return this.relatedField(relationName, {
       ...options,
       type: 'Int' as never,
       nullable: false,
+      extensions: {
+        ...(options as { extensions?: Record<string, unknown> }).extensions,
+        pothosDrizzleLoaded: (value: Record<string, unknown>) => value[countKey] !== undefined,
+      },
       select: (
         buildFilter: (parent: TableConfig['table']) => SQL,
         args: object,
@@ -661,18 +771,14 @@ export class DrizzleObjectFieldBuilder<
       ) => {
         const whereClause =
           typeof where === 'function'
-            ? (where as (args: unknown, ctx: unknown) => SQL | undefined)(args, ctx)
+            ? (where as (args: unknown, ctx: unknown) => MaybePromise<SQL | undefined>)(args, ctx)
             : where;
 
-        return {
-          extras: {
-            [countKey]: (parent: TableConfig['table']) =>
-              getClient(this.builder, ctx).$count(
-                relatedTable.table as Table,
-                whereClause ? and(buildFilter(parent), whereClause) : buildFilter(parent),
-              ),
-          },
-        } as never;
+        return isThenable(whereClause)
+          ? whereClause.then((resolved) =>
+              countExtras(resolved as SQL | undefined, ctx, buildFilter),
+            )
+          : countExtras(whereClause, ctx, buildFilter);
       },
       resolve: (parent: Record<string, number>) => parent[countKey],
     } as never) as FieldRef<Types, number, 'DrizzleObject'>;
@@ -761,4 +867,18 @@ export class DrizzleObjectFieldBuilder<
       ) as never;
     };
   }
+}
+
+/** A relation `query` callback may return nothing; the connection then adds no filter. */
+function orEmpty<T extends object>(query: T | null | undefined): T {
+  return query ?? ({} as T);
+}
+
+/** A `relatedField` select's map, with the columns it may have left out defaulted. */
+function pickSelection(selection: { columns?: {}; extras?: unknown; with?: unknown } | undefined) {
+  return {
+    columns: selection?.columns ?? {},
+    extras: selection?.extras,
+    with: selection?.with,
+  };
 }

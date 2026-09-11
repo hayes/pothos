@@ -1,4 +1,5 @@
-import { createContextCache, type SchemaTypes } from '@pothos/core';
+import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
+import { cacheKey, Plan, setLoaderMappings, setRowFieldMapping } from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -9,22 +10,22 @@ import {
   type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
-import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
-import { cacheKey, setLoaderMappings } from './utils/loader-map.js';
-import { selectionStateFromInfo, stateFromInfo } from './utils/map-query.js';
 import {
-  mergeSelection,
-  type SelectionMap,
-  type SelectionState,
-  selectionCompatible,
-  selectionToQuery,
-} from './utils/selections.js';
+  type DrizzleAdapter,
+  type DrizzleNode,
+  type DrizzlePlan,
+  type DrizzlePlayedPlan,
+  drizzleAdapter,
+} from './utils/adapter.js';
+import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
+import { planFromInfo } from './utils/map-query.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
   reject: (err: unknown) => void;
 }
+
 export class ModelLoader {
   context: object;
 
@@ -32,14 +33,22 @@ export class ModelLoader {
 
   modelName: string;
 
-  queryCache = new Map<string, { selection: SelectionState; query: SelectionMap }>();
+  // One plan per `Type@path`, a promise while a select beneath the field is async. A parent-row
+  // plan is played where it is made, since it is never played behind another selection; a field's
+  // plan is played per load, so no two loads share a node.
+  rowCache = new Map<string, MaybePromise<DrizzlePlayedPlan>>();
 
+  planCache = new Map<string, MaybePromise<DrizzlePlan>>();
+
+  // Each batch owns the node it accumulates into, so nothing a cached plan or play holds is
+  // changed by a row joining the batch.
   staged = new Set<{
-    state: SelectionState;
+    root: DrizzleNode;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
   config: PothosDrizzleSchemaConfig;
+  adapter: DrizzleAdapter;
   table: TableRelationalConfig;
   columns: Column[];
   primaryKey: Column[];
@@ -55,6 +64,7 @@ export class ModelLoader {
     this.builder = builder;
     this.modelName = modelName;
     this.config = getSchemaConfig(builder);
+    this.adapter = drizzleAdapter(this.config);
     this.table = this.config.relations[modelName];
     this.primaryKey = this.config.getPrimaryKey(modelName);
     this.columns = columns ?? this.primaryKey;
@@ -93,68 +103,88 @@ export class ModelLoader {
 
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
-    if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(this.config, this.context, info);
-      this.queryCache.set(key, {
-        selection,
-        query: selectionToQuery(this.config, selection),
-      });
+    if (!this.rowCache.has(key)) {
+      this.rowCache.set(key, Plan.forParentRow(drizzleAdapter(this.config), this.context, info));
     }
 
-    return this.queryCache.get(key)!;
+    return this.rowCache.get(key)!;
   }
 
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
     const key = cacheKey(typeName, info.path);
-    if (!this.queryCache.has(key)) {
-      const selection = stateFromInfo({
-        config: this.config,
-        context: this.context,
-        info,
-        typeName,
-      });
-
-      this.queryCache.set(key, {
-        selection,
-        query: selectionToQuery(this.config, selection),
-      });
+    if (!this.planCache.has(key)) {
+      this.planCache.set(
+        key,
+        // Walked without paths, so there is always a plan.
+        planFromInfo({ config: this.config, context: this.context, info, typeName })!,
+      );
     }
 
-    return this.queryCache.get(key)!;
+    return this.planCache.get(key)!;
   }
 
-  async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { selection, query } = this.getSelection(info);
+  /**
+   * `model` reloaded with the selection of the field `info` resolves. A synchronous selection
+   * stages synchronously, so every row resolved in a tick joins the same batch; only a selection
+   * with an async select beneath the field waits for it.
+   */
+  loadSelection(info: GraphQLResolveInfo, model: object): Promise<Record<string, unknown> | null> {
+    const selection = this.getSelection(info);
 
-    const result = await this.stageQuery(selection, query, model);
+    return isThenable(selection)
+      ? selection.then((settled) => this.loadWith(settled, info, model))
+      : this.loadWith(selection, info, model);
+  }
 
-    if (result) {
-      const mappings = selection.mappings[info.path.key];
+  private loadWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(played, model).then((result) => {
+      if (result) {
+        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
 
-      if (mappings) {
-        setLoaderMappings(this.context, info, mappings.mappings);
+        if (mapping) {
+          // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
+          // with, along with the mappings of the fields beneath it. Against `result` alone: this
+          // load fetched one row, so the field's own mapping is not the whole field's to claim.
+          // A sibling row that falls back on a later tick would otherwise read it as proof of
+          // having been loaded and resolve against a row that never carried the data.
+          setRowFieldMapping(this.context, info, mapping, result);
+        }
       }
-    }
 
-    return result;
+      return result;
+    });
   }
 
-  async loadSelectionForField(info: GraphQLResolveInfo, model: object, returnType: string) {
-    const { selection, query } = this.getSelectionForField(info, returnType);
+  /** A node loaded by id with the selection beneath the field `info` resolves, as `returnType`. */
+  loadSelectionForField(
+    info: GraphQLResolveInfo,
+    model: object,
+    returnType: string,
+  ): Promise<Record<string, unknown> | null> {
+    const selection = this.getSelectionForField(info, returnType);
 
-    const result = await this.stageQuery(selection, query, model);
-
-    if (result) {
-      setLoaderMappings(this.context, info, selection.mappings);
-    }
-
-    return result;
+    return isThenable(selection)
+      ? selection.then((settled) => this.loadFieldWith(settled.play(), info, model))
+      : this.loadFieldWith(selection.play(), info, model);
   }
 
-  stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
+  private loadFieldWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(played, model).then((result) => {
+      if (result) {
+        // Relay nodes of different types share this field path. Each node plan contributes
+        // its type-qualified mappings, as a queryFromInfo plan would.
+        setLoaderMappings(this.context, info, played.mappings);
+      }
+
+      return result;
+    });
+  }
+
+  stageQuery(played: DrizzlePlayedPlan, model: object) {
     for (const entry of this.staged) {
-      if (selectionCompatible(entry.state, query)) {
-        mergeSelection(this.config, entry.state, query);
+      // Node to node: the batch takes the field's play whole, never through a query.
+      if (this.adapter.canMergeNode(entry.root, played.root)) {
+        this.adapter.mergeNode(entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
@@ -164,13 +194,17 @@ export class ModelLoader {
       }
     }
 
-    return this.initLoad(selection, model);
+    return this.initLoad(played, model);
   }
 
-  initLoad(selection: SelectionState, model: object) {
+  initLoad(played: DrizzlePlayedPlan, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
+    const root = this.adapter.createNode(played.root.model);
+
+    this.adapter.mergeNode(root, played.root);
+
     const entry = {
-      state: selection,
+      root,
       models: new Map([[model, promise]]),
     };
     this.staged.add(entry);
@@ -181,15 +215,10 @@ export class ModelLoader {
     nextTick.promise
       .then(() => {
         this.staged.delete(entry);
-        const api = (
-          client.query as Record<
-            string,
-            { findMany: (...args: unknown[]) => Promise<Record<string, unknown>[]> }
-          >
-        )[this.modelName];
+        const api = client.query[this.modelName];
 
         const query = api.findMany({
-          ...selectionToQuery(this.config, selection),
+          ...this.adapter.toQuery(entry.root),
           where: {
             RAW: (table: AnyTable<{}>) =>
               inArray(
@@ -197,21 +226,31 @@ export class ModelLoader {
                 [...entry.models.keys()].map((model) => this.sqlForModel(model)),
               ),
           },
-        });
+        } as never);
 
         query.then(
           (results) => {
             for (const [model, promise] of entry.models.entries()) {
+              // Matched on the columns the batch was keyed by, which are the columns a row of
+              // `entry.models` carries: a node loaded by a column other than the primary key
+              // has only that one.
               const result = results.find((row) =>
-                this.primaryKey.every(
-                  (key) =>
-                    row[this.config.columnToTsName(key) as keyof typeof row] ===
-                    (model as Record<string, unknown>)[this.config.columnToTsName(key)],
-                ),
+                this.columns.every((key) => {
+                  const name = this.config.columnToTsName(key);
+                  const actual = row[name as keyof typeof row];
+                  const expected = (model as Record<string, unknown>)[name];
+
+                  return (
+                    actual === expected ||
+                    (actual instanceof Date &&
+                      expected instanceof Date &&
+                      actual.getTime() === expected.getTime())
+                  );
+                }),
               );
 
               if (result) {
-                promise.resolve(result ?? null);
+                promise.resolve(result);
               } else {
                 promise.reject(
                   new Error(`Model ${this.modelName}(${this.sqlForModel(model)}) not found`),

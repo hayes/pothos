@@ -1,45 +1,35 @@
 import {
   decodeBase64,
+  decodeCursorChunk,
   encodeBase64,
+  encodeCursorChunk,
+  encodeCursorTuple,
+  getConnectionPageSize,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
+  validateConnectionArguments,
 } from '@pothos/core';
 import { getModel } from './datamodel.js';
 import type { DMMFField } from './get-client.js';
 import { extendWithUsage } from './usage.js';
 
-const DEFAULT_MAX_SIZE = 100;
-const DEFAULT_SIZE = 20;
-
-export function formatCursorChunk(value: unknown) {
-  if (value instanceof Date) {
-    return `D:${String(Number(value))}`;
-  }
-
-  switch (typeof value) {
-    case 'number':
-      return `N:${value}`;
-    case 'string':
-      return `S:${value}`;
-    case 'bigint':
-      return `I:${value}`;
-    default:
-      throw new PothosValidationError(`Unsupported cursor type ${typeof value}`);
-  }
-}
-
 export function formatPrismaCursor(record: Record<string, unknown>, fields: string[] | string) {
   return cursorFormatter(fields)(record);
 }
 
+// `GPC:` is this plugin's namespace and stays; what follows it is `@pothos/core`'s tagged chunk
+// encoding, shared with the drizzle plugin so the two can't drift apart again.
 export function cursorFormatter(fields: string[] | string) {
   return (value: Record<string, unknown>) => {
     if (typeof fields === 'string') {
-      return encodeBase64(`GPC:${formatCursorChunk(value[fields])}`);
+      return encodeBase64(`GPC:${encodeCursorChunk(value[fields])}`);
     }
 
-    return encodeBase64(`GPC:J:${JSON.stringify(fields.map((name) => value[name]))}`);
+    // A compound cursor tags each part. It used to be a bare `JSON.stringify` of the raw
+    // values, which read a Date back as a string and threw outright on a bigint, so a
+    // `@@unique` containing a bigint column failed on every edge.
+    return encodeBase64(`GPC:${encodeCursorTuple(fields.map((name) => value[name]))}`);
   };
 }
 
@@ -50,22 +40,12 @@ export function parsePrismaCursor(cursor: unknown) {
 
   try {
     const decoded = decodeBase64(cursor);
-    const [, type, value] = decoded.match(/^GPC:(\w):(.*)/) as [string, string, string];
 
-    switch (type) {
-      case 'S':
-        return value;
-      case 'N':
-        return Number.parseInt(value, 10);
-      case 'D':
-        return new Date(Number.parseInt(value, 10));
-      case 'J':
-        return JSON.parse(value) as unknown;
-      case 'I':
-        return BigInt(value);
-      default:
-        throw new PothosValidationError(`Invalid cursor type ${type}`);
+    if (!decoded.startsWith('GPC:')) {
+      throw new PothosValidationError('Invalid cursor');
     }
+
+    return decodeCursorChunk(decoded.slice(4));
   } catch {
     throw new PothosValidationError(`Invalid cursor: ${cursor}`);
   }
@@ -92,7 +72,9 @@ export function parseID(id: string, dataType: string): unknown {
       return new Date(id);
     case 'Json':
       return JSON.parse(id) as unknown;
+    // `Bytes` is what the datamodel calls the type; `Byte` has never matched one.
     case 'Byte':
+    case 'Bytes':
       return Buffer.from(id, 'base64');
     default:
       return id;
@@ -112,16 +94,18 @@ export function getDefaultIDSerializer<Types extends SchemaTypes>(
     return (parent) => serializeID(parent[fieldName], field.type);
   }
 
+  // `f.type` names the scalar (`Json`, `Bytes`, ...); `f.kind` only says `scalar`, which no case
+  // of `serializeID` matches, and the parser below reads each part back by `f.type`.
   if ((model.primaryKey?.name ?? model.primaryKey?.fields.join('_')) === fieldName) {
     const fields = model.primaryKey!.fields.map((n) => model.fields.find((f) => f.name === n)!);
-    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.type)));
   }
 
   const index = model.uniqueIndexes.find((idx) => (idx.name ?? idx.fields.join('_')) === fieldName);
 
   if (index) {
     const fields = index.fields.map((n) => model.fields.find((f) => f.name === n)!);
-    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.type)));
   }
 
   throw new PothosValidationError(`Unable to find ${fieldName} for model ${modelName}`);
@@ -177,11 +161,17 @@ export function serializeID(id: unknown, dataType: string) {
   switch (dataType) {
     case 'Json':
       return JSON.stringify(id);
+    // `Bytes` is what the datamodel calls the type; `Byte` has never matched one.
     case 'Byte':
+    case 'Bytes':
       if (id instanceof Uint8Array) {
         return Buffer.from(id).toString('base64');
       }
       return (id as Buffer | Uint8Array).toString('base64');
+    // `String(date)` drops the milliseconds, and the id has to find the row again. Old ids in
+    // that format still parse, since `new Date` reads both.
+    case 'DateTime':
+      return id instanceof Date ? id.toISOString() : String(id);
     default:
       return String(id);
   }
@@ -189,11 +179,22 @@ export function serializeID(id: unknown, dataType: string) {
 
 export function parseCompositeCursor(fields: readonly string[]) {
   return (cursor: unknown) => {
+    // A `T:` cursor hands back the values with their types intact. A cursor issued before this
+    // release is a `J:` chunk, whose array holds whatever plain JSON preserved -- see the
+    // deprecated `J:` case in `@pothos/core`'s `decodeCursorChunk`.
     const parsed = parsePrismaCursor(cursor) as unknown[];
 
     if (!Array.isArray(parsed)) {
       throw new PothosValidationError(
         `Expected compound cursor to contain an array, but got ${parsed}`,
+      );
+    }
+
+    // A cursor of the wrong width would otherwise leave a key `undefined` (or silently drop an
+    // extra), and prisma rejects the query that builds. The drizzle plugin checks the same.
+    if (parsed.length !== fields.length) {
+      throw new PothosValidationError(
+        `Expected compound cursor to contain ${fields.length} elements, but got ${parsed.length}`,
       );
     }
 
@@ -224,18 +225,12 @@ interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQue
 export function prismaCursorConnectionQuery({
   args,
   ctx,
-  maxSize = DEFAULT_MAX_SIZE,
-  defaultSize = DEFAULT_SIZE,
+  maxSize,
+  defaultSize,
   parseCursor,
 }: PrismaCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
-  if (first != null && first < 0) {
-    throw new PothosValidationError('Argument "first" must be a non-negative integer');
-  }
-
-  if (last != null && last < 0) {
-    throw new PothosValidationError('Argument "last" must be a non-negative integer');
-  }
+  validateConnectionArguments(args);
 
   if (before && after) {
     throw new PothosValidationError(
@@ -261,9 +256,16 @@ export function prismaCursorConnectionQuery({
   const defaultSizeForConnection =
     typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
 
-  let take = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+  const { limit } = getConnectionPageSize({
+    args,
+    defaultSize: defaultSizeForConnection,
+    maxSize: maxSizeForConnection,
+  });
 
-  if (before ?? last) {
+  let take = limit;
+
+  // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`.
+  if (before != null || last != null) {
     take = -take;
   }
 
@@ -286,8 +288,10 @@ export function wrapConnectionResult<T extends {}>(
   resolveNode?: (node: unknown) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(take);
-  const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : (args.before ?? args.last) ? gotFullResults : false;
+  // Compared against null rather than truthiness: `last: 0` is a backward page of zero rows.
+  const backward = args.before != null || args.last != null;
+  const hasNextPage = args.before != null ? true : args.last != null ? false : gotFullResults;
+  const hasPreviousPage = args.after != null ? true : backward ? gotFullResults : false;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;

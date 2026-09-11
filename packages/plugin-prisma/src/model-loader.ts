@@ -1,28 +1,24 @@
 import {
   createContextCache,
   type InterfaceRef,
+  isThenable,
+  type MaybePromise,
   type ObjectRef,
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
+import { cacheKey, Plan, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { SelectionMap } from './types.js';
+import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
 import { getClient } from './util/get-client.js';
-import { cacheKey, setLoaderMappings } from './util/loader-map.js';
-import { selectionStateFromInfo } from './util/map-query.js';
-import {
-  mergeSelection,
-  type SelectionState,
-  selectionCompatible,
-  selectionToQuery,
-} from './util/selections.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
   reject: (err: unknown) => void;
 }
+
 export class ModelLoader {
   context: object;
 
@@ -32,10 +28,14 @@ export class ModelLoader {
 
   modelName: string;
 
-  queryCache = new Map<string, { selection: SelectionState; query: SelectionMap }>();
+  // One parent-row plan per `Type@path`, played where it is made since it is never played behind
+  // another selection; a promise while a select beneath the field is async.
+  queryCache = new Map<string, MaybePromise<PrismaPlayedPlan>>();
 
+  // Each batch owns the node it accumulates into, so nothing a cached play holds is changed by a
+  // row joining the batch.
   staged = new Set<{
-    state: SelectionState;
+    root: PrismaNode;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
@@ -56,7 +56,7 @@ export class ModelLoader {
   static forRef<Types extends SchemaTypes>(
     ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
-    findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | undefined,
+    findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | null | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
     return createContextCache(
@@ -69,7 +69,8 @@ export class ModelLoader {
             ? () => {
                 throw new PothosSchemaError(`Missing findUnique for ${ref.name}`);
               }
-            : (findUnique ?? ModelLoader.getDefaultFindUnique(ref, modelName, builder)),
+            : (findUnique ??
+                ModelLoader.getFindUnique(ModelLoader.getDefaultFindBy(ref, modelName, builder))),
         ),
     );
   }
@@ -134,16 +135,6 @@ export class ModelLoader {
     }
 
     return findBy;
-  }
-
-  static getDefaultFindUnique<Types extends SchemaTypes>(
-    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
-    modelName: string,
-    builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  ): (model: Record<string, unknown>) => {} {
-    const findBy = ModelLoader.getDefaultFindBy(ref, modelName, builder);
-
-    return ModelLoader.getFindUnique(findBy);
   }
 
   static getDefaultIDSelection<Types extends SchemaTypes>(
@@ -236,53 +227,68 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.queryCache.has(key)) {
-      const selection = selectionStateFromInfo(
-        this.context,
-        info,
-        this.builder.options.prisma.skipDeferredFragments ?? true,
+      this.queryCache.set(
+        key,
+        Plan.forParentRow(
+          prismaAdapter,
+          this.context,
+          info,
+          this.builder.options.prisma.skipDeferredFragments ?? true,
+        ),
       );
-      this.queryCache.set(key, {
-        selection,
-        query: selectionToQuery(selection),
-      });
     }
 
     return this.queryCache.get(key)!;
   }
 
-  async loadSelection(info: GraphQLResolveInfo, model: object) {
-    const { selection, query } = this.getSelection(info);
+  /**
+   * `model` reloaded with the selection of the field `info` resolves. A synchronous selection
+   * stages synchronously, so every row resolved in a tick joins the same batch; only a selection
+   * with an async select beneath the field waits for it.
+   */
+  loadSelection(info: GraphQLResolveInfo, model: object): Promise<Record<string, unknown> | null> {
+    const selection = this.getSelection(info);
 
-    const result = await this.stageQuery(selection, query, model);
-
-    if (result) {
-      const mappings = selection.mappings[info.path.key];
-
-      if (mappings) {
-        setLoaderMappings(this.context, info, mappings.mappings);
-      }
-    }
-
-    return result;
+    return isThenable(selection)
+      ? selection.then((settled) => this.loadWith(settled, info, model))
+      : this.loadWith(selection, info, model);
   }
 
-  async stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
+  private loadWith(played: PrismaPlayedPlan, info: GraphQLResolveInfo, model: object) {
+    return this.stageQuery(played, model).then((result) => {
+      if (result) {
+        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
+
+        if (mapping) {
+          // This plan loaded `result` alone, so its mappings are the row's, not the field's: a
+          // sibling row of the same list that the planned query did load must keep answering
+          // from the plan.
+          setRowMappings(this.context, info, mapping.nested);
+        }
+      }
+
+      return result;
+    });
+  }
+
+  stageQuery(played: PrismaPlayedPlan, model: object) {
     for (const entry of this.staged) {
-      if (selectionCompatible(entry.state, query)) {
-        mergeSelection(entry.state, query);
+      // Node to node: the batch takes the field's play whole, never through a query.
+      if (prismaAdapter.canMergeNode(entry.root, played.root)) {
+        prismaAdapter.mergeNode(entry.root, played.root);
 
         if (!entry.models.has(model)) {
           entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
         }
 
-        return await entry.models.get(model)!.promise;
+        return entry.models.get(model)!.promise;
       }
     }
 
-    return this.initLoad(selection, model);
+    return this.initLoad(played, model);
   }
 
-  initLoad(state: SelectionState, initialModel: {}) {
+  initLoad(played: PrismaPlayedPlan, initialModel: {}) {
     const delegate = getDelegateFromModel(
       getClient(this.builder, this.context as never),
       this.modelName,
@@ -293,9 +299,13 @@ export class ModelLoader {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     models.set(initialModel, promise);
 
+    const root = prismaAdapter.createNode(played.root.model);
+
+    prismaAdapter.mergeNode(root, played.root);
+
     const entry = {
       models,
-      state,
+      root,
     };
 
     this.staged.add(entry);
@@ -304,22 +314,37 @@ export class ModelLoader {
     this.tick.then(() => {
       this.staged.delete(entry);
 
-      for (const [model, { resolve, reject }] of entry.models) {
-        if (delegate.findUniqueOrThrow) {
-          delegate
-            .findUniqueOrThrow({
-              ...selectionToQuery(state),
-              where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
-            } as never)
-            .then(resolve as () => {}, reject);
-        } else {
-          delegate
-            .findUnique({
-              rejectOnNotFound: true,
-              ...selectionToQuery(state),
-              where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
-            } as never)
-            .then(resolve as () => {}, reject);
+      // A throw here — `toQuery`, `findUnique`, or the delegate call itself — would otherwise abort
+      // the loop, leaving every model it had not reached pending forever and the request with it.
+      // The whole batch rejects instead, the way drizzle's loader does; a promise the loop already
+      // settled ignores it. Caught rather than chained so the tick still allocates no promise of
+      // its own.
+      try {
+        for (const [model, { resolve, reject }] of entry.models) {
+          if (delegate.findUniqueOrThrow) {
+            delegate
+              .findUniqueOrThrow({
+                ...prismaAdapter.toQuery(entry.root),
+                where: {
+                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
+                },
+              } as never)
+              .then(resolve as () => {}, reject);
+          } else {
+            delegate
+              .findUnique({
+                rejectOnNotFound: true,
+                ...prismaAdapter.toQuery(entry.root),
+                where: {
+                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
+                },
+              } as never)
+              .then(resolve as () => {}, reject);
+          }
+        }
+      } catch (error) {
+        for (const { reject } of entry.models.values()) {
+          reject(error);
         }
       }
     });

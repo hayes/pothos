@@ -1,6 +1,10 @@
+/**
+ * Tracks whether a resolver read anything off the query it was handed, so a plugin can warn about
+ * a `query` that was never spread into the ORM call.
+ */
 export const usageSymbol = Symbol.for('Pothos.isUsed');
 
-export function wrapWithUsageCheck<T extends Object>(obj: T): T {
+export function wrapWithUsageCheck<T extends object>(obj: T): T {
   const result = {};
   let used = true;
 

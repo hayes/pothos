@@ -69,6 +69,35 @@ to resolve nested parts of the current query. The included/selected fields are b
 are being queried, and the options provided when defining those fields and types.
 
 
+### `prismaFieldWithInput`
+
+With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
+`t.prismaFieldWithInput` combines `t.prismaField` with `t.fieldWithInput`. The `input` fields become
+an input object argument, and the resolver still receives the `query` to spread as its first
+argument.
+
+```typescript
+builder.mutationType({
+  fields: (t) => ({
+    createPost: t.prismaFieldWithInput({
+      type: 'Post',
+      input: {
+        title: t.input.string({ required: true }),
+        authorId: t.input.id({ required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.post.create({
+          ...query,
+          data: {
+            title: args.input.title,
+            authorId: Number.parseInt(args.input.authorId, 10),
+          },
+        }),
+    }),
+  }),
+});
+```
+
 ## Extending prisma objects
 
 The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support

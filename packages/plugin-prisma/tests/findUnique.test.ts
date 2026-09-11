@@ -538,21 +538,11 @@ describe('findUnique', () => {
         },
         model: 'WithCompositeUnique',
       },
-      {
-        action: 'findUniqueOrThrow',
-        args: {
-          include: {
-            FindUniqueRelations: true,
-          },
-          where: {
-            a_b: {
-              a: '1',
-              b: '1',
-            },
-          },
-        },
-        model: 'WithCompositeUnique',
-      },
+      // Loader mappings are keyed by type and path, so when `nodes` loads a
+      // WithCompositeUniqueNodeCustom row the `relations` field is mapped for that type as well
+      // as for the WithCompositeUniqueNode fragment planned into the same query. Its resolver
+      // reads the loaded row, where an alias-keyed mapping used to fall back to one more
+      // `WithCompositeUnique` lookup by `a_b`.
     ];
 
     expect(queries).toHaveLength(expectedQueries.length);

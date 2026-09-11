@@ -54,3 +54,51 @@ export function decodeBase64(value: string): string {
 
   throw new Error('Unable to locate global `Buffer` or `atob`');
 }
+
+// `encodeBase64` runs its input through UTF-8, which mangles bytes that aren't valid UTF-8.
+// A `Bytes`/`bytea` column holds arbitrary bytes, so it needs its own pair.
+export function encodeBase64Bytes(bytes: Uint8Array): string {
+  const localGlobalThis = getGlobalThis();
+
+  if (typeof localGlobalThis.Buffer === 'function') {
+    return localGlobalThis.Buffer.from(bytes).toString('base64');
+  }
+
+  if (typeof localGlobalThis.btoa === 'function') {
+    let binary = '';
+
+    // Not `String.fromCharCode(...bytes)`: spreading a large value overflows the argument limit.
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
+    }
+
+    return localGlobalThis.btoa(binary);
+  }
+
+  throw new Error('Unable to locate global `Buffer` or `btoa`');
+}
+
+export function decodeBase64Bytes(value: string): Uint8Array {
+  if (!base64Regex.test(value)) {
+    throw new PothosValidationError('Invalid base64 string');
+  }
+
+  const localGlobalThis = getGlobalThis();
+
+  if (typeof localGlobalThis.Buffer === 'function') {
+    return localGlobalThis.Buffer.from(value, 'base64');
+  }
+
+  if (typeof localGlobalThis.atob === 'function') {
+    const binary = localGlobalThis.atob(value);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes;
+  }
+
+  throw new Error('Unable to locate global `Buffer` or `atob`');
+}
