@@ -148,6 +148,25 @@ statements, as in the walkthrough above. See [circular references](./circular-re
 
 You can also pass a ref to `builder.objectType(GiraffeRef, { ... })` with the same options.
 
+### Using classes
+
+If your app already represents its data with classes, prefer using those classes as backing models.
+Pass the class to `builder.objectType`: its instance type becomes the backing model, and the class
+itself can be used as a field's `type`. For example, with an existing `GiraffeModel` class:
+
+```typescript
+builder.objectType(GiraffeModel, {
+  name: 'Giraffe',
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+```
+
+The `name` option supplies the GraphQL type name. When resolving an
+[interface](./interfaces) or [union](./unions), you can also use an explicit
+`isTypeOf: (value) => value instanceof GiraffeModel` option to identify instances of the class.
+
 ### Using SchemaTypes
 
 You can declare backing models in `SchemaTypes` and pass it to `SchemaBuilder`. This lets you
@@ -187,22 +206,3 @@ The `Objects` mapping tells Pothos which backing model belongs to each name. Her
 `Giraffe` field resolvers and checks the object returned by the `giraffe` query. You still define
 the GraphQL fields with `builder.objectType`; declaring a backing model doesn't expose its properties.
 The [SchemaBuilder guide](./schema-builder) covers the other type settings.
-
-### Using classes
-
-If your app already represents its data with classes, you can pass a class to `builder.objectType`.
-The class's instance type becomes the backing model, and the class itself can be used as a field's
-`type`. For example, with an existing `GiraffeModel` class:
-
-```typescript
-builder.objectType(GiraffeModel, {
-  name: 'Giraffe',
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-```
-
-The `name` option supplies the GraphQL type name. When resolving an
-[interface](./interfaces) or [union](./unions), you can also use an explicit
-`isTypeOf: (value) => value instanceof GiraffeModel` option to identify instances of the class.
