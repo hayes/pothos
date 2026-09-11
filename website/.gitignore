@@ -35,7 +35,10 @@ util/search-index.js
 # vercel
 .vercel
 
-# generated playground bundles
+# generated playground bundles (and the per-process temp files the
+# generators rename into place, in case one is left by a crashed run)
 /lib/playground/pothos-types.ts
+/lib/playground/pothos-types.ts.*.tmp
 /components/playground/examples/examples-index.generated.ts
+/components/playground/examples/examples-index.generated.ts.*.tmp
 /public/playground-examples/*.json

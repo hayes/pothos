@@ -398,7 +398,15 @@ export function getAllPluginNames(): string[] {
 `;
 
   fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
-  fs.writeFileSync(OUTPUT_FILE, output);
+  // `build`, `type` and `test` each run codegen and turbo runs them
+  // concurrently, so several processes write this file at once. A bare
+  // writeFileSync truncates first, leaving a window where a concurrent
+  // reader (tsc, tsx) sees a half-written module. Write a per-process temp
+  // file and rename it into place instead — rename(2) is atomic, so the
+  // destination only ever holds a complete copy.
+  const tmpOutputFile = `${OUTPUT_FILE}.${process.pid}.tmp`;
+  fs.writeFileSync(tmpOutputFile, output);
+  fs.renameSync(tmpOutputFile, OUTPUT_FILE);
 
   const totalPluginDefs = Object.values(pluginDefinitions).reduce(
     (sum, defs) => sum + defs.length,

@@ -629,7 +629,14 @@ export function getOrganizedExamples() {
 
   // Atomic write: write to a temp file then rename so a crash mid-write
   // can't leave a half-generated index file on disk.
-  const tmpIndexFile = `${INDEX_FILE}.tmp`;
+  //
+  // The temp name carries the pid because `build`, `type` and `test` each
+  // run codegen and turbo runs them concurrently. On a shared temp name the
+  // two renames race: the first wins and the second fails ENOENT on a file
+  // that no longer exists. Per-process names make the writes independent,
+  // and rename(2) is atomic, so whichever lands last publishes a complete
+  // (and identical) index.
+  const tmpIndexFile = `${INDEX_FILE}.${process.pid}.tmp`;
   await writeFile(tmpIndexFile, indexContent, 'utf-8');
   await rename(tmpIndexFile, INDEX_FILE);
 
