@@ -1,0 +1,8 @@
+{
+  "id": "types-interfaces",
+  "title": "Interface fields",
+  "description": "Run the animals query. Change the giraffe height from 5.2 to 6 and run again; diet remains inherited from Animal.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/interfaces"],
+  "defaultActiveFile": "schema.ts"
+}

@@ -10,44 +10,12 @@ use as a field or argument type.
 
 An array of strings uses the same values in GraphQL and in your resolvers:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder({});
-
-const LengthUnit = builder.enumType('LengthUnit', {
-  values: ['Feet', 'Meters'],
-});
-
-builder.queryType({
-  fields: (t) => ({
-    height: t.float({
-      args: {
-        unit: t.arg({ type: LengthUnit, required: true, defaultValue: 'Meters' }),
-      },
-      resolve: (_parent, { unit }) => (unit === 'Meters' ? 5 : 5 * 3.281),
-    }),
-    unit: t.field({
-      type: LengthUnit,
-      args: { value: t.arg({ type: LengthUnit, required: true }) },
-      resolve: (_parent, { value }) => value,
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="types-enums"'>playground-examples/types-enums/schema.ts#schema</include>
 
 Pothos infers the inline array as the literal values `'Feet' | 'Meters'`. If you define the array
 in a separate variable, use `as const` to retain those literal types.
 
-```graphql
-{
-  height
-  feet: height(unit: Feet)
-  unit(value: Meters)
-}
-```
+<include cwd lang="graphql" meta='playground example="types-enums"'>playground-examples/types-enums/query.graphql</include>
 
 ```json
 {
@@ -60,27 +28,15 @@ in a separate variable, use `as const` to retain those literal types.
 ```
 
 Enum literals in a query are unquoted names. When passing an enum in JSON variables, use a string
-such as `"Meters"`.
+such as `"Meters"`. Select the companion's `variables` operation, change the unit to `"Feet"`
+in its Variables tab, and run again.
 
 ## Descriptions and internal values
 
 Use a values object to describe or deprecate individual values, or to map GraphQL names to different
 values in your application:
 
-```typescript
-const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
-  values: {
-    Southern: {
-      description: 'Also known as two-horned giraffe',
-      value: 'giraffa',
-    },
-    Masai: { value: 'tippelskirchi' },
-    Reticulated: { value: 'reticulata' },
-    Northern: { value: 'camelopardalis' },
-    Unknown: { deprecationReason: 'Use a nullable species field instead.' },
-  },
-});
-```
+<include cwd lang="typescript" meta='playground example="types-enum-species"'>playground-examples/types-enum-species/schema.ts#definition</include>
 
 The keys are GraphQL names. An argument containing `Northern` reaches the resolver as
 `'camelopardalis'`; returning `'camelopardalis'` from a `GiraffeSpecies` field produces `"Northern"`
@@ -91,22 +47,7 @@ leaves it usable by clients.
 
 If your application already uses a TypeScript enum, register it directly:
 
-```typescript
-enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVOROUS,
-}
-
-builder.enumType(Diet, { name: 'Diet' });
-
-builder.queryField('diet', (t) =>
-  t.field({
-    type: Diet,
-    resolve: () => Diet.HERBIVOROUS,
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="types-enum-diet"'>playground-examples/types-enum-diet/schema.ts#definition</include>
 
 The enum's keys become GraphQL value names. Resolvers receive and return the TypeScript enum's
 values, including numeric values in this example. You can use either the TypeScript enum itself
@@ -116,36 +57,18 @@ or the reference returned by `enumType` as the field or argument type.
 
 You can also derive enum values from an existing object:
 
-```typescript
-const VehicleType = {
-  sedan: 'SEDAN',
-  suv: 'SUV',
-  truck: 'TRUCK',
-  motorcycle: 'MOTORCYCLE',
-} as const;
+<include cwd lang="typescript" meta='playground example="types-enum-objects" tab="Mapped values"'>playground-examples/types-enum-objects/schema.ts#definition</include>
 
-const VehicleTypeEnum = builder.enumType('VehicleType', {
-  values: Object.fromEntries(
-    Object.entries(VehicleType).map(([name, value]) => [name, { value }]),
-  ),
-});
-```
+<include cwd lang="typescript" meta='playground example="types-enum-objects-variant-values" tab="Values as names"'>playground-examples/types-enum-objects/variant-values/schema.ts#definition</include>
 
-Here the GraphQL names are `sedan`, `suv`, `truck`, and `motorcycle`, while resolvers use `SEDAN`,
-`SUV`, `TRUCK`, and `MOTORCYCLE`. To use the object's values for both names and internal values,
-replace the enum definition with:
+<include cwd lang="typescript" meta='playground example="types-enum-objects-variant-keys" tab="Keys as names"'>playground-examples/types-enum-objects/variant-keys/schema.ts#definition</include>
 
-```typescript
-const VehicleTypeEnum = builder.enumType('VehicleType', {
-  values: Object.values(VehicleType),
-});
-```
+In **Mapped values**, the GraphQL names are `sedan`, `suv`, `truck`, and `motorcycle`, while resolvers
+use `SEDAN`, `SUV`, `TRUCK`, and `MOTORCYCLE`.
 
-To use the keys for both, use `Object.keys(VehicleType)`. TypeScript types `Object.keys` as
-`string[]`, so the following assertion preserves the known keys of this local object:
+**Values as names** uses `Object.values(VehicleType)` for both names and internal values.
+**Keys as names** uses `Object.keys(VehicleType)` for both. TypeScript types `Object.keys` as
+`string[]`, so the assertion preserves the known keys of this local object.
 
-```typescript
-const VehicleTypeEnum = builder.enumType('VehicleType', {
-  values: Object.keys(VehicleType) as (keyof typeof VehicleType)[],
-});
-```
+Open each tab in the playground and compare `vehicle` with `internalValue`: the first is the
+GraphQL enum name, while the second exposes the value the argument resolver receives.

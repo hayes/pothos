@@ -1,0 +1,5 @@
+query EnumSpecies {
+  species(value: Northern)
+  internalValue(value: Northern)
+  deprecated: species(value: Unknown)
+}

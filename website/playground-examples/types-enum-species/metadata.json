@@ -1,0 +1,7 @@
+{
+  "id": "types-enum-species",
+  "title": "Enum names and internal values",
+  "description": "Run Northern and Unknown. Change Northern to Masai to compare the GraphQL name with the internal value received by resolvers.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/enums"]
+}

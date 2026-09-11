@@ -1,0 +1,4 @@
+query VariantKeys {
+  vehicle(value: sedan)
+  internalValue(value: sedan)
+}

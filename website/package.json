@@ -53,6 +53,7 @@
     "fumadocs-ui": "16.7.15",
     "graphql": "^16.13.2",
     "graphql-language-service": "^5.5.0",
+    "graphql-scalars": "^1.25.0",
     "lucide-react": "^1.8.0",
     "lz-string": "^1.5.0",
     "next": "^16.2.3",
@@ -73,11 +74,11 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "glob": "^13.0.0",
+    "playwright": "^1.63.0",
     "postcss": "^8.5.9",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "unist-util-visit": "^5.0.0",
-    "vitest": "^4.1.4",
-    "playwright": "^1.63.0"
+    "vitest": "^4.1.4"
   }
 }

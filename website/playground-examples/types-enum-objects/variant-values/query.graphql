@@ -1,0 +1,4 @@
+query VariantValues {
+  vehicle(value: SEDAN)
+  internalValue(value: SEDAN)
+}

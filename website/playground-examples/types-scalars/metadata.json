@@ -1,0 +1,8 @@
+{
+  "id": "types-scalars",
+  "title": "Positive integers",
+  "description": "Run the literal and variable requests, then the invalid inputs and output. Change value in Variables to 5 to get 10.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/scalars"],
+  "defaultActiveFile": "schema.ts"
+}

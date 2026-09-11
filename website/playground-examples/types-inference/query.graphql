@@ -1,0 +1,10 @@
+query Inference {
+  user(input: { id: 3, name: "Katherine" }) {
+    id
+    name
+  }
+  getUsers(limit: 1) {
+    id
+    name
+  }
+}

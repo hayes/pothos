@@ -1,0 +1,9 @@
+{
+  "query.graphql": {
+    "data": {
+      "species": "Northern",
+      "internalValue": "camelopardalis",
+      "deprecated": "Unknown"
+    }
+  }
+}

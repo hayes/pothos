@@ -1,0 +1,7 @@
+{
+  "id": "types-interface-classes",
+  "title": "Interfaces with existing classes",
+  "description": "Run the animals query. Both object types use instanceof checks and return class instances; changing a resolver to return a plain object makes the check fail.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/interfaces"]
+}

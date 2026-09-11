@@ -1,0 +1,8 @@
+{
+  "id": "types-schema-builder",
+  "title": "SchemaBuilder and context",
+  "description": "Run requestId. Change requestId in the Context tab and run again; a TypeScript Context declaration does not supply a runtime value.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/schema-builder"],
+  "defaultActiveFile": "schema.ts"
+}

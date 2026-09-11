@@ -1,0 +1,8 @@
+{
+  "id": "types-unions",
+  "title": "Union members",
+  "description": "Run the facts query. Change the numeric fact value from 35 to 40, then run again and inspect the matching fragment.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/unions"],
+  "defaultActiveFile": "schema.ts"
+}

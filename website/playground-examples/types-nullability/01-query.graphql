@@ -1,0 +1,5 @@
+query Nullability {
+  greeting(input: { name: "Ada" })
+  names
+  nickname
+}

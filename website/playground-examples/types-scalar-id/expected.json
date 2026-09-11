@@ -1,0 +1,8 @@
+{
+  "query.graphql": {
+    "data": {
+      "echo": "42",
+      "inputType": "string"
+    }
+  }
+}

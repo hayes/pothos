@@ -1,0 +1,51 @@
+{
+  "01-query.graphql": {
+    "data": {
+      "double": 6
+    }
+  },
+  "02-invalid-float.graphql": {
+    "errors": [
+      {
+        "message": "PositiveInt must be an integer literal"
+      }
+    ]
+  },
+  "03-invalid-literal.graphql": {
+    "errors": [
+      {
+        "message": "PositiveInt must be an integer literal"
+      }
+    ]
+  },
+  "04-invalid-output.graphql": {
+    "errors": [
+      {
+        "message": "PositiveInt must be a positive safe integer",
+        "path": ["double"]
+      }
+    ],
+    "data": {
+      "double": null
+    }
+  },
+  "05-invalid-variable.graphql": {
+    "errors": [
+      {
+        "message": "Variable \"$value\" has invalid value: PositiveInt must be a positive safe integer"
+      }
+    ]
+  },
+  "06-invalid-zero.graphql": {
+    "errors": [
+      {
+        "message": "PositiveInt must be a positive safe integer"
+      }
+    ]
+  },
+  "07-variables.graphql": {
+    "data": {
+      "double": 8
+    }
+  }
+}

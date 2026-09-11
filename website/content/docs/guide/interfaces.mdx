@@ -13,42 +13,7 @@ use `builder.interfaceRef` to associate a TypeScript type with a GraphQL interfa
 
 In this example, giraffes and lions have a diet, but each has some other data of its own:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-type Giraffe = {
-  kind: 'giraffe';
-  diet: string;
-  heightInMeters: number;
-};
-
-type Lion = {
-  kind: 'lion';
-  diet: string;
-  hasMane: boolean;
-};
-
-type Animal = Giraffe | Lion;
-
-const builder = new SchemaBuilder({});
-const AnimalRef = builder.interfaceRef<Animal>('Animal');
-const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
-const LionRef = builder.objectRef<Lion>('Lion');
-
-AnimalRef.implement({
-  fields: (t) => ({
-    diet: t.exposeString('diet'),
-  }),
-  resolveType: (animal) => {
-    switch (animal.kind) {
-      case 'giraffe':
-        return 'Giraffe';
-      case 'lion':
-        return 'Lion';
-    }
-  },
-});
-```
+<include cwd lang="typescript" meta='playground example="types-interfaces"'>playground-examples/types-interfaces/schema.ts#model</include>
 
 The `resolveType` function returns the GraphQL object type name to use when a field returns an
 `Animal`. Here, the `kind` property distinguishes the two shapes. It is part of our backing data,
@@ -58,21 +23,7 @@ but isn't exposed as a GraphQL field.
 
 Use the `interfaces` option to specify which interfaces an object implements:
 
-```typescript
-GiraffeRef.implement({
-  interfaces: [AnimalRef],
-  fields: (t) => ({
-    height: t.exposeFloat('heightInMeters'),
-  }),
-});
-
-LionRef.implement({
-  interfaces: [AnimalRef],
-  fields: (t) => ({
-    hasMane: t.exposeBoolean('hasMane'),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="types-interfaces"'>playground-examples/types-interfaces/schema.ts#objects</include>
 
 Pothos adds the interface's fields to each implementing object, so both types have a `diet` field
 without defining it again. The object's backing model must be assignable to the interface's backing
@@ -81,43 +32,17 @@ are members of the `Animal` TypeScript union.
 
 ## Using an Interface as a return type
 
-A field returning a list of animals can include both giraffes and lions:
+A field returning a list of animals can include both giraffes and lions. The return annotation
+keeps each `kind` value typed as its specific string literal:
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    animals: t.field({
-      type: [AnimalRef],
-      resolve: () => [
-        { kind: 'giraffe', diet: 'herbivore', heightInMeters: 5.2 },
-        { kind: 'lion', diet: 'carnivore', hasMane: true },
-      ],
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="types-interfaces"'>playground-examples/types-interfaces/schema.ts#query</include>
 
 ## Querying interface fields
 
 We can query `diet` on every animal. Fields that belong to a particular object type go inside an
 inline fragment. The `__typename` field tells us which object type each result has:
 
-```graphql
-query {
-  animals {
-    __typename
-    diet
-    ... on Giraffe {
-      height
-    }
-    ... on Lion {
-      hasMane
-    }
-  }
-}
-```
+<include cwd lang="graphql" meta='playground example="types-interfaces"'>playground-examples/types-interfaces/query.graphql</include>
 
 The result includes the shared field and the matching fragment's fields for each animal:
 
@@ -147,6 +72,11 @@ The result includes the shared field and the matching fragment's fields for each
   Existing `Error` subclasses are another good use case: the [Errors plugin](../plugins/errors)
   matches errors against the configured classes using `instanceof`.
 </Callout>
+
+<include cwd lang="typescript" meta='playground example="types-interface-classes"'>playground-examples/types-interface-classes/schema.ts#classes</include>
+
+<include cwd lang="typescript" meta='playground example="types-interface-classes"'>playground-examples/types-interface-classes/schema.ts#instances</include>
+
 
 Another option is to return data with a `__typename` property containing the GraphQL object type's
 name, such as `'Giraffe'`. GraphQL uses this property when the interface has no `resolveType`

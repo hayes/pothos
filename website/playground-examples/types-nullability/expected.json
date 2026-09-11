@@ -1,0 +1,16 @@
+{
+  "01-query.graphql": {
+    "data": {
+      "greeting": "Hello, Ada!",
+      "names": ["Ada"],
+      "nickname": null
+    }
+  },
+  "02-missing-name.graphql": {
+    "errors": [
+      {
+        "message": "Expected value of type \"GreetingInput\" to include required field \"name\", found: {  }."
+      }
+    ]
+  }
+}

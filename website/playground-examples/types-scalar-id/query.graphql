@@ -1,0 +1,4 @@
+query ScalarId {
+  echo(id: 42)
+  inputType(id: 42)
+}

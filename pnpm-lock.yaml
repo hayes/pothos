@@ -1442,6 +1442,9 @@ importers:
       graphql-language-service:
         specifier: ^5.5.0
         version: 5.5.0(graphql@17.0.1)
+      graphql-scalars:
+        specifier: ^1.25.0
+        version: 1.25.0(graphql@17.0.1)
       lucide-react:
         specifier: ^1.8.0
         version: 1.8.0(react@19.2.5)

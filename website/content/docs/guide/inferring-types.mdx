@@ -11,29 +11,7 @@ on the corresponding output or input ref. Use these properties in TypeScript typ
 not to read runtime data. An object ref carries its backing model, not a GraphQL query result: clients
 select fields, and resolvers can expose fields that are not properties of the backing model.
 
-```ts
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder({});
-
-const MyInput = builder.inputType('MyInput', {
-  fields: (t) => ({
-    id: t.id({ required: true }),
-    name: t.string({ required: true }),
-  }),
-});
-
-// { id: string; name: string; }
-type MyInputShape = typeof MyInput.$inferInput;
-
-const UserRef = builder.objectRef<{ id: string; name: string }>('User').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
-type UserType = typeof UserRef.$inferType;
-```
+<include cwd lang="typescript" meta='playground example="types-inference"'>playground-examples/types-inference/schema.ts#refs</include>
 
 When building helpers, most Pothos types have a generic called `Types` that extends `SchemaTypes`.
 This combines all the defaults and settings passed in when creating the SchemaBuilder. To make your
@@ -44,64 +22,18 @@ This can be inferred from the builder using `typeof builder.$inferSchemaTypes`.
 The following is a simple helper for creating objects that have an `id` field. The helper
 itself isn't that useful, but shows how inferring SchemaTypes from a builder can work.
 
-```ts
-import type { FieldMap } from '@pothos/core';
-
-type BuilderTypes = typeof builder.$inferSchemaTypes;
-
-function createObjectWithId<T extends { id: string }>(
-  name: string,
-  fields: (t: PothosSchemaTypes.ObjectFieldBuilder<BuilderTypes, T>) => FieldMap,
-) {
-  const ref = builder.objectRef<T>(name);
-
-  ref.implement({
-    fields: (t) => ({
-      ...fields(t),
-      id: t.id({
-        resolve: (parent) => parent.id,
-        nullable: false,
-      }),
-    }),
-  });
-
-  return ref;
-}
-
-const UserWithId = createObjectWithId<{
-  id: string;
-  name: string;
-}>('UserWithId', (t) => ({
-  name: t.exposeString('name'),
-}));
-```
+<include cwd lang="typescript" meta='playground example="types-inference"'>playground-examples/types-inference/schema.ts#object-helper</include>
 
 Rather than explicitly using the inferred type, you can also infer SchemaTypes from the builder in
 an argument. In the following example, we pass in the builder to the createPaginationArgs, and infer
 the `Types` from the provided builder. This is useful when building helpers that might be used with
 multiple builder instances.
 
-```ts
-import type { SchemaTypes } from '@pothos/core';
+<include cwd lang="typescript" meta='playground example="types-inference"'>playground-examples/types-inference/schema.ts#pagination</include>
 
-function createPaginationArgs<Types extends SchemaTypes>(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) {
-  return builder.args((t) => ({
-    limit: t.int(),
-    offset: t.int(),
-  }));
-}
-
-builder.queryType({});
-
-builder.queryField('getUsers', (t) =>
-  t.field({
-    type: [UserWithId],
-    args: {
-      ...createPaginationArgs(builder),
-    },
-    resolve: () => [],
-  }),
-);
-```
+The companion uses the inferred input shape in `toUser` and returns real users from `getUsers`.
+Run the query, then change `limit` from `1` to `2`. Hover `input` and `parent` in the source to
+inspect their types. In `MyInput`, change `name: t.string({ required: true })` to
+`name: t.int({ required: true })`. The inferred input now has a numeric name, so returning it from
+`toUser` produces a TypeScript error: `UserType` still requires a string. The GraphQL input field
+also changes from `String!` to `Int!`.

@@ -1,0 +1,8 @@
+{
+  "query.graphql": {
+    "data": {
+      "vehicle": "sedan",
+      "internalValue": "sedan"
+    }
+  }
+}

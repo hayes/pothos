@@ -1,0 +1,22 @@
+{
+  "id": "types-enum-objects",
+  "title": "Enums from objects",
+  "description": "Run vehicle and internalValue. Compare the docs tabs: mapped names produce SEDAN inside the resolver, while the keys-only definition produces sedan.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/enums"],
+  "variants": [
+    {
+      "id": "mapped",
+      "title": "Mapped values",
+      "default": true
+    },
+    {
+      "id": "values",
+      "title": "Values as names"
+    },
+    {
+      "id": "keys",
+      "title": "Keys as names"
+    }
+  ]
+}
