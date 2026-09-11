@@ -87,7 +87,25 @@ export async function checkPlaygroundMobileFiles(browser, origin) {
           .getEditors()
           .some((editor) => editor.getModel()?.uri.toString() === 'file:///playground/schema.ts'),
       );
-      console.log(`PASS ${width}px mobile file selection, nested edit, query, and generated SDL`);
+      const previous = page.getByRole('button', { name: '← Prev', exact: true });
+      const next = page.getByRole('button', { name: 'Next →', exact: true });
+      for (const button of [previous, next, page.getByRole('button', { name: 'Exit example' })]) {
+        const box = await button.boundingBox();
+        assert.ok(
+          box && box.x >= 0 && box.x + box.width <= width,
+          `${width}px: step navigation must fit inside the viewport`,
+        );
+      }
+      await previous.click();
+      await page.waitForFunction(
+        () => document.querySelector('select[aria-label="Source file"]')?.options.length === 2,
+      );
+      await next.click();
+      await selector
+        .locator('option')
+        .filter({ hasText: 'models/giraffe.ts' })
+        .waitFor({ state: 'attached' });
+      console.log(`PASS ${width}px mobile files, edited result, SDL, and previous/next steps`);
     } finally {
       await page.close();
     }
