@@ -79,34 +79,3 @@ export function clearCdnCache(): void {
   cache.clear();
 }
 
-const RELATIVE = /^\.\.?\//;
-
-/**
- * Pull every bare module specifier out of a JS source. We deliberately
- * don't try to be a real parser — esbuild's transform output is
- * normalized enough that a regex catches the cases we care about
- * (post-compilation, no JSX, no TS-only forms). Side-effect imports
- * (`import 'foo'`) and re-exports (`export { x } from 'foo'`) are both
- * picked up so a `getPluginModules`-style scan on the raw source
- * misses nothing.
- */
-export function extractBareImports(code: string): Set<string> {
-  const out = new Set<string>();
-  const patterns: RegExp[] = [
-    /import\s+[\s\S]*?\s+from\s*['"]([^'"]+)['"]/g,
-    /import\s*['"]([^'"]+)['"]/g,
-    /export\s+\*\s+from\s*['"]([^'"]+)['"]/g,
-    /export\s*\{[^}]*\}\s*from\s*['"]([^'"]+)['"]/g,
-  ];
-  for (const re of patterns) {
-    let match: RegExpExecArray | null = re.exec(code);
-    while (match !== null) {
-      const name = match[1];
-      if (!RELATIVE.test(name)) {
-        out.add(name);
-      }
-      match = re.exec(code);
-    }
-  }
-  return out;
-}

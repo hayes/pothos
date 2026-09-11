@@ -202,7 +202,7 @@ function decodeV3State(params: URLSearchParams): PlaygroundURLState | null {
     }
 
     const query = params.get('query');
-    if (query) {
+    if (query !== null) {
       state.query = query;
     }
 

@@ -38,7 +38,7 @@ export function readInitialFromURL(): UrlInitialState | null {
         context: q.context ?? '',
       }),
     );
-  } else if (url.query) {
+  } else if (url.query !== undefined) {
     operations = [
       makeOperation({
         name: parseOperationName(url.query, 'Untitled'),

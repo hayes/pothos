@@ -126,6 +126,8 @@ export function useQueryRunner(): QueryRunner {
 
   const run = useCallback(
     async ({ schema, query, variables, context, compileError }: RunArgs): Promise<RunResult> => {
+      setPanels([]);
+      setLastLogs([]);
       // Refuse to run against a stale schema when the current code
       // doesn't compile. `schema` may still hold the last successfully
       // compiled schema; running it would report a misleading success.
@@ -165,94 +167,102 @@ export function useQueryRunner(): QueryRunner {
         return { phase: errPhase, panels: [], logs: [] };
       }
 
-      const operationName = pickOperationName(query, getQueryCursor());
+      try {
+        const operationName = pickOperationName(query, getQueryCursor());
 
-      // Reset the side-channel panel slot before every run. Examples
-      // can register middleware that pushes panels (SQL captures, trace
-      // events, ...) into this slot during resolver execution; we read
-      // it back below and merge it with the explicit
-      // `extensions.playgroundPanels` field on the response.
-      resetExtensionPanels();
+        // Reset the side-channel panel slot before every run. Examples
+        // can register middleware that pushes panels (SQL captures, trace
+        // events, ...) into this slot during resolver execution; we read
+        // it back below and merge it with the explicit
+        // `extensions.playgroundPanels` field on the response.
+        resetExtensionPanels();
 
-      const start = performance.now();
-      const { result, logs } = await captureConsoleAsync(async () =>
-        graphql({
-          schema,
-          source: query,
-          variableValues: parsedVars,
-          operationName,
-          // Plugins like `scope-auth` stash per-request state on the
-          // context using a Symbol key, so an object is required here
-          // even when the user hasn't supplied one — the Context tab
-          // feeds this.
-          contextValue,
-        }),
-      );
-      const durationMs = performance.now() - start;
+        const start = performance.now();
+        const { result, logs } = await captureConsoleAsync(async () =>
+          graphql({
+            schema,
+            source: query,
+            variableValues: parsedVars,
+            operationName,
+            // Plugins like `scope-auth` stash per-request state on the
+            // context using a Symbol key, so an object is required here
+            // even when the user hasn't supplied one — the Context tab
+            // feeds this.
+            contextValue,
+          }),
+        );
+        const durationMs = performance.now() - start;
 
-      // graphql-js wraps thrown resolver errors and `JSON.stringify`
-      // drops `originalError` (it's non-enumerable). Surface the
-      // underlying Error + stack in the Console drawer so users can see
-      // where their resolver actually blew up. Without this, the
-      // response panel shows "Cannot read property X of undefined" with
-      // no file/line and no way to find the source.
-      const errorLogs: ConsoleMessage[] = [];
-      for (const err of result.errors ?? []) {
-        const original = (err as { originalError?: Error }).originalError;
-        const path = err.path?.length ? ` at ${err.path.join('.')}` : '';
-        const stack = original?.stack ?? err.stack;
-        errorLogs.push({
-          type: 'error',
-          args: [`GraphQL error${path}: ${err.message}`, stack ?? ''],
-          timestamp: Date.now(),
-        });
-      }
-      const allLogs = [...(logs as ConsoleMessage[]), ...errorLogs];
-
-      // Pull in playground panels from two sources:
-      //   1. The side-channel slot (panels pushed by execution-path
-      //      middleware that can't reach the GraphQL result — e.g. an
-      //      ORM's SQL capture, request-tracing instrumentation).
-      //   2. Any `extensions.playgroundPanels` the executed schema
-      //      surfaced itself — the explicit contract a plugin can use
-      //      to attach panels via the GraphQL response.
-      const capturedPanels = [...getExtensionPanels()];
-      const userPanels = extractUserPanels(result.extensions);
-      const allPanels = [...capturedPanels, ...userPanels];
-
-      // The Response tab shows the GraphQL body without the
-      // `playgroundPanels` blob — that data is already surfaced via
-      // the SQL / ORM tabs, and inlining the (potentially large) SQL
-      // text into the JSON body would just bury the actual data the
-      // user came to see. Any *other* `extensions` fields the schema
-      // emits stay on the response.
-      const resultForBody: Record<string, unknown> = { ...result };
-      if (
-        result.extensions &&
-        typeof result.extensions === 'object' &&
-        'playgroundPanels' in result.extensions
-      ) {
-        const { playgroundPanels: _omit, ...keep } = result.extensions as Record<string, unknown>;
-        if (Object.keys(keep).length > 0) {
-          resultForBody.extensions = keep;
-        } else {
-          delete resultForBody.extensions;
+        // graphql-js wraps thrown resolver errors and `JSON.stringify`
+        // drops `originalError` (it's non-enumerable). Surface the
+        // underlying Error + stack in the Console drawer so users can see
+        // where their resolver actually blew up. Without this, the
+        // response panel shows "Cannot read property X of undefined" with
+        // no file/line and no way to find the source.
+        const errorLogs: ConsoleMessage[] = [];
+        for (const err of result.errors ?? []) {
+          const original = (err as { originalError?: Error }).originalError;
+          const path = err.path?.length ? ` at ${err.path.join('.')}` : '';
+          const stack = original?.stack ?? err.stack;
+          errorLogs.push({
+            type: 'error',
+            args: [`GraphQL error${path}: ${err.message}`, stack ?? ''],
+            timestamp: Date.now(),
+          });
         }
+        const allLogs = [...(logs as ConsoleMessage[]), ...errorLogs];
+
+        // Pull in playground panels from two sources:
+        //   1. The side-channel slot (panels pushed by execution-path
+        //      middleware that can't reach the GraphQL result — e.g. an
+        //      ORM's SQL capture, request-tracing instrumentation).
+        //   2. Any `extensions.playgroundPanels` the executed schema
+        //      surfaced itself — the explicit contract a plugin can use
+        //      to attach panels via the GraphQL response.
+        const capturedPanels = [...getExtensionPanels()];
+        const userPanels = extractUserPanels(result.extensions);
+        const allPanels = [...capturedPanels, ...userPanels];
+
+        // The Response tab shows the GraphQL body without the
+        // `playgroundPanels` blob — that data is already surfaced via
+        // the SQL / ORM tabs, and inlining the (potentially large) SQL
+        // text into the JSON body would just bury the actual data the
+        // user came to see. Any *other* `extensions` fields the schema
+        // emits stay on the response.
+        const resultForBody: Record<string, unknown> = { ...result };
+        if (
+          result.extensions &&
+          typeof result.extensions === 'object' &&
+          'playgroundPanels' in result.extensions
+        ) {
+          const { playgroundPanels: _omit, ...keep } = result.extensions as Record<string, unknown>;
+          if (Object.keys(keep).length > 0) {
+            resultForBody.extensions = keep;
+          } else {
+            delete resultForBody.extensions;
+          }
+        }
+
+        const body = JSON.stringify(resultForBody, null, 2);
+        const sizeBytes = new Blob([body]).size;
+        const errorCount = countErrors(result.errors);
+
+        const next: ResponsePhase =
+          errorCount > 0
+            ? { kind: 'error', status: 200, durationMs, errorCount, body }
+            : { kind: 'success', status: 200, durationMs, sizeBytes, body };
+
+        setPhase(next);
+        setPanels(allPanels);
+        setLastLogs(allLogs);
+        return { phase: next, panels: allPanels, logs: allLogs };
+      } catch (err) {
+        const errPhase = errorPhase(errorMessage(err));
+        setPhase(errPhase);
+        setPanels([]);
+        setLastLogs([]);
+        return { phase: errPhase, panels: [], logs: [] };
       }
-
-      const body = JSON.stringify(resultForBody, null, 2);
-      const sizeBytes = new Blob([body]).size;
-      const errorCount = countErrors(result.errors);
-
-      const next: ResponsePhase =
-        errorCount > 0
-          ? { kind: 'error', status: 200, durationMs, errorCount, body }
-          : { kind: 'success', status: 200, durationMs, sizeBytes, body };
-
-      setPhase(next);
-      setPanels(allPanels);
-      setLastLogs(allLogs);
-      return { phase: next, panels: allPanels, logs: allLogs };
     },
     [],
   );

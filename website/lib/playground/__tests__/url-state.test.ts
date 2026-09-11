@@ -6,6 +6,17 @@ import {
 } from '../url-state';
 
 describe('URL State Encoding/Decoding', () => {
+  it('preserves an explicitly cleared single query in shared links', () => {
+    const state: PlaygroundURLState = {
+      files: [{ filename: 'schema.ts', content: 'export const schema = builder.toSchema();' }],
+      query: '',
+    };
+    expect(decodePlaygroundState(encodePlaygroundState(state))).toEqual(state);
+    expect(
+      decodePlaygroundState(encodePlaygroundState({ files: state.files }))?.query,
+    ).toBeUndefined();
+  });
+
   it('should encode and decode a simple state', () => {
     const state: PlaygroundURLState = {
       files: [

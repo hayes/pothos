@@ -1,12 +1,12 @@
 import * as esbuild from 'esbuild-wasm';
 import { type GraphQLSchema, printSchema } from 'graphql';
-import { extractBareImports, fetchCdnModule } from './cdn-modules';
+import { fetchCdnModule } from './cdn-modules';
 import { compileTypeScriptInWorker } from './compiler-worker-client';
 import { captureConsole } from './console-capture';
 import { errorMessage } from './error-message';
 import { getExampleStubModules } from './example-stubs';
 import { compilerLogger } from './logger';
-import { getPluginModules } from './plugins-bundle';
+import { pluginModules } from './plugins-bundle';
 import { getCachedSchema, setCachedSchema } from './schema-cache';
 
 let esbuildInitialized = false;
@@ -154,17 +154,34 @@ export async function executeAndBuildSchema(
     // Let esbuild lower module syntax instead of rewriting JavaScript with
     // regular expressions (which also match strings and miss multiline imports).
     await initEsbuild();
-    const { code } = await esbuild.transform(compiledCode, {
-      loader: 'js',
+    const compiled = await esbuild.build({
+      stdin: { contents: compiledCode, loader: 'js' },
+      bundle: true,
+      external: ['*'],
       format: 'cjs',
+      platform: 'neutral',
       target: 'es2020',
+      write: false,
+      metafile: true,
     });
+    const moduleMap: Record<string, unknown> = {
+      '@pothos/core': modules['@pothos/core'],
+      graphql: modules.graphql,
+      ...additionalModules,
+    };
+    // Use the parser's dependency list: import-like text inside strings must
+    // neither trigger a network request nor be rewritten as executable code.
+    const imports = new Set(
+      Object.values(compiled.metafile.outputs).flatMap((output) =>
+        output.imports.map((entry) => entry.path),
+      ),
+    );
+    await Promise.all(
+      [...imports].filter((name) => !Object.hasOwn(moduleMap, name)).map(async (name) => {
+        moduleMap[name] = await fetchCdnModule(name);
+      }),
+    );
     const { result } = captureConsole(() => {
-      const moduleMap: Record<string, unknown> = {
-        '@pothos/core': modules['@pothos/core'],
-        graphql: modules.graphql,
-        ...additionalModules,
-      };
       const requireModule = (name: string) => {
         if (!Object.hasOwn(moduleMap, name)) {
           throw new Error(`Module not found: ${name}`);
@@ -199,7 +216,7 @@ export async function executeAndBuildSchema(
       const module = { exports: {} as Record<string, unknown> };
       // This still executes in the page origin. URL-supplied code must be
       // explicitly trusted by the user before reaching this function.
-      const fn = new Function('require', 'module', 'exports', code);
+      const fn = new Function('require', 'module', 'exports', compiled.outputFiles[0].text);
       fn(requireModule, module, module.exports);
       return module.exports;
     }, logs);
@@ -383,7 +400,6 @@ export async function compileAndExecute(
   // the CDN. Everything else (zod, lodash, anything the user types)
   // goes through the esm.sh CDN at runtime; ATA fetches matching types
   // at edit time.
-  const pluginModules = getPluginModules(code);
   const stubModules = getExampleStubModules(code);
 
   const compilationResult = await compileTypeScript(code, filename);
@@ -395,41 +411,8 @@ export async function compileAndExecute(
     };
   }
 
-  const knownLocally = new Set<string>([
-    '@pothos/core',
-    'graphql',
-    ...Object.keys(pluginModules),
-    ...Object.keys(stubModules),
-  ]);
-  const cdnModules: Record<string, unknown> = {};
-  const remoteSpecifiers = [...extractBareImports(compilationResult.code!)].filter(
-    (name) => !knownLocally.has(name),
-  );
-  if (remoteSpecifiers.length > 0) {
-    const fetched = await Promise.allSettled(
-      remoteSpecifiers.map(async (name) => [name, await fetchCdnModule(name)] as const),
-    );
-    const failed: string[] = [];
-    for (let i = 0; i < fetched.length; i++) {
-      const settled = fetched[i];
-      if (settled.status === 'fulfilled') {
-        cdnModules[settled.value[0]] = settled.value[1];
-      } else {
-        failed.push(remoteSpecifiers[i]);
-        compilerLogger.warn(`Failed to load '${remoteSpecifiers[i]}' from esm.sh:`, settled.reason);
-      }
-    }
-    if (failed.length > 0) {
-      return {
-        success: false,
-        error: `Failed to load ${failed.length === 1 ? 'package' : 'packages'} from esm.sh: ${failed.join(', ')}`,
-      };
-    }
-  }
-
   return executeAndBuildSchema(compilationResult.code!, modules, {
     ...pluginModules,
     ...stubModules,
-    ...cdnModules,
   });
 }

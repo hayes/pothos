@@ -21,7 +21,7 @@ function mutate<T>(storagePath: string, operation: () => Promise<T>): Promise<T>
       pendingWrites.delete(storagePath);
     }
   };
-  void next.then(cleanup, cleanup);
+  next.then(cleanup, cleanup);
   return next;
 }
 

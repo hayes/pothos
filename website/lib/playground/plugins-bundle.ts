@@ -42,22 +42,3 @@ export const pluginModules = {
   '@pothos/plugin-add-graphql': AddGraphQLModule,
 };
 
-export function getPluginModules(code: string): Record<string, unknown> {
-  const modules: Record<string, unknown> = {};
-
-  // Extract plugin imports from code. `[\s\S]*?` so multi-line imports
-  // (named bindings split across lines) match too.
-  const importRegex = /import\s+[\s\S]*?\s+from\s+['"](@pothos\/plugin-[^'"]+)['"]/g;
-  let match: RegExpExecArray | null = importRegex.exec(code);
-
-  while (match !== null) {
-    const pluginName = match[1];
-    const pluginModule = pluginModules[pluginName as keyof typeof pluginModules];
-    if (pluginModule) {
-      modules[pluginName] = pluginModule;
-    }
-    match = importRegex.exec(code);
-  }
-
-  return modules;
-}
