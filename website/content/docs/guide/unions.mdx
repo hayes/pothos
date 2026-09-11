@@ -3,70 +3,131 @@ title: Unions
 description: Guide for defining Union types in Pothos
 ---
 
-Union types are defined with a list of object types:
+A union lets a field return one of several object types. Unlike an [interface](./interfaces), a union
+has no fields of its own, and its members don't need to share any fields.
+
+## Defining Union Types
+
+This example uses two kinds of giraffe facts. Each has a backing model and an
+[object reference](./objects):
 
 ```typescript
-const builder = new SchemaBuilder<{
-  Objects: {
-    GiraffeStringFact: { factKind: 'string'; fact: string };
-    GiraffeNumericFact: { factKind: 'number'; fact: string; value: number };
-  };
-}>({});
+import SchemaBuilder from '@pothos/core';
 
-builder.objectType('GiraffeStringFact', {
+type GiraffeStringFact = { factKind: 'string'; fact: string };
+type GiraffeNumericFact = { factKind: 'number'; fact: string; value: number };
+
+const builder = new SchemaBuilder({});
+
+const GiraffeStringFactRef = builder.objectRef<GiraffeStringFact>('GiraffeStringFact').implement({
   fields: (t) => ({
-    fact: t.exposeString('fact', {}),
+    fact: t.exposeString('fact'),
   }),
 });
 
-const GiraffeNumericFact = builder.objectType('GiraffeNumericFact', {
+const GiraffeNumericFactRef = builder.objectRef<GiraffeNumericFact>('GiraffeNumericFact').implement({
   fields: (t) => ({
-    fact: t.exposeString('fact', {}),
-    value: t.exposeFloat('value', {}),
+    fact: t.exposeString('fact'),
+    value: t.exposeFloat('value'),
   }),
 });
 
-const GiraffeFact = builder.unionType('GiraffeFact', {
-  types: ['GiraffeStringFact', GiraffeNumericFact],
+const GiraffeFactRef = builder.unionType('GiraffeFact', {
+  types: [GiraffeStringFactRef, GiraffeNumericFactRef],
   resolveType: (fact) => {
     switch (fact.factKind) {
-      case 'number':
-        return GiraffeNumericFact;
       case 'string':
-        return 'GiraffeStringFact';
+        return GiraffeStringFactRef;
+      case 'number':
+        return GiraffeNumericFactRef;
     }
   },
 });
 ```
 
-The `types` array can either contain Object type names defined in SchemaTypes, or an Object `Ref`
-created by `builder.objectType`, `builder.objectRef` or other method, or a class that
-was used to implement an object type.
+The `types` array lists the union's object types. Pothos infers the union's backing type from these
+members, so `fact` in `resolveType` is a `GiraffeStringFact | GiraffeNumericFact`.
 
-The `resolveType` function will be called with each item returned by a field that returns the
-unionType, and is used to determine which concrete type the value corresponds to. It is usually good to
-have a shared property you can use to differentiate your union members.
+The `resolveType` function selects a member object type for each returned value. Here, the
+`factKind` property distinguishes the two shapes. It is part of the backing data, but isn't exposed
+as a GraphQL field. You can return an object reference or the member's GraphQL type name.
+
+You can also use registered classes or object type names declared in `SchemaTypes` in the `types`
+array. See the [Objects guide](./objects#different-ways-to-define-object-types) for these alternatives.
 
 ## Using Union Types
 
+Use the union reference as a field's return type. A list can contain values for any of its members:
+
 ```typescript
-builder.queryField('giraffeFacts', (t) =>
-  t.field({
-    type: [GiraffeFact],
-    resolve: () => {
-      const fact1 = {
-        factKind: 'string',
-        fact: 'A giraffe’s spots are much like human fingerprints. No two individual giraffes have exactly the same pattern',
-      } as const;
+const facts: (GiraffeStringFact | GiraffeNumericFact)[] = [
+  {
+    factKind: 'string',
+    fact: 'Each giraffe has a unique pattern of spots.',
+  },
+  {
+    factKind: 'number',
+    fact: 'Top speed (MPH)',
+    value: 35,
+  },
+];
 
-      const fact2 = {
-        factKind: 'number',
-        fact: 'Top speed (MPH)',
-        value: 35,
-      } as const;
-
-      return [fact1, fact2];
-    },
+builder.queryType({
+  fields: (t) => ({
+    giraffeFacts: t.field({
+      type: [GiraffeFactRef],
+      resolve: () => facts,
+    }),
   }),
-);
+});
+
+export const schema = builder.toSchema();
 ```
+
+## Querying Union Types
+
+Use inline fragments to select fields from each member. Even though both types define `fact`, it
+must be selected through a fragment because the union itself defines no fields. You can select
+`__typename` directly on the union to identify each result's object type:
+
+```graphql
+query {
+  giraffeFacts {
+    __typename
+    ... on GiraffeStringFact {
+      fact
+    }
+    ... on GiraffeNumericFact {
+      fact
+      value
+    }
+  }
+}
+```
+
+```json
+{
+  "data": {
+    "giraffeFacts": [
+      {
+        "__typename": "GiraffeStringFact",
+        "fact": "Each giraffe has a unique pattern of spots."
+      },
+      {
+        "__typename": "GiraffeNumericFact",
+        "fact": "Top speed (MPH)",
+        "value": 35
+      }
+    ]
+  }
+}
+```
+
+## Other ways to resolve a union
+
+Without a `resolveType` function, GraphQL can use a `__typename` property on the returned data or
+an `isTypeOf` check on the member object types, just as it does for
+[interfaces](./interfaces#other-ways-to-resolve-an-interface). If your application uses classes,
+set `isTypeOf: (value) => value instanceof YourClass` on each member object type and return class
+instances. Registering a class does not add this check automatically. If an object defines
+`isTypeOf`, that check must pass even when its type was selected by `resolveType` or `__typename`.
