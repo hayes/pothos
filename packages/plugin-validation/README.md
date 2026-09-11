@@ -1,8 +1,9 @@
 # Validation plugin
 
-A plugin for adding validation to field arguments, input object fields, and input types using modern validation libraries like [Zod](https://github.com/colinhacks/zod), [Valibot](https://valibot.dev), and [ArkType](https://arktype.io).
-
-This plugin provides a library-agnostic approach to validation by supporting any validation library that implements the [standard schema](https://standardschema.dev) interface, making it flexible and future-proof.
+Validate arguments and input objects before a field resolver runs. Attach a schema from any library
+that implements [Standard Schema](https://standardschema.dev), including Zod, Valibot, and ArkType.
+Validation can be asynchronous, and chained validators can transform the values passed to your resolver.
+If validation fails, the resolver does not run.
 
 ## Usage
 
@@ -21,6 +22,7 @@ npm install --save @pothos/plugin-validation arktype
 ### Setup
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import ValidationPlugin from '@pothos/plugin-validation';
 import { z } from 'zod'; // or your preferred validation library
 
@@ -34,6 +36,7 @@ builder.queryType({
       args: {
         // Validate individual arguments
         email: t.arg.string({
+          required: true,
           validate: z.string().email(),
         }),
       },
@@ -48,9 +51,12 @@ builder.queryType({
 The validation plugin supports validating inputs and arguments in several different ways:
 
 - **Argument validation**: `t.arg.string({ validate: schema })` or `t.arg.string().validate(schema)` - Validate individual arguments
-- **Validate all field args**: `t.field({ args, validate: schema, ... })` or `t.field({ args: t.validate(args), ... })` - Validate all arguments together
-- **Input type validation**: `builder.inputType({ validate: schema, ... })` or `builder.inputType({ ... }).validate(schema)` - Validate entire input objects
+- **Validate all field args**: `t.field({ args, validate: schema, ... })` or `t.field({ args: t.validate(args, schema), ... })` - Validate all arguments together
+- **Input type validation**: `builder.inputType('Input', { validate: schema, ... })` or `builder.inputType('Input', { ... }).validate(schema)` - Validate entire input objects
 - **Input field validation**: `t.string({ validate: schema })` or `t.string().validate(schema)` - Validate individual input type fields
+
+Each example below is independent. Reuse the setup imports and builder configuration, then use the
+example's query and input definitions in place of any earlier ones.
 
 ## Validation Patterns
 
@@ -64,9 +70,10 @@ builder.queryType({
     user: t.string({
       args: {
         email: t.arg.string({
+          required: true,
           validate: z.string().email(),
         }),
-        name: t.arg.string()
+        name: t.arg.string({ required: true })
           .validate(z.string().min(2).max(50)),
       },
       resolve: (_, args) => `User: ${args.name}`,
@@ -85,7 +92,7 @@ builder.queryType({
     processData: t.string({
       args: {
         // Convert comma-separated string to array
-        tags: t.arg.string()
+        tags: t.arg.string({ required: true })
           .validate(z.string().transform(str => str.split(',').map(s => s.trim()))),
       },
       resolve: (_, args) => {
@@ -98,7 +105,8 @@ builder.queryType({
 
 ### Validating all Field Arguments Together
 
-You can validate all arguments of a field together by passing a validation schema to the `t.field`
+Pass `validate` on the output field to check its arguments together. Optional GraphQL arguments
+can be omitted or explicitly `null`; use a schema that accepts both when those are valid inputs.
 
 ```typescript
 builder.queryType({
@@ -111,8 +119,8 @@ builder.queryType({
       // Ensure at least one contact method is provided
       validate: z
         .object({
-          email: z.string().optional(),
-          phone: z.string().optional(),
+          email: z.string().nullish(),
+          phone: z.string().nullish(),
         })
         .refine(
           (args) => !!args.phone || !!args.email,
@@ -126,7 +134,7 @@ builder.queryType({
 
 #### With transforms
 
-To transform all arguments together, you will need to use t.validate(args):
+Use `t.validate(args, schema)` to transform all arguments and infer the transformed resolver arguments:
 
 ```typescript
 builder.queryType({
@@ -137,8 +145,8 @@ builder.queryType({
         phone: t.arg.string(),
       },
         z.object({
-          email: z.string().optional(),
-          phone: z.string().optional(),
+          email: z.string().nullish(),
+          phone: z.string().nullish(),
         })
         .refine(
           (args) => !!args.phone || !!args.email,
@@ -169,8 +177,8 @@ Validate entire input objects with complex validation logic using either object 
 // Object syntax
 const UserInput = builder.inputType('UserInput', {
   fields: (t) => ({
-    name: t.string(),
-    age: t.int(),
+    name: t.string({ required: true }),
+    age: t.int({ required: true }),
   }),
   validate: z
     .object({
@@ -190,30 +198,30 @@ Transform entire input types:
 ```typescript
 const UserInput = builder.inputType('RawUserInput', {
   fields: (t) => ({
-    fullName: t.string(),
-    birthYear: t.string(),
+    fullName: t.string({ required: true }),
+    email: t.string({ required: true }),
   }),
 }).validate(
   z.object({
     fullName: z.string(),
-    birthYear: z.string(),
+    email: z.string().email(),
   }).transform(data => ({
     firstName: data.fullName.split(' ')[0],
     lastName: data.fullName.split(' ').slice(1).join(' '),
-    age: new Date().getFullYear() - parseInt(data.birthYear),
+    email: data.email.toLowerCase(),
   }))
 );
 
 builder.queryType({
   fields: (t) => ({
-    createUser: t.string({
+    previewUser: t.string({
       args: {
-        userData: t.arg({ type: UserInput }),
+        userData: t.arg({ type: UserInput, required: true }),
       },
       resolve: (_, args) => {
         // args.userData has transformed shape:
-        // { firstName: string, lastName: string, age: number }
-        return `Created user: ${args.userData.firstName} ${args.userData.lastName}`;
+        // { firstName: string, lastName: string, email: string }
+        return `User preview: ${args.userData.firstName} ${args.userData.lastName} <${args.userData.email}>`;
       },
     }),
   }),
@@ -228,6 +236,7 @@ Validate individual fields within input types:
 const UserInput = builder.inputType('UserInput', {
   fields: (t) => ({
     name: t.string({
+      required: true,
       validate: z.string().min(2).refine(
         (name) => name[0].toUpperCase() === name[0],
         { message: 'Name must be capitalized' }
@@ -244,34 +253,20 @@ Transform field values during validation:
 ```typescript
 const UserInput = builder.inputType('UserInput', {
   fields: (t) => ({
-    birthDate: t.string()
-      .validate(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    birthDate: t.string({ required: true })
+      .validate(z.iso.date())
       .validate(z.string().transform(str => new Date(str))),
   }),
 });
 ```
-
-## Supported Validation Libraries
-
-This plugin works with multiple validation libraries, giving you the flexibility to choose the one that best fits your needs:
-
-- **[Zod](https://zod.dev)** - TypeScript-first schema validation with static type inference
-- **[Valibot](https://valibot.dev)** - The open source schema library for TypeScript with bundle size, type safety and developer experience in mind
-- **[ArkType](https://arktype.io)** - TypeScript's 1:1 validator, optimized from editor to runtime
-- Any library implementing the [standard schema](https://standardschema.dev) interface
 
 
 ## Plugin Options
 
 ### 'validationError'
 
-The `validationError` option allows you to customize how validation errors are handled and formatted. This is useful for:
-
-- Customizing error messages for your application's needs
-- Logging validation failures for monitoring
-- Integrating with error tracking services
-- Providing context-specific error messages
-
+By default, failed validation throws `InputValidationError`, which contains Standard Schema issues
+with their messages and paths. Set `validationError` to return your own error or message.
 
 ```typescript
 const builder = new SchemaBuilder({
@@ -293,6 +288,10 @@ Your error handler can return:
 - **String**: Return a string message (will be wrapped in a PothosValidationError)
 - **Throw**: Throw an error directly
 
+To return validation failures as typed GraphQL results, see the
+[errors plugin integration](https://pothos-graphql.dev/docs/plugins/errors#with-validation-plugin). This requires
+`unsafelyHandleInputErrors`, because input validation runs before field authorization hooks.
+
 ### Validation Execution Order
 
 Understanding when and how validations are executed:
@@ -300,7 +299,7 @@ Understanding when and how validations are executed:
 1. **Input Field Validation**: Individual input fields are validated first
 2. **Input Type Validation**: Whole input object validation runs after field validation passes
 3. **Argument Validation**: Individual field arguments are validated
-4. **Field-Level Validation**: Cross-field validation with `t.validate()` runs last
+4. **Field-Level Validation**: The output field's `validate` option and `t.validate()` run last
 
 When there are multiple validations for the same field or type, they are executed in order, so that any transforms are applied before passing to the next schema.
 Validations for separate fields or arguments are executed in parallel, and their results are merged into a single set of issues.
