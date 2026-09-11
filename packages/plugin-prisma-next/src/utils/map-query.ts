@@ -33,10 +33,11 @@ export function applySelectionToCollection(
   context: unknown,
   options: ApplySelectionOptions = {},
 ): MapperCollection {
-  // The adapter records no loader mappings, so the walker never touches the context.
+  // Next passes the original context to callbacks and does not use loader mapping caches.
   const ctx = context as object;
   const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
-  const plan = Plan.fromInfo(prismaNextAdapter(contract), {
+  const adapter = prismaNextAdapter(contract);
+  const plan = Plan.fromInfo(adapter, {
     context: ctx,
     info,
     typeName: options.typeName,
@@ -51,8 +52,10 @@ export function applySelectionToCollection(
     return emit(baseCollection, initial ?? {}, undefined, ctx);
   }
 
+  // Serialize the play directly: query() also publishes mappings to an object-context cache,
+  // but Next resolves selected rows through its own overlay.
   const finish = (settled: PrismaNextPlan) =>
-    emit(baseCollection, settled.query(), settled.model, ctx);
+    emit(baseCollection, adapter.toQuery(settled.play().root), settled.model, ctx);
 
   return isThenable(plan)
     ? (plan.then((settled) => finish(settled as PrismaNextPlan)) as unknown as MapperCollection)

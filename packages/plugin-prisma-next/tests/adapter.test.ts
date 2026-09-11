@@ -697,3 +697,63 @@ function createDeferSchema() {
     },
   };
 }
+
+describe('execution context', () => {
+  it.each([
+    undefined,
+    null,
+    'tenant-42',
+    42,
+  ])('preserves context %s and synchronous selection in the direct helper', async (context) => {
+    captured.length = 0;
+    const info = await infoFor('{ users { filteredPosts(published: 1) { id } } }');
+    const result = applySelectionToCollection(
+      new RecordingCollection(),
+      info,
+      sampleContract as never,
+      context,
+    );
+
+    expect(result).not.toBeInstanceOf(Promise);
+    expect(render(result)).toEqual([
+      'select(id)',
+      'include(posts){ where({"published":1}) select(id) }',
+    ]);
+    expect(captured).toEqual([{ args: { published: 1 }, ctx: context }]);
+  });
+
+  it('executes a prismaField without contextValue', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { contract: sampleContract },
+    });
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const collection = {
+      select() {
+        return this;
+      },
+      include() {
+        return this;
+      },
+      where() {
+        return this;
+      },
+      all: async () => [{ id: 'u1' }],
+    };
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: [User], resolve: () => collection as never }),
+      }),
+    });
+
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ users { id } }'),
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ users: [{ id: 'u1' }] });
+  });
+});
