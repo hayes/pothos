@@ -146,10 +146,10 @@ It's recommended to enable this check in development to more quickly find potent
 
 ## Deferred fragments
 
-Selections inside a `@defer` fragment are left out of the planned query by default. The fragment
-resolves after the initial payload, and loading what it needs up front would delay that payload for
-data the client has already agreed to wait for. When the deferred fragment resolves, its fields are
-loaded through [fallback queries](./relations#fallback-queries), batched as usual.
+Selections inside a `@defer` fragment are left out of the planned query by default, so the initial
+payload is not delayed by data the client has agreed to wait for. When the deferred fragment
+resolves, its fields are loaded through [fallback queries](./relations#fallback-queries), batched as
+usual.
 
 Set `skipDeferredFragments: false` in the plugin options to plan deferred selections with the rest
 of the query. `queryFromInfo` accepts the same option per call.

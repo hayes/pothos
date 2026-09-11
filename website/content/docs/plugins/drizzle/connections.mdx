@@ -112,10 +112,10 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
-Whatever the relation itself declares always applies to the count, whether or not the filter does.
-That includes a `where` on the relation, and the junction table of a many-to-many relation defined
-with `.through(...)`. The count joins the junction table the same way the rows do, so a row that
-matches the junction twice counts twice, and appears twice in the connection.
+A `where` on the relation itself always applies to the count, as does the junction table of a
+many-to-many relation defined with `.through(...)`. The count joins the junction table the same way
+the rows do, so a row that matches the junction twice counts twice, and appears twice in the
+connection.
 
 ## Drizzle connections
 

@@ -55,17 +55,3 @@ builder.queryType({
 
 Querying `me { firstName posts { title } }` loads the user and their posts in a single query
 through drizzles relational query builder.
-
-## The rest of the docs
-
-- [Setup](/docs/plugins/drizzle/setup): installing the plugin, and the options you can pass it.
-- [Drizzle Objects](/docs/plugins/drizzle/objects): defining object types and fields, including `t.drizzleField`.
-- [Relations](/docs/plugins/drizzle/relations): `t.relation`, relation queries, and counting related rows.
-- [Selections](/docs/plugins/drizzle/selections): controlling which columns and relations each field loads.
-- [Connections](/docs/plugins/drizzle/connections): relay connections over relations and over queries of your own.
-- [Ordering and cursors](/docs/plugins/drizzle/ordering-and-cursors): how a connections ordering shapes its cursors.
-- [Relay](/docs/plugins/drizzle/relay): defining relay nodes backed by a table.
-- [Type variants](/docs/plugins/drizzle/variants): several GraphQL types built on one table.
-- [Interfaces](/docs/plugins/drizzle/interfaces): sharing fields between variants of a table.
-- [Query planning](/docs/plugins/drizzle/query-planning): how a field gets its data, and when it costs a query of its
-  own. Worth reading when a schema issues more queries than you expect.

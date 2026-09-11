@@ -5,11 +5,8 @@ description: How a connection orders rows, and the cursors that ordering produce
 
 ## Ordering and cursors
 
-Connections page with a cursor that records where in the ordering the previous page ended. Two things
-need to be true for this to work. The ordering has to place every row in a distinct position, and the
-values in the cursor have to compare against the database the same way they did when the cursor was
-created. This applies to `t.relatedConnection`, `t.drizzleConnection`, and
-`drizzleConnectionHelpers`.
+Connections page with a cursor that records where in the ordering the previous page ended. This
+applies to `t.relatedConnection`, `t.drizzleConnection`, and `drizzleConnectionHelpers`.
 
 ### Unique orderings
 

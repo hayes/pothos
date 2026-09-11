@@ -81,9 +81,8 @@ builder.prismaObject('User', {
 ```
 
 A field-level `select` always adds to the row of the model the field is defined on, whatever type
-the field itself returns. That is true of every field on a prisma object, so a `select` on a
-`t.prismaField` defined on `User` adds columns to the user the resolver receives as its parent, and
-not to the model that field returns.
+the field returns. A `select` on a `t.prismaField` defined on `User` adds columns to the user its
+resolver receives as the parent, not to the model the field returns.
 
 ## Using arguments or context in your selections
 

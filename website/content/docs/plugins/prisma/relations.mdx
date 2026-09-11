@@ -111,9 +111,7 @@ builder.prismaObject('User', {
 ```
 
 A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
-would need one will throw `Missing findUnique for User` instead of querying. This turns a row that
-reached a resolver without the relations the query asked for into an error you see in development,
-rather than an extra query you find in production.
+would need one will throw `Missing findUnique for User` instead of querying.
 
 ### Filters, Sorting, and arguments
 
