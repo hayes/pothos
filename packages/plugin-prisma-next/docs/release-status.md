@@ -22,6 +22,10 @@ to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
 | ID-only node selection misses ID columns | Node ID field declares its selected columns; regression for direct concrete node access |
 | Errors-wrapped root lists materialize one row | Original list shape is retained in prepared field metadata; errors-wrapper regression |
 | Mixed-null composite FK inference | Existential nullable-field check; type regression |
+| Fallback alias collisions across fields/variants | Preserve defining schema identity and bound arguments through batch merging; regressions cover counts, relation rows, deferred/nested selections, and multi-parent batching |
+| Count-only related connection filter collisions | Synthetic count selections retain their bound arguments |
+| Single-column Date node ID collisions | Lossless Date batch keys preserve milliseconds; regression loads distinct IDs within one second |
+| Duplicated unique-key metadata handling | Cursor validation and fallback identities share getModelUniqueKeys |
 | Declarative relation select parent types | Resolver parents include filtered to-one and to-many relations; object/field type regressions |
 | Mutation result behavior | Real PostgreSQL GraphQL create/update, serial with-input results, transaction-bound fallback batches, rollback, and expired-transaction coverage |
 | Remaining selection conflicts | Field overrides and separate variant prerequisites retain independent results in multi-parent batches; inherited incompatible prerequisites and function-form to-one selections fail clearly before SQL |
@@ -154,3 +158,11 @@ pagination across pages and conflicting to-one fallback selections successfully.
 The tarball manifest has public access, exact RC9 ORM peers, and resolved workspace
 dependency specifiers. This verifies the staged 0.0.0 package; the earlier isolated
 0.1.0 version simulation remains a separate check. No package was published.
+
+The subsequent full-review fixes pass all 41 test files / 383 tests, including
+PostgreSQL, both type projects, the plugin build, and changed-file Biome checks.
+Independent follow-up reviews found no remaining actionable issue in the fixes.
+New regressions assert distinct field definitions remain isolated while repeated
+paths and multiple parents still batch, inherited type selections remain compatible,
+and Date node IDs retain millisecond precision. The earlier monorepo and packed
+consumer verification above predates these fixes.

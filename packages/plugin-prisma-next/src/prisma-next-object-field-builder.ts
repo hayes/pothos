@@ -642,7 +642,10 @@ export class PrismaNextObjectFieldBuilder<
       const wantsRows = [...selectedFields].some(
         (field) => field !== 'totalCount' && field !== '__typename',
       );
-      const count = { fn: (sub: MapperCollection) => ({ count: filter(sub).count() }) };
+      const count = {
+        fn: (sub: MapperCollection) => ({ count: filter(sub).count() }),
+        args: args as Record<string, unknown>,
+      };
       if (!wantsRows) {
         return wantsTotalCount ? { relations: { [relationName]: count } } : {};
       }

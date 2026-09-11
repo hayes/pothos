@@ -34,16 +34,22 @@ export function pathKey(path: Path): string {
   return segments.join('.');
 }
 
+function scalarIdKey(value: unknown): string {
+  // Date.toString() omits milliseconds. Keep the legacy string key for custom
+  // parsers while using the shared lossless encoding for native Date values.
+  return value instanceof Date ? encodeCursorTuple([value]) : String(value);
+}
+
 export function idKeyFromRow(row: Record<string, unknown>, idFields: readonly string[]): string {
   if (idFields.length === 1) {
-    return String(row[idFields[0]!]);
+    return scalarIdKey(row[idFields[0]!]);
   }
   return encodeCursorTuple(idFields.map((f) => row[f]));
 }
 
 export function idKeyFromParsed(parsed: unknown, idFields: readonly string[]): string {
   if (idFields.length === 1) {
-    return String(parsed);
+    return scalarIdKey(parsed);
   }
   if (Array.isArray(parsed)) {
     return encodeCursorTuple(parsed);

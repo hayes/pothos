@@ -9,13 +9,13 @@ import {
   parseCursorConnectionArgs,
 } from '@pothos/core';
 import { deepEqual } from '@pothos/selection-mapper';
-import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
 import { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
 import { getCollectionPaginationState } from './collection-state.js';
 import { resolveContractModel } from './contract.js';
+import { getModelUniqueKeys } from './model.js';
 
 // Per-column accessor shape. orm-client's `ModelAccessor` exposes the
 // same methods; the local interface avoids the literal-contract generics
@@ -74,17 +74,8 @@ export function validateCursor(
     );
   }
   const model = resolveContractModel(contract, modelName);
-  const storage = model?.storage as
-    | {
-        table?: string;
-        namespaceId?: string;
-        fields?: Record<string, { column?: string }>;
-      }
-    | undefined;
-  const table = storage?.table
-    ? resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table
-    : undefined;
-  if (!model || !table) {
+  const keys = getModelUniqueKeys(contract, modelName);
+  if (!model || !keys) {
     throw new PothosSchemaError(
       `Connection cursor requires SQL storage metadata for model '${modelName}'.`,
     );
@@ -96,19 +87,8 @@ export function validateCursor(
       );
     }
   }
-  const columns = new Set(
-    fields
-      .filter((field) => !model.fields[field]!.nullable)
-      .map((field) => storage?.fields?.[field]?.column ?? field),
-  );
-  const keys = [
-    ...(table.primaryKey ? [table.primaryKey.columns] : []),
-    ...(table.uniques ?? []).map((key) => key.columns),
-    ...(table.indexes ?? []).flatMap((index) =>
-      index.unique && !index.where && index.columns ? [index.columns] : [],
-    ),
-  ];
-  if (!keys.some((key) => key.every((column) => columns.has(column)))) {
+  const selected = new Set(fields);
+  if (!keys.some((key) => key.every((field) => selected.has(field)))) {
     throw new PothosSchemaError(
       `Connection cursor for '${modelName}' must include every field of a non-null primary or unique key. Add a unique tie-breaker such as id.`,
     );

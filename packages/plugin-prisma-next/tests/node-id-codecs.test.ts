@@ -198,3 +198,13 @@ it('requires a codec instead of silently serializing a custom scalar ID as JSON'
     "prismaNode 'User' requires an id.codecs entry for custom scalar field 'id'.",
   );
 });
+
+it('distinct Date node IDs within a second stay distinct', async () => {
+  await roundTrip(
+    { id: new Date('2026-09-10T01:02:03.001Z'), firstName: 'Alice' },
+    ['id'],
+    undefined,
+    undefined,
+    [{ id: new Date('2026-09-10T01:02:03.002Z'), firstName: 'Bob' }],
+  );
+});

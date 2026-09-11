@@ -16,7 +16,12 @@ A configured `prismaNext.collections` provider enables a request-local model
 loader, following the Prisma and Drizzle plugins. The shared mapper records which
 fields an eager plan accepted. Unmapped fields compile a `Plan.forParentRow`,
 including their dependencies and compatible type prerequisites. Compatible plans
-merge into one batch; incompatible refinements get separate batches. Each batch
+merge into one batch; incompatible refinements get separate batches. Relation
+slots retain their defining GraphQL field or type through serialization and
+nested plans. Matching response aliases alone do not establish compatibility:
+function consumers must share their definition and bound arguments, while
+explicit relation refinements must agree. Synthetic connection counts retain
+their bound filter arguments too. Each batch
 queries all parent identities using `IN` or compound `OR` predicates and fans rows
 back by tagged identity. Per-row/path mappings prevent one fallback result from
 claiming another parent's selection coverage.
@@ -101,6 +106,9 @@ Node loads batch per request, GraphQL type and path, apply selections, and route
 results by ID. Loader rows are branded for abstract resolution. Concrete node
 fields do not install a brand-only isTypeOf; custom predicates are respected.
 Compound IDs use tagged values and optional per-field application codecs.
+Single-column Date IDs also use lossless batch keys, preserving milliseconds.
+Cursor validation and fallback identity selection share one unique-key metadata
+helper, including mapped fields and exclusion of nullable or partial unique keys.
 
 Aggregate operations/fields/results derive from emitted AggregateTypes. Count
 defaults to Int and other numeric operations to Float. Non-number results require

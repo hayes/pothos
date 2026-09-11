@@ -90,6 +90,8 @@ export type PrismaNextSpecFn = (sub: MapperCollection, ctx: object) => Record<st
 
 /** A function-form entry with the slot namespace it runs under (the serialized form). */
 export interface PrismaNextFnEntry {
+  /** Stable schema definition owning a callback compiled separately for each path. */
+  source?: object;
   fn: PrismaNextSpecFn;
   alias?: string;
   /** The field arguments the function was bound to, so two selections under one alias compare. */
@@ -102,6 +104,8 @@ export interface PrismaNextFnEntry {
  * `slot` defaulting to the relation name; a connection uses `rows`).
  */
 export interface PrismaNextSpec {
+  /** Stable schema definition owning this relation query, preserved through batch merging. */
+  source?: object;
   /**
    * The slot namespace when the walker gives no field key: a type-level select carries
    * `:object:<Type>`; a serialized branch carries the field alias it was walked under, so a
@@ -131,6 +135,7 @@ export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSpec, PrismaNextNod
 // ---------------------------------------------------------------------------------------------
 
 export interface PrismaNextBranch {
+  source?: object;
   alias: string;
   slot: string;
   args: PrismaNextArgs;
@@ -139,6 +144,7 @@ export interface PrismaNextBranch {
 }
 
 export interface PrismaNextFn {
+  source?: object;
   alias: string;
   fn: PrismaNextSpecFn;
   args: PrismaNextArgs;
@@ -261,13 +267,14 @@ function addBranch(
       slot,
       args,
       refine: spec.refine,
+      source: spec.source,
       node: createPrismaNextNode(relation.meta.target),
     };
     relation.branches.set(id, branch);
-  } else if (!deepEqual(branch.args, args)) {
+  } else if (!deepEqual(branch.args, args) || !sameBranchRefine(branch, spec)) {
     throw new SelectionConflict(
       name,
-      `Relation "${name}" is selected twice under alias "${id}" with different arguments. Alias one of the selections.`,
+      `Relation "${name}" is selected twice under alias "${id}" with different queries. Alias one of the selections.`,
     );
   } else {
     branch.refine ??= spec.refine;
@@ -310,9 +317,9 @@ function validateIncludes(node: PrismaNextNode): void {
  * A function-form entry merged into `relation`. `options.fn` binds the field's arguments into a
  * fresh closure per compile, so one relation selected twice under the same alias (under `nodes`
  * and under `edges { node }` of a connection, say) arrives as two different functions. Comparing
- * the arguments they were bound to is what tells a duplicate of one selection from a conflict; a
- * conflict is reported the way `addBranch` reports its own, rather than silently keeping the
- * first function for both paths.
+ * field definition and bound arguments identifies duplicates without equating different
+ * fields that happen to use the same response alias. Unknown callbacks compare by identity.
+ * Conflicts get separate fallback batches rather than keeping the first function for both.
  */
 function addFunction(
   relation: PrismaNextRelationAcc,
@@ -320,15 +327,19 @@ function addFunction(
   alias: string,
   fn: PrismaNextSpecFn,
   args: PrismaNextArgs,
+  source?: object,
 ) {
   const existing = relation.functions.get(alias);
 
   if (!existing) {
-    relation.functions.set(alias, { alias, fn, args });
-  } else if (!deepEqual(existing.args, args)) {
+    relation.functions.set(alias, { alias, fn, args, source });
+  } else if (
+    !deepEqual(existing.args, args) ||
+    (existing.source ?? existing.fn) !== (source ?? fn)
+  ) {
     throw new SelectionConflict(
       name,
-      `Relation "${name}" is selected twice under alias "${alias}" with different arguments. Alias one of the selections.`,
+      `Relation "${name}" is selected twice under alias "${alias}" with different queries. Alias one of the selections.`,
     );
   }
 }
@@ -367,6 +378,7 @@ function mergeSpec(node: PrismaNextNode, spec: PrismaNextSpec, alias: string | u
           requireAlias(name, entry.alias ?? alias),
           entry.fn,
           entry.args ?? {},
+          entry.source,
         );
       } else {
         addBranch(relation, name, requireAlias(name, entry.alias ?? alias), entry);
@@ -414,13 +426,19 @@ function serializeNode(node: PrismaNextNode): PrismaNextSpec {
         alias: branch.alias,
         slot: branch.slot,
         args: branch.args,
+        ...(branch.source ? { source: branch.source } : {}),
         ...(branch.refine ? { refine: branch.refine } : {}),
         ...serializeNode(branch.node),
       });
     }
 
     for (const fn of relation.functions.values()) {
-      entries.push({ alias: fn.alias, fn: fn.fn, args: fn.args });
+      entries.push({
+        alias: fn.alias,
+        fn: fn.fn,
+        args: fn.args,
+        ...(fn.source ? { source: fn.source } : {}),
+      });
     }
 
     spec.relations[name] = entries.length === 1 ? entries[0] : entries;
@@ -489,6 +507,20 @@ function sameRefine(a: PrismaNextRefine | undefined, b: PrismaNextRefine | undef
       declarativeRefines.has(a) &&
       declarativeRefines.has(b) &&
       deepEqual(declarativeRefines.get(a), declarativeRefines.get(b))
+    )
+  );
+}
+
+function sameBranchRefine(branch: PrismaNextBranch, spec: PrismaNextSpec): boolean {
+  return (
+    sameRefine(branch.refine, spec.refine) ||
+    !!(
+      branch.source &&
+      branch.source === spec.source &&
+      branch.refine &&
+      spec.refine &&
+      !declarativeRefines.has(branch.refine) &&
+      !declarativeRefines.has(spec.refine)
     )
   );
 }
@@ -639,6 +671,28 @@ interface FieldSelectExtensions {
   pothosOptions?: { select?: unknown };
   pothosIndirectInclude?: { getType: () => string; path?: unknown[]; paths?: unknown[] };
   [PRISMA_NEXT_FIELD_SELECT]?: PrismaNextSpec | PrismaNextSelectFn;
+}
+
+/** Preserve schema definition identity across paths without changing the identity of nested consumers. */
+function withSelectionSource(spec: PrismaNextSpec, source: object): PrismaNextSpec {
+  if (!spec.relations) {
+    return spec;
+  }
+  const identifyEntry = (entry: PrismaNextRelationEntry): PrismaNextRelationEntry =>
+    typeof entry === 'function'
+      ? { fn: entry, source }
+      : entry === true
+        ? entry
+        : { ...entry, source: entry.source ?? source };
+  return {
+    ...spec,
+    relations: Object.fromEntries(
+      Object.entries(spec.relations).map(([name, entries]) => [
+        name,
+        Array.isArray(entries) ? entries.map(identifyEntry) : identifyEntry(entries),
+      ]),
+    ),
+  };
 }
 
 /**
@@ -816,7 +870,7 @@ function compileTypeSelection(
       // A type-level function entry runs with no field arguments.
       fn: (value) => (sub, ctx) => value(sub, {}, ctx) as Record<string, unknown>,
     });
-    mergeSpec(node, spec, alias);
+    mergeSpec(node, withSelectionSource(spec, current), alias);
   };
   collect(type);
   return hasSelection ? serializeNode(node) : undefined;
@@ -878,7 +932,16 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     let selection = this.fieldSelections.get(field);
 
     if (selection === undefined) {
-      selection = compileFieldSelection(field, this.modelFor(type), this) ?? {};
+      const compiled = compileFieldSelection(field, this.modelFor(type), this) ?? {};
+      selection =
+        typeof compiled === 'function'
+          ? (...args) => {
+              const spec = compiled(...args);
+              const finish = (value: PrismaNextSpec | false | null | undefined) =>
+                value ? withSelectionSource(value, field) : value;
+              return isThenable(spec) ? Promise.resolve(spec).then(finish) : finish(spec);
+            }
+          : withSelectionSource(compiled, field);
       this.fieldSelections.set(field, selection);
     }
 
