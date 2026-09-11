@@ -112,7 +112,8 @@ result is not detected, and the nested selection will not be loaded with the par
 
 Pass `awaitSelections: true` to `drizzleConnectionHelpers(...).getQuery`, and `await` the query it
 returns. Without it, an async selection beneath the field throws, and whether there is one
-depends on the incoming document rather than on the callback you wrote:
+depends on the incoming document rather than on the callback you wrote. A connection helper also
+throws when its own `select` or `query` is async, whatever the document asked for:
 
 ```ts
 select: async (args, ctx, nestedSelection) => ({
