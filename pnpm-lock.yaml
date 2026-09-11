@@ -1385,6 +1385,9 @@ importers:
       '@pothos/plugin-errors':
         specifier: workspace:^
         version: link:../packages/plugin-errors
+      '@pothos/plugin-federation':
+        specifier: workspace:^
+        version: link:../packages/plugin-federation
       '@pothos/plugin-mocks':
         specifier: workspace:^
         version: link:../packages/plugin-mocks
@@ -1400,12 +1403,18 @@ importers:
       '@pothos/plugin-sub-graph':
         specifier: workspace:^
         version: link:../packages/plugin-sub-graph
+      '@pothos/plugin-tracing':
+        specifier: workspace:^
+        version: link:../packages/plugin-tracing
       '@pothos/plugin-validation':
         specifier: workspace:^
         version: link:../packages/plugin-validation
       '@pothos/plugin-with-input':
         specifier: workspace:^
         version: link:../packages/plugin-with-input
+      '@pothos/plugin-zod':
+        specifier: workspace:^
+        version: link:../packages/plugin-zod
       '@tailwindcss/postcss':
         specifier: ^4.2.2
         version: 4.2.2
