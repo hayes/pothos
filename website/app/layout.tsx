@@ -89,7 +89,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Providers>{children}</Providers>
         {/* Mounted at the root so the overlay covers every route — docs,
-            playground, plugins, theme-editor — not just the docs column.
+            playground, plugins — not just the docs column.
             `contentSelector="body"` lets reviewers comment on sidebar items,
             header chrome, playground panels, anything. The provider itself
             excludes its own UI from capture via the `rp-*` class checks.

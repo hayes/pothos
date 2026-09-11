@@ -16,8 +16,8 @@ const SearchDialog = dynamic(() => import('fumadocs-ui/components/dialog/search-
  * Mounts the fumadocs `SearchProvider` (Cmd/Ctrl+K hotkey + the shared
  * search context that `SearchButton` reads) around the site header. Kept
  * scoped to the header tree so the global keydown listener is only active
- * on pages that actually expose a search affordance — not the playground
- * or theme-editor, which own their own keyboard shortcuts.
+ * on pages that actually expose a search affordance — not the playground,
+ * which owns its own keyboard shortcuts.
  */
 export function DocsSearchProvider({ children }: { children: ReactNode }) {
   return <SearchProvider SearchDialog={SearchDialog}>{children}</SearchProvider>;

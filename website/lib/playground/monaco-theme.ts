@@ -243,7 +243,7 @@ export function pothosThemeFor(resolvedTheme: string | undefined): string {
 /**
  * Define a Monaco theme from a palette + base editor colors. Re-defining
  * a theme of the same name replaces it, so the editor preview can update
- * live as the theme-editor sliders move.
+ * live as a palette editor's sliders move.
  */
 export function definePaletteTheme(
   monaco: Monaco,
