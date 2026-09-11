@@ -1,0 +1,4 @@
+*
+!.gitignore
+!.npmignore
+!package.json

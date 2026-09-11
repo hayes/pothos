@@ -894,6 +894,64 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
 
+  packages/plugin-prisma-next:
+    dependencies:
+      '@pothos/selection-mapper':
+        specifier: workspace:*
+        version: link:../selection-mapper
+      graphql:
+        specifier: ^17.0.1
+        version: 17.0.1
+    devDependencies:
+      '@pothos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@pothos/plugin-errors':
+        specifier: workspace:*
+        version: link:../plugin-errors
+      '@pothos/plugin-relay':
+        specifier: workspace:*
+        version: link:../plugin-relay
+      '@pothos/plugin-with-input':
+        specifier: workspace:*
+        version: link:../plugin-with-input
+      '@pothos/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      '@prisma-next/adapter-sqlite':
+        specifier: ^0.16.0
+        version: 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/contract':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/driver-sqlite':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-builder':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-orm-client':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-runtime':
+        specifier: ^0.16.0
+        version: 0.16.0(typescript@7.0.2)
+      '@prisma-next/sqlite':
+        specifier: ^0.16.0
+        version: 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/target-sqlite':
+        specifier: ^0.16.0
+        version: 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+
   packages/plugin-prisma-utils:
     dependencies:
       '@prisma/generator-helper':
@@ -1629,6 +1687,12 @@ packages:
     resolution: {integrity: sha512-vyrkEHG1jrukmzTPtyWB4NLPauUw5bQeg4uhn8f+1SSynmrOcyvlb1GKQjjgoBzElLdfXCRYX8UnBlhklOHYRQ==}
     engines: {node: '>=8'}
 
+  '@ark/schema@0.56.2':
+    resolution: {integrity: sha512-Qx4D2JFbBWpntiHZaTv7bGG4H/M2rigiknezKg/WVyDSaLdE4YCcWAOoFB7pjjDqHbbV2OqRfntm1nnXvwMexg==}
+
+  '@ark/util@0.56.2':
+    resolution: {integrity: sha512-9kU2sUE38FZEGG7l3hamYMBieLYEJh2L1mrYD2eXpT+78EnQSV1bhjxJhnxGBMSTbtwpBSDNSK+K60WvaI/DTQ==}
+
   '@as-integrations/express5@1.1.2':
     resolution: {integrity: sha512-BxfwtcWNf2CELDkuPQxi5Zl3WqY/dQVJYafeCBOGoFQjv5M0fjhxmAFZ9vKx/5YKKNeok4UY6PkFbHzmQrdxIA==}
     engines: {node: '>=20'}
@@ -1922,6 +1986,14 @@ packages:
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
 
+  '@clack/core@1.5.0':
+    resolution: {integrity: sha512-zNikCcd8BbcEvzzG1sbXFrRHFk5kHPrpwZwksPvf9qyQO1Teb7JaXaOAxXZei9nZLDW0gaZawiuTCji88bTBhw==}
+    engines: {node: '>= 20.12.0'}
+
+  '@clack/prompts@1.8.0':
+    resolution: {integrity: sha512-PXzLZ8N34rxmuo4dJg3xtOXhcBse94qGjDqsteoEYrFrrZ5FSjIGwMAuOcv64ln8rHVBBD06XeVGr+/JX+plcA==}
+    engines: {node: '>= 20.12.0'}
+
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
     engines: {node: '>=0.1.90'}
@@ -2035,6 +2107,12 @@ packages:
     cpu: [ppc64]
     os: [aix]
 
+  '@esbuild/aix-ppc64@0.28.2':
+    resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
+    engines: {node: '>=18'}
+    cpu: [ppc64]
+    os: [aix]
+
   '@esbuild/android-arm64@0.25.12':
     resolution: {integrity: sha512-6AAmLG7zwD1Z159jCKPvAxZd4y/VTO0VkprYy+3N2FtJ8+BQWFXU+OxARIwA46c5tdD9SsKGZ/1ocqBS/gAKHg==}
     engines: {node: '>=18'}
@@ -2049,6 +2127,12 @@ packages:
 
   '@esbuild/android-arm64@0.28.0':
     resolution: {integrity: sha512-+WzIXQOSaGs33tLEgYPYe/yQHf0WTU0X42Jca3y8NWMbUVhp7rUnw+vAsRC/QiDrdD31IszMrZy+qwPOPjd+rw==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [android]
+
+  '@esbuild/android-arm64@0.28.2':
+    resolution: {integrity: sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==}
     engines: {node: '>=18'}
     cpu: [arm64]
     os: [android]
@@ -2071,6 +2155,12 @@ packages:
     cpu: [arm]
     os: [android]
 
+  '@esbuild/android-arm@0.28.2':
+    resolution: {integrity: sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==}
+    engines: {node: '>=18'}
+    cpu: [arm]
+    os: [android]
+
   '@esbuild/android-x64@0.25.12':
     resolution: {integrity: sha512-5jbb+2hhDHx5phYR2By8GTWEzn6I9UqR11Kwf22iKbNpYrsmRB18aX/9ivc5cabcUiAT/wM+YIZ6SG9QO6a8kg==}
     engines: {node: '>=18'}
@@ -2085,6 +2175,12 @@ packages:
 
   '@esbuild/android-x64@0.28.0':
     resolution: {integrity: sha512-+VJggoaKhk2VNNqVL7f6S189UzShHC/mR9EE8rDdSkdpN0KflSwWY/gWjDrNxxisg8Fp1ZCD9jLMo4m0OUfeUA==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [android]
+
+  '@esbuild/android-x64@0.28.2':
+    resolution: {integrity: sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==}
     engines: {node: '>=18'}
     cpu: [x64]
     os: [android]
@@ -2107,6 +2203,12 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  '@esbuild/darwin-arm64@0.28.2':
+    resolution: {integrity: sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [darwin]
+
   '@esbuild/darwin-x64@0.25.12':
     resolution: {integrity: sha512-HQ9ka4Kx21qHXwtlTUVbKJOAnmG1ipXhdWTmNXiPzPfWKpXqASVcWdnf2bnL73wgjNrFXAa3yYvBSd9pzfEIpA==}
     engines: {node: '>=18'}
@@ -2121,6 +2223,12 @@ packages:
 
   '@esbuild/darwin-x64@0.28.0':
     resolution: {integrity: sha512-fyzLm/DLDl/84OCfp2f/XQ4flmORsjU7VKt8HLjvIXChJoFFOIL6pLJPH4Yhd1n1gGFF9mPwtlN5Wf82DZs+LQ==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@esbuild/darwin-x64@0.28.2':
+    resolution: {integrity: sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==}
     engines: {node: '>=18'}
     cpu: [x64]
     os: [darwin]
@@ -2143,6 +2251,12 @@ packages:
     cpu: [arm64]
     os: [freebsd]
 
+  '@esbuild/freebsd-arm64@0.28.2':
+    resolution: {integrity: sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [freebsd]
+
   '@esbuild/freebsd-x64@0.25.12':
     resolution: {integrity: sha512-TGbO26Yw2xsHzxtbVFGEXBFH0FRAP7gtcPE7P5yP7wGy7cXK2oO7RyOhL5NLiqTlBh47XhmIUXuGciXEqYFfBQ==}
     engines: {node: '>=18'}
@@ -2157,6 +2271,12 @@ packages:
 
   '@esbuild/freebsd-x64@0.28.0':
     resolution: {integrity: sha512-BXoQai/A0wPO6Es3yFJ7APCiKGc1tdAEOgeTNy3SsB491S3aHn4S4r3e976eUnPdU+NbdtmBuLncYir2tMU9Nw==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@esbuild/freebsd-x64@0.28.2':
+    resolution: {integrity: sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==}
     engines: {node: '>=18'}
     cpu: [x64]
     os: [freebsd]
@@ -2179,6 +2299,12 @@ packages:
     cpu: [arm64]
     os: [linux]
 
+  '@esbuild/linux-arm64@0.28.2':
+    resolution: {integrity: sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [linux]
+
   '@esbuild/linux-arm@0.25.12':
     resolution: {integrity: sha512-lPDGyC1JPDou8kGcywY0YILzWlhhnRjdof3UlcoqYmS9El818LLfJJc3PXXgZHrHCAKs/Z2SeZtDJr5MrkxtOw==}
     engines: {node: '>=18'}
@@ -2193,6 +2319,12 @@ packages:
 
   '@esbuild/linux-arm@0.28.0':
     resolution: {integrity: sha512-CjaaREJagqJp7iTaNQjjidaNbCKYcd4IDkzbwwxtSvjI7NZm79qiHc8HqciMddQ6CKvJT6aBd8lO9kN/ZudLlw==}
+    engines: {node: '>=18'}
+    cpu: [arm]
+    os: [linux]
+
+  '@esbuild/linux-arm@0.28.2':
+    resolution: {integrity: sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==}
     engines: {node: '>=18'}
     cpu: [arm]
     os: [linux]
@@ -2215,6 +2347,12 @@ packages:
     cpu: [ia32]
     os: [linux]
 
+  '@esbuild/linux-ia32@0.28.2':
+    resolution: {integrity: sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==}
+    engines: {node: '>=18'}
+    cpu: [ia32]
+    os: [linux]
+
   '@esbuild/linux-loong64@0.25.12':
     resolution: {integrity: sha512-h///Lr5a9rib/v1GGqXVGzjL4TMvVTv+s1DPoxQdz7l/AYv6LDSxdIwzxkrPW438oUXiDtwM10o9PmwS/6Z0Ng==}
     engines: {node: '>=18'}
@@ -2229,6 +2367,12 @@ packages:
 
   '@esbuild/linux-loong64@0.28.0':
     resolution: {integrity: sha512-zpSlUce1mnxzgBADvxKXX5sl8aYQHo2ezvMNI8I0lbblJtp8V4odlm3Yzlj7gPyt3T8ReksE6bK+pT3WD+aJRg==}
+    engines: {node: '>=18'}
+    cpu: [loong64]
+    os: [linux]
+
+  '@esbuild/linux-loong64@0.28.2':
+    resolution: {integrity: sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==}
     engines: {node: '>=18'}
     cpu: [loong64]
     os: [linux]
@@ -2251,6 +2395,12 @@ packages:
     cpu: [mips64el]
     os: [linux]
 
+  '@esbuild/linux-mips64el@0.28.2':
+    resolution: {integrity: sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==}
+    engines: {node: '>=18'}
+    cpu: [mips64el]
+    os: [linux]
+
   '@esbuild/linux-ppc64@0.25.12':
     resolution: {integrity: sha512-9meM/lRXxMi5PSUqEXRCtVjEZBGwB7P/D4yT8UG/mwIdze2aV4Vo6U5gD3+RsoHXKkHCfSxZKzmDssVlRj1QQA==}
     engines: {node: '>=18'}
@@ -2265,6 +2415,12 @@ packages:
 
   '@esbuild/linux-ppc64@0.28.0':
     resolution: {integrity: sha512-bc0FE9wWeC0WBm49IQMPSPILRocGTQt3j5KPCA8os6VprfuJ7KD+5PzESSrJ6GmPIPJK965ZJHTUlSA6GNYEhg==}
+    engines: {node: '>=18'}
+    cpu: [ppc64]
+    os: [linux]
+
+  '@esbuild/linux-ppc64@0.28.2':
+    resolution: {integrity: sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==}
     engines: {node: '>=18'}
     cpu: [ppc64]
     os: [linux]
@@ -2287,6 +2443,12 @@ packages:
     cpu: [riscv64]
     os: [linux]
 
+  '@esbuild/linux-riscv64@0.28.2':
+    resolution: {integrity: sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==}
+    engines: {node: '>=18'}
+    cpu: [riscv64]
+    os: [linux]
+
   '@esbuild/linux-s390x@0.25.12':
     resolution: {integrity: sha512-MsKncOcgTNvdtiISc/jZs/Zf8d0cl/t3gYWX8J9ubBnVOwlk65UIEEvgBORTiljloIWnBzLs4qhzPkJcitIzIg==}
     engines: {node: '>=18'}
@@ -2301,6 +2463,12 @@ packages:
 
   '@esbuild/linux-s390x@0.28.0':
     resolution: {integrity: sha512-SCfR0HN8CEEjnYnySJTd2cw0k9OHB/YFzt5zgJEwa+wL/T/raGWYMBqwDNAC6dqFKmJYZoQBRfHjgwLHGSrn3Q==}
+    engines: {node: '>=18'}
+    cpu: [s390x]
+    os: [linux]
+
+  '@esbuild/linux-s390x@0.28.2':
+    resolution: {integrity: sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==}
     engines: {node: '>=18'}
     cpu: [s390x]
     os: [linux]
@@ -2323,6 +2491,12 @@ packages:
     cpu: [x64]
     os: [linux]
 
+  '@esbuild/linux-x64@0.28.2':
+    resolution: {integrity: sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [linux]
+
   '@esbuild/netbsd-arm64@0.25.12':
     resolution: {integrity: sha512-xXwcTq4GhRM7J9A8Gv5boanHhRa/Q9KLVmcyXHCTaM4wKfIpWkdXiMog/KsnxzJ0A1+nD+zoecuzqPmCRyBGjg==}
     engines: {node: '>=18'}
@@ -2337,6 +2511,12 @@ packages:
 
   '@esbuild/netbsd-arm64@0.28.0':
     resolution: {integrity: sha512-CR/RYotgtCKwtftMwJlUU7xCVNg3lMYZ0RzTmAHSfLCXw3NtZtNpswLEj/Kkf6kEL3Gw+BpOekRX0BYCtklhUw==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [netbsd]
+
+  '@esbuild/netbsd-arm64@0.28.2':
+    resolution: {integrity: sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==}
     engines: {node: '>=18'}
     cpu: [arm64]
     os: [netbsd]
@@ -2359,6 +2539,12 @@ packages:
     cpu: [x64]
     os: [netbsd]
 
+  '@esbuild/netbsd-x64@0.28.2':
+    resolution: {integrity: sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [netbsd]
+
   '@esbuild/openbsd-arm64@0.25.12':
     resolution: {integrity: sha512-fF96T6KsBo/pkQI950FARU9apGNTSlZGsv1jZBAlcLL1MLjLNIWPBkj5NlSz8aAzYKg+eNqknrUJ24QBybeR5A==}
     engines: {node: '>=18'}
@@ -2373,6 +2559,12 @@ packages:
 
   '@esbuild/openbsd-arm64@0.28.0':
     resolution: {integrity: sha512-cXb5vApOsRsxsEl4mcZ1XY3D4DzcoMxR/nnc4IyqYs0rTI8ZKmW6kyyg+11Z8yvgMfAEldKzP7AdP64HnSC/6g==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [openbsd]
+
+  '@esbuild/openbsd-arm64@0.28.2':
+    resolution: {integrity: sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==}
     engines: {node: '>=18'}
     cpu: [arm64]
     os: [openbsd]
@@ -2395,6 +2587,12 @@ packages:
     cpu: [x64]
     os: [openbsd]
 
+  '@esbuild/openbsd-x64@0.28.2':
+    resolution: {integrity: sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [openbsd]
+
   '@esbuild/openharmony-arm64@0.25.12':
     resolution: {integrity: sha512-rm0YWsqUSRrjncSXGA7Zv78Nbnw4XL6/dzr20cyrQf7ZmRcsovpcRBdhD43Nuk3y7XIoW2OxMVvwuRvk9XdASg==}
     engines: {node: '>=18'}
@@ -2409,6 +2607,12 @@ packages:
 
   '@esbuild/openharmony-arm64@0.28.0':
     resolution: {integrity: sha512-FLGfyizszcef5C3YtoyQDACyg95+dndv79i2EekILBofh5wpCa1KuBqOWKrEHZg3zrL3t5ouE5jgr94vA+Wb2w==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [openharmony]
+
+  '@esbuild/openharmony-arm64@0.28.2':
+    resolution: {integrity: sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==}
     engines: {node: '>=18'}
     cpu: [arm64]
     os: [openharmony]
@@ -2431,6 +2635,12 @@ packages:
     cpu: [x64]
     os: [sunos]
 
+  '@esbuild/sunos-x64@0.28.2':
+    resolution: {integrity: sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [sunos]
+
   '@esbuild/win32-arm64@0.25.12':
     resolution: {integrity: sha512-rMmLrur64A7+DKlnSuwqUdRKyd3UE7oPJZmnljqEptesKM8wx9J8gx5u0+9Pq0fQQW8vqeKebwNXdfOyP+8Bsg==}
     engines: {node: '>=18'}
@@ -2445,6 +2655,12 @@ packages:
 
   '@esbuild/win32-arm64@0.28.0':
     resolution: {integrity: sha512-Q9StnDmQ/enxnpxCCLSg0oo4+34B9TdXpuyPeTedN/6+iXBJ4J+zwfQI28u/Jl40nOYAxGoNi7mFP40RUtkmUA==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@esbuild/win32-arm64@0.28.2':
+    resolution: {integrity: sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==}
     engines: {node: '>=18'}
     cpu: [arm64]
     os: [win32]
@@ -2467,6 +2683,12 @@ packages:
     cpu: [ia32]
     os: [win32]
 
+  '@esbuild/win32-ia32@0.28.2':
+    resolution: {integrity: sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==}
+    engines: {node: '>=18'}
+    cpu: [ia32]
+    os: [win32]
+
   '@esbuild/win32-x64@0.25.12':
     resolution: {integrity: sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA==}
     engines: {node: '>=18'}
@@ -2481,6 +2703,12 @@ packages:
 
   '@esbuild/win32-x64@0.28.0':
     resolution: {integrity: sha512-pEl1bO9mfAmIC+tW5btTmrKaujg3zGtUmWNdCw/xs70FBjwAL3o9OEKNHvNmnyylD6ubxUERiEhdsL0xBQ9efw==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [win32]
+
+  '@esbuild/win32-x64@0.28.2':
+    resolution: {integrity: sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==}
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
@@ -3147,6 +3375,16 @@ packages:
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
 
+  '@monaco-editor/loader@1.7.0':
+    resolution: {integrity: sha512-gIwR1HrJrrx+vfyOhYmCZ0/JcWqG5kbfG7+d3f/C1LXk2EvzAbHSg3MQ5lO2sMlo9izoAZ04shohfKLVT6crVA==}
+
+  '@monaco-editor/react@4.7.0':
+    resolution: {integrity: sha512-cyzXQCtO47ydzxpQtCGSQGOC8Gk3ZUeBXFAxD+CWXYFo5OqZyZUonFl0DwUlTyAfRHntBfw2p3w4s9R6oe1eCA==}
+    peerDependencies:
+      monaco-editor: '>= 0.25.0 < 1'
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   '@n1ru4l/push-pull-async-iterable-iterator@3.2.0':
     resolution: {integrity: sha512-3fkKj25kEjsfObL6IlKPAlHYPq/oYwUkkQ03zsTTiDjD7vg/RxjdiLeCydqtxHZP0JgsXL3D/X5oAkMGzuUp/Q==}
     engines: {node: '>=12'}
@@ -3431,6 +3669,10 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
+
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
+    engines: {node: '>= 20.19.0'}
 
   '@node-rs/helper@1.2.1':
     resolution: {integrity: sha512-R5wEmm8nbuQU0YGGmYVjEc0OHtYsuXdpRG+Ut/3wZ9XAvQWyThN08bTh2cBJgoZxHQUPtvRfeQuxcAgLuiBISg==}
@@ -4028,6 +4270,337 @@ packages:
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
+
+  '@prisma-next/adapter-sqlite@0.16.0':
+    resolution: {integrity: sha512-nTonI7i/gl83qEkBB5ql8r7GOosebbihl8NZi/s7YvAprxK6dVmtjRDeY2YgIH7lr9FKZs0gVMfv/OFiWCgTWw==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/cli-telemetry@0.16.0':
+    resolution: {integrity: sha512-nhPOSiDQwckRkz/JPd2hDlRbnpoLbSYOQqUtPKgXqZbeNP3hES2clhelmHGFvExbZ8GdHRJUDaohw00Je4FOhw==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/cli@0.16.0':
+    resolution: {integrity: sha512-f3wvWdMaKRHqp9Xtjt3nCgXMdAT4eCdQuGPPKmxpLp0Sj4LcgzOmPI7BtOWIhQEYqsHZLcpC6bl4zlgZsJtGZA==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/config-loader@0.16.0':
+    resolution: {integrity: sha512-2Rq0H+I+LBBoNIUX2r3jOT/JhPHBQoIfI8O5PpKRRI+k418r1lnl0ukT8+31u7H8lCHyyp0iUtynb5Qh7DhQMg==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/config@0.16.0':
+    resolution: {integrity: sha512-o+52umD7vGJe9TPczsvfMVd0QUxBbEL2OF46noVOoH4yL3DDaTH2q4KGBiLIDvFGzaKp93GX+7nNG1w5/nAIYw==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/contract-authoring@0.16.0':
+    resolution: {integrity: sha512-3XcwR55QEEWoyrX8oEZOMc12WXPXiLelCGmiQRYSkYMTMaF8+EqkBu8a7kxM+/Wh9gwkw4NDQo4jo8CYelPUsg==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/contract@0.16.0':
+    resolution: {integrity: sha512-6NJvWCVfuW3Yitrq5VDLUyy61QEwH+3civpoXauTqZ4s6uytG6Ix+LbKAlyImcDVp6OCud1veRwR/C4pH8aR1Q==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/driver-sqlite@0.16.0':
+    resolution: {integrity: sha512-IXWUr9pO2E55/+trGU2jUPezrWGKdrUiDyoKaEIdjm+iZjz7yN+uGM99Afs4M4Es2CtRla2a6A8U2ENs3LV0AQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/emitter@0.16.0':
+    resolution: {integrity: sha512-J+qLnDoJmPxYrAFg/HjG1lEu1I9U7bZTOydhFOUWaKBgxI0eOMrDwl3FFADl6i0lR2iGWxtedXd+wDtiXk+i5A==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/errors@0.16.0':
+    resolution: {integrity: sha512-1LJtSN2QVc0RY4vr3+5QYyJnJnFW4XhnPtWuXeI+64LRjQYxC33qvpKQQdMKF+YbdNONW+ABmhNhM7WvQ3YVsA==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/family-sql@0.16.0':
+    resolution: {integrity: sha512-I6T0/E+MTaZ1jq7GZ4Pt68S6EKRepl+1piiszyBUZVvfU9o1XEje/flXv/YJeFs8bATaqy4dOIFO5LoXkmWHHg==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/framework-components@0.16.0':
+    resolution: {integrity: sha512-VeZ/5NWDIfUNBAg4+QWbIbHDwNEr3zXJSKOdljsaE2ZvWOfYoe5hZa5MGEUR/XP90yRbBim2808iRB4TTm3//g==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/ids@0.16.0':
+    resolution: {integrity: sha512-Jq6GtYVibSxB0G5wmThCT1aIlkmCC3ccsnA466YBbI/8r1LEyX6cMAvdCN3WWYHepLTLdRfwefPzZYkDXUYLDA==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/language-server@0.16.0':
+    resolution: {integrity: sha512-/YHY/gA4u/0sS+hhwJOiif949TaB/x7+VYayzOKG0NXUnZ2CPTF1BKHJR4y2446QeRsCFIjERxu78+qlcnwmzQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/migration-tools@0.16.0':
+    resolution: {integrity: sha512-hm9MfRfJAZUq6TZ5nV/+90ClvGbTqvKE8noyu+cLfLqUQ9u8q4d0CZW7Z4r4WuRj6vK7DBctEoGpj7xeilFZhQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/operations@0.16.0':
+    resolution: {integrity: sha512-n+5HffZ9CMeOCAIMpQ+WfXO+N7S6W94YLtqoySBJyJ1K/WIymUONSnQfmibctYzZcYMa9n36K2saScZQ+blhsQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/psl-parser@0.16.0':
+    resolution: {integrity: sha512-cgPYAVQYEm8yJt+dvNNiq/Uy4hgrN/OLzDkqcO6RIpC24fHIJCIv7om7Fdu7HyS4kNpEeWxA/hNj4Dv8PAKCEw==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/psl-printer@0.16.0':
+    resolution: {integrity: sha512-0kuozAaLKUP6D9HoIHYQt9gHSUr1xpx+IfGZtbl9vV2ECRE8k8/AARwY3dWK8DPnGN4s+UNCaepKwbUs893INA==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-builder@0.16.0':
+    resolution: {integrity: sha512-lNUR3T6/aLB0GwdX1QvU5s0Fe+V4LkwoQV2KyCbGFOLV/+L/9HJcLYd/RWdq43l7W0U1XvK0GJBcLcC5SseiFw==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-contract-emitter@0.16.0':
+    resolution: {integrity: sha512-epP3u9FqFPWZyRP1fngBpBNIipUoFqo0ogq0yfbS9nQSeGOlC82bWhSwy6kla3KybbVpp6SkZCk3ciiESziGiQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-contract-psl@0.16.0':
+    resolution: {integrity: sha512-9Z94wBLQult9cStxL/dvp4sVerrUaj5WJatL1c/9y+RDF0+itYZiUzdKQ6dqUZR+72hW/p+pa2KUFvVYOVbB+g==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-contract-ts@0.16.0':
+    resolution: {integrity: sha512-O/SEtFZSshWetL16GnnMlqZpZ9dy3Hf6ggAXN0NS9zC+dQkLhdyzt9uA4Fja+mR4zURzz8ZutbpS28FV29wTbw==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-contract@0.16.0':
+    resolution: {integrity: sha512-reYsOs6m+ZZzPaCLWGtUiPCKQgL8ap6WnVC0Q0RE/zXwBD7cw4knZJNjvpkpJBDQU2lQHXn728ZHZ3r9qTah3Q==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-errors@0.16.0':
+    resolution: {integrity: sha512-OVQ1GbQfYVCtt5ciUj5dkI7McHLQPgEyapaLawY1ViVH3UUh36L17N8KC0phE/RASsx2JQt5GxOLPtksIHhvRA==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-operations@0.16.0':
+    resolution: {integrity: sha512-T8D2tVVpwZqZsO8aPwhQQA5DFvotWbkyKTdcsUVLt7nIePSSlTOupnA0JXr3O6ZJDLB9Pz9GOIc1KgxtS4oFpA==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-orm-client@0.16.0':
+    resolution: {integrity: sha512-u8IvNI8H/Y44sJCsZUvhbCC8TZMHLq2cFTA7+SsNb4nqOCI9Ip2hUPrbp/fWwOOhI4bUf3EbptfYyfS8uwL5GQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-relational-core@0.16.0':
+    resolution: {integrity: sha512-PmU6fjX21O6eyspv9n7BbHJWh869oDdFspU0KIy2eLAGH2tqG/1RWYk71VoJFPutdR9HWTlQIWhf3V80qHrYhA==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-runtime@0.16.0':
+    resolution: {integrity: sha512-3ysbTyDVq3NraFpGrKUlmvLRoG19spxBuwRcU2Uj+VJuTgJctddncDhaS6Uu7pYNqyxnNbyqXIEVUTyeAE8U7g==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sql-schema-ir@0.16.0':
+    resolution: {integrity: sha512-vITsu7BYfdKmtacfHO5V/RV6MBNKh/mIzRmHa56PDTJrcJU2B+qatg4rRZ9a6tAGAQ8au2y3DPo8+YoidAfTQQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/sqlite@0.16.0':
+    resolution: {integrity: sha512-7p1YC7kts5BxNqdombWC6q2awEgLcOYPmBgF/ES+AjZ8U9XDckISPXppeSZuxpApfXuWWKYIvkEKfa7aXivm4g==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/target-sqlite@0.16.0':
+    resolution: {integrity: sha512-ACjGkEuOhpAbrLMI89HvQJ58fs77IXh5+mhFWFjCcBdoNeblmDJ5IMVXOYKuy5+qT5t4LwH7I1RQjrjp90fpJg==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/ts-render@0.16.0':
+    resolution: {integrity: sha512-Be+jx+plchQoTPdtgqKYLmX8JY+SGjFXnfOMpHZMCrpH1wouDPJHqsaU73SYGRAtutlJIUlAahAZW61qqfJptg==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/utils@0.16.0':
+    resolution: {integrity: sha512-j/Q02VfXO+aSPXIEu+YNQ54/r0zCoxDWRY33H8VULln4Pe9l9s9zw3gGniXV8OqCphBp4eO4z4hQYvXIfXn8mQ==}
+    engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   '@prisma/adapter-better-sqlite3@7.7.0':
     resolution: {integrity: sha512-K6V9AHEKBBC/zo5gXb3PO5A0dYv/fSpCRMnbKY9lpB7B+02MdLSVVP6JtMpLD+NcPDQxKvKACJO7n+zZH4hA5g==}
@@ -5216,6 +5789,10 @@ packages:
   '@types/long@4.0.2':
     resolution: {integrity: sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==}
 
+  '@types/lz-string@1.5.0':
+    resolution: {integrity: sha512-s84fKOrzqqNCAPljhVyC5TjAo6BH4jKHw9NRNFNiRUY5QSgZCmVm5XILlWbisiKl+0OcS7eWihmKGS5akc2iQw==}
+    deprecated: This is a stub types definition. lz-string provides its own type definitions, so you do not need this installed.
+
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
 
@@ -5319,6 +5896,11 @@ packages:
 
   '@types/yup@0.29.13':
     resolution: {integrity: sha512-qRyuv+P/1t1JK1rA+elmK1MmCL1BapEzKKfbEhDBV/LMMse4lmhZ/XbgETI39JveDJRpLjmToOI6uFtMW/WR2g==}
+
+  '@typescript/ata@0.9.8':
+    resolution: {integrity: sha512-+M815CeDRJS5H5ciWfhFCKp25nNfF+LFWawWAaBhNlquFb2wS5IIMDI+2bKWN3GuU6mpj+FzySsOD29M4nG8Xg==}
+    peerDependencies:
+      typescript: '>=4.4.4'
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -5483,6 +6065,10 @@ packages:
         optional: true
       vue-router:
         optional: true
+
+  '@vercel/detect-agent@1.2.5':
+    resolution: {integrity: sha512-0krENrjuitlW8s6TJu0MlqCevyCU7K7JK63jZAf7xZ6n17tx+vUEwzHT3sTxawtwZxaW21hu+oFUpoOrm49FsQ==}
+    engines: {node: '>=14'}
 
   '@vitest/expect@4.1.4':
     resolution: {integrity: sha512-iPBpra+VDuXmBFI3FMKHSFXp3Gx5HfmSCE8X67Dn+bwephCnQCaB7qWK2ldHa+8ncN8hJU8VTMcxjPpyMkUjww==}
@@ -5795,6 +6381,12 @@ packages:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
 
+  arkregex@0.0.8:
+    resolution: {integrity: sha512-PJcx6G1kQTgLKPUbeYlYecDRaKq15AMSGVajlKFYWlPeJRQL+j3dKE6tyMs40HZ99djS1l9Vhl3ezAHy9JBIqQ==}
+
+  arktype@2.2.3:
+    resolution: {integrity: sha512-7W+0RLTUNJiBFIIZXwOQxSR8Z273IAd6IvqBeG9+gHnQKFsIx2C0iOtGTmMrPnlX4qLXyc5+ll7A0BIj9WrbTg==}
+
   array-buffer-byte-length@1.0.2:
     resolution: {integrity: sha512-LHE+8BuR7RYGDKvnrmcuSq3tDcKv9OFEXQt/HpbZhY7V6h0zlUXutnAD82GiFx9rdieCMjkvtcsPqBwgUl1Iiw==}
     engines: {node: '>= 0.4'}
@@ -6082,6 +6674,14 @@ packages:
       magicast:
         optional: true
 
+  c12@3.3.4:
+    resolution: {integrity: sha512-cM0ApFQSBXuourJejzwv/AuPRvAxordTyParRVcHjjtXirtkzM0uK2L9TTn9s0cXZbG7E55jCivRQzoxYmRAlA==}
+    peerDependencies:
+      magicast: '*'
+    peerDependenciesMeta:
+      magicast:
+        optional: true
+
   cacache@20.0.4:
     resolution: {integrity: sha512-M3Lab8NPYlZU2exsL3bMVvMrMqgwCnMWfdZbK28bn3pK6APT/Te/I8hjRPNu1uwORY9a1eEQoifXbKPQMfMTOA==}
     engines: {node: ^20.17.0 || >=22.9.0}
@@ -6199,6 +6799,10 @@ packages:
     resolution: {integrity: sha512-rNjApaLzuwaOTjCiT8lSDdGN1APCiqkChLMJxJPWLunPAt5fy8xgU9/jNOchV84wfIxrA0lRQB7oCT8jrn/wrQ==}
     engines: {node: '>=6.0'}
 
+  ci-info@4.4.0:
+    resolution: {integrity: sha512-77PSwercCZU2Fc4sX94eF8k8Pxte6JAwL4/ICZLFjJLqegs7kCuAsqqj/70NQF6TvDpgFjkubQB2FW2ZZddvQg==}
+    engines: {node: '>=8'}
+
   cipher-base@1.0.7:
     resolution: {integrity: sha512-Mz9QMT5fJe7bKI7MH31UilT5cEK5EHHRCccw/YRFsRY47AuNgaV6HY3rscp0/I4Q+tTW/5zoqpSeRRI54TkDWA==}
     engines: {node: '>= 0.10'}
@@ -6244,6 +6848,11 @@ packages:
   client-only@0.0.1:
     resolution: {integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==}
 
+  clipanion@4.0.0-rc.4:
+    resolution: {integrity: sha512-CXkMQxU6s9GklO/1f714dkKBMu1lopS1WFF0B8o4AxPykR1hpozxSiUZ5ZUeBjfPgCWqbcNOtZVFhB8Lkfp1+Q==}
+    peerDependencies:
+      typanion: '*'
+
   cliui@8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
@@ -6261,6 +6870,9 @@ packages:
   clone@1.0.4:
     resolution: {integrity: sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==}
     engines: {node: '>=0.8'}
+
+  closest-match@1.3.3:
+    resolution: {integrity: sha512-RSdHrZwNOvt2uMQgqJDJdM/I+5MlJ1tQJEXYrbRjSMXWiCRo06g2hwObJ7+WKt2J9ySK9/pJ0Q2vbL+BPkofDA==}
 
   cls-hooked@4.2.2:
     resolution: {integrity: sha512-J4Xj5f5wq/4jAvcdgoGsL3G103BtWpZrMo8NEinRltN+xpTZdI+M38pyQqhuFU/P792xkMFvnKSf+Lm81U1bxw==}
@@ -6296,6 +6908,9 @@ packages:
   colorette@1.4.0:
     resolution: {integrity: sha512-Y2oEozpomLn7Q3HFP7dpww7AtMJplbM9lGZP6RDfHqmbeRjiwRg4n6VM6j4KLmRke85uWEI7JqF17f3pqdRA0g==}
 
+  colorette@2.0.20:
+    resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
+
   columnify@1.6.0:
     resolution: {integrity: sha512-lomjuFZKfM6MSAnV9aCZC9sc0qGbmZdfygNv+nCpqVkSKdCxCklLtd16O0EILGkImHw9ZpHkAnHaB+8Zxq5W6Q==}
     engines: {node: '>=8.0.0'}
@@ -6310,6 +6925,10 @@ packages:
   commander@11.1.0:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
+
+  commander@15.0.0:
+    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+    engines: {node: '>=22.12.0'}
 
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -6718,6 +7337,10 @@ packages:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
     engines: {node: '>=12'}
 
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+    engines: {node: '>=12'}
+
   download@8.0.0:
     resolution: {integrity: sha512-ASRY5QhDk7FK+XrQtQyvhpDKanLluEEQtWl/J7Lxuf/b+i8RYh997QeXvL85xitrmRKVlx9c7eTrcRdq2GS4eA==}
     engines: {node: '>=10'}
@@ -6962,6 +7585,11 @@ packages:
   esast-util-from-js@2.0.1:
     resolution: {integrity: sha512-8Ja+rNJ0Lt56Pcf3TAmpBZjmx8ZcK5Ts4cAzIOjsjevg9oSXJnl6SUQ2EevU8tv3h6ZLWmoKL5H4fgWvdvfETw==}
 
+  esbuild-wasm@0.27.7:
+    resolution: {integrity: sha512-1k03e2/tGz+sLz3/xzoZmUsIqtaGIvJa8k4UqUeqCUry83nHmlxQYZUUES0WBFUYilSQUf7nDUGAciIIklljSg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   esbuild@0.25.12:
     resolution: {integrity: sha512-bbPBYYrtZbkt6Os6FiTLCTFxvq4tt3JKall1vRwshA3fdVztsLAatFaZobhkBC8/BrPetoa0oksYoKXoG4ryJg==}
     engines: {node: '>=18'}
@@ -6974,6 +7602,11 @@ packages:
 
   esbuild@0.28.0:
     resolution: {integrity: sha512-sNR9MHpXSUV/XB4zmsFKN+QgVG82Cc7+/aaxJ8Adi8hyOac+EXptIp45QBPaVyX3N70664wRbTcLTOemCAnyqw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  esbuild@0.28.2:
+    resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -7156,6 +7789,12 @@ packages:
   fast-safe-stringify@2.1.1:
     resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==}
 
+  fast-string-truncated-width@3.0.3:
+    resolution: {integrity: sha512-0jjjIEL6+0jag3l2XWWizO64/aZVtpiGE3t0Zgqxv0DPuxiMjvB3M24fCyhZUO4KomJQPj3LTSUnDP3GpdwC0g==}
+
+  fast-string-width@3.0.2:
+    resolution: {integrity: sha512-gX8LrtNEI5hq8DVUfRQMbr5lpaS4nMIWV+7XEbXk2b8kiQIizgnlr12B4dA3ZEx3308ze0O4Q1R+cHts8kyUJg==}
+
   fast-uri@2.4.0:
     resolution: {integrity: sha512-ypuAmmMKInk5q7XcepxlnUWDLWv4GFtaJqAzWKqn62IpQ3pejtr5dTVbt3vwqVaMKmkNR55sTT+CqUKIaT21BA==}
 
@@ -7164,6 +7803,9 @@ packages:
 
   fast-url-parser@1.1.3:
     resolution: {integrity: sha512-5jOCVXADYNuRkKFzNJ0dCCewsZiYo0dz8QNYljkOpFC6r2U4OBmKtvm/Tsuh4w1YYdDqDb31a8TVhBJ2OJKdqQ==}
+
+  fast-wrap-ansi@0.2.2:
+    resolution: {integrity: sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==}
 
   fastify-plugin@5.1.0:
     resolution: {integrity: sha512-FAIDA8eovSt5qcDgcBvDuX/v0Cjz0ohGhENZ/wpc3y+oZCY2afZ9Baqql3g/lC+OHRnciQol4ww7tuthOb9idw==}
@@ -7542,6 +8184,10 @@ packages:
     resolution: {integrity: sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q==}
     engines: {node: '>=18'}
 
+  get-east-asian-width@1.6.0:
+    resolution: {integrity: sha512-QRbvDIbx6YklUe6RxeTeleMR0yv3cYH6PsPZHcnVn7xv7zO1BHN8r0XETu8n6Ye3Q+ahtSarc3WgtNWmehIBfA==}
+    engines: {node: '>=18'}
+
   get-intrinsic@1.3.0:
     resolution: {integrity: sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==}
     engines: {node: '>= 0.4'}
@@ -7600,6 +8246,10 @@ packages:
 
   giget@2.0.0:
     resolution: {integrity: sha512-L5bGsVkxJbJgdnwyuheIunkGatUF/zssUoxxjACCseZYAVbaqdh9Tsmmlkl8vYan09H7sbvKt4pS8GqKLBrEzA==}
+    hasBin: true
+
+  giget@3.3.1:
+    resolution: {integrity: sha512-r+mvuDjrjMpsdw46Kmeydb8bdHm7wOKw8wNBtTndkjbPjgAp5oUJUxRE76wZFknxIPokfWvep2qSXK37aXE6zg==}
     hasBin: true
 
   git-config-path@2.0.0:
@@ -8599,6 +9249,10 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  lz-string@1.5.0:
+    resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
+    hasBin: true
+
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
 
@@ -9405,6 +10059,9 @@ packages:
   package-manager-detector@0.2.11:
     resolution: {integrity: sha512-BEnLolu+yuz22S56CU1SUKq3XC3PkwD5wv4ikR4MfGvnRVcmzXR9DwSlW2fEamyTPyXHomBJRzgapeuBvRNzJQ==}
 
+  package-manager-detector@1.8.0:
+    resolution: {integrity: sha512-yQA4H19AmPEoMUeavPMDIe1higySl/gH/yaQrkT/s07Qp+7pp2hYz30N3z2l5BkjVkF9Ow6o0wjJamm2y7Sn0A==}
+
   pako@1.0.11:
     resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
 
@@ -9494,6 +10151,9 @@ packages:
 
   perfect-debounce@1.0.0:
     resolution: {integrity: sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==}
+
+  perfect-debounce@2.1.0:
+    resolution: {integrity: sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g==}
 
   pg-cloudflare@1.3.0:
     resolution: {integrity: sha512-6lswVVSztmHiRtD6I8hw4qP/nDm1EJbKMRhf3HCYaqud7frGysPv7FYJ5noZQdhQtN2xJnimfMtvQq21pdbzyQ==}
@@ -9673,6 +10333,11 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
+  prettier@3.9.6:
+    resolution: {integrity: sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==}
+    engines: {node: '>=14'}
+    hasBin: true
+
   pretty-format@29.7.0:
     resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -9837,6 +10502,9 @@ packages:
 
   rc9@2.1.2:
     resolution: {integrity: sha512-btXCnMmRIBINM2LDZoEmOogIZU7Qe7zn4BpomSKZ/ykbLObuBdvG+mFq11DL6fjH1DRwHhrlgtYWG96bJiC7Cg==}
+
+  rc9@3.1.0:
+    resolution: {integrity: sha512-ufjkNVzbRHKcCOmTahZkmVsyc3W+MSk3jY03m+a7tGHkIsdVMG9l10/3HvFbWkkKzY5VFp3pkRsIo/UYgmFL7Q==}
 
   rc@1.2.8:
     resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
@@ -10321,6 +10989,9 @@ packages:
   single-user-cache@2.1.0:
     resolution: {integrity: sha512-Wmu+uIEkabMoQPpJTOYhEsE6h/XjnjIhtuB1+tynxeO/hQxwQD0hIDq/ad65P1Tw9wt9f5SKnUe+63m6TMB4Uw==}
 
+  sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
   slash@3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
@@ -10404,6 +11075,9 @@ packages:
   sprintf-js@1.1.3:
     resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
 
+  sql.js@1.14.1:
+    resolution: {integrity: sha512-gcj8zBWU5cFsi9WUP+4bFNXAyF1iRpA3LLyS/DP5xlrNzGmPIizUeBggKa8DbDwdqaKwUcTEnChtd2grWo/x/A==}
+
   sqlite3@6.0.1:
     resolution: {integrity: sha512-X0czUUMG2tmSqJpEQa3tCuZSHKIx8PwM53vLZzKp/o6Rpy25fiVfjdbnZ988M8+O3ZWR1ih0K255VumCb3MAnQ==}
     engines: {node: '>=20.17.0'}
@@ -10425,6 +11099,9 @@ packages:
   stacktrace-parser@0.1.10:
     resolution: {integrity: sha512-KJP1OCML99+8fhOHxwwzyWrlUuVX5GQ0ZpJTd1DFXhdkrvg1szxfHhawXUZ3g9TkXORQd4/WG68jMlQZ2p8wlg==}
     engines: {node: '>=6'}
+
+  state-local@1.0.7:
+    resolution: {integrity: sha512-HTEHMNieakEnoe33shBYcZ7NX83ACUjCu8c40iOGEZsngj9zRnkqS9j1pqQPXwobB0ZcVTk27REb7COQ0UR59w==}
 
   statuses@1.5.0:
     resolution: {integrity: sha512-OpZ3zP+jT1PI7I8nemJX4AKmAX070ZkYPVWV/AaKTJl+tXCTGyVdC1a4SL8RUQYEwk/f34ZX8UTykN68FwrqAA==}
@@ -10492,6 +11169,10 @@ packages:
     resolution: {integrity: sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ==}
     engines: {node: '>=18'}
 
+  string-width@8.2.2:
+    resolution: {integrity: sha512-GaPUh5gfdrYzqeVNZvUfT23vYYxXzKYidUcnMtJg/3rxRV63EFZy3k6xfKlmfeJD0176lnUV/Usr3XcwSvFzpg==}
+    engines: {node: '>=20'}
+
   string.fromcodepoint@0.2.1:
     resolution: {integrity: sha512-n69H31OnxSGSZyZbgBlvYIXlrMhJQ0dQAX1js1QDhpaUH6zmU3QYlj07bCwCNlPOu3oRXIubGPl2gDGnHsiCqg==}
 
@@ -10514,6 +11195,10 @@ packages:
 
   strip-ansi@7.1.2:
     resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
+    engines: {node: '>=12'}
+
+  strip-ansi@7.2.0:
+    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
     engines: {node: '>=12'}
 
   strip-bom@3.0.0:
@@ -10824,6 +11509,9 @@ packages:
       typescript:
         optional: true
 
+  ts-toolbelt@9.6.0:
+    resolution: {integrity: sha512-nsZd8ZeNUzukXPlJmTBwUAuABDe/9qtVDelJeT/qW0ow3ZS3BsQJtNkan1802aM9Uf68/Y8ljw86Hu0h5IUW3w==}
+
   tsconfig-paths-webpack-plugin@4.2.0:
     resolution: {integrity: sha512-zbem3rfRS8BgeNK50Zz5SIQgXzLafiHjOwUAvk/38/o1jHn/V5QAgVUcz884or7WYcPaH3N2CIfUc2u0ul7UcA==}
     engines: {node: '>=10.13.0'}
@@ -10865,6 +11553,9 @@ packages:
   turbo@2.9.6:
     resolution: {integrity: sha512-+v2QJey7ZUeUiuigkU+uFfklvNUyPI2VO2vBpMYJA+a1hKFLFiKtUYlRHdb3P9CrAvMzi0upbjI4WT+zKtqkBg==}
     hasBin: true
+
+  typanion@3.14.0:
+    resolution: {integrity: sha512-ZW/lVMRabETuYCd9O9ZvMhAh8GslSqaUjxmK/JLPCh6l73CvLBiuXswj/+7LdnWOgYsQ130FqLzFz5aGT4I3Ug==}
 
   type-detect@4.1.0:
     resolution: {integrity: sha512-Acylog8/luQ8L7il+geoSxhEkazvkslg7PSNKOX59mbB9cOveP5aq9h74Y7YU8yDpJwetzQQrfIwtf4Wp4LKcw==}
@@ -10965,6 +11656,10 @@ packages:
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
+
+  uniku@0.3.2:
+    resolution: {integrity: sha512-+KesDkVak6YJG5kjkeqciTukDo9kzThuK5UFK+HtXzDbls0J5IuNXQ9mApyipyEuLVhVx61Uum8zljO73TBiiA==}
+    engines: {node: '>=20.19.0'}
 
   unist-util-is@6.0.1:
     resolution: {integrity: sha512-LsiILbtBETkDz8I9p1dQ0uyRUWuaQzd/cuEeS1hoRSyW5E5XGmTzlwY1OrNzzakGowI9Dr/I8HVaw4hTtnxy8g==}
@@ -11350,8 +12045,25 @@ packages:
   vm-browserify@1.1.2:
     resolution: {integrity: sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==}
 
+  vscode-jsonrpc@9.0.1:
+    resolution: {integrity: sha512-rfuA6T75H6m5EkbhtEPzre9pT0HPcDI2MMy4+nPFIBks5J8JBAUHD4tRYSgaBOijIEC7SRkC1kKyXTLqbmh9jw==}
+    engines: {node: '>=14.0.0'}
+
+  vscode-languageserver-protocol@3.18.2:
+    resolution: {integrity: sha512-XRyDbT0Pp3sSNti3JmxVEUMySWCSi1hhM+/KUlCy1hV1zmrqpM1OwO12EAki8blhmLuIMpaJrYbo0OzGVfK2Qg==}
+
+  vscode-languageserver-textdocument@1.0.12:
+    resolution: {integrity: sha512-cxWNPesCnQCcMPeenjKKsOCKQZ/L6Tv19DTRIGuLWe32lyzWhihGVJ/rcckZXJxfdKCFvRLS3fpBIsV/ZGX4zA==}
+
   vscode-languageserver-types@3.17.5:
     resolution: {integrity: sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg==}
+
+  vscode-languageserver-types@3.18.0:
+    resolution: {integrity: sha512-8TsGPNMIMiiBdkORgRSvLjuiEIiAFtO+KssmYWxQ+uSVvlf7RjK8YKCOjPzZ+YA04jXEV7+7LvkSmHkhpNS99g==}
+
+  vscode-languageserver@10.1.0:
+    resolution: {integrity: sha512-9gEWpXkYGXoqG7pBnE8O8hx/yP7+Aabn4+peQ3KDicQv6qunHSWyLTud3OF0w4S2+HfDD+5HqYKiXQW9HAU6mA==}
+    hasBin: true
 
   watchpack@2.1.1:
     resolution: {integrity: sha512-Oo7LXCmc1eE1AjyuSBmtC3+Wy4HcV8PxWh2kP6fOl8yTlNS7r0K9l1ao2lrrUza7V39Y3D/BbJgY8VeSlc5JKw==}
@@ -11451,6 +12163,10 @@ packages:
 
   wonka@6.3.6:
     resolution: {integrity: sha512-MXH+6mDHAZ2GuMpgKS055FR6v0xVP3XwquxIMYXgiW+FejHQlMGlvVRZT4qMCxR+bEo/FCtIdKxwej9WV3YQag==}
+
+  wrap-ansi@10.0.1:
+    resolution: {integrity: sha512-M0N4xzyzosiIok3svYlEo1sdLZts/8FPgYH/GPC3wvlmPoRvnoManGMrE54waYj3tISA8w6lsdesfVv67qSr8Q==}
+    engines: {node: '>=20'}
 
   wrap-ansi@6.2.0:
     resolution: {integrity: sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==}
@@ -11897,6 +12613,12 @@ snapshots:
   '@ardatan/aggregate-error@0.0.6':
     dependencies:
       tslib: 2.0.3
+
+  '@ark/schema@0.56.2':
+    dependencies:
+      '@ark/util': 0.56.2
+
+  '@ark/util@0.56.2': {}
 
   '@as-integrations/express5@1.1.2(@apollo/server@5.5.0(graphql@17.0.1))(express@5.2.1)':
     dependencies:
@@ -12380,6 +13102,18 @@ snapshots:
       human-id: 4.1.3
       prettier: 2.8.8
 
+  '@clack/core@1.5.0':
+    dependencies:
+      fast-wrap-ansi: 0.2.2
+      sisteransi: 1.0.5
+
+  '@clack/prompts@1.8.0':
+    dependencies:
+      '@clack/core': 1.5.0
+      fast-string-width: 3.0.2
+      fast-wrap-ansi: 0.2.2
+      sisteransi: 1.0.5
+
   '@colors/colors@1.5.0':
     optional: true
 
@@ -12499,6 +13233,9 @@ snapshots:
   '@esbuild/aix-ppc64@0.28.0':
     optional: true
 
+  '@esbuild/aix-ppc64@0.28.2':
+    optional: true
+
   '@esbuild/android-arm64@0.25.12':
     optional: true
 
@@ -12506,6 +13243,9 @@ snapshots:
     optional: true
 
   '@esbuild/android-arm64@0.28.0':
+    optional: true
+
+  '@esbuild/android-arm64@0.28.2':
     optional: true
 
   '@esbuild/android-arm@0.25.12':
@@ -12517,6 +13257,9 @@ snapshots:
   '@esbuild/android-arm@0.28.0':
     optional: true
 
+  '@esbuild/android-arm@0.28.2':
+    optional: true
+
   '@esbuild/android-x64@0.25.12':
     optional: true
 
@@ -12524,6 +13267,9 @@ snapshots:
     optional: true
 
   '@esbuild/android-x64@0.28.0':
+    optional: true
+
+  '@esbuild/android-x64@0.28.2':
     optional: true
 
   '@esbuild/darwin-arm64@0.25.12':
@@ -12535,6 +13281,9 @@ snapshots:
   '@esbuild/darwin-arm64@0.28.0':
     optional: true
 
+  '@esbuild/darwin-arm64@0.28.2':
+    optional: true
+
   '@esbuild/darwin-x64@0.25.12':
     optional: true
 
@@ -12542,6 +13291,9 @@ snapshots:
     optional: true
 
   '@esbuild/darwin-x64@0.28.0':
+    optional: true
+
+  '@esbuild/darwin-x64@0.28.2':
     optional: true
 
   '@esbuild/freebsd-arm64@0.25.12':
@@ -12553,6 +13305,9 @@ snapshots:
   '@esbuild/freebsd-arm64@0.28.0':
     optional: true
 
+  '@esbuild/freebsd-arm64@0.28.2':
+    optional: true
+
   '@esbuild/freebsd-x64@0.25.12':
     optional: true
 
@@ -12560,6 +13315,9 @@ snapshots:
     optional: true
 
   '@esbuild/freebsd-x64@0.28.0':
+    optional: true
+
+  '@esbuild/freebsd-x64@0.28.2':
     optional: true
 
   '@esbuild/linux-arm64@0.25.12':
@@ -12571,6 +13329,9 @@ snapshots:
   '@esbuild/linux-arm64@0.28.0':
     optional: true
 
+  '@esbuild/linux-arm64@0.28.2':
+    optional: true
+
   '@esbuild/linux-arm@0.25.12':
     optional: true
 
@@ -12578,6 +13339,9 @@ snapshots:
     optional: true
 
   '@esbuild/linux-arm@0.28.0':
+    optional: true
+
+  '@esbuild/linux-arm@0.28.2':
     optional: true
 
   '@esbuild/linux-ia32@0.25.12':
@@ -12589,6 +13353,9 @@ snapshots:
   '@esbuild/linux-ia32@0.28.0':
     optional: true
 
+  '@esbuild/linux-ia32@0.28.2':
+    optional: true
+
   '@esbuild/linux-loong64@0.25.12':
     optional: true
 
@@ -12596,6 +13363,9 @@ snapshots:
     optional: true
 
   '@esbuild/linux-loong64@0.28.0':
+    optional: true
+
+  '@esbuild/linux-loong64@0.28.2':
     optional: true
 
   '@esbuild/linux-mips64el@0.25.12':
@@ -12607,6 +13377,9 @@ snapshots:
   '@esbuild/linux-mips64el@0.28.0':
     optional: true
 
+  '@esbuild/linux-mips64el@0.28.2':
+    optional: true
+
   '@esbuild/linux-ppc64@0.25.12':
     optional: true
 
@@ -12614,6 +13387,9 @@ snapshots:
     optional: true
 
   '@esbuild/linux-ppc64@0.28.0':
+    optional: true
+
+  '@esbuild/linux-ppc64@0.28.2':
     optional: true
 
   '@esbuild/linux-riscv64@0.25.12':
@@ -12625,6 +13401,9 @@ snapshots:
   '@esbuild/linux-riscv64@0.28.0':
     optional: true
 
+  '@esbuild/linux-riscv64@0.28.2':
+    optional: true
+
   '@esbuild/linux-s390x@0.25.12':
     optional: true
 
@@ -12632,6 +13411,9 @@ snapshots:
     optional: true
 
   '@esbuild/linux-s390x@0.28.0':
+    optional: true
+
+  '@esbuild/linux-s390x@0.28.2':
     optional: true
 
   '@esbuild/linux-x64@0.25.12':
@@ -12643,6 +13425,9 @@ snapshots:
   '@esbuild/linux-x64@0.28.0':
     optional: true
 
+  '@esbuild/linux-x64@0.28.2':
+    optional: true
+
   '@esbuild/netbsd-arm64@0.25.12':
     optional: true
 
@@ -12650,6 +13435,9 @@ snapshots:
     optional: true
 
   '@esbuild/netbsd-arm64@0.28.0':
+    optional: true
+
+  '@esbuild/netbsd-arm64@0.28.2':
     optional: true
 
   '@esbuild/netbsd-x64@0.25.12':
@@ -12661,6 +13449,9 @@ snapshots:
   '@esbuild/netbsd-x64@0.28.0':
     optional: true
 
+  '@esbuild/netbsd-x64@0.28.2':
+    optional: true
+
   '@esbuild/openbsd-arm64@0.25.12':
     optional: true
 
@@ -12668,6 +13459,9 @@ snapshots:
     optional: true
 
   '@esbuild/openbsd-arm64@0.28.0':
+    optional: true
+
+  '@esbuild/openbsd-arm64@0.28.2':
     optional: true
 
   '@esbuild/openbsd-x64@0.25.12':
@@ -12679,6 +13473,9 @@ snapshots:
   '@esbuild/openbsd-x64@0.28.0':
     optional: true
 
+  '@esbuild/openbsd-x64@0.28.2':
+    optional: true
+
   '@esbuild/openharmony-arm64@0.25.12':
     optional: true
 
@@ -12686,6 +13483,9 @@ snapshots:
     optional: true
 
   '@esbuild/openharmony-arm64@0.28.0':
+    optional: true
+
+  '@esbuild/openharmony-arm64@0.28.2':
     optional: true
 
   '@esbuild/sunos-x64@0.25.12':
@@ -12697,6 +13497,9 @@ snapshots:
   '@esbuild/sunos-x64@0.28.0':
     optional: true
 
+  '@esbuild/sunos-x64@0.28.2':
+    optional: true
+
   '@esbuild/win32-arm64@0.25.12':
     optional: true
 
@@ -12704,6 +13507,9 @@ snapshots:
     optional: true
 
   '@esbuild/win32-arm64@0.28.0':
+    optional: true
+
+  '@esbuild/win32-arm64@0.28.2':
     optional: true
 
   '@esbuild/win32-ia32@0.25.12':
@@ -12715,6 +13521,9 @@ snapshots:
   '@esbuild/win32-ia32@0.28.0':
     optional: true
 
+  '@esbuild/win32-ia32@0.28.2':
+    optional: true
+
   '@esbuild/win32-x64@0.25.12':
     optional: true
 
@@ -12722,6 +13531,9 @@ snapshots:
     optional: true
 
   '@esbuild/win32-x64@0.28.0':
+    optional: true
+
+  '@esbuild/win32-x64@0.28.2':
     optional: true
 
   '@faker-js/faker@10.4.0': {}
@@ -13485,6 +14297,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@monaco-editor/loader@1.7.0':
+    dependencies:
+      state-local: 1.0.7
+
+  '@monaco-editor/react@4.7.0(monaco-editor@0.52.2)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
+    dependencies:
+      '@monaco-editor/loader': 1.7.0
+      monaco-editor: 0.52.2
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
+
   '@n1ru4l/push-pull-async-iterable-iterator@3.2.0': {}
 
   '@napi-rs/nice-android-arm-eabi@1.1.1':
@@ -13750,6 +14573,8 @@ snapshots:
 
   '@next/swc-win32-x64-msvc@16.2.3':
     optional: true
+
+  '@noble/hashes@2.4.0': {}
 
   '@node-rs/helper@1.2.1':
     dependencies:
@@ -14433,6 +15258,814 @@ snapshots:
       webcrypto-core: 1.8.1
 
   '@pinojs/redact@0.4.0': {}
+
+  '@prisma-next/adapter-sqlite@0.16.0(typanion@3.14.0)(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/cli': 0.16.0(typanion@3.14.0)(typescript@6.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/contract-authoring': 0.16.0(typescript@6.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/family-sql': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/ids': 0.16.0(typescript@6.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract-psl': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@6.0.2)
+      '@prisma-next/target-sqlite': 0.16.0(typanion@3.14.0)(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/adapter-sqlite@0.16.0(typanion@3.14.0)(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/cli': 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/contract-authoring': 0.16.0(typescript@7.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/family-sql': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/ids': 0.16.0(typescript@7.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract-psl': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@7.0.2)
+      '@prisma-next/target-sqlite': 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/cli-telemetry@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      '@vercel/detect-agent': 1.2.5
+      arktype: 2.2.3
+      c12: 3.3.4
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - magicast
+
+  '@prisma-next/cli-telemetry@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      '@vercel/detect-agent': 1.2.5
+      arktype: 2.2.3
+      c12: 3.3.4
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - magicast
+
+  '@prisma-next/cli@0.16.0(typanion@3.14.0)(typescript@6.0.2)':
+    dependencies:
+      '@clack/prompts': 1.8.0
+      '@prisma-next/cli-telemetry': 0.16.0(typescript@6.0.2)
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/config-loader': 0.16.0(typescript@6.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@6.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/language-server': 0.16.0(typescript@6.0.2)
+      '@prisma-next/migration-tools': 0.16.0(typescript@6.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@6.0.2)
+      '@prisma-next/psl-printer': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+      ci-info: 4.4.0
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      closest-match: 1.3.3
+      colorette: 2.0.20
+      commander: 15.0.0
+      esbuild: 0.28.2
+      jsonc-parser: 3.3.1
+      package-manager-detector: 1.8.0
+      pathe: 2.0.3
+      string-width: 8.2.2
+      strip-ansi: 7.2.0
+      wrap-ansi: 10.0.1
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/cli@0.16.0(typanion@3.14.0)(typescript@7.0.2)':
+    dependencies:
+      '@clack/prompts': 1.8.0
+      '@prisma-next/cli-telemetry': 0.16.0(typescript@7.0.2)
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/config-loader': 0.16.0(typescript@7.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@7.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/language-server': 0.16.0(typescript@7.0.2)
+      '@prisma-next/migration-tools': 0.16.0(typescript@7.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@7.0.2)
+      '@prisma-next/psl-printer': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+      ci-info: 4.4.0
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      closest-match: 1.3.3
+      colorette: 2.0.20
+      commander: 15.0.0
+      esbuild: 0.28.2
+      jsonc-parser: 3.3.1
+      package-manager-detector: 1.8.0
+      pathe: 2.0.3
+      string-width: 8.2.2
+      strip-ansi: 7.2.0
+      wrap-ansi: 10.0.1
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/config-loader@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@6.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      c12: 3.3.4
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - magicast
+
+  '@prisma-next/config-loader@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@7.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      c12: 3.3.4
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - magicast
+
+  '@prisma-next/config@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/config@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/contract-authoring@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/contract-authoring@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/contract@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/contract@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/driver-sqlite@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/driver-sqlite@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/emitter@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/ts-render': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+      prettier: 3.9.6
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/emitter@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/ts-render': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+      prettier: 3.9.6
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/errors@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/errors@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/family-sql@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/migration-tools': 0.16.0(typescript@6.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract-emitter': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+      pluralize: 8.0.0
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/family-sql@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/migration-tools': 0.16.0(typescript@7.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract-emitter': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+      pluralize: 8.0.0
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/framework-components@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/ts-render': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/framework-components@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/ts-render': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/ids@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      uniku: 0.3.2
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/ids@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      uniku: 0.3.2
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/language-server@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/config-loader': 0.16.0(typescript@6.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      pathe: 2.0.3
+      vscode-languageserver: 10.1.0
+      vscode-languageserver-textdocument: 1.0.12
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - magicast
+
+  '@prisma-next/language-server@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/config-loader': 0.16.0(typescript@7.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      pathe: 2.0.3
+      vscode-languageserver: 10.1.0
+      vscode-languageserver-textdocument: 1.0.12
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - magicast
+
+  '@prisma-next/migration-tools@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+      pathe: 2.0.3
+      prettier: 3.9.6
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/migration-tools@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+      pathe: 2.0.3
+      prettier: 3.9.6
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/operations@0.16.0(typescript@6.0.2)':
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/operations@0.16.0(typescript@7.0.2)':
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/psl-parser@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/psl-parser@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/psl-printer@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/psl-printer@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-builder@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-builder@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-contract-emitter@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-contract-emitter@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/emitter': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-contract-psl@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-contract-psl@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/psl-parser': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-contract-ts@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/contract-authoring': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+      pathe: 2.0.3
+      ts-toolbelt: 9.6.0
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-contract-ts@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/contract-authoring': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+      pathe: 2.0.3
+      ts-toolbelt: 9.6.0
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-contract@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-contract@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-errors@0.16.0(typescript@6.0.2)':
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-errors@0.16.0(typescript@7.0.2)':
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-operations@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-operations@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-orm-client@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-orm-client@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-relational-core@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.3
+      ts-toolbelt: 9.6.0
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-relational-core@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.3
+      ts-toolbelt: 9.6.0
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-runtime@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/ids': 0.16.0(typescript@6.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-runtime@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/ids': 0.16.0(typescript@7.0.2)
+      '@prisma-next/operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-operations': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sql-schema-ir@0.16.0(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/sql-schema-ir@0.16.0(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/sqlite@0.16.0(typanion@3.14.0)(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/adapter-sqlite': 0.16.0(typanion@3.14.0)(typescript@6.0.2)
+      '@prisma-next/cli': 0.16.0(typanion@3.14.0)(typescript@6.0.2)
+      '@prisma-next/config': 0.16.0(typescript@6.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/driver-sqlite': 0.16.0(typescript@6.0.2)
+      '@prisma-next/family-sql': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-builder': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract-psl': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-orm-client': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@6.0.2)
+      '@prisma-next/target-sqlite': 0.16.0(typanion@3.14.0)(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/sqlite@0.16.0(typanion@3.14.0)(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/adapter-sqlite': 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/cli': 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/config': 0.16.0(typescript@7.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/driver-sqlite': 0.16.0(typescript@7.0.2)
+      '@prisma-next/family-sql': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-builder': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract-psl': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract-ts': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-orm-client': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@7.0.2)
+      '@prisma-next/target-sqlite': 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/target-sqlite@0.16.0(typanion@3.14.0)(typescript@6.0.2)':
+    dependencies:
+      '@prisma-next/cli': 0.16.0(typanion@3.14.0)(typescript@6.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/family-sql': 0.16.0(typescript@6.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@6.0.2)
+      '@prisma-next/migration-tools': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-errors': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@6.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@6.0.2)
+      '@prisma-next/ts-render': 0.16.0(typescript@6.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@6.0.2)
+      '@standard-schema/spec': 1.1.0
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/target-sqlite@0.16.0(typanion@3.14.0)(typescript@7.0.2)':
+    dependencies:
+      '@prisma-next/cli': 0.16.0(typanion@3.14.0)(typescript@7.0.2)
+      '@prisma-next/contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/family-sql': 0.16.0(typescript@7.0.2)
+      '@prisma-next/framework-components': 0.16.0(typescript@7.0.2)
+      '@prisma-next/migration-tools': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-contract': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-errors': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-relational-core': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-runtime': 0.16.0(typescript@7.0.2)
+      '@prisma-next/sql-schema-ir': 0.16.0(typescript@7.0.2)
+      '@prisma-next/ts-render': 0.16.0(typescript@7.0.2)
+      '@prisma-next/utils': 0.16.0(typescript@7.0.2)
+      '@standard-schema/spec': 1.1.0
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/ts-render@0.16.0(typescript@6.0.2)':
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/ts-render@0.16.0(typescript@7.0.2)':
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@prisma-next/utils@0.16.0(typescript@6.0.2)':
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma-next/utils@0.16.0(typescript@7.0.2)':
+    optionalDependencies:
+      typescript: 7.0.2
 
   '@prisma/adapter-better-sqlite3@7.7.0':
     dependencies:
@@ -15656,6 +17289,10 @@ snapshots:
 
   '@types/long@4.0.2': {}
 
+  '@types/lz-string@1.5.0':
+    dependencies:
+      lz-string: 1.5.0
+
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -15773,6 +17410,10 @@ snapshots:
 
   '@types/yup@0.29.13': {}
 
+  '@typescript/ata@0.9.8(typescript@6.0.2)':
+    dependencies:
+      typescript: 6.0.2
+
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
 
@@ -15861,6 +17502,8 @@ snapshots:
     optionalDependencies:
       next: 16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       react: 19.2.5
+
+  '@vercel/detect-agent@1.2.5': {}
 
   '@vitest/expect@4.1.4':
     dependencies:
@@ -16258,6 +17901,16 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  arkregex@0.0.8:
+    dependencies:
+      '@ark/util': 0.56.2
+
+  arktype@2.2.3:
+    dependencies:
+      '@ark/schema': 0.56.2
+      '@ark/util': 0.56.2
+      arkregex: 0.0.8
+
   array-buffer-byte-length@1.0.2:
     dependencies:
       call-bound: 1.0.4
@@ -16641,6 +18294,21 @@ snapshots:
       pkg-types: 2.3.0
       rc9: 2.1.2
 
+  c12@3.3.4:
+    dependencies:
+      chokidar: 5.0.0
+      confbox: 0.2.4
+      defu: 6.1.7
+      dotenv: 17.4.2
+      exsolve: 1.0.8
+      giget: 3.3.1
+      jiti: 2.6.1
+      ohash: 2.0.11
+      pathe: 2.0.3
+      perfect-debounce: 2.1.0
+      pkg-types: 2.3.0
+      rc9: 3.1.0
+
   cacache@20.0.4:
     dependencies:
       '@npmcli/fs': 5.0.0
@@ -16788,6 +18456,8 @@ snapshots:
 
   chrome-trace-event@1.0.4: {}
 
+  ci-info@4.4.0: {}
+
   cipher-base@1.0.7:
     dependencies:
       inherits: 2.0.4
@@ -16828,6 +18498,10 @@ snapshots:
 
   client-only@0.0.1: {}
 
+  clipanion@4.0.0-rc.4(typanion@3.14.0):
+    dependencies:
+      typanion: 3.14.0
+
   cliui@8.0.1:
     dependencies:
       string-width: 4.2.3
@@ -16849,6 +18523,8 @@ snapshots:
       mimic-response: 1.0.1
 
   clone@1.0.4: {}
+
+  closest-match@1.3.3: {}
 
   cls-hooked@4.2.2:
     dependencies:
@@ -16878,6 +18554,8 @@ snapshots:
 
   colorette@1.4.0: {}
 
+  colorette@2.0.20: {}
+
   columnify@1.6.0:
     dependencies:
       strip-ansi: 6.0.1
@@ -16891,6 +18569,8 @@ snapshots:
 
   commander@11.1.0:
     optional: true
+
+  commander@15.0.0: {}
 
   commander@2.20.3: {}
 
@@ -17288,6 +18968,8 @@ snapshots:
 
   dotenv@16.6.1: {}
 
+  dotenv@17.4.2: {}
+
   download@8.0.0:
     dependencies:
       archive-type: 4.0.0
@@ -17309,6 +18991,24 @@ snapshots:
       esbuild: 0.25.12
       get-tsconfig: 4.14.0
       jiti: 2.6.1
+
+  drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6):
+    optionalDependencies:
+      '@electric-sql/pglite': 0.4.1
+      '@libsql/client': 0.17.2(encoding@0.1.13)
+      '@opentelemetry/api': 1.9.1
+      '@types/mssql': 9.1.8(@azure/core-client@1.10.1)
+      '@types/pg': 8.20.0
+      arktype: 2.2.3
+      better-sqlite3: 12.9.0
+      mssql: 11.0.1(@azure/core-client@1.10.1)
+      mysql2: 3.15.3
+      pg: 8.20.0
+      postgres: 3.4.9
+      sql.js: 1.14.1
+      sqlite3: 6.0.1
+      valibot: 1.2.0(typescript@7.0.2)
+      zod: 4.3.6
 
   drizzle-orm@1.0.0-rc.2(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.0)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.9)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6):
     optionalDependencies:
@@ -17468,6 +19168,8 @@ snapshots:
       esast-util-from-estree: 2.0.0
       vfile-message: 4.0.3
 
+  esbuild-wasm@0.27.7: {}
+
   esbuild@0.25.12:
     optionalDependencies:
       '@esbuild/aix-ppc64': 0.25.12
@@ -17554,6 +19256,35 @@ snapshots:
       '@esbuild/win32-arm64': 0.28.0
       '@esbuild/win32-ia32': 0.28.0
       '@esbuild/win32-x64': 0.28.0
+
+  esbuild@0.28.2:
+    optionalDependencies:
+      '@esbuild/aix-ppc64': 0.28.2
+      '@esbuild/android-arm': 0.28.2
+      '@esbuild/android-arm64': 0.28.2
+      '@esbuild/android-x64': 0.28.2
+      '@esbuild/darwin-arm64': 0.28.2
+      '@esbuild/darwin-x64': 0.28.2
+      '@esbuild/freebsd-arm64': 0.28.2
+      '@esbuild/freebsd-x64': 0.28.2
+      '@esbuild/linux-arm': 0.28.2
+      '@esbuild/linux-arm64': 0.28.2
+      '@esbuild/linux-ia32': 0.28.2
+      '@esbuild/linux-loong64': 0.28.2
+      '@esbuild/linux-mips64el': 0.28.2
+      '@esbuild/linux-ppc64': 0.28.2
+      '@esbuild/linux-riscv64': 0.28.2
+      '@esbuild/linux-s390x': 0.28.2
+      '@esbuild/linux-x64': 0.28.2
+      '@esbuild/netbsd-arm64': 0.28.2
+      '@esbuild/netbsd-x64': 0.28.2
+      '@esbuild/openbsd-arm64': 0.28.2
+      '@esbuild/openbsd-x64': 0.28.2
+      '@esbuild/openharmony-arm64': 0.28.2
+      '@esbuild/sunos-x64': 0.28.2
+      '@esbuild/win32-arm64': 0.28.2
+      '@esbuild/win32-ia32': 0.28.2
+      '@esbuild/win32-x64': 0.28.2
 
   escalade@3.2.0: {}
 
@@ -17792,6 +19523,12 @@ snapshots:
 
   fast-safe-stringify@2.1.1: {}
 
+  fast-string-truncated-width@3.0.3: {}
+
+  fast-string-width@3.0.2:
+    dependencies:
+      fast-string-truncated-width: 3.0.3
+
   fast-uri@2.4.0: {}
 
   fast-uri@3.1.0: {}
@@ -17799,6 +19536,10 @@ snapshots:
   fast-url-parser@1.1.3:
     dependencies:
       punycode: 1.4.1
+
+  fast-wrap-ansi@0.2.2:
+    dependencies:
+      fast-string-width: 3.0.2
 
   fastify-plugin@5.1.0: {}
 
@@ -18174,6 +19915,8 @@ snapshots:
 
   get-east-asian-width@1.4.0: {}
 
+  get-east-asian-width@1.6.0: {}
+
   get-intrinsic@1.3.0:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -18246,6 +19989,8 @@ snapshots:
       node-fetch-native: 1.6.7
       nypm: 0.6.5
       pathe: 2.0.3
+
+  giget@3.3.1: {}
 
   git-config-path@2.0.0: {}
 
@@ -18370,6 +20115,33 @@ snapshots:
       '@envelop/core': 5.5.1
     transitivePeerDependencies:
       - supports-color
+
+  grafserv@1.0.0(@envelop/core@5.5.1)(@fastify/websocket@11.2.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(grafast@1.0.0(@envelop/core@5.5.1)(graphql@17.0.1))(graphile-config@1.0.0)(graphql@17.0.1)(hono@4.12.12)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))(ws@8.20.0):
+    dependencies:
+      '@graphile/lru': 5.0.0
+      debug: 4.4.3
+      eventemitter3: 5.0.4
+      grafast: 1.0.0(@envelop/core@5.5.1)(graphql@17.0.1)
+      graphile-config: 1.0.0
+      graphql: 17.0.1
+      graphql-ws: 6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0)
+      ruru: 2.0.0(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(debug@4.4.3)(graphile-config@1.0.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      tslib: 2.8.1
+    optionalDependencies:
+      '@envelop/core': 5.5.1
+      hono: 4.12.12
+      ws: 8.20.0
+    transitivePeerDependencies:
+      - '@fastify/websocket'
+      - '@types/node'
+      - '@types/react'
+      - '@types/react-dom'
+      - crossws
+      - immer
+      - react
+      - react-dom
+      - supports-color
+      - use-sync-external-store
 
   grafserv@1.0.0(@envelop/core@5.5.1)(@fastify/websocket@11.2.0)(@types/node@25.6.0)(grafast@1.0.0(@envelop/core@5.5.1)(graphql@17.0.1))(graphile-config@1.0.0)(graphql@17.0.1)(hono@4.12.12)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(ws@8.20.0):
     dependencies:
@@ -19343,6 +21115,8 @@ snapshots:
   lucide-react@1.8.0(react@19.2.5):
     dependencies:
       react: 19.2.5
+
+  lz-string@1.5.0: {}
 
   magic-string@0.30.17:
     dependencies:
@@ -20544,6 +22318,8 @@ snapshots:
     dependencies:
       quansync: 0.2.11
 
+  package-manager-detector@1.8.0: {}
+
   pako@1.0.11: {}
 
   parent-module@1.0.1:
@@ -20632,6 +22408,8 @@ snapshots:
   pend@1.2.0: {}
 
   perfect-debounce@1.0.0: {}
+
+  perfect-debounce@2.1.0: {}
 
   pg-cloudflare@1.3.0:
     optional: true
@@ -20818,6 +22596,8 @@ snapshots:
   prettier@2.8.8: {}
 
   prettier@3.8.2: {}
+
+  prettier@3.9.6: {}
 
   pretty-format@29.7.0:
     dependencies:
@@ -21019,6 +22799,11 @@ snapshots:
       unpipe: 1.0.0
 
   rc9@2.1.2:
+    dependencies:
+      defu: 6.1.7
+      destr: 2.0.5
+
+  rc9@3.1.0:
     dependencies:
       defu: 6.1.7
       destr: 2.0.5
@@ -21375,6 +23160,23 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
+  ruru-types@2.0.0(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
+    dependencies:
+      '@graphiql/toolkit': 0.11.3(@types/node@25.6.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
+      graphiql: 5.2.2(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      graphql: 17.0.1
+    optionalDependencies:
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
+    transitivePeerDependencies:
+      - '@emotion/is-prop-valid'
+      - '@types/node'
+      - '@types/react'
+      - '@types/react-dom'
+      - graphql-ws
+      - immer
+      - use-sync-external-store
+
   ruru-types@2.0.0(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
     dependencies:
       '@graphiql/toolkit': 0.11.3(@types/node@25.6.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
@@ -21388,6 +23190,27 @@ snapshots:
       - '@types/node'
       - '@types/react'
       - '@types/react-dom'
+      - graphql-ws
+      - immer
+      - use-sync-external-store
+
+  ruru@2.0.0(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(debug@4.4.3)(graphile-config@1.0.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
+    dependencies:
+      '@emotion/is-prop-valid': 1.4.0
+      graphile-config: 1.0.0
+      graphql: 17.0.1
+      http-proxy: 1.18.1(debug@4.4.3)
+      ruru-types: 2.0.0(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      tslib: 2.8.1
+      yargs: 17.7.2
+    optionalDependencies:
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
+    transitivePeerDependencies:
+      - '@types/node'
+      - '@types/react'
+      - '@types/react-dom'
+      - debug
       - graphql-ws
       - immer
       - use-sync-external-store
@@ -21652,6 +23475,8 @@ snapshots:
     dependencies:
       safe-stable-stringify: 2.5.0
 
+  sisteransi@1.0.5: {}
+
   slash@3.0.0: {}
 
   slugify@1.6.6: {}
@@ -21722,6 +23547,8 @@ snapshots:
   sprintf-js@1.1.3:
     optional: true
 
+  sql.js@1.14.1: {}
+
   sqlite3@6.0.1:
     dependencies:
       bindings: 1.5.0
@@ -21746,6 +23573,8 @@ snapshots:
   stacktrace-parser@0.1.10:
     dependencies:
       type-fest: 0.7.1
+
+  state-local@1.0.7: {}
 
   statuses@1.5.0: {}
 
@@ -21830,6 +23659,11 @@ snapshots:
       get-east-asian-width: 1.4.0
       strip-ansi: 7.1.2
 
+  string-width@8.2.2:
+    dependencies:
+      get-east-asian-width: 1.6.0
+      strip-ansi: 7.2.0
+
   string.fromcodepoint@0.2.1: {}
 
   string_decoder@1.1.1:
@@ -21854,6 +23688,10 @@ snapshots:
       ansi-regex: 5.0.1
 
   strip-ansi@7.1.2:
+    dependencies:
+      ansi-regex: 6.2.2
+
+  strip-ansi@7.2.0:
     dependencies:
       ansi-regex: 6.2.2
 
@@ -22168,6 +24006,8 @@ snapshots:
     optionalDependencies:
       typescript: 4.9.5
 
+  ts-toolbelt@9.6.0: {}
+
   tsconfig-paths-webpack-plugin@4.2.0:
     dependencies:
       chalk: 4.1.2
@@ -22214,6 +24054,8 @@ snapshots:
       '@turbo/linux-arm64': 2.9.6
       '@turbo/windows-64': 2.9.6
       '@turbo/windows-arm64': 2.9.6
+
+  typanion@3.14.0: {}
 
   type-detect@4.1.0: {}
 
@@ -22315,6 +24157,10 @@ snapshots:
       is-plain-obj: 4.1.0
       trough: 2.2.0
       vfile: 6.0.3
+
+  uniku@0.3.2:
+    dependencies:
+      '@noble/hashes': 2.4.0
 
   unist-util-is@6.0.1:
     dependencies:
@@ -22773,7 +24619,22 @@ snapshots:
 
   vm-browserify@1.1.2: {}
 
+  vscode-jsonrpc@9.0.1: {}
+
+  vscode-languageserver-protocol@3.18.2:
+    dependencies:
+      vscode-jsonrpc: 9.0.1
+      vscode-languageserver-types: 3.18.0
+
+  vscode-languageserver-textdocument@1.0.12: {}
+
   vscode-languageserver-types@3.17.5: {}
+
+  vscode-languageserver-types@3.18.0: {}
+
+  vscode-languageserver@10.1.0:
+    dependencies:
+      vscode-languageserver-protocol: 3.18.2
 
   watchpack@2.1.1:
     dependencies:
@@ -22914,6 +24775,11 @@ snapshots:
   wonka@6.3.5: {}
 
   wonka@6.3.6: {}
+
+  wrap-ansi@10.0.1:
+    dependencies:
+      ansi-styles: 6.2.3
+      string-width: 8.2.2
 
   wrap-ansi@6.2.0:
     dependencies:

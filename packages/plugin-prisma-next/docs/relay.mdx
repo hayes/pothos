@@ -1,0 +1,107 @@
+---
+title: Relay
+description: Defining Relay nodes for contract-backed models
+---
+
+The plugin integrates with `@pothos/plugin-relay` to make defining nodes
+and connections backed by contract models easy and efficient.
+
+## Setup
+
+Add `RelayPlugin` to your builder, then use `builder.prismaNode` to
+register a model as a Relay node:
+
+```ts
+import RelayPlugin from '@pothos/plugin-relay';
+import prismaNextPlugin from '@pothos/plugin-prisma-next';
+
+const builder = new SchemaBuilder<{
+  PrismaNextContract: Contract;
+  Context: { db: typeof client };
+}>({
+  plugins: [RelayPlugin, prismaNextPlugin],
+  relay: {},
+  prismaNext: { contract: contractJson as Contract },
+});
+```
+
+## `builder.prismaNode`
+
+```ts
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  collection: (ctx) => ctx.db.orm.Post,
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+This registers a GraphQL type that implements the Relay `Node`
+interface, along with the standard global-ID encoding/decoding.
+
+### Options
+
+- **`id.field`**: column name (string) or non-empty tuple for composite
+  primary keys. Composite IDs JSON-encode the tuple before being passed
+  to Relay's `toGlobalID`.
+- **`id.parse`** / **`id.resolve`**: optional overrides for ID parsing
+  (string → IDShape) and serialization (parent → string|number).
+- **`collection`**: the base orm-client `Collection` to load from.
+  Accepts either a static `Collection` or a `(ctx) => Collection`
+  callback. The callback form is what you'll usually want — it lets
+  you scope the query to the per-request context.
+- **`fields`**, **`isTypeOf`**, **`interfaces`**, …: same options as
+  `prismaObject`. A user-provided `isTypeOf` is combined with the
+  plugin's brand check; Relay's node-interface resolver calls into it.
+
+### Loading
+
+Relay's `node(id:)` field calls the user-provided `loadWithoutCache`
+under the hood — the plugin installs one that:
+
+1. **Batches** concurrent same-schema-path lookups via a microtask
+   queue. All `node(id:)` calls at the same query path coalesce into
+   one `collection.where(idIn).all()` — equivalent to a DataLoader,
+   scoped per path.
+2. **Auto-includes** nested relations from the GraphQL selection set
+   (just like `t.prismaField`).
+3. **Brands** loaded rows with the node type so abstract-position
+   resolveType works.
+
+You don't need to write a `load` callback — the plugin handles it from
+`id.field` + `collection`.
+
+## Connections
+
+Use `t.prismaConnection` for top-level connections and
+`t.relatedConnection` for connections nested on a prisma object. See
+[Connections](./connections) for the full reference.
+
+## Custom isTypeOf for polymorphism
+
+If you have multiple node types backed by the same model
+(discriminated by a column), pass `isTypeOf`:
+
+```ts
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  collection: (ctx) => ctx.db.orm.Post,
+  isTypeOf: (row) => (row as { published: number }).published === 1,
+  fields: (t) => ({ ... }),
+});
+
+builder.prismaNode('Post', {
+  variant: 'DraftPost',
+  id: { field: 'id' },
+  collection: (ctx) => ctx.db.orm.Post,
+  isTypeOf: (row) => (row as { published: number }).published === 0,
+  fields: (t) => ({ ... }),
+});
+```
+
+Both nodes back the `Post` model but resolve as different GraphQL types
+based on the row. The plugin's brand fallback only fires when the
+user-provided `isTypeOf` returns false — so user-supplied predicates
+win for polymorphic discrimination.
