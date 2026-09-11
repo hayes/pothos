@@ -141,3 +141,17 @@ mobile source editing and step navigation passed at 320/390px. Homepage checks p
 rendered documentation pages passed internal link/anchor checks, and all 20 expanded Drizzle
 source excerpts matched the package README. Desktop/mobile step and console screenshots were
 inspected. Formatting and git diff checks passed.
+
+## Pothos documentation scope
+
+At the user's request, removed the database tutorial material added in this branch. Setup now
+assumes an existing Drizzle client and relations and documents Pothos configuration, dialect
+metadata, context, optional plugins, and plugin options. Tables, initialization, and browser-driver
+limitations remain in the runnable example and its README. General database setup links to Drizzle.
+Core guides remove repeated application narrative and duplicate resolver setup. Advanced pages
+remain because their selection and connection-helper contracts are Pothos APIs; cursor precision,
+query aliasing, selection dependencies, and ownership caveats are retained. Package README is
+synchronized, with all 18 remaining source excerpts matching. Independent scope/preservation review
+found no lost Pothos mechanics or dangling setup references. Production build, 147 playground
+references, and internal links across 79 rendered pages pass. Executable sources and launch
+queries are unchanged; the overview action was checked in the rebuilt browser preview.

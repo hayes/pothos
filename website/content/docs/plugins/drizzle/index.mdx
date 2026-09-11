@@ -19,15 +19,14 @@ import { Callout } from 'fumadocs-ui/components/callout';
 The Drizzle plugin maps database tables to GraphQL types and plans database queries from the
 fields a client selects. It supports relations, computed fields, and Relay nodes and connections.
 
-The guides follow a publishing API: public author pages show published posts, while the signed-in
-account sees its own drafts. Posts can share media and clients can paginate the public feed.
-The [publishing playground](/playground?example=plugin-drizzle) executes this schema against real
-SQLite in the browser.
+The examples share a small author-and-post schema. The
+[publishing playground](/playground?example=plugin-drizzle) includes its database definitions
+and initialization, and executes queries against SQLite in the browser.
 
 ## Getting started
 
-[Setup](/docs/plugins/drizzle/setup) defines the tables, relations, client, and builder. [Objects](/docs/plugins/drizzle/objects) then
-registers a public User and the author lookup:
+[Setup](/docs/plugins/drizzle/setup) connects your Drizzle client to Pothos.
+[Objects](/docs/plugins/drizzle/objects) covers type definitions and fields such as this lookup:
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/queries.ts#author-query</include>
 
@@ -40,9 +39,8 @@ query AuthorPage {
 }
 ```
 
-The query returns Maya Chen and her two published posts. The root resolver passes the selection
-function to Drizzle, so the requested relation is loaded with the author. Adding an optional
-biography uses the same lookup, with the additional selection declared by that field.
+The resolver passes Pothos's selection plan to Drizzle, loading the requested posts with their
+author. Adding GraphQL fields does not require rewriting this root resolver.
 
 [Relations](/docs/plugins/drizzle/relations) covers filtering and counts; [Selections](/docs/plugins/drizzle/selections) explains computed
 fields and profiles; [Connections](/docs/plugins/drizzle/connections) handles pagination. [Variants](/docs/plugins/drizzle/variants) and

@@ -3,14 +3,13 @@ title: Async selections
 description: Planning selections that depend on asynchronous request data
 ---
 
-The publishing API’s selections are synchronous. An application may instead need to await a
-request policy or another service before choosing a filter or page size. This is an alternative
-builder configuration, using the tables and client from [Setup](./setup).
+Pothos selections are synchronous by default. Set `AsyncSelections: true` when a selection or
+relation query must await request data before returning its query options.
 
 ## Async selections
 
-Selections are synchronous unless the schema opts in with `AsyncSelections: true`. This example
-uses request context methods that asynchronously return a user ID and a preview limit:
+Use the client and relations configured in [Setup](./setup). The context methods below supply
+asynchronous values used by the field selections:
 
 ```ts
 const builder = new SchemaBuilder<{
@@ -49,7 +48,13 @@ builder.drizzleObject('users', {
     previewPosts: t.field({
       type: ['posts'],
       select: async (args, ctx, nestedSelection) => ({
-        with: { posts: await nestedSelection({ where: { published: true }, orderBy: { id: 'asc' }, limit: await ctx.previewSize() }) },
+        with: {
+          posts: await nestedSelection({
+            where: { published: true },
+            orderBy: { id: 'asc' },
+            limit: await ctx.previewSize(),
+          }),
+        },
       }),
       resolve: (user) => user.posts,
     }),
@@ -57,11 +62,15 @@ builder.drizzleObject('users', {
 });
 ```
 
+## Await nested selections
+
 `await` what `nestedSelection` returns before putting it in the selection, and the same for the
 `nestedQuery` passed as the fourth argument of a `t.relatedField` `select`. A selection that
 contains the promise itself will throw, and so will a `select` that returns while a nested
 selection it started is still pending. Calling `nestedSelection` and discarding a synchronous
 result is not detected, and the nested selection will not be loaded with the parent.
+
+## Connection helpers
 
 Pass `awaitSelections: true` to `drizzleConnectionHelpers(...).getQuery`, and `await` the query it
 returns. Without it, an async selection beneath the field throws, and whether there is one
@@ -84,7 +93,6 @@ select: async (args, ctx, nestedSelection) => ({
 When `AsyncSelections: true`, also `await` a connection helper's `resolve()` before inspecting or
 spreading its result: an async `query` callback makes resolution asynchronous. Returning its
 result directly from a GraphQL resolver remains supported.
-
 
 The connection-helper excerpt assumes a registered comments relation and
 `commentConnectionHelpers` from [Connection helpers](./connection-helpers). Request-context

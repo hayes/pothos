@@ -3,48 +3,18 @@ title: Setup
 description: Setting up the Drizzle plugin
 ---
 
-The publishing API uses one set of tables for public author pages, private drafts, and media
-attachments. Its GraphQL modules share one builder and one database client.
+Pass your existing Drizzle client and relations to the plugin. These guides assume familiarity
+with Drizzle; use its [driver setup](https://orm.drizzle.team/docs/connect-overview) and
+[relations documentation](https://orm.drizzle.team/docs/relations-v2) to configure the database.
 
 ## Installing
 
 ```package-install
-npm install --save @pothos/core @pothos/plugin-drizzle @pothos/plugin-relay graphql drizzle-orm@rc
+npm install --save @pothos/plugin-drizzle
 ```
 
-The plugin uses Drizzle's relational query builder v2. Define the tables and relations your schema
-will query; see Drizzle’s [relations API](https://orm.drizzle.team/docs/relations-v2).
-
-## Publishing tables
-
-The same table definitions support author profiles, published posts, private drafts, and shared
-media. The join table prevents duplicate attachments:
-
-<include cwd lang="typescript">playground-examples/plugin-drizzle/tables.ts#tables</include>
-
-Relations explicitly connect their source and target columns. `media` crosses the join table,
-while `profile` can be absent:
-
-<include cwd lang="typescript">playground-examples/plugin-drizzle/tables.ts#relations</include>
-
-## Database client
-
-Use the Drizzle driver for your database. For a local SQLite application, install `@libsql/client`
-and initialize the client with those relations:
-
-```ts
-// database.ts
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-import { relations } from './tables';
-
-const client = createClient({ url: 'file:./dev.db' });
-export const db = drizzle({ client, relations });
-```
-
-Create the application's tables with your migration workflow before querying them. Opening the
-client does not apply the table definitions to an existing database. For another dialect, use
-its driver and the matching dialect's `getTableConfig` import in the builder.
+The plugin requires Drizzle's relational query builder v2. See the
+[version requirements](/docs/plugins/drizzle) before installing or upgrading Drizzle.
 
 ## Configure the builder
 
@@ -52,7 +22,6 @@ its driver and the matching dialect's `getTableConfig` import in the builder.
 // builder.ts
 import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
-import RelayPlugin from '@pothos/plugin-relay';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { db } from './database';
 import { relations } from './tables';
@@ -63,25 +32,32 @@ export interface PothosTypes {
 }
 
 export const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [RelayPlugin, DrizzlePlugin],
-  relay: { nodesOnConnection: true },
+  plugins: [DrizzlePlugin],
   drizzle: { client: db, getTableConfig, relations },
 });
 ```
 
-`DrizzleRelations` describes the relations available to the plugin. `getTableConfig` provides
-column and key information. `client` may also be a function `(ctx) => db` for a request-specific
-client. The authenticated request context supplies `userId`; declaring its type does not
-implement authentication. See [Context](/docs/guide/context).
+`DrizzleRelations` provides the table and relation types used by Pothos. Import `getTableConfig`
+from the dialect used by your client (`sqlite-core` above, or `pg-core` / `mysql-core`). `client`
+may also be a function `(ctx) => db` for a request-specific client. The examples use
+[request context](/docs/guide/context) to supply the current `userId`.
 
-Import this builder in the type and query modules. Register those modules before calling
-`builder.toSchema()`; the publishing API separates User, Post, and Viewer definitions from its
-root queries. [Objects](./objects) starts with the author lookup.
+Use this builder to [define GraphQL types and fields](./objects), then call `builder.toSchema()`.
 
 ## Integration with other plugins
 
-Relay is optional for Drizzle itself; the publishing API uses it for User nodes and connections.
-`nodesOnConnection` adds the `nodes` convenience field alongside Relay's standard `edges`.
+Install and register `@pothos/plugin-relay` to use `drizzleNode` and connection fields:
+
+```ts
+import RelayPlugin from '@pothos/plugin-relay';
+
+// In the builder options:
+plugins: [RelayPlugin, DrizzlePlugin],
+relay: { nodesOnConnection: true },
+```
+
+`nodesOnConnection` adds the `nodes` convenience field used in these guides. Without it,
+select `edges { node { ... } }` instead.
 
 The [with-input plugin](../with-input) is another optional integration. To use
 `t.drizzleFieldWithInput`, install `@pothos/plugin-with-input`, import it, and add it to the
@@ -107,15 +83,3 @@ plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
 - `skipDeferredFragments`: selections inside a `@defer` fragment are left out of the planned query
   by default, and the fragment's fields are loaded through [fallback queries](./relations#fallback-queries)
   when it resolves. Set this to `false` to plan deferred selections with the rest of the query.
-
-## Browser database
-
-The [publishing playground](/playground?example=plugin-drizzle) uses these tables with SQLite in
-WebAssembly. Its SQLite proxy driver executes statements in the browser; it needs no database
-credentials or external database service. The WebAssembly module is downloaded when it loads.
-
-`database.ts` initializes deterministic data; `builder.ts` configures Pothos; `types/` holds the
-GraphQL types; `queries.ts` defines root lookups; `schema.ts` registers those modules. The browser
-bridge uses one connection per SQL statement and does not support multi-statement transactions.
-Its database belongs to the schema instance, so rebuilding or reloading creates fresh state.
-Application databases should use a persistent driver and migrations such as the setup above.

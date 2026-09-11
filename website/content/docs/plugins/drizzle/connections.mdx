@@ -3,8 +3,8 @@ title: Connections
 description: Creating relay connections with the Drizzle plugin
 ---
 
-The publishing API has a root feed and an author's related posts connection. Both filter to
-published posts; pagination never expands that visibility scope. Register the [Relay plugin](./setup#integration-with-other-plugins).
+Use `t.drizzleConnection` for a queried list and `t.relatedConnection` for a Drizzle relation.
+Both require the [Relay plugin](./setup#integration-with-other-plugins).
 The examples use `relay: { nodesOnConnection: true }`; with the default Relay configuration,
 select `edges { node { title } }` instead of `nodes { title }`.
 
@@ -84,28 +84,12 @@ unpublished post count through this public field.
 The root connection shown above uses the same ordering and cursor rules as related connections.
 ### drizzleConnection totalCount
 
-For a root `totalCount`, supply a resolver rather than `true`. This alternative extends the
-published feed; import `eq` from `drizzle-orm` and `posts` from your table definitions:
+For a root `totalCount`, supply a resolver rather than `true`. Add this option to the
+`t.drizzleConnection` configuration above; its filter must match the connection's visibility:
 
 ```ts
-builder.queryFields((t) => ({
-  posts: t.drizzleConnection({
-    type: 'posts',
-    // Use db.$count() for a simple count query
-    totalCount: () => db.$count(posts, eq(posts.published, true)),
-    resolve: (query, root, args, ctx) =>
-      db.query.posts.findMany(
-        query({
-          where: {
-            published: true,
-          },
-          orderBy: {
-            id: 'desc',
-          },
-        }),
-      ),
-  }),
-}));
+// Imports: eq from 'drizzle-orm', posts from your table definitions.
+totalCount: () => db.$count(posts, eq(posts.published, true)),
 ```
 
 The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.

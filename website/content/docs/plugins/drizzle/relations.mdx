@@ -5,8 +5,6 @@ description: Adding relations to drizzle objects
 
 ## Relations
 
-Relations connect the [publishing tables](./setup#publishing-tables): each post has an author,
-an author has posts and an optional profile, and posts share media through an attachment table.
 `t.relation` turns a Drizzle relation into a GraphQL field with its target type and cardinality.
 Register the target GraphQL type as well as the relation.
 
@@ -21,10 +19,8 @@ Maya's author page returns two published posts. Her draft is absent. Nora has no
 an empty list. The `oldestFirst` argument switches ordering; an ID tie breaker makes equal
 timestamps deterministic.
 
-The optional profile is exposed as a nullable `bio` field with a field-level selection; see
-[Selections](./selections#only-load-a-profile-when-requested). An application that wants to expose
-the Profile object instead can register a `profiles` type and use `profile: t.relation('profile')`.
-Its `bio` column is nullable, so an exposed biography should set `nullable: true`.
+To return the Profile object, register its GraphQL type and use `t.relation('profile')`. To
+return only its nullable biography, use a [field selection](./selections#only-load-a-profile-when-requested).
 
 ## Relation queries
 
@@ -108,18 +104,17 @@ related rows, so a row reachable through two junction rows counts once. A `t.rel
 since that is what the relational query builder returns for the relation.
 
 
-The callback example uses `and` and `eq` from `drizzle-orm`, and the `posts` table from Setup.
+The callback example imports `and` and `eq` from `drizzle-orm`, and `posts` from the application's table definitions.
 
 ## Shared media
 
 A post exposes attached Media objects even though the database stores an attachment row. The
-`through` relation in [Setup](./setup#publishing-tables) handles that join:
+`through` relation handles that join; Pothos exposes its target like any other relation:
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { posts { title media { url uploadedBy { fullName } } mediaConnection(first: 2) { totalCount nodes { url } } } } }"'>playground-examples/plugin-drizzle/types/post.ts#post</include>
 
-“Starting a seed library” and “A guide to composting” share one image uploaded by Leo. The
-attachment uniqueness constraint prevents attaching the same image to a post twice. The connection
-counts its related media, rather than the entire media table.
+Both posts return the shared image and its uploader. `mediaConnection.totalCount` counts each
+post's related media rather than the entire media table.
 
 ## Related field
 
