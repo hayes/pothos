@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   // already leads with "Pothos GraphQL" and shouldn't gain a suffix.
   title: { absolute: 'Pothos GraphQL — Schemas that grow with your code' },
   description:
-    'A plugin-based GraphQL schema builder for TypeScript. Build your schema with the builder and your types flow into every resolver — no codegen, no decorators.',
+    'A plugin-based GraphQL schema builder for TypeScript. Define your types once and they flow into every resolver — no codegen, no decorators.',
 };
 
 export default function HomePage() {

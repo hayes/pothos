@@ -21,13 +21,12 @@ export function PluginsPage() {
           className="font-serif font-normal m-0"
           style={{ fontSize: 44, letterSpacing: '-0.022em', lineHeight: 1.1 }}
         >
-          Every plugin, categorized.
+          All first-party plugins.
         </h1>
         <p className="text-bm-ink-soft leading-[1.5] mt-5 text-[17px] max-w-[640px]">
-          {totalPlugins} first-party plugins to wire Pothos into your data layer, your auth model,
-          your tracing stack, and the schema patterns your spec calls for. Each one extends the
-          builder with new methods and types that stay fully inferred and compose with everything
-          else.
+          {totalPlugins} first-party plugins for your data layer, auth, tracing, and common schema
+          patterns. Each one adds methods and options to the builder, with the same type inference
+          as the core API.
         </p>
       </header>
 

@@ -21,13 +21,13 @@ export function HeroBody() {
           className="font-serif font-normal mt-0 mb-4"
           style={{ fontSize: 28, letterSpacing: '-0.02em' }}
         >
-          Inference, all the way down.
+          Where the types come from.
         </h2>
         <p className="text-bm-ink-soft text-[16px] leading-[1.6] mt-0 mb-7">
-          The types are TypeScript&apos;s own. The builder carries your context, backing models, and
-          scalars through its generics, so every resolver&apos;s arguments, parent, and return type
-          arrive already inferred — checked by the compiler. Nothing scans or reflects over your
-          code; there&apos;s no codegen step and no{' '}
+          Pothos types are plain TypeScript types. You pass your context, backing models, and
+          scalars to the builder as generics, and the compiler infers and checks each
+          resolver&apos;s arguments, parent, and return type from them. Nothing scans or reflects
+          over your code; there&apos;s no codegen step and no{' '}
           <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">any</code>{' '}
           escape hatch.
         </p>

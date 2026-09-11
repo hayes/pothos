@@ -14,7 +14,7 @@ export function PluginGarden() {
             className="font-serif font-normal m-0"
             style={{ fontSize: 48, letterSpacing: '-0.025em' }}
           >
-            One ecosystem. Every shape.
+            Plugins that feel built in.
           </h2>
         </div>
         <Link

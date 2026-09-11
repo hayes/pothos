@@ -9,7 +9,7 @@ export function ContributorsWall({ contributors }: Props) {
   if (contributors.length === 0) {
     return (
       <p className="text-bm-ink-muted text-[14px] italic">
-        Contributor data is currently unavailable.
+        Couldn't load the contributor list from GitHub.
       </p>
     );
   }

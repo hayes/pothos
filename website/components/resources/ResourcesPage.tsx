@@ -13,7 +13,7 @@ export function ResourcesPage() {
           className="font-serif font-normal m-0"
           style={{ fontSize: 48, letterSpacing: '-0.025em' }}
         >
-          Learn from the community.
+          From the community.
         </h1>
         <p className="text-bm-ink-soft text-[19px] leading-[1.5] max-w-[640px] mt-5">
           Curated articles, libraries, templates, and talks from people building real things with

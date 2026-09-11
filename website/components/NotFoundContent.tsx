@@ -29,7 +29,7 @@ export function NotFoundContent() {
 
       <p className="text-bm-ink-soft mt-6 mb-9 max-w-[46ch]">
         The page you're looking for doesn't exist — it may have moved during the docs reorg, or the
-        link was mistyped. Let's get you back on the trellis.
+        link was mistyped.
       </p>
 
       <div className="flex flex-wrap gap-3 items-center justify-center">

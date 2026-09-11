@@ -23,7 +23,7 @@ export async function SponsorsPage() {
           className="font-serif font-normal m-0"
           style={{ fontSize: 48, letterSpacing: '-0.025em' }}
         >
-          The garden tenders.
+          The people behind Pothos.
         </h1>
         <p className="text-bm-ink-soft text-[19px] leading-[1.5] max-w-[640px] mt-5">
           Pothos development is supported by these generous people and organizations. Want to help?{' '}

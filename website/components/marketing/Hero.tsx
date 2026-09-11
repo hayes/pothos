@@ -32,7 +32,7 @@ export function Hero() {
       {/* Eyebrow */}
       <div className="inline-flex items-center gap-2 mb-5 text-[12px] uppercase tracking-[0.08em] text-bm-ink-muted">
         <span className="w-[18px] h-px bg-bm-accent" aria-hidden="true" />
-        Type-safe by design · v4.0
+        Type-safe · v4.0
       </div>
 
       {/* H1 — clamps from a comfortable phone size up to the design's 88px */}
@@ -69,9 +69,9 @@ export function Hero() {
           letterSpacing: '-0.01em',
         }}
       >
-        Pothos is a plugin-based GraphQL schema builder for TypeScript. Build your schema with the
-        builder and your data&apos;s types flow into every resolver — no codegen, no decorators. At
-        the scale of Airbnb, Netflix, and your weekend project.
+        Pothos is a plugin-based GraphQL schema builder for TypeScript. Define your types once and
+        they flow into every resolver — no codegen, no decorators. It&apos;s designed for every
+        scale, from a prototype to the schemas running at Airbnb and Netflix.
       </p>
 
       {/* CTAs */}

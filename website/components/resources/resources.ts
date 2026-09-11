@@ -1,9 +1,7 @@
 /**
  * Curated external resources for Pothos users — articles, libraries,
  * templates, talks, and paid tools built on top of `@pothos/core`. The
- * list is hand-maintained in this file (rather than dynamically
- * fetched) so the editorial ordering and categorization stays
- * intentional.
+ * list is hand-maintained in this file rather than fetched.
  */
 
 export type ResourceCategory = 'guide' | 'tool' | 'template' | 'talk' | 'paid';
@@ -172,7 +170,7 @@ export const RESOURCES: Resource[] = [
     id: 'tool-rumble',
     category: 'tool',
     title: 'rumble — Pothos + Drizzle + Abilities',
-    description: 'Drop-in CASL-style authorization for Pothos schemas powered by Drizzle.',
+    description: 'CASL-style authorization for Pothos schemas, built on Drizzle.',
     url: 'https://github.com/m1212e/rumble',
     author: 'm1212e',
     authorUrl: 'https://github.com/m1212e',
@@ -182,7 +180,7 @@ export const RESOURCES: Resource[] = [
     id: 'tool-prisma-generator-soracumo',
     category: 'tool',
     title: 'pothos-prisma-generator',
-    description: 'Alternative Pothos schema generator from a Prisma schema, actively maintained.',
+    description: 'Another Pothos schema generator that reads a Prisma schema.',
     url: 'https://github.com/node-libraries/pothos-prisma-generator',
     author: 'SoraKumo',
     authorUrl: 'https://github.com/SoraKumo001',
@@ -204,7 +202,7 @@ export const RESOURCES: Resource[] = [
     id: 'tpl-nkzw-server',
     category: 'template',
     title: 'Server Template with Pothos',
-    description: 'Production-grade Pothos + Yoga server template from Nakazawa Tech.',
+    description: 'Pothos + Yoga server template from Nakazawa Tech.',
     url: 'https://github.com/nkzw-tech/server-template',
     author: 'Nakazawa Tech',
     authorUrl: 'https://nakazawa.tech',
@@ -224,7 +222,7 @@ export const RESOURCES: Resource[] = [
     id: 'tpl-countries',
     category: 'template',
     title: 'GraphQL countries server',
-    description: 'Tiny Pothos server returning country data — a focused starter.',
+    description: 'Small Pothos server returning country data.',
     url: 'https://github.com/gbicou/countries-server',
     author: 'Benjamin VIELLARD',
     authorUrl: 'https://github.com/gbicou',
@@ -287,7 +285,7 @@ export const RESOURCES: Resource[] = [
     id: 'paid-bedrock',
     category: 'paid',
     title: 'Bedrock',
-    description: 'A full-stack TypeScript boilerplate with Pothos baked in.',
+    description: 'Full-stack TypeScript boilerplate that includes Pothos.',
     url: 'https://bedrock.mxstbr.com/',
     author: 'Max Stoiber',
     authorUrl: 'https://twitter.com/mxstbr',

@@ -4,7 +4,7 @@ import { SponsorsPage } from '@/components/sponsors/SponsorsPage';
 
 export const metadata: Metadata = {
   title: 'Sponsors & Contributors',
-  description: 'The generous people and organizations supporting Pothos GraphQL development.',
+  description: 'The people and organizations who fund and contribute to Pothos GraphQL.',
 };
 
 export default function Page() {

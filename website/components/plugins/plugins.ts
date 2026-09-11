@@ -30,19 +30,17 @@ export const PLUGIN_CATEGORIES: Record<
     label: 'Shape your schema',
     eyebrow: 'Schema',
     description:
-      'Builders for the schema patterns the spec calls for — connections, federation, sub-graphs, and friends.',
+      'Plugins for common schema patterns: connections, federation, sub-graphs, and directives.',
   },
   auth: {
     label: 'Auth, errors, and validation',
     eyebrow: 'Safety',
-    description:
-      'Authorization checks, typed errors, validation, and complexity limits — built in, type-safe.',
+    description: 'Authorization checks, typed errors, validation, and complexity limits.',
   },
   live: {
     label: 'Live data',
     eyebrow: 'Live',
-    description:
-      'Subscriptions and execution-plan plugins for real-time and large-graph workloads.',
+    description: 'Subscriptions, and execution plans in place of resolvers.',
   },
   devx: {
     label: 'Developer experience',
@@ -194,7 +192,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'mocks',
     name: 'Mocks',
-    description: 'Drop-in mock resolvers for testing and local development.',
+    description: 'Mock resolvers for testing and local development.',
     icon: '◐',
     category: 'devx',
     order: 1,
