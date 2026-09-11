@@ -41,6 +41,21 @@ export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNev
   PothosSchemaTypes.SchemaBuilderOptions<Types>
 >;
 
+// Preserve literal resolver results without introducing readonly array properties.
+type Narrow<T> = T extends []
+  ? []
+  : T extends
+        | string
+        | number
+        | boolean
+        | bigint
+        | symbol
+        | null
+        | undefined
+        | ((...args: never[]) => unknown)
+    ? T
+    : { [K in keyof T]: Narrow<T[K]> };
+
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   parent: Parent,
   args: Args,
@@ -49,6 +64,22 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
 ) => [Type] extends [readonly (infer Item)[] | null | undefined]
   ? ListResolveValue<Type, Item, Return>
   : MaybePromise<Type>;
+
+// Keep the callable/validation signature unchanged. The second signature supplies
+// literal inference and accepts every existing resolver result through its fallback.
+export type ResolverWithInferredReturn<Parent, Args, Context, Type, Return> = Resolver<
+  Parent,
+  Args,
+  Context,
+  Type,
+  Return
+> &
+  ((
+    parent: Parent,
+    args: Args,
+    context: Context,
+    info: GraphQLResolveInfo,
+  ) => Narrow<Return> | ReturnType<Resolver<Parent, Args, Context, Type, Return>>);
 
 export type ListResolveValue<Type, Item, Return> =
   unknown extends AsyncIterable<unknown> // hack for target:<es2018

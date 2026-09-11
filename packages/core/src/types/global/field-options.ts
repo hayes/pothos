@@ -7,7 +7,7 @@ import type {
   InferredFieldOptionsByKind,
   InputFieldMap,
   InputShapeFromFields,
-  Resolver,
+  ResolverWithInferredReturn,
   Subscriber,
 } from '../builder-options.js';
 import type { SchemaTypes } from '../schema-types.js';
@@ -38,7 +38,7 @@ declare global {
          * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
          * @param {GraphQLResolveInfo} info - info about how this field was queried
          */
-        resolve: Resolver<
+        resolve: ResolverWithInferredReturn<
           ResolveShape,
           InputShapeFromFields<Args>,
           Types['Context'],
