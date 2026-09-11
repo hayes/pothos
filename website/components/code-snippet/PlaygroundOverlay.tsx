@@ -53,7 +53,9 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
       const params = new URLSearchParams();
       params.set('embed', '1');
       params.set('example', exampleId);
-      if (code) params.set('snippet', code);
+      if (code) {
+        params.set('snippet', code);
+      }
       if (query) {
         params.set('query', btoa(query));
       }

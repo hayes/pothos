@@ -4,9 +4,7 @@
   "description": "Run a greeting, then query a small herd using variables and request context.",
   "category": "core",
   "order": 1,
-  "relatedDocs": [
-    "/docs/guide/playground"
-  ],
+  "relatedDocs": ["/docs/guide/playground"],
   "steps": [
     {
       "id": "step-1",

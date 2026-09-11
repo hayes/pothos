@@ -1,6 +1,6 @@
 import { builder } from './builder';
 import { greet } from './lib/greeting';
-import { giraffes, type Giraffe as GiraffeModel } from './models/giraffe';
+import { type Giraffe as GiraffeModel, giraffes } from './models/giraffe';
 
 // #region object
 const Giraffe = builder.objectRef<GiraffeModel>('Giraffe');
