@@ -139,9 +139,9 @@ The result includes the shared field and the matching fragment's fields for each
   You can pass them to `builder.interfaceType` and `builder.objectType`, as described in the
   [Objects guide](./objects#using-classes).
 
-  Classes make automatic interface resolution straightforward: set
-  `isTypeOf: (value) => value instanceof GiraffeModel` on each object type, and GraphQL can select
-  the matching type without a `resolveType` function on the interface. Return actual class
+  Classes make automatic interface resolution straightforward. For the `Giraffe` class in that
+  example, set `isTypeOf: (value) => value instanceof Giraffe` on its object type. GraphQL can then
+  select the matching type without a `resolveType` function on the interface. Return actual class
   instances so the check succeeds.
 
   Existing `Error` subclasses are another good use case: the [Errors plugin](../plugins/errors)
