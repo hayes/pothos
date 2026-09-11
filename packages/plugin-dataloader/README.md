@@ -28,8 +28,6 @@ const User = builder.loadableObject('User', {
 });
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-dataloader)
-
 The source returns storage order deliberately. `sort` maps each record back to its requested
 key. The companion also has a `users` field whose resolver returns only keys; run
 `02-key-resolvers` to see the plugin load those records automatically.
@@ -53,8 +51,6 @@ key. The companion also has a `users` field whose resolver returns only keys; ru
       },
     }),
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-dataloader)
 
 Change the first operation's keys to `["2", "1", "2"]`: expect Grace, Ada, Grace, and one batch
 containing only `"2"` and `"1"`. Each run receives a fresh context, so caches do not cross
@@ -587,8 +583,6 @@ const User = builder.loadableObject('User', {
   }),
 });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-dataloader)
 
 This also works with loadable nodes, interfaces, unions, and fields. Missing keys become `null`
 after sorting. Choose field and list-item nullability to match that behavior; a missing record in

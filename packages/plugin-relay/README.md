@@ -12,7 +12,7 @@ Start with the node companion. Its query returns the users list and refetches Ad
 Grace, Ada, and a missing node in the requested order; the missing node is `null`.
 Change the single node ID to `VXNlcjoz` to refetch Katherine.
 
-[Open the node companion](https://pothos-graphql.dev/playground?example=plugin-relay-nodes). Its source is shown under
+The node example’s source is shown under
 [Creating Nodes](#creating-nodes).
 
 Global IDs encode the type and local ID. They are identifiers, not authorization checks.
@@ -31,8 +31,6 @@ builder.queryType({
   }),
 });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-relay-pagination)
 
 Run `01-first-page` with `first: 2`: it returns Ada and Grace with `hasNextPage: true`.
 Copy `endCursor` into the **Variables** input for `02-next-page` (the fixture starts with that
@@ -152,8 +150,6 @@ builder.node(User, {
   fields: (t) => ({ name: t.exposeString('name') }),
 });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-relay-nodes)
 
 ```typescript
 builder.queryType({});

@@ -89,8 +89,6 @@ builder.queryType({
 });
 ```
 
-[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-simple-objects)
-
 ## Extending simple objects
 
 In some cases, you may want to add more complex fields with resolvers or args where the value isn't
@@ -106,8 +104,6 @@ builder.objectFields(User, (t) => ({
   }),
 }));
 ```
-
-[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-simple-objects)
 
 ## Limitations
 

@@ -41,8 +41,6 @@ const builder = new SchemaBuilder({
 });
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-complexity)
-
 The list multiplier follows the requested limit, even when the fixture contains fewer records:
 
 ```typescript
@@ -56,8 +54,6 @@ posts: t.field({
       },
     }),
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-complexity)
 
 Change the rejected operation's limit from `16` to `15`. Its cost becomes exactly `20`, so it
 succeeds and increments the resolver counter. Query cost is an estimate from the operation,

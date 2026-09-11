@@ -34,8 +34,6 @@ The second operation omits a required input and receives a GraphQL validation er
     }),
 ```
 
-[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-with-input)
-
 Change the optional resolver fallback from `Anonymous` to `Visitor` and run again. The omitted
 and null inputs now return `Visitor`, while the populated input still returns `Leia`.
 

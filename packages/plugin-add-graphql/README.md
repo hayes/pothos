@@ -54,8 +54,6 @@ builder.queryFields((t) => ({
 export const schema = builder.toSchema();
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql)
-
 Both `{ user { name } }` and `{ otherUser { name } }` work on the resulting schema. The imported
 `user` field keeps its resolver, and the new field returns the same backing shape.
 
@@ -80,8 +78,6 @@ builder.queryType({
   }),
 });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql-types)
 
 This is an alternative to the schema-import builder above. Dependencies reached through fields,
 arguments, interfaces, and union members are imported recursively.
@@ -112,8 +108,6 @@ builder.queryType({
   }),
 });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql-ref)
 
 Query this version with `{ user { displayName } }`. A `null` entry removes an imported field;
 a field ref adds or replaces one. Fields not mentioned in the callback retain their imported definitions.
@@ -204,8 +198,6 @@ builder.queryType({
   }),
 });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-add-graphql-kinds)
 
 The source interface and union keep their `resolveType` functions. The enum exposes `ASC` and
 `DESC` to GraphQL clients while resolvers receive `'asc'` and `'desc'`:

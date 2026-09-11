@@ -55,8 +55,6 @@ builder.queryType({
 });
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph)
-
 Choose a build target, then run the field inspection and internal-notes operations:
 
 **Public**
@@ -65,15 +63,11 @@ Choose a build target, then run the field inspection and internal-notes operatio
 export const schema = builder.toSchema({ subGraph: 'Public' });
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph)
-
 **Internal**
 
 ```typescript
 export const schema = builder.toSchema({ subGraph: 'Internal' });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph-variant-internal)
 
 **Combined**
 
@@ -81,15 +75,11 @@ export const schema = builder.toSchema({ subGraph: 'Internal' });
 export const schema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph-variant-combined)
-
 **Shared**
 
 ```typescript
 export const schema = builder.toSchema({ subGraph: { all: ['Internal', 'Public'] } });
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-sub-graph-variant-shared)
 
 `{ product { name } }` works in either variant. `{ product { internalNotes } }` fails GraphQL
 validation against the Public variant. Calling `toSchema()` without a sub-graph retains the full schema.

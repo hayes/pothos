@@ -44,8 +44,6 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing)
-
 Run the example and open **Console** to see `Query.hello` and its duration. Change the query’s
 `name` argument and run again. Duration varies between runs.
 
@@ -106,8 +104,6 @@ builder.queryType({
 
 export const schema = builder.toSchema();
 ```
-
-[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing-options)
 
 A field can also compute its tracing options from resolver arguments. Replace the `tracing` option
 above with this expression to use a different label for named greetings:
@@ -181,8 +177,6 @@ const builder = new SchemaBuilder({
 });
 ```
 
-[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing-lifecycle)
-
 ```typescript
 builder.mutationType({
   fields: (t) => ({
@@ -212,8 +206,6 @@ builder.mutationType({
   }),
 });
 ```
-
-[Open in Playground](https://pothos-graphql.dev/playground?example=plugin-tracing-lifecycle)
 
 Run the mutation. `throws` and `rejects` return errors while both record their completion; `quiet`
 returns a value without a trace. Change `quiet` to `tracing: true` and run again to see its two events.

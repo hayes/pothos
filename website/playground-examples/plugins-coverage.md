@@ -72,8 +72,8 @@ original base and accounted for replaced source blocks:
   union alternatives alongside its executable planForType schema. Smart subscriptions retains
   iterator-source, object-refetch, field-refetch, filtering, invalidation, and debounce caveats.
   The executable event sample explicitly disables debounce for deterministic checks.
-- Every changed plugin README expands the same TypeScript source excerpts as its guide and uses
-  ordinary public links for playground actions. The complete set of 206 TypeScript excerpts was
+- Every changed plugin README expands the same TypeScript source excerpts as its guide. Playground
+  actions stay on the website; package READMEs omit playground links. The complete set of 206 TypeScript excerpts was
   compared for exact source parity. Review caught and corrected stripped imports during README
   synchronization, a relative package link, and suggested edits whose messages no longer matched
   their validation limits.

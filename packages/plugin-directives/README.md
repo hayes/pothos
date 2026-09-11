@@ -40,8 +40,6 @@ builder.queryType({
 });
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-directives)
-
 The companion adds `recordedDirectives` to inspect the stored field annotations. Run the two
 `hello` aliases, change `limit` to `1`, and run again: both still return `world`, while the
 recorded limit changes. This demonstrates metadata, not an installed rate-limit transformer.

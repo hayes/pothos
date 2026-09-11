@@ -31,8 +31,6 @@ export const schema = builder.toSchema({
 });
 ```
 
-[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-mocks)
-
 The browser runner executes queries and mutations with `graphql()`; it does not consume live
 subscriptions. The subscription example below belongs in a server or test using `subscribe()`.
 

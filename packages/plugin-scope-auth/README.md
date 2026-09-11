@@ -28,8 +28,6 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-scope-auth)
-
 ```typescript
     message: t.string({ authScopes: { loggedIn: true }, resolve: () => 'hi' }),
     article: t.string({
@@ -41,8 +39,6 @@ const builder = new SchemaBuilder<{
       resolve: () => 'You can edit this article',
     }),
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-scope-auth)
 
 `$all` requires both a logged-in user and the named permission. Add `"editArticle"` to the
 reader's permissions and rerun `02-reader`: `editPreview` now succeeds. Restore the original
@@ -64,8 +60,6 @@ The public state fields are fixture instrumentation so this skipped effect is vi
       },
     }),
 ```
-
-[Run this example](https://pothos-graphql.dev/playground?example=plugin-scope-auth)
 
 Mutation data persists between operations while this example remains loaded. Resetting reloads
 the original article; rerunning an allowed mutation increments `writes` again.

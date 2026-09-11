@@ -33,8 +33,6 @@ builder.mutationType({
 });
 ```
 
-[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-zod)
-
 Change `maxLength` from `2` to `1`, rebuild, and run the valid operation again: it now fails the list
 constraint. This example is for maintaining existing schemas; choose the [validation plugin](https://pothos-graphql.dev/docs/plugins/validation)
 for new work and for inferred transformations.

@@ -41,8 +41,6 @@ builder.queryType({
 });
 ```
 
-[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-errors)
-
 ## Usage
 
 ### Install
@@ -393,8 +391,6 @@ builder.mutationType({
   }),
 });
 ```
-
-[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-validation)
 
 ### With the dataloader plugin
 
