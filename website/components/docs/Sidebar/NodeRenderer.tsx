@@ -2,7 +2,7 @@
 
 import type * as PageTree from 'fumadocs-core/page-tree';
 import Link from 'next/link';
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { ChevronIcon } from '@/components/icons/ChevronIcon';
 import { folderContainsPath, isActive, nodeKey } from './utils';
 
@@ -90,6 +90,11 @@ function FolderRow({
   const containsActive = folderContainsPath(node, pathname);
   const [expanded, setExpanded] = useState(containsActive || depth === 0);
   const indentPx = depth * 12;
+  useEffect(() => {
+    if (containsActive) {
+      setExpanded(true);
+    }
+  }, [containsActive]);
 
   return (
     <div>
@@ -97,6 +102,7 @@ function FolderRow({
         {indexUrl ? (
           <Link
             href={indexUrl}
+            aria-current={isActive(indexUrl, pathname) ? 'page' : undefined}
             // Clicking a folder header both navigates and opens the section. The
             // chevron button is for collapse-when-open, so we don't toggle here
             // — open if closed, no-op if already open. Avoids the surprising

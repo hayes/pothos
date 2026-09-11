@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { states } = vi.hoisted(() => ({ states: [] as unknown[] }));
 vi.mock('react', () => ({
+  useRef: (initial: unknown) => ({ current: initial }),
   useCallback: (callback: unknown) => callback,
   useState: (initial: unknown) => {
     const index = states.length;
@@ -66,4 +67,33 @@ describe('query failure recovery', () => {
     expect(states[1]).toEqual([]);
     expect(states[2]).toEqual([]);
   });
+});
+
+it('coalesces overlapping runs so a mutation executes once', async () => {
+  let finish!: (value: unknown) => void;
+  const resolve = vi.fn(
+    () =>
+      new Promise((done) => {
+        finish = done;
+      }),
+  );
+  const schema = new GraphQLSchema({
+    query: new GraphQLObjectType({
+      name: 'Query',
+      fields: {
+        value: {
+          type: new GraphQLScalarType({ name: 'Custom', serialize: (value) => value }),
+          resolve,
+        },
+      },
+    }),
+  });
+  const runner = useQueryRunner();
+  const args = { schema, query: '{ value }', variables: '' };
+  const first = runner.run(args);
+  const second = runner.run(args);
+  expect(first).toBe(second);
+  expect(resolve).toHaveBeenCalledTimes(1);
+  finish('done');
+  expect((await first).phase.kind).toBe('success');
 });

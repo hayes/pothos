@@ -24,6 +24,7 @@ import { createShareableURL } from '@/lib/playground/url-state';
 import { useConsoleLogs } from './useConsoleLogs';
 import type { LoadedExample } from './useExampleLoader';
 import { useExampleLoader } from './useExampleLoader';
+import { useExecutionTrust } from './useExecutionTrust';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { useOperations } from './useOperations';
 import { usePlaygroundCompiler } from './usePlaygroundCompiler';
@@ -31,7 +32,7 @@ import { usePlaygroundFiles } from './usePlaygroundFiles';
 import { useQueryRunner } from './useQueryRunner';
 import { useSchemaStatus } from './useSchemaStatus';
 import { useUrlBootstrap } from './useUrlBootstrap';
-import { readInitialFromURL, useExampleBaseline, useUrlHashSync } from './useUrlSync';
+import { useExampleBaseline, useUrlHashSync } from './useUrlSync';
 
 /**
  * File-related action setters consumed by the SchemaSidebar. Grouping
@@ -139,25 +140,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
   const { theme, setTheme } = useTheme();
   const console_ = useConsoleLogs();
 
-  // Start paused on both the server and client. The first effect runs before
-  // URL bootstrap can replace the default files, so shared code never gets an
-  // initial auto-compile before the trust decision is known.
-  const [executionAllowed, setExecutionAllowed] = useState(false);
-  const executionAllowedRef = useRef(false);
-  useEffect(() => {
-    const allowed = readInitialFromURL() === null;
-    executionAllowedRef.current = allowed;
-    setExecutionAllowed(allowed);
-    // Hash navigation loads another sketch. Remount through a full navigation
-    // so it gets the same hydration and trust boundary as a newly opened link.
-    const navigate = () => {
-      executionAllowedRef.current = false;
-      setExecutionAllowed(false);
-      window.location.reload();
-    };
-    window.addEventListener('hashchange', navigate);
-    return () => window.removeEventListener('hashchange', navigate);
-  }, []);
+  const { executionAllowed, executionAllowedRef, allowExecution } = useExecutionTrust();
 
   const { state: compilerState } = usePlaygroundCompiler({
     files: filesState.files,
@@ -473,6 +456,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
     compilerState.schema,
     compilerState.error,
     compilerState.isCompiling,
+    executionAllowedRef,
     opsState,
     console_,
   ]);
@@ -613,10 +597,7 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
 
   return {
     executionBlocked: !executionAllowed,
-    allowExecution: () => {
-      executionAllowedRef.current = true;
-      setExecutionAllowed(true);
-    },
+    allowExecution,
     embed,
     sketchName,
     setSketchName,

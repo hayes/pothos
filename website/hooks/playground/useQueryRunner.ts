@@ -1,7 +1,7 @@
 'use client';
 
 import { type GraphQLError, type GraphQLSchema, graphql, parse } from 'graphql';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { ResponsePhase } from '@/components/playground/ResponsePane/types';
 import { getQueryCursor } from '@/lib/playground/active-query-cursor';
 import { captureConsoleAsync } from '@/lib/playground/console-capture';
@@ -124,7 +124,7 @@ export function useQueryRunner(): QueryRunner {
   const [panels, setPanels] = useState<ExtensionPanel[]>([]);
   const [lastLogs, setLastLogs] = useState<ConsoleMessage[]>([]);
 
-  const run = useCallback(
+  const execute = useCallback(
     async ({ schema, query, variables, context, compileError }: RunArgs): Promise<RunResult> => {
       setPanels([]);
       setLastLogs([]);
@@ -265,6 +265,23 @@ export function useQueryRunner(): QueryRunner {
       }
     },
     [],
+  );
+
+  const inFlight = useRef<Promise<RunResult> | null>(null);
+  const run = useCallback(
+    (args: RunArgs): Promise<RunResult> => {
+      if (inFlight.current) {
+        return inFlight.current;
+      }
+      const pending = execute(args);
+      inFlight.current = pending;
+      const clear = () => {
+        inFlight.current = null;
+      };
+      pending.then(clear, clear);
+      return pending;
+    },
+    [execute],
   );
 
   const reset = useCallback(() => {

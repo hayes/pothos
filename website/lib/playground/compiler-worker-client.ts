@@ -19,9 +19,13 @@ function getWorker(): Worker {
   if (!worker) {
     // Create worker from the TypeScript file
     // Next.js will handle the compilation
-    worker = new Worker(new URL('./compiler.worker.ts', import.meta.url));
+    const createdWorker = new Worker(new URL('./compiler.worker.ts', import.meta.url));
+    worker = createdWorker;
 
-    worker.addEventListener('message', (event) => {
+    createdWorker.addEventListener('message', (event) => {
+      if (worker !== createdWorker) {
+        return;
+      }
       const message = event.data;
 
       if (message.type === 'ready') {
@@ -50,17 +54,12 @@ function getWorker(): Worker {
       }
     });
 
-    worker.addEventListener('error', (error) => {
+    createdWorker.addEventListener('error', (error) => {
+      if (worker !== createdWorker) {
+        return;
+      }
       console.error('[Compiler Worker] Error:', error);
-      // Drop the worker entirely so the next request rebuilds it. If we
-      // kept the same Worker, all subsequent postMessages would silently
-      // hang (no handler would ever respond) since the worker errored.
-      worker = null;
-      // Reject all pending requests
-      pendingRequests.forEach((pending) => {
-        pending.reject(new Error('Worker error'));
-      });
-      pendingRequests.clear();
+      terminateWorker(new Error('Worker error'));
     });
   }
 
@@ -82,11 +81,10 @@ export function compileTypeScriptInWorker(
     const id = `compile-${++requestId}`;
 
     const timeoutId = setTimeout(() => {
-      if (pendingRequests.delete(id)) {
+      if (pendingRequests.has(id)) {
         // Worker is wedged — terminate it so the next request gets a
         // fresh one rather than queuing behind a dead worker.
-        terminateWorker();
-        reject(new Error(`Compile timed out after ${COMPILE_TIMEOUT_MS}ms`));
+        terminateWorker(new Error(`Compile timed out after ${COMPILE_TIMEOUT_MS}ms`));
       }
     }, COMPILE_TIMEOUT_MS);
 
@@ -117,10 +115,14 @@ export function compileTypeScriptInWorker(
   });
 }
 
-export function terminateWorker() {
-  if (worker) {
-    worker.terminate();
-    worker = null;
-    pendingRequests.clear();
-  }
+export function terminateWorker(error = new Error('Compiler worker terminated')) {
+  const previousWorker = worker;
+  worker = null;
+  previousWorker?.terminate();
+  // Every caller must settle when its worker disappears, including other
+  // requests queued behind the one that timed out.
+  pendingRequests.forEach((pending) => {
+    pending.reject(error);
+  });
+  pendingRequests.clear();
 }
