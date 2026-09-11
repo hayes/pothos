@@ -34,7 +34,6 @@
     "@pothos/plugin-dataloader": "workspace:^",
     "@pothos/plugin-directives": "workspace:^",
     "@pothos/plugin-errors": "workspace:^",
-    "@pothos/plugin-federation": "workspace:^",
     "@pothos/plugin-mocks": "workspace:^",
     "@pothos/plugin-relay": "workspace:^",
     "@pothos/plugin-scope-auth": "workspace:^",

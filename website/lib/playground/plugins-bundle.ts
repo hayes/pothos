@@ -18,7 +18,6 @@ import * as ComplexityModule from '@pothos/plugin-complexity';
 import * as DataloaderModule from '@pothos/plugin-dataloader';
 import * as DirectivesModule from '@pothos/plugin-directives';
 import * as ErrorsModule from '@pothos/plugin-errors';
-import * as FederationModule from '@pothos/plugin-federation';
 import * as MocksModule from '@pothos/plugin-mocks';
 import * as RelayModule from '@pothos/plugin-relay';
 import * as ScopeAuthModule from '@pothos/plugin-scope-auth';
@@ -31,7 +30,6 @@ import * as WithInputModule from '@pothos/plugin-with-input';
 import * as ZodModule from '@pothos/plugin-zod';
 
 export const pluginModules = {
-  '@pothos/plugin-federation': FederationModule,
   '@pothos/plugin-tracing': TracingModule,
   '@pothos/plugin-zod': ZodModule,
   '@pothos/plugin-simple-objects': SimpleObjectsModule,
