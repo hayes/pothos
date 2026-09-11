@@ -1,7 +1,7 @@
 {
   "id": "plugin-with-input",
   "title": "Generated and customized inputs",
-  "description": "Run the query and inspect the SDL for QueryEchoInput and LookupInput. Change the optional fallback from Anonymous to Visitor and compare omitted, null, and populated inputs.",
+  "description": "Run the first operation and inspect QueryEchoInput and LookupInput in the SDL. Change Anonymous to Visitor: omitted and null inputs change, while the populated input stays Leia. The second operation omits a required input and fails. Reset restores the example.",
   "category": "plugins",
   "relatedDocs": ["/docs/plugins/with-input"],
   "defaultActiveFile": "schema.ts"

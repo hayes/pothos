@@ -14,9 +14,9 @@ npm install --save @pothos/plugin-simple-objects
 
 ### Example
 
-Run the query to inspect inherited `id`, nested contact data, and computed fields. Change
-`firstName` from `Leia` to `Han` in the resolver and run again: `fullName` becomes `Han Organa`
-and `initials` becomes `HO`.
+`User` inherits `id` from the simple `Node` interface and contains nested `ContactInfo` data.
+Its resolver returns those fields directly. The additional `fullName` field computes a value from
+`firstName` and `lastName` instead of requiring a `fullName` property on the returned object.
 
 ```typescript
 import SchemaBuilder from '@pothos/core';

@@ -1,7 +1,7 @@
 {
   "id": "plugin-simple-objects",
   "title": "Infer a user and compute fields",
-  "description": "Run the query, then change Leia to Han in the resolver. fullName and initials recompute from the returned data. Inspect Node in the SDL for the inherited id field.",
+  "description": "Run the query, then change firstName from Leia to Han: fullName becomes Han Organa and initials becomes HO. Inspect Node in the SDL for the inherited id field. Reset restores the example.",
   "category": "plugins",
   "relatedDocs": ["/docs/plugins/simple-objects"],
   "defaultActiveFile": "schema.ts"

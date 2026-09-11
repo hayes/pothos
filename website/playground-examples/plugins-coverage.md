@@ -52,12 +52,16 @@ to run them, and no external provider ingestion is asserted by this batch.
 
 ## Preservation and review
 
+The docs explain APIs and code without requiring the playground. Operation selection, suggested
+edits, and run/reset instructions live in the playground guide descriptions. Fixture instrumentation
+stays in executable examples; local server and CLI workflows remain in the docs.
+
 No substantive workflow was retired. Independent reviews compared the resulting pages with the
 original base and accounted for replaced source blocks:
 
-- Dataloader's sorting example and Relay's original node declaration moved to matching source regions.
-  Scope Auth adds focused runnable tasks while retaining its original scope/grant/cache reference
-  workflows. Loader/Relay alternative implementations, subscription cache guidance, and database
+- Dataloader retains its application loader recipe; Relay's node and ordinary-object connection
+  examples use matching source regions. Scope Auth retains its original scope/grant/cache reference
+  workflows and links its basic field to an executable example. Loader/Relay alternative implementations, subscription cache guidance, and database
   recipes remain.
 - Simple Objects' original complete example and extension moved to executable source. Validation,
   Errors, Zod, With Input, and Mocks add focused examples while preserving their option catalogs,
@@ -73,7 +77,7 @@ original base and accounted for replaced source blocks:
   iterator-source, object-refetch, field-refetch, filtering, invalidation, and debounce caveats.
   The executable event sample explicitly disables debounce for deterministic checks.
 - Every changed plugin README expands the same TypeScript source excerpts as its guide. Playground
-  actions stay on the website; package READMEs omit playground links. The complete set of 206 TypeScript excerpts was
+  actions stay on the website; package READMEs omit playground links. All TypeScript excerpts are
   compared for exact source parity. Review caught and corrected stripped imports during README
   synchronization, a relative package link, and suggested edits whose messages no longer matched
   their validation limits.

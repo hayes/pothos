@@ -4,43 +4,6 @@ Represent expected failures as GraphQL result unions. Register error classes as 
 list them in a field's `errors` option. The plugin catches matching errors and returns an error
 object that clients can query with fragments. Errors that do not match still become GraphQL errors.
 
-## Run handled and unexpected failures
-
-Run the three operations to compare a success object, a `NameTooShort` result with `message` and
-`minimum`, and an unregistered error in the GraphQL `errors` array. Change `Li` to `Leia` in the
-handled-failure operation to select the success member instead.
-
-```typescript
-class NameTooShort extends Error {
-  minimum = 3;
-  constructor() {
-    super('Use at least three characters');
-  }
-}
-builder.objectType(NameTooShort, {
-  name: 'NameTooShort',
-  fields: (t) => ({ message: t.exposeString('message'), minimum: t.exposeInt('minimum') }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    greeting: t.string({
-      args: { name: t.arg.string({ required: true }), simulateFailure: t.arg.boolean() },
-      errors: { types: [NameTooShort] },
-      resolve: (_, { name, simulateFailure }) => {
-        if (simulateFailure) {
-          throw new Error('Service unavailable');
-        }
-        if (name.length < 3) {
-          throw new NameTooShort();
-        }
-        return `Hello, ${name}`;
-      },
-    }),
-  }),
-});
-```
-
 ## Usage
 
 ### Install
@@ -128,6 +91,44 @@ This plugin works by wrapping fields that define error options in a union type. 
 of an object type for each error type defined for the field, and a Success object type that wraps
 the returned data. If the fields resolver throws an instance of one of the defined errors, the
 errors plugin will automatically resolve to the corresponding error object type.
+
+### Expected and unexpected errors
+
+Only errors matching a field's registered classes become typed results. With the imports and
+builder setup above, this alternative query definition catches `NameTooShort` and exposes its
+`message` and `minimum` fields. Successful greetings use `QueryGreetingSuccess`; a plain `Error`
+remains a GraphQL error because this field does not register that class.
+
+```typescript
+class NameTooShort extends Error {
+  minimum = 3;
+  constructor() {
+    super('Use at least three characters');
+  }
+}
+builder.objectType(NameTooShort, {
+  name: 'NameTooShort',
+  fields: (t) => ({ message: t.exposeString('message'), minimum: t.exposeInt('minimum') }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    greeting: t.string({
+      args: { name: t.arg.string({ required: true }), simulateFailure: t.arg.boolean() },
+      errors: { types: [NameTooShort] },
+      resolve: (_, { name, simulateFailure }) => {
+        if (simulateFailure) {
+          throw new Error('Service unavailable');
+        }
+        if (name.length < 3) {
+          throw new NameTooShort();
+        }
+        return `Hello, ${name}`;
+      },
+    }),
+  }),
+});
+```
 
 ### Builder options
 
@@ -347,8 +348,10 @@ query {
 }
 ```
 
-Run a complete mutation example to observe both outcomes and confirm rejected input does not
-write any data. Its full source also requires `@pothos/plugin-validation` and `zod` locally. Run the valid, invalid, and saved-names operations in order; only `Leia` is saved.
+Validation also protects writes inside a mutation resolver. This alternative builder stores
+accepted names and returns structured issues for invalid input without changing the stored data.
+It uses the same imports as the validation example above and requires
+`@pothos/plugin-validation` and `zod` alongside the errors plugin.
 
 ```typescript
 // This public example deliberately exposes validation details before authorization.

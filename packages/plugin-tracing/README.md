@@ -44,9 +44,6 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-Run the example and open **Console** to see `Query.hello` and its duration. Change the query’s
-`name` argument and run again. Duration varies between runs.
-
 `wrapResolver` calls its completion callback for a synchronous result, fulfilled promise, thrown
 error, or rejected promise. It preserves the resolver's result or error. The callback receives
 `null` for a successful call and the thrown value for a failure; duration is in milliseconds.
@@ -150,67 +147,6 @@ For custom span hierarchies, the plugin exports `pathToString(info)`, `getParent
 and `createSpanWithParent(context, info, createSpan)`. The latter caches a span on the request
 context and passes the closest cached parent span to your callback. Use a fresh context for each
 operation so this cache belongs to that operation.
-
-### Try success, failure, and disabled tracing
-
-This example uses `runFunction` to record start and completion events. Its mutation fields run
-serially: reset the event list, resolve a value and a promise, throw and reject, then read the events.
-The failing fields are nullable so the remaining fields still execute.
-
-```typescript
-const builder = new SchemaBuilder({
-  plugins: [TracingPlugin],
-  tracing: {
-    default: (config) => isRootField(config),
-    wrap: (resolver) => (parent, args, context, info) => {
-      events.push(`start ${info.fieldName}`);
-      console.log(`Starting ${info.parentType.name}.${info.fieldName}`);
-      return runFunction(
-        () => resolver(parent, args, context, info),
-        (error, duration) => {
-          events.push(`end ${info.fieldName}: ${error === null ? 'ok' : 'error'}`);
-          console.log(`Finished ${info.parentType.name}.${info.fieldName}: ${duration}ms`, error);
-        },
-      );
-    },
-  },
-});
-```
-
-```typescript
-builder.mutationType({
-  fields: (t) => ({
-    reset: t.boolean({
-      tracing: false,
-      resolve: () => {
-        events.length = 0;
-        return true;
-      },
-    }),
-    sync: t.string({ resolve: () => 'sync' }),
-    async: t.string({ resolve: async () => 'async' }),
-    throws: t.string({
-      nullable: true,
-      resolve: () => {
-        throw new Error('sync failure');
-      },
-    }),
-    rejects: t.string({
-      nullable: true,
-      resolve: async () => {
-        throw new Error('async failure');
-      },
-    }),
-    quiet: t.string({ tracing: false, resolve: () => 'untraced' }),
-    events: t.stringList({ tracing: false, resolve: () => [...events] }),
-  }),
-});
-```
-
-Run the mutation. `throws` and `rejects` return errors while both record their completion; `quiet`
-returns a value without a trace. Change `quiet` to `tracing: true` and run again to see its two events.
-The reset field makes the comparison repeatable. These are in-memory resolver events; the provider
-setups below send spans through their respective SDKs in your application.
 
 ## Tracing integrations
 

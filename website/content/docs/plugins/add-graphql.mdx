@@ -48,7 +48,7 @@ builder imports `ExistingUser`, renames it, and replaces its `name` field with `
 
 <include cwd lang="typescript" meta='playground example="plugin-add-graphql-ref"'>playground-examples/plugin-add-graphql-ref/schema.ts#definition</include>
 
-Query this version with `{ user { displayName } }`. A `null` entry removes an imported field;
+The resulting field accepts `{ user { displayName } }`. A `null` entry removes an imported field;
 a field ref adds or replaces one. Fields not mentioned in the callback retain their imported definitions.
 
 | Method | Source type | Returned ref |

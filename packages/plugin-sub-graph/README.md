@@ -55,7 +55,7 @@ builder.queryType({
 });
 ```
 
-Choose a build target, then run the field inspection and internal-notes operations:
+The `subGraph` option selects which types and fields appear in the built schema:
 
 **Public**
 

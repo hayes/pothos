@@ -5,44 +5,6 @@ Use nodes when clients need to refetch an object by ID, and connections when cli
 through a collection. A connection can return ordinary object types; its items do not have to
 implement the `Node` interface.
 
-## Run node identity, then pagination
-
-Start with the node example. Its query returns the users list and refetches Ada through
-`node(id: "VXNlcjox")`. The same global ID appears in both results. The `nodes` field returns
-Grace, Ada, and a missing node in the requested order; the missing node is `null`.
-Change the single node ID to `VXNlcjoz` to refetch Katherine.
-
-The node example’s source is shown under
-[Creating Nodes](#creating-nodes).
-
-Global IDs encode the type and local ID. They are identifiers, not authorization checks.
-The node loader must still enforce the application's access rules when needed.
-
-Next, use the connection example. Its four users stay in a fixed order, and they are ordinary
-objects rather than nodes: connection cursors and node IDs serve different purposes.
-
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    users: t.connection({
-      type: User,
-      resolve: (_parent, args) => resolveArrayConnection({ args }, users),
-    }),
-  }),
-});
-```
-
-Run `01-first-page` with `first: 2`: it returns Ada and Grace with `hasNextPage: true`.
-Copy `endCursor` into the **Variables** input for `02-next-page` (the fixture starts with that
-value). The next page returns Katherine and Dorothy with `hasNextPage: false`.
-`03-backward` reads the two records before Dorothy, and `04-empty` reads after the final cursor.
-`05-invalid-size` shows the error for a negative page size.
-
-Change `first` to `1`, run the first page again, and use its new `endCursor` for the next page:
-that page now starts at Grace. Treat cursors as opaque values returned by the connection.
-`resolveArrayConnection` paginates an array already in memory; the offset and cursor helpers
-below explain how to fetch only the needed records from a larger data source.
-
 ## Usage
 
 ### Install
@@ -133,8 +95,8 @@ Both options support all standard type options including `name`, `description`, 
 
 ### Creating Nodes
 
-To create objects that extend the `Node` interface, use `builder.node`. This is the node
-example from the walkthrough above; its complete source also defines the `users` query.
+To create objects that extend the `Node` interface, use `builder.node`. The `id` resolver supplies
+the local key, and `loadOne` uses that key to retrieve the record:
 
 ```typescript
 type UserShape = { id: string; name: string };
@@ -163,6 +125,11 @@ provided `loadOne` or `loadMany` method. Each node will only be loaded once by i
 same node is loaded multiple times in the same request. You can provide `loadWithoutCache` or
 `loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
 datasource like a dataloader.
+
+With the default encoding, Ada's local ID `"1"` becomes the global ID `"VXNlcjox"`.
+A `node(id: "VXNlcjox")` query returns Ada with that same global ID, wherever she appears in the
+schema. Global IDs identify records; they do not grant access. The loader must still enforce the
+application's access rules when needed.
 
 For an application that already uses classes, pass the class to `builder.node` and provide
 `name: 'User'`. The default class check uses `instanceof` or the constructor on the prototype.
@@ -295,6 +262,44 @@ Query `users(first: 2)`, then pass its `pageInfo.endCursor` to `users(first: 2, 
 The first page contains Ada and Grace; the next contains Katherine. A node's `id` identifies the
 object across the schema, while an edge's `cursor` identifies a position in this connection.
 Pass a returned node `id` to the root `node(id: ...)` field to refetch the same user.
+
+Treat connection cursors as opaque values. Forward pagination uses `first` with `after`;
+backward pagination uses `last` with `before`. The array helper rejects negative page sizes and
+returns an empty edge list when the requested page falls beyond the data.
+
+Connections can also contain ordinary objects. This independent schema uses four users with
+local IDs: Ada, Grace, Katherine, and Dorothy. Its `User` type does not implement `Node`:
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import RelayPlugin, { resolveArrayConnection } from '@pothos/plugin-relay';
+
+const builder = new SchemaBuilder({ plugins: [RelayPlugin], relay: {} });
+const users = [
+  { id: '1', name: 'Ada' },
+  { id: '2', name: 'Grace' },
+  { id: '3', name: 'Katherine' },
+  { id: '4', name: 'Dorothy' },
+];
+const User = builder.objectRef<(typeof users)[number]>('User').implement({
+  fields: (t) => ({ id: t.exposeID('id'), name: t.exposeString('name') }),
+});
+
+
+builder.queryType({
+  fields: (t) => ({
+    users: t.connection({
+      type: User,
+      resolve: (_parent, args) => resolveArrayConnection({ args }, users),
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+`resolveArrayConnection` paginates data already in memory. The offset and cursor helpers below
+let a data source fetch only the needed records from a larger collection.
 
 The remaining connection examples are independent patterns using application types and data
 sources. For a custom connection resolver, return the following shape:

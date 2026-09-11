@@ -1,7 +1,7 @@
 {
   "id": "plugin-tracing-lifecycle",
   "title": "Observe resolver completion",
-  "description": "Run the mutation to compare successful, failing, and untraced resolvers. The final field returns the trace events in order.",
+  "description": "Run the mutation and compare its events with the errors: sync and async failures still record completion. Change quiet to tracing: true and run again to add its events. The reset field clears earlier events each run.",
   "category": "plugins",
   "relatedDocs": ["/docs/plugins/tracing"],
   "defaultActiveFile": "schema.ts"

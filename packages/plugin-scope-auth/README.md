@@ -4,66 +4,6 @@ The scope auth plugin checks authorization before a field resolver runs. Define 
 roles, permissions, or ownership checks, then require those scopes on fields and types. Checks and
 scope loaders are cached for the current request.
 
-## Run a permission check
-
-The example runs the same query with three request contexts. In `01-signed-out`, all three
-protected fields return `null` with `Not authorized` errors. In `02-reader`, `message` and
-`article` succeed while `editPreview` is denied. In `03-editor`, all three succeed.
-Open each operation's **Context** input to inspect the user and permissions passed to the schema.
-These JSON fixtures stand in for a server's authenticated context; they do not authenticate a user.
-
-```typescript
-const builder = new SchemaBuilder<{
-  Context: Context;
-  AuthScopes: { loggedIn: boolean; permission: Permission };
-}>({
-  plugins: [ScopeAuthPlugin],
-  scopeAuth: {
-    authScopes: (context) => ({
-      loggedIn: !!context.user,
-      permission: (permission) => context.user?.permissions.includes(permission) ?? false,
-    }),
-    unauthorizedError: () => new Error('Not authorized'),
-  },
-});
-```
-
-```typescript
-    message: t.string({ authScopes: { loggedIn: true }, resolve: () => 'hi' }),
-    article: t.string({
-      authScopes: { $all: { loggedIn: true, permission: 'readArticle' } },
-      resolve: () => article.title,
-    }),
-    editPreview: t.string({
-      authScopes: { $all: { loggedIn: true, permission: 'editArticle' } },
-      resolve: () => 'You can edit this article',
-    }),
-```
-
-`$all` requires both a logged-in user and the named permission. Add `"editArticle"` to the
-reader's permissions and rerun `02-reader`: `editPreview` now succeeds. Restore the original
-context with **Reset example** before following the write sequence.
-
-Run `04-rejected-write`, then `05-after-rejection`: the title stays `Getting started` and
-`writes` remains `0`. Run `06-permitted-write`, then `07-after-write`: the title becomes
-`Updated guide` and `writes` becomes `1`. A denied request never reaches the mutation resolver.
-The public state fields are fixture instrumentation so this skipped effect is visible.
-
-```typescript
-    renameArticle: t.string({
-      authScopes: { $all: { loggedIn: true, permission: 'editArticle' } },
-      args: { title: t.arg.string({ required: true }) },
-      resolve: (_parent, { title }) => {
-        article.writes += 1;
-        article.title = title;
-        return article.title;
-      },
-    }),
-```
-
-Mutation data persists between operations while this example remains loaded. Resetting reloads
-the original article; rerunning an allowed mutation increments `writes` again.
-
 ## Usage
 
 ### Install
@@ -175,6 +115,11 @@ builder.queryType({
 });
 ```
 
+For this nullable field, an unauthenticated request receives `message: null` and a GraphQL error;
+an authenticated request receives `"hi"`. Other fields that pass their own checks can still return
+data. The application must authenticate the user before constructing the context: checking a
+scope authorizes access using that context, but does not establish the user's identity.
+
 Set `authorizeOnSubscribe: true` to check authorization when a subscription is created. Without
 this option, checks run when subscription events resolve.
 
@@ -236,6 +181,10 @@ If your application already uses an `Article` class, you can pass it to `builder
 instead, with `name: 'Article'`, and return class instances from resolvers.
 
 ### Top level auth on queries and mutations
+
+Authorization runs before the field resolver. A denied mutation therefore cannot perform the
+writes inside that resolver; an authorized mutation can. Put writes in the protected resolver,
+not in the scope initializer or permission loader.
 
 To add an auth check to root level queries or mutations, add authScopes to the field options:
 
@@ -631,7 +580,7 @@ builder.queryField('viewerId', (t) =>
 #### Using `withAuth` with Prisma fields
 
 `withAuth` preserves plugin-specific field methods while refining their context. This alternative
-builder uses the client `prisma` and generated types from [Prisma setup](https://pothos-graphql.dev/docs/plugins/prisma/setup), with a
+builder uses the client `prisma` and generated types from [Prisma setup](./prisma/setup), with a
 User model containing an integer `id`. The request context contains either the
 signed-in user's ID or `null`:
 
@@ -707,6 +656,11 @@ You can use the built in `$any` and `$all` scope loaders to combine requirements
 above example requires a request to have either the `employee` or `canReadArticles` scopes, and the
 `loggedIn` scope. `$any` and `$all` each take a scope map as their parameters, and can be nested
 inside each other.
+
+The same pattern can require both login and a permission:
+`{ $all: { loggedIn: true, customPerm: 'editArticle' } }`. A user with only `readArticle` access
+can read a field requiring that permission but cannot pass the edit check. A user with
+`editArticle` access passes it only when `loggedIn` also succeeds.
 
 You can change the default strategy used for top level auth scopes by setting the `defaultStrategy`
 option in the builder (defaults to `any`):

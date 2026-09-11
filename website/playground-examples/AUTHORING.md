@@ -12,6 +12,8 @@ Read this before adding playground links, writing a guide, changing an example, 
 
 Completion means the reader can follow the explanation, run the corresponding code, make the suggested edit, and observe the promised effect. A compiling schema, valid query, working URL, or shorter page alone does not establish that.
 
+Write docs for readers who will read and copy the code without opening the playground. Keep API explanations, relevant outcomes, and complete local workflows in the docs. Put operation-tab selection, suggested edits, and run/reset instructions in `metadata.description` or the current step’s `description`, which the playground guide panel displays. Keep this guidance concise. Package READMEs contain the code and explanation without playground links or UI instructions.
+
 Start introductory examples with one source file and one useful query. Add variables, context, helper files, steps, or variants when they teach the page's concept, not to demonstrate the toolkit. Keep trivial resolvers inline. Choose `defaultActiveFile` so a step opens on the code the reader needs; verify the initial file in the actual playground. Follow the full step sequence, including moving backward and resetting, rather than checking only isolated step URLs.
 
 ## Files and metadata

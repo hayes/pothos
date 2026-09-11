@@ -1,3 +1,4 @@
+// #region setup
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin, { resolveArrayConnection } from '@pothos/plugin-relay';
 
@@ -12,6 +13,8 @@ const User = builder.objectRef<(typeof users)[number]>('User').implement({
   fields: (t) => ({ id: t.exposeID('id'), name: t.exposeString('name') }),
 });
 
+// #endregion setup
+
 // #region connection
 builder.queryType({
   fields: (t) => ({
@@ -22,4 +25,6 @@ builder.queryType({
   }),
 });
 // #endregion connection
+// #region schema
 export const schema = builder.toSchema();
+// #endregion schema

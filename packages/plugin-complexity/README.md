@@ -22,43 +22,6 @@ const builder = new SchemaBuilder({
 });
 ```
 
-### Run a budgeted query
-
-The example uses two in-memory posts and a cost budget of `20`. Run its operations in order:
-`Allowed` costs `5 + 2 × 1 = 7`; `Estimate` reports costs without running the posts resolver;
-`Rejected` costs `5 + 16 × 1 = 21` and fails before that resolver runs. `TooDeep` and
-`TooBroad` separately exceed depth `3` and breadth `5`. After all three rejections, `Calls` stays at `1`.
-Reset the example before repeating the sequence to reset the counter.
-
-```typescript
-const builder = new SchemaBuilder({
-  plugins: [ComplexityPlugin],
-  complexity: {
-    defaultComplexity: 1,
-    defaultListMultiplier: 10,
-    limit: { complexity: 20, depth: 3, breadth: 5 },
-  },
-});
-```
-
-The list multiplier follows the requested limit, even when the fixture contains fewer records:
-
-```typescript
-posts: t.field({
-      type: [Post],
-      args: { limit: t.arg.int({ defaultValue: 2 }) },
-      complexity: (args) => ({ field: 5, multiplier: Math.max(0, args.limit ?? 2) }),
-      resolve: (_parent, args) => {
-        resolverCalls += 1;
-        return posts.slice(0, Math.max(0, args.limit ?? 2));
-      },
-    }),
-```
-
-Change the rejected operation's limit from `16` to `15`. Its cost becomes exactly `20`, so it
-succeeds and increments the resolver counter. Query cost is an estimate from the operation,
-not a measurement of how many records the resolver actually returns.
-
 ### Configure defaults and limits
 
 To limit query complexity you can specify a maximum complexity either in the builder setup, or when
@@ -183,6 +146,42 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+### Example: a bounded list
+
+This configuration caps query cost at `20`, depth at `3`, and breadth at `5`:
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [ComplexityPlugin],
+  complexity: {
+    defaultComplexity: 1,
+    defaultListMultiplier: 10,
+    limit: { complexity: 20, depth: 3, breadth: 5 },
+  },
+});
+```
+
+For a `Post` object with a `title` field, the list's base cost is `5` and its `limit` argument
+sets the multiplier. Here, `posts` is an array of records and `resolverCalls` is a counter used
+to observe whether the resolver is invoked:
+
+```typescript
+posts: t.field({
+      type: [Post],
+      args: { limit: t.arg.int({ defaultValue: 2 }) },
+      complexity: (args) => ({ field: 5, multiplier: Math.max(0, args.limit ?? 2) }),
+      resolve: (_parent, args) => {
+        resolverCalls += 1;
+        return posts.slice(0, Math.max(0, args.limit ?? 2));
+      },
+    }),
+```
+
+The selection `{ posts(limit: 2) { title } }` costs `5 + 2 × 1 = 7`. A limit of `16` costs `21`,
+so the budget rejects that query before invoking the resolver. A limit of `15` costs exactly
+`20` and is accepted. The multiplier follows the requested limit even when fewer records exist;
+query cost estimates the operation rather than measuring the records actually returned.
 
 ## Utilities
 

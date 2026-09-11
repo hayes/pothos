@@ -1,7 +1,7 @@
 {
   "id": "plugin-add-graphql-ref",
   "title": "Customize an imported ref",
-  "description": "Run the imported type, then edit its resolver and compare the result.",
+  "description": "Run RenamedField to read displayName. The imported name field was removed; try querying it to see a validation error. Change the resolver name to Luke and rerun with displayName. Reset example restores the original source and query.",
   "category": "plugins",
   "relatedDocs": ["/docs/plugins/add-graphql"],
   "defaultActiveFile": "schema.ts"

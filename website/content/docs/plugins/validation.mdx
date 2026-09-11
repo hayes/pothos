@@ -8,21 +8,6 @@ that implements [Standard Schema](https://standardschema.dev), including Zod, Va
 Validation can be asynchronous, and chained validators can transform the values passed to your resolver.
 If validation fails, the resolver does not run.
 
-## Run validation before a write
-
-Run the valid registration, rejected registration, and saved-names query in order. The valid name
-is trimmed to `Leia`; invalid input returns issue messages and paths. `savedNames` still contains
-only `Leia`, because the rejected mutation never reaches its resolver. Reset the example to clear
-its in-memory data before repeating the sequence.
-
-<include cwd lang="typescript" meta='playground example="plugin-validation"'>playground-examples/plugin-validation/schema.ts#mutation</include>
-
-This example combines validation with the errors plugin to make issues queryable. To run its
-full source locally, also install `@pothos/plugin-errors`. It explicitly sets `unsafelyHandleInputErrors: true`: validation details are public here, and a rejected input
-returns before field authorization hooks run. See [the integration details](./errors#with-validation-plugin)
-before using that setting in an application. Change the minimum name length from `3` to `5`, rebuild,
-and run the valid operation again to see it rejected.
-
 ## Usage
 
 ### Install
@@ -278,6 +263,29 @@ const UserInput = builder.inputType('UserInput', {
 });
 ```
 
+
+### Validation before mutation side effects
+
+Validation finishes before a mutation resolver runs. A rejected input therefore cannot trigger
+writes placed inside that resolver. The following example trims accepted names and stores them in
+an in-memory array; invalid names or email addresses produce typed validation issues.
+
+This separate builder uses the [errors plugin integration](./errors#with-validation-plugin).
+Install `@pothos/plugin-errors` alongside the validation plugin and Zod. Setting
+`unsafelyHandleInputErrors: true` allows validation details to be returned before field authorization
+hooks run, so only enable it when those details may be public.
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import ValidationPlugin, {
+  InputValidationError,
+  type StandardSchemaV1,
+} from '@pothos/plugin-validation';
+import { z } from 'zod';
+```
+
+<includeregions cwd lang="typescript" meta='playground example="plugin-validation"'>playground-examples/plugin-validation/schema.ts#setup,issues,mutation</includeregions>
 
 ## Plugin Options
 

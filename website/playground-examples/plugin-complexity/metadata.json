@@ -1,7 +1,7 @@
 {
   "id": "plugin-complexity",
   "title": "Enforce a query cost budget",
-  "description": "Run operations in order. The rejected request leaves resolverCalls at 1. Lower its limit to 15: cost 20 is allowed, and the resolver runs.",
+  "description": "Run the operations in order. Allowed costs 7; Estimate reports costs 7 and 21. Rejected, TooDeep and TooBroad fail before the posts resolver, so Calls stays at 1. Change Rejected limit 16 to 15: cost 20 is accepted and the counter increases. Reset example clears the counter before repeating the sequence.",
   "category": "plugins",
   "relatedDocs": ["/docs/plugins/complexity"],
   "defaultActiveFile": "schema.ts"

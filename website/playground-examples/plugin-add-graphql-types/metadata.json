@@ -1,7 +1,7 @@
 {
   "id": "plugin-add-graphql-types",
   "title": "Import selected types",
-  "description": "Run the imported type, then edit its resolver and compare the result.",
+  "description": "Run SelectedTypes to read Leia through the imported User type. Change the user resolver to return Luke and rerun. Reset example restores Leia.",
   "category": "plugins",
   "relatedDocs": ["/docs/plugins/add-graphql"],
   "defaultActiveFile": "schema.ts"

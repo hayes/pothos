@@ -5,38 +5,6 @@
 
 The zod plugin validates field arguments and input fields with [zod](https://github.com/colinhacks/zod). You attach a `validate` option wherever you accept input (a single argument, a whole field's args, an input object, or one of its fields) and the plugin builds a zod validator that runs before your resolver. It does not re-export zod; instead `validate` takes a small options object whose keys map onto the zod methods you already know (`min`, `max`, `email`, `regex`, and so on), or an actual zod schema when you want the full API.
 
-## Run a legacy validation workflow
-
-This example uses the existing Zod plugin's list and item constraints. Run the valid roster,
-invalid email, oversized roster, and saved-email query in order. Both rejected mutations leave the
-two saved email addresses intact. Reset clears that in-memory roster.
-
-```typescript
-builder.mutationType({
-  fields: (t) => ({
-    setRoster: t.stringList({
-      args: {
-        emails: t.arg.stringList({
-          required: true,
-          validate: {
-            maxLength: [2, { message: 'Roster is too large' }],
-            items: { email: [true, { message: 'Enter a valid email' }] },
-          },
-        }),
-      },
-      resolve: (_, args) => {
-        emails = args.emails;
-        return emails;
-      },
-    }),
-  }),
-});
-```
-
-Change `maxLength` from `2` to `1`, rebuild, and run the valid operation again: it now fails the list
-constraint. This example is for maintaining existing schemas; choose the [validation plugin](https://pothos-graphql.dev/docs/plugins/validation)
-for new work and for inferred transformations.
-
 ## Install
 
 ```package-install
@@ -130,21 +98,30 @@ t.arg.int({
 
 List arguments validate the list and its items in one options object. Constraints like `minLength` / `maxLength` / `length` apply to the array; `items` carries the constraints for each element.
 
+The following resolver replaces an in-memory roster only after both the list length and each
+email address pass validation. A failed constraint leaves the previous roster unchanged.
+
+```typescript
+let emails: string[] = [];
+```
+
 ```typescript
 builder.mutationType({
   fields: (t) => ({
-    setRoster: t.boolean({
+    setRoster: t.stringList({
       args: {
         emails: t.arg.stringList({
+          required: true,
           validate: {
-            maxLength: 12,
-            items: {
-              email: true,
-            },
+            maxLength: [2, { message: 'Roster is too large' }],
+            items: { email: [true, { message: 'Enter a valid email' }] },
           },
         }),
       },
-      resolve: () => true,
+      resolve: (_, args) => {
+        emails = args.emails;
+        return emails;
+      },
     }),
   }),
 });

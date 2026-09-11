@@ -4,60 +4,6 @@ The dataloader plugin batches loads for fields and object types. Resolvers retur
 and the plugin loads those records through a DataLoader shared within the request. This reduces
 repeated database calls when a query selects the same relation for many objects.
 
-## Run batching and caching
-
-This example uses three in-memory users. Run `01-batching`: the requested keys are
-`["3", "1", "3", "missing"]`, but `batchKeys` contains only `["3", "1", "missing"]`.
-The duplicate key shares its load, `cachedAgain` confirms that a later load adds no batch,
-and the returned users keep the requested order. The missing user is `null` because this
-example permits nullable list items.
-
-```typescript
-const User = builder.loadableObject('User', {
-  load: async (ids: string[], context: Context) => {
-    context.batches ??= [];
-    context.batches.push([...ids]);
-    // This source deliberately returns storage order, not requested order.
-    return users.filter((user) => ids.includes(user.id));
-  },
-  sort: (user) => user.id,
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    username: t.exposeString('username'),
-  }),
-});
-```
-
-The source returns storage order deliberately. `sort` maps each record back to its requested
-key. The example also has a `users` field whose resolver returns only keys; run
-`02-key-resolvers` to see the plugin load those records automatically.
-
-```typescript
-    batching: t.field({
-      type: BatchReport,
-      args: { ids: t.arg.stringList({ required: true }) },
-      resolve: async (_parent, { ids }, context) => {
-        const loader = User.getDataloader(context);
-        const loaded = await Promise.all(ids.map((id) => loader.load(id)));
-        const before = context.batches?.length ?? 0;
-        if (ids.length) {
-          await loader.load(ids[0]);
-        }
-        return {
-          users: loaded,
-          batchKeys: context.batches ?? [],
-          cachedAgain: (context.batches?.length ?? 0) === before,
-        };
-      },
-    }),
-```
-
-Change the first operation's keys to `["2", "1", "2"]`: expect Grace, Ada, Grace, and one batch
-containing only `"2"` and `"1"`. Each run receives a fresh context, so caches do not cross
-requests. The report awaits its loads before returning its counters; a sibling query field
-would not reliably observe completed batches. This small source makes batching visible without
-a database; the data access and relation alternatives below apply to real request loaders.
-
 ## Usage
 
 ### Install
@@ -120,6 +66,11 @@ a different order, your GraphQL requests will end up with the wrong data. Correc
 returned from a database or other data source can be tricky, so this plugin has a `sort`
 option (described below) to simplify the sorting process. For more details on how the load function
 works, see the [dataloader docs](https://github.com/graphql/dataloader#batch-function).
+
+Within one request, repeated keys share the same loader entry. For example, requesting
+`["3", "1", "3"]` can load keys `"3"` and `"1"` once while returning three results in the
+requested order. Later loads of the same key reuse the cached result. Pass a fresh context object
+for each request to keep those cached records separate.
 
 When defining fields that return `User`s, you will now be able to return either a `string` (based on the
 ids param of `load`), or a User object (type based on the return type of `loadUsersById`).
@@ -566,20 +517,15 @@ For any type or field that creates a dataloader, you can also provide a `sort` o
 correctly map your results into the correct order based on their ids. To do this, you will need to
 provide a function that accepts a result object, and returns its id.
 
-The batching example deliberately returns records in storage order to demonstrate this mapping:
+The `loadUsersById` function can return records in storage order. `sort` uses each user's ID to
+put them in the requested order:
 
 ```typescript
 const User = builder.loadableObject('User', {
-  load: async (ids: string[], context: Context) => {
-    context.batches ??= [];
-    context.batches.push([...ids]);
-    // This source deliberately returns storage order, not requested order.
-    return users.filter((user) => ids.includes(user.id));
-  },
-  sort: (user) => user.id,
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  sort: user => user.id,
   fields: (t) => ({
-    id: t.exposeID('id'),
-    username: t.exposeString('username'),
+    id: t.exposeID('id', {}),
   }),
 });
 ```
