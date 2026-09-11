@@ -1,0 +1,18 @@
+{
+  "id": "architecture-circular",
+  "title": "Circular references",
+  "description": "Run the query to follow user.posts.author back to the same user. Change the post title in schema.ts and run again.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/circular-references"],
+  "variants": [
+    {
+      "id": "implement",
+      "title": "Ref implement",
+      "default": true
+    },
+    {
+      "id": "object-type",
+      "title": "Separate fields"
+    }
+  ]
+}

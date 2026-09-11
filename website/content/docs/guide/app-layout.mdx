@@ -43,55 +43,20 @@ the parent field figure out how to return an object of the right shape.
 
 ## Backing models
 
+Run the example, then change `Alex` in `schema/user.ts` and run the query again.
+
 You can use your application's TypeScript types as backing models with `objectRef`. For example,
 keep the user data type in `src/types.ts` and define its GraphQL fields in `src/schema/user.ts`:
 
-```typescript
-// src/types.ts
-export interface User {
-  id: string;
-  name: string;
-}
-```
+<include cwd lang="typescript" meta='playground example="architecture-layout"'>playground-examples/architecture-layout/types.ts</include>
 
-```typescript
-// src/builder.ts
-import SchemaBuilder from '@pothos/core';
+<include cwd lang="typescript" meta='playground example="architecture-layout"'>playground-examples/architecture-layout/builder.ts</include>
 
-export const builder = new SchemaBuilder({});
-```
-
-```typescript
-// src/schema/user.ts
-import { builder } from '../builder';
-import type { User as UserModel } from '../types';
-
-export const User = builder.objectRef<UserModel>('User').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
-
-builder.queryField('user', (t) =>
-  t.field({
-    type: User,
-    resolve: () => ({ id: '1', name: 'Alex' }),
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="architecture-layout"'>playground-examples/architecture-layout/schema/user.ts</include>
 
 Create the query root and import the schema modules before building the schema:
 
-```typescript
-// src/schema.ts
-import { builder } from './builder';
-import './schema/user';
-
-builder.queryType({});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="architecture-layout"'>playground-examples/architecture-layout/schema.ts</include>
 
 Other schema modules can import `User` directly from `schema/user.ts` when they need to reference
 the GraphQL type. If your types reference each other, you may need to separate ref creation from

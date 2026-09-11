@@ -1,0 +1,8 @@
+{
+  "query.graphql": {
+    "data": {
+      "hello": "Hello",
+      "goodbye": "Goodbye"
+    }
+  }
+}

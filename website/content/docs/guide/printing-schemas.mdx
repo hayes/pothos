@@ -3,36 +3,30 @@ title: Printing Schemas
 description: Guide for printing a Pothos schema to an SDL schema file
 ---
 
+The [playground companion](/playground?example=architecture-printing) runs the schema below and shows its SDL in `schema.graphql`. Add a `description` to the `hello` field options to see it appear in the SDL. Writing the result to a file is a Node.js task.
+
 Sometimes it's useful to have an SDL version of your schema. To do this, you can use some tools from
 the `graphql` package to write your schema out as SDL to a file.
 
+Save the schema as `schema.ts`:
+
+<include cwd lang="typescript" meta='playground example="architecture-printing"'>playground-examples/architecture-printing/schema.ts</include>
+
+Write its SDL from a separate Node.js script:
+
 ```typescript
+// print-schema.ts
 import { writeFileSync } from 'node:fs';
 import { printSchema } from 'graphql';
-import SchemaBuilder from '@pothos/core';
+import { schema } from './schema';
 
-const builder = new SchemaBuilder({});
-
-builder.queryType({
-  fields: (t) => ({
-    hello: t.string({
-      args: {
-        name: t.arg.string(),
-      },
-      resolve: (parent, { name }) => `hello, ${name || 'World'}`,
-    }),
-  }),
-});
-
-const schema = builder.toSchema();
 const schemaAsString = printSchema(schema);
-
 writeFileSync('./schema.graphql', `${schemaAsString}\n`);
 ```
 
 `builder.toSchema()` sorts the schema by default.
 
-Save the example as `print-schema.ts` and run it with a TypeScript runner:
+Save the script as `print-schema.ts` and run it with a TypeScript runner:
 
 ```package-install
 npm install --save-dev tsx

@@ -1,0 +1,14 @@
+{
+  "query.graphql": {
+    "data": {
+      "first": {
+        "id": "abc",
+        "idLength": 3
+      },
+      "second": {
+        "id": "abcdef",
+        "idLength": 6
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  __schema {
+    description
+  }
+  userType: __type(name: "User") {
+    description
+    fields {
+      name
+    }
+  }
+  mutationType: __type(name: "Mutation") {
+    fields {
+      name
+      description
+    }
+  }
+  inputType: __type(name: "ExampleInput") {
+    inputFields {
+      name
+    }
+  }
+  enumType: __type(name: "Choice") {
+    enumValues {
+      name
+    }
+  }
+}

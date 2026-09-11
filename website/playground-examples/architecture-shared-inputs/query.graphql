@@ -1,0 +1,3 @@
+{
+  reasons(first: { reason: "first" }, second: { reason: "second" })
+}

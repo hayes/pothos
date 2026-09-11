@@ -1,0 +1,7 @@
+{
+  "id": "architecture-shared-inputs",
+  "title": "Sharing input fields",
+  "description": "Run the query, then change a reason in either input and compare the result.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/patterns"]
+}

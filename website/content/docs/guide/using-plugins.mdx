@@ -26,38 +26,14 @@ npm install --save @pothos/plugin-scope-auth
 Next import the plugin's default export \(which should just be the name of the plugin\), and pass it
 when you create your schema builder.
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
-
-const builder = new SchemaBuilder({
-  plugins: [ScopeAuthPlugin],
-  scopeAuth: {
-    authScopes: () => ({}),
-  },
-});
-```
+<include cwd lang="typescript" meta='playground example="architecture-plugin-setup"'>playground-examples/architecture-plugin-setup/schema.ts#setup</include>
 
 Some plugins may allow you to use your own types for one of their features. This is done by passing
 types in through the Generic SchemaTypes used by the Schema builder:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+<include cwd lang="typescript" meta='playground example="architecture-plugin-scopes"'>playground-examples/architecture-plugin-scopes/schema.ts#setup</include>
 
-const builder = new SchemaBuilder<{
-  AuthScopes: {
-    example: string;
-  };
-}>({
-  plugins: [ScopeAuthPlugin],
-  scopeAuth: {
-    authScopes: () => ({
-      example: (value) => value === 'allowed',
-    }),
-  },
-});
-```
+Run the second example to compare `allowed` and `denied`. Change the denied field's scope from `blocked` to `allowed` and run again.
 
 These types can then be used in other parts of the API \(eg. defining the scopes on a field\), but
 the details of how these types are used will be specific to each plugin, and should be covered in

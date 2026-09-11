@@ -1,0 +1,50 @@
+{
+  "01-Inspect.graphql": {
+    "data": {
+      "__schema": {
+        "description": "Schema transformed after build"
+      },
+      "userType": {
+        "description": "Configured object; root=true; build=true",
+        "fields": [
+          {
+            "name": "name"
+          }
+        ]
+      },
+      "mutationType": {
+        "fields": [
+          {
+            "name": "update",
+            "description": "Configured mutation"
+          }
+        ]
+      },
+      "inputType": {
+        "inputFields": [
+          {
+            "name": "keep"
+          }
+        ]
+      },
+      "enumType": {
+        "enumValues": [
+          {
+            "name": "KEEP"
+          }
+        ]
+      }
+    }
+  },
+  "02-Values.graphql": {
+    "data": {
+      "user": {
+        "name": "Alex"
+      },
+      "custom": {
+        "custom": "shape"
+      },
+      "choice": "KEEP"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "architecture-writing-plugin",
+  "title": "Writing a resolver plugin",
+  "description": "Run the query and open Console: the plugin logs each field and counts two resolutions. Run again to see a new request start at one. Change logLabel in schema.ts to label the messages.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/writing-plugins"]
+}

@@ -1,0 +1,7 @@
+{
+  "query.graphql": {
+    "data": {
+      "reasons": "first, second"
+    }
+  }
+}

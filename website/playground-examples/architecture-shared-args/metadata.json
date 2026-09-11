@@ -1,0 +1,7 @@
+{
+  "id": "architecture-shared-args",
+  "title": "Sharing arguments",
+  "description": "Run the mutation, then add a reason argument to mutation2 and run again.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/patterns"]
+}

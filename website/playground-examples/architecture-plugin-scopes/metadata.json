@@ -1,0 +1,7 @@
+{
+  "id": "architecture-plugin-scopes",
+  "title": "Plugin scopes",
+  "description": "Run the query to compare allowed and denied scopes. Change the denied field scope from blocked to allowed and run again.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/using-plugins"]
+}

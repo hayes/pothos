@@ -20,72 +20,15 @@ before calling `toSchema()`, and do not import that schema entry point from a ty
 In this example, `user.ts` and `post.ts` import each other, but neither reads the other module's ref
 until its field callback runs. The backing types use type-only imports, which do not run JavaScript.
 
-```ts
-// builder.ts
-import SchemaBuilder from '@pothos/core';
+<include cwd lang="typescript" meta='playground example="architecture-circular"'>playground-examples/architecture-circular/builder.ts</include>
 
-export const builder = new SchemaBuilder({});
-```
+<include cwd lang="typescript" meta='playground example="architecture-circular"'>playground-examples/architecture-circular/user.ts</include>
 
-```ts
-// user.ts
-import { builder } from './builder';
-import { Post, type PostShape } from './post';
+<include cwd lang="typescript" meta='playground example="architecture-circular"'>playground-examples/architecture-circular/post.ts</include>
 
-export interface UserShape {
-  name: string;
-  posts: PostShape[];
-}
+<include cwd lang="typescript" meta='playground example="architecture-circular"'>playground-examples/architecture-circular/schema.ts</include>
 
-export const User = builder.objectRef<UserShape>('User');
-
-User.implement({
-  fields: (t) => ({
-    name: t.exposeString('name'),
-    posts: t.expose('posts', { type: [Post] }),
-  }),
-});
-```
-
-```ts
-// post.ts
-import { builder } from './builder';
-import { User, type UserShape } from './user';
-
-export interface PostShape {
-  title: string;
-  author: UserShape;
-}
-
-export const Post = builder.objectRef<PostShape>('Post');
-
-Post.implement({
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.expose('author', { type: User }),
-  }),
-});
-```
-
-```ts
-// schema.ts
-import { builder } from './builder';
-import { User, type UserShape } from './user';
-import './post';
-
-const user: UserShape = { name: 'Alex', posts: [] };
-user.posts.push({ title: 'First post', author: user });
-
-builder.queryType({
-  fields: (t) => ({
-    user: t.field({ type: User, resolve: () => user }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
-
-The schema supports queries that follow the relationship in both directions:
+Change the post title in `schema.ts`, then run the query again. The schema supports queries that follow the relationship in both directions:
 
 ```graphql
 {
@@ -118,13 +61,7 @@ it does not remove the JavaScript import cycle.
 You can also pass the declared ref to `builder.objectType`. As an alternative to the `Post.implement`
 call above, define its fields in separate calls:
 
-```ts
-builder.objectType(Post, {
-  fields: (t) => ({ title: t.exposeString('title') }),
-});
-
-builder.objectField(Post, 'author', (t) => t.expose('author', { type: User }));
-```
+<include cwd lang="typescript" meta='playground example="architecture-circular-variant-object-type"'>playground-examples/architecture-circular/variant-object-type/post.ts#fields</include>
 
 Classes already used by your application and names registered in the builder's `Objects` or
 `Interfaces` [SchemaTypes](./objects#using-schematypes) also supply backing types independently of

@@ -1,0 +1,4 @@
+mutation Mutation1 {
+  mutation1(reason: "updated")
+  mutation2
+}

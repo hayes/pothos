@@ -1,0 +1,10 @@
+{
+  first {
+    id
+    idLength
+  }
+  second {
+    id
+    idLength
+  }
+}

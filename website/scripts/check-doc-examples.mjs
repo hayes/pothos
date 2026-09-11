@@ -20,7 +20,7 @@ try {
   const json = await codeBlocks('guide/index.mdx', 'json');
   assert.equal(guide.length, 2, 'Expected schema and server snippets in the guide');
   assert.equal(overview.length, 1, 'Expected one overview schema');
-  assert.equal(printing.length, 1, 'Expected one printing example');
+  assert.equal(printing.length, 2, 'Expected schema and Node printing snippets');
   assert.equal(queries.length, 1, 'Expected one guide query');
   assert.equal(json.length, 2, 'Expected tsconfig and response JSON');
 
@@ -28,7 +28,11 @@ try {
     writeFile(join(fixture, 'package.json'), '{"type":"commonjs"}\n'),
     writeFile(join(fixture, 'schema.ts'), guide[0]),
     writeFile(join(fixture, 'overview.ts'), overview[0]),
-    writeFile(join(fixture, 'printing.ts'), printing[0]),
+    writeFile(join(fixture, 'printing-schema.ts'), printing[0]),
+    writeFile(
+      join(fixture, 'printing.ts'),
+      printing[1].replace("from './schema'", "from './printing-schema'"),
+    ),
     writeFile(join(fixture, 'query.graphql'), queries[0]),
     writeFile(join(fixture, 'expected.json'), json[1]),
     writeFile(
