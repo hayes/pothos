@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.standalone.json",
+  "files": ["standalone-working.ts"]
+}
