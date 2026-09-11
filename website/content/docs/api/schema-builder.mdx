@@ -5,7 +5,9 @@ description: API docs for Pothos SchemaBuilder
 ---
 
 SchemaBuilder is the core class of Pothos. It can be used to build types, and merge them into a
-graphql.js Schema.
+graphql.js Schema. The signatures below summarize the API; placeholder types such as
+`FieldsFunction` stand for types inferred from your schema. See the
+[Schema Builder guide](../guide/schema-builder) for configuration examples.
 
 ## `constructor<SchemaTypes>(options)`
 
@@ -15,9 +17,13 @@ graphql.js Schema.
 ### `SchemaTypes`
 
 ```typescript
-type SchemaTypes {
+type SchemaTypes = {
   // Shape of the context arg in your resolvers
   Context?: object;
+  // Shape of the root value passed to root field resolvers
+  Root?: object;
+  // Select v3 compatibility defaults when needed
+  Defaults?: 'v3' | 'v4';
   // A map of Object type names to their backing models.
   Objects?: object;
   // A map of Input type names to their backing models.
@@ -42,10 +48,17 @@ type SchemaTypes {
 ### SchemaBuilderOptions
 
 ```typescript
-type SchemaBuilderOptions = {};
+type SchemaBuilderOptions = {
+  plugins?: PluginName[];
+  defaultFieldNullability?: boolean;
+  defaultInputFieldRequiredness?: boolean;
+  defaults?: 'v3' | 'v4';
+};
 ```
 
-By default there are no options for SchemaBuilder, but plugins may contribute additional options
+Plugins may contribute additional options. When changing a default, set both the corresponding
+`SchemaTypes` entry and runtime option. Fields are nullable and inputs optional by default in v4.
+See [Changing Default Nullability](../guide/changing-default-nullability).
 
 ## `queryType(options, fields?)`
 
@@ -60,7 +73,7 @@ creates the `Query` with a set of Query fields
 ```typescript
 type QueryTypeOptions = {
   description?: string;
-  fields: FieldsFunction;
+  fields?: FieldsFunction;
 };
 ```
 
@@ -96,7 +109,7 @@ creates the `Mutation` with a set of Mutation fields
 ```typescript
 type MutationTypeOptions = {
   description?: string;
-  fields: FieldsFunction;
+  fields?: FieldsFunction;
 };
 ```
 
@@ -132,7 +145,7 @@ creates the `Subscription` with a set of Subscription fields
 ```typescript
 type SubscriptionTypeOptions = {
   description?: string;
-  fields: FieldsFunction;
+  fields?: FieldsFunction;
 };
 ```
 
@@ -169,9 +182,9 @@ add a single field to the `Subscription` type.
 ```typescript
 type ObjectTypeOptions = {
   description?: string;
-  fields: FieldsFunction;
-  interfaces?: Interfaces;
-  isTypeOf: (obj: InterfaceShape) => boolean;
+  fields?: FieldsFunction;
+  interfaces?: Interfaces | (() => Interfaces);
+  isTypeOf?: (obj: unknown, context, info) => boolean | Promise<boolean>;
   name?: string;
 };
 ```
@@ -183,7 +196,7 @@ type ObjectTypeOptions = {
 - `isTypeOf`: Recommended when implementing interfaces. This is a method that will be used when
   determining if a value of an implemented interface is of the current type.
 
-- `interfaces`: an array of interfaces implemented by this interface type. Items in this array
+- `interfaces`: an array of interfaces implemented by this type. Items in this array
   should be an interface param. See `param` argument of `interfaceType`
 
 - `name`: name of GraphQL type. Required when param is a class
@@ -211,7 +224,7 @@ add a single field to the object type.
 
 ## `objectRef<T>(name)`
 
-Creates a Ref object represent an object that has not been implemented. This can be useful for
+Creates a Ref object representing an object that has not been implemented. This can be useful for
 building certain types of plugins, or when building a modular schema where you don't want to define
 all types in SchemaTypes, or import the actual implementation of each object type you use.
 
@@ -232,8 +245,10 @@ all types in SchemaTypes, or import the actual implementation of each object typ
 ```typescript
 type InterfaceTypeOptions = {
   description?: string;
-  fields: FieldsFunction;
-  interfaces?: Interfaces;
+  resolveType?: (parent: InterfaceShape, context, info, abstractType) =>
+    MaybePromise<ObjectParam | string | null | undefined>;
+  fields?: FieldsFunction;
+  interfaces?: Interfaces | (() => Interfaces);
   name?: string;
 };
 ```
@@ -242,10 +257,13 @@ type InterfaceTypeOptions = {
 - `fields`: a function that receives a [`FieldBuilder`](./field-builder), and returns an object of
   field names to field refs. See [`FieldBuilder`](./field-builder) for more details.
 
-- `interfaces`: an array of interfaces implemented by this interface type. Items in this array
+- `interfaces`: an array of interfaces implemented by this type. Items in this array
   should be an interface param. See `param` argument of `interfaceType`
 
 - `name`: name of GraphQL type. Required when param is a class
+
+`resolveType` returns an implementing object ref, registered class, or GraphQL type name.
+If omitted, GraphQL uses `__typename` or object `isTypeOf` checks. See [Interfaces](../guide/interfaces).
 
 ## `interfaceFields(param, fields)`
 
@@ -270,7 +288,7 @@ add a single field to the interface type.
 
 ## `interfaceRef<T>(name)`
 
-Creates a Ref object represent an interface that has not been implemented. This can be useful for
+Creates a Ref object representing an interface that has not been implemented. This can be useful for
 building certain types of plugins, or when building a modular schema where you don't want to define
 all types in SchemaTypes, or import the actual implementation of each interface type you use.
 
@@ -288,7 +306,8 @@ all types in SchemaTypes, or import the actual implementation of each interface 
 type UnionTypeOptions = {
   description?: string;
   types: Member[] | (() => Member[]);
-  resolveType: (parent: UnionShape, context) => MaybePromise<GraphQLObjectType | TypeName>;
+  resolveType?: (parent: UnionShape, context, info, abstractType) =>
+    MaybePromise<Member | string | null | undefined>;
 };
 ```
 
@@ -297,8 +316,9 @@ type UnionTypeOptions = {
   params. See `param` argument in `builder.objectType`.
 
 - `resolveType`: A function called when resolving the type of a union value. `parent` will be a
-  union of the backing models of the types provided in `types`. This function should return the name
-  of one of the union member types.
+  union of the backing models of the types provided in `types`. Return a member ref, its registered
+  class, or its GraphQL type name. If omitted, GraphQL uses
+  `__typename` or member `isTypeOf` checks. See [Unions](../guide/unions).
 
 ## `enumType(param, options)`
 
@@ -308,7 +328,7 @@ type UnionTypeOptions = {
 ### `EnumTypeOptions`
 
 ```typescript
-type UnionTypeOptions = {
+type EnumTypeOptions = {
   description?: string;
   values?: Values;
   name?: string;
@@ -321,28 +341,40 @@ type UnionTypeOptions = {
 
 - `name`: required when param is an enum
 
-## `addScalarType(name, scalar, options)`
+## `addScalarType(name, scalar, options?)`
 
-- `name`: A key of the `Interface` property in `SchemaTypes`
-- `scalar`: A `GraphQLScalar`
+- `name`: A key of the `Scalars` property in `SchemaTypes`
+- `scalar`: A `GraphQLScalarType`
+- `options`: optional scalar options that override the supplied scalar configuration.
 
 ## `scalarType(name, options)`
 
-- `name`: A key of the `Interface` property in `SchemaTypes`
+- `name`: A key of the `Scalars` property in `SchemaTypes`
 - `options`: `ScalarTypeOptions`
 
 ### ScalarTypeOptions
 
 ```typescript
-description?: string;
-// Serializes an internal value to include in a response.
-serialize: GraphQLScalarSerializer<OutputShape>;
-// Parses an externally provided value to use as an input.
-parseValue?: GraphQLScalarValueParser<InputShape>;
-// Parses an externally provided literal value to use as an input.
-parseLiteral?: GraphQLScalarLiteralParser<InputShape>;
-extensions?: Readonly<Record<string, unknown>>;
+type ScalarTypeOptions = {
+  description?: string;
+  // Serializes an internal value to include in a response.
+  serialize?: (value: OutputShape) => unknown;
+  // Parses an externally provided value to use as an input.
+  parseValue?: GraphQLScalarValueParser<InputShape>;
+  // Parses an externally provided literal value to use as an input.
+  parseLiteral?: GraphQLScalarLiteralParser<InputShape>;
+  // GraphQL.js 17+ coercion hooks
+  coerceOutputValue?: (value: OutputShape) => unknown;
+  coerceInputValue?: GraphQLScalarValueParser<InputShape>;
+  coerceInputLiteral?: (node: ConstValueNode) => InputShape | null | undefined;
+  valueToLiteral?: (value: unknown) => ConstValueNode | undefined;
+  extensions?: Readonly<Record<string, unknown>>;
+};
 ```
+
+For portable scalar definitions, provide `serialize`, `parseValue`, and `parseLiteral`.
+GraphQL.js 17 also supports `coerceOutputValue`, `coerceInputValue`, `coerceInputLiteral`, and
+`valueToLiteral`. These hooks have version-specific requirements; see [Scalars](../guide/scalars).
 
 ## `inputType(param, options)`
 
@@ -354,19 +386,24 @@ extensions?: Readonly<Record<string, unknown>>;
 ```typescript
 type InputTypeOptions = {
   description?: string;
-  fields: InputShape;
+  fields: InputFieldsFunction;
+  isOneOf?: boolean;
 };
 ```
 
 - `description`: A description of the current type
 - `fields`: a function that receives an `InputFieldBuilder`, and returns an object of field names to
-  field definitions. See [`InputFieldBuilder`](./input-field-builder) for more details. If `name` is
-  a key of the `Input` property in `SchemaTypes`, shape will show type errors for any fields that do
+  field definitions. See [`InputFieldBuilder`](./input-field-builder) for more details. If `param` is
+  a key of the `Inputs` property in `SchemaTypes`, shape will show type errors for any fields that do
   not match the types provided in `SchemaTypes`.
+
+- `isOneOf`: defines a OneOf input object on supported GraphQL.js versions. See
+  [Input Objects](../guide/inputs). A OneOf input accepts exactly one non-null field; its fields
+  must be optional and have no defaults. Use a GraphQL.js version with OneOf support.
 
 ## `inputRef<T>(name)`
 
-Creates a Ref object represent an input object that has not been implemented. This can be useful for
+Creates a Ref object representing an input object that has not been implemented. This can be useful for
 defining recursive input types, for building certain types of plugins, or when building a modular
 schema where you don't want to define all types in SchemaTypes, or import the actual implementation
 of each input type you use.
@@ -381,10 +418,17 @@ Creates an arguments object which can be used as the `args` option in a field de
 - `fields`: a function that receives an [`ArgBuilder`](./arg-builder), and returns an object of
   field names to field definitions. See [`ArgBuilder`](./arg-builder) for more details.
 
-## `toSchema(types)`
+## `toSchema(options?)`
 
-Takes an array of types created by [`SchemaBuilder`](./schema-builder#schemabuilder) and returns a
-[`GraphQLSchema`](https://graphql.org/graphql-js/type/#graphqlschema)
+Builds a `GraphQLSchema` from the types registered on the builder. The optional object accepts:
+
+- `directives`: custom `GraphQLDirective` instances to include in the schema.
+- `extensions`: schema metadata.
+- `sortSchema`: defaults to `true`; set to `false` to skip lexicographic sorting.
+- `astNode`: a schema definition AST node.
+
+Plugins may contribute build-time options. Calling `toSchema` again creates a new schema and
+new plugin instances.
 
 ## `SchemaBuilder.allowPluginReRegistration`
 

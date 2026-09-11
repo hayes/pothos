@@ -13,10 +13,13 @@ reference by name \(as a string\). Having all type information in a single objec
 at times, but with large schemas, can become unwieldy.
 
 To support a number of additional use cases, including Unions and Enums, large schemas, and plugins
-that use extract type information from other sources \(eg the Prisma, or the simple-objects
-plugin\), Pothos has another way of passing around type information. This system is based in `Ref`
-objects that contain the type information it represents. Every builder method for creating a type or
+that extract type information from other sources \(eg the Prisma, or the simple-objects
+plugin\), Pothos has another way of passing around type information. This system uses `Ref`
+objects whose TypeScript types carry the backing shapes they represent. Every builder method for creating a type or
 a field returns a `Ref` object.
 
 Using Ref objects allows us to separate the type information from the implementation, and allows for
-a more modular design.
+a more modular design. For example, `builder.objectRef<{ id: string }>('User')` declares
+the backing shape before fields are defined with `implement`. The ref carries that shape at compile
+time and identifies the GraphQL type at runtime; it does not validate resolver values at runtime.
+See [Objects](./guide/objects) and [Circular References](./guide/circular-references) for examples.
