@@ -77,7 +77,7 @@ original base and accounted for replaced source blocks:
   iterator-source, object-refetch, field-refetch, filtering, invalidation, and debounce caveats.
   The executable event sample explicitly disables debounce for deterministic checks.
 - Every changed plugin README expands the same TypeScript source excerpts as its guide. Playground
-  actions stay on the website; package READMEs omit playground links. All TypeScript excerpts are
+  actions stay on the website; package READMEs omit example-project links and walkthroughs, including local-suite instructions. All TypeScript excerpts are
   compared for exact source parity. Review caught and corrected stripped imports during README
   synchronization, a relative package link, and suggested edits whose messages no longer matched
   their validation limits.

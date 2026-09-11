@@ -187,30 +187,10 @@ taking a separate `refetch` callback.
 
 Smart subscriptions do not support list fields implemented with async generators for `@stream`.
 
-## Run a live subscription locally
+## Consuming a subscription
 
-The browser playground runs queries and mutations; it does not consume subscription iterators.
-The [complete local example](https://github.com/hayes/pothos/tree/main/website/local-examples/smart-subscriptions)
-uses GraphQL's `subscribe()` with the schema and event source above. No database or external event
-service is required.
-
-With Node.js 22 or newer, run from a checkout of the [Pothos repository](https://github.com/hayes/pothos):
-
-```bash
-pnpm install --frozen-lockfile
-pnpm --dir website check:local
-```
-
-The local examples use the checkout's built Pothos packages. Their separate locked installation
-uses GraphQL 16, as required by Grafast 1.0; it does not change the repository's GraphQL version.
-
-`smart-subscriptions/check.ts` opens two subscriptions with separate contexts, checks their initial
-results, calls `vote('1')`, and checks both updates. It closes the first iterator and verifies that
-the second still receives events, then closes the second and verifies that no listeners remain.
-To change the example, adjust the poll's starting votes in `schema.ts` and update the expected results.
-
-When using this schema in a server, pass a new listener map for each operation and arrange for the
-transport to close its iterator on disconnect. The local check makes that lifecycle explicit:
+Use GraphQL's `subscribe()` to consume subscription results. Pass a new listener map for each
+operation and close the iterator when the client disconnects to remove its listeners:
 
 ```typescript
 import { parse, subscribe } from 'graphql';

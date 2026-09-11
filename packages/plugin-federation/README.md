@@ -39,25 +39,6 @@ const builder = new SchemaBuilder({
 });
 ```
 
-### Run the local examples
-
-The complete users, inventory, and reviews examples live in
-[website/local-examples/federation](https://github.com/hayes/pothos/tree/main/website/local-examples/federation).
-From a repository checkout with Node.js 22 or newer, install dependencies and run the local suites:
-
-```sh
-pnpm install --frozen-lockfile
-pnpm --dir website check:local
-```
-
-This builds the required packages, installs the isolated local-example dependencies, and runs
-the federation, Grafast, and smart-subscription suites. The federation check executes each `.graphql` operation with its variable sidecar and asserts the checked-in
-expected response. Edit a representation in `users/02-entities.variables.json`, or the price and
-weight in `inventory/query.variables.json`, then update the corresponding expectation to test the
-changed result. These checks use in-process GraphQL execution. Serving each schema and composing
-a gateway are separate steps below. Apollo's schema tooling needs Node.js, so these examples
-run locally instead of in the browser playground.
-
 ### Defining entities
 
 Defining entities for your schema is a 2 step process. First you will need to define an object type
@@ -82,11 +63,8 @@ builder.asEntity(User, {
 });
 ```
 
-Run the local users example's `Entities` operation. Its representations load Leia by ID and return `null`
-for a missing user. Change the first representation's ID to `missing` to see reference resolution
-change the response. This executes one subgraph's `_entities` field locally; composition,
-gateway planning, and cross-service `requires`/`provides` behavior still need the local services
-described below.
+The reference resolver looks up users by ID. An unknown ID produces a `null` entity in the
+`_entities` response.
 
 `keys` are defined using `builder.selection`. This method _MUST_ be called with a generic argument
 that defines the types for any fields that are part of the key. `key` may also be an array.
@@ -153,9 +131,8 @@ Product.implement({
 });
 ```
 
-The inventory example supplies `price` and `weight` explicitly in `_entities` representations.
-Run it to compare a shipping estimate of `2` with free shipping for an expensive item. A gateway
-would obtain the required fields from another service; this isolated local example does not perform that fetch.
+A gateway supplies the required `price` and `weight` fields from the originating service when
+resolving `shippingEstimate`.
 
 ### Selections with inline fragments
 
@@ -252,8 +229,8 @@ builder.queryType({
 });
 ```
 
-The reviews example returns the provided username with the reference. Run it to observe the
-resolved value; proving that `@provides` saves a cross-service fetch requires a composed gateway.
+The review's author reference includes `username`, allowing the gateway to use that provided
+value without fetching it from the users service.
 
 ### Building your schema and starting a server
 
@@ -283,9 +260,6 @@ startStandaloneServer(server, { listen: { port: 4000 } })
     throw error;
   });
 ```
-
-For a functional example that combines multiple graphs built with Pothos into a single schema see
-[https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example)
 
 ### Printing the schema
 
