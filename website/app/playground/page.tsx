@@ -131,6 +131,8 @@ export default function PlaygroundPage() {
             sdlActive={ui.sdlActive}
             schemaSDL={ui.schemaSDL}
             onChange={ui.onChangeFileAt}
+            onSelectFile={ui.fileActions.selectFile}
+            onSelectSdl={ui.fileActions.selectSdl}
           />
         }
         ops={
