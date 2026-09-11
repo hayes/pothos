@@ -1,4 +1,4 @@
-# Complexity Plugin
+# Complexity plugin
 
 This plugin allows you to define complexity of fields and limit the maximum complexity, depth, and
 breadth of queries.
@@ -7,13 +7,14 @@ breadth of queries.
 
 ### Install
 
-```bash
-yarn add @pothos/plugin-complexity
+```package-install
+npm install --save @pothos/plugin-complexity
 ```
 
 ### Setup
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import ComplexityPlugin from '@pothos/plugin-complexity';
 
 const builder = new SchemaBuilder({
@@ -29,20 +30,15 @@ building the schema:
 ```typescript
 const builder = new SchemaBuilder({
   plugins: [ComplexityPlugin],
-  defaultComplexity: 1,
-  defaultListMultiplier: 10,
+
   complexity: {
+    defaultComplexity: 1,
+    defaultListMultiplier: 10,
     limit: {
       complexity: 500,
       depth: 10,
       breadth: 50,
     },
-    // or
-    limit: (ctx) => ({
-      complexity: 500,
-      depth: 10,
-      breadth: 50,
-    }),
   },
 });
 // or
@@ -60,14 +56,15 @@ const schema = builder.toSchema({
 #### Options
 
 - fieldComplexity: (optional,
-  `(args, ctx, field) => { complexity: number, multiplier: number} | number`): default complexity
+  `(args, ctx, field) => { field: number, multiplier: number } | number`): default complexity
   calculation for fields. `defaultComplexity` and `defaultListMultiplier` will not be used if this
   is set.
 - defaultComplexity: (optional `number`) defines the default complexity for every field in the
   schema
 - defaultListMultiplier: (optional `number`) defines a default complexity multiplier for a list
   fields sub selections
-- limit: Defines limits for queries, passed the context object if `limit` is a function
+- limit: Defines limits for queries. For request-specific limits, pass a function such as
+  `limit: (ctx) => ({ complexity: 500, depth: 10, breadth: 50 })`.
   - complexity: defines the maximum complexity allowed for queries
   - depth: defines the maximum depth of selections in a query
   - breadth: defines the maximum total selections in a query
@@ -107,15 +104,17 @@ query {
 }
 ```
 
-### Defining complexity of a field:
+### Defining complexity of a field
 
-You can set a custom complexity value on any field:
+The following alternatives assume a `Post` object ref and a `loadPosts(limit)` function returning
+that model's records. Set a fixed cost with a number:
 
 ```typescript
 builder.queryFields((t) => ({
   posts: t.field({
     type: [Post],
     complexity: 20,
+    resolve: () => loadPosts(20),
   }),
 }));
 ```
@@ -127,6 +126,7 @@ builder.queryFields((t) => ({
   posts: t.field({
     type: [Post],
     complexity: { field: 5, multiplier: 20 },
+    resolve: () => loadPosts(20),
   }),
 }));
 ```
@@ -141,7 +141,8 @@ builder.queryFields((t) => ({
       limit: t.arg.int(),
     },
     // base multiplier on how many posts are being requested
-    complexity: (args, ctx) => ({ field: 5, multiplier: args.limit ?? 5 }),
+    complexity: (args, ctx) => ({ field: 5, multiplier: Math.max(0, args.limit ?? 5) }),
+    resolve: (parent, args) => loadPosts(Math.max(0, args.limit ?? 5)),
   }),
 }));
 ```
@@ -153,6 +154,8 @@ builder.queryFields((t) => ({
 Returns the query complexity for a given GraphQL query.
 
 ```typescript
+import { complexityFromQuery } from '@pothos/plugin-complexity';
+
 const complexity = complexityFromQuery(query, {
   schema: schema,
   // Complexity can be calculated based on the context and arguments,
