@@ -4,9 +4,11 @@ import {
   encodeBase64,
   encodeCursorChunk,
   encodeCursorTuple,
+  getConnectionPageSize,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
+  validateConnectionArguments,
 } from '@pothos/core';
 import {
   asc,
@@ -28,9 +30,6 @@ import type { DrizzlePlan } from './adapter.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
 import { queryFromPlan } from './map-query.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
-
-const DEFAULT_MAX_SIZE = 100;
-const DEFAULT_SIZE = 20;
 
 // The tagging is `@pothos/core`'s `encodeCursorChunk`, shared with the prisma plugins so the
 // three can't drift apart again. A nullish ordering value is a position this plugin compares
@@ -527,8 +526,8 @@ function keysetFilter(entries: OrderByEntry[], cursor: string, paging: 'after' |
 export function drizzleCursorConnectionQuery({
   args,
   ctx,
-  maxSize = DEFAULT_MAX_SIZE,
-  defaultSize = DEFAULT_SIZE,
+  maxSize,
+  defaultSize,
   orderBy,
   extras,
   where,
@@ -536,13 +535,7 @@ export function drizzleCursorConnectionQuery({
   table,
 }: DrizzleCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
-  if (first != null && first < 0) {
-    throw new PothosValidationError('Argument "first" must be a non-negative integer');
-  }
-
-  if (last != null && last < 0) {
-    throw new PothosValidationError('Argument "last" must be a non-negative integer');
-  }
+  validateConnectionArguments(args);
 
   if (first != null && last != null) {
     throw new PothosValidationError(
@@ -554,7 +547,11 @@ export function drizzleCursorConnectionQuery({
   const defaultSizeForConnection =
     typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
 
-  const limit = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+  const { limit } = getConnectionPageSize({
+    args,
+    defaultSize: defaultSizeForConnection,
+    maxSize: maxSizeForConnection,
+  });
   // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`.
   const inverted = first == null && last != null;
 

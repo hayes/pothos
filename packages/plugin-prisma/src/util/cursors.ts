@@ -4,16 +4,15 @@ import {
   encodeBase64,
   encodeCursorChunk,
   encodeCursorTuple,
+  getConnectionPageSize,
   type MaybePromise,
   PothosValidationError,
   type SchemaTypes,
+  validateConnectionArguments,
 } from '@pothos/core';
 import { getModel } from './datamodel.js';
 import type { DMMFField } from './get-client.js';
 import { extendWithUsage } from './usage.js';
-
-const DEFAULT_MAX_SIZE = 100;
-const DEFAULT_SIZE = 20;
 
 export function formatPrismaCursor(record: Record<string, unknown>, fields: string[] | string) {
   return cursorFormatter(fields)(record);
@@ -226,18 +225,12 @@ interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQue
 export function prismaCursorConnectionQuery({
   args,
   ctx,
-  maxSize = DEFAULT_MAX_SIZE,
-  defaultSize = DEFAULT_SIZE,
+  maxSize,
+  defaultSize,
   parseCursor,
 }: PrismaCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
-  if (first != null && first < 0) {
-    throw new PothosValidationError('Argument "first" must be a non-negative integer');
-  }
-
-  if (last != null && last < 0) {
-    throw new PothosValidationError('Argument "last" must be a non-negative integer');
-  }
+  validateConnectionArguments(args);
 
   if (before && after) {
     throw new PothosValidationError(
@@ -263,7 +256,13 @@ export function prismaCursorConnectionQuery({
   const defaultSizeForConnection =
     typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
 
-  let take = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
+  const { limit } = getConnectionPageSize({
+    args,
+    defaultSize: defaultSizeForConnection,
+    maxSize: maxSizeForConnection,
+  });
+
+  let take = limit;
 
   // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`.
   if (before != null || last != null) {
