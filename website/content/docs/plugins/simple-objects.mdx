@@ -3,8 +3,9 @@ title: Simple objects plugin
 description: Simple objects plugin docs for Pothos
 ---
 
-The Simple Objects Plugin provides a way to define objects and interfaces without defining type
-definitions for those objects, while still getting full type safety.
+Infer an object's backing shape from its GraphQL fields. Use `simpleObject` or `simpleInterface`
+when the resolver returns data in the same shape as the schema. For an existing application model,
+use a core `objectRef` or `interfaceRef` with that model's type.
 
 ## Usage
 
@@ -12,15 +13,6 @@ definitions for those objects, while still getting full type safety.
 
 ```package-install
 npm install --save @pothos/plugin-simple-objects
-```
-
-### Setup
-
-```typescript
-import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
-const builder = new SchemaBuilder({
-  plugins: [SimpleObjectsPlugin],
-});
 ```
 
 ### Example
@@ -52,13 +44,13 @@ const Node = builder.simpleInterface('Node', {
   }),
 });
 
-const UserType = builder.simpleObject(
+const User = builder.simpleObject(
   'User',
   {
     interfaces: [Node],
     fields: (t) => ({
-      firstName: t.string(),
-      lastName: t.string(),
+      firstName: t.string({ nullable: false }),
+      lastName: t.string({ nullable: false }),
       contactInfo: t.field({
         type: ContactInfo,
         nullable: false,
@@ -76,13 +68,13 @@ const UserType = builder.simpleObject(
 builder.queryType({
   fields: (t) => ({
     user: t.field({
-      type: UserType,
+      type: User,
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (parent, args, { User }) => {
+      resolve: (parent, { id }) => {
         return {
-          id: '1003',
+          id: String(id),
           firstName: 'Leia',
           lastName: 'Organa',
           contactInfo: {
@@ -102,12 +94,12 @@ In some cases, you may want to add more complex fields with resolvers or args wh
 just passed down from the parent.
 
 In these cases, you can either add the field in the 3rd arg (fields) as shown above, or you can add
-additional fields to the type using methods like `builder.objectType`:
+additional fields with `builder.objectFields`. This adds a different computed field to `User`:
 
 ```typescript
-builder.objectType(UserType, (t) => ({
-  fullName: t.string({
-    resolve: (user) => `${user.firstName} ${user.lastName}`,
+builder.objectFields(User, (t) => ({
+  initials: t.string({
+    resolve: (user) => `${user.firstName.slice(0, 1)}${user.lastName.slice(0, 1)}`,
   }),
 }));
 ```

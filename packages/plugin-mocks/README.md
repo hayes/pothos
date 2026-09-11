@@ -1,18 +1,20 @@
-# Mocks Plugin for Pothos
+# Mocks plugin
 
-A simple plugin for adding resolver mocks to a GraphQL schema.
+Replace selected field resolvers when building a schema for tests or local development.
+Mocks are configured per `toSchema()` call, so the same builder can produce mocked and unmocked schemas.
 
 ## Usage
 
 ### Install
 
-```bash
-yarn add @pothos/plugin-mocks
+```package-install
+npm install --save @pothos/plugin-mocks
 ```
 
 ### Setup
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import MocksPlugin from '@pothos/plugin-mocks';
 const builder = new SchemaBuilder({
   plugins: [MocksPlugin],
@@ -69,9 +71,10 @@ builder.toSchema({
   mocks: {
     Subscription: {
       someField: {
-        resolve: (parent, args, context, info) => 'Mock result!',
-        subscribe: (parent, args, context, info) => {
-          /* return a mock async iterator */
+        resolve: (event) => event,
+        subscribe: async function* () {
+          yield 'First event';
+          yield 'Second event';
         },
       },
     },
