@@ -5,96 +5,117 @@ description: Guide for defining Interface types in Pothos
 
 ## Defining Interface Types
 
-Defining interfaces works exactly like [defining Objects](./objects), using `Interfaces` key in
-SchemaTypes object for the builder, and `interfaceRef` rather than `objectRef`.
+An interface defines fields that several object types have in common. Like objects, interfaces have
+[a backing model](./schema-builder) that describes the data their field resolvers receive. You can
+use `builder.interfaceRef` to associate a TypeScript type with a GraphQL interface.
 
-In this example we'll use an Animal class and a Giraffe class that extends it:
+In this example, giraffes and lions have a diet, but each has some other data of its own:
 
 ```typescript
-export class Animal {
-  diet: Diet;
+import SchemaBuilder from '@pothos/core';
 
-  constructor(diet: Diet) {
-    this.diet = diet;
-  }
-}
-
-export class Giraffe extends Animal {
+type Giraffe = {
+  kind: 'giraffe';
+  diet: string;
   name: string;
-  birthday: Date;
   heightInMeters: number;
+};
 
-  constructor(name: string, birthday: Date, heightInMeters: number) {
-    super(Diet.HERBIVOROUS);
+type Lion = {
+  kind: 'lion';
+  diet: string;
+  name: string;
+  hasMane: boolean;
+};
 
-    this.name = name;
-    this.birthday = birthday;
-    this.heightInMeters = heightInMeters;
-  }
-}
-export enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVORIOUS,
-}
+type Animal = Giraffe | Lion;
+
+const builder = new SchemaBuilder({});
+const AnimalRef = builder.interfaceRef<Animal>('Animal');
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
+const LionRef = builder.objectRef<Lion>('Lion');
+
+AnimalRef.implement({
+  fields: (t) => ({
+    diet: t.exposeString('diet'),
+  }),
+  resolveType: (animal) => {
+    switch (animal.kind) {
+      case 'giraffe':
+        return 'Giraffe';
+      case 'lion':
+        return 'Lion';
+    }
+  },
+});
 ```
 
-Again, using classes is completely optional. The only requirement for interfaces is that the
-type used for defining objects must be a superset of the types of any interfaces they implement.
+The `resolveType` function returns the GraphQL object type name to use when a field returns an
+`Animal`. Here, the `kind` property distinguishes the two shapes. It is part of our backing data,
+but isn't exposed as a GraphQL field.
 
-Now that we have our classes set up we can define the interface type and add an enum definition for
-our diet field:
+## implementing interfaces with object types
+
+Use the `interfaces` option to specify which interfaces an object implements:
 
 ```typescript
-builder.interfaceType(Animal, {
-  name: 'AnimalFromClass',
+GiraffeRef.implement({
+  interfaces: [AnimalRef],
   fields: (t) => ({
-    diet: t.expose('diet', {
-      type: Diet,
+    name: t.exposeString('name'),
+    height: t.exposeFloat('heightInMeters'),
+  }),
+});
+
+LionRef.implement({
+  interfaces: [AnimalRef],
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    hasMane: t.exposeBoolean('hasMane'),
+  }),
+});
+```
+
+Pothos adds the interface's fields to each implementing object, so both types have a `diet` field
+without defining it again. The object's backing model must be assignable to the interface's backing
+model so that the inherited field resolvers can use it. In this example, both `Giraffe` and `Lion`
+are members of the `Animal` union.
+
+Interfaces can also implement other interfaces using the `interfaces` option. See the
+[SchemaBuilder API](../api/schema-builder#interfacetypeoptions) for the available options.
+
+## Using an Interface as a return type
+
+Using interfaces as return types for fields works just like objects. A resolver for an interface
+field can return data for any of its implementing object types:
+
+```typescript
+const giraffe: Giraffe = {
+  kind: 'giraffe',
+  diet: 'herbivore',
+  name: 'James',
+  heightInMeters: 5.2,
+};
+
+builder.queryType({
+  fields: (t) => ({
+    animal: t.field({
+      type: AnimalRef,
+      resolve: () => giraffe,
+    }),
+    giraffe: t.field({
+      type: GiraffeRef,
+      resolve: () => giraffe,
     }),
   }),
 });
 
-builder.enumType(Diet, {
-  name: 'Diet',
-});
-```
-
-## implementing interfaces with object types
-
-```typescript
-builder.objectType(Giraffe, {
-  name: 'Giraffe',
-  interfaces: [Animal],
-  isTypeOf: (value) => value instanceof Giraffe,
-  fields: (t) => ({
-    name: t.exposeString('name', {}),
-  }),
-});
-```
-
-There are 2 new properties here: `interfaces` and `isTypeOf`.
-
-Interfaces is an array of interfaces that the object type implements, and `isTypeOf` is a function
-that is run whenever we have an object of the interface type and we want to see if it's actually an
-instance of our object type.
-
-## Using an Interface as a return type
-
-Using interfaces as return types for fields works just like objects:
-
-```typescript
-builder.queryFields((t) => ({
-  animal: t.field({
-    type: 'Animal',
-    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
-  }),
-}));
+export const schema = builder.toSchema();
 ```
 
 ## Querying interface fields
 
-We can query interface fields like diet on any field that returns a giraffe:
+We can query interface fields like `diet` on any field that returns a giraffe:
 
 ```graphql
 query {
@@ -105,7 +126,7 @@ query {
 }
 ```
 
-or we can query a field that returns an interface and select different fields depending on the
+Or we can query a field that returns an interface and select different fields depending on the
 concrete type:
 
 ```graphql
@@ -114,7 +135,25 @@ query {
     diet
     ... on Giraffe {
       name
+      height
+    }
+    ... on Lion {
+      name
+      hasMane
     }
   }
 }
 ```
+
+## Other ways to resolve an interface
+
+If your application already uses classes for its data, you can use those classes with
+`builder.interfaceType` and `builder.objectType`, as described in the
+[Objects guide](./objects#using-classes). Each object can provide an `isTypeOf` function, such as
+`isTypeOf: (value) => value instanceof Giraffe`, to identify instances of that class. This lets
+GraphQL determine the object type without a `resolveType` function on the interface. The resolver
+must return an actual class instance for an `instanceof` check to succeed.
+
+Another option is to return data with a `__typename` property containing the GraphQL object type's
+name, such as `'Giraffe'`. GraphQL uses this property when the interface has no `resolveType`
+function. If an object also defines `isTypeOf`, that check must pass as well.
