@@ -11,7 +11,7 @@
  */
 
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 interface ExampleFile {
   filename: string;
@@ -417,7 +417,24 @@ async function buildVariantExamples(
     // so "Open in Playground" opens with a runnable operation.
     if (!variantExample.queries) {
       variantExample.defaultQuery = baseExample.defaultQuery;
-      variantExample.queries = baseExample.queries;
+      const optional = async (name: string) => {
+        try {
+          return await readFile(join(variantPath, name), 'utf8');
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return undefined;
+          }
+          throw error;
+        }
+      };
+      const context = (await optional('context.json')) ?? (await optional('context.js'));
+      variantExample.queries = await Promise.all(
+        (baseExample.queries ?? []).map(async (query) => ({
+          ...query,
+          variables: (await optional(`${query.title}.variables.json`)) ?? query.variables,
+          context: (await optional(`${query.title}.context.json`)) ?? context ?? query.context,
+        })),
+      );
     }
 
     examples.push(variantExample);
@@ -658,6 +675,7 @@ export function getOrganizedExamples() {
   // that no longer exists. Per-process names make the writes independent,
   // and rename(2) is atomic, so whichever lands last publishes a complete
   // (and identical) index.
+  await mkdir(dirname(INDEX_FILE), { recursive: true });
   const tmpIndexFile = `${INDEX_FILE}.${process.pid}.tmp`;
   await writeFile(tmpIndexFile, indexContent, 'utf-8');
   await rename(tmpIndexFile, INDEX_FILE);

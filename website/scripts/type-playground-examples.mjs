@@ -1,18 +1,24 @@
 import { execFileSync } from 'node:child_process';
-import { readdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { readdir, unlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { loadPlaygroundCases } from './playground-cases.mjs';
 
+await loadPlaygroundCases();
 const files = [];
 async function collect(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) await collect(path);
-    else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts'))
+    if (entry.isDirectory()) {
+      await collect(path);
+    } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts')) {
       files.push(resolve(path));
+    }
   }
 }
 await collect('playground-examples');
-if (!files.length) throw new Error('No playground source files found');
+if (!files.length) {
+  throw new Error('No playground source files found');
+}
 const config = resolve(`.playground-typecheck-${process.pid}.json`);
 try {
   await writeFile(

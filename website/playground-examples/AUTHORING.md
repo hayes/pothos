@@ -187,7 +187,7 @@ pnpm --dir website check:examples
 pnpm --dir website build-ci
 ```
 
-`check:playground` requires a running website at the supplied URL. Check `website/package.json` for current commands. The older `test:examples` harness type-checks/validates schemas and documents; it is not proof of operation behavior in the browser. A reference check confirms bundle destinations, while MDX compilation checks source includes. Neither alone proves correct tab targets, useful initial queries, contextual inputs, matching source excerpts or mobile usability.
+`check:playground` requires a running website at the supplied URL. Check `website/package.json` for current commands. `test:examples` builds bundles, requires an expectation for every operation, and type-checks source. `test:browser` starts the production website, runs the browser matrix and rendered link checks, then stops its server; the Documentation playground CI workflow runs both. A reference check confirms bundle destinations, while MDX compilation checks source includes. Neither alone proves correct tab targets, useful initial queries, contextual inputs, matching source excerpts or mobile usability.
 
 Record the owning page, changed region/variant/step, actual operation and inputs, expected outcome, browser result, suggested reader edit, preservation mapping and remaining limits. If a capability is missing, report the gap and keep the example honest; do not invent metadata, silently add runtime scope, or attach a button that loads an unrelated demo.
 

@@ -2,6 +2,7 @@
   "title": "Guide",
   "pages": [
     "index",
+    "playground",
     "objects",
     "fields",
     "args",

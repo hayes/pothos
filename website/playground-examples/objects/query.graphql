@@ -1,4 +1,4 @@
-query {
+query Giraffe {
   giraffe {
     name
     birthYear

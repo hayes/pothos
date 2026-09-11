@@ -280,7 +280,9 @@ export function useUrlBootstrap({
           applyExampleResult(final, search.query ?? undefined);
           if (snippet) {
             const operation = final.operations.findIndex((op) => op.query.trim() === snippet);
-            if (operation >= 0) opsState.setActiveIndex(operation);
+            if (operation >= 0) {
+              opsState.setActiveIndex(operation);
+            }
           }
           applyOpFromUrl();
         })

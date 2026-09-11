@@ -110,6 +110,7 @@ function OperationTab({
   return (
     <div
       role="tab"
+      aria-label={operation.name}
       id={tabId}
       aria-controls={panelId}
       aria-selected={active}

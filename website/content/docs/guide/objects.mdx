@@ -44,6 +44,9 @@ The `type: GiraffeRef` option tells Pothos to check that the resolver returns da
 `Giraffe` interface. That returned object becomes the first argument to the resolvers for `name`,
 `height`, and `birthYear`.
 
+You can run this schema immediately with a Playground action above. To run it in your own
+application, add the server below.
+
 ### Create a server
 
 `builder.toSchema()` builds a standard `GraphQLSchema`. To serve it with `graphql-yoga`, install

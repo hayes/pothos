@@ -20,7 +20,8 @@
     "test:examples": "pnpm run build-examples && pnpm run type:examples",
     "test:unit": "vitest run",
     "type:examples": "node scripts/type-playground-examples.mjs",
-    "check:playground": "node scripts/check-playground.mjs"
+    "check:playground": "node scripts/check-playground.mjs",
+    "test:browser": "node scripts/run-playground-tests.mjs"
   },
   "engines": {
     "pnpm": ">=9.0.0"

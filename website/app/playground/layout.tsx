@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: 'Playground',
@@ -9,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PlaygroundLayout({ children }: { children: ReactNode }) {
-  return <Providers>{children}</Providers>;
+  return <>{children}</>;
 }
