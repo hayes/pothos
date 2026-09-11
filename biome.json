@@ -29,7 +29,8 @@
       "!**/components/playground/examples/examples-index.generated.ts",
       "!**/public/playground-examples/*.json",
       "!**/playground-examples/*.json",
-      "!**/graphql-env.d.ts"
+      "!**/graphql-env.d.ts",
+      "!**/next-env.d.ts"
     ]
   },
   "formatter": {
