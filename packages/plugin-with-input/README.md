@@ -6,7 +6,7 @@ fields should share the same input type.
 
 ## Run generated inputs
 
-The companion has a default `input` argument, a renamed `criteria` argument, and an optional input.
+The example has a default `input` argument, a renamed `criteria` argument, and an optional input.
 Run the first operation and inspect the SDL for `QueryEchoInput` and `LookupInput`. Omitted and
 explicitly null optional inputs both return `Anonymous`; a populated input returns `Leia`.
 The second operation omits a required input and receives a GraphQL validation error.

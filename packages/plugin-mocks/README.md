@@ -8,7 +8,7 @@ Mocks are configured per `toSchema()` call, so the same builder can produce mock
 Run the query to see the selected resolver replaced while `untouched` still returns
 `Original resolver`. Change `Mock result!` in the source, rebuild, and run again to see your fixture.
 Remove the `mocks` option from `toSchema()` to surface the original `Not implemented` error.
-Reset restores the original companion, including its mock.
+Reset restores the original example, including its mock.
 
 ```typescript
 builder.queryType({

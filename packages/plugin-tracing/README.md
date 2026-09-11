@@ -153,7 +153,7 @@ operation so this cache belongs to that operation.
 
 ### Try success, failure, and disabled tracing
 
-This companion uses `runFunction` to record start and completion events. Its mutation fields run
+This example uses `runFunction` to record start and completion events. Its mutation fields run
 serially: reset the event list, resolve a value and a promise, throw and reject, then read the events.
 The failing fields are nullable so the remaining fields still execute.
 

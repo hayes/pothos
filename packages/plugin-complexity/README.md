@@ -24,7 +24,7 @@ const builder = new SchemaBuilder({
 
 ### Run a budgeted query
 
-The companion uses two in-memory posts and a cost budget of `20`. Run its operations in order:
+The example uses two in-memory posts and a cost budget of `20`. Run its operations in order:
 `Allowed` costs `5 + 2 × 1 = 7`; `Estimate` reports costs without running the posts resolver;
 `Rejected` costs `5 + 16 × 1 = 21` and fails before that resolver runs. `TooDeep` and
 `TooBroad` separately exceed depth `3` and breadth `5`. After all three rejections, `Calls` stays at `1`.

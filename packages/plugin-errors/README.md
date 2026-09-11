@@ -347,7 +347,7 @@ query {
 }
 ```
 
-Run a complete mutation companion to observe both outcomes and confirm rejected input does not
+Run a complete mutation example to observe both outcomes and confirm rejected input does not
 write any data. Its full source also requires `@pothos/plugin-validation` and `zod` locally. Run the valid, invalid, and saved-names operations in order; only `Leia` is saved.
 
 ```typescript

@@ -7,7 +7,7 @@ The zod plugin validates field arguments and input fields with [zod](https://git
 
 ## Run a legacy validation workflow
 
-This companion uses the existing Zod plugin's list and item constraints. Run the valid roster,
+This example uses the existing Zod plugin's list and item constraints. Run the valid roster,
 invalid email, oversized roster, and saved-email query in order. Both rejected mutations leave the
 two saved email addresses intact. Reset clears that in-memory roster.
 

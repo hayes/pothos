@@ -5,7 +5,7 @@ Read this before adding playground links, writing a guide, changing an example, 
 ## Author workflow
 
 1. Read the current guide, its relevant package source/tests, and [documentation review requirements](../../CONTRIBUTING.md#reviewing-documentation-changes). State what the reader will run, change, and observe. Inventory substantive material being replaced; preserve supported alternatives and caveats, including refs, classes and SchemaTypes where applicable.
-2. Choose a complete companion and its owning docs route. Reuse one companion across related sections when each link demonstrates the section's actual behavior. Keep complete source visible and copyable. Use plain data and refs naturally; classes remain appropriate when the application already uses them. Do not retheme a renewed guide just to match an older example collection.
+2. Choose a complete example and its owning docs route. Reuse one example across related sections when each link demonstrates the section's actual behavior. Keep complete source visible and copyable. Use plain data and refs naturally; classes remain appropriate when the application already uses them. Do not retheme a renewed guide just to match an older example collection.
 3. Author executable source, operation fixtures, expected results and focused source regions together. Choose the UI tools below deliberately. A page need not use every tool; an example does not become better merely by gaining tabs or steps.
 4. Build generated artifacts, type-check the exact sources, then execute the examples in the browser. Click the rendered docs action for every changed tab/variant and verify the loaded source, operation, inputs and result. Inspect desktop/mobile reading and interaction, compiled Markdown, guide backlink, sharing and reset. Record actual checks and limits.
 5. Obtain independent content/correctness and preservation review before fanout or publication. Compare against the original pre-rewrite page as well as the immediate parent when changes are stacked. Every removed workflow needs retained/replacement coverage or a source-backed retirement reason.
@@ -44,7 +44,7 @@ The guide area displays the example description, or the current step description
 
 ## Excerpts, literal fences and playground actions
 
-Prefer source-derived excerpts when a complete companion owns the code. Mark contiguous regions in its source:
+Prefer source-derived excerpts when a complete example owns the code. Mark contiguous regions in its source:
 
 ```ts
 // #region giraffe-ref
@@ -68,7 +68,7 @@ Regions are joined in the listed order with a blank line, without an automatic o
 
 A literal TypeScript fence can instead use `playground` alone when its exact body is a complete runnable schema, or `playground example="objects"` when the body is a focused excerpt of that bundle. The latter loads the **bundle**, not the fence body. `query="{ giraffe { name } }"` overrides the initial query. Fence attributes only support the implemented `playground`, `example`, `query` and Fumadocs `tab` mechanisms; invented `operation=`, `context=`, `file=` or `region=` attributes do not select runtime state. Query attributes use simple quote matching: prefer a named operation file and direct link for complex quoted queries.
 
-Do not put run actions on installation commands, generated SDL, intentionally invalid examples or server-only snippets. A partial schema needs a complete companion; server/database setup needs real local-run instructions.
+Do not put run actions on installation commands, generated SDL, intentionally invalid examples or server-only snippets. A partial schema needs a complete example; server/database setup needs real local-run instructions.
 
 ## Code tabs and matching definition-style variants
 

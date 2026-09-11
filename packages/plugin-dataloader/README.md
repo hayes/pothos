@@ -6,7 +6,7 @@ repeated database calls when a query selects the same relation for many objects.
 
 ## Run batching and caching
 
-This companion uses three in-memory users. Run `01-batching`: the requested keys are
+This example uses three in-memory users. Run `01-batching`: the requested keys are
 `["3", "1", "3", "missing"]`, but `batchKeys` contains only `["3", "1", "missing"]`.
 The duplicate key shares its load, `cachedAgain` confirms that a later load adds no batch,
 and the returned users keep the requested order. The missing user is `null` because this
@@ -29,7 +29,7 @@ const User = builder.loadableObject('User', {
 ```
 
 The source returns storage order deliberately. `sort` maps each record back to its requested
-key. The companion also has a `users` field whose resolver returns only keys; run
+key. The example also has a `users` field whose resolver returns only keys; run
 `02-key-resolvers` to see the plugin load those records automatically.
 
 ```typescript
@@ -566,7 +566,7 @@ For any type or field that creates a dataloader, you can also provide a `sort` o
 correctly map your results into the correct order based on their ids. To do this, you will need to
 provide a function that accepts a result object, and returns its id.
 
-The batching companion deliberately returns records in storage order to demonstrate this mapping:
+The batching example deliberately returns records in storage order to demonstrate this mapping:
 
 ```typescript
 const User = builder.loadableObject('User', {

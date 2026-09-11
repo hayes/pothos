@@ -7,7 +7,7 @@ implement the `Node` interface.
 
 ## Run node identity, then pagination
 
-Start with the node companion. Its query returns the users list and refetches Ada through
+Start with the node example. Its query returns the users list and refetches Ada through
 `node(id: "VXNlcjox")`. The same global ID appears in both results. The `nodes` field returns
 Grace, Ada, and a missing node in the requested order; the missing node is `null`.
 Change the single node ID to `VXNlcjoz` to refetch Katherine.
@@ -18,7 +18,7 @@ The node example’s source is shown under
 Global IDs encode the type and local ID. They are identifiers, not authorization checks.
 The node loader must still enforce the application's access rules when needed.
 
-Next, use the connection companion. Its four users stay in a fixed order, and they are ordinary
+Next, use the connection example. Its four users stay in a fixed order, and they are ordinary
 objects rather than nodes: connection cursors and node IDs serve different purposes.
 
 ```typescript
@@ -134,7 +134,7 @@ Both options support all standard type options including `name`, `description`, 
 ### Creating Nodes
 
 To create objects that extend the `Node` interface, use `builder.node`. This is the node
-companion from the walkthrough above; its complete source also defines the `users` query.
+example from the walkthrough above; its complete source also defines the `users` query.
 
 ```typescript
 type UserShape = { id: string; name: string };

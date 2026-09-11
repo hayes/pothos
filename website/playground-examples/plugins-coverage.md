@@ -1,8 +1,8 @@
-# Non-database plugin guide companions
+# Non-database plugin examples
 
-Coverage added against main `355570b71`. All 17 non-database plugin guides have executable companions:
+Coverage added against main `355570b71`. All 17 non-database plugin guides have executable examples:
 14 use the browser playground and three use the local suite. Database recipes within otherwise
-non-database guides retain their existing instructions. These companions cover reader tasks; they
+non-database guides retain their existing instructions. These examples cover reader tasks; they
 do not turn every API signature, alternative configuration, server recipe, or invalid snippet into
 a standalone browser application.
 
@@ -12,7 +12,7 @@ Each bundle owns its source, operations, and expected responses. Source regions 
 matching excerpts. The browser checker executes every operation and checks fresh Monaco diagnostics.
 The 23 new programs (including three SubGraph variants) contain 56 operations.
 
-| Guide | Companion IDs | Observable behavior |
+| Guide | Example IDs | Observable behavior |
 | --- | --- | --- |
 | Dataloader | `plugin-dataloader` | Requested order despite unordered storage, missing keys, batching keys, repeated-key caching, key-returning fields. |
 | Scope Auth | `plugin-scope-auth` | Same fields as signed-out user, reader, and editor; denied writes leave state unchanged; allowed writes persist. |
@@ -60,7 +60,7 @@ original base and accounted for replaced source blocks:
   workflows. Loader/Relay alternative implementations, subscription cache guidance, and database
   recipes remain.
 - Simple Objects' original complete example and extension moved to executable source. Validation,
-  Errors, Zod, With Input, and Mocks add focused companions while preserving their option catalogs,
+  Errors, Zod, With Input, and Mocks add focused examples while preserving their option catalogs,
   migration notes, and broader configurations.
 - Add GraphQL and SubGraph examples moved to corresponding executable sources and variants.
   Directive representation alternatives remain. Complexity retains both enforcement and standalone

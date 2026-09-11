@@ -40,7 +40,7 @@ builder.queryType({
 });
 ```
 
-The companion adds `recordedDirectives` to inspect the stored field annotations. Run the two
+The example adds `recordedDirectives` to inspect the stored field annotations. Run the two
 `hello` aliases, change `limit` to `1`, and run again: both still return `world`, while the
 recorded limit changes. This demonstrates metadata, not an installed rate-limit transformer.
 
@@ -100,7 +100,7 @@ on `toSchema()` accepts GraphQL directive definitions; it does not attach direct
 ## Apply directive behavior
 
 Pass the built schema to the transformer supplied by your directive library. For example, with
-`graphql-rate-limit-directive` installed, replace the final `toSchema()` call in the companion with:
+`graphql-rate-limit-directive` installed, replace the final `toSchema()` call in the example with:
 
 ```typescript
 import { rateLimitDirective } from 'graphql-rate-limit-directive';

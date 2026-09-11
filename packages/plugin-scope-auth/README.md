@@ -6,7 +6,7 @@ scope loaders are cached for the current request.
 
 ## Run a permission check
 
-The companion runs the same query with three request contexts. In `01-signed-out`, all three
+The example runs the same query with three request contexts. In `01-signed-out`, all three
 protected fields return `null` with `Not authorized` errors. In `02-reader`, `message` and
 `article` succeed while `editPreview` is denied. In `03-editor`, all three succeed.
 Open each operation's **Context** input to inspect the user and permissions passed to the schema.

@@ -33,7 +33,7 @@ builder.mutationType({
 });
 ```
 
-This companion combines validation with the errors plugin to make issues queryable. To run its
+This example combines validation with the errors plugin to make issues queryable. To run its
 full source locally, also install `@pothos/plugin-errors`. It explicitly sets `unsafelyHandleInputErrors: true`: validation details are public here, and a rejected input
 returns before field authorization hooks run. See [the integration details](https://pothos-graphql.dev/docs/plugins/errors#with-validation-plugin)
 before using that setting in an application. Change the minimum name length from `3` to `5`, rebuild,
