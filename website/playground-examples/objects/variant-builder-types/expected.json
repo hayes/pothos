@@ -1,0 +1,11 @@
+{
+  "query.graphql": {
+    "data": {
+      "giraffe": {
+        "name": "James",
+        "birthYear": 2012,
+        "height": 5.2
+      }
+    }
+  }
+}

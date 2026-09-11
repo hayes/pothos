@@ -1,0 +1,27 @@
+{
+  "id": "objects",
+  "title": "Object types",
+  "description": "Run the query to see James\u2019s exposed and computed fields. Change the birthday in the resolver, then run again to see birthYear change.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/objects"],
+  "order": 10,
+  "variants": [
+    {
+      "id": "refs",
+      "title": "Object refs",
+      "default": true
+    },
+    {
+      "id": "classes",
+      "title": "Classes"
+    },
+    {
+      "id": "builder-types",
+      "title": "SchemaTypes"
+    },
+    {
+      "id": "inline-refs",
+      "title": "Inline refs"
+    }
+  ]
+}

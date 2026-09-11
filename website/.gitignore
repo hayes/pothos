@@ -34,3 +34,7 @@ util/search-index.js
 
 # vercel
 .vercel
+
+/public/playground-examples/
+/public/types/
+/components/playground/examples/examples-index.generated.ts
