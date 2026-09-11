@@ -1,7 +1,8 @@
-# Federation Plugin
+# Federation plugin
 
-A plugin for building subGraphs that are compatible with
-[Apollo Federation 2](https://www.apollographql.com/docs/federation/).
+Build [Apollo Federation 2](https://www.apollographql.com/docs/federation/) subgraphs with Pothos.
+Register entity keys, resolve references from other services, and extend external types.
+The examples below describe separate users, inventory, and reviews services.
 
 ## Usage
 
@@ -15,20 +16,21 @@ information on federation, see the
 You will need to install the plugin, as well as the directives plugin (`@pothos/plugin-directives`)
 and `@apollo/subgraph`
 
-```bash
-yarn add @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
+```package-install
+npm install --save @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
 ```
 
 You will likely want to install @apollo/server as well, but it is not required if you want to use a
 different server
 
-```bash
-yarn add @apollo/server
+```package-install
+npm install --save @apollo/server
 ```
 
 ### Setup
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import DirectivePlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 const builder = new SchemaBuilder({
@@ -44,7 +46,10 @@ as you would normally, then you can convert that object type to an entity by pro
 `keys`), and a method to load that entity.
 
 ```typescript
-const UserType = builder.objectRef<User>('User').implement({
+type UserRecord = { id: string; name: string; username: string };
+const users: UserRecord[] = [{ id: '1', name: 'Leia', username: 'leia' }];
+
+const User = builder.objectRef<UserRecord>('User').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
@@ -52,9 +57,9 @@ const UserType = builder.objectRef<User>('User').implement({
   }),
 });
 
-builder.asEntity(UserType, {
+builder.asEntity(User, {
   key: builder.selection<{ id: string }>('id'),
-  resolveReference: (user, users) => users.find(({ id }) => user.id === id),
+  resolveReference: (user) => users.find(({ id }) => user.id === id),
 });
 ```
 
@@ -80,8 +85,12 @@ return type of the resolver is used as the backing type for the ref, and will be
 selected from another service to use as the `parent` object in resolvers for fields added when
 implementing the `externalRef`.
 
+The inventory service uses a separate builder with the setup above:
+
 ```typescript
-const ProductRef = builder.externalRef(
+const inventory = [{ upc: '1', inStock: true }];
+
+const Product = builder.externalRef(
   'Product',
   builder.selection<{ upc: string }>('upc'),
   (entity) => {
@@ -92,7 +101,7 @@ const ProductRef = builder.externalRef(
   },
 );
 
-ProductRef.implement({
+Product.implement({
   // Additional external fields can be defined here which can be used by `requires` or `provides` directives
   externalFields: (t) => ({
     price: t.float(),
@@ -127,12 +136,15 @@ to `FieldSet<Shape>` to bypass the selection string checks. The cast replaces th
 of `builder.selection` — the shape is inferred from the cast, and is still used for the resolver's
 `parent` type:
 
+This independent example assumes an external `Post` reference and a `MediaUnion` whose members
+are named `Image` and `Video`, both exposing a `url` field:
+
 ```typescript
 import { type FieldSet } from '@pothos/plugin-federation';
 
 type Media = { __typename: 'Image'; url: string } | { __typename: 'Video'; url: string };
 
-PostRef.implement({
+Post.implement({
   externalFields: (t) => ({
     media: t.field({ type: [MediaUnion] }),
   }),
@@ -151,10 +163,10 @@ PostRef.implement({
 `ref.provides`. The selection string is not validated against the shape, so make sure the selection
 matches the fields described by the generic argument.
 
-To set the `resolvable` property of an external field to `false`, can use `builder.keyDirective`:
+For a reference-only entity that this service does not resolve, use this alternative key definition:
 
 ```ts
-const ProductRef = builder.externalRef(
+const Product = builder.externalRef(
   'Product',
   builder.keyDirective(builder.selection<{ upc: string }>('upc'), false),
 );
@@ -167,8 +179,16 @@ provided as an external ref, and then use the `.provides` method of the returned
 the field that will have the `@provides` directive. The provided field must be listed as an
 `externalField` in the external type.
 
+The reviews service uses another separate builder. It returns a known username with a user
+reference, so the gateway does not need to fetch that field from the users service for this path:
+
 ```typescript
-const UserType = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
+type ReviewRecord = { id: string; body: string; authorID: string; authorUsername: string };
+const reviews: ReviewRecord[] = [
+  { id: '1', body: 'Useful notebook', authorID: '1', authorUsername: 'leia' },
+];
+
+const User = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
   externalFields: (t) => ({
     // The field that will be provided
     username: t.string(),
@@ -178,33 +198,40 @@ const UserType = builder.externalRef('User', builder.selection<{ id: string }>('
   }),
 });
 
-const ReviewType = builder.objectRef<Review>('Review');
-ReviewType.implement({
+const Review = builder.objectRef<ReviewRecord>('Review');
+Review.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     body: t.exposeString('body'),
     author: t.field({
-      // using UserType.provides<...>(...) instead of just UserType adds the provide annotations
+      // using User.provides<...>(...) instead of just User adds the provide annotations
       // and ensures the resolved value includes data for the provided field
       // The generic in Type.provides works the same as the `builder.selection` method.
-      type: UserType.provides<{ username: string }>('username'),
+      type: User.provides<{ username: string }>('username'),
       resolve: (review) => ({
         id: review.authorID,
-        username: usernames.find((username) => username.id === review.authorID)!.username,
+        username: review.authorUsername,
       }),
     }),
-    product: t.field({
-      type: Product,
-      resolve: (review) => ({ upc: review.product.upc }),
-    }),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    reviews: t.field({ type: [Review], resolve: () => reviews }),
   }),
 });
 ```
 
 ### Building your schema and starting a server
 
+Each service builds and serves its own schema:
+
 ```typescript
-// Use new `toSubGraphSchema` method to add subGraph specific types and queries to the schema
+import { ApolloServer } from '@apollo/server';
+import { startStandaloneServer } from '@apollo/server/standalone';
+
+// Use `toSubGraphSchema` method to add subGraph specific types and queries to the schema
 const schema = builder.toSubGraphSchema({
   // defaults to v2.6
   linkUrl: 'https://specs.apollo.dev/federation/v2.3',
@@ -247,6 +274,7 @@ t.field({
   tag: ['someTag'],
   inaccessible: true,
   override: { from: 'users' },
+  resolve: () => 'example',
 });
 ```
 
@@ -256,13 +284,13 @@ For more details on these directives, see the official Federation documentation.
 
 Federation 2.3 introduces new features for federating interface definitions.
 
-You can now pass interfaces to `asEntity` to define keys for an interface:
+Pass an interface to `asEntity` to define its keys. This example assumes your service already
+implements `Media` with concrete types and has a `loadMediaById` function returning those models:
 
 ```ts
 const Media = builder.interfaceRef<{ id: string }>('Media').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
-    ...
   }),
 });
 
@@ -272,7 +300,7 @@ builder.asEntity(Media, {
 });
 ```
 
-You can also extend interfaces from another subGraph by creating an `interfaceObject`:
+In a separate service, extend that interface by creating an `interfaceObject`:
 
 ```ts
 const Media = builder.objectRef<{ id: string }>('Media').implement({
@@ -296,6 +324,8 @@ See federation documentation for more details on `interfaceObject`s
 You can apply the `composeDirective` directive when building the subgraph schema:
 
 ```ts
+import { DirectiveLocation, GraphQLDirective } from 'graphql';
+
 export const schema = builder.toSubGraphSchema({
   // This adds the @composeDirective directive
   composeDirectives: ['@custom'],
