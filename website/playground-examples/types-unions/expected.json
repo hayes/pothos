@@ -1,0 +1,17 @@
+{
+  "query.graphql": {
+    "data": {
+      "giraffeFacts": [
+        {
+          "__typename": "GiraffeStringFact",
+          "fact": "Each giraffe has a unique pattern of spots."
+        },
+        {
+          "__typename": "GiraffeNumericFact",
+          "fact": "Top speed (MPH)",
+          "value": 35
+        }
+      ]
+    }
+  }
+}

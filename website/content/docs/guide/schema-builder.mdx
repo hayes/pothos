@@ -8,23 +8,7 @@ for each schema, and share it between the modules that define that schema.
 
 ## Creating a builder
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder<{
-  Context: { requestId: string };
-}>({});
-
-builder.queryType({
-  fields: (t) => ({
-    requestId: t.string({
-      resolve: (_parent, _args, context) => context.requestId,
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="types-schema-builder"'>playground-examples/types-schema-builder/schema.ts#schema</include>
 
 The generic parameter is an object Pothos calls `SchemaTypes`. Its entries configure TypeScript
 checking; they do not create runtime values. `Context` above types the third argument of each
@@ -34,6 +18,9 @@ If you do not need to configure any types, use `new SchemaBuilder({})`.
 The constructor's options object configures runtime behavior. It can include plugins and their
 options, as described in [Using plugins](./using-plugins), and
 [default nullability](./changing-default-nullability) settings.
+
+The playground supplies a sample request ID in its **Context** tab. Change it and run the query
+again to see the resolver receive that value.
 
 ## Building the schema
 

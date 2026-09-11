@@ -1,0 +1,7 @@
+{
+  "id": "types-existing-scalars",
+  "title": "Existing Date and JSON scalars",
+  "description": "Run date and json. Change the object in Variables and run again: JSON accepts data without giving it a specific application shape.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/scalars"]
+}

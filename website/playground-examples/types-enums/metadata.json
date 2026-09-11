@@ -1,0 +1,8 @@
+{
+  "id": "types-enums",
+  "title": "Enum values and arguments",
+  "description": "Run the query. Change unit(value: Meters) to unit(value: Feet) and run again; enum values in a query are unquoted.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/enums"],
+  "defaultActiveFile": "schema.ts"
+}

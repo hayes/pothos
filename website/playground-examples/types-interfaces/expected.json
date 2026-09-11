@@ -1,0 +1,18 @@
+{
+  "query.graphql": {
+    "data": {
+      "animals": [
+        {
+          "__typename": "Giraffe",
+          "diet": "herbivore",
+          "height": 5.2
+        },
+        {
+          "__typename": "Lion",
+          "diet": "carnivore",
+          "hasMane": true
+        }
+      ]
+    }
+  }
+}

@@ -20,58 +20,13 @@ string. In that case both `Input` and `Output` are `Date`.
 
 This scalar accepts positive integers and checks both input values and resolver results:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import { GraphQLError, Kind } from 'graphql';
-
-const builder = new SchemaBuilder<{
-  Scalars: {
-    PositiveInt: { Input: number; Output: number };
-  };
-}>({});
-
-function positiveInt(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
-    throw new GraphQLError('PositiveInt must be a positive safe integer');
-  }
-
-  return value;
-}
-
-builder.scalarType('PositiveInt', {
-  serialize: positiveInt,
-  parseValue: positiveInt,
-  parseLiteral: (node) => {
-    if (node.kind !== Kind.INT) {
-      throw new GraphQLError('PositiveInt must be an integer literal');
-    }
-
-    return positiveInt(Number(node.value));
-  },
-});
-
-builder.queryType({
-  fields: (t) => ({
-    double: t.field({
-      type: 'PositiveInt',
-      args: { value: t.arg({ type: 'PositiveInt', required: true }) },
-      resolve: (_parent, { value }) => value * 2,
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="types-scalars"'>playground-examples/types-scalars/schema.ts#schema</include>
 
 `parseValue` handles variables, `parseLiteral` handles inline GraphQL literals, and `serialize`
 handles output. Validate each path: TypeScript declarations alone do not validate values at runtime.
 This example explicitly rejects string and float literals, even when they represent whole numbers.
 
-```graphql
-{
-  double(value: 3)
-}
-```
+<include cwd lang="graphql" meta='playground example="types-scalars"'>playground-examples/types-scalars/01-query.graphql</include>
 
 ```json
 {
@@ -81,6 +36,10 @@ This example explicitly rejects string and float literals, even when they repres
 }
 ```
 
+Use the playground operation tabs to compare a valid variable with zero, a negative variable,
+a float literal, and a string literal. The invalid-output operation doubles the largest safe
+integer, so input parsing succeeds but output serialization rejects the result.
+
 Passing `0`, `-1`, `1.5`, or `"3"` is an error. An output outside the scalar's accepted range is
 also an error; GraphQL applies the field's nullability rules when reporting it.
 
@@ -89,28 +48,7 @@ also an error; GraphQL applies the field's nullability rules when reporting it.
 Use `builder.addScalarType` to register an existing graphql-js `GraphQLScalarType`. Declare its
 application types in the builder first. For example, with `graphql-scalars` installed:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import { DateResolver, JSONResolver } from 'graphql-scalars';
-
-const builder = new SchemaBuilder<{
-  Scalars: {
-    JSON: { Input: unknown; Output: unknown };
-    Date: { Input: Date; Output: Date };
-  };
-}>({});
-
-builder.addScalarType('JSON', JSONResolver);
-builder.addScalarType('Date', DateResolver);
-
-builder.queryType({
-  fields: (t) => ({
-    date: t.field({ type: 'Date', resolve: () => new Date('2026-01-01T00:00:00Z') }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="types-existing-scalars"'>playground-examples/types-existing-scalars/schema.ts</include>
 
 The same method accepts your own `GraphQLScalarType` instance. Check an implementation's parsing
 and serialization contracts when choosing its `Input` and `Output` types; Pothos does not infer
@@ -126,15 +64,10 @@ You can override the TypeScript types of built-in scalars through `Scalars` too.
 resolver checking; it does not replace GraphQL's parsing or serialization behavior. For example,
 to restrict your application to string IDs:
 
-```typescript
-const builder = new SchemaBuilder<{
-  Scalars: {
-    ID: { Input: string; Output: string };
-  };
-}>({});
-```
+<include cwd lang="typescript" meta='playground example="types-scalar-id"'>playground-examples/types-scalar-id/schema.ts#builder</include>
 
-GraphQL still accepts integer ID inputs and parses them to strings. Use `scalarType` or
+The companion queries `echo(id: 42)` and reports the parsed argument's JavaScript type with
+`inputType`. Both show that GraphQL accepts integer ID inputs and parses them to strings. Use `scalarType` or
 `addScalarType` if you also need to replace a scalar's runtime implementation.
 
 ## GraphQL 17 coercion hooks

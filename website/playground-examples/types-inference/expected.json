@@ -1,0 +1,16 @@
+{
+  "query.graphql": {
+    "data": {
+      "user": {
+        "id": "3",
+        "name": "Katherine"
+      },
+      "getUsers": [
+        {
+          "id": "1",
+          "name": "Ada"
+        }
+      ]
+    }
+  }
+}

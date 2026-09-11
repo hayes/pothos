@@ -10,10 +10,20 @@ interface Props {
   /** When true, the active view is the read-only generated SDL. */
   sdlActive: boolean;
   schemaSDL: string | null;
+  onSelectFile: (index: number) => void;
+  onSelectSdl: () => void;
   onChange: (index: number, content: string) => void;
 }
 
-export function SchemaEditor({ files, activeIndex, sdlActive, schemaSDL, onChange }: Props) {
+export function SchemaEditor({
+  files,
+  activeIndex,
+  sdlActive,
+  schemaSDL,
+  onChange,
+  onSelectFile,
+  onSelectSdl,
+}: Props) {
   const activeFile = files[activeIndex];
   const lineCount = activeFile?.content.split('\n').length ?? 0;
   const generated = activeFile?.generated === true;
@@ -27,16 +37,37 @@ export function SchemaEditor({ files, activeIndex, sdlActive, schemaSDL, onChang
 
   return (
     <section className="grid grid-rows-[auto_1fr] min-w-0 min-h-0 border-r border-bm-line bg-bm-editor-bg">
-      <header className="flex items-center px-6 h-11 border-b border-bm-line bg-bm-bg">
+      <header className="flex items-center gap-2 px-3 md:px-6 h-11 border-b border-bm-line bg-bm-bg">
+        <select
+          aria-label="Source file"
+          className="md:hidden min-w-0 flex-1 bg-bm-bg text-bm-ink font-mono text-[13px] focus-visible:outline focus-visible:outline-2"
+          value={sdlActive ? 'sdl' : String(activeIndex)}
+          onChange={(event) => {
+            if (event.target.value === 'sdl') {
+              onSelectSdl();
+            } else {
+              onSelectFile(Number(event.target.value));
+            }
+          }}
+        >
+          {files.map((file, index) => (
+            <option key={file.filename} value={String(index)}>
+              {file.filename}
+            </option>
+          ))}
+          <option value="sdl">schema.graphql (generated SDL)</option>
+        </select>
         <span
-          className={`font-mono text-[13px] tracking-[-0.01em] text-bm-ink ${
+          className={`hidden md:block font-mono text-[13px] tracking-[-0.01em] text-bm-ink ${
             sdlActive || generated ? 'italic' : ''
           }`}
         >
           {headerName}
         </span>
-        <div className="flex-1" />
-        <span className="text-[11px] uppercase tracking-[0.04em] text-bm-ink-muted">{meta}</span>
+        <div className="hidden md:block flex-1" />
+        <span className="hidden md:block text-[11px] uppercase tracking-[0.04em] text-bm-ink-muted">
+          {meta}
+        </span>
       </header>
       <div className="min-h-0">
         {sdlActive ? (

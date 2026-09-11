@@ -1,0 +1,8 @@
+{
+  "id": "types-nullability",
+  "title": "Default nullability",
+  "description": "Run the valid request, then Missing name. Add title: \"Dr\" to the valid input and run again. Inspect schema.graphql for the required fields.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/changing-default-nullability"],
+  "defaultActiveFile": "schema.ts"
+}

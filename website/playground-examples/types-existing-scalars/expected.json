@@ -1,0 +1,11 @@
+{
+  "query.graphql": {
+    "data": {
+      "date": "2026-01-01",
+      "json": {
+        "name": "James",
+        "height": 5.2
+      }
+    }
+  }
+}

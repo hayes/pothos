@@ -9,38 +9,7 @@ Use `nullable: false` to make an output field non-null, or `required: true` to r
 You can change these defaults for a builder. Set each default in both the `SchemaTypes` generic
 for TypeScript checking and the constructor options for runtime schema generation:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder<{
-  DefaultFieldNullability: false;
-  DefaultInputFieldRequiredness: true;
-}>({
-  defaultFieldNullability: false,
-  defaultInputFieldRequiredness: true,
-});
-
-const GreetingInput = builder.inputType('GreetingInput', {
-  fields: (t) => ({
-    name: t.string(),
-    title: t.string({ required: false }),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    greeting: t.string({
-      args: { input: t.arg({ type: GreetingInput }) },
-      resolve: (_parent, { input }) =>
-        `Hello, ${input.title ? `${input.title} ` : ''}${input.name}!`,
-    }),
-    nickname: t.string({ nullable: true, resolve: () => null }),
-    names: t.stringList({ resolve: () => ['Ada'] }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="types-nullability"'>playground-examples/types-nullability/schema.ts#schema</include>
 
 These settings are independent: omit the input setting from both places if you only want to change
 output nullability, or omit the output setting to change only input requiredness.
@@ -65,13 +34,7 @@ remain non-null by default; changing the builder defaults controls the list itse
 forms of `nullable` or `required` to configure items separately, as shown in [Fields](./fields) and
 [Arguments](./args).
 
-```graphql
-{
-  greeting(input: { name: "Ada" })
-  names
-  nickname
-}
-```
+<include cwd lang="graphql" meta='playground example="types-nullability"'>playground-examples/types-nullability/01-query.graphql</include>
 
 ```json
 {
@@ -87,3 +50,8 @@ Changing defaults changes the public schema for fields without explicit settings
 existing optional argument or input field can break client requests. Non-null output fields also
 change error propagation: if a resolver returns null or throws, GraphQL propagates the null to the
 nearest nullable parent, potentially making the entire response's `data` null.
+
+To observe this in the playground, replace `nickname`'s resolver with
+`() => { throw new Error('Nickname unavailable'); }`. With `nullable: true`, only `nickname` is
+null. Remove that override and run again: the builder's non-null default makes the whole response's
+`data` null. Reset the example to restore the original resolver.

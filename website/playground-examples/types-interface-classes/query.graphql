@@ -1,0 +1,12 @@
+query InterfaceClasses {
+  animals {
+    __typename
+    diet
+    ... on Giraffe {
+      height
+    }
+    ... on Lion {
+      hasMane
+    }
+  }
+}

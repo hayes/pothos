@@ -1,0 +1,5 @@
+query Enums {
+  height
+  feet: height(unit: Feet)
+  unit(value: Meters)
+}

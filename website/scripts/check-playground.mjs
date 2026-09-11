@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { checkPlaygroundMobile, checkPlaygroundMobileFiles } from './check-playground-mobile.mjs';
 import { checkPlaygroundProject } from './check-playground-project.mjs';
+import { checkPlaygroundTabs } from './check-playground-tabs.mjs';
 import { loadPlaygroundCases } from './playground-cases.mjs';
 
 const origin = process.argv[2] ?? 'http://localhost:3000';
@@ -78,7 +80,10 @@ try {
       await page.close();
     }
   }
+  await checkPlaygroundMobile(browser, origin);
+  await checkPlaygroundMobileFiles(browser, origin);
   await checkPlaygroundProject(browser, origin);
+  await checkPlaygroundTabs(browser, origin, examples);
 } finally {
   await browser.close();
 }

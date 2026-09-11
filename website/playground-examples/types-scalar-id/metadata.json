@@ -1,0 +1,7 @@
+{
+  "id": "types-scalar-id",
+  "title": "String ID application types",
+  "description": "Run echo with the integer ID literal 42. GraphQL parses it into a string; change the literal to \"giraffe-42\" and run again.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/scalars"]
+}

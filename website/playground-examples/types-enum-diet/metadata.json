@@ -1,0 +1,7 @@
+{
+  "id": "types-enum-diet",
+  "title": "TypeScript enums",
+  "description": "Run diet and internalValue. Change Diet.HERBIVOROUS to Diet.CARNIVOROUS in the resolver and observe the GraphQL enum name.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/enums"]
+}

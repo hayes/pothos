@@ -31,15 +31,15 @@ export function StepperBar({ exampleTitle, steps, index, pendingIndex, onSelect,
 
   return (
     <div
-      className="flex items-center gap-3.5 px-6 py-2.5 bg-bm-accent-soft/20 border-b border-bm-line overflow-x-auto"
+      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 md:px-6 py-2.5 bg-bm-accent-soft/20 border-b border-bm-line"
       aria-busy={isPending}
     >
-      <div className="flex items-baseline gap-2 font-serif shrink-0">
+      <div className="flex min-w-0 items-baseline gap-2 font-serif">
         <span className="text-[11px] uppercase tracking-[0.08em] text-bm-ink-muted">Example</span>
-        <span className="text-[14px] italic text-bm-ink">{exampleTitle}</span>
+        <span className="text-[14px] italic text-bm-ink break-words">{exampleTitle}</span>
       </div>
 
-      <div className="flex-1 flex items-center ml-4 min-w-0">
+      <div className="order-3 md:order-none flex w-full md:w-auto md:flex-1 items-center min-w-0 overflow-x-auto">
         {steps.map((step, i) => {
           const isCurrent = i === clamped;
           const isPendingThis = pendingIndex === i;

@@ -11,40 +11,7 @@ has no fields of its own, and its members don't need to share any fields.
 This example uses two kinds of giraffe facts. Each has a backing model and an
 [object reference](./objects):
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder({});
-
-const GiraffeStringFactRef = builder
-  .objectRef<{ factKind: 'string'; fact: string }>('GiraffeStringFact')
-  .implement({
-    fields: (t) => ({
-      fact: t.exposeString('fact'),
-    }),
-  });
-
-const GiraffeNumericFactRef = builder
-  .objectRef<{ factKind: 'number'; fact: string; value: number }>('GiraffeNumericFact')
-  .implement({
-    fields: (t) => ({
-      fact: t.exposeString('fact'),
-      value: t.exposeFloat('value'),
-    }),
-  });
-
-const GiraffeFactRef = builder.unionType('GiraffeFact', {
-  types: [GiraffeStringFactRef, GiraffeNumericFactRef],
-  resolveType: (fact) => {
-    switch (fact.factKind) {
-      case 'string':
-        return GiraffeStringFactRef;
-      case 'number':
-        return GiraffeNumericFactRef;
-    }
-  },
-});
-```
+<include cwd lang="typescript" meta='playground example="types-unions"'>playground-examples/types-unions/schema.ts#definition</include>
 
 The `types` array lists the union's object types. Pothos infers the union's backing type from these
 members, so `fact` in `resolveType` can have either backing shape.
@@ -61,30 +28,7 @@ array. See the [Objects guide](./objects#different-ways-to-define-object-types) 
 Use the union reference as a field's return type. A list can contain values for any of its members.
 `$inferType` gives us the union's backing type for the data array:
 
-```typescript
-const facts: typeof GiraffeFactRef.$inferType[] = [
-  {
-    factKind: 'string',
-    fact: 'Each giraffe has a unique pattern of spots.',
-  },
-  {
-    factKind: 'number',
-    fact: 'Top speed (MPH)',
-    value: 35,
-  },
-];
-
-builder.queryType({
-  fields: (t) => ({
-    giraffeFacts: t.field({
-      type: [GiraffeFactRef],
-      resolve: () => facts,
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="types-unions"'>playground-examples/types-unions/schema.ts#query</include>
 
 ## Querying Union Types
 
@@ -92,20 +36,7 @@ Use inline fragments to select fields from each member. Even though both types d
 must be selected through a fragment because the union itself defines no fields. You can select
 `__typename` directly on the union to identify each result's object type:
 
-```graphql
-query {
-  giraffeFacts {
-    __typename
-    ... on GiraffeStringFact {
-      fact
-    }
-    ... on GiraffeNumericFact {
-      fact
-      value
-    }
-  }
-}
-```
+<include cwd lang="graphql" meta='playground example="types-unions"'>playground-examples/types-unions/query.graphql</include>
 
 ```json
 {

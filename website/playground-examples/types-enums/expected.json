@@ -1,0 +1,15 @@
+{
+  "query.graphql": {
+    "data": {
+      "height": 5,
+      "feet": 16.405,
+      "unit": "Meters"
+    }
+  },
+  "variables.graphql": {
+    "data": {
+      "height": 5,
+      "unit": "Meters"
+    }
+  }
+}

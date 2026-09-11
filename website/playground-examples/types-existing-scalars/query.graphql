@@ -1,0 +1,4 @@
+query Scalars($value: JSON!) {
+  date
+  json(value: $value)
+}

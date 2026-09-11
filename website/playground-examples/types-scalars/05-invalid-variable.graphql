@@ -1,0 +1,3 @@
+query Invalid($value: PositiveInt!) {
+  double(value: $value)
+}

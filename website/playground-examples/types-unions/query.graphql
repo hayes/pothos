@@ -1,0 +1,12 @@
+query Unions {
+  giraffeFacts {
+    __typename
+    ... on GiraffeStringFact {
+      fact
+    }
+    ... on GiraffeNumericFact {
+      fact
+      value
+    }
+  }
+}

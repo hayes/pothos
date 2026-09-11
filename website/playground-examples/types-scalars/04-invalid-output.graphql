@@ -1,0 +1,3 @@
+query Scalars {
+  double(value: 9007199254740991)
+}
