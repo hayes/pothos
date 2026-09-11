@@ -1,7 +1,7 @@
 {
   "id": "objects",
   "title": "Object types",
-  "description": "Run the query to see James\u2019s exposed and computed fields. Change the birthday in the resolver, then run again to see birthYear change.",
+  "description": "Run the query to get a giraffe’s name, height, and birth year. Change the birthday in the resolver, then run again to see how birthYear is calculated from it.",
   "category": "core",
   "relatedDocs": ["/docs/guide/objects"],
   "order": 10,
