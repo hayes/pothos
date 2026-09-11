@@ -1,0 +1,12 @@
+query Fellowship {
+  characters {
+    name
+    race {
+      name
+    }
+  }
+  races {
+    id
+    name
+  }
+}

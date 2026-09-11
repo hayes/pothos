@@ -1,0 +1,12 @@
+{
+  "id": "validation-plugin",
+  "title": "Validation plugin",
+  "description": "Validate arguments, input fields, and input objects with Zod or any Standard Schema library.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "intermediate",
+  "order": 10,
+  "tags": ["validation", "zod", "standard-schema", "arguments", "inputs"],
+  "relatedDocs": ["/docs/plugins/validation"],
+  "prerequisites": ["fundamentals-inputs"]
+}

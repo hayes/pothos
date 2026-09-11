@@ -1,0 +1,11 @@
+# This query costs 121 — teams(1) + 10 * (name 1 + roster 11) — which is over
+# the limit of 100, so the plugin rejects it before any resolver runs. Delete
+# the roster block to drop the cost to 11 and get data back.
+query Roster {
+  teams {
+    name
+    roster {
+      name
+    }
+  }
+}

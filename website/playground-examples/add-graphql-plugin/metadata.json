@@ -1,0 +1,26 @@
+{
+  "id": "add-graphql-plugin",
+  "title": "Add GraphQL plugin",
+  "description": "Pull existing graphql-js types and whole schemas into Pothos with the add option or the addGraphQL methods.",
+  "category": "plugins",
+  "subcategory": "advanced-plugins",
+  "difficulty": "intermediate",
+  "order": 10,
+  "tags": ["add-graphql", "migration", "graphql-js", "plugins"],
+  "relatedDocs": ["/docs/plugins/add-graphql"],
+  "prerequisites": ["fundamentals-objects"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Import an existing schema",
+      "description": "Add a whole graphql-js schema at builder setup and reference its types by name",
+      "order": 1
+    },
+    {
+      "id": "step-2",
+      "title": "Refs for individual types",
+      "description": "Use the addGraphQL methods to get a ref for one type at a time and customize it as you import",
+      "order": 2
+    }
+  ]
+}

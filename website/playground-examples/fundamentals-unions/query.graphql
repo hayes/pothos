@@ -1,0 +1,16 @@
+query Search {
+  search(term: "frodo") {
+    __typename
+    ... on Character {
+      id
+      name
+    }
+    ... on Location {
+      name
+      terrain
+    }
+    ... on Quote {
+      text
+    }
+  }
+}

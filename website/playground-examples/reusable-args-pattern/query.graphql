@@ -1,0 +1,15 @@
+query ReusableArgsExample {
+  # Both teams and players accept limit/offset from the shared
+  # pagination() helper.
+  teams(limit: 2, offset: 0) {
+    id
+    name
+    city
+  }
+
+  players(limit: 10, offset: 0, teamId: "comet") {
+    id
+    name
+    teamId
+  }
+}

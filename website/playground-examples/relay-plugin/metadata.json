@@ -1,0 +1,12 @@
+{
+  "id": "relay-plugin",
+  "title": "Relay Plugin",
+  "description": "Build a Relay-compliant schema: Node interface, global IDs, connections, and Relay mutations.",
+  "category": "plugins",
+  "subcategory": "essential-plugins",
+  "difficulty": "advanced",
+  "order": 15,
+  "tags": ["relay", "connections", "pagination", "global-ids", "node"],
+  "relatedDocs": ["/docs/plugins/relay"],
+  "prerequisites": ["getting-started-first-schema", "fundamentals-interfaces"]
+}
