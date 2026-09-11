@@ -228,12 +228,31 @@ function readGraphQLTypes(): TypeDefinition[] {
   // jsutils first because the other directories reference its types.
   const SUBDIRS = ['jsutils', 'language', 'type', 'utilities', 'execution', 'error'];
   const allContent: string[] = [];
+  const namespaces = new Map<string, string>();
 
   function readAndStrip(filePath: string): string {
     let content = fs.readFileSync(filePath, 'utf-8');
     // Remove internal GraphQL imports since we're bundling everything together
     // Keep only the exported declarations
     content = content
+      // GraphQL 17 exports Kind as a namespace and uses the same module
+      // internally as Kind_. Preserve both names when flattening its files;
+      // leaving these relative imports unresolved turns Kind.INT into any
+      // and prevents ValueNode discrimination in the editor.
+      .replace(
+        /^(?:import\s+(?:type\s+)?\*\s+as|export\s+\*\s+as)\s+(\w+)\s+from\s+['"]([^'"]+)['"];?\s*$/gm,
+        (_statement, name: string, specifier: string) => {
+          if (!namespaces.has(name)) {
+            const target = path.resolve(
+              path.dirname(filePath),
+              specifier.replace(/\.js$/, '.d.ts'),
+            );
+            const declarations = readAndStrip(target).replace(/\bdeclare\s+/g, '');
+            namespaces.set(name, `export namespace ${name} {\n${declarations}\n}`);
+          }
+          return '';
+        },
+      )
       .replace(/^import\s+(?:type\s+)?{[^}]+}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
       .replace(/^export\s+(?:type\s+)?{[^}]+}\s+from\s+['"][^'"]+['"];?\s*$/gm, '');
     return content;
@@ -281,7 +300,7 @@ function readGraphQLTypes(): TypeDefinition[] {
   }
 
   // Combine everything into a single graphql module declaration
-  const combinedContent = allContent.join('\n\n');
+  const combinedContent = [...namespaces.values(), ...allContent].join('\n\n');
 
   return [
     {
