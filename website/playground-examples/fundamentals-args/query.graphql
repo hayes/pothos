@@ -1,6 +1,0 @@
-query Hobbits {
-  characters(raceId: "1", limit: 2) {
-    id
-    name
-  }
-}

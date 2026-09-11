@@ -1,6 +1,0 @@
-query ImmortalRaces {
-  races(filter: { immortal: true }) {
-    name
-    lifespan
-  }
-}

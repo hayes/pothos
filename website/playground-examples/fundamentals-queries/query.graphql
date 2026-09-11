@@ -1,7 +1,0 @@
-query Compendium {
-  hello
-  characterCount
-  newestEntry
-  editorCount
-  compendiumTitle
-}

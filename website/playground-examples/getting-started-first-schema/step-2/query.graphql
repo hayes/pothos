@@ -1,6 +1,0 @@
-query Frodo {
-  frodo {
-    id
-    name
-  }
-}

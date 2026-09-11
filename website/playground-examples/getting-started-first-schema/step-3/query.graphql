@@ -1,9 +1,0 @@
-query Fellowship {
-  characters {
-    id
-    name
-  }
-  character(id: "3") {
-    name
-  }
-}

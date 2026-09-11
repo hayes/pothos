@@ -1,6 +1,0 @@
-query GoodFactions {
-  factions(alignment: Good) {
-    name
-    alignment
-  }
-}
