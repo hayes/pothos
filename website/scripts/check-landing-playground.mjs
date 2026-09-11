@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { checkLandingMobile } from './check-landing-mobile.mjs';
 
 (async () => {
   const browser = await chromium.launch({
@@ -102,6 +103,7 @@ import { chromium } from 'playwright';
       throw Error('Scroll boundary trapped');
     }
     console.log('Page scrolls at editor boundary');
+    await checkLandingMobile(browser, process.argv[2] ?? 'http://localhost:3000');
   } finally {
     await browser.close();
   }
