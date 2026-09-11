@@ -12,8 +12,10 @@ rejected. An optional context-aware Collection provider enables batched fallback
 loading for deferred selections and incompatible to-one relation consumers.
 
 Includes batched Relay node loading, root/related connections, compound cursors
-with explicit direction and application scalar codecs, selection-aware counts,
+with explicit direction, null placement, and application scalar codecs, selection-aware counts,
 and contract-derived aggregate operations with custom GraphQL scalar support.
+Connections accept existing ordering that matches a prefix of the cursor's query
+order, including the reversed order used for backward pages.
 
 Applications own drivers and transactions. The same SQL-family plugin is tested
 against SQLite and PostgreSQL, including lossless included values and Temporal

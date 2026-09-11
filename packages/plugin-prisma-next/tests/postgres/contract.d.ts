@@ -30,7 +30,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'9d1614458784bee08c39d0bea7d7dc8b103f5c699b4dbc5e0a4df8389601b14c'>;
+  StorageHashBase<'baff9b060adc3636183b14bcc2126e5d44c04a3ed0565dcb23797919ea43d41a'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -249,6 +249,7 @@ export type FieldOutputTypes = {
       readonly exact: CodecTypes['pg/numeric@1']['output'];
       readonly payload: CodecTypes['pg/bytea@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly sortLabel: CodecTypes['pg/text@1']['output'] | null;
     };
   };
 };
@@ -266,6 +267,7 @@ export type FieldInputTypes = {
       readonly exact: CodecTypes['pg/numeric@1']['input'];
       readonly payload: CodecTypes['pg/bytea@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly sortLabel: CodecTypes['pg/text@1']['input'] | null;
     };
   };
 };
@@ -282,6 +284,7 @@ export type StorageColumnTypes = {
       readonly exact: CodecTypes['pg/numeric@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly payload: CodecTypes['pg/bytea@1']['output'];
+      readonly sortLabel: CodecTypes['pg/text@1']['output'] | null;
       readonly wide: CodecTypes['pg/int8@1']['output'];
     };
   };
@@ -299,6 +302,7 @@ export type StorageColumnInputTypes = {
       readonly exact: CodecTypes['pg/numeric@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly payload: CodecTypes['pg/bytea@1']['input'];
+      readonly sortLabel: CodecTypes['pg/text@1']['input'] | null;
       readonly wide: CodecTypes['pg/int8@1']['input'];
     };
   };
@@ -375,6 +379,11 @@ type ContractBase = Omit<
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-temporal@1';
                   readonly nullable: false;
+                };
+                readonly sortLabel: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
@@ -492,6 +501,10 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                 };
               };
+              readonly sortLabel: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
             };
             readonly relations: {
               readonly account: {
@@ -517,6 +530,7 @@ type ContractBase = Omit<
                 readonly exact: { readonly column: 'exact' };
                 readonly payload: { readonly column: 'payload' };
                 readonly createdAt: { readonly column: 'createdAt' };
+                readonly sortLabel: { readonly column: 'sortLabel' };
               };
             };
           };

@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import { OrderByItem, ParamRef } from '@prisma/orm-family-sql/relational-core/ast';
 import { execute, parse } from 'graphql';
 import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
@@ -118,7 +119,7 @@ it.each([
   const captures: CapturedExecution[] = [];
   await withCapture(captures, () => {
     expect(() => applyCursorPagination(base as never, 'id', { first: 1 })).toThrow(
-      /unordered, unpaginated/,
+      method === 'orderBy' ? /must match a prefix/ : /unpaginated Collection/,
     );
     return Promise.resolve();
   });
@@ -247,4 +248,104 @@ it('reports malformed custom cursor values without leaking the decoder error or 
   expect(() => decodeCursor(cursor, encodeCursor(['id'], { id: 42 }))).toThrow(
     'Invalid cursor value for id.',
   );
+});
+
+it('accepts matching preordered Collections across forward pages without duplicate order columns', async () => {
+  const base = ctx.ormClient.Post.orderBy((p) => p.id.asc());
+  const first = applyCursorPagination(base as never, 'id', { first: 2 });
+  const firstPage = buildConnectionPage(
+    await (first.collection as unknown as typeof ctx.ormClient.Post).all(),
+    first,
+  );
+  expect(firstPage.edges.map(({ node }) => node.id)).toEqual(['p-bob-draft', 'p-bob1']);
+  const second = applyCursorPagination(base as never, 'id', {
+    first: 2,
+    after: firstPage.pageInfo.endCursor!,
+  });
+  expect(
+    buildConnectionPage(
+      await (second.collection as unknown as typeof ctx.ormClient.Post).all(),
+      second,
+    ).edges.map(({ node }) => node.id),
+  ).toEqual(['p-draft1', 'p-hello']);
+});
+
+it('extends a matching order prefix with the unique cursor tie-breaker', async () => {
+  const cursor: CursorInput = [{ field: 'published', direction: 'desc' }, 'id'];
+  const base = ctx.ormClient.Post.orderBy((p) => p.published.desc());
+  const pagination = applyCursorPagination(base as never, cursor, { first: 4 });
+  const page = buildConnectionPage(
+    await (pagination.collection as unknown as typeof ctx.ormClient.Post).all(),
+    pagination,
+  );
+  expect(page.edges.map(({ node }) => node.id)).toEqual([
+    'p-bob1',
+    'p-hello',
+    'p-bob-draft',
+    'p-draft1',
+  ]);
+});
+
+it('accepts reversed preordering for backward pages, preserving bounded results', async () => {
+  const base = ctx.ormClient.Post.orderBy((p) => p.id.desc());
+  const pagination = applyCursorPagination(base as never, 'id', {
+    last: 2,
+    before: encodeCursor('id', { id: 'p-hello' }),
+  });
+  expect(
+    buildConnectionPage(
+      await (pagination.collection as unknown as typeof ctx.ormClient.Post).all(),
+      pagination,
+    ).edges.map(({ node }) => node.id),
+  ).toEqual(['p-bob1', 'p-draft1']);
+});
+
+it.each([
+  [
+    'expression with bigint',
+    () => ctx.ormClient.Post.orderBy(() => OrderByItem.asc(new ParamRef(BigInt(1)))),
+    { first: 2 },
+  ],
+  ['incompatible column', () => ctx.ormClient.Post.orderBy((p) => p.title.asc()), { first: 2 }],
+  [
+    'extra order columns',
+    () => ctx.ormClient.Post.orderBy([(p) => p.id.asc(), (p) => p.title.asc()]),
+    { first: 2 },
+  ],
+  ['backward direction mismatch', () => ctx.ormClient.Post.orderBy((p) => p.id.asc()), { last: 2 }],
+] as const)('rejects %s instead of silently changing the requested order', async (_label, getBase, args) => {
+  const captures: CapturedExecution[] = [];
+  await withCapture(captures, () => {
+    expect(() => applyCursorPagination(getBase() as never, 'id', args)).toThrow(
+      /must match a prefix/,
+    );
+    return Promise.resolve();
+  });
+  expect(captures).toHaveLength(0);
+});
+
+it('validates incompatible ordering even when only totalCount is selected', async () => {
+  const b = builder();
+  b.queryType({
+    fields: (t) => ({
+      users: t.prismaConnection({
+        type: 'User',
+        cursor: 'id',
+        totalCount: true,
+        resolve: () => ctx.ormClient.User.orderBy((u) => u.id.desc()),
+      }),
+    }),
+  });
+  const captures: CapturedExecution[] = [];
+  const result = await withCapture(captures, () =>
+    Promise.resolve(
+      execute({
+        schema: b.toSchema(),
+        contextValue: {},
+        document: parse('{ users(first: 1) { totalCount } }'),
+      }),
+    ),
+  );
+  expect(result.errors?.[0].message).toMatch(/must match a prefix/);
+  expect(captures).toHaveLength(0);
 });

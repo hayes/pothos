@@ -22,9 +22,9 @@ to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
 | ID-only node selection misses ID columns | Node ID field declares its selected columns; regression for direct concrete node access |
 | Errors-wrapped root lists materialize one row | Original list shape is retained in prepared field metadata; errors-wrapper regression |
 | Mixed-null composite FK inference | Existential nullable-field check; type regression |
-| Existing ordering breaks page two | Connections own complete ordering, reject preordered/paginated bases before SQL |
+| Existing ordering breaks page two | Compatible preordered prefixes are accepted and completed; incompatible ordering and paginated bases are rejected before SQL |
 | Descending/mixed cursors | Explicit per-field direction, forward/backward/both-bound runtime coverage |
-| Nonunique/nullable cursors | Schema-time contract validation requires non-null fields containing a full unique key |
+| Nonunique/nullable cursors | Nullable sort fields support explicit null placement with a full non-null unique tie-breaker; SQLite/PostgreSQL traversal and related-page tests |
 | Temporal/other scalar cursors | Application codecs, no dialect detection; real PostgreSQL Temporal round-trip |
 | Composite bigint/Date node IDs | Shared tagged encoding plus per-column codecs; custom parser formats preserved |
 | Count-only queries load rows | Root and related count-only plans avoid row loading |
@@ -41,15 +41,18 @@ to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
   but a real Mongo implementation and tests are required.
 - **Fallback configuration:** requires application-supplied unpaginated model
   Collections and non-null primary/unique identities. Opaque object identities
-  require a future codec integration; scalar/Date/bytes/Decimal keys work.
+  remain unsupported pending an upstream public identity or input-mapped bulk
+  lookup primitive; scalar/Date/bytes/Decimal keys work.
   Without a provider, incompatible to-one refinements are rejected before SQL.
   Conflicting type-level prerequisites and function-form to-one combine queries
   remain subject to planner/upstream restrictions.
 - **Native ORM inheritance and duplicate namespace model names:** not exposed as
   dedicated Pothos concepts. GraphQL variants are same-model views. A qualified
   model identity and inheritance-specific contract design need separate work.
-- **Nullable cursor keys:** rejected. Complete non-null unique ordering is the
-  supported contract; a future null-ordering policy needs its own tests.
+- **Preordered connections:** existing ordering must match the requested page's
+  query direction. Prisma has no public ordering reset, so a forward-ordered
+  Collection cannot also serve backward pages. Unordered Collections work in
+  both directions. Nullable sort fields still require a non-null unique tie-breaker.
 - **Additional/serverless drivers:** no validation claim beyond the tested SQL
   runtimes. No dialect-specific code prevents other compatible drivers, but
   matching types alone is not runtime certification.
@@ -116,3 +119,9 @@ SQLite query-count assertions and PostgreSQL transaction rollback coverage.
 Review regressions verify that dependency-free fields need no identity or query,
 preloaded scalar parents retain object identity, and inherited type prerequisites
 still load. Connection and fallback pagination checks share one state inspection.
+
+The connection update passes all 38 test files / 365 tests against SQLite and
+PostgreSQL 18.2, both type projects, the plugin build, and Biome checks of all
+changed TypeScript files. Independent standards and behavior reviews found no
+actionable issues. Coverage includes nullable boundaries in both directions,
+compatible preordered prefixes, count-only validation, and nullable codec types.

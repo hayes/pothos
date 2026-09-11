@@ -108,6 +108,13 @@
                   "kind": "scalar"
                 }
               },
+              "sortLabel": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "wide": {
                 "nullable": false,
                 "type": {
@@ -152,6 +159,9 @@
                 },
                 "payload": {
                   "column": "payload"
+                },
+                "sortLabel": {
+                  "column": "sortLabel"
                 },
                 "wide": {
                   "column": "wide"
@@ -221,6 +231,11 @@
                   "nativeType": "bytea",
                   "nullable": false
                 },
+                "sortLabel": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "wide": {
                   "codecId": "pg/int8@1",
                   "nativeType": "int8",
@@ -266,7 +281,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "9d1614458784bee08c39d0bea7d7dc8b103f5c699b4dbc5e0a4df8389601b14c"
+    "storageHash": "baff9b060adc3636183b14bcc2126e5d44c04a3ed0565dcb23797919ea43d41a"
   },
   "capabilities": {
     "postgres": {

@@ -4,6 +4,7 @@
  */
 export function getCollectionPaginationState(collection: unknown): {
   ordered: boolean;
+  orderBy: readonly unknown[];
   paginated: boolean;
 } {
   const state = (
@@ -18,6 +19,7 @@ export function getCollectionPaginationState(collection: unknown): {
   ).state;
   return {
     ordered: !!state?.orderBy?.length,
+    orderBy: state?.orderBy ?? [],
     paginated: state?.cursor != null || state?.limit !== undefined || state?.offset !== undefined,
   };
 }

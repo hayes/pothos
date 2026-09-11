@@ -142,9 +142,9 @@ export function prismaConnectionHelpers<
   const cursorCols = normalizeCursor(options.cursor as CursorInput);
   const pluginOpts = readPluginOptions<AnyContract>(builder);
   const mapperOpts = mapperOptionsFromPluginOpts(pluginOpts);
-  if (pluginOpts) {
-    validateCursor(pluginOpts.contract, modelName, options.cursor);
-  }
+  const cursorSpec = pluginOpts
+    ? validateCursor(pluginOpts.contract, modelName, options.cursor)
+    : options.cursor;
 
   return {
     ref,
@@ -163,7 +163,7 @@ export function prismaConnectionHelpers<
       const filteredBase = whereRefine
         ? (whereRefine(collection, args, ctx) as CollectionFor<Types, M>)
         : collection;
-      const pagination = applyCursorPagination(filteredBase as never, options.cursor, args, {
+      const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
         ...(defaultSize !== undefined ? { defaultSize } : {}),
         ...(maxSize !== undefined ? { maxSize } : {}),
       });

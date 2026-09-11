@@ -29,8 +29,8 @@ Provider-enabled planning selects a non-null primary or unique key on model rows
 Providers supply unpaginated model Collections, preserving application filters
 and transaction bindings. Missing identities, excluded rows, missing providers,
 and batch errors reject the affected fields. Scalar, Date, bytes, and Decimal
-identity values are supported; opaque object identities require a separate codec
-integration and are rejected.
+identity values are supported; opaque object identities are rejected pending an upstream public stable-row-identity
+or input-mapped bulk lookup primitive.
 
 With a provider, deferred fragments are omitted by default and load when GraphQL
 executes them. `skipDeferredFragments: false` keeps eager loading. Without a
@@ -60,17 +60,23 @@ handles errors-plugin indirect result paths.
 
 ## Connections
 
-Connections accept an unordered, unpaginated base Collection. Cursor options own
-the complete ordering: scalar/compound keys, explicit directions, and reversible
-application codecs. Contract validation requires non-null fields containing a
-complete primary/unique key. There is no implicit tie-breaker added to cursors.
+Connections accept an unpaginated base Collection. Cursor options describe the
+complete ordering: scalar/compound keys, explicit directions, null placement,
+and reversible application codecs. Nullable sort fields default to nulls last;
+the cursor must still contain a complete non-null primary/unique key. There is
+no implicit tie-breaker added to cursors.
 
 Prisma orderBy appends and has no public reset. A compatibility helper reads the
-pinned Collection state to reject existing ordering/pagination before querying;
-it never mutates ORM state. Recheck this seam on every upstream upgrade.
+pinned Collection state to reject pagination and check existing ordering before
+querying. Existing ordering must match a prefix of the cursor's query order;
+missing ordering entries are appended. Backward pages require reversed ordering,
+so an unordered base works for both directions. The helper never mutates ORM
+state. Recheck this seam on every upstream upgrade.
 
-Compatible single-bound pages use native cursor seeking; other bounds use
-lexicographic predicates respecting each direction. Overfetch and reversal build
+Compatible single-bound pages with non-null keys use native cursor seeking;
+other bounds use lexicographic predicates respecting each direction and null
+placement. Nullable ordering uses shared ORM null-check expressions, without
+depending on a database's default null order. Overfetch and reversal build
 Relay pages. Shared core encoding preserves built-in scalar types; explicit
 codecs restore objects such as Temporal without dialect-specific code.
 

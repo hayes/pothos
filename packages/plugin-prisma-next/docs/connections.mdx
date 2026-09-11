@@ -43,13 +43,41 @@ compound cursors, pass a tuple:
 cursor: ['createdAt', 'id'] as const,
 ```
 
-Both columns ship into every row's SELECT automatically. Cursor fields must be
-non-null and include a complete primary or unique key; add `id` as a tie-breaker
-when the primary sort field is not unique. Nullable cursors are unsupported.
+Both columns ship into every row's SELECT automatically. Cursor fields must
+include a complete non-null primary or unique key; add `id` as a tie-breaker
+when the primary sort field is nullable or not unique. A nullable unique column
+alone cannot provide a deterministic cursor.
 
-Cursor configuration owns ordering. Return an unordered, unpaginated Collection
-from `resolve`; use `.where(...)` to filter it. A Collection already carrying
-`orderBy`, `limit`, `offset`, or a cursor is rejected before the query runs.
+Nullable sort fields default to nulls last, independently of their direction.
+Use `nulls: 'first'` to put them first in the connection's forward order:
+
+```ts
+cursor: [{ field: 'publishedAt', direction: 'desc', nulls: 'first' }, 'id'],
+```
+
+Backward pagination reverses both value ordering and null placement while
+fetching, then returns edges in the declared connection order. The same behavior
+applies inside related connections. Null cursor values bypass application codecs.
+
+Return an unpaginated Collection from `resolve`; use `.where(...)` to filter it.
+A Collection carrying `limit`, `offset`, or a cursor is rejected before the query
+runs. Existing `orderBy` entries are accepted when they match a prefix of the
+cursor ordering for the requested page direction. Missing tie-breaker columns
+are appended automatically:
+
+```ts
+cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
+resolve: (_parent, args, ctx) => ctx.db.orm.Post.orderBy((post) =>
+  args.last == null ? post.createdAt.desc() : post.createdAt.asc(),
+),
+```
+
+An unordered Collection supports both directions automatically. Prisma's
+`orderBy()` appends entries and has no public reset, so a preordered Collection
+must already use the reversed order for backward pagination. Incompatible or
+extra order entries are rejected. Nullable fields also require the matching
+explicit null-rank expression; returning an unordered Collection lets the plugin
+construct that ordering.
 
 Specify direction per column for descending or mixed ordering:
 

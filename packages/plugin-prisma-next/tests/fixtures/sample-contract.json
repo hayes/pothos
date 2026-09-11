@@ -151,7 +151,7 @@
                 }
               },
               "score": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "sqlite/real@1",
                   "kind": "scalar"
@@ -434,7 +434,7 @@
                 "score": {
                   "codecId": "sqlite/real@1",
                   "nativeType": "real",
-                  "nullable": false
+                  "nullable": true
                 },
                 "title": {
                   "codecId": "sqlite/text@1",
@@ -516,7 +516,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "8972f1e07fa835510359d30aeb1fc28d67f0bfabd7c0d78bb7cf5a8db6412112"
+    "storageHash": "c09c928e403083f6ee4cc1abde2cb77e57be7fc91b08082ef2858838a51b4230"
   },
   "capabilities": {
     "sql": {

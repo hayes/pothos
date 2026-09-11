@@ -214,7 +214,7 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Ty
   CollectionMutationTerminals
 >;
 
-/** A connection owns ordering; runtime validation rejects an already ordered base. */
+/** Existing ordering must match a prefix of the cursor order for the requested direction. */
 export type ConnectionCollection<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -720,12 +720,14 @@ export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> 
         | {
             field: Key;
             direction?: 'asc' | 'desc';
-            codec?: import('./utils/cursors.js').CursorValueCodec<Row<Types, M>[Key]>;
+            nulls?: 'first' | 'last';
+            codec?: import('./utils/cursors.js').CursorValueCodec<NonNullable<Row<Types, M>[Key]>>;
           }
     : {
         field: Key;
         direction?: 'asc' | 'desc';
-        codec: import('./utils/cursors.js').CursorValueCodec<Row<Types, M>[Key]>;
+        nulls?: 'first' | 'last';
+        codec: import('./utils/cursors.js').CursorValueCodec<NonNullable<Row<Types, M>[Key]>>;
       };
 }[keyof Row<Types, M> & string];
 

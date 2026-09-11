@@ -578,7 +578,7 @@ export class PrismaNextObjectFieldBuilder<
           `'${this.modelName as string}.${name}' has cardinality '${meta.cardinality}'.`,
       );
     }
-    validateCursor(this.contract as AnyContract, meta.to.model, options.cursor);
+    const cursorOpt = validateCursor(this.contract as AnyContract, meta.to.model, options.cursor);
     const targetRef =
       options.type ?? getRefFromContractModel(meta.to.model as never, this.builder as never);
 
@@ -612,7 +612,6 @@ export class PrismaNextObjectFieldBuilder<
     const pluginOpts = readPluginOptions(this.builder);
     const fallbackDefault = pluginOpts?.defaultConnectionSize;
     const fallbackMax = pluginOpts?.maxConnectionSize;
-    const cursorOpt = options.cursor;
     // The GraphQL type the rows are walked as: a variant ref names itself, not its model.
     const relatedTypeName = (targetRef as { name?: string }).name ?? meta.to.model;
 

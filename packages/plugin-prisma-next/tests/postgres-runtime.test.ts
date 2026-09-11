@@ -108,6 +108,37 @@ function createSchema(orm = client.orm) {
   return builder.toSchema();
 }
 
+function nullableConnectionSchema(nulls: 'first' | 'last', direction: 'asc' | 'desc') {
+  const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+    plugins: [RelayPlugin, prismaNextPlugin],
+    relay: {},
+    prismaNext: { contract },
+  });
+  const cursor = [{ field: 'sortLabel', direction, nulls }, 'id'] as const;
+  builder.prismaObject('Entry', { fields: (t) => ({ id: t.exposeID('id') }) });
+  builder.prismaObject('Account', {
+    fields: (t) => ({
+      id: t.exposeID('id'),
+      entries: t.relatedConnection('entries', { cursor, totalCount: true }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      entries: t.prismaConnection({
+        type: 'Entry',
+        cursor,
+        totalCount: true,
+        resolve: () => client.orm.public.Entry,
+      }),
+      accounts: t.prismaField({
+        type: ['Account'],
+        resolve: () => client.orm.public.Account.orderBy((account) => account.id.asc()),
+      }),
+    }),
+  });
+  return builder.toSchema();
+}
+
 describe('PostgreSQL through the shared SQL-family plugin', () => {
   beforeAll(async () => {
     await raw.connect();
@@ -116,10 +147,10 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       CREATE TABLE pothos_next_entry (
         id text PRIMARY KEY, "accountId" text NOT NULL REFERENCES pothos_next_account(id),
         amount double precision NOT NULL, wide bigint NOT NULL, exact numeric NOT NULL,
-        payload bytea NOT NULL, "createdAt" timestamptz NOT NULL
+        payload bytea NOT NULL, "createdAt" timestamptz NOT NULL, "sortLabel" text
       );
       INSERT INTO pothos_next_account VALUES ('a', 'Alice'), ('b', 'Bob');
-      INSERT INTO pothos_next_entry VALUES
+      INSERT INTO pothos_next_entry (id, "accountId", amount, wide, exact, payload, "createdAt") VALUES
         ('e1', 'a', 1.25, 9007199254740993, 12345678901234567890.125,
          decode('00ff10', 'hex'), '2026-09-10T12:34:56.123456Z'),
         ('e2', 'a', 2.5, 9007199254740995, 1.5,
@@ -302,5 +333,109 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     ).rejects.toBe(rollback);
     const result = await raw.query('SELECT name FROM pothos_next_account WHERE id = $1', ['a']);
     expect(result.rows[0].name).toBe('Alice');
+  });
+
+  it.each([
+    ['first', 'asc', ['e1', 'e5', 'e3', 'e6', 'e2', 'e4']],
+    ['last', 'asc', ['e3', 'e6', 'e2', 'e4', 'e1', 'e5']],
+    ['first', 'desc', ['e1', 'e5', 'e2', 'e4', 'e3', 'e6']],
+    ['last', 'desc', ['e2', 'e4', 'e3', 'e6', 'e1', 'e5']],
+  ] as const)('paginates nullable %s/%s cursors forward, backward, and per related parent', async (nulls, direction, expected) => {
+    await raw.query(`
+        UPDATE pothos_next_entry SET "sortLabel" = 'B' WHERE id = 'e2';
+        INSERT INTO pothos_next_entry
+          (id, "accountId", amount, wide, exact, payload, "createdAt", "sortLabel")
+        SELECT extra.id, extra.account, amount, wide, exact, payload, "createdAt", extra.label
+        FROM pothos_next_entry
+        CROSS JOIN (VALUES
+          ('e3', 'a', 'A'), ('e4', 'b', 'B'), ('e5', 'b', NULL), ('e6', 'b', 'A')
+        ) AS extra(id, account, label)
+        WHERE pothos_next_entry.id = 'e1';
+      `);
+    try {
+      const schema = nullableConnectionSchema(nulls, direction);
+      type Page = {
+        totalCount: number;
+        edges: { cursor: string; node: { id: string } }[];
+        pageInfo: {
+          startCursor: string;
+          endCursor: string;
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+        };
+      };
+      const page = async (variables: Record<string, unknown>): Promise<Page> => {
+        const result = await graphql({
+          schema,
+          source: `query($first: Int, $last: Int, $after: String, $before: String) {
+              entries(first: $first, last: $last, after: $after, before: $before) {
+                totalCount edges { cursor node { id } }
+                pageInfo { startCursor endCursor hasNextPage hasPreviousPage }
+              }
+            }`,
+          variableValues: variables,
+          contextValue: {},
+        });
+        expect(result.errors).toBeUndefined();
+        return result.data?.entries as Page;
+      };
+      const cursors = new Map<string, string>();
+      const forward: string[] = [];
+      let after: string | undefined;
+      for (let index = 0; index < 3; index += 1) {
+        const result = await page({ first: 2, after });
+        expect(result.totalCount).toBe(6);
+        expect(result.edges).toHaveLength(2);
+        for (const edge of result.edges) {
+          forward.push(edge.node.id);
+          cursors.set(edge.node.id, edge.cursor);
+        }
+        expect(result.pageInfo.hasNextPage).toBe(index < 2);
+        after = result.pageInfo.endCursor;
+      }
+      expect(forward).toEqual(expected);
+      const backward: string[] = [];
+      let before: string | undefined;
+      for (let index = 0; index < 3; index += 1) {
+        const result = await page({ last: 2, before });
+        expect(result.edges).toHaveLength(2);
+        backward.unshift(...result.edges.map((edge) => edge.node.id));
+        expect(result.pageInfo.hasPreviousPage).toBe(index < 2);
+        before = result.pageInfo.startCursor;
+      }
+      expect(backward).toEqual(expected);
+      const bounded = await page({
+        first: 10,
+        after: cursors.get(expected[1]),
+        before: cursors.get(expected[4]),
+      });
+      expect(bounded.edges.map((edge) => edge.node.id)).toEqual(expected.slice(2, 4));
+
+      const related = await graphql({
+        schema,
+        source: '{ accounts { id entries(first: 2) { totalCount edges { node { id } } } } }',
+        contextValue: {},
+      });
+      expect(related.errors).toBeUndefined();
+      expect(related.data).toEqual({
+        accounts: ['a', 'b'].map((id) => ({
+          id,
+          entries: {
+            totalCount: 3,
+            edges: expected
+              .filter((entry) =>
+                (id === 'a' ? ['e1', 'e2', 'e3'] : ['e4', 'e5', 'e6']).includes(entry),
+              )
+              .slice(0, 2)
+              .map((entry) => ({ node: { id: entry } })),
+          },
+        })),
+      });
+    } finally {
+      await raw.query(`
+          DELETE FROM pothos_next_entry WHERE id IN ('e3', 'e4', 'e5', 'e6');
+          UPDATE pothos_next_entry SET "sortLabel" = NULL;
+        `);
+    }
   });
 });

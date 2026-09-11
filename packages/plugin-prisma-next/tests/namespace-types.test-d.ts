@@ -53,4 +53,6 @@ builder.prismaObject('User', {
 });
 
 type TenantTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: TenantContract }>;
-expectTypeOf<import('../src/types').Row<TenantTypes, 'Post'>['score']>().toEqualTypeOf<number>();
+expectTypeOf<import('../src/types').Row<TenantTypes, 'Post'>['score']>().toEqualTypeOf<
+  number | null
+>();

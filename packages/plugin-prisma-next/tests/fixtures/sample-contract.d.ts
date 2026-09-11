@@ -13,7 +13,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'8972f1e07fa835510359d30aeb1fc28d67f0bfabd7c0d78bb7cf5a8db6412112'>;
+  StorageHashBase<'c09c928e403083f6ee4cc1abde2cb77e57be7fc91b08082ef2858838a51b4230'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53'>;
@@ -136,7 +136,7 @@ export type FieldOutputTypes = {
       readonly title: CodecTypes['sqlite/text@1']['output'];
       readonly content: CodecTypes['sqlite/text@1']['output'];
       readonly published: CodecTypes['sqlite/integer@1']['output'];
-      readonly score: CodecTypes['sqlite/real@1']['output'];
+      readonly score: CodecTypes['sqlite/real@1']['output'] | null;
       readonly authorId: CodecTypes['sqlite/text@1']['output'];
       readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
     };
@@ -162,7 +162,7 @@ export type FieldInputTypes = {
       readonly title: CodecTypes['sqlite/text@1']['input'];
       readonly content: CodecTypes['sqlite/text@1']['input'];
       readonly published: CodecTypes['sqlite/integer@1']['input'];
-      readonly score: CodecTypes['sqlite/real@1']['input'];
+      readonly score: CodecTypes['sqlite/real@1']['input'] | null;
       readonly authorId: CodecTypes['sqlite/text@1']['input'];
       readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
     };
@@ -189,7 +189,7 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['sqlite/datetime@1']['output'];
       readonly id: CodecTypes['sqlite/text@1']['output'];
       readonly published: CodecTypes['sqlite/integer@1']['output'];
-      readonly score: CodecTypes['sqlite/real@1']['output'];
+      readonly score: CodecTypes['sqlite/real@1']['output'] | null;
       readonly title: CodecTypes['sqlite/text@1']['output'];
     };
     readonly user: {
@@ -215,7 +215,7 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['sqlite/datetime@1']['input'];
       readonly id: CodecTypes['sqlite/text@1']['input'];
       readonly published: CodecTypes['sqlite/integer@1']['input'];
-      readonly score: CodecTypes['sqlite/real@1']['input'];
+      readonly score: CodecTypes['sqlite/real@1']['input'] | null;
       readonly title: CodecTypes['sqlite/text@1']['input'];
     };
     readonly user: {
@@ -344,7 +344,7 @@ type ContractBase = Omit<
                 readonly score: {
                   readonly nativeType: 'real';
                   readonly codecId: 'sqlite/real@1';
-                  readonly nullable: false;
+                  readonly nullable: true;
                 };
                 readonly authorId: {
                   readonly nativeType: 'text';
@@ -510,7 +510,7 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/integer@1' };
               };
               readonly score: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/real@1' };
               };
               readonly authorId: {

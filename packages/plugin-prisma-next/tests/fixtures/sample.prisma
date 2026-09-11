@@ -13,7 +13,7 @@ model Post {
   title String
   content String
   published Int @default(0)
-  score Float
+  score Float?
   authorId String
   createdAt DateTime
   author User @relation(fields: [authorId], references: [id])

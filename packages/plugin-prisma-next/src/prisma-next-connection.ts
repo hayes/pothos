@@ -19,7 +19,6 @@ import {
   applyCursorPagination,
   assertUnpaginatedCollection,
   buildConnectionPage,
-  buildPaginationParams,
   type CursorInput,
   normalizeCursor,
   validateCursor,
@@ -120,7 +119,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const mapperOpts = mapperOptionsFromPluginOpts(opts);
   const cursorCols = normalizeCursor(cursor as CursorInput);
   const contract = opts.contract;
-  validateCursor(contract, ref.modelName, cursor as CursorInput);
+  const cursorSpec = validateCursor(contract, ref.modelName, cursor as CursorInput);
 
   return this.connection(
     {
@@ -180,12 +179,9 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
           ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
         };
-        const pagination = needsRows
-          ? applyCursorPagination(applied, cursor as never, relayArgs, sizes)
-          : {
-              ...buildPaginationParams(cursor as CursorInput, relayArgs, sizes),
-              collection: applied,
-            };
+        // Validate supplied ordering even for count-only selections. Preparing the
+        // page Collection is lazy; no rows are fetched unless they were requested.
+        const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, sizes);
 
         const rowsPromise = needsRows
           ? Promise.resolve().then(() =>

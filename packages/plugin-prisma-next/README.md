@@ -29,6 +29,8 @@ and conflicting to-one refinements are rejected.
 - 🎣 Auto-include the columns/relations needed to resolve a query — no N+1s.
 - 💅 GraphQL field names are decoupled from contract column names.
 - 🔀 Relay integration for nodes and connections.
+- Cursor connections support nullable sort fields with explicit null placement
+  and a non-null unique tie-breaker. Compatible preordered Collections are accepted.
 - 📚 Multiple GraphQL types backed by the same contract model (variants).
 
 ## Quick example

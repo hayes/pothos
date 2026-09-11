@@ -8,8 +8,10 @@ import {
   PothosValidationError,
   parseCursorConnectionArgs,
 } from '@pothos/core';
+import { deepEqual } from '@pothos/selection-mapper';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
+import { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
 import { getCollectionPaginationState } from './collection-state.js';
@@ -22,6 +24,8 @@ interface ComparableColumn {
   eq(v: unknown): unknown;
   gt(v: unknown): unknown;
   lt(v: unknown): unknown;
+  isNull(): import('@prisma/orm-family-sql/relational-core/ast').AnyExpression;
+  isNotNull(): unknown;
   asc(): unknown;
   desc(): unknown;
 }
@@ -37,6 +41,8 @@ export type CursorField =
   | {
       field: string;
       direction?: 'asc' | 'desc';
+      /** Placement in the forward order; nullable model fields default to last. */
+      nulls?: 'first' | 'last';
       codec?: CursorValueCodec;
     };
 export type CursorInput = CursorField | readonly CursorField[];
@@ -60,7 +66,7 @@ export function validateCursor(
   contract: AnyContract,
   modelName: string,
   cursor: CursorInput,
-): void {
+): CursorInput {
   const fields = normalizeCursor(cursor);
   if (!fields.length || new Set(fields).size !== fields.length) {
     throw new PothosSchemaError(
@@ -84,13 +90,17 @@ export function validateCursor(
     );
   }
   for (const field of fields) {
-    if (!model.fields[field] || model.fields[field].nullable) {
+    if (!model.fields[field]) {
       throw new PothosSchemaError(
-        `Connection cursor '${modelName}.${field}' must be a non-null model field.`,
+        `Connection cursor '${modelName}.${field}' must be a model field.`,
       );
     }
   }
-  const columns = new Set(fields.map((field) => storage?.fields?.[field]?.column ?? field));
+  const columns = new Set(
+    fields
+      .filter((field) => !model.fields[field]!.nullable)
+      .map((field) => storage?.fields?.[field]?.column ?? field),
+  );
   const keys = [
     ...(table.primaryKey ? [table.primaryKey.columns] : []),
     ...(table.uniques ?? []).map((key) => key.columns),
@@ -100,9 +110,18 @@ export function validateCursor(
   ];
   if (!keys.some((key) => key.every((column) => columns.has(column)))) {
     throw new PothosSchemaError(
-      `Connection cursor for '${modelName}' must include every field of a primary or unique key. Add a unique tie-breaker such as id.`,
+      `Connection cursor for '${modelName}' must include every field of a non-null primary or unique key. Add a unique tie-breaker such as id.`,
     );
   }
+  return cursorFields(cursor).map((field) => {
+    const name = typeof field === 'string' ? field : field.field;
+    return model.fields[name]!.nullable
+      ? {
+          ...(typeof field === 'string' ? { field } : field),
+          nulls: typeof field === 'string' ? 'last' : (field.nulls ?? 'last'),
+        }
+      : field;
+  });
 }
 
 /**
@@ -119,7 +138,9 @@ const CURSOR_PREFIX = 'PNC:';
 export function encodeCursor(cursor: CursorInput, row: Record<string, unknown>): string {
   const values = cursorFields(cursor).map((field) => {
     const value = row[typeof field === 'string' ? field : field.field];
-    return typeof field !== 'string' && field.codec ? field.codec.encode(value as never) : value;
+    return value !== null && typeof field !== 'string' && field.codec
+      ? field.codec.encode(value as never)
+      : value;
   });
   const payload = values.length === 1 ? encodeCursorChunk(values[0]) : encodeCursorTuple(values);
 
@@ -192,7 +213,7 @@ export function decodeCursor(spec: CursorInput, cursor: string): Record<string, 
   cursorFields(spec).forEach((field, i) => {
     const col = typeof field === 'string' ? field : field.field;
     try {
-      if (typeof field !== 'string' && field.codec) {
+      if (values[i] !== null && typeof field !== 'string' && field.codec) {
         if (typeof values[i] !== 'string') {
           throw new Error('Codec cursor must contain a string');
         }
@@ -216,14 +237,29 @@ function buildLexicographicPredicate(
   values: Record<string, unknown>,
   op: 'gt' | 'lt',
   directions: readonly ('asc' | 'desc')[],
+  nulls: readonly ('first' | 'last' | undefined)[],
 ): (c: Record<string, ComparableColumn>) => unknown {
   return (c) => {
     const clauses = cols.map((_, i) => {
-      const equalities = cols.slice(0, i).map((col) => c[col]!.eq(values[col]));
+      const equalities = cols
+        .slice(0, i)
+        .map((col) => (values[col] === null ? c[col]!.isNull() : c[col]!.eq(values[col])));
       const col = c[cols[i]!]!;
       const v = values[cols[i]!];
       const greater = (op === 'gt') !== (directions[i] === 'desc');
-      const compFinal = greater ? col.gt(v) : col.lt(v);
+      // Null placement is independent of the value's asc/desc direction. A null
+      // boundary either admits all non-null values or none at this tuple position.
+      const includesNull = (op === 'gt') === (nulls[i] === 'last');
+      const compFinal =
+        nulls[i] && v === null
+          ? includesNull
+            ? and(col.isNull() as never, col.isNotNull() as never)
+            : col.isNotNull()
+          : nulls[i] && includesNull
+            ? or((greater ? col.gt(v) : col.lt(v)) as never, col.isNull() as never)
+            : greater
+              ? col.gt(v)
+              : col.lt(v);
       return equalities.length === 0
         ? compFinal
         : and(...(equalities as never[]), compFinal as never);
@@ -282,12 +318,11 @@ export function buildPaginationParams(
   };
 }
 
-/** Connections own ordering and pagination, so their supplied base must have neither. */
+/** Connection bases may be ordered, but cannot carry a limit, offset, or cursor. */
 export function assertUnpaginatedCollection(collection: unknown): void {
-  const { ordered, paginated } = getCollectionPaginationState(collection);
-  if (ordered || paginated) {
+  if (getCollectionPaginationState(collection).paginated) {
     throw new PothosValidationError(
-      'Connection resolvers must return an unordered, unpaginated Collection. Configure ordering through cursor fields and direction instead of orderBy(), cursor(), limit(), or offset().',
+      'Connection resolvers must return an unpaginated Collection without cursor(), limit(), or offset().',
     );
   }
 }
@@ -298,50 +333,70 @@ function applyToCollection<C extends MapperCollection>(
 ): C {
   const { cols, cursor, directions, before, after, limit, inverted } = params;
 
-  // orm-client's native `cursor()` seeks strictly past one boundary in
-  // the *active orderBy direction*: `>` in asc, `<` in desc. The plugin
-  // applies orderBy asc when forward and desc when `inverted`. So a
-  // single bound maps to native `cursor()` only when its required
-  // predicate direction matches the active order direction:
-  //   - `after` → `gt`  → matches asc  → use native when NOT inverted
-  //   - `before` → `lt` → matches desc → use native when inverted
-  // The mismatched single-bound cases (`after`+inverted from
-  // `last+after`, `before`+!inverted from `first+before`) and the
-  // dual-bound case (`before` AND `after`) keep the hand-rolled
-  // lexicographic predicate — native `cursor()` can't express them.
-  const orderSelectors = cols.map(
-    (col, i) => (c: Record<string, ComparableColumn>) =>
-      inverted !== (directions[i] === 'desc') ? c[col]!.desc() : c[col]!.asc(),
+  const nulls = cursorFields(cursor).map((field) =>
+    typeof field === 'string' ? undefined : field.nulls,
   );
-  const orderByArg = orderSelectors.length === 1 ? orderSelectors[0]! : orderSelectors;
+  const orderSelectors = cols.flatMap((col, i) => {
+    const valueOrder = (c: Record<string, ComparableColumn>) =>
+      inverted !== (directions[i] === 'desc') ? c[col]!.desc() : c[col]!.asc();
+    return nulls[i]
+      ? [
+          (c: Record<string, ComparableColumn>) =>
+            inverted !== (nulls[i] === 'first')
+              ? OrderByItem.desc(c[col]!.isNull())
+              : OrderByItem.asc(c[col]!.isNull()),
+          valueOrder,
+        ]
+      : [valueOrder];
+  });
+  // RC9 appends orderBy entries and exposes no public reset. Compare the existing
+  // prefix to the order produced by public accessors; append only missing entries.
+  const existing = getCollectionPaginationState(baseCollection).orderBy;
+  const ordered = baseCollection.orderBy(
+    orderSelectors.length === 1 ? orderSelectors[0]! : orderSelectors,
+  );
+  const expected = getCollectionPaginationState(ordered).orderBy.slice(existing.length);
+  if (
+    existing.length > expected.length ||
+    existing.some((item, i) => !(item instanceof OrderByItem) || !deepEqual(item, expected[i]))
+  ) {
+    throw new PothosValidationError(
+      'Connection Collection orderBy() must match a prefix of the cursor ordering for this page direction. Backward pagination requires reversed ordering; return an unordered Collection to support both directions.',
+    );
+  }
+  const withOrder =
+    existing.length === 0
+      ? ordered
+      : existing.length === expected.length
+        ? baseCollection
+        : baseCollection.orderBy(orderSelectors.slice(existing.length));
 
   const dualBound = !!before && !!after;
   const nativeAfter = !!after && !before && !inverted;
   const nativeBefore = !!before && !after && inverted;
 
-  if (!dualBound && (nativeAfter || nativeBefore)) {
+  if (!nulls.some(Boolean) && !dualBound && (nativeAfter || nativeBefore)) {
     // Native keyset path. orderBy MUST precede cursor() (the orm's
     // `hasOrderBy` type gate). The decoded boundary is the same column→
     // value map the hand-rolled predicate consumes; native builds the
     // strict seek predicate internally.
     const boundary = decodeCursor(cursor, nativeAfter ? after! : before!);
-    return baseCollection.orderBy(orderByArg).cursor(boundary).limit(limit) as C;
+    return withOrder.cursor(boundary).limit(limit) as C;
   }
 
   // Hand-rolled lexicographic predicate path: dual bounds, or a single
   // bound whose direction doesn't match the active order.
-  let collection: MapperCollection = baseCollection;
+  let collection: MapperCollection = withOrder;
   if (after) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, decodeCursor(cursor, after), 'gt', directions),
+      buildLexicographicPredicate(cols, decodeCursor(cursor, after), 'gt', directions, nulls),
     );
   }
   if (before) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, decodeCursor(cursor, before), 'lt', directions),
+      buildLexicographicPredicate(cols, decodeCursor(cursor, before), 'lt', directions, nulls),
     );
   }
-  collection = collection.orderBy(orderByArg);
   return collection.limit(limit) as C;
 }
 

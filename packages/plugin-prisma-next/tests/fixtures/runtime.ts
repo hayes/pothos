@@ -153,7 +153,7 @@ function createSchema(db: DatabaseSync, contract: SampleContract): void {
       title TEXT NOT NULL,
       content TEXT NOT NULL,
       published INTEGER NOT NULL DEFAULT 0,
-      score REAL NOT NULL,
+      score REAL,
       authorId TEXT NOT NULL,
       createdAt TEXT NOT NULL,
       FOREIGN KEY (authorId) REFERENCES user(id)
