@@ -1,0 +1,26 @@
+{
+  "id": "playground-tour",
+  "title": "Using the playground",
+  "description": "Run a greeting, then query a small herd using variables and request context.",
+  "category": "core",
+  "order": 1,
+  "relatedDocs": [
+    "/docs/guide/playground"
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Run and edit",
+      "description": "Run English greeting, then French greeting. Change the name in Variables and run again. Change Hello in lib/greeting.ts to Welcome to edit the resolver behavior.",
+      "order": 1,
+      "defaultActiveFile": "lib/greeting.ts"
+    },
+    {
+      "id": "step-2",
+      "title": "Explore a schema",
+      "description": "Run Tall giraffes, then All giraffes. Change minimumHeight in Variables to filter the herd. Open schema.graphql to inspect the field and argument types.",
+      "order": 2,
+      "defaultActiveFile": "schema.ts"
+    }
+  ]
+}
