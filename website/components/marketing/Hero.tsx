@@ -1,26 +1,9 @@
-'use client';
-
 import Link from 'next/link';
-import { useState } from 'react';
-import { copyToClipboard } from '@/lib/clipboard';
 import { BotanicalSpray } from './BotanicalSpray';
 
-const INSTALL_CMD = 'npm i @pothos/core';
-
 export function Hero() {
-  const [copied, setCopied] = useState(false);
-
-  const onCopy = async () => {
-    const ok = await copyToClipboard(INSTALL_CMD);
-    if (!ok) {
-      return;
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1400);
-  };
-
   return (
-    <section className="max-w-[1280px] mx-auto px-10 pt-[88px] pb-20 relative">
+    <section className="max-w-[1280px] mx-auto px-6 sm:px-10 pt-12 md:pt-[88px] pb-12 md:pb-20 relative">
       {/* Trailing pothos vines hanging from the header line. Shown at xl (not
           md): from 768 up to ~1279 the headline reflows to "…grow with your /
           code." and runs under the right-anchored vine, so the leaves crowd
@@ -32,7 +15,7 @@ export function Hero() {
       {/* Eyebrow */}
       <div className="inline-flex items-center gap-2 mb-5 text-[12px] uppercase tracking-[0.08em] text-bm-ink-muted">
         <span className="w-[18px] h-px bg-bm-accent" aria-hidden="true" />
-        Type-safe · v4.0
+        GraphQL schema builder for TypeScript
       </div>
 
       {/* H1 — clamps from a comfortable phone size up to the design's 88px */}
@@ -45,7 +28,18 @@ export function Hero() {
           maxWidth: 980,
         }}
       >
-        Schemas that <em className="text-bm-accent">grow</em> with your code.
+        Schemas that{' '}
+        <em
+          className="italic text-bm-accent"
+          // The Fraunces italic 'w' at opsz 144 overshoots its advance box on
+          // the right; combined with the h1's -0.035em tracking it swallowed
+          // the word-space so "grow" and "with" touched. A small right margin
+          // restores a clear gap without adding literal whitespace.
+          style={{ fontVariationSettings: '"opsz" 144', marginRight: '0.12em' }}
+        >
+          grow
+        </em>{' '}
+        with your code
       </h1>
 
       {/* Lede */}
@@ -58,32 +52,19 @@ export function Hero() {
           letterSpacing: '-0.01em',
         }}
       >
-        Pothos is a plugin-based GraphQL schema builder for TypeScript. Define your types once and
-        they flow into every resolver without codegen or decorators. At the scale of Airbnb,
-        Netflix, and your weekend project.
+        Pothos is a GraphQL schema builder for TypeScript with type safety built into every field.
+        Write most of your schema without manual type annotations, with inference that extends to
+        integrations like Prisma, Drizzle, and Zod.
       </p>
 
       {/* CTAs */}
       <div className="flex flex-wrap gap-3 items-center">
         <Link
-          href="/docs"
+          href="/docs/guide"
           className="inline-flex items-center gap-2.5 rounded-lg text-[15px] font-medium px-6 py-3 bg-bm-ink text-bm-bg hover:opacity-90 transition-opacity"
         >
-          Read the guide <span aria-hidden="true">→</span>
+          Get started <span aria-hidden="true">→</span>
         </Link>
-        <button
-          type="button"
-          onClick={onCopy}
-          aria-label={copied ? 'Copied install command' : 'Copy install command'}
-          title={copied ? 'Copied!' : 'Copy to clipboard'}
-          className="inline-flex items-center gap-2.5 rounded-lg text-[14px] px-5 py-2.5 border border-bm-line text-bm-ink font-mono bg-transparent hover:bg-bm-surface-alt transition-colors cursor-pointer"
-        >
-          <code>{INSTALL_CMD}</code>
-          <span className="text-bm-ink-muted ml-2.5" aria-hidden="true">
-            {copied ? '✓' : '⧉'}
-          </span>
-        </button>
-        <span className="text-[13px] text-bm-ink-muted ml-2">MIT · open source</span>
       </div>
     </section>
   );

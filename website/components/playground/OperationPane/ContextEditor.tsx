@@ -53,7 +53,11 @@ export function ContextEditor({ value, onChange, onRun }: Props) {
         tabSize: 2,
         wordWrap: 'on',
         padding: { top: 16, bottom: 16 },
-        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+        scrollbar: {
+          alwaysConsumeMouseWheel: false,
+          verticalScrollbarSize: 10,
+          horizontalScrollbarSize: 10,
+        },
         fixedOverflowWidgets: true,
       }}
     />

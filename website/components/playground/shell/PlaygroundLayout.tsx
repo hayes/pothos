@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 interface Props {
   /** Schema sidebar pane (md+ only). */
   sidebar: ReactNode;
+  hideSidebar?: boolean;
   /** Schema editor pane (Monaco TS / SDL viewer). */
   editor: ReactNode;
   /** Operation pane (query/variables/headers/context tabs). */
@@ -33,18 +34,22 @@ interface Props {
  * `height="100%"` resolving against an auto-height block child,
  * collapsing the editors to 0.
  */
-export function PlaygroundLayout({ sidebar, editor, ops, response }: Props) {
+export function PlaygroundLayout({ sidebar, editor, ops, response, hideSidebar = false }: Props) {
   return (
     <div
-      className="
+      className={`
         grid min-w-0 min-h-0
         grid-cols-1 grid-rows-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.9fr)]
         [grid-template-areas:'editor''ops''response']
-        md:grid-cols-[280px_1fr_1fr] md:grid-rows-1
-        md:[grid-template-areas:'sidebar_editor_ops']
-      "
+        md:grid-rows-1
+        ${hideSidebar ? "md:grid-cols-2 md:[grid-template-areas:'editor_ops']" : "md:grid-cols-[280px_1fr_1fr] md:[grid-template-areas:'sidebar_editor_ops']"}
+      `}
     >
-      <div className="hidden md:grid md:grid-rows-[1fr] min-h-0 [grid-area:sidebar]">{sidebar}</div>
+      {!hideSidebar && (
+        <div className="hidden md:grid md:grid-rows-[1fr] min-h-0 [grid-area:sidebar]">
+          {sidebar}
+        </div>
+      )}
 
       <div className="grid grid-rows-[1fr] min-w-0 min-h-0 [grid-area:editor]">{editor}</div>
 
