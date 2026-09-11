@@ -63,10 +63,18 @@ builder.drizzleObject('users', {
   fields: (t) => ({
     previewPosts: t.field({
       type: ['posts'],
-      select: (args, ctx, nestedSelection) => ({
-        // what the query selects on the posts, limited to one
-        with: { posts: nestedSelection({ where: { published: true }, orderBy: { id: 'asc' }, limit: 1 }) },
-      }),
+      select: (args, ctx, nestedSelection) => {
+        return {
+          // what the query selects on the posts, limited to one
+          with: {
+            posts: nestedSelection({
+              where: { published: true },
+              orderBy: { id: 'asc' },
+              limit: 1,
+            }),
+          },
+        };
+      },
       resolve: (user) => user.posts,
     }),
   }),

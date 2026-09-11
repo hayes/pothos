@@ -78,7 +78,9 @@ builder.prismaObject('User', {
         // Plan what `post` selects under `... on PostEntry`, not under other implementations
         posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
       }),
-      resolve: (user) => user.posts.map((post) => ({ kind: 'post', post })),
+      resolve: (user) => {
+        return user.posts.map((post) => ({ kind: 'post', post }));
+      },
     }),
   }),
 });
@@ -166,7 +168,9 @@ const PostWithMedia = builder.prismaObject('Post', {
         },
       }),
       type: [Media],
-      resolve: (post) => post.media.map(({ media }) => media),
+      resolve: (post) => {
+        return post.media.map(({ media }) => media);
+      },
     }),
   }),
 });

@@ -19,7 +19,11 @@ builder.queryType({
       {
         type: 'Post',
         cursor: 'id',
-        resolve: (query, parent, args, context, info) => prisma.post.findMany({ ...query }),
+        resolve: (query, parent, args, context, info) => {
+          return prisma.post.findMany({
+            ...query,
+          });
+        },
       },
       {}, // optional options for the Connection type
       {}, // optional options for the Edge type),
@@ -163,14 +167,15 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
     select: (args, ctx, nestedSelection) => ({
       media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
     }),
-    resolve: (post, args, ctx) =>
+    resolve: (post, args, ctx) => {
       // This helper takes a list of nodes and formats them for the connection
-      mediaConnectionHelpers.resolve(
+      return mediaConnectionHelpers.resolve(
         // map results to the list of edges
         post.media,
         args,
         ctx,
-      ),
+      );
+    },
   }),
 );
 ```
@@ -196,7 +201,9 @@ const SelectPost = builder.prismaObject('Post', {
       select: (args, ctx, nestedSelection) => ({
         comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
       }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+      resolve: (parent, args, ctx) => {
+        return commentConnectionHelpers.resolve(parent.comments, args, ctx);
+      },
     }),
   }),
 });
@@ -231,7 +238,9 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
         },
       },
     }),
-    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+    resolve: (post, args, ctx) => {
+      return mediaConnectionHelpers.resolve(post.media, args, ctx);
+    },
   }),
 );
 ```
@@ -273,7 +282,9 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
     select: (args, ctx, nestedSelection) => ({
       media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
     }),
-    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+    resolve: (post, args, ctx) => {
+      return mediaConnectionHelpers.resolve(post.media, args, ctx);
+    },
   }),
 );
 ```
@@ -341,10 +352,12 @@ builder.prismaObjectFields('Post', (t) => ({
         },
       }),
 
-      resolve: (post, args, ctx) => ({
-        totalCount: post._count.media,
-        ...mediaConnectionHelpers.resolve(post.media, args, ctx),
-      }),
+      resolve: (post, args, ctx) => {
+        return {
+          totalCount: post._count.media,
+          ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+        };
+      },
     },
     {},
     // options for the edge object
@@ -407,8 +420,9 @@ export const builder = new SchemaBuilder<{
 builder.globalConnectionField('totalCount', (t) =>
   t.int({
     nullable: false,
-    resolve: (parent) =>
-      typeof parent.totalCount === 'function' ? parent.totalCount() : parent.totalCount,
+    resolve: (parent) => {
+      return typeof parent.totalCount === 'function' ? parent.totalCount() : parent.totalCount;
+    },
   }),
 );
 ```

@@ -72,13 +72,14 @@ builder.queryType({
     // Define a field that issues an optimized prisma query
     me: t.prismaField({
       type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+      resolve: async (query, root, args, ctx, info) => {
+        return prisma.user.findUniqueOrThrow({
           // the `query` argument will add in `include`s or `select`s to
           // resolve as much of the request in a single query as possible
           ...query,
           where: { id: ctx.userId },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -326,11 +327,12 @@ builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
       type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+      resolve: async (query, root, args, ctx, info) => {
+        return prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.userId },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -368,14 +370,15 @@ builder.mutationType({
         title: t.input.string({ required: true }),
         authorId: t.input.id({ required: true }),
       },
-      resolve: (query, root, args, ctx) =>
-        prisma.post.create({
+      resolve: (query, root, args, ctx) => {
+        return prisma.post.create({
           ...query,
           data: {
             title: args.input.title,
             authorId: Number.parseInt(args.input.authorId, 10),
           },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -396,15 +399,21 @@ passes the requested selections into `findUnique`; its GraphQL nullability match
 result. This field uses the generated models and client from [Setup](https://pothos-graphql.dev/docs/plugins/prisma/setup):
 
 ```typescript
-builder.queryType({});
-builder.queryField('author', (t) =>
-  t.prismaField({
-    type: 'User',
-    nullable: true,
-    args: { id: t.arg.int({ required: true }) },
-    resolve: (query, _root, args) => prisma.user.findUnique({ ...query, where: { id: args.id } }),
+builder.queryType({
+  fields: (t) => ({
+    author: t.prismaField({
+      type: 'User',
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return prisma.user.findUnique({
+          ...query,
+          where: { id: args.id },
+        });
+      },
+    }),
   }),
-);
+});
 ```
 
 `author(id: 1) { name }` returns Maya Chen. `author(id: 999) { name }` returns null.
@@ -420,11 +429,12 @@ builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
       type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+      resolve: async (query, root, args, ctx, info) => {
+        return prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.userId },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -862,7 +872,11 @@ builder.queryType({
       {
         type: 'Post',
         cursor: 'id',
-        resolve: (query, parent, args, context, info) => prisma.post.findMany({ ...query }),
+        resolve: (query, parent, args, context, info) => {
+          return prisma.post.findMany({
+            ...query,
+          });
+        },
       },
       {}, // optional options for the Connection type
       {}, // optional options for the Edge type),
@@ -1006,14 +1020,15 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
     select: (args, ctx, nestedSelection) => ({
       media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
     }),
-    resolve: (post, args, ctx) =>
+    resolve: (post, args, ctx) => {
       // This helper takes a list of nodes and formats them for the connection
-      mediaConnectionHelpers.resolve(
+      return mediaConnectionHelpers.resolve(
         // map results to the list of edges
         post.media,
         args,
         ctx,
-      ),
+      );
+    },
   }),
 );
 ```
@@ -1039,7 +1054,9 @@ const SelectPost = builder.prismaObject('Post', {
       select: (args, ctx, nestedSelection) => ({
         comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
       }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+      resolve: (parent, args, ctx) => {
+        return commentConnectionHelpers.resolve(parent.comments, args, ctx);
+      },
     }),
   }),
 });
@@ -1074,7 +1091,9 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
         },
       },
     }),
-    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+    resolve: (post, args, ctx) => {
+      return mediaConnectionHelpers.resolve(post.media, args, ctx);
+    },
   }),
 );
 ```
@@ -1116,7 +1135,9 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
     select: (args, ctx, nestedSelection) => ({
       media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
     }),
-    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+    resolve: (post, args, ctx) => {
+      return mediaConnectionHelpers.resolve(post.media, args, ctx);
+    },
   }),
 );
 ```
@@ -1184,10 +1205,12 @@ builder.prismaObjectFields('Post', (t) => ({
         },
       }),
 
-      resolve: (post, args, ctx) => ({
-        totalCount: post._count.media,
-        ...mediaConnectionHelpers.resolve(post.media, args, ctx),
-      }),
+      resolve: (post, args, ctx) => {
+        return {
+          totalCount: post._count.media,
+          ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+        };
+      },
     },
     {},
     // options for the edge object
@@ -1250,8 +1273,9 @@ export const builder = new SchemaBuilder<{
 builder.globalConnectionField('totalCount', (t) =>
   t.int({
     nullable: false,
-    resolve: (parent) =>
-      typeof parent.totalCount === 'function' ? parent.totalCount() : parent.totalCount,
+    resolve: (parent) => {
+      return typeof parent.totalCount === 'function' ? parent.totalCount() : parent.totalCount;
+    },
   }),
 );
 ```
@@ -1277,26 +1301,40 @@ schema uses this root connection alongside its private viewer:
 builder.queryFields((t) => ({
   me: t.prismaField({
     type: Viewer,
-    resolve: (query, _root, _args, ctx) =>
-      prisma.user.findUniqueOrThrow({ ...query, where: { id: ctx.userId } }),
+    resolve: (query, _root, _args, ctx) => {
+      return prisma.user.findUniqueOrThrow({
+        ...query,
+        where: { id: ctx.userId },
+      });
+    },
   }),
   posts: t.prismaConnection({
     type: 'Post',
     cursor: 'id',
-    resolve: (query) =>
-      prisma.post.findMany({ ...query, where: { published: true }, orderBy: { id: 'asc' } }),
-    totalCount: () => prisma.post.count({ where: { published: true } }),
+    resolve: (query) => {
+      return prisma.post.findMany({
+        ...query,
+        where: { published: true },
+        orderBy: { id: 'asc' },
+      });
+    },
+    totalCount: () => {
+      return prisma.post.count({
+        where: { published: true },
+      });
+    },
   }),
   searchPosts: t.prismaField({
     type: ['Post'],
     args: { where: t.arg({ type: PostWhere }), orderBy: t.arg({ type: PostOrderBy }) },
-    resolve: (query, _root, args) =>
-      prisma.post.findMany({
+    resolve: (query, _root, args) => {
+      return prisma.post.findMany({
         ...query,
         // Caller filters can narrow this scope, but cannot expose drafts.
         where: { AND: [{ published: true }, args.where ?? {}] },
         orderBy: args.orderBy ? [args.orderBy, { id: 'asc' }] : { id: 'asc' },
-      }),
+      });
+    },
   }),
 }));
 ```
@@ -1532,7 +1570,9 @@ builder.prismaObject('User', {
         // Plan what `post` selects under `... on PostEntry`, not under other implementations
         posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
       }),
-      resolve: (user) => user.posts.map((post) => ({ kind: 'post', post })),
+      resolve: (user) => {
+        return user.posts.map((post) => ({ kind: 'post', post }));
+      },
     }),
   }),
 });
@@ -1620,7 +1660,9 @@ const PostWithMedia = builder.prismaObject('Post', {
         },
       }),
       type: [Media],
-      resolve: (post) => post.media.map(({ media }) => media),
+      resolve: (post) => {
+        return post.media.map(({ media }) => media);
+      },
     }),
   }),
 });
@@ -1662,7 +1704,9 @@ const Post = builder.prismaNode('Post', {
       select: (_args, _ctx, nestedSelection) => ({
         media: { orderBy: { id: 'asc' }, select: { media: nestedSelection(true) } },
       }),
-      resolve: (post) => post.media.map(({ media }) => media),
+      resolve: (post) => {
+        return post.media.map(({ media }) => media);
+      },
     }),
   }),
 });
@@ -2102,11 +2146,12 @@ builder.mutationType({
     createDraft: t.prismaField({
       type: 'Post',
       args: { input: t.arg({ type: DraftInput, required: true }) },
-      resolve: (query, _root, args, ctx) =>
-        prisma.post.create({
+      resolve: (query, _root, args, ctx) => {
+        return prisma.post.create({
           ...query,
           data: { ...args.input, author: { connect: { id: ctx.userId } } },
-        }),
+        });
+      },
     }),
     updateDraft: t.prismaField({
       type: 'Post',
@@ -2114,12 +2159,13 @@ builder.mutationType({
         id: t.arg.int({ required: true }),
         input: t.arg({ type: DraftUpdate, required: true }),
       },
-      resolve: (query, _root, args, ctx) =>
-        prisma.post.update({
+      resolve: (query, _root, args, ctx) => {
+        return prisma.post.update({
           ...query,
           where: { id: args.id, authorId: ctx.userId, published: false },
           data: args.input,
-        }),
+        });
+      },
     }),
     createDraftWithPayload: t.field({
       type: CreateDraftResult,
@@ -2127,12 +2173,14 @@ builder.mutationType({
         title: t.arg.string({ required: true }),
         content: t.arg.string({ required: true }),
       },
-      resolve: async (_root, args, context, info) => ({
-        post: await prisma.post.create({
-          ...queryFromInfo({ context, info, path: ['post'] }),
-          data: { ...args, authorId: context.userId },
-        }),
-      }),
+      resolve: async (_root, args, context, info) => {
+        return {
+          post: await prisma.post.create({
+            ...queryFromInfo({ context, info, path: ['post'] }),
+            data: { ...args, authorId: context.userId },
+          }),
+        };
+      },
     }),
   }),
 });
@@ -2173,10 +2221,11 @@ UserObject.implement({
     email: t.exposeString('email'),
     posts: t.field({
       type: [PostObject],
-      resolve: (user) =>
-        db.post.findMany({
+      resolve: (user) => {
+        return db.post.findMany({
           where: { authorId: user.id },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -2187,7 +2236,11 @@ PostObject.implement({
     title: t.exposeString('title'),
     author: t.field({
       type: UserObject,
-      resolve: (post) => db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
+      resolve: (post) => {
+        return db.user.findUniqueOrThrow({
+          where: { id: post.authorId },
+        });
+      },
     }),
   }),
 });
@@ -2196,7 +2249,11 @@ builder.queryType({
   fields: (t) => ({
     me: t.field({
       type: UserObject,
-      resolve: (root, args, ctx) => db.user.findUniqueOrThrow({ where: { id: ctx.userId } }),
+      resolve: (root, args, ctx) => {
+        return db.user.findUniqueOrThrow({
+          where: { id: ctx.userId },
+        });
+      },
     }),
   }),
 });
@@ -2232,14 +2289,15 @@ UserObject.implement({
     email: t.exposeString('email'),
     posts: t.field({
       type: [PostObject],
-      resolve: (user) =>
-        db.post.findMany({
+      resolve: (user) => {
+        return db.post.findMany({
           // We now need to include the author when we query for posts
           include: {
             author: true,
           },
           where: { authorId: user.id },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -2296,11 +2354,12 @@ Author.implement({
     name: t.exposeString('name'),
     posts: t.field({
       type: [Article],
-      resolve: (author) =>
-        prisma.post.findMany({
+      resolve: (author) => {
+        return prisma.post.findMany({
           where: { authorId: author.id, published: true },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        }),
+        });
+      },
     }),
   }),
 });
@@ -2309,7 +2368,11 @@ Article.implement({
     title: t.exposeString('title'),
     author: t.field({
       type: Author,
-      resolve: (post) => prisma.user.findUniqueOrThrow({ where: { id: post.authorId } }),
+      resolve: (post) => {
+        return prisma.user.findUniqueOrThrow({
+          where: { id: post.authorId },
+        });
+      },
     }),
   }),
 });
@@ -2319,7 +2382,11 @@ builder.queryType({
       type: Author,
       nullable: true,
       args: { id: t.arg.int({ required: true }) },
-      resolve: (_root, args) => prisma.user.findUnique({ where: { id: args.id } }),
+      resolve: (_root, args) => {
+        return prisma.user.findUnique({
+          where: { id: args.id },
+        });
+      },
     }),
   }),
 });

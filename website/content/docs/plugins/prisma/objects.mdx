@@ -43,11 +43,12 @@ builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
       type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+      resolve: async (query, root, args, ctx, info) => {
+        return prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.userId },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -85,14 +86,15 @@ builder.mutationType({
         title: t.input.string({ required: true }),
         authorId: t.input.id({ required: true }),
       },
-      resolve: (query, root, args, ctx) =>
-        prisma.post.create({
+      resolve: (query, root, args, ctx) => {
+        return prisma.post.create({
           ...query,
           data: {
             title: args.input.title,
             authorId: Number.parseInt(args.input.authorId, 10),
           },
-        }),
+        });
+      },
     }),
   }),
 });

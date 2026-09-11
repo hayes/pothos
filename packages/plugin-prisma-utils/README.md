@@ -361,11 +361,12 @@ builder.mutationType({
     createDraft: t.prismaField({
       type: 'Post',
       args: { input: t.arg({ type: DraftInput, required: true }) },
-      resolve: (query, _root, args, ctx) =>
-        prisma.post.create({
+      resolve: (query, _root, args, ctx) => {
+        return prisma.post.create({
           ...query,
           data: { ...args.input, author: { connect: { id: ctx.userId } } },
-        }),
+        });
+      },
     }),
     updateDraft: t.prismaField({
       type: 'Post',
@@ -373,12 +374,13 @@ builder.mutationType({
         id: t.arg.int({ required: true }),
         input: t.arg({ type: DraftUpdate, required: true }),
       },
-      resolve: (query, _root, args, ctx) =>
-        prisma.post.update({
+      resolve: (query, _root, args, ctx) => {
+        return prisma.post.update({
           ...query,
           where: { id: args.id, authorId: ctx.userId, published: false },
           data: args.input,
-        }),
+        });
+      },
     }),
     createDraftWithPayload: t.field({
       type: CreateDraftResult,
@@ -386,12 +388,14 @@ builder.mutationType({
         title: t.arg.string({ required: true }),
         content: t.arg.string({ required: true }),
       },
-      resolve: async (_root, args, context, info) => ({
-        post: await prisma.post.create({
-          ...queryFromInfo({ context, info, path: ['post'] }),
-          data: { ...args, authorId: context.userId },
-        }),
-      }),
+      resolve: async (_root, args, context, info) => {
+        return {
+          post: await prisma.post.create({
+            ...queryFromInfo({ context, info, path: ['post'] }),
+            data: { ...args, authorId: context.userId },
+          }),
+        };
+      },
     }),
   }),
 });

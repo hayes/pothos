@@ -90,8 +90,8 @@ mapping:
 builder.queryFields((t) => ({
   posts: t.drizzleConnection({
     type: 'posts',
-    resolve: (query) =>
-      db.query.posts.findMany(
+    resolve: (query) => {
+      return db.query.posts.findMany(
         query({
           extras: {
             createdAtExact: (table) =>
@@ -99,7 +99,8 @@ builder.queryFields((t) => ({
           },
           orderBy: { createdAtExact: 'desc' },
         }),
-      ),
+      );
+    },
   }),
 }));
 ```

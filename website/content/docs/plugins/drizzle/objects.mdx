@@ -75,8 +75,13 @@ builder.queryFields((t) => ({
     input: {
       id: t.input.int({ required: true }),
     },
-    resolve: (query, root, args, ctx) =>
-      db.query.users.findFirst(query({ where: { id: args.input.id } })),
+    resolve: (query, root, args, ctx) => {
+      return db.query.users.findFirst(
+        query({
+          where: { id: args.input.id },
+        }),
+      );
+    },
   }),
 }));
 ```

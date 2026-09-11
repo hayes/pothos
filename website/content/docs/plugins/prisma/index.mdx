@@ -79,13 +79,14 @@ builder.queryType({
     // Define a field that issues an optimized prisma query
     me: t.prismaField({
       type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+      resolve: async (query, root, args, ctx, info) => {
+        return prisma.user.findUniqueOrThrow({
           // the `query` argument will add in `include`s or `select`s to
           // resolve as much of the request in a single query as possible
           ...query,
           where: { id: ctx.userId },
-        }),
+        });
+      },
     }),
   }),
 });

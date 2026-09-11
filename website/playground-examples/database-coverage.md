@@ -180,3 +180,17 @@ The snippet action placement was subsequently corrected to match normal Fumadocs
 Playground and Copy float together in the top-right corner. The custom action-row/footer CSS
 was removed; neither control adds a row above or below the source. Persistent source highlights
 and the separate previous/next navigation spacing remain.
+
+## Resolver readability
+
+Expanded database-query and connection-helper resolvers across Drizzle and Prisma examples,
+literal guides, and package READMEs into block bodies with explicit returns and multiline query
+options. Dense selection callbacks were expanded as well. The initial author field is declared
+inside queryType({ fields }), replacing the empty queryType plus a separate queryField. The
+broader docs audit found two similar nested helper calls in complexity and dataloader; these now
+name the intermediate limit/result before returning. Trivial property projections remain concise.
+Independent review found no behavior change and caught one misplaced comment/brace, which was
+fixed. All 26 source-backed database excerpts match the package READMEs. Example typechecks
+(94 files/72 programs), Prisma and plain-ref behavior suites, production build, 147 reference
+checks, and rendered internal links across 79 pages pass. The browser suite verifies all nine
+Drizzle operations and all 18 source actions, including the newly formatted highlighted ranges.

@@ -11,11 +11,12 @@ export function createPlainSchema(prisma: PrismaClient) {
       name: t.exposeString('name'),
       posts: t.field({
         type: [Article],
-        resolve: (author) =>
-          prisma.post.findMany({
+        resolve: (author) => {
+          return prisma.post.findMany({
             where: { authorId: author.id, published: true },
             orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-          }),
+          });
+        },
       }),
     }),
   });
@@ -24,7 +25,11 @@ export function createPlainSchema(prisma: PrismaClient) {
       title: t.exposeString('title'),
       author: t.field({
         type: Author,
-        resolve: (post) => prisma.user.findUniqueOrThrow({ where: { id: post.authorId } }),
+        resolve: (post) => {
+          return prisma.user.findUniqueOrThrow({
+            where: { id: post.authorId },
+          });
+        },
       }),
     }),
   });
@@ -34,7 +39,11 @@ export function createPlainSchema(prisma: PrismaClient) {
         type: Author,
         nullable: true,
         args: { id: t.arg.int({ required: true }) },
-        resolve: (_root, args) => prisma.user.findUnique({ where: { id: args.id } }),
+        resolve: (_root, args) => {
+          return prisma.user.findUnique({
+            where: { id: args.id },
+          });
+        },
       }),
     }),
   });

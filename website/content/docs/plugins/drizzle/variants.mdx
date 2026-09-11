@@ -21,13 +21,18 @@ the public representation of the same row:
 const Viewer = builder.drizzleObject('users', {
   variant: 'Viewer',
   select: {},
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    user: t.variant('users'),
-    drafts: t.relation('posts', {
-      query: { where: { published: false }, orderBy: { createdAt: 'desc', id: 'desc' } },
-    }),
-  }),
+  fields: (t) => {
+    return {
+      id: t.exposeID('id'),
+      user: t.variant('users'),
+      drafts: t.relation('posts', {
+        query: {
+        where: { published: false },
+        orderBy: { createdAt: 'desc', id: 'desc' },
+      },
+      }),
+    };
+  },
 });
 ```
 
@@ -75,7 +80,10 @@ const PostSummary = builder.drizzleObject('posts', {
 builder.drizzleObjectField('users', 'postSummaries', (t) =>
   t.relation('posts', {
     type: PostSummary,
-    query: { where: { published: true }, orderBy: { id: 'asc' } },
+    query: {
+      where: { published: true },
+      orderBy: { id: 'asc' },
+    },
   }),
 );
 ```

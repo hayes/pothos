@@ -42,15 +42,17 @@ builder.drizzleObject('users', {
   fields: (t) => ({
     previewPosts: t.field({
       type: ['posts'],
-      select: async (args, ctx, nestedSelection) => ({
-        with: {
-          posts: await nestedSelection({
-            where: { published: true },
-            orderBy: { id: 'asc' },
-            limit: await ctx.previewSize(),
-          }),
-        },
-      }),
+      select: async (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            posts: await nestedSelection({
+              where: { published: true },
+              orderBy: { id: 'asc' },
+              limit: await ctx.previewSize(),
+            }),
+          },
+        };
+      },
       resolve: (user) => user.posts,
     }),
   }),
@@ -73,13 +75,15 @@ depends on the incoming document rather than on the callback you wrote. A connec
 throws when its own `select` or `query` is async, whatever the document asked for:
 
 ```ts
-select: async (args, ctx, nestedSelection) => ({
-  with: {
-    comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
-      awaitSelections: true,
-    }),
-  },
-}),
+select: async (args, ctx, nestedSelection) => {
+  return {
+    with: {
+      comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
+        awaitSelections: true,
+      }),
+    },
+  };
+},
 ```
 
 `awaitSelections` is a per-call option, and is available whether or not the schema sets

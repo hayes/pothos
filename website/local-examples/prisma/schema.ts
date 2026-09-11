@@ -77,7 +77,9 @@ export function createSchema(prisma: PrismaClient) {
         select: (_args, _ctx, nestedSelection) => ({
           media: { orderBy: { id: 'asc' }, select: { media: nestedSelection(true) } },
         }),
-        resolve: (post) => post.media.map(({ media }) => media),
+        resolve: (post) => {
+          return post.media.map(({ media }) => media);
+        },
       }),
     }),
   });
@@ -118,41 +120,61 @@ export function createSchema(prisma: PrismaClient) {
   // #endregion filters
 
   // #region author-query
-  builder.queryType({});
-  builder.queryField('author', (t) =>
-    t.prismaField({
-      type: 'User',
-      nullable: true,
-      args: { id: t.arg.int({ required: true }) },
-      resolve: (query, _root, args) => prisma.user.findUnique({ ...query, where: { id: args.id } }),
+  builder.queryType({
+    fields: (t) => ({
+      author: t.prismaField({
+        type: 'User',
+        nullable: true,
+        args: { id: t.arg.int({ required: true }) },
+        resolve: (query, _root, args) => {
+          return prisma.user.findUnique({
+            ...query,
+            where: { id: args.id },
+          });
+        },
+      }),
     }),
-  );
+  });
   // #endregion author-query
 
   // #region queries
   builder.queryFields((t) => ({
     me: t.prismaField({
       type: Viewer,
-      resolve: (query, _root, _args, ctx) =>
-        prisma.user.findUniqueOrThrow({ ...query, where: { id: ctx.userId } }),
+      resolve: (query, _root, _args, ctx) => {
+        return prisma.user.findUniqueOrThrow({
+          ...query,
+          where: { id: ctx.userId },
+        });
+      },
     }),
     posts: t.prismaConnection({
       type: 'Post',
       cursor: 'id',
-      resolve: (query) =>
-        prisma.post.findMany({ ...query, where: { published: true }, orderBy: { id: 'asc' } }),
-      totalCount: () => prisma.post.count({ where: { published: true } }),
+      resolve: (query) => {
+        return prisma.post.findMany({
+          ...query,
+          where: { published: true },
+          orderBy: { id: 'asc' },
+        });
+      },
+      totalCount: () => {
+        return prisma.post.count({
+          where: { published: true },
+        });
+      },
     }),
     searchPosts: t.prismaField({
       type: ['Post'],
       args: { where: t.arg({ type: PostWhere }), orderBy: t.arg({ type: PostOrderBy }) },
-      resolve: (query, _root, args) =>
-        prisma.post.findMany({
+      resolve: (query, _root, args) => {
+        return prisma.post.findMany({
           ...query,
           // Caller filters can narrow this scope, but cannot expose drafts.
           where: { AND: [{ published: true }, args.where ?? {}] },
           orderBy: args.orderBy ? [args.orderBy, { id: 'asc' }] : { id: 'asc' },
-        }),
+        });
+      },
     }),
   }));
   // #endregion queries
@@ -174,11 +196,12 @@ export function createSchema(prisma: PrismaClient) {
       createDraft: t.prismaField({
         type: 'Post',
         args: { input: t.arg({ type: DraftInput, required: true }) },
-        resolve: (query, _root, args, ctx) =>
-          prisma.post.create({
+        resolve: (query, _root, args, ctx) => {
+          return prisma.post.create({
             ...query,
             data: { ...args.input, author: { connect: { id: ctx.userId } } },
-          }),
+          });
+        },
       }),
       updateDraft: t.prismaField({
         type: 'Post',
@@ -186,12 +209,13 @@ export function createSchema(prisma: PrismaClient) {
           id: t.arg.int({ required: true }),
           input: t.arg({ type: DraftUpdate, required: true }),
         },
-        resolve: (query, _root, args, ctx) =>
-          prisma.post.update({
+        resolve: (query, _root, args, ctx) => {
+          return prisma.post.update({
             ...query,
             where: { id: args.id, authorId: ctx.userId, published: false },
             data: args.input,
-          }),
+          });
+        },
       }),
       createDraftWithPayload: t.field({
         type: CreateDraftResult,
@@ -199,12 +223,14 @@ export function createSchema(prisma: PrismaClient) {
           title: t.arg.string({ required: true }),
           content: t.arg.string({ required: true }),
         },
-        resolve: async (_root, args, context, info) => ({
-          post: await prisma.post.create({
-            ...queryFromInfo({ context, info, path: ['post'] }),
-            data: { ...args, authorId: context.userId },
-          }),
-        }),
+        resolve: async (_root, args, context, info) => {
+          return {
+            post: await prisma.post.create({
+              ...queryFromInfo({ context, info, path: ['post'] }),
+              data: { ...args, authorId: context.userId },
+            }),
+          };
+        },
       }),
     }),
   });

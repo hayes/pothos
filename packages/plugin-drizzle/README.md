@@ -22,15 +22,22 @@ The examples use authors and posts to demonstrate the plugin APIs.
 [Objects](https://pothos-graphql.dev/docs/plugins/drizzle/objects) covers type definitions and fields such as this lookup:
 
 ```typescript
-builder.queryType({});
-builder.queryField('author', (t) =>
-  t.drizzleField({
-    type: 'users',
-    nullable: true,
-    args: { id: t.arg.int({ required: true }) },
-    resolve: (query, _root, args) => db.query.users.findFirst(query({ where: { id: args.id } })),
+builder.queryType({
+  fields: (t) => ({
+    author: t.drizzleField({
+      type: 'users',
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return db.query.users.findFirst(
+          query({
+            where: { id: args.id },
+          }),
+        );
+      },
+    }),
   }),
-);
+});
 ```
 
 ```graphql
@@ -183,15 +190,22 @@ The author page accepts an integer ID. A missing author returns null, matching t
 `findFirst` and the field's `nullable: true` option:
 
 ```typescript
-builder.queryType({});
-builder.queryField('author', (t) =>
-  t.drizzleField({
-    type: 'users',
-    nullable: true,
-    args: { id: t.arg.int({ required: true }) },
-    resolve: (query, _root, args) => db.query.users.findFirst(query({ where: { id: args.id } })),
+builder.queryType({
+  fields: (t) => ({
+    author: t.drizzleField({
+      type: 'users',
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return db.query.users.findFirst(
+          query({
+            where: { id: args.id },
+          }),
+        );
+      },
+    }),
   }),
-);
+});
 ```
 
 `author(id: 1) { fullName }` returns Maya Chen. `author(id: 999) { fullName }` returns null.
@@ -216,8 +230,13 @@ builder.queryFields((t) => ({
     input: {
       id: t.input.int({ required: true }),
     },
-    resolve: (query, root, args, ctx) =>
-      db.query.users.findFirst(query({ where: { id: args.input.id } })),
+    resolve: (query, root, args, ctx) => {
+      return db.query.users.findFirst(
+        query({
+          where: { id: args.input.id },
+        }),
+      );
+    },
   }),
 }));
 ```
@@ -325,9 +344,13 @@ publishedPostsCount: t.relatedCount('posts', {
   args: {
     title: t.arg.string(),
   },
-  where: (args, ctx) => args.title
-    ? and(eq(posts.published, true), eq(posts.title, args.title))
-    : eq(posts.published, true),
+  where: (args, ctx) => {
+    if (args.title) {
+      return and(eq(posts.published, true), eq(posts.title, args.title));
+    }
+
+    return eq(posts.published, true);
+  },
 });
 ```
 
@@ -386,11 +409,18 @@ builder.drizzleNode('users', {
     postsCount: t.relatedField('posts', {
       type: 'Int',
       // buildFilter creates the correct WHERE clause for the relation
-      select: (buildFilter) => ({
-        extras: {
-          postsCount: (parent) => db.$count(posts, and(buildFilter(parent), eq(posts.published, true))),
-        },
-      }),
+      select: (buildFilter) => {
+        return {
+          extras: {
+            postsCount: (parent) => {
+              return db.$count(
+                posts,
+                and(buildFilter(parent), eq(posts.published, true)),
+              );
+            },
+          },
+        };
+      },
       resolve: (user) => user.postsCount,
     }),
   }),
@@ -475,18 +505,20 @@ const User = builder.drizzleObject('users', {
       lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
     },
   },
-  fields: (t) => ({
-    fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
-    }),
-    bio: t.string({
-      nullable: true,
-      resolve: (user) => user.profile?.bio,
-    }),
-    lowercaseName: t.string({
-      resolve: (user) => user.lowercaseName,
-    }),
-  }),
+  fields: (t) => {
+    return {
+      fullName: t.string({
+        resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+      }),
+      bio: t.string({
+        nullable: true,
+        resolve: (user) => user.profile?.bio,
+      }),
+      lowercaseName: t.string({
+        resolve: (user) => user.lowercaseName,
+      }),
+    };
+  },
 });
 ```
 
@@ -512,15 +544,16 @@ like `t.drizzleField`, including the cursor and page-size requirements:
 ```typescript
 posts: t.drizzleConnection({
   type: 'posts',
-  resolve: (query) =>
-    db.query.posts.findMany(
+  resolve: (query) => {
+    return db.query.posts.findMany(
       query({
         where: { published: true },
         // Three posts share this timestamp. Pothos adds the primary key
         // to the cursor ordering, so traversing pages still visits each once.
         orderBy: { createdAt: 'desc' },
       }),
-    ),
+    );
+  },
 }),
 ```
 
@@ -600,7 +633,9 @@ For a root `totalCount`, supply a resolver rather than `true`. Add this option t
 
 ```ts
 // Imports: eq from 'drizzle-orm', posts from your table definitions.
-totalCount: () => db.$count(posts, eq(posts.published, true)),
+totalCount: () => {
+  return db.$count(posts, eq(posts.published, true));
+},
 ```
 
 The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.
@@ -627,15 +662,16 @@ distinct position in the connection.
 ```typescript
 posts: t.drizzleConnection({
   type: 'posts',
-  resolve: (query) =>
-    db.query.posts.findMany(
+  resolve: (query) => {
+    return db.query.posts.findMany(
       query({
         where: { published: true },
         // Three posts share this timestamp. Pothos adds the primary key
         // to the cursor ordering, so traversing pages still visits each once.
         orderBy: { createdAt: 'desc' },
       }),
-    ),
+    );
+  },
 }),
 ```
 
@@ -715,8 +751,8 @@ mapping:
 builder.queryFields((t) => ({
   posts: t.drizzleConnection({
     type: 'posts',
-    resolve: (query) =>
-      db.query.posts.findMany(
+    resolve: (query) => {
+      return db.query.posts.findMany(
         query({
           extras: {
             createdAtExact: (table) =>
@@ -724,7 +760,8 @@ builder.queryFields((t) => ({
           },
           orderBy: { createdAtExact: 'desc' },
         }),
-      ),
+      );
+    },
   }),
 }));
 ```
@@ -816,13 +853,18 @@ the public representation of the same row:
 const Viewer = builder.drizzleObject('users', {
   variant: 'Viewer',
   select: {},
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    user: t.variant('users'),
-    drafts: t.relation('posts', {
-      query: { where: { published: false }, orderBy: { createdAt: 'desc', id: 'desc' } },
-    }),
-  }),
+  fields: (t) => {
+    return {
+      id: t.exposeID('id'),
+      user: t.variant('users'),
+      drafts: t.relation('posts', {
+        query: {
+        where: { published: false },
+        orderBy: { createdAt: 'desc', id: 'desc' },
+      },
+      }),
+    };
+  },
 });
 ```
 
@@ -853,8 +895,13 @@ The root lookup uses the authenticated context ID. It does not accept an arbitra
 me: t.drizzleField({
   type: Viewer,
   nullable: true,
-  resolve: (query, _root, _args, ctx) =>
-    db.query.users.findFirst(query({ where: { id: ctx.userId } })),
+  resolve: (query, _root, _args, ctx) => {
+    return db.query.users.findFirst(
+      query({
+        where: { id: ctx.userId },
+      }),
+    );
+  },
 }),
 ```
 
@@ -897,7 +944,10 @@ const PostSummary = builder.drizzleObject('posts', {
 builder.drizzleObjectField('users', 'postSummaries', (t) =>
   t.relation('posts', {
     type: PostSummary,
-    query: { where: { published: true }, orderBy: { id: 'asc' } },
+    query: {
+      where: { published: true },
+      orderBy: { id: 'asc' },
+    },
   }),
 );
 ```
@@ -966,7 +1016,9 @@ Fields can be added to an interface later with `builder.drizzleInterfaceField` a
 
 ```ts
 builder.drizzleInterfaceFields(Viewer, (t) => ({
-  publishedPosts: t.relatedConnection('posts', { query: { where: { published: true } } }),
+  publishedPosts: t.relatedConnection('posts', {
+    query: { where: { published: true } },
+  }),
 }));
 ```
 
@@ -1047,10 +1099,18 @@ builder.drizzleObject('users', {
   fields: (t) => ({
     previewPosts: t.field({
       type: ['posts'],
-      select: (args, ctx, nestedSelection) => ({
-        // what the query selects on the posts, limited to one
-        with: { posts: nestedSelection({ where: { published: true }, orderBy: { id: 'asc' }, limit: 1 }) },
-      }),
+      select: (args, ctx, nestedSelection) => {
+        return {
+          // what the query selects on the posts, limited to one
+          with: {
+            posts: nestedSelection({
+              where: { published: true },
+              orderBy: { id: 'asc' },
+              limit: 1,
+            }),
+          },
+        };
+      },
       resolve: (user) => user.posts,
     }),
   }),
@@ -1119,11 +1179,13 @@ const Role = builder.drizzleObject('roles', {
 });
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  select: (nestedSelection) => ({
-    with: {
-      role: nestedSelection(),
-    },
-  }),
+  select: (nestedSelection) => {
+    return {
+      with: {
+        role: nestedSelection(),
+      },
+    };
+  },
   resolveNode: (userRole) => userRole.role,
 });
 
@@ -1131,12 +1193,16 @@ builder.drizzleObjectField('users', 'rolesConnection', (t) =>
   t.connection({
     type: Role,
     nodeNullable: true,
-    select: (args, ctx, nestedSelection) => ({
-      with: {
-        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-      },
-    }),
-    resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
+    select: (args, ctx, nestedSelection) => {
+      return {
+        with: {
+          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+        },
+      };
+    },
+    resolve: (user, args, ctx) => {
+      return rolesConnection.resolve(user.userRoles, args, ctx, user);
+    },
   }),
 );
 ```
@@ -1156,12 +1222,16 @@ const SelectPost = builder.drizzleObject('posts', {
     title: t.exposeString('title'),
     comments: t.connection({
       type: commentConnectionHelpers.ref,
-      select: (args, ctx, nestedSelection) => ({
-        with: {
-          comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
-        },
-      }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+      select: (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
+          },
+        };
+      },
+      resolve: (parent, args, ctx) => {
+        return commentConnectionHelpers.resolve(parent.comments, args, ctx);
+      },
     }),
   }),
 });
@@ -1195,12 +1265,16 @@ builder.drizzleObjectFields('users', (t) => ({
     {
       type: Role,
       nodeNullable: true,
-      select: (args, ctx, nestedSelection) => ({
-        with: {
-          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-        },
-      }),
-      resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
+      select: (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+          },
+        };
+      },
+      resolve: (user, args, ctx) => {
+        return rolesConnection.resolve(user.userRoles, args, ctx, user);
+      },
     },
     {},
     {
@@ -1283,15 +1357,17 @@ builder.drizzleObject('users', {
   fields: (t) => ({
     previewPosts: t.field({
       type: ['posts'],
-      select: async (args, ctx, nestedSelection) => ({
-        with: {
-          posts: await nestedSelection({
-            where: { published: true },
-            orderBy: { id: 'asc' },
-            limit: await ctx.previewSize(),
-          }),
-        },
-      }),
+      select: async (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            posts: await nestedSelection({
+              where: { published: true },
+              orderBy: { id: 'asc' },
+              limit: await ctx.previewSize(),
+            }),
+          },
+        };
+      },
       resolve: (user) => user.posts,
     }),
   }),
@@ -1314,13 +1390,15 @@ depends on the incoming document rather than on the callback you wrote. A connec
 throws when its own `select` or `query` is async, whatever the document asked for:
 
 ```ts
-select: async (args, ctx, nestedSelection) => ({
-  with: {
-    comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
-      awaitSelections: true,
-    }),
-  },
-}),
+select: async (args, ctx, nestedSelection) => {
+  return {
+    with: {
+      comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
+        awaitSelections: true,
+      }),
+    },
+  };
+},
 ```
 
 `awaitSelections` is a per-call option, and is available whether or not the schema sets

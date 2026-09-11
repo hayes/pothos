@@ -86,7 +86,9 @@ For a root `totalCount`, supply a resolver rather than `true`. Add this option t
 
 ```ts
 // Imports: eq from 'drizzle-orm', posts from your table definitions.
-totalCount: () => db.$count(posts, eq(posts.published, true)),
+totalCount: () => {
+  return db.$count(posts, eq(posts.published, true));
+},
 ```
 
 The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.

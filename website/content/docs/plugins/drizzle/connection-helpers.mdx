@@ -29,11 +29,13 @@ const Role = builder.drizzleObject('roles', {
 });
 
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  select: (nestedSelection) => ({
-    with: {
-      role: nestedSelection(),
-    },
-  }),
+  select: (nestedSelection) => {
+    return {
+      with: {
+        role: nestedSelection(),
+      },
+    };
+  },
   resolveNode: (userRole) => userRole.role,
 });
 
@@ -41,12 +43,16 @@ builder.drizzleObjectField('users', 'rolesConnection', (t) =>
   t.connection({
     type: Role,
     nodeNullable: true,
-    select: (args, ctx, nestedSelection) => ({
-      with: {
-        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-      },
-    }),
-    resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
+    select: (args, ctx, nestedSelection) => {
+      return {
+        with: {
+          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+        },
+      };
+    },
+    resolve: (user, args, ctx) => {
+      return rolesConnection.resolve(user.userRoles, args, ctx, user);
+    },
   }),
 );
 ```
@@ -66,12 +72,16 @@ const SelectPost = builder.drizzleObject('posts', {
     title: t.exposeString('title'),
     comments: t.connection({
       type: commentConnectionHelpers.ref,
-      select: (args, ctx, nestedSelection) => ({
-        with: {
-          comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
-        },
-      }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+      select: (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
+          },
+        };
+      },
+      resolve: (parent, args, ctx) => {
+        return commentConnectionHelpers.resolve(parent.comments, args, ctx);
+      },
     }),
   }),
 });
@@ -105,12 +115,16 @@ builder.drizzleObjectFields('users', (t) => ({
     {
       type: Role,
       nodeNullable: true,
-      select: (args, ctx, nestedSelection) => ({
-        with: {
-          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-        },
-      }),
-      resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
+      select: (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
+          },
+        };
+      },
+      resolve: (user, args, ctx) => {
+        return rolesConnection.resolve(user.userRoles, args, ctx, user);
+      },
     },
     {},
     {

@@ -36,7 +36,9 @@ Fields can be added to an interface later with `builder.drizzleInterfaceField` a
 
 ```ts
 builder.drizzleInterfaceFields(Viewer, (t) => ({
-  publishedPosts: t.relatedConnection('posts', { query: { where: { published: true } } }),
+  publishedPosts: t.relatedConnection('posts', {
+    query: { where: { published: true } },
+  }),
 }));
 ```
 

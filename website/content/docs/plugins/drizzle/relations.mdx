@@ -93,9 +93,13 @@ publishedPostsCount: t.relatedCount('posts', {
   args: {
     title: t.arg.string(),
   },
-  where: (args, ctx) => args.title
-    ? and(eq(posts.published, true), eq(posts.title, args.title))
-    : eq(posts.published, true),
+  where: (args, ctx) => {
+    if (args.title) {
+      return and(eq(posts.published, true), eq(posts.title, args.title));
+    }
+
+    return eq(posts.published, true);
+  },
 });
 ```
 
@@ -137,11 +141,18 @@ builder.drizzleNode('users', {
     postsCount: t.relatedField('posts', {
       type: 'Int',
       // buildFilter creates the correct WHERE clause for the relation
-      select: (buildFilter) => ({
-        extras: {
-          postsCount: (parent) => db.$count(posts, and(buildFilter(parent), eq(posts.published, true))),
-        },
-      }),
+      select: (buildFilter) => {
+        return {
+          extras: {
+            postsCount: (parent) => {
+              return db.$count(
+                posts,
+                and(buildFilter(parent), eq(posts.published, true)),
+              );
+            },
+          },
+        };
+      },
       resolve: (user) => user.postsCount,
     }),
   }),

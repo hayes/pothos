@@ -28,10 +28,11 @@ UserObject.implement({
     email: t.exposeString('email'),
     posts: t.field({
       type: [PostObject],
-      resolve: (user) =>
-        db.post.findMany({
+      resolve: (user) => {
+        return db.post.findMany({
           where: { authorId: user.id },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -42,7 +43,11 @@ PostObject.implement({
     title: t.exposeString('title'),
     author: t.field({
       type: UserObject,
-      resolve: (post) => db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
+      resolve: (post) => {
+        return db.user.findUniqueOrThrow({
+          where: { id: post.authorId },
+        });
+      },
     }),
   }),
 });
@@ -51,7 +56,11 @@ builder.queryType({
   fields: (t) => ({
     me: t.field({
       type: UserObject,
-      resolve: (root, args, ctx) => db.user.findUniqueOrThrow({ where: { id: ctx.userId } }),
+      resolve: (root, args, ctx) => {
+        return db.user.findUniqueOrThrow({
+          where: { id: ctx.userId },
+        });
+      },
     }),
   }),
 });
@@ -87,14 +96,15 @@ UserObject.implement({
     email: t.exposeString('email'),
     posts: t.field({
       type: [PostObject],
-      resolve: (user) =>
-        db.post.findMany({
+      resolve: (user) => {
+        return db.post.findMany({
           // We now need to include the author when we query for posts
           include: {
             author: true,
           },
           where: { authorId: user.id },
-        }),
+        });
+      },
     }),
   }),
 });

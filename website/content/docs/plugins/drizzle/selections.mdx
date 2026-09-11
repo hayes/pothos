@@ -51,18 +51,20 @@ const User = builder.drizzleObject('users', {
       lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
     },
   },
-  fields: (t) => ({
-    fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
-    }),
-    bio: t.string({
-      nullable: true,
-      resolve: (user) => user.profile?.bio,
-    }),
-    lowercaseName: t.string({
-      resolve: (user) => user.lowercaseName,
-    }),
-  }),
+  fields: (t) => {
+    return {
+      fullName: t.string({
+        resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+      }),
+      bio: t.string({
+        nullable: true,
+        resolve: (user) => user.profile?.bio,
+      }),
+      lowercaseName: t.string({
+        resolve: (user) => user.lowercaseName,
+      }),
+    };
+  },
 });
 ```
 
