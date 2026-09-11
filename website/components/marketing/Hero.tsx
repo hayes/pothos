@@ -45,18 +45,7 @@ export function Hero() {
           maxWidth: 980,
         }}
       >
-        Schemas that{' '}
-        <em
-          className="italic text-bm-accent"
-          // The Fraunces italic 'w' at opsz 144 overshoots its advance box on
-          // the right; combined with the h1's -0.035em tracking it swallowed
-          // the word-space so "grow" and "with" touched. A small right margin
-          // restores a clear gap without adding literal whitespace.
-          style={{ fontVariationSettings: '"opsz" 144', marginRight: '0.12em' }}
-        >
-          grow
-        </em>{' '}
-        with your code.
+        Schemas that <em className="text-bm-accent">grow</em> with your code.
       </h1>
 
       {/* Lede */}

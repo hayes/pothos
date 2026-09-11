@@ -136,8 +136,8 @@
   --color-bm-syntax-method: var(--bm-syntax-method);
   --color-bm-syntax-lineno: var(--bm-syntax-lineno);
 
-  --font-serif: var(--font-fraunces);
-  --font-sans: var(--font-inter-tight);
+  --font-serif: var(--font-source-serif);
+  --font-sans: var(--font-reading-sans);
   --font-mono: var(--font-jetbrains-mono);
 
   --animate-bm-pulse: bm-pulse 1s ease-in-out infinite;
@@ -178,8 +178,7 @@
 
 body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  font-feature-settings: "cv11", "ss01";
-  letter-spacing: -0.005em;
+  letter-spacing: normal;
   background: var(--bm-bg);
   color: var(--bm-ink);
 }
@@ -229,13 +228,14 @@ body {
   }
 }
 
-/* Article headings — Fraunces serif per the design's article scale */
+/* A restrained editorial serif keeps the botanical character; supporting
+   headings use the humanist reading face for quick technical scanning. */
 /* Use html.* prefix to beat fumadocs's `:where()`-wrapped prose styles. */
 html article#nd-page h1,
 html article#nd-page h2,
 html article#nd-page h3 {
   font-family: var(--font-serif), Georgia, serif;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--bm-ink);
 }
 html article#nd-page h1 {
@@ -252,13 +252,15 @@ html article#nd-page h2 {
   margin-bottom: 0.4em;
 }
 html article#nd-page h3 {
+  font-weight: 700;
+  font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 1.5rem;
   line-height: 1.25;
   letter-spacing: -0.015em;
   margin-top: 1.5em;
 }
 
-/* Article body — Inter Tight, comfortable line-height */
+/* Lato gives reading and navigation warm, open humanist letterforms. */
 article#nd-page p,
 article#nd-page ul li,
 article#nd-page ol li {
