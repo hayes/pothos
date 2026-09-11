@@ -547,21 +547,6 @@ article#nd-page .fd-scroll-container {
   }
 }
 
-/* Untitled playground snippets put actions after the code, keeping the
-   first line at the normal inset without covering horizontally scrolled text. */
-article#nd-page figure.has-playground:has(> div > button[aria-label="Open in Playground"]) {
-  display: flex;
-  flex-direction: column;
-}
-article#nd-page figure.has-playground > div:has(> button[aria-label="Open in Playground"]) {
-  position: static;
-  order: 1;
-  justify-content: flex-end;
-  padding: 0.25rem 0.5rem;
-  border-top: 1px solid var(--bm-line);
-  border-radius: 0;
-}
-
 .monaco-editor .playground-source-highlight {
   background: color-mix(in srgb, var(--bm-accent) 12%, transparent);
 }

@@ -72,8 +72,7 @@ export function PlaygroundCodeBlock({
     <>
       <CodeBlock
         {...props}
-        // Keep actions outside the code viewport so enlarged text and
-        // horizontally scrolled source never overlap the controls.
+        // Use the standard code-block action placement for Playground and Copy.
         className={[props.className, playground && 'has-playground'].filter(Boolean).join(' ')}
         Actions={({ className, children: copyButton }) => (
           <div className={`flex items-center gap-1 ${className || ''}`}>

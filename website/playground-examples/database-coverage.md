@@ -175,3 +175,8 @@ and mobile controls, enlarged text, and tabbed snippets. Previous/next navigatio
 60px desktop and 44px mobile gap from article content. Production build, website types, formatting,
 and internal links across all 79 rendered pages pass. The new guide cleanup received independent
 source/correctness review before the final build.
+
+The snippet action placement was subsequently corrected to match normal Fumadocs snippets:
+Playground and Copy float together in the top-right corner. The custom action-row/footer CSS
+was removed; neither control adds a row above or below the source. Persistent source highlights
+and the separate previous/next navigation spacing remain.
