@@ -5,6 +5,7 @@ import {
   type FieldRef,
   type InferredFieldOptionKeys,
   type InputFieldMap,
+  isThenable,
   type NormalizeArgs,
   type PluginName,
   PothosSchemaError,
@@ -617,40 +618,41 @@ export class PrismaNextObjectFieldBuilder<
         refine != null ? (refine(rel, args, ctx) as MapperCollection) : rel;
       const resolvedDefault = resolveSizeOption(defaultSize, args, ctx) ?? fallbackDefault;
       const resolvedMax = resolveSizeOption(maxSize, args, ctx) ?? fallbackMax;
-      const rows: PrismaNextSpec = {
-        ...nested(
-          {
-            slot: 'rows',
-            columns: cursorCols,
-            // The user's `where` comes BEFORE cursor pagination so the cursor over-fetch
-            // (`take(N+1)`) runs on the matching set.
-            refine: (rel) =>
-              applyCursorPagination(
-                filter(rel),
-                cursorOpt,
-                args as import('@pothos/plugin-relay').DefaultConnectionArguments,
-                {
-                  ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
-                  ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
-                },
-              ).collection,
-          },
-          pothosIndirectInclude,
-        ),
-        args: args as Record<string, unknown>,
-      };
-      // Synthetic count fires only when the client selected totalCount AND
-      // the user opted in via `totalCount: true`. Callable totalCount stays
-      // in the resolver — no extra DB round-trip in the spec.
-      const wantsTotalCount = totalCountFlag && selectedFieldNode(['totalCount']) !== null;
-
-      return {
-        relations: {
-          [relationName]: wantsTotalCount
-            ? [rows, { fn: (sub: MapperCollection) => ({ count: filter(sub).count() }) }]
-            : rows,
+      const selection = nested(
+        {
+          slot: 'rows',
+          columns: cursorCols,
+          // The user's `where` comes BEFORE cursor pagination so the cursor over-fetch
+          // (`take(N+1)`) runs on the matching set.
+          refine: (rel) =>
+            applyCursorPagination(
+              filter(rel),
+              cursorOpt,
+              args as import('@pothos/plugin-relay').DefaultConnectionArguments,
+              {
+                ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
+                ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
+              },
+            ).collection,
         },
+        pothosIndirectInclude,
+      ) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
+      const finish = (selected: PrismaNextSpec): PrismaNextSpec => {
+        const rows = { ...selected, args: args as Record<string, unknown> };
+        // Synthetic count fires only when the client selected totalCount AND
+        // the user opted in via `totalCount: true`. Callable totalCount stays
+        // in the resolver — no extra DB round-trip in the spec.
+        const wantsTotalCount = totalCountFlag && selectedFieldNode(['totalCount']) !== null;
+
+        return {
+          relations: {
+            [relationName]: wantsTotalCount
+              ? [rows, { fn: (sub: MapperCollection) => ({ count: filter(sub).count() }) }]
+              : rows,
+          },
+        };
       };
+      return isThenable(selection) ? Promise.resolve(selection).then(finish) : finish(selection);
     };
 
     const connectionConfig = {

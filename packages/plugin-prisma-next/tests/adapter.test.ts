@@ -7,6 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
 import { execute } from '@pothos/test-utils';
 import {
   DirectiveLocation,
@@ -164,7 +165,8 @@ function createSchema({ asyncSelect = false } = {}) {
     PrismaNextContract: SampleContract;
     Context: { tenantId?: string };
   }>({
-    plugins: [prismaNextPlugin],
+    plugins: [RelayPlugin, prismaNextPlugin],
+    relay: {},
     prismaNext: { contract: sampleContract as never },
   });
 
@@ -181,6 +183,10 @@ function createSchema({ asyncSelect = false } = {}) {
     fields: (t) => ({
       id: t.exposeID('id'),
       title: t.exposeString('title'),
+      asyncTitle: t.string({
+        select: (async () => ['title']) as never,
+        resolve: () => 'async title',
+      }),
       // GraphQL field name `isPublished`, backing column `published` (an int in sqlite).
       isPublished: t.exposeInt('published'),
       author: t.relation('author'),
@@ -198,6 +204,10 @@ function createSchema({ asyncSelect = false } = {}) {
     fields: (t) => ({
       id: t.exposeID('id'),
       lastName: t.exposeString('lastName'),
+      asyncLastName: t.string({
+        select: (async () => ['lastName']) as never,
+        resolve: () => 'async last name',
+      }),
       posts: t.relation('posts'),
     }),
   });
@@ -215,6 +225,11 @@ function createSchema({ asyncSelect = false } = {}) {
       // No exposed column, no select — pure compute.
       plugin: t.string({ resolve: () => 'prisma-next' }),
       posts: t.relation('posts'),
+      postsConnection: t.relatedConnection('posts', {
+        cursor: 'id',
+        defaultSize: 2,
+        totalCount: true,
+      }),
       // Sibling aliases of the same relation with declarative refines.
       drafts: t.relation('posts', { query: { where: { published: 0 } } }),
       publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
@@ -484,7 +499,8 @@ describe('counts and function-form entries', () => {
 
   it('throws a clear error for a select key that is neither column nor relation', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
       prismaNext: { contract: sampleContract as never },
     });
     let info: GraphQLResolveInfo | undefined;
@@ -588,6 +604,37 @@ describe('entry options', () => {
     ).toEqual(['select(id, lastName)']);
   });
 
+  it.each([
+    ['{ users { posts { asyncTitle } } }', ['select(id)', 'include(posts){ select(title) }']],
+    [
+      '{ users { drafts { asyncTitle } } }',
+      ['select(id)', 'include(posts){ where({"published":0}) select(title) }'],
+    ],
+    [
+      '{ users { asAdmin { asyncLastName } } }',
+      [
+        'select(email, firstName, id, lastName)',
+        'include(posts){ combine(:object:AdminUser:total=count[]) }',
+      ],
+    ],
+    [
+      '{ users { asAdmin { posts { asyncTitle } } } }',
+      [
+        'select(email, firstName, id)',
+        'include(posts){ combine(:object:AdminUser:total=count[], posts:posts=[select(title)]) }',
+      ],
+    ],
+    [
+      '{ users { postsConnection { totalCount edges { node { asyncTitle } } } } }',
+      [
+        'select(id)',
+        'include(posts){ combine(postsConnection:count=count[], postsConnection:rows=[orderBy(fn) take(3) select(id, title)]) }',
+      ],
+    ],
+  ])('awaits nested async selections in %s', async (source, expected) => {
+    expect(await plan(source)).toEqual(expected);
+  });
+
   it('awaits an async select callback', async () => {
     const { infoFor: asyncInfo } = createSchema({ asyncSelect: true });
     const info = await asyncInfo('{ users { postsPage { id } } }');
@@ -609,7 +656,8 @@ describe('entry options', () => {
 /** The schema with a `@defer` directive declared, so deferred fragments can be written. */
 function createDeferSchema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-    plugins: [prismaNextPlugin],
+    plugins: [RelayPlugin, prismaNextPlugin],
+    relay: {},
     prismaNext: { contract: sampleContract as never },
   });
   let info: GraphQLResolveInfo | undefined;

@@ -430,6 +430,7 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
     const schema = builder.toSchema();
     const info = {
       parentType: schema.getType('User'),
+      path: { prev: undefined, key: 'whatever', typename: 'Query' },
       fieldNodes: [
         {
           kind: 'Field',

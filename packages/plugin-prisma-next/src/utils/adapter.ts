@@ -624,7 +624,12 @@ function compileFieldSelection(
   if (indirect && !indirect.path?.length && !indirect.paths?.length) {
     const forced = Array.isArray(raw) ? (raw as readonly string[]) : [];
 
-    return (_args, _ctx, nested) => withColumns(nested(true), [...exposed, ...forced]);
+    return (_args, _ctx, nested) => {
+      const selection = nested(true) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
+      return isThenable(selection)
+        ? Promise.resolve(selection).then((spec) => withColumns(spec, [...exposed, ...forced]))
+        : withColumns(selection, [...exposed, ...forced]);
+    };
   }
 
   if (raw === undefined) {
@@ -635,26 +640,59 @@ function compileFieldSelection(
     value: RawSelect,
     args: PrismaNextArgs,
     nested: NestedSelection<PrismaNextSpec>,
-  ): PrismaNextSpec =>
-    withColumns(
-      compileSelect(value, {
-        model: parentModel,
-        owner,
-        label: 'select',
-        args,
-        // The nested selection is walked as the field's return type, so when that type is
-        // known to be backed by another model than the relation's, the entry is a bare include.
-        branch: (relation, query) =>
-          returnModel && returnModel !== relation.target ? (query ?? {}) : nested(query),
-        fn: (value) => (sub, fnCtx) =>
-          (value as PrismaNextSpecFn & ((s: unknown, a: unknown, c: unknown) => never))(
-            sub,
-            args,
-            fnCtx,
-          ) as Record<string, unknown>,
-      }),
-      exposed,
-    );
+  ): PrismaNextSpec | Promise<PrismaNextSpec> => {
+    const pending: Promise<void>[] = [];
+    const branches: PrismaNextSpec[] = [];
+    let index = 0;
+    let replay = false;
+    const build = () =>
+      withColumns(
+        compileSelect(value, {
+          model: parentModel,
+          owner,
+          label: 'select',
+          args,
+          // The nested selection is walked as the field's return type, so when that type is
+          // known to be backed by another model than the relation's, the entry is a bare include.
+          branch: (relation, query) => {
+            const slot = index++;
+            if (replay) {
+              return branches[slot];
+            }
+            const selection = (
+              returnModel && returnModel !== relation.target ? (query ?? {}) : nested(query)
+            ) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
+            if (isThenable(selection)) {
+              pending.push(
+                Promise.resolve(selection).then((spec) => {
+                  branches[slot] = spec;
+                }),
+              );
+              return {};
+            }
+            branches[slot] = selection;
+            return selection;
+          },
+          fn: (value) => (sub, fnCtx) =>
+            (value as PrismaNextSpecFn & ((s: unknown, a: unknown, c: unknown) => never))(
+              sub,
+              args,
+              fnCtx,
+            ) as Record<string, unknown>,
+        }),
+        exposed,
+      );
+    const spec = build();
+    // The compiler spreads each branch into its relation entry. Rebuild with settled
+    // branches so no promise is spread, without invoking nested selections a second time.
+    return pending.length === 0
+      ? spec
+      : Promise.all(pending).then(() => {
+          replay = true;
+          index = 0;
+          return build();
+        });
+  };
 
   if (typeof raw === 'function') {
     return (args, ctx, nested) => {
