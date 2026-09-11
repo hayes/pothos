@@ -12,10 +12,12 @@ for you.
 ### Objects and Interfaces
 
 ```typescript
-import { ObjectRef } from '@pothos/core';
+import type { ObjectRef } from '@pothos/core';
 import builder from './builder';
 
-function addCommonFields(refs: ObjectRef<unknown, { id: string }>[]) {
+type BuilderTypes = typeof builder.$inferSchemaTypes;
+
+function addCommonFields(refs: ObjectRef<BuilderTypes, unknown, { id: string }>[]) {
   for (const ref of refs) {
     builder.objectFields(ref, (t) => ({
       id: t.exposeID('id', {}),
@@ -33,16 +35,16 @@ addCommonFields([WithCommonFields1, WithCommonFields2]);
 ```
 
 This will apply the `id` and `idLength` fields to both of the object types. The `ObjectRef` type is
-what is returned when creating an object (or when calling `builder.objectRef`). It takes 2 generic
-parameters: The first is the shape a resolver is expected to resolve to for that type, and the
-second is the shape of the parent arg when defining a field on that type. These 2 are generally the
-same, but can differ for some special cases (like with `loadableObject` from the dataloader plugin,
-which allows resolvers to resolve to an `ID` rather than the actual object). In this case, we only
-care about the second parameter since we are defining fields.
+what is returned when creating an object (or when calling `builder.objectRef`). It takes three generic
+parameters: the builder's SchemaTypes, the shape a resolver can return for that type, and the shape
+of the parent argument when defining fields. The parent shape defaults to the resolver shape.
+The resolver and parent shapes are generally the same, but can differ for some special cases (like with `loadableObject` from the dataloader plugin,
+which allows resolvers to resolve to an `ID` rather than the actual object). In this case,
+the helper requires an `id` on the parent shape because its field resolvers read that property.
 
 If you want to define fields on an interface, you can use `InterfaceRef` instead. If your helper
 accepts both, you can differentiate the refs by using `ref.kind` which will be either `Object` or
-`Interface`.
+`Interface`. Call `builder.interfaceFields` for interface refs.
 
 ### Args
 
@@ -51,21 +53,12 @@ for your resolvers, so you can't just add on more args later. Instead, we can de
 returns a set of args to apply to your field. To make this work, we need to get a few extra types:
 
 ```typescript
-import { ArgBuilder, InputFieldBuilder } from '@pothos/core';
+import SchemaBuilder, { type ArgBuilder } from '@pothos/core';
 
-export interface SchemaTypes {
-  Scalars: {
-    ID: {
-      Input: string;
-      Output: string;
-    };
-  };
-}
-export type TypesWithDefaults = PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>;
+const builder = new SchemaBuilder({});
+type BuilderTypes = typeof builder.$inferSchemaTypes;
 
-const builder = new SchemaBuilder<SchemaTypes>({});
-
-function createCommonArgs(arg: ArgBuilder<TypesWithDefaults>) {
+function createCommonArgs(arg: ArgBuilder<BuilderTypes>) {
   return {
     id: arg.id({}),
     reason: arg({ type: 'String', required: false }),
@@ -90,15 +83,15 @@ builder.mutationType({
 });
 ```
 
-In this example `SchemaTypes` are the types that will be provided to the builder when it is created.
-Internally Pothos extends these with some default types. This extended set of types is what gets
-passed around in many of Pothos's internal types. To correctly type our helper function, we need to
-create a version of `SchemaTypes` with the same defaults Pothos adds in (`TypesWithDefaults`). Once
-we have `TypesWithDefaults` we can define a helper function that accepts an arg builder
-(`ArgBuilder<TypesWithDefaults>`) and creates a set of arguments.
+`typeof builder.$inferSchemaTypes` includes the defaults Pothos applies to the builder's settings.
+Use it to type the helper's `ArgBuilder` parameter, then spread the returned arguments into each
+field. The resolver's `args` type includes those arguments. If you already export the builder's
+settings as a `SchemaTypes` interface,
+`PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>` is another way to obtain the extended types.
 
-The last step is to call your helper with `t.arg` (the arg builder), and spread the returned args
-into the args object for the current field.
+For a shared set of args tied to one builder, you can also use
+`builder.args`. See [Inferring Types](./inferring-types) for a helper
+that accepts different builders.
 
 ### Input fields
 
@@ -106,10 +99,12 @@ Input fields are similar to args, and also all need to be present when the type 
 Pothos can infer the correct types.
 
 ```typescript
-import { InputFieldBuilder } from '@pothos/core';
-import builder, { TypesWithDefault } from './builder';
+import type { InputFieldBuilder } from '@pothos/core';
+import builder from './builder';
 
-function createInputFields(t: InputFieldBuilder<TypesWithDefault, 'InputObject'>) {
+type BuilderTypes = typeof builder.$inferSchemaTypes;
+
+function createInputFields(t: InputFieldBuilder<BuilderTypes, 'InputObject'>) {
   return {
     id: t.id({}),
     reason: t.field({ type: 'String', required: false }),

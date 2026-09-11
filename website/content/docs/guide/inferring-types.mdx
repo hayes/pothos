@@ -1,15 +1,21 @@
 ---
 title: Inferring Types
-description: Inferring typescript Types from Refs
+description: Extract backing types and builder types for TypeScript helpers
 ---
 
 In some cases you may want to use the types from your input or object refs to build helpers, or
 provide accurate types for other functions.
 
 To get types from any Pothos `ref` object, you can use the `$inferType` and `$inferInput` properties
-on the ref. This pattern is inspired by [drizzle ORM](https://orm.drizzle.team/).
+on the corresponding output or input ref. Use these properties in TypeScript type expressions,
+not to read runtime data. An object ref carries its backing model, not a GraphQL query result: clients
+select fields, and resolvers can expose fields that are not properties of the backing model.
 
 ```ts
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
 const MyInput = builder.inputType('MyInput', {
   fields: (t) => ({
     id: t.id({ required: true }),
@@ -20,8 +26,12 @@ const MyInput = builder.inputType('MyInput', {
 // { id: string; name: string; }
 type MyInputShape = typeof MyInput.$inferInput;
 
-// infer the shape of the Prisma User model
-const UserRef = builder.prismaObject('User', {});
+const UserRef = builder.objectRef<{ id: string; name: string }>('User').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
 type UserType = typeof UserRef.$inferType;
 ```
 
@@ -35,6 +45,8 @@ The following is a simple helper for creating objects that have an `id` field. T
 itself isn't that useful, but shows how inferring SchemaTypes from a builder can work.
 
 ```ts
+import type { FieldMap } from '@pothos/core';
+
 type BuilderTypes = typeof builder.$inferSchemaTypes;
 
 function createObjectWithId<T extends { id: string }>(
@@ -56,10 +68,10 @@ function createObjectWithId<T extends { id: string }>(
   return ref;
 }
 
-createObjectWithId<{
+const UserWithId = createObjectWithId<{
   id: string;
   name: string;
-}>('User', (t) => ({
+}>('UserWithId', (t) => ({
   name: t.exposeString('name'),
 }));
 ```
@@ -70,6 +82,8 @@ the `Types` from the provided builder. This is useful when building helpers that
 multiple builder instances.
 
 ```ts
+import type { SchemaTypes } from '@pothos/core';
+
 function createPaginationArgs<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ) {
@@ -79,9 +93,11 @@ function createPaginationArgs<Types extends SchemaTypes>(
   }));
 }
 
+builder.queryType({});
+
 builder.queryField('getUsers', (t) =>
   t.field({
-    type: [Shaveable],
+    type: [UserWithId],
     args: {
       ...createPaginationArgs(builder),
     },
