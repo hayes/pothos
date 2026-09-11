@@ -21,6 +21,37 @@ try {
         waitUntil: 'domcontentloaded',
       });
       await page.getByRole('button', { name: /schema synced/ }).waitFor();
+      await page.waitForFunction(() => window.monaco?.languages.typescript);
+      // Monaco debounces marker updates after loading a project's files.
+      // Check both fresh worker diagnostics and the errors readers actually see.
+      await page.waitForTimeout(1500);
+      const diagnostics = await page.evaluate(async () => {
+        const monaco = window.monaco;
+        const models = monaco.editor
+          .getModels()
+          .filter((model) => model.getLanguageId() === 'typescript');
+        const getWorker = await monaco.languages.typescript.getTypeScriptWorker();
+        const worker = await getWorker(...models.map((model) => model.uri));
+        const errors = [];
+        for (const model of models) {
+          const path = model.uri.toString();
+          for (const diagnostic of [
+            ...(await worker.getSyntacticDiagnostics(path)),
+            ...(await worker.getSemanticDiagnostics(path)),
+          ]) {
+            if (diagnostic.category === 1) {
+              errors.push({ path, code: diagnostic.code, message: diagnostic.messageText });
+            }
+          }
+          for (const marker of monaco.editor.getModelMarkers({ resource: model.uri })) {
+            if (marker.severity === monaco.MarkerSeverity.Error) {
+              errors.push({ path, code: marker.code, message: marker.message });
+            }
+          }
+        }
+        return errors;
+      });
+      assert.deepEqual(diagnostics, [], `${example.id}: editor TypeScript diagnostics`);
       for (const query of bundle.queries) {
         await page
           .getByRole('tablist', { name: 'Operations' })

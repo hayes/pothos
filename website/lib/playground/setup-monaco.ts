@@ -15,6 +15,7 @@ let monaco: Monaco | null = null;
 // user gets stale "missing required field" errors after switching
 // examples (e.g. scope-auth → validation).
 const pluginDisposables = new Map<string, MonacoDisposable[]>();
+const projectLibraries = new Map<string, { content: string; disposable: MonacoDisposable }>();
 
 // Cache getAllPluginNames result (static list)
 let cachedPluginNames: string[] | null = null;
@@ -175,6 +176,34 @@ export function registerPlaygroundFiles(files: Array<{ filename: string; content
     return;
   }
 
+  // Register the complete TypeScript project before creating editor models.
+  // Creating a sibling model alone does not invalidate diagnostics already
+  // computed for its importers. Extra-lib changes notify Monaco to revalidate
+  // them, including when an unopened dependency changes.
+  const paths = new Set<string>();
+  for (const file of files) {
+    if (!/\.[cm]?tsx?$/.test(file.filename)) {
+      continue;
+    }
+    const path = `file:///playground/${file.filename}`;
+    paths.add(path);
+    const previous = projectLibraries.get(path);
+    if (previous?.content === file.content) {
+      continue;
+    }
+    previous?.disposable.dispose();
+    projectLibraries.set(path, {
+      content: file.content,
+      disposable: monaco.languages.typescript.typescriptDefaults.addExtraLib(file.content, path),
+    });
+  }
+  for (const [path, library] of projectLibraries) {
+    if (!paths.has(path)) {
+      library.disposable.dispose();
+      projectLibraries.delete(path);
+    }
+  }
+
   // Register each file as a model in Monaco's virtual file system.
   // Language ID drives which Monaco service parses the file: typescript
   // for .ts/.d.ts (the eager-model-sync path feeds these to the TS
@@ -274,6 +303,10 @@ export function resetMonacoSetup(): void {
     }
   }
   pluginDisposables.clear();
+  for (const library of projectLibraries.values()) {
+    library.disposable.dispose();
+  }
+  projectLibraries.clear();
   cachedPluginNames = null;
 
   // Clear any pending debounce timer

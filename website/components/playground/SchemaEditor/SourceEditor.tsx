@@ -50,7 +50,6 @@ export function SourceEditor({
   const editorRef = useRef<
     Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null
   >(null);
-  const filesKeyRef = useRef('');
   const { theme: editorTheme, beforeMount: registerThemes } = useEditorTheme();
 
   useEffect(() => {
@@ -64,14 +63,9 @@ export function SourceEditor({
   }, [monaco, typesLoaded]);
 
   useEffect(() => {
-    if (!monaco || !typesLoaded || !allFiles || allFiles.length <= 1) {
+    if (!monaco || !typesLoaded || !allFiles) {
       return;
     }
-    const key = allFiles.map((f) => `${f.filename}:${f.content.length}`).join(',');
-    if (key === filesKeyRef.current) {
-      return;
-    }
-    filesKeyRef.current = key;
     import('@/lib/playground/setup-monaco').then(({ registerPlaygroundFiles }) => {
       registerPlaygroundFiles(allFiles);
     });
