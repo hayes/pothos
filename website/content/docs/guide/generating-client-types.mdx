@@ -55,7 +55,7 @@ import { schema } from './src/schema';
 
 const config: CodegenConfig = {
   schema: printSchema(schema),
-  documents: ['src/**/*.tsx'],
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
   generates: {
     './src/gql/': {
       preset: 'client',
@@ -71,6 +71,22 @@ You can customize this config as needed, but the relevant parts are:
 
 - Importing your GraphQL schema, this should be the result of calling `builder.toSchema({})`
 - using `printSchema` from `graphql` to convert the schema to a string
+
+## Run generation
+
+The `documents` pattern must match your client queries, mutations, and fragments. Adjust it for your
+project and exclude the generated directory. For example, a file named `src/queries.graphql` can
+contain a named query that selects fields from your schema.
+
+```sh
+npx graphql-codegen --config codegen.ts
+```
+
+Run this again when your schema or operations change. The
+[client preset](https://the-guild.dev/graphql/codegen/plugins/presets/preset-client) generates typed
+operation documents and helpers in `src/gql/`; the result types reflect the fields each operation
+selects. The CLI imports your schema module, so its environment variables and other runtime
+dependencies must be available. Keep server startup outside that module.
 
 ## Generating a schema.graphql file with graphql-code-generator
 
@@ -89,7 +105,7 @@ import { schema } from './src/schema';
 
 const config: CodegenConfig = {
   schema: printSchema(schema),
-  documents: ['src/**/*.tsx'],
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
   generates: {
     './src/gql/': {
       preset: 'client',
@@ -106,20 +122,23 @@ export default config;
 
 ## Adding scalars
 
-If you are using scalars (e.g. from `graphql-scalars`), you will need to add them to `codegen.ts` or
-else they will resolve to `any`. Here is an example for `UUID` and `DateTime`:
+Configure custom scalars to match their serialized values on the client. Add the following `config`
+property to the configuration above:
 
 ```typescript
-const config: CodegenConfig = {
-  ...,
-  config: {
-    scalars: {
-      UUID: 'string',
-      DateTime: 'Date',
-    },
+config: {
+  strictScalars: true,
+  scalars: {
+    UUID: 'string',
+    DateTime: 'string',
   },
-};
+},
 ```
+
+A DateTime scalar commonly serializes to an ISO date string. Mapping it to `Date` changes only the
+TypeScript type; Codegen does not convert JSON strings into JavaScript `Date` instances. Use `Date`
+only if your client actually performs that conversion. `strictScalars` makes generation fail when a
+custom scalar has no mapping; see the [client preset configuration](https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#config-api).
 
 ## Alternatives
 
@@ -142,7 +161,7 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
   schema: './path/to/schema.graphql',
-  documents: ['src/**/*.tsx'],
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
   generates: {
     './src/gql/': {
       preset: 'client',
@@ -157,8 +176,8 @@ export default config;
 ### Using introspection from your dev (or production) server
 
 Rather than using a schema SDL file, graphql-code-generator can also use introspection to load
-your schema. To do this, you will need to ensure that your server has introspection enabled, most
-servers will have introspection enabled by default in development, and disabled in production.
+your schema. To do this, you will need to ensure that your server has introspection enabled and that Codegen can authenticate if the endpoint requires it.
+Introspection defaults depend on the server and its configuration.
 
 You can then configure graphql-code-generator to use introspection by passing the URL to your
 graphql endpoint:
@@ -167,8 +186,8 @@ graphql endpoint:
 import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
-  schema: 'https://localhost:3000/graphql',
-  documents: ['src/**/*.tsx'],
+  schema: 'http://localhost:3000/graphql',
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
   generates: {
     './src/gql/': {
       preset: 'client',
