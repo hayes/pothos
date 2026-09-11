@@ -15,9 +15,8 @@ default.
   dropped the selection it resolved to.
 - The plugins still build one query. Callbacks start in the same tick, and what they return is
   merged after every synchronous selection, in document order. Async argument mappers (such as the
-  validation plugin's) are awaited before the field's `select` runs. A schema with no async
-  callbacks is unaffected either way: until a callback returns a promise, planning and resolving
-  create no promise and no closure they did not create before.
+  validation plugin's) are awaited before the field's `select` runs. Synchronous selection planning
+  remains synchronous and does not create promises solely to support async callbacks.
 - Inside an async `select`, `await` the result of `nestedSelection` before adding it to the
   selection. A `select` that returns while a nested selection it started is still pending throws,
   naming the field.
