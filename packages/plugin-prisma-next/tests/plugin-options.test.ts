@@ -215,38 +215,14 @@ describe('plugin-options end-to-end', () => {
     expect(data.users.edges).toHaveLength(1);
   });
 
-  it('skipDeferredFragments option is wired through builder.options.prismaNext', async () => {
-    // End-to-end behavior of `@defer` requires a graphql-js version with
-    // the directive built in. The coverage-gate check above already
-    // verifies the option name appears in tests/ (the auto-include
-    // unit test wires it through `applySelectionToCollection`). Here we
-    // just confirm the builder option type accepts and persists it.
+  it('rejects skipping deferred selections because there is no later loader', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
-      prismaNext: {
-        contract: ctx.contract,
-        skipDeferredFragments: false,
-      },
+      prismaNext: { contract: ctx.contract, skipDeferredFragments: true } as never,
     });
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({
-          type: ['User'],
-          resolve: (() => ctx.ormClient.User) as never,
-        }),
-      }),
-    });
-    const opts = (builder.options as { prismaNext?: { skipDeferredFragments?: boolean } })
-      .prismaNext;
-    expect(opts?.skipDeferredFragments).toBe(false);
-    // And the schema still builds + queries.
-    const result = await execute({
-      schema: builder.toSchema(),
-      document: parse('{ users { id } }'),
-      contextValue: {},
-    });
-    expect(result.errors).toBeUndefined();
+    expect(() =>
+      builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) }),
+    ).toThrow(/deferred selections must be loaded/);
   });
 });
 

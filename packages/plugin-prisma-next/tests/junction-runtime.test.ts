@@ -22,7 +22,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import SchemaBuilder from '@pothos/core';
-import sqlite from '@prisma-next/sqlite/runtime';
+import sqlite from '@prisma/orm-sqlite/runtime';
 import { execute, parse } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { PrismaNextRelationMeta } from '../src';
@@ -41,7 +41,7 @@ const junctionContract = {
   schemaVersion: 1,
   targetFamily: 'sql',
   target: 'sqlite',
-  profileHash: 'sha256:junction-test-profile',
+  profileHash: '1111111111111111111111111111111111111111111111111111111111111111',
   roots: {
     post: { model: 'Post', namespace: NS },
     tag: { model: 'Tag', namespace: NS },
@@ -147,11 +147,14 @@ const junctionContract = {
         },
       },
     },
-    storageHash: 'sha256:junction-test-storage',
+    storageHash: '2222222222222222222222222222222222222222222222222222222222222222',
     types: {},
   },
-  execution: { executionHash: 'sha256:junction-test-exec', mutations: { defaults: [] } },
-  extensionPacks: {},
+  execution: {
+    executionHash: '3333333333333333333333333333333333333333333333333333333333333333',
+    mutations: { defaults: [] },
+  },
+  extensions: {},
   meta: {},
 } as unknown as AnyContract;
 

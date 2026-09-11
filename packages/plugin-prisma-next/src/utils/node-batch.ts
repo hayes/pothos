@@ -9,7 +9,7 @@
  *
  * @internal
  */
-import { createContextCache } from '@pothos/core';
+import { createContextCache, encodeCursorTuple } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { Apply } from './apply.js';
 
@@ -38,7 +38,7 @@ export function idKeyFromRow(row: Record<string, unknown>, idFields: readonly st
   if (idFields.length === 1) {
     return String(row[idFields[0]!]);
   }
-  return JSON.stringify(idFields.map((f) => row[f]));
+  return encodeCursorTuple(idFields.map((f) => row[f]));
 }
 
 export function idKeyFromParsed(parsed: unknown, idFields: readonly string[]): string {
@@ -46,7 +46,7 @@ export function idKeyFromParsed(parsed: unknown, idFields: readonly string[]): s
     return String(parsed);
   }
   if (Array.isArray(parsed)) {
-    return JSON.stringify(parsed);
+    return encodeCursorTuple(parsed);
   }
   return String(parsed);
 }
@@ -84,6 +84,7 @@ export interface NodeBatchRunner<IDShape> {
   buildIdPredicate: (ids: IDShape[]) => (model: Record<string, unknown>) => unknown;
   buildApply: (info: GraphQLResolveInfo) => Apply;
   idFields: readonly string[];
+  keyForValues?: (values: readonly unknown[]) => string;
   brandRow?: (row: object) => void;
 }
 
@@ -133,11 +134,19 @@ async function flush<IDShape>(state: BatchState<IDShape>, context: unknown): Pro
         const byId = new Map<string, object>();
         for (const row of rows) {
           if (row && typeof row === 'object') {
-            byId.set(idKeyFromRow(row as Record<string, unknown>, runner.idFields), row);
+            const values = runner.idFields.map((field) => (row as Record<string, unknown>)[field]);
+            const key = runner.keyForValues
+              ? runner.keyForValues(values)
+              : idKeyFromRow(row as Record<string, unknown>, runner.idFields);
+            byId.set(key, row);
           }
         }
         for (const entry of entries) {
-          const key = idKeyFromParsed(entry.parsedId, runner.idFields);
+          const key = runner.keyForValues
+            ? runner.keyForValues(
+                runner.idFields.length === 1 ? [entry.parsedId] : (entry.parsedId as unknown[]),
+              )
+            : idKeyFromParsed(entry.parsedId, runner.idFields);
           const row = byId.get(key) ?? null;
           if (row && runner.brandRow) {
             runner.brandRow(row);

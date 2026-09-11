@@ -206,6 +206,12 @@ declare global {
                   | (keyof Row<Types, M> & string)
                   | readonly [keyof Row<Types, M> & string, ...(keyof Row<Types, M> & string)[]];
                 description?: string;
+                /** Restore nonstandard ORM values such as Temporal and Decimal IDs. */
+                codecs?: {
+                  [Key in keyof Row<Types, M>]?: import('./utils/cursors.js').CursorValueCodec<
+                    Row<Types, M>[Key]
+                  >;
+                };
                 parse?: (id: string, ctx: Types['Context']) => IDShape;
                 resolve?: (parent: Shape, ctx: Types['Context']) => string | number;
               };

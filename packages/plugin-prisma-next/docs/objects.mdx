@@ -58,23 +58,27 @@ builder.queryType({
    `['User']`).
 2. The resolver can return a `Collection` directly. The plugin layers
    `.select(...)` / `.include(...)` onto it from the GraphQL selection
-   set, then calls `.all()` (with `.take(1)` injected for single-row
+   set, then calls `.all()` (with `.limit(1)` injected for single-row
    fields).
 
-If you need post-processing in the resolver, return the materialized
-rows yourself — the plugin's auto-detect only fires for actual orm-client
-collections.
+Return the Collection before calling `.all()` or `.first()`. Materialized rows
+are rejected at the type and runtime interfaces: the plugin must apply the
+actual GraphQL selection before execution. Use selected fields on the model
+for derived values, and a nullable field when an empty Collection should
+resolve to null.
 
 ```ts
 me: t.prismaField({
   type: 'User',
-  resolve: async (_root, _args, ctx) => {
-    const user = await ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)).first();
-    if (!user) throw new Error('Not found');
-    return user;
-  },
+  nullable: true,
+  resolve: (_root, _args, ctx) =>
+    ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
 }),
 ```
+
+For mutations, perform the write and return a Collection identifying the
+resulting rows while the same transaction remains active. For a custom
+non-model result, use a normal Pothos object type instead.
 
 ### With an input object — `t.prismaFieldWithInput`
 
@@ -121,7 +125,7 @@ builder.prismaObject('User', {
 
 - `{ col: true }` — column read.
 - `{ rel: true }` — simple include; the relation rows attach to the row.
-- `{ rel: { where, orderBy, take, skip } }` — declarative refine.
+- `{ rel: { where, orderBy, limit, offset } }` — declarative refine.
 - `{ rel: (sub) => ({...}) }` — function-form select for counts,
   aggregates, or multiple variants. The inner keys land on the row as
   flat properties (namespaced per type so variants don't collide).

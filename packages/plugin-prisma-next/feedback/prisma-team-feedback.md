@@ -1,3 +1,6 @@
+> Historical feedback from the pre-release integration. Current findings and
+> limitations are maintained in [prisma-next-painpoints.md](./prisma-next-painpoints.md).
+
 Stuff I hit building the Pothos plugin. Long-form with file refs is in prisma-next-painpoints.md.
 
 Missing features:

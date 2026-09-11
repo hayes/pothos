@@ -1,3 +1,5 @@
+import { PothosSchemaError } from '@pothos/core';
+
 /** @internal */
 export function resolveSizeOption<Args, Ctx>(
   opt: number | ((args: Args, ctx: Ctx) => number) | undefined,
@@ -10,11 +12,10 @@ export function resolveSizeOption<Args, Ctx>(
   return typeof opt === 'function' ? opt(args, ctx) : opt;
 }
 
-/** @internal */
+/** Options used by the public selection application helpers. */
 export interface MapperPluginOptions {
   defaultConnectionSize?: number;
   maxConnectionSize?: number;
-  skipDeferredFragments?: boolean;
 }
 
 /** @internal */
@@ -26,7 +27,14 @@ export interface FullPrismaNextPluginOptions<Contract = unknown> extends MapperP
 export function readPluginOptions<Contract = unknown>(builder: {
   options: unknown;
 }): FullPrismaNextPluginOptions<Contract> | undefined {
-  return (builder.options as { prismaNext?: FullPrismaNextPluginOptions<Contract> }).prismaNext;
+  const options = (builder.options as { prismaNext?: FullPrismaNextPluginOptions<Contract> })
+    .prismaNext;
+  if ((options as { skipDeferredFragments?: boolean } | undefined)?.skipDeferredFragments) {
+    throw new PothosSchemaError(
+      'prismaNext.skipDeferredFragments is not supported: deferred selections must be loaded with the initial query.',
+    );
+  }
+  return options;
 }
 
 /** @internal */
@@ -43,8 +51,10 @@ export function mapperOptionsFromPluginOpts(
   if (opts.maxConnectionSize !== undefined) {
     out.maxConnectionSize = opts.maxConnectionSize;
   }
-  if (opts.skipDeferredFragments !== undefined) {
-    out.skipDeferredFragments = opts.skipDeferredFragments;
+  if ((opts as { skipDeferredFragments?: boolean }).skipDeferredFragments) {
+    throw new PothosSchemaError(
+      'skipDeferredFragments is not supported: deferred selections must be loaded with the initial query.',
+    );
   }
   return out;
 }

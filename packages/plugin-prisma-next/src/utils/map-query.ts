@@ -2,7 +2,7 @@
  * The plugin's entry points into `@pothos/selection-mapper`: the plan of a resolver's `info`
  * emitted onto its collection.
  */
-import { isThenable } from '@pothos/core';
+import { isThenable, type MaybePromise, PothosSchemaError } from '@pothos/core';
 import { type IndirectInclude, type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { AnyContract } from '../types.js';
@@ -16,7 +16,6 @@ export interface ApplySelectionOptions {
   path?: PathSegment[];
   /** Columns always read on the root, ahead of anything the selection adds (cursor and id columns). */
   extraColumns?: readonly string[];
-  skipDeferredFragments?: boolean;
   /** Walk as this type instead of `info.returnType` (a `node(id:)` load of a concrete type). */
   typeName?: string;
 }
@@ -32,7 +31,12 @@ export function applySelectionToCollection(
   contract: AnyContract,
   context: unknown,
   options: ApplySelectionOptions = {},
-): MapperCollection {
+): MaybePromise<MapperCollection> {
+  if ((options as { skipDeferredFragments?: boolean }).skipDeferredFragments) {
+    throw new PothosSchemaError(
+      'skipDeferredFragments is not supported: deferred selections must be loaded with the initial query.',
+    );
+  }
   // Next passes the original context to callbacks and does not use loader mapping caches.
   const ctx = context as object;
   const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
@@ -44,7 +48,7 @@ export function applySelectionToCollection(
     path: options.path,
     paths: options.paths,
     initial,
-    skipDeferredFragments: options.skipDeferredFragments,
+    skipDeferredFragments: false,
   });
 
   if (!plan) {
@@ -58,6 +62,6 @@ export function applySelectionToCollection(
     emit(baseCollection, adapter.toQuery(settled.play().root), settled.model, ctx);
 
   return isThenable(plan)
-    ? (plan.then((settled) => finish(settled as PrismaNextPlan)) as unknown as MapperCollection)
+    ? Promise.resolve(plan).then((settled) => finish(settled as PrismaNextPlan))
     : finish(plan);
 }

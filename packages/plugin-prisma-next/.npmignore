@@ -7,3 +7,6 @@ tsconfig.*
 ARCHITECTURE.md
 REVIEW.md
 feedback
+
+docs/*review-*.md
+docs/release-status.md

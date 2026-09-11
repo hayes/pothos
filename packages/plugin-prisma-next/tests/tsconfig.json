@@ -1,12 +1,8 @@
 {
-  "include": ["**/*"],
+  "include": ["../src/**/*", "**/*"],
   "extends": "../../../tsconfig.options.json",
   "compilerOptions": {
     "skipLibCheck": true
   },
-  "references": [
-    {
-      "path": "../"
-    }
-  ]
+  "exclude": ["scope-auth.test.ts"]
 }

@@ -2,6 +2,13 @@ import { ObjectRef, type SchemaTypes } from '@pothos/core';
 import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 
+/** Connection extension fields conservatively retain row loading. */
+export function connectionNeedsRows(context: object, info: GraphQLResolveInfo): boolean {
+  return [...selectedFieldNames(context, info)].some(
+    (name) => name !== 'totalCount' && name !== '__typename',
+  );
+}
+
 /** @internal */
 export interface BuildTotalCountPromiseOptions {
   info: GraphQLResolveInfo;

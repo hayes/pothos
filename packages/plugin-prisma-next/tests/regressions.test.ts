@@ -420,8 +420,8 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
       include: () => mock,
       where: () => mock,
       orderBy: () => mock,
-      take: () => mock,
-      skip: () => mock,
+      limit: () => mock,
+      offset: () => mock,
       count: () => ({}),
       combine: () => mock,
     };
@@ -596,8 +596,8 @@ describe('prismaInterface → prismaObject model propagation', () => {
   });
 });
 
-describe('prismaNode — user isTypeOf merged with brand check', () => {
-  it('honors a user-supplied isTypeOf while still keeping the brand fallback', () => {
+describe('prismaNode — user isTypeOf is preserved', () => {
+  it('honors a user-supplied isTypeOf', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin, RelayPlugin],
       relay: { clientMutationId: 'omit', cursorType: 'String' },
@@ -625,15 +625,11 @@ describe('prismaNode — user isTypeOf merged with brand check', () => {
     // User predicate wins for { isUser: true }.
     expect(isTypeOf({ isUser: true }, {} as never, {} as never)).toBe(true);
     expect(calledWith).toEqual({ isUser: true });
-    // Otherwise falls through to the brand check, which returns false
-    // for a plain object (no brand stamped yet).
+    // Ordinary objects must still satisfy the user predicate.
     expect(isTypeOf({}, {} as never, {} as never)).toBe(false);
   });
 
-  it('handles async user isTypeOf without short-circuiting on the Promise object', async () => {
-    // A bare `userIsTypeOf(value) || brandCheck(value)` short-circuits
-    // on a truthy Promise<false>. The merge must detect the Promise
-    // return and chain through .then so the brand check still runs.
+  it('preserves async user isTypeOf', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin, RelayPlugin],
       relay: { clientMutationId: 'omit', cursorType: 'String' },
@@ -649,8 +645,7 @@ describe('prismaNode — user isTypeOf merged with brand check', () => {
     const schema = builder.toSchema();
     const userType = schema.getType('User') as GraphQLObjectType;
     const isTypeOf = userType.isTypeOf!;
-    // Plain object: user predicate resolves to false async; brand
-    // check is false. Final result should be false (not Promise-truthy).
+    // A promised false remains false.
     const result = isTypeOf({}, {} as never, {} as never);
     expect(typeof (result as { then?: unknown })?.then).toBe('function');
     expect(await result).toBe(false);

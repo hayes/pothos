@@ -10,13 +10,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import {
-  type GraphQLFieldResolver,
-  type GraphQLResolveInfo,
-  getNamedType,
-  getNullableType,
-  isListType,
-} from 'graphql';
+import { type GraphQLFieldResolver, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECT,
   PRISMA_NEXT_MODEL,
@@ -24,6 +18,7 @@ import {
   PRISMA_NEXT_RELATIONS,
   PRISMA_NEXT_SELECT,
 } from './constants.js';
+import type { PreparedFieldExtension } from './extensions.js';
 import type { AnyContract } from './types.js';
 import { fieldAliasPrefix, objectLevelFieldAlias } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
@@ -43,12 +38,12 @@ export type {
   RelationPredicate,
   ShorthandWhereFilter,
   UniqueConstraintCriterion,
-} from '@prisma-next/sql-orm-client';
+} from '@prisma/orm-family-sql/orm-client';
 // `IncludeRefinementCollection` and `IsToManyRelation` are re-exported via
 // `export * from './types'` below — orm-client made them internal in 0.14.0,
 // so the plugin owns reconstructed copies. `IncludeRefinementResult` was
 // dropped (see the note in ./types).
-export { all, and, not, or } from '@prisma-next/sql-orm-client';
+export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';
 export type { PrismaConnectionHelpers } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
 export { PRISMA_NEXT_MODEL, PRISMA_NEXT_PREPARED, PRISMA_NEXT_SELECT } from './constants.js';
@@ -67,6 +62,7 @@ export type { Apply } from './utils/apply.js';
 export { createApply } from './utils/apply.js';
 export { rebrandForVariant } from './utils/branding.js';
 export {
+  type CursorValueCodec,
   decodeCursor as parsePrismaNextCursor,
   encodeCursor as formatPrismaNextCursor,
 } from './utils/cursors.js';
@@ -112,20 +108,19 @@ async function materializeCollection(
   contract: AnyContract,
   context: unknown,
   mapperOpts: ReturnType<typeof mapperOptionsFromPluginOpts>,
+  wantsList: boolean,
 ): Promise<unknown> {
   const apply = createApply({ info, contract, context, mapperOpts });
   // A promise only when a select callback beneath the field was async.
   let applied = (await apply(collection)) as {
     all: () => Promise<readonly unknown[]>;
-    take?: (n: number) => unknown;
+    limit?: (n: number) => unknown;
   };
-  // Single-row fields: inject `.take(1)` so we don't pull the whole
+  // Single-row fields: inject `.limit(1)` so we don't pull the whole
   // collection just to read row 0. List fields take whatever the user
   // returned.
-  const inner = getNullableType(info.returnType);
-  const wantsList = isListType(inner);
-  if (!wantsList && typeof applied.take === 'function') {
-    applied = applied.take(1) as typeof applied;
+  if (!wantsList && typeof applied.limit === 'function') {
+    applied = applied.limit(1) as typeof applied;
   }
   // `.all()` resolves to a real array on every orm-client adapter
   // we target — no async-iterable fallback path.
@@ -244,6 +239,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const ext = (fieldConfig.extensions ?? {}) as Record<string | symbol, unknown>;
 
     if (ext[PRISMA_NEXT_PREPARED]) {
+      const prepared = ext[PRISMA_NEXT_PREPARED] as PreparedFieldExtension;
       // Resolve plugin options once at schema-build time — `wrapResolve`
       // runs per field; the returned closure runs per request.
       const opts = readPluginOptions<AnyContract>(this.builder);
@@ -266,15 +262,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             ? await (raw as Promise<unknown>)
             : raw;
 
-        // Auto-wrap: if the resolver returned a Collection (duck-typed
-        // via `.select` + `.all`), apply selection and materialize.
-        // Anything else (null, array, raw row) passes through unchanged.
-        const materialized =
-          result != null && !Array.isArray(result) && isOrmCollection(result)
-            ? await materializeCollection(result, info, contract, context, mapperOpts)
-            : result;
-
-        return materialized;
+        if (result == null) {
+          return result;
+        }
+        if (!isOrmCollection(result)) {
+          throw new PothosSchemaError(
+            `t.prismaField '${info.parentType.name}.${info.fieldName}' must return an ORM Collection or null. ` +
+              'Return the collection before executing it so the complete GraphQL selection can be applied.',
+          );
+        }
+        return materializeCollection(result, info, contract, context, mapperOpts, prepared.isList);
       };
     }
 

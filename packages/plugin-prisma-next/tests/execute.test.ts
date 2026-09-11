@@ -31,8 +31,8 @@ interface RecordingCollection {
   count(): unknown;
   where(input: unknown): RecordingCollection;
   orderBy(input: unknown): RecordingCollection;
-  take(n: number): RecordingCollection;
-  skip(n: number): RecordingCollection;
+  limit(n: number): RecordingCollection;
+  offset(n: number): RecordingCollection;
 }
 
 function createRecordingCollection(
@@ -70,11 +70,11 @@ function createRecordingCollection(
       calls.push({ method: 'orderBy', args: [input] });
       return c;
     },
-    take(n) {
+    limit(n) {
       calls.push({ method: 'take', args: [n] });
       return c;
     },
-    skip(n) {
+    offset(n) {
       calls.push({ method: 'skip', args: [n] });
       return c;
     },
@@ -393,9 +393,9 @@ describe('plugin · end-to-end execution', () => {
     expect(msg).toMatch(/unrecognized value shape/);
   });
 
-  it('injects .take(1) when prismaField returns a single (non-list) type', async () => {
+  it('injects .limit(1) when prismaField returns a single (non-list) type', async () => {
     // A single-row prismaField returning a Collection must auto-inject
-    // `.take(1)` so we don't fetch the entire table just to read the
+    // `.limit(1)` so we don't fetch the entire table just to read the
     // first row.
     let single: RecordingCollection;
     single = createRecordingCollection(() => [{ id: 'u-1', firstName: 'Alice' }]);

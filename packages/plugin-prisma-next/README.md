@@ -1,15 +1,24 @@
 # @pothos/plugin-prisma-next
 
-Pothos plugin for [`prisma-next`](https://github.com/prisma/prisma-next) — the
-new fluent collection-based ORM client. Provides tighter integration with
+Pothos plugin for [Prisma ORM 8](https://github.com/prisma/orm)
+(formerly Prisma Next), the fluent collection-based ORM client. Provides tighter integration with
 prisma-next, makes it easier to define types backed by your contract, helps
 solve N+1 queries for relations, and ships Relay integrations for nodes and
 connections.
 
-> **Experimental.** This plugin tracks prisma-next `^0.16.0` (the `@prisma-next/*`
-> client packages, published on npm). Both prisma-next and this plugin are pre-1.0
-> and their APIs may still change. This package is private and is not published to npm.
-> Its unpublished documentation is preserved in [docs](./docs/index.mdx).
+> **Initial release.** This plugin targets Prisma ORM `8.0.0-rc.9`. The upstream
+> API is still a release candidate, so use the exact supported version.
+> This is separate from `@pothos/plugin-prisma`, which targets `@prisma/client`.
+
+The plugin depends on Prisma's shared SQL family, not a database dialect. Your
+application supplies its Collection and owns the driver, connection, and
+transaction. PostgreSQL and SQLite use the same Pothos configuration. MongoDB
+uses a different upstream query API and is not supported in 0.1.
+
+The plugin applies the complete GraphQL selection before executing a returned
+Collection. Resolvers must return a Collection (or null for a nullable field),
+not materialized rows. This contract makes fallback relation loading unnecessary.
+Deferred fragments are included in the selection plan.
 
 ## Features
 
@@ -27,7 +36,7 @@ connections.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
-import sqlite from '@prisma-next/sqlite/runtime';
+import sqlite from '@prisma/orm-sqlite/runtime';
 import contractJson from './prisma/contract.json' with { type: 'json' };
 import type { Contract } from './prisma/contract';
 
@@ -64,4 +73,4 @@ builder.queryType({
 });
 ```
 
-Full docs: [pothos-graphql.dev/docs/plugins/prisma-next](./docs/index.mdx).
+Full documentation: [Prisma ORM plugin](./docs/index.mdx).

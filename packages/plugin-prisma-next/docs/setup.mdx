@@ -9,14 +9,16 @@ import { Callout } from 'fumadocs-ui/components/callout';
 npm install --save @pothos/plugin-prisma-next
 ```
 
-The plugin lists the prisma-next client as a peer dependency, so install the
-`@prisma-next/*` packages too (and a runtime adapter for your database — e.g.
-`@prisma-next/sqlite`). Pin them to the same `^0.16.0` range the plugin
-targets:
+Install the shared Prisma framework and SQL family at the supported version:
 
-```package-install
-npm install --save @prisma-next/contract @prisma-next/sql-contract @prisma-next/sql-orm-client @prisma-next/sqlite
+```sh
+npm install @prisma/orm-framework@8.0.0-rc.9 @prisma/orm-family-sql@8.0.0-rc.9
 ```
+
+Your application chooses its runtime, for example
+`@prisma/orm-postgres@8.0.0-rc.9` or `@prisma/orm-sqlite@8.0.0-rc.9`.
+The Pothos plugin does not choose a driver or inspect the database dialect.
+Use Node.js 24 or later for this integration's supported runtime.
 
 <Callout type="info">
   `@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional peers —
@@ -26,18 +28,18 @@ npm install --save @prisma-next/contract @prisma-next/sql-contract @prisma-next/
 ## Setup
 
 The plugin needs your prisma-next contract at type-check time and at runtime.
-Both come from the same JSON file emitted by `prisma-next contract emit`.
+Both come from the same JSON file emitted by `prisma contract emit`.
 
 ### Generate your contract
 
 Run prisma-next's contract emit step against your schema. The output is a JSON
 file plus a `.d.ts` carrying the contract type. Check the
-[prisma-next docs](https://github.com/prisma/prisma-next) for the up-to-date
+[prisma-next docs](https://github.com/prisma/orm) for the up-to-date
 command — this plugin treats the contract as the source of truth for model
 names, relation names, column types, and FK metadata.
 
 ```sh
-prisma-next contract emit
+prisma contract emit
 ```
 
 ### Set up the builder
@@ -46,7 +48,7 @@ prisma-next contract emit
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
-import sqlite from '@prisma-next/sqlite/runtime';
+import sqlite from '@prisma/orm-sqlite/runtime';
 
 import contractJson from './prisma/contract.json' with { type: 'json' };
 import type { Contract } from './prisma/contract';
@@ -87,14 +89,39 @@ prismaNext: {
   contract,                    // required
   defaultConnectionSize: 20,   // default `first:` for all connections
   maxConnectionSize: 100,      // hard cap on connection page size
-  skipDeferredFragments: true, // ignore `@defer` fragments in the
-                               // preload (default: true)
 }
 ```
 
 `defaultConnectionSize` / `maxConnectionSize` flow through both
 `t.prismaConnection` and `t.relatedConnection`. They're overridden by
 per-field `defaultSize` / `maxSize` options when those are set.
+
+## TypeScript integration
+
+The plugin's declarations include optional Relay and with-input interfaces, as
+in the other Pothos ORM plugins. Runtime imports do not require those plugins.
+Projects that check dependency declarations with `skipLibCheck: false` should
+install both optional type peers. They need not enable either plugin at runtime.
+
+Use the global Temporal declarations expected by your chosen Prisma codecs. With
+TypeScript versions that do not supply them in `lib`, applications can install
+`temporal-spec` and include `import type {} from 'temporal-spec/global'`. The
+runtime Temporal implementation/polyfill is a separate application dependency.
+Pothos itself does not load Temporal or select database codecs.
+
+## Selection and transaction lifetime
+
+Return the unexecuted Collection from `t.prismaField` and
+`t.prismaFieldWithInput`. The plugin applies all requested fields and relations
+before executing it. Already-materialized rows are rejected because their types
+cannot prove that the runtime GraphQL selection was loaded. Deferred fragments
+are included; skipping them is unsupported.
+
+Execute GraphQL while a transaction-bound client is still active when you want
+queries, related selections, node loads, and counts in that transaction. Do not
+return an unexecuted Collection from a transaction callback and then execute it
+after the callback has ended. Pothos does not create transactions or change their
+isolation policy.
 
 ## Loading the orm-client per request
 

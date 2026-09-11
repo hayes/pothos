@@ -2,7 +2,7 @@
   "schemaVersion": "1",
   "targetFamily": "sql",
   "target": "sqlite",
-  "profileHash": "sha256:3cc333ecad9f3f4c7229370a9d2c37e908cdce0f8d2e9fb132d50605b024eff2",
+  "profileHash": "260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53",
   "roots": {
     "comment": {
       "model": "Comment",
@@ -26,7 +26,7 @@
               "authorId": {
                 "nullable": false,
                 "type": {
-                  "codecId": "sql/char@1",
+                  "codecId": "sqlite/text@1",
                   "kind": "scalar"
                 }
               },
@@ -47,14 +47,14 @@
               "id": {
                 "nullable": false,
                 "type": {
-                  "codecId": "sql/char@1",
+                  "codecId": "sqlite/text@1",
                   "kind": "scalar"
                 }
               },
               "postId": {
                 "nullable": false,
                 "type": {
-                  "codecId": "sql/char@1",
+                  "codecId": "sqlite/text@1",
                   "kind": "scalar"
                 }
               }
@@ -118,7 +118,7 @@
               "authorId": {
                 "nullable": false,
                 "type": {
-                  "codecId": "sql/char@1",
+                  "codecId": "sqlite/text@1",
                   "kind": "scalar"
                 }
               },
@@ -139,7 +139,7 @@
               "id": {
                 "nullable": false,
                 "type": {
-                  "codecId": "sql/char@1",
+                  "codecId": "sqlite/text@1",
                   "kind": "scalar"
                 }
               },
@@ -147,6 +147,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "sqlite/integer@1",
+                  "kind": "scalar"
+                }
+              },
+              "score": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/real@1",
                   "kind": "scalar"
                 }
               },
@@ -207,6 +214,9 @@
                 "published": {
                   "column": "published"
                 },
+                "score": {
+                  "column": "score"
+                },
                 "title": {
                   "column": "title"
                 }
@@ -234,7 +244,7 @@
               "id": {
                 "nullable": false,
                 "type": {
-                  "codecId": "sql/char@1",
+                  "codecId": "sqlite/text@1",
                   "kind": "scalar"
                 }
               },
@@ -309,10 +319,9 @@
             "comment": {
               "columns": {
                 "authorId": {
-                  "codecId": "sql/char@1",
-                  "nativeType": "character",
-                  "nullable": false,
-                  "typeRef": "Uuid"
+                  "codecId": "sqlite/text@1",
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "body": {
                   "codecId": "sqlite/text@1",
@@ -321,24 +330,18 @@
                 },
                 "createdAt": {
                   "codecId": "sqlite/datetime@1",
-                  "default": {
-                    "expression": "now()",
-                    "kind": "function"
-                  },
                   "nativeType": "text",
                   "nullable": false
                 },
                 "id": {
-                  "codecId": "sql/char@1",
-                  "nativeType": "character",
-                  "nullable": false,
-                  "typeRef": "Uuid"
+                  "codecId": "sqlite/text@1",
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "postId": {
-                  "codecId": "sql/char@1",
-                  "nativeType": "character",
-                  "nullable": false,
-                  "typeRef": "Uuid"
+                  "codecId": "sqlite/text@1",
+                  "nativeType": "text",
+                  "nullable": false
                 }
               },
               "foreignKeys": [
@@ -380,29 +383,29 @@
                   "columns": [
                     "authorId"
                   ],
-                  "name": "comment_authorId_idx"
+                  "name": "comment_authorId_idx_e47547ed",
+                  "prefix": "comment_authorId_idx"
                 },
                 {
                   "columns": [
                     "postId"
                   ],
-                  "name": "comment_postId_idx"
+                  "name": "comment_postId_idx_a7a72715",
+                  "prefix": "comment_postId_idx"
                 }
               ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              },
-              "uniques": []
+              }
             },
             "post": {
               "columns": {
                 "authorId": {
-                  "codecId": "sql/char@1",
-                  "nativeType": "character",
-                  "nullable": false,
-                  "typeRef": "Uuid"
+                  "codecId": "sqlite/text@1",
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "content": {
                   "codecId": "sqlite/text@1",
@@ -411,22 +414,26 @@
                 },
                 "createdAt": {
                   "codecId": "sqlite/datetime@1",
-                  "default": {
-                    "expression": "now()",
-                    "kind": "function"
-                  },
                   "nativeType": "text",
                   "nullable": false
                 },
                 "id": {
-                  "codecId": "sql/char@1",
-                  "nativeType": "character",
-                  "nullable": false,
-                  "typeRef": "Uuid"
+                  "codecId": "sqlite/text@1",
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "published": {
                   "codecId": "sqlite/integer@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
                   "nativeType": "integer",
+                  "nullable": false
+                },
+                "score": {
+                  "codecId": "sqlite/real@1",
+                  "nativeType": "real",
                   "nullable": false
                 },
                 "title": {
@@ -458,15 +465,15 @@
                   "columns": [
                     "authorId"
                   ],
-                  "name": "post_authorId_idx"
+                  "name": "post_authorId_idx_e47547ed",
+                  "prefix": "post_authorId_idx"
                 }
               ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              },
-              "uniques": []
+              }
             },
             "user": {
               "columns": {
@@ -481,10 +488,9 @@
                   "nullable": false
                 },
                 "id": {
-                  "codecId": "sql/char@1",
-                  "nativeType": "character",
-                  "nullable": false,
-                  "typeRef": "Uuid"
+                  "codecId": "sqlite/text@1",
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "lastName": {
                   "codecId": "sqlite/text@1",
@@ -492,71 +498,25 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [],
-              "indexes": [],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "email"
+                  ]
+                }
+              ]
             }
           }
         },
         "id": "__unbound__"
       }
     },
-    "storageHash": "sha256:1533af297c6862378f203924b8fbcca2582e3f5a3a7d9ab9696588621cbded38",
-    "types": {
-      "Uuid": {
-        "codecId": "sql/char@1",
-        "kind": "codec-instance",
-        "nativeType": "character",
-        "typeParams": {
-          "length": 36
-        }
-      }
-    }
-  },
-  "execution": {
-    "executionHash": "sha256:747459643b12975edbfde553600ba765a3f9c1ede90226713e1804a5e22343dd",
-    "mutations": {
-      "defaults": [
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "__unbound__",
-            "table": "comment"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "__unbound__",
-            "table": "post"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "__unbound__",
-            "table": "user"
-          }
-        }
-      ]
-    }
+    "storageHash": "8972f1e07fa835510359d30aeb1fc28d67f0bfabd7c0d78bb7cf5a8db6412112"
   },
   "capabilities": {
     "sql": {
@@ -567,11 +527,11 @@
       "returning": true
     }
   },
-  "extensionPacks": {},
+  "extensions": {},
   "meta": {},
   "_generated": {
     "warning": "⚠️  GENERATED FILE - DO NOT EDIT",
-    "message": "This file is automatically generated by \"prisma-next contract emit\".",
-    "regenerate": "To regenerate, run: prisma-next contract emit"
+    "message": "This file is automatically generated by \"prisma contract emit\".",
+    "regenerate": "To regenerate, run: prisma contract emit"
   }
 }

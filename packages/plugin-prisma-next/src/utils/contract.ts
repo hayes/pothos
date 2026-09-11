@@ -1,5 +1,5 @@
-import { resolveDomainModel } from '@prisma-next/contract/resolve-domain-model';
-import type { ContractModelBase } from '@prisma-next/contract/types';
+import { resolveDomainModel } from '@prisma/orm-framework/contract/resolve-domain-model';
+import type { ContractModelBase } from '@prisma/orm-framework/contract/types';
 import type { AnyContract } from '../types.js';
 
 /**

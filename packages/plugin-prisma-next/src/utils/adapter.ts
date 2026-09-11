@@ -63,8 +63,8 @@ export interface MapperCollection {
    * (`>` for asc, `<` for desc). Single boundary only.
    */
   cursor(cursorValues: Record<string, unknown>): MapperCollection;
-  take(n: number): MapperCollection;
-  skip(n: number): MapperCollection;
+  limit(n: number): MapperCollection;
+  offset(n: number): MapperCollection;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ export interface PrismaNextNode {
   model: PrismaNextModel;
   columns: Set<string>;
   relations: Map<string, PrismaNextRelationAcc>;
-  /** Set by `merge` under `options.asQuery` on a nested plan's root; the parent's branch takes them. */
+  /** Set by `merge` under `options.asQuery` on a nested plan's root; the parent's branch carries them. */
   slot?: string;
   refine?: PrismaNextRefine;
 }
@@ -241,7 +241,8 @@ function addBranch(
     for (const existing of relation.branches.values()) {
       if (!deepEqual(existing.args, args) || !sameRefine(existing.refine, spec.refine)) {
         throw new PothosValidationError(
-          `Relation "${name}" is to-one and has incompatible queries under aliases "${selectBranchAlias(existing.alias, existing.slot)}" and "${id}".`,
+          `Relation "${name}" is to-one and has incompatible queries under aliases "${selectBranchAlias(existing.alias, existing.slot)}" and "${id}". ` +
+            'The ORM does not support independent include branches for to-one relations (ORM.INCLUDE_UNSUPPORTED).',
         );
       }
     }
@@ -401,15 +402,15 @@ function serializeNode(node: PrismaNextNode): PrismaNextSpec {
 export type RawSelect = readonly string[] | Record<string, unknown>;
 
 /**
- * Declarative refine: `{ where?, orderBy?, take?, skip? }`. Matches
+ * Declarative refine: `{ where?, orderBy?, limit?, offset? }`. Matches
  * the surface of the legacy `query` option. No scalar terminals
  * allowed by construction — anything else must go through function-form.
  */
 interface DeclarativeRefineSpec {
   where?: unknown | ((accessor: unknown) => unknown);
   orderBy?: (accessor: unknown) => unknown;
-  take?: number;
-  skip?: number;
+  limit?: number;
+  offset?: number;
 }
 
 function isDeclarativeRefineSpec(value: unknown): value is DeclarativeRefineSpec {
@@ -420,12 +421,12 @@ function isDeclarativeRefineSpec(value: unknown): value is DeclarativeRefineSpec
   // At least one of the declarative keys must be present, and the
   // object can only contain declarative keys (so a function-returning
   // object that happens to have a `where` property isn't misread).
-  const hasAny = 'where' in o || 'orderBy' in o || 'take' in o || 'skip' in o;
+  const hasAny = 'where' in o || 'orderBy' in o || 'limit' in o || 'offset' in o;
   if (!hasAny) {
     return false;
   }
   for (const k of Object.keys(o)) {
-    if (k !== 'where' && k !== 'orderBy' && k !== 'take' && k !== 'skip') {
+    if (k !== 'where' && k !== 'orderBy' && k !== 'limit' && k !== 'offset') {
       return false;
     }
   }
@@ -462,11 +463,11 @@ export function compileDeclarativeRefine(spec: DeclarativeRefineSpec): PrismaNex
     if (spec.orderBy !== undefined) {
       r = r.orderBy(spec.orderBy);
     }
-    if (spec.take !== undefined) {
-      r = r.take(spec.take);
+    if (spec.limit !== undefined) {
+      r = r.limit(spec.limit);
     }
-    if (spec.skip !== undefined) {
-      r = r.skip(spec.skip);
+    if (spec.offset !== undefined) {
+      r = r.offset(spec.offset);
     }
     return r;
   };
@@ -551,7 +552,7 @@ export function compileSelect(raw: RawSelect, options: CompileOptions): PrismaNe
     } else if (isDeclarativeRefineSpec(value)) {
       if (!relation) {
         throw new PothosValidationError(
-          `${label}: '${key}' has a { where, take, skip, orderBy } entry but is not a relation on ${owner}.`,
+          `${label}: '${key}' has a { where, limit, offset, orderBy } entry but is not a relation on ${owner}.`,
         );
       }
 
@@ -569,7 +570,7 @@ export function compileSelect(raw: RawSelect, options: CompileOptions): PrismaNe
       // this guard.
       throw new PothosValidationError(
         `${label}: '${key}' has an unrecognized value shape. Use \`true\`, ` +
-          '`{ where?, orderBy?, take?, skip? }`, or a function ' +
+          '`{ where?, orderBy?, limit?, offset? }`, or a function ' +
           '`(sub, args, ctx) => spec`.',
       );
     }
@@ -793,6 +794,8 @@ function compileTypeSelection(
  * selections cached against the schema's types and fields, are this object's own state.
  */
 export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode> {
+  // There is no later loader: deferred fields must be planned before the query executes.
+  override readonly skipDeferredFragments = false;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
   private readonly fieldSelections = new WeakMap<
     GraphQLField<unknown, unknown>,

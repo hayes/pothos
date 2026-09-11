@@ -3,9 +3,11 @@ import { execute, parse } from 'graphql';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
 import {
+  type CapturedExecution,
   createTestRuntime,
   type SampleContract,
   type TestRuntimeContext,
+  withCapture,
 } from './fixtures/runtime';
 
 let ctx: TestRuntimeContext;
@@ -107,15 +109,17 @@ it('shares equivalent declarative refinements', async () => {
   expect(result.data).toEqual({ posts: [{ a: { id: 'u-alice' }, b: { firstName: 'Alice' } }] });
 });
 
-it('rejects conflicting to-one refinements instead of using one consumer query', async () => {
-  const result = await execute({
-    schema: schema(),
-    document: parse(`{
-    posts { alice { id } bob { firstName } }
-  }`),
-    contextValue: {},
-  });
-  expect(result.errors?.[0].message).toMatch(/to-one.*incompatible/);
+it('rejects unsupported to-one refinements before executing SQL', async () => {
+  const captures: CapturedExecution[] = [];
+  const result = await withCapture(captures, async () =>
+    execute({
+      schema: schema(),
+      document: parse('{ posts { alice { id } bob { firstName } } }'),
+      contextValue: {},
+    }),
+  );
+  expect(result.errors?.[0].message).toMatch(/to-one.*incompatible.*ORM.INCLUDE_UNSUPPORTED/);
+  expect(captures).toHaveLength(0);
 });
 
 it('preserves type-level relation selections for two views of one to-one row', async () => {

@@ -16,7 +16,7 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
-import type { ContractRelation } from '@prisma-next/contract/types';
+import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECT } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
@@ -30,6 +30,9 @@ import type {
   PrismaNextRelationCountOptions,
   PrismaNextRelationOptions,
   RelatedModel,
+  RelationAggregateField,
+  RelationAggregateOp,
+  RelationAggregateResult,
   RelationKeys,
   Row,
   ToManyRelationKeys,
@@ -42,23 +45,30 @@ import {
   applyCursorPagination,
   buildConnectionPage,
   buildPaginationParams,
+  normalizeCursor,
+  validateCursor,
 } from './utils/cursors.js';
 import { readPluginOptions, resolveSizeOption } from './utils/options.js';
 import { getRefFromContractModel } from './utils/refs.js';
-import { wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
+import { connectionNeedsRows, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 function isToManyCardinality(cardinality: string): boolean {
   return cardinality !== '1:1' && cardinality !== 'N:1';
 }
 
 /** No declarative refine fields present — the sugar's `query` was an empty literal. */
-function isEmptyDeclarative(v: unknown): boolean {
-  if (v == null || typeof v !== 'object') {
+function isEmptyDeclarative(value: unknown): boolean {
+  if (value == null) {
     return true;
   }
-  const o = v as Record<string, unknown>;
-  return (
-    o.where === undefined && o.orderBy === undefined && o.take === undefined && o.skip === undefined
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const options = value as Record<string, unknown>;
+  return Object.keys(options).every(
+    (key) =>
+      (key === 'where' || key === 'orderBy' || key === 'limit' || key === 'offset') &&
+      options[key] === undefined,
   );
 }
 
@@ -134,7 +144,7 @@ export class PrismaNextObjectFieldBuilder<
         scopes: Scopes,
       ) => PrismaNextObjectFieldBuilder<
         Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> },
-        M,
+        M & ModelName<Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> }>,
         Shape,
         ExposableShape
       >
@@ -345,7 +355,7 @@ export class PrismaNextObjectFieldBuilder<
     // which keeps the single-consumer fast path (no combine wrap when
     // only this field touches the relation).
     //   - no query: `{ [name]: true }`
-    //   - literal query: `{ [name]: <literal> }` (where/orderBy/take/skip)
+    //   - literal query: `{ [name]: <literal> }` (where/orderBy/limit/offset)
     //   - callback query: outer-form `(args, ctx) => ({ [name]: literal })`
     //     so args resolve once at the field's GraphQL request.
     const select =
@@ -403,39 +413,45 @@ export class PrismaNextObjectFieldBuilder<
   >(
     name: RelName,
     options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args>,
-  ): FieldRef<Types, number, 'PrismaNextObject'> {
-    // `#aggregateField`'s return is the widened `number | null` (it
-    // serves the aggregate ops too); a count is always non-null, so the
-    // public method narrows the ref type back to `number`.
+  ): FieldRef<Types, Nullable extends true ? number | null : number, 'PrismaNextObject'> {
     return this.#aggregateField(name as string, 'count', undefined, options ?? {}, false) as never;
   }
 
   /**
-   * Expose an aggregate (`sum`/`avg`/`min`/`max`/`count`) of a to-many
-   * relation as a numeric field. Generalizes `t.relationCount`; the
-   * `op` option selects the reducer and `field` names the numeric
-   * column for `sum`/`avg`/`min`/`max` (omitted for `count`).
-   *
-   * Compiles to a function-form `select` emitting the matching
-   * orm-client scalar reducer (`sub.sum('views')`, …) into the parent
-   * combine spec. `count` resolves to `number`; the others resolve to
-   * `number | null` (SQL aggregates over an empty set return NULL), so
-   * those fields are exposed nullable by default.
+   * Expose a to-many relation aggregate using an operation from the emitted
+   * contract. Numeric results default to Float (count defaults to Int); other
+   * result types require a compatible GraphQL scalar. A count is non-null by
+   * default, while reducers over an empty set are nullable unless overridden.
    */
   relationAggregate<
     RelName extends ToManyRelationKeys<Types, M>,
-    Op extends 'count' | 'sum' | 'avg' | 'min' | 'max',
-    Nullable extends boolean = Op extends 'count' ? false : true,
+    Op extends RelationAggregateOp<Types>,
+    Field extends
+      | RelationAggregateField<Types, RelatedModel<Types, M, RelName>, Op>
+      | undefined = undefined,
+    Nullable extends boolean = Op extends 'count' | 'countBigInt' ? false : true,
     Args extends InputFieldMap = {},
   >(
     name: RelName,
-    options: PrismaNextRelationAggregateOptions<Types, M, RelName, Op, Nullable, Args>,
-  ): FieldRef<Types, Op extends 'count' ? number : number | null, 'PrismaNextObject'> {
+    options: PrismaNextRelationAggregateOptions<Types, M, RelName, Op, Nullable, Args, Field>,
+  ): FieldRef<
+    Types,
+    Nullable extends true
+      ? RelationAggregateResult<Types, RelatedModel<Types, M, RelName>, Op, Field> | null
+      : NonNullable<RelationAggregateResult<Types, RelatedModel<Types, M, RelName>, Op, Field>>,
+    'PrismaNextObject'
+  > {
     const { op, field, ...rest } = options as typeof options & {
-      op: 'count' | 'sum' | 'avg' | 'min' | 'max';
+      op: string;
       field?: string;
     };
-    return this.#aggregateField(name as string, op, field, rest, op !== 'count') as never;
+    return this.#aggregateField(
+      name as string,
+      op,
+      field,
+      rest,
+      op !== 'count' && op !== 'countBigInt',
+    ) as never;
   }
 
   /**
@@ -449,17 +465,22 @@ export class PrismaNextObjectFieldBuilder<
    */
   #aggregateField(
     name: string,
-    op: 'count' | 'sum' | 'avg' | 'min' | 'max',
+    op: string,
     field: string | undefined,
     options: Record<string, unknown>,
     nullableDefault: boolean,
-  ): FieldRef<Types, number | null, 'PrismaNextObject'> {
+  ): FieldRef<Types, unknown, 'PrismaNextObject'> {
     const { where, nullable, ...rest } = options as {
       where?: unknown;
       nullable?: boolean;
     } & Record<string, unknown>;
-    const reduce = (rel: MapperCollection): unknown =>
-      op === 'count' ? rel.count() : rel[op](field as string);
+    const reduce = (rel: MapperCollection): unknown => {
+      const reducer = (rel as unknown as Record<string, unknown>)[op];
+      if (typeof reducer !== 'function') {
+        throw new PothosSchemaError(`Aggregate '${op}' is not available on this ORM collection.`);
+      }
+      return field === undefined ? reducer.call(rel) : reducer.call(rel, field);
+    };
     const select = (args: unknown, ctx: unknown) => ({
       [name]: (sub: MapperCollection) => {
         if (where === undefined) {
@@ -476,12 +497,12 @@ export class PrismaNextObjectFieldBuilder<
     });
     const fieldOpts = {
       ...rest,
-      type: op === 'avg' ? 'Float' : 'Int',
+      type: options.type ?? (op === 'count' ? 'Int' : 'Float'),
       nullable: nullable ?? nullableDefault,
       select,
       resolve: (parent: unknown) => (parent as Record<string, unknown>)[name],
     };
-    return this.field(fieldOpts as never) as FieldRef<Types, number | null, 'PrismaNextObject'>;
+    return this.field(fieldOpts as never) as FieldRef<Types, unknown, 'PrismaNextObject'>;
   }
 
   relatedConnection: 'relay' extends PluginName
@@ -557,6 +578,7 @@ export class PrismaNextObjectFieldBuilder<
           `'${this.modelName as string}.${name}' has cardinality '${meta.cardinality}'.`,
       );
     }
+    validateCursor(this.contract as AnyContract, meta.to.model, options.cursor);
     const targetRef =
       options.type ?? getRefFromContractModel(meta.to.model as never, this.builder as never);
 
@@ -605,7 +627,7 @@ export class PrismaNextObjectFieldBuilder<
       getType: () => relatedTypeName,
       paths: [[{ name: 'edges' }, { name: 'node' }], [{ name: 'nodes' }]],
     };
-    const cursorCols: readonly string[] = typeof cursorOpt === 'string' ? [cursorOpt] : cursorOpt;
+    const cursorCols = normalizeCursor(cursorOpt);
 
     // The compiled selection: `{ [relationName]: rows }`, or `[rows, count]` when the client
     // selected `totalCount` and the user opted in with `totalCount: true`. The rows branch is
@@ -616,6 +638,15 @@ export class PrismaNextObjectFieldBuilder<
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFieldNode) => {
       const filter = (rel: MapperCollection) =>
         refine != null ? (refine(rel, args, ctx) as MapperCollection) : rel;
+      const selectedFields = selectedFieldNode();
+      const wantsTotalCount = totalCountFlag && selectedFields.has('totalCount');
+      const wantsRows = [...selectedFields].some(
+        (field) => field !== 'totalCount' && field !== '__typename',
+      );
+      const count = { fn: (sub: MapperCollection) => ({ count: filter(sub).count() }) };
+      if (!wantsRows) {
+        return wantsTotalCount ? { relations: { [relationName]: count } } : {};
+      }
       const resolvedDefault = resolveSizeOption(defaultSize, args, ctx) ?? fallbackDefault;
       const resolvedMax = resolveSizeOption(maxSize, args, ctx) ?? fallbackMax;
       const selection = nested(
@@ -623,7 +654,7 @@ export class PrismaNextObjectFieldBuilder<
           slot: 'rows',
           columns: cursorCols,
           // The user's `where` comes BEFORE cursor pagination so the cursor over-fetch
-          // (`take(N+1)`) runs on the matching set.
+          // (`limit(N+1)`) runs on the matching set.
           refine: (rel) =>
             applyCursorPagination(
               filter(rel),
@@ -642,13 +673,10 @@ export class PrismaNextObjectFieldBuilder<
         // Synthetic count fires only when the client selected totalCount AND
         // the user opted in via `totalCount: true`. Callable totalCount stays
         // in the resolver — no extra DB round-trip in the spec.
-        const wantsTotalCount = totalCountFlag && selectedFieldNode(['totalCount']) !== null;
 
         return {
           relations: {
-            [relationName]: wantsTotalCount
-              ? [rows, { fn: (sub: MapperCollection) => ({ count: filter(sub).count() }) }]
-              : rows,
+            [relationName]: wantsTotalCount ? [rows, count] : rows,
           },
         };
       };
@@ -676,7 +704,11 @@ export class PrismaNextObjectFieldBuilder<
         // consumer the include took the single-consumer fast path and the
         // rows are the relation value itself.
         const p = parent as { rows?: unknown; count?: unknown; [key: string]: unknown };
-        const rows = p.rows !== undefined ? p.rows : p[relationName];
+        const rows = connectionNeedsRows(context as object, info)
+          ? p.rows !== undefined
+            ? p.rows
+            : p[relationName]
+          : [];
         if (rows === undefined) {
           throw new PothosValidationError(
             `relatedConnection '${info.parentType.name}.${info.fieldName}' was reached from a parent not loaded by t.prismaField. ` +

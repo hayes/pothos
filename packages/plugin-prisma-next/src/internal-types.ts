@@ -1,9 +1,14 @@
 import type { SchemaTypes } from '@pothos/core';
-import type { Collection, ModelAccessor, ShorthandWhereFilter } from '@prisma-next/sql-orm-client';
+import type {
+  Collection,
+  ModelAccessor,
+  ShorthandWhereFilter,
+} from '@prisma/orm-family-sql/orm-client';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
   IsToMany,
   ModelName,
+  NamespaceOf,
   RelatedModel,
   RelationKeys,
   RelationRefinementCollection,
@@ -18,7 +23,7 @@ import type {
  * a unique symbol). The brand isn't exported either, but `Extract<keyof V,
  * symbol>` finds it generically so the result type narrows correctly:
  *   - `count()` → `IncludeScalar<number>` → `number`
- *   - `sum/avg/min/max(col)` → `IncludeScalar<number | null>` → `number | null`
+ *   - aggregate results retain their target/extension codec's output type
  */
 type AnyIncludeScalar = { readonly kind: 'includeScalar' };
 type SymbolKey<V> = Extract<keyof V, symbol>;
@@ -95,7 +100,7 @@ export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape e
  * Map a prisma-next combine-spec value to its result type:
  *   - `Collection<…, Row, …>` → `readonly Row[]`
  *   - `IncludeScalar<R>` → R (`count` → `number`,
- *     `sum`/`avg`/`min`/`max` → `number | null`)
+ *     other aggregates retain their target/extension codec's result)
  *
  * Falls back to `unknown` for anything else — the plugin doesn't
  * gatekeep, so future combine-spec value kinds added by prisma-next
@@ -126,15 +131,27 @@ export type SelectRelationDeclarative<
   R extends RelationKeys<Types, M>,
 > = {
   readonly where?:
-    | ShorthandWhereFilter<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
+    | ShorthandWhereFilter<
+        Types['PrismaNextContract'],
+        NamespaceOf<Types, RelatedModel<Types, M, R>>,
+        RelatedModel<Types, M, R>
+      >
     | ((
-        accessor: ModelAccessor<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
+        accessor: ModelAccessor<
+          Types['PrismaNextContract'],
+          RelatedModel<Types, M, R>,
+          NamespaceOf<Types, RelatedModel<Types, M, R>>
+        >,
       ) => unknown);
   readonly orderBy?: (
-    accessor: ModelAccessor<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
+    accessor: ModelAccessor<
+      Types['PrismaNextContract'],
+      RelatedModel<Types, M, R>,
+      NamespaceOf<Types, RelatedModel<Types, M, R>>
+    >,
   ) => unknown;
-  readonly take?: number;
-  readonly skip?: number;
+  readonly limit?: number;
+  readonly offset?: number;
 };
 
 /**
@@ -144,7 +161,7 @@ export type SelectRelationDeclarative<
  *   - Column key `K`: value is `true` (column joins the parent SELECT).
  *   - Relation key `K`:
  *       value `true` → simple include; `parent[K]` typed as the relation rows/row.
- *       value `{ where?, orderBy?, take?, skip? }` → declarative refine.
+ *       value `{ where?, orderBy?, limit?, offset? }` → declarative refine.
  *           Stays on the single-consumer fast path (no combine wrap).
  *           `parent[K]` typed as relation rows.
  *       value `(sub) => Record<innerKey, prismaNextValue>` → render-time

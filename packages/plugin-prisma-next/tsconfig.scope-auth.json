@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.type.json",
+  "include": [
+    "src/**/*",
+    "tests/scope-auth.test.ts",
+    "tests/fixtures/runtime.ts",
+    "tests/fixtures/sample-contract.d.ts"
+  ],
+  "exclude": []
+}

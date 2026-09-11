@@ -272,7 +272,7 @@ describe('t.relatedConnection where option — filter-only at the type level', (
         broken: t.relatedConnection('posts', {
           cursor: 'id',
           // @ts-expect-error — take owned by cursor, not on the option
-          take: 5,
+          limit: 5,
         }),
         brokenOrder: t.relatedConnection('posts', {
           cursor: 'id',
@@ -315,7 +315,7 @@ describe('t.relationAggregate field helper', () => {
     });
   });
 
-  it('narrows count to non-nullable `number` and forbids `field`', () => {
+  it('narrows count to non-nullable `number`', () => {
     builder.prismaObject('User', {
       variant: 'RelAggCountUser',
       fields: (t) => {
@@ -326,7 +326,7 @@ describe('t.relationAggregate field helper', () => {
     });
   });
 
-  it('requires a numeric `field` for sum/avg/min/max', () => {
+  it('requires a field for field-only aggregates', () => {
     builder.prismaObject('User', {
       variant: 'RelAggMissingField',
       fields: (t) => ({
@@ -457,10 +457,11 @@ describe('builder option — db option is gone', () => {
 });
 
 describe('PreparedFieldExtension — shape', () => {
-  it('has { modelName, typeName } both as string', () => {
+  it('preserves the model, GraphQL type and original list shape', () => {
     expectTypeOf<import('../src/extensions').PreparedFieldExtension>().toEqualTypeOf<{
       readonly modelName: string;
       readonly typeName: string;
+      readonly isList: boolean;
     }>();
   });
 });

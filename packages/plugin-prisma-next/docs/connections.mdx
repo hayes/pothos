@@ -28,7 +28,7 @@ The resolver returns the base `Collection`. The plugin:
 
 1. Auto-applies the selection set (descending through `edges.node` and
    `nodes` so nested relations preload).
-2. Applies cursor pagination (`.where(cursor predicate).orderBy(cursor).take(limit + 1)`).
+2. Applies cursor pagination (`.where(cursor predicate).orderBy(cursor).limit(limit + 1)`).
 3. Materializes via `.all()`.
 4. Optionally runs a parallel `totalCount` aggregate (see below).
 5. Builds the Relay connection page (`edges` / `pageInfo` / optional
@@ -43,14 +43,47 @@ compound cursors, pass a tuple:
 cursor: ['createdAt', 'id'] as const,
 ```
 
-Both columns ship into every row's SELECT automatically.
+Both columns ship into every row's SELECT automatically. Cursor fields must be
+non-null and include a complete primary or unique key; add `id` as a tie-breaker
+when the primary sort field is not unique. Nullable cursors are unsupported.
+
+Cursor configuration owns ordering. Return an unordered, unpaginated Collection
+from `resolve`; use `.where(...)` to filter it. A Collection already carrying
+`orderBy`, `limit`, `offset`, or a cursor is rejected before the query runs.
+
+Specify direction per column for descending or mixed ordering:
+
+```ts
+cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
+```
+
+For object-valued ORM scalars, supply a reversible codec. For example, with a
+Temporal implementation installed by the application:
+
+```ts
+cursor: [
+  {
+    field: 'createdAt',
+    direction: 'desc',
+    codec: {
+      encode: (value) => value.toString(),
+      decode: (value) => Temporal.Instant.from(value),
+    },
+  },
+  'id',
+],
+```
+
+Pothos does not infer codecs from database dialects. Use the matching codec for
+the column's actual ORM value type. Ordinary strings, numbers, bigint, Date and
+bytes use the shared tagged encoding without an application codec.
 
 ### Options
 
 | option | type | description |
 |---|---|---|
 | `type` | model name or ref | the connection's node type |
-| `cursor` | string or tuple | column(s) used for cursor pagination |
+| `cursor` | column descriptor or tuple | complete unique ordering, directions and optional scalar codecs |
 | `args` | input args | extra args for filtering / sorting |
 | `defaultSize` | `number \| (args, ctx) => number` | default `first:` value |
 | `maxSize` | `number \| (args, ctx) => number` | hard cap on page size |
@@ -67,8 +100,8 @@ Three modes:
 - `totalCount: false` (default) — no totalCount field.
 - `totalCount: true` — adds a `totalCount: Int!` field on the connection
   type. The plugin runs an aggregate `count()` against the user-returned
-  collection (post-filter, pre-pagination), in parallel with the rows
-  fetch.
+  collection (post-filter, pre-pagination), in parallel with requested rows.
+  A selection of only `totalCount` avoids loading page rows.
 - `totalCount: (parent, args, ctx, info) => number` — adds the field;
   the user provides the count. Only invoked when the client actually
   selects `totalCount`, so you don't pay for a count the client didn't
@@ -95,9 +128,8 @@ builder.prismaObject('User', {
 
 The pagination happens INSIDE the `.include('posts', cb => …)` callback
 on the parent collection — so the parent and the page rows ship as one
-orm-client plan whenever prisma-next's planner can collapse it. (At
-time of writing, the use of `.combine` for `totalCount` forces a
-multi-query fallback; tracked upstream.)
+orm-client plan whenever prisma-next's planner can collapse it. The upstream planner chooses the SQL strategy; combined rows and counts can
+execute in one statement.
 
 ### Options
 
@@ -107,7 +139,7 @@ Same as `t.prismaConnection`, with one addition:
   Accepts a literal `ShorthandWhereFilter` or a callback
   `(accessor, args, ctx) => predicate`.
 
-The `where` is filter-only at the type level — `take`/`skip`/`orderBy`
+The `where` is filter-only at the type level — `limit`/`offset`/`orderBy`
 are owned by cursor pagination and rejected as options.
 
 ## `prismaConnectionHelpers`
@@ -157,7 +189,9 @@ The returned object exposes:
 - `applyPagination(coll, args, info, ctx)`: applies cursor pagination
   + auto-include and returns `{ collection, totalCountPromise, wrap }`.
   `await` it — the result is a promise whenever a `select` callback
-  beneath the connection returned one.
+  beneath the connection returned one. `totalCountPromise` is lazy and cached:
+  reading it starts the count only if enabled and selected (or no `info` was
+  supplied).
 - `connectionOptions(options)`: injects the synthetic `totalCount`
   field onto the connection type's options.
 

@@ -14,6 +14,19 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
+      prisma-next-postgres:
+        image: postgres:18.2
+        ports:
+          - '5456:5432'
+        env:
+          POSTGRES_USER: prisma
+          POSTGRES_PASSWORD: prisma
+          POSTGRES_DB: prisma_next
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       # Label used to access the service container
       postgres:
         # Docker Hub image

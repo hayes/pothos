@@ -1,3 +1,4 @@
+import type { MaybePromise } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
@@ -8,7 +9,7 @@ import { type MapperPluginOptions, mapperOptionsFromPluginOpts } from './options
  * Applies the walked selection to a collection. The result is a promise of the collection only
  * when a `select` callback beneath the field returned one.
  */
-export type Apply = <C>(collection: C) => C;
+export type Apply = <C>(collection: C) => MaybePromise<C>;
 
 export interface CreateApplyOptions {
   info: GraphQLResolveInfo;
