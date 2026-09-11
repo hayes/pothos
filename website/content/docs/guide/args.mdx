@@ -13,22 +13,7 @@ second parameter.
 
 Use `t.arg` with a scalar type name:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder({});
-
-builder.queryType({
-  fields: (t) => ({
-    greeting: t.string({
-      args: {
-        name: t.arg({ type: 'String', required: true }),
-      },
-      resolve: (_parent, args) => `Hello, ${args.name}!`,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-arguments"'>playground-examples/foundations-arguments/schema.ts#greeting</include>
 
 ### Using convenience methods
 
@@ -44,50 +29,18 @@ See [Changing Default Nullability](./changing-default-nullability) to change thi
 An optional argument can be omitted or explicitly set to `null`. A `defaultValue` applies when
 an argument is omitted; it does not replace an explicit `null`. The resolver below handles both:
 
-```typescript
-builder.queryField('repeat', (t) =>
-  t.string({
-    args: {
-      text: t.arg.string({ required: true }),
-      times: t.arg.int({ defaultValue: 2 }),
-    },
-    resolve: (_parent, args) => args.text.repeat(Math.max(0, args.times ?? 1)),
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="foundations-arguments"'>playground-examples/foundations-arguments/schema.ts#defaults</include>
 
 ## Lists
 
 Wrap a type in an array to create a list argument, or use a list helper:
 
-```typescript
-builder.queryField('knownGiraffes', (t) =>
-  t.stringList({
-    args: {
-      names: t.arg.stringList({ required: true }),
-      moreNames: t.arg({ type: ['String'], required: true }),
-    },
-    resolve: (_parent, args) =>
-      [...args.names, ...args.moreNames].filter((name) => ['Gina', 'James'].includes(name)),
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="foundations-arguments"'>playground-examples/foundations-arguments/schema.ts#lists</include>
 
 List items are non-null by default, even when the list argument is optional. Use separate `list`
 and `items` settings to allow null entries in a required list:
 
-```typescript
-builder.queryField('nonNullNames', (t) =>
-  t.stringList({
-    args: {
-      names: t.arg.stringList({
-        required: { list: true, items: false },
-      }),
-    },
-    resolve: (_parent, args) => args.names.filter((name) => name != null),
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="foundations-arguments"'>playground-examples/foundations-arguments/schema.ts#nullable-items</include>
 
 ## Other types
 
@@ -96,55 +49,14 @@ and unions cannot be argument types.
 
 This object field accepts an enum argument to choose the unit for its result:
 
-```typescript
-const LengthUnit = builder.enumType('LengthUnit', {
-  values: { Feet: {}, Meters: {} },
-});
-
-const GiraffeRef = builder.objectRef<{ heightInMeters: number }>('Giraffe').implement({
-  fields: (t) => ({
-    height: t.float({
-      args: {
-        unit: t.arg({ type: LengthUnit, defaultValue: 'Meters' }),
-      },
-      resolve: (giraffe, args) =>
-        args.unit === 'Feet' ? giraffe.heightInMeters * 3.281 : giraffe.heightInMeters,
-    }),
-  }),
-});
-
-builder.queryField('giraffe', (t) =>
-  t.field({
-    type: GiraffeRef,
-    resolve: () => ({ heightInMeters: 5 }),
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="foundations-arguments"'>playground-examples/foundations-arguments/schema.ts#enum</include>
 
 ## Nested Lists
 
 Use `t.arg.listRef` to nest lists. Its `required` option controls the items of that list;
 `required` on `t.arg` controls whether the outermost list can be omitted or null.
 
-```typescript
-builder.queryField('countNames', (t) =>
-  t.int({
-    args: {
-      groups: t.arg({
-        type: t.arg.listRef(t.arg.listRef('String', { required: false })),
-        required: true,
-      }),
-    },
-    resolve: (_parent, args) =>
-      args.groups.reduce(
-        (count, group) => count + group.filter((name) => name != null).length,
-        0,
-      ),
-  }),
-);
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="foundations-arguments"'>playground-examples/foundations-arguments/schema.ts#nested-lists</include>
 
 Here, `groups` has GraphQL type `[[String]!]!`: the outer list and each inner list are required,
 but strings inside the inner lists can be null. Without `{ required: false }`, those strings
@@ -155,20 +67,7 @@ would also be non-null.
 The examples above form one schema. This query exercises required arguments, defaults, lists,
 and the enum argument on an object field:
 
-```graphql
-query {
-  greeting(name: "Gina")
-  repeat(text: "ha")
-  once: repeat(text: "ha", times: null)
-  knownGiraffes(names: ["Gina", "Unknown"], moreNames: ["James"])
-  nonNullNames(names: ["Gina", null, "James"])
-  giraffe {
-    meters: height
-    feet: height(unit: Feet)
-  }
-  countNames(groups: [["Gina", null], ["James"]])
-}
-```
+<include cwd lang="graphql" meta='playground example="foundations-arguments"'>playground-examples/foundations-arguments/Arguments.graphql</include>
 
 ```json
 {

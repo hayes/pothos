@@ -15,38 +15,16 @@ Scalar fields can be defined a couple of different ways:
 
 ### Field method
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    name: t.field({
-      description: 'Name field',
-      type: 'String',
-      resolve: () => 'Gina',
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-scalars"'>playground-examples/foundations-field-scalars/schema.ts#field-method</include>
 
 ### Convenience methods
 
 Convenience methods are just wrappers around the `field` method that omit the `type` option.
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    id: t.id({ resolve: () => '123' }),
-    int: t.int({ resolve: () => 123 }),
-    float: t.float({ resolve: () => 1.23 }),
-    boolean: t.boolean({ resolve: () => false }),
-    string: t.string({ resolve: () => 'abc' }),
-    idList: t.idList({ resolve: () => ['123'] }),
-    intList: t.intList({ resolve: () => [123] }),
-    floatList: t.floatList({ resolve: () => [1.23] }),
-    booleanList: t.booleanList({ resolve: () => [false] }),
-    stringList: t.stringList({ resolve: () => ['abc'] }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-scalars"'>playground-examples/foundations-field-scalars/schema.ts#convenience-methods</include>
+
+Each Playground action opens a complete schema. In the scalar example, `queryFields` adds
+convenience fields to the `Query` type already defined with `queryType`.
 
 ## Other types
 
@@ -55,27 +33,7 @@ Fields for non-scalar fields can also be created with the `field` method.
 Some types like [Objects](./objects) and [Interfaces](./interfaces) can be referenced by name if
 they have a backing model defined in the schema builder.
 
-```typescript
-const builder = new SchemaBuilder<{
-  Objects: { Giraffe: { name: string } };
-}>({});
-
-builder.objectType('Giraffe', {
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      description: 'A giraffe',
-      type: 'Giraffe',
-      resolve: () => ({ name: 'Gina' }),
-    }),
-  }),
-});
-```
+<includeregions cwd lang="typescript" meta='playground example="foundations-field-types"'>playground-examples/foundations-field-types/schema.ts#model,object-query</includeregions>
 
 For types not described in the `SchemaTypes` type provided to the builder, including types that can
 not be added there like [Unions](./unions) and [Enums](./enums), you can use a `Ref` returned by the
@@ -85,38 +43,13 @@ enum, you can also use the `class` or `enum` that was used to define them.
 
 Here we add an enum field to the `Giraffe` type defined above:
 
-```typescript
-const LengthUnit = builder.enumType('LengthUnit', {
-  values: { Feet: {}, Meters: {} },
-});
-
-builder.objectField('Giraffe', 'preferredNeckLengthUnit', (t) =>
-  t.field({
-    type: LengthUnit,
-    resolve: () => 'Feet',
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-types"'>playground-examples/foundations-field-types/schema.ts#enum</include>
 
 ## Lists
 
 To create a list field, you can wrap the type in an array
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    giraffes: t.field({
-      description: 'multiple giraffes',
-      type: ['Giraffe'],
-      resolve: () => [{ name: 'Gina' }, { name: 'James' }],
-    }),
-    giraffeNames: t.field({
-      type: ['String'],
-      resolve: () => ['Gina', 'James'],
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-types"'>playground-examples/foundations-field-types/schema.ts#lists</include>
 
 ## NonNullable fields
 
@@ -124,34 +57,7 @@ Fields in Pothos are nullable by default, but fields can be made NonNullable by 
 `nullable` option to `false`. This default can also be changed in the SchemaBuilder constructor, see
 [Changing Default Nullability](./changing-default-nullability) for more details.
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    nonNullableField: t.field({
-      type: 'String',
-      nullable: false,
-      resolve: () => 'Gina',
-    }),
-    nonNullableString: t.string({
-      nullable: false,
-      resolve: () => 'Gina',
-    }),
-    nonNullableList: t.field({
-      type: ['String'],
-      nullable: false,
-      resolve: () => ['Gina', 'James'],
-    }),
-    sparseList: t.field({
-      type: ['String'],
-      nullable: {
-        list: false,
-        items: true,
-      },
-      resolve: () => [null],
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-nullability"'>playground-examples/foundations-field-nullability/schema.ts#fields</include>
 
 Note that by default even if a list field is nullable, the items in that list are not. The last
 example above shows how you can make list items nullable.
@@ -165,17 +71,7 @@ need to be explicitly defined, but there are helper methods that make exposing f
 These helpers are not available for root types \(Query, Mutation and Subscription\), but will work
 on any other object type or interface.
 
-```typescript
-const builder = new SchemaBuilder<{
-  Objects: { Giraffe: { name: string } };
-}>({});
-
-builder.objectType('Giraffe', {
-  fields: (t) => ({
-    name: t.exposeString('name', {}),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-types"'>playground-examples/foundations-field-types/schema.ts#model</include>
 
 The available expose helpers are:
 
@@ -194,25 +90,7 @@ The available expose helpers are:
 
 Arguments for a field can be defined in the options for a field:
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    giraffeByName: t.field({
-      type: 'Giraffe',
-      args: {
-        name: t.arg.string({ required: true }),
-      },
-      resolve: (root, args) => {
-        if (args.name !== 'Gina') {
-          throw new Error(`Unknown Giraffe ${args.name}`);
-        }
-
-        return { name: 'Gina' };
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-types"'>playground-examples/foundations-field-types/schema.ts#argument</include>
 
 For more information see the [Arguments Guide](./args).
 
@@ -223,41 +101,15 @@ independently. This is useful for breaking up types with a lot of fields into mu
 co-locating fields with their type \(e.g., add all query/mutation fields for a type in the same file
 where the type is defined\).
 
-```typescript
-builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: 'Giraffe',
-    resolve: () => ({ name: 'James' }),
-  }),
-}));
-
-builder.objectField('Giraffe', 'nameLength', (t) =>
-  t.int({
-    resolve: (parent) => parent.name.length,
-  }),
-);
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-types"'>playground-examples/foundations-field-types/schema.ts#additional-fields</include>
 
 To see all the methods available for defining fields see the [SchemaBuilder API](../api/schema-builder)
+
+The companion adds `newestGiraffe` separately from the original `giraffe` field. Query
+`newestGiraffe { name nameLength }` to see both the added root field and the computed object field.
 
 ## Nested Lists
 
 You can use `t.listRef` to create a list of lists
 
-```typescript
-const Query = builder.queryType({
-  fields: (t) => ({
-    example: t.field({
-      type: t.listRef(
-        t.listRef('String'),
-        // items are non-nullable by default, this can be overridden
-        // by passing `nullable: true`
-        { nullable: true },
-      ),
-      resolve: (parent, args) => {
-        return [['a', 'b'], ['c', 'd'], null];
-      },
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-field-nested-lists"'>playground-examples/foundations-field-nested-lists/schema.ts#fields</include>

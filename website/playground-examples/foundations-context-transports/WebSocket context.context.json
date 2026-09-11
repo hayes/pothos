@@ -1,0 +1,6 @@
+{
+  "transport": "websocket",
+  "connectionParams": {
+    "clientName": "GraphiQL"
+  }
+}

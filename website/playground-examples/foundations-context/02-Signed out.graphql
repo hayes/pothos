@@ -1,0 +1,6 @@
+query SignedOut {
+  currentUser {
+    id
+    username
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "foundations-field-nested-lists",
+  "title": "Nested list fields",
+  "description": "Run the query to see two lists and one null list item. Change one inner list, then inspect its result and the generated GraphQL type.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/fields"],
+  "defaultActiveFile": "schema.ts"
+}

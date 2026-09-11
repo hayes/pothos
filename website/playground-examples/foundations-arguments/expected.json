@@ -1,0 +1,16 @@
+{
+  "Arguments.graphql": {
+    "data": {
+      "greeting": "Hello, Gina!",
+      "repeat": "haha",
+      "once": "ha",
+      "knownGiraffes": ["Gina", "James"],
+      "nonNullNames": ["Gina", "James"],
+      "giraffe": {
+        "meters": 5,
+        "feet": 16.405
+      },
+      "countNames": 2
+    }
+  }
+}

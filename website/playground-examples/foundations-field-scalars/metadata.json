@@ -1,0 +1,8 @@
+{
+  "id": "foundations-field-scalars",
+  "title": "Scalar fields",
+  "description": "Run the scalar fields. Change a resolver value and run again; inspect schema.graphql to compare the scalar and list types.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/fields"],
+  "defaultActiveFile": "schema.ts"
+}

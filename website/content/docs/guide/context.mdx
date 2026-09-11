@@ -8,55 +8,20 @@ example, you can use it to make the current user available throughout your schem
 
 First, let's define the user data and add a `Context` type to the builder:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-interface User {
-  id: string;
-  firstName: string;
-  username: string;
-}
-
-const builder = new SchemaBuilder<{
-  Context: {
-    currentUser: User | null;
-  };
-}>({});
-```
+<include cwd lang="typescript" meta='playground example="foundations-context"'>playground-examples/foundations-context/schema.ts#context</include>
 
 Next, we can define a GraphQL object for the user and a query that reads it from context:
 
-```typescript
-const UserRef = builder.objectRef<User>('User').implement({
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    firstName: t.exposeString('firstName'),
-    username: t.exposeString('username'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    currentUser: t.field({
-      type: UserRef,
-      nullable: true,
-      resolve: (_root, _args, context) => context.currentUser,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-context"'>playground-examples/foundations-context/schema.ts#query</include>
 
 The resolver's `context` parameter has the type we provided to the builder. Clients can query the
 current user with:
 
-```graphql
-query {
-  currentUser {
-    id
-    username
-  }
-}
-```
+<include cwd lang="graphql" meta='playground example="foundations-context"'>playground-examples/foundations-context/01-Signed in.graphql</include>
+
+In the playground, select **01-Signed in** or **02-Signed out** and inspect **Context**. Change
+the signed-in fixture's `username` and run it again. These values simulate request data; the server
+setup below performs the actual user lookup.
 
 When there is no signed-in user, the response is `{ "data": { "currentUser": null } }`.
 
@@ -97,36 +62,11 @@ If your HTTP and WebSocket handlers provide different context properties, a
 [discriminated union](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions)
 lets resolvers check which properties are available:
 
-```typescript
-type Context =
-  | {
-      transport: 'http';
-      request: Request;
-    }
-  | {
-      transport: 'websocket';
-      connectionParams: { clientName: string };
-    };
+<include cwd lang="typescript" meta='playground example="foundations-context-transports"'>playground-examples/foundations-context-transports/schema.ts#transport</include>
 
-const builder = new SchemaBuilder<{
-  Context: Context;
-}>({});
-
-builder.queryType({
-  fields: (t) => ({
-    clientName: t.string({
-      nullable: true,
-      resolve: (_root, _args, context) => {
-        if (context.transport === 'http') {
-          return context.request.headers.get('x-client-name');
-        }
-
-        return context.connectionParams.clientName;
-      },
-    }),
-  }),
-});
-```
+The companion runs the WebSocket-shaped branch with a JSON context fixture. Its `Context` editor
+can represent `connectionParams`, but an HTTP `Request` must come from your server; editing the
+playground's **Headers** does not create one or start a WebSocket connection.
 
 Checking `transport` narrows the context type, so the resolver can access the properties for that
 transport. Set the discriminator and the corresponding properties when creating the context in each

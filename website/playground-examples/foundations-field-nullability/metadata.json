@@ -1,0 +1,8 @@
+{
+  "id": "foundations-field-nullability",
+  "title": "Field and list nullability",
+  "description": "Run the query and inspect schema.graphql: fields and the sparse list are non-null, while sparse list items can be null. Replace the null item with a string and run again.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/fields"],
+  "defaultActiveFile": "schema.ts"
+}

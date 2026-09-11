@@ -1,0 +1,5 @@
+mutation CreateGiraffe {
+  createGiraffe(name: "Morgan") {
+    name
+  }
+}

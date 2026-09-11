@@ -1,0 +1,8 @@
+{
+  "id": "foundations-context",
+  "title": "Request context",
+  "description": "Run Signed in and Signed out. Open Context to inspect each request\u2019s currentUser, change its username, and run again. The resolver reads context rather than an argument.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/context"],
+  "defaultActiveFile": "schema.ts"
+}

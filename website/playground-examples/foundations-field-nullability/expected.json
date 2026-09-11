@@ -1,0 +1,10 @@
+{
+  "Nullability.graphql": {
+    "data": {
+      "nonNullableField": "Gina",
+      "nonNullableString": "Gina",
+      "nonNullableList": ["Gina", "James"],
+      "sparseList": [null]
+    }
+  }
+}

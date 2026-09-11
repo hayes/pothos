@@ -1,0 +1,8 @@
+{
+  "id": "foundations-overview",
+  "title": "A schema from your data",
+  "description": "Run the query, then change heightInMeters in the backing data. The result changes in feet without exposing the original property.",
+  "category": "core",
+  "relatedDocs": ["/docs"],
+  "defaultActiveFile": "schema.ts"
+}

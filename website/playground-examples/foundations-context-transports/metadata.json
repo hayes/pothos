@@ -1,0 +1,8 @@
+{
+  "id": "foundations-context-transports",
+  "title": "Context transport narrowing",
+  "description": "Run the WebSocket-shaped fixture, then change connectionParams.clientName in Context and run again. The HTTP branch expects a real Request supplied by a server, not the playground Headers control.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/context"],
+  "defaultActiveFile": "schema.ts"
+}

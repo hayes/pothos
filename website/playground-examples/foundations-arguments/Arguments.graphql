@@ -1,0 +1,12 @@
+query Arguments {
+  greeting(name: "Gina")
+  repeat(text: "ha")
+  once: repeat(text: "ha", times: null)
+  knownGiraffes(names: ["Gina", "Unknown"], moreNames: ["James"])
+  nonNullNames(names: ["Gina", null, "James"])
+  giraffe {
+    meters: height
+    feet: height(unit: Feet)
+  }
+  countNames(groups: [["Gina", null], ["James"]])
+}

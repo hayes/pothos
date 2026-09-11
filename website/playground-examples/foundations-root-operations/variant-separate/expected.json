@@ -1,0 +1,31 @@
+{
+  "01-Before.graphql": {
+    "data": {
+      "hello": "hello, world!",
+      "giraffes": [
+        {
+          "name": "James"
+        }
+      ]
+    }
+  },
+  "02-Create.graphql": {
+    "data": {
+      "createGiraffe": {
+        "name": "Morgan"
+      }
+    }
+  },
+  "03-After.graphql": {
+    "data": {
+      "giraffes": [
+        {
+          "name": "James"
+        },
+        {
+          "name": "Morgan"
+        }
+      ]
+    }
+  }
+}

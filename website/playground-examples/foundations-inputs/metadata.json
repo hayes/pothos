@@ -1,0 +1,8 @@
+{
+  "id": "foundations-inputs",
+  "title": "Input objects and recursive inputs",
+  "description": "Run Create, then Friends. Read shows the stored giraffes. Change a nested friend\u2019s height in Friends and run again. Reset example empties the store.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/inputs"],
+  "defaultActiveFile": "schema.ts"
+}

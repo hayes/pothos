@@ -1,0 +1,6 @@
+query SignedIn {
+  currentUser {
+    id
+    username
+  }
+}
