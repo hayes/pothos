@@ -12,6 +12,18 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 The zod plugin validates field arguments and input fields with [zod](https://github.com/colinhacks/zod). You attach a `validate` option wherever you accept input (a single argument, a whole field's args, an input object, or one of its fields) and the plugin builds a zod validator that runs before your resolver. It does not re-export zod; instead `validate` takes a small options object whose keys map onto the zod methods you already know (`min`, `max`, `email`, `regex`, and so on), or an actual zod schema when you want the full API.
 
+## Run a legacy validation workflow
+
+This companion uses the existing Zod plugin's list and item constraints. Run the valid roster,
+invalid email, oversized roster, and saved-email query in order. Both rejected mutations leave the
+two saved email addresses intact. Reset clears that in-memory roster.
+
+<include cwd lang="typescript" meta='playground example="plugin-zod"'>playground-examples/plugin-zod/schema.ts#roster</include>
+
+Change `maxLength` from `2` to `1`, rebuild, and run the valid operation again: it now fails the list
+constraint. This example is for maintaining existing schemas; choose the [validation plugin](./validation)
+for new work and for inferred transformations.
+
 ## Install
 
 ```package-install

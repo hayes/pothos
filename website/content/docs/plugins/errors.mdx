@@ -7,6 +7,14 @@ Represent expected failures as GraphQL result unions. Register error classes as 
 list them in a field's `errors` option. The plugin catches matching errors and returns an error
 object that clients can query with fragments. Errors that do not match still become GraphQL errors.
 
+## Run handled and unexpected failures
+
+Run the three operations to compare a success object, a `NameTooShort` result with `message` and
+`minimum`, and an unregistered error in the GraphQL `errors` array. Change `Li` to `Leia` in the
+handled-failure operation to select the success member instead.
+
+<includeregions cwd lang="typescript" meta='playground example="plugin-errors"'>playground-examples/plugin-errors/schema.ts#error,field</includeregions>
+
 ## Usage
 
 ### Install
@@ -312,6 +320,11 @@ query {
   }
 }
 ```
+
+Run a complete mutation companion to observe both outcomes and confirm rejected input does not
+write any data. Its full source also requires `@pothos/plugin-validation` and `zod` locally. Run the valid, invalid, and saved-names operations in order; only `Leia` is saved.
+
+<includeregions cwd lang="typescript" meta='playground example="plugin-validation"'>playground-examples/plugin-validation/schema.ts#setup,issues,mutation</includeregions>
 
 ### With the dataloader plugin
 

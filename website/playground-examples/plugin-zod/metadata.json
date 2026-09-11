@@ -1,0 +1,8 @@
+{
+  "id": "plugin-zod",
+  "title": "Maintain legacy Zod validation",
+  "description": "Run valid and rejected roster mutations, then inspect savedEmails. Change maxLength to 1 and rebuild to reject the two-person roster. For new schemas use the validation plugin.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/zod"],
+  "defaultActiveFile": "schema.ts"
+}

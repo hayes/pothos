@@ -4,6 +4,41 @@ Define a field and its input object together with `t.fieldWithInput`. The plugin
 input type and a required `input` argument. Use a core `builder.inputType` instead when several
 fields should share the same input type.
 
+## Run generated inputs
+
+The companion has a default `input` argument, a renamed `criteria` argument, and an optional input.
+Run the first operation and inspect the SDL for `QueryEchoInput` and `LookupInput`. Omitted and
+explicitly null optional inputs both return `Anonymous`; a populated input returns `Leia`.
+The second operation omits a required input and receives a GraphQL validation error.
+
+```typescript
+    echo: t.fieldWithInput({
+      type: 'ID',
+      input: { id: t.input.id({ required: true }) },
+      resolve: (_, { input }) => input.id,
+    }),
+
+    lookup: t.fieldWithInput({
+      type: 'ID',
+      typeOptions: { name: 'LookupInput' },
+      argOptions: { name: 'criteria' },
+      input: { id: t.input.id({ required: true }) },
+      resolve: (_, { criteria }) => criteria.id,
+    }),
+
+    optional: t.fieldWithInput({
+      type: 'String',
+      argOptions: { required: false },
+      input: { name: t.input.string() },
+      resolve: (_, { input }) => input?.name ?? 'Anonymous',
+    }),
+```
+
+[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-with-input)
+
+Change the optional resolver fallback from `Anonymous` to `Visitor` and run again. The omitted
+and null inputs now return `Visitor`, while the populated input still returns `Leia`.
+
 ## Usage
 
 ### Install

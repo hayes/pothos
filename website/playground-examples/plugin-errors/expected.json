@@ -1,0 +1,30 @@
+{
+  "01-success.graphql": {
+    "data": {
+      "greeting": {
+        "__typename": "QueryGreetingSuccess",
+        "data": "Hello, Leia"
+      }
+    }
+  },
+  "02-handled.graphql": {
+    "data": {
+      "greeting": {
+        "__typename": "NameTooShort",
+        "message": "Use at least three characters",
+        "minimum": 3
+      }
+    }
+  },
+  "03-unexpected.graphql": {
+    "errors": [
+      {
+        "message": "Service unavailable",
+        "path": ["greeting"]
+      }
+    ],
+    "data": {
+      "greeting": null
+    }
+  }
+}

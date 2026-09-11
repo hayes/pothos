@@ -1,0 +1,8 @@
+{
+  "id": "plugin-mocks",
+  "title": "Replace a resolver at schema build",
+  "description": "Run the query to compare mocked and untouched fields. Change Mock result! to your own fixture. Remove the mocks option to observe the original resolver error. Reset restores the mock.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/mocks"],
+  "defaultActiveFile": "schema.ts"
+}

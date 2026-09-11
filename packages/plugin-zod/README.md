@@ -1,9 +1,43 @@
 # Zod validation plugin
 
 > The [validation plugin](https://pothos-graphql.dev/docs/plugins/validation) is now the recommended way to validate a
->   schema. It supports zod alongside several other validation libraries. Use this page to maintain schemas that already use the zod plugin.
+> schema. It supports zod alongside several other validation libraries. Use this page to maintain schemas that already use the zod plugin.
 
 The zod plugin validates field arguments and input fields with [zod](https://github.com/colinhacks/zod). You attach a `validate` option wherever you accept input (a single argument, a whole field's args, an input object, or one of its fields) and the plugin builds a zod validator that runs before your resolver. It does not re-export zod; instead `validate` takes a small options object whose keys map onto the zod methods you already know (`min`, `max`, `email`, `regex`, and so on), or an actual zod schema when you want the full API.
+
+## Run a legacy validation workflow
+
+This companion uses the existing Zod plugin's list and item constraints. Run the valid roster,
+invalid email, oversized roster, and saved-email query in order. Both rejected mutations leave the
+two saved email addresses intact. Reset clears that in-memory roster.
+
+```typescript
+builder.mutationType({
+  fields: (t) => ({
+    setRoster: t.stringList({
+      args: {
+        emails: t.arg.stringList({
+          required: true,
+          validate: {
+            maxLength: [2, { message: 'Roster is too large' }],
+            items: { email: [true, { message: 'Enter a valid email' }] },
+          },
+        }),
+      },
+      resolve: (_, args) => {
+        emails = args.emails;
+        return emails;
+      },
+    }),
+  }),
+});
+```
+
+[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-zod)
+
+Change `maxLength` from `2` to `1`, rebuild, and run the valid operation again: it now fails the list
+constraint. This example is for maintaining existing schemas; choose the [validation plugin](https://pothos-graphql.dev/docs/plugins/validation)
+for new work and for inferred transformations.
 
 ## Install
 

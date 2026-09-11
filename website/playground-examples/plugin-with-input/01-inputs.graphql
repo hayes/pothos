@@ -1,0 +1,7 @@
+query {
+  echo(input: { id: "1" })
+  lookup(criteria: { id: "2" })
+  omitted: optional
+  explicitNull: optional(input: null)
+  populated: optional(input: { name: "Leia" })
+}

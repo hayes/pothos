@@ -1,0 +1,8 @@
+{
+  "id": "plugin-errors",
+  "title": "Expected and unexpected failures",
+  "description": "Run success, handled failure, and unexpected failure. Change the short name to Leia to see the success member. Only registered error classes become typed results.",
+  "category": "plugins",
+  "relatedDocs": ["/docs/plugins/errors"],
+  "defaultActiveFile": "schema.ts"
+}

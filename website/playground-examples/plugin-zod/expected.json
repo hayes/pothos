@@ -1,0 +1,34 @@
+{
+  "01-valid.graphql": {
+    "data": {
+      "setRoster": ["leia@example.com", "luke@example.com"]
+    }
+  },
+  "02-invalid-item.graphql": {
+    "errors": [
+      {
+        "message": "Enter a valid email",
+        "path": ["setRoster"]
+      }
+    ],
+    "data": {
+      "setRoster": null
+    }
+  },
+  "03-too-many.graphql": {
+    "errors": [
+      {
+        "message": "Roster is too large",
+        "path": ["setRoster"]
+      }
+    ],
+    "data": {
+      "setRoster": null
+    }
+  },
+  "04-no-rejected-write.graphql": {
+    "data": {
+      "savedEmails": ["leia@example.com", "luke@example.com"]
+    }
+  }
+}

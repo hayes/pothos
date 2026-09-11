@@ -1,0 +1,18 @@
+{
+  "01-inputs.graphql": {
+    "data": {
+      "echo": "1",
+      "lookup": "2",
+      "omitted": "Anonymous",
+      "explicitNull": "Anonymous",
+      "populated": "Leia"
+    }
+  },
+  "02-required.graphql": {
+    "errors": [
+      {
+        "message": "Argument \"Query.echo(input:)\" of type \"QueryEchoInput!\" is required, but it was not provided."
+      }
+    ]
+  }
+}

@@ -4,6 +4,41 @@ Represent expected failures as GraphQL result unions. Register error classes as 
 list them in a field's `errors` option. The plugin catches matching errors and returns an error
 object that clients can query with fragments. Errors that do not match still become GraphQL errors.
 
+## Run handled and unexpected failures
+
+Run the three operations to compare a success object, a `NameTooShort` result with `message` and
+`minimum`, and an unregistered error in the GraphQL `errors` array. Change `Li` to `Leia` in the
+handled-failure operation to select the success member instead.
+
+```typescript
+class NameTooShort extends Error {
+  minimum = 3;
+  constructor() {
+    super('Use at least three characters');
+  }
+}
+builder.objectType(NameTooShort, {
+  name: 'NameTooShort',
+  fields: (t) => ({ message: t.exposeString('message'), minimum: t.exposeInt('minimum') }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    greeting: t.string({
+      args: { name: t.arg.string({ required: true }), simulateFailure: t.arg.boolean() },
+      errors: { types: [NameTooShort] },
+      resolve: (_, { name, simulateFailure }) => {
+        if (simulateFailure) throw new Error('Service unavailable');
+        if (name.length < 3) throw new NameTooShort();
+        return `Hello, ${name}`;
+      },
+    }),
+  }),
+});
+```
+
+[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-errors)
+
 ## Usage
 
 ### Install
@@ -309,6 +344,55 @@ query {
   }
 }
 ```
+
+Run a complete mutation companion to observe both outcomes and confirm rejected input does not
+write any data. Its full source also requires `@pothos/plugin-validation` and `zod` locally. Run the valid, invalid, and saved-names operations in order; only `Leia` is saved.
+
+```typescript
+// This public example deliberately exposes validation details before authorization.
+const builder = new SchemaBuilder({
+  plugins: [ErrorsPlugin, ValidationPlugin],
+  errors: { unsafelyHandleInputErrors: true },
+});
+const names: string[] = [];
+
+const Issue = builder.objectRef<StandardSchemaV1.Issue>('ValidationIssue').implement({
+  fields: (t) => ({
+    message: t.exposeString('message'),
+    path: t.stringList({
+      resolve: (issue) =>
+        issue.path?.map((part) => String(typeof part === 'object' ? part.key : part)) ?? [],
+    }),
+  }),
+});
+builder.objectType(InputValidationError, {
+  name: 'InputValidationError',
+  fields: (t) => ({ issues: t.field({ type: [Issue], resolve: (error) => error.issues }) }),
+});
+
+const Registration = builder.inputType('Registration', {
+  fields: (t) => ({
+    name: t
+      .string({ required: true })
+      .validate(z.string().trim().min(3, 'Name is too short')),
+    email: t.string({ required: true, validate: z.email('Enter a valid email') }),
+  }),
+});
+builder.mutationType({
+  fields: (t) => ({
+    register: t.string({
+      args: { input: t.arg({ type: Registration, required: true }) },
+      errors: { types: [InputValidationError] },
+      resolve: (_, { input }) => {
+        names.push(input.name);
+        return input.name;
+      },
+    }),
+  }),
+});
+```
+
+[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-validation)
 
 ### With the dataloader plugin
 

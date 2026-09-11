@@ -5,6 +5,44 @@ that implements [Standard Schema](https://standardschema.dev), including Zod, Va
 Validation can be asynchronous, and chained validators can transform the values passed to your resolver.
 If validation fails, the resolver does not run.
 
+## Run validation before a write
+
+Run the valid registration, rejected registration, and saved-names query in order. The valid name
+is trimmed to `Leia`; invalid input returns issue messages and paths. `savedNames` still contains
+only `Leia`, because the rejected mutation never reaches its resolver. Reset the example to clear
+its in-memory data before repeating the sequence.
+
+```typescript
+const Registration = builder.inputType('Registration', {
+  fields: (t) => ({
+    name: t
+      .string({ required: true })
+      .validate(z.string().trim().min(3, 'Name is too short')),
+    email: t.string({ required: true, validate: z.email('Enter a valid email') }),
+  }),
+});
+builder.mutationType({
+  fields: (t) => ({
+    register: t.string({
+      args: { input: t.arg({ type: Registration, required: true }) },
+      errors: { types: [InputValidationError] },
+      resolve: (_, { input }) => {
+        names.push(input.name);
+        return input.name;
+      },
+    }),
+  }),
+});
+```
+
+[Run in the playground](https://pothos-graphql.dev/playground?example=plugin-validation)
+
+This companion combines validation with the errors plugin to make issues queryable. To run its
+full source locally, also install `@pothos/plugin-errors`. It explicitly sets `unsafelyHandleInputErrors: true`: validation details are public here, and a rejected input
+returns before field authorization hooks run. See [the integration details](https://pothos-graphql.dev/docs/plugins/errors#with-validation-plugin)
+before using that setting in an application. Change the minimum name length from `3` to `5`, rebuild,
+and run the valid operation again to see it rejected.
+
 ## Usage
 
 ### Install

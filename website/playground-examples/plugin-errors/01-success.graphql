@@ -1,0 +1,12 @@
+query {
+  greeting(name: "Leia") {
+    __typename
+    ... on QueryGreetingSuccess {
+      data
+    }
+    ... on NameTooShort {
+      message
+      minimum
+    }
+  }
+}
