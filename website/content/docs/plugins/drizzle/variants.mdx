@@ -3,6 +3,10 @@ title: Type variants
 description: How to define multiple GraphQL types based on the same drizzle table
 ---
 
+Use the [builder setup with Relay](./setup#integration-with-other-plugins), and include
+`Context: { user: { id: number } }` in `PothosTypes`. These examples assume an authenticated user
+and a registered posts type. The `users` table has a posts relation.
+
 ## Variants
 
 It is often useful to be able to define multiple object types based on the same table. This can be
@@ -10,7 +14,7 @@ done using a feature called `variants`. The `variants` API consists of 3 parts:
 
 - A `variant` option that can be passed instead of a name on `drizzleObjects`
 - The ability to pass an `ObjectRef` to the `type` option of `t.relation` and other similar fields
-- A `t.field` method that works similar to `t.relation`, but is used to define a GraphQL field that
+- A `t.variant` method that works similar to `t.relation`, but is used to define a GraphQL field that
   references a variant of the same record.
 
 ```ts
@@ -55,6 +59,7 @@ builder.queryType({
 
 builder.drizzleNode('users', {
   name: 'User',
+  id: { column: (user) => user.id },
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
     // This field will resolve to the Viewer type, but be set to null if the user is not the current user
@@ -65,12 +70,13 @@ builder.drizzleNode('users', {
 });
 ```
 
-A `t.variant` field can have a `select` of its own. It is planned along with the variant's
+As an alternative to the User node definition above, a `t.variant` field can have a `select` of its own. It is planned along with the variant's
 type-level selection when the variant is queried through that field:
 
 ```ts
 builder.drizzleNode('users', {
   name: 'User',
+  id: { column: (user) => user.id },
   fields: (t) => ({
     viewer: t.variant(Viewer, {
       // loaded with the row when `viewer` is selected

@@ -9,27 +9,31 @@ description: Setting up the Drizzle plugin
 npm install --save @pothos/plugin-drizzle drizzle-orm@rc
 ```
 
-The drizzle plugin is built on top of drizzles relational query builder, and requires that you
-define and configure all the relevant relations in your drizzle schema. See
-https://orm.drizzle.team/docs/relations-v2 for detailed documentation on the relations API.
+The Drizzle plugin uses the relational query builder. Define the tables and relations your schema
+will query; see Drizzle’s [relations API](https://orm.drizzle.team/docs/relations-v2).
 
 Once you have configured your drizzle schema, you can initialize your Pothos
-SchemaBuilder with the drizzle plugin:
+SchemaBuilder with the drizzle plugin. This example uses SQLite through `@libsql/client`;
+install that driver and use the `relations` exported by your application. For another database,
+use its Drizzle driver and matching `getTableConfig` import:
 
 ```ts
-import { drizzle } from 'drizzle-orm/...';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
 // Import the appropriate getTableConfig for your dialect
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
 import { relations } from './db/relations';
 
+const client = createClient({ url: 'file:./dev.db' });
 const db = drizzle({ client, relations });
 
-type DrizzleRelations = typeof relations
+type DrizzleRelations = typeof relations;
 
 export interface PothosTypes {
   DrizzleRelations: DrizzleRelations;
+  Context: { userId: number };
 }
 
 const builder = new SchemaBuilder<PothosTypes>({
@@ -42,13 +46,17 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
+The examples use an authenticated request context with `userId: number`. Supply it through your
+GraphQL server; see [Context](/docs/guide/context).
+
 ### Integration with other plugins
 
 The drizzle plugin has integrations with several other plugins. While the `with-input` and `relay`
 plugins are not required, many examples will assume these plugins have been installed:
 
 ```ts
-import { drizzle } from 'drizzle-orm/...';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
 import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
 import RelayPlugin from '@pothos/plugin-relay';
@@ -56,10 +64,12 @@ import WithInputPlugin from '@pothos/plugin-with-input';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { relations } from './db/relations';
 
+const client = createClient({ url: 'file:./dev.db' });
 const db = drizzle({ client, relations });
 
 export interface PothosTypes {
   DrizzleRelations: typeof relations;
+  Context: { userId: number };
 }
 
 const builder = new SchemaBuilder<PothosTypes>({
