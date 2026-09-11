@@ -31,7 +31,7 @@ import { usePlaygroundFiles } from './usePlaygroundFiles';
 import { useQueryRunner } from './useQueryRunner';
 import { useSchemaStatus } from './useSchemaStatus';
 import { useUrlBootstrap } from './useUrlBootstrap';
-import { useExampleBaseline, useUrlHashSync } from './useUrlSync';
+import { readInitialFromURL, useExampleBaseline, useUrlHashSync } from './useUrlSync';
 
 /**
  * File-related action setters consumed by the SchemaSidebar. Grouping
@@ -57,6 +57,8 @@ export interface OperationPaneActions {
 }
 
 export interface PlaygroundShellUI {
+  executionBlocked: boolean;
+  allowExecution: () => void;
   // Toolbar inputs
   embed: boolean;
   sketchName: string;
@@ -137,10 +139,30 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
   const { theme, setTheme } = useTheme();
   const console_ = useConsoleLogs();
 
+  // Start paused on both the server and client. The first effect runs before
+  // URL bootstrap can replace the default files, so shared code never gets an
+  // initial auto-compile before the trust decision is known.
+  const [executionAllowed, setExecutionAllowed] = useState(false);
+  const executionAllowedRef = useRef(false);
+  useEffect(() => {
+    const allowed = readInitialFromURL() === null;
+    executionAllowedRef.current = allowed;
+    setExecutionAllowed(allowed);
+    // Hash navigation loads another sketch. Remount through a full navigation
+    // so it gets the same hydration and trust boundary as a newly opened link.
+    const navigate = () => {
+      executionAllowedRef.current = false;
+      setExecutionAllowed(false);
+      window.location.reload();
+    };
+    window.addEventListener('hashchange', navigate);
+    return () => window.removeEventListener('hashchange', navigate);
+  }, []);
+
   const { state: compilerState } = usePlaygroundCompiler({
     files: filesState.files,
     debounceMs: 500,
-    autoCompile: true,
+    autoCompile: executionAllowed,
   });
 
   // Mirror compile-time logs into the console drawer whenever they change.
@@ -423,6 +445,15 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
   });
 
   const handleRun = useCallback(async () => {
+    // All entry points, including the editor and keyboard shortcut, share this
+    // guard. Query variables/context can also contain executable expressions.
+    if (
+      !executionAllowedRef.current ||
+      compilerState.isCompiling ||
+      runner.phase.kind === 'pending'
+    ) {
+      return;
+    }
     const result = await runner.run({
       schema: compilerState.schema,
       // Guard against running the last-good schema when the current
@@ -437,7 +468,14 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
       console_.push(result.logs, 'query');
     }
     opsState.markClean();
-  }, [runner, compilerState.schema, compilerState.error, opsState, console_]);
+  }, [
+    runner,
+    compilerState.schema,
+    compilerState.error,
+    compilerState.isCompiling,
+    opsState,
+    console_,
+  ]);
 
   useKeyboardShortcuts({ onRun: handleRun });
 
@@ -574,6 +612,11 @@ export function usePlaygroundShellUI(): PlaygroundShellUI {
       : null;
 
   return {
+    executionBlocked: !executionAllowed,
+    allowExecution: () => {
+      executionAllowedRef.current = true;
+      setExecutionAllowed(true);
+    },
     embed,
     sketchName,
     setSketchName,

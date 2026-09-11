@@ -140,81 +140,68 @@ export async function compileTypeScript(
 // schema build needs to move into a Worker so it can be terminated.
 // For now we rely on the browser's slow-script dialog as the backstop.
 
-export function executeAndBuildSchema(
+export async function executeAndBuildSchema(
   compiledCode: string,
   modules: PlaygroundModules,
   additionalModules: Record<string, unknown> = {},
-): ExecutionResult {
+): Promise<ExecutionResult> {
   // Logs accumulate into this array even if user code throws — both
   // captureConsole (via `out`) and our catch below read from it, so a
   // failed schema build still surfaces any preceding console output.
   const logs: ConsoleMessage[] = [];
 
   try {
+    // Let esbuild lower module syntax instead of rewriting JavaScript with
+    // regular expressions (which also match strings and miss multiline imports).
+    await initEsbuild();
+    const { code } = await esbuild.transform(compiledCode, {
+      loader: 'js',
+      format: 'cjs',
+      target: 'es2020',
+    });
     const { result } = captureConsole(() => {
       const moduleMap: Record<string, unknown> = {
         '@pothos/core': modules['@pothos/core'],
         graphql: modules.graphql,
         ...additionalModules,
       };
-
-      // __interop bridges the CJS/ESM gap that esm.sh leaves behind:
-      // when esm.sh serves a CJS package (lodash, etc.) it puts the
-      // original module on \`.default\` and synthesizes named exports
-      // as live bindings. Some of those bindings resolve to undefined
-      // even though the property exists on \`default\` — copying eagerly
-      // (via \`Object.assign\`) misses them entirely. We instead Proxy
-      // \`default\` and prefer named-export values when they're
-      // actually defined, falling back to \`default\`'s own property
-      // for everything else. Both \`x.add\` and \`{ add } = x\` resolve
-      // through the same get trap, so the two forms agree.
-      const wrappedCode = `
-        const __exports = {};
-        const __require = (name) => {
-          if (!__modules[name]) throw new Error('Module not found: ' + name);
-          return __modules[name];
-        };
-        const __interop = (m) => {
-          if (m == null || typeof m !== 'object') return m;
-          const def = m.default;
-          if (def == null || (typeof def !== 'object' && typeof def !== 'function')) {
-            return m;
-          }
-          return new Proxy(def, {
-            get(target, prop, receiver) {
-              if (typeof prop === 'string' && prop in m) {
-                const v = m[prop];
-                if (v !== undefined) return v;
-              }
-              return Reflect.get(target, prop, receiver);
-            },
-            has(target, prop) {
-              if (
-                typeof prop === 'string' &&
-                prop in m &&
-                m[prop] !== undefined
-              ) {
-                return true;
-              }
-              return Reflect.has(target, prop);
-            },
-          });
-        };
-
-        ${rewriteImports(compiledCode)}
-
-        return __exports;
-      `;
-
-      // SECURITY: `new Function()` runs user code in the page origin
-      // with full access to window/document/fetch/cookies. URL-shared
-      // playground links carry executable code; clicking one runs JS
-      // under pothos.dev. Acceptable for first-party authoring; before
-      // accepting third-party shares without friction, consider moving
-      // execution into a sandboxed iframe or a separate origin and
-      // postMessage'ing the SDL back.
-      const fn = new Function('__modules', wrappedCode);
-      return fn(moduleMap);
+      const requireModule = (name: string) => {
+        if (!Object.hasOwn(moduleMap, name)) {
+          throw new Error(`Module not found: ${name}`);
+        }
+        const value = moduleMap[name];
+        if (value == null || (typeof value !== 'object' && typeof value !== 'function')) {
+          return value;
+        }
+        // These are ESM namespaces, including the locally assembled core
+        // namespace. Mark them as such for esbuild's CommonJS interop helper.
+        const namespace = value as Record<string, unknown>;
+        const fallback = namespace.default;
+        return new Proxy(Object.create(null) as Record<string, unknown>, {
+          get(_target, prop) {
+            if (prop === '__esModule') {
+              return true;
+            }
+            const exported = Reflect.get(namespace, prop);
+            if (exported !== undefined) {
+              return exported;
+            }
+            // Some CDN CommonJS wrappers expose named exports only on default.
+            return fallback != null &&
+              (typeof fallback === 'object' || typeof fallback === 'function')
+              ? Reflect.get(fallback, prop)
+              : undefined;
+          },
+          ownKeys: () => Reflect.ownKeys(namespace),
+          getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+        });
+      };
+      const module = { exports: {} as Record<string, unknown> };
+      // This still executes in the page origin. URL-supplied code must be
+      // explicitly trusted by the user before reaching this function.
+      const fn = new Function('require', 'module', 'exports', code);
+      fn(requireModule, module, module.exports);
+      return module.exports;
     }, logs);
 
     if (!result.schema) {
@@ -242,121 +229,6 @@ export function executeAndBuildSchema(
       consoleLogs: logs,
     };
   }
-}
-
-// Regex-based import rewriter — intentionally not a real parser. The playground
-// only executes trusted user code, and the supported import shapes are well-bounded.
-function rewriteImports(code: string): string {
-  let rewritten = code;
-
-  // Handle re-exports first: `export { x } from 'mod'` and `export { x as y } from 'mod'`.
-  // Must run before the bare `export { x }` rewriter below, otherwise that
-  // rewriter would match the `{ x }` portion and emit refs to undeclared `x`.
-  const reExportRegex = /export\s*\{\s*([^}]+)\s*\}\s*from\s*['"]([^'"]+)['"]/g;
-  rewritten = rewritten.replace(reExportRegex, (_match, names: string, moduleName: string) => {
-    const parts = names.split(',').map((n: string) => {
-      const [name, alias] = n.trim().split(/\s+as\s+/);
-      return `__exports.${alias || name} = __require('${moduleName}').${name}`;
-    });
-    return parts.join(';\n');
-  });
-
-  // Handle import statements - match more carefully
-  const importRegex = /import\s+(.+?)\s+from\s*['"]([^'"]+)['"]/g;
-
-  rewritten = rewritten.replace(importRegex, (_match, imports, moduleName) => {
-    const cleanImports = imports.trim();
-
-    // Namespace import: `import * as Foo from 'module'`. esm.sh's
-    // CJS-namespace wrappers advertise named keys (so `Object.keys(x)`
-    // looks right) but the live-binding accessors don't actually
-    // surface values for callable-CJS modules like lodash — `x.add`
-    // ends up `undefined` while `Object.keys(x).includes('add')` is
-    // true. Routing through interop builds a flat namespace that
-    // matches what users expect from `* as`.
-    const nsMatch = cleanImports.match(/^\*\s+as\s+([A-Za-z_$][\w$]*)$/);
-    if (nsMatch) {
-      return `const ${nsMatch[1]} = __interop(__require('${moduleName}'))`;
-    }
-
-    // Mixed namespace: `import Foo, * as Bar from 'module'`
-    const mixedNsMatch = cleanImports.match(
-      /^([A-Za-z_$][\w$]*)\s*,\s*\*\s+as\s+([A-Za-z_$][\w$]*)$/,
-    );
-    if (mixedNsMatch) {
-      return `const ${mixedNsMatch[1]} = __require('${moduleName}').default ?? __require('${moduleName}');\nconst ${mixedNsMatch[2]} = __interop(__require('${moduleName}'))`;
-    }
-
-    // Named imports only: `import { a, b } from 'module'` — run
-    // through interop so CJS-wrapped packages (`{ add } from 'lodash'`)
-    // work without forcing the user to write `import lodash from …`.
-    if (cleanImports.startsWith('{') && cleanImports.endsWith('}')) {
-      return `const ${cleanImports} = __interop(__require('${moduleName}'))`;
-    }
-
-    // Default import: `import Foo from 'module'`
-    if (!cleanImports.includes('{') && !cleanImports.includes(',')) {
-      return `const ${cleanImports} = __require('${moduleName}').default ?? __require('${moduleName}')`;
-    }
-
-    // Mixed: `import Foo, { a, b } from 'module'`
-    const commaIndex = cleanImports.indexOf(',');
-    if (commaIndex > 0) {
-      const defaultImport = cleanImports.substring(0, commaIndex).trim();
-      const namedImports = cleanImports.substring(commaIndex + 1).trim();
-      return `const ${defaultImport} = __require('${moduleName}').default ?? __require('${moduleName}');\nconst ${namedImports} = __interop(__require('${moduleName}'))`;
-    }
-
-    // Fallback - shouldn't reach here
-    return `const ${cleanImports} = __require('${moduleName}')`;
-  });
-
-  // Handle export default
-  const exportDefaultSchemaRegex = /export\s+default\s+(\w+)/g;
-  rewritten = rewritten.replace(exportDefaultSchemaRegex, '__exports.default = $1');
-
-  // Handle export const - need to track which consts were exported.
-  // Only plain identifier forms (`export const foo = ...`) are tracked; for
-  // destructuring forms (`export const { a } = ...` or `export const [a] = ...`)
-  // we can't know which identifiers are bound without parsing, so we leave
-  // those alone — the `export const` -> `const` replacement below still strips
-  // the keyword so the destructure executes; the user just won't get the
-  // bindings re-exported on `__exports`. That's acceptable for the playground.
-  const exportedConsts = new Set<string>();
-  const exportConstRegex = /export\s+const\s+(\w+)\s*=/g;
-  let match: RegExpExecArray | null = exportConstRegex.exec(code);
-  while (match !== null) {
-    exportedConsts.add(match[1]);
-    match = exportConstRegex.exec(code);
-  }
-
-  // Remove export keyword but keep const declaration
-  rewritten = rewritten.replace(/export\s+const\s+/g, 'const ');
-
-  // Find all const declarations and add exports for the ones that were originally exported
-  // We need to do this at the end of the code
-  const constMatches: string[] = [];
-  for (const constName of Array.from(exportedConsts)) {
-    constMatches.push(`__exports.${constName} = ${constName};`);
-  }
-
-  // Append all export assignments at the end
-  if (constMatches.length > 0) {
-    rewritten = `${rewritten}\n${constMatches.join('\n')}`;
-  }
-
-  // Handle export { name } (without `from`) — re-export `from` form was
-  // already handled above and stripped.
-  const exportNamedRegex = /export\s+\{\s*([^}]+)\s*\}(?!\s*from)/g;
-  rewritten = rewritten.replace(exportNamedRegex, (_match, names) => {
-    const exports = names.split(',').map((n: string) => {
-      const [name, alias] = n.trim().split(/\s+as\s+/);
-      return `__exports.${alias || name} = ${name}`;
-    });
-    return exports.join(';\n');
-  });
-
-  return rewritten;
 }
 
 /**

@@ -1,5 +1,6 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import type {
   Comment,
   CommentReply,
@@ -8,7 +9,21 @@ import type {
   UpdateCommentInput,
 } from '../types';
 
-const EMPTY_FILE: ReviewFile = { version: 1, comments: [] };
+const pendingWrites = new Map<string, Promise<unknown>>();
+
+// Serialize the whole read/modify/write operation, including across storage instances.
+function mutate<T>(storagePath: string, operation: () => Promise<T>): Promise<T> {
+  const previous = pendingWrites.get(storagePath) ?? Promise.resolve();
+  const next = previous.catch(() => {}).then(operation);
+  pendingWrites.set(storagePath, next);
+  const cleanup = () => {
+    if (pendingWrites.get(storagePath) === next) {
+      pendingWrites.delete(storagePath);
+    }
+  };
+  void next.then(cleanup, cleanup);
+  return next;
+}
 
 /**
  * Resolves the default storage location: `<cwd>/.claude/review-feedback.json`.
@@ -29,12 +44,12 @@ async function readReviewFile(storagePath: string): Promise<ReviewFile> {
     const raw = await readFile(storagePath, 'utf8');
     const parsed = JSON.parse(raw) as ReviewFile;
     if (parsed.version !== 1 || !Array.isArray(parsed.comments)) {
-      return { ...EMPTY_FILE };
+      return { version: 1, comments: [] };
     }
     return parsed;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      return { ...EMPTY_FILE };
+      return { version: 1, comments: [] };
     }
     throw err;
   }
@@ -47,9 +62,13 @@ async function readReviewFile(storagePath: string): Promise<ReviewFile> {
  */
 async function writeReviewFile(storagePath: string, file: ReviewFile): Promise<void> {
   await mkdir(dirname(storagePath), { recursive: true });
-  const tmp = `${storagePath}.${process.pid}.tmp`;
-  await writeFile(tmp, `${JSON.stringify(file, null, 2)}\n`, 'utf8');
-  await rename(tmp, storagePath);
+  const tmp = `${storagePath}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(tmp, `${JSON.stringify(file, null, 2)}\n`, 'utf8');
+    await rename(tmp, storagePath);
+  } finally {
+    await rm(tmp, { force: true });
+  }
 }
 
 export interface ReviewStorage {
@@ -62,7 +81,7 @@ export interface ReviewStorage {
 }
 
 export function createStorage(opts: { storagePath?: string } = {}): ReviewStorage {
-  const storagePath = opts.storagePath ?? defaultStoragePath();
+  const storagePath = resolve(opts.storagePath ?? defaultStoragePath());
 
   return {
     storagePath,
@@ -74,60 +93,66 @@ export function createStorage(opts: { storagePath?: string } = {}): ReviewStorag
       const file = await readReviewFile(storagePath);
       return file.comments.find((c) => c.id === id) ?? null;
     },
-    async create(input) {
-      const file = await readReviewFile(storagePath);
-      const now = new Date().toISOString();
-      const comment: Comment = {
-        id: randomId('cmt'),
-        page: input.page,
-        pageTitle: input.pageTitle,
-        anchor: input.anchor,
-        body: input.body,
-        author: input.author ?? 'user',
-        createdAt: now,
-        status: 'open',
-        replies: [],
-      };
-      file.comments.push(comment);
-      await writeReviewFile(storagePath, file);
-      return comment;
-    },
-    async update(id, patch) {
-      const file = await readReviewFile(storagePath);
-      const idx = file.comments.findIndex((c) => c.id === id);
-      if (idx === -1) {
-        return null;
-      }
-      const current = file.comments[idx];
-      const next: Comment = { ...current };
-      if (patch.status) {
-        next.status = patch.status;
-      }
-      if (typeof patch.body === 'string') {
-        next.body = patch.body;
-      }
-      if (patch.addReply) {
-        const reply: CommentReply = {
-          id: randomId('rep'),
-          author: patch.addReply.author,
-          body: patch.addReply.body,
-          createdAt: new Date().toISOString(),
+    create(input) {
+      return mutate(storagePath, async () => {
+        const file = await readReviewFile(storagePath);
+        const now = new Date().toISOString();
+        const comment: Comment = {
+          id: randomId('cmt'),
+          page: input.page,
+          pageTitle: input.pageTitle,
+          anchor: input.anchor,
+          body: input.body,
+          author: input.author ?? 'user',
+          createdAt: now,
+          status: 'open',
+          replies: [],
         };
-        next.replies = [...current.replies, reply];
-      }
-      file.comments[idx] = next;
-      await writeReviewFile(storagePath, file);
-      return next;
+        file.comments.push(comment);
+        await writeReviewFile(storagePath, file);
+        return comment;
+      });
     },
-    async remove(id) {
-      const file = await readReviewFile(storagePath);
-      const before = file.comments.length;
-      file.comments = file.comments.filter((c) => c.id !== id);
-      if (file.comments.length === before) {
-        return false;
-      }
-      await writeReviewFile(storagePath, file);
-      return true;
+    update(id, patch) {
+      return mutate(storagePath, async () => {
+        const file = await readReviewFile(storagePath);
+        const idx = file.comments.findIndex((c) => c.id === id);
+        if (idx === -1) {
+          return null;
+        }
+        const current = file.comments[idx];
+        const next: Comment = { ...current };
+        if (patch.status) {
+          next.status = patch.status;
+        }
+        if (typeof patch.body === 'string') {
+          next.body = patch.body;
+        }
+        if (patch.addReply) {
+          const reply: CommentReply = {
+            id: randomId('rep'),
+            author: patch.addReply.author,
+            body: patch.addReply.body,
+            createdAt: new Date().toISOString(),
+          };
+          next.replies = [...current.replies, reply];
+        }
+        file.comments[idx] = next;
+        await writeReviewFile(storagePath, file);
+        return next;
+      });
+    },
+    remove(id) {
+      return mutate(storagePath, async () => {
+        const file = await readReviewFile(storagePath);
+        const before = file.comments.length;
+        file.comments = file.comments.filter((c) => c.id !== id);
+        if (file.comments.length === before) {
+          return false;
+        }
+        await writeReviewFile(storagePath, file);
+        return true;
+      });
     },
   };
 }

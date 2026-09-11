@@ -37,27 +37,44 @@ export default function PlaygroundPage() {
         <div />
       )}
 
-      <Toolbar
-        embed={ui.embed}
-        sketchName={ui.sketchName}
-        onSketchRename={ui.setSketchName}
-        status={ui.status}
-        consoleCount={ui.consoleCount}
-        consoleHasErrors={ui.consoleHasErrors}
-        consoleOpen={ui.consoleOpen}
-        onToggleConsole={ui.toggleConsole}
-        onShare={ui.onShare}
-        shareLabel={ui.shareLabel}
-        running={ui.running}
-        onRun={ui.onRun}
-        examplesOpen={ui.examplesOpen}
-        onToggleExamples={ui.toggleExamples}
-        examplesPicker={ui.examplesPicker}
-        hasExamples={ui.hasExamples}
-        overflowOpen={ui.overflowOpen}
-        onToggleOverflow={ui.toggleOverflow}
-        overflowItems={ui.overflowItems}
-      />
+      <div>
+        {ui.executionBlocked && (
+          <div role="status" className="border-b border-bm-line bg-bm-surface-alt p-3 text-sm">
+            <p>
+              Review this shared code before running it. It can access this page and make network
+              requests. Only run code you trust.
+            </p>
+            <button
+              type="button"
+              className="mt-2 rounded bg-bm-ink px-3 py-1.5 text-bm-bg"
+              onClick={ui.allowExecution}
+            >
+              Trust and build schema
+            </button>
+          </div>
+        )}
+        <Toolbar
+          embed={ui.embed}
+          sketchName={ui.sketchName}
+          onSketchRename={ui.setSketchName}
+          status={ui.status}
+          consoleCount={ui.consoleCount}
+          consoleHasErrors={ui.consoleHasErrors}
+          consoleOpen={ui.consoleOpen}
+          onToggleConsole={ui.toggleConsole}
+          onShare={ui.onShare}
+          shareLabel={ui.shareLabel}
+          running={ui.running}
+          onRun={ui.onRun}
+          examplesOpen={ui.examplesOpen}
+          onToggleExamples={ui.toggleExamples}
+          examplesPicker={ui.examplesPicker}
+          hasExamples={ui.hasExamples}
+          overflowOpen={ui.overflowOpen}
+          onToggleOverflow={ui.toggleOverflow}
+          overflowItems={ui.overflowItems}
+        />
+      </div>
 
       <PlaygroundLayout
         sidebar={

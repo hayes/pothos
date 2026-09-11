@@ -46,7 +46,7 @@ export function usePlaygroundCompiler({
   autoCompile = true,
 }: UsePlaygroundCompilerOptions): UsePlaygroundCompilerResult {
   const [state, setState] = useState<CompilerState>({
-    isCompiling: true,
+    isCompiling: autoCompile,
     schema: null,
     schemaSDL: null,
     error: null,
@@ -57,6 +57,7 @@ export function usePlaygroundCompiler({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
   const prevFilesRef = useRef(files);
+  const prevAutoCompileRef = useRef(autoCompile);
   // Track compilation version to ignore stale results
   const currentCompilationRef = useRef<number>(0);
   // Tracks whether the host component is mounted; gates post-await state
@@ -168,8 +169,15 @@ export function usePlaygroundCompiler({
       return;
     }
 
-    // Skip if auto-compile disabled or files unchanged
-    if (!autoCompile || prevFilesRef.current === files) {
+    const wasAutoCompile = prevAutoCompileRef.current;
+    prevAutoCompileRef.current = autoCompile;
+    // Invalidate immediately, including during the debounce window, so an
+    // older asynchronous compile cannot publish a stale schema as ready.
+    if (prevFilesRef.current !== files || !autoCompile) {
+      currentCompilationRef.current++;
+    }
+    // Enabling compilation must build even if the paused files did not change.
+    if (!autoCompile || (prevFilesRef.current === files && wasAutoCompile)) {
       return;
     }
 

@@ -1,8 +1,9 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useEditorTheme } from '@/hooks/playground/useEditorTheme';
+import { setQueryCursor } from '@/lib/playground/active-query-cursor';
 
 interface Props {
   value: string;
@@ -21,6 +22,14 @@ export function QueryEditor({ value, onChange, onRun }: Props) {
   // always reads the latest callback.
   const onRunRef = useRef(onRun);
   onRunRef.current = onRun;
+  const cursorCleanup = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      cursorCleanup.current?.();
+      setQueryCursor(null);
+    },
+    [],
+  );
 
   return (
     <Editor
@@ -31,6 +40,14 @@ export function QueryEditor({ value, onChange, onRun }: Props) {
       onChange={(v) => v !== undefined && onChange(v)}
       beforeMount={registerThemes}
       onMount={(editor, monaco) => {
+        const updateCursor = () => {
+          const model = editor.getModel();
+          const position = editor.getPosition();
+          setQueryCursor(model && position ? model.getOffsetAt(position) : null);
+        };
+        updateCursor();
+        const listener = editor.onDidChangeCursorPosition(updateCursor);
+        cursorCleanup.current = () => listener.dispose();
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => onRunRef.current());
       }}
       options={{

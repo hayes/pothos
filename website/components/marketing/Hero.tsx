@@ -70,7 +70,7 @@ export function Hero() {
         }}
       >
         Pothos is a plugin-based GraphQL schema builder for TypeScript. Define your types once and
-        they flow into every resolver — no codegen, no decorators. It&apos;s designed for every
+        they flow into every resolver without codegen or decorators. It&apos;s designed for every
         scale, from a prototype to the schemas running at Airbnb and Netflix.
       </p>
 

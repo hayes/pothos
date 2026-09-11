@@ -14,7 +14,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pothos-graphql.dev
 const SITE_NAME = 'Pothos';
 const DEFAULT_TITLE = 'Pothos GraphQL — Schemas that grow with your code';
 const DEFAULT_DESCRIPTION =
-  'A plugin-based GraphQL schema builder for TypeScript. Define your types once and they flow into every resolver — no codegen, no decorators.';
+  'A plugin-based GraphQL schema builder for TypeScript. Define your types once and they flow into every resolver without codegen or decorators.';
 
 // Site-wide metadata defaults. Every route inherits these unless it
 // overrides a field:
