@@ -1,5 +1,9 @@
-The Relay plugin adds a number of builder methods and helper functions to simplify building a relay
-compatible schema.
+# Relay Plugin
+
+The Relay plugin adds globally identifiable nodes, cursor-based connections, and mutation helpers.
+Use nodes when clients need to refetch an object by ID, and connections when clients need to page
+through a collection. A connection can return ordinary object types; its items do not have to
+implement the `Node` interface.
 
 ## Usage
 
@@ -12,6 +16,7 @@ npm install --save @pothos/plugin-relay
 ### Setup
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
@@ -27,17 +32,19 @@ The `relay` options object passed to builder can contain the following propertie
 - `idFieldOptions`: Options to pass to the id field.
 - `clientMutationId`: `omit` (default) | `required` | `optional`. Determines if clientMutationId
   fields are created on `relayMutationFields`, and if they are required.
+- `relayMutationFieldOptions`: Default options for the `relayMutationField` method.
 - `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults to `String`
 - `nodeQueryOptions`: Options for the `node` field on the query object, set to false to omit the
   field
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
   field
-- `nodeTypeOptions`: Options for the `Node` interface type
-- `pageInfoTypeOptions`: Options for the `PageInfo` object type
-- `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on connection objects
-- `clientMutationIdInputOptions`: Options for the `clientMutationId` input field on connections
-  fields
-- `mutationInputArgOptions`: Options for the Input object created for each connection field
+- `nodeTypeOptions`: Options for the `Node` interface type. Supports a `name` property to customize
+  the type name.
+- `pageInfoTypeOptions`: Options for the `PageInfo` object type. Supports a `name` property to
+  customize the type name.
+- `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on mutation payloads
+- `clientMutationIdInputOptions`: Options for the `clientMutationId` field on mutation inputs
+- `mutationInputArgOptions`: Options for the input argument on Relay mutation fields
 - `cursorFieldOptions`: Options for the `cursor` field on an edge object.
 - `nodeFieldOptions`: Options for the `node` field on an edge object.
 - `edgesFieldOptions`: Options for the `edges` field on a connection object.
@@ -61,38 +68,55 @@ The `relay` options object passed to builder can contain the following propertie
   type of the node. When this is enabled, you will not need to implement an `isTypeOf` check for
   most common patterns.
 
+### Customizing type names
+
+If you have existing `Node` or `PageInfo` types in your schema that conflict with the ones generated
+by the relay plugin, you can customize the names using `nodeTypeOptions` and `pageInfoTypeOptions`:
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
+const builder = new SchemaBuilder({
+  plugins: [RelayPlugin],
+  relay: {
+    nodeTypeOptions: {
+      name: 'RelayNode',
+      description: 'A node in the graph',
+    },
+    pageInfoTypeOptions: {
+      name: 'RelayPageInfo',
+      description: 'Pagination information',
+    },
+  },
+});
+```
+
+Both options support all standard type options including `name`, `description`, and `extensions`.
+
 ### Creating Nodes
 
 To create objects that extend the `Node` interface, you can use the new `builder.node` method.
 
 ```typescript
-// Using object refs
-const User = builder.objectRef<UserType>('User');
-// Or using a class
-class User {
-  id: string;
-  name: string;
-}
+type UserShape = { id: string; name: string };
+
+const users: UserShape[] = [
+  { id: '1', name: 'Ada' },
+  { id: '2', name: 'Grace' },
+  { id: '3', name: 'Katherine' },
+];
+
+const User = builder.objectRef<UserShape>('User');
 
 builder.node(User, {
-  // define an id field
-  id: {
-    resolve: (user) => user.id,
-    // other options for id field can be added here
-  },
-
-  // Define only one of the following methods for loading nodes by id
-  loadOne: (id) => loadUserByID(id),
-  loadMany: (ids) => loadUsers(ids),
-  loadWithoutCache: (id) => loadUserByID(id),
-  loadManyWithoutCache: (ids) => loadUsers(ids),
-
-  // if using a class instead of a ref, you will need to provide a name
-  name: 'User',
+  id: { resolve: (user) => user.id },
+  loadOne: (id) => users.find((user) => user.id === id) ?? null,
   fields: (t) => ({
     name: t.exposeString('name'),
   }),
 });
+
+builder.queryType({});
 ```
 
 `builder.node` will create an object type that implements the `Node` interface. It will also create
@@ -104,12 +128,13 @@ same node is loaded multiple times in the same request. You can provide `loadWit
 `loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
 datasource like a dataloader.
 
-Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
-lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
-using an `instanceof` check, and falls back to checking the constructor property on the prototype.
-That means that for many cases if you are using classes in your type parameters, and all your values
-are instances of those classes, you won't need to implement an `isTypeOf` method, but it is usually
-better to explicitly define that behavior.
+For an application that already uses classes, pass the class to `builder.node` and provide
+`name: 'User'`. The default class check uses `instanceof` or the constructor on the prototype.
+Use this as an alternative to the ref above, with a loader that returns class instances.
+
+Choose one loading option: `loadOne`, `loadMany`, `loadWithoutCache`, or
+`loadManyWithoutCache`. Batch loaders must return one value per ID in the same order, including
+`null` for missing nodes. Use a fresh context object for every request to isolate the node cache.
 
 By default (unless `brandLoadedObjects` is set to `false`) any nodes loaded through one of the
 `load*` methods will be branded so that the default `resolveType` method can identify the GraphQL
@@ -122,17 +147,25 @@ a custom `resolveType` method that knows how to resolve the node type.
 By default all node ids are parsed as string. This behavior can be customized by providing a custom
 parse function for your node's ID field:
 
-```ts
-const User = builder.objectRef<UserType>('User')
+```typescript
+// Alternative User definition for a data source with numeric IDs.
+type UserShape = { id: number; name: string };
+const users: UserShape[] = [{ id: 1, name: 'Ada' }];
+const User = builder.objectRef<UserShape>('User');
+
 builder.node(User, {
-  // define an id field
   id: {
     resolve: (user) => user.id,
-    parse: (id) => Number.parseInt(id, 10),
+    parse: (id) => {
+      const parsed = Number(id);
+      if (!Number.isSafeInteger(parsed) || parsed < 1) {
+        throw new Error('Invalid User ID');
+      }
+      return parsed;
+    },
   },
-  // the ID is now a number
-  loadOne: (id) => loadUserByID(id),
-  ...
+  loadOne: (id) => users.find((user) => user.id === id) ?? null,
+  fields: (t) => ({ name: t.exposeString('name') }),
 });
 ```
 
@@ -142,18 +175,10 @@ To make it easier to create globally unique ids the relay plugin adds new method
 globalID fields.
 
 ```typescript
-import { encodeGlobalID } from '@pothos/plugin-relay';
-
 builder.queryFields((t) => ({
-  singleID: t.globalID({
-    resolve: (parent, args, context) => {
-      return { id: 123, type: 'SomeType' };
-    },
-  }),
+  singleID: t.globalID({ resolve: () => ({ id: '1', type: User }) }),
   listOfIDs: t.globalIDList({
-    resolve: (parent, args, context) => {
-      return [{ id: 123, type: 'SomeType' }];
-    },
+    resolve: () => users.map((user) => ({ id: user.id, type: User })),
   }),
 }));
 ```
@@ -193,21 +218,19 @@ resolver in the arguments object.
 only want to accept IDs for specific node types.
 
 ```typescript
-builder.queryType({
-  fields: (t) => ({
-    fieldThatAcceptsGlobalID: t.boolean({
-      args: {
-        id: t.arg.globalID({
-          for: SomeType,
-          // or allow multiple types
-          for: [TypeOne, TypeTwo],
-          required: true,
-        }),
-      },
-    }),
+builder.queryField('userByGlobalID', (t) =>
+  t.field({
+    type: User,
+    args: {
+      id: t.arg.globalID({ for: User, required: true }),
+    },
+    resolve: (_parent, { id }) => users.find((user) => user.id === id.id) ?? null,
   }),
-});
+);
 ```
+
+To accept several node types, pass an array of their refs to `for`. The plugin rejects IDs whose
+type is outside that list before calling the resolver.
 
 ### Creating Connections
 
@@ -215,6 +238,30 @@ The `t.connection` field builder method can be used to define connections. This 
 automatically create the `Connection` and `Edge` objects used by the connection, and add `before`,
 `after`, `first`, and `last` arguments. The first time this method is used, it will also create the
 `PageInfo` type.
+
+The following field continues the `User` example. `resolveArrayConnection` slices the array and
+computes cursors and page information:
+
+```typescript
+import { resolveArrayConnection } from '@pothos/plugin-relay';
+
+builder.queryField('users', (t) =>
+  t.connection({
+    type: User,
+    resolve: (_parent, args) => resolveArrayConnection({ args }, users),
+  }),
+);
+
+const schema = builder.toSchema();
+```
+
+Query `users(first: 2)`, then pass its `pageInfo.endCursor` to `users(first: 2, after: ...)`.
+The first page contains Ada and Grace; the next contains Katherine. A node's `id` identifies the
+object across the schema, while an edge's `cursor` identifies a position in this connection.
+Pass a returned node `id` to the root `node(id: ...)` field to refetch the same user.
+
+The remaining connection examples are independent patterns using application types and data
+sources. For a custom connection resolver, return the following shape:
 
 ```typescript
 builder.queryFields((t) => ({
@@ -267,7 +314,9 @@ builder.queryFields((t) => ({
 Manually implementing connections can be cumbersome, so there are a couple of helper methods that
 can make resolving connections a little easier.
 
-For limit/offset based apis:
+For a data source that accepts an offset and limit, use `resolveOffsetConnection`. Its callback
+requests one extra record to determine `hasNextPage`; honor the supplied `limit` and return records
+in a stable order:
 
 ```typescript
 import { resolveOffsetConnection } from '@pothos/plugin-relay';
@@ -285,7 +334,7 @@ builder.queryFields((t) => ({
 ```
 
 `resolveOffsetConnection` has a few default limits to prevent unintentionally allowing too many
-records to be fetched at once. These limits can be configure using the following options:
+records to be fetched at once. These limits can be configured using the following options:
 
 ```typescript
 {
@@ -304,7 +353,7 @@ import { resolveArrayConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
   things: t.connection({
-    type: SomeThings,
+    type: SomeThing,
     resolve: (parent, args) => {
       return resolveArrayConnection({ args }, getAllTheThingsAsArray());
     },
@@ -313,8 +362,10 @@ builder.queryFields((t) => ({
 ```
 
 Cursor based pagination can be implemented using the `resolveCursorConnection` method. The following
-example uses prisma, but a similar solution should work with any data store that supports limits,
-ordering, and filtering.
+example uses Prisma and assumes `createdAt` is unique. If timestamps can repeat, use a unique
+cursor and matching ordering/filtering (for example, a timestamp and ID pair) so records are not
+skipped between pages. The callback must honor `limit`, including the extra record requested by
+the helper, and reverse the ordering when `inverted` is true.
 
 ```typescript
 import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
@@ -351,13 +402,18 @@ builder.queryField('posts', (t) =>
 ### Relay Mutations
 
 You can use the `relayMutationField` method to define relay compliant mutation fields. This method
-will generate a mutation field, an input object with a `clientMutationId` field, and an output
-object with the corresponding `clientMutationId`.
+generates a mutation field, input object, and payload object. By default it omits
+`clientMutationId`; set `relay.clientMutationId` to `required` or `optional` to include matching
+input and payload fields.
 
 Example usage:
 
 ```typescript
-builder.relayMutationField(
+builder.mutationType({});
+
+const items = new Map([['1', { id: '1' }]]);
+
+const deleteItem = builder.relayMutationField(
   'deleteItem',
   {
     inputFields: (t) => ({
@@ -367,9 +423,10 @@ builder.relayMutationField(
     }),
   },
   {
+    nullable: false, // You can optionally change the nullability of the mutation field here
     resolve: async (root, args, ctx) => {
-      if (ctx.items.has(args.input.id)) {
-        ctx.items.delete(args.input.id);
+      if (items.has(args.input.id)) {
+        items.delete(args.input.id);
 
         return { success: true };
       }
@@ -391,13 +448,11 @@ Which produces the following graphql types:
 
 ```graphql
 input DeleteItemInput {
-  clientMutationId: ID!
   id: ID!
 }
 
 type DeleteItemPayload {
-  clientMutationId: ID!
-  itWorked: Boolean!
+  success: Boolean
 }
 
 type Mutation {
@@ -424,11 +479,7 @@ You can also access refs for the created input and payload objects so you can re
 fields:
 
 ```typescript
-// Using aliases when destructuring lets you name your refs rather than using the generic `inputType` and `payloadType`
-const { inputType: DeleteItemInput, payloadType: DeleteItemPayload } = builder.relayMutationField(
-  'deleteItem',
-  ...
-);
+const { inputType: DeleteItemInput, payloadType: DeleteItemPayload } = deleteItem;
 ```
 
 ### Reusing connection objects
@@ -438,45 +489,28 @@ do this, you will need to create the connection object separately and then creat
 ref to your connection object:
 
 ```typescript
-import { resolveOffsetConnection } from '@pothos/plugin-relay';
+import { resolveArrayConnection } from '@pothos/plugin-relay';
 
-const ThingsConnection = builder.connectionObject(
-  {
-    // connection options
-    type: SomeThing,
-    name: 'ThingsConnection',
-  },
-  {
-    // Edge options (optional)
-    name: 'ThingsEdge', // defaults to Appending `Edge` to the Connection name
-  },
+const UsersConnection = builder.connectionObject(
+  { type: User, name: 'UsersConnection' },
+  { name: 'UsersEdge' },
 );
 
-// You can use connection object with normal fields
 builder.queryFields((t) => ({
-  things: t.field({
-    type: ThingsConnection,
-    args: {
-      ...t.arg.connectionArgs(),
-    },
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
-    },
+  // Normal fields need explicit connection arguments.
+  usersAsField: t.field({
+    type: UsersConnection,
+    args: { ...t.arg.connectionArgs() },
+    resolve: (_parent, args) => resolveArrayConnection({ args }, users),
   }),
-}));
-
-// Or by providing the connection type when creating a connection field
-builder.queryFields((t) => ({
-  things: t.connection({
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
+  // Connection fields add the arguments automatically.
+  usersAsConnection: t.connection(
+    {
+      type: User,
+      resolve: (_parent, args) => resolveArrayConnection({ args }, users),
     },
-  }),
-  ThingsConnection,
+    UsersConnection,
+  ),
 }));
 ```
 
@@ -485,43 +519,28 @@ builder.queryFields((t) => ({
 
 ### Reusing edge objects
 
-Similarly you can directly create and re-use edge objects
+This is an alternative to the connection definition above. Create an edge ref, then pass it to
+connection definitions that share its shape:
 
 ```typescript
-import { resolveOffsetConnection } from '@pothos/plugin-relay';
+import { resolveArrayConnection } from '@pothos/plugin-relay';
 
-const ThingsEdge = builder.edgeObject(
-  {
-    name: 'ThingsEdge',
-    type: SomeThing,
-  },
+const UsersEdge = builder.edgeObject({ name: 'UsersEdge', type: User });
+const UsersConnection = builder.connectionObject(
+  { type: User, name: 'UsersConnection' },
+  UsersEdge,
 );
 
-// The edge object can be used when creating a connection object
-const ThingsConnection = builder.connectionObject(
-  {
-    type: SomeThing,
-    name: 'ThingsConnection',
-  },
-  ThingsEdge,
-);
-
-// Or when creating a connection field
-builder.queryFields((t) => ({
-  things: t.connection({
-    resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        return getThings(offset, limit);
-      });
+builder.queryField('usersWithSharedEdge', (t) =>
+  t.connection(
+    {
+      type: User,
+      resolve: (_parent, args) => resolveArrayConnection({ args }, users),
     },
-  }),
-  {
-    // connection options
-  },
-  ThingsEdge,
-}));
-
-
+    { name: 'SharedEdgeUsersConnection' },
+    UsersEdge,
+  ),
+);
 ```
 
 `builder.connectionObject` creates the connect object type and the associated Edge type.
@@ -529,7 +548,7 @@ builder.queryFields((t) => ({
 
 ### Expose nodes
 
-The `t.node` and `t.nodes` methods can be used to add additional node fields. the expected return
+The `t.node` and `t.nodeList` methods can be used to add additional node fields. the expected return
 values of `id` and `ids` fields is the same as the resolve value of `t.globalID`, and can either be
 a globalID or an object with an `id` and a `type`.
 
@@ -538,11 +557,9 @@ even if it is used multiple times across the schema.
 
 ```typescript
 builder.queryFields((t) => ({
-  extraNode: t.node({
-    id: () => 'TnVtYmVyOjI=',
-  }),
+  extraNode: t.node({ id: () => ({ id: '1', type: User }) }),
   moreNodes: t.nodeList({
-    ids: () => ['TnVtYmVyOjI=', { id: 10, type: 'SomeType' }],
+    ids: () => users.map((user) => ({ id: user.id, type: User })),
   }),
 }));
 ```
@@ -554,24 +571,33 @@ with global IDs directly. If you accept a global ID as an argument you can use t
 function to decode it:
 
 ```typescript
-builder.mutationFields((t) => ({
-  updateThing: t.field({
-    type: Thing,
+import { decodeGlobalID, encodeGlobalID } from '@pothos/plugin-relay';
+
+const adaID = encodeGlobalID('User', '1');
+
+builder.mutationType({});
+
+builder.mutationField('renameUser', (t) =>
+  t.field({
+    type: User,
     args: {
-      id: t.args.id({ required: true }),
-      update: t.args.string({ required: true }),
+      id: t.arg.id({ required: true }),
+      name: t.arg.string({ required: true }),
     },
-    resolve(parent, args) {
-      const { type, id } = decodeGlobalID(args.id);
-
-      const thing = Thing.findById(id);
-
-      thing.update(args.update);
-
-      return thing;
+    resolve: (_parent, { id: globalID, name }) => {
+      const { typename, id } = decodeGlobalID(globalID);
+      if (typename !== 'User') {
+        throw new Error('Expected a User ID');
+      }
+      const user = users.find((candidate) => candidate.id === id);
+      if (!user) {
+        return null;
+      }
+      user.name = name;
+      return user;
     },
   }),
-}));
+);
 ```
 
 ### Using custom encoding for global ids
@@ -580,10 +606,11 @@ In some cases you may want to encode global ids differently than the build in ID
 this, you can pass a custom encoding and decoding function into the relay options of the builder:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
-  relayOptions: {
+  relay: {
     encodeGlobalID: (typename: string, id: string | number | bigint) => `${typename}:${id}`,
     decodeGlobalID: (globalID: string) => {
       const [typename, id] = globalID.split(':');
@@ -597,18 +624,22 @@ const builder = new SchemaBuilder({
 ### Using custom resolve for node and or nodes field
 
 If you need to customize how nodes are loaded for the `node` and or `nodes` fields you can provide
-custom resolve functions in the builder options for these fields:
+custom resolve functions in the builder options for these fields. This alternative builder uses
+the `users` array above; register its `User` node after creating the builder. Manually loaded
+objects include `__typename` so the `Node` interface can resolve their type:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 
-function customUserLoader({ id, typename }: { id: string; typename: string }) {
-  // load user
+function customUserLoader({ id }: { id: string }) {
+  const user = users.find((user) => user.id === id);
+  return user ? { ...user, __typename: 'User' } : null;
 }
 
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
-  relayOptions: {
+  relay: {
     nodeQueryOptions: {
       resolve: (root, { id }, context, info, resolveNode) => {
         // use custom loading for User nodes
@@ -622,15 +653,15 @@ const builder = new SchemaBuilder({
     },
     nodesQueryOptions: {
       resolve: (root, { ids }, context, info, resolveNodes) => {
-        return ids.map((id) => {
+        return ids.map(async (id) => {
           if (id.typename === 'User') {
-            return customNodeLoader(id);
+            return customUserLoader(id);
           }
 
           // it would be more efficient to load all the nodes at once
           // but it is important to ensure the resolver returns nodes in the right order
           // we are resolving nodes one at a time here for simplicity
-          return resolveNodes([id]);
+          return (await resolveNodes([id]))[0];
         });
       },
     },
@@ -640,8 +671,8 @@ const builder = new SchemaBuilder({
 
 ### Extending all connections
 
-There are 2 builder methods for adding fields to all connection objects: `t.globalConnectionField`
-and `t.globalConnectionFields`. These methods work like many of the other methods on the builder for
+There are 2 builder methods for adding fields to all connection objects: `builder.globalConnectionField`
+and `builder.globalConnectionFields`. These methods work like many of the other methods on the builder for
 adding fields to objects or interfaces.
 
 ```typescript
@@ -666,6 +697,7 @@ contains a totalCount for us. To guarantee that resolvers correctly implement th
 define custom properties that must be returned from connection resolvers when we set up our builder:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder<{
   Connection: {
@@ -673,11 +705,11 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [RelayPlugin],
-  relayOptions: {},
+  relay: {},
 });
 ```
 
-Now typescript will ensure that objects returned from each connection resolver include a totalCount
+Register the same `User` node and `users` array with this replacement builder. TypeScript will ensure that objects returned from each connection resolver include a totalCount
 property, which we can use in our connection fields:
 
 ```typescript
@@ -694,17 +726,17 @@ helpers since they will not automatically return your custom properties. You wil
 add in any custom props after getting the result from the helpers:
 
 ```typescript
-builder.queryFields((t) => ({
-  posts: t.connection({
-    type: Post,
-    resolve: (parent, args, context) => {
-      const postsArray = context.Posts.getAll();
-      const result = resolveArrayConnection({ args }, postsArray);
+import { resolveArrayConnection } from '@pothos/plugin-relay';
 
-      return result && { totalCount: postsArray.length, ...result };
-    },
+builder.queryField('users', (t) =>
+  t.connection({
+    type: User,
+    resolve: (_parent, args) => ({
+      ...resolveArrayConnection({ args }, users),
+      totalCount: users.length,
+    }),
   }),
-}));
+);
 ```
 
 ### Changing nullability of edges and nodes
@@ -715,13 +747,14 @@ an `Edge` you can configure this in 2 ways:
 #### Globally
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder<{
   DefaultEdgesNullability: false;
   DefaultNodeNullability: true;
 }>({
   plugins: [RelayPlugin],
-  relayOptions: {
+  relay: {
     edgesFieldOptions: {
       nullable: false,
     },
@@ -745,7 +778,7 @@ defaults to `true`).
 ```typescript
 builder.queryFields((t) => ({
   things: t.connection({
-    type: SomeThings,
+    type: SomeThing,
     edgesNullable: {
       items: true,
       list: false,
@@ -775,7 +808,7 @@ const ThingsConnection = builder.connectionObject({
 
 Use the `nodeInterfaceRef` method of your Builder.
 
-For example, to add a new derived field on the interface:
+For example, to add a field on the interface:
 
 ```ts
 builder.interfaceField(builder.nodeInterfaceRef(), 'extra', (t) =>
