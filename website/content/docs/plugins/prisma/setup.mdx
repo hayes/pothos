@@ -9,11 +9,8 @@ npm install --save @pothos/plugin-prisma
 
 ## Setup
 
-This plugin requires a little more setup than other plugins because it integrates with the prisma to
-generate some types that help the plugin better understand your prisma schema. Previous versions of
-this plugin used to infer all required types from the prisma client itself, but this resulted in a
-poor dev experience because the complex types slowed down editors, and some more advanced use cases
-could not be typed correctly.
+The Prisma plugin uses generated types to describe your models and relations. Add its generator
+alongside your Prisma client generator, then pass the generated types and datamodel to the builder.
 
 ### Add the `pothos` generator to your prisma schema
 
@@ -30,7 +27,7 @@ following command to re-generate the client and create the new types:
 npx prisma generate
 ```
 
-additional options:
+Generator options:
 
 - `clientOutput`: Where the generated code will import the PrismaClient from. The default is the
   full path of wherever the client is generated. If you are checking in the generated file,
@@ -52,23 +49,30 @@ generator pothos {
 }
 ```
 
-If none of your auto-completions are working for prisma types and relations, make sure your generated types are importing from the correct location
-
+If model or relation completions are missing, check the client import in the generated file.
 
 ### Set up the builder
 
+This example uses the generated client above and a SQLite database. Install
+`@prisma/adapter-better-sqlite3` for this adapter; use the adapter for your database if it differs.
+`exposeDescriptions` also accepts `{ models: true, fields: true }` to configure descriptions separately.
+
 ```typescript
 import SchemaBuilder from '@pothos/core';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../lib/prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import PrismaPlugin from '@pothos/plugin-prisma';
 
 import type PrismaTypes from '../lib/pothos-prisma-types'; // path to generated types, specified in your prisma.schema
 import { getDatamodel } from '../lib/pothos-prisma-types';
 
-const prisma = new PrismaClient({});
+const prisma = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({ url: 'file:./dev.db' }),
+});
 
 const builder = new SchemaBuilder<{
-  PrismaTypes: PrismaTypes; // This gives the builder all the type information about your prisma schema
+  PrismaTypes: PrismaTypes;
+  Context: { userId: number };
 }>({
   plugins: [PrismaPlugin],
   prisma: {
@@ -79,7 +83,7 @@ const builder = new SchemaBuilder<{
     // defaults to false, uses /// comments from prisma schema as descriptions
     // for object types, relations and exposed fields.
     // descriptions can be omitted by setting description to false
-    exposeDescriptions: boolean | { models: boolean, fields: boolean },
+    exposeDescriptions: false,
     // use where clause from prismaRelatedConnection for totalCount (defaults to true)
     filterConnectionTotalCount: true,
     // warn when not using a query parameter correctly
@@ -90,28 +94,29 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-It is strongly recommended NOT to put your prisma client into `Context`. This will result in slower
-type-checking and a laggy developer experience in VSCode. See
-[this issue](https://github.com/microsoft/TypeScript/issues/45405) for more details.
+The examples use an authenticated request context with `userId: number`. Supply it through your
+GraphQL server; see [Context](/docs/guide/context).
+
+Pass the Prisma client through the plugin options. Including its full type in `Context` can slow
+TypeScript checking; see [this TypeScript issue](https://github.com/microsoft/TypeScript/issues/45405).
 
 You can also load or create the prisma client dynamically for each request. This can be used to
 periodically re-create clients or create read-only clients for certain types of users.
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import { PrismaClient, Prisma } from '@prisma/client';
-import PrismaPlugin from '@pothos/plugin-prisma';
-import type PrismaTypes from '../lib/pothos-prisma-types';
-import { getDatamodel } from '../lib/pothos-prisma-types';
+Replace the builder above with the following to select between `prisma` and a second client.
+This SQLite example uses `READ_ONLY_REPLICA_URL` for a replica database maintained by your application;
+the adapter does not configure replication or enforce read-only access. Configure database access
+permissions separately. Both clients must use the same generated Prisma client
+and schema. For another database, use its driver adapter and replica connection options.
 
-const prisma = new PrismaClient({});
+```typescript
+const replicaUrl = process.env.READ_ONLY_REPLICA_URL;
+if (!replicaUrl) {
+  throw new Error('READ_ONLY_REPLICA_URL is required');
+}
 
 const readOnlyPrisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.READ_ONLY_REPLICA_URL,
-    },
-  },
+  adapter: new PrismaBetterSqlite3({ url: replicaUrl }),
 });
 
 const builder = new SchemaBuilder<{
@@ -132,14 +137,13 @@ Forgetting to spread the `query` argument from `t.prismaField` or `t.prismaConne
 prisma query can result in inefficient queries, or even missing data. To help catch these issues,
 the plugin can warn you when you are not using the query argument correctly.
 
-the `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
+The `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
 `warn` it will log a warning to the console if Pothos detects that you have not properly used the
 query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
 You can also pass a function which will receive the `info` object which can be used to log or throw
 your own error.
 
-This check is fairly naive and works by wrapping the properties on the query with a getter that sets
-a flag if the property is accessed. If no properties are accessed on the query object before the
+The check tracks access to properties on the query object. If no properties are accessed on the query object before the
 resolver returns, it will trigger the `onUnusedQuery` condition.
 
 It's recommended to enable this check in development to more quickly find potential issues.

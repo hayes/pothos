@@ -3,14 +3,22 @@ title: Prisma without a plugin
 description: Using Prisma without a plugin
 ---
 
-Using prisma without a plugin is relatively straight forward using the `builder.objectRef` method.
+Use `builder.objectRef` with the generated Prisma model types and write resolvers that query your client.
 
-The easiest way to create types backed by prisma looks something like:
+This example uses a generated Prisma client with User and Post models, backed by SQLite.
+Use the driver adapter for your database, and adjust the client import to your generated output.
+Create a builder with an authenticated `userId` context:
 
 ```typescript
-import { Post, PrismaClient, User } from '@prisma/client';
+import SchemaBuilder from '@pothos/core';
+import { PrismaClient, type Post, type User } from '../lib/prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
-const db = new PrismaClient();
+const builder = new SchemaBuilder<{ Context: { userId: number } }>({});
+
+const db = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({ url: 'file:./dev.db' }),
+});
 const UserObject = builder.objectRef<User>('User');
 const PostObject = builder.objectRef<Post>('Post');
 
@@ -66,7 +74,7 @@ with this by batching queries together, but there are also things we can do in o
 improve things.
 
 One thing we could do if we know we will usually be loading the author any time we load a post is to
-make the author part of shape required for a post:
+include the author in the backing type for a post. Replace the refs and implementations above with:
 
 ```typescript
 const UserObject = builder.objectRef<User>('User');
@@ -105,7 +113,7 @@ PostObject.implement({
 ```
 
 We may not always want to query for the author though, so we could make the author optional and fall
-back to using a query if it was not provided by the parent resolver:
+back to a query if the parent resolver did not include it. Replace `PostObject` and its implementation with:
 
 ```typescript
 const PostObject = builder.objectRef<Post & { author?: User }>('Post');
@@ -117,14 +125,13 @@ PostObject.implement({
     author: t.field({
       type: UserObject,
       resolve: (post) =>
-        post.author ?? db.user.findUnique({ rejectOnNotFound: true, where: { id: post.authorId } }),
+        post.author ?? db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
     }),
   }),
 });
 ```
 
 With this setup, a parent resolver has the option to include the author, but we have a fallback
-incase it does not.
+in case it does not.
 
-There are other patterns like data loaders than can be used to reduce n+1 issues, and make your
-graph more efficient, but they are too complex to describe here.
+The [Dataloader plugin](/docs/plugins/dataloader) provides another way to batch loads across resolvers.

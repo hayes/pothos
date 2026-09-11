@@ -10,7 +10,7 @@ The following example creates a `User` interface, and 2 variants Admin and Membe
 method returns the typenames as strings to avoid issues with circular references.
 
 ```typescript
-builder.prismaInterface('User', {
+const User = builder.prismaInterface('User', {
   name: 'User',
   fields: (t) => ({
     id: t.exposeID('id'),

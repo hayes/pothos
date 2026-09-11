@@ -3,31 +3,18 @@ title: Prisma plugin
 description: Prisma plugin docs for Pothos
 ---
 
-This plugin provides tighter integration with prisma, making it easier to define prisma based object
-types, and helps solve n+1 queries for relations. It also has integrations for the relay plugin to
-make defining nodes and connections easy and efficient.
+The Prisma plugin defines GraphQL types from Prisma models and builds selections for the data
+requested by a GraphQL query. It supports relations, counts, type variants, and Relay nodes and
+connections. GraphQL fields can have different names and shapes from the underlying models.
 
-This plugin is NOT required to use prisma with Pothos, but does make things a lot easier and more
-efficient. See the [Using Prisma without a plugin](#using-prisma-without-a-plugin) section below for
-more details.
-
-## Features
-
-- 🎨 Quickly define GraphQL types based on your Prisma models
-- 🦺 Strong type-safety throughout the entire API
-- 🤝 Automatically resolve relationships defined in your database
-- 🎣 Automatic Query optimization to efficiently load the specific data needed to resolve a query
-  (solves common N+1 issues)
-- 💅 Types and fields in GraphQL schema are not implicitly tied to the column names or types in your
-  database.
-- 🔀 Relay integration for defining nodes and connections that can be efficiently loaded.
-- 📚 Supports multiple GraphQL models based on the same Database model
-- 🧮 Count fields can easily be added to objects and connections
+You can also [use Prisma with plain object refs](/docs/plugins/prisma/without-a-plugin).
 
 ## Example
 
-Here is a quick example of what an API using this plugin might look like. There is a more thorough
-breakdown of what the methods and options used in the example below.
+This example exposes users and their posts. See [Objects](/docs/plugins/prisma/objects), [Relations](/docs/plugins/prisma/relations), and [Connections](/docs/plugins/prisma/connections).
+Use the [builder setup](/docs/plugins/prisma/setup), including its `userId` context, and add the
+[Relay plugin](/docs/plugins/relay) for nodes and connections. The Prisma schema has User, Post, and Profile
+models with the fields and relations used below.
 
 ```typescript
 // Create an object type based on a prisma model

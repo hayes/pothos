@@ -35,8 +35,8 @@ needing imports from prisma client.
 
 ## Adding prisma fields to non-prisma objects (including Query and Mutation)
 
-There is a new `t.prismaField` method which can be used to define fields that resolve to your prisma
-types:
+`t.prismaField` defines fields that return Prisma objects. This example uses the client and
+`userId` context from [Setup](./setup):
 
 ```typescript
 builder.queryType({

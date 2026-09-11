@@ -30,12 +30,17 @@ appear in the document, and fields are planned in the order they are selected.
 
 ## Async selections
 
-Selections are synchronous unless the schema opts in with `AsyncSelections: true`:
+Selections are synchronous unless the schema opts in with `AsyncSelections: true`. This example
+uses request context methods that asynchronously return a user ID and a preview limit:
 
 ```typescript
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
   AsyncSelections: true;
+  Context: {
+    currentUserId: () => Promise<number>;
+    previewSize: () => Promise<number>;
+  };
 }>({
   plugins: [PrismaPlugin],
   prisma: {
@@ -52,7 +57,8 @@ are typed as synchronous, and an async callback is a type error.
 The plugin still builds a single query. It waits for the callbacks, and merges what they return
 after every synchronous selection, in document order. `t.relation`, `t.relationCount`,
 `t.prismaField`, `t.prismaConnection` and `t.relatedConnection` settle their plan before the
-resolver runs, and need no changes.
+resolver runs, and need no changes. The following example uses a registered `Comment` Prisma
+object ref and its Post.comments relation:
 
 ```typescript
 builder.prismaObject('Post', {
@@ -60,7 +66,7 @@ builder.prismaObject('Post', {
     comments: t.relation('comments', {
       query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
     }),
-    latestComments: t.field({
+    previewComments: t.field({
       type: [Comment],
       select: async (args, ctx, nestedSelection) => ({
         comments: await nestedSelection({ take: await ctx.previewSize() }),
@@ -102,15 +108,25 @@ This may be required for combining with other plugins, or because your query doe
 return a `PrismaObject`. In these cases, you can use the `queryFromInfo` helper. An example of this
 might be a mutation that wraps the prisma object in a result type.
 
-```typescript
-const Post = builder.prismaObject('Post', {...});
+The example assumes a Post model with `id`, `title`, and `authorId` columns, an existing User
+record for `context.userId`, and the [builder setup](./setup) with that context type.
 
-builder.objectRef<{
-  success: boolean;
-  post?: Post
-  }>('CreatePostResult').implement({
+```typescript
+import type { Post as PostRow } from '../lib/prisma/client';
+import { queryFromInfo } from '@pothos/plugin-prisma';
+
+const Post = builder.prismaObject('Post', {
   fields: (t) => ({
-    success: t.boolean(),
+    title: t.exposeString('title'),
+  }),
+});
+
+const CreatePostResult = builder.objectRef<{
+  success: boolean;
+  post: PostRow | null;
+}>('CreatePostResult').implement({
+  fields: (t) => ({
+    success: t.exposeBoolean('success'),
     post: t.field({
       type: Post,
       nullable: true,
@@ -119,51 +135,45 @@ builder.objectRef<{
   }),
 });
 
-builder.mutationField(
-  'createPost',
-  {
-    args: (t) => ({
-      title: t.string({ required: true }),
-      ...
-    }),
-  },
-  {
-    resolve: async (parent, args, context, info) => {
-      if (!validateCreatePostArgs(args)) {
-        return {
-          success: false,
+builder.mutationType({
+  fields: (t) => ({
+    createPost: t.field({
+      type: CreatePostResult,
+      args: {
+        title: t.arg.string({ required: true }),
+      },
+      resolve: async (parent, args, context, info) => {
+        if (!args.title.trim()) {
+          return { success: false, post: null };
         }
-      }
 
-      const post = prisma.post.create({
-        ...queryFromInfo({
-          context,
-          info,
-          // nested path where the selections for this type can be found
-          path: ['post'],
-          // optionally you can pass an initial selection, generally you wouldn't need this;
-          // when nothing is selected at `path`, it is returned as is
-          select: {
-            comments: true,
+        const post = await prisma.post.create({
+          ...(await queryFromInfo({
+            context,
+            info,
+            path: ['post'],
+            awaitSelections: true,
+          })),
+          data: {
+            title: args.title,
+            authorId: context.userId,
           },
-        }),
-        data: {
-          title: args.input.title,
-          ...
-        },
-      });
+        });
 
-      return {
-        success: true,
-        post,
-      }
-    },
-  },
-);
+        return { success: true, post };
+      },
+    }),
+  }),
+});
 ```
 
 The columns and relations the query selected come back on the rows, along with anything you passed
 in as `select`, and the rows are typed to match.
+
+To require data even when the client does not request it, pass an initial `select` (or `include`)
+to `queryFromInfo`. For example, add `select: { id: true }` beside `path` in the call above to
+ensure the returned post includes its ID. When nothing is selected at `path`, the helper returns
+that initial selection unchanged, or an empty query object if no initial selection was supplied.
 
 The `path` is followed through fragments in the query, including inline fragments and fragment
 spreads that narrow an interface or union to one of its implementations. Every selection of the
@@ -184,7 +194,7 @@ const user = await prisma.user.findUniqueOrThrow({
   }),
 });
 
-// user.appointments is loaded with the selections from `... on AppointmentEntry`,
+// user is loaded with the selections from `... on AppointmentEntry`,
 // and nothing from an `appointment` field on another implementation
 ```
 

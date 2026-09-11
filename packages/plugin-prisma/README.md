@@ -1,30 +1,17 @@
 # Prisma Plugin for Pothos
 
-This plugin provides tighter integration with prisma, making it easier to define prisma based object
-types, and helps solve n+1 queries for relations. It also has integrations for the relay plugin to
-make defining nodes and connections easy and efficient.
+The Prisma plugin defines GraphQL types from Prisma models and builds selections for the data
+requested by a GraphQL query. It supports relations, counts, type variants, and Relay nodes and
+connections. GraphQL fields can have different names and shapes from the underlying models.
 
-This plugin is NOT required to use prisma with Pothos, but does make things a lot easier and more
-efficient. See the [Using Prisma without a plugin](#using-prisma-without-a-plugin) section below for
-more details.
-
-## Features
-
-- 🎨 Quickly define GraphQL types based on your Prisma models
-- 🦺 Strong type-safety throughout the entire API
-- 🤝 Automatically resolve relationships defined in your database
-- 🎣 Automatic Query optimization to efficiently load the specific data needed to resolve a query
-  (solves common N+1 issues)
-- 💅 Types and fields in GraphQL schema are not implicitly tied to the column names or types in your
-  database.
-- 🔀 Relay integration for defining nodes and connections that can be efficiently loaded.
-- 📚 Supports multiple GraphQL models based on the same Database model
-- 🧮 Count fields can easily be added to objects and connections
+You can also [use Prisma with plain object refs](https://pothos-graphql.dev/docs/plugins/prisma/without-a-plugin).
 
 ## Example
 
-Here is a quick example of what an API using this plugin might look like. There is a more thorough
-breakdown of what the methods and options used in the example below.
+This example exposes users and their posts. See [Objects](https://pothos-graphql.dev/docs/plugins/prisma/objects), [Relations](https://pothos-graphql.dev/docs/plugins/prisma/relations), and [Connections](https://pothos-graphql.dev/docs/plugins/prisma/connections).
+Use the [builder setup](https://pothos-graphql.dev/docs/plugins/prisma/setup), including its `userId` context, and add the
+[Relay plugin](https://pothos-graphql.dev/docs/plugins/relay) for nodes and connections. The Prisma schema has User, Post, and Profile
+models with the fields and relations used below.
 
 ```typescript
 // Create an object type based on a prisma model
@@ -35,6 +22,8 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
+      // the profile relation is nullable, so this field is too
+      nullable: true,
       // automatically load the bio from the profile
       // when this field is queried
       select: {
@@ -46,7 +35,7 @@ builder.prismaObject('User', {
       },
       // user will be typed correctly to include the
       // selected fields from above
-      resolve: (user) => user.profile.bio,
+      resolve: (user) => user.profile?.bio,
     }),
     // Load posts as list field.
     posts: t.relation('posts', {
@@ -136,23 +125,20 @@ query {
 
 Will result in 2 calls to prisma, one to resolve everything except `oldPosts`, and a second to
 resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query,
-so we need a separate to handle the second `posts` relation.
-
-## Install
-
-```bash
-yarn add @pothos/plugin-prisma
-```
+so we need a separate query to handle the second `posts` relation.
 
 ## Setup
 
-This plugin requires a little more setup than other plugins because it integrates with the prisma to
-generate some types that help the plugin better understand your prisma schema. Previous versions of
-this plugin used to infer all required types from the prisma client itself, but this resulted in a
-poor dev experience because the complex types slowed down editors, and some more advanced use cases
-could not be typed correctly.
+```package-install
+npm install --save @pothos/plugin-prisma
+```
 
-### Add the `pothos` generator to your prisma schema
+### Setup
+
+The Prisma plugin uses generated types to describe your models and relations. Add its generator
+alongside your Prisma client generator, then pass the generated types and datamodel to the builder.
+
+#### Add the `pothos` generator to your prisma schema
 
 ```prisma
 generator pothos {
@@ -167,47 +153,63 @@ following command to re-generate the client and create the new types:
 npx prisma generate
 ```
 
-additional options:
+Generator options:
 
 - `clientOutput`: Where the generated code will import the PrismaClient from. The default is the
-  full path of wherever the client is generated. If you are checking in the generated file, using
-  `@prisma/client` is a good option.
+  full path of wherever the client is generated. If you are checking in the generated file,
+  you should specify a relative path for this import
 - `output`: Where to write the generated types
 
 Example with more options:
 
 ```prisma
+
+generator client {
+  provider      = "prisma-client"
+  output        = "../lib/prisma"
+}
 generator pothos {
   provider = "prisma-pothos-types"
-  clientOutput = "@prisma/client"
-  output = "./pothos-types.ts"
+  clientOutput = "./prisma" // relative path from pothos output to prisma client
+  output = "../lib/pothos-prisma-types.ts"
 }
 ```
 
-### Set up the builder
+If model or relation completions are missing, check the client import in the generated file.
+
+#### Set up the builder
+
+This example uses the generated client above and a SQLite database. Install
+`@prisma/adapter-better-sqlite3` for this adapter; use the adapter for your database if it differs.
+`exposeDescriptions` also accepts `{ models: true, fields: true }` to configure descriptions separately.
 
 ```typescript
 import SchemaBuilder from '@pothos/core';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../lib/prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import PrismaPlugin from '@pothos/plugin-prisma';
-// This is the default location for the generator, but this can be
-// customized as described above.
-// Using a type only import will help avoid issues with undeclared
-// exports in esm mode
-import type PrismaTypes from '@pothos/plugin-prisma/generated';
 
-const prisma = new PrismaClient({});
+import type PrismaTypes from '../lib/pothos-prisma-types'; // path to generated types, specified in your prisma.schema
+import { getDatamodel } from '../lib/pothos-prisma-types';
+
+const prisma = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({ url: 'file:./dev.db' }),
+});
 
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
+  Context: { userId: number };
 }>({
   plugins: [PrismaPlugin],
   prisma: {
     client: prisma,
+    // This give pothos information about your tables, relations, and indexes to help it generate optimal queries at runtime.
+    // This used to be attached to the prisma client, but has been removed in most runtimes/modes to reduce bundle size.
+    dmmf: getDatamodel(),
     // defaults to false, uses /// comments from prisma schema as descriptions
     // for object types, relations and exposed fields.
     // descriptions can be omitted by setting description to false
-    exposeDescriptions: boolean | { models: boolean, fields: boolean },
+    exposeDescriptions: false,
     // use where clause from prismaRelatedConnection for totalCount (defaults to true)
     filterConnectionTotalCount: true,
     // warn when not using a query parameter correctly
@@ -218,27 +220,29 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-It is strongly recommended NOT to put your prisma client into `Context`. This will result in slower
-type-checking and a laggy developer experience in VSCode. See
-[this issue](https://github.com/microsoft/TypeScript/issues/45405) for more details.
+The examples use an authenticated request context with `userId: number`. Supply it through your
+GraphQL server; see [Context](https://pothos-graphql.dev/docs/guide/context).
+
+Pass the Prisma client through the plugin options. Including its full type in `Context` can slow
+TypeScript checking; see [this TypeScript issue](https://github.com/microsoft/TypeScript/issues/45405).
 
 You can also load or create the prisma client dynamically for each request. This can be used to
 periodically re-create clients or create read-only clients for certain types of users.
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-import { PrismaClient, Prisma } from '@prisma/client';
-import PrismaPlugin from '@pothos/plugin-prisma';
-import type PrismaTypes from '@pothos/plugin-prisma/generated';
+Replace the builder above with the following to select between `prisma` and a second client.
+This SQLite example uses `READ_ONLY_REPLICA_URL` for a replica database maintained by your application;
+the adapter does not configure replication or enforce read-only access. Configure database access
+permissions separately. Both clients must use the same generated Prisma client
+and schema. For another database, use its driver adapter and replica connection options.
 
-const prisma = new PrismaClient({});
+```typescript
+const replicaUrl = process.env.READ_ONLY_REPLICA_URL;
+if (!replicaUrl) {
+  throw new Error('READ_ONLY_REPLICA_URL is required');
+}
 
 const readOnlyPrisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.READ_ONLY_REPLICA_URL,
-    },
-  },
+  adapter: new PrismaBetterSqlite3({ url: replicaUrl }),
 });
 
 const builder = new SchemaBuilder<{
@@ -248,13 +252,41 @@ const builder = new SchemaBuilder<{
   plugins: [PrismaPlugin],
   prisma: {
     client: (ctx) => (ctx.user.isAdmin ? prisma : readOnlyPrisma),
-    // Because the prisma client is loaded dynamically, we need to explicitly provide the some information about the prisma schema
-    dmmf: Prisma.dmmf,
+    dmmf: getDatamodel(),
   },
 });
 ```
 
-## Creating types with `builder.prismaObject`
+### Detecting unused query arguments
+
+Forgetting to spread the `query` argument from `t.prismaField` or `t.prismaConnection` into your
+prisma query can result in inefficient queries, or even missing data. To help catch these issues,
+the plugin can warn you when you are not using the query argument correctly.
+
+The `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
+`warn` it will log a warning to the console if Pothos detects that you have not properly used the
+query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
+You can also pass a function which will receive the `info` object which can be used to log or throw
+your own error.
+
+The check tracks access to properties on the query object. If no properties are accessed on the query object before the
+resolver returns, it will trigger the `onUnusedQuery` condition.
+
+It's recommended to enable this check in development to more quickly find potential issues.
+
+### Deferred fragments
+
+Selections inside a `@defer` fragment are left out of the planned query by default, so the initial
+payload is not delayed by data the client has agreed to wait for. When the deferred fragment
+resolves, its fields are loaded through [fallback queries](https://pothos-graphql.dev/docs/plugins/prisma/relations#fallback-queries), batched as
+usual.
+
+Set `skipDeferredFragments: false` in the plugin options to plan deferred selections with the rest
+of the query. `queryFromInfo` accepts the same option per call.
+
+## Prisma Objects
+
+### Creating types with `builder.prismaObject`
 
 `builder.prismaObject` takes 2 arguments:
 
@@ -284,10 +316,10 @@ So far, this is just creating some simple object types. They work just like any 
 Pothos. The main advantage of this is that we get the type information without using object refs, or
 needing imports from prisma client.
 
-## Adding prisma fields to non-prisma objects (including Query and Mutation)
+### Adding prisma fields to non-prisma objects (including Query and Mutation)
 
-There is a new `t.prismaField` method which can be used to define fields that resolve to your prisma
-types:
+`t.prismaField` defines fields that return Prisma objects. This example uses the client and
+`userId` context from [Setup](https://pothos-graphql.dev/docs/plugins/prisma/setup):
 
 ```typescript
 builder.queryType({
@@ -319,7 +351,8 @@ The `query` object will contain an object with `include` or `select` options to 
 to resolve nested parts of the current query. The included/selected fields are based on which fields
 are being queried, and the options provided when defining those fields and types.
 
-### `prismaFieldWithInput`
+
+#### `prismaFieldWithInput`
 
 With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
 `t.prismaFieldWithInput` combines `t.prismaField` with `t.fieldWithInput`. The `input` fields become
@@ -348,9 +381,18 @@ builder.mutationType({
 });
 ```
 
-## Adding relations
+### Extending prisma objects
 
-You can add fields for relations using the `t.relation` method:
+The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support
+using selections, or exposing fields not in the default selection. To use these features, you can
+use
+
+`builder.prismaObjectField` or `builder.prismaObjectFields` instead.
+
+## Relations
+
+Use `t.relation` to expose relations between models. This example uses the client and authenticated
+`userId` context from [Setup](https://pothos-graphql.dev/docs/plugins/prisma/setup):
 
 ```typescript
 builder.queryType({
@@ -416,12 +458,9 @@ the `me` `prismaField` would receive something like the following as its query p
 }
 ```
 
-This will work perfectly for the majority of queries. There are a number of edge cases that make it
-impossible to resolve everything in a single query. When this happens Pothos will automatically
-construct an additional query to ensure that everything is still loaded correctly, and split into as
-few efficient queries as possible. This process is described in more detail below
+When selections cannot share a Prisma query, Pothos loads the missing data with fallback queries.
 
-### Fallback queries
+#### Fallback queries
 
 There are some cases where data can not be pre-loaded by a prisma field. In these cases, pothos will
 issue a `findUnique` query for the parent of any fields that were not pre-loaded, and select the
@@ -438,9 +477,6 @@ The following are some edge cases that could cause an additional query to be nec
 - The query contains multiple aliases for the same relation field with different arguments in a way
   that results in different query options for the relation.
 - A relation field has a query that is incompatible with the default includes of the parent object
-
-All of the above should be relatively uncommon in normal usage, but the plugin ensures that these
-types of edge cases are automatically handled when they do occur.
 
 A fallback query loads the parent row again by its primary key, or by the first required unique
 field or index when the model has no primary key, selecting what the missing fields need. To load
@@ -460,7 +496,7 @@ builder.prismaObject('User', {
 A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
 would need one will throw `Missing findUnique for User` instead of querying.
 
-### Filters, Sorting, and arguments
+#### Filters, Sorting, and arguments
 
 So far we have been describing very simple queries without any arguments, filtering, or sorting. For
 `t.prismaField` definitions, you can add arguments to your field like normal, and pass them into
@@ -494,28 +530,9 @@ passed into the first argument of the parent `t.prismaField`, and can include th
 the context for the current request. Because it is used for pre-loading data, and solving n+1
 issues, it can not be passed the `parent` object because it may not be loaded yet.
 
-```typescript
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    email: t.exposeString('email'),
-    posts: t.relation('posts', {
-      // We can define arguments like any other field
-      args: {
-        oldestFirst: t.arg.boolean(),
-      },
-      // Then we can generate our query conditions based on the arguments
-      query: (args, context) => ({
-        orderBy: {
-          createdAt: args.oldestFirst ? 'asc' : 'desc',
-        },
-      }),
-    }),
-  }),
-});
-```
 
-### Nullable relations and `onNull`
+
+#### Nullable relations and `onNull`
 
 A relation that is optional in the prisma schema (`profile Profile?`) can be exposed as a nullable
 field with `nullable: true`. To expose it as non-nullable, `t.relation` requires an `onNull` option
@@ -538,14 +555,10 @@ builder.prismaObject('User', {
 });
 ```
 
-## relationCount
+#### relationCount
 
-Prisma supports querying for
-[relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
-which allow including counts for relations along side other `includes`. Before prisma 4.2.0, this
-does not support any filters on the counts, but can give a total count for a relation. Starting from
-prisma 4.2.0, filters on relation count are available under the `filteredRelationCount` preview
-feature flag.
+`t.relationCount` adds a field that counts related rows without loading them. Its `where` option
+filters the rows included in the count:
 
 ```typescript
 builder.prismaObject('User', {
@@ -560,7 +573,9 @@ builder.prismaObject('User', {
 });
 ```
 
-## Includes on types
+## Selections
+
+### Includes on types
 
 In some cases, you may want to always pre-load certain relations. This can be helpful for defining
 fields directly on type where the underlying data may come from a related table.
@@ -586,7 +601,7 @@ builder.prismaObject('User', {
 });
 ```
 
-## Select mode for types
+### Select mode for types
 
 By default, the prisma plugin will use `include` when including relations, or generating fallback
 queries. This means we are always loading all columns of a table when loading it in a
@@ -609,7 +624,7 @@ builder.prismaObject('User', {
 ```
 
 The `t.expose*` and `t.relation` methods will all automatically add selections for the exposed
-fields _WHEN THEY ARE QUERIED_, ensuring that only the requested columns will be loaded from the
+fields when those fields are queried, ensuring that only the requested columns will be loaded from the
 database.
 
 In addition to the `t.expose` and `t.relation`, you can also add custom selections to other fields:
@@ -623,6 +638,7 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
+      nullable: true,
       // This will select user.profile.bio when the `bio` field is queried
       select: {
         profile: {
@@ -631,7 +647,7 @@ builder.prismaObject('User', {
           },
         },
       },
-      resolve: (user) => user.profile.bio,
+      resolve: (user) => user.profile?.bio,
     }),
   }),
 });
@@ -641,22 +657,24 @@ A field-level `select` always adds to the row of the model the field is defined 
 the field returns. A `select` on a `t.prismaField` defined on `User` adds columns to the user its
 resolver receives as the parent, not to the model the field returns.
 
-## Using arguments or context in your selections
+### Using arguments or context in your selections
 
-The following is a slightly contrived example, but shows how arguments can be used when creating a
-selection for a field:
+This field selects the first comment created after the supplied date, or returns null when none
+exists. It assumes a registered `Date` scalar accepting JavaScript dates:
 
 ```typescript
-const PostDraft = builder.prismaObject('Post', {
+const Post = builder.prismaObject('Post', {
   fields: (t) => ({
     title: t.exposeString('title'),
     commentFromDate: t.string({
+      nullable: true,
       args: {
         date: t.arg({ type: 'Date', required: true }),
       },
       select: (args) => ({
         comments: {
           take: 1,
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           where: {
             createdAt: {
               gt: args.date,
@@ -670,444 +688,13 @@ const PostDraft = builder.prismaObject('Post', {
 });
 ```
 
-## Extending prisma objects
-
-The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support
-using selections, or exposing fields not in the default selection. To use these features, you can
-use
-
-`builder.prismaObjectField` or `builder.prismaObjectFields` instead.
-
-## Type variants
-
-The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
-Additional types are called `variants`. You will always need to have a "Primary" variant (defined as
-described above). Additional variants can be defined by providing a `variant` option instead of a
-`name` option when creating the type:
-
-```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-  });
-});
-```
-
-You can define variant fields that reference one variant from another:
-
-```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    // Using the model name ('User') will reference the primary variant
-    user: t.variant('User'),
-  });
-});
-
-const User = builder.prismaNode('User', {
-  id: {
-    resolve: (user) => user.id,
-  },
-  fields: (t) => ({
-    // To reference another variant, use the returned object Ref instead of the model name:
-    viewer: t.variant(Viewer, {
-      // return null for viewer if the parent User is not the current user
-      isNull: (user, args, ctx) => user.id !== ctx.user.id,
-    }),
-    email: t.exposeString('email'),
-  }),
-});
-```
-
-You can also use variants when defining relations by providing a `type` option:
-
-```typescript
-const PostDraft = builder.prismaNode('Post', {
-  variant: 'PostDraft'
-  // This sets what database field to use for the nodes id field
-  id: { field: 'id' },
-  // fields work just like they do for builder.prismaObject
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
-  }),
-});
-
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    drafts: t.relation('posts', {
-      // This will cause this relation to use the PostDraft variant rather than the default Post variant
-      type: PostDraft,
-      query: { where: { draft: true } },
-    }),
-  });
-});
-```
-
-You may run into circular reference issues if you use 2 prisma object refs to reference each other.
-To avoid this, you can split out the field definition for one of the relationships using
-`builder.prismaObjectField`
-
-```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    user: t.variant(User),
-  });
-});
-
-const User = builder.prismaNode('User', {
-  interfaces: [Named],
-  id: {
-    resolve: (user) => user.id,
-  },
-  fields: (t) => ({
-    email: t.exposeString('email'),
-  }),
-});
-
-// Viewer references the `User` ref in its field definition,
-// referencing the `User` in fields would cause a circular type issue
-builder.prismaObjectField(Viewer, 'user', t.variant(User));
-```
-
-This same workaround applies when defining relations using variants.
-
-Two variants of one model selected for the same row have their type-level selections merged into a
-single query, which can fail if they disagree. See
-[Conflicting selections between variants](https://pothos-graphql.dev/docs/plugins/prisma/query-planning#conflicting-selections-between-variants).
-
-## Creating interfaces with `builder.prismaInterface`
-
-`builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
-primary type or a variant for a model.
-
-The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
-method returns the typenames as strings to avoid issues with circular references.
-
-```typescript
-builder.prismaInterface('User', {
-  name: 'User',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    email: t.exposeString('email'),
-  }),
-  resolveType: (user) => {
-    return user.isAdmin ? 'Admin' : 'Member';
-  },
-});
-
-builder.prismaObject('User', {
-  variant: 'Admin',
-  interfaces: [User],
-  fields: (t) => ({
-    isAdmin: t.exposeBoolean('isAdmin'),
-  }),
-});
-
-builder.prismaObject('User', {
-  variant: 'Member',
-  interfaces: [User],
-  fields: (t) => ({
-    bio: t.exposeString('bio'),
-  }),
-});
-```
-
-When using select mode, it's recommended to add selections to both the interface and the object
-types that implement them. Selections are not inherited and will fallback to the default selection
-which includes all scalar columns.
-
-You will not be able to extend an interface for a different prisma model, doing so will result in an
-error at build time.
-
-## Selecting fields from a nested GraphQL field
-
-By default, the `nestedSelection` function will return selections based on the type of the current
-field. `nestedSelection` can also be used to get a selection from a field nested deeper inside other
-fields. This is useful if the field returns a type that is not a `prismaObject`, but a field nested
-inside the returned type is.
-
-```typescript
-const PostRef = builder.prismaObject('Post', {
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    content: t.exposeString('content'),
-    author: t.relation('author'),
-  }),
-});
-
-const PostPreview = builder.objectRef<Post>('PostPreview').implement({
-  fields: (t) => ({
-    post: t.field({
-      type: PostRef,
-      resolve: (post) => post,
-    }),
-    preview: t.string({
-      nullable: true,
-      resolve: (post) => post.content?.slice(10),
-    }),
-  }),
-});
-
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    postPreviews: t.field({
-      select: (args, ctx, nestedSelection) => ({
-        posts: nestedSelection(
-          {
-            // limit the number of postPreviews to load
-            take: 2,
-          },
-          // Look at the selections in postPreviews.post to determine what relations/fields to select
-          ['post'],
-          // (optional) If the field returns a union or interface, you can pass a typeName to get selections for a specific object type
-          'Post',
-        ),
-      }),
-      type: [PostPreview],
-      resolve: (user) => user.posts,
-    }),
-  }),
-});
-```
-
-`nestedSelection` returns the relation query for the type it selected, which for a `Post` is
-`{ select?, include?, where?, orderBy?, take?, skip?, cursor? }`. Any keys you pass in are kept as
-they were given, so a `select` passed to `nestedSelection` will still narrow the parent's shape.
-With no argument, or with `true`, it returns the planned selection on its own.
-
-### Pinning a type in the path
-
-The `path` is followed through fragments, so a segment is found whether the field is selected
-directly, or under a fragment on an implementation of the field's type. When several
-implementations share the same field name, a segment can be written as `{ name, type }` to name the
-implementation the field must be found under. Only selections of that field under a fragment on
-that type, or one of its subtypes, will be planned:
-
-```typescript
-builder.prismaObject('User', {
-  fields: (t) => ({
-    entries: t.field({
-      type: [Entry],
-      select: (args, ctx, nestedSelection) => ({
-        // Plan what `post` selects under `... on PostEntry`, not under other implementations
-        posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
-      }),
-      resolve: (user) => user.posts.map((post) => ({ kind: 'post', post })),
-    }),
-  }),
-});
-```
-
-The same segments can be used in `queryFromInfo`'s `path` and `paths` options. The type is exported
-as `PathSegment`.
-
-### Selecting as a specific type
-
-When the field returns an interface or union, the third argument names the object type the
-selection should be read as. Its type-level selection and the fields selected under a fragment on
-it are planned, and fragments on other types are left out. With an empty path, this applies to the
-field's own return type:
-
-```typescript
-// Activity is a union of Post and Comment
-builder.prismaObject('User', {
-  fields: (t) => ({
-    recentActivity: t.field({
-      type: [Activity],
-      select: (args, ctx, nestedSelection) => ({
-        // What the query selects under `... on Post`, as a query for the posts relation
-        posts: nestedSelection({ take: 5 }, [], 'Post'),
-        // and under `... on Comment`, for the comments relation
-        comments: nestedSelection({ take: 5 }, [], 'Comment'),
-      }),
-      resolve: (user) => [...user.posts, ...user.comments],
-    }),
-  }),
-});
-```
-
-## Indirect relations (eg. Join tables)
-
-If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
-many relations using a custom join table is a common example of this) you can use the
-`nestedSelection` function passed to `select`.
-
-Given a prisma schema like the following:
-
-```
-model Post {
-  id        Int         @id @default(autoincrement())
-  title     String
-  content   String
-  media     PostMedia[]
-}
-
-model Media {
-  id           Int         @id @default(autoincrement())
-  url          String
-  posts        PostMedia[]
-  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
-  uploadedById Int
-}
-
-model PostMedia {
-  id      Int   @id @default(autoincrement())
-  post    Post  @relation(fields: [postId], references: [id])
-  media   Media @relation(fields: [mediaId], references: [id])
-  postId  Int
-  mediaId Int
-}
-```
-
-You can define a media field that can pre-load the correct relations based on the graphql query:
-
-```typescript
-const PostDraft = builder.prismaObject('Post', {
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    media: t.field({
-      select: (args, ctx, nestedSelection) => ({
-        media: {
-          select: {
-            // This will look at what fields are queried on Media
-            // and automatically select uploadedBy if that relation is requested
-            media: nestedSelection(
-              // This argument is the default query for the media relation
-              // It could be something like: `{ select: { id: true } }` instead
-              true,
-            ),
-          },
-        },
-      }),
-      type: [Media],
-      resolve: (post) => post.media.map(({ media }) => media),
-    }),
-  }),
-});
-
-const Media = builder.prismaObject('Media', {
-  select: {
-    id: true,
-  },
-  fields: (t) => ({
-    url: t.exposeString('url'),
-    uploadedBy: t.relation('uploadedBy'),
-  }),
-});
-```
-
-## Detecting unused query arguments
-
-Forgetting to spread the `query` argument from `t.prismaField` or `t.prismaConnection` into your
-prisma query can result in inefficient queries, or even missing data. To help catch these issues,
-the plugin can warn you when you are not using the query argument correctly.
-
-the `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
-`warn` it will log a warning to the console if Pothos detects that you have not properly used the
-query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
-You can also pass a function which will receive the `info` object which can be used to log or throw
-your own error.
-
-This check is fairly naive and works by wrapping the properties on the query with a getter that sets
-a flag if the property is accessed. If no properties are accessed on the query object before the
-resolver returns, it will trigger the `onUnusedQuery` condition.
-
-It's recommended to enable this check in development to more quickly find potential issues.
-
-## Deferred fragments
-
-Selections inside a `@defer` fragment are left out of the planned query by default, so the initial
-payload is not delayed by data the client has agreed to wait for. When the deferred fragment
-resolves, its fields are loaded through [fallback queries](https://pothos-graphql.dev/docs/plugins/prisma/relations#fallback-queries), batched as
-usual.
-
-Set `skipDeferredFragments: false` in the plugin options to plan deferred selections with the rest
-of the query. `queryFromInfo` accepts the same option per call.
-
-## Optimized queries without `t.prismaField`
-
-In some cases, it may be useful to get an optimized query for fields where you can't use
-`t.prismaField`.
-
-This may be required for combining with other plugins, or because your query does not directly
-return a `PrismaObject`. In these cases, you can use the `queryFromInfo` helper. An example of this
-might be a mutation that wraps the prisma object in a result type.
-
-```typescript
-const Post = builder.prismaObject('Post', {...});
-
-builder.objectRef<{
-  success: boolean;
-  post?: Post
-  }>('CreatePostResult').implement({
-  fields: (t) => ({
-    success: t.boolean(),
-    post: t.field({
-      type: Post,
-      nullable:
-      resolve: (result) => result.post,
-    }),
-  }),
-});
-
-builder.mutationField(
-  'createPost',
-  {
-    args: (t) => ({
-      title: t.string({ required: true }),
-      ...
-    }),
-  },
-  {
-    resolve: async (parent, args, context, info) => {
-      if (!validateCreatePostArgs(args)) {
-        return {
-          success: false,
-        }
-      }
-
-      const post = prisma.city.create({
-        ...queryFromInfo({
-          context,
-          info,
-          // nested path where the selections for this type can be found
-          path: ['post']
-          // optionally you can pass a custom initial selection, generally you wouldn't need this
-          // but if the field at `path` is not selected, the initial selection set may be empty
-          select: {
-            comments: true,
-          },
-        }),
-        data: {
-          title: args.input.title,
-          ...
-        },
-      });
-
-      return {
-        success: true,
-        post,
-      }
-    },
-  },
-);
-```
-
-## Relay integration
+## Relay
 
 This plugin has extensive integration with the
 [relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
 connections very easy.
 
-### `prismaNode`
+#### `prismaNode`
 
 The `prismaNode` method works just like the `prismaObject` method with a couple of small
 differences:
@@ -1119,7 +706,7 @@ differences:
 
 ```typescript
 builder.prismaNode('Post', {
-  // This set's what database field to use for the nodes id field
+  // This sets what database field to use for the nodes id field
   id: { field: 'id' },
   // fields work just like they do for builder.prismaObject
   fields: (t) => ({
@@ -1130,7 +717,7 @@ builder.prismaNode('Post', {
 ```
 
 If you need to customize how ids are formatted, you can add a resolver for the `id`, and provide a
-`findUnique` option that can be used to load the node by it's id. This is generally not necessary.
+`findUnique` option that can be used to load the node by its id. This is generally not necessary.
 
 ```typescript
 builder.prismaNode('Post', {
@@ -1151,7 +738,7 @@ option:
 
 ```typescript
 builder.prismaNode('Post', {
-  id: { resolve: (post) => String(post.id) },
+  id: { field: 'id' },
   nullable: true,
   fields: (t) => ({
     title: t.exposeString('title'),
@@ -1160,7 +747,13 @@ builder.prismaNode('Post', {
 });
 ```
 
-### `prismaConnection`
+## Connections
+
+These examples use the [Prisma builder setup](https://pothos-graphql.dev/docs/plugins/prisma/setup) with the [Relay plugin](https://pothos-graphql.dev/docs/plugins/prisma/relay).
+Register the Prisma object types used by each field. Later examples replace earlier definitions of
+the same field or helper.
+
+#### `prismaConnection`
 
 The `prismaConnection` method on a field builder can be used to create a relay `connection` field
 that also pre-loads all the data nested inside that connection.
@@ -1181,7 +774,7 @@ builder.queryType({
 });
 ```
 
-#### options
+##### options
 
 - `type`: the name of the prisma model being connected to
 - `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
@@ -1218,7 +811,7 @@ the argument combinations are not supported.
 The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
 `defaultConnectionSize` options in the `prisma` plugin options.
 
-### `relatedConnection`
+#### `relatedConnection`
 
 The `relatedConnection` method can be used to create a relay `connection` field based on a relation
 of the current model.
@@ -1252,7 +845,7 @@ builder.prismaNode('User', {
 });
 ```
 
-#### options
+##### options
 
 - `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
   passed to prisma.
@@ -1264,10 +857,12 @@ builder.prismaNode('User', {
   [`relationCount`](https://pothos-graphql.dev/docs/plugins/prisma/relations#relationcount) for more details. Note that this will not work when
   using a shared connection object (see details below)
 
-### Indirect relations as connections
+#### Indirect relations as connections
 
 Creating connections from indirect relations is a little more involved, but can be achieved using
-`prismaConnectionHelpers` with a normal `t.connection` field.
+`prismaConnectionHelpers` with a normal `t.connection` field. Import it from
+`@pothos/plugin-prisma`. The examples below use a Post.media relation to a PostMedia join model,
+whose media relation points to Media. Register Post before adding its connection fields.
 
 ```typescript
 // Create a prisma object for the node type of your connection
@@ -1429,19 +1024,17 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
 );
 ```
 
-### Sharing Connections objects
+#### Sharing Connections objects
 
 You can create reusable connection objects by using `builder.connectionObject`.
 
 These connection objects can be used with `t.prismaConnection`, `t.relatedConnection`, or
 `t.connection`
 
-Shared edges can also be created using `t.edgeObject`
+Shared edges can also be created using `builder.edgeObject`
 
 ```typescript
 const CommentConnection = builder.connectionObject({
-  type: Comment,
-  // or
   type: commentConnectionHelpers.ref,
   name: 'CommentConnection',
 });
@@ -1449,7 +1042,6 @@ const CommentConnection = builder.connectionObject({
 builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    ...
     commentsConnection: t.relatedConnection(
       'comments',
       { cursor: 'id' },
@@ -1460,9 +1052,10 @@ builder.prismaObject('Post', {
 });
 ```
 
-### Extending connection edges
+#### Extending connection edges
 
-In some cases you may want to expose some data from an indirect connection on the edge object.
+This alternative exposes `PostMedia.createdAt` on each edge. It assumes a registered `DateTime`
+scalar whose output type is `Date`.
 
 ```typescript
 const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
@@ -1515,7 +1108,7 @@ builder.prismaObjectFields('Post', (t) => ({
 }));
 ```
 
-### Total count on shared connection objects
+#### Total count on shared connection objects
 
 If you set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
 using a custom connection object, you will need to add the `totalCount` field to the
@@ -1524,7 +1117,7 @@ that is either the totalCount, or a function that will return the totalCount.
 
 ```typescript
 const CommentConnection = builder.connectionObject({
-  type: Comment,
+  type: commentConnectionHelpers.ref,
   name: 'CommentConnection',
   fields: (t) => ({
     totalCount: t.int({
@@ -1551,9 +1144,9 @@ export const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [PrismaPlugin, RelayPlugin],
-  relayOptions: {},
   prisma: {
-    client: db,
+    client: prisma,
+    dmmf: getDatamodel(),
   },
 });
 
@@ -1566,7 +1159,7 @@ builder.globalConnectionField('totalCount', (t) =>
 );
 ```
 
-### `parsePrismaCursor` and `formatPrismaCursor`
+#### `parsePrismaCursor` and `formatPrismaCursor`
 
 These functions can be used to manually parse and format cursors that are compatible with prisma
 connections.
@@ -1575,16 +1168,676 @@ Parsing a cursor will return the value from the column used for the cursor (ofte
 value may be an array or object when a compound index is used as the cursor. Similarly, to format a
 cursor, you must provide the column(s) that make up the cursor.
 
-## Using Prisma without a plugin
+## Type variants
 
-Using prisma without a plugin is relatively straight forward using the `builder.objectRef` method.
+The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
+Additional types are called `variants`. Define a primary type as shown in [Objects](https://pothos-graphql.dev/docs/plugins/prisma/objects).
+The examples below are alternatives using the User and Post models, with an integer User id,
+a User.posts relation, and a Boolean Post.published column. Node examples require the
+[Relay plugin](https://pothos-graphql.dev/docs/plugins/prisma/relay). Use the authenticated `userId` context from [Setup](https://pothos-graphql.dev/docs/plugins/prisma/setup).
 
-The easiest way to create types backed by prisma looks something like:
+Define an additional variant by providing `variant` instead of `name`:
 
 ```typescript
-import { Post, PrismaClient, User } from '@prisma/client';
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
 
-const db = new PrismaClient();
+You can define variant fields that reference one variant from another:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // Using the model name ('User') will reference the primary variant
+    user: t.variant('User'),
+  }),
+});
+
+const User = builder.prismaNode('User', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    // To reference another variant, use the returned object Ref instead of the model name:
+    viewer: t.variant(Viewer, {
+      // return null for viewer if the parent User is not the current user
+      isNull: (user, args, ctx) => user.id !== ctx.userId,
+    }),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+You can also use variants when defining relations by providing a `type` option:
+
+```typescript
+const PostDraft = builder.prismaNode('Post', {
+  variant: 'PostDraft',
+  // This sets what database field to use for the nodes id field
+  id: { field: 'id' },
+  // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    drafts: t.relation('posts', {
+      // This will cause this relation to use the PostDraft variant rather than the default Post variant
+      type: PostDraft,
+      query: { where: { published: false } },
+    }),
+  }),
+});
+```
+
+You may run into circular reference issues if you use 2 prisma object refs to reference each other.
+To avoid this, you can split out the field definition for one of the relationships using
+`builder.prismaObjectField`
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+const User = builder.prismaNode('User', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+// Add the reference after both types have been defined.
+builder.prismaObjectField(Viewer, 'user', (t) => t.variant(User));
+```
+
+This same workaround applies when defining relations using variants.
+
+Two variants of one model selected for the same row have their type-level selections merged into a
+single query, which can fail if they disagree. See
+[Conflicting selections between variants](https://pothos-graphql.dev/docs/plugins/prisma/query-planning#conflicting-selections-between-variants).
+
+## Indirect relations
+
+### Selecting fields from a nested GraphQL field
+
+By default, the `nestedSelection` function will return selections based on the type of the current
+field. `nestedSelection` can also be used to get a selection from a field nested deeper inside other
+fields. This is useful if the field returns a type that is not a `prismaObject`, but a field nested
+inside the returned type is.
+
+```typescript
+import type { Post } from '../lib/prisma/client';
+
+const PostRef = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    content: t.exposeString('content', { nullable: true }),
+    author: t.relation('author'),
+  }),
+});
+
+const PostPreview = builder.objectRef<Post>('PostPreview').implement({
+  fields: (t) => ({
+    post: t.field({
+      type: PostRef,
+      resolve: (post) => post,
+    }),
+    preview: t.string({
+      nullable: true,
+      resolve: (post) => post.content?.slice(0, 10),
+    }),
+  }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    postPreviews: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection(
+          {
+            // limit the number of postPreviews to load
+            take: 2,
+          },
+          // Look at the selections in postPreviews.post to determine what relations/fields to select
+          ['post'],
+          // (optional) If the field returns a union or interface, you can pass a typeName to get selections for a specific object type
+          'Post',
+        ),
+      }),
+      type: [PostPreview],
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+`nestedSelection` returns the relation query for the type it selected, which for a `Post` is
+`{ select?, include?, where?, orderBy?, take?, skip?, cursor? }`. Any keys you pass in are kept as
+they were given, so a `select` passed to `nestedSelection` will still narrow the parent's shape.
+With no argument, or with `true`, it returns the planned selection on its own.
+
+#### Pinning a type in the path
+
+The `path` is followed through fragments, so a segment is found whether the field is selected
+directly, or under a fragment on an implementation of the field's type. When several
+implementations share the same field name, a segment can be written as `{ name, type }` to name the
+implementation the field must be found under. Only selections of that field under a fragment on
+that type, or one of its subtypes, will be planned:
+
+```typescript
+builder.prismaObject('User', {
+  fields: (t) => ({
+    entries: t.field({
+      type: [Entry],
+      select: (args, ctx, nestedSelection) => ({
+        // Plan what `post` selects under `... on PostEntry`, not under other implementations
+        posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
+      }),
+      resolve: (user) => user.posts.map((post) => ({ kind: 'post', post })),
+    }),
+  }),
+});
+```
+
+The same segments can be used in `queryFromInfo`'s `path` and `paths` options. The type is exported
+as `PathSegment`.
+
+#### Selecting as a specific type
+
+When the field returns an interface or union, the third argument names the object type the
+selection should be read as. Its type-level selection and the fields selected under a fragment on
+it are planned, and fragments on other types are left out. With an empty path, this applies to the
+field's own return type:
+
+```typescript
+// Activity is a union of Post and Comment
+builder.prismaObject('User', {
+  fields: (t) => ({
+    recentActivity: t.field({
+      type: [Activity],
+      select: (args, ctx, nestedSelection) => ({
+        // What the query selects under `... on Post`, as a query for the posts relation
+        posts: nestedSelection({ take: 5 }, [], 'Post'),
+        // and under `... on Comment`, for the comments relation
+        comments: nestedSelection({ take: 5 }, [], 'Comment'),
+      }),
+      resolve: (user) => [...user.posts, ...user.comments],
+    }),
+  }),
+});
+```
+
+### Indirect relations (eg. Join tables)
+
+If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
+many relations using a custom join table is a common example of this) you can use the
+`nestedSelection` function passed to `select`.
+
+Given a prisma schema like the following:
+
+```
+model Post {
+  id        Int         @id @default(autoincrement())
+  title     String
+  content   String
+  media     PostMedia[]
+}
+
+model Media {
+  id           Int         @id @default(autoincrement())
+  url          String
+  posts        PostMedia[]
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
+  uploadedById Int
+}
+
+model PostMedia {
+  id      Int   @id @default(autoincrement())
+  post    Post  @relation(fields: [postId], references: [id])
+  media   Media @relation(fields: [mediaId], references: [id])
+  postId  Int
+  mediaId Int
+}
+```
+
+You can define a media field that can pre-load the correct relations based on the graphql query:
+
+```typescript
+const PostWithMedia = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    media: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          select: {
+            // This will look at what fields are queried on Media
+            // and automatically select uploadedBy if that relation is requested
+            media: nestedSelection(
+              // This argument is the default query for the media relation
+              // It could be something like: `{ select: { id: true } }` instead
+              true,
+            ),
+          },
+        },
+      }),
+      type: [Media],
+      resolve: (post) => post.media.map(({ media }) => media),
+    }),
+  }),
+});
+
+const Media = builder.prismaObject('Media', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+    uploadedBy: t.relation('uploadedBy'),
+  }),
+});
+```
+
+## Interfaces
+
+`builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
+primary type or a variant for a model.
+
+The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
+method returns the typenames as strings to avoid issues with circular references.
+
+```typescript
+const User = builder.prismaInterface('User', {
+  name: 'User',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+  resolveType: (user) => {
+    return user.isAdmin ? 'Admin' : 'Member';
+  },
+});
+
+builder.prismaObject('User', {
+  variant: 'Admin',
+  interfaces: [User],
+  fields: (t) => ({
+    isAdmin: t.exposeBoolean('isAdmin'),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'Member',
+  interfaces: [User],
+  fields: (t) => ({
+    bio: t.exposeString('bio'),
+  }),
+});
+```
+
+When using select mode, it's recommended to add selections to both the interface and the object
+types that implement them. Selections are not inherited and will fallback to the default selection
+which includes all scalar columns.
+
+You will not be able to extend an interface for a different prisma model, doing so will result in an
+error at build time.
+
+## Prisma Utils
+
+> **Note:**
+  This package is highly experimental and not recommended for production use
+
+
+The plugin adds new helpers for creating prisma compatible input types. Use it alongside the Prisma plugin when you want these input helpers.
+
+### Setup
+
+To use this plugin, you will need to enable prismaUtils option in the generator in your
+schema.prisma:
+
+```prisma
+
+generator client {
+  provider      = "prisma-client"
+  output        = "../lib/prisma"
+}
+generator pothos {
+  provider = "prisma-pothos-types"
+  clientOutput = "./prisma" // relative path from pothos output to prisma client
+  output = "../lib/pothos-prisma-types.ts"
+  // Enable prismaUtils feature
+  prismaUtils  = true
+}
+```
+
+Once this is enabled, add the plugin alongside the Prisma plugin. This example also uses
+`graphql-scalars` to register the `DateTime` scalar used by the input helpers:
+
+```package-install
+npm install @pothos/plugin-prisma-utils graphql-scalars @prisma/adapter-better-sqlite3
+```
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import { DateTimeResolver } from 'graphql-scalars';
+import { PrismaClient } from '../lib/prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import type PrismaTypes from '../lib/pothos-prisma-types';
+import { getDatamodel } from '../lib/pothos-prisma-types';
+import PrismaPlugin from '@pothos/plugin-prisma';
+import PrismaUtils from '@pothos/plugin-prisma-utils';
+
+export const prisma = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({ url: 'file:./dev.db' }),
+});
+
+const builder = new SchemaBuilder<{
+  Scalars: {
+    DateTime: {
+      Input: Date;
+      Output: Date;
+    };
+  };
+  PrismaTypes: PrismaTypes;
+}>({
+  plugins: [PrismaPlugin, PrismaUtils],
+  prisma: {
+    client: prisma,
+    dmmf: getDatamodel(),
+  },
+});
+
+builder.addScalarType('DateTime', DateTimeResolver, {});
+```
+
+### What can you do with this plugin
+
+The helpers build filters, ordering, create inputs, and update inputs using the generated Prisma
+types. You choose which fields and operations your API exposes.
+
+### What is supported so far
+
+#### Creating filter types for scalars and enums
+
+```typescript
+const StringFilter = builder.prismaFilter('String', {
+  ops: ['contains', 'equals', 'startsWith', 'not'],
+});
+
+export const IDFilter = builder.prismaFilter('Int', {
+  ops: ['equals', 'not'],
+});
+
+builder.enumType(MyEnum, { name: 'MyEnum' });
+const MyEnumFilter = builder.prismaFilter(MyEnum, {
+  ops: ['not', 'equals'],
+});
+```
+
+#### Creating filters for Prisma objects (compatible with a "where" clause)
+
+```typescript
+const UserWhere = builder.prismaWhere('User', {
+  fields: {
+    id: IDFilter,
+  },
+});
+
+const PostFilter = builder.prismaWhere('Post', {
+  fields: (t) => ({
+    // You can use either filters
+    id: IDFilter,
+    // or scalar types to only support equality
+    title: 'String',
+    createdAt: 'DateTime',
+    // Relations are supported by referencing other scalars
+    author: UserWhere,
+    // use t.field to provide other field options
+    authorId: t.field({ type: IDFilter, description: 'filter by author id' }),
+  }),
+});
+```
+
+#### Creating list filters for scalars
+
+```typescript
+export const StringListFilter = builder.prismaScalarListFilter('String', {
+  name: 'StringListFilter',
+  ops: ['has', 'hasSome', 'hasEvery', 'isEmpty', 'equals'],
+});
+```
+
+#### Creating list filters for Prisma objects
+
+```typescript
+const UserListFilter = builder.prismaListFilter(UserWhere, {
+  ops: ['every', 'some', 'none'],
+});
+```
+
+#### Creating OrderBy input types
+
+```typescript
+const UserOrderBy = builder.prismaOrderBy('User', {
+  fields: {
+    name: true,
+  },
+});
+
+export const PostOrderBy = builder.prismaOrderBy('Post', {
+  fields: () => ({
+    id: true,
+    title: true,
+    createdAt: true,
+    author: UserOrderBy,
+  }),
+});
+```
+
+#### Inputs for create mutations
+
+You can use `builder.prismaCreate` to create input types for create mutations.
+
+To get these types to work correctly for circular references, it is recommended to add explicit type
+annotations, but for simple types that do not have circular references the explicit types can be
+omitted.
+
+```ts
+import { InputObjectRef } from '@pothos/core';
+import type { Prisma } from '../lib/prisma/client';
+
+export const UserCreate: InputObjectRef<Prisma.UserCreateInput> = builder.prismaCreate('User', {
+  name: 'UserCreate',
+  fields: () => ({
+    // scalars
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    // inputs for relations need to be defined separately as shown below
+    profile: UserCreateProfile,
+    // create fields for list relations are defined just like normal relations.
+    // Pothos will automatically handle making the inputs lists
+    posts: UserCreatePosts,
+  }),
+});
+
+export const UserCreateProfile = builder.prismaCreateRelation('User', 'profile', {
+  fields: () => ({
+    // created with builder.prismaCreate as shown above for User
+    create: ProfileCreateWithoutUser,
+    // created with builder.prismaWhere
+    connect: ProfileUniqueFilter,
+  }),
+});
+
+export const UserCreatePosts = builder.prismaCreateRelation('User', 'posts', {
+  fields: () => ({
+    // created with builder.prismaCreate as shown above for User
+    create: PostCreateWithoutAuthor,
+    // created with builder.prismaWhere
+    connect: PostUniqueFilter,
+  }),
+});
+```
+
+#### Inputs for update mutations
+
+You can use `builder.prismaUpdate` to create input types for update mutations.
+
+To get these types to work correctly for circular references, it is recommended to add explicit type
+annotations, but for simple types that do not have circular references the explicit types can be
+omitted.
+
+```ts
+export const UserUpdate: InputObjectRef<Prisma.UserUpdateInput> = builder.prismaUpdate(
+  'User',
+  {
+    name: 'UserUpdate',
+    fields: () => ({
+      id: 'Int',
+      email: 'String',
+      name: 'String',
+      // inputs for relations need to be defined separately as shown below
+      profile: UserUpdateProfile,
+      posts: UserUpdatePosts,
+    }),
+  },
+);
+
+export const UserUpdateProfile = builder.prismaUpdateRelation('User', 'profile', {
+  fields: () => ({
+    // created with builder.prismaCreate
+    create: ProfileCreateWithoutUser,
+    // created with builder.prismaUpdate
+    update: ProfileUpdateWithoutUser,
+    // created with builder.prismaWhereUnique
+    connect: ProfileUniqueFilter,
+  }),
+});
+
+export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
+  fields: () => ({
+    // Not all update methods need to be defined
+    // created with builder.prismaCreate
+    create: PostCreateWithoutAuthor,
+    // created with builder.prismaCreateMany
+    createMany: {
+      skipDuplicates: 'Boolean',
+      data: PostCreateManyWithoutAuthor,
+    },
+    // created with builder.prismaWhereUnique
+    set: PostUniqueFilter,
+    // created with builder.prismaWhereUnique
+    disconnect: PostUniqueFilter,
+    delete: PostUniqueFilter,
+    connect: PostUniqueFilter,
+
+    update: {
+      // created with builder.prismaWhereUnique
+      where: PostUniqueFilter,
+      // created with builder.prismaUpdate
+      data: PostUpdateWithoutAuthor,
+    },
+    updateMany: {
+      // created with builder.prismaWhere
+      where: PostWithoutAuthorFilter,
+      // created with builder.prismaUpdate
+      data: PostUpdateWithoutAuthor,
+    },
+    // created with builder.prismaWhere
+    deleteMany: PostWithoutAuthorFilter,
+  }),
+});
+```
+
+##### Atomic Int Update operations
+
+```ts
+const IntUpdate = builder.prismaIntAtomicUpdate();
+// or with options
+const IntUpdate = builder.prismaIntAtomicUpdate({
+  name: 'IntUpdate',
+  ops: ['increment', 'decrement'],
+});
+
+export const PostUpdate = builder.prismaUpdate('Post', {
+  name: 'PostUpdate',
+  fields: () => ({
+    title: 'String',
+    views: IntUpdate,
+  }),
+});
+```
+
+### Generators
+
+Manually defining all the different input types shown above for a large number of tables can become
+very repetitive. These utilities are designed to be building blocks for generators or utility
+functions, so that you don't need to hand write these types yourself.
+
+Pothos does not currently ship an official generator for prisma types, but there are a couple of
+example generators that can be copied and modified to suit your needs. These are intentionally
+somewhat limited in functionality and not written to be easily exported because they will be updated
+with breaking changes as these utilities are developed further. They are only intended as building
+blocks for you to build your own generators.
+
+There are 2 main approaches:
+
+1. Static Generation: Types are generated and written as a typescript file which can be imported
+   from as part of your schema
+2. Dynamic Generation: Types are generated dynamically at runtime through helpers imported from your
+   App
+
+#### Static generator
+
+You can find an
+[example static generator here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/generator.ts)
+
+This generator will generate a file with input types for every table in your schema as shown
+[here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/prisma-inputs.ts)
+
+These generated types can be used in your schema as shown
+[here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/index.ts)
+
+#### Dynamic generator
+
+You can find an example
+[dynamic generator here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/generator.ts)
+
+This generator exports a class that can be used to dynamically create input types for your builder
+as shown
+[here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20)
+
+## Prisma without a plugin
+
+Use `builder.objectRef` with the generated Prisma model types and write resolvers that query your client.
+
+This example uses a generated Prisma client with User and Post models, backed by SQLite.
+Use the driver adapter for your database, and adjust the client import to your generated output.
+Create a builder with an authenticated `userId` context:
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import { PrismaClient, type Post, type User } from '../lib/prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+
+const builder = new SchemaBuilder<{ Context: { userId: number } }>({});
+
+const db = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({ url: 'file:./dev.db' }),
+});
 const UserObject = builder.objectRef<User>('User');
 const PostObject = builder.objectRef<Post>('Post');
 
@@ -1640,7 +1893,7 @@ with this by batching queries together, but there are also things we can do in o
 improve things.
 
 One thing we could do if we know we will usually be loading the author any time we load a post is to
-make the author part of shape required for a post:
+include the author in the backing type for a post. Replace the refs and implementations above with:
 
 ```typescript
 const UserObject = builder.objectRef<User>('User');
@@ -1679,7 +1932,7 @@ PostObject.implement({
 ```
 
 We may not always want to query for the author though, so we could make the author optional and fall
-back to using a query if it was not provided by the parent resolver:
+back to a query if the parent resolver did not include it. Replace `PostObject` and its implementation with:
 
 ```typescript
 const PostObject = builder.objectRef<Post & { author?: User }>('Post');
@@ -1691,22 +1944,16 @@ PostObject.implement({
     author: t.field({
       type: UserObject,
       resolve: (post) =>
-        post.author ?? db.user.findUnique({ rejectOnNotFound: true, where: { id: post.authorId } }),
+        post.author ?? db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
     }),
   }),
 });
 ```
 
 With this setup, a parent resolver has the option to include the author, but we have a fallback
-incase it does not.
+in case it does not.
 
-There are other patterns like data loaders than can be used to reduce n+1 issues, and make your
-graph more efficient, but they are too complex to describe here.
-
-## Input types
-
-To create input types compatible with the prisma client, you can check out the
-[prisma-utils plugin](https://pothos-graphql.dev/docs/plugins/prisma-utils)
+The [Dataloader plugin](https://pothos-graphql.dev/docs/plugins/dataloader) provides another way to batch loads across resolvers.
 
 ## Query planning
 
@@ -1737,12 +1984,17 @@ appear in the document, and fields are planned in the order they are selected.
 
 ### Async selections
 
-Selections are synchronous unless the schema opts in with `AsyncSelections: true`:
+Selections are synchronous unless the schema opts in with `AsyncSelections: true`. This example
+uses request context methods that asynchronously return a user ID and a preview limit:
 
 ```typescript
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
   AsyncSelections: true;
+  Context: {
+    currentUserId: () => Promise<number>;
+    previewSize: () => Promise<number>;
+  };
 }>({
   plugins: [PrismaPlugin],
   prisma: {
@@ -1759,7 +2011,8 @@ are typed as synchronous, and an async callback is a type error.
 The plugin still builds a single query. It waits for the callbacks, and merges what they return
 after every synchronous selection, in document order. `t.relation`, `t.relationCount`,
 `t.prismaField`, `t.prismaConnection` and `t.relatedConnection` settle their plan before the
-resolver runs, and need no changes.
+resolver runs, and need no changes. The following example uses a registered `Comment` Prisma
+object ref and its Post.comments relation:
 
 ```typescript
 builder.prismaObject('Post', {
@@ -1767,7 +2020,7 @@ builder.prismaObject('Post', {
     comments: t.relation('comments', {
       query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
     }),
-    latestComments: t.field({
+    previewComments: t.field({
       type: [Comment],
       select: async (args, ctx, nestedSelection) => ({
         comments: await nestedSelection({ take: await ctx.previewSize() }),
@@ -1809,15 +2062,25 @@ This may be required for combining with other plugins, or because your query doe
 return a `PrismaObject`. In these cases, you can use the `queryFromInfo` helper. An example of this
 might be a mutation that wraps the prisma object in a result type.
 
-```typescript
-const Post = builder.prismaObject('Post', {...});
+The example assumes a Post model with `id`, `title`, and `authorId` columns, an existing User
+record for `context.userId`, and the [builder setup](https://pothos-graphql.dev/docs/plugins/prisma/setup) with that context type.
 
-builder.objectRef<{
-  success: boolean;
-  post?: Post
-  }>('CreatePostResult').implement({
+```typescript
+import type { Post as PostRow } from '../lib/prisma/client';
+import { queryFromInfo } from '@pothos/plugin-prisma';
+
+const Post = builder.prismaObject('Post', {
   fields: (t) => ({
-    success: t.boolean(),
+    title: t.exposeString('title'),
+  }),
+});
+
+const CreatePostResult = builder.objectRef<{
+  success: boolean;
+  post: PostRow | null;
+}>('CreatePostResult').implement({
+  fields: (t) => ({
+    success: t.exposeBoolean('success'),
     post: t.field({
       type: Post,
       nullable: true,
@@ -1826,51 +2089,45 @@ builder.objectRef<{
   }),
 });
 
-builder.mutationField(
-  'createPost',
-  {
-    args: (t) => ({
-      title: t.string({ required: true }),
-      ...
-    }),
-  },
-  {
-    resolve: async (parent, args, context, info) => {
-      if (!validateCreatePostArgs(args)) {
-        return {
-          success: false,
+builder.mutationType({
+  fields: (t) => ({
+    createPost: t.field({
+      type: CreatePostResult,
+      args: {
+        title: t.arg.string({ required: true }),
+      },
+      resolve: async (parent, args, context, info) => {
+        if (!args.title.trim()) {
+          return { success: false, post: null };
         }
-      }
 
-      const post = prisma.post.create({
-        ...queryFromInfo({
-          context,
-          info,
-          // nested path where the selections for this type can be found
-          path: ['post'],
-          // optionally you can pass an initial selection, generally you wouldn't need this;
-          // when nothing is selected at `path`, it is returned as is
-          select: {
-            comments: true,
+        const post = await prisma.post.create({
+          ...(await queryFromInfo({
+            context,
+            info,
+            path: ['post'],
+            awaitSelections: true,
+          })),
+          data: {
+            title: args.title,
+            authorId: context.userId,
           },
-        }),
-        data: {
-          title: args.input.title,
-          ...
-        },
-      });
+        });
 
-      return {
-        success: true,
-        post,
-      }
-    },
-  },
-);
+        return { success: true, post };
+      },
+    }),
+  }),
+});
 ```
 
 The columns and relations the query selected come back on the rows, along with anything you passed
 in as `select`, and the rows are typed to match.
+
+To require data even when the client does not request it, pass an initial `select` (or `include`)
+to `queryFromInfo`. For example, add `select: { id: true }` beside `path` in the call above to
+ensure the returned post includes its ID. When nothing is selected at `path`, the helper returns
+that initial selection unchanged, or an empty query object if no initial selection was supplied.
 
 The `path` is followed through fragments in the query, including inline fragments and fragment
 spreads that narrow an interface or union to one of its implementations. Every selection of the
@@ -1891,7 +2148,7 @@ const user = await prisma.user.findUniqueOrThrow({
   }),
 });
 
-// user.appointments is loaded with the selections from `... on AppointmentEntry`,
+// user is loaded with the selections from `... on AppointmentEntry`,
 // and nothing from an `appointment` field on another implementation
 ```
 
