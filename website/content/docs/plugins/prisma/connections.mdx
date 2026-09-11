@@ -3,6 +3,10 @@ title: Connections
 description: Creating relay connections with the Prisma plugin
 ---
 
+These examples use the [Prisma builder setup](./setup) with the [Relay plugin](./relay).
+Register the Prisma object types used by each field. Later examples replace earlier definitions of
+the same field or helper.
+
 ### `prismaConnection`
 
 The `prismaConnection` method on a field builder can be used to create a relay `connection` field
@@ -110,7 +114,9 @@ builder.prismaNode('User', {
 ### Indirect relations as connections
 
 Creating connections from indirect relations is a little more involved, but can be achieved using
-`prismaConnectionHelpers` with a normal `t.connection` field.
+`prismaConnectionHelpers` with a normal `t.connection` field. Import it from
+`@pothos/plugin-prisma`. The examples below use a Post.media relation to a PostMedia join model,
+whose media relation points to Media. Register Post before adding its connection fields.
 
 ```typescript
 // Create a prisma object for the node type of your connection
@@ -279,12 +285,10 @@ You can create reusable connection objects by using `builder.connectionObject`.
 These connection objects can be used with `t.prismaConnection`, `t.relatedConnection`, or
 `t.connection`
 
-Shared edges can also be created using `t.edgeObject`
+Shared edges can also be created using `builder.edgeObject`
 
 ```typescript
 const CommentConnection = builder.connectionObject({
-  type: Comment,
-  // or
   type: commentConnectionHelpers.ref,
   name: 'CommentConnection',
 });
@@ -292,7 +296,6 @@ const CommentConnection = builder.connectionObject({
 builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    ...
     commentsConnection: t.relatedConnection(
       'comments',
       { cursor: 'id' },
@@ -305,7 +308,8 @@ builder.prismaObject('Post', {
 
 ### Extending connection edges
 
-In some cases you may want to expose some data from an indirect connection on the edge object.
+This alternative exposes `PostMedia.createdAt` on each edge. It assumes a registered `DateTime`
+scalar whose output type is `Date`.
 
 ```typescript
 const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
@@ -367,7 +371,7 @@ that is either the totalCount, or a function that will return the totalCount.
 
 ```typescript
 const CommentConnection = builder.connectionObject({
-  type: Comment,
+  type: commentConnectionHelpers.ref,
   name: 'CommentConnection',
   fields: (t) => ({
     totalCount: t.int({
@@ -394,9 +398,9 @@ export const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [PrismaPlugin, RelayPlugin],
-  relayOptions: {},
   prisma: {
-    client: db,
+    client: prisma,
+    dmmf: getDatamodel(),
   },
 });
 

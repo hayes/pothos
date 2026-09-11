@@ -10,10 +10,12 @@ fields. This is useful if the field returns a type that is not a `prismaObject`,
 inside the returned type is.
 
 ```typescript
+import type { Post } from '../lib/prisma/client';
+
 const PostRef = builder.prismaObject('Post', {
   fields: (t) => ({
     title: t.exposeString('title'),
-    content: t.exposeString('content'),
+    content: t.exposeString('content', { nullable: true }),
     author: t.relation('author'),
   }),
 });
@@ -26,7 +28,7 @@ const PostPreview = builder.objectRef<Post>('PostPreview').implement({
     }),
     preview: t.string({
       nullable: true,
-      resolve: (post) => post.content?.slice(10),
+      resolve: (post) => post.content?.slice(0, 10),
     }),
   }),
 });
@@ -146,7 +148,7 @@ model PostMedia {
 You can define a media field that can pre-load the correct relations based on the graphql query:
 
 ```typescript
-const PostDraft = builder.prismaObject('Post', {
+const PostWithMedia = builder.prismaObject('Post', {
   fields: (t) => ({
     title: t.exposeString('title'),
     media: t.field({

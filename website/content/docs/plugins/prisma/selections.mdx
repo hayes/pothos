@@ -52,7 +52,7 @@ builder.prismaObject('User', {
 ```
 
 The `t.expose*` and `t.relation` methods will all automatically add selections for the exposed
-fields _WHEN THEY ARE QUERIED_, ensuring that only the requested columns will be loaded from the
+fields when those fields are queried, ensuring that only the requested columns will be loaded from the
 database.
 
 In addition to the `t.expose` and `t.relation`, you can also add custom selections to other fields:
@@ -66,6 +66,7 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
+      nullable: true,
       // This will select user.profile.bio when the `bio` field is queried
       select: {
         profile: {
@@ -74,7 +75,7 @@ builder.prismaObject('User', {
           },
         },
       },
-      resolve: (user) => user.profile.bio,
+      resolve: (user) => user.profile?.bio,
     }),
   }),
 });
@@ -86,20 +87,22 @@ resolver receives as the parent, not to the model the field returns.
 
 ## Using arguments or context in your selections
 
-The following is a slightly contrived example, but shows how arguments can be used when creating a
-selection for a field:
+This field selects the first comment created after the supplied date, or returns null when none
+exists. It assumes a registered `Date` scalar accepting JavaScript dates:
 
 ```typescript
-const PostDraft = builder.prismaObject('Post', {
+const Post = builder.prismaObject('Post', {
   fields: (t) => ({
     title: t.exposeString('title'),
     commentFromDate: t.string({
+      nullable: true,
       args: {
         date: t.arg({ type: 'Date', required: true }),
       },
       select: (args) => ({
         comments: {
           take: 1,
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           where: {
             createdAt: {
               gt: args.date,

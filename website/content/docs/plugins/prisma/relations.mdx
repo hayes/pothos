@@ -3,7 +3,8 @@ title: Relations
 description: Adding relations to prisma objects
 ---
 
-You can add fields for relations using the `t.relation` method:
+Use `t.relation` to expose relations between models. This example uses the client and authenticated
+`userId` context from [Setup](./setup):
 
 ```typescript
 builder.queryType({
@@ -69,10 +70,7 @@ the `me` `prismaField` would receive something like the following as its query p
 }
 ```
 
-This will work perfectly for the majority of queries. There are a number of edge cases that make it
-impossible to resolve everything in a single query. When this happens Pothos will automatically
-construct an additional query to ensure that everything is still loaded correctly, and split into as
-few efficient queries as possible. This process is described in more detail below
+When selections cannot share a Prisma query, Pothos loads the missing data with fallback queries.
 
 ### Fallback queries
 
@@ -91,9 +89,6 @@ The following are some edge cases that could cause an additional query to be nec
 - The query contains multiple aliases for the same relation field with different arguments in a way
   that results in different query options for the relation.
 - A relation field has a query that is incompatible with the default includes of the parent object
-
-All of the above should be relatively uncommon in normal usage, but the plugin ensures that these
-types of edge cases are automatically handled when they do occur.
 
 A fallback query loads the parent row again by its primary key, or by the first required unique
 field or index when the model has no primary key, selecting what the missing fields need. To load
@@ -147,26 +142,7 @@ passed into the first argument of the parent `t.prismaField`, and can include th
 the context for the current request. Because it is used for pre-loading data, and solving n+1
 issues, it can not be passed the `parent` object because it may not be loaded yet.
 
-```typescript
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    email: t.exposeString('email'),
-    posts: t.relation('posts', {
-      // We can define arguments like any other field
-      args: {
-        oldestFirst: t.arg.boolean(),
-      },
-      // Then we can generate our query conditions based on the arguments
-      query: (args, context) => ({
-        orderBy: {
-          createdAt: args.oldestFirst ? 'asc' : 'desc',
-        },
-      }),
-    }),
-  }),
-});
-```
+
 
 ### Nullable relations and `onNull`
 
@@ -193,12 +169,8 @@ builder.prismaObject('User', {
 
 ### relationCount
 
-Prisma supports querying for
-[relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
-which allow including counts for relations along side other `includes`. Before prisma 4.2.0, this
-does not support any filters on the counts, but can give a total count for a relation. Starting from
-prisma 4.2.0, filters on relation count are available under the `filteredRelationCount` preview
-feature flag.
+`t.relationCount` adds a field that counts related rows without loading them. Its `where` option
+filters the rows included in the count:
 
 ```typescript
 builder.prismaObject('User', {

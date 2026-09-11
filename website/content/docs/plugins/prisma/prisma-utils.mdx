@@ -9,8 +9,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
   This package is highly experimental and not recommended for production use
 </Callout>
 
-The plugin adds new helpers for creating prisma compatible input types. It is NOT required to use
-the normal prisma plugin.
+The plugin adds new helpers for creating prisma compatible input types. Use it alongside the Prisma plugin when you want these input helpers.
 
 ## Setup
 
@@ -32,19 +31,28 @@ generator pothos {
 }
 ```
 
-Once this is enabled, you can add the plugin to your schema along with the normal prisma plugin:
+Once this is enabled, add the plugin alongside the Prisma plugin. This example also uses
+`graphql-scalars` to register the `DateTime` scalar used by the input helpers:
+
+```package-install
+npm install @pothos/plugin-prisma-utils graphql-scalars @prisma/adapter-better-sqlite3
+```
 
 ```ts
 import SchemaBuilder from '@pothos/core';
-import { PrismaClient } from '@prisma/client';
+import { DateTimeResolver } from 'graphql-scalars';
+import { PrismaClient } from '../lib/prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import type PrismaTypes from '../lib/pothos-prisma-types';
 import { getDatamodel } from '../lib/pothos-prisma-types';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import PrismaUtils from '@pothos/plugin-prisma-utils';
 
-export const prisma = new PrismaClient({});
+export const prisma = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({ url: 'file:./dev.db' }),
+});
 
-export default new SchemaBuilder<{
+const builder = new SchemaBuilder<{
   Scalars: {
     DateTime: {
       Input: Date;
@@ -59,21 +67,14 @@ export default new SchemaBuilder<{
     dmmf: getDatamodel(),
   },
 });
+
+builder.addScalarType('DateTime', DateTimeResolver, {});
 ```
 
 ## What can you do with this plugin
 
-Currently this plugin is focused on making it easier to define prisma compatible input types that
-take advantage of the types defined in your Prisma schema.
-
-The goal is not to generate all input types automatically, but rather to provide building blocks so
-that writing your own helpers or code-generators becomes a lot easier. There are far too many
-tradeoffs and choices to be made when designing input types for queries that one solution won't work
-for everyone.
-
-This plugin will eventually provide more helpers and examples that should allow anyone to quickly
-set something up to automatically creates all their input types (and eventually other crud
-operations).
+The helpers build filters, ordering, create inputs, and update inputs using the generated Prisma
+types. You choose which fields and operations your API exposes.
 
 ## What is supported so far
 
@@ -111,7 +112,7 @@ const PostFilter = builder.prismaWhere('Post', {
     title: 'String',
     createdAt: 'DateTime',
     // Relations are supported by referencing other scalars
-    author: UserFilter,
+    author: UserWhere,
     // use t.field to provide other field options
     authorId: t.field({ type: IDFilter, description: 'filter by author id' }),
   }),
@@ -164,7 +165,7 @@ omitted.
 
 ```ts
 import { InputObjectRef } from '@pothos/core';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '../lib/prisma/client';
 
 export const UserCreate: InputObjectRef<Prisma.UserCreateInput> = builder.prismaCreate('User', {
   name: 'UserCreate',
@@ -209,7 +210,7 @@ annotations, but for simple types that do not have circular references the expli
 omitted.
 
 ```ts
-export const UserUpdate: InputObjectRef<Prisma.Prisma.UserUpdateInput> = builder.prismaUpdate(
+export const UserUpdate: InputObjectRef<Prisma.UserUpdateInput> = builder.prismaUpdate(
   'User',
   {
     name: 'UserUpdate',
