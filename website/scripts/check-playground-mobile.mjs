@@ -36,3 +36,60 @@ export async function checkPlaygroundMobile(browser, origin) {
     }
   }
 }
+
+export async function checkPlaygroundMobileFiles(browser, origin) {
+  for (const width of [320, 390]) {
+    const page = await browser.newPage({ viewport: { width, height: 844 } });
+    page.setDefaultTimeout(60000);
+    try {
+      await page.goto(`${origin}/playground?example=playground-tour&step=2`);
+      await page.getByRole('button', { name: /schema synced/ }).waitFor();
+      const selector = page.getByRole('combobox', { name: 'Source file', exact: true });
+      const bounds = await selector.boundingBox();
+      assert.ok(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width);
+      await selector.selectOption({ label: 'models/giraffe.ts' });
+      await page.waitForFunction(() =>
+        window.monaco?.editor
+          .getEditors()
+          .some(
+            (editor) =>
+              editor.getModel()?.uri.toString() === 'file:///playground/models/giraffe.ts',
+          ),
+      );
+      await page.evaluate(() => {
+        const model = window.monaco.editor.getModel(
+          window.monaco.Uri.parse('file:///playground/models/giraffe.ts'),
+        );
+        model.setValue(model.getValue().replace('James', 'Mobile giraffe'));
+      });
+      // Let the 500ms source debounce start a new compilation before waiting for sync.
+      await page.waitForTimeout(1000);
+      await page.getByRole('button', { name: /schema synced/ }).waitFor();
+      await page.getByRole('button', { name: /^Run query/ }).click();
+      await page
+        .getByLabel('GraphQL result')
+        .first()
+        .filter({ hasText: 'Mobile giraffe' })
+        .waitFor({ state: 'attached' });
+      await selector.selectOption('sdl');
+      await page.waitForFunction(() =>
+        window.monaco.editor
+          .getEditors()
+          .some(
+            (editor) =>
+              editor.getModel()?.getValue().startsWith('# Generated from schema.ts') &&
+              editor.getModel()?.getValue().includes('type Giraffe'),
+          ),
+      );
+      await selector.selectOption({ label: 'schema.ts' });
+      await page.waitForFunction(() =>
+        window.monaco.editor
+          .getEditors()
+          .some((editor) => editor.getModel()?.uri.toString() === 'file:///playground/schema.ts'),
+      );
+      console.log(`PASS ${width}px mobile file selection, nested edit, query, and generated SDL`);
+    } finally {
+      await page.close();
+    }
+  }
+}
