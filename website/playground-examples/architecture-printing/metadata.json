@@ -1,0 +1,7 @@
+{
+  "id": "architecture-printing",
+  "title": "Printing a schema",
+  "description": "Run the hello query, then open schema.graphql to inspect the SDL. Add a description to the hello field options and see it appear in the SDL.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/printing-schemas"]
+}

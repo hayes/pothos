@@ -13,20 +13,11 @@ The first thing you will need is a file that exports your built schema. The sche
 exported as `schema` or as the default export. This will be used to generate your client types, but
 can also be the schema you use in your server.
 
-```typescript
-// schema.ts
+<include cwd lang="typescript" meta='playground example="architecture-client-types"'>playground-examples/architecture-client-types/schema.ts</include>
 
-// Import the builder
-import builder from './builder';
+Run `UserPosts` in the playground, then add `id` to the post selection and run it again. Save the example as `src/schema.ts` and the operation as `src/queries.graphql` to use them with the local Codegen configuration below. Codegen runs in your project, not in the playground.
 
-// Import your type definitions
-import './types/Query';
-import './types/User';
-import './types/Posts';
-
-// Build and export the schema
-export const schema = builder.toSchema();
-```
+In a larger application, this entry point can import your builder and type-definition modules before exporting `builder.toSchema()`. Keep server startup separate so Codegen can import the schema without opening a listening port.
 
 ## Setting up graphql-code-generator
 

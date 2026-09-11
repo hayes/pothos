@@ -1,0 +1,8 @@
+query UserPosts {
+  user {
+    name
+    posts {
+      title
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "architecture-plugin-setup",
+  "title": "Plugin setup",
+  "description": "Run hello to check that the configured builder produces a schema.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/using-plugins"]
+}

@@ -1,0 +1,11 @@
+{
+  user {
+    name
+    posts {
+      title
+      author {
+        name
+      }
+    }
+  }
+}

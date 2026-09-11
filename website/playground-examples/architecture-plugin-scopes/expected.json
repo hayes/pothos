@@ -1,0 +1,14 @@
+{
+  "query.graphql": {
+    "data": {
+      "allowed": "Allowed",
+      "denied": null
+    },
+    "errors": [
+      {
+        "message": "Not authorized to resolve Query.denied",
+        "path": ["denied"]
+      }
+    ]
+  }
+}

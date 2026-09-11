@@ -13,19 +13,9 @@ package versions, and a minimal reproduction when [reporting it](https://github.
 2. Move your builder types to a separate named interface
    - This will make many type errors significantly more readable
 
-```typescript
-import SchemaBuilder from '@pothos/core';
+<include cwd lang="typescript" meta='playground example="architecture-troubleshooting"'>playground-examples/architecture-troubleshooting/schema.ts#builder</include>
 
-interface PothosTypes {
-  Context: {
-    user: {
-      id: string;
-    };
-  };
-}
-
-const builder = new SchemaBuilder<PothosTypes>({});
-```
+The companion query reads `user.id` from **Context**. Change that value and run again. Adapt the named interface and query into a small reproduction of your own issue. The playground uses strict TypeScript settings; it does not reproduce your application's package installation or editor configuration.
 
 ## Slow VS Code or TypeScript performance
 

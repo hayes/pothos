@@ -1,0 +1,7 @@
+{
+  "id": "architecture-client-types",
+  "title": "Schema for client generation",
+  "description": "Run the named UserPosts query. Add id to its post selection and run again before using the operation with your local Codegen configuration.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/generating-client-types"]
+}

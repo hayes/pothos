@@ -1,0 +1,7 @@
+{
+  "id": "architecture-plugin-inputs",
+  "title": "Mapping input values",
+  "description": "Run the query to trim marked inputs, including a nested list. Remove the trimInput extension from a field in schema.ts and run again to see its whitespace preserved.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/writing-plugins"]
+}

@@ -1,0 +1,7 @@
+{
+  "id": "architecture-shared-fields",
+  "title": "Sharing object fields",
+  "description": "Run the query, then change an id in the query resolvers and compare idLength.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/patterns"]
+}

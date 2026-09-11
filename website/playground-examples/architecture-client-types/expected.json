@@ -1,0 +1,14 @@
+{
+  "query.graphql": {
+    "data": {
+      "user": {
+        "name": "Alex",
+        "posts": [
+          {
+            "title": "First post"
+          }
+        ]
+      }
+    }
+  }
+}

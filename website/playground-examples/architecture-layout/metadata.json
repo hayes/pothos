@@ -1,0 +1,7 @@
+{
+  "id": "architecture-layout",
+  "title": "File layout",
+  "description": "Run the user query, then change Alex in schema/user.ts and run it again.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/app-layout"]
+}

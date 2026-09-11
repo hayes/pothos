@@ -1,0 +1,7 @@
+{
+  "id": "architecture-troubleshooting",
+  "title": "Named builder types",
+  "description": "Run the viewerId query with the supplied Context. Change user.id in Context and run again. Keep the named PothosTypes interface when adapting this to a reproduction.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/troubleshooting"]
+}

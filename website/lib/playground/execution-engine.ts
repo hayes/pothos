@@ -219,7 +219,26 @@ export async function executeAndBuildSchema(
       // This still executes in the page origin. URL-supplied code must be
       // explicitly trusted by the user before reaching this function.
       const fn = new Function('require', 'module', 'exports', compiled.outputFiles[0].text);
-      fn(requireModule, module, module.exports);
+      const core = moduleMap['@pothos/core'] as {
+        default?: { allowPluginReRegistration: boolean };
+      };
+      const registration = core.default && {
+        builder: core.default,
+        previous: core.default.allowPluginReRegistration,
+      };
+      // A source edit evaluates a new plugin class under the same name. Only
+      // relax duplicate registration during synchronous module evaluation;
+      // resolver execution and subsequent application code keep the old policy.
+      try {
+        if (registration) {
+          registration.builder.allowPluginReRegistration = true;
+        }
+        fn(requireModule, module, module.exports);
+      } finally {
+        if (registration) {
+          registration.builder.allowPluginReRegistration = registration.previous;
+        }
+      }
       return module.exports;
     }, logs);
 
