@@ -3,6 +3,8 @@ title: Interfaces
 description: Guide for defining Interface types in Pothos
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 ## Defining Interface Types
 
 An interface defines fields that several object types have in common. Like objects, interfaces have
@@ -132,12 +134,19 @@ The result includes the shared field and the matching fragment's fields for each
 
 ## Other ways to resolve an interface
 
-If your application already uses classes for its data, you can use those classes with
-`builder.interfaceType` and `builder.objectType`, as described in the
-[Objects guide](./objects#using-classes). For an existing `GiraffeModel` class, an
-`isTypeOf: (value) => value instanceof GiraffeModel` option on the object identifies instances of
-that class. This lets GraphQL determine the object type without a `resolveType` function on the
-interface. The resolver must return an actual class instance for an `instanceof` check to succeed.
+<Callout title="Using existing classes">
+  If your application already uses classes for its data, prefer those classes as backing models.
+  You can pass them to `builder.interfaceType` and `builder.objectType`, as described in the
+  [Objects guide](./objects#using-classes).
+
+  Classes make automatic interface resolution straightforward: set
+  `isTypeOf: (value) => value instanceof GiraffeModel` on each object type, and GraphQL can select
+  the matching type without a `resolveType` function on the interface. Return actual class
+  instances so the check succeeds.
+
+  Existing `Error` subclasses are another good use case: the [Errors plugin](../plugins/errors)
+  matches errors against the configured classes using `instanceof`.
+</Callout>
 
 Another option is to return data with a `__typename` property containing the GraphQL object type's
 name, such as `'Giraffe'`. GraphQL uses this property when the interface has no `resolveType`
