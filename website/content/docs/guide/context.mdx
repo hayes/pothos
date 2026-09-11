@@ -3,154 +3,123 @@ title: Using Context
 description: Guide for using context object in Pothos
 ---
 
-The GraphQL context object can be used to give every resolver in the schema access to some shared
-state for the current request. One common use case is to store the current User on the context
-object.
+The GraphQL context object gives resolvers access to shared state for the current request. For
+example, you can use it to make the current user available throughout your schema.
 
-One important thing to note about Pothos is that every request is assumed to have a new unique
-context object, so be sure to set up your context objects in a way that they are unique to each
-request.
-
-First let's define a User class that holds information about a user, and create a SchemaBuilder with
-a Context type that has a currentUser property.
+First, let's define the user data and add a `Context` type to the builder:
 
 ```typescript
-class User {
+import SchemaBuilder from '@pothos/core';
+
+interface User {
   id: string;
   firstName: string;
   username: string;
-
-  constructor(id: string, firstName: string, username: string) {
-    this.id = id;
-    this.firstName = firstName;
-    this.username = username;
-  }
 }
 
 const builder = new SchemaBuilder<{
   Context: {
-    currentUser: User;
+    currentUser: User | null;
   };
 }>({});
 ```
 
-Next, we will want to add something in our schema that uses the current user:
+Next, we can define a GraphQL object for the user and a query that reads it from context:
 
 ```typescript
-builder.queryType({
+const UserRef = builder.objectRef<User>('User').implement({
   fields: (t) => ({
-    currentUser: t.field({
-      type: User,
-      resolve: (root, args, context) => context.currentUser,
-    }),
+    id: t.exposeID('id'),
+    firstName: t.exposeString('firstName'),
+    username: t.exposeString('username'),
   }),
 });
 
-builder.objectType(User, {
+builder.queryType({
   fields: (t) => ({
-    id: t.exposeID('id', {}),
-    firstName: t.exposeString('firstName', {}),
-    username: t.exposeString('username', {}),
+    currentUser: t.field({
+      type: UserRef,
+      nullable: true,
+      resolve: (_root, _args, context) => context.currentUser,
+    }),
   }),
 });
 ```
 
-Finally, we need to actually create our context when a request is created.
+The resolver's `context` parameter has the type we provided to the builder. The query returns `null`
+when there is no signed-in user.
+
+Your GraphQL server creates the context for each request. Here is an example using GraphQL Yoga,
+where `getUserFromAuthHeader` is an application function that looks up a user and returns `User | null`:
 
 ```typescript
+import { createServer } from 'node:http';
+import { initContextCache } from '@pothos/core';
+import { createYoga } from 'graphql-yoga';
+import { getUserFromAuthHeader } from './auth';
+
 const yoga = createYoga({
-  schema,
-  context: async ({ req }) => ({
-    // This part is up to you!
-    currentUser: await getUserFromAuthHeader(req.headers.authorization),
+  schema: builder.toSchema(),
+  context: async ({ request }) => ({
+    ...initContextCache(),
+    currentUser: await getUserFromAuthHeader(request.headers.get('authorization')),
   }),
 });
-const server = createServer(yoga);
 
+const server = createServer(yoga);
 server.listen(3000);
 ```
 
 ## Initialize context cache
 
-Several Pothos plugins use the context object to cache data for the current request. Some examples
-include dataloaders and auth scopes. This caching mechanism works based on the assumption that the
-same context object is passed to every resolver in a request, and each request has a unique context
-object. This works for most applications without any additional configuration.
+Several Pothos plugins cache data for the current request, including dataloaders and auth scopes.
+Create a new context object for each request and share it across that request's resolvers.
 
-In some rare edge cases, you may have some additional logic added to your application that clones or
-mutates the context object throughout the execution of a request. To ensure that all plugins work
-correctly even if the context object is cloned, wrapped, or modified in a way that does not preserve
-its identity, you can manually initialize the context cache and attach it to the context object:
-
-```typescript
-import { initContextCache } from '@pothos/core';
-
-const server = createYoga({
-  schema: builder.toSchema(),
-  context: async ({ req }) => ({
-    // Adding this will prevent any issues if your server implementation
-    // copies or extends the context object before passing it to your resolvers
-    ...initContextCache(),
-
-    currentUser: await getUserFromAuthHeader(req.headers.authorization),
-  }),
-});
-
-const server = createServer(yoga);
-
-server.listen(3000);
-```
+`initContextCache()` creates a cache key that is carried with the context when a server copies or
+extends it. Spreading its return value into your context, as shown above, lets plugins share their
+request cache across those copies. Call it inside the context factory so each request gets its own
+cache key.
 
 ## Context when using multiple protocols
 
-In some specific situations multiple protocols could be used for handling the graphql operations against the same executable graphql schema. One common example of this is using [HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP)(Hypertext Transfer Protocol) protocol for handling graphql query and mutation operations and using [Websocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) protocol for handling graphql subscription operations. Because the protocols are different, the protocol specific information that might be passed in the graphql context could differ depending on the graphql operation that is being executed. **Now, our personal recommendation is to keep your executable graphql schema and its inner layers protocol agnostic to not have to deal with a situation like this.**
+Your HTTP and WebSocket handlers can create the same context shape for your resolvers. If they need
+to provide different properties, you can describe those shapes with a
+[discriminated union](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions).
 
-We're working with two different graphql contexts within our graphql resolvers and we want strong type-safety while working with them. For this use case we recommend using [typescript discriminated unions](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions) for combining types for different graphql contexts into a single union type that can be passed to pothos schema builder initializer. In the following example `Context` is a union type between graphql context types for HTTP and Websocket protocol specific graphql contexts, where the `isSubscription` boolean field is the discriminator. This context type is passed as the type for `Context` field in the generic accepted by the pothos schema builder initializer. Within the resolver implementations for a graphql schema created using this pothos schema builder, the graphql context can be discriminated between its two protocol specific types by using the `isSubscription` field. This would help us get the type-safe graphql context that we can make use of in our graphql resolvers. In the following code we perform this discrimination by checking the value of `isSubscription` boolean field in the `if` and `else` blocks within the graphql resolvers:
+For example, an HTTP handler might provide the request while a WebSocket handler provides connection
+parameters:
 
 ```typescript
 type Context =
   | {
-      isSubscription: false;
-      http: "HTTP specific context field."
+      transport: 'http';
+      request: Request;
     }
   | {
-      isSubscription: true;
-      websocket: "Websocket specific context field.";
+      transport: 'websocket';
+      connectionParams: { clientName: string };
     };
 
 const builder = new SchemaBuilder<{
   Context: Context;
 }>({});
 
-builder.mutationType({
+builder.queryType({
   fields: (t) => ({
-    incrementCount: t.int({
-      resolve: (parent, args, ctx) => {
-        if (ctx.isSubscription === false) {
-          // Access the HTTP protocol specific context fields.
-          ctx.http;
-        } else {
-          // Access the Websocket protocol specific context fields.
-          ctx.websocket;
+    clientName: t.string({
+      nullable: true,
+      resolve: (_root, _args, context) => {
+        if (context.transport === 'http') {
+          return context.request.headers.get('x-client-name');
         }
-      },
-    }),
-  }),
-});
 
-builder.subscriptionType({
-  fields: (t) => ({
-    currentCount: t.int({
-      subscribe: (parent, args, ctx) => {
-        if (ctx.isSubscription === false) {
-          // Access the HTTP protocol specific context fields.
-          ctx.http;
-        } else {
-          // Access the Websocket protocol specific context fields.
-          ctx.websocket;
-        }
+        return context.connectionParams.clientName;
       },
     }),
   }),
 });
 ```
+
+Checking `transport` narrows the context type, so the resolver can access the properties for that
+transport. Set the discriminator and the corresponding properties when creating the context in each
+handler.
