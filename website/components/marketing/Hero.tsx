@@ -60,7 +60,7 @@ export function Hero() {
       {/* CTAs */}
       <div className="flex flex-wrap gap-3 items-center">
         <Link
-          href="/docs/guide"
+          href="/docs"
           className="inline-flex items-center gap-2.5 rounded-lg text-[15px] font-medium px-6 py-3 bg-bm-ink text-bm-bg hover:opacity-90 transition-opacity"
         >
           Get started <span aria-hidden="true">→</span>
