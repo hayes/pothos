@@ -26,7 +26,11 @@ try {
   if (!ready) {
     throw new Error('Website did not become ready');
   }
-  for (const script of ['check-playground.mjs', 'check-doc-links.mjs']) {
+  for (const script of [
+    'check-playground.mjs',
+    'check-landing-playground.mjs',
+    'check-doc-links.mjs',
+  ]) {
     const test = spawn(process.execPath, [`scripts/${script}`, origin], { stdio: 'inherit' });
     const code = await new Promise((resolve, reject) => {
       test.on('error', reject);

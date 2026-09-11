@@ -164,6 +164,7 @@ export function SourceEditor({
         quickSuggestions: !readOnly,
         suggestOnTriggerCharacters: !readOnly,
         scrollbar: {
+          alwaysConsumeMouseWheel: false,
           verticalScrollbarSize: 10,
           horizontalScrollbarSize: 10,
         },

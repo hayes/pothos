@@ -1,49 +1,72 @@
 import Link from 'next/link';
-import { PLUGINS, type PluginEntry } from '../plugins/plugins';
-import { HOMEPAGE_PLUGINS } from './plugins';
+
+const FEATURES = [
+  {
+    title: 'Database integration',
+    description:
+      'Build fields backed by Prisma or Drizzle, with queries shaped by the requested GraphQL fields.',
+    links: [
+      { label: 'Prisma', slug: 'prisma' },
+      { label: 'Drizzle', slug: 'drizzle' },
+    ],
+  },
+  {
+    title: 'Authorization',
+    description: 'Define access checks on your types and fields using request context.',
+    links: [{ label: 'Scope Auth', slug: 'scope-auth' }],
+  },
+  {
+    title: 'Pagination',
+    description: 'Add cursor-based connections and globally identifiable nodes.',
+    links: [{ label: 'Relay', slug: 'relay' }],
+  },
+  {
+    title: 'Batching',
+    description: 'Batch data loading across resolvers to avoid fetching each item separately.',
+    links: [{ label: 'Dataloader', slug: 'dataloader' }],
+  },
+];
 
 export function PluginGarden() {
   return (
-    <section className="max-w-[1280px] mx-auto px-10 py-24 border-t border-bm-line">
-      <div className="flex items-end justify-between mb-9 flex-wrap gap-4">
-        <div>
-          <div className="text-[12px] uppercase tracking-[0.08em] text-bm-accent mb-2">
-            The plugin garden
-          </div>
-          <h2
-            className="font-serif font-normal m-0"
-            style={{ fontSize: 48, letterSpacing: '-0.025em' }}
-          >
-            Plugins that feel built in.
-          </h2>
+    <section className="max-w-[1280px] mx-auto px-6 sm:px-10 pb-20">
+      <div className="border-t border-bm-line pt-12">
+        <h2 className="font-serif font-normal m-0 mb-5 text-[clamp(32px,4vw,48px)] leading-tight tracking-tight">
+          Plugins extend the builder
+        </h2>
+        <p className="text-bm-ink-soft text-[17px] leading-relaxed max-w-3xl mt-0 mb-10">
+          Add authorization, pagination, or database integration where you define your fields.
+          Plugin options have access to the same parent, argument, and context types as your
+          resolvers.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 border-t border-l border-bm-line">
+          {FEATURES.map((feature) => (
+            <div key={feature.title} className="p-8 border-r border-b border-bm-line">
+              <h3 className="font-medium text-[19px] m-0 mb-3">{feature.title}</h3>
+              <p className="text-bm-ink-soft text-[16px] leading-relaxed m-0 mb-5 max-w-md">
+                {feature.description}
+              </p>
+              <div className="flex gap-6">
+                {feature.links.map((link) => (
+                  <Link
+                    key={link.slug}
+                    href={`/docs/plugins/${link.slug}`}
+                    className="text-bm-accent text-[15px] hover:underline"
+                  >
+                    {link.label} <span aria-hidden="true">→</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
         <Link
           href="/docs/plugins"
-          className="text-bm-ink-soft hover:text-bm-ink text-[14px] transition-colors"
+          className="inline-block mt-7 text-bm-ink-soft hover:text-bm-ink text-[15px]"
         >
-          Browse all {PLUGINS.length} plugins →
+          Explore all plugins <span aria-hidden="true">→</span>
         </Link>
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-l border-bm-line">
-        {HOMEPAGE_PLUGINS.map((p) => (
-          <PluginCard key={p.slug} plugin={p} />
-        ))}
-      </div>
     </section>
-  );
-}
-
-function PluginCard({ plugin }: { plugin: PluginEntry }) {
-  return (
-    <Link href={`/docs/plugins/${plugin.slug}`} className="block">
-      <div className="px-6 py-6 border-r border-b border-bm-line transition-colors hover:bg-bm-surface group h-full">
-        <div className="flex items-center justify-center size-8 rounded-lg bg-bm-accent-soft text-bm-accent text-[16px] mb-3.5">
-          {plugin.icon}
-        </div>
-        <div className="font-medium text-[15px] mb-1.5">{plugin.name}</div>
-        <p className="text-bm-ink-muted text-[13px] leading-[1.5] m-0">{plugin.description}</p>
-      </div>
-    </Link>
   );
 }

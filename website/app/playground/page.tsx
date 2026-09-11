@@ -110,6 +110,7 @@ export default function PlaygroundPage() {
       </div>
 
       <PlaygroundLayout
+        hideSidebar={ui.embed}
         sidebar={
           <SchemaSidebar
             files={ui.files}
@@ -126,6 +127,7 @@ export default function PlaygroundPage() {
         }
         editor={
           <SchemaEditor
+            showTabs={ui.embed}
             files={ui.files}
             activeIndex={ui.activeFileIndex}
             sdlActive={ui.sdlActive}

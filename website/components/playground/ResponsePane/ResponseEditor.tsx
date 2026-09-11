@@ -28,7 +28,11 @@ export function ResponseEditor({ body }: Props) {
         folding: true,
         renderLineHighlight: 'none',
         padding: { top: 16, bottom: 16 },
-        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+        scrollbar: {
+          alwaysConsumeMouseWheel: false,
+          verticalScrollbarSize: 10,
+          horizontalScrollbarSize: 10,
+        },
       }}
     />
   );

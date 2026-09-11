@@ -7,11 +7,6 @@ interface Props {
   schemaSDL: string | null;
 }
 
-const HEADER = `# Generated from schema.ts — do not edit
-# Pothos prints this from the runtime schema.
-
-`;
-
 export function SdlPane({ schemaSDL }: Props) {
   const { theme: editorTheme, beforeMount: registerThemes } = useEditorTheme();
 
@@ -27,7 +22,7 @@ export function SdlPane({ schemaSDL }: Props) {
     <Editor
       height="100%"
       language="graphql"
-      value={`${HEADER}${schemaSDL}`}
+      value={schemaSDL}
       theme={editorTheme}
       beforeMount={registerThemes}
       options={{
@@ -42,7 +37,11 @@ export function SdlPane({ schemaSDL }: Props) {
         folding: false,
         renderLineHighlight: 'none',
         padding: { top: 16, bottom: 16 },
-        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+        scrollbar: {
+          alwaysConsumeMouseWheel: false,
+          verticalScrollbarSize: 10,
+          horizontalScrollbarSize: 10,
+        },
       }}
     />
   );
