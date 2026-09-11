@@ -1,88 +1,64 @@
 ---
 title: Objects
-description: Guide for defining Object types in Pothos
+description: Define GraphQL object types from your application's data.
 ---
 
-This will walk you through creating your first object types, some concepts in this guide will be
-explained further in later guides.
+We'll define a GraphQL type for a giraffe, using a TypeScript interface to describe its data.
 
 ### Defining an Object type
 
-When adding a new type to your schema, you'll need to figure out how the data behind this type will be
-represented. Pothos entirely decouples your data from your GraphQL schema, and has many different
-ways to implement Objects in your schema.
-
-In this guide, we will be implementing a `Giraffe` object type:
+Create `schema.ts` with a builder and a reference for the `Giraffe` type:
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
+
 interface Giraffe {
   name: string;
   birthday: Date;
   heightInMeters: number;
 }
-```
 
-The easiest way to create a new Object based on an existing Typescript type is with the `objectRef`
-method:
-
-```typescript
 const builder = new SchemaBuilder({});
 const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
 ```
 
-This will create a new `ObjectRef` that can be used to reference the `Giraffe` type in other parts
-of the schema. By passing in the Giraffe interface, we give the `ObjectRef` the information it needs
-to ensure that fields we add to the Giraffe type are type-safe, and that any fields that reference
-the Giraffe type return the expected data.
-
-Next, we can add an implementation for the `Giraffe` type:
-
-```typescript
-const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
-
-GiraffeRef.implement({
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
-});
-```
-
-In the implementation, we can add a description (optional) and a function to define the fields
-available to query on the Giraffe type.
+The interface describes the **backing model**: the data returned by resolvers for this type.
+`objectRef` associates that model with the GraphQL name `Giraffe`. We can use the ref when defining
+fields that return a giraffe.
 
 ### Add some fields
 
-The `fields` function receives a `FieldBuilder` instance that can be used to define the fields for
-your type. The `FieldBuilder` will be covered in more detail in the [fields guide](./fields).
+Next, call `implement` to define the object's fields. It accepts the options for the object type,
+including an optional description:
 
 ```typescript
-GiraffeRef.implement(Giraffe, {
+GiraffeRef.implement({
+  description: 'A giraffe in the zoo.',
   fields: (t) => ({
     name: t.exposeString('name'),
     height: t.exposeFloat('heightInMeters'),
-    age: t.int({
-      resolve: (parent) => {
-        // Do some date math to get an approximate age from a birthday
-        const ageDifMs = Date.now() - parent.birthday.getTime();
-        const ageDate = new Date(ageDifMs); // milliseconds from epoch
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
-      },
+    birthYear: t.int({
+      resolve: (giraffe) => giraffe.birthday.getUTCFullYear(),
     }),
   }),
 });
 ```
 
-You'll notice that we haven't added any additional typescript definitions when defining our fields.
-Pothos will use the type provided to `objectRef` to ensure that the fields we add to the Giraffe
-type are type-safe. This type is only used to ensure that the implementation is type-safe, but
-Pothos will never automatically expose properties from the underlying data without an explicit field
-definition.
+The `fields` function receives a field builder, usually named `t`. Here, `t.exposeString('name')`
+reads the `name` property from the backing model. The `height` field reads `heightInMeters`, giving
+that property a different name in the GraphQL schema.
 
-In the example above, we have examples of "exposing" data from the underlying type, as well as a field
-that requires some additional logic to resolve.
+For `birthYear`, we write a resolver that computes an integer from the giraffe's birthday. Pothos
+infers the resolver's first argument as `Giraffe` from the ref.
+
+The backing model and GraphQL fields can have different shapes. Clients can query `name`, `height`,
+and `birthYear`; `birthday` is available to resolvers but isn't exposed as a field. We can add
+computed fields without adding properties to the backing model. The [fields guide](./fields)
+covers more field options.
 
 ## Add a query
 
-We can create a root `Query` object with a field that returns a giraffe using `builder.queryType`
+Add a field to the root `Query` type that returns a giraffe, then build the schema:
 
 ```typescript
 builder.queryType({
@@ -97,139 +73,153 @@ builder.queryType({
     }),
   }),
 });
+
+export const schema = builder.toSchema();
 ```
 
-We can use the `ObjectRef` created earlier as the `type` option when defining fields that return the
-Giraffe type.
+The `type: GiraffeRef` option tells Pothos to check that the resolver returns data matching the
+`Giraffe` interface. That returned object becomes the first argument to the resolvers for `name`,
+`height`, and `birthYear`.
 
 ### Create a server
 
-Pothos schemas build into a plain schema that uses types from the `graphql` package. This means it
-should be compatible with most of the popular GraphQL server implementations for node. In this guide
-we will use `graphql-yoga` but you can use whatever server you want.
+`builder.toSchema()` builds a standard `GraphQLSchema`. To serve it with `graphql-yoga`, install
+`graphql-yoga` and save this as `server.ts` alongside `schema.ts`:
 
 ```typescript
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import { createYoga } from 'graphql-yoga';
+import { schema } from './schema';
 
-const yoga = createYoga({
-  schema: builder.toSchema(),
-  context: (ctx) => ({
-    user: { id: Number.parseInt(ctx.request.headers.get('x-user-id') ?? '1', 10) },
-  }),
-});
+const yoga = createYoga({ schema });
 
-export const server = createServer(yoga);
+const server = createServer(yoga);
 server.listen(3000);
 ```
 
 ### Query your data
 
-1. Run your server (either with `ts-node`) by compiling your code and running it with node.
-2. Open [http://0.0.0.0:3000/graphql](http://0.0.0.0:3000/graphql) to open the playground and query
-   your API:
+Run `npx tsx server.ts`, then open [http://localhost:3000/graphql](http://localhost:3000/graphql)
+and run this query:
 
 ```graphql
 query {
   giraffe {
     name
-    age
+    birthYear
     height
+  }
+}
+```
+
+The result is:
+
+```json
+{
+  "data": {
+    "giraffe": {
+      "name": "James",
+      "birthYear": 2012,
+      "height": 5.2
+    }
   }
 }
 ```
 
 ## Different ways to define Object types
 
-There are many different ways that you can provide type information to Pothos about what the
-underlying data in your graph will be. Depending on how the rest of your application is structured
-you can pick the approach that works best for you, or use a combination of different styles.
+This guide uses object refs with a TypeScript interface. You can also use an existing class or
+register backing models by name on the builder. These forms can be used together in the same schema.
 
 ### Using Refs
 
-ObjectRefs (the method shown above) is the most flexible solution, and makes it easy to integrate
-pothos with data sources that have their own Typescript types.
-
-Object refs can be created using `builder.objectRef`, and then implemented by calling the
-`implement` method on the ref, or by passing the ref to `builder.objectType`:
+You can create and implement a ref in one expression:
 
 ```typescript
-const GiraffeRef = builder.objectRef<GiraffeType>('Giraffe').implement({
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
 });
 ```
 
-import { Callout } from 'fumadocs-ui/components/callout';
+For types that reference each other, TypeScript may need ref creation and `implement` to be separate
+statements, as in the walkthrough above. See [circular references](./circular-references) for details.
 
-<Callout type="warn">
-  When using objectRefs with circular dependencies, ensure that the `implement` method is called as
-  a separate statement, or typescript may complain about circular references:
-</Callout>
+You can also pass a ref to `builder.objectType(GiraffeRef, { ... })` with the same options.
 
 ### Using classes
 
-If your data is already represented as a class, Pothos supports using the classes themselves as
-ObjectRefs. This allows you to define a type-safe schema with minimal typescript definitions.
+If your app already represents its data with classes, prefer using those classes as backing models.
+Pass the class to `builder.objectType`: its instance type becomes the backing model, and the class
+itself can be used as a field's `type`:
 
 ```typescript
-export class Giraffe {
-  name: string;
-  birthday: Date;
-  heightInMeters: number;
-
-  constructor(name: string, birthday: Date, heightInMeters: number) {
-    this.name = name;
-    this.birthday = birthday;
-    this.heightInMeters = heightInMeters;
-  }
+class Giraffe {
+  constructor(
+    public name: string,
+    public birthday: Date,
+    public heightInMeters: number,
+  ) {}
 }
 
 builder.objectType(Giraffe, {
-  // Name is required when using a class as an ObjectRef
   name: 'Giraffe',
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
 });
 
-builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: Giraffe,
-    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
+builder.queryType({
+  fields: (t) => ({
+    giraffe: t.field({
+      type: Giraffe,
+      resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
+    }),
   }),
-}));
+});
 ```
+
+The `name` option supplies the GraphQL type name. When resolving an
+[interface](./interfaces) or [union](./unions), you can also use an explicit
+`isTypeOf: (value) => value instanceof Giraffe` option to identify instances of the class.
 
 ### Using SchemaTypes
 
-You can also provide type mappings when you create the [SchemaBuilder](./schema-builder), which
-allows you to reference the types by name throughout your schema (as a string).
+You can declare backing models in `SchemaTypes` and pass it to `SchemaBuilder`. This lets you
+reference object types by their GraphQL names instead of importing refs. Using the `Giraffe`
+interface from above:
 
 ```typescript
-const builder = new SchemaBuilder<{ Objects: { Giraffe: GiraffeType } }>({});
+interface SchemaTypes {
+  Objects: {
+    Giraffe: Giraffe;
+  };
+}
+
+const builder = new SchemaBuilder<SchemaTypes>({});
 
 builder.objectType('Giraffe', {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
 });
 
-builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: 'Giraffe',
-    resolve: () => ({
-      name: 'James',
-      birthday: new Date(Date.UTC(2012, 11, 12)),
-      heightInMeters: 5.2,
+builder.queryType({
+  fields: (t) => ({
+    giraffe: t.field({
+      type: 'Giraffe',
+      resolve: () => ({
+        name: 'James',
+        birthday: new Date(Date.UTC(2012, 11, 12)),
+        heightInMeters: 5.2,
+      }),
     }),
   }),
-}));
+});
 ```
 
-This is ideal when you want to list out all the types for your schema in one place, or you have
-interfaces/types that define your data rather than classes, and means you won't have to import
-anything when referencing the object type in other parts of the schema.
-
-The type signature for [SchemaBuilder](../api/schema-builder) is described in more detail
-[later](../api/schema-builder), for now, it is enough to know that the `Objects` type provided to
-the schema builder allows you to map the names of object types to type definitions that describe the
-data for those types.
+The `Objects` mapping tells Pothos which backing model belongs to each name. Here, it types the
+`Giraffe` field resolvers and checks the object returned by the `giraffe` query. You still define
+the GraphQL fields with `builder.objectType`; declaring a backing model doesn't expose its properties.
+The [SchemaBuilder guide](./schema-builder) covers the other type settings.
