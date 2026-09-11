@@ -1033,10 +1033,9 @@ function scopeChildConsumers(branch: PrismaNextSpec): PrismaNextSpec {
 
 // Single-consumer fast path: `.include(rel, cb => …)` direct — at most one branch and no
 // function-form entry. Several branches or any function-form entry goes through
-// `.combine({...})` for collision-free aliasing — prisma-next's planner falls back to
-// multi-query for any include with combine (painpoint #3), so we keep the single-consumer
-// path for perf. The combine is emitted on a to-one relation too, where the orm rejects it:
-// a function-form entry the emitter dropped instead would answer that field with nothing.
+// `.combine({...})` for collision-free aliasing. The single-consumer path avoids
+// an unnecessary combine. Function-form to-one slots require an ORM combine result, which
+// the public include API cannot return; reject them rather than dropping their values.
 function emitRelation(
   parent: MapperCollection,
   name: string,
@@ -1055,6 +1054,13 @@ function emitRelation(
   const functions = list.filter(
     (entry): entry is PrismaNextFnEntry | PrismaNextSpecFn => !isBranch(entry) && entry !== true,
   );
+
+  if (!meta.isToMany && functions.length > 0) {
+    throw new PothosValidationError(
+      `Function-form selection on to-one relation "${name}" requires combine(), which the ORM supports only for to-many relations (ORM.INCLUDE_UNSUPPORTED). ` +
+        'Use a relation field with query options or a declarative select instead.',
+    );
+  }
 
   if (!meta.isToMany && branches.length > 1 && functions.length === 0) {
     const shared = createPrismaNextNode(meta.target);

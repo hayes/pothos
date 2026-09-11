@@ -7,6 +7,7 @@ import { graphql } from 'graphql';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
+import { mutationCases } from './fixtures/mutation-cases';
 import type { Contract } from './postgres/contract';
 
 // This fixture intentionally uses another dialect through the same plugin.
@@ -140,6 +141,8 @@ function nullableConnectionSchema(nulls: 'first' | 'last', direction: 'asc' | 'd
 }
 
 describe('PostgreSQL through the shared SQL-family plugin', () => {
+  mutationCases(client, raw, contract);
+
   beforeAll(async () => {
     await raw.connect();
     await raw.query(`

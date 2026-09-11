@@ -198,13 +198,13 @@ type FunctionFormShape<
   }[keyof S & RelationKeys<Types, M>]
 >;
 
-/** Top-level relation keys with `true` contribute `parent[rel]` directly. */
+/** Simple includes and declarative refinements contribute `parent[rel]` directly. */
 type SimpleRelationShape<Types extends SchemaTypes, M extends ModelName<Types>, S> = {
-  [K in keyof S & RelationKeys<Types, M> as S[K] extends true ? K : never]: RelationShape<
-    Types,
-    M,
-    K
-  >;
+  [K in keyof S & RelationKeys<Types, M> as S[K] extends
+    | true
+    | SelectRelationDeclarative<Types, M, K>
+    ? K
+    : never]: RelationShape<Types, M, K>;
 };
 
 /**

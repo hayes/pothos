@@ -22,6 +22,9 @@ to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
 | ID-only node selection misses ID columns | Node ID field declares its selected columns; regression for direct concrete node access |
 | Errors-wrapped root lists materialize one row | Original list shape is retained in prepared field metadata; errors-wrapper regression |
 | Mixed-null composite FK inference | Existential nullable-field check; type regression |
+| Declarative relation select parent types | Resolver parents include filtered to-one and to-many relations; object/field type regressions |
+| Mutation result behavior | Real PostgreSQL GraphQL create/update, serial with-input results, transaction-bound fallback batches, rollback, and expired-transaction coverage |
+| Remaining selection conflicts | Field overrides and separate variant prerequisites retain independent results in multi-parent batches; inherited incompatible prerequisites and function-form to-one selections fail clearly before SQL |
 | Existing ordering breaks page two | Compatible preordered prefixes are accepted and completed; incompatible ordering and paginated bases are rejected before SQL |
 | Descending/mixed cursors | Explicit per-field direction, forward/backward/both-bound runtime coverage |
 | Nonunique/nullable cursors | Nullable sort fields support explicit null placement with a full non-null unique tie-breaker; SQLite/PostgreSQL traversal and related-page tests |
@@ -44,8 +47,10 @@ to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
   remain unsupported pending an upstream public identity or input-mapped bulk
   lookup primitive; scalar/Date/bytes/Decimal keys work.
   Without a provider, incompatible to-one refinements are rejected before SQL.
-  Conflicting type-level prerequisites and function-form to-one combine queries
-  remain subject to planner/upstream restrictions.
+  Separate variant fields can load different prerequisites in batches. Conflicting
+  prerequisites on an object and its implemented interface are rejected before SQL;
+  move the differing filters to fields. Function-form to-one selections remain
+  unsupported by the public combine API; use declarative selects or relation fields.
 - **Native ORM inheritance and duplicate namespace model names:** not exposed as
   dedicated Pothos concepts. GraphQL variants are same-model views. A qualified
   model identity and inheritance-specific contract design need separate work.
@@ -125,3 +130,10 @@ PostgreSQL 18.2, both type projects, the plugin build, and Biome checks of all
 changed TypeScript files. Independent standards and behavior reviews found no
 actionable issues. Coverage includes nullable boundaries in both directions,
 compatible preordered prefixes, count-only validation, and nullable codec types.
+
+The mutation/selection-conflict update passes all 40 test files / 376 tests,
+both type projects, the plugin build, and changed-file Biome checks. PostgreSQL
+mutation tests verify two serial updates each complete a two-parent fallback batch
+before the next result, uncommitted visibility, application-driven rollback on
+GraphQL errors, and rejection of expired transaction Collections. SQLite conflict
+tests preserve four-parent batching and independent field/variant prerequisites.

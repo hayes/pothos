@@ -133,8 +133,7 @@ it('preserves type-level relation selections for two views of one to-one row', a
       select: { posts: { where: { published } } },
       fields: (t) => ({
         titles: t.string({
-          resolve: (row) =>
-            (row as { posts: { title: string }[] }).posts.map((post) => post.title).join(','),
+          resolve: (row) => row.posts.map((post) => post.title).join(','),
         }),
       }),
     });

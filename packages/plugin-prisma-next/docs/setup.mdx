@@ -147,6 +147,30 @@ bound to that same live transaction. Consume incremental results before ending
 the transaction as well. Pothos does not create transactions or change their
 isolation policy.
 
+For an atomic mutation operation, execute GraphQL inside the application's
+transaction callback and explicitly handle execution errors:
+
+```ts
+const result = await client.transaction(async (tx) => {
+  const result = await graphql({
+    schema,
+    source,
+    contextValue: { db: tx },
+  });
+  if (result.errors?.length) {
+    throw result.errors[0];
+  }
+  return result;
+});
+```
+
+Here, resolvers use `ctx.db.orm` and the `collections` callback returns model
+Collections from that same client. GraphQL normally resolves with an `errors`
+array rather than rejecting its promise; returning that result from the
+transaction callback can commit writes made before the error. Choose the rollback
+policy in application code. Serial mutation fields can read earlier writes, and
+each field's nested result finishes before the next mutation field starts.
+
 ## Loading the orm-client per request
 
 The example above uses a single shared `client`. You can also keep the

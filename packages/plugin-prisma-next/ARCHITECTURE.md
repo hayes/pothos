@@ -52,6 +52,13 @@ Independent to-many consumers use combine slots. Compatible to-one consumers
 merge. RC9 rejects incompatible to-one combinations (`ORM.INCLUDE_UNSUPPORTED`).
 With a provider, compatibility checks leave conflicting consumers for separate
 multi-parent loads; without a provider the adapter rejects the plan before SQL.
+For a fallback field, its relation selection takes precedence over conflicting
+type prerequisites while compatible dependencies remain. Other fields retain
+their own mappings. Separate variant fields can load conflicting prerequisites
+in independent batches. Conflicting prerequisites on an object and its implemented
+interface still fail before SQL; move differing filters into field-level selections.
+Function-form to-one selections are rejected with guidance to use declarative
+selects or relation fields: public combine only supports to-many relations.
 
 Combine keys use `:`, forbidden in GraphQL names. Type prerequisites and field
 selections have independent namespaces. Immutable overlays route each resolver
@@ -83,7 +90,10 @@ codecs restore objects such as Temporal without dialect-specific code.
 Related connections paginate inside the include plan. Counts use the filtered,
 pre-pagination Collection/relation. Count-only selections avoid loading page rows;
 unselected counts are not executed. All execution uses the supplied client and
-must remain within its transaction lifetime.
+must remain within its transaction lifetime. Mutation resolvers perform writes
+then return a Collection; serial GraphQL mutation fields finish their nested
+results before the next write. GraphQL execution errors resolve in the result,
+so applications must throw when their transaction policy requires rollback.
 
 ## Nodes and aggregates
 

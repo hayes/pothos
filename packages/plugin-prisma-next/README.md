@@ -21,6 +21,11 @@ Root resolvers return a Collection (or null for a nullable field). Configure
 to-one selections and deferred fragments. Without it, deferred data loads eagerly
 and conflicting to-one refinements are rejected.
 
+Mutation resolvers write through the application client, then return a Collection
+for the result. Keep the transaction active through GraphQL execution and throw
+on execution errors when rollback is required. See the [mutation example](./docs/objects.mdx)
+and [transaction guidance](./docs/setup.mdx#selection-and-transaction-lifetime).
+
 ## Features
 
 - 🎨 Quickly define GraphQL types backed by your prisma-next contract.
