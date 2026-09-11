@@ -251,4 +251,4 @@ its field definitions do not identify all the types that implement it.
 
 Use core Pothos's `builder.addScalarType` for an existing `GraphQLScalarType`; this plugin does not
 add a scalar-specific method. Declare that scalar's input and output shapes in the builder's
-`Scalars` schema type, as described in [Scalars](/docs/guide/scalars).
+`Scalars` schema type, as described in [Scalars](https://pothos-graphql.dev/docs/guide/scalars).
