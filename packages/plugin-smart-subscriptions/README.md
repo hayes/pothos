@@ -1,192 +1,188 @@
-# Smart Subscriptions Plugin for Pothos
+# Smart subscriptions plugin
 
-This plugin provides a way of turning queries into GraphQL subscriptions. Each field, Object, and
-Interface in a schema can define subscriptions to be registered when that field or type is used in a
-smart subscription.
+Turn a query field into a subscription that sends its initial result, then updates it when relevant
+data changes. Fields and object types register event names as they resolve. When an event arrives,
+the plugin re-executes the affected query and sends the new result.
 
-The basic flow of a smart subscription is:
+Use field or object refetch options to update a smaller part of the result when the rest can be reused.
 
-1. Run the query the smart subscription is based on and push the initial result of that query to the
-   subscription
-
-2. As the query is resolved, register any subscriptions defined on fields or types that were used
-   in the query
-
-3. When any of the subscriptions are triggered, re-execute the query and push the updated data to
-   the subscription.
-
-There are additional options which will allow only the sub-tree of a field/type that triggered a
-fetch to be re-resolved.
-
-This pattern makes it easy to define subscriptions without having to worry about what parts of your
-schema are accessible via the subscribe query, since any type or field can register a subscription.
-
-## Usage
-
-### Install
+## Install
 
 ```package-install
 npm install --save @pothos/plugin-smart-subscriptions
 ```
 
-### Setup
+## Connect an event source
+
+Provide callbacks that subscribe and unsubscribe by event name. This example uses an in-process
+event emitter. The listener map belongs to one subscription operation's context, so cleaning up one
+operation does not remove another operation's listeners.
 
 ```typescript
+import { EventEmitter } from 'node:events';
 import SchemaBuilder from '@pothos/core';
 import SmartSubscriptionsPlugin from '@pothos/plugin-smart-subscriptions';
 
-const builder = new SchemaBuilder({
+type Context = {
+  listeners: Map<string, (value: unknown) => void>;
+};
+
+const events = new EventEmitter();
+
+const builder = new SchemaBuilder<{ Context: Context }>({
   plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
-    debounceDelay: number | null;
-    subscribe: (
-      name: string,
-      context: Context,
-      cb: (err: unknown, data?: unknown) => void,
-    ) => Promise<void> | void;
-    unsubscribe: (name: string, context: Context) => Promise<void> | void;
+    debounceDelay: 10,
+    subscribe: (name, context, callback) => {
+      const listener = (value: unknown) => callback(null, value);
+      context.listeners.set(name, listener);
+      events.on(name, listener);
+    },
+    unsubscribe: (name, context) => {
+      const listener = context.listeners.get(name);
+      if (listener) {
+        events.off(name, listener);
+        context.listeners.delete(name);
+      }
+    },
   },
 });
 ```
 
-#### Helper for usage with async iterators
+Pass a fresh `{ listeners: new Map() }` context for each subscription operation. A distributed
+application can connect the same callbacks to its shared event service instead. Call `callback`
+with an error to report a source failure, or `callback(null, value)` for an event.
+
+`debounceDelay: null` disables debouncing. Other values enable the plugin's default debounce
+window; the current implementation does not use the supplied numeric value as a custom delay. Both `subscribe` and `unsubscribe` callbacks may return promises.
+
+### Async iterator sources
+
+If your event service already returns async iterators, use `subscribeOptionsFromIterator` as an
+alternative to the manual callbacks. It manages each iterator's lifetime:
 
 ```typescript
-const builder = new SchemaBuilder({
+import { subscribeOptionsFromIterator } from '@pothos/plugin-smart-subscriptions';
+
+type IteratorContext = {
+  eventsFor: (name: string) => AsyncIterableIterator<unknown>;
+};
+
+const iteratorBuilder = new SchemaBuilder<{ Context: IteratorContext }>({
+  plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
-    ...subscribeOptionsFromIterator((name, { pubsub }) => {
-      return pubsub.asyncIterableIterator(name);
-    }),
+    ...subscribeOptionsFromIterator((name, context) => context.eventsFor(name)),
   },
 });
 ```
 
-### Creating a smart subscription
+The examples below continue with the event-emitter builder.
+
+## Define a smart subscription
+
+The same `polls` field is available on `Query` and `Subscription`. Register collection events on the
+field and per-poll events on the object type:
 
 ```typescript
-builder.queryFields((t) => ({
-  polls: t.field({
-    type: ['Poll'],
-    smartSubscription: true,
-    subscribe: (subscriptions, root, args, ctx, info) => {
-      subscriptions.register('poll-added')
-      subscriptions.register('poll-deleted')
-    },
-    resolve: (root, args, ctx, info) => {
-      return ctx.getThings();
-    },
+type Poll = { id: string; question: string; votes: number };
+const polls = new Map<string, Poll>([
+  ['1', { id: '1', question: 'Tea or coffee?', votes: 0 }],
+]);
+
+const PollType = builder.objectRef<Poll>('Poll').implement({
+  subscribe: (subscriptions, poll) => {
+    subscriptions.register(`poll/${poll.id}`);
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    question: t.exposeString('question'),
+    votes: t.exposeInt('votes'),
   }),
-})
+});
+
+builder.queryType({
+  fields: (t) => ({
+    polls: t.field({
+      type: [PollType],
+      smartSubscription: true,
+      subscribe: (subscriptions) => {
+        subscriptions.register('poll-added');
+        subscriptions.register('poll-deleted');
+      },
+      resolve: () => [...polls.values()],
+    }),
+  }),
+});
+
+builder.subscriptionType();
+const schema = builder.toSchema();
 ```
-
-Adding `smartSubscription: true` to a query field creates a field of the same name on the
-`Subscriptions` type. The `subscribe` option is optional, and shows how a field can register a
-subscription.
-
-This would be queried as:
 
 ```graphql
 subscription {
   polls {
+    id
     question
-    answers {
-      id
-      value
-    }
+    votes
   }
 }
 ```
 
-### registering subscriptions for objects
+The subscription first sends the current polls. After updating stored data, emit the corresponding
+event to send a new result:
 
 ```typescript
-builder.objectType('Poll', {
-  subscribe: (subscriptions, poll, context) => {
-    subscriptions.register(`poll/${poll.id}`)
+function vote(pollId: string) {
+  const poll = polls.get(pollId);
+  if (!poll) throw new Error('Poll not found');
+  polls.set(pollId, { ...poll, votes: poll.votes + 1 });
+  events.emit(`poll/${pollId}`, { kind: 'vote' });
+}
+```
+
+Calling `vote('1')` updates `votes` in the next result. Adding or deleting a poll should emit
+`poll-added` or `poll-deleted` after updating the map. Each execution registers the events for its
+current results, and subscriptions that are no longer needed are removed.
+
+## Refetch an object
+
+Replace the `PollType` subscription callback with this version to load only the changed poll:
+
+```typescript
+subscribe: (subscriptions, poll) => {
+  subscriptions.register(`poll/${poll.id}`, {
+    refetch: () => {
+      const current = polls.get(poll.id);
+      if (!current) throw new Error('Poll not found');
+      return current;
+    },
+  });
+},
+```
+
+A type's registration also accepts `filter: (value) => boolean` to ignore events and
+`invalidateCache: (value) => void` to clear a cached value before refetching. Event values are typed
+as `unknown`; narrow them before reading properties.
+
+## Refetch a field
+
+A field can register its own event and set `canRefetch: true`. Replace the `votes` field above with:
+
+```typescript
+votes: t.int({
+  canRefetch: true,
+  subscribe: (subscriptions, poll) => {
+    subscriptions.register(`poll/${poll.id}`);
   },
-  fields: (t) => ({
-    question: t.exposeString('question', {}),
-    answers: t.field({...}),
-  }),
-});
+  resolve: (poll) => polls.get(poll.id)?.votes ?? 0,
+}),
 ```
 
-This will create a new subscription for every `Poll` that is returned in the subscription. When the
-query is updated to fetch a new set of results because a subscription event fired, the subscribe
-call will be called again for each poll in the new result set.
+Remove the object-level registration when using this field-only alternative. The plugin can then
+re-run `votes` without reloading the whole polls list. Field registrations support `filter` and
+`invalidateCache`, just like type registrations; `canRefetch` reuses the field resolver instead of
+taking a separate `refetch` callback.
 
-#### more options
+## Limitations
 
-```typescript
-builder.objectType('Poll', {
-  subscribe: (subscriptions, poll, context) => {
-    subscriptions.register(`poll/${poll.id}`, {
-      filter: (value) => true | false,
-      invalidateCache: (value) => context.PollCache.remove(poll.id),
-      refetch: ():  => context.Polls.fetchByID(poll.id)!),
-    });
-  },
-  fields: (t) => ({
-    ...
-  }),
-});
-```
-
-Passing a `filter` function will filter the events, and only cause a re-fetch if it returns true.
-
-`invalidateCache` is called before refetching data, to allow any cache invalidation to happen so
-that when the new data is loaded, results are not stale.
-
-`refetch` enables directly refetching the current object. When refetch is provided and a
-subscription event fires for the current object, or any of its children, other parts of the query
-that are not dependents of this object will not be refetched.
-
-### registering subscriptions for fields
-
-```typescript
-builder.objectType('Poll', {
-  fields: (t) => ({
-    question: t.exposeString('question', {}),
-    answers: t.field({
-      type: ['Answer'],
-      subscribe: (subscriptions, poll) => subscriptions.register(`poll-answers/${poll.id}`),
-      resolve: (parent, args, context, info) => {
-        return parent.answers;
-      },
-    }),
-  }),
-});
-```
-
-#### more options for fields
-
-```typescript
-builder.objectType('Poll', {
-  fields: (t) => ({
-    question: t.exposeString('question', {}),
-    answers: t.field({
-      type: ['Answer'],
-      canRefetch: true,
-      subscribe: (subscriptions, poll) =>
-        subscriptions.register(`poll-answers/${poll.id}`, {
-          filter: (value) => true | false,
-          invalidateCache: (value) => context.PollCache.remove(poll.id),
-        }),
-      resolve: (parent, args, context, info) => {
-        return parent.answers;
-      },
-    }),
-  }),
-});
-```
-
-Similar to subscriptions on objects, fields can pass `filter` and `invalidateCache` functions when
-registering a subscription. Rather than passing a `refetch` function, you can set `canRefetch` to
-`true` in the field options. This will re-run the current resolve function to update it \(and its
-children\) without having to re-run the rest of the query.
-
-### Known limitations
-
-- Currently value passed to `filter` and `invalidateCache` is typed as `unknown`. This should be
-  improved in the future.
-- Does not work with list fields implemented with async-generators (used for `@stream` queries)
+Smart subscriptions do not support list fields implemented with async generators for `@stream`.
