@@ -41,14 +41,12 @@ query CompareOrderings {
 ```
 
 The [published-posts field](./relations#published-posts-and-profiles) translates those arguments
-into different database orderings. Both results must retain their own order: “A guide to
-composting” comes first in `newest`, and “Starting a seed library” comes first in `oldest`.
-They cannot reuse the same loaded relation. The additional ordering is loaded through a fallback
-query. The two ordered results establish the response behavior; the emitted SQL shows how each
-relation selection was loaded.
+into different database orderings. The two fields cannot reuse the same loaded
+relation because their orderings differ. The additional ordering is loaded through a fallback
+query.
 
-For Drizzle, the author query with one ordering executes one SQL statement. Selecting both
-orderings executes two. This is different from counting GraphQL resolver calls.
+In this example, selecting one ordering executes one SQL statement; selecting both executes
+two. The number of GraphQL field resolvers does not determine the number of database queries.
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { newest: posts { title } oldest: posts(oldestFirst: true) { title } } }"'>playground-examples/plugin-drizzle/types/user.ts#user-posts</include>
 

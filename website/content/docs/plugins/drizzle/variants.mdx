@@ -3,8 +3,6 @@ title: Type variants
 description: How to define multiple GraphQL types based on the same drizzle table
 ---
 
-## Variants
-
 A variant gives another GraphQL representation to the same database row. The publishing API
 uses public User fields for author pages and a private Viewer for the signed-in account.
 
@@ -14,25 +12,10 @@ The API has three parts:
 - `t.variant` returns another representation of the same row.
 - A relation's `type` option can select a variant using its returned object ref.
 
-## The author’s writing desk
-
-The Viewer exposes email and drafts, and its `user` field returns the public representation.
-It is an interface with editor and author implementations, described in [Interfaces](./interfaces):
-
-<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ me { __typename email user { fullName } drafts { title } } }"'>playground-examples/plugin-drizzle/types/viewer.ts#viewer-interface</include>
-
-The root lookup uses the authenticated context ID. It does not accept an arbitrary author's ID:
-
-<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ me { __typename email drafts { title } } }"'>playground-examples/plugin-drizzle/queries.ts#viewer-query</include>
-
-Maya (`userId: 1`) sees “Planning the spring exchange”; Leo (`userId: 2`) sees “Saving rainwater.”
-The interface and variants describe the shapes; the root lookup restricts ownership. Public
-author fields and post connections return published posts only.
-
 ## A single object variant
 
-When all viewers have the same fields, an object variant is sufficient. This alternative replaces
-the Viewer interface and its implementations; the `me` field can still use its returned ref:
+Use `variant` to define Viewer alongside the primary User type. `t.variant('users')` exposes
+the public representation of the same row:
 
 ```ts
 const Viewer = builder.drizzleObject('users', {
@@ -48,6 +31,22 @@ const Viewer = builder.drizzleObject('users', {
 });
 ```
 
+## A viewer with role-specific fields
+
+When viewer fields differ by role, Viewer can instead be an interface with object variants
+for each role. The following definition uses this structure; [Interfaces](./interfaces) explains
+its implementations:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ me { __typename email user { fullName } drafts { title } } }"'>playground-examples/plugin-drizzle/types/viewer.ts#viewer-interface</include>
+
+The root lookup uses the authenticated context ID. It does not accept an arbitrary author's ID:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ me { __typename email drafts { title } } }"'>playground-examples/plugin-drizzle/queries.ts#viewer-query</include>
+
+Maya (`userId: 1`) sees “Planning the spring exchange”; Leo (`userId: 2`) sees “Saving rainwater.”
+The interface and variants describe the shapes; the root lookup restricts ownership. Public
+author fields and post connections return published posts only.
+
 ## Conditionally expose another variant
 
 The publishing User also exposes its Viewer conditionally. Define that field after Viewer is registered,
@@ -58,17 +57,10 @@ which avoids a circular reference between their definitions:
 The ownership check is essential: without it an arbitrary author's public row could reveal that
 author's drafts. `isNull` makes the variant field null when its parent is another account.
 
-The field selects `id` for its ownership check. A variant field can also select other data,
-planned alongside the variant's type selection. This alternative selects email:
+A variant field accepts a `select` just like other fields. Here it loads `id` for the ownership
+check; the target variant contributes the selections required by its own fields.
 
-```ts
-builder.drizzleObjectField('users', 'viewer', (t) =>
-  t.variant(Viewer, {
-    select: { columns: { id: true, email: true } },
-    isNull: (user, _args, ctx) => user.id !== ctx.userId,
-  }),
-);
-```
+## Relation variants
 
 To use a different representation of a related row, pass its object ref to `t.relation`'s `type`
 option. The variant must represent the relation's target table. For example, this alternative

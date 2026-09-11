@@ -72,8 +72,8 @@ export function PlaygroundCodeBlock({
     <>
       <CodeBlock
         {...props}
-        // Give source-linked blocks a separate action row so enlarged text
-        // and horizontally scrolled code never overlap the controls.
+        // Keep actions outside the code viewport so enlarged text and
+        // horizontally scrolled source never overlap the controls.
         className={[props.className, playground && 'has-playground'].filter(Boolean).join(' ')}
         Actions={({ className, children: copyButton }) => (
           <div className={`flex items-center gap-1 ${className || ''}`}>
@@ -81,7 +81,7 @@ export function PlaygroundCodeBlock({
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="inline-flex min-h-7 items-center gap-1 rounded-md px-1.5 text-fd-muted-foreground text-sm transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+                className="inline-flex min-h-6 items-center gap-1 rounded-md px-1.5 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
                 title="Open in Playground"
                 aria-label="Open in Playground"
               >

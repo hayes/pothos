@@ -79,10 +79,7 @@ connection.
 The publishing API keeps the default filter behavior: disabling it would reveal an author's
 unpublished post count through this public field.
 
-## Drizzle connections
-
-The root connection shown above uses the same ordering and cursor rules as related connections.
-### drizzleConnection totalCount
+## Root connection totalCount
 
 For a root `totalCount`, supply a resolver rather than `true`. Add this option to the
 `t.drizzleConnection` configuration above; its filter must match the connection's visibility:
@@ -96,17 +93,8 @@ The `totalCount` callback receives the same arguments as a normal resolver (`par
 
 When only the `totalCount` field is requested (without `edges` or `nodes`), the main query is skipped entirely and only the count query is executed for efficiency.
 
-## Indirect relations as connections
+## Custom connections
 
-The publishing media relation uses `through`, so `t.relatedConnection` is sufficient. When edges
-paginate join rows but nodes represent a different table, use [Connection helpers](./connection-helpers#indirect-relations-as-connections).
-
-### Extending connection edges
-
-[Connection helpers](./connection-helpers#extending-connection-edges) shows how to expose a join
-row's timestamp on an edge while returning the related object as its node.
-
-### `drizzleConnectionHelpers` for non-relation connections
-
-For a manually queried connection, [merge its cursor filter with your application filter](./connection-helpers#non-relation-connections).
-Overwriting the helper's `where` loses the cursor constraints.
+Use [Connection helpers](./connection-helpers) when the connection needs to expose data from a
+join row on its edges, return nodes from a different table, or query rows manually. Ordinary
+many-to-many relations defined with `through` work with `t.relatedConnection`.

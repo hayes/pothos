@@ -47,6 +47,7 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
       <DocsPage
         toc={data.toc}
         full={data.full}
+        footer={{ className: 'mt-8 md:mt-12' }}
         // Tighten the header rhythm: pull the eyebrow/title/description closer
         // together (gap-3) and trim the top padding below the sticky header
         // (xl:pt-10) so real content starts meaningfully higher.

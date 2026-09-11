@@ -284,13 +284,25 @@ try {
         const runtime = docs.frames().find((candidate) => candidate.url().includes('/playground?'));
         await runtime.waitForFunction(
           (filename) =>
-            window.monaco.editor
-              .getEditors()
-              .some(
-                (editor) =>
-                  editor.getModel()?.uri.path === `/playground/${filename}` &&
-                  editor.getDomNode()?.offsetParent !== null,
-              ),
+            window.monaco.editor.getEditors().some(
+              (editor) =>
+                editor.getModel()?.uri.path === `/playground/${filename}` &&
+                editor.getDomNode()?.offsetParent !== null &&
+                editor
+                  .getModel()
+                  .getAllDecorations()
+                  .some(
+                    (decoration) =>
+                      decoration.options.className === 'playground-source-highlight' &&
+                      editor
+                        .getVisibleRanges()
+                        .some(
+                          (range) =>
+                            range.startLineNumber <= decoration.range.startLineNumber &&
+                            range.endLineNumber >= decoration.range.startLineNumber,
+                        ),
+                  ),
+            ),
           excerpts[index],
         );
         await frame.getByRole('button', { name: /^Run query/ }).click();

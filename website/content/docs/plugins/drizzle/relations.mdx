@@ -3,8 +3,6 @@ title: Relations
 description: Adding relations to drizzle objects
 ---
 
-## Relations
-
 `t.relation` turns a Drizzle relation into a GraphQL field with its target type and cardinality.
 Register the target GraphQL type as well as the relation.
 
@@ -15,9 +13,8 @@ so the filter belongs on the relation wherever User can be reached:
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/types/user.ts#user-posts</include>
 
-Maya's author page returns two published posts. Her draft is absent. Nora has no posts and gets
-an empty list. The `oldestFirst` argument switches ordering; an ID tie breaker makes equal
-timestamps deterministic.
+The filter applies whenever this User type is queried. An author with no matching posts returns
+an empty list. The `oldestFirst` argument selects the ordering.
 
 To return the Profile object, register its GraphQL type and use `t.relation('profile')`. To
 return only its nullable biography, use a [field selection](./selections#only-load-a-profile-when-requested).
@@ -71,7 +68,7 @@ not return a row for a parent, because it was deleted since it was loaded, or ne
 table, that field rejects with `Model users(1) not found`, where the value in parentheses is the
 key that was looked up.
 
-The publishing [alias query](./query-planning#compare-two-orderings-of-one-relation) demonstrates
+The [alias query](./query-planning#compare-two-orderings-of-one-relation) demonstrates
 this fallback: newest and oldest cannot share one loaded posts list.
 
 ## Related count
@@ -81,13 +78,17 @@ reveal that unpublished posts exist:
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { postCount posts { title } } empty: author(id: 3) { postCount } }"'>playground-examples/plugin-drizzle/types/user.ts#user-post-count</include>
 
-`t.relatedCount` returns the number of related rows without loading them. Maya's count is two,
-and Nora's is zero. Without a `where`, it counts all rows in the relation.
+`t.relatedCount` returns the number of related rows without loading them. Without a `where`,
+it counts all rows in the relation.
 
 The `where` option accepts either a static SQL filter or a function that receives the field arguments
 and context:
 
 ```ts
+import { and, eq } from 'drizzle-orm';
+import { posts } from './tables';
+
+// In the User fields callback:
 publishedPostsCount: t.relatedCount('posts', {
   args: {
     title: t.arg.string(),
@@ -104,17 +105,15 @@ related rows, so a row reachable through two junction rows counts once. A `t.rel
 since that is what the relational query builder returns for the relation.
 
 
-The callback example imports `and` and `eq` from `drizzle-orm`, and `posts` from the application's table definitions.
-
-## Shared media
+## Many-to-many relations
 
 A post exposes attached Media objects even though the database stores an attachment row. The
 `through` relation handles that join; Pothos exposes its target like any other relation:
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { posts { title media { url uploadedBy { fullName } } mediaConnection(first: 2) { totalCount nodes { url } } } } }"'>playground-examples/plugin-drizzle/types/post.ts#post</include>
 
-Both posts return the shared image and its uploader. `mediaConnection.totalCount` counts each
-post's related media rather than the entire media table.
+`t.relation` and `t.relatedConnection` expose the Media type directly; no GraphQL type for the
+junction table is needed.
 
 ## Related field
 
@@ -122,9 +121,8 @@ The `t.relatedField` method allows you to define a field based on a relation tha
 selections, including aggregations like counts. This is useful when you want to expose derived data
 from a relation without loading the full related records.
 
-### Count aggregations
-
-One common use case is adding a count field that efficiently counts related records:
+For a simple count, prefer `t.relatedCount`. Its equivalent using `t.relatedField` illustrates
+how `buildFilter` restricts an expression to the parent's related rows:
 
 ```ts
 import { and, eq } from 'drizzle-orm';
@@ -150,30 +148,10 @@ builder.drizzleNode('users', {
 });
 ```
 
-The `buildFilter` function passed to `select` generates the appropriate SQL filter based on the
-relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
-it easier to filter for the related records.
+`buildFilter(parent)` includes the relation's join conditions and any filter defined on the
+relation. Combine it with the conditions your field needs, then return the selected value from
+`resolve`. Use this helper for custom expressions that `t.relatedCount` does not cover.
 
 `t.relatedField` also accepts the normal field options (`description`, `deprecationReason`,
 `extensions`, and options added by other plugins like `authScopes`). Its `resolve` may be async,
 and receives the resolve `info` as its fourth argument.
-
-### SQLite many-to-many filters
-
-On SQLite, `buildFilter` can look up related target identities through the junction join when the
-target has a non-null unique key. PostgreSQL retains an `EXISTS` predicate to avoid an additional
-target join.
-
-For a custom `RAW` scope in a Drizzle relation definition, use the table supplied to the callback:
-
-```ts
-where: {
-  RAW: (target) => sql`${target.published} = true`,
-},
-```
-
-This lets Drizzle use the target's alias inside the lookup. A static SQL scope referencing the
-original target table, such as ``RAW: sql`${posts.published} = true` ``, is passed through unchanged
-and can still force SQLite to scan the target table. The same applies to a callback that ignores
-its table argument and references `posts` directly. Object filters such as
-`where: { published: true }` also use the supplied alias.

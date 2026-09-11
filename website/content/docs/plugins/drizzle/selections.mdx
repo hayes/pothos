@@ -3,7 +3,7 @@ title: Selections
 description: Selecting the columns and relations your fields need
 ---
 
-Selections describe the database data a GraphQL field needs. The publishing User starts with
+Selections describe the database data a GraphQL field needs. The example User starts with
 `select: {}` so requesting one field does not load unrelated columns or a profile.
 
 ## Field selections
@@ -20,9 +20,10 @@ selects that relation only when requested:
 
 <include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { fullName bio } missingProfile: author(id: 3) { fullName bio } }"'>playground-examples/plugin-drizzle/types/user.ts#user-bio</include>
 
-Maya has a biography; Nora has no profile, so her biography is null. A name-only query does not
-load either author's profile. Adding `bio` adds the relation to the database query, and the
-resolver reads the selected row.
+A missing profile returns null. A name-only query does not load the profile; adding `bio` adds
+the relation to the database query.
+
+## Computed SQL values
 
 The same mechanism supports SQL expressions through `extras`. For example, a field can select
 `lowercaseName` only when the GraphQL operation requests it:
@@ -31,9 +32,9 @@ The same mechanism supports SQL expressions through `extras`. For example, a fie
 
 ## Type selections
 
-By default, a `drizzleObject` gives its resolvers access to all columns of the table. For tables
-with many columns, it can be more efficient to only select the needed columns. This alternative User definition always loads the name, profile, and expression together
-by putting them in the type’s `select`:
+By default, a `drizzleObject` gives its resolvers access to all columns of the table. A type-level
+`select` replaces that default and makes its selected data available to every field resolver.
+This alternative always loads the name, profile, and expression:
 
 ```ts
 const User = builder.drizzleObject('users', {
@@ -67,7 +68,6 @@ const User = builder.drizzleObject('users', {
 
 Any selections added to the type will be available to consume in all resolvers. Columns that are not
 selected can still be exposed as before.
-
 
 Use type selections for data required whenever the type is loaded, and field selections for data
 needed by a particular field. Both are merged into the parent query; they do not make each field

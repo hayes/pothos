@@ -25,9 +25,8 @@ You will be able to "expose" any column in the table, and GraphQL fields do not 
 names of the columns in your database. The returned `User` can be used like any other `ObjectRef`
 in Pothos.
 
-The publishing User uses `builder.drizzleNode`, which adds a Relay ID and node refetching to the
-same object API. See [Relay](./relay) for that choice. Its public fields omit email and drafts;
-those belong on the current author's [Viewer](./variants).
+The example uses `builder.drizzleNode`, which adds a Relay ID and node refetching to the
+same object API. See [Relay](./relay) for node IDs and refetching.
 
 ## Custom fields
 
@@ -47,7 +46,7 @@ resolver receives a `query` function before the usual resolver arguments. Call t
 pass its result to `findFirst` or `findMany`: it merges your filters and ordering with the
 requirements of the GraphQL selection.
 
-## A nullable author lookup
+### A nullable author lookup
 
 The author page accepts an integer ID. A missing author returns null, matching the result of
 `findFirst` and the field's `nullable: true` option:

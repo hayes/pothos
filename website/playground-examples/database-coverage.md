@@ -155,3 +155,23 @@ synchronized, with all 18 remaining source excerpts matching. Independent scope/
 found no lost Pothos mechanics or dangling setup references. Production build, 147 playground
 references, and internal links across 79 rendered pages pass. Executable sources and launch
 queries are unchanged; the overview action was checked in the rebuilt browser preview.
+
+## Fresh scope review and reading layout
+
+A fresh review removed the SQLite many-to-many query-plan subsection from guides and README.
+Those alias/identity-lookup internals already have source comments in relation-filter.ts and
+junction-key/relation-shape tests. The guides retain the public buildFilter contract instead.
+Also removed duplicated helper definitions, incidental index advice, and the redundant variant
+email-selection example. Basic variants now precede interfaces, counts distinguish root and
+related connections, and async selection uses a coherent preview-size example. Necessary cursor
+precision, filter, selection, and ownership behavior remains. All 18 source actions retain their
+query, source, and order; all 18 expanded README excerpts match.
+
+Untitled source snippets place Playground/Copy below the code, preserving normal top padding
+without covering source text. Linked ranges use persistent whole-line and gutter decorations,
+scroll into view, and reappear when returning to the file. Browser checks assert the highlighted
+start line is visible for all 18 Drizzle actions. Additional checks cover file switching, desktop
+and mobile controls, enlarged text, and tabbed snippets. Previous/next navigation has a measured
+60px desktop and 44px mobile gap from article content. Production build, website types, formatting,
+and internal links across all 79 rendered pages pass. The new guide cleanup received independent
+source/correctness review before the final build.

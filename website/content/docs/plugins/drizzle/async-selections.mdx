@@ -8,15 +8,14 @@ relation query must await request data before returning its query options.
 
 ## Async selections
 
-Use the client and relations configured in [Setup](./setup). The context methods below supply
-asynchronous values used by the field selections:
+Use the client and relations configured in [Setup](./setup). The context method below supplies
+a preview size loaded asynchronously, for example from account settings:
 
 ```ts
 const builder = new SchemaBuilder<{
   DrizzleRelations: typeof relations;
   AsyncSelections: true;
   Context: {
-    currentUserId: () => Promise<number>;
     previewSize: () => Promise<number>;
   };
 }>({
@@ -33,8 +32,7 @@ With the opt-in, `select` functions, relation `query` callbacks, `relatedCount` 
 and the `select` and `query` callbacks of `drizzleConnectionHelpers` may be async. Without it they
 are typed as synchronous, and an async callback is a type error.
 
-The plugin still builds a single query. It waits for the callbacks, and merges what they return
-after every synchronous selection, in document order. `t.relation`, `t.relatedCount`,
+Pothos waits for these callbacks before executing the planned query. `t.relation`, `t.relatedCount`,
 `t.drizzleField`, `t.drizzleConnection` and `t.relatedConnection` settle their plan before the
 resolver runs, and need no changes.
 
@@ -42,9 +40,6 @@ resolver runs, and need no changes.
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
-    posts: t.relation('posts', {
-      query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
-    }),
     previewPosts: t.field({
       type: ['posts'],
       select: async (args, ctx, nestedSelection) => ({
@@ -67,8 +62,8 @@ builder.drizzleObject('users', {
 `await` what `nestedSelection` returns before putting it in the selection, and the same for the
 `nestedQuery` passed as the fourth argument of a `t.relatedField` `select`. A selection that
 contains the promise itself will throw, and so will a `select` that returns while a nested
-selection it started is still pending. Calling `nestedSelection` and discarding a synchronous
-result is not detected, and the nested selection will not be loaded with the parent.
+selection it started is still pending. Include the nested selection in the returned query to
+load its data.
 
 ## Connection helpers
 

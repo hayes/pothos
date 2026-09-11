@@ -20,7 +20,6 @@ Because this uses `t.connection`, its field must explicitly include the helper's
 pass the loaded rows to its resolver.
 
 ```typescript
-// Create a drizzle object for the node type of your connection
 const Role = builder.drizzleObject('roles', {
   name: 'Role',
   fields: (t) => ({
@@ -29,45 +28,35 @@ const Role = builder.drizzleObject('roles', {
   }),
 });
 
-// Create connection helpers for the userRoles join table.  This will allow you
-// to use the normal t.connection with a drizzle type
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  // select the data needed for the nodes
   select: (nestedSelection) => ({
     with: {
-      // use nestedSelection to create the correct selection for the node
       role: nestedSelection(),
     },
   }),
-  // resolve the node from the returned list item
   resolveNode: (userRole) => userRole.role,
 });
 
 builder.drizzleObjectField('users', 'rolesConnection', (t) =>
   t.connection({
-    // The type for the Node
     type: Role,
     nodeNullable: true,
-    // since we are not using t.relatedConnection we need to manually
-    // include the selections for our connection
     select: (args, ctx, nestedSelection) => ({
       with: {
         userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
       },
     }),
-    // This helper takes a list of nodes and formats them for the connection
-    resolve: (user, args, ctx) => {
-      return rolesConnection.resolve(user.userRoles, args, ctx, user);
-    },
+    resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
   }),
 );
 ```
 
-The helper also supports connections whose edges and nodes use the same row. In that case,
-it supplies a node ref and needs no `resolveNode` mapping:
+## Connections without a node mapping
 
-This alternative assumes Post has a `comments` relation and a registered Comment type.
-It paginates Comment rows directly, instead of membership join rows.
+When edges and nodes use the same row, the helper supplies a node ref and needs no
+`resolveNode` mapping. This example assumes Post has a `comments` relation and a registered
+Comment type. For this simple case, `t.relatedConnection` would also work; use the helper when
+you need to customize how the selection is loaded or the result is resolved.
 
 ```ts
 const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'comments');
@@ -88,64 +77,29 @@ const SelectPost = builder.drizzleObject('posts', {
 });
 ```
 
-Replace the preceding `rolesConnection` helper and field to add filtering and ordering:
+## Arguments, filters, and ordering
+
+Add `args` and `query` to the helper options to share argument handling with the connection
+field. For example, a caller can include pending memberships as well as accepted ones:
 
 ```ts
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  // define additional arguments
-  args: (t) => ({}),
-  query: (args) => ({
-    // define an order
-    orderBy: {
-      roleId: 'asc',
-    },
-    // define a filter
-    where: {
-      accepted: true,
-    }
-  }),
-  // select the data needed for the nodes
-  select: (nestedSelection) => ({
-    with: {
-      // use nestedSelection to create the correct selection for the node
-      role: nestedSelection(),
-    },
-  }),
-  // resolve the node from the returned list item
-  resolveNode: (userRole) => userRole.role,
-});
-
-builder.drizzleObjectField('users', 'rolesConnection', (t) =>
-  t.connection({
-    type: Role,
-    nodeNullable: true,
-    // add the args from the connection helper to the field
-    args: rolesConnection.getArgs(),
-    select: (args, ctx, nestedSelection) => ({
-      with: {
-        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-      },
-    }),
-    resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
-  }),
-);
+args: (t) => ({ includePending: t.boolean({ defaultValue: false }) }),
+query: (args) => ({
+  orderBy: { roleId: 'asc' },
+  where: args.includePending ? {} : { accepted: true },
+}),
 ```
+
+Add `args: rolesConnection.getArgs()` to the `t.connection` options. The field's existing
+`getQuery` and `resolve` calls pass those arguments to the helper.
 
 ## Extending connection edges
 
-This alternative exposes the join row’s `createdAt` on each edge. It assumes a registered
-`DateTime` scalar whose output type is `Date`.
+Reuse the original `rolesConnection` helper and replace its field with this definition to
+expose the join row’s `createdAt` on each edge. It assumes a registered `DateTime` scalar whose
+output type is `Date`.
 
 ```typescript
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  select: (nestedSelection) => ({
-    with: {
-      role: nestedSelection(),
-    },
-  }),
-  resolveNode: (userRole) => userRole.role,
-});
-
 builder.drizzleObjectFields('users', (t) => ({
   rolesConnection: t.connection(
     {
@@ -156,22 +110,13 @@ builder.drizzleObjectFields('users', (t) => ({
           userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
         },
       }),
-      resolve: (user, args, ctx) =>
-        rolesConnection.resolve(
-          user.userRoles,
-          args,
-          ctx,
-          user,
-        ),
+      resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
     },
     {},
-    // options for the edge object
     {
-      // define the additional fields on the edge object
       fields: (edge) => ({
         createdAt: edge.field({
           type: 'DateTime',
-          // the parent shape for edge fields is inferred from the connections resolve function
           resolve: (role) => role.createdAt,
         }),
       }),
@@ -182,19 +127,10 @@ builder.drizzleObjectFields('users', (t) => ({
 
 ## Non-relation connections
 
-A root resolver can query pagination rows itself and pass them to the helper. Merge the helper's
-`where` with any additional filter using `AND`; replacing it would discard cursor constraints.
+A root resolver can also use the original `rolesConnection` helper to query pagination rows
+itself. Merge the helper's `where` with any additional filter using `AND`; replacing it would discard cursor constraints.
 
 ```typescript
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  select: (nestedSelection) => ({
-    with: {
-      role: nestedSelection(),
-    },
-  }),
-  resolveNode: (userRole) => userRole.role,
-});
-
 builder.queryFields((t) => ({
   roles: t.connection({
     type: Role,
