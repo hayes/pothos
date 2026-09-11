@@ -1,17 +1,18 @@
-# Auth Plugin
+# Scope Auth Plugin
 
-The scope auth plugin aims to be a general purpose authorization plugin that can handle a wide
-variety of authorization use cases, while incurring a minimal performance overhead.
+The scope auth plugin checks authorization before a field resolver runs. Define named scopes for
+roles, permissions, or ownership checks, then require those scopes on fields and types. Checks and
+scope loaders are cached for the current request.
 
 ## Usage
 
 ### Install
 
-```bash
-yarn add @pothos/plugin-scope-auth
+```package-install
+npm install --save @pothos/plugin-scope-auth
 ```
 
-#### IMPORTANT
+#### Plugin order
 
 When using `scope-auth` with other plugins, the `scope-auth` plugin should generally be listed first
 to ensure that other plugins that wrap resolvers do not execute before the `scope-auth` logic.
@@ -25,38 +26,35 @@ instance, putting the [relay plugin](https://pothos-graphql.dev/docs/plugins/rel
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 
-type MyPerms = 'readStuff' | 'updateStuff' | 'readArticle';
+type ArticlePermission = 'readArticle' | 'editArticle';
+
+type Context = {
+  user: { id: string; employee: boolean; permissions: ArticlePermission[] } | null;
+};
 
 const builder = new SchemaBuilder<{
-  // Types used for scope parameters
+  Context: Context;
   AuthScopes: {
-    public: boolean;
+    loggedIn: boolean;
     employee: boolean;
-    deferredScope: boolean;
-    customPerm: MyPerms;
+    canReadArticles: boolean;
+    customPerm: ArticlePermission;
   };
 }>({
   plugins: [ScopeAuthPlugin],
   scopeAuth: {
-    // Recommended when using subscriptions
-    // when this is not set, auth checks are run when event is resolved rather than when the subscription is created
     authorizeOnSubscribe: true,
-    // scope initializer, create the scopes and scope loaders for each request
-    authScopes: async (context) => ({
-      public: !!context.User,
-      // eagerly evaluated scope
-      employee: await context.User.isEmployee(),
-      // evaluated when used
-      deferredScope: () => context.User.isEmployee(),
-      // scope loader with argument
-      customPerm: (perm) => context.permissionService.hasPermission(context.User, perm),
+    authScopes: (context) => ({
+      loggedIn: !!context.user,
+      employee: context.user?.employee ?? false,
+      canReadArticles: () => context.user?.permissions.includes('readArticle') ?? false,
+      customPerm: (perm) => context.user?.permissions.includes(perm) ?? false,
     }),
   },
 });
 ```
 
-In the above setup, We import the `scope-auth` plugin, and include it in the builders plugin list.
-We also define 2 important things:
+The setup defines two parts of the authorization model:
 
 1. The `AuthScopes` type in the builder `SchemaTypes`. This is a map of types that defines the types
    used by each of your scopes. We'll see how this is used in more detail below.
@@ -65,9 +63,42 @@ We also define 2 important things:
    the type above. This function returns a map of either booleans \(indicating if the request has
    the scope\) or functions that load the scope \(with an optional parameter\).
 
-The names of the scopes \(`public`, `employee`, `deferredScope`, and `customPerm`\) are all
+The names of the scopes \(`loggedIn`, `employee`, `canReadArticles`, and `customPerm`\) are all
 arbitrary, and are not part of the plugin. You can use whatever scope names you prefer, and can add
 as many you need.
+
+### Loading permissions asynchronously
+
+Scope initializers and loaders can return promises. This alternative builder uses request-scoped
+`isEmployee` and `hasPermission` methods supplied by your application:
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context & {
+    isEmployee: () => Promise<boolean>;
+    hasPermission: (permission: ArticlePermission) => Promise<boolean>;
+  };
+  AuthScopes: {
+    loggedIn: boolean;
+    employee: boolean;
+    canReadArticles: boolean;
+    customPerm: ArticlePermission;
+  };
+}>({
+  plugins: [ScopeAuthPlugin],
+  scopeAuth: {
+    authScopes: async (context) => ({
+      loggedIn: !!context.user,
+      employee: await context.isEmployee(),
+      canReadArticles: () => context.hasPermission('readArticle'),
+      customPerm: (permission) => context.hasPermission(permission),
+    }),
+  },
+});
+```
+
+The initializer waits for `isEmployee` before returning its scope map. The permission loaders run
+only when a field requires their scopes; their results are cached for the request and parameter.
 
 ### Using a scope on a field
 
@@ -76,13 +107,16 @@ builder.queryType({
   fields: (t) => ({
     message: t.string({
       authScopes: {
-        public: true,
+        loggedIn: true,
       },
       resolve: () => 'hi',
     }),
   }),
 });
 ```
+
+Set `authorizeOnSubscribe: true` to check authorization when a subscription is created. Without
+this option, checks run when subscription events resolve.
 
 ## Terminology
 
@@ -112,27 +146,34 @@ around how to authorize requests/access to resources.
 
 ## Use cases
 
-Examples below assume the following builder setup:
+The examples below use the scopes from the setup above. Examples that introduce a different
+builder are alternatives. Each `Article` definition below is also an alternative, using this
+backing data and ref:
 
 ```typescript
-const builder = new SchemaBuilder<{
-  // Types used for scope parameters
-  AuthScopes: {
-    public: boolean;
-    employee: boolean;
-    deferredScope: boolean;
-    customPerm: MyPerms;
-  };
-}>({
-  plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    public: !!context.User,
-    employee: await context.User.isEmployee(),
-    deferredScope: () => context.User.isEmployee(),
-    customPerm: (perm) => context.permissionService.hasPermission(context.User, perm),
-  }),
-});
+type ArticleShape = {
+  id: string;
+  title: string;
+  content: string;
+  author: { id: string };
+  viewCount: number;
+  published: boolean;
+};
+
+const articles: ArticleShape[] = [{
+  id: '1',
+  title: 'Getting started',
+  content: 'Welcome',
+  author: { id: 'author-1' },
+  viewCount: 10,
+  published: true,
+}];
+
+const Article = builder.objectRef<ArticleShape>('Article');
 ```
+
+If your application already uses an `Article` class, you can pass it to `builder.objectType`
+instead, with `name: 'Article'`, and return class instances from resolvers.
 
 ### Top level auth on queries and mutations
 
@@ -174,13 +215,13 @@ builder.objectType(Article, {
 
 ### Default auth for all fields on types
 
-To apply the same scope requirements to all fields on a type, you can define an `authScope` map in
+To apply the same scope requirements to all fields on a type, you can define an `authScopes` map in
 the type options rather than on the individual fields.
 
 ```typescript
 builder.objectType(Article, {
   authScopes: {
-    public: true,
+    loggedIn: true,
   },
   fields: (t) => ({
     title: t.exposeString('title', {}),
@@ -200,7 +241,7 @@ field itself.
 ```typescript
 builder.objectType(Article, {
   authScopes: {
-    public: true,
+    loggedIn: true,
   },
   fields: (t) => ({
     title: t.exposeString('title', {}),
@@ -218,13 +259,13 @@ To remove the type level scopes for a field, you can use the `skipTypeScopes` op
 ```typescript
 builder.objectType(Article, {
   authScopes: {
-    public: true,
+    loggedIn: true,
   },
   fields: (t) => ({
     title: t.exposeString('title', {
       skipTypeScopes: true,
     }),
-    content: t.exposeString('title', {}),
+    content: t.exposeString('content', {}),
   }),
 });
 ```
@@ -254,7 +295,7 @@ const builder = new SchemaBuilder<{
     // Affects all object types (Excluding Query, Mutation, and Subscription)
     runScopesOnType: true,
     authScopes: async (context) => ({
-      loggedIn: !!context.User,
+      loggedIn: !!context.user,
     }),
   },
   plugins: [ScopeAuthPlugin],
@@ -263,21 +304,21 @@ const builder = new SchemaBuilder<{
 builder.objectType(Article, {
   runScopesOnType: true,
   authScopes: {
-    readArticle: true,
+    loggedIn: true,
   },
   fields: (t) => ({
     title: t.exposeString('title', {
       // this will not have any effect because type scopes are not evaluated at the field level
       skipTypeScopes: true,
     }),
-    content: t.exposeString('title', {}),
+    content: t.exposeString('content', {}),
   }),
 });
 ```
 
 Enabling this has a couple of limitations:
 
-1. THIS DOES NOT CURRENTLY WORK WITH `graphql-jit`. This option uses the `isTypeOf` function, but
+1. This does not work with `graphql-jit`. This option uses the `isTypeOf` function, but
    `graphql-jit` does not support async `isTypeOf`, and also does not correctly pass the context
    object to the isTypeOf checks. Until this is resolved, this option will not work with
    `graphql-jit`.
@@ -303,13 +344,13 @@ builder.queryType({
       authScopes: {
         customPerm: 'readArticle',
       },
-      resolve: () => Article.getSome(),
+      resolve: () => articles,
     }),
   }),
 });
 ```
 
-In the example above, the authScope map uses the customPerm scope loader with a parameter of
+In the example above, the authScopes map uses the customPerm scope loader with a parameter of
 `readArticle`. The first time a field requests this scope, the customPerm loader will be called with
 `readArticle` as its argument. This scope will be cached, so that if multiple fields request the
 same scope, the scope loader will still only be called once.
@@ -334,7 +375,7 @@ const builder = new SchemaBuilder<{
     treatErrorsAsUnauthorized: true,
     unauthorizedError: (parent, context, info, result) => new Error(`Not authorized`),
     authScopes: async (context) => ({
-      loggedIn: !!context.User,
+      loggedIn: !!context.user,
     }),
   },
   plugins: [ScopeAuthPlugin],
@@ -393,6 +434,9 @@ const builder = new SchemaBuilder<{
   };
 }>({
   scopeAuth: {
+    authScopes: async (context) => ({
+      loggedIn: !!context.user,
+    }),
     treatErrorsAsUnauthorized: true,
     unauthorizedError: (parent, context, info, result) => {
       // throw an error if it's found
@@ -402,9 +446,6 @@ const builder = new SchemaBuilder<{
     },
   },
   plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    loggedIn: !!context.User,
-  }),
 });
 ```
 
@@ -437,7 +478,7 @@ builder.queryType({
       authScopes: {
         customPerm: 'readArticle',
       },
-      resolve: () => Article.getSome(),
+      resolve: () => articles,
       unauthorizedResolver: () => [],
     }),
   }),
@@ -450,7 +491,7 @@ receives a 5th argument that is an instance of `ForbiddenError`.
 
 ### Setting scopes that apply for a full request
 
-We have already seen several examples of this. For scopes that apply to a full request like `public`
+We have already seen several examples of this. For scopes that apply to a full request like `loggedIn`
 or `employee`, rather than using a scope loader, the scope initializer can simply use a boolean to
 indicate if the request has the given scope. If you know ahead of time that a scope loader will
 always return false for a specific request, you can do something like the following to avoid the
@@ -458,19 +499,24 @@ additional overhead of running the loader:
 
 ```typescript
 const builder = new SchemaBuilder<{
+  Context: Context;
   AuthScopes: {
-    humanPermission: string;
+    humanPermission: ArticlePermission;
   };
 }>({
   plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    humanPermission: context.user.isHuman() ? (perm) => context.user.hasPermission(perm) : false,
-  }),
+  scopeAuth: {
+    authScopes: async (context) => ({
+      humanPermission: context.user
+        ? (perm) => context.user?.permissions.includes(perm) ?? false
+        : false,
+    }),
+  },
 });
 ```
 
 This will ensure that if a request accesses a field that requests a `humanPermission` scope, and the
-request is made by another service or bot, we don't have to run the `hasPermission` check at all for
+request has no signed-in user, we don't have to run the permission check at all for
 those requests, since we know it would return false anyways.
 
 ### Change context types based on scopes
@@ -480,7 +526,7 @@ custom context for your defined scopes and use the `authField` method to access 
 
 ```typescript
 type Context = {
-  user: User | null;
+  user: { id: string } | null;
 };
 
 const builder = new SchemaBuilder<{
@@ -489,13 +535,15 @@ const builder = new SchemaBuilder<{
     loggedIn: boolean;
   };
   AuthContexts: {
-    loggedIn: Context & { user: User };
+    loggedIn: Context & { user: { id: string } };
   };
 }>({
   plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    loggedIn: !!context.user,
-  }),
+  scopeAuth: {
+    authScopes: async (context) => ({
+      loggedIn: !!context.user,
+    }),
+  },
 });
 
 builder.queryField('currentId', (t) =>
@@ -509,45 +557,66 @@ builder.queryField('currentId', (t) =>
 );
 ```
 
-Some plugins contribute field builder methods with additional functionality that may not work with
-`t.authField`. In order to work with those methods, there is also a `t.withAuth` method that can be
-used to return a field builder with authScopes predefined.
+`t.withAuth` returns a field builder with scopes already applied. It also works with methods
+added by other plugins. With the same builder as above, an equivalent field is:
 
 ```typescript
-type Context = {
-  user: User | null;
-};
+builder.queryField('viewerId', (t) =>
+  t.withAuth({ loggedIn: true }).id({
+    resolve: (_parent, _args, context) => context.user.id,
+  }),
+);
+```
+
+#### Using `withAuth` with Prisma fields
+
+`withAuth` preserves plugin-specific field methods while refining their context. This alternative
+builder uses the client `prisma` and generated types from [Prisma setup](https://pothos-graphql.dev/docs/plugins/prisma/setup), with a
+User model containing an integer `id`. The request context contains either the
+signed-in user's ID or `null`:
+
+```typescript
+import PrismaPlugin from '@pothos/plugin-prisma';
+import type PrismaTypes from '../lib/pothos-prisma-types';
+import { getDatamodel } from '../lib/pothos-prisma-types';
 
 const builder = new SchemaBuilder<{
-  Context: Context;
-  AuthScopes: {
-    loggedIn: boolean;
-  };
-  AuthContexts: {
-    loggedIn: Context & { user: User };
-  };
+  Context: { user: { id: number } | null };
+  AuthScopes: { loggedIn: boolean };
+  AuthContexts: { loggedIn: { user: { id: number } } };
+  PrismaTypes: PrismaTypes;
 }>({
-  plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    loggedIn: !!context.user,
+  plugins: [ScopeAuthPlugin, PrismaPlugin],
+  scopeAuth: {
+    authScopes: (context) => ({ loggedIn: !!context.user }),
+  },
+  prisma: {
+    client: prisma,
+    dmmf: getDatamodel(),
+  },
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
   }),
 });
 
+builder.queryType();
 builder.queryField('viewer', (t) =>
-  t
-    .withAuth({
-      loggedIn: true,
-    })
-    .prismaField({
-      type: User,
-      resolve: (query, root, args, ctx) =>
-        prisma.findUniqueOrThrow({
-          ...query,
-          where: { id: ctx.user.id },
-        }),
-    }),
+  t.withAuth({ loggedIn: true }).prismaField({
+    type: 'User',
+    resolve: (query, _parent, _args, context) =>
+      prisma.user.findUniqueOrThrow({
+        ...query,
+        where: { id: context.user.id },
+      }),
+  }),
 );
 ```
+
+The resolver receives a non-null `context.user` and Prisma's selection `query`. A denied request
+does not call the resolver or issue its database query.
 
 ### Logical operations on auth scopes \(any/all\)
 
@@ -564,9 +633,9 @@ builder.objectType(Article, {
         $all: {
           $any: {
             employee: true,
-            deferredScope: true,
+            canReadArticles: true,
           },
-          public: true,
+          loggedIn: true,
         },
       },
     }),
@@ -575,8 +644,8 @@ builder.objectType(Article, {
 ```
 
 You can use the built in `$any` and `$all` scope loaders to combine requirements for scopes. The
-above example requires a request to have either the `employee` or `deferredScope` scopes, and the
-`public` scope. `$any` and `$all` each take a scope map as their parameters, and can be nested
+above example requires a request to have either the `employee` or `canReadArticles` scopes, and the
+`loggedIn` scope. `$any` and `$all` each take a scope map as their parameters, and can be nested
 inside each other.
 
 You can change the default strategy used for top level auth scopes by setting the `defaultStrategy`
@@ -585,7 +654,7 @@ option in the builder (defaults to `any`):
 ```typescript
 const builder = new SchemaBuilder<{
   Context: {
-    user: User | null;
+    user: { id: string } | null;
   };
   AuthScopes: {
     loggedIn: boolean;
@@ -593,12 +662,12 @@ const builder = new SchemaBuilder<{
   DefaultAuthStrategy: 'all';
 }>({
   plugins: [ScopeAuthPlugin],
-  scopeAuthOptions: {
+  scopeAuth: {
+    authScopes: async (context) => ({
+      loggedIn: !!context.user,
+    }),
     defaultStrategy: 'all',
   },
-  authScopes: async (context) => ({
-    loggedIn: !!context.user,
-  }),
 });
 ```
 
@@ -612,7 +681,7 @@ builder.objectType(Article, {
   fields: (t) => ({
     viewCount: t.exposeInt('viewCount', {
       authScopes: (article, args, context, info) => {
-        if (context.User.id === article.author.id) {
+        if (context.user?.id === article.author.id) {
           // If user is author, let them see it
           // returning a boolean lets you set auth without specifying other scopes to check
           return true;
@@ -628,8 +697,8 @@ builder.objectType(Article, {
 });
 ```
 
-authScope functions on fields will receive the same arguments as the field resolver, and will be
-called each time the resolve for the field would be called. This means the same authScope function
+authScopes functions on fields will receive the same arguments as the field resolver, and will be
+called each time the resolve for the field would be called. This means the same authScopes function
 could be called multiple time for the same resource if the field is requested multiple times using
 an alias.
 
@@ -638,15 +707,15 @@ resolving a field without needing to evaluate additional scopes.
 
 ### Setting type level scopes based on the parent value
 
-You can also use a function in the authScope option for types. This function will be invoked with
+You can also use a function in the authScopes option for types. This function will be invoked with
 the parent and the context as its arguments, and should return a scope map.
 
 ```typescript
 builder.objectType(Article, {
-  authScope: (parent, context) => {
-    if (parent.isPublished()) {
+  authScopes: (parent, context) => {
+    if (parent.published) {
       return {
-        public: true,
+        loggedIn: true,
       };
     }
 
@@ -660,8 +729,7 @@ builder.objectType(Article, {
 });
 ```
 
-The above example uses an authScope function to prevent the fields of an article from being loaded
-by non employees unless they have been published.
+This requires an employee for unpublished articles and a signed-in user for published articles.
 
 ### Setting scopes based on the return value of a field
 
@@ -677,25 +745,25 @@ do this you can use `$granted` scopes.
 builder.queryType({
   fields: (t) => ({
     freeArticle: t.field({
+      type: Article,
       grantScopes: ['readArticle'],
-      // or
-      grantScopes: (parent, args, context, info) => ['readArticle'],
+      resolve: () => articles[0],
     }),
   }),
 });
 
 builder.objectType(Article, {
   authScopes: {
-    public: true,
+    loggedIn: true,
     $granted: 'readArticle',
-  }
+  },
   fields: (t) => ({
     title: t.exposeString('title', {}),
   }),
 });
 ```
 
-In the above example, the fields of the `Article` type normally require the `public` scope granted
+In the above example, the fields of the `Article` type normally require the `loggedIn` scope granted
 to logged in users, but can also be accessed with the `$granted` scope `readArticle`. This means
 that if the field that returned the Article "granted" the scope, the article can be read. The
 `freeArticle` field on the `Query` type grants this scope, allowing anyone querying that field to
@@ -712,11 +780,11 @@ is another case where `$granted` scopes can be helpful.
 ```typescript
 builder.objectType(Article, {
   grantScopes: (article, context) => {
-    if (context.User.id === article.author.id) {
+    if (context.user?.id === article.author.id) {
       return ['author', 'readArticle'];
     }
 
-    if (article.isDraft()) {
+    if (!article.published) {
       return [];
     }
 
@@ -771,24 +839,40 @@ from your scope checks.
 const builder = new SchemaBuilder<{
   Context: Context;
   AuthScopes: {
-    loggedIn: boolean;
+    articlePermission: { permission: ArticlePermission; authorId: string };
   };
 }>({
+  plugins: [ScopeAuthPlugin],
   scopeAuth: {
-    cacheKey: (val) => JSON.stringify(val),
-    authScopes: async (context) => ({
-      loggedIn: !!context.User,
+    cacheKey: (value) => JSON.stringify(value),
+    authScopes: (context) => ({
+      articlePermission: ({ permission, authorId }) =>
+        context.user?.id === authorId ||
+        (context.user?.permissions.includes(permission) ?? false),
     }),
   },
-  plugins: [ScopeAuthPlugin],
 });
+
+builder.queryField('canEditArticle', (t) =>
+  t.boolean({
+    args: { authorId: t.arg.string({ required: true }) },
+    authScopes: (_parent, { authorId }) => ({
+      articlePermission: { permission: 'editArticle', authorId },
+    }),
+    resolve: () => true,
+  }),
+);
 ```
 
-Above we are using `JSON.stringify` to generate a key. This will work for most complex objects, but
-you may want to consider something like `faster-stable-stringify` that can handle circular
-references, and will always produce the same output regardless of the order of properties.
+Use a key that includes every value affecting the permission check. `JSON.stringify` works for
+JSON-compatible parameters with consistent property ordering; it does not handle circular values.
+For resource checks, a stable resource ID is often sufficient.
 
 ## When checks are run, and how things are cached
+
+Create a new context object for every request. Reusing a context also reuses cached authorization
+results, even if you change the user on it. When a server copies the context, initialize its cache
+with `initContextCache()` from `@pothos/core` in the request context factory.
 
 ### Scope Initializer
 
@@ -836,6 +920,9 @@ resolved. It's result will be cached and reused for each field of the same insta
   `$any` or `$granted`.
 
 ### Builder
+
+Set the initializer in `scopeAuth.authScopes`, alongside options such as `defaultStrategy`,
+`authorizeOnSubscribe`, `unauthorizedError`, and `cacheKey`.
 
 - `authScopes`: \(context: Types\['Context'\]\) =&gt; `MaybePromise<ScopeLoaderMap<Types>>`
 
