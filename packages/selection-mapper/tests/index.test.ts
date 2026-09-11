@@ -16,6 +16,7 @@ it('exports only what the plugins use', () => {
       'selectedFieldNames',
       'setFieldMapping',
       'setLoaderMappings',
+      'setRowFieldMapping',
       'setRowMappings',
     ].sort(),
   );

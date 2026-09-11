@@ -47,17 +47,18 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * rebuilds the same key strings; a prefix builds them once.
  *
  * `mappings` holds what a plan recorded for a whole field: every row of that field was loaded by
- * it, so one mapping per path answers for all of them. `rows` holds a mapping only where rows of
- * one list disagree about which plan loaded them — a mapping carries the position a connection
- * pages with, so a row answering from another row's mapping would page with arguments its own
- * data was never fetched with. `disagreed` stays false when that never happened, so a request
- * whose rows were all loaded the same way pays nothing for the row tier.
+ * it, so one mapping per path answers for all of them. `rows` holds a mapping that answers for
+ * one row only — because two plans disagreed about a key, or because the plan loaded that row
+ * alone. A mapping carries the position a connection pages with, so a row answering from another
+ * row's mapping would page with arguments its own data was never fetched with. `rowScoped` stays
+ * false while nothing has been recorded there, so a request whose rows were all loaded the same
+ * way pays nothing for the row tier.
  */
 const cache = createContextCache(() => ({
   mappings: new Map<string, Mapping>(),
   rehomed: new Map<string, Map<string, string>>(),
   rows: new WeakMap<object, Map<string, Mapping>>(),
-  disagreed: false,
+  rowScoped: false,
 }));
 
 type Cache = ReturnType<typeof cache>;
@@ -139,16 +140,27 @@ function claim(cached: Cache, key: string, mapping: Mapping, row: object | null)
   if (held === undefined) {
     cached.mappings.set(key, mapping);
   } else if (held !== mapping && row) {
-    let own = cached.rows.get(row);
-
-    if (!own) {
-      own = new Map();
-      cached.rows.set(row, own);
-      cached.disagreed = true;
-    }
-
-    own.set(key, mapping);
+    claimForRow(cached, key, mapping, row);
   }
+}
+
+/**
+ * Records `mapping` at `key` against `row` alone, never in the shared tier. The caller loaded
+ * `row` by itself, so an unclaimed key is not the caller's to take: the shared tier answers for
+ * every row of a field, and a sibling that was never loaded would read the entry as proof that
+ * it had been. With no row to hang it off there is nothing to record, and the resolvers beneath
+ * fall back and load their own data.
+ */
+function claimForRow(cached: Cache, key: string, mapping: Mapping, row: object) {
+  let own = cached.rows.get(row);
+
+  if (!own) {
+    own = new Map();
+    cached.rows.set(row, own);
+    cached.rowScoped = true;
+  }
+
+  own.set(key, mapping);
 }
 
 /**
@@ -219,6 +231,30 @@ export function setFieldMapping(
 }
 
 /**
+ * `setFieldMapping` for a plan that loaded `row` alone: the field's own mapping is recorded
+ * against `row` rather than claimed for the whole field, so a sibling row the plan never loaded
+ * keeps falling back instead of reading the entry and resolving against data it does not carry.
+ *
+ * The mappings beneath the field are recorded as `setRowMappings` records them — the resolvers
+ * that read those are the ones `row`'s own data feeds, so their parents came from this same load.
+ */
+export function setRowFieldMapping(
+  ctx: object,
+  info: GraphQLResolveInfo,
+  mapping: Mapping,
+  row: unknown,
+) {
+  const cached = cache(ctx);
+  const owner = ownerOf(row);
+
+  if (owner) {
+    claimForRow(cached, cacheKey(info.parentType.name, info.path), mapping, owner);
+  }
+
+  writeRowMappings(cached, info, mapping.nested, owner);
+}
+
+/**
  * The mapping recorded for the field at `path` on `row`, preferring one recorded for that row
  * over the plan's. `row` is the value whose data the mapping describes — the resolver's parent.
  */
@@ -231,7 +267,7 @@ export function getLoaderMapping(
   const cached = cache(ctx);
   const key = cacheKey(type, path);
 
-  if (cached.disagreed) {
+  if (cached.rowScoped) {
     const owner = ownerOf(row);
     const own = owner && cached.rows.get(owner)?.get(key);
 

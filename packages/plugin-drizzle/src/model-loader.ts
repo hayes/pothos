@@ -1,5 +1,5 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
-import { cacheKey, Plan, setFieldMapping, setRowMappings } from '@pothos/selection-mapper';
+import { cacheKey, Plan, setRowFieldMapping, setRowMappings } from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -143,10 +143,11 @@ export class ModelLoader {
 
         if (mapping) {
           // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
-          // with, along with the mappings of the fields beneath it. Against `result`, the row
-          // this plan loaded and the one the resolver is handed: a sibling row of the same list
-          // that the planned query did load must keep answering from the plan.
-          setFieldMapping(this.context, info, mapping, result);
+          // with, along with the mappings of the fields beneath it. Against `result` alone: this
+          // load fetched one row, so the field's own mapping is not the whole field's to claim.
+          // A sibling row that falls back on a later tick would otherwise read it as proof of
+          // having been loaded and resolve against a row that never carried the data.
+          setRowFieldMapping(this.context, info, mapping, result);
         }
       }
 

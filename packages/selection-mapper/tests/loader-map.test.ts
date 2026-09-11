@@ -7,6 +7,7 @@ import {
   responsePath,
   setFieldMapping,
   setLoaderMappings,
+  setRowFieldMapping,
   setRowMappings,
 } from '../src/loader-map.js';
 
@@ -133,6 +134,42 @@ describe('loader map', () => {
     for (const row of rows) {
       expect(getLoaderMapping(ctx, info.path, 'User', row)).toBe(replanned);
     }
+  });
+
+  it("keeps a single row's field mapping off the tier that answers for the whole field", () => {
+    const ctx = {};
+    const info = infoAt('User', 'users', 'posts');
+    const author: Mapping = { nested: {} };
+    const loaded: Mapping = { nested: { 'Post@author': author } };
+    const loadedRow = {};
+    const siblingRow = {};
+
+    setRowFieldMapping(ctx, info, loaded, loadedRow);
+
+    // The row this plan loaded finds it; a sibling the plan never loaded finds nothing and falls
+    // back, which is the whole point of not claiming the key.
+    expect(getLoaderMapping(ctx, info.path, 'User', loadedRow)).toBe(loaded);
+    expect(getLoaderMapping(ctx, info.path, 'User', siblingRow)).toBe(null);
+    expect(getLoaderMapping(ctx, info.path, 'User')).toBe(null);
+
+    // The mappings beneath the field are read by resolvers this row's own data feeds, so they go
+    // to the shared tier as `setRowMappings` puts them.
+    expect(getLoaderMapping(ctx, pathOf('users', 1, 'posts', 2, 'author'), 'Post')).toBe(author);
+  });
+
+  it("leaves a planned field's mapping standing when one row is reloaded", () => {
+    const ctx = {};
+    const info = infoAt('User', 'users', 'posts');
+    const planned: Mapping = { nested: {} };
+    const loaded: Mapping = { nested: {} };
+    const loadedRow = {};
+
+    setLoaderMappings(ctx, infoAt('Query', 'users'), { 'User@posts': planned });
+    setRowFieldMapping(ctx, info, loaded, loadedRow);
+
+    expect(getLoaderMapping(ctx, info.path, 'User', loadedRow)).toBe(loaded);
+    expect(getLoaderMapping(ctx, info.path, 'User', {})).toBe(planned);
+    expect(getLoaderMapping(ctx, info.path, 'User')).toBe(planned);
   });
 
   it('records against no row when there is none to hang a mapping off', () => {

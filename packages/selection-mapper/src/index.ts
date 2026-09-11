@@ -11,6 +11,7 @@ export {
   type Mappings,
   setFieldMapping,
   setLoaderMappings,
+  setRowFieldMapping,
   setRowMappings,
 } from './loader-map.js';
 export {

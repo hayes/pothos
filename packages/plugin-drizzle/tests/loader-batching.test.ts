@@ -292,6 +292,15 @@ async function count(document: DocumentNode): Promise<Counted> {
   }
 }
 
+/** The data a document resolves, with any error raised rather than compared. */
+async function data(document: DocumentNode): Promise<Record<string, unknown>> {
+  const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+
+  expect(result.errors).toBeUndefined();
+
+  return result.data as Record<string, unknown>;
+}
+
 describe('model loader batching under async selections', () => {
   it('issues a query per row when every row resolves on its own tick', async () => {
     // The positive control: rows deliberately spread across macrotasks cannot share a batch, and
@@ -378,14 +387,45 @@ describe('model loader batching under async selections', () => {
     expect(mappedAsync).toMatchObject({ batches: 1, loads: 1 });
   });
 
-  // Pins a defect, not the behaviour we want: the loader records the mapping of the field it
-  // reloaded under the field's own key, and with nothing else claiming that key it lands in the
-  // shared tier, where a sibling row that falls back later reads it as proof of being loaded. A
-  // field that cannot check the row it was handed (any `select` that is not a relation) then
-  // resolves against a row without its data. Nothing async about it — the rows only have to
-  // arrive on separate ticks. The prisma loader records only the mappings beneath the field and
-  // is unaffected. Delete `.fails` when the loader stops claiming the shared key.
-  it.fails('reloads a sibling row that falls back after another row was loaded', async () => {
+  // The loader reloads one row, so the mapping it records for the field is that row's, not the
+  // whole field's: it goes to the row tier. Claimed in the shared tier it would answer for every
+  // sibling, and a field that cannot check the row it was handed (any `select` that is not a
+  // relation, count or connection) would resolve against a row without its data. Nothing async
+  // about it — the rows only have to arrive on separate ticks.
+  it('reloads a sibling row that falls back after another row was loaded', async () => {
     await count(gql`{ staggeredUsers { staggeredSelf { titles } } }`);
+  });
+
+  it('loads every staggered row that falls back, not just the first', async () => {
+    const staggered = await count(gql`{ staggeredUsers { staggeredSelf { titles } } }`);
+
+    // Nothing here can share a batch, so a row that skipped its load would show as a missing
+    // query rather than as an error: the control above reports ROWS, and so must this.
+    expect(staggered).toMatchObject({ batches: ROWS, loads: ROWS, statements: ROWS + 1 });
+  });
+
+  it('resolves a staggered fallback to the same data a shared batch resolves', async () => {
+    const staggered = await data(gql`{ staggeredUsers { staggeredSelf { titles } } }`);
+    const batched = await data(gql`{ rawUsers { titles } }`);
+
+    // The same rows in the same order, so every row's titles must match the ones it resolves
+    // when the whole list is loaded by one batch.
+    expect(
+      (staggered.staggeredUsers as { staggeredSelf: { titles: string[] } }[]).map(
+        (user) => user.staggeredSelf.titles,
+      ),
+    ).toEqual((batched.rawUsers as { titles: string[] }[]).map((user) => user.titles));
+  });
+
+  it('mixes a field that can check the row it was handed with one that cannot', async () => {
+    // `posts` is a relation, so it checks the row and was never fooled by the shared entry;
+    // `titles` is a plain select and has nothing to check. Both are on the same field path of
+    // the same staggered rows, so the two tiers have to answer for both at once.
+    const mixed = await data(gql`{ staggeredUsers { staggeredSelf { titles posts { id } } } }`);
+    const control = await data(gql`{ rawUsers { titles posts { id } } }`);
+
+    expect(
+      (mixed.staggeredUsers as { staggeredSelf: unknown }[]).map((user) => user.staggeredSelf),
+    ).toEqual(control.rawUsers);
   });
 });
