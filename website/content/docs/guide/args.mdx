@@ -3,27 +3,28 @@ title: Using args
 description: Guide for defining field args in Pothos
 ---
 
-Similar to the [Fields Guide](./fields), the examples here will mostly be for the Query type, but
-the same patterns can be used anywhere that arguments for fields can be defined, including both
-Object and Interface types.
+Arguments let a client pass values to a field's resolver. They work on query, mutation, object,
+and interface fields. Define them in a field's `args` option and read them from the resolver's
+second parameter.
 
 ## Scalars
 
-Scalar args can be defined a couple of different ways
-
 ### Using the `t.arg` method
 
+Use `t.arg` with a scalar type name:
+
 ```typescript
-const Query = builder.queryType({
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
   fields: (t) => ({
-    string: t.string({
+    greeting: t.string({
       args: {
-        string: t.arg({
-          type: 'String',
-          description: 'String arg',
-        }),
+        name: t.arg({ type: 'String', required: true }),
       },
-      resolve: (parent, args) => args.string,
+      resolve: (_parent, args) => `Hello, ${args.name}!`,
     }),
   }),
 });
@@ -31,136 +32,154 @@ const Query = builder.queryType({
 
 ### Using convenience methods
 
+The equivalent shorthand for the argument above is `t.arg.string({ required: true })`.
+Other scalar helpers include `t.arg.id`, `t.arg.int`, `t.arg.float`, and `t.arg.boolean`.
+Each also has a list helper, such as `t.arg.stringList`.
+
+## Required args
+
+Arguments are optional by default. Set `required: true` to reject omitted or `null` values.
+See [Changing Default Nullability](./changing-default-nullability) to change this default.
+
+An optional argument can be omitted or explicitly set to `null`. A `defaultValue` applies when
+an argument is omitted; it does not replace an explicit `null`. The resolver below handles both:
+
 ```typescript
-const Query = builder.queryType({
-  fields: (t) => ({
-    withArgs: t.stringList({
-      args: {
-        id: t.arg.id(),
-        int: t.arg.int(),
-        float: t.arg.float(),
-        boolean: t.arg.boolean(),
-        string: t.arg.string(),
-        idList: t.arg.idList(),
-        intList: t.arg.intList(),
-        floatList: t.arg.floatList(),
-        booleanList: t.arg.booleanList(),
-        stringList: t.arg.stringList(),
-      },
-      resolve: (root, args) => Object.keys(args),
-    }),
+builder.queryField('repeat', (t) =>
+  t.string({
+    args: {
+      text: t.arg.string({ required: true }),
+      times: t.arg.int({ defaultValue: 2 }),
+    },
+    resolve: (_parent, args) => args.text.repeat(Math.max(0, args.times ?? 1)),
   }),
-});
+);
+```
+
+## Lists
+
+Wrap a type in an array to create a list argument, or use a list helper:
+
+```typescript
+builder.queryField('knownGiraffes', (t) =>
+  t.stringList({
+    args: {
+      names: t.arg.stringList({ required: true }),
+      moreNames: t.arg({ type: ['String'], required: true }),
+    },
+    resolve: (_parent, args) =>
+      [...args.names, ...args.moreNames].filter((name) => ['Gina', 'James'].includes(name)),
+  }),
+);
+```
+
+List items are non-null by default, even when the list argument is optional. Use separate `list`
+and `items` settings to allow null entries in a required list:
+
+```typescript
+builder.queryField('nonNullNames', (t) =>
+  t.stringList({
+    args: {
+      names: t.arg.stringList({
+        required: { list: true, items: false },
+      }),
+    },
+    resolve: (_parent, args) => args.names.filter((name) => name != null),
+  }),
+);
 ```
 
 ## Other types
 
-Args of non-scalar types can also be created with the `t.arg` method.
+Arguments can also use [enums](./enums) and [input objects](./inputs). Output objects, interfaces,
+and unions cannot be argument types.
 
-Valid arg types include `Scalars`, `Enums`, and `Input` types.
+This object field accepts an enum argument to choose the unit for its result:
 
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-const Giraffe = builder.objectType('Giraffe', {
-  fields: t => ({
+const GiraffeRef = builder.objectRef<{ heightInMeters: number }>('Giraffe').implement({
+  fields: (t) => ({
     height: t.float({
       args: {
-        unit: t.arg({
-          type: LengthUnit,
-        }),
+        unit: t.arg({ type: LengthUnit, defaultValue: 'Meters' }),
       },
-      resolve: (parent, args) =>
-        args.unit === 'Feet' ? parent.heightInMeters * 3.281 : parent.heightInMeters,
-    }),
-  }),
-}));
-```
-
-## Required args
-
-Arguments are optional by default, but can be made required by passing `required: true` in the
-argument options. This default can be changed in the SchemaBuilder constructor, see
-[Changing Default Nullability](./changing-default-nullability).
-
-```typescript
-const Query = builder.queryType({
-  fields: (t) => ({
-    nullableArgs: t.stringList({
-      args: {
-        optional: t.arg.string(),
-        required: t.arg.string({ required: true }),
-        requiredList: t.arg.stringList({ required: true }),
-        sparseList: t.stringList({
-          required: {
-            list: true,
-            items: false,
-          },
-        }),
-      },
-      resolve: (parent, args) => Object.keys(args),
+      resolve: (giraffe, args) =>
+        args.unit === 'Feet' ? giraffe.heightInMeters * 3.281 : giraffe.heightInMeters,
     }),
   }),
 });
-```
 
-Note that by default even if a list arg is optional, the items in that list are not. The last
-argument in the example above shows how you can make list items optional.
-
-## Lists
-
-To create a list argument, you can wrap the type in an array or use one of the helpers
-
-```typescript
-const Query = builder.queryType({
-  fields: (t) => ({
-    giraffeNameChecker: t.booleanList({
-      args: {
-        names: t.arg.stringList({
-          required: true,
-        }),
-        moreNames: t.arg({
-          type: ['String'],
-          required: true,
-        }),
-      },
-      resolve: (parent, args) => {
-        return [...args.names, ...args.moreNames].filter((name) =>
-          ['Gina', 'James'].includes(name),
-        );
-      },
-    }),
+builder.queryField('giraffe', (t) =>
+  t.field({
+    type: GiraffeRef,
+    resolve: () => ({ heightInMeters: 5 }),
   }),
-});
+);
 ```
 
 ## Nested Lists
 
-You can use `t.arg.listRef` to create a list of lists
+Use `t.arg.listRef` to nest lists. Its `required` option controls the items of that list;
+`required` on `t.arg` controls whether the outermost list can be omitted or null.
 
 ```typescript
-const Query = builder.queryType({
-  fields: (t) => ({
-    example: t.boolean({
-      args: {
-        listOfListOfStrings: t.arg({
-          type: t.arg.listRef(t.arg.listRef('String')),
-        }),
-        listOfListOfNullableStrings: t.arg({
-          type: t.arg.listRef(
-            // By default listRef creates a list of Non-null items
-            // This can be overridden by passing in required: false
-            t.arg.listRef('String', { required: false }),
-            { required: true },
-          ),
-        }),
-      },
-      resolve: (parent, args) => {
-        return true;
-      },
-    }),
+builder.queryField('countNames', (t) =>
+  t.int({
+    args: {
+      groups: t.arg({
+        type: t.arg.listRef(t.arg.listRef('String', { required: false })),
+        required: true,
+      }),
+    },
+    resolve: (_parent, args) =>
+      args.groups.reduce(
+        (count, group) => count + group.filter((name) => name != null).length,
+        0,
+      ),
   }),
-});
+);
+
+export const schema = builder.toSchema();
+```
+
+Here, `groups` has GraphQL type `[[String]!]!`: the outer list and each inner list are required,
+but strings inside the inner lists can be null. Without `{ required: false }`, those strings
+would also be non-null.
+
+## Querying with arguments
+
+The examples above form one schema. This query exercises required arguments, defaults, lists,
+and the enum argument on an object field:
+
+```graphql
+query {
+  greeting(name: "Gina")
+  repeat(text: "ha")
+  once: repeat(text: "ha", times: null)
+  knownGiraffes(names: ["Gina", "Unknown"], moreNames: ["James"])
+  nonNullNames(names: ["Gina", null, "James"])
+  giraffe {
+    meters: height
+    feet: height(unit: Feet)
+  }
+  countNames(groups: [["Gina", null], ["James"]])
+}
+```
+
+```json
+{
+  "data": {
+    "greeting": "Hello, Gina!",
+    "repeat": "haha",
+    "once": "ha",
+    "knownGiraffes": ["Gina", "James"],
+    "nonNullNames": ["Gina", "James"],
+    "giraffe": { "meters": 5, "feet": 16.405 },
+    "countNames": 2
+  }
+}
 ```
