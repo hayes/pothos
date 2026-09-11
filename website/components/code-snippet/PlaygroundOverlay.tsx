@@ -92,7 +92,7 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Pothos Playground"
-        className="relative h-full w-full md:h-[90vh] md:w-[90vw] md:rounded-lg bg-fd-background shadow-2xl"
+        className="relative flex h-full w-full flex-col md:h-[90vh] md:w-[90vw] md:rounded-lg bg-fd-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Focus-trap sentinel: Shift+Tab off the first control lands here and
@@ -103,20 +103,23 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
         {/* biome-ignore lint/a11y/noNoninteractiveTabindex: intentional focus-trap sentinel — must be Tab-reachable to wrap focus */}
         <span data-focus-guard tabIndex={0} aria-hidden="true" onFocus={focusLast} />
 
-        {/* Close button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-md bg-fd-background/95 p-2 text-fd-muted-foreground backdrop-blur transition-colors hover:bg-fd-accent hover:text-fd-foreground"
-          aria-label="Close playground"
-        >
-          <X size={20} />
-        </button>
+        {/* Keep Close outside the iframe's content so it cannot cover guide
+            instructions or step controls, especially on narrow screens. */}
+        <div className="flex shrink-0 justify-end border-b border-fd-border p-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-foreground"
+            aria-label="Close playground"
+          >
+            Close <X size={20} />
+          </button>
+        </div>
 
         {/* Playground iframe */}
         <iframe
           src={playgroundURL}
-          className="h-full w-full md:rounded-lg"
+          className="min-h-0 w-full flex-1 md:rounded-b-lg"
           title="Pothos Playground"
           allow="clipboard-write"
         />

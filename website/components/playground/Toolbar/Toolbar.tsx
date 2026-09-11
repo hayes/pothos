@@ -92,12 +92,12 @@ export function Toolbar({
   );
 
   return (
-    <div className="relative z-[5] flex items-center gap-3.5 px-6 py-3 bg-bm-bg border-b border-bm-line">
+    <div className="relative z-[5] flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 md:px-6 py-3 bg-bm-bg border-b border-bm-line">
       {wordmarkSlot}
       {/* The wordmark is brand enough on its own — a separate
           "Playground" label was redundant. Keep the divider only when
           a sketch name renders to its right, otherwise drop it. */}
-      <div className="flex items-baseline gap-2.5">
+      <div className="flex min-w-0 max-w-full items-baseline gap-2.5">
         {sketchName && <span className="h-5 w-px bg-bm-line self-center" aria-hidden="true" />}
         {/* In embed mode the sketch is read-only — show the loaded
             example's title (or nothing if no example). In standalone
@@ -105,7 +105,9 @@ export function Toolbar({
             no name yet so we don't render an empty button. */}
         {embed
           ? sketchName && (
-              <span className="font-serif text-[13px] italic text-bm-ink-muted">{sketchName}</span>
+              <span className="break-words font-serif text-[13px] italic text-bm-ink-muted">
+                {sketchName}
+              </span>
             )
           : sketchName && <SketchName value={sketchName} onChange={onSketchRename} />}
       </div>
