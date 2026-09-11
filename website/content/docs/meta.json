@@ -3,13 +3,13 @@
   "root": true,
   "pages": [
     "index",
-    "sponsors",
-    "resources",
     "guide",
     "plugins",
-    "migrations",
-    "design",
     "api",
+    "design",
+    "migrations",
+    "resources",
+    "sponsors",
     "llms",
     "..."
   ]
