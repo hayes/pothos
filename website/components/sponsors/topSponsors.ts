@@ -7,7 +7,7 @@
 export interface TopSponsor {
   name: string;
   logo: string;
-  href: string;
+  href?: string;
   /** Short blurb for the card. */
   blurb?: string;
 }
@@ -28,13 +28,12 @@ export const TOP_SPONSORS: TopSponsor[] = [
   {
     name: 'GitHub',
     logo: 'https://pothos-graphql.dev/assets/github-logo.svg',
-    href: 'https://github.com/hayes/pothos',
+    href: 'https://github.com/',
     blurb: 'Where the code lives',
   },
   {
     name: 'Stellate',
     logo: 'https://pothos-graphql.dev/assets/stellate-logo.svg',
-    href: 'https://stellate.co/',
     blurb: 'Edge caching for GraphQL APIs',
   },
 ];

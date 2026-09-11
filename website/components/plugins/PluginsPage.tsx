@@ -28,8 +28,26 @@ export function PluginsPage() {
           patterns. Each one adds methods and options to the builder, with the same type inference
           as the core API.
         </p>
+        <p className="text-bm-ink-soft leading-[1.5] mt-4 text-[17px] max-w-[640px]">
+          See{' '}
+          <a className="text-bm-accent hover:underline" href="/docs/guide/using-plugins">
+            Using plugins
+          </a>{' '}
+          for installation and builder configuration.
+        </p>
       </header>
 
+      <p className="text-bm-ink-soft leading-[1.5] mb-8">
+        The{' '}
+        <a className="text-bm-accent hover:underline" href="/docs/plugins/zod">
+          Zod plugin
+        </a>{' '}
+        documents the older Zod-specific API. For new validation fields, start with the{' '}
+        <a className="text-bm-accent hover:underline" href="/docs/plugins/validation">
+          Validation plugin
+        </a>
+        .
+      </p>
       <div className="flex flex-col gap-16">
         {grouped.map((group) => {
           const meta = PLUGIN_CATEGORIES[group.category];

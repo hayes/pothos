@@ -77,7 +77,7 @@ export async function registerGraphQLLanguage(monaco: Monaco): Promise<void> {
         startColumn: d.range.start.character + 1,
         endLineNumber: d.range.end.line + 1,
         endColumn: d.range.end.character + 1,
-        message: typeof d.message === 'string' ? d.message : d.message.value,
+        message: d.message,
         // vscode-languageserver-types DiagnosticSeverity: 1=Error, 2=Warning, 3=Info, 4=Hint
         // monaco MarkerSeverity:                          8=Error, 4=Warning, 2=Info, 1=Hint
         severity:

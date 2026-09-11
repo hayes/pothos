@@ -54,7 +54,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'prisma',
     name: 'Prisma',
-    description: 'Define types from your Prisma models, with relations resolved in a single query.',
+    description: 'Build Prisma queries from GraphQL selections',
     icon: '◆',
     category: 'data',
     order: 1,
@@ -62,8 +62,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'drizzle',
     name: 'Drizzle',
-    description:
-      'Define types from your Drizzle schema, resolved through its relational query builder.',
+    description: 'Build queries from GraphQL selections using Drizzle’s relational query builder',
     icon: '◇',
     category: 'data',
     order: 2,
@@ -71,7 +70,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'dataloader',
     name: 'Dataloader',
-    description: 'Batch and cache loads with dataloaders declared on types and fields.',
+    description: 'Batch and cache data loading for types and fields',
     icon: '≡',
     category: 'data',
     order: 3,
@@ -79,7 +78,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'add-graphql',
     name: 'Add GraphQL',
-    description: 'Fold existing GraphQL types or SDL into your Pothos schema.',
+    description: 'Add existing GraphQL types to your schema',
     icon: '＋',
     category: 'data',
     order: 4,
@@ -89,7 +88,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'relay',
     name: 'Relay',
-    description: 'Connections, Node interfaces, and global IDs following the Relay spec.',
+    description: 'Define Relay nodes, global IDs, and paginated connections',
     icon: '↻',
     category: 'schema',
     order: 1,
@@ -97,7 +96,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'federation',
     name: 'Federation',
-    description: 'Build Apollo Federation 2 subgraphs from a Pothos schema.',
+    description: 'Build subgraphs for Apollo Federation',
     icon: '◈',
     category: 'schema',
     order: 2,
@@ -105,8 +104,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'sub-graph',
     name: 'Sub-graph',
-    description:
-      'Generate multiple subsets of one schema to share code between internal and external APIs.',
+    description: 'Build separate schemas from subsets of your types and fields',
     icon: '⌗',
     category: 'schema',
     order: 3,
@@ -114,7 +112,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'directives',
     name: 'Directives',
-    description: 'Type-safe GraphQL directives for fields, types, and arguments.',
+    description: 'Attach directive metadata to your schema',
     icon: '@',
     category: 'schema',
     order: 4,
@@ -122,7 +120,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'simple-objects',
     name: 'Simple Objects',
-    description: 'Define plain object types without resolvers or manual type declarations.',
+    description: 'Infer backing types from fields that expose data properties',
     icon: '□',
     category: 'schema',
     order: 5,
@@ -130,7 +128,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'with-input',
     name: 'With-Input',
-    description: 'Inline `input` objects defined right next to the field that uses them.',
+    description: 'Define fields with inline input objects',
     icon: '⊟',
     category: 'schema',
     order: 6,
@@ -140,7 +138,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'scope-auth',
     name: 'Scope Auth',
-    description: 'Field- and type-level authorization checks with scope composition.',
+    description: 'Authorize access to fields and types using request data',
     icon: '✦',
     category: 'auth',
     order: 1,
@@ -148,7 +146,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'errors',
     name: 'Errors',
-    description: 'Strongly-typed errors as union return types, with auto-resolved success types.',
+    description: 'Expose expected resolver errors as typed GraphQL results',
     icon: '✕',
     category: 'auth',
     order: 2,
@@ -156,7 +154,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'validation',
     name: 'Validation',
-    description: 'Argument validation via any StandardSchema v1 library — Zod, Valibot, ArkType.',
+    description: 'Validate inputs with Standard Schema libraries such as Zod, Valibot, and ArkType',
     icon: '✓',
     category: 'auth',
     order: 3,
@@ -164,7 +162,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'complexity',
     name: 'Complexity',
-    description: 'Per-field complexity scoring with query-level limits.',
+    description: 'Define field costs and limit query complexity',
     icon: '↯',
     category: 'auth',
     order: 4,
@@ -174,7 +172,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'smart-subscriptions',
     name: 'Smart Subscriptions',
-    description: 'Subscriptions that re-run queries when the data they read changes.',
+    description: 'Update query results when subscribed data changes',
     icon: '~',
     category: 'live',
     order: 1,
@@ -182,7 +180,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'grafast',
     name: 'Grafast',
-    description: 'Execute with Grafast plans in place of resolver functions.',
+    description: 'Define Grafast plans for your schema',
     icon: '☉',
     category: 'live',
     order: 2,
@@ -192,7 +190,7 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'mocks',
     name: 'Mocks',
-    description: 'Mock resolvers for testing and local development.',
+    description: 'Add mock resolvers for easier testing',
     icon: '◐',
     category: 'devx',
     order: 1,
@@ -200,7 +198,8 @@ export const PLUGINS: PluginEntry[] = [
   {
     slug: 'tracing',
     name: 'Tracing',
-    description: 'Resolver tracing with adapters for OpenTelemetry, New Relic, Sentry, custom.',
+    description:
+      'Trace resolver execution with OpenTelemetry, New Relic, Sentry, or custom tracers',
     icon: '◯',
     category: 'devx',
     order: 2,

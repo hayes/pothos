@@ -18,6 +18,7 @@ export interface Resource {
   author?: string;
   /** Optional author URL — linked separately from the title. */
   authorUrl?: string;
+  introductionUrl?: string;
   /** ISO date when discoverable, used for sorting + display. */
   date?: string;
   /** Hosting platform for visual hint (github, youtube, blog, etc.). */
@@ -168,6 +169,7 @@ export const RESOURCES: Resource[] = [
   },
   {
     id: 'tool-rumble',
+    introductionUrl: 'https://github.com/hayes/pothos/discussions/1414',
     category: 'tool',
     title: 'rumble — Pothos + Drizzle + Abilities',
     description: 'CASL-style authorization for Pothos schemas, built on Drizzle.',
