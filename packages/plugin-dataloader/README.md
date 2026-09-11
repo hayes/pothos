@@ -1,6 +1,8 @@
 # Dataloader Plugin
 
-This plugin makes it easy to add fields and types that are loaded through a dataloader.
+The dataloader plugin batches loads for fields and object types. Resolvers return record keys,
+and the plugin loads those records through a DataLoader shared within the request. This reduces
+repeated database calls when a query selects the same relation for many objects.
 
 ## Usage
 
@@ -9,21 +11,37 @@ This plugin makes it easy to add fields and types that are loaded through a data
 To use the dataloader plugin you will need to install both the `dataloader` package and the Pothos
 dataloader plugin:
 
-```bash
-yarn add dataloader @pothos/plugin-dataloader
+```package-install
+npm install --save dataloader @pothos/plugin-dataloader
 ```
 
 ### Setup
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import DataloaderPlugin from '@pothos/plugin-dataloader';
 
-const builder = new SchemaBuilder({
+type UserShape = {
+  id: string;
+  username: string;
+  lastPostID: number;
+  postIDs: number[];
+};
+
+type ContextType = {
+  currentUser: UserShape;
+  loadUsersById: (ids: string[]) => Promise<UserShape[]>;
+};
+
+const builder = new SchemaBuilder<{ Context: ContextType }>({
   plugins: [DataloaderPlugin],
 });
 ```
 
 ### loadable objects
+
+Later examples that redefine `User` replace this definition; choose the options needed by your
+application. They are not additional declarations in the same schema.
 
 To create an object type that can be loaded with a dataloader use the new `builder.loadableObject`
 method:
@@ -43,8 +61,7 @@ const User = builder.loadableObject('User', {
 });
 ```
 
-It is **VERY IMPORTANT** to return values from `load` in an order that exactly matches the order of
-the requested IDs. The order is used to map results to their IDs, and if the results are returned in
+Return one value from `load` for each requested ID, in the same order. The order is used to map results to their IDs, and if the results are returned in
 a different order, your GraphQL requests will end up with the wrong data. Correctly sorting results
 returned from a database or other data source can be tricky, so this plugin has a `sort`
 option (described below) to simplify the sorting process. For more details on how the load function
@@ -75,7 +92,7 @@ builder.queryType({
         ids: t.arg.stringList({ required: true }),
       },
       // Mixing ids and user objects also works
-      resolve: (_root, args, context) => [...args.ids, context.CurrentUser],
+      resolve: (_root, args, context) => [...args.ids, context.currentUser],
     }),
   }),
 });
@@ -87,13 +104,21 @@ object instead, Pothos knows it can skip the dataloader for that object.
 
 ### loadable fields
 
+The relation examples below extend `ContextType` with the post-loading methods they call.
+`loadPosts` returns one `PostShape` per post ID; `postsByUserIds` and `loadPostsByUserIds` return
+one `PostShape[]` per user ID, preserving the requested ID order. Each `posts` definition is an
+alternative for the same field. For the grouped variant, add
+`postsForUserIds: (ids: string[]) => Promise<PostShape[]>` to `ContextType`; it returns a flat
+list with `authorId` on each post.
+
 In some cases you may need more granular dataloaders. To handle these cases there is a new
 `t.loadable` method for defining fields with their own dataloaders.
 
 ```typescript
 // Normal object that the fields below will load
 interface PostShape {
-  id: string;
+  id: number;
+  authorId: string;
   title: string;
   content: string;
 }
@@ -102,7 +127,7 @@ const Post = builder.objectRef<PostShape>('Post').implement({
   fields: (t) => ({
     id: t.exposeID('id', {}),
     title: t.exposeString('title', {}),
-    content: t.exposeString('title', {}),
+    content: t.exposeString('content', {}),
   }),
 });
 
@@ -140,7 +165,50 @@ builder.objectField(User, 'posts', (t) =>
     // type is singular, but will create a list field
     type: Post,
     // will be called with ids of all the users, and should return `Post[][]`
-    load: (ids: number[], context) => context.postsByUserIds(ids),
+    load: (ids: string[], context) => context.postsByUserIds(ids),
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
+### loadableGroup fields for one-to-many relations
+
+In many cases, it's easier to load a flat list in a dataloader rather than loading a list of lists.
+the `loadableGroup` method simplifies this.
+
+```typescript
+// Loading multiple Posts
+builder.objectField(User, 'posts', (t) =>
+  t.loadableGroup({
+    // type is singular, but will create a list field
+    type: Post,
+    // will be called with ids of all the users, and should return `Post[]`
+    load: (ids: string[], context) => context.postsForUserIds(ids),
+    // will be called with each post to determine which group it belongs to
+    group: (post) => post.authorId,
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
+### Accessing args on loadable fields
+
+By default the `load` method for fields does not have access to the fields arguments. This is
+because the dataloader will aggregate the calls across different selections and aliases that may not
+have the same arguments. To access the arguments, you can pass `byPath: true` in the fields options.
+This will cause the dataloader to only aggregate calls for the same "path" in the query, meaning all
+calls share the same arguments. This will allow you to access a 3rd `args` argument on the `load`
+method.
+
+```typescript
+builder.objectField(User, 'posts', (t) =>
+  t.loadableList({
+    type: Post,
+    byPath: true,
+    args: {
+      limit: t.arg.int({ required: true }),
+    },
+    load: (ids: string[], context, args) => context.loadPostsByUserIds(ids, args.limit),
     resolve: (user, args) => user.id,
   }),
 );
@@ -172,8 +240,9 @@ See [dataloader docs](https://github.com/graphql/dataloader#api) for all availab
 ### Manually using dataloader
 
 Dataloaders for "loadable" objects can be accessed via their ref by passing in the context object
-for the current request. dataloaders are not shared across requests, so we need the context to get
-the correct dataloader for the current request:
+for the current request. Pass a fresh context object for each request so cached records are not
+shared between users.
+Reusing the context also reuses its loaders:
 
 ```typescript
 // create loadable object
@@ -230,13 +299,17 @@ If you want to make dataloaders accessible via the context object directly, ther
 setup required. Below are a few options for different ways you can load data from the context
 object. You can determine which of these options works best for you or add you own helpers.
 
-First you'll need to update the types for your context type:
+The following interface replaces `ContextType` from the setup; include its original fields as
+well as the loader helpers:
 
 ```typescript
+import DataLoader from 'dataloader';
 import { LoadableRef } from '@pothos/plugin-dataloader';
 
 export interface ContextType {
-  userLoader: DataLoader<string, { id: number }>; // expose a specific loader
+  currentUser: UserShape;
+  loadUsersById: (ids: string[]) => Promise<UserShape[]>;
+  userLoader: DataLoader<string, UserShape>; // expose a specific loader
   getLoader: <K, V>(ref: LoadableRef<K, V, ContextType>) => DataLoader<K, V>; // helper to get a loader from a ref
   load: <K, V>(ref: LoadableRef<K, V, ContextType>, id: K) => Promise<V>; // helper for loading a single resource
   loadMany: <K, V>(ref: LoadableRef<K, V, ContextType>, ids: K[]) => Promise<(Error | V)[]>; // helper for loading many
@@ -244,16 +317,20 @@ export interface ContextType {
 }
 ```
 
-next you'll need to update your context factory function. The exact format of this depends on what
+Next you'll need to update your context factory function. The exact format of this depends on what
 graphql server implementation you are using.
 
 ```typescript
 import { initContextCache } from '@pothos/core';
-import { LoadableRef, rejectErrors } from '@pothos/plugin-dataloader';
+import { rejectErrors } from '@pothos/plugin-dataloader';
 
-export const createContext = (req, res): ContextType => ({
-  // Adding this will prevent any issues if you server implementation
-  // copies or extends the context object before passing it to your resolvers
+export const createContext = (
+  currentUser: UserShape,
+  loadUsersById: ContextType['loadUsersById'],
+): ContextType => ({
+  currentUser,
+  loadUsersById,
+  // Preserve the cache when the server copies or extends the context.
   ...initContextCache(),
 
   // using getters allows us to access the context object using `this`
@@ -268,12 +345,13 @@ export const createContext = (req, res): ContextType => ({
   },
   get loadMany() {
     return <K, V>(ref: LoadableRef<K, V, ContextType>, ids: K[]) =>
-      rejectErrors(ref.getDataloader(this).loadMany(ids));
+      ref.getDataloader(this).loadMany(ids);
   },
 });
 ```
 
-Now you can use these helpers from your context object:
+Call `createContext` for each request with the authenticated user and that request's data access
+function. You can then use these helpers from resolvers:
 
 ```typescript
 builder.queryFields((t) => ({
@@ -291,15 +369,15 @@ builder.queryFields((t) => ({
   }),
   fromContext4: t.field({
     type: [User],
-    resolve: (root, args, { loadMany }) => loadMany(User, ['123', '456']),
+    resolve: (root, args, { loadMany }) => rejectErrors(loadMany(User, ['123', '456'])),
   }),
 }));
 ```
 
 ### Using with the Relay plugin
 
-If you are using the Relay plugin, there is an additional method `loadableNode` that gets added to
-the builder. You can use this method to create `node` objects that work like other loadable objects.
+Register both `DataloaderPlugin` and `RelayPlugin` and set `relay: {}` on the builder to use
+`loadableNode`. You can use this method to create `node` objects that work like other loadable objects.
 
 ```typescript
 const UserNode = builder.loadableNode('UserNode', {
@@ -309,6 +387,47 @@ const UserNode = builder.loadableNode('UserNode', {
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
   fields: (t) => ({}),
 });
+```
+
+#### Loadable connections
+
+This example adds `loadFriendsByUserIds: (ids: string[]) => Promise<Record<string, UserShape[]>>`
+to `ContextType`. Return an entry for every requested ID, with an empty array for users without
+friends. The helper indexes that result by user ID before paginating each list.
+
+To data-load a connection, you can use a combination of helpers:
+
+- `builder.connectionObject` To create the connection and edge types
+- `t.loadable` with the `byPath` option to create a loadable field with access to arguments
+- `t.arg.connectionArgs` to add the standard connection arguments to the field
+
+```typescript
+import { resolveArrayConnection } from '@pothos/plugin-relay';
+
+const UserFriendsConnection = builder.connectionObject({
+  type: User,
+  name: 'UserFriendsConnection',
+});
+
+builder.objectFields(User, (t) => ({
+  friends: t.loadable({
+    type: UserFriendsConnection,
+    byPath: true,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    load: async (ids: string[], context, args) => {
+      // This implementation assumes you will load all friends for each user, and then filter them with `resolveArrayConnection`.
+      // This may not be efficient in a large production system
+      const friendsById = await context.loadFriendsByUserIds(ids);
+
+      return ids.map((id) => {
+        return resolveArrayConnection({ args }, friendsById[id]);
+      });
+    },
+    resolve: (user) => user.id.toString(),
+  }),
+}));
 ```
 
 ### Loadable Refs and Circular references
@@ -342,7 +461,6 @@ const UserNode = builder.loadableNodeRef('UserNode', {
 });
 
 UserNode.implement({
-  isTypeOf: (obj) => obj instanceof User,
   fields: (t) => ({}),
 });
 ```
@@ -379,7 +497,6 @@ const User = builder.loadableObject('User', {
   cacheResolved: user => user.id,
   fields: (t) => ({
     id: t.exposeID('id', {}),
-    ...
   }),
 });
 ```
@@ -401,12 +518,14 @@ const User = builder.loadableObject('User', {
   sort: user => user.id,
   fields: (t) => ({
     id: t.exposeID('id', {}),
-    ...
   }),
 });
 ```
 
-This will also work with loadable nodes, interfaces, unions, or fields.
+This also works with loadable nodes, interfaces, unions, and fields. Missing keys become `null`
+after sorting. Choose field and list-item nullability to match that behavior; a missing record in
+a non-null position produces a GraphQL error. Without `sort`, return one result for every key in
+the same order, using `null` or an `Error` for missing records as appropriate for your loader.
 
 When sorting, if the list of results contains an Error the error is thrown because it can not be
 mapped to the correct location. This `sort` option should NOT be used for cases where the result
@@ -425,7 +544,21 @@ const User = builder.loadableObject('User', {
   sort: true,
   fields: (t) => ({
     id: t.exposeID('id', {}),
-    ...
   }),
 });
+```
+
+
+### Subscriptions
+
+Dataloaders are stored on the context object of the subscription.  This means that values are cached across the full lifetime of the subscription.
+
+To reset all data loaders for the current subscription, you can use the `clearAllDataLoaders` helper.
+
+
+
+```typescript
+import { clearAllDataLoaders } from '@pothos/plugin-dataloader';
+
+clearAllDataLoaders(context);
 ```
