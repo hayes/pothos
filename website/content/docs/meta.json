@@ -1,16 +1,5 @@
 {
   "title": "Pothos Docs",
   "root": true,
-  "pages": [
-    "index",
-    "sponsors",
-    "resources",
-    "guide",
-    "plugins",
-    "migrations",
-    "design",
-    "api",
-    "llms",
-    "..."
-  ]
+  "pages": ["index", "guide", "plugins", "migrations", "design", "api", "llms", "..."]
 }

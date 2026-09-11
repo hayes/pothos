@@ -30,6 +30,16 @@ const config = {
       { source: '/docs/:path*.mdx', headers: llmTextCacheHeaders },
     ];
   },
+  redirects() {
+    return [
+      // The marketing /plugins route was consolidated into the canonical docs
+      // catalog at /docs/plugins (same component, one URL). Redirect the old URL.
+      { source: '/plugins', destination: '/docs/plugins', permanent: true },
+      // Sponsors and resources moved out of the docs tree into app routes.
+      { source: '/docs/sponsors', destination: '/sponsors', permanent: true },
+      { source: '/docs/resources', destination: '/resources', permanent: true },
+    ];
+  },
 };
 
 export default withMDX(config);
