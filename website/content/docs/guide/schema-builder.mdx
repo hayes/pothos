@@ -1,64 +1,79 @@
 ---
 title: SchemaBuilder
-description: Guide for creating and using a Pothos SchemaBuilder
+description: Create a builder, configure TypeScript types, and build a GraphQL schema.
 ---
 
-The schema builder is the core of Pothos. It is used to create types, and then stitch those types
-into a GraphQL schema.
+A `SchemaBuilder` registers your types and fields, then builds a GraphQL schema. Create one builder
+for each schema, and share it between the modules that define that schema.
 
-## Creating a Schema Builder
-
-The SchemaBuilder takes a generic type parameter that extends a Partial `SchemaTypes`.
+## Creating a builder
 
 ```typescript
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder<{
-  // Type of the context object
-  Context: {};
-}>({
-  // plugins may add options that can be provided here
+  Context: { requestId: string };
+}>({});
+
+builder.queryType({
+  fields: (t) => ({
+    requestId: t.string({
+      resolve: (_parent, _args, context) => context.requestId,
+    }),
+  }),
 });
+
+export const schema = builder.toSchema();
 ```
 
-The types provided here are used to enforce the types in resolvers, both for resolver arguments and
-return values, but not all types need to be added to this SchemaTypes object. As described in the
-[Object guide](./objects) there are a number of different ways to provide type information for a
-Pothos type.
+The generic parameter is an object Pothos calls `SchemaTypes`. Its entries configure TypeScript
+checking; they do not create runtime values. `Context` above types the third argument of each
+resolver. Your server must supply that object when executing a request; see [Context](./context).
+If you do not need to configure any types, use `new SchemaBuilder({})`.
+
+The constructor's options object configures runtime behavior. It can include plugins and their
+options, as described in [Using plugins](./using-plugins), and
+[default nullability](./changing-default-nullability) settings.
+
+## Building the schema
+
+Call `builder.toSchema()` after registering your types and fields. It returns a standard
+`GraphQLSchema` that you can pass to a GraphQL server or execute with graphql-js. A schema needs a
+Query root, even when it also defines mutations or subscriptions.
+
+By default, Pothos sorts the schema lexicographically. Use `builder.toSchema({ sortSchema: false })`
+to keep definition order. See the [SchemaBuilder API](../api/schema-builder) for build options and
+[App layout](./app-layout) for registering types from multiple files before building the schema.
 
 ## Backing models
 
-Pothos is built around a concept of "backing models". This may be a little confusing at first, but
-once you get your head around it, it can be very powerful. When you implement a GraphQL schema, you
-really have 2 schemas. The obvious schema is your GraphQL schema and it is made up of the types you
-define with the schema builder. The second schema is the schema that describes your internal data,
-and the contracts between your resolvers. The types that describe your data in your application will
-be different from the types described in your GraphQL for a number of reasons. The primitive types
-in typescript and GraphQL do not map cleanly to each other, so there will always be some translation
-between the types you have in your application, and the types that are defined in your GraphQL
-schema. This is part of the issue, but is not the full story. When mapping a model or object in your
-application to a type in your API some fields may match up directly, some fields may need to be
-loaded or transformed dynamically when requested, and others you may not want to expose at all.
-These differences are why Pothos maintains a mapping of "backing models" \(typescript types\) to
-GraphQL types.
+A backing model is the TypeScript type of the data a resolver returns for an object or interface.
+It also determines the `parent` type of that object's field resolvers. It can contain properties
+that are not exposed in GraphQL, while GraphQL fields can compute or load values absent from the
+backing model.
 
-To put it simply, backing models are the types that describe the data as it flows through your
-application, which may be substantially different than the types described in your GraphQL schema.
-Each object and interface type in your schema has a backing model that is tied to a typescript type
-that describes your data. These types are how Pothos types the parent argument and return type of
-your resolver functions \(among other things\).
+Pothos associates backing models with GraphQL types in three ways:
 
-Now that we covered what backing models are, let's go over where they come from. There are currently
-3 ways that Pothos gets a backing model for an object or interface:
+- **Type references:** `builder.objectRef<T>('Name')` or `builder.interfaceRef<T>('Name')` carries
+  the backing type `T`. Methods that define types also return references you can use elsewhere.
+- **Classes:** Register a class directly when your application already uses class instances as
+  backing data. Pothos uses the class's instance type for resolver checking.
+- **SchemaTypes:** Declare backing models in the builder's `Objects`, `Interfaces`, or `Inputs`
+  maps to reference those types by their string names. These declarations still need corresponding
+  runtime type definitions.
 
-1. Classes: If you use classes when defining your object types, Pothos can infer that any field that
-   resolves to that type should resolve to an instance of that class
+The [Objects](./objects), [Interfaces](./interfaces), and [Input objects](./inputs) guides show
+these alternatives. Using a reference or class does not require adding its backing model to
+`SchemaTypes`.
 
-2. TypeRefs: Every time you create a type with the schema builder, it returns a `TypeRef` object,
-   which contains the backing model type for that type. Object Refs can also be created explicitly
-   with the `builder.objectRef` method.
+## Other SchemaTypes entries
 
-3. SchemaTypes: The `SchemaTypes` type that is passed into the generic parameter of the
-   `SchemaBuilder` can also be used to provide backing models for various types. When you reference
-   a type in your schema by name \(as a string\), Pothos checks the SchemaTypes to see if there is a
-   backing model defined for that type.
+The generic can also configure:
+
+- `Scalars`: the values resolvers receive and return for each scalar; see [Scalars](./scalars).
+- `DefaultFieldNullability` and `DefaultInputFieldRequiredness`: defaults for output and input
+  fields. Set their matching constructor options too; see [Default nullability](./changing-default-nullability).
+- Plugin-specific types, such as the context-dependent scopes used by the scope auth plugin.
+
+Each entry is optional unless a plugin requires it. For the complete list, see the
+[SchemaBuilder reference](../api/schema-builder).
