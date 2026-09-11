@@ -258,7 +258,22 @@ export function drizzleConnectionHelpers<
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? select((sel) => nestedSelection(sel as SelectionMap, ['edges', 'node']) as never, args, ctx)
       : (nestedSelection(true, ['edges', 'node']) as never);
-    const baseQuery = baseQueryFor(args, ctx);
+    let baseQuery: MaybePromise<object>;
+
+    try {
+      baseQuery = baseQueryFor(args, ctx);
+    } catch (error) {
+      // The selection has already started. Preserve the query error while handling any
+      // later rejection from the selection that this invocation can no longer consume.
+      if (isThenable(nestedSelect)) {
+        nestedSelect.then(
+          () => {},
+          () => {},
+        );
+      }
+
+      throw error;
+    }
 
     const built: MaybePromise<object> =
       isThenable(nestedSelect) || isThenable(baseQuery)

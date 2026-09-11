@@ -69,6 +69,20 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
+### Plugin options
+
+- `client`: the drizzle client, or a function returning one from the request context.
+- `getTableConfig`: the `getTableConfig` of your dialect, used to read primary keys and unique
+  constraints.
+- `relations`: the relations passed to `drizzle()`.
+- `defaultConnectionSize` / `maxConnectionSize`: the page size a connection uses when the query
+  does not ask for one (defaults to 20), and the largest size it will accept (defaults to 100).
+  Both can also be set per field with `defaultSize` and `maxSize`.
+- `filterConnectionTotalCount`: see [Connection totalCount](https://pothos-graphql.dev/docs/plugins/drizzle/connections#connection-totalcount).
+- `skipDeferredFragments`: selections inside a `@defer` fragment are left out of the planned query
+  by default, and the fragment's fields are loaded through [fallback queries](https://pothos-graphql.dev/docs/plugins/drizzle/relations#fallback-queries)
+  when it resolves. Set this to `false` to plan deferred selections with the rest of the query.
+
 ## Defining Objects
 
 The `builder.drizzleObject` method can be used to define GraphQL Object types based on a drizzle
@@ -253,8 +267,34 @@ builder.drizzleObject('users', {
 
 The query API enables you to define args and convert them into parameters that will be passed into
 the relational query builder. The `query` callback receives `(args, ctx, pathInfo)` where `pathInfo`
-contains the GraphQL query path information (`path` and `segments`). You can read more about the
-relation query builder api [here](https://orm.drizzle.team/docs/rqb#querying)
+describes where in the GraphQL query the relation is being loaded:
+
+- `path`: a list of `ParentType.fieldName` strings, from the root field down to the field being
+  resolved (eg. `['Query.user', 'User.posts']`).
+- `segments`: one object per entry in `path`, with `field` (the field name), `alias` (the alias used
+  in the query, or the field name if none), `parentType` (the name of the type the field is defined
+  on), and `isList` (whether the field returns a list).
+
+You can read more about the relation query builder api
+[here](https://orm.drizzle.team/docs/rqb#querying)
+
+## Fallback queries
+
+A field whose data is not on the row it resolves from is loaded with a fallback query. This happens
+when:
+
+- The parent row was not loaded through a `t.drizzleField`, `t.relation`, or connection. This
+  covers rows a resolver queried itself, and rows that came from somewhere else entirely.
+- A `drizzleField` resolver did not pass the result of `query()` to drizzle.
+- A relation's arguments conflict with a sibling selection of the same relation that was planned
+  first.
+
+Fallback queries are batched. Every row of a table that needs the same selection in the same tick
+is loaded with one `findMany` filtered on the primary key, or on the first unique column for a
+table that has no primary key, and the rows are matched back to their parents. If the query does
+not return a row for a parent, because it was deleted since it was loaded, or never came from the
+table, that field rejects with `Model users(1) not found`, where the value in parentheses is the
+key that was looked up.
 
 ## Drizzle Fields
 
@@ -293,6 +333,26 @@ The `resolve` function of a `drizzleField` will be passed a `query` function tha
 passed to a drizzle `findOne` or `findMany` query. The `query` function optionally accepts any
 arguments that are normally passed into the query, and will merge these options with the selection
 used to resolve data for the nested GraphQL selections.
+
+### `drizzleFieldWithInput`
+
+With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
+`t.drizzleFieldWithInput` combines `t.drizzleField` with `t.fieldWithInput`. The `input` fields
+become an input object argument, and the resolver still receives the `query` function as its first
+argument:
+
+```ts
+builder.queryFields((t) => ({
+  user: t.drizzleFieldWithInput({
+    type: 'users',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    resolve: (query, root, args, ctx) =>
+      db.query.users.findFirst(query({ where: { id: Number.parseInt(args.input.id, 10) } })),
+  }),
+}));
+```
 
 ## Variants
 
@@ -356,6 +416,68 @@ builder.drizzleNode('users', {
 });
 ```
 
+A `t.variant` field can have a `select` of its own. It is planned along with the variant's
+type-level selection when the variant is queried through that field:
+
+```ts
+builder.drizzleNode('users', {
+  name: 'User',
+  fields: (t) => ({
+    viewer: t.variant(Viewer, {
+      // loaded with the row when `viewer` is selected
+      select: { columns: { email: true } },
+      isNull: (user, args, ctx) => user.id !== ctx.user?.id,
+    }),
+  }),
+});
+```
+
+Two variants of one table selected for the same row have their type-level selections merged into a
+single query, which can fail if they disagree. See
+[Conflicting selections between variants](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning#conflicting-selections-between-variants).
+
+## Interfaces
+
+`builder.drizzleInterface` works just like `builder.drizzleObject`, and can be used to define
+either the primary type or a variant of a table as an interface that other variants implement. The
+interface's `select` is planned whenever a field returns the interface, and an implementation's own
+`select` is planned when a fragment narrows to it. Selections are not inherited, so an
+implementation that exposes more columns will need a `select` of its own.
+
+```ts
+export const Viewer = builder.drizzleInterface('users', {
+  variant: 'Viewer',
+  select: { columns: { id: true, role: true } },
+  resolveType: (user) => (user.role === 'admin' ? 'AdminViewer' : 'MemberViewer'),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    user: t.variant('users'),
+  }),
+});
+
+builder.drizzleObject('users', {
+  variant: 'AdminViewer',
+  interfaces: [Viewer],
+  select: { columns: { permissions: true } },
+  fields: (t) => ({
+    permissions: t.exposeStringList('permissions'),
+  }),
+});
+```
+
+Fields can be added to an interface later with `builder.drizzleInterfaceField` and
+`builder.drizzleInterfaceFields`, which take the interface ref (or the table name) like their
+`drizzleObjectField(s)` counterparts:
+
+```ts
+builder.drizzleInterfaceFields(Viewer, (t) => ({
+  posts: t.relatedConnection('posts'),
+}));
+```
+
+An object type implementing a drizzle interface must be based on the same table. A plain object
+type that implements one is planned with the interface's table, so fragments on it will select the
+relations it inherits.
 
 ## Related field
 
@@ -393,6 +515,10 @@ builder.drizzleNode('users', {
 The `buildFilter` function passed to `select` generates the appropriate SQL filter based on the
 relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
 it easier to filter for the related records.
+
+`t.relatedField` also accepts the normal field options (`description`, `deprecationReason`,
+`extensions`, and options added by other plugins like `authScopes`). Its `resolve` may be async,
+and receives the resolve `info` as its fourth argument.
 
 ### SQLite many-to-many filters
 
@@ -446,8 +572,13 @@ publishedPostsCount: t.relatedCount('posts', {
   where: (args, ctx) => args.category
     ? and(eq(posts.published, true), eq(posts.category, args.category))
     : eq(posts.published, true),
-}),
+});
 ```
+
+For a many-to-many relation (one defined with `.through(...)`), `t.relatedCount` counts distinct
+related rows, so a row reachable through two junction rows counts once. A `t.relatedConnection`'s
+`totalCount` counts the rows the connection pages over instead, which is one per junction row,
+since that is what the relational query builder returns for the relation.
 
 ## Relay integration
 
@@ -659,8 +790,6 @@ const Role = builder.drizzleObject('roles', {
   }),
 });
 
-
-
 // Create connection helpers for the media type.  This will allow you
 // to use the normal t.connection with a drizzle type
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
@@ -747,7 +876,6 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   // resolve the node from the returned list item
   resolveNode: (userRole) => userRole.role,
 });
-
 
 builder.drizzleObjectField('User', 'rolesConnection', (t) =>
   t.connection({
@@ -847,7 +975,7 @@ builder.queryFields((t) => ({
     },
   }),
 }));
-
+```
 
 ## Query planning
 

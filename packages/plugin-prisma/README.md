@@ -212,6 +212,8 @@ const builder = new SchemaBuilder<{
     filterConnectionTotalCount: true,
     // warn when not using a query parameter correctly
     onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
+    // leave selections inside @defer fragments out of the planned query (defaults to true)
+    skipDeferredFragments: true,
   },
 });
 ```
@@ -306,16 +308,45 @@ This method works just like the normal `t.field` method with a couple of differe
 
 1. The `type` option must contain the name of the prisma model (eg. `User` or `[User]` for a list
    field).
-2. The `resolve` function has a new first argument `query` which should be spread into query prisma
+2. The `resolve` function has a new first argument `query` which should be spread into your prisma
    query. This will be used to load data for nested relationships.
 
-You do not need to use this method, and the `builder.prismaObject` method returns an object ref than
+You do not need to use this method, and the `builder.prismaObject` method returns an object ref that
 can be used like any other object ref (with `t.field`), but using `t.prismaField` will allow you to
 take advantage of more efficient queries.
 
 The `query` object will contain an object with `include` or `select` options to pre-load data needed
 to resolve nested parts of the current query. The included/selected fields are based on which fields
 are being queried, and the options provided when defining those fields and types.
+
+### `prismaFieldWithInput`
+
+With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
+`t.prismaFieldWithInput` combines `t.prismaField` with `t.fieldWithInput`. The `input` fields become
+an input object argument, and the resolver still receives the `query` to spread as its first
+argument.
+
+```typescript
+builder.mutationType({
+  fields: (t) => ({
+    createPost: t.prismaFieldWithInput({
+      type: 'Post',
+      input: {
+        title: t.input.string({ required: true }),
+        authorId: t.input.id({ required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.post.create({
+          ...query,
+          data: {
+            title: args.input.title,
+            authorId: Number.parseInt(args.input.authorId, 10),
+          },
+        }),
+    }),
+  }),
+});
+```
 
 ## Adding relations
 
@@ -401,7 +432,7 @@ and batched by Prisma to combine multiple queries (in an n+1 situation) to a sin
 The following are some edge cases that could cause an additional query to be necessary:
 
 - The parent object was not loaded through a field defined with `t.prismaField`, or `t.relation`
-- The root `prismaField` did not correctly spread the `query` arguments in is prisma call.
+- The root `prismaField` did not correctly spread the `query` arguments in its prisma call.
 - The query selects multiple fields that use the same relation with different filters, sorting, or
   limits
 - The query contains multiple aliases for the same relation field with different arguments in a way
@@ -410,6 +441,24 @@ The following are some edge cases that could cause an additional query to be nec
 
 All of the above should be relatively uncommon in normal usage, but the plugin ensures that these
 types of edge cases are automatically handled when they do occur.
+
+A fallback query loads the parent row again by its primary key, or by the first required unique
+field or index when the model has no primary key, selecting what the missing fields need. To load
+it some other way, add a `findUnique` option to the type that returns the `where` for
+`prisma.<model>.findUnique`:
+
+```typescript
+builder.prismaObject('User', {
+  findUnique: (user, ctx) => ({ email: user.email }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    posts: t.relation('posts'),
+  }),
+});
+```
+
+A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
+would need one will throw `Missing findUnique for User` instead of querying.
 
 ### Filters, Sorting, and arguments
 
@@ -466,6 +515,29 @@ builder.prismaObject('User', {
 });
 ```
 
+### Nullable relations and `onNull`
+
+A relation that is optional in the prisma schema (`profile Profile?`) can be exposed as a nullable
+field with `nullable: true`. To expose it as non-nullable, `t.relation` requires an `onNull` option
+describing what should happen when the related row is missing. Setting it to `'error'` lets GraphQL
+raise the non-null error for the field. A function can return a replacement value instead, or an
+`Error` to raise:
+
+```typescript
+builder.prismaObject('User', {
+  fields: (t) => ({
+    profile: t.relation('profile', { nullable: true }),
+    // An error when the user has no profile
+    requiredProfile: t.relation('profile', { nullable: false, onNull: 'error' }),
+    // A default when the user has no profile
+    profileOrDefault: t.relation('profile', {
+      nullable: false,
+      onNull: (user, args, ctx, info) => ({ id: 0, userId: user.id, bio: null }),
+    }),
+  }),
+});
+```
+
 ## relationCount
 
 Prisma supports querying for
@@ -504,9 +576,11 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
+      // The profile relation is nullable, so this field is too.
+      nullable: true,
       // The profile relation will always be loaded, and user will now be typed to include the
       // profile field so you can return the bio from the nested profile relation.
-      resolve: (user) => user.profile.bio,
+      resolve: (user) => user.profile?.bio,
     }),
   }),
 });
@@ -549,7 +623,7 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
-      // This will select user.profile.bio when the the `bio` field is queried
+      // This will select user.profile.bio when the `bio` field is queried
       select: {
         profile: {
           select: {
@@ -562,6 +636,10 @@ builder.prismaObject('User', {
   }),
 });
 ```
+
+A field-level `select` always adds to the row of the model the field is defined on, whatever type
+the field returns. A `select` on a `t.prismaField` defined on `User` adds columns to the user its
+resolver receives as the parent, not to the model the field returns.
 
 ## Using arguments or context in your selections
 
@@ -648,7 +726,7 @@ You can also use variants when defining relations by providing a `type` option:
 ```typescript
 const PostDraft = builder.prismaNode('Post', {
   variant: 'PostDraft'
-  // This set's what database field to use for the nodes id field
+  // This sets what database field to use for the nodes id field
   id: { field: 'id' },
   // fields work just like they do for builder.prismaObject
   fields: (t) => ({
@@ -699,6 +777,10 @@ builder.prismaObjectField(Viewer, 'user', t.variant(User));
 ```
 
 This same workaround applies when defining relations using variants.
+
+Two variants of one model selected for the same row have their type-level selections merged into a
+single query, which can fail if they disagree. See
+[Conflicting selections between variants](https://pothos-graphql.dev/docs/plugins/prisma/query-planning#conflicting-selections-between-variants).
 
 ## Creating interfaces with `builder.prismaInterface`
 
@@ -796,6 +878,62 @@ builder.prismaObject('User', {
 });
 ```
 
+`nestedSelection` returns the relation query for the type it selected, which for a `Post` is
+`{ select?, include?, where?, orderBy?, take?, skip?, cursor? }`. Any keys you pass in are kept as
+they were given, so a `select` passed to `nestedSelection` will still narrow the parent's shape.
+With no argument, or with `true`, it returns the planned selection on its own.
+
+### Pinning a type in the path
+
+The `path` is followed through fragments, so a segment is found whether the field is selected
+directly, or under a fragment on an implementation of the field's type. When several
+implementations share the same field name, a segment can be written as `{ name, type }` to name the
+implementation the field must be found under. Only selections of that field under a fragment on
+that type, or one of its subtypes, will be planned:
+
+```typescript
+builder.prismaObject('User', {
+  fields: (t) => ({
+    entries: t.field({
+      type: [Entry],
+      select: (args, ctx, nestedSelection) => ({
+        // Plan what `post` selects under `... on PostEntry`, not under other implementations
+        posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
+      }),
+      resolve: (user) => user.posts.map((post) => ({ kind: 'post', post })),
+    }),
+  }),
+});
+```
+
+The same segments can be used in `queryFromInfo`'s `path` and `paths` options. The type is exported
+as `PathSegment`.
+
+### Selecting as a specific type
+
+When the field returns an interface or union, the third argument names the object type the
+selection should be read as. Its type-level selection and the fields selected under a fragment on
+it are planned, and fragments on other types are left out. With an empty path, this applies to the
+field's own return type:
+
+```typescript
+// Activity is a union of Post and Comment
+builder.prismaObject('User', {
+  fields: (t) => ({
+    recentActivity: t.field({
+      type: [Activity],
+      select: (args, ctx, nestedSelection) => ({
+        // What the query selects under `... on Post`, as a query for the posts relation
+        posts: nestedSelection({ take: 5 }, [], 'Post'),
+        // and under `... on Comment`, for the comments relation
+        comments: nestedSelection({ take: 5 }, [], 'Comment'),
+      }),
+      resolve: (user) => [...user.posts, ...user.comments],
+    }),
+  }),
+});
+```
+
 ## Indirect relations (eg. Join tables)
 
 If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
@@ -883,6 +1021,16 @@ a flag if the property is accessed. If no properties are accessed on the query o
 resolver returns, it will trigger the `onUnusedQuery` condition.
 
 It's recommended to enable this check in development to more quickly find potential issues.
+
+## Deferred fragments
+
+Selections inside a `@defer` fragment are left out of the planned query by default, so the initial
+payload is not delayed by data the client has agreed to wait for. When the deferred fragment
+resolves, its fields are loaded through [fallback queries](https://pothos-graphql.dev/docs/plugins/prisma/relations#fallback-queries), batched as
+usual.
+
+Set `skipDeferredFragments: false` in the plugin options to plan deferred selections with the rest
+of the query. `queryFromInfo` accepts the same option per call.
 
 ## Optimized queries without `t.prismaField`
 
@@ -1052,11 +1200,17 @@ builder.queryType({
 
 The created connection queries currently support the following combinations of connection arguments:
 
-- `first`, `last`, or `before`
+- `first`, `last`, `before`, or `after` on their own
+- `first` and `after`
+- `last` and `before`
+
+The following combinations are not supported:
+
+- `before` and `after`
 - `first` and `before`
 - `last` and `after`
 
-Queries for other combinations are not as useful, and generally requiring loading all records
+Queries for these combinations are not as useful, and generally requiring loading all records
 between 2 cursors, or between a cursor and the end of the set. Generating query options for these
 cases is more complex and likely very inefficient, so they will currently throw an Error indicating
 the argument combinations are not supported.
@@ -1107,8 +1261,8 @@ builder.prismaNode('User', {
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
   filtering and sorting logic that will be merged into the query for the relation.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
-  `relationCount` above for more details. Note that this will not work when using a shared
-  connection object (see details below)
+  [`relationCount`](https://pothos-graphql.dev/docs/plugins/prisma/relations#relationcount) for more details. Note that this will not work when
+  using a shared connection object (see details below)
 
 ### Indirect relations as connections
 
@@ -1328,18 +1482,22 @@ builder.prismaObjectFields('Post', (t) => ({
     {
       type: Media,
       select: (args, ctx, nestedSelection) => ({
-        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
-        select: {
-          media: nestedSelection({}, ['edges', 'node']),
+        // count the join table rows for totalCount
+        _count: {
+          select: {
+            media: true,
+          },
+        },
+        // select the join table rows, with the pagination and node selection from the helpers
+        media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
         },
       }),
 
-      resolve: (post, args, ctx) =>
-        mediaConnectionHelpers.resolve(
-          post.media.map(({ media }) => media),
-          args,
-          ctx,
-        ),
+      resolve: (post, args, ctx) => ({
+        totalCount: post._count.media,
+        ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+      }),
     },
     {},
     // options for the edge object
@@ -1359,10 +1517,10 @@ builder.prismaObjectFields('Post', (t) => ({
 
 ### Total count on shared connection objects
 
-If you are set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
-using a custom connection object, you will need to manually add the `totalCount` field to the
+If you set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
+using a custom connection object, you will need to add the `totalCount` field to the
 connection object manually. The parent object on the connection will have a `totalCount` property
-that is either a the totalCount, or a function that will return the totalCount.
+that is either the totalCount, or a function that will return the totalCount.
 
 ```typescript
 const CommentConnection = builder.connectionObject({
@@ -1408,9 +1566,7 @@ builder.globalConnectionField('totalCount', (t) =>
 );
 ```
 
-### Relay Utils
-
-#### `parsePrismaCursor` and `formatPrismaCursor`
+### `parsePrismaCursor` and `formatPrismaCursor`
 
 These functions can be used to manually parse and format cursors that are compatible with prisma
 connections.
@@ -1551,7 +1707,6 @@ graph more efficient, but they are too complex to describe here.
 
 To create input types compatible with the prisma client, you can check out the
 [prisma-utils plugin](https://pothos-graphql.dev/docs/plugins/prisma-utils)
-
 
 ## Query planning
 
