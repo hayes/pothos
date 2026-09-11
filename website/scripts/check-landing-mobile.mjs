@@ -31,19 +31,23 @@ export async function checkLandingMobile(browser, origin) {
         'Homepage overflows',
       );
       await page.getByRole('link', { name: 'Get started', exact: true }).click();
-      await page.locator('h1').waitFor();
-      assert.equal(
-        await page.locator('h1').evaluate((heading) => {
-          const rect = heading.getBoundingClientRect();
-          const element = document.elementFromPoint(
-            rect.left + rect.width / 2,
-            rect.top + rect.height / 2,
-          );
-          return element === heading || heading.contains(element);
-        }),
-        true,
-        'Docs title must not be covered by the contents bar',
-      );
+      await page.waitForURL(/\/docs(?:\/guide)?$/);
+      await page.getByRole('heading', { name: 'Getting started', exact: true }).waitFor();
+      // Client navigation can paint the heading before scroll restoration and
+      // the floating contents bar settle. Require the intended page and wait
+      // for its title to be unobscured rather than inspecting one transient frame.
+      await page.waitForFunction(() => {
+        const heading = document.querySelector('h1');
+        if (heading?.textContent !== 'Getting started') {
+          return false;
+        }
+        const rect = heading.getBoundingClientRect();
+        const element = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        return element === heading || heading.contains(element);
+      });
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
         false,
