@@ -148,6 +148,46 @@ statements, as in the walkthrough above. See [circular references](./circular-re
 
 You can also pass a ref to `builder.objectType(GiraffeRef, { ... })` with the same options.
 
+### Using SchemaTypes
+
+You can declare backing models in `SchemaTypes` and pass it to `SchemaBuilder`. This lets you
+reference object types by their GraphQL names instead of importing refs. Using the `Giraffe`
+interface from above:
+
+```typescript
+interface SchemaTypes {
+  Objects: {
+    Giraffe: Giraffe;
+  };
+}
+
+const builder = new SchemaBuilder<SchemaTypes>({});
+
+builder.objectType('Giraffe', {
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    giraffe: t.field({
+      type: 'Giraffe',
+      resolve: () => ({
+        name: 'James',
+        birthday: new Date(Date.UTC(2012, 11, 12)),
+        heightInMeters: 5.2,
+      }),
+    }),
+  }),
+});
+```
+
+The `Objects` mapping tells Pothos which backing model belongs to each name. Here, it types the
+`Giraffe` field resolvers and checks the object returned by the `giraffe` query. You still define
+the GraphQL fields with `builder.objectType`; declaring a backing model doesn't expose its properties.
+The [SchemaBuilder guide](./schema-builder) covers the other type settings.
+
 ### Using classes
 
 If your app already represents its data with classes, you can pass a class to `builder.objectType`.
@@ -166,24 +206,3 @@ builder.objectType(GiraffeModel, {
 The `name` option supplies the GraphQL type name. When resolving an
 [interface](./interfaces) or [union](./unions), you can also use an explicit
 `isTypeOf: (value) => value instanceof GiraffeModel` option to identify instances of the class.
-
-### Using SchemaTypes
-
-To reference an object type by a string name, register its backing model in the builder's `Objects`
-generic. This alternative uses the `Giraffe` interface from above:
-
-```typescript
-const builder = new SchemaBuilder<{
-  Objects: { Giraffe: Giraffe };
-}>({});
-
-builder.objectType('Giraffe', {
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-```
-
-Fields can now use `type: 'Giraffe'` without importing a ref. The mapping from GraphQL names to
-backing models stays in one place. The [SchemaBuilder guide](./schema-builder) covers the builder's
-other type settings.
