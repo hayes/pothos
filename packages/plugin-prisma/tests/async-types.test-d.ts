@@ -1,4 +1,4 @@
-import type { MaybePromise } from '@pothos/core';
+import type { CheckAsyncSelection, MaybePromise } from '@pothos/core';
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -168,6 +168,21 @@ declare function genericAsyncSelect<T extends UserSelect>(): Promise<T>;
 declare function genericMaybeAsyncSelect<T extends UserSelect>(): Promise<T> | T;
 declare function genericSyncSelect<T extends UserSelect>(): T;
 
+// A selection carrying a `then` the runtime will call, written with a signature narrower than
+// `PromiseLike`'s two-parameter one. `Promise.resolve` assimilates it all the same.
+type ThenableUserSelect = UserSelect & { then(resolve: (value: UserSelect) => void): void };
+
+declare const thenableSelect: () => ThenableUserSelect;
+// A union of two callback types rather than one callback with a union return type: picking the
+// async member at runtime is what makes synchronous query construction throw.
+declare const unionOfCallbacksSelect: (() => UserSelect) | (() => Promise<UserSelect>);
+// An async overload the plugins reach — they call a field `select` with three arguments — behind
+// a synchronous one that `infer` reads instead.
+declare const overloadedSelect: {
+  (args: {}, ctx: unknown, nestedSelection: unknown): Promise<UserSelect>;
+  (): UserSelect;
+};
+
 syncBuilder.prismaObject('User', {
   select: { id: true },
   fields: (t) => ({
@@ -260,6 +275,31 @@ syncBuilder.prismaObject('User', {
       select: genericSyncSelect,
       resolve: () => '',
     }),
+    // A union of callback types, one of them async. Reading a verdict per member and unioning
+    // the verdicts lets the synchronous member's `unknown` absorb the async member's diagnostic,
+    // so the check collects the members' thenables instead. Here the union is turned away before
+    // the check is consulted — inference keeps only the member the option's own type accepts — so
+    // what the check itself answers for this shape is pinned directly below.
+    unionOfCallbacks: t.string({
+      // @ts-expect-error a field `select` that may be an async callback needs `AsyncSelections: true`
+      select: unionOfCallbacksSelect,
+      resolve: () => '',
+    }),
+    // The runtime calls anything with a callable `then`, so a selection intersected with one is
+    // planned asynchronously even though it is not `PromiseLike` — whose `then` takes two
+    // parameters this one does not declare.
+    thenableSelection: t.string({
+      // @ts-expect-error a thenable field `select` needs `AsyncSelections: true`
+      select: thenableSelect,
+      resolve: () => '',
+    }),
+    // Known gap, pinned as it stands rather than as it should be: `infer` resolves an overloaded
+    // type to its last signature, so the synchronous overload is the one the check reads while
+    // the plugin calls the three-argument async one. See `CheckAsyncSelection` in core.
+    overloaded: t.string({
+      select: overloadedSelect,
+      resolve: () => '',
+    }),
     awaitedPosts: t.field({
       type: [SyncPost],
       select: (_args, _ctx, nestedSelection) => ({
@@ -269,6 +309,61 @@ syncBuilder.prismaObject('User', {
       resolve: (user) => user.posts,
     }),
   }),
+});
+
+// The shapes above reach `CheckAsyncSelection` only if the option's own type lets them through,
+// which hides what the check itself answers. Asked directly, it answers `unknown` for a callback
+// it accepts and the diagnostic for one it rejects.
+type SyncTypes = PothosSchemaTypes.ExtendDefaultTypes<{
+  PrismaTypes: PrismaTypes;
+  Context: { tenantId: () => Promise<number> };
+}>;
+type AsyncSelectionError =
+  'An async selection requires `AsyncSelections: true` in the schema types';
+
+it('rejects each async callback shape', () => {
+  expectTypeOf<
+    CheckAsyncSelection<SyncTypes, () => Promise<UserSelect>>
+  >().toEqualTypeOf<AsyncSelectionError>();
+
+  // A union of callback types: distributing the verdict over it lets the synchronous member's
+  // `unknown` absorb the async member's diagnostic.
+  expectTypeOf<
+    CheckAsyncSelection<SyncTypes, (() => UserSelect) | (() => Promise<UserSelect>)>
+  >().toEqualTypeOf<AsyncSelectionError>();
+
+  expectTypeOf<
+    CheckAsyncSelection<SyncTypes, (() => UserSelect) | (() => ThenableUserSelect)>
+  >().toEqualTypeOf<AsyncSelectionError>();
+
+  // A selection the runtime awaits but `PromiseLike` does not describe.
+  expectTypeOf<
+    CheckAsyncSelection<SyncTypes, () => ThenableUserSelect>
+  >().toEqualTypeOf<AsyncSelectionError>();
+});
+
+// Known gap. `infer` resolves an overloaded type to its last signature, and no pattern recovers
+// the rest of them for an arbitrary overload count, so the async overload is not seen.
+it('accepts an overloaded callback whose async overload is not the last', () => {
+  expectTypeOf<CheckAsyncSelection<SyncTypes, typeof overloadedSelect>>().toBeUnknown();
+});
+
+it('accepts the synchronous shapes', () => {
+  expectTypeOf<CheckAsyncSelection<SyncTypes, () => UserSelect>>().toBeUnknown();
+  expectTypeOf<CheckAsyncSelection<SyncTypes, () => never>>().toBeUnknown();
+  expectTypeOf<CheckAsyncSelection<SyncTypes, typeof declaredSyncUnionSelect>>().toBeUnknown();
+  expectTypeOf<CheckAsyncSelection<SyncTypes, typeof genericSyncSelect>>().toBeUnknown();
+  expectTypeOf<
+    CheckAsyncSelection<
+      SyncTypes,
+      (() => { email: true }) | (() => { name: true }) | (() => { id: true }) | (() => UserSelect)
+    >
+  >().toBeUnknown();
+  // Unchanged by the widening: a return type whose async-ness is erased stays accepted.
+  expectTypeOf<CheckAsyncSelection<SyncTypes, () => unknown>>().toBeUnknown();
+  expectTypeOf<CheckAsyncSelection<SyncTypes, <T>() => T>>().toBeUnknown();
+  // A selection is not a callback, and is never asked about.
+  expectTypeOf<CheckAsyncSelection<SyncTypes, UserSelect>>().toBeUnknown();
 });
 
 declare const info: GraphQLResolveInfo;

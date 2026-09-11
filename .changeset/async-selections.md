@@ -33,10 +33,12 @@ default.
   `await` it. A call that did not ask for a promise throws, naming the option and what the call
   was building — `queryFromInfo` the field, `getQuery` the connection's model or table, which is
   as much as it is given — rather than returning one where the declared type said there was none:
-  a promise spread into a prisma or drizzle call is one unusable key and no type error. Whether
-  the query can be built synchronously turns on whether any selection beneath the field is async,
-  which is a property of the document rather than of the call site. The return type follows the
-  option's literal type, so the default keeps the plain query; a non-literal `boolean` gets the
-  `MaybePromise`, since the call cannot rely on the synchronous type either.
+  a promise spread into a prisma or drizzle call is one unusable key and no type error. Two things
+  make the query async. One is a selection beneath the field, which is a property of the document
+  rather than of the call site. The other is the helper's own `select` or `query` callback: an
+  async one makes `getQuery` throw for a fully synchronous document, since it is the helper's own
+  callback that has not settled. The return type follows the option's literal type, so the default
+  keeps the plain query; a non-literal `boolean` gets the `MaybePromise`, since the call cannot
+  rely on the synchronous type either.
 - A selection passed to drizzle's `query()` comes first, as it does for `queryFromInfo`: a
   relation the document also plans with other arguments loads on its own.
