@@ -26,8 +26,10 @@ on what "related" means.
 - `totalCount` and the query that pages the relation are now the same predicate: the count selects
   from what the page query selects from and repeats its `where` clause, minus the limit, the
   ordering and the keyset clauses.
-- A count over a many-to-many relation joins the junction table by its index, and a related row
-  reachable through two junction rows still counts once.
+- A count over a many-to-many relation joins the junction table by its index. `t.relatedCount`
+  counts a related row once however many junction rows reach it; a `t.relatedConnection`'s
+  `totalCount` counts rows the way the page query returns them, so the two report different
+  totals for a relation whose junction holds duplicate rows.
 - A `drizzleConnection` declared `nullable: false` no longer queries rows for a document that
   selects only `totalCount`. The check that recognises a count-only selection read the field's
   return type without unwrapping it, so a non-null connection never matched and always loaded a
