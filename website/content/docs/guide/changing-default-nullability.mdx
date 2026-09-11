@@ -1,33 +1,89 @@
 ---
 title: Default nullability
-description: Guide for changing default nullability in Pothos
+description: Configure schema-wide defaults and override them for individual fields.
 ---
 
-By default, fields and arguments in Pothos are nullable. This default can be overwritten by
-setting `nullable: false` in the options for output fields and by setting `required: true` for input
-fields or arguments.
+By default, Pothos output fields are nullable, and arguments and input object fields are optional.
+Use `nullable: false` to make an output field non-null, or `required: true` to require an input.
 
-These defaults may not be the right choice for every application, and changing them on every field
-can be a pain. Instead, Pothos allows overwriting these defaults when setting up your SchemaBuilder.
-You will need to provide the new defaults in two places:
-
-1. In the type parameter for the builder, which enables the type checking to work with your new
-   settings.
-
-2. In the Builder options, so that the correct schema is built at run time.
+You can change these defaults for a builder. Set each default in both the `SchemaTypes` generic
+for TypeScript checking and the constructor options for runtime schema generation:
 
 ```typescript
-// Create a Builder that makes output fields nullable by default
-export const builder = new SchemaBuilder<{
-  DefaultFieldNullability: false;
-}>({
-  defaultFieldNullability: false,
-});
+import SchemaBuilder from '@pothos/core';
 
-// Create a Builder that makes input fields and arguments required by default
-export const builder = new SchemaBuilder<{
+const builder = new SchemaBuilder<{
+  DefaultFieldNullability: false;
   DefaultInputFieldRequiredness: true;
 }>({
+  defaultFieldNullability: false,
   defaultInputFieldRequiredness: true,
 });
+
+const GreetingInput = builder.inputType('GreetingInput', {
+  fields: (t) => ({
+    name: t.string(),
+    title: t.string({ required: false }),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    greeting: t.string({
+      args: { input: t.arg({ type: GreetingInput }) },
+      resolve: (_parent, { input }) =>
+        `Hello, ${input.title ? `${input.title} ` : ''}${input.name}!`,
+    }),
+    nickname: t.string({ nullable: true, resolve: () => null }),
+    names: t.stringList({ resolve: () => ['Ada'] }),
+  }),
+});
+
+export const schema = builder.toSchema();
 ```
+
+These settings are independent: omit the input setting from both places if you only want to change
+output nullability, or omit the output setting to change only input requiredness.
+
+The example produces these field types:
+
+```graphql
+input GreetingInput {
+  name: String!
+  title: String
+}
+
+type Query {
+  greeting(input: GreetingInput!): String!
+  names: [String!]!
+  nickname: String
+}
+```
+
+`nullable: true` and `required: false` override the new defaults on individual fields. List items
+remain non-null by default; changing the builder defaults controls the list itself. Use the object
+forms of `nullable` or `required` to configure items separately, as shown in [Fields](./fields) and
+[Arguments](./args).
+
+```graphql
+{
+  greeting(input: { name: "Ada" })
+  names
+  nickname
+}
+```
+
+```json
+{
+  "data": {
+    "greeting": "Hello, Ada!",
+    "names": ["Ada"],
+    "nickname": null
+  }
+}
+```
+
+Changing defaults changes the public schema for fields without explicit settings. Requiring an
+existing optional argument or input field can break client requests. Non-null output fields also
+change error propagation: if a resolver returns null or throws, GraphQL propagates the null to the
+nearest nullable parent, potentially making the entire response's `data` null.
