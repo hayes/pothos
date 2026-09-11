@@ -51,12 +51,19 @@ export type NestedSelection<Query> = (
   type?: string,
 ) => Query;
 
+/** Inspect fields beneath the current selection, through fragments and wrappers. */
+export interface SelectedFieldNode {
+  /** Lazily collect selected schema field names; aliases do not change the names. */
+  (): ReadonlySet<string>;
+  (path: string[]): FieldNode | null;
+}
+
 /** A function field selection. A falsy result selects nothing. */
 export type SelectFn<Query> = (
   args: object,
   ctx: object,
   nested: NestedSelection<Query>,
-  selectedFieldNode: (path: string[]) => FieldNode | null,
+  selectedFieldNode: SelectedFieldNode,
   position: Position,
 ) => MaybePromise<Query | false | null | undefined>;
 

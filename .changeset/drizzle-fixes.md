@@ -25,3 +25,7 @@ Drizzle plugin fixes.
   `query.<table>.findMany()`, alongside relation metadata and `$count()`. Forward SQL construction
   synchronously; do not wrap `select` in a promise or Effect. Full Drizzle clients already
   provide these methods.
+- Requires Drizzle `1.0.0-rc.2` or newer for the relation SQL API used by counts and predicates.
+- Custom connection fields retain their rows when `totalCount` is selected.
+- Connection helper `resolve()` returns a maybe-promise for async-enabled schemas; await it
+  before inspecting or spreading connection fields.

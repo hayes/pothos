@@ -18,7 +18,12 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { getLoaderMapping, type Position, selectedFieldNames } from '@pothos/selection-mapper';
+import {
+  getLoaderMapping,
+  type Position,
+  type SelectedFieldNode,
+  selectedFieldNames,
+} from '@pothos/selection-mapper';
 import {
   and,
   type BuildQueryResult,
@@ -32,7 +37,7 @@ import {
   type TableRelationalConfig,
   type TablesRelationalConfig,
 } from 'drizzle-orm';
-import type { FieldNode, GraphQLResolveInfo } from 'graphql';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
 import type {
   DrizzleConnectionShape,
@@ -311,13 +316,17 @@ export class DrizzleObjectFieldBuilder<
     // What the document asks of this connection, read the way the planner reads it (through
     // fragments, directives, and a wrapping type), so the resolve side agrees with the plan. The
     // selection is read once per request and shared by every parent row.
-    const connectionSelection = (context: object, info: GraphQLResolveInfo) => {
-      const selected = selectedFieldNames(context, info);
+    const connectionSelectionFromNames = (selected: ReadonlySet<string>) => {
       const hasTotalCount = !!totalCount && selected.has('totalCount');
-      const hasRows = selected.has('edges') || selected.has('nodes') || selected.has('pageInfo');
-
-      return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
+      for (const field of selected) {
+        if (field !== 'totalCount' && field !== '__typename') {
+          return { hasTotalCount, totalCountOnly: false };
+        }
+      }
+      return { hasTotalCount, totalCountOnly: hasTotalCount };
     };
+    const connectionSelection = (context: object, info: GraphQLResolveInfo) =>
+      connectionSelectionFromNames(selectedFieldNames(context, info));
 
     // Built once per field, so a synchronous plan allocates nothing beyond the map itself.
     const selectConnection = (
@@ -353,16 +362,12 @@ export class DrizzleObjectFieldBuilder<
       args: object,
       context: object,
       nestedQuery: (query: unknown, path?: unknown) => { select?: object },
-      getSelection: (path: string[]) => FieldNode | null,
+      getSelection: SelectedFieldNode,
       position: Position,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
 
-      const hasTotalCount = !!totalCount && !!getSelection(['totalCount']);
-      const hasEdges = !!getSelection(['edges']);
-      const hasNodes = !!getSelection(['nodes']);
-      const hasPageInfo = !!getSelection(['pageInfo']);
-      const totalCountOnly = hasTotalCount && !hasEdges && !hasNodes && !hasPageInfo;
+      const { hasTotalCount, totalCountOnly } = connectionSelectionFromNames(getSelection());
       const fieldQuery = resolveFieldQuery(args, context, position);
       // The nested plan starts now, with a query that waits for the field's `query` when that is
       // async, so every callback beneath the connection runs in the same tick.

@@ -25,6 +25,7 @@ import {
 import type { NodeBase } from './adapter.js';
 import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
+  collectSelectedFieldNames,
   findMatches,
   firstMatch,
   includeOf,
@@ -46,8 +47,6 @@ import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js
 interface Invocation extends Mapping {
   pending?: number;
 }
-
-function noop() {}
 
 /** Collects a type's type-level selection, once, before its fields are walked. */
 function enter<Model, Query, NodeType extends NodeBase<Model>>(
@@ -578,18 +577,15 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
     }
 
     // A promise behind the declared synchronous type, as `finish` returns one.
-    return child.pending
-      ? (awaitNested(child, mapping) as Query)
-      : adapter.toQuery(playNested(child, mapping).root);
+    return child.pending ? (awaitNested(child, mapping) as Query) : queryNested(child, mapping);
   };
 }
 
 /**
  * The promise of a nested selection whose plan is async, counted against its invocation until it
- * resolves. Handled here, so a nested selection the invocation discards is never an unhandled
- * rejection — `collectField` refuses the invocation instead. A rejection keeps the count, since
- * the invocation did not wait for it either; one that was awaited surfaces through the
- * invocation's own promise.
+ * settles. Both outcomes clear the count, so an invocation can catch a failure and retry.
+ * Rejections are handled here so a discarded selection does not create an unhandled rejection.
+ * A failed child publishes no mappings; fields it did not load can fall back independently.
  */
 function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
@@ -597,15 +593,16 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
 ) {
   mapping.pending = (mapping.pending ?? 0) + 1;
 
-  const result = child.pending!.then(() => child.adapter.toQuery(playNested(child, mapping).root));
+  const result = child.pending!.then(() => queryNested(child, mapping));
 
-  result.then(() => {
+  const settled = () => {
     if (mapping.pending === 1) {
       delete mapping.pending;
     } else {
       mapping.pending! -= 1;
     }
-  }, noop);
+  };
+  result.then(settled, settled);
 
   return result;
 }
@@ -615,17 +612,19 @@ function awaitNested<Model, Query, NodeType extends NodeBase<Model>>(
  * folded into the invocation that started it. Every nested plan of one invocation records into
  * the same `mapping.nested`, so two that map the same key union.
  */
-function playNested<Model, Query, NodeType extends NodeBase<Model>>(
+function queryNested<Model, Query, NodeType extends NodeBase<Model>>(
   child: Plan<Model, Query, NodeType>,
   mapping: Invocation,
 ) {
   const played = child.play();
+  // Serialization can throw. Publish mappings only once the caller can use the query.
+  const query = child.adapter.toQuery(played.root);
 
   for (const key of Object.keys(played.mappings)) {
     mapping.nested[key] = unionMappings(mapping.nested[key], played.mappings[key]);
   }
 
-  return played;
+  return query;
 }
 
 /**
@@ -658,8 +657,15 @@ function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   { field, node: fieldNode }: Position,
 ) {
   const { info } = plan;
+  let names: ReadonlySet<string> | undefined;
 
-  return (path: string[]) => {
+  function getSelection(): ReadonlySet<string>;
+  function getSelection(path: string[]): FieldNode | null;
+  function getSelection(path?: string[]): ReadonlySet<string> | FieldNode | null {
+    if (path === undefined) {
+      names ??= collectSelectedFieldNames(info, getNamedType(field.type), [fieldNode]);
+      return names;
+    }
     const returnType = getNamedType(field.type);
     const match = firstMatch(
       info,
@@ -670,5 +676,7 @@ function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
     );
 
     return match?.field ?? null;
-  };
+  }
+
+  return getSelection;
 }

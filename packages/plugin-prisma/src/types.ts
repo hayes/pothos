@@ -225,21 +225,23 @@ interface BaseSelection {
   select?: unknown;
 }
 
-export type SelectedKeys<T> = { [K in keyof T]: T[K] extends false ? never : K }[keyof T];
+export type SelectedKeys<T> = {
+  [K in keyof T]-?: {} extends Pick<T, K> ? never : T[K] extends false | undefined ? never : K;
+}[keyof T];
 
 /**
- * Whether a `select` names any column at all. It does not when it is absent (`unknown`), and it
- * does not when every key of it is optional, as on a planned relation query whose `select` is the
- * model's whole `Select` map: such a query may select anything, so nothing is known to be on the
- * row. A map with at least one required key does name columns, even when the `select` key itself
- * is optional: those columns are on the row whether or not the `select` is applied, because a row
- * loaded without a `select` carries every column.
+ * An absent select loads all scalar columns. Keep Prisma's model-shape convention for an
+ * unconstrained generated query type, but do not apply it to an explicit empty or partial map.
  */
-type SelectsNothing<Select> = [NonNullable<Select>] extends [never]
+type HasNoSelect<Select, Model extends PrismaModelTypes> = unknown extends Select
   ? true
-  : {} extends NonNullable<Select>
+  : [NonNullable<Select>] extends [never]
     ? true
-    : false;
+    : keyof Model['Select'] extends keyof NonNullable<Select>
+      ? Model['Select'] extends NonNullable<Select>
+        ? true
+        : false
+      : false;
 
 export type ShapeFromSelection<
   Types extends SchemaTypes,
@@ -247,8 +249,7 @@ export type ShapeFromSelection<
   Selection,
 > = Normalize<
   Selection extends BaseSelection
-    ? // A `select` that names no column does not narrow the row: every column may be there.
-      SelectsNothing<Selection['select']> extends true
+    ? HasNoSelect<Selection['select'], Model> extends true
       ? Model['Shape'] &
           RelationShapeFromInclude<Types, Model, Selection['include']> &
           ShapeFromCount<CountSelection<Selection['include']>, Model>
@@ -262,7 +263,7 @@ export type ShapeFromSelection<
 >;
 
 /** The `_count` entry of a `select` or `include` map, or `undefined` when there is none. */
-type CountSelection<Map> = Map extends { _count?: infer Count } ? Count : undefined;
+type CountSelection<Map> = Map extends { _count: infer Count } ? Count : undefined;
 
 /**
  * What a `_count` selection adds to a row, as prisma returns it: `_count: true` counts every list

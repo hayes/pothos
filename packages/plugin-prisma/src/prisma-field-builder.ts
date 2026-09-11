@@ -17,8 +17,8 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { type IndirectInclude, type Position, selectedFieldNames } from '@pothos/selection-mapper';
-import { type FieldNode, type GraphQLResolveInfo, getNamedType } from 'graphql';
+import { type SelectedFieldNode, selectedFieldNames } from '@pothos/selection-mapper';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
 import type {
@@ -241,12 +241,18 @@ export class PrismaObjectFieldBuilder<
     // What the document asks of this connection, read the way the planner reads it (through
     // fragments, directives, and a wrapping type), so the resolve side agrees with the plan. The
     // selection is read once per request and shared by every parent row.
-    const connectionSelection = (context: object, info: GraphQLResolveInfo) => {
-      const selected = selectedFieldNames(context, info);
+    const connectionSelectionFromNames = (selected: ReadonlySet<string>) => {
       const hasTotalCount = !!totalCount && selected.has('totalCount');
-      const hasRows = [...selected].some((name) => name !== 'totalCount' && name !== '__typename');
+      for (const field of selected) {
+        if (field !== 'totalCount' && field !== '__typename') {
+          return { hasTotalCount, totalCountOnly: false };
+        }
+      }
+      return { hasTotalCount, totalCountOnly: hasTotalCount };
+    };
 
-      return { hasTotalCount, totalCountOnly: hasTotalCount && !hasRows };
+    const connectionSelection = (context: object, info: GraphQLResolveInfo) => {
+      return connectionSelectionFromNames(selectedFieldNames(context, info));
     };
 
     // Built once per field, so a synchronous plan allocates nothing beyond the map itself.
@@ -282,8 +288,7 @@ export class PrismaObjectFieldBuilder<
       args: object,
       context: object,
       nestedQuery: (query: unknown, path?: unknown) => { select?: object },
-      getSelection: (path: string[]) => FieldNode | null,
-      position: Position,
+      getSelection: SelectedFieldNode,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
       // A maybe-promise query starts the nested plan now; its merge waits for the query.
@@ -292,25 +297,7 @@ export class PrismaObjectFieldBuilder<
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as MaybePromise<SelectionMap>;
 
-      // Each lookup searches every node selecting the connection (fragments on a wrapper's
-      // success type may split totalCount and edges across two of them), so the plan agrees with
-      // what `connectionSelection` reads at resolve time.
-      const hasTotalCount = !!totalCount && !!getSelection(['totalCount']);
-      // Custom connection fields can consume rows too. Inspect the connection's complete field
-      // set, including fields added through shared refs or plugins, and use the same fragment-
-      // aware lookup as the built-in fields. A wrapper's single indirect path leads to it.
-      const returnType = getNamedType(position.field.type);
-      let connectionType = returnType.name;
-      let include = returnType.extensions.pothosIndirectInclude as IndirectInclude | undefined;
-      while (include?.path) {
-        connectionType = include.getType();
-        include = this.builder.configStore.getTypeConfig(connectionType).extensions
-          ?.pothosIndirectInclude as IndirectInclude | undefined;
-      }
-      const hasRows = [...this.builder.configStore.getFields(connectionType).keys()].some(
-        (field) => field !== 'totalCount' && !!getSelection([field]),
-      );
-      const totalCountOnly = hasTotalCount && !hasRows;
+      const { hasTotalCount, totalCountOnly } = connectionSelectionFromNames(getSelection());
 
       return isThenable(nested)
         ? nested.then((resolved) => selectConnection(resolved, hasTotalCount, totalCountOnly))

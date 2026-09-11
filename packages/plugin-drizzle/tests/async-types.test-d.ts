@@ -443,3 +443,10 @@ it('returns a MaybePromise from getQuery with awaitSelections without the opt-in
     syncCommentHelpers.getQuery(connectionArgs, ctx, nodeSelection, { awaitSelections: flag }),
   ).toEqualTypeOf<MaybePromise<typeof query>>();
 });
+
+it('requires awaiting helper resolve when async selections are enabled', () => {
+  const connection = commentHelpers.resolve([], connectionArgs, ctx);
+  // @ts-expect-error An async query callback can make resolve return a promise.
+  connection.edges;
+  expectTypeOf(syncCommentHelpers.resolve([], connectionArgs, ctx).edges).toBeArray();
+});

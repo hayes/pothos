@@ -149,18 +149,23 @@ export function drizzleConnectionHelpers<
   ) {
     const baseQuery = baseQueryFor(args, ctx);
 
-    return (isThenable(baseQuery)
-      ? baseQuery.then((resolved) => resolveList(resolved, list, args, ctx, parent))
-      : resolveList(baseQuery, list, args, ctx, parent)) as unknown as {
-      parent: Parent;
-      edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
-      pageInfo: {
-        startCursor: string | null;
-        endCursor: string | null;
-        hasPreviousPage: boolean;
-        hasNextPage: boolean;
-      };
-    };
+    return (
+      isThenable(baseQuery)
+        ? baseQuery.then((resolved) => resolveList(resolved, list, args, ctx, parent))
+        : resolveList(baseQuery, list, args, ctx, parent)
+    ) as MaybeAsyncSelection<
+      Types,
+      {
+        parent: Parent;
+        edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
+        pageInfo: {
+          startCursor: string | null;
+          endCursor: string | null;
+          hasPreviousPage: boolean;
+          hasNextPage: boolean;
+        };
+      }
+    >;
   }
 
   const getQueryArgs = (

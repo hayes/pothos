@@ -638,3 +638,15 @@ describe('async selections', () => {
     expect(contextValue.promises).toBe(0);
   });
 });
+
+it('settles an async helper before its connection fields are inspected', async () => {
+  const connection = asyncCommentHelpers.resolve(
+    [],
+    { first: 1 },
+    {
+      user: { id: 1 },
+    },
+  );
+  expect(connection).toBeInstanceOf(Promise);
+  expect((await connection).edges).toEqual([]);
+});

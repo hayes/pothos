@@ -42,22 +42,6 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
-### Custom client adapters
-
-The exported `DrizzleClient` type describes the methods the plugin calls: relation metadata in
-`_.relations`, `query.<table>.findMany()` for fallback loading, `$count()`, and `select()` for
-relation predicates and counts. Full Drizzle clients provide these methods. Custom wrappers
-must forward them too; wrappers exposing only `query` and `$count` need to add `select` when
-upgrading.
-
-`select` constructs SQL synchronously. Forward its builder, including `from`, `innerJoin`,
-`where`, and `getSQL`, rather than executing it or wrapping it in a promise or Effect. For a
-request-scoped database, this can be `select: (fields) => getDatabase().select(fields)`.
-A dynamic query proxy should expose `DrizzleClient<CountSource>['query']`, where `CountSource`
-is `Parameters<typeof db.$count>[0]`; each table's `findMany` returns a promise-like array of rows.
-The query input is erased in this minimal contract because each table accepts its own
-schema-specific configuration. Keep the concrete database types in application resolvers.
-
 ### Integration with other plugins
 
 The drizzle plugin has integrations with several other plugins. While the `with-input` and `relay`

@@ -374,8 +374,7 @@ it('names the shape of a row loaded with a query', () => {
 // Whether a `select` narrows the row turns on whether it names a column, not on whether the
 // `select` key itself is optional. A map naming a column narrows even when the key is optional:
 // those columns are on the row either way, since a row loaded without a `select` carries every
-// column. A map that names nothing — absent, or the model's whole `Select`, as a planned relation
-// query carries — narrows nothing.
+// column. An explicit empty or wholly optional map guarantees no selected columns.
 type SchemaTypesOfBuilder = typeof builder.$inferSchemaTypes;
 type UserModel = PrismaTypes['User'];
 
@@ -396,6 +395,16 @@ it('narrows on a select that names a column, optional key or not', () => {
     UserModel['Shape']
   >();
 
+  expectTypeOf<
+    ShapeFromSelection<SchemaTypesOfBuilder, UserModel, { select: {} }>
+  >().toEqualTypeOf<{}>();
+  expectTypeOf<
+    ShapeFromSelection<SchemaTypesOfBuilder, UserModel, { select: { email?: true } }>
+  >().toEqualTypeOf<{}>();
+  expectTypeOf<
+    ShapeFromSelection<SchemaTypesOfBuilder, UserModel, { select: { email: false } }>
+  >().toEqualTypeOf<{}>();
+
   // 2. A required `select`: exactly the selected columns.
   expectTypeOf<
     ShapeFromSelection<SchemaTypesOfBuilder, UserModel, { select: { email: true } }>
@@ -413,8 +422,7 @@ it('narrows on a select that names a column, optional key or not', () => {
   // @ts-expect-error `name` was never selected, and is not on the row.
   undefinedInSelect.name;
 
-  // A planned relation query names no column of its own — its `select` is the model's whole
-  // `Select`, every key of it optional — so the row is not narrowed.
+  // Unconstrained generated query types retain Prisma's default model-shape convention.
   expectTypeOf<
     ShapeFromSelection<SchemaTypesOfBuilder, UserModel, { select?: UserModel['Select'] }>
   >().toEqualTypeOf<UserModel['Shape']>();
@@ -535,4 +543,17 @@ it('types an include given to queryFromInfo as an include-mode row', async () =>
 
   // @ts-expect-error `profile` was not included.
   user.profile;
+});
+
+// An explicit empty selection cannot justify reading an arbitrary model column.
+builder.prismaObject('User', {
+  variant: 'EmptySelection',
+  select: {},
+  fields: (t) => ({
+    email: t.string({
+      nullable: true,
+      // @ts-expect-error The empty select did not load email.
+      resolve: (user) => user.email,
+    }),
+  }),
 });

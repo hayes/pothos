@@ -471,8 +471,11 @@ function memoIn<K extends object>(
   return memo;
 }
 
-function collectSelectedFieldNames(info: GraphQLResolveInfo): ReadonlySet<string> {
-  const returnType = getNamedType(info.returnType);
+export function collectSelectedFieldNames(
+  info: GraphQLResolveInfo,
+  returnType = getNamedType(info.returnType),
+  fieldNodes: readonly FieldNode[] = info.fieldNodes,
+): ReadonlySet<string> {
   const prefix = includeOf(returnType)?.path;
   const names = new Set<string>();
   // Every name at one level: `eachSelectedField`'s last step for all of them at once. The level's
@@ -481,7 +484,7 @@ function collectSelectedFieldNames(info: GraphQLResolveInfo): ReadonlySet<string
     names.add(field.name.value);
   };
 
-  for (const node of info.fieldNodes) {
+  for (const node of fieldNodes) {
     // Through a wrapper, the fields are those beneath its inner field.
     const roots: { type: GraphQLNamedType; field: FieldNode; deferred: boolean }[] = prefix?.length
       ? findMatches(info, returnType, node, [prefix])

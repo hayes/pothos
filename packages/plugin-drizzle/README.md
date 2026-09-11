@@ -954,6 +954,10 @@ select: async (args, ctx, nestedSelection) => ({
 `awaitSelections` is a per-call option, and is available whether or not the schema sets
 `AsyncSelections`.
 
+When `AsyncSelections: true`, also `await` a connection helper's `resolve()` before inspecting or
+spreading its result: an async `query` callback makes resolution asynchronous. Returning its
+result directly from a GraphQL resolver remains supported.
+
 ### Conflicting selections between variants
 
 When a query selects two variants of one table for the same row, either with a fragment on each
@@ -972,19 +976,3 @@ options are merged into a single query.
 To fix this, move the relation with its arguments, or the extra, into the `select` of the field
 that needs it on one of the variants. A field-level selection that conflicts with what the row
 already holds falls back to a query for that field, rather than failing the request.
-
-### Custom client adapters
-
-The exported `DrizzleClient` type describes the methods the plugin calls: relation metadata in
-`_.relations`, `query.<table>.findMany()` for fallback loading, `$count()`, and `select()` for
-relation predicates and counts. Full Drizzle clients provide these methods. Custom wrappers
-must forward them too; wrappers exposing only `query` and `$count` need to add `select` when
-upgrading.
-
-`select` constructs SQL synchronously. Forward its builder, including `from`, `innerJoin`,
-`where`, and `getSQL`, rather than executing it or wrapping it in a promise or Effect. For a
-request-scoped database, this can be `select: (fields) => getDatabase().select(fields)`.
-A dynamic query proxy should expose `DrizzleClient<CountSource>['query']`, where `CountSource`
-is `Parameters<typeof db.$count>[0]`; each table's `findMany` returns a promise-like array of rows.
-The query input is erased in this minimal contract because each table accepts its own
-schema-specific configuration. Keep the concrete database types in application resolvers.

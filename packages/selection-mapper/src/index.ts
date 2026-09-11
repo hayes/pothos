@@ -26,6 +26,7 @@ export type {
   MergeOptions,
   NestedSelection,
   Position,
+  SelectedFieldNode,
   SelectFn,
   WalkedType,
 } from './types.js';

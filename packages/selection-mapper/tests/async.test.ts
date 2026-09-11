@@ -426,18 +426,17 @@ describe('a nested selection that was not awaited', () => {
     });
   });
 
-  it('refuses an async select whose discarded nested plan rejected before it returned', async () => {
+  it('leaves rejected discarded nested selections unmapped after they settle', async () => {
     await withoutUnhandledRejection(async () => {
       const context = {};
       const info = await resolveInfo(schema, source);
 
-      await expect(
-        queryFromInfo(withWraps({ posts: discardingAsync(5), author: rejecting }), {
-          context,
-          info,
-        }),
-      ).rejects.toThrow(message);
-      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
+      await queryFromInfo(withWraps({ posts: discardingAsync(5), author: rejecting }), {
+        context,
+        info,
+      });
+      // The parent explicitly selected posts, but no failed nested author plan was published.
+      expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')?.nested).toEqual({});
     });
   });
 
