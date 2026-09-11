@@ -19,7 +19,7 @@ it('allows an async select to recover from an awaited nested query failure', asy
         model: 'User',
         select: { select: { id: true } },
         fields: {
-          posts: async (_args, _context, nested) => {
+          posts: async (_args, _context, nested): Promise<FakeMap> => {
             try {
               return {
                 select: {
@@ -63,7 +63,7 @@ it.each([
         model: 'User',
         select: { select: { id: true } },
         fields: {
-          posts: async (_args, _context, nested) => {
+          posts: async (_args, _context, nested): Promise<FakeMap> => {
             try {
               return { select: { posts: await nested(asyncQuery ? Promise.resolve({}) : {}) } };
             } catch {

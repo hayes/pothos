@@ -460,7 +460,11 @@ export type DrizzleFieldSelection =
         selection:
           | SelectionMap
           | boolean
-          | ((args: object, context: object) => MaybePromise<DBQueryConfig<'one'>>),
+          | ((
+              args: object,
+              context: object,
+              pathInfo: PathInfo,
+            ) => MaybePromise<DBQueryConfig<'one'>>),
         path?: IndirectInclude | PathSegment[],
         type?: string,
       ) => DBQueryConfig<'one'> | boolean,

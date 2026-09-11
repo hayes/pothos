@@ -20,7 +20,6 @@ import {
 } from '@pothos/core';
 import {
   getLoaderMapping,
-  type Position,
   type SelectedFieldNode,
   selectedFieldNames,
 } from '@pothos/selection-mapper';
@@ -259,11 +258,11 @@ export class DrizzleObjectFieldBuilder<
     }
 
     // The field's `query` may be async, so the result is a promise when it is. The `PathInfo` is
-    // built from the position here, and only for a callback that takes one.
+    // provided by the adapter, and only read for a callback that takes one.
     const resolveFieldQuery = (
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: {},
-      position?: Position,
+      pathInfo?: PathInfo,
     ): MaybePromise<ConnectionFieldQuery> =>
       completeValue(
         (typeof query === 'function'
@@ -273,7 +272,7 @@ export class DrizzleObjectFieldBuilder<
                 ctx: {},
                 pathInfo?: PathInfo,
               ) => MaybePromise<{} | null | undefined>
-            )(args, ctx, pathInfoFor(position))
+            )(args, ctx, pathInfo)
           : query) as MaybePromise<ConnectionFieldQuery | null | undefined>,
         orEmpty,
       );
@@ -363,12 +362,12 @@ export class DrizzleObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown, path?: unknown) => { select?: object },
       getSelection: SelectedFieldNode,
-      position: Position,
+      pathInfo: PathInfo,
     ) => {
       typeName ??= this.builder.configStore.getTypeConfig(ref).name;
 
       const { hasTotalCount, totalCountOnly } = connectionSelectionFromNames(getSelection());
-      const fieldQuery = resolveFieldQuery(args, context, position);
+      const fieldQuery = resolveFieldQuery(args, context, pathInfo);
       // The nested plan starts now, with a query that waits for the field's `query` when that is
       // async, so every callback beneath the connection runs in the same tick.
       const nested = totalCountOnly
@@ -472,7 +471,7 @@ export class DrizzleObjectFieldBuilder<
             info.parentType.name,
             parent,
           )?.position;
-          const fieldQuery = resolveFieldQuery(args, context, position);
+          const fieldQuery = resolveFieldQuery(args, context, pathInfoFor(position));
 
           return isThenable(fieldQuery)
             ? fieldQuery.then((resolved) =>
@@ -617,16 +616,12 @@ export class DrizzleObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown) => {},
       _resolveSelection: unknown,
-      position: Position,
+      pathInfo: PathInfo,
     ) =>
       completeValue(
         nestedQuery(
           typeof query === 'function'
-            ? (query as (args: {}, context: {}, pathInfo?: PathInfo) => {})(
-                args,
-                context,
-                pathInfoFor(position),
-              )
+            ? (query as (args: {}, context: {}, pathInfo?: PathInfo) => {})(args, context, pathInfo)
             : query,
         ),
         selectRelation,

@@ -567,6 +567,28 @@ query {
 }
 ```
 
+The count applies the `where` returned by the field's `query`, so it counts the same rows the
+connection paginates (only published posts in the example above). To count every related row
+regardless of the filter, set `filterConnectionTotalCount: false` in the `drizzle` plugin options:
+
+```ts
+const builder = new SchemaBuilder<PothosTypes>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+    // count every related row for totalCount, ignoring the where from query (defaults to true)
+    filterConnectionTotalCount: false,
+  },
+});
+```
+
+A `where` on the relation itself always applies to the count, as does the junction table of a
+many-to-many relation defined with `.through(...)`. The count joins the junction table the same way
+the rows do, so a row that matches the junction twice counts twice, and appears twice in the
+connection.
+
 ## Drizzle connections
 
 Similar to `t.drizzleField`, `t.drizzleConnection` allows you to define a connection field that acts
