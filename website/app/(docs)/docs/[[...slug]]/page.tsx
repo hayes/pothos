@@ -50,14 +50,9 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
         // Tighten the header rhythm: pull the eyebrow/title/description closer
         // together (gap-3) and trim the top padding below the sticky header
         // (xl:pt-10) so real content starts meaningfully higher.
-        className="gap-3 xl:pt-10"
-        // Below xl the sticky mobile TOC pill (grid-area:toc-popover) has a
-        // collapsed row (`--fd-toc-popover-height` resolves to 0 in this
-        // custom layout), so it overlaps and hides the breadcrumb at
-        // scroll-top instead of sitting above it. The pill renders ~40px
-        // tall; push the breadcrumb down far enough to clear it (with a
-        // small gap) on those viewports. xl+ shows no pill and no margin.
-        breadcrumb={{ className: 'max-xl:mt-14' }}
+        className="gap-3 max-xl:pt-20 xl:pt-10"
+        // Reserve room above the article for the floating contents bar, including
+        // root pages that have no breadcrumb to provide that spacing.
         // Page utilities live at the bottom of the TOC (desktop) and the TOC
         // popover (mobile) rather than in the header.
         tableOfContent={{ footer: pageActions }}

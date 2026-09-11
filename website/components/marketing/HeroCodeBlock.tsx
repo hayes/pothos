@@ -5,107 +5,93 @@
 
 const LINES: ReadonlyArray<readonly [string, string][]> = [
   [
-    ['kw', 'import '],
+    ['kw', 'import'],
+    ['v', ' '],
     ['v', 'SchemaBuilder'],
-    ['p', ' from '],
+    ['v', ' '],
+    ['kw', 'from'],
+    ['v', ' '],
     ['s', "'@pothos/core'"],
-    ['p', ';'],
+    ['v', ';'],
   ],
   [],
   [
-    ['kw', 'const '],
+    ['kw', 'const'],
+    ['v', ' '],
     ['v', 'builder'],
-    ['p', ' = '],
-    ['kw', 'new '],
-    ['fn', 'SchemaBuilder'],
-    ['t', '<{ Context: Context }>'],
-    ['p', '();'],
+    ['v', ' = '],
+    ['kw', 'new'],
+    ['v', ' '],
+    ['v', 'SchemaBuilder'],
+    ['v', '({});'],
   ],
   [],
-  [['c', '// Type the object by its backing model.']],
   [
-    ['kw', 'const '],
-    ['v', 'User'],
-    ['p', ' = '],
     ['v', 'builder'],
-    ['m', '.objectRef'],
-    ['t', '<{ id: string; name: string }>'],
-    ['p', '('],
-    ['s', "'User'"],
-    ['p', ');'],
-  ],
-  [],
-  [
-    ['v', 'User'],
-    ['m', '.implement'],
-    ['p', '({'],
+    ['v', '.'],
+    ['fn', 'queryType'],
+    ['v', '({'],
   ],
   [
-    ['p', '  '],
+    ['v', '  '],
     ['v', 'fields'],
-    ['p', ': ('],
+    ['v', ': ('],
     ['v', 't'],
-    ['p', ') => ({'],
+    ['v', ') => ({'],
   ],
   [
-    ['p', '    '],
-    ['v', 'id'],
-    ['p', ':   '],
+    ['v', '    '],
+    ['v', 'hello'],
+    ['v', ': '],
     ['v', 't'],
-    ['m', '.exposeID'],
-    ['p', '('],
-    ['s', "'id'"],
-    ['p', '),'],
+    ['v', '.'],
+    ['fn', 'string'],
+    ['v', '({'],
   ],
   [
-    ['p', '    '],
+    ['v', '      '],
+    ['v', 'args'],
+    ['v', ': { '],
     ['v', 'name'],
-    ['p', ': '],
+    ['v', ': '],
     ['v', 't'],
-    ['m', '.exposeString'],
-    ['p', '('],
-    ['s', "'name'"],
-    ['p', '),'],
+    ['v', '.'],
+    ['v', 'arg'],
+    ['v', '.'],
+    ['fn', 'string'],
+    ['v', '() },'],
   ],
   [
-    ['p', '    '],
-    ['c', '// user and ctx arrive typed — no annotations.'],
-  ],
-  [
-    ['p', '    '],
-    ['v', 'posts'],
-    ['p', ': '],
-    ['v', 't'],
-    ['m', '.field'],
-    ['p', '({'],
-  ],
-  [
-    ['p', '      '],
-    ['v', 'type'],
-    ['p', ': ['],
-    ['t', 'Post'],
-    ['p', '],'],
-  ],
-  [
-    ['p', '      '],
+    ['v', '      '],
     ['v', 'resolve'],
-    ['p', ': ('],
-    ['v', 'user'],
-    ['p', ', '],
-    ['v', '_args'],
-    ['p', ', '],
-    ['v', 'ctx'],
-    ['p', ') => '],
-    ['fn', 'loadPosts'],
-    ['p', '('],
-    ['v', 'user'],
-    ['p', '.id, '],
-    ['v', 'ctx'],
-    ['p', '),'],
+    ['v', ': ('],
+    ['v', '_'],
+    ['v', ', { '],
+    ['v', 'name'],
+    ['v', ' }) =>'],
   ],
-  [['p', '    }),']],
-  [['p', '  }),']],
-  [['p', '});']],
+  [
+    ['v', '        '],
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: literal code displayed in the example
+    ['s', "`Hello, ${name ?? 'World'}!`"],
+    ['v', ','],
+  ],
+  [['v', '    }),']],
+  [['v', '  }),']],
+  [['v', '});']],
+  [],
+  [
+    ['kw', 'export'],
+    ['v', ' '],
+    ['kw', 'const'],
+    ['v', ' '],
+    ['v', 'schema'],
+    ['v', ' = '],
+    ['v', 'builder'],
+    ['v', '.'],
+    ['fn', 'toSchema'],
+    ['v', '();'],
+  ],
 ];
 
 const COLOR_VAR: Record<string, string> = {
@@ -122,7 +108,7 @@ const COLOR_VAR: Record<string, string> = {
 export function HeroCodeBlock() {
   return (
     <pre
-      className="m-0 font-mono text-[13px] text-[var(--bm-syntax-text)]"
+      className="m-0 font-mono text-[12px] sm:text-[13px] text-[var(--bm-syntax-text)]"
       style={{ lineHeight: 1.7 }}
     >
       {LINES.map((tokens, i) => (
@@ -132,13 +118,13 @@ export function HeroCodeBlock() {
           className="flex"
         >
           <span
-            className="select-none w-7 text-right mr-4 shrink-0 tabular-nums"
+            className="hidden sm:block select-none w-7 text-right mr-4 shrink-0 tabular-nums"
             style={{ color: 'var(--bm-syntax-lineno)' }}
             aria-hidden="true"
           >
             {i + 1}
           </span>
-          <span className="flex-1 whitespace-pre">
+          <span className="min-w-0 flex-1 whitespace-pre-wrap break-words sm:whitespace-pre">
             {tokens.length === 0
               ? ' '
               : tokens.map(([kind, text], j) => (

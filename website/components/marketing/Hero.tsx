@@ -3,7 +3,7 @@ import { BotanicalSpray } from './BotanicalSpray';
 
 export function Hero() {
   return (
-    <section className="max-w-[1280px] mx-auto px-10 pt-[88px] pb-20 relative">
+    <section className="max-w-[1280px] mx-auto px-6 sm:px-10 pt-12 md:pt-[88px] pb-12 md:pb-20 relative">
       {/* Trailing pothos vines hanging from the header line. Shown at xl (not
           md): from 768 up to ~1279 the headline reflows to "…grow with your /
           code." and runs under the right-anchored vine, so the leaves crowd
