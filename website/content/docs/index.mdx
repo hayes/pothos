@@ -1,124 +1,119 @@
 ---
-title: Overview
-description: Build type-safe GraphQL schemas in TypeScript.
+title: Getting started
+description: Install Pothos, build a schema, and run your first GraphQL query.
 ---
 
-![Pothos](/assets/logo-name-auto.svg)
+Define your GraphQL types, fields, and resolvers in TypeScript. Pothos checks how they fit together
+without generating resolver types or maintaining a separate schema definition.
 
-Pothos is a GraphQL schema builder for TypeScript. You define types, fields, and resolvers in
-TypeScript, and Pothos checks how they fit together without generating resolver types or maintaining
-a separate schema definition.
+This guide creates a small schema, serves it with
+[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server), and runs a query against it.
 
-`builder.toSchema()` creates a standard graphql-js `GraphQLSchema` that you can pass to your GraphQL
-server. The core package has `graphql` as its only peer dependency. Plugins add features such as
-authorization, pagination, and ORM integration to the same builder.
+You can try the schema immediately with its Playground action below. Follow the setup steps to run
+the same schema in your own server. [Using the playground](/docs/guide/playground) explains the editor controls.
 
-## Build a schema from your data
+## Installing
 
-<include cwd lang="typescript" meta='playground example="foundations-overview"'>playground-examples/foundations-overview/schema.ts</include>
+Start in an empty directory with Node.js and npm installed:
 
-The backing data and the GraphQL type can have different shapes. Here, the resolver returns a height
-in meters, while clients query `heightInFeet`. Pothos checks the data returned by `giraffe` and infers
-the `giraffe` parameter's type in the field resolver.
+```sh
+npm init -y
+npm pkg set type=module
+```
 
-Follow the [Guide](/docs/guide) to install Pothos, start a server, and run your first query.
-[Objects](/docs/guide/objects) explains object references, classes, and registering backing types by
-name. The [API reference](/docs/api/schema-builder) lists the builder's methods and options.
+Install Pothos, its `graphql` peer dependency, and Yoga:
 
-## Plugins that make Pothos even better
+```package-install
+npm install @pothos/core graphql graphql-yoga
+```
 
-<Cards>
-  <Card
-    title="Add GraphQL"
-    href="/docs/plugins/add-graphql"
-    description={'Add existing GraphQL types to your schema'}
-  />
-  <Card
-    title="Auth"
-    href="/docs/plugins/scope-auth"
-    description={'Authorize access to fields and types using request data'}
-  />
+Install TypeScript and `tsx` to check and run the example:
 
-  <Card
-    title="Complexity"
-    href="/docs/plugins/complexity"
-    description={'Define field costs and limit query complexity'}
-  />
-  <Card
-    title="Dataloader"
-    href="/docs/plugins/dataloader"
-    description={'Batch and cache data loading for types and fields'}
-  />
-  <Card
-    title="Directives"
-    href="/docs/plugins/directives"
-    description={'Attach directive metadata to your schema'}
-  />
-  <Card
-    title="Drizzle"
-    href="/docs/plugins/drizzle"
-    description={'Build queries from GraphQL selections using Drizzle’s relational query builder'}
-  />
-  <Card
-    title="Errors"
-    href="/docs/plugins/errors"
-    description={'Expose expected resolver errors as typed GraphQL results'}
-  />
-  <Card
-    title="Federation"
-    href="/docs/plugins/federation"
-    description={'Build subgraphs for Apollo Federation'}
-  />
-  <Card
-    title="Grafast"
-    href="/docs/plugins/grafast"
-    description={'Define Grafast plans for your schema'}
-  />
-  <Card
-    title="Mocks"
-    href="/docs/plugins/mocks"
-    description={'Add mock resolvers for easier testing'}
-  />
-  <Card
-    title="Prisma"
-    href="/docs/plugins/prisma"
-    description={'Build Prisma queries from GraphQL selections'}
-  />
-  <Card
-    title="Relay"
-    href="/docs/plugins/relay"
-    description={'Define Relay nodes, global IDs, and paginated connections'}
-  />
-  <Card
-    title="Simple Objects"
-    href="/docs/plugins/simple-objects"
-    description={'Infer backing types from fields that expose data properties'}
-  />
-  <Card
-    title="Smart Subscriptions"
-    href="/docs/plugins/smart-subscriptions"
-    description={'Update query results when subscribed data changes'}
-  />
-  <Card
-    title="Sub-Graph"
-    href="/docs/plugins/sub-graph"
-    description={'Build separate schemas from subsets of your types and fields'}
-  />
-  <Card
-    title="Tracing"
-    href="/docs/plugins/tracing"
-    description={
-      'Trace resolver execution with OpenTelemetry, New Relic, Sentry, or custom tracers'
-    }
-  />
-  <Card
-    title="Validation"
-    href="/docs/plugins/validation"
-    description={'Validate inputs with Standard Schema libraries such as Zod, Valibot, and ArkType'}
-  />
-  <Card
-    title="With-Input"
-    href="/docs/plugins/with-input"
-    description={'Define fields with inline input objects'}
-  />
-</Cards>
+```package-install
+npm install --save-dev typescript @types/node tsx
+```
+
+## Set up TypeScript
+
+Create `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts"]
+}
+```
+
+Pothos relies on strict null checking for its type inference. Keep `strict` enabled when adding
+Pothos to an existing project too.
+
+## Create a simple schema
+
+Create `schema.ts`:
+
+<include cwd lang="typescript" meta='playground example="foundations-getting-started"'>playground-examples/foundations-getting-started/schema.ts</include>
+
+`queryType` defines the fields clients can query. Here, `hello` returns a string and accepts an
+optional `name` argument. Pothos infers the resolver's argument types from that definition.
+
+`toSchema()` builds a graphql-js `GraphQLSchema`. You can use it with Yoga or another server that
+accepts a `GraphQLSchema`.
+
+## Create a server
+
+Create `server.ts` alongside `schema.ts`:
+
+```typescript
+import { createServer } from 'node:http';
+import { createYoga } from 'graphql-yoga';
+import { schema } from './schema.js';
+
+const yoga = createYoga({ schema });
+const server = createServer(yoga);
+
+server.listen(4000, () => {
+  console.log('Visit http://localhost:4000/graphql');
+});
+```
+
+Check the types, then start the server:
+
+```sh
+npx tsc
+npx tsx server.ts
+```
+
+`tsx` runs TypeScript without checking types, so run `tsc` separately to catch type errors.
+
+## Run a query
+
+Open [http://localhost:4000/graphql](http://localhost:4000/graphql) to use Yoga's GraphiQL explorer.
+Run this query:
+
+<include cwd lang="graphql" meta='playground example="foundations-getting-started"'>playground-examples/foundations-getting-started/Hello.graphql</include>
+
+The response is:
+
+```json
+{
+  "data": {
+    "hello": "hello, Pothos"
+  }
+}
+```
+
+Omit the `name` argument to get `"hello, World"`. Stop the server with Ctrl+C when you're done.
+
+## Continue building
+
+[Objects](/docs/guide/objects) shows how to expose your application's data. [Fields](/docs/guide/fields) covers
+resolvers, lists, and nullability, and [Arguments](/docs/guide/args) explains how clients pass values to them.
+When your schema needs request data, see [Context](/docs/guide/context). [App layout](/docs/guide/app-layout) shows how
+to organize a larger schema across files.

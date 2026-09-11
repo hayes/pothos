@@ -13,13 +13,17 @@ const fixture = await mkdtemp(join(root, '.docs-check-'));
 const codeBlocks = (page, language) => docCodeBlocks(join(root, 'website'), page, language);
 
 try {
-  const guide = await codeBlocks('guide/index.mdx', 'typescript');
-  const overview = await codeBlocks('index.mdx', 'typescript');
+  const guide = await codeBlocks('index.mdx', 'typescript');
+  const overview = [
+    await readFile(
+      join(root, 'website/playground-examples/foundations-overview/schema.ts'),
+      'utf8',
+    ),
+  ];
   const printing = await codeBlocks('guide/printing-schemas.mdx', 'typescript');
-  const queries = await codeBlocks('guide/index.mdx', 'graphql');
-  const json = await codeBlocks('guide/index.mdx', 'json');
+  const queries = await codeBlocks('index.mdx', 'graphql');
+  const json = await codeBlocks('index.mdx', 'json');
   assert.equal(guide.length, 2, 'Expected schema and server snippets in the guide');
-  assert.equal(overview.length, 1, 'Expected one overview schema');
   assert.equal(printing.length, 2, 'Expected schema and Node printing snippets');
   assert.equal(queries.length, 1, 'Expected one guide query');
   assert.equal(json.length, 2, 'Expected tsconfig and response JSON');

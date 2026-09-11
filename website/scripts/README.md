@@ -6,8 +6,8 @@ After installing the workspace dependencies, run these commands from the reposit
 pnpm --dir website check:examples
 ```
 
-This extracts the current Overview schema, the Guide schema/query/response, and the Printing Schemas
-example directly from MDX. It checks their types against the current core source, executes the
+This extracts the Getting started schema/query/response and the Printing Schemas example from MDX,
+and reads the preserved data-mapping example from `playground-examples/foundations-overview/schema.ts`. It checks their types against the current core source, executes the
 queries, checks optional argument behavior and the computed field, and reads the generated SDL back
 as a schema. Temporary files are removed when the command finishes.
 

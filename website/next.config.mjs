@@ -32,6 +32,9 @@ const config = {
   },
   redirects() {
     return [
+      { source: '/docs/guide', destination: '/docs', permanent: true },
+      { source: '/docs/guide.mdx', destination: '/docs.mdx', permanent: true },
+      { source: '/llms.mdx/guide', destination: '/llms.mdx', permanent: true },
       // The marketing /plugins route was consolidated into the canonical docs
       // catalog at /docs/plugins (same component, one URL). Redirect the old URL.
       { source: '/plugins', destination: '/docs/plugins', permanent: true },
