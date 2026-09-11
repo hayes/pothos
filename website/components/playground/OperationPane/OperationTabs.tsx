@@ -1,6 +1,6 @@
 'use client';
 
-import { type KeyboardEvent, useId, useRef } from 'react';
+import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
 import type { Operation } from './types';
 
 interface Props {
@@ -21,6 +21,10 @@ interface Props {
 export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAdd }: Props) {
   const tabRefs = useRef<Array<HTMLDivElement | null>>([]);
   const tabsId = useId();
+
+  useEffect(() => {
+    tabRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [activeIndex]);
 
   const focusTab = (index: number) => {
     const wrapped = (index + operations.length) % operations.length;
@@ -51,7 +55,7 @@ export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAd
     <div
       role="tablist"
       aria-label="Operations"
-      className="flex items-center px-6 h-11 border-b border-bm-line bg-bm-bg gap-[22px]"
+      className="flex min-w-0 items-center overflow-x-auto px-6 h-11 border-b border-bm-line bg-bm-bg gap-[22px]"
     >
       {operations.map((op, i) => (
         <OperationTab
@@ -72,14 +76,14 @@ export function OperationTabs({ operations, activeIndex, onSelect, onClose, onAd
       <button
         type="button"
         onClick={onAdd}
-        className="font-mono text-[13px] text-bm-ink-muted hover:text-bm-ink leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bm-accent rounded"
+        className="shrink-0 font-mono text-[13px] text-bm-ink-muted hover:text-bm-ink leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bm-accent rounded"
         title="New operation"
         aria-label="New operation"
       >
         +
       </button>
       <div className="flex-1" />
-      <span className="text-[11px] uppercase tracking-[0.04em] text-bm-ink-muted">
+      <span className="shrink-0 whitespace-nowrap text-[11px] uppercase tracking-[0.04em] text-bm-ink-muted">
         {operations.length} operation{operations.length === 1 ? '' : 's'}
       </span>
     </div>
@@ -118,7 +122,7 @@ function OperationTab({
       ref={tabRef}
       onClick={onSelect}
       onKeyDown={onKey}
-      className={`flex items-center gap-1.5 h-full -mb-px font-mono text-[13px] tracking-[-0.01em] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bm-accent ${
+      className={`flex shrink-0 items-center gap-1.5 h-full -mb-px whitespace-nowrap font-mono text-[13px] tracking-[-0.01em] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bm-accent ${
         active
           ? 'text-bm-ink font-medium border-b-[1.5px] border-bm-accent'
           : 'text-bm-ink-muted border-b-[1.5px] border-transparent hover:text-bm-ink'
