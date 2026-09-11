@@ -28,13 +28,13 @@ export function HeroBody() {
           <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">
             User
           </code>
-          . Everything downstream follows from them. In that last resolver,{' '}
+          . In the last resolver,{' '}
           <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">
             user
           </code>{' '}
-          is the object you declared and{' '}
+          and{' '}
           <code className="bg-bm-surface-alt px-1.5 py-0.5 rounded text-[13px] font-mono">ctx</code>{' '}
-          is your context — neither is annotated, and both are checked.
+          are typed from those, without annotations of their own.
         </p>
         <StatsRow />
       </div>
