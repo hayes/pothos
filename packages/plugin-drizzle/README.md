@@ -394,6 +394,26 @@ The `buildFilter` function passed to `select` generates the appropriate SQL filt
 relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
 it easier to filter for the related records.
 
+### SQLite many-to-many filters
+
+On SQLite, `buildFilter` can look up related target identities through the junction join when the
+target has a non-null unique key. PostgreSQL retains an `EXISTS` predicate to avoid an additional
+target join.
+
+For a custom `RAW` scope in a Drizzle relation definition, use the table supplied to the callback:
+
+```ts
+where: {
+  RAW: (target) => sql`${target.published} = true`,
+},
+```
+
+This lets Drizzle use the target's alias inside the lookup. A static SQL scope referencing the
+original target table, such as ``RAW: sql`${posts.published} = true` ``, is passed through unchanged
+and can still force SQLite to scan the target table. The same applies to a callback that ignores
+its table argument and references `posts` directly. Object filters such as
+`where: { published: true }` also use the supplied alias.
+
 ## Related count
 
 For the common case of counting related records, there's a simpler `t.relatedCount` method that handles

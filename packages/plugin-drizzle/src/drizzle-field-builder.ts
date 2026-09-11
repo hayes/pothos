@@ -669,6 +669,14 @@ export class DrizzleObjectFieldBuilder<
       );
     }
 
+    // Explicit NOT NULL is required even for primary keys: SQLite permits nullable text and
+    // composite primary keys. Without a total identity the relation filter keeps EXISTS.
+    const targetKey = relationField.throughTable
+      ? schemaConfig
+          .getUniqueConstraints(relationField.targetTableName)
+          .find((columns) => columns.every((column) => column.notNull))
+      : undefined;
+
     const relationSelect = (
       args: object,
       context: Types['Context'],
@@ -679,6 +687,7 @@ export class DrizzleObjectFieldBuilder<
           getClient(this.builder, context) as never,
           relationField as Relation,
           parentTable as Table,
+          targetKey,
         ).filter;
 
       return completeValue(
