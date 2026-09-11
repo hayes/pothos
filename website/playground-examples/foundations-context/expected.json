@@ -1,0 +1,15 @@
+{
+  "01-Signed in.graphql": {
+    "data": {
+      "currentUser": {
+        "id": "1",
+        "username": "gina"
+      }
+    }
+  },
+  "02-Signed out.graphql": {
+    "data": {
+      "currentUser": null
+    }
+  }
+}

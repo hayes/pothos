@@ -1,0 +1,7 @@
+{
+  "Nested lists.graphql": {
+    "data": {
+      "example": [["a", "b"], ["c", "d"], null]
+    }
+  }
+}

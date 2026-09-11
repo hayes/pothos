@@ -1,0 +1,13 @@
+query Scalars {
+  name
+  id
+  int
+  float
+  boolean
+  string
+  idList
+  intList
+  floatList
+  booleanList
+  stringList
+}

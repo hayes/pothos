@@ -1,0 +1,18 @@
+query Fields {
+  giraffe {
+    name
+    preferredNeckLengthUnit
+    nameLength
+  }
+  giraffes {
+    name
+  }
+  giraffeNames
+  giraffeByName(name: "Gina") {
+    name
+  }
+  newestGiraffe {
+    name
+    nameLength
+  }
+}

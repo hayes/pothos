@@ -1,0 +1,7 @@
+{
+  "Hello.graphql": {
+    "data": {
+      "hello": "hello, Pothos"
+    }
+  }
+}

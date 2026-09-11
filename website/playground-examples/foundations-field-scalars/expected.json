@@ -1,0 +1,17 @@
+{
+  "Scalars.graphql": {
+    "data": {
+      "name": "Gina",
+      "id": "123",
+      "int": 123,
+      "float": 1.23,
+      "boolean": false,
+      "string": "abc",
+      "idList": ["123"],
+      "intList": [123],
+      "floatList": [1.23],
+      "booleanList": [false],
+      "stringList": ["abc"]
+    }
+  }
+}

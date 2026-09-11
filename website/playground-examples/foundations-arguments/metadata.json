@@ -1,0 +1,8 @@
+{
+  "id": "foundations-arguments",
+  "title": "Field arguments",
+  "description": "Run the query to compare omitted defaults with explicit null, list arguments, and enum units. Change times or switch Feet to Meters and run again.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/args"],
+  "defaultActiveFile": "schema.ts"
+}

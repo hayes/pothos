@@ -1,0 +1,6 @@
+query Nullability {
+  nonNullableField
+  nonNullableString
+  nonNullableList
+  sparseList
+}

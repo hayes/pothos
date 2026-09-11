@@ -11,93 +11,35 @@ methods for defining the type, adding one field, and adding several fields.
 Use `builder.queryType()` to define the `Query` type. This example returns plain backing data through
 an [object reference](./objects):
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-type Giraffe = { name: string };
-
-const builder = new SchemaBuilder({});
-const giraffes: Giraffe[] = [{ name: 'James' }];
-
-const GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    hello: t.string({
-      resolve: () => 'hello, world!',
-    }),
-    giraffes: t.field({
-      type: [GiraffeRef],
-      resolve: () => giraffes,
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="foundations-root-operations"'>playground-examples/foundations-root-operations/schema.ts#query</include>
 
 Define the `Query` type once. To split its fields across files, use `builder.queryField()` or
 `builder.queryFields()`. The following is an alternative to the `builder.queryType()` call above,
 using the same builder, object reference, and data:
 
-```typescript
-builder.queryType({});
-
-builder.queryField('hello', (t) =>
-  t.string({
-    resolve: () => 'hello, world!',
-  }),
-);
-
-builder.queryFields((t) => ({
-  giraffes: t.field({
-    type: [GiraffeRef],
-    resolve: () => giraffes,
-  }),
-}));
-```
+<include cwd lang="typescript" meta='playground example="foundations-root-operations-variant-separate"'>playground-examples/foundations-root-operations/variant-separate/schema.ts#query</include>
 
 ## Mutations
 
 Use `builder.mutationType()`, `builder.mutationField()`, and `builder.mutationFields()` in the same
 way. Continuing the query example, this mutation adds a giraffe to the array returned by `giraffes`:
 
-```typescript
-builder.mutationType({});
-
-builder.mutationField('createGiraffe', (t) =>
-  t.field({
-    type: GiraffeRef,
-    args: {
-      name: t.arg.string({ required: true }),
-    },
-    resolve: (_parent, args) => {
-      const giraffe = { name: args.name };
-      giraffes.push(giraffe);
-      return giraffe;
-    },
-  }),
-);
-
-const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="foundations-root-operations"'>playground-examples/foundations-root-operations/schema.ts#mutation</include>
 
 The required argument provides a `string` for the backing model's `name`. This example stores data
 in memory; an application can perform its database write in the resolver instead.
 
-```graphql
-mutation {
-  createGiraffe(name: "Morgan") {
-    name
-  }
-}
-```
+<include cwd lang="graphql" meta='playground example="foundations-root-operations"'>playground-examples/foundations-root-operations/02-Create.graphql</include>
 
-A subsequent `{ giraffes { name } }` query returns both James and Morgan.
+In the playground, select **02-Create** to run that mutation, then **03-After**.
+The `{ giraffes { name } }` query now returns both James and Morgan. Repeating a mutation adds
+another entry; **Reset example** restores the initial data.
 
 ## Subscriptions
+
+Live subscription delivery requires a GraphQL server and event provider. The playground executes
+queries and mutations locally, so run the subscription example below in your server rather than
+the playground.
 
 Use `builder.subscriptionType()`, `builder.subscriptionField()`, and `builder.subscriptionFields()`
 to define subscription fields. Each field has a `subscribe` function that returns an async iterable

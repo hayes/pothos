@@ -1,0 +1,50 @@
+{
+  "01-Create.graphql": {
+    "data": {
+      "createGiraffe": {
+        "name": "Gina",
+        "height": 4.8
+      }
+    }
+  },
+  "02-Friends.graphql": {
+    "data": {
+      "createGiraffeWithFriends": [
+        {
+          "name": "Gina",
+          "height": 4.8
+        },
+        {
+          "name": "George",
+          "height": 4.5
+        },
+        {
+          "name": "Gemma",
+          "height": 3.9
+        }
+      ]
+    }
+  },
+  "03-Read.graphql": {
+    "data": {
+      "giraffes": [
+        {
+          "name": "Gina",
+          "height": 4.8
+        },
+        {
+          "name": "Gina",
+          "height": 4.8
+        },
+        {
+          "name": "George",
+          "height": 4.5
+        },
+        {
+          "name": "Gemma",
+          "height": 3.9
+        }
+      ]
+    }
+  }
+}

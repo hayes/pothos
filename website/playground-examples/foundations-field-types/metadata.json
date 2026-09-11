@@ -1,0 +1,8 @@
+{
+  "id": "foundations-field-types",
+  "title": "Object and list fields",
+  "description": "Run Fields to compare object, enum, list, and added fields. Try Missing giraffe to see a nullable field report an error. Change Gina in the query to an unknown name.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/fields"],
+  "defaultActiveFile": "schema.ts"
+}

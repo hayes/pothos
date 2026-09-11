@@ -1,0 +1,38 @@
+{
+  "01-Fields.graphql": {
+    "data": {
+      "giraffe": {
+        "name": "Gina",
+        "preferredNeckLengthUnit": "Feet",
+        "nameLength": 4
+      },
+      "giraffes": [
+        {
+          "name": "Gina"
+        },
+        {
+          "name": "James"
+        }
+      ],
+      "giraffeNames": ["Gina", "James"],
+      "giraffeByName": {
+        "name": "Gina"
+      },
+      "newestGiraffe": {
+        "name": "James",
+        "nameLength": 5
+      }
+    }
+  },
+  "02-Missing giraffe.graphql": {
+    "errors": [
+      {
+        "message": "Unknown Giraffe Lucy",
+        "path": ["giraffeByName"]
+      }
+    ],
+    "data": {
+      "giraffeByName": null
+    }
+  }
+}

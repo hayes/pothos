@@ -1,0 +1,6 @@
+query ReadGiraffes {
+  hello
+  giraffes {
+    name
+  }
+}

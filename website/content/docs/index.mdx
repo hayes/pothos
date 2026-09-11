@@ -15,31 +15,7 @@ authorization, pagination, and ORM integration to the same builder.
 
 ## Build a schema from your data
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-const builder = new SchemaBuilder({});
-
-const Giraffe = builder.objectRef<{ name: string; heightInMeters: number }>('Giraffe').implement({
-  fields: (t) => ({
-    name: t.exposeString('name'),
-    heightInFeet: t.float({
-      resolve: (giraffe) => giraffe.heightInMeters * 3.28084,
-    }),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: Giraffe,
-      resolve: () => ({ name: 'Gina', heightInMeters: 5 }),
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="foundations-overview"'>playground-examples/foundations-overview/schema.ts</include>
 
 The backing data and the GraphQL type can have different shapes. Here, the resolver returns a height
 in meters, while clients query `heightInFeet`. Pothos checks the data returned by `giraffe` and infers

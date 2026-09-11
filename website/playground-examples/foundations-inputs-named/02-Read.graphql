@@ -1,0 +1,6 @@
+query ReadStoredGiraffes {
+  giraffes {
+    name
+    height
+  }
+}

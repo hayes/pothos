@@ -1,0 +1,8 @@
+{
+  "id": "foundations-getting-started",
+  "title": "Your first schema",
+  "description": "Run hello, then remove its name argument to get hello, World. Edit the greeting in schema.ts and run again.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide"],
+  "defaultActiveFile": "schema.ts"
+}

@@ -1,0 +1,6 @@
+query Giraffe {
+  giraffe {
+    name
+    heightInFeet
+  }
+}

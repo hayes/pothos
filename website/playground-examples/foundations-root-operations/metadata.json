@@ -1,0 +1,19 @@
+{
+  "id": "foundations-root-operations",
+  "title": "Query and mutation root fields",
+  "description": "Run Before, then Create, then After to observe the stored mutation. Change Morgan in Create and run again. Reset example restores the original James entry.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/queries-mutations-and-subscriptions"],
+  "defaultActiveFile": "schema.ts",
+  "variants": [
+    {
+      "id": "inline",
+      "title": "Fields on queryType",
+      "default": true
+    },
+    {
+      "id": "separate",
+      "title": "Separate field definitions"
+    }
+  ]
+}

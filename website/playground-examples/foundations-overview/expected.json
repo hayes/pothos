@@ -1,0 +1,10 @@
+{
+  "Giraffe.graphql": {
+    "data": {
+      "giraffe": {
+        "name": "Gina",
+        "heightInFeet": 16.4042
+      }
+    }
+  }
+}

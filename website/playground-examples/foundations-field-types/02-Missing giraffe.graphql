@@ -1,0 +1,5 @@
+query MissingGiraffe {
+  giraffeByName(name: "Lucy") {
+    name
+  }
+}
