@@ -1,35 +1,38 @@
-# Grafast plugin for Pothos
+# Grafast plugin
 
-> ⚠️ **Experimental Package** ⚠️
->
-> This package is currently experimental and will have breaking changes in the near future.
->
-> This plugin currently does not work with MOST other Pothos plugins.
-> Many plugins depend on wrapping resolvers to add runtime functionality to your schema, which will not work
-> with grafast.
+> This package is experimental.
+
+
+> Plugins that add runtime behavior by wrapping resolvers do not apply that behavior to Grafast plans.
 
 ## Install
 
 ```package-install
-npm install --save @pothos/plugin-grafast grafast@>=0.1.1-beta.24
+npm install --save @pothos/plugin-grafast grafast graphql@^16.10.0
 ```
+
+Grafast 1.0 requires GraphQL 16. Use a GraphQL version supported by your Grafast release.
 
 ## Setup
 
 ```typescript
+import SchemaBuilder from '@pothos/core';
 import GrafastPlugin from '@pothos/plugin-grafast';
+import { get, inhibitOnNull, lambda, loadOne, type Step } from 'grafast';
+
+type RequestContext = { requestId: string };
 
 declare global {
   namespace Grafast {
     // Define the Context type used by grafast
-    interface Context extends YourContextType {}
+    interface Context extends RequestContext {}
   }
 }
 
 type BuilderTypes = {
   // This tells the builder to expect plans instead of resolvers
   InferredFieldOptionsKind: 'Grafast';
-  Context: YourContextType;
+  Context: RequestContext;
 };
 
 const builder = new SchemaBuilder<BuilderTypes>({
@@ -61,7 +64,7 @@ builder.queryType({
 
 ### Using resolvers
 
-Pothos and Grafast will still allow you to write resolvers when using grafast,
+As an alternative to the previous query definition, you can write a resolver,
 but you will not have access to the 4th `GraphqlResolveInfo` argument:
 
 ```typescript
@@ -100,6 +103,14 @@ interface AnimalData {
   kind: 'Dog' | 'Cat';
 }
 
+export const Animal = builder
+  .interfaceRef<AnimalData>('Animal')
+  .withPlan({
+    planType: ($record) => ({
+      $__typename: get($record, 'kind'),
+    }),
+  });
+
 export const Dog = builder.objectRef<AnimalData>('Dog').implement({
   interfaces: [Animal],
 });
@@ -107,13 +118,6 @@ export const Cat = builder.objectRef<AnimalData>('Cat').implement({
   interfaces: [Animal],
 });
 
-export const Animal = builder
-  .interfaceRef<AnimalData>('Animal')
-  .withPlan({
-    planType: ($record) => ({
-      $__typename: get($record, 'kind'),
-    }),
-  })
 
 Animal.implement({
   fields: (t) => ({
@@ -153,7 +157,7 @@ builder.queryFields((t) => ({
 
 ### Unions
 
-Unions can be implemented just like interfaces:
+Add another object type and combine it with `Cat` and `Dog` in a union:
 
 ```typescript
 interface AlienData {
@@ -185,13 +189,16 @@ allows you to load the correct data for the current type.
 
 This also enables changing the type of plan required for fields that return the abstract type:
 
-<Callout type="warn">
-  `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
+> `planForType` is not entirely type-safe, and will allow plans that resolve to data for the wrong type.
 
-  This API is likely to change in the future.
-</Callout>
+This replaces the previous `Entity` definition. The lookup uses the same animals and one alien:
 
 ```typescript
+function getEntitiesById(ids: readonly string[]): (AnimalData | AlienData | null)[] {
+  const entities: (AnimalData | AlienData)[] = [...Animals, { id: '3', kind: 'Alien' }];
+  return ids.map((id) => entities.find((entity) => entity.id === id) ?? null);
+}
+
 export const Entity = builder
   .unionType('Entity', {
     types: [Cat, Dog, Alien],
