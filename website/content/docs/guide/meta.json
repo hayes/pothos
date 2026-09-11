@@ -1,7 +1,6 @@
 {
   "title": "Guide",
   "pages": [
-    "index",
     "objects",
     "fields",
     "args",
