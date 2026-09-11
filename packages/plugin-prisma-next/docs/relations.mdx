@@ -1,0 +1,228 @@
+---
+title: Relations
+description: Adding relations to prisma-next-backed types
+---
+
+You can add fields for relations using the `t.relation` method:
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    me: t.prismaField({
+      type: 'User',
+      resolve: (_root, _args, ctx) =>
+        ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
+    }),
+  }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    posts: t.relation('posts'),
+  }),
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+`t.relation` defines a field that can be pre-loaded by a parent resolver.
+At schema-build time, the plugin compiles every `t.relation` call into a
+`pothosOptions.select: { [relName]: true }` entry. When the parent
+`t.prismaField` resolves, the walker reads `info` and emits an
+`.include(relName, cb => …)` call on the user-returned collection. Inside
+the include callback, nested `t.relation` declarations stitch their own
+`.include(...)` calls, and so on.
+
+For the query:
+
+```graphql
+query {
+  me {
+    posts {
+      author {
+        id
+      }
+    }
+  }
+}
+```
+
+the `me` resolver's collection ships as something like:
+
+```ts
+ctx.db.orm.User
+  .where((u) => u.id.eq(ctx.userId))
+  .select('id')                                  // (id is required for FK stitching)
+  .include('posts', (posts) =>
+    posts.select('id', 'authorId').include('author', (author) =>
+      author.select('id'),
+    ),
+  )
+  .all();
+```
+
+This is one orm-client call. Depth-2+ nested includes currently fall back
+to a multi-query plan in prisma-next's SQL planner; the plugin emits FK
+columns into the parent SELECT so the fallback stitching is correct.
+
+## Cardinality and nullability
+
+- `t.relation` infers list-vs-single from the relation's cardinality in
+  the contract (`1:1` / `N:1` → single; `1:N` → list).
+- Single relations default to non-null when none of the FK columns on the
+  parent are nullable; nullable otherwise. Pass `nullable: true` to
+  override.
+- To-many relations default to non-null (an empty list rather than null).
+
+## Filters, sorting, arguments
+
+To refine a relation include, pass `query`:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    posts: t.relation('posts', {
+      args: {
+        oldestFirst: t.arg.boolean(),
+      },
+      query: (args) => ({
+        orderBy: (p) =>
+          args.oldestFirst ? p.createdAt.asc() : p.createdAt.desc(),
+      }),
+    }),
+  }),
+});
+```
+
+`query` accepts either a literal `{ where, orderBy, take, skip }` or a
+function returning one. The function receives the field's resolved args
+and the request context — it can't read the parent because the relation
+hasn't loaded yet.
+
+Both forms compile to a declarative refine on the include — the walker
+stays on the single-consumer fast path (no `.combine` wrap) when only
+one field touches the relation.
+
+## Counts, aggregates, custom mappings
+
+For the common cases — counting a relation or reducing it to a scalar —
+use the `t.relationCount` and `t.relationAggregate` sugars. Both compile
+to a function-form `select` (the lower-level primitive shown further
+down), so the SQL path and `where` refinement are identical; they just
+save you the boilerplate:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // Plain count → non-nullable `Int`.
+    postCount: t.relationCount('posts'),
+    // Filtered count. `where` takes a literal…
+    publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
+    // …or an accessor callback with args in scope.
+    postCountByFlag: t.relationCount('posts', {
+      args: { flag: t.arg.int({ required: true }) },
+      where: (p, args) => p.published.eq(args.flag),
+    }),
+    // sum / avg / min / max take a numeric `field`. These reduce over an
+    // empty set to NULL, so they're exposed nullable by default; `count`
+    // stays non-nullable.
+    totalViews: t.relationAggregate('posts', { op: 'sum', field: 'views' }),
+    maxViews: t.relationAggregate('posts', { op: 'max', field: 'views' }),
+  }),
+});
+```
+
+When you need something the sugars don't cover — multiple aggregate
+slots in one combine, or a custom mapping over the loaded rows — drop to
+the function-form `select` directly:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    // Custom mapping over loaded rows. The `posts: true` form widens
+    // `parent.posts` to the loaded row array.
+    firstPostTitle: t.field({
+      type: 'String',
+      nullable: true,
+      select: { posts: true },
+      resolve: (parent) => parent.posts[0]?.title ?? null,
+    }),
+    // Multiple reducers in one combine slot.
+    postStats: t.field({
+      type: 'String',
+      select: {
+        posts: (sub) => ({ total: sub.count(), views: sub.sum('views') }),
+      },
+      resolve: (parent) => `${parent.posts.total} posts / ${parent.posts.views} views`,
+    }),
+  }),
+});
+```
+
+The function form's inner keys (`{ total: sub.count() }` above) land on
+the row at namespaced slots; the plugin's per-field overlay surfaces them
+as flat keys on the resolver's parent, and `ShapeFromSelect` widens the
+inferred parent shape accordingly so resolvers stay type-safe without
+manual casts.
+
+## Many-to-many
+
+As of prisma-next 0.14.0, N:M relations authored with
+`rel.manyToMany({ through, from, to })` are **supported directly** —
+expose them with `t.relation` like any other relation:
+
+```ts
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // N:M relation. The contract carries a `through` junction block;
+    // prisma-next's orm-client resolves the junction join internally.
+    tags: t.relation('tags'),
+  }),
+});
+
+builder.prismaObject('Tag', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    label: t.exposeString('label'),
+  }),
+});
+```
+
+A query like `{ posts { tags { label } } }` resolves through the
+normal `t.relation` machinery — no special handling and no junction
+model in your schema. Under the hood, prisma-next emits the
+junction query from the contract's `through` block; the plugin just
+detects the junction (the relation meta carries a `through`
+descriptor) and lets `.include('tags')` flow through. This is pinned
+end-to-end against real SQLite in `tests/junction-runtime.test.ts`,
+with an upstream canary in `tests/prisma-next-m-n-upstream-pin.test.ts`
+that fails loudly if a future prisma-next changes the junction
+contract shape.
+
+If you'd rather expose the join rows themselves (e.g. the junction
+carries its own columns like `addedAt`), model the junction as a
+regular contract model with two hops —
+`Post --1:N--> PostTag <--N:1-- Tag` — and walk it explicitly with
+`t.relation('postTags')` then `t.relation('tag')`. Both styles work;
+pick the implicit `tags` relation when you only need the far side,
+the explicit junction model when you need its attributes.
+
+## Reaching a relation without a prismaField
+
+If a `t.relation` field's parent wasn't loaded by `t.prismaField` (e.g.
+you `t.field({ resolve: () => ({ id: 1 }) })` returning a raw row that
+the auto-include never saw), the relation resolver throws a clear
+validation error pointing you back at `t.prismaField`. Use `t.prismaField`
+as the entry point, or build your include chain manually inside a custom
+resolver.
