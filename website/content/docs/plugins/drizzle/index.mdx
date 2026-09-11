@@ -16,10 +16,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
   Pothos specific changes.
 </Callout>
 
-This plugin provides tighter integration with drizzle, making it easier to define GraphQL object
-types based on your drizzle tables, and resolving the relations between them in as few queries as
-possible. It also has integrations for the relay plugin to make defining nodes and connections easy
-and efficient.
+The Drizzle plugin defines GraphQL types from your tables and plans database queries from GraphQL
+selections. It loads relations and integrates with Relay nodes and connections.
 
 ## Getting started
 
@@ -30,10 +28,11 @@ npm install --save @pothos/plugin-drizzle drizzle-orm@rc
 ```
 
 Define an object type for a table, expose the columns you want in your API, and add the relations
-you want to be able to query through:
+you want clients to query. This example uses the builder, database client, and `userId` context
+from Setup, with a users table related to posts:
 
 ```ts
-const UserRef = builder.drizzleObject('users', {
+const User = builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
@@ -42,10 +41,16 @@ const UserRef = builder.drizzleObject('users', {
   }),
 });
 
+builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+
 builder.queryType({
   fields: (t) => ({
     me: t.drizzleField({
       type: 'users',
+      nullable: true,
       resolve: (query, root, args, ctx) =>
         db.query.users.findFirst(query({ where: { id: ctx.userId } })),
     }),

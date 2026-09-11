@@ -38,7 +38,7 @@ still narrow the parent shape:
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
-    latestPosts: t.field({
+    previewPosts: t.field({
       type: [Post],
       select: (args, ctx, nestedSelection) => ({
         // what the query selects on the posts, limited to one
@@ -61,12 +61,17 @@ which are described under [Relation queries](./relations#relation-queries).
 
 ## Async selections
 
-Selections are synchronous unless the schema opts in with `AsyncSelections: true`:
+Selections are synchronous unless the schema opts in with `AsyncSelections: true`. This example
+uses request context methods that asynchronously return a user ID and a preview limit:
 
 ```ts
 const builder = new SchemaBuilder<{
   DrizzleRelations: typeof relations;
   AsyncSelections: true;
+  Context: {
+    currentUserId: () => Promise<number>;
+    previewSize: () => Promise<number>;
+  };
 }>({
   plugins: [DrizzlePlugin],
   drizzle: {
@@ -93,7 +98,7 @@ builder.drizzleObject('users', {
     posts: t.relation('posts', {
       query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
     }),
-    latestPosts: t.field({
+    previewPosts: t.field({
       type: [Post],
       select: async (args, ctx, nestedSelection) => ({
         with: { posts: await nestedSelection({ limit: await ctx.previewSize() }) },

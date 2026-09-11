@@ -30,6 +30,12 @@ builder.drizzleObject('users', {
     permissions: t.exposeStringList('permissions'),
   }),
 });
+
+builder.drizzleObject('users', {
+  variant: 'MemberViewer',
+  interfaces: [Viewer],
+  select: { columns: { id: true } },
+});
 ```
 
 Fields can be added to an interface later with `builder.drizzleInterfaceField` and

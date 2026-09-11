@@ -10,7 +10,7 @@ with many columns, it can be more efficient to only select the needed columns. Y
 selected columns, and relations by passing a `select` option when defining the type:
 
 ```ts
-const UserRef = builder.drizzleObject('users', {
+const User = builder.drizzleObject('users', {
   name: 'User',
   select: {
     columns: {
@@ -21,7 +21,7 @@ const UserRef = builder.drizzleObject('users', {
       profile: true,
     },
     extras: {
-      lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
+      lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
     },
   },
   fields: (t) => ({
@@ -29,10 +29,11 @@ const UserRef = builder.drizzleObject('users', {
       resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
     }),
     bio: t.string({
-      resolve: (user) => user.profile.bio,
+      nullable: true,
+      resolve: (user) => user.profile?.bio,
     }),
-    email: t.string({
-      resolve: (user) => `${user.lowercaseName}@example.com`,
+    lowercaseName: t.string({
+      resolve: (user) => user.lowercaseName,
     }),
   }),
 });
@@ -45,10 +46,10 @@ selected can still be exposed as before.
 
 The previous example allows you to control what gets selected by default, but you often want to only
 select the columns that are required to fulfill a specific field. You can do this by adding the
-appropriate selections on each field:
+appropriate selections on each field. Replace the preceding User definition with:
 
 ```ts
-const UserRef = builder.drizzleObject('users', {
+const User = builder.drizzleObject('users', {
   name: 'User',
   select: {},
   fields: (t) => ({
@@ -59,18 +60,19 @@ const UserRef = builder.drizzleObject('users', {
       resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
     }),
     bio: t.string({
+      nullable: true,
       select: {
         with: { profile: true },
       },
-      resolve: (user) => user.profile.bio,
+      resolve: (user) => user.profile?.bio,
     }),
-    email: t.string({
+    lowercaseName: t.string({
       select: {
         extras: {
-          lowercaseName: (users, sql) => sql<string>`lower(${users.firstName})`
+          lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
         },
       },
-      resolve: (user) => `${user.lowercaseName}@example.com`,
+      resolve: (user) => user.lowercaseName,
     }),
   }),
 });

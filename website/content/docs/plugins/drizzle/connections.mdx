@@ -3,6 +3,9 @@ title: Connections
 description: Creating relay connections with the Drizzle plugin
 ---
 
+Use the [builder setup with Relay](./setup#integration-with-other-plugins) and register the users
+and posts object types. Examples defining the same field or helper are alternatives.
+
 ## Related connections
 
 To implement a relation as a connection, you can use `t.relatedConnection` instead of `t.relation`:
@@ -10,6 +13,7 @@ To implement a relation as a connection, you can use `t.relatedConnection` inste
 ```ts
 builder.drizzleNode('users', {
   name: 'User',
+  id: { column: (user) => user.id },
   fields: (t) => ({
     posts: t.relatedConnection('posts'),
   }),
@@ -37,6 +41,7 @@ derive the connections cursor.
 ```ts
 builder.drizzleNode('users', {
   name: 'User',
+  id: { column: (user) => user.id },
   fields: (t) => ({
     posts: t.relatedConnection('posts', {
       query: () => ({
@@ -59,6 +64,7 @@ You can add a `totalCount` field to your connection by setting the `totalCount` 
 ```ts
 builder.drizzleNode('users', {
   name: 'User',
+  id: { column: (user) => user.id },
   fields: (t) => ({
     posts: t.relatedConnection('posts', {
       totalCount: true,
@@ -101,7 +107,7 @@ regardless of the filter, set `filterConnectionTotalCount: false` in the `drizzl
 
 ```ts
 const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [DrizzlePlugin],
+  plugins: [RelayPlugin, DrizzlePlugin],
   drizzle: {
     client: db,
     getTableConfig,
@@ -189,7 +195,7 @@ const Role = builder.drizzleObject('roles', {
 
 
 
-// Create connection helpers for the media type.  This will allow you
+// Create connection helpers for the userRoles join table.  This will allow you
 // to use the normal t.connection with a drizzle type
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
   // select the data needed for the nodes
@@ -207,6 +213,7 @@ builder.drizzleObjectField('users', 'rolesConnection', (t) =>
   t.connection({
     // The type for the Node
     type: Role,
+    nodeNullable: true,
     // since we are not using t.relatedConnection we need to manually
     // include the selections for our connection
     select: (args, ctx, nestedSelection) => ({
@@ -249,7 +256,7 @@ const SelectPost = builder.drizzleObject('posts', {
 });
 ```
 
-Arguments, ordering and filtering can also be defined in the helpers:
+Replace the preceding `rolesConnection` helper and field to add filtering and ordering:
 
 ```ts
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
@@ -259,7 +266,7 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
     // define an order
     orderBy: {
       roleId: 'asc',
-    }
+    },
     // define a filter
     where: {
       accepted: true,
@@ -280,6 +287,7 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
 builder.drizzleObjectField('users', 'rolesConnection', (t) =>
   t.connection({
     type: Role,
+    nodeNullable: true,
     // add the args from the connection helper to the field
     args: rolesConnection.getArgs(),
     select: (args, ctx, nestedSelection) => ({
@@ -294,7 +302,8 @@ builder.drizzleObjectField('users', 'rolesConnection', (t) =>
 
 ### Extending connection edges
 
-In some cases you may want to expose some data from an indirect connection on the edge object.
+This alternative exposes the join row’s `createdAt` on each edge. It assumes a registered
+`DateTime` scalar whose output type is `Date`.
 
 ```typescript
 const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
@@ -310,6 +319,7 @@ builder.drizzleObjectFields('users', (t) => ({
   rolesConnection: t.connection(
     {
       type: Role,
+      nodeNullable: true,
       select: (args, ctx, nestedSelection) => ({
         with: {
           userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
@@ -358,17 +368,16 @@ const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
 builder.queryFields((t) => ({
   roles: t.connection({
     type: Role,
+    nodeNullable: true,
     args: {
       userId: t.arg.int({ required: true }),
     },
-    nodeNullable: true,
     resolve: async (_, args, ctx, info) => {
       const query = rolesConnection.getQuery(args, ctx, info);
       const userRoles = await db.query.userRoles.findMany({
         ...query,
         where: {
-          ...query.where,
-          userId: args.userId,
+          AND: [query.where ?? {}, { userId: args.userId }],
         },
       });
       return rolesConnection.resolve(userRoles, args, ctx);
