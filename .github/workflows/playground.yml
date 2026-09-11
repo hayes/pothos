@@ -1,0 +1,27 @@
+name: Documentation playground
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter '@pothos/website^...' build
+      - run: pnpm --dir website test
+      - run: pnpm --dir website check:examples
+      - run: pnpm --dir website exec playwright install --with-deps chromium
+      - run: pnpm --dir website build-ci
+      - run: pnpm --dir website test:browser

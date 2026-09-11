@@ -47,7 +47,7 @@ export interface PlaygroundExample {
   files: PlaygroundFile[];
   defaultQuery: string;
   /** Multiple queries to load as separate tabs */
-  queries?: Array<{ title?: string; query: string; variables?: string }>;
+  queries?: Array<{ title?: string; query: string; variables?: string; context?: string }>;
   /** Index into `files` to focus when the example loads (per-step). */
   defaultActiveFile?: number;
 }

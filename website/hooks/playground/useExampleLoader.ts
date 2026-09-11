@@ -15,6 +15,7 @@ interface QueryShape {
   title?: string;
   query: string;
   variables?: string;
+  context?: string;
 }
 
 export interface LoadedExample {
@@ -62,6 +63,7 @@ function operationsFromExample(
         name: q.title ?? `Operation-${i + 1}`,
         query: q.query,
         variables: q.variables ?? '',
+        context: q.context ?? '',
       }),
     );
   }

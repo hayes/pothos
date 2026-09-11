@@ -1,0 +1,26 @@
+{
+  "01-Tall giraffes.graphql": {
+    "data": {
+      "giraffes": [
+        {
+          "name": "James",
+          "height": 5.2
+        }
+      ]
+    }
+  },
+  "02-All giraffes.graphql": {
+    "data": {
+      "giraffes": [
+        {
+          "name": "James",
+          "height": 5.2
+        },
+        {
+          "name": "Lucy",
+          "height": 4.3
+        }
+      ]
+    }
+  }
+}

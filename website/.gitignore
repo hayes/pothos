@@ -42,3 +42,6 @@ util/search-index.js
 /components/playground/examples/examples-index.generated.ts
 /components/playground/examples/examples-index.generated.ts.*.tmp
 /public/playground-examples/*.json
+
+/public/playground-examples/
+/public/types/

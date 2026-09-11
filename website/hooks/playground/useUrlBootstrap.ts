@@ -257,7 +257,33 @@ export function useUrlBootstrap({
           // No hash, or hash didn't carry files — apply the example
           // bundle normally. applyExampleResult does its own baseline
           // capture, so the URL stays at the short form until edited.
+          const snippet = new URLSearchParams(window.location.search).get('snippet')?.trim();
+          if (snippet) {
+            const index = final.files.findIndex((file) => file.content.includes(snippet));
+            if (index >= 0) {
+              const file = final.files[index];
+              const start = file.content.slice(0, file.content.indexOf(snippet)).split('\n').length;
+              final = {
+                ...final,
+                defaultActive: index,
+                files: final.files.map((file, i) =>
+                  i === index
+                    ? {
+                        ...file,
+                        highlights: [{ start, end: start + snippet.split('\n').length - 1 }],
+                      }
+                    : file,
+                ),
+              };
+            }
+          }
           applyExampleResult(final, search.query ?? undefined);
+          if (snippet) {
+            const operation = final.operations.findIndex((op) => op.query.trim() === snippet);
+            if (operation >= 0) {
+              opsState.setActiveIndex(operation);
+            }
+          }
           applyOpFromUrl();
         })
         .catch((err) => {

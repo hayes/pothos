@@ -4,17 +4,13 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { docCodeBlocks } from './doc-code-blocks.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const require = createRequire(join(root, 'package.json'));
 const fixture = await mkdtemp(join(root, '.docs-check-'));
 
-async function codeBlocks(page, language) {
-  const source = await readFile(join(root, 'website/content/docs', page), 'utf8');
-  return [...source.matchAll(/^```([^\n]+)\n([\s\S]*?)^```/gm)]
-    .filter((match) => match[1] === language)
-    .map((match) => match[2]);
-}
+const codeBlocks = (page, language) => docCodeBlocks(join(root, 'website'), page, language);
 
 try {
   const guide = await codeBlocks('guide/index.mdx', 'typescript');

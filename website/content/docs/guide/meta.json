@@ -1,7 +1,6 @@
 {
   "title": "Guide",
   "pages": [
-    "index",
     "objects",
     "fields",
     "args",
@@ -19,6 +18,7 @@
     "patterns",
     "changing-default-nullability",
     "inferring-types",
+    "playground",
     "printing-schemas",
     "generating-client-types",
     "troubleshooting",

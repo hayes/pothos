@@ -23,8 +23,8 @@ export function Header() {
 
   return (
     <DocsSearchProvider>
-      <header className="sticky top-0 z-30 backdrop-blur-sm bg-bm-bg/85 border-b border-bm-line">
-        <div className="max-w-[1280px] mx-auto px-6 md:px-10 h-[72px] flex items-center gap-8">
+      <header className="bm-site-header sticky top-0 z-30 backdrop-blur-sm bg-bm-bg/85 border-b border-bm-line">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 md:px-10 min-h-[72px] flex items-center gap-2 sm:gap-4 xl:gap-8">
           <Link
             href="/"
             aria-label="Pothos GraphQL"
@@ -33,16 +33,14 @@ export function Header() {
             <Wordmark width={130} height={32} />
           </Link>
 
-          {/* Desktop nav — switches on at lg (1024), not md (768): at exactly
-            768 the logo + 5 links + search + GitHub button overflowed the inner
-            width and pushed the whole page into horizontal scroll. Below lg we
-            use the hamburger drawer instead. */}
-          <nav className="hidden lg:flex items-center gap-7 ml-2">
+          {/* Switch to the drawer when enlarged text leaves too little room.
+            The container query in global.css measures space in text units. */}
+          <nav className="bm-header-desktop-nav hidden items-center gap-4 xl:gap-7 ml-2">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
-                className="text-[14px] text-bm-ink-soft hover:text-bm-ink transition-colors"
+                className="text-base text-bm-ink-soft hover:text-bm-ink transition-colors"
               >
                 {link.label}
               </Link>
@@ -57,33 +55,36 @@ export function Header() {
 
           <a
             href="https://github.com/hayes/pothos"
-            className="hidden sm:inline-flex items-center gap-2 text-[13px] text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors px-3 py-1.5 border border-bm-line rounded"
+            className="hidden sm:inline-flex items-center gap-2 text-sm text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors px-3 py-1.5 border border-bm-line rounded"
             title="Star Pothos on GitHub"
           >
             <GitHubIcon />
-            <span className="font-mono text-[12px]">GitHub</span>
+            <span className="font-mono text-sm">GitHub</span>
           </a>
 
           {/* Compact search trigger — visible below sm: where the labelled
             pill is hidden. */}
           <SearchButton variant="icon" />
 
-          {/* Hamburger — visible below lg: (matches the nav breakpoint) */}
+          {/* Drawer trigger — paired with the desktop container breakpoint. */}
           <button
             type="button"
             onClick={() => setMobileOpen((s) => !s)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
             aria-controls="marketing-mobile-nav"
-            className="lg:hidden inline-flex items-center justify-center size-9 rounded text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors"
+            className="bm-header-menu inline-flex items-center justify-center size-9 rounded text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors"
           >
             {mobileOpen ? <CloseIcon /> : <HamburgerIcon />}
           </button>
         </div>
 
-        {/* Mobile nav drawer — collapses below lg: (matches the nav breakpoint) */}
+        {/* Drawer — also serves readers using enlarged text on desktop. */}
         {mobileOpen && (
-          <nav id="marketing-mobile-nav" className="lg:hidden border-t border-bm-line bg-bm-bg">
+          <nav
+            id="marketing-mobile-nav"
+            className="bm-header-mobile-nav border-t border-bm-line bg-bm-bg"
+          >
             <div className="px-6 pt-3 pb-1 border-b border-bm-line-soft">
               <SearchButton variant="block" onActivate={() => setMobileOpen(false)} />
             </div>
@@ -93,7 +94,7 @@ export function Header() {
                   <Link
                     href={link.href}
                     onClick={() => setMobileOpen(false)}
-                    className="block py-2 text-[15px] text-bm-ink-soft hover:text-bm-ink transition-colors"
+                    className="block py-2 text-base text-bm-ink-soft hover:text-bm-ink transition-colors"
                   >
                     {link.label}
                   </Link>

@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "codegen": "pnpm run bundle-types && pnpm run build-examples",
-    "dev": "pnpm run codegen && next dev",
+    "dev": "pnpm run codegen && next dev --webpack",
     "build": "pnpm run codegen && pnpm run check-playground-refs && pnpm run type:only",
     "next-build": "next build",
     "build-ci": "pnpm turbo run build && pnpm run codegen && pnpm run check-playground-refs && pnpm run type:only && next build",
@@ -14,11 +14,14 @@
     "type": "pnpm run codegen && tsc --noEmit",
     "type:only": "tsc --noEmit",
     "test": "pnpm run codegen && pnpm run test:examples && pnpm run test:unit",
-    "test:examples": "tsx scripts/test-playground-examples.ts",
+    "test:examples": "pnpm run build-examples && pnpm run type:examples",
     "test:unit": "vitest run",
     "postinstall": "fumadocs-mdx",
     "check:examples": "node scripts/check-doc-examples.mjs",
-    "check:links": "node scripts/check-doc-links.mjs"
+    "check:links": "node scripts/check-doc-links.mjs",
+    "type:examples": "node scripts/type-playground-examples.mjs",
+    "check:playground": "node scripts/check-playground.mjs",
+    "test:browser": "node scripts/run-playground-tests.mjs"
   },
   "engines": {
     "pnpm": ">=9.0.0"
@@ -74,6 +77,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "unist-util-visit": "^5.0.0",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "playwright": "^1.63.0"
   }
 }

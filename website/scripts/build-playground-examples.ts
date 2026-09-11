@@ -11,7 +11,7 @@
  */
 
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 interface ExampleFile {
   filename: string;
@@ -185,21 +185,32 @@ async function buildFlatExample(
   // `{ user: { isEmployee: true } }`.
   let defaultContext: string | undefined;
 
-  const exampleFiles = (await readdir(examplePath, { withFileTypes: true })).sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
-
-  for (const file of exampleFiles) {
-    if (!file.isFile()) {
-      continue;
+  const exampleFiles: string[] = [];
+  async function collect(directory: string, prefix = ''): Promise<void> {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (entry.isDirectory() && !/^(step-|variant-|node_modules)/.test(entry.name)) {
+        await collect(join(directory, entry.name), `${prefix}${entry.name}/`);
+      } else if (entry.isFile()) {
+        exampleFiles.push(`${prefix}${entry.name}`);
+      }
     }
+  }
+  await collect(examplePath);
+  exampleFiles.sort();
+  const variables = new Map<string, string>();
+  const contexts = new Map<string, string>();
 
-    const filename = file.name;
-
+  for (const filename of exampleFiles) {
     // Skip metadata.json + reference-only files (README.md,
     // schema.prisma — kept as source-of-truth on disk but not bundled
     // because the playground has no way to render them yet).
-    if (filename === 'metadata.json' || filename === 'README.md' || filename === 'schema.prisma') {
+    if (
+      filename === 'metadata.json' ||
+      filename === 'expected.json' ||
+      filename.endsWith('.test.ts') ||
+      filename === 'README.md' ||
+      filename === 'schema.prisma'
+    ) {
       continue;
     }
 
@@ -208,6 +219,18 @@ async function buildFlatExample(
     // pre-marker source (see stripRegionMarkers).
     const content = stripRegionMarkers(await readFile(filePath, 'utf-8'));
 
+    if (filename === 'context.json' || filename === 'context.js') {
+      defaultContext = content;
+      continue;
+    }
+    if (filename.endsWith('.variables.json')) {
+      variables.set(filename.replace(/\.variables\.json$/, ''), content);
+      continue;
+    }
+    if (filename.endsWith('.context.json')) {
+      contexts.set(filename.replace(/\.context\.json$/, ''), content);
+      continue;
+    }
     // `.ts`, `.d.ts`, `.json`, and `.sql` all ship as inline files;
     // the playground's bundler (execution-engine.ts:bundleFiles)
     // dispatches to esbuild's `ts` / `json` / `text` loader based on
@@ -226,8 +249,6 @@ async function buildFlatExample(
     // Collect .graphql files as query files
     else if (filename.endsWith('.graphql')) {
       queryFileInfo.push({ filename, content });
-    } else if (filename === 'context.json' || filename === 'context.js') {
-      defaultContext = content;
     }
   }
 
@@ -254,7 +275,8 @@ async function buildFlatExample(
   const queries = queryFileInfo.map((fileInfo) => ({
     title: fileInfo.filename.replace(/\.(graphql|gql)$/, ''),
     query: fileInfo.content,
-    ...(defaultContext ? { context: defaultContext } : {}),
+    variables: variables.get(fileInfo.filename.replace(/\.graphql$/, '')) ?? '',
+    context: contexts.get(fileInfo.filename.replace(/\.graphql$/, '')) ?? defaultContext ?? '',
   }));
 
   return {
@@ -395,7 +417,24 @@ async function buildVariantExamples(
     // so "Open in Playground" opens with a runnable operation.
     if (!variantExample.queries) {
       variantExample.defaultQuery = baseExample.defaultQuery;
-      variantExample.queries = baseExample.queries;
+      const optional = async (name: string) => {
+        try {
+          return await readFile(join(variantPath, name), 'utf8');
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return undefined;
+          }
+          throw error;
+        }
+      };
+      const context = (await optional('context.json')) ?? (await optional('context.js'));
+      variantExample.queries = await Promise.all(
+        (baseExample.queries ?? []).map(async (query) => ({
+          ...query,
+          variables: (await optional(`${query.title}.variables.json`)) ?? query.variables,
+          context: (await optional(`${query.title}.context.json`)) ?? context ?? query.context,
+        })),
+      );
     }
 
     examples.push(variantExample);
@@ -636,6 +675,7 @@ export function getOrganizedExamples() {
   // that no longer exists. Per-process names make the writes independent,
   // and rename(2) is atomic, so whichever lands last publishes a complete
   // (and identical) index.
+  await mkdir(dirname(INDEX_FILE), { recursive: true });
   const tmpIndexFile = `${INDEX_FILE}.${process.pid}.tmp`;
   await writeFile(tmpIndexFile, indexContent, 'utf-8');
   await rename(tmpIndexFile, INDEX_FILE);

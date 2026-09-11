@@ -19,8 +19,8 @@ const STORAGE_KEY = 'pothos-sidebar-collapsed';
  * Custom docs sidebar that walks fumadocs's page-tree shape but renders
  * with the Botanical Modern vocabulary:
  *
- *   - 11px uppercase tracked section heads
- *   - 14px ink-soft item rows
+ *   - 14px uppercase tracked section heads
+ *   - 16px ink-soft item rows
  *   - 2px accent left-border on the active item, in `ink` weight
  *   - Nested folders indent and collapse
  *

@@ -61,6 +61,9 @@ export function ResponsePane({ phase, subTab, onSelectSubTab, panels }: Props) {
 
   return (
     <section className="grid grid-rows-[auto_1fr] min-h-0 bg-bm-editor-bg">
+      <output aria-label="GraphQL result" className="sr-only">
+        {body}
+      </output>
       <PaneHeader tabs={tabs} meta={<ResponseStatus phase={phase} />} />
       <div className="min-h-0">
         {activePanel ? <PanelView panel={activePanel} /> : <ResponseEditor body={body} />}

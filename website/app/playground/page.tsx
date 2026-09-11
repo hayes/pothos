@@ -53,6 +53,39 @@ export default function PlaygroundPage() {
             </button>
           </div>
         )}
+        {ui.loadedExample && (
+          <aside
+            aria-label="Example guide"
+            className="border-b border-bm-line bg-bm-surface-alt px-6 py-3 text-sm"
+          >
+            <p>
+              {ui.loadedExample.steps[ui.stepIndex]?.description ??
+                ui.loadedExample.metadata.description}
+            </p>
+            <div className="mt-2 flex gap-4">
+              {ui.loadedExample.metadata.relatedDocs?.[0] && (
+                <a
+                  className="underline"
+                  href={ui.loadedExample.metadata.relatedDocs[0]}
+                  target={ui.embed ? '_parent' : undefined}
+                >
+                  Read the guide
+                </a>
+              )}
+              <button
+                type="button"
+                className="underline"
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.hash = '';
+                  window.location.assign(url.toString());
+                }}
+              >
+                Reset example
+              </button>
+            </div>
+          </aside>
+        )}
         <Toolbar
           embed={ui.embed}
           sketchName={ui.sketchName}

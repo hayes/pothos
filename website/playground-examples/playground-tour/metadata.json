@@ -1,0 +1,24 @@
+{
+  "id": "playground-tour",
+  "title": "Using the playground",
+  "description": "Run and edit a greeting, then use variables to query a small herd.",
+  "category": "core",
+  "order": 1,
+  "relatedDocs": ["/docs/guide/playground"],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Run and edit",
+      "description": "Run the greeting query. Change Sam in the query to your name and run again. In schema.ts, change Hello to Welcome to edit the response.",
+      "order": 1,
+      "defaultActiveFile": "schema.ts"
+    },
+    {
+      "id": "step-2",
+      "title": "Explore a schema",
+      "description": "Run Tall giraffes, then All giraffes. Change minimumHeight in Variables to filter the herd. Open schema.graphql to inspect the field and argument types.",
+      "order": 2,
+      "defaultActiveFile": "schema.ts"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+query Visit($minimumHeight: Float!) {
+  giraffes(minimumHeight: $minimumHeight) {
+    name
+    height
+  }
+}

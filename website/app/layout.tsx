@@ -1,7 +1,7 @@
 import './global.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
-import { Fraunces, Inter_Tight, JetBrains_Mono } from 'next/font/google';
+import { JetBrains_Mono, Lato, Source_Serif_4 } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { ReviewProviderDevOnly } from '@/review-plugin/src/client';
 import { Providers } from '../components/Providers';
@@ -44,17 +44,19 @@ export const metadata: Metadata = {
   },
 };
 
-const fraunces = Fraunces({
+const readingSans = Lato({
   subsets: ['latin'],
-  variable: '--font-fraunces',
-  axes: ['opsz'],
+  variable: '--font-reading-sans',
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
   display: 'swap',
 });
 
-const interTight = Inter_Tight({
+const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
-  variable: '--font-inter-tight',
-  weight: ['400', '500', '600'],
+  variable: '--font-source-serif',
+  weight: ['400', '600'],
+  style: ['normal', 'italic'],
   display: 'swap',
 });
 
@@ -77,7 +79,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
+      className={`${readingSans.variable} ${sourceSerif.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <head>

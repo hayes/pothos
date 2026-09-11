@@ -9,18 +9,7 @@ We'll define a GraphQL type for a giraffe, using a TypeScript interface to descr
 
 Create `schema.ts` with a builder and a reference for the `Giraffe` type:
 
-```typescript
-import SchemaBuilder from '@pothos/core';
-
-interface Giraffe {
-  name: string;
-  birthday: Date;
-  heightInMeters: number;
-}
-
-const builder = new SchemaBuilder({});
-const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
-```
+<include cwd lang="typescript" meta='playground example="objects"'>playground-examples/objects/schema.ts#model</include>
 
 The interface describes the **backing model**: the data returned by resolvers for this type.
 `objectRef` associates that model with the GraphQL name `Giraffe`. We can use the ref when defining
@@ -31,18 +20,7 @@ fields that return a giraffe.
 Next, call `implement` to define the object's fields. It accepts the options for the object type,
 including an optional description:
 
-```typescript
-GiraffeRef.implement({
-  description: 'A giraffe in the zoo.',
-  fields: (t) => ({
-    name: t.exposeString('name'),
-    height: t.exposeFloat('heightInMeters'),
-    birthYear: t.int({
-      resolve: (giraffe) => giraffe.birthday.getUTCFullYear(),
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="objects"'>playground-examples/objects/schema.ts#fields</include>
 
 The `fields` function receives a field builder, usually named `t`. Here, `t.exposeString('name')`
 reads the `name` property from the backing model. The `height` field reads `heightInMeters`, giving
@@ -60,26 +38,14 @@ covers more field options.
 
 Add a field to the root `Query` type that returns a giraffe, then build the schema:
 
-```typescript
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: GiraffeRef,
-      resolve: () => ({
-        name: 'James',
-        birthday: new Date(Date.UTC(2012, 11, 12)),
-        heightInMeters: 5.2,
-      }),
-    }),
-  }),
-});
-
-export const schema = builder.toSchema();
-```
+<include cwd lang="typescript" meta='playground example="objects"'>playground-examples/objects/schema.ts#query</include>
 
 The `type: GiraffeRef` option tells Pothos to check that the resolver returns data matching the
 `Giraffe` interface. That returned object becomes the first argument to the resolvers for `name`,
 `height`, and `birthYear`.
+
+You can run this schema immediately with a Playground action above. To run it in your own
+application, add the server below.
 
 ### Create a server
 
@@ -102,7 +68,7 @@ server.listen(3000);
 Run `npx tsx server.ts`, then open [http://localhost:3000/graphql](http://localhost:3000/graphql)
 and run this query:
 
-```graphql
+```graphql playground example="objects"
 query {
   giraffe {
     name
@@ -131,17 +97,17 @@ The result is:
 This guide uses object refs with a TypeScript interface. You can also use an existing class or
 register backing models by name on the builder. These forms can be used together in the same schema.
 
+<includeregions cwd lang="typescript" meta='playground example="objects" tab="Object refs"'>playground-examples/objects/schema.ts#model,fields</includeregions>
+
+<include cwd lang="typescript" meta='playground example="objects-variant-classes" tab="Classes"'>playground-examples/objects/variant-classes/schema.ts#definition</include>
+
+<include cwd lang="typescript" meta='playground example="objects-variant-builder-types" tab="SchemaTypes"'>playground-examples/objects/variant-builder-types/schema.ts#definition</include>
+
 ### Using Refs
 
 You can create and implement a ref in one expression:
 
-```typescript
-const GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="objects-variant-inline-refs"'>playground-examples/objects/variant-inline-refs/schema.ts#fields</include>
 
 For types that reference each other, TypeScript may need ref creation and `implement` to be separate
 statements, as in the walkthrough above. See [circular references](./circular-references) for details.
@@ -154,31 +120,8 @@ If your app already represents its data with classes, prefer using those classes
 Pass the class to `builder.objectType`: its instance type becomes the backing model, and the class
 itself can be used as a field's `type`:
 
-```typescript
-class Giraffe {
-  constructor(
-    public name: string,
-    public birthday: Date,
-    public heightInMeters: number,
-  ) {}
-}
-
-builder.objectType(Giraffe, {
-  name: 'Giraffe',
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: Giraffe,
-      resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
-    }),
-  }),
-});
-```
+The Classes tab shows this definition. Its playground uses `type: Giraffe` in the query field
+and returns a `new Giraffe(...)` instance.
 
 The `name` option supplies the GraphQL type name. When resolving an
 [interface](./interfaces) or [union](./unions), you can also use an explicit
@@ -190,34 +133,7 @@ You can declare backing models in `SchemaTypes` and pass it to `SchemaBuilder`. 
 reference object types by their GraphQL names instead of importing refs. Using the `Giraffe`
 interface from above:
 
-```typescript
-interface SchemaTypes {
-  Objects: {
-    Giraffe: Giraffe;
-  };
-}
-
-const builder = new SchemaBuilder<SchemaTypes>({});
-
-builder.objectType('Giraffe', {
-  fields: (t) => ({
-    name: t.exposeString('name'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: 'Giraffe',
-      resolve: () => ({
-        name: 'James',
-        birthday: new Date(Date.UTC(2012, 11, 12)),
-        heightInMeters: 5.2,
-      }),
-    }),
-  }),
-});
-```
+The SchemaTypes tab shows the registration. Its playground uses `type: 'Giraffe'` in the query field.
 
 The `Objects` mapping tells Pothos which backing model belongs to each name. Here, it types the
 `Giraffe` field resolvers and checks the object returned by the `giraffe` query. You still define

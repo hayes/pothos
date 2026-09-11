@@ -1,0 +1,34 @@
+---
+title: Using the playground
+description: Run a Pothos schema, edit its source, and use variables to explore your data.
+---
+
+The playground runs Pothos schemas in your browser. You can edit the TypeScript source, inspect the generated GraphQL schema, and execute queries without starting a server.
+
+## Run and edit a greeting
+
+[Open the greeting example](/playground?example=playground-tour&step=1) and click **Run**. The response contains `"Hello, Sam!"`.
+
+Change `Sam` in the query to your name and run again. This example has one source file and one query.
+
+The resolver in `schema.ts` uses the `name` argument to build the greeting:
+
+<include cwd lang="typescript" meta='playground example="playground-tour-step-1"'>playground-examples/playground-tour/step-1/schema.ts#query</include>
+
+In `schema.ts`, change `Hello` to `Welcome`. Run the query again to see the edited response. **Reset example** restores the original source and query.
+
+## Explore fields and arguments
+
+Choose **Explore a schema** in the step controls, or [open step 2](/playground?example=playground-tour&step=2). Each step loads a complete example; edits from the previous step are not carried forward.
+
+Run **01-Tall giraffes**. With `minimumHeight` set to `5`, the response includes James. Run **02-All giraffes** to include Lucy too. Change `minimumHeight` in **Variables** and run again to try the filter.
+
+<include cwd lang="typescript" meta='playground example="playground-tour-step-2"'>playground-examples/playground-tour/step-2/schema.ts#query</include>
+
+Open `models/giraffe.ts` in **Files** to change the backing data. Open `schema.graphql` to inspect the generated field and argument types. The schema explorer also lets you browse the types. Resolver logs and errors appear in **Console**.
+
+## Share your changes
+
+Use **Share** to copy a link containing your edited source and operations. A reader opening shared code must review it and choose **Trust and build schema** before running it. **Read the guide** returns to this page; **Reset example** discards edits and reloads the original example.
+
+The playground executes queries and mutations locally. It does not start an HTTP server, provision a database, or run live subscriptions. Examples that require those services need their documented local setup.

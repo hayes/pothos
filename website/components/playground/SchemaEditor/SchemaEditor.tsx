@@ -45,6 +45,7 @@ export function SchemaEditor({ files, activeIndex, sdlActive, schemaSDL, onChang
           <SourceEditor
             filename={activeFile.filename}
             source={activeFile.content}
+            highlights={activeFile.highlights}
             allFiles={files}
             readOnly={generated}
             onChange={(value) => onChange(activeIndex, value)}

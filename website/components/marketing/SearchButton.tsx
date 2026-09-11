@@ -44,7 +44,7 @@ export function SearchButton({ variant = 'full', onActivate }: SearchButtonProps
       <button
         type="button"
         onClick={open}
-        className="flex w-full items-center gap-2 py-2 text-[15px] text-bm-ink-soft hover:text-bm-ink transition-colors"
+        className="flex w-full items-center gap-2 py-2 text-base text-bm-ink-soft hover:text-bm-ink transition-colors"
       >
         <SearchIcon className="size-4" />
         <span>Search docs</span>
@@ -53,7 +53,7 @@ export function SearchButton({ variant = 'full', onActivate }: SearchButtonProps
             <kbd
               // biome-ignore lint/suspicious/noArrayIndexKey: static hotkey list
               key={i}
-              className="rounded border border-bm-line bg-bm-surface-alt px-1.5 font-mono text-[11px] text-bm-ink-muted"
+              className="rounded border border-bm-line bg-bm-surface-alt px-1.5 font-mono text-xs text-bm-ink-muted"
             >
               {k.display}
             </kbd>
@@ -67,16 +67,16 @@ export function SearchButton({ variant = 'full', onActivate }: SearchButtonProps
     <button
       type="button"
       onClick={open}
-      className="hidden sm:inline-flex items-center gap-2 text-[13px] text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors ps-2.5 pe-1.5 py-1.5 border border-bm-line rounded"
+      className="hidden sm:inline-flex items-center gap-2 text-base text-bm-ink-soft hover:text-bm-ink hover:bg-bm-surface-alt transition-colors ps-2.5 pe-1.5 py-1.5 border border-bm-line rounded"
     >
       <SearchIcon className="size-4" />
-      <span className="text-[13px]">Search</span>
+      <span className="text-base">Search</span>
       <span className="inline-flex gap-0.5">
         {hotKey.map((k, i) => (
           <kbd
             // biome-ignore lint/suspicious/noArrayIndexKey: static hotkey list
             key={i}
-            className="rounded border border-bm-line bg-bm-surface-alt px-1.5 font-mono text-[11px] leading-[1.4] text-bm-ink-muted"
+            className="rounded border border-bm-line bg-bm-surface-alt px-1.5 font-mono text-xs leading-[1.4] text-bm-ink-muted"
           >
             {k.display}
           </kbd>

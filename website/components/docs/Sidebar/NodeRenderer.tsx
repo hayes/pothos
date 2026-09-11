@@ -27,7 +27,7 @@ function SeparatorRow({ node }: { node: PageTree.Separator }) {
     return <div className="h-2" aria-hidden="true" />;
   }
   return (
-    <div className="text-[11px] uppercase tracking-[0.08em] text-bm-ink-muted px-2 pb-1 pt-2">
+    <div className="text-sm uppercase tracking-[0.08em] text-bm-ink-muted px-2 pb-1 pt-2">
       {node.name}
     </div>
   );
@@ -40,7 +40,7 @@ function ItemRow({ node, active, depth }: { node: PageTree.Item; active: boolean
       href={node.url}
       target={node.external ? '_blank' : undefined}
       rel={node.external ? 'noreferrer' : undefined}
-      className={`block py-1 text-[14px] border-l-2 transition-colors ${
+      className={`block py-1.5 text-base leading-snug border-l-2 transition-colors ${
         active
           ? 'text-bm-ink font-medium border-bm-accent'
           : 'text-bm-ink-soft hover:text-bm-ink border-transparent'
@@ -112,7 +112,7 @@ function FolderRow({
                 setExpanded(true);
               }
             }}
-            className={`flex-1 py-1 pl-3 text-[14px] border-l-2 transition-colors ${
+            className={`flex-1 py-1.5 pl-3 text-base leading-snug border-l-2 transition-colors ${
               isActive(indexUrl, pathname)
                 ? 'text-bm-ink font-medium border-bm-accent'
                 : 'text-bm-ink-soft hover:text-bm-ink border-transparent'
@@ -121,7 +121,7 @@ function FolderRow({
             {node.name}
           </Link>
         ) : (
-          <span className="flex-1 py-1 pl-3 text-[11px] uppercase tracking-[0.08em] text-bm-ink-muted">
+          <span className="flex-1 py-1 pl-3 text-sm uppercase tracking-[0.08em] text-bm-ink-muted">
             {node.name}
           </span>
         )}

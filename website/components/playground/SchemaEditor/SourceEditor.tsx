@@ -9,6 +9,7 @@ import { setFormatHandler } from './format-handler';
 interface Props {
   filename: string;
   source: string;
+  highlights?: PlaygroundFile['highlights'];
   /** All files in the workspace — used to register cross-file types in Monaco. */
   allFiles?: PlaygroundFile[];
   /** When true, the editor renders read-only — used for generated files. */
@@ -36,13 +37,19 @@ function languageForFilename(filename: string): string {
  * Loads Pothos types lazily, registers all open files for cross-file
  * checking, and pushes plugin types as the source changes.
  */
-export function SourceEditor({ filename, source, allFiles, readOnly = false, onChange }: Props) {
+export function SourceEditor({
+  filename,
+  source,
+  highlights,
+  allFiles,
+  readOnly = false,
+  onChange,
+}: Props) {
   const monaco = useMonaco();
   const [typesLoaded, setTypesLoaded] = useState(false);
   const editorRef = useRef<
     Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null
   >(null);
-  const filesKeyRef = useRef('');
   const { theme: editorTheme, beforeMount: registerThemes } = useEditorTheme();
 
   useEffect(() => {
@@ -56,14 +63,9 @@ export function SourceEditor({ filename, source, allFiles, readOnly = false, onC
   }, [monaco, typesLoaded]);
 
   useEffect(() => {
-    if (!monaco || !typesLoaded || !allFiles || allFiles.length <= 1) {
+    if (!monaco || !typesLoaded || !allFiles) {
       return;
     }
-    const key = allFiles.map((f) => `${f.filename}:${f.content.length}`).join(',');
-    if (key === filesKeyRef.current) {
-      return;
-    }
-    filesKeyRef.current = key;
     import('@/lib/playground/setup-monaco').then(({ registerPlaygroundFiles }) => {
       registerPlaygroundFiles(allFiles);
     });
@@ -131,6 +133,16 @@ export function SourceEditor({ filename, source, allFiles, readOnly = false, onC
       beforeMount={registerThemes}
       onMount={(editor) => {
         editorRef.current = editor;
+        if (highlights?.[0]) {
+          const range = highlights[0];
+          editor.setSelection({
+            startLineNumber: range.start,
+            startColumn: 1,
+            endLineNumber: range.end,
+            endColumn: editor.getModel()?.getLineMaxColumn(range.end) ?? 1,
+          });
+          editor.revealLineInCenter(range.start);
+        }
         if (!readOnly) {
           setFormatHandler(() => {
             editor.getAction('editor.action.formatDocument')?.run();
