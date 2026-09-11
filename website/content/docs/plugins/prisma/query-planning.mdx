@@ -109,12 +109,21 @@ The cost lands on the places where your own code asks the plugin for a query or 
 - `nestedSelection`, the third argument of a field's `select`
 - `mergeNestedSelection`, what a `pothosPrismaSelect` field extension is handed
 
-Once the opt-in is on, each of those either has to be updated — pass `awaitSelections: true` and
-`await` the query, or `await` the nested selection — or it may throw. Which of them are affected
-depends on whether any selection beneath that field is async, and that is a property of the
-incoming document rather than of the call site, so reading the call site does not settle it.
-Turning the opt-in on is a commitment to audit every one of them, and a schema that has none has
-nothing to audit.
+Once the opt-in is on, update every one of them, whether or not the selection you wrote there is
+async:
+
+- `await` what `nestedSelection` returns before putting it in the selection.
+- Pass `awaitSelections: true` to every `queryFromInfo` and
+  `prismaConnectionHelpers(...).getQuery` call, and `await` the query it returns.
+
+Doing both is the only way to guarantee the query builds without an error. Whether a promise
+actually appears depends on whether any selection beneath that field is async, and that is a
+property of the incoming document rather than of the call site — a synchronous callback still
+receives a promise when something nested under it is async, so reading your own code does not
+settle it. Skip the option on a call that turns out to need it and the request throws, naming the
+call and the option.
+
+A schema with none of these call sites has nothing to update.
 
 The two opt-ins are independent. The schema flag says whether a selection callback you write
 through the builder may be async; `awaitSelections` says whether a particular `queryFromInfo` or
