@@ -152,20 +152,37 @@ You can also pass a ref to `builder.objectType(GiraffeRef, { ... })` with the sa
 
 If your app already represents its data with classes, prefer using those classes as backing models.
 Pass the class to `builder.objectType`: its instance type becomes the backing model, and the class
-itself can be used as a field's `type`. For example, with an existing `GiraffeModel` class:
+itself can be used as a field's `type`:
 
 ```typescript
-builder.objectType(GiraffeModel, {
+class Giraffe {
+  constructor(
+    public name: string,
+    public birthday: Date,
+    public heightInMeters: number,
+  ) {}
+}
+
+builder.objectType(Giraffe, {
   name: 'Giraffe',
   fields: (t) => ({
     name: t.exposeString('name'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    giraffe: t.field({
+      type: Giraffe,
+      resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
+    }),
   }),
 });
 ```
 
 The `name` option supplies the GraphQL type name. When resolving an
 [interface](./interfaces) or [union](./unions), you can also use an explicit
-`isTypeOf: (value) => value instanceof GiraffeModel` option to identify instances of the class.
+`isTypeOf: (value) => value instanceof Giraffe` option to identify instances of the class.
 
 ### Using SchemaTypes
 
