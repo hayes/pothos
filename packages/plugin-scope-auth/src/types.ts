@@ -127,6 +127,12 @@ export interface ForbiddenResult {
 }
 
 export interface ResolveStep<Types extends SchemaTypes> {
+  /**
+   * Identifies the policy this step enforces (eg. `authScopes:User`) so that step lists merged from
+   * more than one type config (an interface and the object that implements it) do not run the same
+   * policy twice.
+   */
+  key?: string;
   run: (
     cache: RequestCache<Types>,
     parent: unknown,
