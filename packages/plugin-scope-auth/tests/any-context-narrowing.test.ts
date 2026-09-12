@@ -5,11 +5,10 @@ import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin from '../src';
 import { db } from './example/db';
 
-// NOTE: the `@ts-expect-error` below is the real assertion for the `$any` narrowing fix, and
-// `pnpm test` does NOT check it — vitest's typecheck reports `Type Errors  no errors` even with
-// the fix reverted. Run `pnpm --filter @pothos/plugin-scope-auth run type` (tsc against
-// tsconfig.type.json) to catch the regression, which surfaces as TS2578 "Unused
-// '@ts-expect-error' directive".
+// NOTE: the `@ts-expect-error` below is the real assertion in this file, and `pnpm test` does NOT
+// check it — vitest's typecheck reports `Type Errors  no errors` even when the type is wrong. Run
+// `pnpm --filter @pothos/plugin-scope-auth run type` (tsc against tsconfig.type.json), where a
+// regression surfaces as TS2578 "Unused '@ts-expect-error' directive".
 
 interface Context {
   user: { id: string } | null;
@@ -31,7 +30,6 @@ interface BuilderTypes {
 
 const builder = new SchemaBuilder<BuilderTypes>({
   plugins: [ScopeAuthPlugin],
-  // required by the prisma plugin's global type augmentation, unused by these tests
   prisma: { client: db, dmmf: getDatamodel() },
   scopeAuth: {
     defaultStrategy: 'all',
@@ -44,8 +42,6 @@ const builder = new SchemaBuilder<BuilderTypes>({
 
 builder.queryType({
   fields: (t) => ({
-    // `$any` only guarantees that ONE of the scopes passed, so the narrowed context must stay a
-    // union of the two auth contexts, even though the default strategy is `all`.
     explicitAny: t.withAuth({ $any: { user: true, admin: true } }).string({
       resolve: (_parent, _args, context) => context.user?.id ?? context.admin?.id ?? 'none',
     }),
@@ -54,14 +50,12 @@ builder.queryType({
         // @ts-expect-error `$any` does not guarantee the `admin` context
         context.admin.id,
     }),
-    // The default `all` strategy still intersects the contexts of every key in the map.
     implicitAll: t.withAuth({ user: true, admin: true }).string({
       resolve: (_parent, _args, context) => `${context.user.id}:${context.admin.id}`,
     }),
     explicitAll: t.withAuth({ $all: { user: true, admin: true } }).string({
       resolve: (_parent, _args, context) => `${context.user.id}:${context.admin.id}`,
     }),
-    // A map mixing a plain scope with `$any` intersects the plain scope with the `$any` union.
     mixed: t.withAuth({ user: true, $any: { admin: true } }).string({
       resolve: (_parent, _args, context) => `${context.user.id}:${context.admin.id}`,
     }),
@@ -82,8 +76,6 @@ describe('$any context narrowing with a default strategy of all', () => {
       contextValue: { user: { id: '1' }, admin: null },
     });
 
-    // Only `user` is authorized, so `admin` is absent at runtime — the narrowed type must not
-    // claim otherwise.
     expect(result.data).toEqual({ explicitAny: '1' });
     expect(result.errors).toBeUndefined();
   });

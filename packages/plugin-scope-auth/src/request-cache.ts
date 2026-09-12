@@ -25,9 +25,6 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   context;
 
-  // Results are cached per scope map, and per strategy (`true` for `$all`, `false` for `$any`)
-  // within that map.  The same map object may be used by both an `$any` and an `$all`
-  // requirement, and those evaluations can produce different results.
   mapCache = new Map<{}, Map<boolean, MaybePromise<AuthFailure | null>>>();
 
   scopeCache = new Map<keyof Types['AuthScopes'], Map<unknown, MaybePromise<AuthFailure | null>>>();
