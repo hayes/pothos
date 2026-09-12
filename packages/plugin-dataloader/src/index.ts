@@ -94,6 +94,12 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
         return result;
       }
 
+      // An Error in a list position is how graphql-js is told to null that position and report the
+      // error at its own path, so it is passed through rather than being treated as a nested list.
+      if (result instanceof Error) {
+        return result;
+      }
+
       if (isThenable(result)) {
         return result.then((results) => loadResults(results, loader, depth));
       }

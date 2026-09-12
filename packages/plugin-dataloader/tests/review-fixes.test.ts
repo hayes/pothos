@@ -61,6 +61,62 @@ describe('nested list output', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ matrix: [[{ id: 1 }, { id: 2 }], [{ id: 3 }]] });
   });
+
+  it('reports an Error returned for a nullable inner list at its own path', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
+
+    const User = builder.loadableObject('User', {
+      load: async (ids: number[]) => ids.map((id) => ({ id })),
+      fields: (t) => ({ id: t.exposeInt('id', { nullable: false }) }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        matrix: t.field({
+          type: t.listRef(t.listRef(User), { nullable: true }),
+          resolve: () => [[{ id: 1 }], new Error('row failed')] as never,
+        }),
+      }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: '{ matrix { id } }',
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ matrix: [[{ id: 1 }], null] });
+    expect(result.errors?.map((error) => error.message)).toEqual(['row failed']);
+    expect(result.errors?.[0].path).toEqual(['matrix', 1]);
+  });
+
+  it('reports an Error returned for a nullable list item at its own path', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
+
+    const User = builder.loadableObject('User', {
+      load: async (ids: number[]) => ids.map((id) => ({ id })),
+      fields: (t) => ({ id: t.exposeInt('id', { nullable: false }) }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        users: t.field({
+          type: t.listRef(User, { nullable: true }),
+          resolve: () => [{ id: 1 }, new Error('user failed')] as never,
+        }),
+      }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: '{ users { id } }',
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ users: [{ id: 1 }, null] });
+    expect(result.errors?.map((error) => error.message)).toEqual(['user failed']);
+    expect(result.errors?.[0].path).toEqual(['users', 1]);
+  });
 });
 
 describe('iterable resolver results', () => {
