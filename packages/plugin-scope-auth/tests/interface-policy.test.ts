@@ -46,10 +46,6 @@ function run(schema: GraphQLSchema, source: string, context: Context) {
   return graphql({ schema, source, contextValue: context });
 }
 
-/**
- * `Readable` grants `read` and declares `secret`, which requires it. `Denied` implements
- * `Readable` and denies everything, `Allowed` implements it with no policy of its own.
- */
 function createLeakSchema() {
   const builder = createBuilder();
 
