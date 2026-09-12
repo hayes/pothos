@@ -56,25 +56,26 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const authorizedOnSubscribe =
       !!this.builder.options.scopeAuth?.authorizeOnSubscribe && typeConfig.kind === 'Subscription';
 
-    const nonRoot =
-      (typeConfig.graphqlKind === 'Interface' || typeConfig.graphqlKind === 'Object') &&
-      typeConfig.kind !== 'Query' &&
-      typeConfig.kind !== 'Mutation' &&
-      typeConfig.kind !== 'Subscription';
-
-    const runTypeScopesOnField =
-      !nonRoot ||
-      !(
-        typeConfig.pothosOptions.runScopesOnType ??
-        this.builder.options.scopeAuth?.runScopesOnType ??
-        false
+    // A field declared on an interface is inherited by every type that implements it, and
+    // `fieldConfig.parentType` is always the declaring interface, never the concrete type the field
+    // is being resolved on. Building the step list here would apply only the interface's policy and
+    // silently skip the implementing type's `authScopes`/`grantScopes` (and the `authScopes` of the
+    // other interfaces it implements). Instead dispatch on the concrete type at resolve time and
+    // enforce both the interface's policy and the implementing type's policy.
+    if (typeConfig.graphqlKind === 'Interface') {
+      return this.createInheritedFieldResolver(
+        resolver,
+        fieldConfig,
+        typeConfig,
+        authorizedOnSubscribe,
       );
+    }
 
     const steps = this.createResolveSteps(
       fieldConfig,
       typeConfig,
       resolver,
-      runTypeScopesOnField,
+      this.runTypeScopesOnField(typeConfig),
       authorizedOnSubscribe,
     );
 
@@ -83,6 +84,99 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     }
 
     return resolver;
+  }
+
+  /**
+   * Returns a resolver that resolves the type policy from `info.parentType` (the concrete type the
+   * field is being resolved on) rather than from the interface that declared the field.
+   *
+   * The resolver for each concrete type is built once, the first time a field is resolved on that
+   * type, and memoized by type name.
+   */
+  createInheritedFieldResolver(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+    declaringTypeConfig: PothosInterfaceTypeConfig,
+    authorizedOnSubscribe: boolean,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const resolversByType = new Map<
+      string,
+      GraphQLFieldResolver<unknown, Types['Context'], object>
+    >();
+
+    const resolverForType = (typeName: string) => {
+      let cached = resolversByType.get(typeName);
+
+      if (!cached) {
+        const ownerTypeConfig = this.getOwnerTypeConfig(typeName, declaringTypeConfig);
+
+        const steps = this.createResolveSteps(
+          fieldConfig,
+          declaringTypeConfig,
+          resolver,
+          this.runTypeScopesOnField(declaringTypeConfig),
+          authorizedOnSubscribe,
+          ownerTypeConfig,
+        );
+
+        cached = steps.length > 1 ? resolveHelper(steps, this, fieldConfig) : resolver;
+
+        resolversByType.set(typeName, cached);
+      }
+
+      return cached;
+    };
+
+    return (parent, args, context, info) =>
+      resolverForType(info.parentType.name)(parent, args, context, info);
+  }
+
+  /**
+   * Resolves the config for the concrete type a field is being resolved on. Types that have no
+   * Pothos config (types added to the schema outside of the builder) fall back to the declaring
+   * interface, preserving the previous behavior rather than throwing at resolve time.
+   */
+  getOwnerTypeConfig(
+    typeName: string,
+    declaringTypeConfig: PothosInterfaceTypeConfig,
+  ): PothosInterfaceTypeConfig | PothosObjectTypeConfig {
+    if (typeName === declaringTypeConfig.name) {
+      return declaringTypeConfig;
+    }
+
+    let config: PothosObjectTypeConfig | undefined;
+
+    try {
+      config = this.buildCache.getTypeConfig(typeName, 'Object');
+    } catch {
+      return declaringTypeConfig;
+    }
+
+    return config;
+  }
+
+  runTypeScopesOnField(
+    typeConfig:
+      | PothosInterfaceTypeConfig
+      | PothosMutationTypeConfig
+      | PothosObjectTypeConfig
+      | PothosQueryTypeConfig
+      | PothosSubscriptionTypeConfig,
+  ) {
+    const nonRoot =
+      (typeConfig.graphqlKind === 'Interface' || typeConfig.graphqlKind === 'Object') &&
+      typeConfig.kind !== 'Query' &&
+      typeConfig.kind !== 'Mutation' &&
+      typeConfig.kind !== 'Subscription';
+
+    return (
+      !nonRoot ||
+      !(
+        typeConfig.pothosOptions.runScopesOnType ??
+        this.builder.options.scopeAuth?.runScopesOnType ??
+        false
+      )
+    );
   }
 
   override wrapSubscribe(
@@ -237,21 +331,45 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     shouldRunTypeScopes: boolean,
     authorizedOnSubscribe: boolean,
+    ownerTypeConfig?: PothosInterfaceTypeConfig | PothosObjectTypeConfig,
   ): ResolveStep<Types>[] {
-    const stepsForType =
-      shouldRunTypeScopes && !authorizedOnSubscribe
-        ? this.createStepsForType(typeConfig, {
-            skipTypeScopes:
-              ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.graphqlKind === 'Object') &&
-                fieldConfig.pothosOptions.skipTypeScopes) ??
-              false,
-            skipInterfaceScopes:
-              ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.kind === 'Object') &&
-                fieldConfig.pothosOptions.skipInterfaceScopes) ??
-              false,
-            forField: true,
-          })
-        : [];
+    const skipScopeOptions = {
+      skipTypeScopes:
+        ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.graphqlKind === 'Object') &&
+          fieldConfig.pothosOptions.skipTypeScopes) ??
+        false,
+      skipInterfaceScopes:
+        ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.kind === 'Object') &&
+          fieldConfig.pothosOptions.skipInterfaceScopes) ??
+        false,
+      forField: true,
+    };
+
+    const stepsForType: ResolveStep<Types>[] = [];
+
+    if (!authorizedOnSubscribe) {
+      if (shouldRunTypeScopes) {
+        stepsForType.push(...this.createStepsForType(typeConfig, skipScopeOptions));
+      }
+
+      // For a field inherited from an interface, also enforce the policy of the concrete type the
+      // field is being resolved on. Steps the declaring interface already contributed are not
+      // repeated, and `runScopesOnType` is read from the concrete type so that a type running its
+      // scopes in `isTypeOf` does not also run them here.
+      if (
+        ownerTypeConfig &&
+        ownerTypeConfig !== typeConfig &&
+        this.runTypeScopesOnField(ownerTypeConfig)
+      ) {
+        const seen = new Set(stepsForType.map((step) => step.key));
+
+        for (const step of this.createStepsForType(ownerTypeConfig, skipScopeOptions)) {
+          if (!step.key || !seen.has(step.key)) {
+            stepsForType.push(step);
+          }
+        }
+      }
+    }
 
     const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
     const fieldGrantScopes = fieldConfig.pothosOptions.grantScopes;
