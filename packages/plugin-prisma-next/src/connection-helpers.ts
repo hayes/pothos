@@ -35,10 +35,24 @@ import {
 import { getRefFromContractModel } from './utils/refs.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
+/**
+ * The shape `wrap` hands back on each edge. `resolveNode` replaces every `edge.node`, so
+ * when one is configured the node is the callback's return type; otherwise the node stays
+ * the row the caller passed to `wrap`.
+ *
+ * `Node` defaults to `never` rather than to `Row<Types, M>` so that helpers without a
+ * `resolveNode` keep inferring the node from `wrap`'s argument — a caller who narrows the
+ * collection's selection before materializing it must not be handed the full model row.
+ * `[Node] extends [never]` is the naked-`never` guard: a bare `Node extends never`
+ * distributes and would collapse to `never`.
+ */
+export type ConnectionNodeShape<Node, WrapRow> = [Node] extends [never] ? WrapRow : Node;
+
 export interface PrismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Args extends InputFieldMap = {},
+  Node = never,
 > {
   ref: PrismaNextObjectRef<Types, M>;
   /**
@@ -60,7 +74,7 @@ export interface PrismaConnectionHelpers<
     wrap<WrapRow extends Record<string, unknown>>(
       rows: readonly WrapRow[],
       totalCount?: number,
-    ): ConnectionPage<WrapRow>;
+    ): ConnectionPage<ConnectionNodeShape<Node, WrapRow>>;
   }>;
   getArgs(): Args;
   connectionOptions<T extends object>(connectionOptions: T): T;
@@ -71,6 +85,7 @@ export function prismaConnectionHelpers<
   M extends ModelName<Types>,
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
+  Node = never,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   modelName: M,
@@ -112,9 +127,14 @@ export function prismaConnectionHelpers<
             import('@pothos/plugin-relay').DefaultConnectionArguments,
           ctx: Types['Context'],
         ) => unknown);
-    resolveNode?: (edge: Row<Types, M>) => unknown;
+    /**
+     * `Node` is inferred from this callback's return type and becomes the node on every
+     * edge `wrap` returns. Omitting `resolveNode` leaves `Node` at its `never` default,
+     * which hands the node position back to `wrap`'s own row inference.
+     */
+    resolveNode?: (edge: Row<Types, M>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args> {
+): PrismaConnectionHelpers<Types, M, Args, Node> {
   const ref = getRefFromContractModel<Types, M>(modelName, builder);
 
   // `options.args` may be a literal or a thunk `(t) => argMap`; resolve
@@ -214,7 +234,7 @@ export function prismaConnectionHelpers<
         wrap<WrapRow extends Record<string, unknown>>(
           rows: readonly WrapRow[],
           totalCount?: number,
-        ): ConnectionPage<WrapRow> {
+        ): ConnectionPage<ConnectionNodeShape<Node, WrapRow>> {
           const page = buildConnectionPage(rows, pagination);
           // Apply resolveNode after buildConnectionPage so the cursor
           // encoder still sees the original row columns.
@@ -227,7 +247,10 @@ export function prismaConnectionHelpers<
           if (totalCount !== undefined) {
             (page as { totalCount?: number }).totalCount = totalCount;
           }
-          return page;
+          // The loop above is what makes the declared node shape true; `page` is still
+          // typed from `rows`, and the conditional can't be resolved against an
+          // unbound `Node` here.
+          return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow>>;
         },
       });
 

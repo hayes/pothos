@@ -149,6 +149,29 @@ function buildSchema() {
     resolveNode: (edge) => ({ id: edge.id, name: edge.firstName }),
   });
 
+  // Helper with a *wrapper*-shaped `resolveNode` — the documented shape
+  // (docs/connections.mdx) where the node is an object holding the row plus
+  // metadata, so none of the row's own columns are reachable on the node.
+  // `namesOnly` above cannot catch a lost node shape because its result happens
+  // to keep an `id` of its own.
+  const decoratedUsers = prismaConnectionHelpers(builder, 'User', {
+    cursor: 'id',
+    defaultSize: 10,
+    resolveNode: (row) => ({ user: row, decoratedAt: 'decorated' }),
+  });
+
+  const DecoratedUser = builder
+    .objectRef<{ user: { id: string; firstName: string }; decoratedAt: string }>('DecoratedUser')
+    .implement({
+      fields: (t) => ({
+        // Read *through* the wrapper. If `wrap` handed back the untransformed
+        // row, `parent.user` would be undefined and these would throw.
+        userId: t.string({ resolve: (parent) => parent.user.id }),
+        firstName: t.string({ resolve: (parent) => parent.user.firstName }),
+        decoratedAt: t.exposeString('decoratedAt'),
+      }),
+    });
+
   // Thunk form for `args` — closes over the InputFieldBuilder lazily.
   const userSearchThunkArgs = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
@@ -230,6 +253,33 @@ function buildSchema() {
           );
           const rows = await collection.all();
           return wrap(rows) as never;
+        },
+      }),
+      // Wrapper-shaped `resolveNode` end-to-end: the GraphQL node type reads
+      // through the wrapper, so this field only resolves if `wrap` really did
+      // replace each `edge.node`.
+      //
+      // Note the missing `as never` on the `wrap` call below — the only helper
+      // call site in this file without one. Now that the node shape is inferred
+      // from `resolveNode`, `wrap`'s result checks structurally against the
+      // `DecoratedUser` node this connection declares. Before, it was typed as
+      // the User row and could only be forced through with a cast.
+      decoratedUsers: t.connection({
+        type: DecoratedUser,
+        args: decoratedUsers.getArgs(),
+        resolve: async (_p, args, _ctx) => {
+          // `info` is deliberately withheld: the auto-include mapper descends into
+          // `edges.node` and requires that type to be prisma-backed, which a
+          // wrapper node is not. Without it the collection materializes the full
+          // row, which is what the wrapper holds anyway.
+          const { collection, wrap } = await decoratedUsers.applyPagination(
+            ctx.ormClient.User,
+            args,
+            undefined,
+            _ctx,
+          );
+          const rows = await collection.all();
+          return wrap(rows);
         },
       }),
       // Helper-with-callable-totalCount — exercises the callback path
@@ -930,6 +980,67 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
       expect(edge.cursor).toBeTruthy();
       expect(edge.node.id).toBeTruthy();
     }
+  });
+
+  it('prismaConnectionHelpers resolveNode: a wrapper node resolves through the wrapper', async () => {
+    // `resolveNode: (row) => ({ user: row, decoratedAt })` — none of the row's own
+    // columns survive on the node, so every field here has to reach through
+    // `parent.user`. This is the shape `namesOnly` cannot exercise.
+    const result = await runQuery(
+      '{ decoratedUsers(first: 10) { edges { cursor node { userId firstName decoratedAt } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const data = result.data as {
+      decoratedUsers: {
+        edges: Array<{
+          cursor: string;
+          node: { userId: string; firstName: string; decoratedAt: string };
+        }>;
+      };
+    };
+
+    expect(data.decoratedUsers.edges).toHaveLength(2);
+    expect(data.decoratedUsers.edges.map((edge) => edge.node.userId)).toEqual(['u-alice', 'u-bob']);
+    for (const edge of data.decoratedUsers.edges) {
+      // The defect this guards: before the node shape was inferred, a caller could
+      // read `node.id` as a `string` and get `undefined`.
+      expect(edge.node.userId).toBeTruthy();
+      expect(edge.node.firstName).toBeTruthy();
+      expect(edge.node.decoratedAt).toBe('decorated');
+    }
+  });
+
+  it('prismaConnectionHelpers resolveNode: cursors still encode the original rows', async () => {
+    // `resolveNode` mutates `edge.node` after `buildConnectionPage` has built the
+    // cursor getters, which close over the pre-transform row (utils/cursors.ts).
+    // Paginating with the returned `endCursor` proves the mutation left the cursor
+    // encoding intact.
+    const page1 = await runQuery(
+      '{ decoratedUsers(first: 1) { pageInfo { endCursor hasNextPage } edges { cursor node { userId } } } }',
+    );
+    expect(page1.errors).toBeUndefined();
+    const first = page1.data as {
+      decoratedUsers: {
+        pageInfo: { endCursor: string; hasNextPage: boolean };
+        edges: Array<{ cursor: string; node: { userId: string } }>;
+      };
+    };
+
+    expect(first.decoratedUsers.edges).toHaveLength(1);
+    expect(first.decoratedUsers.edges[0]!.node.userId).toBe('u-alice');
+    expect(first.decoratedUsers.edges[0]!.cursor).toBeTruthy();
+    expect(first.decoratedUsers.edges[0]!.cursor).toBe(first.decoratedUsers.pageInfo.endCursor);
+    expect(first.decoratedUsers.pageInfo.hasNextPage).toBe(true);
+
+    const page2 = await runQuery(
+      `{ decoratedUsers(first: 1, after: "${first.decoratedUsers.pageInfo.endCursor}") { edges { node { userId } } } }`,
+    );
+    expect(page2.errors).toBeUndefined();
+    const second = page2.data as {
+      decoratedUsers: { edges: Array<{ node: { userId: string } }> };
+    };
+    expect(second.decoratedUsers.edges).toHaveLength(1);
+    expect(second.decoratedUsers.edges[0]!.node.userId).toBe('u-bob');
   });
 
   it('totalCount rejection does NOT crash queries that did not select totalCount', async () => {
