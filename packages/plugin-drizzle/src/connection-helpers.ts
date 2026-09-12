@@ -182,7 +182,8 @@ export function drizzleConnectionHelpers<
       defaultSize: typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize,
       args,
       orderBy:
-        (typeof orderBy === 'function' ? orderBy(table) : orderBy) ??
+        // The callback is public API and takes the Drizzle table, not its relational config.
+        (typeof orderBy === 'function' ? orderBy(table.table) : orderBy) ??
         getSchemaConfig(builder).getPrimaryKey(tableName),
       extras: (fieldQuery as { extras?: DrizzleCursorConnectionQueryOptions['extras'] }).extras,
       where,
