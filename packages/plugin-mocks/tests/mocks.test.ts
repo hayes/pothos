@@ -242,6 +242,78 @@ describe('mock maps that are not plain objects', () => {
 
     expect(await queryHello(mocks)).toEqual({ data: { hello: 'mocked' } });
   });
+
+  it('uses mocks a Proxy supplies for a built-in member name', async () => {
+    const collidingBuilder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    collidingBuilder.queryType({
+      fields: (t) => ({
+        toString: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    const fieldMocks = new Proxy(
+      {},
+      {
+        get: () => () => 'mocked',
+      },
+    );
+
+    const schema = collidingBuilder.toSchema({
+      mocks: { Query: fieldMocks } as unknown as MockMap,
+    });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          toString
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { toString: 'mocked' } });
+  });
+
+  it('uses mocks a Proxy supplies for a type named like a built-in member', async () => {
+    const collidingBuilder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    const Constructor = collidingBuilder.objectRef<{}>('constructor').implement({
+      fields: (t) => ({
+        call: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    collidingBuilder.queryType({
+      fields: (t) => ({
+        obj: t.field({ type: Constructor, resolve: () => ({}) }),
+      }),
+    });
+
+    const typeMocks = new Proxy(
+      {},
+      {
+        get: (_target, key) => (key === 'constructor' ? { call: () => 'mocked' } : undefined),
+      },
+    );
+
+    const schema = collidingBuilder.toSchema({ mocks: typeMocks as unknown as MockMap });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          obj {
+            call
+          }
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { obj: { call: 'mocked' } } });
+  });
 });
 
 describe('interface field mock lookups', () => {

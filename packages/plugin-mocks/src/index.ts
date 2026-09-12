@@ -9,27 +9,22 @@ import type { ResolverMap } from './types.js';
 
 const pluginName = 'mocks';
 
-// Values inherited from these prototypes are never mocks, they are built-in members that happen to
-// share a name with a type or field (`toString`, `constructor`, `call`, ...).
+// Members of these prototypes are never mocks, they are built-ins that happen to share a name with
+// a type or field (`toString`, `constructor`, `call`, ...).
 const builtInPrototypes: object[] = [Object.prototype, Function.prototype];
 
-function isBuiltInMember(map: object, key: string) {
-  for (
-    let proto: object | null = Object.getPrototypeOf(map) as object | null;
-    proto !== null;
-    proto = Object.getPrototypeOf(proto) as object | null
-  ) {
-    if (Object.hasOwn(proto, key)) {
-      return builtInPrototypes.includes(proto);
-    }
-  }
-
-  return false;
+// Checks whether the value a mock map returned for a key *is* the built-in inherited for that name,
+// rather than whether some prototype happens to define the name. A Proxy or a prototype that
+// supplies its own `toString` mock returns a different value than `Object.prototype.toString`.
+function isBuiltInValue(map: object, key: string, value: unknown) {
+  return builtInPrototypes.some(
+    (proto) => Object.hasOwn(proto, key) && Reflect.get(proto, key, map) === value,
+  );
 }
 
-// Looks a key up in a user provided mock map. Values the map provides itself are used as is, even
-// when they come from a prototype or a Proxy, but built-in members are ignored so that types and
-// fields the user never mocked keep their original resolvers.
+// Looks a key up in a user provided mock map. Values the map provides are used as is, even when
+// they come from a prototype, a class or a Proxy, but inherited built-ins are ignored so that types
+// and fields the user never mocked keep their original resolvers.
 function lookupMock<T>(map: Record<string, T> | undefined, key: string): T | undefined {
   if (map === undefined) {
     return undefined;
@@ -41,7 +36,7 @@ function lookupMock<T>(map: Record<string, T> | undefined, key: string): T | und
     return value;
   }
 
-  return isBuiltInMember(map, key) ? undefined : value;
+  return isBuiltInValue(map, key, value) ? undefined : value;
 }
 
 export default pluginName;
