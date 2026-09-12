@@ -30,8 +30,17 @@ either the field option or the object type's option suppresses it. The concrete 
 now also skips the concrete type's. A check skipped by either flag cannot come back through the
 concrete type's list of implemented interfaces.
 
-The implementing type's `grantScopes` now also reach inherited fields, which can newly _authorize_
-an interface field that uses `$granted`.
+Two parts of this change can newly _authorize_ a field instead of denying it:
 
-Schemas using `runScopesOnType: true` are unaffected — that option already ran the concrete type's
-scopes in `isTypeOf`, which covers inherited fields.
+- The implementing type's `grantScopes` now reach inherited fields, so an interface field using
+  `$granted` can start passing because the concrete type grants the scope.
+- `skipInterfaceScopes` on an interface field now suppresses the declaring interface's own
+  `authScopes`, which it could not reach before. A field carrying that flag under an interface with
+  `authScopes` was denied and now resolves.
+
+`runScopesOnType: true` set on an object type or globally is unaffected: that option already ran the
+concrete type's scopes in `isTypeOf`, which covers inherited fields. Set on an _interface_ it is
+affected — the interface's scopes are moved off its own fields, and because an interface has no
+`isTypeOf` they previously ran nowhere for inherited fields while still denying the implementing
+type's own fields. They are now enforced through the implementing type's interface list, so a field
+inherited from such an interface can newly deny.

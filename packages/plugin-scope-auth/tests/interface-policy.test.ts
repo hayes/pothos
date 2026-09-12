@@ -464,6 +464,141 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
   });
 });
 
+describe('interface level runScopesOnType with inherited fields', () => {
+  const builder = createBuilder();
+
+  // `runScopesOnType` on an interface moves its scopes off its own fields. Interfaces have no
+  // `isTypeOf`, so the only place left to enforce them is the interface list of the concrete type.
+  const Iface = builder.interfaceRef<{ kind: string }>('RunOnIface').implement({
+    runScopesOnType: true,
+    authScopes: { admin: true },
+    resolveType: (parent) => parent.kind,
+    fields: (t) => ({
+      inherited: t.string({ resolve: () => 'ok' }),
+    }),
+  });
+
+  const Obj = builder.objectRef<{ kind: string }>('RunOnIfaceObj').implement({
+    interfaces: [Iface],
+    authScopes: { objOk: true },
+    fields: (t) => ({
+      own: t.string({ resolve: () => 'ok' }),
+    }),
+  });
+
+  builder.queryType({
+    fields: (t) => ({
+      obj: t.field({ type: Obj, nullable: true, resolve: () => ({ kind: 'RunOnIfaceObj' }) }),
+    }),
+  });
+
+  const schema = builder.toSchema();
+
+  it('enforces the interface scopes on an inherited field', async () => {
+    const result = await run(schema, '{ obj { inherited } }', createContext({ objOk: true }));
+
+    expect(result.data).toEqual({ obj: { inherited: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for RunOnIface',
+    ]);
+  });
+
+  it('enforces the same interface scopes on the object own field', async () => {
+    const result = await run(schema, '{ obj { own } }', createContext({ objOk: true }));
+
+    expect(result.data).toEqual({ obj: { own: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for RunOnIface',
+    ]);
+  });
+
+  it('resolves both fields once the interface scopes pass', async () => {
+    const result = await run(
+      schema,
+      '{ obj { inherited own } }',
+      createContext({ admin: true, objOk: true }),
+    );
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ obj: { inherited: 'ok', own: 'ok' } });
+  });
+});
+
+describe('interfaces extended by the declaring interface', () => {
+  const builder = createBuilder();
+
+  const Base = builder.interfaceRef<{ kind: string }>('ChainBase').implement({
+    authScopes: { admin: true },
+    resolveType: (parent) => parent.kind,
+    fields: (t) => ({
+      base: t.string({ resolve: () => 'ok' }),
+    }),
+  });
+
+  const Mid = builder.interfaceRef<{ kind: string }>('ChainMid').implement({
+    interfaces: [Base],
+    resolveType: (parent) => parent.kind,
+    fields: (t) => ({
+      mid: t.string({ resolve: () => 'ok' }),
+    }),
+  });
+
+  const SkipObj = builder.objectRef<{ kind: string }>('ChainSkipObj').implement({
+    interfaces: [Mid, Base],
+    skipInterfaceScopes: true,
+    fields: (t) => ({
+      own: t.string({ resolve: () => 'ok' }),
+    }),
+  });
+
+  const KeepObj = builder.objectRef<{ kind: string }>('ChainKeepObj').implement({
+    interfaces: [Mid, Base],
+    fields: (t) => ({
+      own: t.string({ resolve: () => 'ok' }),
+    }),
+  });
+
+  builder.queryType({
+    fields: (t) => ({
+      skipObj: t.field({
+        type: SkipObj,
+        nullable: true,
+        resolve: () => ({ kind: 'ChainSkipObj' }),
+      }),
+      keepObj: t.field({
+        type: KeepObj,
+        nullable: true,
+        resolve: () => ({ kind: 'ChainKeepObj' }),
+      }),
+    }),
+  });
+
+  const schema = builder.toSchema();
+
+  it('skips interfaces extended by the declaring interface when the object skips interface scopes', async () => {
+    const result = await run(schema, '{ skipObj { mid own } }', createContext());
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ skipObj: { mid: 'ok', own: 'ok' } });
+  });
+
+  it('still runs interfaces extended by the declaring interface without the skip', async () => {
+    const result = await run(schema, '{ keepObj { mid } }', createContext());
+
+    expect(result.data).toEqual({ keepObj: { mid: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for ChainBase',
+    ]);
+  });
+
+  it('resolves the chained interface field once its scopes pass', async () => {
+    const result = await run(schema, '{ keepObj { mid base } }', createContext({ admin: true }));
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ keepObj: { mid: 'ok', base: 'ok' } });
+  });
+});
+
 describe('subscriptions with inherited interface fields', () => {
   const builder = new SchemaBuilder<{ Context: Context; AuthScopes: Scopes }>({
     plugins: [ScopeAuthPlugin],

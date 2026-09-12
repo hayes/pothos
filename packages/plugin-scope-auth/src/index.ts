@@ -367,6 +367,10 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
             // The interface's `grantScopes` still run: `skipInterfaceScopes` opts out of auth
             // checks, and dropping the grant would newly deny `$granted` interface fields.
             skipTypeScopes: skipScopeOptions.skipTypeScopes || skipDeclaringInterfaceScopes,
+            // The interfaces the declaring interface extends are interface scopes too, so the
+            // concrete type's `skipInterfaceScopes` must reach them as well as the field option.
+            skipInterfaceScopes:
+              skipScopeOptions.skipInterfaceScopes || skipDeclaringInterfaceScopes,
           }),
         );
       }
@@ -376,12 +380,21 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       // repeated, and `runScopesOnType` is read from the concrete type so that a type running its
       // scopes in `isTypeOf` does not also run them here.
       if (inherited && this.runTypeScopesOnField(ownerTypeConfig)) {
-        // The declaring interface's own auth check belongs to the pass above, including its
-        // decision to omit it for `skipTypeScopes` or `skipInterfaceScopes`. The concrete type
-        // implements that interface, so its interface walk below would otherwise add the check back
-        // through a gate the pass above does not share, undoing an explicit opt out. Seeding the
-        // key covers the omitted case; steps that were emitted are added to the set below.
-        const seen = new Set<string | undefined>([typeAuthScopesStepKey(typeConfig.name)]);
+        const seen = new Set<string | undefined>();
+
+        // When the pass above ran, the declaring interface's own auth check is its decision to
+        // make, including the decision to omit it for `skipTypeScopes` or `skipInterfaceScopes`.
+        // The concrete type implements that interface, so its interface walk below would otherwise
+        // add the check back through a gate the pass above does not share, undoing an explicit opt
+        // out. Seeding the key covers the omitted case; emitted steps are added below.
+        //
+        // `runScopesOnType` on the declaring interface is not such an opt out: it skips the pass
+        // above entirely, moving the interface's scopes off its own fields. An interface has no
+        // `isTypeOf` to move them to, so the concrete type's interface list is the only place left
+        // to enforce them, and the key is deliberately not seeded.
+        if (shouldRunTypeScopes) {
+          seen.add(typeAuthScopesStepKey(typeConfig.name));
+        }
 
         for (const step of stepsForType) {
           seen.add(step.key);
