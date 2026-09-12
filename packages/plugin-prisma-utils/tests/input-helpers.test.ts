@@ -4,8 +4,6 @@ import { type GraphQLInputObjectType, graphql } from 'graphql';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import PrismaUtils from '../src';
 
-// These tests only exercise the input-helper builders, which never touch the prisma
-// client or the database, so they run without a generated client.
 type ItemModel = PrismaModelTypes & {
   Name: 'Item';
   OrderBy: { id?: 'asc' | 'desc'; value?: 'asc' | 'desc' };
@@ -71,8 +69,6 @@ describe('prismaListFilter', () => {
         hello: t.int({
           args: { filter: t.arg({ type: ItemListFilter, required: true }) },
           resolve: (_parent, args) => {
-            // `some` is absent for `filter: {}`, so it must be optional in the arg type
-            // rather than something resolvers may dereference unguarded.
             expectTypeOf(args.filter.some).toEqualTypeOf<{ id?: number | null } | undefined>();
             expect(args.filter.some).toBeUndefined();
 

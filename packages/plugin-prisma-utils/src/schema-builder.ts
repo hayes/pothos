@@ -281,9 +281,6 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
           fieldDefs[field] = t.field({
             required: false,
             ...fieldOptions,
-            // Scalar field callbacks return options without a `type` (see
-            // `PrismaOrderByFields`), and sort by the order enum. Relation callbacks
-            // provide the nested order-by input themselves.
             type: fieldType ?? this.orderByEnum(),
           });
         } else if (typeof fieldOption === 'boolean') {
