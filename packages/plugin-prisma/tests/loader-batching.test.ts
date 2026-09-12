@@ -221,6 +221,36 @@ const User = builder.prismaObject('User', {
   }),
 });
 
+const AsyncIdUser = builder.prismaNode('User', {
+  variant: 'AsyncIdUser',
+  id: {
+    resolve: async (user) => {
+      await macrotask();
+
+      return String(user.id);
+    },
+  },
+  findUnique: (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    titles: t.stringList({
+      select: { posts: postsSelect },
+      resolve: (user) => user.posts.map((post) => post.title),
+    }),
+  }),
+});
+
+const SyncIdUser = builder.prismaNode('User', {
+  variant: 'SyncIdUser',
+  id: { resolve: (user) => String(user.id) },
+  findUnique: (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    titles: t.stringList({
+      select: { posts: postsSelect },
+      resolve: (user) => user.posts.map((post) => post.title),
+    }),
+  }),
+});
+
 // The same rows behind a field that returns each of them a different number of macrotasks later:
 // the shape a batch cannot hold together, and the control the counts below are read against.
 const StaggeredUser = builder.prismaObject('User', {
@@ -250,6 +280,14 @@ builder.queryType({
     }),
     staggeredUsers: t.field({
       type: [StaggeredUser],
+      resolve: () => prisma.user.findMany({ take: ROWS, orderBy: { id: 'asc' } }),
+    }),
+    rawAsyncIdUsers: t.field({
+      type: [AsyncIdUser],
+      resolve: () => prisma.user.findMany({ take: ROWS, orderBy: { id: 'asc' } }),
+    }),
+    rawSyncIdUsers: t.field({
+      type: [SyncIdUser],
       resolve: () => prisma.user.findMany({ take: ROWS, orderBy: { id: 'asc' } }),
     }),
     // The same rows with their posts loaded raw beside them, so the nested list resolves
@@ -283,15 +321,20 @@ async function count(document: DocumentNode): Promise<Counted> {
 
   queries.length = 0;
 
-  const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+  let issued: { action: string; args: { include?: unknown } }[];
+  let batches: number;
 
-  expect(result.errors).toBeUndefined();
+  try {
+    const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
 
-  const issued = [...queries] as { action: string; args: { include?: unknown } }[];
-  const batches = initLoad.mock.calls.length;
+    expect(result.errors).toBeUndefined();
 
-  queries.length = 0;
-  initLoad.mockRestore();
+    issued = [...queries] as typeof issued;
+    batches = initLoad.mock.calls.length;
+  } finally {
+    queries.length = 0;
+    initLoad.mockRestore();
+  }
 
   const loads = issued.filter((query) => query.action !== 'findMany');
 
@@ -335,6 +378,15 @@ describe('model loader batching under async selections', () => {
     expect(async.batches).toBe(sync.batches);
     expect(async.loads).toBe(sync.loads);
     expect(async).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
+  });
+
+  it('batches a list of rows whose node IDs resolve asynchronously', async () => {
+    const sync = await count(gql`{ rawSyncIdUsers { titles } }`);
+    const async = await count(gql`{ rawAsyncIdUsers { titles } }`);
+
+    expect(sync).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
+    expect(async).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
+    expect(async.selections).toBe(sync.selections);
   });
 
   it('batches two async selections that settle in one drain', async () => {

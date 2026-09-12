@@ -12,7 +12,7 @@ import { ModelLoader } from './model-loader.js';
 import { PrismaNodeRef } from './node-ref.js';
 import { PrismaObjectRef } from './object-ref.js';
 import { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
-import type { PrismaModelTypes, PrismaNodeOptions } from './types.js';
+import type { PrismaDelegate, PrismaModelTypes, PrismaNodeOptions } from './types.js';
 import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors.js';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel.js';
 import { getModelDescription } from './util/description.js';
@@ -117,8 +117,13 @@ schemaBuilderProto.prismaNode = function prismaNode(
   const typeName = variant ?? name ?? type;
   const nodeRef = new PrismaNodeRef(typeName, type);
   const findUnique = rawFindUnique
-    ? (parent: unknown, context: {}) =>
-        rawFindUnique(resolve(parent as never, context) as string, context)
+    ? (parent: unknown, context: {}) => {
+        const id = resolve(parent as never, context);
+
+        return isThenable(id)
+          ? id.then((settled) => rawFindUnique(settled as string, context))
+          : rawFindUnique(id as string, context);
+      }
     : ModelLoader.getFindUniqueForField(nodeRef, type, fieldName, this);
 
   const extendedOptions = {
@@ -130,25 +135,27 @@ schemaBuilderProto.prismaNode = function prismaNode(
 
   const ref = this.prismaObject(type, extendedOptions as never);
 
-  // Built once per node type: loading with a synchronous plan issues the query in the same tick,
-  // without a promise or closure of its own.
-  const loadNode = (query: object, id: string, context: SchemaTypes['Context']) => {
-    const delegate = getDelegateFromModel(getClient(this, context), type);
-    const where = rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) };
-
-    return (
-      delegate.findUniqueOrThrow && !nullable
-        ? delegate.findUniqueOrThrow({ ...query, where } as never)
-        : delegate.findUnique({
-            ...query,
-            ...(nullable ? {} : { rejectOnNotFound: true }),
-            where,
-          } as never)
+  const loadWhere = (delegate: PrismaDelegate, query: object, where: {}) =>
+    (delegate.findUniqueOrThrow && !nullable
+      ? delegate.findUniqueOrThrow({ ...query, where } as never)
+      : delegate.findUnique({
+          ...query,
+          ...(nullable ? {} : { rejectOnNotFound: true }),
+          where,
+        } as never)
     ).then((record: unknown) => {
       brandWithType(record, typeName as OutputType<SchemaTypes>);
 
       return record;
     });
+
+  const loadNode = (query: object, id: string, context: SchemaTypes['Context']) => {
+    const delegate = getDelegateFromModel(getClient(this, context), type);
+    const where = rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) };
+
+    return isThenable(where)
+      ? where.then((settled) => loadWhere(delegate, query, settled as {}))
+      : loadWhere(delegate, query, where as {});
   };
 
   (this as typeof this & { nodeRef: (ref: unknown, options: unknown) => unknown }).nodeRef(ref, {

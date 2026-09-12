@@ -24,7 +24,7 @@ export class ModelLoader {
 
   builder: PothosSchemaTypes.SchemaBuilder<never>;
 
-  findUnique: (model: Record<string, unknown>, ctx: {}) => unknown;
+  findUnique: (model: Record<string, unknown>, ctx: {}) => MaybePromise<unknown>;
 
   modelName: string;
 
@@ -45,7 +45,7 @@ export class ModelLoader {
     context: object,
     builder: PothosSchemaTypes.SchemaBuilder<never>,
     modelName: string,
-    findUnique: (model: Record<string, unknown>, ctx: {}) => unknown,
+    findUnique: (model: Record<string, unknown>, ctx: {}) => MaybePromise<unknown>,
   ) {
     this.context = context;
     this.builder = builder;
@@ -56,7 +56,10 @@ export class ModelLoader {
   static forRef<Types extends SchemaTypes>(
     ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
-    findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | null | undefined,
+    findUnique:
+      | ((model: Record<string, unknown>, ctx: {}) => MaybePromise<unknown>)
+      | null
+      | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
     return createContextCache(
@@ -314,38 +317,42 @@ export class ModelLoader {
     this.tick.then(() => {
       this.staged.delete(entry);
 
-      // A throw here — `toQuery`, `findUnique`, or the delegate call itself — would otherwise abort
-      // the loop, leaving every model it had not reached pending forever and the request with it.
-      // The whole batch rejects instead, the way drizzle's loader does; a promise the loop already
-      // settled ignores it. Caught rather than chained so the tick still allocates no promise of
-      // its own.
-      try {
-        for (const [model, { resolve, reject }] of entry.models) {
-          if (delegate.findUniqueOrThrow) {
-            delegate
-              .findUniqueOrThrow({
-                ...prismaAdapter.toQuery(entry.root),
-                where: {
-                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
-                },
-              } as never)
-              .then(resolve as () => {}, reject);
-          } else {
-            delegate
-              .findUnique({
-                rejectOnNotFound: true,
-                ...prismaAdapter.toQuery(entry.root),
-                where: {
-                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
-                },
-              } as never)
-              .then(resolve as () => {}, reject);
-          }
-        }
-      } catch (error) {
+      const rejectBatch = (error: unknown) => {
         for (const { reject } of entry.models.values()) {
           reject(error);
         }
+      };
+
+      const load = (where: {}) =>
+        delegate.findUniqueOrThrow
+          ? delegate.findUniqueOrThrow({
+              ...prismaAdapter.toQuery(entry.root),
+              where: { ...where },
+            } as never)
+          : delegate.findUnique({
+              rejectOnNotFound: true,
+              ...prismaAdapter.toQuery(entry.root),
+              where: { ...where },
+            } as never);
+
+      try {
+        for (const [model, { resolve, reject }] of entry.models) {
+          const where = this.findUnique(model as Record<string, unknown>, this.context);
+
+          if (isThenable(where)) {
+            where.then((settled) => {
+              try {
+                load(settled as {}).then(resolve as () => {}, reject);
+              } catch (error) {
+                reject(error);
+              }
+            }, reject);
+          } else {
+            load(where as {}).then(resolve as () => {}, reject);
+          }
+        }
+      } catch (error) {
+        rejectBatch(error);
       }
     });
     setTimeout(() => nextTick.resolve(), 0);
