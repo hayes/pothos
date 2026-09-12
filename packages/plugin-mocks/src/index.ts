@@ -11,7 +11,6 @@ const pluginName = 'mocks';
 
 const builtInPrototypes: object[] = [Object.prototype, Function.prototype];
 
-// Descriptors, not property reads: `Function.prototype.caller` and `arguments` throw when read.
 function findDeclaringPrototype(map: object, key: string) {
   for (
     let proto: object | null = Object.getPrototypeOf(map) as object | null;
