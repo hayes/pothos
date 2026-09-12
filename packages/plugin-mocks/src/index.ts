@@ -23,6 +23,19 @@ export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
 
     const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
 
+    // Fields defined on an interface are shared by every type that implements it, so mocks for the
+    // concrete object type can only be resolved when the field is executed.
+    if (fieldConfig.graphqlKind === 'Interface') {
+      return (parent, args, context, info) => {
+        const mock =
+          info.parentType.name === fieldConfig.parentType
+            ? resolveMock
+            : (this.resolveMock(info.parentType.name, fieldConfig.name, mocks) ?? resolveMock);
+
+        return (mock ?? resolver)(parent, args, context, info);
+      };
+    }
+
     return resolveMock ?? resolver;
   }
 
