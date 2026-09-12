@@ -119,13 +119,13 @@ export const createNumberValidator = validatorCreator(
   (options: NumberValidationOptions) => {
     let validator = zod.number();
 
-    if (options.min) {
+    if (options.min !== undefined) {
       validator = Array.isArray(options.min)
         ? validator.min(Number(options.min[0]), options.min[1])
         : validator.min(Number(options.min));
     }
 
-    if (options.max) {
+    if (options.max !== undefined) {
       validator = Array.isArray(options.max)
         ? validator.max(Number(options.max[0]), options.max[1])
         : validator.max(Number(options.max));
@@ -174,13 +174,13 @@ export const createStringValidator = validatorCreator(
         : validator.length(options.length);
     }
 
-    if (options.minLength) {
+    if (options.minLength !== undefined) {
       validator = Array.isArray(options.minLength)
         ? validator.min(options.minLength[0], options.minLength[1])
         : validator.min(options.minLength);
     }
 
-    if (options.maxLength) {
+    if (options.maxLength !== undefined) {
       validator = Array.isArray(options.maxLength)
         ? validator.max(options.maxLength[0], options.maxLength[1])
         : validator.max(options.maxLength);
@@ -232,13 +232,13 @@ export function createArrayValidator(
       : validator.length(options.length);
   }
 
-  if (options.minLength) {
+  if (options.minLength !== undefined) {
     validator = Array.isArray(options.minLength)
       ? validator.min(options.minLength[0], options.minLength[1])
       : validator.min(options.minLength);
   }
 
-  if (options.maxLength) {
+  if (options.maxLength !== undefined) {
     validator = Array.isArray(options.maxLength)
       ? validator.max(options.maxLength[0], options.maxLength[1])
       : validator.max(options.maxLength);
