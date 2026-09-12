@@ -1,4 +1,4 @@
-import { createContextCache, type SchemaTypes } from '@pothos/core';
+import { createContextCache, type RootName, type SchemaTypes } from '@pothos/core';
 import {
   type GraphQLNamedType,
   isEnumType,
@@ -11,16 +11,58 @@ import {
 
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 
+export const importedRootKinds = createContextCache(() => new Map<string, RootName | null>());
+
+export function isUnintendedRoot<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  type: { name: string } | null | undefined,
+  kind: RootName,
+) {
+  if (!type) {
+    return false;
+  }
+
+  const importedKinds = importedRootKinds(builder);
+
+  if (!importedKinds.has(type.name)) {
+    return false;
+  }
+
+  const importedKind = importedKinds.get(type.name);
+
+  if (importedKind === kind) {
+    return false;
+  }
+
+  return importedKind === null ? kind !== 'Query' : true;
+}
+
+function hasRootType<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  kind: RootName,
+) {
+  for (const config of builder.configStore.typeConfigs.values()) {
+    if (config.kind === kind) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function addTypeToSchema<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: GraphQLNamedType,
+  rootKind?: RootName | null,
 ) {
   if (builder.configStore.hasConfig(type.name as never)) {
     return;
   }
 
   if (isObjectType(type)) {
-    builder.addGraphQLObject(type);
+    builder.addGraphQLObject(type, {
+      rootKind: rootKind && hasRootType(builder, rootKind) ? null : rootKind,
+    });
   } else if (isInterfaceType(type)) {
     builder.addGraphQLInterface(type);
   } else if (isUnionType(type)) {
