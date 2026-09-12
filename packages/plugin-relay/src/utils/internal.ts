@@ -14,6 +14,37 @@ export function internalEncodeGlobalID<Types extends SchemaTypes>(
   return encodeGlobalID(typename, id);
 }
 
+function getParseGlobalID(typename: string, info: PartialResolveInfo) {
+  return info.schema.getType(typename)?.extensions?.pothosParseGlobalID as
+    | ((id: string, ctx: object) => unknown)
+    | undefined;
+}
+
+/**
+ * Normalizes a `GlobalIDShape` (`{ id, type }`) the same way a global ID string is normalized.
+ *
+ * `GlobalIDShape.id` is an `ID` scalar, never an already-parsed `IDShape`, so a node type
+ * configuring `id.parse` must have it applied here too — otherwise `loadOne`/`loadMany` receive
+ * a raw id through this path and the parsed id through the string path, despite being typed to
+ * always receive the parsed one.
+ */
+export function internalNormalizeGlobalIDShape(
+  typename: string,
+  id: unknown,
+  ctx: object,
+  info: PartialResolveInfo,
+): { id: unknown; rawId?: string; typename: string } {
+  const parseID = getParseGlobalID(typename, info);
+
+  if (!parseID) {
+    return { typename, id };
+  }
+
+  const rawId = String(id);
+
+  return { typename, id: parseID(rawId, ctx), rawId };
+}
+
 export function internalDecodeGlobalID<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   globalID: string,
@@ -49,10 +80,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   }
 
   if (parseIdsForTypes) {
-    const parseID = info.schema.getType(decoded.typename)?.extensions?.pothosParseGlobalID as (
-      id: string,
-      ctx: object,
-    ) => string;
+    const parseID = getParseGlobalID(decoded.typename, info);
 
     if (parseID) {
       return {

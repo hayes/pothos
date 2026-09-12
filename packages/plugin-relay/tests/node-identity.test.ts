@@ -225,4 +225,73 @@ describe('node identity for parsed ids', () => {
     expect(result.data).toEqual({ nodes: [{ key: 1 }, { key: 1 }, { key: 2 }] });
     expect(batches).toEqual([[{ key: 1 }, { key: 2 }]]);
   });
+
+  describe('a GlobalIDShape and a global ID string for the same node', () => {
+    // `GlobalIDShape.id` is an `ID` scalar, not an already-parsed `IDShape`, so both paths
+    // must apply `id.parse` and hand loaders the shape they are typed to receive. Keying on
+    // the raw id makes both paths share one cache entry, so a shape-supplied field appearing
+    // first must not be able to poison a string-supplied one (or vice versa).
+    function build() {
+      const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });
+
+      const calls: unknown[] = [];
+
+      const User = builder.objectRef<{ id: number }>('User');
+
+      builder.node(User, {
+        isTypeOf: () => true,
+        id: { resolve: (user) => user.id, parse: (id) => ({ key: Number(id) }) },
+        loadOne: (id) => {
+          calls.push(id);
+
+          return { id: id.key };
+        },
+        fields: (t) => ({ key: t.int({ nullable: true, resolve: (user) => user.id }) }),
+      });
+
+      builder.queryType({
+        fields: (t) => ({
+          shape: t.node({ id: () => ({ id: '1', type: User }) }),
+          str: t.node({ id: () => encodeGlobalID('User', '1') }),
+        }),
+      });
+
+      return { schema: builder.toSchema(), calls };
+    }
+
+    it.each([
+      ['shape first', '{ a: shape { ...F } b: str { ...F } }'],
+      ['string first', '{ a: str { ...F } b: shape { ...F } }'],
+    ])('resolves both to the parsed id with %s', async (_name, selection) => {
+      const { schema, calls } = build();
+
+      const result = await graphql({
+        schema,
+        source: `${selection} fragment F on User { key }`,
+        contextValue: {},
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ a: { key: 1 }, b: { key: 1 } });
+      expect(calls).toEqual([{ key: 1 }]);
+    });
+
+    it('resolves a root node field alongside a shape-supplied field', async () => {
+      const { schema, calls } = build();
+
+      const result = await graphql({
+        schema,
+        source: `query($id: ID!) {
+          a: shape { ... on User { key } }
+          b: node(id: $id) { ... on User { key } }
+        }`,
+        variableValues: { id: encodeGlobalID('User', '1') },
+        contextValue: {},
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ a: { key: 1 }, b: { key: 1 } });
+      expect(calls).toEqual([{ key: 1 }]);
+    });
+  });
 });

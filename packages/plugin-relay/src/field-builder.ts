@@ -17,7 +17,11 @@ import type {
   GlobalIDShape,
 } from './types.js';
 import { capitalize, resolveNodes } from './utils/index.js';
-import { internalDecodeGlobalID, internalEncodeGlobalID } from './utils/internal.js';
+import {
+  internalDecodeGlobalID,
+  internalEncodeGlobalID,
+  internalNormalizeGlobalIDShape,
+} from './utils/internal.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -124,10 +128,13 @@ fieldBuilderProto.node = function node({ id, ...options }) {
       const globalID =
         typeof rawID === 'string'
           ? internalDecodeGlobalID(this.builder, rawID, context, info, true)
-          : rawID && {
-              id: rawID.id,
-              typename: this.builder.configStore.getTypeConfig(rawID.type).name,
-            };
+          : rawID &&
+            internalNormalizeGlobalIDShape(
+              this.builder.configStore.getTypeConfig(rawID.type).name,
+              rawID.id,
+              context,
+              info,
+            );
 
       return (await resolveNodes(this.builder, context, info, [globalID]))[0];
     },
@@ -161,10 +168,13 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
       const globalIds = rawIds.map((id) =>
         typeof id === 'string'
           ? internalDecodeGlobalID(this.builder, id, context, info, true)
-          : id && {
-              id: id.id,
-              typename: this.builder.configStore.getTypeConfig(id.type).name,
-            },
+          : id &&
+            internalNormalizeGlobalIDShape(
+              this.builder.configStore.getTypeConfig(id.type).name,
+              id.id,
+              context,
+              info,
+            ),
       );
 
       return resolveNodes(this.builder, context, info, globalIds);
