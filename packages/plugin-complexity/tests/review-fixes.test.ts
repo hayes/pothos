@@ -56,7 +56,9 @@ describe('zero limits', () => {
     });
 
     expect(result.errors).toHaveLength(1);
-    expect(result.errors?.[0].message).toBe('Query exceeds maximum complexity (complexity: 1, max: 0)');
+    expect(result.errors?.[0].message).toBe(
+      'Query exceeds maximum complexity (complexity: 1, max: 0)',
+    );
   });
 });
 

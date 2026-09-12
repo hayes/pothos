@@ -27,7 +27,7 @@ export function createComplexityRule({
   ) => void;
 }) {
   const complexityValidationRule: ValidationRule = (validationContext) => {
-    const state = {
+    let state = {
       complexity: 0,
       depth: 0,
       breadth: 0,
@@ -45,6 +45,14 @@ export function createComplexityRule({
     return {
       OperationDefinition: {
         enter: (node) => {
+          // Each operation in a document is executed on its own, so limits apply per operation
+          // rather than to the document as a whole.
+          state = {
+            complexity: 0,
+            depth: 0,
+            breadth: 0,
+          };
+
           const type = schema.getRootType(node.operation);
 
           if (!type) {
