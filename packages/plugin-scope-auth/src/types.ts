@@ -179,8 +179,7 @@ type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
         : Scope extends '$any'
           ? ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>
           : Scope extends '$all'
-            ? // A `$any` nested in this map is intersected here, so its contexts are reported as
-              // guaranteed when only one of them is.
+            ? // A nested `$any`'s contexts are reported as guaranteed when only one of them holds.
               UnionToIntersection<ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>>
             : Types['Context']
       : never;

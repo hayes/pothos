@@ -5,10 +5,8 @@ import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin from '../src';
 import { db } from './example/db';
 
-// NOTE: the `@ts-expect-error` below is the real assertion in this file, and `pnpm test` does NOT
-// check it — vitest's typecheck reports `Type Errors  no errors` even when the type is wrong. Run
-// `pnpm --filter @pothos/plugin-scope-auth run type` (tsc against tsconfig.type.json), where a
-// regression surfaces as TS2578 "Unused '@ts-expect-error' directive".
+// vitest's typecheck reports `Type Errors  no errors` even when the `@ts-expect-error` below is
+// unused; only `run type` (tsc) reports that, as TS2578.
 
 interface Context {
   user: { id: string } | null;
