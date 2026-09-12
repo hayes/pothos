@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import type { PrismaModelTypes } from '@pothos/plugin-prisma';
-import type { GraphQLInputObjectType } from 'graphql';
-import { describe, expect, it } from 'vitest';
+import { type GraphQLInputObjectType, graphql } from 'graphql';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import PrismaUtils from '../src';
 
 // These tests only exercise the input-helper builders, which never touch the prisma
@@ -57,5 +57,50 @@ describe('prismaOrderBy', () => {
 
     expect(field.type.toString()).toBe('OrderBy');
     expect(field.description).toBe('Sort ID');
+  });
+});
+
+describe('prismaListFilter', () => {
+  it('types operations as optional because they are optional at runtime', async () => {
+    const builder = createBuilder();
+    const ItemWhere = builder.inputType('ItemWhere', { fields: (t) => ({ id: t.int() }) });
+    const ItemListFilter = builder.prismaListFilter(ItemWhere, { ops: ['some'] });
+
+    builder.queryType({
+      fields: (t) => ({
+        hello: t.int({
+          args: { filter: t.arg({ type: ItemListFilter, required: true }) },
+          resolve: (_parent, args) => {
+            // `some` is absent for `filter: {}`, so it must be optional in the arg type
+            // rather than something resolvers may dereference unguarded.
+            expectTypeOf(args.filter.some).toEqualTypeOf<{ id?: number | null } | undefined>();
+            expect(args.filter.some).toBeUndefined();
+
+            return args.filter.some?.id ?? 0;
+          },
+        }),
+      }),
+    });
+
+    await expect(
+      graphql({ schema: builder.toSchema(), source: '{ hello(filter: {}) }' }),
+    ).resolves.toEqual({ data: { hello: 0 } });
+  });
+
+  it('infers operation names from a readonly ops tuple', () => {
+    const builder = createBuilder();
+    const ItemWhere = builder.inputType('ItemWhere', { fields: (t) => ({ id: t.int() }) });
+    const ItemListFilter = builder.prismaListFilter(ItemWhere, { ops: ['some', 'none'] as const });
+
+    builder.queryType({
+      fields: (t) => ({
+        hello: t.int({
+          args: { filter: t.arg({ type: ItemListFilter, required: true }) },
+          resolve: (_parent, args) => args.filter.some?.id ?? args.filter.none?.id ?? 0,
+        }),
+      }),
+    });
+
+    expect(Object.keys(inputFields(builder, 'ListItemWhere')).sort()).toEqual(['none', 'some']);
   });
 });
