@@ -12,12 +12,17 @@ import {
   type NormalizeArgs,
   ObjectRef,
   type PluginName,
+  PothosSchemaError,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { type SelectedFieldNode, selectedFieldNames } from '@pothos/selection-mapper';
+import {
+  type IndirectPathSegment,
+  type SelectedFieldNode,
+  selectedFieldNames,
+} from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
@@ -38,10 +43,20 @@ import {
   prismaCursorConnectionQuery,
   wrapConnectionResult,
 } from './util/cursors.js';
-import { getRefFromModel, getRelation } from './util/datamodel.js';
+import { getDelegateFromModel, getRefFromModel, getRelation } from './util/datamodel.js';
 import { getFieldDescription } from './util/description.js';
+import { getClient } from './util/get-client.js';
+import type { FallbackPlanRecipe } from './util/map-query.js';
 
 import type { FieldMap } from './util/relation-map.js';
+
+// The two ways a relay connection exposes its nodes. Shared by the planned path's select function
+// and by the fallback's plan recipe, so the two plan the same selection by construction rather
+// than by two copies of the same guess drifting apart.
+const CONNECTION_NODE_PATHS: IndirectPathSegment[][] = [
+  [{ name: 'nodes' }],
+  [{ name: 'edges' }, { name: 'node' }],
+];
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -294,7 +309,7 @@ export class PrismaObjectFieldBuilder<
       // A maybe-promise query starts the nested plan now; its merge waits for the query.
       const nested = nestedQuery(getQuery(args, context), {
         getType: () => typeName!,
-        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
+        paths: CONNECTION_NODE_PATHS,
       }) as MaybePromise<SelectionMap>;
 
       const { hasTotalCount, totalCountOnly } = connectionSelectionFromNames(getSelection());
@@ -320,19 +335,89 @@ export class PrismaObjectFieldBuilder<
         (parent as { _count?: Record<string, number> })._count?.[name],
       );
 
+    // The fallback branch's count, which the parent row cannot carry: the rows it pages come from
+    // the user's own resolver, not from a query that could have selected `_count` alongside them.
+    // So the count is asked of the parent, through the same `findUnique` every other load of this
+    // parent uses, and asked lazily — a document that does not select `totalCount` never runs it.
+    const totalCountFromParent =
+      (
+        connectionQuery: { where?: {} },
+        parent: unknown,
+        context: {},
+        loaderCache: ((model: unknown) => ModelLoader) | undefined,
+      ) =>
+      () => {
+        const loader = loaderCache?.(context);
+
+        if (!loader) {
+          throw new PothosSchemaError(
+            `Unable to load totalCount for ${this.model}.${name}: no loader for the parent type`,
+          );
+        }
+
+        const countSelect =
+          this.builder.options.prisma.filterConnectionTotalCount !== false && connectionQuery.where
+            ? { where: connectionQuery.where }
+            : true;
+
+        return Promise.resolve(
+          getDelegateFromModel(
+            getClient(this.builder, context as never),
+            loader.modelName,
+          ).findUnique({
+            where: loader.findUnique(parent as Record<string, unknown>, context) as never,
+            select: { _count: { select: { [name]: countSelect } } },
+          } as never) as PromiseLike<{ _count?: Record<string, number> } | null>,
+        ).then((row) => row?._count?.[name] ?? 0);
+      };
+
     const resolveFallback =
       resolve &&
       ((
-        connectionQuery: {},
-        q: { take: number },
+        connectionQuery: { take: number; where?: {} },
+        q: {},
         parent: unknown,
         args: PothosSchemaTypes.DefaultConnectionArguments,
         context: {},
         info: GraphQLResolveInfo,
+        loaderCache: ((model: unknown) => ModelLoader) | undefined,
       ) =>
         Promise.resolve(
           resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
-        ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor)));
+        ).then((result) =>
+          wrapConnectionResult(
+            parent,
+            result,
+            args,
+            // The page size of the *connection* query, probe row included. `q` is the plan's
+            // selection map and has no `take` of its own; reading it there left every page
+            // reporting `hasNextPage: false`.
+            connectionQuery.take,
+            formatCursor,
+            totalCount
+              ? totalCountFromParent(connectionQuery, parent, context, loaderCache)
+              : undefined,
+          ),
+        ));
+
+    // The recipe for planning the fallback's own query. The field's return type is the relay
+    // wrapper, which has no model, so the planner is told the same three things `relationSelect`
+    // already computes for the planned path: the node type (from `ref`, never the wrapper, so a
+    // shared connection object still resolves to one model), the paths down to it, and the cursor
+    // columns to seed so `formatCursor` has something to read. Every value here is static, fixed
+    // where the field is defined; the plan itself is still built per request from `info`.
+    const fallbackPlan: FallbackPlanRecipe | undefined =
+      typeof resolve === 'function'
+        ? () => {
+            typeName ??= this.builder.configStore.getTypeConfig(ref).name;
+
+            return {
+              typeName,
+              paths: CONNECTION_NODE_PATHS,
+              initial: { select: { ...cursorSelection } },
+            };
+          }
+        : undefined;
 
     const fieldRef = (
       this as unknown as {
@@ -362,20 +447,30 @@ export class PrismaObjectFieldBuilder<
           pothosPrismaFallback:
             resolveFallback &&
             ((
-              q: { take: number },
+              q: {},
               parent: unknown,
               args: PothosSchemaTypes.DefaultConnectionArguments,
               context: {},
               info: GraphQLResolveInfo,
+              loaderCache: ((model: unknown) => ModelLoader) | undefined,
             ) => {
               const connectionQuery = getQuery(args, context);
 
               return isThenable(connectionQuery)
                 ? connectionQuery.then((resolved) =>
-                    resolveFallback(resolved as {}, q, parent, args, context, info),
+                    resolveFallback(
+                      resolved as { take: number },
+                      q,
+                      parent,
+                      args,
+                      context,
+                      info,
+                      loaderCache,
+                    ),
                   )
-                : resolveFallback(connectionQuery, q, parent, args, context, info);
+                : resolveFallback(connectionQuery, q, parent, args, context, info, loaderCache);
             }),
+          pothosPrismaFallbackPlan: fallbackPlan,
         },
         type: ref,
         resolve: (
@@ -400,14 +495,23 @@ export class PrismaObjectFieldBuilder<
             ...connectionOptions,
             fields: totalCount
               ? (
-                  t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
+                  t: PothosSchemaTypes.ObjectFieldBuilder<
+                    SchemaTypes,
+                    { totalCount?: number | (() => MaybePromise<number>) }
+                  >,
                 ) => ({
                   totalCount: t.int({
                     nullable: false,
                     extensions: {
                       pothosPrismaTotalCount: true,
                     },
-                    resolve: (parent, _args, _context) => parent.totalCount,
+                    // The loaded path has the count on the parent row already and passes the
+                    // number; the fallback has to go and ask for it, and passes a thunk so a
+                    // document that never selects this field never runs that query.
+                    resolve: (parent, _args, _context) =>
+                      typeof parent.totalCount === 'function'
+                        ? parent.totalCount()
+                        : parent.totalCount,
                   }),
                   ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
                 })

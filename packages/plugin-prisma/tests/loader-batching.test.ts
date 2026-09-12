@@ -198,8 +198,8 @@ const User = builder.prismaObject('User', {
       },
       resolve: (query, user) => prisma.post.findMany({ ...query, where: { authorId: user.id } }),
     }),
-    // Planned through `fallbackQueryFromInfo` and resolved a row at a time, rather than through
-    // the model loader.
+    // No `resolve` of its own, so no fallback is installed: an unplanned parent reloads itself
+    // through the model loader, which plans the connection with the field's own select function.
     postsConnection: t.relatedConnection('posts', {
       cursor: 'id',
       query: () => ({ orderBy: { id: 'asc' } }),
